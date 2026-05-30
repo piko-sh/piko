@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_swedish provides a Swedish phonetic
-// encoder for the linguistics package.
+// Package linguistics_phonetic_swedish provides a Swedish phonetic encoder for the
+// linguistics package.
 //
-// The encoder converts Swedish words into phonetic codes that enable
-// "sounds-like" matching, handling Swedish-specific patterns such as
-// SJ/TJ sounds, soft consonant rules, and retroflexes. It
-// self-registers via an init function so that a blank import is
-// sufficient to make it available through the registry.
+// The encoder converts Swedish words into phonetic codes that enable "sounds-like"
+// matching, handling Swedish-specific patterns such as SJ/TJ sounds, soft consonant
+// rules, and retroflexes. It self-registers via an init function so that a blank import
+// is sufficient to make it available through the registry.
 //
 // [Encoder] is safe for concurrent use.
 package linguistics_phonetic_swedish

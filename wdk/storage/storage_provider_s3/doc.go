@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_provider_s3 implements the storage provider port
-// using AWS S3.
+// Package storage_provider_s3 implements the storage provider port using AWS S3.
 //
-// It is compatible with S3-compatible services such as MinIO via a
-// custom endpoint URL. The provider handles multipart uploads, byte-
-// range reads, server-side copy, batch operations, pre-signed URL
-// generation, and rate limiting. Credentials fall back to the standard
-// AWS SDK credential chain when not explicitly provided.
+// It is compatible with S3-compatible services such as MinIO via a custom endpoint URL.
+// The provider handles multipart uploads, byte- range reads, server-side copy, batch
+// operations, pre-signed URL generation, and rate limiting. Credentials fall back to the
+// standard AWS SDK credential chain when not explicitly provided.
 //
 // All methods are safe for concurrent use.
 package storage_provider_s3

@@ -35,8 +35,8 @@ const (
 	// tagPikoCaptcha is the tag name for the piko:captcha server-side element.
 	tagPikoCaptcha = "piko:captcha"
 
-	// defaultCaptchaFieldName is the default hidden input name for the captcha
-	// token when no name attribute is specified.
+	// defaultCaptchaFieldName is the default hidden input name for the captcha token when no
+	// name attribute is specified.
 	defaultCaptchaFieldName = "_captcha_token"
 
 	// defaultCaptchaTheme is the default widget theme.
@@ -46,15 +46,16 @@ const (
 	defaultCaptchaSize = "normal"
 )
 
-// captchaRenderLog is the logger for captcha rendering operations.
-var captchaRenderLog = logger_domain.GetLogger("piko/internal/render/render_domain/captcha")
+var (
+	// captchaRenderLog is the logger for captcha rendering operations.
+	captchaRenderLog = logger_domain.GetLogger("piko/internal/render/render_domain/captcha")
 
-// captchaIDCounter generates unique IDs for captcha widget instances.
-var captchaIDCounter atomic.Uint64
+	// captchaIDCounter generates unique IDs for captcha widget instances.
+	captchaIDCounter atomic.Uint64
+)
 
-// captchaScriptInfo holds the script requirements collected during rendering
-// for a single captcha provider, used by the probe phase to add scripts to
-// the page head.
+// captchaScriptInfo holds the script requirements collected during rendering for a single
+// captcha provider, used by the probe phase to add scripts to the page head.
 type captchaScriptInfo struct {
 	// InitScriptArtefactID is the registry artefact ID for the init script.
 	InitScriptArtefactID string
@@ -63,33 +64,31 @@ type captchaScriptInfo struct {
 	SDKScriptURLs []string
 }
 
-// WithCaptchaService returns a RenderOrchestratorOption that sets the captcha
-// service used to render piko:captcha elements.
+// WithCaptchaService returns a RenderOrchestratorOption that sets the captcha service
+// used to render piko:captcha elements.
 //
-// Takes service (captcha_domain.CaptchaServicePort) which is the captcha
-// service to configure on the orchestrator.
+// Takes service (captcha_domain.CaptchaServicePort) which is the captcha service to
+// configure on the orchestrator.
 //
-// Returns RenderOrchestratorOption which applies the service to the
-// orchestrator.
+// Returns RenderOrchestratorOption which applies the service to the orchestrator.
 func WithCaptchaService(service captcha_domain.CaptchaServicePort) RenderOrchestratorOption {
 	return func(ro *RenderOrchestrator) {
 		ro.captchaService = service
 	}
 }
 
-// renderPikoCaptcha replaces a <piko:captcha> element with provider-specific
-// HTML, emitting a pre-populated hidden input for server-side providers or a
-// data-attribute container div with collected scripts for cloud providers.
+// renderPikoCaptcha replaces a <piko:captcha> element with provider-specific HTML,
+// emitting a pre-populated hidden input for server-side providers or a data-attribute
+// container div with collected scripts for cloud providers.
 //
-// Takes ro (*RenderOrchestrator) which is the orchestrator holding the captcha
-// service.
+// Takes ro (*RenderOrchestrator) which is the orchestrator holding the captcha service.
 //
 // Takes node (*ast_domain.TemplateNode) which is the piko:captcha AST element.
 //
 // Takes qw (*qt.Writer) which is the output writer for the rendered HTML.
 //
-// Takes rctx (*renderContext) which is the per-request render context for
-// collecting script metadata.
+// Takes rctx (*renderContext) which is the per-request render context for collecting
+// script metadata.
 //
 // Returns error which is non-nil if token generation fails.
 func renderPikoCaptcha(
@@ -139,11 +138,11 @@ func renderPikoCaptcha(
 	return renderClientSideCaptcha(requirements, qw, rctx, attrs)
 }
 
-// renderServerSideCaptcha outputs a pre-populated hidden input for providers
-// that generate tokens at render time (e.g. HMAC challenge).
+// renderServerSideCaptcha outputs a pre-populated hidden input for providers that
+// generate tokens at render time (e.g. HMAC challenge).
 //
-// Takes provider (captcha_domain.CaptchaProvider) which is the server-side
-// captcha provider.
+// Takes provider (captcha_domain.CaptchaProvider) which is the server-side captcha
+// provider.
 //
 // Takes qw (*qt.Writer) which is the output writer for the rendered HTML.
 //
@@ -182,8 +181,8 @@ func renderServerSideCaptcha(
 	return nil
 }
 
-// captchaWidgetParams holds the resolved attribute values for a single
-// piko:captcha element.
+// captchaWidgetParams holds the resolved attribute values for a single piko:captcha
+// element.
 type captchaWidgetParams struct {
 	// providerName is the configured captcha provider identifier.
 	providerName string
@@ -207,20 +206,19 @@ type captchaWidgetParams struct {
 	siteKey string
 }
 
-// renderClientSideCaptcha outputs a data-attribute container div (or hidden
-// input for invisible providers) and collects the required scripts for the
-// probe phase, emitting no inline scripts.
+// renderClientSideCaptcha outputs a data-attribute container div (or hidden input for
+// invisible providers) and collects the required scripts for the probe phase, emitting no
+// inline scripts.
 //
-// Takes requirements (*captcha_dto.RenderRequirements) which describes the
-// provider's rendering needs.
+// Takes requirements (*captcha_dto.RenderRequirements) which describes the provider's
+// rendering needs.
 //
 // Takes qw (*qt.Writer) which is the output writer for the rendered HTML.
 //
-// Takes rctx (*renderContext) which is the per-request render context for
-// collecting script metadata.
+// Takes rctx (*renderContext) which is the per-request render context for collecting
+// script metadata.
 //
-// Takes params (captchaWidgetParams) which holds the resolved element
-// attributes.
+// Takes params (captchaWidgetParams) which holds the resolved element attributes.
 //
 // Returns error which is always nil (reserved for future use).
 func renderClientSideCaptcha(
@@ -289,10 +287,9 @@ func renderClientSideCaptcha(
 	return nil
 }
 
-// writeCaptchaScriptTags outputs the external SDK and init script tags for all
-// captcha providers collected during rendering, using pre-resolved probe paths
-// when available or falling back to direct path construction for headless
-// renders.
+// writeCaptchaScriptTags outputs the external SDK and init script tags for all captcha
+// providers collected during rendering, using pre-resolved probe paths when available or
+// falling back to direct path construction for headless renders.
 //
 // Takes qw (*qt.Writer) which is the output writer for the script elements.
 //
@@ -318,15 +315,14 @@ func writeCaptchaScriptTags(qw *qt.Writer, rctx *renderContext) {
 	}
 }
 
-// collectCaptchaWidgetScriptURLs returns all SDK and init script URLs from the
-// collected captcha scripts. These are emitted as meta[name="pk-widget-script"]
-// tags in the page footer so the framework can discover and load them during
-// soft navigation.
+// collectCaptchaWidgetScriptURLs returns all SDK and init script URLs from the collected
+// captcha scripts. These are emitted as meta[name="pk-widget-script"] tags in the page
+// footer so the framework can discover and load them during soft navigation.
 //
 // Takes rctx (*renderContext) which holds the collected captcha script metadata.
 //
-// Returns []string which contains the SDK and init script URLs, or nil if no
-// captcha scripts were collected.
+// Returns []string which contains the SDK and init script URLs, or nil if no captcha
+// scripts were collected.
 func collectCaptchaWidgetScriptURLs(rctx *renderContext) []string {
 	if len(rctx.collectedCaptchaScripts) == 0 {
 		return nil
@@ -341,16 +337,16 @@ func collectCaptchaWidgetScriptURLs(rctx *renderContext) []string {
 	return urls
 }
 
-// resolveCaptchaInitScriptPath returns the pre-resolved serve path for a
-// captcha init script from probe data, falling back to a direct path
-// construction when probe data is unavailable (e.g. headless rendering).
+// resolveCaptchaInitScriptPath returns the pre-resolved serve path for a captcha init
+// script from probe data, falling back to a direct path construction when probe data is
+// unavailable (e.g. headless rendering).
 //
 // Takes rctx (*renderContext) which holds the probe data with resolved paths.
 //
 // Takes providerName (string) which identifies the captcha provider.
 //
-// Takes info (*captchaScriptInfo) which holds the artefact ID for fallback
-// path construction.
+// Takes info (*captchaScriptInfo) which holds the artefact ID for fallback path
+// construction.
 //
 // Returns string which is the serve path for the init script.
 func resolveCaptchaInitScriptPath(rctx *renderContext, providerName string, info *captchaScriptInfo) string {
@@ -367,11 +363,11 @@ func resolveCaptchaInitScriptPath(rctx *renderContext, providerName string, info
 
 // readCaptchaAttributes reads and defaults the piko:captcha element attributes.
 //
-// Takes node (*ast_domain.TemplateNode) which is the piko:captcha AST element
-// to read attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the piko:captcha AST element to read
+// attributes from.
 //
-// Returns captchaWidgetParams which holds the resolved attribute values with
-// defaults applied for missing fields.
+// Returns captchaWidgetParams which holds the resolved attribute values with defaults
+// applied for missing fields.
 func readCaptchaAttributes(node *ast_domain.TemplateNode) captchaWidgetParams {
 	p := captchaWidgetParams{
 		providerName: getStaticAttribute(node, "provider"),
@@ -392,14 +388,13 @@ func readCaptchaAttributes(node *ast_domain.TemplateNode) captchaWidgetParams {
 	return p
 }
 
-// sanitiseHTMLComment strips sequences that are forbidden or dangerous inside
-// HTML comments, replacing all "--" runs and removing "<" / ">" to prevent
-// spec violations and nested tag injection.
+// sanitiseHTMLComment strips sequences that are forbidden or dangerous inside HTML
+// comments, replacing all "--" runs and removing "<" / ">" to prevent spec violations and
+// nested tag injection.
 //
 // Takes message (string) which is the raw text to sanitise.
 //
-// Returns string which is the sanitised text safe for embedding in an HTML
-// comment.
+// Returns string which is the sanitised text safe for embedding in an HTML comment.
 func sanitiseHTMLComment(message string) string {
 	message = strings.ReplaceAll(message, "--", "")
 	message = strings.ReplaceAll(message, "<", "")
@@ -407,8 +402,8 @@ func sanitiseHTMLComment(message string) string {
 	return message
 }
 
-// getStaticAttribute returns the value of a static attribute on the node, or
-// empty string if not found.
+// getStaticAttribute returns the value of a static attribute on the node, or empty string
+// if not found.
 //
 // Takes node (*ast_domain.TemplateNode) which is the AST node to inspect.
 //

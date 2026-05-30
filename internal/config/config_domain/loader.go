@@ -53,24 +53,22 @@ const (
 	// defaultSeparator is the character used to split key-value pairs in maps.
 	defaultSeparator = ":"
 
-	// defaultResolverCacheTTL is the default time to live for resolver cache
-	// entries.
+	// defaultResolverCacheTTL is the default time to live for resolver cache entries.
 	defaultResolverCacheTTL = 15 * time.Second
 
-	// defaultResolverCacheSize is the maximum number of entries the resolver cache
-	// can hold.
+	// defaultResolverCacheSize is the maximum number of entries the resolver cache can hold.
 	defaultResolverCacheSize = 1000
 
-	// circuitBreakerTimeout is the duration the circuit stays open before
-	// allowing a test request through.
+	// circuitBreakerTimeout is the duration the circuit stays open before allowing a test
+	// request through.
 	circuitBreakerTimeout = 30 * time.Second
 
-	// circuitBreakerBucketPeriod is the duration of each measurement bucket
-	// for tracking failure counts.
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
 	circuitBreakerBucketPeriod = 10 * time.Second
 
-	// circuitBreakerConsecutiveFailures is the number of consecutive failures
-	// required to trip the circuit breaker.
+	// circuitBreakerConsecutiveFailures is the number of consecutive failures required to
+	// trip the circuit breaker.
 	circuitBreakerConsecutiveFailures = 5
 )
 
@@ -93,10 +91,9 @@ const (
 	// PassResolvers processes placeholder strings (e.g., for secrets).
 	PassResolvers
 
-	// PassProgrammaticOverrides applies programmatic overrides that take highest
-	// precedence, overwriting any values set by earlier passes. This ensures that
-	// values set via WithXxx functional options always win over YAML/env/flag
-	// values.
+	// PassProgrammaticOverrides applies programmatic overrides that take highest precedence,
+	// overwriting any values set by earlier passes. This ensures that values set via WithXxx
+	// functional options always win over YAML/env/flag values.
 	PassProgrammaticOverrides
 
 	// PassValidation validates the final populated struct.
@@ -106,29 +103,31 @@ const (
 	PassProgrammatic
 )
 
-// Pass represents a stage in the configuration loading process.
-// It implements fmt.Stringer.
+// Pass represents a stage in the configuration loading process. It implements
+// fmt.Stringer.
 type Pass int
 
-// passToString maps Pass constants to their string representations.
-// This is safer than a simple array lookup.
-var passToString = map[Pass]string{
-	PassDefaults:              "defaults",
-	PassFiles:                 "files",
-	PassDotEnv:                "dotenv",
-	PassEnv:                   "env",
-	PassFlags:                 "flags",
-	PassResolvers:             "resolvers",
-	PassProgrammaticOverrides: "programmatic_overrides",
-	PassValidation:            "validation",
-	PassProgrammatic:          "programmatic",
-}
+var (
+	// passToString maps Pass constants to their string representations. This is safer than a
+	// simple array lookup.
+	passToString = map[Pass]string{
+		PassDefaults:              "defaults",
+		PassFiles:                 "files",
+		PassDotEnv:                "dotenv",
+		PassEnv:                   "env",
+		PassFlags:                 "flags",
+		PassResolvers:             "resolvers",
+		PassProgrammaticOverrides: "programmatic_overrides",
+		PassValidation:            "validation",
+		PassProgrammatic:          "programmatic",
+	}
+)
 
-// String returns the string representation of the Pass value, implementing
-// the fmt.Stringer interface for better logging.
+// String returns the string representation of the Pass value, implementing the
+// fmt.Stringer interface for better logging.
 //
-// When the Pass value is unknown, it returns a formatted string like
-// "Pass(99)" instead of panicking.
+// When the Pass value is unknown, it returns a formatted string like "Pass(99)" instead
+// of panicking.
 //
 // Returns string which is the human-readable name of the pass.
 func (p Pass) String() string {
@@ -138,8 +137,8 @@ func (p Pass) String() string {
 	return fmt.Sprintf("Pass(%d)", p)
 }
 
-// FileReader provides an interface for reading files, used to allow testing
-// with mock file systems. Implements config_domain.FileReader.
+// FileReader provides an interface for reading files, used to allow testing with mock
+// file systems. Implements config_domain.FileReader.
 type FileReader interface {
 	// ReadFile reads the contents of the file at the given path.
 	//
@@ -153,8 +152,8 @@ type FileReader interface {
 // osFileReader implements the FileReader interface using os.ReadFile.
 type osFileReader struct{}
 
-// ReadFile reads the file at the given path using os.ReadFile.
-// Paths come from settings or environment, not user input.
+// ReadFile reads the file at the given path using os.ReadFile. Paths come from settings
+// or environment, not user input.
 //
 // Takes path (string) which specifies the file path to read.
 //
@@ -165,9 +164,8 @@ func (osFileReader) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// StructValidator defines the minimal interface for struct validation.
-// It is satisfied by the playground validator from the
-// validation_provider_playground WDK module.
+// StructValidator defines the minimal interface for struct validation. It is satisfied by
+// the playground validator from the validation_provider_playground WDK module.
 type StructValidator interface {
 	// Struct validates a struct's exposed fields based on validation tags.
 	//
@@ -179,72 +177,68 @@ type StructValidator interface {
 
 // LoaderOptions configures the behaviour of a Loader.
 type LoaderOptions struct {
-	// FileReader is the file reader to use, defaulting to osFileReader
-	// (os.ReadFile) when nil, primarily for testing purposes.
+	// FileReader is the file reader to use, defaulting to osFileReader (os.ReadFile) when
+	// nil, primarily for testing purposes.
 	FileReader FileReader
 
-	// ProgrammaticDefaults is a struct with default values to merge into the
-	// target. These have the lowest precedence and are overwritten by all other
-	// sources.
+	// ProgrammaticDefaults is a struct with default values to merge into the target. These
+	// have the lowest precedence and are overwritten by all other sources.
 	ProgrammaticDefaults any
 
-	// ProgrammaticOverrides contains values that take the highest precedence over
-	// all other configuration sources. Non-zero fields overwrite values from
-	// files, environment variables, flags, or resolvers, ensuring functional
-	// options (e.g., WithXxx) always win.
+	// ProgrammaticOverrides contains values that take the highest precedence over all other
+	// configuration sources. Non-zero fields overwrite values from files, environment
+	// variables, flags, or resolvers, ensuring functional options (e.g., WithXxx) always
+	// win.
 	ProgrammaticOverrides any
 
-	// Validator is the validation instance to use. If nil, the validation
-	// pass is skipped entirely.
+	// Validator is the validation instance to use. If nil, the validation pass is skipped
+	// entirely.
 	Validator StructValidator
 
-	// ResolverRegistry specifies which resolver registry to use; nil uses the
-	// global singleton. Used mainly for testing when UseGlobalResolvers is true.
+	// ResolverRegistry specifies which resolver registry to use; nil uses the global
+	// singleton. Used mainly for testing when UseGlobalResolvers is true.
 	ResolverRegistry *ResolverRegistry
 
-	// ResolverCacheTTL sets how long resolved values are kept in the cache.
-	// Zero or negative values disable caching.
+	// ResolverCacheTTL sets how long resolved values are kept in the cache. Zero or negative
+	// values disable caching.
 	ResolverCacheTTL *time.Duration
 
-	// FlagCoordinator is the flag coordinator to use; nil uses the global
-	// singleton. This is primarily for testing purposes.
+	// FlagCoordinator is the flag coordinator to use; nil uses the global singleton. This is
+	// primarily for testing purposes.
 	FlagCoordinator *FlagCoordinator
 
 	// EnvPrefix is an optional prefix added to all environment variable names.
 	EnvPrefix string
 
-	// FlagPrefix is the prefix for flag registration with the global coordinator.
-	// Flags are registered as "prefix.flagName" (e.g., "app.dbUrl"); empty means
-	// no prefix.
+	// FlagPrefix is the prefix for flag registration with the global coordinator. Flags are
+	// registered as "prefix.flagName" (e.g., "app.dbUrl"); empty means no prefix.
 	FlagPrefix string
 
 	// Resolvers is a list of custom resolvers that handle placeholder values.
 	Resolvers []Resolver
 
-	// PassOrder sets the order in which passes run. If nil or
-	// empty, uses the default order: [Defaults, Programmatic,
-	// Files, DotEnv, Env, Flags, Resolvers,
-	// ProgrammaticOverrides, Validation].
+	// PassOrder sets the order in which passes run. If nil or empty, uses the default order:
+	// [Defaults, Programmatic, Files, DotEnv, Env, Flags, Resolvers, ProgrammaticOverrides,
+	// Validation].
 	PassOrder []Pass
 
-	// FilePaths specifies the file paths to load and merge, where later files
-	// override earlier ones. Supports .json, .yaml and .yml extensions.
+	// FilePaths specifies the file paths to load and merge, where later files override
+	// earlier ones. Supports .json, .yaml and .yml extensions.
 	FilePaths []string
 
-	// UseGlobalResolvers, when true, adds all resolvers from the global registry
-	// to the Resolvers field.
+	// UseGlobalResolvers, when true, adds all resolvers from the global registry to the
+	// Resolvers field.
 	UseGlobalResolvers bool
 
-	// StrictFile enables strict mode for config files. When true, loading returns
-	// an error if a file contains fields that do not exist in the target struct.
+	// StrictFile enables strict mode for config files. When true, loading returns an error
+	// if a file contains fields that do not exist in the target struct.
 	StrictFile bool
 }
 
-// LoadContext holds the results of a loading operation, including debugging
-// information.
+// LoadContext holds the results of a loading operation, including debugging information.
 type LoadContext struct {
-	// FieldSources maps each field path to the source that set its value.
-	// For example, "Server.Port" might map to "env:SERVER_PORT".
+	// FieldSources maps each field path to the source that set its value. For example,
+	// "Server.Port" might map to "env:SERVER_PORT".
 	FieldSources map[string]string
 
 	// Target is the struct pointer after it has been filled in and checked.
@@ -256,16 +250,15 @@ type LoadContext struct {
 
 // Loader manages the process of loading and resolving configuration values.
 type Loader struct {
-	// resolverMap maps prefix strings to their Resolver for placeholder
-	// resolution.
+	// resolverMap maps prefix strings to their Resolver for placeholder resolution.
 	resolverMap map[string]Resolver
 
-	// resolverCache stores resolved values by key to avoid repeated lookups;
-	// nil disables caching.
+	// resolverCache stores resolved values by key to avoid repeated lookups; nil disables
+	// caching.
 	resolverCache *otter.Cache[string, string]
 
-	// validator checks struct field values against validation rules.
-	// When nil, the validation pass is skipped.
+	// validator checks struct field values against validation rules. When nil, the
+	// validation pass is skipped.
 	validator StructValidator
 
 	// fileReader reads file contents when loading settings.
@@ -289,10 +282,10 @@ type LoaderOption func(*Loader)
 
 // NewLoader creates a new configuration loader with the given options.
 //
-// Takes opts (LoaderOptions) which sets the base settings for the loader,
-// including validator, cache TTL, and component overrides.
-// Takes options (...LoaderOption) which provides optional settings to change
-// loader behaviour after creation.
+// Takes opts (LoaderOptions) which sets the base settings for the loader, including
+// validator, cache TTL, and component overrides.
+// Takes options (...LoaderOption) which provides optional settings to change loader
+// behaviour after creation.
 //
 // Returns *Loader which is ready to load and validate configuration files.
 func NewLoader(opts LoaderOptions, options ...LoaderOption) *Loader {
@@ -322,17 +315,16 @@ func (l *Loader) Close() {
 	}
 }
 
-// Load executes the full configuration loading and validation process.
-// It proceeds in distinct passes, with an order of precedence that can be
-// configured.
+// Load executes the full configuration loading and validation process. It proceeds in
+// distinct passes, with an order of precedence that can be configured.
 //
-// Takes ptr (any) which must be a pointer to a struct that will receive the
-// loaded configuration values.
+// Takes ptr (any) which must be a pointer to a struct that will receive the loaded
+// configuration values.
 //
-// Returns *LoadContext which contains metadata about the loading process,
-// including which source provided each field value.
-// Returns error when ptr is not a pointer to a struct, flag registration
-// fails, or any loading pass fails.
+// Returns *LoadContext which contains metadata about the loading process, including which
+// source provided each field value.
+// Returns error when ptr is not a pointer to a struct, flag registration fails, or any
+// loading pass fails.
 func (l *Loader) Load(ctx context.Context, ptr any) (*LoadContext, error) {
 	if v := reflect.ValueOf(ptr); v.Kind() != reflect.Pointer || v.Elem().Kind() != reflect.Struct {
 		return nil, fmt.Errorf("expected a pointer to a struct, got %T", ptr)
@@ -364,11 +356,11 @@ func (l *Loader) Load(ctx context.Context, ptr any) (*LoadContext, error) {
 	return loadCtx, nil
 }
 
-// shouldUseFlagCoordinator determines if the loader should use the flag
-// coordinator for flag parsing.
+// shouldUseFlagCoordinator determines if the loader should use the flag coordinator for
+// flag parsing.
 //
-// Returns bool which is true when PassFlags is in the pass order or the order
-// is empty (defaulting to include PassFlags).
+// Returns bool which is true when PassFlags is in the pass order or the order is empty
+// (defaulting to include PassFlags).
 func (l *Loader) shouldUseFlagCoordinator() bool {
 	order := l.opts.PassOrder
 	if len(order) == 0 {
@@ -378,8 +370,7 @@ func (l *Loader) shouldUseFlagCoordinator() bool {
 	return slices.Contains(order, PassFlags)
 }
 
-// buildResolverMap fills the resolver map using the options and the global
-// registry.
+// buildResolverMap fills the resolver map using the options and the global registry.
 func (l *Loader) buildResolverMap() {
 	if l.opts.UseGlobalResolvers {
 		globalResolvers := l.resolverRegistry.GetAll()
@@ -444,12 +435,10 @@ func (l *Loader) buildPasses() ([]passDefinition, error) {
 	return execPasses, nil
 }
 
-// applyProgrammaticDefaults implements the programmatic
-// defaults pass. It recursively merges the provided default
-// struct into the target struct.
+// applyProgrammaticDefaults implements the programmatic defaults pass. It recursively
+// merges the provided default struct into the target struct.
 //
-// Takes ptr (any) which is the target configuration struct to receive
-// default values.
+// Takes ptr (any) which is the target configuration struct to receive default values.
 //
 // Returns error when merging the default values into the target fails.
 func (l *Loader) applyProgrammaticDefaults(ptr any, _ *LoadContext) error {
@@ -468,9 +457,9 @@ func (l *Loader) applyProgrammaticDefaults(ptr any, _ *LoadContext) error {
 }
 
 // applyProgrammaticOverrides forcefully merges non-zero fields from the
-// ProgrammaticOverrides struct onto the target, overwriting any values that
-// were set by earlier passes (files, env vars, flags, resolvers). This ensures
-// values set via functional options always take highest precedence.
+// ProgrammaticOverrides struct onto the target, overwriting any values that were set by
+// earlier passes (files, env vars, flags, resolvers). This ensures values set via
+// functional options always take highest precedence.
 //
 // Takes ptr (any) which is the target struct to receive the overrides.
 // Takes ctx (*LoadContext) which provides the loading context.
@@ -495,8 +484,8 @@ func (l *Loader) applyProgrammaticOverrides(ptr any, ctx *LoadContext) error {
 //
 // When no validator is configured, the pass is silently skipped.
 //
-// Takes ptr (any) which is the configuration struct to validate against
-// its struct tag rules.
+// Takes ptr (any) which is the configuration struct to validate against its struct tag
+// rules.
 //
 // Returns error when any field fails its validation constraint.
 func (l *Loader) validateConfig(ptr any, _ *LoadContext) error {
@@ -522,8 +511,8 @@ func Load(ctx context.Context, ptr any, opts LoaderOptions) (*LoadContext, error
 	return loader.Load(ctx, ptr)
 }
 
-// WithDefaultResolvers returns an option that adds all built-in resolvers
-// which have no external dependencies.
+// WithDefaultResolvers returns an option that adds all built-in resolvers which have no
+// external dependencies.
 //
 // Returns LoaderOption which sets up the default resolvers on a Loader.
 func WithDefaultResolvers() LoaderOption {
@@ -538,8 +527,8 @@ func WithDefaultResolvers() LoaderOption {
 
 // newResolverCircuitBreaker creates a circuit breaker for resolver operations.
 //
-// Returns *gobreaker.CircuitBreaker[any] configured with standard settings
-// for config resolver operations.
+// Returns *gobreaker.CircuitBreaker[any] configured with standard settings for config
+// resolver operations.
 func newResolverCircuitBreaker() *gobreaker.CircuitBreaker[any] {
 	settings := gobreaker.Settings{
 		Name:         "config-resolver",
@@ -561,11 +550,11 @@ func newResolverCircuitBreaker() *gobreaker.CircuitBreaker[any] {
 // createResolverCache creates an otter cache with the specified TTL.
 // Returns nil if TTL is zero or negative.
 //
-// Takes ttl (*time.Duration) which specifies the cache entry lifetime,
-// or nil to use the default TTL.
+// Takes ttl (*time.Duration) which specifies the cache entry lifetime, or nil to use the
+// default TTL.
 //
-// Returns *otter.Cache[string, string] which is the configured cache,
-// or nil when the TTL is zero or negative.
+// Returns *otter.Cache[string, string] which is the configured cache, or nil when the TTL
+// is zero or negative.
 func createResolverCache(ttl *time.Duration) *otter.Cache[string, string] {
 	cacheTTL := defaultResolverCacheTTL
 	if ttl != nil {
@@ -594,11 +583,11 @@ func getFileReader(fr FileReader) FileReader {
 
 // getFlagCoordinator returns the given coordinator or the global one.
 //
-// Takes fc (*FlagCoordinator) which is the coordinator to use, or nil to use
-// the global one.
+// Takes fc (*FlagCoordinator) which is the coordinator to use, or nil to use the global
+// one.
 //
-// Returns *FlagCoordinator which is either fc if provided, or the global
-// coordinator if fc is nil.
+// Returns *FlagCoordinator which is either fc if provided, or the global coordinator if
+// fc is nil.
 func getFlagCoordinator(fc *FlagCoordinator) *FlagCoordinator {
 	if fc == nil {
 		return GetGlobalFlagCoordinator()
@@ -606,14 +595,13 @@ func getFlagCoordinator(fc *FlagCoordinator) *FlagCoordinator {
 	return fc
 }
 
-// getResolverRegistry returns the given registry or falls back to the global
-// one.
+// getResolverRegistry returns the given registry or falls back to the global one.
 //
-// Takes rr (*ResolverRegistry) which is the registry to use, or nil to use the
-// global registry.
+// Takes rr (*ResolverRegistry) which is the registry to use, or nil to use the global
+// registry.
 //
-// Returns *ResolverRegistry which is the given registry, or the global
-// registry if rr is nil.
+// Returns *ResolverRegistry which is the given registry, or the global registry if rr is
+// nil.
 func getResolverRegistry(rr *ResolverRegistry) *ResolverRegistry {
 	if rr == nil {
 		return GetGlobalResolverRegistry()
@@ -621,16 +609,14 @@ func getResolverRegistry(rr *ResolverRegistry) *ResolverRegistry {
 	return rr
 }
 
-// overrideStructs copies non-zero values from an overrides struct to a target
-// struct unconditionally, overwriting existing values. Unlike mergeStructs
-// (used for defaults), this does not check whether the target field already has
-// a value - the override always wins.
+// overrideStructs copies non-zero values from an overrides struct to a target struct
+// unconditionally, overwriting existing values. Unlike mergeStructs (used for defaults),
+// this does not check whether the target field already has a value - the override always
+// wins.
 //
-// Takes target (reflect.Value) which is the struct to receive overridden
-// values.
+// Takes target (reflect.Value) which is the struct to receive overridden values.
 // Takes overrides (reflect.Value) which contains the values to apply.
-// Takes prefix (string) which specifies the field path prefix for error
-// messages.
+// Takes prefix (string) which specifies the field path prefix for error messages.
 // Takes ctx (*LoadContext) which provides the loading context.
 //
 // Returns error when a field override fails to apply.
@@ -647,8 +633,8 @@ func overrideStructs(target, overrides reflect.Value, prefix string, ctx *LoadCo
 	return nil
 }
 
-// applyOverrideField copies a single non-zero field value from overrides to
-// target unconditionally.
+// applyOverrideField copies a single non-zero field value from overrides to target
+// unconditionally.
 //
 // Takes target (reflect.Value) which is the struct to copy the field into.
 // Takes fieldType (reflect.StructField) which describes the field metadata.
@@ -716,8 +702,8 @@ func isNil(i any) bool {
 	}
 }
 
-// mergeStructs copies non-zero values from a defaults struct to a target struct
-// by processing each field in turn.
+// mergeStructs copies non-zero values from a defaults struct to a target struct by
+// processing each field in turn.
 //
 // Takes target (reflect.Value) which is the struct to receive merged values.
 // Takes defaults (reflect.Value) which provides the default values.
@@ -739,8 +725,7 @@ func mergeStructs(target, defaults reflect.Value) error {
 // mergeField copies a single field value from defaults to target.
 //
 // Takes target (reflect.Value) which is the struct to merge values into.
-// Takes defaultFieldType (reflect.StructField) which describes the field to
-// merge.
+// Takes defaultFieldType (reflect.StructField) which describes the field to merge.
 // Takes defaultField (reflect.Value) which provides the default value.
 //
 // Returns error when the field value merge fails.
@@ -781,9 +766,8 @@ func mergeFieldValue(targetField, defaultField reflect.Value) error {
 
 // mergePtrField merges pointer fields, including pointers to structs.
 //
-// When the default field does not point to a struct, it copies the default
-// value to the target. When the target is nil, it creates a new value before
-// merging.
+// When the default field does not point to a struct, it copies the default value to the
+// target. When the target is nil, it creates a new value before merging.
 //
 // Takes targetField (reflect.Value) which is the pointer field to merge into.
 // Takes defaultField (reflect.Value) which is the pointer field with defaults.

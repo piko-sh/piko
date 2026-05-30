@@ -23,10 +23,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// CommandBarMode selects the prompt and routing of input typed into the
-// command bar. The bar is a single line at the bottom of the screen; the
-// mode controls whether submitted text is treated as a command, a filter
-// query, or a search query.
+// CommandBarMode selects the prompt and routing of input typed into the command bar. The
+// bar is a single line at the bottom of the screen; the mode controls whether submitted
+// text is treated as a command, a filter query, or a search query.
 type CommandBarMode int
 
 const (
@@ -36,22 +35,21 @@ const (
 	// CommandModeCommand routes Enter through the CommandRegistry.
 	CommandModeCommand
 
-	// CommandModeFilter routes Enter into the focused panel's filter,
-	// consuming only that panel's items list.
+	// CommandModeFilter routes Enter into the focused panel's filter, consuming only that
+	// panel's items list.
 	CommandModeFilter
 
-	// CommandModeSearch routes Enter into a substring search across the
-	// focused panel.
+	// CommandModeSearch routes Enter into a substring search across the focused panel.
 	CommandModeSearch
 )
 
-// commandBarMaxHistory caps the in-memory ring of recently-submitted
-// command lines.
-const commandBarMaxHistory = 20
+const (
+	// commandBarMaxHistory caps the in-memory ring of recently-submitted command lines.
+	commandBarMaxHistory = 20
+)
 
-// CommandBar is the bottom-of-screen single-line input used for ":"
-// commands, "/" filters, and "?" searches. Only one mode is active at a
-// time.
+// CommandBar is the bottom-of-screen single-line input used for ":" commands, "/"
+// filters, and "?" searches. Only one mode is active at a time.
 type CommandBar struct {
 	// registry resolves typed command names into handlers.
 	registry *CommandRegistry
@@ -115,11 +113,10 @@ func (c *CommandBar) Mode() CommandBarMode {
 	return c.mode
 }
 
-// Open activates the bar in the supplied mode and returns the cursor-blink
-// command from the underlying textinput.
+// Open activates the bar in the supplied mode and returns the cursor-blink command from
+// the underlying textinput.
 //
-// Takes mode (CommandBarMode) which selects routing; passing
-// CommandModeOff is a no-op.
+// Takes mode (CommandBarMode) which selects routing; passing CommandModeOff is a no-op.
 //
 // Returns tea.Cmd which is the cursor-blink command.
 func (c *CommandBar) Open(mode CommandBarMode) tea.Cmd {
@@ -146,8 +143,7 @@ func (c *CommandBar) Value() string {
 	return c.input.Value()
 }
 
-// SetWidth sizes the underlying input to fit width-2 cells (leaving room
-// for the prompt).
+// SetWidth sizes the underlying input to fit width-2 cells (leaving room for the prompt).
 //
 // Takes width (int) which is the bar's total width.
 func (c *CommandBar) SetWidth(width int) {
@@ -157,12 +153,12 @@ func (c *CommandBar) SetWidth(width int) {
 
 // Update handles input messages.
 //
-// When Enter is pressed the registered handler runs (in command mode) or a
-// submission message is returned (in filter/search modes). Esc closes the bar.
+// When Enter is pressed the registered handler runs (in command mode) or a submission
+// message is returned (in filter/search modes). Esc closes the bar.
 //
 // Takes msg (tea.Msg) which is the message to process.
-// Takes model (*Model) which is the host model passed to command handlers
-// in command mode.
+// Takes model (*Model) which is the host model passed to command handlers in command
+// mode.
 //
 // Returns tea.Cmd which is the resulting command.
 func (c *CommandBar) Update(msg tea.Msg, model *Model) tea.Cmd {
@@ -185,8 +181,8 @@ func (c *CommandBar) Update(msg tea.Msg, model *Model) tea.Cmd {
 	return cmd
 }
 
-// View renders the command bar to a single-line string of the supplied
-// width. Returns the empty string when the bar is inactive.
+// View renders the command bar to a single-line string of the supplied width. Returns the
+// empty string when the bar is inactive.
 //
 // Takes width (int) which is the available width.
 //
@@ -211,8 +207,7 @@ func (c *CommandBar) View(width int) string {
 
 // submit acts on the current input value according to the active mode.
 //
-// Takes model (*Model) which is passed to command handlers in command
-// mode.
+// Takes model (*Model) which is passed to command handlers in command mode.
 //
 // Returns tea.Cmd which is the resulting command.
 func (c *CommandBar) submit(model *Model) tea.Cmd {
@@ -237,14 +232,12 @@ func (c *CommandBar) submit(model *Model) tea.Cmd {
 	}
 }
 
-// runCommand parses value and dispatches to the registered handler, if
-// any.
+// runCommand parses value and dispatches to the registered handler, if any.
 //
 // Takes value (string) which is the typed input.
 // Takes model (*Model) which is passed to the handler.
 //
-// Returns tea.Cmd which is the handler's command, or a toast about the
-// missing command.
+// Returns tea.Cmd which is the handler's command, or a toast about the missing command.
 func (c *CommandBar) runCommand(value string, model *Model) tea.Cmd {
 	name, args, ok := ParseCommand(value)
 	if !ok || c.registry == nil {
@@ -261,8 +254,7 @@ func (c *CommandBar) runCommand(value string, model *Model) tea.Cmd {
 	return cmd.Run(args, model)
 }
 
-// recordHistory pushes value onto the history ring, evicting the oldest
-// entry when full.
+// recordHistory pushes value onto the history ring, evicting the oldest entry when full.
 //
 // Takes value (string) which is the typed line.
 func (c *CommandBar) recordHistory(value string) {

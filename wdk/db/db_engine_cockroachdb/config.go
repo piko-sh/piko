@@ -24,6 +24,9 @@ import (
 )
 
 // CockroachDB returns an EngineConfig for CockroachDB databases.
+//
+// Returns db.EngineConfig which wires the CockroachDB engine, driver name, and migration
+// dialect.
 func CockroachDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "postgres",

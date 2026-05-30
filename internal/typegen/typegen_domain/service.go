@@ -31,20 +31,20 @@ import (
 )
 
 const (
-	// filePermissions is the permission mode for created type definition files.
-	// Owner can read and write, group and others can only read.
+	// filePermissions is the permission mode for created type definition files. Owner can
+	// read and write, group and others can only read.
 	filePermissions = 0o640
 
-	// dirPermissions is the permission mode for created directories.
-	// Owner full access, group/other read and execute.
+	// dirPermissions is the permission mode for created directories. Owner full access,
+	// group/other read and execute.
 	dirPermissions = 0o750
 )
 
-// TypeDefinitionService manages TypeScript type definitions for the Piko
-// frontend framework.
+// TypeDefinitionService manages TypeScript type definitions for the Piko frontend
+// framework.
 //
-// The service copies embedded type definitions to a project's dist/ts/
-// directory for IDE integration during development.
+// The service copies embedded type definitions to a project's dist/ts/ directory for IDE
+// integration during development.
 type TypeDefinitionService struct {
 	// pikoTypes holds the embedded Piko framework type definitions.
 	pikoTypes embed.FS
@@ -55,21 +55,20 @@ type TypeDefinitionService struct {
 
 // EnsureOptions controls how type definitions are written.
 type EnsureOptions struct {
-	// OnlyIfNotExists skips writing files that already exist. The LSP uses this
-	// to avoid overwriting files written by the dev server.
+	// OnlyIfNotExists skips writing files that already exist. The LSP uses this to avoid
+	// overwriting files written by the dev server.
 	OnlyIfNotExists bool
 }
 
-// NewTypeDefinitionService creates a new TypeDefinitionService with the
-// provided type definitions.
+// NewTypeDefinitionService creates a new TypeDefinitionService with the provided type
+// definitions.
 //
-// The pikoTypes parameter should be the embedded filesystem containing
-// the built type definitions from typegen_frontend.
-// The actionStubTypes parameter should contain the embedded content of the
-// piko-actions-stub.d.ts file.
+// The pikoTypes parameter should be the embedded filesystem containing the built type
+// definitions from typegen_frontend. The actionStubTypes parameter should contain the
+// embedded content of the piko-actions-stub.d.ts file.
 //
-// Takes pikoTypes (embed.FS) which provides the embedded filesystem containing
-// the built type definitions from typegen_frontend.
+// Takes pikoTypes (embed.FS) which provides the embedded filesystem containing the built
+// type definitions from typegen_frontend.
 // Takes actionStubTypes (string) which provides the embedded content of the
 // piko-actions-stub.d.ts file.
 //
@@ -81,39 +80,35 @@ func NewTypeDefinitionService(pikoTypes embed.FS, actionStubTypes string) *TypeD
 	}
 }
 
-// EnsureTypeDefinitions copies all embedded type definitions to the specified
-// directory.
+// EnsureTypeDefinitions copies all embedded type definitions to the specified directory.
 //
-// Behaviour:
-//   - Creates the directory structure if it doesn't exist
-//   - Copies all Piko framework types (piko-ide.d.ts and subdirectories)
-//   - Writes the action stub types to piko-actions.d.ts
+// Behaviour: - Creates the directory structure if it doesn't exist - Copies all Piko
+// framework types (piko-ide.d.ts and subdirectories) - Writes the action stub types to
+// piko-actions.d.ts
 //
-// Called during daemon startup in development mode to provide IDE integration
-// for .pk file script blocks.
+// Called during daemon startup in development mode to provide IDE integration for .pk
+// file script blocks.
 //
 // Takes destDir (string) which is the target directory for type definitions.
 //
-// Returns error when the directory cannot be created or files cannot be
-// written.
+// Returns error when the directory cannot be created or files cannot be written.
 func (s *TypeDefinitionService) EnsureTypeDefinitions(ctx context.Context, destDir string) error {
 	return s.EnsureTypeDefinitionsWithOptions(ctx, destDir, EnsureOptions{})
 }
 
-// EnsureTypeDefinitionsWithOptions copies all embedded type definitions to the
-// specified directory with the given options.
+// EnsureTypeDefinitionsWithOptions copies all embedded type definitions to the specified
+// directory with the given options.
 //
-// When OnlyIfNotExists is true, existing files are preserved. This is used by
-// the LSP to provide a fallback when the dev server hasn't run yet.
+// When OnlyIfNotExists is true, existing files are preserved. This is used by the LSP to
+// provide a fallback when the dev server hasn't run yet.
 //
-// All file writes are atomic using safedisk to prevent IDEs from reading
-// partially written files.
+// All file writes are atomic using safedisk to prevent IDEs from reading partially
+// written files.
 //
 // Takes destDir (string) which is the target directory for type definitions.
 // Takes opts (EnsureOptions) which controls the write behaviour.
 //
-// Returns error when the directory cannot be created or files cannot be
-// written.
+// Returns error when the directory cannot be created or files cannot be written.
 func (s *TypeDefinitionService) EnsureTypeDefinitionsWithOptions(ctx context.Context, destDir string, opts EnsureOptions) error {
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		CWD:          destDir,
@@ -143,8 +138,8 @@ func (s *TypeDefinitionService) EnsureTypeDefinitionsWithOptions(ctx context.Con
 	return nil
 }
 
-// copyEmbeddedTypes walks the embedded filesystem and copies all type
-// definition files to the sandbox directory.
+// copyEmbeddedTypes walks the embedded filesystem and copies all type definition files to
+// the sandbox directory.
 //
 // Takes sandbox (safedisk.Sandbox) which is the target directory for the files.
 // Takes opts (EnsureOptions) which controls the copy behaviour.
@@ -176,8 +171,7 @@ func (s *TypeDefinitionService) copyEmbeddedTypes(ctx context.Context, sandbox s
 // Takes relPath (string) which is the destination path relative to sandbox.
 // Takes opts (EnsureOptions) which controls write behaviour.
 //
-// Returns error when reading the embedded file fails or writing to sandbox
-// fails.
+// Returns error when reading the embedded file fails or writing to sandbox fails.
 func (s *TypeDefinitionService) copyEmbeddedFile(ctx context.Context, sandbox safedisk.Sandbox, srcPath, relPath string, opts EnsureOptions) error {
 	if opts.OnlyIfNotExists {
 		exists, err := fileExists(sandbox, relPath)
@@ -203,8 +197,7 @@ func (s *TypeDefinitionService) copyEmbeddedFile(ctx context.Context, sandbox sa
 	return nil
 }
 
-// writeActionStub writes the action stub type definitions to the sandbox
-// directory.
+// writeActionStub writes the action stub type definitions to the sandbox directory.
 //
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes opts (EnsureOptions) which controls write behaviour.

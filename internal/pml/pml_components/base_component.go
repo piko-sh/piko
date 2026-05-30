@@ -34,12 +34,10 @@ const (
 	// paddingPartsAll is the count when padding has one value for all sides.
 	paddingPartsAll = 1
 
-	// paddingPartsVertHoriz is the count for vertical and horizontal padding
-	// format.
+	// paddingPartsVertHoriz is the count for vertical and horizontal padding format.
 	paddingPartsVertHoriz = 2
 
-	// paddingPartsTopSideBot is the count when padding has top, sides, and
-	// bottom values.
+	// paddingPartsTopSideBot is the count when padding has top, sides, and bottom values.
 	paddingPartsTopSideBot = 3
 
 	// paddingPartsFull is the count for full padding (top, right, bottom, left).
@@ -48,8 +46,7 @@ const (
 	// paddingIndexFirst is the index of the first padding value in a parsed list.
 	paddingIndexFirst = 0
 
-	// paddingIndexSecond is the index for the second padding value
-	// (right/horizontal).
+	// paddingIndexSecond is the index for the second padding value (right/horizontal).
 	paddingIndexSecond = 1
 
 	// paddingIndexThird is the index for the third padding value (bottom).
@@ -60,34 +57,32 @@ const (
 )
 
 // BaseComponent provides default implementations for common methods in the
-// pml_domain.Component interface. Concrete components can embed the type to
-// reduce boilerplate code.
+// pml_domain.Component interface. Concrete components can embed the type to reduce
+// boilerplate code.
 type BaseComponent struct{}
 
-// IsEndingTag provides the default behaviour for most components, which is to
-// allow child components. Components like <pml-p> or <pml-button> will override
-// the default.
+// IsEndingTag provides the default behaviour for most components, which is to allow child
+// components. Components like <pml-p> or <pml-button> will override the default.
 //
 // Returns bool which is false, indicating that this component allows children.
 func (*BaseComponent) IsEndingTag() bool {
 	return false
 }
 
-// DefaultAttributes provides the default implementation returning no built-in
-// defaults. Individual components can override this to provide built-in
-// defaults.
+// DefaultAttributes provides the default implementation returning no built-in defaults.
+// Individual components can override this to provide built-in defaults.
 //
 // Returns map[string]string which is an empty map for the base implementation.
 func (*BaseComponent) DefaultAttributes() map[string]string {
 	return make(map[string]string)
 }
 
-// GetAttributePrecedence defines the standard order for merging style sources.
-// The order is critical: inline attributes on the tag have the highest
-// priority and override everything else.
+// GetAttributePrecedence defines the standard order for merging style sources. The order
+// is critical: inline attributes on the tag have the highest priority and override
+// everything else.
 //
-// Returns []pml_domain.AttributeSource which lists sources from lowest to
-// highest priority.
+// Returns []pml_domain.AttributeSource which lists sources from lowest to highest
+// priority.
 func (*BaseComponent) GetAttributePrecedence() []pml_domain.AttributeSource {
 	return []pml_domain.AttributeSource{
 		pml_domain.SourceDefault,
@@ -95,10 +90,9 @@ func (*BaseComponent) GetAttributePrecedence() []pml_domain.AttributeSource {
 	}
 }
 
-// transferPikoDirectives moves all dynamic p-* directives and attributes from
-// the original PML node to the root of the newly generated HTML AST subtree.
-// This preserves Piko's dynamic features through the
-// transformation.
+// transferPikoDirectives moves all dynamic p-* directives and attributes from the
+// original PML node to the root of the newly generated HTML AST subtree. This preserves
+// Piko's dynamic features through the transformation.
 //
 // Takes from (*ast_domain.TemplateNode) which is the source node to copy from.
 // Takes to (*ast_domain.TemplateNode) which is the target node to copy to.
@@ -160,14 +154,14 @@ func removeNodeDataAttr(node *ast_domain.TemplateNode, name string) {
 	node.Attributes = attrs
 }
 
-// mapToStyleString converts a map of CSS properties to a style attribute
-// string, sorting properties alphabetically for deterministic output.
+// mapToStyleString converts a map of CSS properties to a style attribute string, sorting
+// properties alphabetically for deterministic output.
 //
-// Takes styles (map[string]string) which contains CSS property names as keys
-// and their values.
+// Takes styles (map[string]string) which contains CSS property names as keys and their
+// values.
 //
-// Returns string which is the formatted style attribute in "key:value;" format,
-// or an empty string if the map is empty.
+// Returns string which is the formatted style attribute in "key:value;" format, or an
+// empty string if the map is empty.
 func mapToStyleString(styles map[string]string) string {
 	if len(styles) == 0 {
 		return ""
@@ -185,15 +179,13 @@ func mapToStyleString(styles map[string]string) string {
 	return builder.String()
 }
 
-// sortHTMLAttributes sorts HTML attributes alphabetically by name.
-// This produces consistent output across all PML components, which prevents
-// test failures from random attribute ordering.
+// sortHTMLAttributes sorts HTML attributes alphabetically by name. This produces
+// consistent output across all PML components, which prevents test failures from random
+// attribute ordering.
 //
-// The function sorts in place and also returns the sorted slice for ease of
-// use.
+// The function sorts in place and also returns the sorted slice for ease of use.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to
-// sort.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to sort.
 //
 // Returns []ast_domain.HTMLAttribute which is the sorted slice.
 func sortHTMLAttributes(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAttribute {
@@ -207,8 +199,7 @@ func sortHTMLAttributes(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAttri
 //
 // Takes value (string) which is the CSS value to parse, such as "10px" or "20".
 //
-// Returns int which is the parsed pixel value, or 0 if parsing fails or value
-// is empty.
+// Returns int which is the parsed pixel value, or 0 if parsing fails or value is empty.
 func mustParsePixels(value string) int {
 	if value == "" {
 		return 0
@@ -218,8 +209,8 @@ func mustParsePixels(value string) int {
 	return i
 }
 
-// copyStyle copies a style value from the style manager to a destination map.
-// Use it when mapping PML attributes to different CSS property names.
+// copyStyle copies a style value from the style manager to a destination map. Use it when
+// mapping PML attributes to different CSS property names.
 //
 // Takes sm (*pml_domain.StyleManager) which provides the source styles.
 // Takes dest (map[string]string) which receives the copied style value.
@@ -236,8 +227,8 @@ func copyStyle(sm *pml_domain.StyleManager, dest map[string]string, key string, 
 	}
 }
 
-// mustGetStyle retrieves a style value or returns an empty string if not found.
-// This makes it simpler to set HTML attributes that may or may not have values.
+// mustGetStyle retrieves a style value or returns an empty string if not found. This
+// makes it simpler to set HTML attributes that may or may not have values.
 //
 // Takes sm (*pml_domain.StyleManager) which provides access to style values.
 // Takes key (string) which identifies the style to retrieve.
@@ -248,10 +239,9 @@ func mustGetStyle(sm *pml_domain.StyleManager, key string) string {
 	return value
 }
 
-// parsePadding splits a padding string into individual directional values.
-// Supports CSS shorthand: "10px" (all), "10px 20px" (vertical horizontal),
-// "10px 20px 30px" (top horizontal bottom), or "10px 20px 30px 40px"
-// (top right bottom left).
+// parsePadding splits a padding string into individual directional values. Supports CSS
+// shorthand: "10px" (all), "10px 20px" (vertical horizontal), "10px 20px 30px" (top
+// horizontal bottom), or "10px 20px 30px 40px" (top right bottom left).
 //
 // Takes padding (string) which is the CSS-style padding shorthand to parse.
 //
@@ -278,8 +268,8 @@ func parsePadding(padding string) (top, right, bottom, left string) {
 	}
 }
 
-// expandPadding takes a padding value and any direction overrides, then
-// returns the final top, right, bottom, and left values.
+// expandPadding takes a padding value and any direction overrides, then returns the final
+// top, right, bottom, and left values.
 //
 // Takes sm (*pml_domain.StyleManager) which provides access to padding styles.
 //

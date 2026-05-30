@@ -28,9 +28,8 @@ const (
 	// urlPrefixLength is the byte length of the "url(" prefix.
 	urlPrefixLength = len("url(")
 
-	// gradientPrefixLength is the byte length of the
-	// "linear-gradient(" and "radial-gradient(" prefixes,
-	// since both are 16 characters long.
+	// gradientPrefixLength is the byte length of the "linear-gradient(" and
+	// "radial-gradient(" prefixes, since both are 16 characters long.
 	gradientPrefixLength = len("linear-gradient(")
 
 	// gradientAngleRight is the angle in degrees for a rightward gradient.
@@ -42,28 +41,26 @@ const (
 	// gradientAngleLeft is the angle in degrees for a leftward gradient.
 	gradientAngleLeft = 270.0
 
-	// shadowBlurTokenIndex is the token position of the blur
-	// radius in a box-shadow value.
+	// shadowBlurTokenIndex is the token position of the blur radius in a box-shadow value.
 	shadowBlurTokenIndex = 3
 
-	// shadowSpreadTokenIndex is the token position of the
-	// spread radius in a box-shadow value.
+	// shadowSpreadTokenIndex is the token position of the spread radius in a box-shadow
+	// value.
 	shadowSpreadTokenIndex = 4
 
-	// textShadowBlurTokenCount is the minimum number of length
-	// tokens required for a text-shadow to include a blur radius.
+	// textShadowBlurTokenCount is the minimum number of length tokens required for a
+	// text-shadow to include a blur radius.
 	textShadowBlurTokenCount = 3
 
-	// degreesPerHalfTurn is the number of degrees in half a turn,
-	// used when converting radians to degrees.
+	// degreesPerHalfTurn is the number of degrees in half a turn, used when converting
+	// radians to degrees.
 	degreesPerHalfTurn = 180.0
 )
 
-// parseBackgroundImages splits a CSS background-image value on
-// commas that are not inside parentheses, then parses each layer
-// individually. CSS layers are ordered front-to-back (first
-// declared = topmost), but painting must happen back-to-front,
-// so the caller (painter) should iterate in reverse.
+// parseBackgroundImages splits a CSS background-image value on commas that are not inside
+// parentheses, then parses each layer individually. CSS layers are ordered front-to-back
+// (first declared = topmost), but painting must happen back-to-front, so the caller
+// (painter) should iterate in reverse.
 //
 // Takes value (string) which is the raw CSS background-image value.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -86,8 +83,8 @@ func parseBackgroundImages(value string, context ResolutionContext) []Background
 	return images
 }
 
-// splitOutsideParens splits a string on the given separator, but
-// only when the separator is not nested inside parentheses.
+// splitOutsideParens splits a string on the given separator, but only when the separator
+// is not nested inside parentheses.
 //
 // Takes s (string) which is the input string to split.
 // Takes sep (byte) which is the separator character.
@@ -116,8 +113,8 @@ func splitOutsideParens(s string, sep byte) []string {
 	return parts
 }
 
-// ParseMaskBackgroundImage parses a CSS mask-image value (which uses
-// the same syntax as background-image) into a BackgroundImage struct.
+// ParseMaskBackgroundImage parses a CSS mask-image value (which uses the same syntax as
+// background-image) into a BackgroundImage struct.
 //
 // Takes value (string) which is the CSS mask-image value string.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -127,8 +124,8 @@ func ParseMaskBackgroundImage(value string, context ResolutionContext) Backgroun
 	return parseBackgroundImage(value, context)
 }
 
-// DefaultResolutionContext returns a resolution context with standard
-// defaults (16px base font size, zero container/viewport dimensions).
+// DefaultResolutionContext returns a resolution context with standard defaults (16px base
+// font size, zero container/viewport dimensions).
 //
 // Returns ResolutionContext which holds the default resolution values.
 func DefaultResolutionContext() ResolutionContext {
@@ -138,9 +135,9 @@ func DefaultResolutionContext() ResolutionContext {
 	}
 }
 
-// parseBackgroundImage parses a single CSS background-image layer value
-// into a BackgroundImage, handling url(), linear-gradient(), radial-gradient(),
-// and their repeating variants.
+// parseBackgroundImage parses a single CSS background-image layer value into a
+// BackgroundImage, handling url(), linear-gradient(), radial-gradient(), and their
+// repeating variants.
 //
 // Takes value (string) which is the single layer CSS value.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -188,20 +185,16 @@ func parseBackgroundImage(value string, context ResolutionContext) BackgroundIma
 	return BackgroundImage{Type: BackgroundImageNone}
 }
 
-// parseGradientDirection parses the optional direction or
-// angle prefix from the first comma-separated segment of a
-// gradient function body. If the segment specifies a
-// direction, the returned angle is set and consumed is true,
-// meaning the caller should skip this segment when parsing
-// colour stops.
+// parseGradientDirection parses the optional direction or angle prefix from the first
+// comma-separated segment of a gradient function body. If the segment specifies a
+// direction, the returned angle is set and consumed is true, meaning the caller should
+// skip this segment when parsing colour stops.
 //
-// Takes first (string) which is the first comma-separated
-// segment, already trimmed.
+// Takes first (string) which is the first comma-separated segment, already trimmed.
 //
-// Returns angle (float64) which is the parsed angle in
-// degrees.
-// Returns consumed (bool) which is true when the segment
-// was a direction and should be skipped.
+// Returns angle (float64) which is the parsed angle in degrees.
+// Returns consumed (bool) which is true when the segment was a direction and should be
+// skipped.
 func parseGradientDirection(first string) (angle float64, consumed bool) {
 	if degStr, ok := strings.CutSuffix(first, "deg"); ok {
 		return parseFloatValue(degStr), true
@@ -222,15 +215,13 @@ func parseGradientDirection(first string) (angle float64, consumed bool) {
 	return 0, false
 }
 
-// parseGradientStop parses a single colour-stop token group
-// (e.g. "red 50%" or "rgba(255,0,0,0.5) 50%") into a
-// GradientStop.
+// parseGradientStop parses a single colour-stop token group (e.g. "red 50%" or
+// "rgba(255,0,0,0.5) 50%") into a GradientStop.
 //
-// Splits on the last space outside parentheses so that functional
-// colour notation like rgba() with internal spaces is kept intact.
+// Splits on the last space outside parentheses so that functional colour notation like
+// rgba() with internal spaces is kept intact.
 //
-// Takes stop (string) which is the trimmed colour-stop
-// string.
+// Takes stop (string) which is the trimmed colour-stop string.
 //
 // Returns GradientStop which is the parsed stop value.
 func parseGradientStop(stop string) GradientStop {
@@ -253,14 +244,14 @@ func parseGradientStop(stop string) GradientStop {
 	return gs
 }
 
-// splitGradientStopParts splits a gradient stop string into colour and
-// position parts by finding the last space outside parentheses.
+// splitGradientStopParts splits a gradient stop string into colour and position parts by
+// finding the last space outside parentheses.
 //
 // Takes stop (string) which is the gradient stop string to split.
 //
 // Returns colour (string) which is the colour portion of the stop.
-// Returns position (string) which is the position portion, or empty
-// if no position is present.
+// Returns position (string) which is the position portion, or empty if no position is
+// present.
 func splitGradientStopParts(stop string) (colour string, position string) {
 	depth := 0
 	lastSpace := -1
@@ -284,11 +275,9 @@ func splitGradientStopParts(stop string) (colour string, position string) {
 	return strings.TrimSpace(stop[:lastSpace]), strings.TrimSpace(stop[lastSpace+1:])
 }
 
-// parseLinearGradient parses the inner content of a
-// linear-gradient() function.
+// parseLinearGradient parses the inner content of a linear-gradient() function.
 //
-// Takes inner (string) which is the content between the
-// parentheses.
+// Takes inner (string) which is the content between the parentheses.
 //
 // Returns BackgroundImage which is the parsed gradient.
 func parseLinearGradient(inner string, _ ResolutionContext) BackgroundImage {
@@ -315,16 +304,13 @@ func parseLinearGradient(inner string, _ ResolutionContext) BackgroundImage {
 	return bg
 }
 
-// parseRadialGradient parses the inner content of a
-// radial-gradient() function.
+// parseRadialGradient parses the inner content of a radial-gradient() function.
 //
-// The first comma-separated segment may contain shape keywords
-// (circle, ellipse) and size keywords (closest-side,
-// farthest-corner, etc.) which are consumed before parsing
-// colour stops. If no shape is specified, the default is ellipse.
+// The first comma-separated segment may contain shape keywords (circle, ellipse) and size
+// keywords (closest-side, farthest-corner, etc.) which are consumed before parsing colour
+// stops. If no shape is specified, the default is ellipse.
 //
-// Takes inner (string) which is the content between the
-// parentheses.
+// Takes inner (string) which is the content between the parentheses.
 //
 // Returns BackgroundImage which is the parsed gradient.
 func parseRadialGradient(inner string, _ ResolutionContext) BackgroundImage {
@@ -354,17 +340,15 @@ func parseRadialGradient(inner string, _ ResolutionContext) BackgroundImage {
 	return bg
 }
 
-// parseRadialShapePrefix checks whether the first comma-separated
-// segment of a radial-gradient contains shape or size keywords
-// rather than a colour stop. Returns the parsed shape and true
-// if the segment was consumed as a shape/size descriptor.
+// parseRadialShapePrefix checks whether the first comma-separated segment of a
+// radial-gradient contains shape or size keywords rather than a colour stop. Returns the
+// parsed shape and true if the segment was consumed as a shape/size descriptor.
 //
-// Takes first (string) which is the first comma-separated
-// segment, already trimmed.
+// Takes first (string) which is the first comma-separated segment, already trimmed.
 //
 // Returns shape (RadialGradientShape) which is the parsed shape.
-// Returns consumed (bool) which is true when the segment was a
-// shape descriptor and should be skipped.
+// Returns consumed (bool) which is true when the segment was a shape descriptor and
+// should be skipped.
 func parseRadialShapePrefix(first string) (shape RadialGradientShape, consumed bool) {
 	lower := strings.ToLower(first)
 
@@ -392,16 +376,12 @@ func parseRadialShapePrefix(first string) (shape RadialGradientShape, consumed b
 	return shape, foundKeyword
 }
 
-// parseBoxShadow parses a CSS box-shadow value into a slice
-// of BoxShadowValue layers.
+// parseBoxShadow parses a CSS box-shadow value into a slice of BoxShadowValue layers.
 //
-// Takes value (string) which is the CSS box-shadow
-// value.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes value (string) which is the CSS box-shadow value.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
-// Returns []BoxShadowValue which is the parsed shadow
-// layers, or nil if none.
+// Returns []BoxShadowValue which is the parsed shadow layers, or nil if none.
 func parseBoxShadow(value string, context ResolutionContext) []BoxShadowValue {
 	if value == cssKeywordNone {
 		return nil
@@ -422,14 +402,12 @@ func parseBoxShadow(value string, context ResolutionContext) []BoxShadowValue {
 	return shadows
 }
 
-// splitBoxShadowLayers splits a box-shadow value into
-// individual layers by commas, respecting parentheses.
+// splitBoxShadowLayers splits a box-shadow value into individual layers by commas,
+// respecting parentheses.
 //
-// Takes value (string) which is the full box-shadow
-// value string.
+// Takes value (string) which is the full box-shadow value string.
 //
-// Returns []string which is the individual layer
-// strings.
+// Returns []string which is the individual layer strings.
 func splitBoxShadowLayers(value string) []string {
 	var layers []string
 	parenDepth := 0
@@ -455,13 +433,10 @@ func splitBoxShadowLayers(value string) []string {
 	return layers
 }
 
-// parseBoxShadowLayer parses a single box-shadow layer
-// string into a BoxShadowValue.
+// parseBoxShadowLayer parses a single box-shadow layer string into a BoxShadowValue.
 //
-// Takes layer (string) which is the single shadow layer
-// string to parse.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes layer (string) which is the single shadow layer string to parse.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
 // Returns BoxShadowValue which is the parsed shadow.
 // Returns bool which is false if parsing failed.
@@ -505,11 +480,10 @@ func parseBoxShadowLayer(layer string, context ResolutionContext) (BoxShadowValu
 	return shadow, true
 }
 
-// tokeniseBoxShadow splits a box-shadow layer string into
-// whitespace-separated tokens, respecting parentheses.
+// tokeniseBoxShadow splits a box-shadow layer string into whitespace-separated tokens,
+// respecting parentheses.
 //
-// Takes layer (string) which is the shadow layer string
-// to tokenise.
+// Takes layer (string) which is the shadow layer string to tokenise.
 //
 // Returns []string which is the extracted tokens.
 func tokeniseBoxShadow(layer string) []string {
@@ -542,14 +516,11 @@ func tokeniseBoxShadow(layer string) []string {
 	return tokens
 }
 
-// parseListStyleType maps a CSS list-style-type value string
-// to a ListStyleType enum.
+// parseListStyleType maps a CSS list-style-type value string to a ListStyleType enum.
 //
-// Takes value (string) which is the CSS list-style-type
-// value.
+// Takes value (string) which is the CSS list-style-type value.
 //
-// Returns ListStyleType which is the corresponding
-// enum.
+// Returns ListStyleType which is the corresponding enum.
 func parseListStyleType(value string) ListStyleType {
 	switch value {
 	case "circle":
@@ -565,14 +536,12 @@ func parseListStyleType(value string) ListStyleType {
 	}
 }
 
-// parseListStylePosition maps a CSS list-style-position
-// value string to a ListStylePositionType enum.
+// parseListStylePosition maps a CSS list-style-position value string to a
+// ListStylePositionType enum.
 //
-// Takes value (string) which is the CSS
-// list-style-position value.
+// Takes value (string) which is the CSS list-style-position value.
 //
-// Returns ListStylePositionType which is the
-// corresponding enum.
+// Returns ListStylePositionType which is the corresponding enum.
 func parseListStylePosition(value string) ListStylePositionType {
 	switch value {
 	case "inside":
@@ -582,14 +551,11 @@ func parseListStylePosition(value string) ListStylePositionType {
 	}
 }
 
-// parseListStyleShorthand parses the CSS list-style
-// shorthand property, setting type and position on the
-// style.
+// parseListStyleShorthand parses the CSS list-style shorthand property, setting type and
+// position on the style.
 //
-// Takes style (*ComputedStyle) which is the style to
-// modify.
-// Takes value (string) which is the CSS list-style
-// shorthand value.
+// Takes style (*ComputedStyle) which is the style to modify.
+// Takes value (string) which is the CSS list-style shorthand value.
 func parseListStyleShorthand(style *ComputedStyle, value string) {
 	for token := range strings.FieldsSeq(value) {
 		switch token {
@@ -605,13 +571,11 @@ func parseListStyleShorthand(style *ComputedStyle, value string) {
 	}
 }
 
-// isLengthToken reports whether a token is a valid CSS
-// length value or bare number.
+// isLengthToken reports whether a token is a valid CSS length value or bare number.
 //
 // Takes token (string) which is the token to check.
 //
-// Returns bool which is true if the token is a valid
-// length or number.
+// Returns bool which is true if the token is a valid length or number.
 func isLengthToken(token string) bool {
 	if token == "0" {
 		return true
@@ -689,8 +653,8 @@ func parseColumnCount(value string) int {
 	return count
 }
 
-// parseColumnsShorthand parses the CSS columns shorthand,
-// which accepts column-count and column-width in any order.
+// parseColumnsShorthand parses the CSS columns shorthand, which accepts column-count and
+// column-width in any order.
 //
 // Takes style (*ComputedStyle) which receives the parsed values.
 // Takes value (string) which is the CSS columns shorthand value.
@@ -732,13 +696,12 @@ func parseColumnSpan(value string) ColumnSpanType {
 	return ColumnSpanNone
 }
 
-// parseContent parses the CSS content property value,
-// stripping quotes from string literals.
+// parseContent parses the CSS content property value, stripping quotes from string
+// literals.
 //
 // Takes value (string) which is the CSS content value string.
 //
-// Returns string which is the parsed content, or empty string
-// for "none" and "normal".
+// Returns string which is the parsed content, or empty string for "none" and "normal".
 func parseContent(value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == cssKeywordNone || trimmed == "normal" || trimmed == "" {
@@ -751,16 +714,13 @@ func parseContent(value string) string {
 	return trimmed
 }
 
-// parseTextShadow parses a CSS text-shadow value into a
-// slice of TextShadowValue layers. Follows the same pattern
-// as box-shadow but without spread radius or inset keyword.
+// parseTextShadow parses a CSS text-shadow value into a slice of TextShadowValue layers.
+// Follows the same pattern as box-shadow but without spread radius or inset keyword.
 //
 // Takes value (string) which is the CSS text-shadow value.
-// Takes context (ResolutionContext) which provides unit
-// resolution values.
+// Takes context (ResolutionContext) which provides unit resolution values.
 //
-// Returns []TextShadowValue which is the parsed shadow
-// layers, or nil if none.
+// Returns []TextShadowValue which is the parsed shadow layers, or nil if none.
 func parseTextShadow(value string, context ResolutionContext) []TextShadowValue {
 	if value == cssKeywordNone {
 		return nil
@@ -781,13 +741,11 @@ func parseTextShadow(value string, context ResolutionContext) []TextShadowValue 
 	return shadows
 }
 
-// parseTextShadowLayer parses a single text-shadow layer.
-// Format: <offsetX> <offsetY> [blur] [colour].
+// parseTextShadowLayer parses a single text-shadow layer. Format: <offsetX> <offsetY>
+// [blur] [colour].
 //
-// Takes layer (string) which is the single shadow layer
-// string to parse.
-// Takes context (ResolutionContext) which provides unit
-// resolution values.
+// Takes layer (string) which is the single shadow layer string to parse.
+// Takes context (ResolutionContext) which provides unit resolution values.
 //
 // Returns TextShadowValue which is the parsed shadow.
 // Returns bool which is false if parsing failed.
@@ -824,15 +782,12 @@ func parseTextShadowLayer(layer string, context ResolutionContext) (TextShadowVa
 	return shadow, true
 }
 
-// parseOutlineShorthand parses the CSS outline shorthand
-// property. Format: [width] [style] [colour].
+// parseOutlineShorthand parses the CSS outline shorthand property. Format: [width]
+// [style] [colour].
 //
-// Takes style (*ComputedStyle) which receives the parsed
-// values.
-// Takes value (string) which is the outline shorthand
-// string.
-// Takes context (ResolutionContext) which provides unit
-// resolution values.
+// Takes style (*ComputedStyle) which receives the parsed values.
+// Takes value (string) which is the outline shorthand string.
+// Takes context (ResolutionContext) which provides unit resolution values.
 func parseOutlineShorthand(style *ComputedStyle, value string, context ResolutionContext) {
 	if value == cssKeywordNone {
 		style.OutlineStyle = BorderStyleNone
@@ -851,8 +806,7 @@ func parseOutlineShorthand(style *ComputedStyle, value string, context Resolutio
 	}
 }
 
-// parseBorderImageRepeat parses a CSS border-image-repeat
-// value.
+// parseBorderImageRepeat parses a CSS border-image-repeat value.
 //
 // Takes value (string) which is the CSS value.
 //
@@ -920,13 +874,11 @@ func parseHyphens(value string) HyphensType {
 	}
 }
 
-// parseDimension parses a CSS dimension value into a
-// Dimension, handling auto, calc(), percentages, and lengths.
+// parseDimension parses a CSS dimension value into a Dimension, handling auto, calc(),
+// percentages, and lengths.
 //
-// Takes value (string) which is the CSS dimension string
-// to parse.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes value (string) which is the CSS dimension string to parse.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
 // Returns Dimension which is the parsed dimension value.
 func parseDimension(value string, context ResolutionContext) Dimension {
@@ -964,8 +916,8 @@ func parseDimension(value string, context ResolutionContext) Dimension {
 	return DimensionPt(resolveLength(value, context))
 }
 
-// parseFitContentArgument extracts and resolves the argument
-// from a fit-content(<length-percentage>) function value.
+// parseFitContentArgument extracts and resolves the argument from a
+// fit-content(<length-percentage>) function value.
 //
 // Takes value (string) which is the full fit-content() function string.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -983,16 +935,13 @@ func parseFitContentArgument(value string, context ResolutionContext) Dimension 
 	return DimensionFitContent(resolveLength(inner, context))
 }
 
-// resolveFontSize resolves a CSS font-size value, handling
-// absolute keywords, relative keywords, and length values.
+// resolveFontSize resolves a CSS font-size value, handling absolute keywords, relative
+// keywords, and length values.
 //
-// Takes value (string) which is the CSS font-size
-// string to resolve.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes value (string) which is the CSS font-size string to resolve.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
-// Returns float64 which is the resolved font size in
-// points.
+// Returns float64 which is the resolved font size in points.
 func resolveFontSize(value string, context ResolutionContext) float64 {
 	switch value {
 	case "xx-small":
@@ -1018,18 +967,15 @@ func resolveFontSize(value string, context ResolutionContext) float64 {
 	}
 }
 
-// resolveLineHeight resolves a CSS line-height value,
-// treating unitless numbers as font size multipliers.
+// resolveLineHeight resolves a CSS line-height value, treating unitless numbers as font
+// size multipliers.
 //
-// Takes value (string) which is the CSS line-height
-// string to resolve.
-// Takes fontSize (float64) which is the computed font
-// size for unitless multiplier calculation.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes value (string) which is the CSS line-height string to resolve.
+// Takes fontSize (float64) which is the computed font size for unitless multiplier
+// calculation.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
-// Returns float64 which is the resolved line height in
-// points.
+// Returns float64 which is the resolved line height in points.
 func resolveLineHeight(value string, fontSize float64, context ResolutionContext) float64 {
 	number, err := strconv.ParseFloat(value, 64)
 	if err == nil {
@@ -1038,8 +984,7 @@ func resolveLineHeight(value string, fontSize float64, context ResolutionContext
 	return resolveLength(value, context)
 }
 
-// parseFilterList parses a CSS filter property value into a slice of
-// FilterValue structs.
+// parseFilterList parses a CSS filter property value into a slice of FilterValue structs.
 //
 // Takes value (string) which is the CSS filter property value string.
 //
@@ -1083,8 +1028,8 @@ func parseFilterList(value string) []FilterValue {
 	return filters
 }
 
-// parseFilterFunction maps a CSS filter function name and its argument
-// string to a FilterValue.
+// parseFilterFunction maps a CSS filter function name and its argument string to a
+// FilterValue.
 //
 // Takes name (string) which is the filter function name (e.g. "blur").
 // Takes arg (string) which is the argument inside the parentheses.
@@ -1115,8 +1060,8 @@ func parseFilterFunction(name string, arg string) FilterValue {
 	}
 }
 
-// parseFilterLength parses a CSS length value for filter functions,
-// supporting px and pt units.
+// parseFilterLength parses a CSS length value for filter functions, supporting px and pt
+// units.
 //
 // Takes s (string) which is the length value string to parse.
 //
@@ -1142,12 +1087,11 @@ func parseFilterLength(s string) float64 {
 	return 0
 }
 
-// parseFilterAmount parses a CSS filter amount value, handling
-// percentages and bare numbers.
+// parseFilterAmount parses a CSS filter amount value, handling percentages and bare
+// numbers.
 //
 // Takes s (string) which is the amount value string to parse.
-// Takes defaultVal (float64) which is the fallback value when
-// the string is empty.
+// Takes defaultVal (float64) which is the fallback value when the string is empty.
 //
 // Returns float64 which is the resolved amount as a ratio.
 func parseFilterAmount(s string, defaultVal float64) float64 {
@@ -1168,8 +1112,8 @@ func parseFilterAmount(s string, defaultVal float64) float64 {
 	return defaultVal
 }
 
-// parseFilterAngle parses a CSS angle value for filter functions,
-// supporting deg and rad units.
+// parseFilterAngle parses a CSS angle value for filter functions, supporting deg and rad
+// units.
 //
 // Takes s (string) which is the angle value string to parse.
 //

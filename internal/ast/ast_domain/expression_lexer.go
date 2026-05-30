@@ -18,10 +18,9 @@
 
 package ast_domain
 
-// Provides lexical analysis for expression parsing by tokenizing input into
-// identifiers, operators, literals, and keywords. Implements efficient
-// single-character token lookup, string interning, and pooled lexer instances
-// for performance optimisation.
+// Provides lexical analysis for expression parsing by tokenizing input into identifiers,
+// operators, literals, and keywords. Implements efficient single-character token lookup,
+// string interning, and pooled lexer instances for performance optimisation.
 
 import (
 	"context"
@@ -30,6 +29,7 @@ import (
 	"unicode/utf8"
 
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 const (
@@ -48,8 +48,7 @@ const (
 	// opLen3 is the length of a three-character operator such as "!~=" or "?.[".
 	opLen3 = 3
 
-	// singleCharTokenTableSize is the size of the lookup table for
-	// single-character tokens.
+	// singleCharTokenTableSize is the size of the lookup table for single-character tokens.
 	singleCharTokenTableSize = 128
 )
 
@@ -69,8 +68,8 @@ const (
 	// tokenString is the token type name for string literals.
 	tokenString
 
-	// tokenSymbol is the token type for operator symbols such as
-	// +, -, *, /, ==, !=, &&, and ||.
+	// tokenSymbol is the token type for operator symbols such as +, -, *, /, ==, !=, &&, and
+	// ||.
 	tokenSymbol
 
 	// tokenLParen is the left parenthesis token.
@@ -100,12 +99,11 @@ const (
 	// tokenDot represents a dot character in path expressions.
 	tokenDot
 
-	// tokenOptionalDot is the token type for the ?. optional
-	// chaining member access operator.
+	// tokenOptionalDot is the token type for the ?. optional chaining member access
+	// operator.
 	tokenOptionalDot
 
-	// tokenOptionalBracket is the token type for the ?.[ optional
-	// chaining index operator.
+	// tokenOptionalBracket is the token type for the ?.[ optional chaining index operator.
 	tokenOptionalBracket
 
 	// tokenError is the error value returned by the lexer for invalid tokens.
@@ -138,8 +136,7 @@ const (
 	// tokenTime is the token type for time literal values.
 	tokenTime
 
-	// tokenDuration is the token type for duration literal values
-	// (e.g. du'1h30m').
+	// tokenDuration is the token type for duration literal values (e.g. du'1h30m').
 	tokenDuration
 
 	// tokenRune is the token type for a single rune literal.
@@ -150,12 +147,10 @@ const (
 )
 
 var (
-	// singleCharTokens maps ASCII bytes to their token types for
-	// single-character tokens, where a zero value means the character
-	// is not a recognised single-char token.
+	// singleCharTokens maps ASCII bytes to their token types for single-character tokens,
+	// where a zero value means the character is not a recognised single-char token.
 	//
-	// This enables O(1) dispatch for punctuation without switch
-	// statements.
+	// This enables O(1) dispatch for punctuation without switch statements.
 	singleCharTokens = [singleCharTokenTableSize]tokenType{
 		'(': tokenLParen,
 		')': tokenRParen,
@@ -200,11 +195,11 @@ var (
 // tokenType represents the kind of a lexical token in the lexer.
 type tokenType int
 
-// lexerToken represents a token with zero-copy value storage.
-// The value is computed only when needed, using the offset and length.
+// lexerToken represents a token with zero-copy value storage. The value is computed only
+// when needed, using the offset and length.
 type lexerToken struct {
-	// errorMessage holds the error message for tokenError; empty for other token
-	// types. Placed first to reduce GC pointer bitmap size.
+	// errorMessage holds the error message for tokenError; empty for other token types.
+	// Placed first to reduce GC pointer bitmap size.
 	errorMessage string
 
 	// Location is the source position where this token appears.
@@ -220,8 +215,8 @@ type lexerToken struct {
 	Type tokenType
 }
 
-// getValue returns the token's value by slicing the input string.
-// This is a zero-copy operation; no memory allocation occurs.
+// getValue returns the token's value by slicing the input string. This is a zero-copy
+// operation; no memory allocation occurs.
 //
 // Takes input (string) which is the source text to slice from.
 //
@@ -251,8 +246,7 @@ type lexer struct {
 	column int
 }
 
-// run is the main loop of the lexer, calling each tokenisation
-// method in turn.
+// run is the main loop of the lexer, calling each tokenisation method in turn.
 //
 // preferred over chained conditionals.
 //
@@ -322,8 +316,8 @@ func (l *lexer) lexWhitespace() bool {
 
 // lexComment consumes a multi-line comment /* ... */ and skips it entirely.
 //
-// Returns bool which is true if a comment was found and processed, or false
-// if no comment starts at the current position.
+// Returns bool which is true if a comment was found and processed, or false if no comment
+// starts at the current position.
 func (l *lexer) lexComment() bool {
 	if l.position+1 >= len(l.input) {
 		return false
@@ -431,8 +425,7 @@ func (l *lexer) lexSymbol() bool {
 //
 // Takes b (byte) which is the first character of the possible operator.
 //
-// Returns bool which is true if a multi-character operator was matched and
-// consumed.
+// Returns bool which is true if a multi-character operator was matched and consumed.
 func (l *lexer) lexMultiCharOp(b byte) bool {
 	switch b {
 	case '*':
@@ -531,14 +524,14 @@ func (l *lexer) lexComparisonOp() bool {
 	return true
 }
 
-// lexDoubleCharOp handles operators that require exactly two of the same
-// character (&&, ||).
+// lexDoubleCharOp handles operators that require exactly two of the same character (&&,
+// ||).
 //
 // Takes char (byte) which is the character to match.
 // Takes tt (tokenType) which is the token type to assign on match.
 //
-// Returns bool which is true if the operator was matched and consumed, or
-// false if only one character is present (invalid operator).
+// Returns bool which is true if the operator was matched and consumed, or false if only
+// one character is present (invalid operator).
 func (l *lexer) lexDoubleCharOp(char byte, tt tokenType) bool {
 	remaining := len(l.input) - l.position
 	if remaining >= opLen2 && l.input[l.position+1] == char {
@@ -627,8 +620,8 @@ func (l *lexer) lexNumber() bool {
 	return true
 }
 
-// lexStringLike handles single, double, and backtick quoted strings.
-// The quotes must be ASCII characters (', ", `).
+// lexStringLike handles single, double, and backtick quoted strings. The quotes must be
+// ASCII characters (', ", `).
 //
 // Takes quotes (...rune) which specifies the quote characters to accept.
 //
@@ -640,7 +633,7 @@ func (l *lexer) lexStringLike(quotes ...rune) bool {
 	b := l.input[l.position]
 	quote := byte(0)
 	for _, q := range quotes {
-		if b == byte(q) {
+		if b == safeconv.RuneToByte(q) {
 			quote = b
 			break
 		}
@@ -703,8 +696,8 @@ func (l *lexer) lexIdentifier() bool {
 //
 // Takes position (int) which is the position to start scanning from.
 //
-// Returns int which is the new position after the character, or -1 if the
-// character is not a valid identifier start.
+// Returns int which is the new position after the character, or -1 if the character is
+// not a valid identifier start.
 func (l *lexer) scanIdentStart(position int) int {
 	b := l.input[position]
 	if b < utf8.RuneSelf {
@@ -720,8 +713,7 @@ func (l *lexer) scanIdentStart(position int) int {
 	return -1
 }
 
-// scanIdentChars scans the remaining identifier characters from the given
-// position.
+// scanIdentChars scans the remaining identifier characters from the given position.
 //
 // Takes position (int) which is the starting position in the input.
 //
@@ -745,8 +737,8 @@ func (l *lexer) scanIdentChars(position int) int {
 	return position
 }
 
-// addToken appends a token to the lexer's token list without copying the
-// token's value. It uses offset and length to refer to the original source.
+// addToken appends a token to the lexer's token list without copying the token's value.
+// It uses offset and length to refer to the original source.
 //
 // Takes tt (tokenType) which specifies the type of token to add.
 // Takes offset (int) which marks the start position in the source.
@@ -776,11 +768,11 @@ func (l *lexer) addErrorToken(offset, length int, errMessage string) {
 	})
 }
 
-// lexQuotedContent extracts content from a prefixed literal or a regular
-// string literal, handling escaped quotes.
+// lexQuotedContent extracts content from a prefixed literal or a regular string literal,
+// handling escaped quotes.
 //
-// Takes prefix (string) which specifies the literal prefix ending with the
-// quote character.
+// Takes prefix (string) which specifies the literal prefix ending with the quote
+// character.
 //
 // Returns string which contains the extracted content between quotes.
 // Returns bool which indicates whether the content was found.
@@ -806,8 +798,8 @@ func (l *lexer) lexQuotedContent(prefix string) (string, bool) {
 
 // matchPrefixedLiteralPrefix checks for type-prefixed literal markers.
 //
-// Returns string which is the matched prefix (e.g. "d'", "t'", "du'"), or
-// empty if no match is found.
+// Returns string which is the matched prefix (e.g. "d'", "t'", "du'"), or empty if no
+// match is found.
 // Returns tokenType which is the type of literal, or 0 if no match is found.
 func (l *lexer) matchPrefixedLiteralPrefix() (string, tokenType) {
 	if l.position+opLen2 > len(l.input) {
@@ -857,8 +849,8 @@ func (l *lexer) atSuffix(end int, suffix string) bool {
 	return true
 }
 
-// isFloatDecimalASCII checks if the character after the decimal point is a
-// digit (ASCII fast path).
+// isFloatDecimalASCII checks if the character after the decimal point is a digit (ASCII
+// fast path).
 //
 // Takes end (int) which specifies the position of the decimal point.
 //
@@ -871,8 +863,8 @@ func (l *lexer) isFloatDecimalASCII(end int) bool {
 	return b >= '0' && b <= '9'
 }
 
-// advance moves the lexer forward by the given number of bytes.
-// It updates both the position and column count for a single-line token.
+// advance moves the lexer forward by the given number of bytes. It updates both the
+// position and column count for a single-line token.
 //
 // Takes length (int) which specifies how many bytes to move forward.
 func (l *lexer) advance(length int) {
@@ -880,8 +872,8 @@ func (l *lexer) advance(length int) {
 	l.position += length
 }
 
-// advanceWithLineCount updates the position, line, and column after reading
-// text that may contain newlines.
+// advanceWithLineCount updates the position, line, and column after reading text that may
+// contain newlines.
 //
 // Takes consumed (string) which is the text that was read from the input.
 func (l *lexer) advanceWithLineCount(consumed string) {
@@ -902,11 +894,11 @@ func (l *lexer) advanceWithLineCount(consumed string) {
 	l.position += len(consumed)
 }
 
-// lexInto splits input text into tokens and adds them to the given slice.
-// The caller owns the returned slice and may reuse it in later calls.
+// lexInto splits input text into tokens and adds them to the given slice. The caller owns
+// the returned slice and may reuse it in later calls.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes input (string) which contains the text to split into tokens.
 // Takes tokens ([]lexerToken) which provides the slice to add tokens to.
 //

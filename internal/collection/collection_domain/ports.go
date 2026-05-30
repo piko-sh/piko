@@ -27,14 +27,14 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// ProviderType indicates how a provider fetches and handles data.
-// Static fetches all data at build time, Dynamic fetches at runtime, and
-// Hybrid uses build-time data with runtime updates.
+// ProviderType indicates how a provider fetches and handles data. Static fetches all data
+// at build time, Dynamic fetches at runtime, and Hybrid uses build-time data with runtime
+// updates.
 type ProviderType string
 
 const (
-	// ProviderTypeStatic indicates a provider whose data is fetched at build time.
-	// All content is embedded in the binary, resulting in zero runtime overhead.
+	// ProviderTypeStatic indicates a provider whose data is fetched at build time. All
+	// content is embedded in the binary, resulting in zero runtime overhead.
 	ProviderTypeStatic ProviderType = "static"
 
 	// ProviderTypeDynamic indicates all data is fetched at RUNTIME.
@@ -60,38 +60,36 @@ const (
 	ProviderTypeHybrid ProviderType = "hybrid"
 )
 
-// AssetRegistrar is a DRIVEN port for registering files discovered inside a
-// collection's source sandbox as runtime-servable artefacts.
+// AssetRegistrar is a DRIVEN port for registering files discovered inside a collection's
+// source sandbox as runtime-servable artefacts.
 //
-// Static providers that pull content from external module sandboxes
-// (e.g. the markdown provider reading docs from a Go module) need a way to
-// publish sibling asset files (images, diagrams, SVGs) referenced from
-// content. This port lets a provider hand off the file-to-URL work without
-// depending on the registry hexagon directly.
+// Static providers that pull content from external module sandboxes (e.g. the markdown
+// provider reading docs from a Go module) need a way to publish sibling asset files
+// (images, diagrams, SVGs) referenced from content. This port lets a provider hand off
+// the file-to-URL work without depending on the registry hexagon directly.
 //
 // Implementations are expected to:
-//   - Read the file through the supplied sandbox (so kernel-level
-//     containment is preserved for external modules).
-//   - Upsert the bytes into the artefact registry under a deterministic
-//     artefactID that is stable across rebuilds for the same input path.
+//   - Read the file through the supplied sandbox (so kernel-level containment is
+//     preserved for external modules).
+//   - Upsert the bytes into the artefact registry under a deterministic artefactID that
+//     is stable across rebuilds for the same input path.
 //   - Return a servable URL rooted at the configured asset serve path.
 //
-// Thread-safety: Implementations must be safe for concurrent use since
-// multiple collections may be fetched in parallel at build time.
+// Thread-safety: Implementations must be safe for concurrent use since multiple
+// collections may be fetched in parallel at build time.
 type AssetRegistrar interface {
-	// RegisterCollectionAsset reads sandboxRelPath via sandbox, registers the
-	// bytes with the artefact registry, and returns the serve URL.
+	// RegisterCollectionAsset reads sandboxRelPath via sandbox, registers the bytes with the
+	// artefact registry, and returns the serve URL.
 	//
-	// Takes sandbox (safedisk.Sandbox) which provides kernel-enforced read
-	// access to the source content tree.
-	// Takes sandboxRelPath (string) which is the cleaned path of the asset
-	// file relative to the sandbox root.
-	// Takes collectionName (string) which identifies the owning collection.
-	// Used to scope the artefactID so assets from different collections do
-	// not collide.
+	// Takes sandbox (safedisk.Sandbox) which provides kernel-enforced read access to the
+	// source content tree.
+	// Takes sandboxRelPath (string) which is the cleaned path of the asset file relative to
+	// the sandbox root.
+	// Takes collectionName (string) which identifies the owning collection. Used to scope
+	// the artefactID so assets from different collections do not collide.
 	//
-	// Returns serveURL (string) which is the absolute URL to use in rewritten
-	// src attributes (e.g. "/_piko/assets/docs/diagrams/bar.svg").
+	// Returns serveURL (string) which is the absolute URL to use in rewritten src attributes
+	// (e.g. "/_piko/assets/docs/diagrams/bar.svg").
 	// Returns error when the file cannot be read or registration fails.
 	RegisterCollectionAsset(
 		ctx context.Context,
@@ -101,11 +99,11 @@ type AssetRegistrar interface {
 	) (serveURL string, err error)
 }
 
-// CollectionProvider is the primary DRIVEN port for data source adapters.
-// It implements collection_domain.CollectionProvider and hybridCapableProvider.
+// CollectionProvider is the primary DRIVEN port for data source adapters. It implements
+// collection_domain.CollectionProvider and hybridCapableProvider.
 //
-// Every data source (markdown files, CMS, database, etc.) must implement this
-// interface to integrate with the collection system.
+// Every data source (markdown files, CMS, database, etc.) must implement
+// CollectionProvider to integrate with the collection system.
 //
 // Design Philosophy:
 //   - Clean contract: Framework doesn't know about provider internals
@@ -115,34 +113,31 @@ type AssetRegistrar interface {
 // Implementation Guide:
 //   - Implement Name() and Type() first (required)
 //   - For static providers: Implement FetchStaticContent()
-//   - For dynamic providers: Implement GenerateRuntimeFetcher() and
-//     RuntimeProvider
+//   - For dynamic providers: Implement GenerateRuntimeFetcher() and RuntimeProvider
 //   - For hybrid providers: Implement both
 //
 // See: internal/collection/design.md for detailed implementation guidance.
 type CollectionProvider interface {
 	// Name returns the unique name for this provider.
 	//
-	// This name is used in user code to refer to the provider:
-	// <template p-collection:provider="NAME">
-	// data.GetCollection(..., data.WithProvider("NAME"))
-	// Use lowercase names with hyphens between words (e.g. "markdown",
-	// "headless-cms", "postgres", "contentful").
+	// This name is used in user code to refer to the provider: <template
+	// p-collection:provider="NAME"> data.GetCollection(..., data.WithProvider("NAME")) Use
+	// lowercase names with hyphens between words (e.g. "markdown", "headless-cms",
+	// "postgres", "contentful").
 	//
 	// Returns string which is the provider name.
 	Name() string
 
 	// Type returns how this provider's data should be handled.
 	//
-	// This determines which methods the framework will call and how it will
-	// generate code.
+	// This determines which methods the framework will call and how it will generate code.
 	//
-	// Returns ProviderType which is one of ProviderTypeStatic,
-	// ProviderTypeDynamic, or ProviderTypeHybrid.
+	// Returns ProviderType which is one of ProviderTypeStatic, ProviderTypeDynamic, or
+	// ProviderTypeHybrid.
 	Type() ProviderType
 
-	// DiscoverCollections scans the provider's data source and returns
-	// information about available collections.
+	// DiscoverCollections scans the provider's data source and returns information about
+	// available collections.
 	//
 	// This is called during project initialisation and validation.
 	//
@@ -155,11 +150,11 @@ type CollectionProvider interface {
 	//   - An error if discovery fails
 	DiscoverCollections(ctx context.Context, config collection_dto.ProviderConfig) ([]collection_dto.CollectionInfo, error)
 
-	// ValidateTargetType checks if a user's target struct is compatible with
-	// this provider's data.
+	// ValidateTargetType checks if a user's target struct is compatible with this provider's
+	// data.
 	//
-	// This is called during type resolution for GetCollection() calls to ensure
-	// the user's struct can be populated from the provider's data.
+	// This is called during type resolution for GetCollection() calls to ensure the user's
+	// struct can be populated from the provider's data.
 	//
 	// Parameters:
 	//   - targetType: Go AST expression for the user's struct type
@@ -173,9 +168,8 @@ type CollectionProvider interface {
 
 	// FetchStaticContent retrieves all content from a collection at BUILD TIME.
 	//
-	// Called for Static and Hybrid providers during the build process. Must
-	// return ALL items in the collection, as they will be embedded in the
-	// compiled binary.
+	// Called for Static and Hybrid providers during the build process. Must return ALL items
+	// in the collection, as they will be embedded in the compiled binary.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -186,15 +180,14 @@ type CollectionProvider interface {
 	//   - A slice of ContentItem (one per item in the collection)
 	//   - An error if fetching fails
 	//
-	// For Dynamic providers: Should return an error indicating this operation is
-	// not supported.
+	// For Dynamic providers: Should return an error indicating this operation is not
+	// supported.
 	FetchStaticContent(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error)
 
 	// GenerateRuntimeFetcher generates Go code for fetching data at RUNTIME.
 	//
-	// Called for Dynamic and Hybrid providers during the build process. Must
-	// generate a complete, compilable Go function that fetches data when the
-	// compiled application runs.
+	// Called for Dynamic and Hybrid providers during the build process. Must generate a
+	// complete, compilable Go function that fetches data when the compiled application runs.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -207,14 +200,14 @@ type CollectionProvider interface {
 	//   - An error if code generation fails
 	//
 	// The generated function should:
-	//   1. Check cache (if caching enabled)
-	//   2. Fetch fresh data from the source
-	//   3. Transform data to match targetType
-	//   4. Handle errors gracefully
-	//   5. Update cache
+	//  1. Check cache (if caching enabled)
+	//  2. Fetch fresh data from the source
+	//  3. Transform data to match targetType
+	//  4. Handle errors gracefully
+	//  5. Update cache
 	//
-	// For Static providers: Should return an error indicating this operation is
-	// not supported.
+	// For Static providers: Should return an error indicating this operation is not
+	// supported.
 	GenerateRuntimeFetcher(
 		ctx context.Context,
 		collectionName string,
@@ -223,18 +216,16 @@ type CollectionProvider interface {
 	) (*collection_dto.RuntimeFetcherCode, error)
 
 	//
-	// These methods support Incremental Static Regeneration (ISR). They are used
-	// by hybrid providers to enable ETag-based staleness detection and background
-	// revalidation.
+	// These methods support Incremental Static Regeneration (ISR). They are used by hybrid
+	// providers to enable ETag-based staleness detection and background revalidation.
 	//
-	// Implementation is OPTIONAL for pure static or pure dynamic providers.
-	// Default implementations that return errors are acceptable.
-	// ComputeETag computes a content fingerprint for hybrid mode staleness
-	// detection.
+	// Implementation is OPTIONAL for pure static or pure dynamic providers. Default
+	// implementations that return errors are acceptable. ComputeETag computes a content
+	// fingerprint for hybrid mode staleness detection.
 	//
-	// Called at build time to create an ETag that represents the current
-	// state of the collection. At runtime, the ETag is compared against the
-	// current content to detect changes.
+	// Called at build time to create an ETag that represents the current state of the
+	// collection. At runtime, the ETag is compared against the current content to detect
+	// changes.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -255,8 +246,8 @@ type CollectionProvider interface {
 
 	// ValidateETag checks if the current content matches an expected ETag.
 	//
-	// Called at runtime during background revalidation to determine if
-	// content has changed since the last check.
+	// Called at runtime during background revalidation to determine if content has changed
+	// since the last check.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -276,11 +267,10 @@ type CollectionProvider interface {
 	// For pure Static/Dynamic providers: May return ("", false, ErrNotSupported)
 	ValidateETag(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (currentETag string, changed bool, err error)
 
-	// GenerateRevalidator generates Go code for runtime ETag validation and
-	// refresh.
+	// GenerateRevalidator generates Go code for runtime ETag validation and refresh.
 	//
-	// Called at build time for hybrid providers to generate the code that
-	// runs in background goroutines to revalidate stale content.
+	// Called at build time for hybrid providers to generate the code that runs in background
+	// goroutines to revalidate stale content.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -293,11 +283,11 @@ type CollectionProvider interface {
 	//   - An error if code generation fails
 	//
 	// The generated function should:
-	//   1. Call ValidateETag() to check for changes
-	//   2. If unchanged: Return early (no-op)
-	//   3. If changed: Fetch fresh content via FetchStaticContent()
-	//   4. Serialise new content to FlatBuffer
-	//   5. Update the hybrid registry
+	//  1. Call ValidateETag() to check for changes
+	//  2. If unchanged: Return early (no-op)
+	//  3. If changed: Fetch fresh content via FetchStaticContent()
+	//  4. Serialise new content to FlatBuffer
+	//  5. Update the hybrid registry
 	//
 	// For pure Static/Dynamic providers: May return (nil, ErrNotSupported)
 	GenerateRevalidator(
@@ -308,11 +298,11 @@ type CollectionProvider interface {
 	) (*collection_dto.RuntimeFetcherCode, error)
 }
 
-// RuntimeProvider defines the interface for providers that operate at runtime.
-// Implements collection_domain.RuntimeProvider and runtime.RuntimeProvider.
+// RuntimeProvider defines the interface for providers that operate at runtime. Implements
+// collection_domain.RuntimeProvider and runtime.RuntimeProvider.
 //
-// Dynamic and Hybrid providers must implement RuntimeProvider AND register
-// it with the runtime when the application starts.
+// Dynamic and Hybrid providers must implement RuntimeProvider AND register it with the
+// runtime when the application starts.
 //
 // Design Philosophy:
 //   - Separation: Build-time (CollectionProvider) and runtime (RuntimeProvider)
@@ -358,15 +348,13 @@ type RuntimeProvider interface {
 	) error
 }
 
-// CollectionEncoderPort is the driven port for encoding collection data
-// to binary format. It abstracts the encoding mechanism from domain logic,
-// allowing the collection hexagon to pack data into a binary blob suitable for
-// embedding via //go:embed.
+// CollectionEncoderPort is the driven port for encoding collection data to binary format.
+// It abstracts the encoding mechanism from domain logic, allowing the collection hexagon
+// to pack data into a binary blob suitable for embedding via //go:embed.
 //
 // Design philosophy:
 //   - Decoupling: Domain does not depend on FlatBuffers directly.
-//   - Zero-copy: Implementations must produce formats optimised for direct
-//     memory access.
+//   - Zero-copy: Implementations must produce formats optimised for direct memory access.
 //   - Sortable: Binary format must support efficient lookups via binary search.
 //
 // Implementation guide:
@@ -378,10 +366,10 @@ type CollectionEncoderPort interface {
 	// EncodeCollection packs a full collection into a binary blob.
 	//
 	// Transforms a slice of ContentItems into a binary format that:
-	//   1. Can be embedded directly into the compiled binary (via //go:embed)
-	//   2. Supports O(log n) lookups by route at runtime
-	//   3. Allows lazy decoding of individual items
-	//   4. Minimises memory overhead (zero-copy access)
+	//  1. Can be embedded directly into the compiled binary (via //go:embed)
+	//  2. Supports O(log n) lookups by route at runtime
+	//  3. Allows lazy decoding of individual items
+	//  4. Minimises memory overhead (zero-copy access)
 	//
 	// Parameters:
 	//   - items: Slice of content items to encode
@@ -397,11 +385,10 @@ type CollectionEncoderPort interface {
 	//   - MUST produce a format compatible with DecodeCollectionItem()
 	EncodeCollection(items []collection_dto.ContentItem) ([]byte, error)
 
-	// DecodeCollectionItem extracts a single item from an encoded
-	// collection.
+	// DecodeCollectionItem extracts a single item from an encoded collection.
 	//
-	// Performs a binary search lookup in the blob and returns the raw data
-	// for a specific route without decoding the entire collection.
+	// Performs a binary search lookup in the blob and returns the raw data for a specific
+	// route without decoding the entire collection.
 	//
 	// Takes blob ([]byte) which is the encoded collection blob.
 	// Takes route (string) which is the route to look up (e.g., "/docs/actions").
@@ -411,17 +398,16 @@ type CollectionEncoderPort interface {
 	// Returns excerptAST ([]byte) which is the raw excerpt AST bytes (may be nil).
 	// Returns err (error) when the route is not found or blob is invalid.
 	//
-	// Implementations must use binary search on sorted routes (O(log n)), must not
-	// decode the entire collection, and must return raw bytes for lazy
-	// decoding. The runtime registry handles final decoding into
-	// domain objects.
+	// Implementations must use binary search on sorted routes (O(log n)), must not decode
+	// the entire collection, and must return raw bytes for lazy decoding. The runtime
+	// registry handles final decoding into domain objects.
 	DecodeCollectionItem(blob []byte, route string) (metadataJSON, contentAST, excerptAST []byte, err error)
 }
 
 // ProviderRegistryPort is the DRIVER port for managing providers.
 //
-// Defines how the framework manages the collection of registered providers.
-// The actual implementation (adapter) lives in collection_adapters.
+// Defines how the framework manages the collection of registered providers. The actual
+// implementation (adapter) lives in collection_adapters.
 //
 // Design Philosophy:
 //   - Simple CRUD operations
@@ -470,36 +456,32 @@ type ProviderRegistryPort interface {
 
 // CollectionService is the primary DRIVING port for the Collection Hexagon.
 //
-// This is the main entry point that other hexagons (Coordinator, Annotator) use
-// to interact with the collection system.
+// This is the main entry point that other hexagons (Coordinator, Annotator) use to
+// interact with the collection system.
 //
 // Integration Points:
-//   - Coordinator: Calls ProcessCollectionDirective() during build
-//     orchestration
+//   - Coordinator: Calls ProcessCollectionDirective() during build orchestration
 //   - Annotator: Calls ProcessGetCollectionCall() during type resolution
 type CollectionService interface {
-	// ProcessCollectionDirective expands a p-collection directive into entry
-	// points.
+	// ProcessCollectionDirective expands a p-collection directive into entry points.
 	//
-	// Called by the Coordinator when it encounters a .pk file with a
-	// p-collection directive. Orchestrates the provider to generate virtual
-	// entry points for each content item.
+	// Called by the Coordinator when it encounters a .pk file with a p-collection directive.
+	// Orchestrates the provider to generate virtual entry points for each content item.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
 	//   - directive: Parsed information from the p-collection directive
 	//
 	// Returns:
-	//   - A slice of virtual entry points (one per content item for static
-	//     providers)
+	//   - A slice of virtual entry points (one per content item for static providers)
 	//   - An error if expansion fails
 	//
 	// Workflow:
-	//   1. Look up provider by name
-	//   2. Check provider type
-	//   3. For Static: Call FetchStaticContent(), create entry point per item
-	//   4. For Dynamic: Create single dynamic route entry point
-	//   5. For Hybrid: Do both
+	//  1. Look up provider by name
+	//  2. Check provider type
+	//  3. For Static: Call FetchStaticContent(), create entry point per item
+	//  4. For Dynamic: Create single dynamic route entry point
+	//  5. For Hybrid: Do both
 	//
 	// See: internal/collection/design.md Section 9.1 for integration details
 	ProcessCollectionDirective(
@@ -509,9 +491,9 @@ type CollectionService interface {
 
 	// ProcessGetCollectionCall handles data.GetCollection() in user code.
 	//
-	// Called by the Annotator's TypeResolver when it encounters a
-	// GetCollection() call. Receives semantic information extracted from the
-	// Piko AST and generates the appropriate annotation for the Generator.
+	// Called by the Annotator's TypeResolver when it encounters a GetCollection() call.
+	// Receives semantic information extracted from the Piko AST and generates the
+	// appropriate annotation for the Generator.
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
@@ -525,11 +507,11 @@ type CollectionService interface {
 	//   - An error if processing fails
 	//
 	// Workflow:
-	//   1. Look up provider from options (or use default)
-	//   2. Validate target type compatibility with provider
-	//   3. For Static: Fetch content, generate static slice literal annotation
-	//   4. For Dynamic: Generate runtime fetch call annotation
-	//   5. For Hybrid: Generate hybrid annotation (snapshot + revalidation)
+	//  1. Look up provider from options (or use default)
+	//  2. Validate target type compatibility with provider
+	//  3. For Static: Fetch content, generate static slice literal annotation
+	//  4. For Dynamic: Generate runtime fetch call annotation
+	//  5. For Hybrid: Generate hybrid annotation (snapshot + revalidation)
 	//
 	// See: internal/collection/design.md Section 9.2 for integration details
 	ProcessGetCollectionCall(
@@ -558,15 +540,15 @@ type CollectionService interface {
 
 	// Close releases resources held by the service.
 	//
-	// This closes any sandboxes created for external module content sources
-	// during directive processing.
+	// This closes any sandboxes created for external module content sources during directive
+	// processing.
 	//
 	// Returns error when resource cleanup fails.
 	Close() error
 }
 
-// CollectionDirectiveInfo contains parsed information from a p-collection
-// directive. It is passed from the Coordinator to the CollectionService.
+// CollectionDirectiveInfo contains parsed information from a p-collection directive. It
+// is passed from the Coordinator to the CollectionService.
 type CollectionDirectiveInfo struct {
 	// CacheConfig holds cache settings for dynamic providers; nil uses defaults.
 	CacheConfig *collection_dto.CacheConfig
@@ -577,18 +559,17 @@ type CollectionDirectiveInfo struct {
 	// ProviderName is the name of the collection provider used to fetch data.
 	ProviderName string
 
-	// CollectionName is the name of the collection to fetch, such as "blog" or
-	// "products".
+	// CollectionName is the name of the collection to fetch, such as "blog" or "products".
 	CollectionName string
 
-	// LayoutPath is the path to the .pk file that serves as the layout template
-	// for generated pages. Example: "pages/blog/{slug}.pk".
+	// LayoutPath is the path to the .pk file that serves as the layout template for
+	// generated pages. Example: "pages/blog/{slug}.pk".
 	LayoutPath string
 
 	// RoutePath is the base route path for generated pages.
 	//
-	// For static providers, each item gets its own route under this path.
-	// For dynamic providers, this becomes a dynamic route pattern.
+	// For static providers, each item gets its own route under this path. For dynamic
+	// providers, this becomes a dynamic route pattern.
 	RoutePath string
 }
 
@@ -596,13 +577,13 @@ type CollectionDirectiveInfo struct {
 //
 // This is what the CollectionService returns to the Coordinator.
 //
-// Design Note: This is a simplified version. The actual EntryPoint type will
-// be imported from annotator_dto in the real implementation.
+// Design Note: This is a simplified version. The actual EntryPoint type will be imported
+// from annotator_dto in the real implementation.
 type EntryPoint struct {
 	// InitialProps contains pre-computed props for virtual entry points.
 	//
-	// For static collections: Contains the content item's metadata and AST
-	// For dynamic collections: Empty (props fetched at runtime)
+	// For static collections: Contains the content item's metadata and AST For dynamic
+	// collections: Empty (props fetched at runtime)
 	InitialProps map[string]any
 
 	// Path is the file path to the .pk layout file.
@@ -635,9 +616,8 @@ type EntryPoint struct {
 
 // Config represents the collection-specific project configuration.
 //
-// This configuration is extracted from the main project configuration
-// (piko.config.yaml) and passed to the collection service for validation at
-// startup.
+// This configuration is extracted from the main project configuration (piko.config.yaml)
+// and passed to the collection service for validation at startup.
 //
 // Design Philosophy:
 //   - Explicit declaration: All collections and providers must be declared
@@ -649,14 +629,14 @@ type Config struct {
 	// Keys must match registered provider names (e.g. "markdown", "headless-cms").
 	Providers map[string]ProviderConfigEntry
 
-	// Collections maps collection names to their settings.
-	// Keys are collection names such as "blog" or "docs".
+	// Collections maps collection names to their settings. Keys are collection names such as
+	// "blog" or "docs".
 	Collections map[string]CollectionConfigEntry
 
 	// DefaultProvider is the name of the provider to use when none is given.
 	//
-	// This provider is used when GetCollection is called without WithProvider.
-	// Must be registered in the provider registry.
+	// This provider is used when GetCollection is called without WithProvider. Must be
+	// registered in the provider registry.
 	//
 	// Default: "markdown"
 	DefaultProvider string
@@ -667,9 +647,8 @@ type ProviderConfigEntry struct {
 	// Custom holds settings specific to this provider as key-value pairs.
 	Custom map[string]any
 
-	// BasePath is the base folder for this provider.
-	// For markdown providers, this is the project root containing the "content"
-	// folder.
+	// BasePath is the base folder for this provider. For markdown providers, this is the
+	// project root containing the "content" folder.
 	BasePath string
 
 	// Enabled indicates whether this provider should be registered. Default: true.
@@ -678,21 +657,20 @@ type ProviderConfigEntry struct {
 
 // CollectionConfigEntry contains configuration for a specific collection.
 type CollectionConfigEntry struct {
-	// Provider is the name of the provider to use for this collection.
-	// If empty, Config.DefaultProvider is used.
+	// Provider is the name of the provider to use for this collection. If empty,
+	// Config.DefaultProvider is used.
 	Provider string
 
 	// Enabled indicates whether this collection is active. Default is true.
 	Enabled bool
 }
 
-// HybridRegistryPort manages hybrid collection caches for ISR (Incremental
-// Static Regeneration).
+// HybridRegistryPort manages hybrid collection caches for ISR (Incremental Static
+// Regeneration).
 //
-// This port abstracts the hybrid registry, allowing tests to inject mock
-// implementations that don't rely on global state. The hybrid registry stores
-// build-time snapshots and manages background revalidation for hybrid
-// collections.
+// This port abstracts the hybrid registry, allowing tests to inject mock implementations
+// that don't rely on global state. The hybrid registry stores build-time snapshots and
+// manages background revalidation for hybrid collections.
 //
 // Implements collection_adapters.hybridRegistryAccessor and HybridRegistryPort
 // interfaces.
@@ -701,8 +679,8 @@ type CollectionConfigEntry struct {
 type HybridRegistryPort interface {
 	// Register stores a build-time snapshot for runtime use.
 	//
-	// This is called from generated init() functions to register the
-	// embedded FlatBuffer blob and its ETag for hybrid mode operation.
+	// This is called from generated init() functions to register the embedded FlatBuffer
+	// blob and its ETag for hybrid mode operation.
 	//
 	// Parameters:
 	//   - ctx: Context for logging and trace propagation
@@ -713,8 +691,7 @@ type HybridRegistryPort interface {
 	//   - config: Hybrid mode configuration (TTL, stale-if-error, etc.)
 	Register(ctx context.Context, providerName, collectionName string, blob []byte, etag string, config collection_dto.HybridConfig)
 
-	// GetBlob returns the current FlatBuffer blob and whether revalidation is
-	// needed.
+	// GetBlob returns the current FlatBuffer blob and whether revalidation is needed.
 	//
 	// Parameters:
 	//   - ctx: Context for logging and trace propagation
@@ -752,30 +729,28 @@ type HybridRegistryPort interface {
 	// Takes providerName (string) which identifies the data provider.
 	// Takes collectionName (string) which identifies the collection to revalidate.
 	//
-	// Returns at once; revalidation runs in the background.
-	// Concurrent calls are combined into a single revalidation.
+	// Returns at once; revalidation runs in the background. Concurrent calls are combined
+	// into a single revalidation.
 	TriggerRevalidation(ctx context.Context, providerName, collectionName string)
 }
 
 // HybridPersistencePort manages persistent storage of hybrid collection state.
 //
-// This port enables hybrid collections to survive process restarts by
-// persisting their current state (blob, ETag, timestamps) to disk. Without
-// persistence, revalidated content would be lost on restart, forcing
-// unnecessary re-fetches.
+// This port enables hybrid collections to survive process restarts by persisting their
+// current state (blob, ETag, timestamps) to disk. Without persistence, revalidated
+// content would be lost on restart, forcing unnecessary re-fetches.
 //
 // Design Philosophy:
 //   - Atomic writes: Prevents corruption from process crashes mid-write
 //   - Graceful degradation: Missing cache file is not an error (cold start)
-//   - JSON format: Human-readable for debugging, efficient enough for cache
-//     size
+//   - JSON format: Human-readable for debugging, efficient enough for cache size
 //
 // Thread-safety: All implementations must be safe for concurrent use.
 type HybridPersistencePort interface {
 	// Load reads persisted hybrid state from storage into the registry.
 	//
-	// This should be called during application startup to restore hybrid
-	// collection state from the previous run.
+	// This should be called during application startup to restore hybrid collection state
+	// from the previous run.
 	//
 	// Graceful degradation:
 	//   - Missing file: Not an error, registry starts empty (cold start)
@@ -792,12 +767,12 @@ type HybridPersistencePort interface {
 
 	// Persist writes current hybrid state from the registry to storage.
 	//
-	// This should be called during graceful shutdown to preserve the
-	// current state for the next run.
+	// This should be called during graceful shutdown to preserve the current state for the
+	// next run.
 	//
 	// Atomic write strategy:
-	//   1. Write to temporary file
-	//   2. Rename temp file to target (atomic on POSIX)
+	//  1. Write to temporary file
+	//  2. Rename temp file to target (atomic on POSIX)
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and tracing
@@ -808,12 +783,11 @@ type HybridPersistencePort interface {
 	Persist(ctx context.Context) error
 }
 
-// StaticCollectionRegistryPort manages static collection blobs for runtime
-// access.
+// StaticCollectionRegistryPort manages static collection blobs for runtime access.
 //
-// This port abstracts the static collection registry, allowing tests to inject
-// mock implementations. The registry stores FlatBuffer blobs registered via
-// //go:embed directives in generated code.
+// This port abstracts the static collection registry, allowing tests to inject mock
+// implementations. The registry stores FlatBuffer blobs registered via //go:embed
+// directives in generated code.
 //
 // Design Philosophy:
 //   - Enables isolated testing of static collection lookups
@@ -824,15 +798,13 @@ type HybridPersistencePort interface {
 type StaticCollectionRegistryPort interface {
 	// Register stores a binary blob for a static collection.
 	//
-	// This is called by generated code in init() functions (from //go:embed
-	// directives) to register the embedded binary data for runtime access.
+	// This is called by generated code in init() functions (from //go:embed directives) to
+	// register the embedded binary data for runtime access.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
-	// Takes collectionName (string) which identifies the collection
-	// (e.g., "docs", "blog").
-	// Takes data ([]byte) which is the FlatBuffer binary blob embedded via
-	// //go:embed.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
+	// Takes collectionName (string) which identifies the collection (e.g., "docs", "blog").
+	// Takes data ([]byte) which is the FlatBuffer binary blob embedded via //go:embed.
 	Register(ctx context.Context, collectionName string, data []byte)
 
 	// GetItem retrieves a single item from a static collection by route.
@@ -872,12 +844,11 @@ type StaticCollectionRegistryPort interface {
 	List() []string
 }
 
-// RuntimeProviderRegistryPort manages runtime providers for dynamic data
-// fetching.
+// RuntimeProviderRegistryPort manages runtime providers for dynamic data fetching.
 //
-// This port abstracts the runtime provider registry, allowing tests to inject
-// mock implementations. Runtime providers are registered during application
-// startup and handle data fetching for dynamic and hybrid collections.
+// This port abstracts the runtime provider registry, allowing tests to inject mock
+// implementations. Runtime providers are registered during application startup and handle
+// data fetching for dynamic and hybrid collections.
 //
 // Design Philosophy:
 //   - Enables isolated testing of runtime provider lookup and invocation
@@ -931,8 +902,8 @@ type RuntimeProviderRegistryPort interface {
 
 // ASTDecoderPort abstracts AST decoding from domain logic.
 //
-// This port enables testing of collection item decoding without
-// depending on the actual ast_adapters implementation.
+// This port enables testing of collection item decoding without depending on the actual
+// ast_adapters implementation.
 //
 // Design Philosophy:
 //   - Decouples domain code from ast_adapters
@@ -950,9 +921,8 @@ type ASTDecoderPort interface {
 	//   - An error if decoding fails
 	Decode(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error)
 
-	// DecodeForRender converts FlatBuffer bytes into a TemplateAST optimised
-	// for rendering. Location and range fields are skipped since the renderer
-	// never reads them.
+	// DecodeForRender converts FlatBuffer bytes into a TemplateAST optimised for rendering.
+	// Location and range fields are skipped since the renderer never reads them.
 	//
 	// Parameters:
 	//   - ctx: context for logging and cancellation propagation
@@ -964,13 +934,11 @@ type ASTDecoderPort interface {
 	DecodeForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error)
 }
 
-// SearchIndexLoaderPort abstracts loading search indexes from the search
-// adapter layer.
+// SearchIndexLoaderPort abstracts loading search indexes from the search adapter layer.
 //
-// This port enables testing search functionality without requiring actual
-// FlatBuffer indexes to be registered in the global search index registry.
-// It decouples the collection domain from search_adapters and follows
-// hexagonal architecture boundaries.
+// This port enables testing search functionality without requiring actual FlatBuffer
+// indexes to be registered in the global search index registry. It decouples the
+// collection domain from search_adapters and follows hexagonal architecture boundaries.
 type SearchIndexLoaderPort interface {
 	// GetIndex retrieves a search index reader for a collection and search mode.
 	//
@@ -984,9 +952,9 @@ type SearchIndexLoaderPort interface {
 	GetIndex(collectionName, searchMode string) (any, error)
 }
 
-// CollectionItemsLoaderPort abstracts loading collection items for search
-// result hydration. This port enables testing without requiring actual
-// FlatBuffer blobs in the global static collection registry.
+// CollectionItemsLoaderPort abstracts loading collection items for search result
+// hydration. This port enables testing without requiring actual FlatBuffer blobs in the
+// global static collection registry.
 type CollectionItemsLoaderPort interface {
 	// GetAllItems retrieves all items from a static collection.
 	//
@@ -1012,14 +980,13 @@ type SearchServicePort interface {
 	// Search executes a search query against a static collection.
 	//
 	// Takes collectionName (string) which identifies the collection to search.
-	// Takes currentPageData (map[string]any) which contains current page data if
-	// called from a collection page, or nil otherwise.
-	// Takes config (SearchConfig) which specifies search parameters including
-	// query, fields, and scoring thresholds.
+	// Takes currentPageData (map[string]any) which contains current page data if called from
+	// a collection page, or nil otherwise.
+	// Takes config (SearchConfig) which specifies search parameters including query, fields,
+	// and scoring thresholds.
 	// Takes searchMode (string) which sets the search mode ("fast" or "smart").
 	//
-	// Returns []SearchResult which contains matching documents sorted by
-	// relevance.
+	// Returns []SearchResult which contains matching documents sorted by relevance.
 	// Returns error when the collection is not found or search fails.
 	Search(
 		ctx context.Context,

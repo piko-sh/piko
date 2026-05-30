@@ -18,8 +18,7 @@
 
 package collection_dto
 
-// CollectionDirectiveInfo contains parsed information from a p-collection
-// directive.
+// CollectionDirectiveInfo contains parsed information from a p-collection directive.
 //
 // This DTO is passed from the Annotator to the CollectionService when expanding
 // collection directives into virtual entry points.
@@ -33,47 +32,45 @@ type CollectionDirectiveInfo struct {
 	// ProviderName identifies the provider for this collection.
 	ProviderName string
 
-	// CollectionName is the name of the collection to fetch, such as "blog" or
-	// "products".
+	// CollectionName is the name of the collection to fetch, such as "blog" or "products".
 	CollectionName string
 
-	// LayoutPath is the path to the layout template file used to render pages
-	// from this collection. Example: "pages/blog/{slug}.pk".
+	// LayoutPath is the path to the layout template file used to render pages from this
+	// collection. Example: "pages/blog/{slug}.pk".
 	LayoutPath string
 
 	// RoutePath is the base route path for generated pages.
 	//
-	// For static providers, each item gets its own route under this path.
-	// For dynamic providers, this becomes a dynamic route pattern.
+	// For static providers, each item gets its own route under this path. For dynamic
+	// providers, this becomes a dynamic route pattern.
 	RoutePath string
 
-	// BasePath is the root folder path for finding content files.
-	// Providers use this value to locate content within the project.
+	// BasePath is the root folder path for finding content files. Providers use this value
+	// to locate content within the project.
 	BasePath string
 
-	// ContentModulePath is the resolved Go module import path for content
-	// sourcing. When set, content is read from this external module (via
-	// GOMODCACHE) instead of the local project's content directory.
+	// ContentModulePath is the resolved Go module import path for content sourcing. When
+	// set, content is read from this external module (via GOMODCACHE) instead of the local
+	// project's content directory.
 	ContentModulePath string
 
 	// ParamName is the URL parameter name used to look up content.
 	//
-	// Defaults to "slug". Use the p-param attribute to set a different name
-	// when your route uses another parameter. For example, if your route is
-	// /products/{id}, set ParamName to "id" so the provider calls
-	// chi.URLParam(r, "id") at runtime.
+	// Defaults to "slug". Use the p-param attribute to set a different name when your route
+	// uses another parameter. For example, if your route is /products/{id}, set ParamName to
+	// "id" so the provider calls chi.URLParam(r, "id") at runtime.
 	ParamName string
 }
 
 // CollectionEntryPoint represents a single page to be built from a collection.
 //
-// This is what the CollectionService returns to the Annotator after expanding
-// a collection directive.
+// This is what the CollectionService returns to the Annotator after expanding a
+// collection directive.
 type CollectionEntryPoint struct {
 	// InitialProps contains pre-set props for virtual entry points.
 	//
-	// For static collections: holds the content item's metadata and AST.
-	// For dynamic collections: empty (props are fetched at runtime).
+	// For static collections: holds the content item's metadata and AST. For dynamic
+	// collections: empty (props are fetched at runtime).
 	InitialProps map[string]any
 
 	// Path is the file path to the .pk template used as the layout.
@@ -97,8 +94,7 @@ type CollectionEntryPoint struct {
 	// IsPage indicates whether this entry point is a page.
 	IsPage bool
 
-	// IsVirtual indicates this entry point was generated rather than being a
-	// real file.
+	// IsVirtual indicates this entry point was generated rather than being a real file.
 	IsVirtual bool
 
 	// IsDynamic indicates whether this route fetches data at runtime.
@@ -106,8 +102,8 @@ type CollectionEntryPoint struct {
 
 	// IsHybrid indicates this is a hybrid (ISR) route.
 	//
-	// Hybrid routes serve a static snapshot immediately and trigger background
-	// revalidation when the configured TTL expires. This combines the performance
-	// of static generation with the freshness of dynamic content.
+	// Hybrid routes serve a static snapshot immediately and trigger background revalidation
+	// when the configured TTL expires. This combines the performance of static generation
+	// with the freshness of dynamic content.
 	IsHybrid bool
 }

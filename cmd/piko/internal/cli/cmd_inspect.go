@@ -35,52 +35,53 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// inspectHandler reads raw binary payload bytes and returns a
-// JSON-serialisable value.
+// inspectHandler reads raw binary payload bytes and returns a JSON-serialisable value.
 type inspectHandler struct {
-	// unpack strips the version header and validates the schema hash.
-	// For non-FBS types, this may be a no-op pass-through.
+	// unpack strips the version header and validates the schema hash. For non-FBS types,
+	// this may be a no-op pass-through.
 	unpack func(data []byte) ([]byte, error)
 
 	// convert parses the raw payload into a JSON-serialisable struct.
 	convert func(payload []byte) (any, error)
 }
 
-// inspectHandlers maps type names to their unpack+convert handlers.
-var inspectHandlers = map[string]inspectHandler{
-	"manifest": {
-		unpack: fbsManifest.Unpack,
-		convert: func(p []byte) (any, error) {
-			return fbsManifest.ConvertManifest(p)
+var (
+	// inspectHandlers maps type names to their unpack+convert handlers.
+	inspectHandlers = map[string]inspectHandler{
+		"manifest": {
+			unpack: fbsManifest.Unpack,
+			convert: func(p []byte) (any, error) {
+				return fbsManifest.ConvertManifest(p)
+			},
 		},
-	},
-	"i18n": {
-		unpack: fbsI18n.Unpack,
-		convert: func(p []byte) (any, error) {
-			return fbsI18n.ConvertI18n(p)
+		"i18n": {
+			unpack: fbsI18n.Unpack,
+			convert: func(p []byte) (any, error) {
+				return fbsI18n.ConvertI18n(p)
+			},
 		},
-	},
-	"collection": {
-		unpack: fbsCollection.Unpack,
-		convert: func(p []byte) (any, error) {
-			return fbsCollection.ConvertCollection(p)
+		"collection": {
+			unpack: fbsCollection.Unpack,
+			convert: func(p []byte) (any, error) {
+				return fbsCollection.ConvertCollection(p)
+			},
 		},
-	},
-	"search": {
-		unpack: fbsSearch.Unpack,
-		convert: func(p []byte) (any, error) {
-			return fbsSearch.ConvertSearchIndex(p)
+		"search": {
+			unpack: fbsSearch.Unpack,
+			convert: func(p []byte) (any, error) {
+				return fbsSearch.ConvertSearchIndex(p)
+			},
 		},
-	},
-	"bytecode": {
-		unpack:  interp_schema.Unpack,
-		convert: func(p []byte) (any, error) { return interp_schema.ConvertBytecode(p) },
-	},
-	"wal": {
-		unpack:  func(data []byte) ([]byte, error) { return data, nil },
-		convert: parseWALEntries,
-	},
-}
+		"bytecode": {
+			unpack:  interp_schema.Unpack,
+			convert: func(p []byte) (any, error) { return interp_schema.ConvertBytecode(p) },
+		},
+		"wal": {
+			unpack:  func(data []byte) ([]byte, error) { return data, nil },
+			convert: parseWALEntries,
+		},
+	}
+)
 
 // inspectFlags holds the parsed flags for the inspect subcommand.
 type inspectFlags struct {
@@ -107,8 +108,8 @@ func RunInspect(arguments []string) int {
 //
 // Usage: piko inspect <type> <file> [flags]
 //
-// Flags may appear before, between, or after the positional arguments.
-// The --effective flag is only valid for the wal type.
+// Flags may appear before, between, or after the positional arguments. The --effective
+// flag is only valid for the wal type.
 //
 // Takes arguments ([]string) which contains the command-line arguments.
 // Takes stdout (io.Writer) which receives the JSON output.
@@ -143,8 +144,8 @@ func RunInspectWithIO(arguments []string, stdout, stderr io.Writer) int {
 	return marshalAndPrint(result, flags, stdout, stderr)
 }
 
-// parseInspectArgs separates --name boolean flags from positional
-// arguments, where flags may appear in any position.
+// parseInspectArgs separates --name boolean flags from positional arguments, where flags
+// may appear in any position.
 //
 // Takes arguments ([]string) which contains the raw command-line arguments.
 // Takes stderr (io.Writer) which receives error messages for unknown flags.
@@ -178,8 +179,8 @@ func parseInspectArgs(arguments []string, stderr io.Writer) (inspectFlags, []str
 	return flags, positional, true
 }
 
-// resolveInspectHandler validates positional arguments, locates the handler for
-// the given type, and checks WAL-only flag constraints.
+// resolveInspectHandler validates positional arguments, locates the handler for the given
+// type, and checks WAL-only flag constraints.
 //
 // Takes positional ([]string) which contains the type name and file path.
 // Takes flags (inspectFlags) which holds parsed flag values.
@@ -217,11 +218,10 @@ func resolveInspectHandler(positional []string, flags inspectFlags, stderr io.Wr
 	return typeName, handler, 0
 }
 
-// loadAndConvert reads the file, unpacks the binary payload, and converts it
-// to a JSON-serialisable value.
+// loadAndConvert reads the file, unpacks the binary payload, and converts it to a
+// JSON-serialisable value.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes typeName (string) which identifies the file type for error messages.
 // Takes filePath (string) which is the path to the file to inspect.
 // Takes handler (inspectHandler) which provides unpack and convert functions.
@@ -260,8 +260,8 @@ func loadAndConvert(factory safedisk.Factory, typeName, filePath string, handler
 	return result, 0
 }
 
-// applyWALTransforms applies WAL-specific transformations (effective state,
-// value parsing) to the inspect result when the corresponding flags are set.
+// applyWALTransforms applies WAL-specific transformations (effective state, value
+// parsing) to the inspect result when the corresponding flags are set.
 //
 // Takes result (any) which is the raw converted result.
 // Takes flags (inspectFlags) which controls which transforms to apply.

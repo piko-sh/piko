@@ -18,22 +18,22 @@
 
 package llm_dto
 
-// SimilarityMetric specifies how to measure the distance between vectors in a
-// similarity search.
+// SimilarityMetric specifies how to measure the distance between vectors in a similarity
+// search.
 type SimilarityMetric string
 
 const (
-	// SimilarityCosine uses cosine similarity for vector comparison. Values range
-	// from -1 to 1, where 1 means the vectors point in the same direction.
+	// SimilarityCosine uses cosine similarity for vector comparison. Values range from -1 to
+	// 1, where 1 means the vectors point in the same direction.
 	SimilarityCosine SimilarityMetric = "cosine"
 
-	// SimilarityEuclidean uses Euclidean distance to compare vectors. The range is
-	// [0, +inf) where 0 means the vectors are the same.
+	// SimilarityEuclidean uses Euclidean distance to compare vectors. The range is [0, +inf)
+	// where 0 means the vectors are the same.
 	SimilarityEuclidean SimilarityMetric = "euclidean"
 
 	// SimilarityDotProduct is a similarity metric that uses dot product for vector
-	// comparison. Higher values show greater similarity, with a range from negative
-	// infinity to positive infinity.
+	// comparison. Higher values show greater similarity, with a range from negative infinity
+	// to positive infinity.
 	SimilarityDotProduct SimilarityMetric = "dot_product"
 )
 
@@ -54,8 +54,8 @@ type VectorDocument struct {
 
 // VectorSearchRequest holds the settings for a vector similarity search.
 type VectorSearchRequest struct {
-	// MinScore filters out results below this similarity threshold.
-	// If nil, no minimum score filter is applied.
+	// MinScore filters out results below this similarity threshold. If nil, no minimum score
+	// filter is applied.
 	MinScore *float32
 
 	// Filter specifies metadata criteria that documents must match.
@@ -64,9 +64,8 @@ type VectorSearchRequest struct {
 	// Namespace is the collection or index to search within.
 	Namespace string
 
-	// TextQuery is an optional text query for hybrid search. When set with
-	// Vector, combines text and vector results using RRF; requires TEXT
-	// fields in the cache search schema.
+	// TextQuery is an optional text query for hybrid search. When set with Vector, combines
+	// text and vector results using RRF; requires TEXT fields in the cache search schema.
 	TextQuery string
 
 	// Vector is the query embedding used to find similar documents.
@@ -105,13 +104,13 @@ type VectorSearchResponse struct {
 	// Results holds the matching documents sorted by similarity.
 	Results []VectorSearchResult
 
-	// TotalCount is the total number of documents that matched before the TopK
-	// limit was applied.
+	// TotalCount is the total number of documents that matched before the TopK limit was
+	// applied.
 	TotalCount int
 }
 
-// FirstResult returns the first search result, or nil if there are no results.
-// This is a convenience method for single-result queries.
+// FirstResult returns the first search result, or nil if there are no results. This is a
+// convenience method for single-result queries.
 //
 // Returns *VectorSearchResult which is the first result, or nil if empty.
 func (r *VectorSearchResponse) FirstResult() *VectorSearchResult {

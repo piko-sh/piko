@@ -16,17 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_disk provides a disk-based email provider
-// that writes emails as standard .eml files to the local filesystem.
+// Package email_provider_disk provides a disk-based email provider that writes emails as
+// standard .eml files to the local filesystem.
 //
-// This provider is intended for development and testing workflows
-// where you want to inspect sent emails without running a mail
-// server. Each email is written atomically as an RFC 5322 MIME
-// message that can be opened directly by any email client.
+// This provider is intended for development and testing workflows where you want to
+// inspect sent emails without running a mail server. Each email is written atomically as
+// an RFC 5322 MIME message that can be opened directly by any email client.
 //
 // # Thread safety
 //
-// The provider is safe for concurrent use. Each email is written
-// to a unique file using atomic rename, so concurrent sends do
-// not conflict.
+// The provider is safe for concurrent use. Each email is written to a unique file using
+// atomic rename, so concurrent sends do not conflict.
 package email_provider_disk

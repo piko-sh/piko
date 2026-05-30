@@ -18,7 +18,9 @@
 
 package testutil
 
-import "flag"
+import (
+	"flag"
+)
 
 func init() {
 	UpdateGolden = flag.Bool("update", false, "Update golden files")

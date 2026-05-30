@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package dispatcher_domain defines the core port interfaces and domain
-// types for the dispatcher hexagon.
+// Package dispatcher_domain defines the core port interfaces and domain types for the
+// dispatcher hexagon.
 //
-// It declares the [DispatcherInspector] port, which provides read-only
-// access to dispatcher state and dead letter queues across email and
-// notification dispatchers. This port abstracts over concrete
-// dispatcher implementations so that monitoring and admin tooling can
-// query processing statistics without depending on adapter details.
+// It declares the [DispatcherInspector] port, which provides read-only access to
+// dispatcher state and dead letter queues across email and notification dispatchers. This
+// port abstracts over concrete dispatcher implementations so that monitoring and admin
+// tooling can query processing statistics without depending on adapter details.
 package dispatcher_domain

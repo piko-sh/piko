@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package security_dto defines data transfer objects for the security
-// module.
+// Package security_dto defines data transfer objects for the security module.
 //
-// It contains request/response types for CSRF protection,
-// Content Security Policy configuration, client IP resolution, and
-// rate limiting passed between the domain, adapters, and HTTP layers.
+// It contains request/response types for CSRF protection, Content Security Policy
+// configuration, client IP resolution, and rate limiting passed between the domain,
+// adapters, and HTTP layers.
 package security_dto

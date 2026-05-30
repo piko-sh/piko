@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package metrics_exporter_prometheus implements the metrics
-// exporter interface using Prometheus.
+// Package metrics_exporter_prometheus implements the metrics exporter interface using
+// Prometheus.
 //
-// Bridges OpenTelemetry metrics to the Prometheus exposition format, creating
-// a dedicated Prometheus registry and exposing an HTTP handler suitable for
-// scraping. Use [New] for explicit error handling, or [MustNew] when a failure
-// to create the exporter should panic. All methods are safe for concurrent use.
+// Bridges OpenTelemetry metrics to the Prometheus exposition format, creating a dedicated
+// Prometheus registry and exposing an HTTP handler suitable for scraping. Use [New] for
+// explicit error handling, or [MustNew] when a failure to create the exporter should
+// panic. All methods are safe for concurrent use.
 package metrics_exporter_prometheus

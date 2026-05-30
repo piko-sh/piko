@@ -18,21 +18,21 @@
 
 package llm_dto
 
-import "time"
+import (
+	"time"
+)
 
 // MemoryType identifies the strategy for managing conversation memory.
 type MemoryType string
 
 const (
-	// DefaultBufferSize is the default number of messages to keep in buffer
-	// memory.
+	// DefaultBufferSize is the default number of messages to keep in buffer memory.
 	DefaultBufferSize = 20
 
 	// DefaultWindowTokenLimit is the default token limit for window memory.
 	DefaultWindowTokenLimit = 4000
 
-	// DefaultSummaryBufferSize is the default number of messages to keep before
-	// summarising.
+	// DefaultSummaryBufferSize is the default number of messages to keep before summarising.
 	DefaultSummaryBufferSize = 10
 
 	// MemoryTypeBuffer stores the most recent N messages in memory.
@@ -44,8 +44,7 @@ const (
 	// MemoryTypeWindow keeps messages within a token limit.
 	MemoryTypeWindow MemoryType = "window"
 
-	// defaultSummaryPrompt is the default prompt used for summarising conversation
-	// history.
+	// defaultSummaryPrompt is the default prompt used for summarising conversation history.
 	defaultSummaryPrompt = `Summarise the following conversation history concisely.
 Focus on key facts, decisions, and context that would be important for continuing the conversation.
 Keep the summary brief but comprehensive.
@@ -59,12 +58,11 @@ type MemoryConfig struct {
 	// Type specifies the memory strategy to use.
 	Type MemoryType
 
-	// SummaryModel is the model to use for summarisation; only used with Summary
-	// type.
+	// SummaryModel is the model to use for summarisation; only used with Summary type.
 	SummaryModel string
 
-	// SummaryPrompt is the prompt template for summarisation (for Summary type).
-	// If empty, a default prompt will be used.
+	// SummaryPrompt is the prompt template for summarisation (for Summary type). If empty, a
+	// default prompt will be used.
 	SummaryPrompt string
 
 	// BufferSize is the maximum number of messages to keep before summarisation.
@@ -82,8 +80,8 @@ type ConversationState struct {
 	// UpdatedAt is when the conversation was last changed.
 	UpdatedAt time.Time
 
-	// Summary holds a condensed version of older messages when the token count
-	// grows too large; nil means no summary exists.
+	// Summary holds a condensed version of older messages when the token count grows too
+	// large; nil means no summary exists.
 	Summary *string
 
 	// ID is the unique identifier for this conversation.
@@ -141,8 +139,8 @@ func (s *ConversationState) Clear() {
 	s.UpdatedAt = time.Now()
 }
 
-// DefaultBufferMemoryConfig returns a MemoryConfig with sensible defaults
-// for buffer memory.
+// DefaultBufferMemoryConfig returns a MemoryConfig with sensible defaults for buffer
+// memory.
 //
 // Returns *MemoryConfig which has BufferSize set to 20 messages.
 func DefaultBufferMemoryConfig() *MemoryConfig {
@@ -152,8 +150,8 @@ func DefaultBufferMemoryConfig() *MemoryConfig {
 	}
 }
 
-// DefaultWindowMemoryConfig returns a MemoryConfig with sensible defaults
-// for window memory.
+// DefaultWindowMemoryConfig returns a MemoryConfig with sensible defaults for window
+// memory.
 //
 // Returns *MemoryConfig which has a TokenLimit of 4000 tokens.
 func DefaultWindowMemoryConfig() *MemoryConfig {
@@ -163,8 +161,8 @@ func DefaultWindowMemoryConfig() *MemoryConfig {
 	}
 }
 
-// DefaultSummaryMemoryConfig returns a MemoryConfig with sensible defaults
-// for summary memory.
+// DefaultSummaryMemoryConfig returns a MemoryConfig with sensible defaults for summary
+// memory.
 //
 // Takes model (string) which is the model to use for summarisation.
 //

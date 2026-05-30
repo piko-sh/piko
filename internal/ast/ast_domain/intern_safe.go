@@ -20,12 +20,12 @@
 
 package ast_domain
 
-// internBytes returns a stored string if the bytes match a known value, or
-// creates a new string.
+// internBytes returns a stored string if the bytes match a known value, or creates a new
+// string.
 //
-// This is the safe version used when building with -tags safe. It converts the
-// byte slice to a string for the map lookup, which allocates, but returns the
-// stored string if found.
+// This is the safe version used when building with -tags safe. It converts the byte slice
+// to a string for the map lookup, which allocates, but returns the stored string if
+// found.
 //
 // Takes b ([]byte) which contains the bytes to look up or convert.
 //

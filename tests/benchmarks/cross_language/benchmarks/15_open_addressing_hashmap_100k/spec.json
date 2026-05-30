@@ -1,0 +1,14 @@
+{
+  "name": "15_open_addressing_hashmap_100k",
+  "description": "Hand-rolled open-addressing hash table with FNV-1a, linear probing, tombstones, and 2x growth. 100k mixed put/get/delete ops driven by a deterministic LCG. Banned: map (Go), dict (Python), hash/fnv, hashlib. Tests pure interpreter throughput on slice indexing + integer arithmetic + string equality, without any stdlib hot-path short-circuit.",
+  "args": [],
+  "expected_stdout_sha256": "4a7b93a7fe4449420d76b424624801fc09cb7bda404d65fb8100fdd835dcee8d",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "304be073d4b330d6ed6c5d221cee0412436f3b59046fd3d22b4332783954ca88",
+    "py/cpython.py": "27e1af2b9c7e1602e9fd5a3527683c3a51e97b5d1e6efb278541dbdfca7d0ce2",
+    "py/pypy.py": "27e1af2b9c7e1602e9fd5a3527683c3a51e97b5d1e6efb278541dbdfca7d0ce2"
+  }
+}

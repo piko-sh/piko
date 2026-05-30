@@ -32,15 +32,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// defaultCacheTTLSeconds is the default cache time to live in seconds for
-// dynamic providers.
-const defaultCacheTTLSeconds = 60
+const (
+	// defaultCacheTTLSeconds is the default cache time to live in seconds for dynamic
+	// providers.
+	defaultCacheTTLSeconds = 60
+)
 
 // MockCMSProvider simulates a headless CMS for testing and documentation.
 //
-// This is a reference implementation that shows how to build a dynamic
-// collection provider. At build time it creates runtime fetcher function AST,
-// and at runtime the RuntimeProvider fetches the actual data.
+// This is a reference implementation that shows how to build a dynamic collection
+// provider. At build time it creates runtime fetcher function AST, and at runtime the
+// RuntimeProvider fetches the actual data.
 type MockCMSProvider struct {
 	// name is the unique name for this provider.
 	name string
@@ -64,8 +66,8 @@ func (p *MockCMSProvider) Name() string {
 	return p.name
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// The mock CMS provider is always healthy as it has no external dependencies.
+// Check implements the healthprobe_domain.Probe interface. The mock CMS provider is
+// always healthy as it has no external dependencies.
 //
 // Returns healthprobe_dto.Status which always reports healthy.
 func (p *MockCMSProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -82,8 +84,7 @@ func (p *MockCMSProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) 
 
 // Type returns the provider type (dynamic).
 //
-// Returns collection_domain.ProviderType which identifies this as a dynamic
-// provider.
+// Returns collection_domain.ProviderType which identifies this as a dynamic provider.
 func (*MockCMSProvider) Type() collection_domain.ProviderType {
 	return collection_domain.ProviderTypeDynamic
 }
@@ -124,9 +125,8 @@ func (*MockCMSProvider) FetchStaticContent(
 
 // GenerateRuntimeFetcher generates the Go AST for a runtime fetcher function.
 //
-// This is the core method for dynamic providers. It creates a complete
-// function definition that will be injected into the component's generated
-// code.
+// This is the core method for dynamic providers. It creates a complete function
+// definition that will be injected into the component's generated code.
 //
 // The generated function will:
 //  1. Declare a results variable of the target type
@@ -134,15 +134,14 @@ func (*MockCMSProvider) FetchStaticContent(
 //  3. Handle errors
 //  4. Return the results
 //
-// Takes collectionName (string) which specifies the collection name
-// (e.g. "blog").
-// Takes targetType (goast.Expr) which provides the Go AST for the target type
-// (e.g. AST for "Post").
-// Takes options (collection_dto.FetchOptions) which configures fetch behaviour
-// such as cache and locale settings.
+// Takes collectionName (string) which specifies the collection name (e.g. "blog").
+// Takes targetType (goast.Expr) which provides the Go AST for the target type (e.g. AST
+// for "Post").
+// Takes options (collection_dto.FetchOptions) which configures fetch behaviour such as
+// cache and locale settings.
 //
-// Returns *collection_dto.RuntimeFetcherCode which contains the complete
-// function AST and metadata.
+// Returns *collection_dto.RuntimeFetcherCode which contains the complete function AST and
+// metadata.
 // Returns error when generation fails.
 func (p *MockCMSProvider) GenerateRuntimeFetcher(
 	ctx context.Context,
@@ -181,11 +180,10 @@ func (p *MockCMSProvider) GenerateRuntimeFetcher(
 // buildFetcherFunctionAST builds the Go AST for a runtime fetcher function.
 //
 // Takes collectionName (string) which names the CMS collection to fetch.
-// Takes targetType (goast.Expr) which sets the element type for the returned
-// slice.
+// Takes targetType (goast.Expr) which sets the element type for the returned slice.
 //
-// Returns *goast.FuncDecl which is the AST for a function that fetches and
-// returns a slice of the target type.
+// Returns *goast.FuncDecl which is the AST for a function that fetches and returns a
+// slice of the target type.
 func (p *MockCMSProvider) buildFetcherFunctionAST(collectionName string, targetType goast.Expr) *goast.FuncDecl {
 	sliceType := &goast.ArrayType{Elt: targetType}
 
@@ -214,11 +212,10 @@ func (p *MockCMSProvider) buildFetcherFunctionAST(collectionName string, targetT
 	}
 }
 
-// buildVarDeclStmt builds a variable declaration statement of the form
-// "var results []TargetType".
+// buildVarDeclStmt builds a variable declaration statement of the form "var results
+// []TargetType".
 //
-// Takes sliceType (goast.Expr) which specifies the slice type for the results
-// variable.
+// Takes sliceType (goast.Expr) which specifies the slice type for the results variable.
 //
 // Returns goast.Stmt which is the built variable declaration statement.
 func buildVarDeclStmt(sliceType goast.Expr) goast.Stmt {
@@ -235,8 +232,8 @@ func buildVarDeclStmt(sliceType goast.Expr) goast.Stmt {
 	}
 }
 
-// buildOptsStmt builds an assignment statement of the form
-// "opts := pikoruntime.FetchOptions{}".
+// buildOptsStmt builds an assignment statement of the form "opts :=
+// pikoruntime.FetchOptions{}".
 //
 // Returns goast.Stmt which is the constructed assignment statement.
 func buildOptsStmt() goast.Stmt {
@@ -255,8 +252,7 @@ func buildOptsStmt() goast.Stmt {
 }
 
 // buildFetchCallStmt builds an assignment statement of the form "err :=
-// pikoruntime.FetchCollection(ctx, providerName, collectionName, &opts,
-// &results)".
+// pikoruntime.FetchCollection(ctx, providerName, collectionName, &opts, &results)".
 //
 // Takes providerName (string) which is the provider identifier.
 // Takes collectionName (string) which is the collection to fetch.
@@ -284,8 +280,8 @@ func buildFetchCallStmt(providerName, collectionName string) goast.Stmt {
 	}
 }
 
-// buildErrorCheckStmt builds an if statement that checks whether err is not
-// nil and returns nil and err if so.
+// buildErrorCheckStmt builds an if statement that checks whether err is not nil and
+// returns nil and err if so.
 //
 // Returns goast.Stmt which is the constructed error check statement.
 func buildErrorCheckStmt() goast.Stmt {

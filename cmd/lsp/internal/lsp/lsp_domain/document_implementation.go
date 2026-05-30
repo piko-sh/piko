@@ -29,13 +29,13 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// GetImplementations finds all types that implement the interface at the given
-// position. This enables the "Go to Implementation" feature for interfaces.
+// GetImplementations finds all types that implement the interface at the given position.
+// This enables the "Go to Implementation" feature for interfaces.
 //
 // Takes position (protocol.Position) which specifies the cursor position to query.
 //
-// Returns []protocol.Location which contains the definition locations of all
-// implementing types.
+// Returns []protocol.Location which contains the definition locations of all implementing
+// types.
 // Returns error when the implementation lookup fails.
 func (d *document) GetImplementations(ctx context.Context, position protocol.Position) ([]protocol.Location, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -77,8 +77,8 @@ func (d *document) GetImplementations(ctx context.Context, position protocol.Pos
 	return buildImplementorLocations(implementors), nil
 }
 
-// extractImplementationTypeInfo finds the type name and package path at the
-// given position.
+// extractImplementationTypeInfo finds the type name and package path at the given
+// position.
 //
 // Takes position (protocol.Position) which specifies the location to inspect.
 //
@@ -89,9 +89,9 @@ func (d *document) extractImplementationTypeInfo(ctx context.Context, position p
 	return extractTypeInfoAtPosition(ctx, d.AnnotationResult.AnnotatedAST, position, d.URI.Filename(), "GetImplementations")
 }
 
-// extractTypeInfoAtPosition finds the type name and package path of the
-// expression at the given position. This is a shared helper used by both
-// implementation lookup and type hierarchy preparation.
+// extractTypeInfoAtPosition finds the type name and package path of the expression at the
+// given position. This is a shared helper used by both implementation lookup and type
+// hierarchy preparation.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the annotated AST to search.
 // Takes position (protocol.Position) which specifies the location to inspect.
@@ -127,11 +127,11 @@ func extractTypeInfoAtPosition(ctx context.Context, ast *ast_domain.TemplateAST,
 
 // buildImplementorLocations converts implementor info to protocol locations.
 //
-// Takes implementors ([]inspector_domain.ImplementorInfo) which contains the
-// type implementors to convert.
+// Takes implementors ([]inspector_domain.ImplementorInfo) which contains the type
+// implementors to convert.
 //
-// Returns []protocol.Location which contains the converted locations, skipping
-// any implementors without a definition file.
+// Returns []protocol.Location which contains the converted locations, skipping any
+// implementors without a definition file.
 func buildImplementorLocations(implementors []inspector_domain.ImplementorInfo) []protocol.Location {
 	locations := make([]protocol.Location, 0, len(implementors))
 	for _, implementor := range implementors {
@@ -147,8 +147,8 @@ func buildImplementorLocations(implementors []inspector_domain.ImplementorInfo) 
 //
 // Takes implementor (ImplementorInfo) which provides the type definition details.
 //
-// Returns protocol.Location which contains the file URI and range for the
-// implementor's definition.
+// Returns protocol.Location which contains the file URI and range for the implementor's
+// definition.
 func buildImplementorLocation(implementor inspector_domain.ImplementorInfo) protocol.Location {
 	return protocol.Location{
 		URI: uri.File(implementor.DefinitionFile),

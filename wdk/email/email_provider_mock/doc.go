@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_mock provides a mock email provider for
-// testing purposes.
+// Package email_provider_mock provides a mock email provider for testing purposes.
 //
-// The mock is a fully in-memory implementation that records all
-// send operations and supports error injection. It requires no
-// external dependencies and is designed for unit and integration
-// tests.
+// The mock is a fully in-memory implementation that records all send operations and
+// supports error injection. It requires no external dependencies and is designed for unit
+// and integration tests.
 //
 // # Usage
 //

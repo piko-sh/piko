@@ -21,18 +21,11 @@
 //go:build !safe && !(js && wasm) && arm64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_arm64.h"
 
-// Dispatch loop initialisation, jump table setup, and exit handlers.
-
-// func initJumpTable(table *[256]uintptr)
-//
-// Populates the 256-entry dispatch table with handler addresses.
-// Tier 1 opcodes get their specific handler addresses; all other
-// entries point to the tier2Fallback handler.
-//
-// Takes table (*[256]uintptr) at FP+0.
+// initJumpTable fills the 256-entry dispatch table; tier-1 opcodes get their specific handlers, others get tier2Fallback.
 TEXT ·initJumpTable(SB), NOSPLIT, $0-8
 	MOVD table+0(FP), R0
 
@@ -47,285 +40,988 @@ initjt_fill:
 
 	MOVD table+0(FP), R0
 
-	MOVD $·handlerNop(SB), R1
-	MOVD R1, 0(R0)
-
-	MOVD $·handlerMoveInt(SB), R1
+	MOVD $·handlerLoadIntConst(SB), R1
 	MOVD R1, 16(R0)
 
-	MOVD $·handlerMoveFloat(SB), R1
+	MOVD $·handlerLoadFloatConst(SB), R1
 	MOVD R1, 24(R0)
 
-	MOVD $·handlerLoadIntConst(SB), R1
-	MOVD R1, 32(R0)
-
-	MOVD $·handlerLoadFloatConst(SB), R1
-	MOVD R1, 40(R0)
-
-	MOVD $·handlerLoadBool(SB), R1
-	MOVD R1, 48(R0)
-
-	MOVD $·handlerLoadIntConstSmall(SB), R1
-	MOVD R1, 56(R0)
-
-	MOVD $·handlerAddInt(SB), R1
-	MOVD R1, 64(R0)
-
-	MOVD $·handlerSubInt(SB), R1
-	MOVD R1, 72(R0)
-
-	MOVD $·handlerMulInt(SB), R1
-	MOVD R1, 80(R0)
-
-	MOVD $·handlerDivInt(SB), R1
-	MOVD R1, 88(R0)
-
-	MOVD $·handlerRemInt(SB), R1
-	MOVD R1, 96(R0)
-
-	MOVD $·handlerNegInt(SB), R1
-	MOVD R1, 104(R0)
-
-	MOVD $·handlerIncInt(SB), R1
-	MOVD R1, 112(R0)
-
-	MOVD $·handlerDecInt(SB), R1
-	MOVD R1, 120(R0)
-
-	MOVD $·handlerBitAnd(SB), R1
-	MOVD R1, 128(R0)
-
-	MOVD $·handlerBitOr(SB), R1
-	MOVD R1, 136(R0)
-
-	MOVD $·handlerBitXor(SB), R1
-	MOVD R1, 144(R0)
-
-	MOVD $·handlerBitAndNot(SB), R1
-	MOVD R1, 152(R0)
-
-	MOVD $·handlerBitNot(SB), R1
-	MOVD R1, 160(R0)
-
-	MOVD $·handlerShiftLeft(SB), R1
-	MOVD R1, 168(R0)
-
-	MOVD $·handlerShiftRight(SB), R1
-	MOVD R1, 176(R0)
-
-	MOVD $·handlerAddFloat(SB), R1
-	MOVD R1, 184(R0)
-
-	MOVD $·handlerSubFloat(SB), R1
-	MOVD R1, 192(R0)
-
-	MOVD $·handlerMulFloat(SB), R1
-	MOVD R1, 200(R0)
-
-	MOVD $·handlerDivFloat(SB), R1
-	MOVD R1, 208(R0)
-
-	MOVD $·handlerNegFloat(SB), R1
-	MOVD R1, 216(R0)
-
-	MOVD $·handlerEqInt(SB), R1
-	MOVD R1, 224(R0)
-
-	MOVD $·handlerNeInt(SB), R1
-	MOVD R1, 232(R0)
-
-	MOVD $·handlerLtInt(SB), R1
-	MOVD R1, 240(R0)
-
-	MOVD $·handlerLeInt(SB), R1
-	MOVD R1, 248(R0)
-
-	MOVD $·handlerGtInt(SB), R1
-	MOVD R1, 256(R0)
-
-	MOVD $·handlerGeInt(SB), R1
-	MOVD R1, 264(R0)
-
-	MOVD $·handlerEqFloat(SB), R1
-	MOVD R1, 272(R0)
-
-	MOVD $·handlerNeFloat(SB), R1
-	MOVD R1, 280(R0)
-
-	MOVD $·handlerLtFloat(SB), R1
-	MOVD R1, 288(R0)
-
-	MOVD $·handlerLeFloat(SB), R1
-	MOVD R1, 296(R0)
-
-	MOVD $·handlerGtFloat(SB), R1
-	MOVD R1, 304(R0)
-
-	MOVD $·handlerGeFloat(SB), R1
-	MOVD R1, 312(R0)
-
-	MOVD $·handlerIntToFloat(SB), R1
-	MOVD R1, 320(R0)
-
-	MOVD $·handlerFloatToInt(SB), R1
-	MOVD R1, 328(R0)
-
-	MOVD $·handlerNot(SB), R1
-	MOVD R1, 336(R0)
-
-	MOVD $·handlerJump(SB), R1
-	MOVD R1, 344(R0)
-
-	MOVD $·handlerJumpIfTrue(SB), R1
-	MOVD R1, 352(R0)
-
-	MOVD $·handlerJumpIfFalse(SB), R1
-	MOVD R1, 360(R0)
-
-	MOVD $·handlerCallInline(SB), R1
-	MOVD R1, 368(R0)
-
-	MOVD $·handlerReturnInline(SB), R1
-	MOVD R1, 376(R0)
-
-	MOVD $·handlerReturnVoidInline(SB), R1
-	MOVD R1, 384(R0)
-
-	MOVD $·handlerTailCallExit(SB), R1
-	MOVD R1, 392(R0)
-
-	MOVD $·handlerSubIntConst(SB), R1
-	MOVD R1, 400(R0)
-
-	MOVD $·handlerAddIntConst(SB), R1
+	MOVD $·handlerLoadStringConst(SB), R1
 	MOVD R1, 408(R0)
 
-	MOVD $·handlerLeIntConstJumpFalse(SB), R1
-	MOVD R1, 416(R0)
-
-	MOVD $·handlerLtIntConstJumpFalse(SB), R1
+	MOVD $·handlerLoadBoolConst(SB), R1
 	MOVD R1, 424(R0)
 
-	MOVD $·handlerEqIntConstJumpFalse(SB), R1
-	MOVD R1, 432(R0)
+	MOVD $·handlerAddInt(SB), R1
+	MOVD R1, 32(R0)
 
-	MOVD $·handlerEqIntConstJumpTrue(SB), R1
-	MOVD R1, 440(R0)
+	MOVD $·handlerSubInt(SB), R1
+	MOVD R1, 40(R0)
 
-	MOVD $·handlerGeIntConstJumpFalse(SB), R1
+	MOVD $·handlerMulInt(SB), R1
+	MOVD R1, 48(R0)
+
+	MOVD $·handlerDivInt(SB), R1
+	MOVD R1, 56(R0)
+
+	MOVD $·handlerRemInt(SB), R1
+	MOVD R1, 64(R0)
+
+	MOVD $·handlerBitAnd(SB), R1
+	MOVD R1, 72(R0)
+
+	MOVD $·handlerBitOr(SB), R1
+	MOVD R1, 80(R0)
+
+	MOVD $·handlerBitXor(SB), R1
+	MOVD R1, 88(R0)
+
+	MOVD $·handlerBitAndNot(SB), R1
+	MOVD R1, 96(R0)
+
+	MOVD $·handlerShiftLeft(SB), R1
+	MOVD R1, 104(R0)
+
+	MOVD $·handlerShiftRight(SB), R1
+	MOVD R1, 112(R0)
+
+	MOVD $·handlerAddFloat(SB), R1
+	MOVD R1, 120(R0)
+
+	MOVD $·handlerSubFloat(SB), R1
+	MOVD R1, 128(R0)
+
+	MOVD $·handlerMulFloat(SB), R1
+	MOVD R1, 136(R0)
+
+	MOVD $·handlerDivFloat(SB), R1
+	MOVD R1, 144(R0)
+
+	MOVD $·handlerAddUint(SB), R1
 	MOVD R1, 448(R0)
 
-	MOVD $·handlerGtIntConstJumpFalse(SB), R1
+	MOVD $·handlerSubUint(SB), R1
 	MOVD R1, 456(R0)
 
-	MOVD $·handlerMulIntConst(SB), R1
+	MOVD $·handlerMulUint(SB), R1
 	MOVD R1, 464(R0)
 
-	MOVD $·handlerAddIntJump(SB), R1
-	MOVD R1, 472(R0)
-
-	MOVD $·handlerIncIntJumpLt(SB), R1
-	MOVD R1, 480(R0)
-
-	MOVD $·handlerMathSqrt(SB), R1
+	MOVD $·handlerBitAndUint(SB), R1
 	MOVD R1, 488(R0)
 
-	MOVD $·handlerMathAbs(SB), R1
+	MOVD $·handlerBitOrUint(SB), R1
 	MOVD R1, 496(R0)
 
-	MOVD $·handlerMathFloor(SB), R1
+	MOVD $·handlerBitXorUint(SB), R1
 	MOVD R1, 504(R0)
 
-	MOVD $·handlerMathCeil(SB), R1
+	MOVD $·handlerBitAndNotUint(SB), R1
 	MOVD R1, 512(R0)
 
-	MOVD $·handlerMathTrunc(SB), R1
+	MOVD $·handlerShiftLeftUint(SB), R1
 	MOVD R1, 520(R0)
 
-	MOVD $·handlerMathRound(SB), R1
+	MOVD $·handlerShiftRightUint(SB), R1
 	MOVD R1, 528(R0)
 
-	MOVD $·handlerLenString(SB), R1
+	MOVD $·handlerEqUint(SB), R1
 	MOVD R1, 536(R0)
 
-	MOVD $·handlerStringIndex(SB), R1
+	MOVD $·handlerNeUint(SB), R1
 	MOVD R1, 544(R0)
 
-	MOVD $·handlerEqString(SB), R1
+	MOVD $·handlerLtUint(SB), R1
 	MOVD R1, 552(R0)
 
-	MOVD $·handlerNeString(SB), R1
+	MOVD $·handlerLeUint(SB), R1
 	MOVD R1, 560(R0)
 
-	MOVD $·handlerSliceString(SB), R1
+	MOVD $·handlerGtUint(SB), R1
 	MOVD R1, 568(R0)
 
-	MOVD $·handlerStringIndexToInt(SB), R1
+	MOVD $·handlerGeUint(SB), R1
 	MOVD R1, 576(R0)
 
-	MOVD $·handlerLenStringLtJumpFalse(SB), R1
+	MOVD $·handlerEqInt(SB), R1
+	MOVD R1, 152(R0)
+
+	MOVD $·handlerNeInt(SB), R1
+	MOVD R1, 160(R0)
+
+	MOVD $·handlerLtInt(SB), R1
+	MOVD R1, 168(R0)
+
+	MOVD $·handlerLeInt(SB), R1
+	MOVD R1, 176(R0)
+
+	MOVD $·handlerGtInt(SB), R1
+	MOVD R1, 184(R0)
+
+	MOVD $·handlerGeInt(SB), R1
+	MOVD R1, 192(R0)
+
+	MOVD $·handlerEqFloat(SB), R1
+	MOVD R1, 200(R0)
+
+	MOVD $·handlerNeFloat(SB), R1
+	MOVD R1, 208(R0)
+
+	MOVD $·handlerLtFloat(SB), R1
+	MOVD R1, 216(R0)
+
+	MOVD $·handlerLeFloat(SB), R1
+	MOVD R1, 224(R0)
+
+	MOVD $·handlerGtFloat(SB), R1
+	MOVD R1, 232(R0)
+
+	MOVD $·handlerGeFloat(SB), R1
+	MOVD R1, 240(R0)
+
+	MOVD $·handlerEqString(SB), R1
+	MOVD R1, 368(R0)
+
+	MOVD $·handlerNeString(SB), R1
+	MOVD R1, 376(R0)
+
+	MOVD $·handlerStringIndex(SB), R1
+	MOVD R1, 360(R0)
+
+	MOVD $·handlerSliceString(SB), R1
+	MOVD R1, 384(R0)
+
+	MOVD $·handlerStringIndexToInt(SB), R1
+	MOVD R1, 392(R0)
+
+	MOVD $·handlerJumpIfTrue(SB), R1
+	MOVD R1, 248(R0)
+
+	MOVD $·handlerJumpIfFalse(SB), R1
+	MOVD R1, 256(R0)
+
+	MOVD $·handlerSubIntConst(SB), R1
+	MOVD R1, 280(R0)
+
+	MOVD $·handlerAddIntConst(SB), R1
+	MOVD R1, 288(R0)
+
+	MOVD $·handlerLeIntConstJumpFalse(SB), R1
+	MOVD R1, 296(R0)
+
+	MOVD $·handlerLtIntConstJumpFalse(SB), R1
+	MOVD R1, 304(R0)
+
+	MOVD $·handlerEqIntConstJumpFalse(SB), R1
+	MOVD R1, 312(R0)
+
+	MOVD $·handlerEqIntConstJumpTrue(SB), R1
+	MOVD R1, 320(R0)
+
+	MOVD $·handlerGeIntConstJumpFalse(SB), R1
+	MOVD R1, 328(R0)
+
+	MOVD $·handlerGtIntConstJumpFalse(SB), R1
+	MOVD R1, 336(R0)
+
+	MOVD $·handlerMulIntConst(SB), R1
+	MOVD R1, 344(R0)
+
+	MOVD $·handlerAddIntJump(SB), R1
+	MOVD R1, 352(R0)
+
+	MOVD $·handlerCallInline(SB), R1
+	MOVD R1, 264(R0)
+
+	MOVD $·handlerCallInlineScalar(SB), R1
+	MOVD R1, 1912(R0)
+
+	MOVD $·handlerTailCallInline(SB), R1
+	MOVD R1, 272(R0)
+
+	MOVD $·handlerTruncateNarrow(SB), R1
+	MOVD R1, 776(R0)
+
+	MOVD $·handlerTier2ShimTypeAssert(SB), R1
+	MOVD R1, 1368(R0)
+
+	MOVD $·handlerTier2ShimIndex(SB), R1
+	MOVD R1, 928(R0)
+
+	MOVD $·handlerTier2ShimIndexSet(SB), R1
+	MOVD R1, 936(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOk(SB), R1
+	MOVD R1, 968(R0)
+
+	MOVD $·handlerTier2ShimMapSet(SB), R1
+	MOVD R1, 960(R0)
+
+	MOVD $·handlerTier2ShimAppendSpread(SB), R1
+	MOVD R1, 984(R0)
+
+	MOVD $·handlerTier2ShimCopy(SB), R1
+	MOVD R1, 1000(R0)
+
+	MOVD $·handlerTier2ShimSliceOp(SB), R1
+	MOVD R1, 944(R0)
+
+	MOVD $·handlerTier2ShimSliceGetInt(SB), R1
+	MOVD R1, 1008(R0)
+
+	MOVD $·handlerTier2ShimSliceSetInt(SB), R1
+	MOVD R1, 1016(R0)
+
+	MOVD $·handlerTier2ShimSliceGetFloat(SB), R1
+	MOVD R1, 1024(R0)
+
+	MOVD $·handlerTier2ShimSliceSetFloat(SB), R1
+	MOVD R1, 1032(R0)
+
+	MOVD $·handlerTier2ShimSliceGetString(SB), R1
+	MOVD R1, 1040(R0)
+
+	MOVD $·handlerTier2ShimSliceSetString(SB), R1
+	MOVD R1, 1048(R0)
+
+	MOVD $·handlerTier2ShimSliceGetBool(SB), R1
+	MOVD R1, 1056(R0)
+
+	MOVD $·handlerTier2ShimSliceSetBool(SB), R1
+	MOVD R1, 1064(R0)
+
+	MOVD $·handlerTier2ShimSliceGetUint(SB), R1
+	MOVD R1, 1072(R0)
+
+	MOVD $·handlerTier2ShimSliceSetUint(SB), R1
+	MOVD R1, 1080(R0)
+
+	MOVD $·handlerTier2ShimAddr(SB), R1
+	MOVD R1, 1344(R0)
+
+	MOVD $·handlerTier2ShimDeref(SB), R1
+	MOVD R1, 1352(R0)
+
+	MOVD $·handlerTier2ShimConvert(SB), R1
+	MOVD R1, 1376(R0)
+
+	MOVD $·handlerTier2ShimPackInterface(SB), R1
+	MOVD R1, 784(R0)
+
+	MOVD $·handlerTier2ShimUnpackInterface(SB), R1
+	MOVD R1, 792(R0)
+
+	MOVD $·handlerTier2ShimMakeSlice(SB), R1
+	MOVD R1, 920(R0)
+
+	MOVD $·handlerTier2ShimMakeClosure(SB), R1
+	MOVD R1, 856(R0)
+
+	MOVD $·handlerTier2ShimAllocIndirect(SB), R1
+	MOVD R1, 1360(R0)
+
+	MOVD $·handlerTier2ShimGetGlobal(SB), R1
+	MOVD R1, 1384(R0)
+
+	MOVD $·handlerTier2ShimSetGlobal(SB), R1
+	MOVD R1, 1392(R0)
+
+	MOVD $·handlerTier2ShimGetGlobalWide(SB), R1
+	MOVD R1, 1560(R0)
+
+	MOVD $·handlerTier2ShimSetGlobalWide(SB), R1
+	MOVD R1, 1568(R0)
+
+	MOVD $·handlerTier2ShimGetUpvalue(SB), R1
+	MOVD R1, 864(R0)
+
+	MOVD $·handlerTier2ShimSetUpvalue(SB), R1
+	MOVD R1, 872(R0)
+
+	MOVD $·handlerTier2ShimSyncClosureUpvalues(SB), R1
+	MOVD R1, 880(R0)
+
+	MOVD $·handlerTier2ShimResetSharedCell(SB), R1
+	MOVD R1, 888(R0)
+
+	MOVD $·handlerTier2ShimWriteSharedCell(SB), R1
+	MOVD R1, 896(R0)
+
+	MOVD $·handlerTier2ShimBindMethod(SB), R1
+	MOVD R1, 1304(R0)
+
+	MOVD $·handlerTier2ShimRangeInit(SB), R1
+	MOVD R1, 1328(R0)
+
+	MOVD $·handlerTier2ShimRangeNext(SB), R1
+	MOVD R1, 1336(R0)
+
+	MOVD $·handlerTier2ShimMoveGeneral(SB), R1
+	MOVD R1, 400(R0)
+
+	MOVD $·handlerTier2ShimLoadGeneralConst(SB), R1
+	MOVD R1, 416(R0)
+
+	MOVD $·handlerTier2ShimEqGeneral(SB), R1
+	MOVD R1, 688(R0)
+
+	MOVD $·handlerTier2ShimNeGeneral(SB), R1
+	MOVD R1, 696(R0)
+
+	MOVD $·handlerTier2ShimLtGeneral(SB), R1
+	MOVD R1, 704(R0)
+
+	MOVD $·handlerTier2ShimLeGeneral(SB), R1
+	MOVD R1, 712(R0)
+
+	MOVD $·handlerTier2ShimGtGeneral(SB), R1
+	MOVD R1, 720(R0)
+
+	MOVD $·handlerTier2ShimGeGeneral(SB), R1
+	MOVD R1, 728(R0)
+
+	MOVD $·handlerTier2ShimEqInterfaceNil(SB), R1
+	MOVD R1, 1776(R0)
+
+	MOVD $·handlerTier2ShimNeInterfaceNil(SB), R1
+	MOVD R1, 1784(R0)
+
+	MOVD $·handlerTier2ShimConcatString(SB), R1
+	MOVD R1, 640(R0)
+
+	MOVD $·handlerTier2ShimConcatRuneString(SB), R1
+	MOVD R1, 648(R0)
+
+	MOVD $·handlerTier2ShimStrContains(SB), R1
+	MOVD R1, 1432(R0)
+
+	MOVD $·handlerTier2ShimStrContainsRune(SB), R1
+	MOVD R1, 1424(R0)
+
+	MOVD $·handlerTier2ShimStrHasPrefix(SB), R1
+	MOVD R1, 1440(R0)
+
+	MOVD $·handlerTier2ShimStrHasSuffix(SB), R1
+	MOVD R1, 1448(R0)
+
+	MOVD $·handlerTier2ShimStrEqualFold(SB), R1
+	MOVD R1, 1456(R0)
+
+	MOVD $·handlerTier2ShimStrIndex(SB), R1
+	MOVD R1, 1464(R0)
+
+	MOVD $·handlerTier2ShimStrIndexRune(SB), R1
+	MOVD R1, 1504(R0)
+
+	MOVD $·handlerTier2ShimStrLastIndex(SB), R1
+	MOVD R1, 1520(R0)
+
+	MOVD $·handlerTier2ShimStrCount(SB), R1
+	MOVD R1, 1472(R0)
+
+	MOVD $·handlerTier2ShimStrTrim(SB), R1
+	MOVD R1, 1496(R0)
+
+	MOVD $·handlerTier2ShimStrTrimPrefix(SB), R1
+	MOVD R1, 1480(R0)
+
+	MOVD $·handlerTier2ShimStrTrimSuffix(SB), R1
+	MOVD R1, 1488(R0)
+
+	MOVD $·handlerTier2ShimStrRepeat(SB), R1
+	MOVD R1, 1512(R0)
+
+	MOVD $·handlerTier2ShimStrJoin(SB), R1
+	MOVD R1, 1528(R0)
+
+	MOVD $·handlerTier2ShimStrSplit(SB), R1
+	MOVD R1, 1536(R0)
+
+	MOVD $·handlerTier2ShimStrReplaceAll(SB), R1
+	MOVD R1, 1544(R0)
+
+	MOVD $·handlerTier2ShimMathPow(SB), R1
+	MOVD R1, 1552(R0)
+
+	MOVD $·handlerTier2ShimBuildComplex(SB), R1
+	MOVD R1, 632(R0)
+
+	MOVD $·handlerTier2ShimAddComplex(SB), R1
 	MOVD R1, 584(R0)
+
+	MOVD $·handlerTier2ShimSubComplex(SB), R1
+	MOVD R1, 592(R0)
+
+	MOVD $·handlerTier2ShimMulComplex(SB), R1
+	MOVD R1, 600(R0)
+
+	MOVD $·handlerTier2ShimDivComplex(SB), R1
+	MOVD R1, 608(R0)
+
+	MOVD $·handlerTier2ShimEqComplex(SB), R1
+	MOVD R1, 616(R0)
+
+	MOVD $·handlerTier2ShimNeComplex(SB), R1
+	MOVD R1, 624(R0)
+
+	MOVD $·handlerTier2ShimLoadComplexConst(SB), R1
+	MOVD R1, 440(R0)
+
+	MOVD $·handlerTier2ShimUnsafeString(SB), R1
+	MOVD R1, 1400(R0)
+
+	MOVD $·handlerTier2ShimUnsafeSlice(SB), R1
+	MOVD R1, 1408(R0)
+
+	MOVD $·handlerTier2ShimUnsafeAdd(SB), R1
+	MOVD R1, 1416(R0)
+
+	MOVD $·handlerTier2ShimMapGetIntInt(SB), R1
+	MOVD R1, 1120(R0)
+
+	MOVD $·handlerTier2ShimMapSetIntInt(SB), R1
+	MOVD R1, 1128(R0)
+
+	MOVD $·handlerTier2ShimMapGetStringInt(SB), R1
+	MOVD R1, 1136(R0)
+
+	MOVD $·handlerTier2ShimMapSetStringInt(SB), R1
+	MOVD R1, 1144(R0)
+
+	MOVD $·handlerTier2ShimMapGetStringString(SB), R1
+	MOVD R1, 1152(R0)
+
+	MOVD $·handlerTier2ShimMapSetStringString(SB), R1
+	MOVD R1, 1160(R0)
+
+	MOVD $·handlerTier2ShimMapGetIntString(SB), R1
+	MOVD R1, 1168(R0)
+
+	MOVD $·handlerTier2ShimMapSetIntString(SB), R1
+	MOVD R1, 1176(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkIntInt(SB), R1
+	MOVD R1, 1184(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkStringInt(SB), R1
+	MOVD R1, 1192(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkStringString(SB), R1
+	MOVD R1, 1200(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkIntString(SB), R1
+	MOVD R1, 1208(R0)
+
+	MOVD $·handlerTier2ShimMapGetIntGeneral(SB), R1
+	MOVD R1, 1216(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkIntGeneral(SB), R1
+	MOVD R1, 1224(R0)
+
+	MOVD $·handlerTier2ShimMapGetStringGeneral(SB), R1
+	MOVD R1, 1232(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkStringGeneral(SB), R1
+	MOVD R1, 1240(R0)
+
+	MOVD $·handlerTier2ShimMapSetStringGeneral(SB), R1
+	MOVD R1, 1248(R0)
+
+	MOVD $·handlerTier2ShimMapAddIntInt(SB), R1
+	MOVD R1, 1256(R0)
+
+	MOVD $·handlerTier2ShimMapAddStringInt(SB), R1
+	MOVD R1, 1264(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseIntInt(SB), R1
+	MOVD R1, 1792(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseStringInt(SB), R1
+	MOVD R1, 1800(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseStringString(SB), R1
+	MOVD R1, 1808(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseIntString(SB), R1
+	MOVD R1, 1816(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseIntGeneral(SB), R1
+	MOVD R1, 1824(R0)
+
+	MOVD $·handlerTier2ShimMapIndexOkJumpIfFalseStringGeneral(SB), R1
+	MOVD R1, 1832(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldGeneralT0(SB), R1
+	MOVD R1, 1664(R0)
+
+	MOVD $·handlerTier2ShimSetStructFieldGeneralT0(SB), R1
+	MOVD R1, 1672(R0)
+
+	MOVD $·handlerTier2ShimCopyStructFieldGeneralT0(SB), R1
+	MOVD R1, 1680(R0)
+
+	MOVD $·handlerTier2ShimSwapStructFieldsGeneralT0(SB), R1
+	MOVD R1, 1840(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldRawPointerT0(SB), R1
+	MOVD R1, 1848(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldIntT0(SB), R1
+	MOVD R1, 1600(R0)
+
+	MOVD $·handlerTier2ShimSetStructFieldIntT0(SB), R1
+	MOVD R1, 1608(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldUintT0(SB), R1
+	MOVD R1, 1616(R0)
+
+	MOVD $·handlerTier2ShimSetStructFieldUintT0(SB), R1
+	MOVD R1, 1624(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldFloatT0(SB), R1
+	MOVD R1, 1632(R0)
+
+	MOVD $·handlerTier2ShimSetStructFieldFloatT0(SB), R1
+	MOVD R1, 1640(R0)
+
+	MOVD $·handlerTier2ShimGetStructFieldBoolT0(SB), R1
+	MOVD R1, 1648(R0)
+
+	MOVD $·handlerTier2ShimSetStructFieldBoolT0(SB), R1
+	MOVD R1, 1656(R0)
+
+	MOVD $·handlerTier2ShimTestNilJumpFalse(SB), R1
+	MOVD R1, 808(R0)
+
+	MOVD $·handlerTier2ShimTestNilJumpTrue(SB), R1
+	MOVD R1, 800(R0)
 
 	RET
 
-// func dispatchLoop(ctx *DispatchContext)
-//
-// Entry point for the ASM dispatch loop. Loads ctx into registers and
-// performs the first dispatch. Subsequent dispatches happen at the tail
-// of each handler via the DISPATCH_NEXT macro.
+// initSubOpJumpTables installs .abi0 addresses of tier-1+ ASM handlers into the sub-op jump tables, bypassing the ABIInternal wrapper that adds a per-dispatch frame.
+TEXT ·initSubOpJumpTables(SB), NOSPLIT, $0-0
+	MOVD $·handlerSubOpMoveInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 288(R2)
+
+	MOVD $·handlerSubOpMoveFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 296(R2)
+
+	MOVD $·handlerSubOpMoveBool(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 312(R2)
+
+	MOVD $·handlerSubOpMoveUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 320(R2)
+
+	MOVD $·handlerSubOpMoveString(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 304(R2)
+
+	MOVD $·handlerJump(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 600(R2)
+
+	MOVD $·handlerLoadIntConstSmall(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 608(R2)
+
+	MOVD $·handlerLoadBool(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 616(R2)
+
+	MOVD $·handlerIncIntJumpLt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 624(R2)
+
+	MOVD $·handlerLenStringLtJumpFalse(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 632(R2)
+
+	MOVD $·handlerSubOpIncStructFieldInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 872(R2)
+
+	MOVD $·handlerSubOpDecStructFieldInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 880(R2)
+
+	MOVD $·handlerSubOpIncStructFieldUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 888(R2)
+
+	MOVD $·handlerSubOpDecStructFieldUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 896(R2)
+
+	MOVD $·handlerReturnInline(SB), R1
+	MOVD $·tier2JumpTable(SB), R2
+	MOVD R1, 80(R2)
+
+	MOVD $·handlerSubOpTier2IncInt(SB), R1
+	MOVD $·tier2JumpTable(SB), R2
+	MOVD R1, 8(R2)
+
+	MOVD $·handlerSubOpTier2DecInt(SB), R1
+	MOVD $·tier2JumpTable(SB), R2
+	MOVD R1, 16(R2)
+
+	MOVD $·handlerSubOpTier2IncUint(SB), R1
+	MOVD $·tier2JumpTable(SB), R2
+	MOVD R1, 24(R2)
+
+	MOVD $·handlerSubOpTier2DecUint(SB), R1
+	MOVD $·tier2JumpTable(SB), R2
+	MOVD R1, 32(R2)
+
+	MOVD $·handlerSubOpLenSliceIntDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 136(R2)
+
+	MOVD $·handlerSubOpLenSliceFloatDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 168(R2)
+
+	MOVD $·handlerSubOpLenSliceStringDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 200(R2)
+
+	MOVD $·handlerSubOpLenSliceBoolDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 232(R2)
+
+	MOVD $·handlerSubOpLenSliceUintDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 264(R2)
+
+	MOVD $·handlerSubOpSliceGetFloatDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 152(R2)
+
+	MOVD $·handlerSubOpSliceSetFloatDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 160(R2)
+
+	MOVD $·handlerSubOpSliceGetUintDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 248(R2)
+
+	MOVD $·handlerSubOpSliceSetUintDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 256(R2)
+
+	MOVD $·handlerSubOpSliceGetBoolDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 216(R2)
+
+	MOVD $·handlerSubOpSliceSetBoolDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 224(R2)
+
+	MOVD $·handlerSubOpSliceGetStringDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 184(R2)
+
+	MOVD $·handlerSubOpSliceSetStringDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 192(R2)
+
+	MOVD $·handlerSubOpLenSliceByteDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 928(R2)
+
+	MOVD $·handlerSubOpSliceGetByteDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 912(R2)
+
+	MOVD $·handlerSubOpSliceSetByteDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 920(R2)
+
+	MOVD $·handlerSubOpSliceByteSlice(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 936(R2)
+
+	MOVD $·handlerSubOpRangeNextSliceByte(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 944(R2)
+
+	MOVD $·handlerSubOpRangeCheckUintJumpFalse(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 976(R2)
+
+	MOVD $·handlerSubOpMoveSliceInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1176(R2)
+
+	MOVD $·handlerSubOpMoveSliceFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1184(R2)
+
+	MOVD $·handlerSubOpMoveSliceString(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1192(R2)
+
+	MOVD $·handlerSubOpMoveSliceBool(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1200(R2)
+
+	MOVD $·handlerSubOpMoveSliceUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1208(R2)
+
+	MOVD $·handlerSubOpMoveSliceByte(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1216(R2)
+
+	MOVD $·handlerSubOpSliceSliceIntDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1272(R2)
+
+	MOVD $·handlerSubOpSliceSliceFloatDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1280(R2)
+
+	MOVD $·handlerSubOpSliceSliceStringDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1288(R2)
+
+	MOVD $·handlerSubOpSliceSliceBoolDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1296(R2)
+
+	MOVD $·handlerSubOpSliceSliceUintDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1304(R2)
+
+	MOVD $·handlerSubOpAppendSliceIntDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1224(R2)
+
+	MOVD $·handlerSubOpAppendSliceFloatDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1232(R2)
+
+	MOVD $·handlerSubOpAppendSliceStringDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1240(R2)
+
+	MOVD $·handlerSubOpAppendSliceBoolDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1248(R2)
+
+	MOVD $·handlerSubOpAppendSliceUintDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1256(R2)
+
+	MOVD $·handlerSubOpAppendSliceByteDirect(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 1264(R2)
+
+	MOVD $·handlerSubOpRealComplex(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 72(R2)
+
+	MOVD $·handlerSubOpImagComplex(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 80(R2)
+
+	MOVD $·handlerSubOpMoveComplex(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 120(R2)
+
+	MOVD $·handlerSubOpNegComplex(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 112(R2)
+
+	MOVD $·handlerSubOpMathSin(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 8(R2)
+
+	MOVD $·handlerSubOpMathCos(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 16(R2)
+
+	MOVD $·handlerSubOpMathExp(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 24(R2)
+
+	MOVD $·handlerSubOpMathTan(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 32(R2)
+
+	MOVD $·handlerSubOpMathMod(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 40(R2)
+
+	MOVD $·handlerSubOpStrconvFormatBool(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 48(R2)
+
+	MOVD $·handlerSubOpStrconvItoa(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 64(R2)
+
+	MOVD $·handlerSubOpStrconvFormatInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 56(R2)
+
+	MOVD $·handlerSubOpCap(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 104(R2)
+
+	MOVD $·handlerSubOpBytesToString(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 88(R2)
+
+	MOVD $·handlerSubOpBoxSliceInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 272(R2)
+
+	MOVD $·handlerSubOpUnboxSliceInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 280(R2)
+
+	MOVD $·handlerSubOpMakeSliceInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 128(R2)
+
+	MOVD $·handlerSubOpMakeSliceFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 144(R2)
+
+	MOVD $·handlerSubOpMakeSliceString(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 176(R2)
+
+	MOVD $·handlerSubOpMakeSliceBool(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 208(R2)
+
+	MOVD $·handlerSubOpMakeSliceUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 240(R2)
+
+	MOVD $·handlerSubOpMakeSliceByte(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 904(R2)
+
+	MOVD $·handlerSubOpNegInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 376(R2)
+
+	MOVD $·handlerSubOpNegFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 384(R2)
+
+	MOVD $·handlerSubOpBitNot(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 392(R2)
+
+	MOVD $·handlerSubOpIntToFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 408(R2)
+
+	MOVD $·handlerSubOpFloatToInt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 416(R2)
+
+	MOVD $·handlerSubOpUintToFloat(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 464(R2)
+
+	MOVD $·handlerSubOpFloatToUint(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 472(R2)
+
+	MOVD $·handlerSubOpMathSqrt(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 480(R2)
+
+	MOVD $·handlerSubOpMathAbs(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 488(R2)
+
+	MOVD $·handlerSubOpMathFloor(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 496(R2)
+
+	MOVD $·handlerSubOpMathCeil(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 504(R2)
+
+	MOVD $·handlerSubOpMathTrunc(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 512(R2)
+
+	MOVD $·handlerSubOpMathRound(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 520(R2)
+
+	MOVD $·handlerSubOpLenString(SB), R1
+	MOVD $·tier1JumpTable(SB), R2
+	MOVD R1, 528(R2)
+
+	RET
+
+// dispatchLoop is the ASM dispatch entry point; loads ctx into pinned registers and performs the first dispatch (subsequent dispatches happen via DISPATCH_NEXT at each handler tail).
 TEXT ·dispatchLoop(SB), NOSPLIT, $0-8
 	MOVD ctx+0(FP), R19
-	MOVD 0(R19), R22
-	MOVD 8(R19), R21
-	MOVD 16(R19), R20
-	MOVD 24(R19), R23
-	MOVD 40(R19), R24
-	MOVD 56(R19), R26
-	MOVD 88(R19), R25
+	MOVD CTX_CODE_BASE(R19), R22
+	MOVD CTX_CODE_LEN(R19), R21
+	MOVD CTX_PC(R19), R20
+	MOVD CTX_INTS_BASE(R19), R23
+	MOVD CTX_FLOATS_BASE(R19), R24
+	MOVD CTX_INT_CONSTS_BASE(R19), R26
+	MOVD $·flatJumpTable(SB), R25
 	DISPATCH_NEXT()
 
-// tier2Fallback is the default handler for non-Tier-1 opcodes.
-// Un-advances pc and returns to Go with EXIT_TIER2.
-TEXT ·tier2Fallback(SB), NOSPLIT, $0
+// tier2Fallback is the default handler for non-tier-1 opcodes; un-advances pc and returns to Go with EXIT_TIER2.
+TEXT ·tier2Fallback(SB), NOSPLIT|NOFRAME, $0
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_TIER2, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerCallExit exits to Go with EXIT_CALL for dedicated OpCall handling.
-TEXT ·handlerCallExit(SB), NOSPLIT, $0
+TEXT ·handlerCallExit(SB), NOSPLIT|NOFRAME, $0
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_CALL, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerReturnExit exits to Go with EXIT_RETURN for dedicated OpReturn handling.
-TEXT ·handlerReturnExit(SB), NOSPLIT, $0
+TEXT ·handlerReturnExit(SB), NOSPLIT|NOFRAME, $0
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_RETURN, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerReturnVoidExit exits to Go with EXIT_RETURN_VOID for dedicated OpReturnVoid handling.
-TEXT ·handlerReturnVoidExit(SB), NOSPLIT, $0
+TEXT ·handlerReturnVoidExit(SB), NOSPLIT|NOFRAME, $0
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_RETURN_VOID, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerTailCallExit exits to Go with EXIT_TAIL_CALL for dedicated OpTailCall handling.
-TEXT ·handlerTailCallExit(SB), NOSPLIT, $0
+TEXT ·handlerTailCallExit(SB), NOSPLIT|NOFRAME, $0
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_TAIL_CALL, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
+	RET
+
+// dispatchExit is the arm64 JMP target for FRAMEd shims and DISPATCH_NEXT/DIV_BY_ZERO_EXIT paths; its single RET pops the caller-restored R30 without the auto-epilogue that would double-tear-down a FRAMEd shim.
+TEXT ·dispatchExit(SB), NOSPLIT|NOFRAME, $0
 	RET

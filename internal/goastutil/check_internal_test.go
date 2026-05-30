@@ -246,4 +246,6 @@ func TestContainsFunction(t *testing.T) {
 	})
 }
 
-var _ = packages.NeedName
+var (
+	_ = packages.NeedName
+)

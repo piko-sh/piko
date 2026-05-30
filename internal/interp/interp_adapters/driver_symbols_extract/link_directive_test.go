@@ -249,7 +249,7 @@ func GetItemLink(tType reflect.Type, slot int) reflect.Value {
 `,
 	})
 
-	ep, err := extractPackage(pkg, false)
+	ep, err := extractPackage(pkg, false, nil)
 	require.NoError(t, err)
 	require.Len(t, ep.LinkedGenericFuncs, 1)
 	linked := ep.LinkedGenericFuncs[0]

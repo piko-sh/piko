@@ -319,7 +319,7 @@ func TestCacheMiddleware_CacheMiss_GeneratesAndCaches(t *testing.T) {
 	AssertBodyEquals(t, recorder, h.HandlerBody)
 
 	require.Eventually(t, func() bool {
-		return atomic.LoadInt64(&h.RegistryService.UpsertArtefactCallCount) >= 1
+		return h.RegistryService.UpsertArtefactCallCount.Load() >= 1
 	}, time.Second, 5*time.Millisecond, "should have called upsert for caching")
 }
 
@@ -841,7 +841,7 @@ func TestCacheMiddleware_HandlesNonSuccessStatus(t *testing.T) {
 	AssertStatus(t, recorder, http.StatusInternalServerError)
 
 	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, int64(0), atomic.LoadInt64(&h.RegistryService.UpsertArtefactCallCount),
+	assert.Equal(t, int64(0), h.RegistryService.UpsertArtefactCallCount.Load(),
 		"should not cache non-success responses")
 }
 

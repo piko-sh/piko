@@ -18,7 +18,9 @@
 
 package sfcparser
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	// MimeJavaScript is the standard MIME type for JavaScript content.
@@ -52,8 +54,8 @@ type Location struct {
 // Script represents a script block with its content, attributes, and location
 // information.
 type Script struct {
-	// Attributes holds key-value pairs from the script tag, such as "type",
-	// "lang", and "name".
+	// Attributes holds key-value pairs from the script tag, such as "type", "lang", and
+	// "name".
 	Attributes map[string]string
 
 	// Content is the raw text inside the script block.
@@ -66,8 +68,8 @@ type Script struct {
 	ContentLocation Location
 }
 
-// Type returns the MIME type of the script from its type attribute.
-// Defaults to MimeJavaScript if no type attribute is present.
+// Type returns the MIME type of the script from its type attribute. Defaults to
+// MimeJavaScript if no type attribute is present.
 //
 // Returns string which is the MIME type for this script element.
 func (s *Script) Type() string {
@@ -78,11 +80,9 @@ func (s *Script) Type() string {
 	return scriptType
 }
 
-// Style represents a style block with its content, attributes, and location
-// information.
+// Style represents a style block with its content, attributes, and location information.
 type Style struct {
-	// Attributes holds key-value pairs from the style tag (e.g. "global",
-	// "scoped").
+	// Attributes holds key-value pairs from the style tag (e.g. "global", "scoped").
 	Attributes map[string]string
 
 	// Content holds the raw CSS text inside the style block.
@@ -95,8 +95,8 @@ type Style struct {
 	ContentLocation Location
 }
 
-// I18nBlock represents an internationalisation block with its content,
-// attributes, and location information.
+// I18nBlock represents an internationalisation block with its content, attributes, and
+// location information.
 type I18nBlock struct {
 	// Attributes holds the key-value pairs from the i18n tag, such as "lang".
 	Attributes map[string]string
@@ -111,9 +111,9 @@ type I18nBlock struct {
 	ContentLocation Location
 }
 
-// TimelineBlock represents a piko:timeline block with its content, attributes,
-// and location information. Multiple timeline blocks are allowed per component,
-// each optionally targeting a different viewport via a media attribute.
+// TimelineBlock represents a piko:timeline block with its content, attributes, and
+// location information. Multiple timeline blocks are allowed per component, each
+// optionally targeting a different viewport via a media attribute.
 type TimelineBlock struct {
 	// Attributes holds key-value pairs from the piko:timeline tag.
 	Attributes map[string]string
@@ -145,9 +145,8 @@ type ParseResult struct {
 	// I18nBlocks holds the i18n translation blocks from the SFC.
 	I18nBlocks []I18nBlock
 
-	// Timelines holds the parsed piko:timeline blocks. Multiple blocks are
-	// supported, each optionally targeting a different viewport via a media
-	// attribute on the tag.
+	// Timelines holds the parsed piko:timeline blocks. Multiple blocks are supported, each
+	// optionally targeting a different viewport via a media attribute on the tag.
 	Timelines []TimelineBlock
 
 	// TemplateLocation is where the template tag starts in the source file.
@@ -157,17 +156,15 @@ type ParseResult struct {
 	TemplateContentLocation Location
 }
 
-// IsJavaScript checks if the script block is JavaScript or TypeScript by
-// examining its type or lang attributes. TypeScript is treated as JavaScript
-// since it compiles to JavaScript.
+// IsJavaScript checks if the script block is JavaScript or TypeScript by examining its
+// type or lang attributes. TypeScript is treated as JavaScript since it compiles to
+// JavaScript.
 //
-// Returns bool which is true for:
-//   - JavaScript or TypeScript MIME types in the type attribute, such as
-//     "application/javascript", "text/javascript", "module", or
-//     "application/typescript"
-//   - JavaScript or TypeScript language tags in lang, such as "js", "javascript",
-//     "ts", or "typescript"
-//   - No type or lang attribute (defaults to JavaScript)
+// Returns bool which is true for: - JavaScript or TypeScript MIME types in the type
+// attribute, such as "application/javascript", "text/javascript", "module", or
+// "application/typescript" - JavaScript or TypeScript language tags in lang, such as
+// "js", "javascript", "ts", or "typescript" - No type or lang attribute (defaults to
+// JavaScript)
 func (s *Script) IsJavaScript() bool {
 	if lang, ok := s.Attributes[attributeLang]; ok && lang != "" {
 		return strings.EqualFold(lang, "js") ||
@@ -183,11 +180,9 @@ func (s *Script) IsJavaScript() bool {
 		strings.EqualFold(t, MimeTypeScript)
 }
 
-// IsGo checks if the script block is Go by examining its type or lang
-// attributes.
+// IsGo checks if the script block is Go by examining its type or lang attributes.
 //
-// Returns bool which is true if type or lang is "go", "golang", MimeGo, or
-// MimeGoShort.
+// Returns bool which is true if type or lang is "go", "golang", MimeGo, or MimeGoShort.
 func (s *Script) IsGo() bool {
 	if scriptType, ok := s.Attributes[attributeType]; ok && (scriptType == MimeGo || scriptType == MimeGoShort) {
 		return true
@@ -250,12 +245,12 @@ func (pr *ParseResult) GoScript() (*Script, bool) {
 	return nil, false
 }
 
-// IsTypeScript checks if the script block is TypeScript by examining its
-// lang or type attributes.
+// IsTypeScript checks if the script block is TypeScript by examining its lang or type
+// attributes.
 //
-// Returns true if:
-//   - the lang attribute uses a TypeScript tag such as "ts" or "typescript"
-//   - the type attribute uses the TypeScript MIME type "application/typescript"
+// Returns true if: - the lang attribute uses a TypeScript tag such as "ts" or
+// "typescript" - the type attribute uses the TypeScript MIME type
+// "application/typescript"
 func (s *Script) IsTypeScript() bool {
 	if lang, ok := s.Attributes[attributeLang]; ok && (lang == "ts" || lang == "typescript") {
 		return true
@@ -273,23 +268,20 @@ func (s *Script) IsClientScript() bool {
 	return s.IsJavaScript() || s.IsTypeScript()
 }
 
-// HasRecognisedScriptType checks if the script block has a recognised language
-// or type attribute.
+// HasRecognisedScriptType checks if the script block has a recognised language or type
+// attribute.
 //
-// Used to warn about script blocks with unrecognised, invalid, or missing
-// attributes. Script blocks should explicitly declare their language to avoid
-// ambiguity.
+// Used to warn about script blocks with unrecognised, invalid, or missing attributes.
+// Script blocks should explicitly declare their language to avoid ambiguity.
 //
 // Valid combinations are:
-//   - Go: type="application/x-go", type="application/go", lang="go",
-//     lang="golang"
+//   - Go: type="application/x-go", type="application/go", lang="go", lang="golang"
 //   - JavaScript MIME or lang values such as type="application/javascript",
 //     type="text/javascript", type="module", lang="js", or lang="javascript"
 //   - TypeScript MIME or lang values such as lang="ts", lang="typescript", or
 //     type="application/typescript"
 //
-// Returns bool which is true if the script type is explicitly and validly
-// declared.
+// Returns bool which is true if the script type is explicitly and validly declared.
 func (s *Script) HasRecognisedScriptType() bool {
 	if s.IsGo() || s.IsTypeScript() {
 		return true
@@ -308,11 +300,10 @@ func (s *Script) HasRecognisedScriptType() bool {
 	return false
 }
 
-// ClientScripts returns all script blocks that are client-side scripts
-// (JavaScript or TypeScript).
+// ClientScripts returns all script blocks that are client-side scripts (JavaScript or
+// TypeScript).
 //
-// Returns []Script which contains only the scripts where IsClientScript is
-// true.
+// Returns []Script which contains only the scripts where IsClientScript is true.
 func (pr *ParseResult) ClientScripts() []Script {
 	var clientScripts []Script
 	for _, s := range pr.Scripts {
@@ -323,8 +314,8 @@ func (pr *ParseResult) ClientScripts() []Script {
 	return clientScripts
 }
 
-// ClientScript returns the first client-side script block, such as JavaScript
-// or TypeScript.
+// ClientScript returns the first client-side script block, such as JavaScript or
+// TypeScript.
 //
 // Returns *Script which is the first client script found, or nil if none.
 // Returns bool which is true if a client script was found.
@@ -345,17 +336,14 @@ func (pr *ParseResult) HasCollectionDirective() bool {
 	return ok
 }
 
-// GetCollectionName returns the collection name from the p-collection
-// attribute.
+// GetCollectionName returns the collection name from the p-collection attribute.
 //
-// Returns string which is the collection name, or empty if p-collection is not
-// present.
+// Returns string which is the collection name, or empty if p-collection is not present.
 func (pr *ParseResult) GetCollectionName() string {
 	return pr.TemplateAttributes["p-collection"]
 }
 
-// GetCollectionProvider returns the provider name from the p-provider
-// attribute.
+// GetCollectionProvider returns the provider name from the p-provider attribute.
 //
 // Returns string which is the provider name, or "markdown" if p-provider is not
 // specified.
@@ -366,12 +354,12 @@ func (pr *ParseResult) GetCollectionProvider() string {
 	return "markdown"
 }
 
-// GetCollectionParamName returns the URL parameter name from the p-param
-// attribute. Returns "slug" as the default if p-param is not set.
+// GetCollectionParamName returns the URL parameter name from the p-param attribute.
+// Returns "slug" as the default if p-param is not set.
 //
-// This tells collection providers which chi URL parameter to use for content
-// lookup. For example, if the route is /products/{id}, set p-param="id" so
-// the provider gets the correct parameter value at runtime.
+// This tells collection providers which chi URL parameter to use for content lookup. For
+// example, if the route is /products/{id}, set p-param="id" so the provider gets the
+// correct parameter value at runtime.
 //
 // Returns string which is the parameter name for content lookup.
 func (pr *ParseResult) GetCollectionParamName() string {
@@ -381,9 +369,9 @@ func (pr *ParseResult) GetCollectionParamName() string {
 	return "slug"
 }
 
-// HasCollectionSource checks if the template specifies an external content
-// source. When present, the p-collection-source attribute references a Go
-// import alias that points to a module containing markdown content.
+// HasCollectionSource checks if the template specifies an external content source. When
+// present, the p-collection-source attribute references a Go import alias that points to
+// a module containing markdown content.
 //
 // Returns bool which is true if the p-collection-source attribute is present.
 func (pr *ParseResult) HasCollectionSource() bool {
@@ -391,19 +379,18 @@ func (pr *ParseResult) HasCollectionSource() bool {
 	return ok
 }
 
-// GetCollectionSource returns the import alias from the p-collection-source
-// attribute. This alias references a Go import that points to a module
-// containing markdown content.
+// GetCollectionSource returns the import alias from the p-collection-source attribute.
+// This alias references a Go import that points to a module containing markdown content.
 //
-// Returns string which is the import alias, or empty if p-collection-source
-// is not present.
+// Returns string which is the import alias, or empty if p-collection-source is not
+// present.
 func (pr *ParseResult) GetCollectionSource() string {
 	return pr.TemplateAttributes["p-collection-source"]
 }
 
-// HasPublicDirective checks if the template has a public attribute, which
-// explicitly marks the component as publicly accessible regardless of the
-// default visibility for its component type.
+// HasPublicDirective checks if the template has a public attribute, which explicitly
+// marks the component as publicly accessible regardless of the default visibility for its
+// component type.
 //
 // Returns bool which is true if the public attribute is present.
 func (pr *ParseResult) HasPublicDirective() bool {
@@ -411,9 +398,9 @@ func (pr *ParseResult) HasPublicDirective() bool {
 	return ok
 }
 
-// HasPrivateDirective checks if the template has a private attribute, which
-// explicitly marks the component as private regardless of the default
-// visibility for its component type.
+// HasPrivateDirective checks if the template has a private attribute, which explicitly
+// marks the component as private regardless of the default visibility for its component
+// type.
 //
 // Returns bool which is true if the private attribute is present.
 func (pr *ParseResult) HasPrivateDirective() bool {

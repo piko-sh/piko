@@ -1,0 +1,4 @@
+{
+  "description": "Typed iota constants in fileA used as map keys in fileB-defined map populated by fileC init()",
+  "expected": "red=#ff0000 green=#00ff00 blue=#0000ff"
+}

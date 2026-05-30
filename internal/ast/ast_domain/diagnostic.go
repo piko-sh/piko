@@ -18,8 +18,10 @@
 
 package ast_domain
 
-// Defines diagnostic types and formatting utilities for presenting compilation errors, warnings, and informational messages.
-// Provides severity levels, source location tracking, and coloured output formatting with source context for developer-friendly error reporting.
+// Defines diagnostic types and formatting utilities for presenting compilation errors,
+// warnings, and informational messages. Provides severity levels, source location
+// tracking, and coloured output formatting with source context for developer-friendly
+// error reporting.
 
 import (
 	"cmp"
@@ -32,20 +34,18 @@ import (
 )
 
 const (
-	// enableDiagnosticColour controls whether diagnostic output uses ANSI colour
-	// codes.
+	// enableDiagnosticColour controls whether diagnostic output uses ANSI colour codes.
 	enableDiagnosticColour = true
 
-	// tabWidth is the number of spaces used to display a tab character. This
-	// matches the standard terminal default of 8.
+	// tabWidth is the number of spaces used to display a tab character. This matches the
+	// standard terminal default of 8.
 	tabWidth = 8
 
 	// spaceChar is a single space used for padding in diagnostic output.
 	spaceChar = " "
 )
 
-// Severity represents how serious a diagnostic message is. It implements
-// fmt.Stringer.
+// Severity represents how serious a diagnostic message is. It implements fmt.Stringer.
 type Severity int
 
 const (
@@ -55,8 +55,8 @@ const (
 	// Info indicates an informational diagnostic message.
 	Info
 
-	// Warning indicates a diagnostic that does not prevent compilation but
-	// should be addressed.
+	// Warning indicates a diagnostic that does not prevent compilation but should be
+	// addressed.
 	Warning
 
 	// Error indicates a diagnostic that prevents successful compilation.
@@ -65,8 +65,9 @@ const (
 
 // String returns the severity level as a lowercase string.
 //
-// Returns string which is the name of the severity, such as "debug", "info",
-// "warning", or "error". Returns "unknown" for unrecognised values.
+// Returns string which is the name of the severity, such as "debug", "info", "warning",
+// or "error".
+// Returns "unknown" for unrecognised values.
 func (s Severity) String() string {
 	switch s {
 	case Debug:
@@ -82,11 +83,11 @@ func (s Severity) String() string {
 	}
 }
 
-// CodeString returns the capitalised string representation of the severity
-// for use in code generation.
+// CodeString returns the capitalised string representation of the severity for use in
+// code generation.
 //
-// Returns string which is the severity name with initial capital letter,
-// or "unknown" for undefined severity values.
+// Returns string which is the severity name with initial capital letter, or "unknown" for
+// undefined severity values.
 func (s Severity) CodeString() string {
 	switch s {
 	case Debug:
@@ -123,16 +124,14 @@ type Range struct {
 	End Location
 }
 
-// IsSynthetic returns true if this location is synthetic (not from actual
-// source).
+// IsSynthetic returns true if this location is synthetic (not from actual source).
 //
 // Returns bool which is true when the location has no real source position.
 func (l Location) IsSynthetic() bool {
 	return l.Line == 0
 }
 
-// Add combines two locations into one, useful for tracking compound
-// expressions.
+// Add combines two locations into one, useful for tracking compound expressions.
 //
 // Takes other (Location) which is the location to add to this one.
 //
@@ -161,8 +160,8 @@ func (l Location) Add(other Location) Location {
 	}
 }
 
-// IsBefore reports whether this location comes before another location in the
-// source file.
+// IsBefore reports whether this location comes before another location in the source
+// file.
 //
 // Takes other (Location) which is the location to compare against.
 //
@@ -177,9 +176,9 @@ func (l Location) IsBefore(other Location) bool {
 	return false
 }
 
-// DiagnosticRelatedInfo represents additional locations and context for a
-// diagnostic. It provides multi-location error information, such as showing
-// both the usage site and the declaration site of a symbol.
+// DiagnosticRelatedInfo represents additional locations and context for a diagnostic. It
+// provides multi-location error information, such as showing both the usage site and the
+// declaration site of a symbol.
 type DiagnosticRelatedInfo struct {
 	// Message is the text that explains the related information to the user.
 	Message string
@@ -188,12 +187,12 @@ type DiagnosticRelatedInfo struct {
 	Location Location
 }
 
-// Diagnostic represents a compiler message such as an error, warning, or hint.
-// It implements the error interface and holds structured metadata to support
-// LSP quick fixes and IDE features.
+// Diagnostic represents a compiler message such as an error, warning, or hint. It
+// implements the error interface and holds structured metadata to support LSP quick fixes
+// and IDE features.
 type Diagnostic struct {
-	// Data holds extra details for quick fixes and IDE features.
-	// Passed directly to the LSP protocol and used by quick fix handlers.
+	// Data holds extra details for quick fixes and IDE features. Passed directly to the LSP
+	// protocol and used by quick fix handlers.
 	Data map[string]any
 
 	// Message is a clear description of the issue for the user to read.
@@ -208,40 +207,32 @@ type Diagnostic struct {
 	// Code is the identifier for this diagnostic, used by quick fix handlers.
 	Code string
 
-	// RelatedInfo holds extra locations and messages that give context for this
-	// diagnostic, such as where a symbol is declared or other related errors.
+	// RelatedInfo holds extra locations and messages that give context for this diagnostic,
+	// such as where a symbol is declared or other related errors.
 	RelatedInfo []DiagnosticRelatedInfo
 
 	// Location specifies the line and column where the issue was found.
 	Location Location
 
-	// SourceLength is the byte count of the problematic expression in source.
-	// A value of 0 means len(Expression) is used instead.
+	// SourceLength is the byte count of the problematic expression in source. A value of 0
+	// means len(Expression) is used instead.
 	SourceLength int
 
 	// Severity indicates how serious this diagnostic is (Error or Warning).
 	Severity Severity
 }
 
-// NewDiagnostic creates a new diagnostic message with the given
-// details.
+// NewDiagnostic creates a new diagnostic message with the given details.
 //
-// The SourceLength will default to 0, which falls back to
-// len(Expression) when needed.
+// The SourceLength will default to 0, which falls back to len(Expression) when needed.
 //
-// Takes sev (Severity) which specifies the severity level of
-// the diagnostic.
-// Takes message (string) which provides the diagnostic message
-// text.
-// Takes expression (string) which contains the source
-// expression being diagnosed.
-// Takes location (Location) which specifies where the
-// diagnostic occurred.
-// Takes sourcePath (string) which identifies the source file
-// path.
+// Takes sev (Severity) which specifies the severity level of the diagnostic.
+// Takes message (string) which provides the diagnostic message text.
+// Takes expression (string) which contains the source expression being diagnosed.
+// Takes location (Location) which specifies where the diagnostic occurred.
+// Takes sourcePath (string) which identifies the source file path.
 //
-// Returns *Diagnostic which is the constructed diagnostic
-// instance.
+// Returns *Diagnostic which is the constructed diagnostic instance.
 func NewDiagnostic(sev Severity, message, expression string, location Location, sourcePath string) *Diagnostic {
 	return &Diagnostic{
 		Severity:     sev,
@@ -256,22 +247,16 @@ func NewDiagnostic(sev Severity, message, expression string, location Location, 
 	}
 }
 
-// NewDiagnosticForExpression creates a diagnostic with accurate
-// source length from an expression's metadata.
+// NewDiagnosticForExpression creates a diagnostic with accurate source length from an
+// expression's metadata.
 //
-// Takes sev (Severity) which specifies the diagnostic severity
-// level.
-// Takes message (string) which provides the diagnostic message
-// text.
-// Takes expression (Expression) which supplies source length
-// metadata.
-// Takes location (Location) which indicates where the
-// diagnostic occurred.
-// Takes sourcePath (string) which identifies the source file
-// path.
+// Takes sev (Severity) which specifies the diagnostic severity level.
+// Takes message (string) which provides the diagnostic message text.
+// Takes expression (Expression) which supplies source length metadata.
+// Takes location (Location) which indicates where the diagnostic occurred.
+// Takes sourcePath (string) which identifies the source file path.
 //
-// Returns *Diagnostic which is configured with the
-// expression's source length.
+// Returns *Diagnostic which is configured with the expression's source length.
 func NewDiagnosticForExpression(sev Severity, message string, expression Expression, location Location, sourcePath string) *Diagnostic {
 	return &Diagnostic{
 		Severity:     sev,
@@ -286,24 +271,17 @@ func NewDiagnosticForExpression(sev Severity, message string, expression Express
 	}
 }
 
-// NewDiagnosticWithCode creates a diagnostic with a
-// machine-readable code for LSP quick fixes.
+// NewDiagnosticWithCode creates a diagnostic with a machine-readable code for LSP quick
+// fixes.
 //
-// Takes sev (Severity) which specifies the severity level of
-// the diagnostic.
-// Takes message (string) which provides the human-readable
-// diagnostic message.
-// Takes expression (string) which contains the source
-// expression being diagnosed.
-// Takes code (string) which provides the machine-readable code
-// for quick fixes.
-// Takes location (Location) which specifies where the
-// diagnostic occurs.
-// Takes sourcePath (string) which identifies the source file
-// path.
+// Takes sev (Severity) which specifies the severity level of the diagnostic.
+// Takes message (string) which provides the human-readable diagnostic message.
+// Takes expression (string) which contains the source expression being diagnosed.
+// Takes code (string) which provides the machine-readable code for quick fixes.
+// Takes location (Location) which specifies where the diagnostic occurs.
+// Takes sourcePath (string) which identifies the source file path.
 //
-// Returns *Diagnostic which is the configured diagnostic ready
-// for use.
+// Returns *Diagnostic which is the configured diagnostic ready for use.
 func NewDiagnosticWithCode(sev Severity, message, expression, code string, location Location, sourcePath string) *Diagnostic {
 	return &Diagnostic{
 		Severity:     sev,
@@ -318,26 +296,18 @@ func NewDiagnosticWithCode(sev Severity, message, expression, code string, locat
 	}
 }
 
-// NewDiagnosticWithData creates a diagnostic with structured
-// metadata for LSP quick fixes.
+// NewDiagnosticWithData creates a diagnostic with structured metadata for LSP quick
+// fixes.
 //
-// Takes sev (Severity) which specifies the severity level of
-// the diagnostic.
-// Takes message (string) which provides the human-readable
-// diagnostic message.
-// Takes expression (string) which contains the source
-// expression being diagnosed.
-// Takes code (string) which identifies the diagnostic rule or
-// check.
-// Takes location (Location) which specifies the position in
-// the source file.
-// Takes sourcePath (string) which provides the path to the
-// source file.
-// Takes data (map[string]any) which contains structured
-// metadata for quick fixes.
+// Takes sev (Severity) which specifies the severity level of the diagnostic.
+// Takes message (string) which provides the human-readable diagnostic message.
+// Takes expression (string) which contains the source expression being diagnosed.
+// Takes code (string) which identifies the diagnostic rule or check.
+// Takes location (Location) which specifies the position in the source file.
+// Takes sourcePath (string) which provides the path to the source file.
+// Takes data (map[string]any) which contains structured metadata for quick fixes.
 //
-// Returns *Diagnostic which is the configured diagnostic with
-// the given data.
+// Returns *Diagnostic which is the configured diagnostic with the given data.
 func NewDiagnosticWithData(sev Severity, message, expression, code string, location Location, sourcePath string, data map[string]any) *Diagnostic {
 	return &Diagnostic{
 		Severity:     sev,
@@ -352,9 +322,9 @@ func NewDiagnosticWithData(sev Severity, message, expression, code string, locat
 	}
 }
 
-// GetEffectiveSourceLength returns the SourceLength if set, otherwise falls
-// back to len(Expression). This preserves backward compatibility for diagnostics
-// created before SourceLength was added.
+// GetEffectiveSourceLength returns the SourceLength if set, otherwise falls back to
+// len(Expression). This preserves backward compatibility for diagnostics created before
+// SourceLength was added.
 //
 // Returns int which is the effective length of the source text.
 func (d *Diagnostic) GetEffectiveSourceLength() int {
@@ -364,11 +334,9 @@ func (d *Diagnostic) GetEffectiveSourceLength() int {
 	return len(d.Expression)
 }
 
-// Error implements the error interface, returning a formatted diagnostic
-// message.
+// Error implements the error interface, returning a formatted diagnostic message.
 //
-// Returns string which contains the severity, source path, line, column, and
-// message.
+// Returns string which contains the severity, source path, line, column, and message.
 func (d *Diagnostic) Error() string {
 	return fmt.Sprintf("%s in %s at line %d, col %d: %s", d.Severity, d.SourcePath, d.Location.Line, d.Location.Column, d.Message)
 }
@@ -398,8 +366,7 @@ var (
 
 // Clone creates a shallow copy of the diagnostic.
 //
-// Returns *Diagnostic which is the copied diagnostic, or nil if the receiver
-// is nil.
+// Returns *Diagnostic which is the copied diagnostic, or nil if the receiver is nil.
 func (d *Diagnostic) Clone() *Diagnostic {
 	if d == nil {
 		return nil
@@ -430,14 +397,12 @@ func HasDiagnostics(diagnostics []*Diagnostic) bool {
 	return len(diagnostics) > 0
 }
 
-// DeduplicateDiagnostics removes duplicate diagnostics from a slice based on
-// their identity (source path, location, severity, and message). This stops
-// the same warning or error from appearing many times when a partial is used
-// by more than one page, as each page's expansion checks the partial nodes
-// again.
+// DeduplicateDiagnostics removes duplicate diagnostics from a slice based on their
+// identity (source path, location, severity, and message). This stops the same warning or
+// error from appearing many times when a partial is used by more than one page, as each
+// page's expansion checks the partial nodes again.
 //
-// The function keeps the order of items, keeping the first of each unique
-// diagnostic.
+// The function keeps the order of items, keeping the first of each unique diagnostic.
 //
 // Takes diagnostics ([]*Diagnostic) which is the slice of diagnostics to check.
 //
@@ -476,10 +441,9 @@ func DeduplicateDiagnostics(diagnostics []*Diagnostic) []*Diagnostic {
 	return result
 }
 
-// FormatDiagnostics renders diagnostics with coloured source context.
-// It adjusts the caret column position to account for the difference in
-// character count between the raw source (with HTML entities) and the clean
-// version shown to the user.
+// FormatDiagnostics renders diagnostics with coloured source context. It adjusts the
+// caret column position to account for the difference in character count between the raw
+// source (with HTML entities) and the clean version shown to the user.
 //
 // When the diagnostics slice is empty, returns an empty string.
 //
@@ -487,8 +451,8 @@ func DeduplicateDiagnostics(diagnostics []*Diagnostic) []*Diagnostic {
 // Takes sourceCode (string) which provides the raw source text.
 // Takes diagnostics ([]*Diagnostic) which contains the diagnostics to format.
 //
-// Returns string which contains the formatted output with line numbers,
-// source snippets, and coloured markers.
+// Returns string which contains the formatted output with line numbers, source snippets,
+// and coloured markers.
 func FormatDiagnostics(sourcePath string, sourceCode string, diagnostics []*Diagnostic) string {
 	if len(diagnostics) == 0 {
 		return ""
@@ -508,8 +472,8 @@ func FormatDiagnostics(sourcePath string, sourceCode string, diagnostics []*Diag
 	return builder.String()
 }
 
-// calculateMaxGutterWidth finds the width needed to display the largest line
-// number from the given diagnostics.
+// calculateMaxGutterWidth finds the width needed to display the largest line number from
+// the given diagnostics.
 //
 // Takes diagnostics ([]*Diagnostic) which contains the diagnostics to check.
 //
@@ -566,17 +530,16 @@ func formatSingleDiagnostic(builder *strings.Builder, d *Diagnostic, lines []str
 	_, _ = fmt.Fprintf(builder, "%s%s%s\n\n", gutterEmpty, caretPadding, primaryColour.Sprint(highlight))
 }
 
-// calculateDisplayPosition converts an HTML-escaped line to its display form
-// and adjusts the error column to match the new format. It changes HTML
-// entities (such as &lt; becoming <) and expands tabs to spaces.
+// calculateDisplayPosition converts an HTML-escaped line to its display form and adjusts
+// the error column to match the new format. It changes HTML entities (such as &lt;
+// becoming <) and expands tabs to spaces.
 //
 // Takes originalLine (string) which is the HTML-escaped source line.
 // Takes errorColumn (int) which is the 1-based column in the escaped line.
 //
-// Returns displayLine (string) which is the line with HTML entities converted
-// and tabs replaced with spaces.
-// Returns adjustedColumn (int) which is the corresponding visual column
-// position.
+// Returns displayLine (string) which is the line with HTML entities converted and tabs
+// replaced with spaces.
+// Returns adjustedColumn (int) which is the corresponding visual column position.
 func calculateDisplayPosition(originalLine string, errorColumn int) (displayLine string, adjustedColumn int) {
 	unescapedLine := gohtml.UnescapeString(originalLine)
 

@@ -32,8 +32,8 @@ import (
 
 // AddCacheProvider registers a named cache provider.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (cache_domain.Provider) which creates cache instances.
@@ -52,8 +52,8 @@ func (c *Container) SetCacheDefaultProvider(name string) {
 	c.cacheDefaultProvider = name
 }
 
-// GetCacheService returns the cache service, initialising a default one if
-// none was provided.
+// GetCacheService returns the cache service, initialising a default one if none was
+// provided.
 //
 // Returns cache_domain.Service which provides caching operations.
 // Returns error when the cache service could not be initialised.
@@ -64,8 +64,8 @@ func (c *Container) GetCacheService() (cache_domain.Service, error) {
 	return c.cacheService, c.cacheErr
 }
 
-// createDefaultCacheService sets up the cache service with user-provided
-// providers, or with Otter as the default if none are given.
+// createDefaultCacheService sets up the cache service with user-provided providers, or
+// with Otter as the default if none are given.
 func (c *Container) createDefaultCacheService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -137,11 +137,11 @@ func (c *Container) registerDefaultOtterProvider() error {
 	return nil
 }
 
-// SetCacheService allows builders to provide a pre-configured cache service
-// to the container.
+// SetCacheService allows builders to provide a pre-configured cache service to the
+// container.
 //
-// If the provided service implements a shutdown interface (Close, Shutdown, or
-// Stop), it will be automatically registered for graceful shutdown.
+// If the provided service implements a shutdown interface (Close, Shutdown, or Stop), it
+// will be automatically registered for graceful shutdown.
 //
 // Takes service (cache_domain.Service) which is the cache service to use.
 func (c *Container) SetCacheService(service cache_domain.Service) {

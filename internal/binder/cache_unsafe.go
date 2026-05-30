@@ -23,20 +23,23 @@ package binder
 import (
 	"maps"
 	"reflect"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"unsafe"
 )
 
-// initialStructCacheCapacity is the starting size for the struct metadata cache.
-// Most applications use only a small number of form struct types.
-const initialStructCacheCapacity = 8
+const (
+	// initialStructCacheCapacity is the starting size for the struct metadata cache. Most
+	// applications use only a small number of form struct types.
+	initialStructCacheCapacity = 8
+)
 
-// binderCache stores struct metadata with thread-safe access.
-// It uses sharded storage with uintptr keys for fast lookups.
+// binderCache stores struct metadata with thread-safe access. It uses sharded storage
+// with uintptr keys for fast lookups.
 type binderCache struct {
-	// fast holds an atomic pointer to a read-only map for lock-free lookups.
-	// The map is rebuilt on cache miss, which is rare after warmup.
+	// fast holds an atomic pointer to a read-only map for lock-free lookups. The map is
+	// rebuilt on cache miss, which is rare after warmup.
 	fast atomic.Pointer[map[uintptr]*structInfo]
 
 	// slow holds struct info during cache warm-up.
@@ -46,8 +49,7 @@ type binderCache struct {
 	mu sync.Mutex
 }
 
-// get retrieves or builds struct metadata for a type. Optimised for hot-path
-// reads.
+// get retrieves or builds struct metadata for a type. Optimised for hot-path reads.
 //
 // Takes t (reflect.Type) which specifies the struct type to look up.
 // Takes maxDepth (int) which limits the recursion depth for nested structs.
@@ -113,8 +115,7 @@ func (c *binderCache) rebuildFastMap(key uintptr, info *structInfo) {
 	c.fast.Store(&newMap)
 }
 
-// build performs one-time reflection to analyse a struct type and create its
-// metadata.
+// build performs one-time reflection to analyse a struct type and create its metadata.
 //
 // Takes t (reflect.Type) which specifies the struct type to analyse.
 // Takes maxDepth (int) which limits how deep nested structs are processed.
@@ -152,8 +153,8 @@ func (c *binderCache) walk(t reflect.Type, info *structInfo, parentIndex []int, 
 
 // processField handles a single struct field during the cache walk.
 //
-// Takes field (*reflect.StructField) which points to the field metadata; uses
-// a pointer to satisfy the hugeParam linter.
+// Takes field (*reflect.StructField) which points to the field metadata; uses a pointer
+// to satisfy the hugeParam linter.
 // Takes index (int) which is the field's position within its parent struct.
 // Takes info (*structInfo) which gathers the found field metadata.
 // Takes parentIndex ([]int) which tracks the index path from the root struct.
@@ -214,36 +215,34 @@ func (*binderCache) buildFieldInfo(field *reflect.StructField, fieldType, effect
 	}
 }
 
-// typeKey extracts a unique uintptr key from a reflect.Type for use as a map
-// key.
+// typeKey extracts a unique uintptr key from a reflect.Type for use as a map key.
 //
 // Takes t (reflect.Type) which is the type to extract a key from.
 //
 // Returns uintptr which is a unique key for the type.
 //
-// Uses unsafe to extract the data pointer from a reflect.Type interface. This
-// is safe because:
+// Uses unsafe to extract the data pointer from a reflect.Type interface. This is safe
+// because:
 //
-//  1. Stable layout: Go's interface layout is (type, data) and this is stable
-//     across Go versions. This is part of the runtime and used by the reflect
-//     package itself.
+//  1. Stable layout: Go's interface layout is (type, data) and this is stable across Go
+//     versions. This is part of the runtime and used by the reflect package itself.
 //
-//  2. Static type descriptors: The data pointer points to a type descriptor
-//     (*rtype) which is a static, read-only part of the compiled binary. Type
-//     descriptors are never moved by the garbage collector (they are not on
-//     the heap), never freed (they exist for the lifetime of the program), and
-//     are unique per type (the same type always has the same descriptor).
+//  2. Static type descriptors: The data pointer points to a type descriptor (*rtype)
+//     which is a static, read-only part of the compiled binary. Type descriptors are
+//     never moved by the garbage collector (they are not on the heap), never freed (they
+//     exist for the lifetime of the program), and are unique per type (the same type
+//     always has the same descriptor).
 //
-//  3. No pointer dereference: We only use the uintptr as a map key for
-//     comparison. We never dereference it or convert it back to a pointer.
+//  3. No pointer dereference: We only use the uintptr as a map key for comparison. We
+//     never dereference it or convert it back to a pointer.
 //
-//  4. Checked by tests: See TestTypeKey_Consistency in unsafe_safety_test.go
-//     which checks consistency, uniqueness, and concurrent safety.
+//  4. Checked by tests: See TestTypeKey_Consistency in unsafe_safety_test.go which checks
+//     consistency, uniqueness, and concurrent safety.
 //
-// Using reflect.Type directly as a map key requires interface hashing, which
-// involves comparing the type descriptor and possibly the underlying data.
-// Using uintptr is a simple integer comparison. Profiling showed sync.Map.Load
-// with reflect.Type keys used about 10% of CPU time due to this overhead.
+// Using reflect.Type directly as a map key requires interface hashing, which involves
+// comparing the type descriptor and possibly the underlying data. Using uintptr is a
+// simple integer comparison. Profiling showed sync.Map.Load with reflect.Type keys used
+// about 10% of CPU time due to this overhead.
 func typeKey(t reflect.Type) uintptr {
 	type iface struct {
 		_    uintptr
@@ -252,27 +251,24 @@ func typeKey(t reflect.Type) uintptr {
 	return (*iface)(unsafe.Pointer(&t)).data
 }
 
-// buildFieldIndex creates the full index path for a field by appending its
-// position to the parent's index path.
+// buildFieldIndex creates the full index path for a field by appending its position to
+// the parent's index path.
 //
 // Takes parentIndex ([]int) which is the index path of the parent field.
 // Takes index (int) which is the field's position within its parent.
 //
 // Returns []int which is the complete index path for the field.
 func buildFieldIndex(parentIndex []int, index int) []int {
-	currentIndex := make([]int, len(parentIndex)+1)
-	copy(currentIndex, parentIndex)
-	currentIndex[len(parentIndex)] = index
-	return currentIndex
+	return append(slices.Clone(parentIndex), index)
 }
 
-// dereferenceType returns the element type if t is a pointer, otherwise returns
-// t unchanged.
+// dereferenceType returns the element type if t is a pointer, otherwise returns t
+// unchanged.
 //
 // Takes t (reflect.Type) which is the type to check and dereference.
 //
-// Returns reflect.Type which is the element type for pointers, or the original
-// type if t is not a pointer.
+// Returns reflect.Type which is the element type for pointers, or the original type if t
+// is not a pointer.
 func dereferenceType(t reflect.Type) reflect.Type {
 	if t.Kind() == reflect.Pointer {
 		return t.Elem()
@@ -286,8 +282,7 @@ func dereferenceType(t reflect.Type) reflect.Type {
 //   - Single-level access (no nested traversal through embedded fields)
 //   - Non-pointer type
 //   - Primitive type (string, int, bool, float, etc.)
-//   - No well-known converter (e.g. time.Duration is int64 but needs special
-//     parsing)
+//   - No well-known converter (e.g. time.Duration is int64 but needs special parsing)
 //   - No TextUnmarshaler interface
 //
 // User-registered converters are checked at runtime since they are dynamic.

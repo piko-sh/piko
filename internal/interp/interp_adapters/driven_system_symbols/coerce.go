@@ -18,22 +18,36 @@
 
 package driven_system_symbols
 
-import "reflect"
+import (
+	"reflect"
+)
 
-// coerce converts a value to the target type T, bridging the impedance
-// mismatch between VM register types and concrete dispatch wrapper types.
+// coerce converts a value to the target type T, bridging the impedance mismatch between
+// VM register types and concrete dispatch wrapper types. When the underlying value is
+// nil, untyped, or not convertible to T, the zero value of T is returned rather than
+// panicking.
 //
 // Takes v (any) which is the value to convert.
 //
-// Returns the converted value of type T, or the zero value if conversion
-// fails.
+// Returns the converted value of type T, or the zero value if conversion fails.
 func coerce[T any](v any) T {
 	if typed, ok := v.(T); ok {
 		return typed
 	}
-	converted, ok := reflect.TypeAssert[T](reflect.ValueOf(v).Convert(reflect.TypeFor[T]()))
+	var zero T
+	if v == nil {
+		return zero
+	}
+	source := reflect.ValueOf(v)
+	if !source.IsValid() {
+		return zero
+	}
+	target := reflect.TypeFor[T]()
+	if !source.Type().ConvertibleTo(target) {
+		return zero
+	}
+	converted, ok := reflect.TypeAssert[T](source.Convert(target))
 	if !ok {
-		var zero T
 		return zero
 	}
 	return converted

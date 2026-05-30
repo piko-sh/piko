@@ -38,32 +38,32 @@ type pdfWriterService struct {
 	// layouter resolves CSS, builds box trees, and performs layout.
 	layouter LayoutPort
 
-	// imageData provides image bytes for embedding. May be nil to skip
-	// image rendering.
+	// imageData provides image bytes for embedding. May be nil to skip image rendering.
 	imageData ImageDataPort
 
-	// fontMetrics provides font measurement for page number substitution.
-	// May be nil when page number substitution is not needed.
+	// fontMetrics provides font measurement for page number substitution. May be nil when
+	// page number substitution is not needed.
 	fontMetrics layouter_domain.FontMetricsPort
 
 	// fontEntries holds the fonts available for embedding in PDF output.
 	fontEntries []layouter_dto.FontEntry
 }
 
-var _ PdfWriterService = (*pdfWriterService)(nil)
+var (
+	_ PdfWriterService = (*pdfWriterService)(nil)
+)
 
 // NewPdfWriterService creates a new PDF writer service.
 //
-// Takes templateRunner (TemplateRunnerPort) which executes compiled
-// PDF templates.
-// Takes layouter (LayoutPort) which provides CSS resolution, box tree
-// construction, and layout.
-// Takes fontEntries ([]layouter_dto.FontEntry) which are the fonts
-// available for embedding. May be nil for Helvetica fallback.
-// Takes imageData (ImageDataPort) which provides image bytes for
-// embedding. May be nil to skip image rendering.
-// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides
-// font measurement for page number substitution. May be nil.
+// Takes templateRunner (TemplateRunnerPort) which executes compiled PDF templates.
+// Takes layouter (LayoutPort) which provides CSS resolution, box tree construction, and
+// layout.
+// Takes fontEntries ([]layouter_dto.FontEntry) which are the fonts available for
+// embedding. May be nil for Helvetica fallback.
+// Takes imageData (ImageDataPort) which provides image bytes for embedding. May be nil to
+// skip image rendering.
+// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides font measurement for
+// page number substitution. May be nil.
 //
 // Returns PdfWriterService which is configured and ready for use.
 func NewPdfWriterService(
@@ -82,11 +82,11 @@ func NewPdfWriterService(
 	}
 }
 
-// NewRender creates a RenderBuilder for composing a PDF render operation
-// using a fluent interface.
+// NewRender creates a RenderBuilder for composing a PDF render operation using a fluent
+// interface.
 //
-// Returns *RenderBuilder which provides methods for configuring the
-// render and executing it via Do(ctx).
+// Returns *RenderBuilder which provides methods for configuring the render and executing
+// it via Do(ctx).
 func (s *pdfWriterService) NewRender() *RenderBuilder {
 	return &RenderBuilder{
 		service: s,
@@ -96,15 +96,13 @@ func (s *pdfWriterService) NewRender() *RenderBuilder {
 // Render executes the full PDF pipeline for a single PDF template.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes request (*http.Request) which provides the HTTP context for
-// template rendering.
+// Takes request (*http.Request) which provides the HTTP context for template rendering.
 // Takes templatePath (string) which is the path to the PDF template.
 // Takes props (any) which contains the data to pass to the template.
-// Takes config (pdfwriter_dto.PdfConfig) which specifies page
-// dimensions, font size, and other layout settings.
+// Takes config (pdfwriter_dto.PdfConfig) which specifies page dimensions, font size, and
+// other layout settings.
 //
-// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF
-// bytes and page count.
+// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF bytes and page count.
 // Returns error when any stage of the pipeline fails.
 func (s *pdfWriterService) Render(
 	ctx context.Context,

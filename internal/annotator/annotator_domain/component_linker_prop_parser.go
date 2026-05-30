@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Parses component Props structs to extract property metadata including types, defaults, and validation rules.
-// Processes struct tags to determine required props, query parameter bindings, and coercion settings for linking validation.
+// Parses component Props structs to extract property metadata including types, defaults,
+// and validation rules. Processes struct tags to determine required props, query
+// parameter bindings, and coercion settings for linking validation.
 
 import (
 	"fmt"
@@ -165,8 +166,8 @@ func (p *propParser) parseFieldAsProp(field *inspector_dto.Field) (string, valid
 	return result.propName, info, nil
 }
 
-// parsePropName extracts the property name from the tag or derives it from
-// the field name.
+// parsePropName extracts the property name from the tag or derives it from the field
+// name.
 //
 // Takes field (*inspector_dto.Field) which provides the source field.
 // Takes tag (map[string]string) which contains the parsed struct tags.
@@ -222,8 +223,7 @@ func (*propParser) parsePropValidation(tag map[string]string, result *propParseR
 
 // parseQueryTag checks and handles the query tag on a struct field.
 //
-// Takes field (*inspector_dto.Field) which provides field details for error
-// messages.
+// Takes field (*inspector_dto.Field) which provides field details for error messages.
 // Takes tag (map[string]string) which holds the parsed struct tags.
 // Takes destTypeExpr (goast.Expr) which is the target type to check.
 // Takes result (*propParseResult) which stores the parsed query parameter name.
@@ -249,11 +249,9 @@ func (p *propParser) parseQueryTag(field *inspector_dto.Field, tag map[string]st
 	p.validateQueryType(field, queryParam, destTypeExpr, result)
 }
 
-// validateQueryType checks that the target type is suitable for query
-// parameters.
+// validateQueryType checks that the target type is suitable for query parameters.
 //
-// Takes field (*inspector_dto.Field) which provides field details for error
-// messages.
+// Takes field (*inspector_dto.Field) which provides field details for error messages.
 // Takes queryParam (string) which is the query parameter name.
 // Takes destTypeExpr (goast.Expr) which is the target type expression.
 // Takes result (*propParseResult) which may be updated if validation fails.
@@ -284,8 +282,8 @@ func (p *propParser) validateQueryType(field *inspector_dto.Field, queryParam st
 	}
 }
 
-// getValidPropsForComponent returns the valid properties for a virtual
-// component by looking at its props type expression.
+// getValidPropsForComponent returns the valid properties for a virtual component by
+// looking at its props type expression.
 //
 // Takes vc (*annotator_dto.VirtualComponent) which is the component to check.
 // Takes inspector (TypeInspectorPort) which provides type lookup.
@@ -311,8 +309,8 @@ func getValidPropsForComponent(vc *annotator_dto.VirtualComponent, inspector Typ
 	return parser.validProps, err
 }
 
-// isQueryCompatibleType checks if a type can be used with query parameters.
-// Only string and *string types are allowed.
+// isQueryCompatibleType checks if a type can be used with query parameters. Only string
+// and *string types are allowed.
 //
 // Takes destType (goast.Expr) which is the type expression to check.
 //

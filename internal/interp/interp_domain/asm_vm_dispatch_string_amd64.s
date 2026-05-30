@@ -21,33 +21,12 @@
 //go:build !safe && !(js && wasm) && amd64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_amd64.h"
 
-// String operation handlers.
-//
-// String memory layout: Go strings are 16-byte headers {Data uintptr, Len int}.
-// stringsBase is loaded on demand from CTX_STRINGS_BASE(R15).
-// strings[i] is at stringsBase + i*16:
-//   - Data pointer at offset +0
-//   - Length at offset +8
-
-// handlerLenString sets ints[A] = len(strings[B]).
-TEXT ·handlerLenString(SB), NOSPLIT, $0
-	MOVQ    DX, AX
-	SHRQ    $8, AX
-	MOVBLZX AL, AX
-	MOVQ    DX, BX
-	SHRQ    $16, BX
-	MOVBLZX BL, BX
-	MOVQ    CTX_STRINGS_BASE(R15), SI
-	SHLQ    $4, BX
-	MOVQ    8(SI)(BX*1), CX
-	MOVQ    CX, (R8)(AX*8)
-	DISPATCH_NEXT()
-
 // handlerStringIndex sets uints[A] = uint64(strings[B][ints[C]]).
-TEXT ·handlerStringIndex(SB), NOSPLIT, $0
+TEXT ·handlerStringIndex(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -72,13 +51,13 @@ TEXT ·handlerStringIndex(SB), NOSPLIT, $0
 
 si_fallback:
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_TIER2, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_TIER2, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerEqString sets ints[A] = (strings[B] == strings[C]) ? 1 : 0.
-TEXT ·handlerEqString(SB), NOSPLIT, $0
+TEXT ·handlerEqString(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -119,7 +98,7 @@ eqs_done:
 	DISPATCH_NEXT()
 
 // handlerNeString sets ints[A] = (strings[B] != strings[C]) ? 1 : 0.
-TEXT ·handlerNeString(SB), NOSPLIT, $0
+TEXT ·handlerNeString(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -160,7 +139,7 @@ nes_done:
 	DISPATCH_NEXT()
 
 // handlerSliceString sets strings[A] = strings[B][low:high].
-TEXT ·handlerSliceString(SB), NOSPLIT, $0
+TEXT ·handlerSliceString(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -212,13 +191,13 @@ sl_got_high:
 
 sl_bounds_fail:
 	SUBQ    $2, R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_TIER2, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_TIER2, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerStringIndexToInt sets ints[A] = int64(strings[B][ints[C]]).
-TEXT ·handlerStringIndexToInt(SB), NOSPLIT, $0
+TEXT ·handlerStringIndexToInt(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -242,18 +221,18 @@ TEXT ·handlerStringIndexToInt(SB), NOSPLIT, $0
 
 sit_fallback:
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_TIER2, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_TIER2, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerLenStringLtJumpFalse jumps if ints[A] >= len(strings[B]).
-TEXT ·handlerLenStringLtJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerLenStringLtJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
-	SHRQ    $8, AX
+	SHRQ    $16, AX
 	MOVBLZX AL, AX
 	MOVQ    DX, BX
-	SHRQ    $16, BX
+	SHRQ    $24, BX
 	MOVBLZX BL, BX
 	MOVQ    CTX_STRINGS_BASE(R15), SI
 	SHLQ    $4, BX

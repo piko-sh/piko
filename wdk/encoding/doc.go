@@ -16,20 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package encoding provides base-X encoding utilities and UUID
-// generation.
+// Package encoding provides base-X encoding utilities and UUID generation.
 //
-// The [Encoding] type supports both byte slice and uint64 encoding
-// with generic base-N alphabets. When a standard alphabet is
-// detected (Base64, Base32, Hex), the encoder automatically
-// delegates to the optimised standard library. Convenience
-// wrappers for Base36 and Base58 are provided as package-level
-// functions.
+// The [Encoding] type supports both byte slice and uint64 encoding with generic base-N
+// alphabets. When a standard alphabet is detected (Base64, Base32, Hex), the encoder
+// automatically delegates to the optimised standard library. Convenience wrappers for
+// Base36 and Base58 are provided as package-level functions.
 //
-// The package also provides UUID v7 generation with custom
-// timestamp support, and functions for encoding UUIDs to compact
-// string representations.
+// The package also provides UUID v7 generation with custom timestamp support, and
+// functions for encoding UUIDs to compact string representations.
 //
-// All pre-initialised encodings and the [Encoding] type methods
-// are safe for concurrent use.
+// All pre-initialised encodings and the [Encoding] type methods are safe for concurrent
+// use.
 package encoding

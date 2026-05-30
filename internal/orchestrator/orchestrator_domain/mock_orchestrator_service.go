@@ -24,12 +24,10 @@ import (
 	"time"
 )
 
-// MockOrchestratorService is a test double for OrchestratorService where
-// nil function fields return zero values and call counts are tracked
-// atomically.
+// MockOrchestratorService is a test double for OrchestratorService where nil function
+// fields return zero values and call counts are tracked atomically.
 type MockOrchestratorService struct {
-	// RegisterExecutorFunc is the function called by
-	// RegisterExecutor.
+	// RegisterExecutorFunc is the function called by RegisterExecutor.
 	RegisterExecutorFunc func(ctx context.Context, name string, executor TaskExecutor) error
 
 	// DispatchFunc is the function called by Dispatch.
@@ -44,57 +42,44 @@ type MockOrchestratorService struct {
 	// StopFunc is the function called by Stop.
 	StopFunc func()
 
-	// ActiveTasksFunc is the function called by
-	// ActiveTasks.
+	// ActiveTasksFunc is the function called by ActiveTasks.
 	ActiveTasksFunc func(ctx context.Context) int64
 
-	// PendingTasksFunc is the function called by
-	// PendingTasks.
+	// PendingTasksFunc is the function called by PendingTasks.
 	PendingTasksFunc func(ctx context.Context) int64
 
-	// GetTaskDispatcherFunc is the function called by
-	// GetTaskDispatcher.
+	// GetTaskDispatcherFunc is the function called by GetTaskDispatcher.
 	GetTaskDispatcherFunc func() TaskDispatcher
 
-	// DispatchDirectFunc is the function called by
-	// DispatchDirect.
+	// DispatchDirectFunc is the function called by DispatchDirect.
 	DispatchDirectFunc func(ctx context.Context, task *Task) (*WorkflowReceipt, error)
 
-	// RegisterExecutorCallCount tracks how many times
-	// RegisterExecutor was called.
-	RegisterExecutorCallCount int64
+	// RegisterExecutorCallCount tracks how many times RegisterExecutor was called.
+	RegisterExecutorCallCount atomic.Int64
 
-	// DispatchCallCount tracks how many times Dispatch
-	// was called.
-	DispatchCallCount int64
+	// DispatchCallCount tracks how many times Dispatch was called.
+	DispatchCallCount atomic.Int64
 
-	// ScheduleCallCount tracks how many times Schedule
-	// was called.
-	ScheduleCallCount int64
+	// ScheduleCallCount tracks how many times Schedule was called.
+	ScheduleCallCount atomic.Int64
 
-	// RunCallCount tracks how many times Run was
-	// called.
-	RunCallCount int64
+	// RunCallCount tracks how many times Run was called.
+	RunCallCount atomic.Int64
 
-	// StopCallCount tracks how many times Stop was
-	// called.
-	StopCallCount int64
+	// StopCallCount tracks how many times Stop was called.
+	StopCallCount atomic.Int64
 
-	// ActiveTasksCallCount tracks how many times
-	// ActiveTasks was called.
-	ActiveTasksCallCount int64
+	// ActiveTasksCallCount tracks how many times ActiveTasks was called.
+	ActiveTasksCallCount atomic.Int64
 
-	// PendingTasksCallCount tracks how many times
-	// PendingTasks was called.
-	PendingTasksCallCount int64
+	// PendingTasksCallCount tracks how many times PendingTasks was called.
+	PendingTasksCallCount atomic.Int64
 
-	// GetTaskDispatcherCallCount tracks how many times
-	// GetTaskDispatcher was called.
-	GetTaskDispatcherCallCount int64
+	// GetTaskDispatcherCallCount tracks how many times GetTaskDispatcher was called.
+	GetTaskDispatcherCallCount atomic.Int64
 
-	// DispatchDirectCallCount tracks how many times
-	// DispatchDirect was called.
-	DispatchDirectCallCount int64
+	// DispatchDirectCallCount tracks how many times DispatchDirect was called.
+	DispatchDirectCallCount atomic.Int64
 }
 
 // RegisterExecutor registers a task executor under the given name.
@@ -105,7 +90,7 @@ type MockOrchestratorService struct {
 //
 // Returns error, or nil if RegisterExecutorFunc is nil.
 func (m *MockOrchestratorService) RegisterExecutor(ctx context.Context, name string, executor TaskExecutor) error {
-	atomic.AddInt64(&m.RegisterExecutorCallCount, 1)
+	m.RegisterExecutorCallCount.Add(1)
 	if m.RegisterExecutorFunc != nil {
 		return m.RegisterExecutorFunc(ctx, name, executor)
 	}
@@ -119,7 +104,7 @@ func (m *MockOrchestratorService) RegisterExecutor(ctx context.Context, name str
 //
 // Returns (*WorkflowReceipt, error), or (nil, nil) if DispatchFunc is nil.
 func (m *MockOrchestratorService) Dispatch(ctx context.Context, task *Task) (*WorkflowReceipt, error) {
-	atomic.AddInt64(&m.DispatchCallCount, 1)
+	m.DispatchCallCount.Add(1)
 	if m.DispatchFunc != nil {
 		return m.DispatchFunc(ctx, task)
 	}
@@ -134,7 +119,7 @@ func (m *MockOrchestratorService) Dispatch(ctx context.Context, task *Task) (*Wo
 //
 // Returns (*WorkflowReceipt, error), or (nil, nil) if ScheduleFunc is nil.
 func (m *MockOrchestratorService) Schedule(ctx context.Context, task *Task, executeAt time.Time) (*WorkflowReceipt, error) {
-	atomic.AddInt64(&m.ScheduleCallCount, 1)
+	m.ScheduleCallCount.Add(1)
 	if m.ScheduleFunc != nil {
 		return m.ScheduleFunc(ctx, task, executeAt)
 	}
@@ -143,7 +128,7 @@ func (m *MockOrchestratorService) Schedule(ctx context.Context, task *Task, exec
 
 // Run starts the orchestrator's main processing loop.
 func (m *MockOrchestratorService) Run(ctx context.Context) {
-	atomic.AddInt64(&m.RunCallCount, 1)
+	m.RunCallCount.Add(1)
 	if m.RunFunc != nil {
 		m.RunFunc(ctx)
 	}
@@ -151,7 +136,7 @@ func (m *MockOrchestratorService) Run(ctx context.Context) {
 
 // Stop halts the orchestrator's processing loop.
 func (m *MockOrchestratorService) Stop() {
-	atomic.AddInt64(&m.StopCallCount, 1)
+	m.StopCallCount.Add(1)
 	if m.StopFunc != nil {
 		m.StopFunc()
 	}
@@ -161,18 +146,18 @@ func (m *MockOrchestratorService) Stop() {
 //
 // Returns int64, or 0 if ActiveTasksFunc is nil.
 func (m *MockOrchestratorService) ActiveTasks(ctx context.Context) int64 {
-	atomic.AddInt64(&m.ActiveTasksCallCount, 1)
+	m.ActiveTasksCallCount.Add(1)
 	if m.ActiveTasksFunc != nil {
 		return m.ActiveTasksFunc(ctx)
 	}
 	return 0
 }
 
-// PendingTasks returns the number of tasks awaiting processing.
+// PendingTasks returns the number of tasks queued for processing.
 //
 // Returns int64, or 0 if PendingTasksFunc is nil.
 func (m *MockOrchestratorService) PendingTasks(ctx context.Context) int64 {
-	atomic.AddInt64(&m.PendingTasksCallCount, 1)
+	m.PendingTasksCallCount.Add(1)
 	if m.PendingTasksFunc != nil {
 		return m.PendingTasksFunc(ctx)
 	}
@@ -183,7 +168,7 @@ func (m *MockOrchestratorService) PendingTasks(ctx context.Context) int64 {
 //
 // Returns TaskDispatcher, or nil if GetTaskDispatcherFunc is nil.
 func (m *MockOrchestratorService) GetTaskDispatcher() TaskDispatcher {
-	atomic.AddInt64(&m.GetTaskDispatcherCallCount, 1)
+	m.GetTaskDispatcherCallCount.Add(1)
 	if m.GetTaskDispatcherFunc != nil {
 		return m.GetTaskDispatcherFunc()
 	}
@@ -195,10 +180,9 @@ func (m *MockOrchestratorService) GetTaskDispatcher() TaskDispatcher {
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes task (*Task) which is the task to dispatch directly.
 //
-// Returns (*WorkflowReceipt, error), or (nil, nil) if DispatchDirectFunc
-// is nil.
+// Returns (*WorkflowReceipt, error), or (nil, nil) if DispatchDirectFunc is nil.
 func (m *MockOrchestratorService) DispatchDirect(ctx context.Context, task *Task) (*WorkflowReceipt, error) {
-	atomic.AddInt64(&m.DispatchDirectCallCount, 1)
+	m.DispatchDirectCallCount.Add(1)
 	if m.DispatchDirectFunc != nil {
 		return m.DispatchDirectFunc(ctx, task)
 	}

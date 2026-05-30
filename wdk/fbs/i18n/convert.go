@@ -24,9 +24,11 @@ import (
 	i18n_fb "piko.sh/piko/internal/i18n/i18n_schema/i18n_schema_gen"
 )
 
-// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be
-// decoded.
-var errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+var (
+
+	// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be decoded.
+	errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+)
 
 // I18nManifest is a JSON-serialisable representation of a compiled i18n manifest.
 type I18nManifest struct {
@@ -79,18 +81,19 @@ type TemplatePart struct {
 	LinkedKey string `json:"linked_key,omitempty"`
 }
 
-// partKindNames maps FlatBuffer PartKind enum values to display strings.
-var partKindNames = [...]string{
-	i18n_fb.PartKindLiteral:       "literal",
-	i18n_fb.PartKindExpression:    "expression",
-	i18n_fb.PartKindLinkedMessage: "linked_msg",
-}
+var (
+	// partKindNames maps FlatBuffer PartKind enum values to display strings.
+	partKindNames = [...]string{
+		i18n_fb.PartKindLiteral:       "literal",
+		i18n_fb.PartKindExpression:    "expression",
+		i18n_fb.PartKindLinkedMessage: "linked_msg",
+	}
+)
 
-// ConvertI18n parses a raw FlatBuffer i18n payload into a JSON-serialisable
-// struct.
+// ConvertI18n parses a raw FlatBuffer i18n payload into a JSON-serialisable struct.
 //
-// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the
-// version header (use Unpack first).
+// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the version
+// header (use Unpack first).
 //
 // Returns *I18nManifest which contains all locale translation data.
 // Returns error when the payload cannot be parsed.
@@ -113,8 +116,8 @@ func ConvertI18n(payload []byte) (*I18nManifest, error) {
 //
 // Takes fb (*i18n_fb.I18nManifestFB) which provides the source manifest.
 //
-// Returns map[string]LocaleData which maps locale codes to their data, or nil
-// if no locales exist.
+// Returns map[string]LocaleData which maps locale codes to their data, or nil if no
+// locales exist.
 func convertLocales(fb *i18n_fb.I18nManifestFB) map[string]LocaleData {
 	length := fb.LocalesLength()
 	if length == 0 {
@@ -154,11 +157,10 @@ func convertLocaleData(fb *i18n_fb.LocaleDataFB) LocaleData {
 
 // convertEntry converts a single FlatBuffer translation entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to
-// convert.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to convert.
 //
-// Returns TranslationEntry which contains the parsed template, parts, plural
-// forms, and placeholder names.
+// Returns TranslationEntry which contains the parsed template, parts, plural forms, and
+// placeholder names.
 func convertEntry(fb *i18n_fb.TranslationEntryFB) TranslationEntry {
 	return TranslationEntry{
 		Template:         string(fb.Template()),
@@ -171,11 +173,11 @@ func convertEntry(fb *i18n_fb.TranslationEntryFB) TranslationEntry {
 
 // convertParts extracts template parts from a translation entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffers translation
-// entry to extract parts from.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffers translation entry to
+// extract parts from.
 //
-// Returns []TemplatePart which contains the extracted template parts, or nil
-// if the entry has no parts.
+// Returns []TemplatePart which contains the extracted template parts, or nil if the entry
+// has no parts.
 func convertParts(fb *i18n_fb.TranslationEntryFB) []TemplatePart {
 	length := fb.PartsLength()
 	if length == 0 {
@@ -203,11 +205,11 @@ func convertParts(fb *i18n_fb.TranslationEntryFB) []TemplatePart {
 
 // convertPluralForms extracts plural form strings from a FlatBuffer entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer translation
-// entry to extract plural forms from.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer translation entry to
+// extract plural forms from.
 //
-// Returns []string which contains the plural form strings, or nil if no plural
-// forms exist.
+// Returns []string which contains the plural form strings, or nil if no plural forms
+// exist.
 func convertPluralForms(fb *i18n_fb.TranslationEntryFB) []string {
 	length := fb.PluralFormsLength()
 	if length == 0 {
@@ -220,10 +222,10 @@ func convertPluralForms(fb *i18n_fb.TranslationEntryFB) []string {
 	return forms
 }
 
-// convertPlaceholderNames extracts placeholder name strings from a FlatBuffer.
+// convertPlaceholderNames extracts placeholder name strings from a FlatBuffer entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the translation entry to
-// extract names from.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the translation entry to extract names
+// from.
 //
 // Returns []string which contains the placeholder names, or nil if none exist.
 func convertPlaceholderNames(fb *i18n_fb.TranslationEntryFB) []string {

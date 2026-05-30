@@ -1,0 +1,42 @@
+package uuidish
+
+type UUID [16]byte
+
+var NamespaceURL = Must(Parse("6ba7b811-9dad-11d1-80b4-00c04fd430c8"))
+
+func Must(u UUID, err error) UUID {
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
+func Parse(s string) (UUID, error) {
+	var u UUID
+	// Strip the dashes at positions 8, 13, 18, 23 and decode the 32 hex digits.
+	if len(s) != 36 {
+		return u, errBadLen
+	}
+	if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
+		return u, errBadDashes
+	}
+	positions := [16]int{0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34}
+	for i, p := range positions {
+		v, ok := xtob(s[p], s[p+1])
+		if !ok {
+			return u, errBadHex
+		}
+		u[i] = v
+	}
+	return u, nil
+}
+
+var (
+	errBadLen    = badParseError("invalid uuid length")
+	errBadDashes = badParseError("invalid uuid dashes")
+	errBadHex    = badParseError("invalid uuid hex")
+)
+
+type badParseError string
+
+func (e badParseError) Error() string { return string(e) }

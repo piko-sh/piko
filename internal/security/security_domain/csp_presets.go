@@ -18,9 +18,9 @@
 
 package security_domain
 
-// WithStrictPolicy configures a strict CSP policy following Google's
-// recommendations, using per-request tokens and 'strict-dynamic' for strong
-// XSS protection while allowing dynamically loaded scripts.
+// WithStrictPolicy configures a strict CSP policy following Google's recommendations,
+// using per-request tokens and 'strict-dynamic' for strong XSS protection while allowing
+// dynamically loaded scripts.
 //
 // The policy includes:
 //   - default-src 'self'
@@ -33,10 +33,10 @@ package security_domain
 //
 // Returns *CSPBuilder which allows method chaining for further configuration.
 //
-// IMPORTANT: This policy uses request tokens. Templates must use
-// {{ .CSPTokenAttr }} on inline script and style elements:
-// <script {{ .CSPTokenAttr }}>console.log("safe");</script>
-// <style {{ .CSPTokenAttr }}>.my-class { color: red; }</style>
+// IMPORTANT: This policy uses request tokens. Templates must use {{ .CSPTokenAttr }} on
+// inline script and style elements: <script {{ .CSPTokenAttr
+// }}>console.log("safe");</script> <style {{ .CSPTokenAttr }}>.my-class { color: red;
+// }</style>
 func (b *CSPBuilder) WithStrictPolicy() *CSPBuilder {
 	return b.
 		DefaultSrc(Self).
@@ -52,9 +52,9 @@ func (b *CSPBuilder) WithStrictPolicy() *CSPBuilder {
 //
 // Returns *CSPBuilder which allows method chaining.
 //
-// WARNING: This policy allows 'unsafe-inline' and 'unsafe-eval', which
-// significantly reduces XSS protection. Use only when migrating legacy code
-// that cannot be updated to use token-based CSP or content hashes.
+// WARNING: This policy allows 'unsafe-inline' and 'unsafe-eval', which significantly
+// reduces XSS protection. Use only when migrating legacy code that cannot be updated to
+// use token-based CSP or content hashes.
 //
 // The policy includes:
 //   - default-src 'self'
@@ -75,9 +75,9 @@ func (b *CSPBuilder) WithRelaxedPolicy() *CSPBuilder {
 		FrameAncestors(Self)
 }
 
-// WithAPIPolicy configures a minimal CSP policy for JSON API servers.
-// This policy blocks all resource types, which protects against cases where
-// the API accidentally serves HTML content (e.g., error pages with user input).
+// WithAPIPolicy configures a minimal CSP policy for JSON API servers. This policy blocks
+// all resource types, which protects against cases where the API accidentally serves HTML
+// content (e.g., error pages with user input).
 //
 // The policy includes:
 //   - default-src 'none' (blocks everything by default)

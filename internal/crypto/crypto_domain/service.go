@@ -35,31 +35,29 @@ import (
 )
 
 const (
-	// defaultDirectModeConcurrency is the default number of parallel KMS calls
-	// when direct KMS mode is used without envelope encryption.
+	// defaultDirectModeConcurrency is the default number of parallel KMS calls when direct
+	// KMS mode is used without envelope encryption.
 	defaultDirectModeConcurrency = 50
 
-	// circuitBreakerTimeout is how long the circuit stays open before letting a
-	// test request through.
+	// circuitBreakerTimeout is how long the circuit stays open before letting a test request
+	// through.
 	circuitBreakerTimeout = 30 * time.Second
 
-	// circuitBreakerBucketPeriod is the duration of each measurement bucket
-	// for tracking failure counts.
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
 	circuitBreakerBucketPeriod = 10 * time.Second
 
-	// circuitBreakerConsecutiveFailures is the number of consecutive failures
-	// required to trip the circuit breaker.
+	// circuitBreakerConsecutiveFailures is the number of consecutive failures required to
+	// trip the circuit breaker.
 	circuitBreakerConsecutiveFailures = 5
 
-	// safeCallCryptoType is the goroutine.SafeCallValue label for
-	// provider type lookups.
+	// safeCallCryptoType is the goroutine.SafeCallValue label for provider type lookups.
 	safeCallCryptoType = "crypto.Type"
 )
 
 // cryptoService is the concrete implementation of CryptoServicePort.
 type cryptoService struct {
-	// localProviderFactory creates local encryption providers for envelope
-	// encryption.
+	// localProviderFactory creates local encryption providers for envelope encryption.
 	localProviderFactory LocalProviderFactory
 
 	// dataKeyCache stores decrypted data keys for envelope encryption.
@@ -74,27 +72,25 @@ type cryptoService struct {
 	// activeKeyID is the key identifier used for encryption operations.
 	activeKeyID string
 
-	// deprecatedKeyIDs holds the list of key IDs that have been rotated out
-	// and should no longer be used for encryption.
+	// deprecatedKeyIDs holds the list of key IDs that have been rotated out and should no
+	// longer be used for encryption.
 	deprecatedKeyIDs []string
 
-	// directModeMaxConcurrency limits parallel KMS calls when envelope encryption
-	// is disabled.
+	// directModeMaxConcurrency limits parallel KMS calls when envelope encryption is
+	// disabled.
 	directModeMaxConcurrency int
 
 	// mu guards localProviderFactory and dataKeyCache for thread-safe access.
 	mu sync.RWMutex
 
-	// enableAutoReEncrypt controls whether data encrypted with a deprecated key
-	// is automatically re-encrypted with the current key.
+	// enableAutoReEncrypt controls whether data encrypted with a deprecated key is
+	// automatically re-encrypted with the current key.
 	enableAutoReEncrypt bool
 
 	// enableEnvelopeEncryption controls batch operation mode.
 	//
-	// When true: uses envelope encryption (data key in memory
-	// briefly, fast).
-	// When false: calls KMS directly for each item (no keys in
-	// memory, slower).
+	// When true: uses envelope encryption (data key in memory briefly, fast). When false:
+	// calls KMS directly for each item (no keys in memory, slower).
 	enableEnvelopeEncryption bool
 }
 
@@ -231,8 +227,7 @@ func (s *cryptoService) GetActiveKeyID(_ context.Context) (string, error) {
 
 // NewEncrypt creates a new encryption builder.
 //
-// Returns *EncryptBuilder which provides a fluent interface for encrypting
-// data.
+// Returns *EncryptBuilder which provides a fluent interface for encrypting data.
 func (s *cryptoService) NewEncrypt() *EncryptBuilder {
 	return &EncryptBuilder{
 		service: s,
@@ -241,8 +236,7 @@ func (s *cryptoService) NewEncrypt() *EncryptBuilder {
 
 // NewDecrypt creates a new decryption builder.
 //
-// Returns *DecryptBuilder which provides a fluent interface for decrypting
-// data.
+// Returns *DecryptBuilder which provides a fluent interface for decrypting data.
 func (s *cryptoService) NewDecrypt() *DecryptBuilder {
 	return &DecryptBuilder{
 		service: s,
@@ -251,8 +245,7 @@ func (s *cryptoService) NewDecrypt() *DecryptBuilder {
 
 // NewBatchEncrypt creates a new batch encryption builder.
 //
-// Returns *BatchEncryptBuilder which provides a fluent interface for batch
-// encryption.
+// Returns *BatchEncryptBuilder which provides a fluent interface for batch encryption.
 func (s *cryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 	return &BatchEncryptBuilder{
 		service: s,
@@ -261,8 +254,7 @@ func (s *cryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 
 // NewBatchDecrypt creates a new batch decryption builder.
 //
-// Returns *BatchDecryptBuilder which provides a fluent interface for batch
-// decryption.
+// Returns *BatchDecryptBuilder which provides a fluent interface for batch decryption.
 func (s *cryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 	return &BatchDecryptBuilder{
 		service: s,
@@ -289,23 +281,22 @@ func (s *cryptoService) NewStreamDecrypt() *StreamDecryptBuilder {
 	}
 }
 
-// WithLocalProviderFactory sets a factory for creating local providers used in
-// envelope encryption.
+// WithLocalProviderFactory sets a factory for creating local providers used in envelope
+// encryption.
 //
-// The factory creates providers for the local encryption part of envelope
-// encryption:
-//   - During EncryptBatch: creates a provider with the KMS data key and
-//     encrypts each item.
-//   - During DecryptBatch: creates a provider with the decrypted data key and
-//     decrypts each item.
+// The factory creates providers for the local encryption part of envelope encryption:
+//   - During EncryptBatch: creates a provider with the KMS data key and encrypts each
+//     item.
+//   - During DecryptBatch: creates a provider with the decrypted data key and decrypts
+//     each item.
 //
 // If not set, the bootstrap layer injects a default local AES-GCM factory.
 //
 // This follows the Dependency Inversion Principle: the domain depends on the
 // LocalProviderFactory interface, not on any specific implementation.
 //
-// Takes factory (LocalProviderFactory) which creates local providers for
-// envelope encryption operations.
+// Takes factory (LocalProviderFactory) which creates local providers for envelope
+// encryption operations.
 //
 // Returns ServiceOption which sets the local provider factory.
 func WithLocalProviderFactory(factory LocalProviderFactory) ServiceOption {
@@ -316,18 +307,17 @@ func WithLocalProviderFactory(factory LocalProviderFactory) ServiceOption {
 
 // NewCryptoService creates a new crypto service with the given configuration.
 //
-// The cacheService parameter can be nil to disable data key caching (e.g., for
-// testing or local providers).
+// The cacheService parameter can be nil to disable data key caching (e.g., for testing or
+// local providers).
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes cacheService (cache_domain.Service) which provides caching for data keys,
-// or nil to disable caching.
-// Takes config (*crypto_dto.ServiceConfig) which specifies encryption settings
-// and cache parameters.
+// Takes cacheService (cache_domain.Service) which provides caching for data keys, or nil
+// to disable caching.
+// Takes config (*crypto_dto.ServiceConfig) which specifies encryption settings and cache
+// parameters.
 // Takes opts (...ServiceOption) which provides optional behaviour controls.
 //
-// Returns CryptoServicePort which is the configured crypto service ready for
-// use.
+// Returns CryptoServicePort which is the configured crypto service ready for use.
 // Returns error when the data key cache cannot be created.
 func NewCryptoService(ctx context.Context, cacheService cache_domain.Service, config *crypto_dto.ServiceConfig, opts ...ServiceOption) (CryptoServicePort, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -386,11 +376,10 @@ func NewCryptoService(ctx context.Context, cacheService cache_domain.Service, co
 	return s, nil
 }
 
-// newCryptoCircuitBreaker creates a circuit breaker for crypto provider
-// operations.
+// newCryptoCircuitBreaker creates a circuit breaker for crypto provider operations.
 //
-// Returns *gobreaker.CircuitBreaker[any] configured with standard settings
-// for crypto operations.
+// Returns *gobreaker.CircuitBreaker[any] configured with standard settings for crypto
+// operations.
 func newCryptoCircuitBreaker() *gobreaker.CircuitBreaker[any] {
 	settings := gobreaker.Settings{
 		Name:         "crypto-service",
@@ -411,10 +400,10 @@ func newCryptoCircuitBreaker() *gobreaker.CircuitBreaker[any] {
 
 // withDataKeyCache sets a pre-built data key cache for the service.
 //
-// Use it for testing with mock caches or specific cache setups. When set,
-// the constructor will skip building a cache from the cache service. The
-// cache stores SecureBytes (locked memory) to stop data keys from being swapped
-// to disk or copied by the garbage collector.
+// Use it for testing with mock caches or specific cache setups. When set, the constructor
+// will skip building a cache from the cache service. The cache stores SecureBytes (locked
+// memory) to stop data keys from being swapped to disk or copied by the garbage
+// collector.
 //
 // Takes cache (Cache[string, *SecureBytes]) which provides the data key cache.
 //

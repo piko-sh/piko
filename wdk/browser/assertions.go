@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 )
 
-// Assertion provides a fluent API for checking element properties.
-// Create one using Page.Assert(selector).
+// Assertion provides a fluent API for checking element properties. Create one using
+// Page.Assert(selector).
 type Assertion struct {
 	// t is the test context for reporting failures and log messages.
 	t testing.TB
@@ -71,8 +71,8 @@ func (a *Assertion) Count(n int) *Assertion {
 	return a
 }
 
-// HasText asserts that the element's text content equals the expected value.
-// Polls until the text matches or timeout (5s).
+// HasText asserts that the element's text content equals the expected value. Polls until
+// the text matches or timeout (5s).
 //
 // Takes expected (string) which is the text content to match.
 //
@@ -84,8 +84,8 @@ func (a *Assertion) HasText(expected string) *Assertion {
 	return a
 }
 
-// ContainsText asserts that the element's text content contains the substring.
-// Polls until the text contains the substring or timeout (5s).
+// ContainsText asserts that the element's text content contains the substring. Polls
+// until the text contains the substring or timeout (5s).
 //
 // Takes substring (string) which is the text to search for in the element.
 //
@@ -97,8 +97,8 @@ func (a *Assertion) ContainsText(substring string) *Assertion {
 	return a
 }
 
-// HasHTML asserts that the element's inner HTML equals the expected value.
-// This is an instant check without polling.
+// HasHTML asserts that the element's inner HTML equals the expected value. This is an
+// instant check without polling.
 //
 // Takes expected (string) which specifies the HTML content to match.
 //
@@ -110,8 +110,8 @@ func (a *Assertion) HasHTML(expected string) *Assertion {
 	return a
 }
 
-// HasAttribute asserts that the element has an attribute with the expected
-// value. This is an instant check without polling.
+// HasAttribute asserts that the element has an attribute with the expected value. This is
+// an instant check without polling.
 //
 // Takes name (string) which specifies the attribute name to check.
 // Takes expected (string) which specifies the expected attribute value.
@@ -124,8 +124,8 @@ func (a *Assertion) HasAttribute(name, expected string) *Assertion {
 	return a
 }
 
-// HasClass asserts that the element has the specified CSS class.
-// This is an instant check without polling.
+// HasClass asserts that the element has the specified CSS class. This is an instant check
+// without polling.
 //
 // Takes className (string) which specifies the CSS class name to check for.
 //
@@ -137,8 +137,8 @@ func (a *Assertion) HasClass(className string) *Assertion {
 	return a
 }
 
-// HasStyle asserts that the element has the specified computed style.
-// This is an instant check without polling.
+// HasStyle asserts that the element has the specified computed style. This is an instant
+// check without polling.
 //
 // Takes property (string) which specifies the CSS property name to check.
 // Takes expected (string) which specifies the expected computed value.
@@ -151,8 +151,8 @@ func (a *Assertion) HasStyle(property, expected string) *Assertion {
 	return a
 }
 
-// HasValue asserts that an input element has the expected value.
-// Polls until the value matches or timeout (5s).
+// HasValue asserts that an input element has the expected value. Polls until the value
+// matches or timeout (5s).
 //
 // Takes expected (string) which is the value to match against the element.
 //
@@ -164,8 +164,8 @@ func (a *Assertion) HasValue(expected string) *Assertion {
 	return a
 }
 
-// IsChecked asserts that a checkbox or radio button is checked.
-// This is an instant check without polling.
+// IsChecked asserts that a checkbox or radio button is checked. This is an instant check
+// without polling.
 //
 // Returns *Assertion which allows chaining of further assertions.
 func (a *Assertion) IsChecked() *Assertion {
@@ -175,8 +175,8 @@ func (a *Assertion) IsChecked() *Assertion {
 	return a
 }
 
-// IsUnchecked asserts that a checkbox or radio button is not checked.
-// This is an instant check without polling.
+// IsUnchecked asserts that a checkbox or radio button is not checked. This is an instant
+// check without polling.
 //
 // Returns *Assertion which allows for method chaining.
 func (a *Assertion) IsUnchecked() *Assertion {
@@ -186,8 +186,8 @@ func (a *Assertion) IsUnchecked() *Assertion {
 	return a
 }
 
-// IsFocused asserts that the element is currently focused.
-// This is an instant check without polling.
+// IsFocused asserts that the element is currently focused. This is an instant check
+// without polling.
 //
 // Returns *Assertion which allows method chaining for further assertions.
 func (a *Assertion) IsFocused() *Assertion {
@@ -197,8 +197,8 @@ func (a *Assertion) IsFocused() *Assertion {
 	return a
 }
 
-// IsVisible asserts that the element is visible (not hidden).
-// This is an instant check without polling.
+// IsVisible asserts that the element is visible (not hidden). This is an instant check
+// without polling.
 //
 // Returns *Assertion which allows method chaining.
 func (a *Assertion) IsVisible() *Assertion {
@@ -208,8 +208,8 @@ func (a *Assertion) IsVisible() *Assertion {
 	return a
 }
 
-// IsHidden asserts that the element is hidden (not visible).
-// This is an instant check without polling.
+// IsHidden asserts that the element is hidden (not visible). This is an instant check
+// without polling.
 //
 // Returns *Assertion which allows chaining additional assertions.
 func (a *Assertion) IsHidden() *Assertion {
@@ -219,8 +219,8 @@ func (a *Assertion) IsHidden() *Assertion {
 	return a
 }
 
-// IsEnabled asserts that the element is enabled (not disabled).
-// This is an instant check without polling.
+// IsEnabled asserts that the element is enabled (not disabled). This is an instant check
+// without polling.
 //
 // Returns *Assertion which allows chaining additional assertions.
 func (a *Assertion) IsEnabled() *Assertion {
@@ -230,8 +230,8 @@ func (a *Assertion) IsEnabled() *Assertion {
 	return a
 }
 
-// IsDisabled asserts that the element is disabled.
-// This is an instant check without polling.
+// IsDisabled asserts that the element is disabled. This is an instant check without
+// polling.
 //
 // Returns *Assertion which allows for method chaining.
 func (a *Assertion) IsDisabled() *Assertion {
@@ -241,10 +241,9 @@ func (a *Assertion) IsDisabled() *Assertion {
 	return a
 }
 
-// MatchesGolden compares the element's normalised HTML against a golden file
-// stored at testdata/golden/<name>.html relative to the test working
-// directory, creating or updating the file when the PIKO_UPDATE_GOLDEN=1
-// environment variable is set.
+// MatchesGolden compares the element's normalised HTML against a golden file stored at
+// testdata/golden/<name>.html relative to the test working directory, creating or
+// updating the file when the PIKO_UPDATE_GOLDEN=1 environment variable is set.
 //
 // Takes name (string) which specifies the golden file name (without extension).
 //

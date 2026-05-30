@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package deadletter_adapters implements [deadletter_domain.DeadLetterPort]
-// with in-memory and disk-based (JSON lines) storage backends.
+// Package deadletter_adapters implements [deadletter_domain.DeadLetterPort] with
+// in-memory and disk-based (JSON lines) storage backends.
 //
-// Both adapters are generic, accepting any entry type via Go generics,
-// and support adding, retrieving, counting, clearing, and age-based
-// querying of failed items.
+// Both adapters are generic, accepting any entry type via Go generics, and support
+// adding, retrieving, counting, clearing, and age-based querying of failed items.
 //
 // # Thread safety
 //
-// All methods on both adapters are safe for concurrent use. Each
-// adapter guards its internal state with a mutex.
+// All methods on both adapters are safe for concurrent use. Each adapter guards its
+// internal state with a mutex.
 package deadletter_adapters

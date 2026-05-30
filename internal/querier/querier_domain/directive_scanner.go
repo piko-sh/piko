@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// directiveLineScanner provides character-level scanning
-// over a single directive comment line.
+// directiveLineScanner provides character-level scanning over a single directive comment
+// line.
 type directiveLineScanner struct {
 	// line holds the full text of the line being scanned.
 	line string
@@ -43,8 +43,7 @@ type directiveLineScanner struct {
 //
 // Takes lineNumber (int) which specifies the one-based line number for span tracking.
 //
-// Returns *directiveLineScanner which holds the
-// initialised scanner.
+// Returns *directiveLineScanner which holds the initialised scanner.
 func newDirectiveLineScanner(line string, lineNumber int) *directiveLineScanner {
 	return &directiveLineScanner{
 		line:       line,
@@ -54,16 +53,14 @@ func newDirectiveLineScanner(line string, lineNumber int) *directiveLineScanner 
 
 // atEnd reports whether the scanner has consumed all characters in the line.
 //
-// Returns bool which indicates whether the position is
-// at or past the end of the line.
+// Returns bool which indicates whether the position is at or past the end of the line.
 func (scanner *directiveLineScanner) atEnd() bool {
 	return scanner.position >= len(scanner.line)
 }
 
 // current returns the byte at the current position, or zero if at end.
 //
-// Returns byte which holds the current character or 0
-// if the scanner is at end.
+// Returns byte which holds the current character or 0 if the scanner is at end.
 func (scanner *directiveLineScanner) current() byte {
 	if scanner.atEnd() {
 		return 0
@@ -98,8 +95,7 @@ func (scanner *directiveLineScanner) skipWhitespace() {
 //
 // Takes startColumn (int) which specifies the one-based start column of the span.
 //
-// Returns querier_dto.TextSpan which holds the
-// constructed span on the current line.
+// Returns querier_dto.TextSpan which holds the constructed span on the current line.
 func (scanner *directiveLineScanner) spanFrom(startColumn int) querier_dto.TextSpan {
 	return querier_dto.TextSpan{
 		Line:      scanner.lineNumber,
@@ -109,14 +105,12 @@ func (scanner *directiveLineScanner) spanFrom(startColumn int) querier_dto.TextS
 	}
 }
 
-// matchString attempts to match an exact string at the
-// current position and advances past it on success.
+// matchString attempts to match an exact string at the current position and advances past
+// it on success.
 //
-// Takes expected (string) which specifies the string to
-// match.
+// Takes expected (string) which specifies the string to match.
 //
-// Returns bool which indicates whether the match
-// succeeded.
+// Returns bool which indicates whether the match succeeded.
 func (scanner *directiveLineScanner) matchString(expected string) bool {
 	if scanner.position+len(expected) > len(scanner.line) {
 		return false
@@ -128,14 +122,12 @@ func (scanner *directiveLineScanner) matchString(expected string) bool {
 	return false
 }
 
-// matchKeyword attempts a case-insensitive keyword match
-// at the current position with word boundary checking.
+// matchKeyword attempts a case-insensitive keyword match at the current position with
+// word boundary checking.
 //
-// Takes keyword (string) which specifies the keyword to
-// match.
+// Takes keyword (string) which specifies the keyword to match.
 //
-// Returns bool which indicates whether the match
-// succeeded.
+// Returns bool which indicates whether the match succeeded.
 func (scanner *directiveLineScanner) matchKeyword(keyword string) bool {
 	if scanner.position+len(keyword) > len(scanner.line) {
 		return false
@@ -152,14 +144,12 @@ func (scanner *directiveLineScanner) matchKeyword(keyword string) bool {
 	return true
 }
 
-// matchByte attempts to match a single byte at the
-// current position and advances past it on success.
+// matchByte attempts to match a single byte at the current position and advances past it
+// on success.
 //
-// Takes expected (byte) which specifies the byte to
-// match.
+// Takes expected (byte) which specifies the byte to match.
 //
-// Returns bool which indicates whether the match
-// succeeded.
+// Returns bool which indicates whether the match succeeded.
 func (scanner *directiveLineScanner) matchByte(expected byte) bool {
 	if scanner.atEnd() || scanner.current() != expected {
 		return false
@@ -168,14 +158,12 @@ func (scanner *directiveLineScanner) matchByte(expected byte) bool {
 	return true
 }
 
-// lookingAt checks whether the given prefix appears at
-// the current position without advancing.
+// lookingAt checks whether the given prefix appears at the current position without
+// advancing.
 //
-// Takes prefix (string) which specifies the string to
-// check for.
+// Takes prefix (string) which specifies the string to check for.
 //
-// Returns bool which indicates whether the prefix is
-// present.
+// Returns bool which indicates whether the prefix is present.
 func (scanner *directiveLineScanner) lookingAt(prefix string) bool {
 	if scanner.position+len(prefix) > len(scanner.line) {
 		return false
@@ -187,8 +175,7 @@ func (scanner *directiveLineScanner) lookingAt(prefix string) bool {
 //
 // Returns string which holds the consumed word text.
 //
-// Returns querier_dto.TextSpan which holds the span
-// covering the consumed word.
+// Returns querier_dto.TextSpan which holds the span covering the consumed word.
 func (scanner *directiveLineScanner) readWord() (string, querier_dto.TextSpan) {
 	startColumn := scanner.column()
 	start := scanner.position
@@ -198,13 +185,12 @@ func (scanner *directiveLineScanner) readWord() (string, querier_dto.TextSpan) {
 	return scanner.line[start:scanner.position], scanner.spanFrom(startColumn)
 }
 
-// readDigits reads a contiguous sequence of ASCII digit
-// characters from the current position.
+// readDigits reads a contiguous sequence of ASCII digit characters from the current
+// position.
 //
 // Returns string which holds the consumed digit text.
 //
-// Returns querier_dto.TextSpan which holds the span
-// covering the consumed digits.
+// Returns querier_dto.TextSpan which holds the span covering the consumed digits.
 func (scanner *directiveLineScanner) readDigits() (string, querier_dto.TextSpan) {
 	startColumn := scanner.column()
 	start := scanner.position
@@ -214,18 +200,14 @@ func (scanner *directiveLineScanner) readDigits() (string, querier_dto.TextSpan)
 	return scanner.line[start:scanner.position], scanner.spanFrom(startColumn)
 }
 
-// readUntilByte reads characters until the specified
-// delimiter byte is encountered or end of line is
-// reached.
+// readUntilByte reads characters until the specified delimiter byte is encountered or end
+// of line is reached.
 //
-// Takes delimiter (byte) which specifies the stop
-// character.
+// Takes delimiter (byte) which specifies the stop character.
 //
-// Returns string which holds the consumed text up to but
-// not including the delimiter.
+// Returns string which holds the consumed text up to but not including the delimiter.
 //
-// Returns querier_dto.TextSpan which holds the span
-// covering the consumed text.
+// Returns querier_dto.TextSpan which holds the span covering the consumed text.
 func (scanner *directiveLineScanner) readUntilByte(delimiter byte) (string, querier_dto.TextSpan) {
 	startColumn := scanner.column()
 	start := scanner.position
@@ -235,13 +217,12 @@ func (scanner *directiveLineScanner) readUntilByte(delimiter byte) (string, quer
 	return scanner.line[start:scanner.position], scanner.spanFrom(startColumn)
 }
 
-// readUntilWhitespace reads characters until a space or
-// tab is encountered or end of line is reached.
+// readUntilWhitespace reads characters until a space or tab is encountered or end of line
+// is reached.
 //
 // Returns string which holds the consumed text.
 //
-// Returns querier_dto.TextSpan which holds the span
-// covering the consumed text.
+// Returns querier_dto.TextSpan which holds the span covering the consumed text.
 func (scanner *directiveLineScanner) readUntilWhitespace() (string, querier_dto.TextSpan) {
 	startColumn := scanner.column()
 	start := scanner.position
@@ -251,13 +232,12 @@ func (scanner *directiveLineScanner) readUntilWhitespace() (string, querier_dto.
 	return scanner.line[start:scanner.position], scanner.spanFrom(startColumn)
 }
 
-// readRemainder reads all remaining characters from the
-// current position to the end of the line.
+// readRemainder reads all remaining characters from the current position to the end of
+// the line.
 //
 // Returns string which holds the remaining text.
 //
-// Returns querier_dto.TextSpan which holds the span
-// covering the remainder.
+// Returns querier_dto.TextSpan which holds the span covering the remainder.
 func (scanner *directiveLineScanner) readRemainder() (string, querier_dto.TextSpan) {
 	startColumn := scanner.column()
 	start := scanner.position
@@ -269,8 +249,7 @@ func (scanner *directiveLineScanner) readRemainder() (string, querier_dto.TextSp
 //
 // Takes character (byte) which specifies the byte to test.
 //
-// Returns bool which indicates whether the byte is a
-// word character.
+// Returns bool which indicates whether the byte is a word character.
 func isWordCharacter(character byte) bool {
 	return (character >= 'a' && character <= 'z') ||
 		(character >= 'A' && character <= 'Z') ||

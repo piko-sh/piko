@@ -35,8 +35,8 @@ const (
 	logFieldOriginalPath = "originalPath"
 )
 
-// templaterService provides template rendering and page probing functions.
-// It implements TemplaterService and TemplaterRunnerSwapper interfaces.
+// templaterService provides template rendering and page probing functions. It implements
+// TemplaterService and TemplaterRunnerSwapper interfaces.
 type templaterService struct {
 	// runner runs page and partial templates through the manifest.
 	runner ManifestRunnerPort
@@ -85,14 +85,12 @@ func (t *templaterService) ProbePage(
 
 // ProbePartial gets metadata for a partial template without rendering it.
 //
-// Takes partial (templater_dto.PageDefinition) which identifies the partial to
-// probe.
+// Takes partial (templater_dto.PageDefinition) which identifies the partial to probe.
 // Takes request (*http.Request) which provides the HTTP request context.
-// Takes websiteConfig (*config.WebsiteConfig) which specifies the
-// website settings.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the website settings.
 //
-// Returns *templater_dto.PageProbeResult which contains link headers and
-// metadata for the partial.
+// Returns *templater_dto.PageProbeResult which contains link headers and metadata for the
+// partial.
 // Returns error when the partial is not found in the manifest.
 func (t *templaterService) ProbePartial(
 	ctx context.Context,
@@ -176,11 +174,9 @@ func (*templaterService) renderGeneric(
 // Takes label (string) which identifies the page type for logging.
 // Takes page (templater_dto.PageDefinition) which identifies the page to probe.
 // Takes request (*http.Request) which provides the HTTP request context.
-// Takes websiteConfig (*config.WebsiteConfig) which specifies the
-// website settings.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the website settings.
 //
-// Returns *templater_dto.PageProbeResult which contains the link headers for
-// the page.
+// Returns *templater_dto.PageProbeResult which contains the link headers for the page.
 // Returns error when the page is not found in the manifest.
 func (t *templaterService) probeGeneric(
 	ctx context.Context,
@@ -213,8 +209,8 @@ func (t *templaterService) probeGeneric(
 	}, nil
 }
 
-// NewTemplaterService creates a new templater service that orchestrates
-// template rendering.
+// NewTemplaterService creates a new templater service that orchestrates template
+// rendering.
 //
 // Takes runner (ManifestRunnerPort) which executes manifest operations.
 // Takes renderer (RendererPort) which renders templates.
@@ -231,8 +227,7 @@ func NewTemplaterService(runner ManifestRunnerPort, renderer RendererPort, i18nS
 
 // hasRedirect checks if metadata contains any redirect directive.
 //
-// Takes meta (*templater_dto.InternalMetadata) which contains the page
-// metadata to check.
+// Takes meta (*templater_dto.InternalMetadata) which contains the page metadata to check.
 //
 // Returns bool which is true if ServerRedirect or ClientRedirect is set.
 func hasRedirect(meta *templater_dto.InternalMetadata) bool {

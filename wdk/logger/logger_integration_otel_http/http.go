@@ -55,8 +55,8 @@ func init() {
 	})
 }
 
-// otlpHTTPOptionBuilders bundles the four SDK-specific option constructor
-// functions, reducing the parameter count of createOtlpHTTPExporter.
+// otlpHTTPOptionBuilders bundles the four SDK-specific option constructor functions,
+// reducing the parameter count of createOtlpHTTPExporter.
 type otlpHTTPOptionBuilders[O any] struct {
 	// withEndpoint constructs the endpoint option.
 	withEndpoint func(string) O
@@ -75,8 +75,8 @@ type otlpHTTPOptionBuilders[O any] struct {
 // constructors supplied by the caller.
 //
 // Takes pathSuffix (string) which is appended to the URL path (e.g. "/v1/metrics").
-// Takes builders (otlpHTTPOptionBuilders[O]) which bundles the
-// SDK-specific option constructors.
+// Takes builders (otlpHTTPOptionBuilders[O]) which bundles the SDK-specific option
+// constructors.
 // Takes newExporter which constructs the final exporter from the collected options.
 //
 // Returns any which is the constructed exporter.
@@ -110,8 +110,8 @@ func createOtlpHTTPExporter[O any](
 
 // createOtlpHTTPMetricExporter creates an OTLP HTTP exporter for metrics.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and protocol.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// protocol.
 //
 // Returns any which is the metric exporter.
 // Returns error when the endpoint is invalid or the exporter cannot be created.
@@ -132,8 +132,8 @@ func createOtlpHTTPMetricExporter(ctx context.Context, config driver_handlers.Ot
 
 // createOtlpHTTPTraceExporter creates an OTLP HTTP trace exporter.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and protocol.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// protocol.
 //
 // Returns any which is the trace exporter.
 // Returns error when the endpoint is invalid or the exporter cannot be created.
@@ -152,11 +152,11 @@ func createOtlpHTTPTraceExporter(ctx context.Context, config driver_handlers.Ote
 	)
 }
 
-// normaliseHTTPEndpoint extracts the host and path from the OTLP endpoint,
-// adding a scheme prefix if missing.
+// normaliseHTTPEndpoint extracts the host and path from the OTLP endpoint, adding a
+// scheme prefix if missing.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which provides the endpoint
-// and protocol.
+// Takes config (driver_handlers.OtelSetupConfig) which provides the endpoint and
+// protocol.
 //
 // Returns endpoint (string) which is the host portion.
 // Returns path (string) which is the URL path portion.

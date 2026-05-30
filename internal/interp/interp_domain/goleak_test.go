@@ -25,5 +25,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	ResetGlobals()
 	leakcheck.VerifyTestMain(m)
 }

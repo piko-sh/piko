@@ -341,7 +341,9 @@ func TestCompileProgram_CrossPackage(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() int {
 	return lib.Add(1, 2)
@@ -376,7 +378,9 @@ func TestCompileProgram_CrossPackageConstants(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() int {
 	return lib.Answer
@@ -409,7 +413,9 @@ func TestCompileProgram_CrossPackageFloatConst(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() float64 {
 	return lib.Pi
@@ -442,7 +448,9 @@ func TestCompileProgram_CrossPackageBoolConst(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() bool {
 	return lib.Flag
@@ -475,7 +483,9 @@ func TestCompileProgram_CrossPackageStringConst(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() string {
 	return lib.Greeting
@@ -508,7 +518,9 @@ func TestCompileProgram_DependencyChain(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/b"
+import (
+	"testmod/b"
+)
 
 func entrypoint() int {
 	return b.Double(21)
@@ -528,7 +540,9 @@ func Add(x, y int) int {
 		"b": {
 			"b.go": `package b
 
-import "testmod/a"
+import (
+	"testmod/a"
+)
 
 func Double(x int) int {
 	return a.Add(x, x)
@@ -553,7 +567,9 @@ func TestCompileProgram_CyclicImport(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/a"
+import (
+	"testmod/a"
+)
 
 func entrypoint() int { return a.X() }
 func main() {}
@@ -562,7 +578,9 @@ func main() {}
 		"a": {
 			"a.go": `package a
 
-import "testmod/b"
+import (
+	"testmod/b"
+)
 
 func X() int { return b.Y() }
 `,
@@ -570,7 +588,9 @@ func X() int { return b.Y() }
 		"b": {
 			"b.go": `package b
 
-import "testmod/a"
+import (
+	"testmod/a"
+)
 
 func Y() int { return a.X() }
 `,
@@ -709,7 +729,9 @@ func TestEvalFile_NativeVariadic(t *testing.T) {
 	t.Parallel()
 	source := `package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func run() string {
 	return fmt.Sprintf("hello %s, you are %d", "world", 42)
@@ -736,7 +758,9 @@ func TestCompileProgram_BlankImport(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import _ "testmod/sideeffect"
+import (
+	_ "testmod/sideeffect"
+)
 
 func entrypoint() int {
 	return 1
@@ -773,7 +797,9 @@ func TestCompileProgram_CrossPackageMethodCall(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() int {
 	c := lib.NewCounter(10)
@@ -909,7 +935,9 @@ func TestCompileProgram_BuildTags(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/util"
+import (
+	"testmod/util"
+)
 
 func Run() int { return util.Val() }
 

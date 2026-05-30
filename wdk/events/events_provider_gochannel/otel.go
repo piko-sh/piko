@@ -36,12 +36,12 @@ var (
 	// providerStartCount counts the number of times providers have been started.
 	providerStartCount metric.Int64Counter
 
-	// providerCloseCount is a counter metric that tracks the number of provider
-	// close operations.
+	// providerCloseCount is a counter metric that tracks the number of provider close
+	// operations.
 	providerCloseCount metric.Int64Counter
 
-	// providerStartErrorCount is a counter metric that tracks the number of
-	// provider start failures.
+	// providerStartErrorCount is a counter metric that tracks the number of provider start
+	// failures.
 	providerStartErrorCount metric.Int64Counter
 
 	// providerCloseErrorCount tracks the number of errors when closing providers.

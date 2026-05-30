@@ -38,13 +38,13 @@ const (
 	// degreesToRadians is the conversion factor from degrees to radians.
 	degreesToRadians = math.Pi / 180.0
 
-	// averageCharWidthRatio is the approximate ratio of
-	// character width to font size for Helvetica.
+	// averageCharWidthRatio is the approximate ratio of character width to font size for
+	// Helvetica.
 	averageCharWidthRatio = 0.52
 )
 
-// WatermarkConfig holds parameters for a diagonal text watermark rendered
-// behind content on every page.
+// WatermarkConfig holds parameters for a diagonal text watermark rendered behind content
+// on every page.
 type WatermarkConfig struct {
 	// Text is the watermark string (e.g. "DRAFT", "CONFIDENTIAL").
 	Text string
@@ -52,8 +52,8 @@ type WatermarkConfig struct {
 	// FontSize in points. Defaults to 60 if zero.
 	FontSize float64
 
-	// ColourR, ColourG, ColourB are RGB fill colour components in [0, 1].
-	// Default to 0.85 (light grey) if all three are zero.
+	// ColourR, ColourG, ColourB are RGB fill colour components in [0, 1]. Default to 0.85
+	// (light grey) if all three are zero.
 	ColourR float64
 
 	// ColourG holds the green component of the RGB fill colour in [0, 1].
@@ -87,12 +87,11 @@ func (wm *WatermarkConfig) applyDefaults() {
 	}
 }
 
-// buildWatermarkStream generates the content stream operators for a
-// watermark rendered behind page content. The watermark uses Helvetica
-// (Type1) so no font embedding is required.
+// buildWatermarkStream generates the content stream operators for a watermark rendered
+// behind page content. The watermark uses Helvetica (Type1) so no font embedding is
+// required.
 //
-// Takes fontResourceName (string) which is the Helvetica resource name
-// (e.g. "FW").
+// Takes fontResourceName (string) which is the Helvetica resource name (e.g. "FW").
 // Takes gsName (string) which is the ExtGState resource name for opacity.
 // Takes pageWidth, pageHeight (float64) which are the page dimensions.
 //

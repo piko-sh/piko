@@ -23,16 +23,16 @@ import (
 	"reflect"
 )
 
-// compositeSymbolProvider merges symbol exports from multiple providers.
-// Later providers override earlier ones for the same package/symbol,
-// allowing users to extend or replace vendored defaults.
+// compositeSymbolProvider merges symbol exports from multiple providers. Later providers
+// override earlier ones for the same package/symbol, allowing users to extend or replace
+// vendored defaults.
 type compositeSymbolProvider struct {
 	// providers holds the ordered list of symbol providers to merge.
 	providers []SymbolProviderPort
 }
 
-// Exports returns the merged symbol table from all providers. Later
-// providers override earlier ones for the same symbol.
+// Exports returns the merged symbol table from all providers. Later providers override
+// earlier ones for the same symbol.
 //
 // Returns SymbolExports which maps import paths to symbol maps.
 func (c *compositeSymbolProvider) Exports() SymbolExports {
@@ -48,11 +48,10 @@ func (c *compositeSymbolProvider) Exports() SymbolExports {
 	return merged
 }
 
-// newCompositeSymbolProvider creates a provider that merges exports
-// from the given providers in order.
+// newCompositeSymbolProvider creates a provider that merges exports from the given
+// providers in order.
 //
-// Takes providers (SymbolProviderPort variadic) which are the symbol
-// providers to merge.
+// Takes providers (SymbolProviderPort variadic) which are the symbol providers to merge.
 //
 // Returns *compositeSymbolProvider which merges all providers.
 func newCompositeSymbolProvider(providers ...SymbolProviderPort) *compositeSymbolProvider {

@@ -16,6 +16,6 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package registry_schema provides FlatBuffer serialisation and
-// schema versioning for registry artefacts.
+// Package registry_schema provides FlatBuffer serialisation and schema versioning for
+// registry artefacts.
 package registry_schema

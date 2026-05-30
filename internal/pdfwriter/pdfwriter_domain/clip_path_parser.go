@@ -57,8 +57,7 @@ const (
 	// clipMinPolygonVertices is the minimum vertex count for a polygon.
 	clipMinPolygonVertices = 3
 
-	// clipMinInsetFieldsRadii is the field count when all four inset
-	// edges are specified.
+	// clipMinInsetFieldsRadii is the field count when all four inset edges are specified.
 	clipMinInsetFieldsRadii = 4
 )
 
@@ -98,8 +97,8 @@ type ClipShape struct {
 	InsetRadius float64
 }
 
-// ParseClipPath parses a CSS clip-path value into a ClipShape. Returns a
-// shape with Type == ClipShapeNone for unsupported or empty values.
+// ParseClipPath parses a CSS clip-path value into a ClipShape. Returns a shape with Type
+// == ClipShapeNone for unsupported or empty values.
 //
 // Takes value (string) which is the raw CSS clip-path value.
 // Takes boxWidth (float64) which is the reference box width in points.
@@ -131,8 +130,7 @@ func ParseClipPath(value string, boxWidth, boxHeight float64) ClipShape {
 // parseClipCircle parses the arguments of a CSS circle() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box
-// dimensions.
+// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
 //
 // Returns ClipShape with circle parameters.
 func parseClipCircle(inner string, boxWidth, boxHeight float64) ClipShape {
@@ -162,8 +160,7 @@ func parseClipCircle(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipEllipse parses the arguments of a CSS ellipse() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box
-// dimensions.
+// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
 //
 // Returns ClipShape with ellipse parameters.
 func parseClipEllipse(inner string, boxWidth, boxHeight float64) ClipShape {
@@ -199,8 +196,7 @@ func parseClipEllipse(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipInset parses the arguments of a CSS inset() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box
-// dimensions.
+// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
 //
 // Returns ClipShape with inset edge distances and optional radius.
 func parseClipInset(inner string, boxWidth, boxHeight float64) ClipShape {
@@ -242,8 +238,7 @@ func parseClipInset(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipPolygon parses the arguments of a CSS polygon() function.
 //
 // Takes inner (string) which is the comma-separated vertex list.
-// Takes boxWidth, boxHeight (float64) which are the reference box
-// dimensions.
+// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
 //
 // Returns ClipShape with polygon vertices as fractional coordinates.
 func parseClipPolygon(inner string, boxWidth, boxHeight float64) ClipShape {
@@ -262,16 +257,12 @@ func parseClipPolygon(inner string, boxWidth, boxHeight float64) ClipShape {
 	return shape
 }
 
-// parsePosition parses a CSS position value into fractional x and y
-// coordinates (0 to 1).
+// parsePosition parses a CSS position value into fractional x and y coordinates (0 to 1).
 //
-// Takes pos (string) which is the space-separated position keywords
-// or percentages.
+// Takes pos (string) which is the space-separated position keywords or percentages.
 //
-// Returns x (float64) which is the horizontal fractional
-// coordinate.
-// Returns y (float64) which is the vertical fractional
-// coordinate.
+// Returns x (float64) which is the horizontal fractional coordinate.
+// Returns y (float64) which is the vertical fractional coordinate.
 func parsePosition(pos string) (x, y float64) {
 	parts := strings.Fields(pos)
 	if len(parts) == 0 {
@@ -286,8 +277,8 @@ func parsePosition(pos string) (x, y float64) {
 	return x, y
 }
 
-// parsePercentOrKeyword converts a CSS position keyword or percentage
-// string to a fractional value in [0, 1].
+// parsePercentOrKeyword converts a CSS position keyword or percentage string to a
+// fractional value in [0, 1].
 //
 // Takes s (string) which is the keyword or percentage string.
 //
@@ -312,12 +303,11 @@ func parsePercentOrKeyword(s string) float64 {
 	return clipDefaultCentre
 }
 
-// resolveClipLength resolves a CSS length or percentage string to
-// an absolute value in points.
+// resolveClipLength resolves a CSS length or percentage string to an absolute value in
+// points.
 //
 // Takes s (string) which is the CSS length value.
-// Takes reference (float64) which is the reference dimension for
-// percentage resolution.
+// Takes reference (float64) which is the reference dimension for percentage resolution.
 //
 // Returns float64 which is the resolved length in points.
 func resolveClipLength(s string, reference float64) float64 {
@@ -355,15 +345,14 @@ func resolveClipLength(s string, reference float64) float64 {
 	return 0
 }
 
-// EmitClipPath writes PDF path operators for the given clip shape
-// relative to a box at (pdfX, pdfY) with dimensions (w, h).
+// EmitClipPath writes PDF path operators for the given clip shape relative to a box at
+// (pdfX, pdfY) with dimensions (w, h).
 //
 // Takes stream (*ContentStream) to write operators to.
 // Takes shape (ClipShape) which is the parsed clip shape.
-// Takes pdfX, pdfY, w, h (float64) which define the reference box
-// in PDF coordinates.
+// Takes pdfX, pdfY, w, h (float64) which define the reference box in PDF coordinates.
 func EmitClipPath(stream *ContentStream, shape ClipShape, pdfX, pdfY, w, h float64) {
-	switch shape.Type {
+	switch shape.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ClipShapeCircle:
 		cx := pdfX + shape.CenterX*w
 		cy := pdfY + shape.CenterY*h

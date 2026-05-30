@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Handles individual partial expansion tasks by processing a single partial
-// invocation and its associated styles. Uses object pooling for efficiency and
-// manages the expansion of one partial component at a time during the expansion
-// phase.
+// Handles individual partial expansion tasks by processing a single partial invocation
+// and its associated styles. Uses object pooling for efficiency and manages the expansion
+// of one partial component at a time during the expansion phase.
 
 import (
 	"context"
@@ -37,16 +36,17 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-// partialExpansionTaskPool reuses partialExpansionTask instances
-// to reduce allocation pressure.
-var partialExpansionTaskPool = sync.Pool{
-	New: func() any {
-		return &partialExpansionTask{}
-	},
-}
+var (
+	// partialExpansionTaskPool reuses partialExpansionTask instances to reduce allocation
+	// pressure.
+	partialExpansionTaskPool = sync.Pool{
+		New: func() any {
+			return &partialExpansionTask{}
+		},
+	}
+)
 
-// partialExpansionTask holds the state and logic for expanding a single
-// partial.
+// partialExpansionTask holds the state and logic for expanding a single partial.
 type partialExpansionTask struct {
 	// ec is the shared expansion context for this task.
 	ec *expansionContext
@@ -72,8 +72,7 @@ type partialExpansionTask struct {
 	// targetHashedName is the hashed name of the partial to expand.
 	targetHashedName string
 
-	// expandedPartialBody holds the parsed template nodes after expanding a
-	// partial.
+	// expandedPartialBody holds the parsed template nodes after expanding a partial.
 	expandedPartialBody []*ast_domain.TemplateNode
 
 	// hasError indicates whether an error occurred during expansion.
@@ -94,8 +93,8 @@ type invokerSlotContent struct {
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 //
-// Returns []*ast_domain.TemplateNode which holds the expanded template nodes,
-// or nil when an error happens during processing.
+// Returns []*ast_domain.TemplateNode which holds the expanded template nodes, or nil when
+// an error happens during processing.
 func (t *partialExpansionTask) process(ctx context.Context) []*ast_domain.TemplateNode {
 	t.resolveAndLoadPartial(ctx)
 	if t.hasError {
@@ -121,10 +120,9 @@ func (t *partialExpansionTask) process(ctx context.Context) []*ast_domain.Templa
 	return t.assembleFinalNodes(ctx)
 }
 
-// resolveAndLoadPartial looks up the partial alias, resolves its import path,
-// and loads the target component from the graph. Sets hasError to true if the
-// alias is not defined, the path cannot be resolved, or the component is not
-// found.
+// resolveAndLoadPartial looks up the partial alias, resolves its import path, and loads
+// the target component from the graph. Sets hasError to true if the alias is not defined,
+// the path cannot be resolved, or the component is not found.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 func (t *partialExpansionTask) resolveAndLoadPartial(ctx context.Context) {
@@ -185,8 +183,8 @@ func (t *partialExpansionTask) resolveAndLoadPartial(ctx context.Context) {
 	}
 }
 
-// checkCircularDependencies checks whether the current partial expansion
-// creates a cycle in the dependency chain.
+// checkCircularDependencies checks whether the current partial expansion creates a cycle
+// in the dependency chain.
 func (t *partialExpansionTask) checkCircularDependencies() {
 	if t.hasError {
 		return
@@ -243,11 +241,11 @@ func (t *partialExpansionTask) processCSS(ctx context.Context) {
 // processSingleStyleBlock handles a single style block from the SFC.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes styleBlock (sfcparser.Style) which contains the style content and
-// attributes to handle.
+// Takes styleBlock (sfcparser.Style) which contains the style content and attributes to
+// handle.
 //
-// Returns string which is the processed scoped style content, or an empty
-// string for global styles or empty blocks.
+// Returns string which is the processed scoped style content, or an empty string for
+// global styles or empty blocks.
 func (t *partialExpansionTask) processSingleStyleBlock(ctx context.Context, styleBlock sfcparser.Style) string {
 	styleContent := styleBlock.Content
 	if strings.TrimSpace(styleContent) == "" {
@@ -268,8 +266,8 @@ func (t *partialExpansionTask) processSingleStyleBlock(ctx context.Context, styl
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleContent (string) which is the raw CSS content to process.
-// Takes styleStartLocation (ast_domain.Location) which marks where the style
-// block starts in the source file.
+// Takes styleStartLocation (ast_domain.Location) which marks where the style block starts
+// in the source file.
 func (t *partialExpansionTask) processGlobalStyleBlock(ctx context.Context, styleContent string, styleStartLocation ast_domain.Location) {
 	processedGlobalCSS, diagnostics, err := t.ec.expander.cssProcessor.Process(
 		ctx,
@@ -290,8 +288,8 @@ func (t *partialExpansionTask) processGlobalStyleBlock(ctx context.Context, styl
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleContent (string) which is the raw CSS to process.
-// Takes styleStartLocation (ast_domain.Location) which marks where the style
-// block begins in the source.
+// Takes styleStartLocation (ast_domain.Location) which marks where the style block begins
+// in the source.
 //
 // Returns string which is the scoped CSS, or empty string on error.
 func (t *partialExpansionTask) processScopedStyleBlock(ctx context.Context, styleContent string, styleStartLocation ast_domain.Location) string {
@@ -376,13 +374,13 @@ func (t *partialExpansionTask) expandBodies(ctx context.Context) {
 	t.expandedPartialBody = t.ec.expandPartialsRecursive(ctx, filledBody, t.loadedPartial)
 }
 
-// assembleFinalNodes checks slots, creates metadata, and converts the expanded
-// partial body into final template nodes.
+// assembleFinalNodes checks slots, creates metadata, and converts the expanded partial
+// body into final template nodes.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 //
-// Returns []*ast_domain.TemplateNode which contains the processed nodes ready
-// for insertion.
+// Returns []*ast_domain.TemplateNode which contains the processed nodes ready for
+// insertion.
 func (t *partialExpansionTask) assembleFinalNodes(ctx context.Context) []*ast_domain.TemplateNode {
 	t.validateSlots()
 
@@ -392,8 +390,8 @@ func (t *partialExpansionTask) assembleFinalNodes(ctx context.Context) []*ast_do
 	return processExpandedNodes(t.expandedPartialBody, t.invokerNode, pInfo)
 }
 
-// validateSlots checks that slot content given to a component matches the
-// slots defined in the partial template.
+// validateSlots checks that slot content given to a component matches the slots defined
+// in the partial template.
 func (t *partialExpansionTask) validateSlots() {
 	definedSlots := collectDefinedSlots(t.loadedPartial.Template.RootNodes)
 	definedSlotNames := make([]string, 0, len(definedSlots))
@@ -426,16 +424,14 @@ func (t *partialExpansionTask) validateSlots() {
 	}
 }
 
-// getPartialExpansionTask gets a task from the pool and sets it up with the
-// given values.
+// getPartialExpansionTask gets a task from the pool and sets it up with the given values.
 //
 // Takes ec (*expansionContext) which holds the expansion state.
-// Takes invokerNode (*ast_domain.TemplateNode) which is the template node that
-// called the partial.
-// Takes invokerComponent (*annotator_dto.ParsedComponent) which is the parsed
-// component that contains the invoker.
-// Takes aliasToRawPath (map[string]string) which maps user aliases to raw file
-// paths.
+// Takes invokerNode (*ast_domain.TemplateNode) which is the template node that called the
+// partial.
+// Takes invokerComponent (*annotator_dto.ParsedComponent) which is the parsed component
+// that contains the invoker.
+// Takes aliasToRawPath (map[string]string) which maps user aliases to raw file paths.
 // Takes userAlias (string) which is the alias used to refer to the partial.
 //
 // Returns *partialExpansionTask which is the task ready for use.
@@ -480,8 +476,8 @@ func putPartialExpansionTask(t *partialExpansionTask) {
 	partialExpansionTaskPool.Put(t)
 }
 
-// collectDefinedSlots walks a template AST and returns a set of all slot
-// names defined within it.
+// collectDefinedSlots walks a template AST and returns a set of all slot names defined
+// within it.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which is the template AST to walk.
 //
@@ -508,15 +504,14 @@ func collectDefinedSlots(nodes []*ast_domain.TemplateNode) map[string]bool {
 // groupContentBySlot sorts template nodes into named slots.
 //
 // Supports two syntaxes:
-//   - <piko:slot name="header">content</piko:slot> places children in the
-//     named slot
-//   - <article p-slot="header">content</article> places the element itself
-//     in the named slot
+//   - <piko:slot name="header">content</piko:slot> places children in the named slot
+//   - <article p-slot="header">content</article> places the element itself in the named
+//     slot
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which are the child nodes to group.
 //
-// Returns map[string]invokerSlotContent which maps slot names to their
-// content. An empty string key holds the default slot content.
+// Returns map[string]invokerSlotContent which maps slot names to their content. An empty
+// string key holds the default slot content.
 func groupContentBySlot(nodes []*ast_domain.TemplateNode) map[string]invokerSlotContent {
 	grouped := make(map[string]invokerSlotContent)
 	defaultContent := make([]*ast_domain.TemplateNode, 0, len(nodes))
@@ -562,14 +557,14 @@ func groupContentBySlot(nodes []*ast_domain.TemplateNode) map[string]invokerSlot
 	return grouped
 }
 
-// findDefaultSlotLocation finds the location of the first useful node to use
-// as the default slot location for error messages.
+// findDefaultSlotLocation finds the location of the first useful node to use as the
+// default slot location for error messages.
 //
-// Takes nodes ([]*ast_domain.TemplateNode) which are the template nodes to
-// search.
+// Takes nodes ([]*ast_domain.TemplateNode) which are the template nodes to search.
 //
-// Returns ast_domain.Location which is the location of the first node that is
-// not whitespace or a comment. Returns a zero location if no nodes exist.
+// Returns ast_domain.Location which is the location of the first node that is not
+// whitespace or a comment.
+// Returns a zero location if no nodes exist.
 func findDefaultSlotLocation(nodes []*ast_domain.TemplateNode) ast_domain.Location {
 	for _, n := range nodes {
 		if !isWhitespaceOrCommentNode(n) {
@@ -582,22 +577,22 @@ func findDefaultSlotLocation(nodes []*ast_domain.TemplateNode) ast_domain.Locati
 	return ast_domain.Location{Line: 0, Column: 0, Offset: 0}
 }
 
-// processExpandedNodes applies partial invocation info and invoker attributes
-// to expanded template nodes.
+// processExpandedNodes applies partial invocation info and invoker attributes to expanded
+// template nodes.
 //
-// When there is a single effective root element, it attaches the partial info
-// directly to that element. Otherwise, it wraps all nodes in a fragment node
-// and marks each effective root with fragment tracking attributes.
+// When there is a single effective root element, it attaches the partial info directly to
+// that element. Otherwise, it wraps all nodes in a fragment node and marks each effective
+// root with fragment tracking attributes.
 //
-// Takes expandedNodes ([]*ast_domain.TemplateNode) which are the nodes
-// resulting from partial expansion.
-// Takes invokerNode (*ast_domain.TemplateNode) which is the original node that
-// invoked the partial.
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains metadata about
-// the partial invocation.
+// Takes expandedNodes ([]*ast_domain.TemplateNode) which are the nodes resulting from
+// partial expansion.
+// Takes invokerNode (*ast_domain.TemplateNode) which is the original node that invoked
+// the partial.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains metadata about the
+// partial invocation.
 //
-// Returns []*ast_domain.TemplateNode which contains either the original nodes
-// with annotations applied, or a single fragment node wrapping them.
+// Returns []*ast_domain.TemplateNode which contains either the original nodes with
+// annotations applied, or a single fragment node wrapping them.
 func processExpandedNodes(expandedNodes []*ast_domain.TemplateNode, invokerNode *ast_domain.TemplateNode, pInfo *ast_domain.PartialInvocationInfo) []*ast_domain.TemplateNode {
 	effectiveRootElements := findEffectiveRootElements(expandedNodes)
 
@@ -644,15 +639,14 @@ func processExpandedNodes(expandedNodes []*ast_domain.TemplateNode, invokerNode 
 	return []*ast_domain.TemplateNode{fragmentNode}
 }
 
-// applyInvokerAttributesToExpandedRoot copies attributes and directives from
-// the invoker node onto the expanded template root node.
+// applyInvokerAttributesToExpandedRoot copies attributes and directives from the invoker
+// node onto the expanded template root node.
 //
 // When either node is nil, returns without making changes.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which is the expanded root that
-// will receive the attributes.
-// Takes invokerNode (*ast_domain.TemplateNode) which provides the attributes
-// to copy.
+// Takes targetNode (*ast_domain.TemplateNode) which is the expanded root that will
+// receive the attributes.
+// Takes invokerNode (*ast_domain.TemplateNode) which provides the attributes to copy.
 func applyInvokerAttributesToExpandedRoot(targetNode, invokerNode *ast_domain.TemplateNode) {
 	if targetNode == nil || invokerNode == nil {
 		return
@@ -667,14 +661,12 @@ func applyInvokerAttributesToExpandedRoot(targetNode, invokerNode *ast_domain.Te
 	applyInvokerDirectives(targetNode, invokerNode, invokerOriginPackageAlias)
 }
 
-// mergeStaticAttributes copies static attributes from the invoker node into the
-// target node. It gathers the target's current attributes, adds the invoker's
-// attributes, then builds a sorted attribute list on the target.
+// mergeStaticAttributes copies static attributes from the invoker node into the target
+// node. It gathers the target's current attributes, adds the invoker's attributes, then
+// builds a sorted attribute list on the target.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which receives the merged
-// attributes.
-// Takes invokerNode (*ast_domain.TemplateNode) which provides the attributes
-// to add.
+// Takes targetNode (*ast_domain.TemplateNode) which receives the merged attributes.
+// Takes invokerNode (*ast_domain.TemplateNode) which provides the attributes to add.
 func mergeStaticAttributes(targetNode, invokerNode *ast_domain.TemplateNode) {
 	finalAttrs := collectTargetStaticAttrs(targetNode)
 	mergeInvokerStaticAttrs(invokerNode, finalAttrs)
@@ -683,11 +675,11 @@ func mergeStaticAttributes(targetNode, invokerNode *ast_domain.TemplateNode) {
 
 // collectTargetStaticAttrs builds a map of attributes from a target node.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which provides the template node
-// to collect attributes from.
+// Takes targetNode (*ast_domain.TemplateNode) which provides the template node to collect
+// attributes from.
 //
-// Returns map[string]ast_domain.HTMLAttribute which maps attribute names in
-// lowercase to their values.
+// Returns map[string]ast_domain.HTMLAttribute which maps attribute names in lowercase to
+// their values.
 func collectTargetStaticAttrs(targetNode *ast_domain.TemplateNode) map[string]ast_domain.HTMLAttribute {
 	finalAttrs := make(map[string]ast_domain.HTMLAttribute)
 	for i := range targetNode.Attributes {
@@ -697,13 +689,13 @@ func collectTargetStaticAttrs(targetNode *ast_domain.TemplateNode) map[string]as
 	return finalAttrs
 }
 
-// mergeInvokerStaticAttrs copies attributes from the invoker node into the
-// final attribute map.
+// mergeInvokerStaticAttrs copies attributes from the invoker node into the final
+// attribute map.
 //
-// Takes invokerNode (*ast_domain.TemplateNode) which provides the source
-// attributes to copy.
-// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which receives the
-// copied attributes.
+// Takes invokerNode (*ast_domain.TemplateNode) which provides the source attributes to
+// copy.
+// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which receives the copied
+// attributes.
 func mergeInvokerStaticAttrs(invokerNode *ast_domain.TemplateNode, finalAttrs map[string]ast_domain.HTMLAttribute) {
 	for i := range invokerNode.Attributes {
 		invokerAttr := &invokerNode.Attributes[i]
@@ -717,14 +709,12 @@ func mergeInvokerStaticAttrs(invokerNode *ast_domain.TemplateNode, finalAttrs ma
 	}
 }
 
-// shouldSkipStaticAttr reports whether an attribute should be skipped during
-// merging.
+// shouldSkipStaticAttr reports whether an attribute should be skipped during merging.
 //
-// Takes attributeNameLower (string) which is the lowercase attribute
-// name to check.
+// Takes attributeNameLower (string) which is the lowercase attribute name to check.
 //
-// Returns bool which is true when the attribute is the "is" attribute or has a
-// server or request prefix.
+// Returns bool which is true when the attribute is the "is" attribute or has a server or
+// request prefix.
 func shouldSkipStaticAttr(attributeNameLower string) bool {
 	if attributeNameLower == attributeIs {
 		return true
@@ -732,12 +722,10 @@ func shouldSkipStaticAttr(attributeNameLower string) bool {
 	return strings.HasPrefix(attributeNameLower, prefixServer) || strings.HasPrefix(attributeNameLower, prefixRequest)
 }
 
-// mergeStaticAttrByType merges a static attribute using the correct method for
-// its type.
+// mergeStaticAttrByType merges a static attribute using the correct method for its type.
 //
 // Takes attributeNameLower (string) which is the lowercase attribute name.
-// Takes invokerAttr (*ast_domain.HTMLAttribute) which is the attribute to
-// merge.
+// Takes invokerAttr (*ast_domain.HTMLAttribute) which is the attribute to merge.
 // Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which holds the merged
 // attributes.
 func mergeStaticAttrByType(attributeNameLower string, invokerAttr *ast_domain.HTMLAttribute, finalAttrs map[string]ast_domain.HTMLAttribute) {
@@ -753,13 +741,13 @@ func mergeStaticAttrByType(attributeNameLower string, invokerAttr *ast_domain.HT
 
 // mergeClassAttr merges a class attribute into the final attributes map.
 //
-// When a class attribute already exists, the values are joined with a space.
-// When no class attribute exists, the invoker attribute is added directly.
+// When a class attribute already exists, the values are joined with a space. When no
+// class attribute exists, the invoker attribute is added directly.
 //
-// Takes invokerAttr (*ast_domain.HTMLAttribute) which provides the class
-// attribute to merge.
-// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which holds the
-// collected attributes where the class will be merged.
+// Takes invokerAttr (*ast_domain.HTMLAttribute) which provides the class attribute to
+// merge.
+// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which holds the collected
+// attributes where the class will be merged.
 func mergeClassAttr(invokerAttr *ast_domain.HTMLAttribute, finalAttrs map[string]ast_domain.HTMLAttribute) {
 	if existing, ok := finalAttrs[attributeClass]; ok {
 		existing.Value = strings.TrimSpace(existing.Value + " " + invokerAttr.Value)
@@ -769,26 +757,24 @@ func mergeClassAttr(invokerAttr *ast_domain.HTMLAttribute, finalAttrs map[string
 	}
 }
 
-// isPartialMetadataAttr reports whether the given attribute name is a partial
-// metadata attribute.
+// isPartialMetadataAttr reports whether the given attribute name is a partial metadata
+// attribute.
 //
-// Takes attributeNameLower (string) which is the lowercase attribute
-// name to check.
+// Takes attributeNameLower (string) which is the lowercase attribute name to check.
 //
-// Returns bool which is true if the attribute is partial, partialName, or
-// partialSrc.
+// Returns bool which is true if the attribute is partial, partialName, or partialSrc.
 func isPartialMetadataAttr(attributeNameLower string) bool {
 	return attributeNameLower == attributePartial || attributeNameLower == attributePartialName || attributeNameLower == attributePartialSrc
 }
 
-// mergePartialMetadataAttr merges a partial metadata attribute by placing the
-// invoker value before the existing value.
+// mergePartialMetadataAttr merges a partial metadata attribute by placing the invoker
+// value before the existing value.
 //
 // Takes attributeNameLower (string) which is the lowercase name of the attribute.
-// Takes invokerAttr (*ast_domain.HTMLAttribute) which is the attribute from
-// the invoker element.
-// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which is the target
-// map to merge into.
+// Takes invokerAttr (*ast_domain.HTMLAttribute) which is the attribute from the invoker
+// element.
+// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which is the target map to merge
+// into.
 func mergePartialMetadataAttr(attributeNameLower string, invokerAttr *ast_domain.HTMLAttribute, finalAttrs map[string]ast_domain.HTMLAttribute) {
 	if existing, ok := finalAttrs[attributeNameLower]; ok {
 		existing.Value = strings.TrimSpace(invokerAttr.Value + " " + existing.Value)
@@ -800,11 +786,11 @@ func mergePartialMetadataAttr(attributeNameLower string, invokerAttr *ast_domain
 
 // rebuildSortedStaticAttrs builds a slice of attributes sorted by key name.
 //
-// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which holds the
-// attributes to sort.
+// Takes finalAttrs (map[string]ast_domain.HTMLAttribute) which holds the attributes to
+// sort.
 //
-// Returns []ast_domain.HTMLAttribute which contains the attributes in
-// alphabetical order by key.
+// Returns []ast_domain.HTMLAttribute which contains the attributes in alphabetical order
+// by key.
 func rebuildSortedStaticAttrs(finalAttrs map[string]ast_domain.HTMLAttribute) []ast_domain.HTMLAttribute {
 	sortedKeys := make([]string, 0, len(finalAttrs))
 	for k := range finalAttrs {
@@ -819,13 +805,12 @@ func rebuildSortedStaticAttrs(finalAttrs map[string]ast_domain.HTMLAttribute) []
 	return rebuiltAttrs
 }
 
-// mergeDynamicAttributes combines dynamic attributes from a partial and its
-// invoker into a single sorted set on the target node.
+// mergeDynamicAttributes combines dynamic attributes from a partial and its invoker into
+// a single sorted set on the target node.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which receives the merged
-// attributes.
-// Takes invokerNode (*ast_domain.TemplateNode) which provides the dynamic
-// attributes from the caller.
+// Takes targetNode (*ast_domain.TemplateNode) which receives the merged attributes.
+// Takes invokerNode (*ast_domain.TemplateNode) which provides the dynamic attributes from
+// the caller.
 // Takes invokerOrigin (string) which identifies where the invoker comes from.
 func mergeDynamicAttributes(targetNode, invokerNode *ast_domain.TemplateNode, invokerOrigin string) {
 	ensureDynamicAttributeAnnotations(targetNode)
@@ -838,8 +823,8 @@ func mergeDynamicAttributes(targetNode, invokerNode *ast_domain.TemplateNode, in
 	targetNode.DynamicAttributes = rebuildSortedDynamicAttrs(finalDynAttrs, targetNode, invokerNode, invokerOrigin)
 }
 
-// ensureDynamicAttributeAnnotations sets up the GoAnnotations and
-// DynamicAttributeOrigins fields on a template node if they are nil.
+// ensureDynamicAttributeAnnotations sets up the GoAnnotations and DynamicAttributeOrigins
+// fields on a template node if they are nil.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to set up.
 func ensureDynamicAttributeAnnotations(node *ast_domain.TemplateNode) {
@@ -863,15 +848,15 @@ func getPartialOrigin(node *ast_domain.TemplateNode) string {
 	return ""
 }
 
-// collectPartialDynamicAttrs gathers dynamic attributes from a template node
-// and adds them to the final attributes map.
+// collectPartialDynamicAttrs gathers dynamic attributes from a template node and adds
+// them to the final attributes map.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which is the node to collect
-// attributes from.
-// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which stores
-// the collected attributes using lowercase names as keys.
-// Takes partialOrigin (string) which names the source partial. When set, it
-// records where each attribute came from.
+// Takes targetNode (*ast_domain.TemplateNode) which is the node to collect attributes
+// from.
+// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which stores the collected
+// attributes using lowercase names as keys.
+// Takes partialOrigin (string) which names the source partial. When set, it records where
+// each attribute came from.
 func collectPartialDynamicAttrs(targetNode *ast_domain.TemplateNode, finalDynAttrs map[string]ast_domain.DynamicAttribute, partialOrigin string) {
 	for i := range targetNode.DynamicAttributes {
 		dynAttr := &targetNode.DynamicAttributes[i]
@@ -883,21 +868,18 @@ func collectPartialDynamicAttrs(targetNode *ast_domain.TemplateNode, finalDynAtt
 	}
 }
 
-// collectInvokerDynamicAttrs gathers dynamic attributes from an invoker node
-// and adds them to the final attributes map.
+// collectInvokerDynamicAttrs gathers dynamic attributes from an invoker node and adds
+// them to the final attributes map.
 //
-// Attributes with server or request prefixes are skipped. Each collected
-// attribute is marked with its origin and stored in the target node's
-// annotations.
+// Attributes with server or request prefixes are skipped. Each collected attribute is
+// marked with its origin and stored in the target node's annotations.
 //
-// Takes invokerNode (*ast_domain.TemplateNode) which provides the source
-// attributes to collect.
-// Takes targetNode (*ast_domain.TemplateNode) which receives the origin
-// annotations.
-// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which stores
-// the collected attributes by lowercase name.
-// Takes invokerOrigin (string) which identifies where the attributes came
-// from.
+// Takes invokerNode (*ast_domain.TemplateNode) which provides the source attributes to
+// collect.
+// Takes targetNode (*ast_domain.TemplateNode) which receives the origin annotations.
+// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which stores the collected
+// attributes by lowercase name.
+// Takes invokerOrigin (string) which identifies where the attributes came from.
 func collectInvokerDynamicAttrs(invokerNode, targetNode *ast_domain.TemplateNode, finalDynAttrs map[string]ast_domain.DynamicAttribute, invokerOrigin string) {
 	for i := range invokerNode.DynamicAttributes {
 		invokerDynAttr := invokerNode.DynamicAttributes[i]
@@ -929,19 +911,19 @@ func stampInvokerOriginOnAttr(attr *ast_domain.DynamicAttribute, origin string) 
 	attr.GoAnnotations.OriginalPackageAlias = &origin
 }
 
-// rebuildSortedDynamicAttrs creates a sorted slice of dynamic attributes with
-// completed origin information.
+// rebuildSortedDynamicAttrs creates a sorted slice of dynamic attributes with completed
+// origin information.
 //
-// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which contains
-// the dynamic attributes to rebuild.
-// Takes targetNode (*ast_domain.TemplateNode) which is the node that receives
-// the attributes.
-// Takes invokerNode (*ast_domain.TemplateNode) which is the node that started
-// the attribute resolution.
+// Takes finalDynAttrs (map[string]ast_domain.DynamicAttribute) which contains the dynamic
+// attributes to rebuild.
+// Takes targetNode (*ast_domain.TemplateNode) which is the node that receives the
+// attributes.
+// Takes invokerNode (*ast_domain.TemplateNode) which is the node that started the
+// attribute resolution.
 // Takes invokerOrigin (string) which names the source of the invocation.
 //
-// Returns []ast_domain.DynamicAttribute which contains the attributes sorted
-// by key with origin metadata set.
+// Returns []ast_domain.DynamicAttribute which contains the attributes sorted by key with
+// origin metadata set.
 func rebuildSortedDynamicAttrs(finalDynAttrs map[string]ast_domain.DynamicAttribute, targetNode, invokerNode *ast_domain.TemplateNode, invokerOrigin string) []ast_domain.DynamicAttribute {
 	sortedKeys := getSortedAttrKeys(finalDynAttrs)
 	rebuiltDynAttrs := make([]ast_domain.DynamicAttribute, 0, len(finalDynAttrs))
@@ -954,11 +936,10 @@ func rebuildSortedDynamicAttrs(finalDynAttrs map[string]ast_domain.DynamicAttrib
 	return rebuiltDynAttrs
 }
 
-// getSortedAttrKeys returns the keys from a dynamic attributes map in sorted
-// order.
+// getSortedAttrKeys returns the keys from a dynamic attributes map in sorted order.
 //
-// Takes attrs (map[string]ast_domain.DynamicAttribute) which contains the
-// attributes whose keys should be extracted.
+// Takes attrs (map[string]ast_domain.DynamicAttribute) which contains the attributes
+// whose keys should be extracted.
 //
 // Returns []string which contains the attribute keys in alphabetical order.
 func getSortedAttrKeys(attrs map[string]ast_domain.DynamicAttribute) []string {
@@ -970,8 +951,8 @@ func getSortedAttrKeys(attrs map[string]ast_domain.DynamicAttribute) []string {
 	return sortedKeys
 }
 
-// finaliseAttrOrigin sets the package alias and source path on a dynamic
-// attribute when it comes from the invoker node.
+// finaliseAttrOrigin sets the package alias and source path on a dynamic attribute when
+// it comes from the invoker node.
 //
 // Takes attr (*ast_domain.DynamicAttribute) which is the attribute to update.
 // Takes targetNode (*ast_domain.TemplateNode) which holds the origin map.
@@ -994,9 +975,8 @@ func finaliseAttrOrigin(attr *ast_domain.DynamicAttribute, targetNode, invokerNo
 	}
 }
 
-// applyInvokerDirectives copies directives from the invoker node to the target
-// node. Each copied directive is marked with origin data to show where it came
-// from.
+// applyInvokerDirectives copies directives from the invoker node to the target node. Each
+// copied directive is marked with origin data to show where it came from.
 //
 // Takes targetNode (*ast_domain.TemplateNode) which receives the directives.
 // Takes invokerNode (*ast_domain.TemplateNode) which provides the directives.
@@ -1042,14 +1022,11 @@ func applyInvokerDirectives(targetNode, invokerNode *ast_domain.TemplateNode, in
 	}
 }
 
-// findEffectiveRootElements filters the given nodes to return only element
-// nodes.
+// findEffectiveRootElements filters the given nodes to return only element nodes.
 //
-// Takes nodes ([]*ast_domain.TemplateNode) which is the list of nodes to
-// filter.
+// Takes nodes ([]*ast_domain.TemplateNode) which is the list of nodes to filter.
 //
-// Returns []*ast_domain.TemplateNode which contains only nodes with type
-// NodeElement.
+// Returns []*ast_domain.TemplateNode which contains only nodes with type NodeElement.
 func findEffectiveRootElements(nodes []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	elements := make([]*ast_domain.TemplateNode, 0, len(nodes))
 	for _, node := range nodes {
@@ -1060,13 +1037,12 @@ func findEffectiveRootElements(nodes []*ast_domain.TemplateNode) []*ast_domain.T
 	return elements
 }
 
-// isWhitespaceOrCommentNode checks whether a node should be skipped when
-// gathering default slot content.
+// isWhitespaceOrCommentNode checks whether a node should be skipped when gathering
+// default slot content.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node is a comment or contains only
-// whitespace.
+// Returns bool which is true if the node is a comment or contains only whitespace.
 func isWhitespaceOrCommentNode(node *ast_domain.TemplateNode) bool {
 	if node.NodeType == ast_domain.NodeComment {
 		return true

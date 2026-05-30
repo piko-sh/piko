@@ -18,6 +18,6 @@
 
 package templater_dto
 
-// NoResponse is an empty struct used as the response type for components that
-// do not return any response data. It is a type-safe placeholder.
+// NoResponse is an empty struct used as the response type for components that do not
+// return any response data. It is a type-safe placeholder.
 type NoResponse struct{}

@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file implements type resolution for the lite builder.
-// It resolves AST type expressions into Field DTOs with proper package references.
+// This file implements type resolution for the lite builder. It resolves AST type
+// expressions into Field DTOs with proper package references.
 
 import (
 	"errors"
@@ -30,30 +30,32 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// goPrimitives is the set of Go built-in primitive types.
-var goPrimitives = map[string]bool{
-	"bool":       true,
-	"byte":       true,
-	"complex64":  true,
-	"complex128": true,
-	"error":      true,
-	"float32":    true,
-	"float64":    true,
-	"int":        true,
-	"int8":       true,
-	"int16":      true,
-	"int32":      true,
-	"int64":      true,
-	"rune":       true,
-	"string":     true,
-	"uint":       true,
-	"uint8":      true,
-	"uint16":     true,
-	"uint32":     true,
-	"uint64":     true,
-	"uintptr":    true,
-	"any":        true,
-}
+var (
+	// goPrimitives is the set of Go built-in primitive types.
+	goPrimitives = map[string]bool{
+		"bool":       true,
+		"byte":       true,
+		"complex64":  true,
+		"complex128": true,
+		"error":      true,
+		"float32":    true,
+		"float64":    true,
+		"int":        true,
+		"int8":       true,
+		"int16":      true,
+		"int32":      true,
+		"int64":      true,
+		"rune":       true,
+		"string":     true,
+		"uint":       true,
+		"uint8":      true,
+		"uint16":     true,
+		"uint32":     true,
+		"uint64":     true,
+		"uintptr":    true,
+		"any":        true,
+	}
+)
 
 // resolvedType holds the resolved details for a type expression.
 type resolvedType struct {
@@ -66,8 +68,8 @@ type resolvedType struct {
 	// PackagePath is the import path of the package where the type is defined.
 	PackagePath string
 
-	// CompositeParts holds the parts of a composite type, such as the key and
-	// value types of a map or the element type of a slice.
+	// CompositeParts holds the parts of a composite type, such as the key and value types of
+	// a map or the element type of a slice.
 	CompositeParts []*inspector_dto.CompositePart
 
 	// CompositeType specifies the composite type category (e.g. map, slice, array).
@@ -76,12 +78,12 @@ type resolvedType struct {
 	// IsInternalType indicates whether the type is defined in the current package.
 	IsInternalType bool
 
-	// IsUnderlyingInternalType indicates whether the base type is defined within
-	// the current module.
+	// IsUnderlyingInternalType indicates whether the base type is defined within the current
+	// module.
 	IsUnderlyingInternalType bool
 
-	// IsUnderlyingPrimitive indicates whether the underlying type is a
-	// built-in primitive type such as int, string, or bool.
+	// IsUnderlyingPrimitive indicates whether the underlying type is a built-in primitive
+	// type such as int, string, or bool.
 	IsUnderlyingPrimitive bool
 }
 
@@ -113,12 +115,10 @@ func (r *liteTypeResolver) SetContext(packagePath, filePath string, importMap ma
 
 // ResolveTypeExpr resolves an AST type expression into a resolvedType.
 //
-// Takes expression (ast.Expr) which is the AST type expression to
-// resolve.
+// Takes expression (ast.Expr) which is the AST type expression to resolve.
 //
 // Returns *resolvedType which contains the resolved type information.
-// Returns error when the expression type is not supported or cannot
-// be resolved.
+// Returns error when the expression type is not supported or cannot be resolved.
 func (r *liteTypeResolver) ResolveTypeExpr(expression ast.Expr) (*resolvedType, error) {
 	switch e := expression.(type) {
 	case *ast.Ident:
@@ -148,11 +148,9 @@ func (r *liteTypeResolver) ResolveTypeExpr(expression ast.Expr) (*resolvedType, 
 	}
 }
 
-// TypeExprToString converts an AST type expression to its string
-// representation.
+// TypeExprToString converts an AST type expression to its string representation.
 //
-// Takes expression (ast.Expr) which is the type expression to
-// convert.
+// Takes expression (ast.Expr) which is the type expression to convert.
 //
 // Returns string which is the Go source representation of the type.
 // Returns error when the expression type is not supported.
@@ -332,15 +330,14 @@ func (r *liteTypeResolver) resolveIdent(identifier *ast.Ident) (*resolvedType, e
 	}, nil
 }
 
-// resolveSelector resolves a selector expression (e.g., "time.Time",
-// "http.Request").
+// resolveSelector resolves a selector expression (e.g., "time.Time", "http.Request").
 //
-// Takes selectorExpression (*ast.SelectorExpr) which is the
-// selector expression to resolve.
+// Takes selectorExpression (*ast.SelectorExpr) which is the selector expression to
+// resolve.
 //
 // Returns *resolvedType which contains the resolved type information.
-// Returns error when the selector base is not an identifier or when the
-// package alias is unknown.
+// Returns error when the selector base is not an identifier or when the package alias is
+// unknown.
 func (r *liteTypeResolver) resolveSelector(selectorExpression *ast.SelectorExpr) (*resolvedType, error) {
 	pkgIdent, ok := selectorExpression.X.(*ast.Ident)
 	if !ok {
@@ -471,8 +468,8 @@ func (r *liteTypeResolver) resolveMap(m *ast.MapType) (*resolvedType, error) {
 // Takes role (string) which specifies the part's role in the composite.
 // Takes index (int) which sets the position within the composite structure.
 //
-// Returns []*inspector_dto.CompositePart which contains a single part built from
-// the resolved type.
+// Returns []*inspector_dto.CompositePart which contains a single part built from the
+// resolved type.
 func (*liteTypeResolver) buildCompositeParts(resolved *resolvedType, role string, index int) []*inspector_dto.CompositePart {
 	part := &inspector_dto.CompositePart{
 		Type:                     resolved.TypeString,
@@ -507,8 +504,7 @@ func (r *liteTypeResolver) funcTypeToString(ft *ast.FuncType) string {
 	return builder.String()
 }
 
-// writeFieldListTypes writes type strings from a field list, separated by
-// commas.
+// writeFieldListTypes writes type strings from a field list, separated by commas.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes fields (*ast.FieldList) which contains the fields to format.
@@ -525,8 +521,8 @@ func (r *liteTypeResolver) writeFieldListTypes(builder *strings.Builder, fields 
 	}
 }
 
-// writeResultTypes writes function return types to the builder. It adds
-// brackets when there is more than one return value.
+// writeResultTypes writes function return types to the builder. It adds brackets when
+// there is more than one return value.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes results (*ast.FieldList) which holds the return types to format.
@@ -549,8 +545,7 @@ func (r *liteTypeResolver) writeResultTypes(builder *strings.Builder, results *a
 //
 // Takes registry (*typeRegistry) which provides type lookup.
 //
-// Returns *liteTypeResolver which is ready for use after setting context
-// with SetContext.
+// Returns *liteTypeResolver which is ready for use after setting context with SetContext.
 func newLiteTypeResolver(registry *typeRegistry) *liteTypeResolver {
 	return &liteTypeResolver{
 		registry:       registry,
@@ -560,8 +555,8 @@ func newLiteTypeResolver(registry *typeRegistry) *liteTypeResolver {
 	}
 }
 
-// newSimpleresolvedType creates a resolvedType for anonymous types that have
-// no package context.
+// newSimpleresolvedType creates a resolvedType for anonymous types that have no package
+// context.
 //
 // Takes typeString (string) which specifies the type representation string.
 //

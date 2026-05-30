@@ -18,8 +18,8 @@
 
 package render_dto
 
-// RenderArtefact contains the output of rendering a page, including the
-// generated HTML, CSS, and any additional files produced during rendering.
+// RenderArtefact contains the output of rendering a page, including the generated HTML,
+// CSS, and any additional files produced during rendering.
 type RenderArtefact struct {
 	// Files maps output paths to their rendered content.
 	Files map[string]string

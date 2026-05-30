@@ -33,9 +33,8 @@ const (
 	keyTagsPrefix = "keytags:"
 )
 
-// addTagsToKey associates a key with a set of tags in Valkey using Sets. It
-// creates both forward (tag -> keys) and reverse (key -> tags) mappings using
-// DoMulti for efficiency.
+// addTagsToKey associates a key with a set of tags in Valkey using Sets. It creates both
+// forward (tag -> keys) and reverse (key -> tags) mappings using DoMulti for efficiency.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
 // Takes key (string) which is the cache key to associate with tags.
@@ -65,8 +64,8 @@ func addTagsToKey(ctx context.Context, client valkey.Client, namespace string, k
 	return nil
 }
 
-// getKeysByTags retrieves all unique keys associated with the given tags.
-// It uses SUNION for an efficient union operation on the server side.
+// getKeysByTags retrieves all unique keys associated with the given tags. It uses SUNION
+// for an efficient union operation on the server side.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
 // Takes tags ([]string) which specifies the tags to look up.
@@ -91,9 +90,8 @@ func getKeysByTags(ctx context.Context, client valkey.Client, namespace string, 
 	return keys, nil
 }
 
-// performTagInvalidation removes all keys associated with the given tags and
-// the tags themselves. This is an atomic operation within Valkey using
-// DoMulti.
+// performTagInvalidation removes all keys associated with the given tags and the tags
+// themselves. This is an atomic operation within Valkey using DoMulti.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
@@ -137,8 +135,8 @@ func performTagInvalidation(ctx context.Context, client valkey.Client, namespace
 	return len(keys), nil
 }
 
-// removeKeyFromTags removes a key from all its associated tag sets.
-// This prevents memory leaks when keys are deleted directly via Invalidate().
+// removeKeyFromTags removes a key from all its associated tag sets. This prevents memory
+// leaks when keys are deleted directly via Invalidate().
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
 // Takes key (string) which is the cache key to remove from tag sets.

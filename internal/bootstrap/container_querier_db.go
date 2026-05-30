@@ -18,9 +18,9 @@
 
 package bootstrap
 
-// This file contains database (querier) service related container methods.
-// It provides named database connection management, migration services, and
-// health probing for SQL databases registered via AddDatabase.
+// This file contains database (querier) service related container methods. It provides
+// named database connection management, migration services, and health probing for SQL
+// databases registered via AddDatabase.
 
 import (
 	"cmp"
@@ -41,17 +41,16 @@ import (
 )
 
 const (
-	// DatabaseNameRegistry is the reserved database name for piko's internal
-	// registry subsystem. When a database with this name is registered via
-	// WithDatabase, the framework uses the querier-based DAL adapter instead
-	// of the default otter in-memory backend for the registry.
+	// DatabaseNameRegistry is the reserved database name for piko's internal registry
+	// subsystem. When a database with this name is registered via WithDatabase, the
+	// framework uses the querier-based DAL adapter instead of the default otter in-memory
+	// backend for the registry.
 	DatabaseNameRegistry = "piko_registry"
 
-	// DatabaseNameOrchestrator is the reserved database name for piko's
-	// internal orchestrator subsystem. When a database with this name is
-	// registered via WithDatabase, the framework uses the querier-based DAL
-	// adapter instead of the default otter in-memory backend for the
-	// orchestrator.
+	// DatabaseNameOrchestrator is the reserved database name for piko's internal
+	// orchestrator subsystem. When a database with this name is registered via WithDatabase,
+	// the framework uses the querier-based DAL adapter instead of the default otter
+	// in-memory backend for the orchestrator.
 	DatabaseNameOrchestrator = "piko_orchestrator"
 
 	// databaseServiceName defines the health probe name for the database service.
@@ -63,36 +62,36 @@ const (
 	// errorFormatDatabaseLookup defines the format string for database lookup errors.
 	errorFormatDatabaseLookup = "database %q: %w"
 
-	// poolUtilisationDegradedThreshold defines the connection pool utilisation
-	// ratio above which the health state is reported as degraded.
+	// poolUtilisationDegradedThreshold defines the connection pool utilisation ratio above
+	// which the health state is reported as degraded.
 	poolUtilisationDegradedThreshold = 0.80
 
-	// poolUtilisationUnhealthyThreshold defines the connection pool utilisation
-	// ratio above which the health state is reported as unhealthy.
+	// poolUtilisationUnhealthyThreshold defines the connection pool utilisation ratio above
+	// which the health state is reported as unhealthy.
 	poolUtilisationUnhealthyThreshold = 0.95
 )
 
 var (
-	// ErrDatabaseNotRegistered is returned when a requested database name was
-	// not registered via AddDatabase.
+	// ErrDatabaseNotRegistered is returned when a requested database name was not registered
+	// via AddDatabase.
 	ErrDatabaseNotRegistered = errors.New("database not registered")
 
-	// ErrNoDriverConfigured is returned when a database registration has no
-	// driver name on either the registration or the engine config.
+	// ErrNoDriverConfigured is returned when a database registration has no driver name on
+	// either the registration or the engine config.
 	ErrNoDriverConfigured = errors.New("no driver name configured")
 
-	// ErrNoMigrationFilesystem is returned when GetQuerierMigrationService is
-	// called for a database that has no migration filesystem configured.
+	// ErrNoMigrationFilesystem is returned when GetQuerierMigrationService is called for a
+	// database that has no migration filesystem configured.
 	ErrNoMigrationFilesystem = errors.New("no migration filesystem configured")
 
-	// ErrNoSeedFilesystem is returned when GetQuerierSeedService is called
-	// for a database that has no seed filesystem configured.
+	// ErrNoSeedFilesystem is returned when GetQuerierSeedService is called for a database
+	// that has no seed filesystem configured.
 	ErrNoSeedFilesystem = errors.New("no seed filesystem configured")
 )
 
-// DatabaseHealthDiagnostic is a single diagnostic measurement from an
-// engine-specific health checker. The bootstrap layer translates each
-// diagnostic into a healthprobe_dto.Status dependency.
+// DatabaseHealthDiagnostic is a single diagnostic measurement from an engine-specific
+// health checker. The bootstrap layer translates each diagnostic into a
+// healthprobe_dto.Status dependency.
 type DatabaseHealthDiagnostic struct {
 	// Name identifies the diagnostic (e.g. "database_size", "replication_lag").
 	Name string
@@ -100,26 +99,25 @@ type DatabaseHealthDiagnostic struct {
 	// Value is the human-readable formatted value (e.g. "142 MiB", "3.2s").
 	Value string
 
-	// State indicates the health state: "HEALTHY", "DEGRADED", or "UNHEALTHY".
-	// Empty string defaults to "HEALTHY".
+	// State indicates the health state: "HEALTHY", "DEGRADED", or "UNHEALTHY". Empty string
+	// defaults to "HEALTHY".
 	State string
 
 	// Message provides additional context when the state is not healthy.
 	Message string
 }
 
-// DatabaseHealthChecker is an optional interface that engine implementations
-// can satisfy to provide engine-specific health diagnostics beyond a basic
-// ping. The bootstrap layer discovers this via type assertion on
-// EngineConfig.Engine.
+// DatabaseHealthChecker is an optional interface that engine implementations can satisfy
+// to provide engine-specific health diagnostics beyond a basic ping. The bootstrap layer
+// discovers this via type assertion on EngineConfig.Engine.
 type DatabaseHealthChecker interface {
 	// CheckHealth performs engine-specific health diagnostics on a database connection.
 	CheckHealth(ctx context.Context, database *sql.DB) []DatabaseHealthDiagnostic
 }
 
-// DBTX is the common database interface for read and write operations.
-// It matches the interface generated by the querier code generator and is
-// satisfied by *sql.DB and *sql.Tx.
+// DBTX is the common database interface for read and write operations. It matches the
+// interface generated by the querier code generator and is satisfied by *sql.DB and
+// *sql.Tx.
 type DBTX interface {
 	// ExecContext executes a query without returning any rows.
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -131,31 +129,28 @@ type DBTX interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// EngineConfig bundles the components needed for a database engine: the
-// codegen parser (used at build time), the migration dialect (used at
-// runtime for migration execution), and an optional factory for creating
-// live-database catalogue providers.
+// EngineConfig bundles the components needed for a database engine: the codegen parser
+// (used at build time), the migration dialect (used at runtime for migration execution),
+// and an optional factory for creating live-database catalogue providers.
 //
-// Engine sub-packages (db_engine_postgres, db_engine_mysql, etc.) provide
-// pre-built EngineConfig values via constructor functions like Postgres(),
-// MySQL(), and SQLite().
+// Engine sub-packages (db_engine_postgres, db_engine_mysql, etc.) provide pre-built
+// EngineConfig values via constructor functions like Postgres(), MySQL(), and SQLite().
 type EngineConfig struct {
-	// DriverName holds the default database/sql driver name for this engine
-	// (e.g. "postgres", "mysql"), used as a fallback when
-	// DatabaseRegistration.DriverName is empty.
+	// DriverName holds the default database/sql driver name for this engine (e.g.
+	// "postgres", "mysql"), used as a fallback when DatabaseRegistration.DriverName is
+	// empty.
 	DriverName string
 
 	// Engine is the SQL dialect parser used for code generation.
 	Engine querier_domain.EnginePort
 
-	// CatalogueFactory creates a live-database catalogue provider for
-	// schema introspection. Nil when introspection is not supported or
-	// not needed.
+	// CatalogueFactory creates a live-database catalogue provider for schema introspection.
+	// Nil when introspection is not supported or not needed.
 	CatalogueFactory func(database *sql.DB) querier_domain.CatalogueProviderPort
 
-	// MigrationDialect configures the migration executor for this engine's
-	// SQL dialect (locking strategy, placeholder syntax, DDL for the
-	// history table). Zero-valued for codegen-only engines.
+	// MigrationDialect configures the migration executor for this engine's SQL dialect
+	// (locking strategy, placeholder syntax, DDL for the history table). Zero-valued for
+	// codegen-only engines.
 	MigrationDialect migration_sql.DialectConfig
 }
 
@@ -164,172 +159,167 @@ type Replica struct {
 	// DSN is the data source name for the replica connection.
 	DSN string
 
-	// Weight controls the proportion of read traffic routed to this replica,
-	// where zero defaults to 1 and a replica with weight 2 receives twice the
-	// traffic of a replica with weight 1.
+	// Weight controls the proportion of read traffic routed to this replica, where zero
+	// defaults to 1 and a replica with weight 2 receives twice the traffic of a replica with
+	// weight 1.
 	Weight int
 
-	// MaxOpenConns overrides the primary's MaxOpenConns for this replica.
-	// Zero means use the primary's setting.
+	// MaxOpenConns overrides the primary's MaxOpenConns for this replica. Zero means use the
+	// primary's setting.
 	MaxOpenConns int
 
-	// MaxIdleConns overrides the primary's MaxIdleConns for this replica.
-	// Zero means use the primary's setting.
+	// MaxIdleConns overrides the primary's MaxIdleConns for this replica. Zero means use the
+	// primary's setting.
 	MaxIdleConns int
 
-	// ConnMaxLifetime overrides the primary's ConnMaxLifetime for this replica.
-	// Zero means use the primary's setting.
+	// ConnMaxLifetime overrides the primary's ConnMaxLifetime for this replica. Zero means
+	// use the primary's setting.
 	ConnMaxLifetime time.Duration
 
-	// ConnMaxIdleTime overrides the primary's ConnMaxIdleTime for this replica.
-	// Zero means use the primary's setting.
+	// ConnMaxIdleTime overrides the primary's ConnMaxIdleTime for this replica. Zero means
+	// use the primary's setting.
 	ConnMaxIdleTime time.Duration
 }
 
-// DatabaseRegistration holds the configuration for a named database connection
-// registered via AddDatabase.
+// DatabaseRegistration holds the configuration for a named database connection registered
+// via AddDatabase.
 type DatabaseRegistration struct {
-	// MigrationFS is the filesystem containing migration SQL files. When nil,
-	// no migration service is created.
+	// MigrationFS is the filesystem containing migration SQL files. When nil, no migration
+	// service is created.
 	MigrationFS fs.FS
 
-	// SeedFS is the filesystem containing seed SQL files. When nil, no seed
-	// service is created.
+	// SeedFS is the filesystem containing seed SQL files. When nil, no seed service is
+	// created.
 	SeedFS fs.FS
 
-	// QueryFS is the filesystem containing SQL query files for code generation,
-	// typically an embed.FS. When set alongside MigrationFS and EngineConfig,
-	// the "generate sql" command produces typed Go query methods.
+	// QueryFS is the filesystem containing SQL query files for code generation, typically an
+	// embed.FS. When set alongside MigrationFS and EngineConfig, the "generate sql" command
+	// produces typed Go query methods.
 	QueryFS fs.FS
 
-	// DB is an optional pre-opened database connection. When set, DSN and
-	// DriverName are ignored for the primary connection and pool settings
-	// (MaxOpenConns, MaxIdleConns, ConnMaxLifetime, ConnMaxIdleTime) are not
-	// applied since the caller is responsible for configuring the connection.
+	// DB is an optional pre-opened database connection. When set, DSN and DriverName are
+	// ignored for the primary connection and pool settings (MaxOpenConns, MaxIdleConns,
+	// ConnMaxLifetime, ConnMaxIdleTime) are not applied since the caller is responsible for
+	// configuring the connection.
 	//
-	// This allows driver packages (e.g. db_driver_sqlite_cgo) to open
-	// connections with driver-specific configuration (PRAGMAs, pool settings)
-	// before handing off to the querier system.
+	// This allows driver packages (e.g. db_driver_sqlite_cgo) to open connections with
+	// driver-specific configuration (PRAGMAs, pool settings) before handing off to the
+	// querier system.
 	DB *sql.DB
 
-	// QueryNameResolver maps a SQL query string to a human-readable
-	// operation name for OpenTelemetry span and metric attributes.
-	// When nil, operations are reported as "UNKNOWN".
+	// QueryNameResolver maps a SQL query string to a human-readable operation name for
+	// OpenTelemetry span and metric attributes. When nil, operations are reported as
+	// "UNKNOWN".
 	QueryNameResolver func(string) string
 
-	// GeneratedOutputDirectory is the filesystem path where the querier
-	// writes generated Go code. Defaults to "db/generated" if empty.
+	// GeneratedOutputDirectory is the filesystem path where the querier writes generated Go
+	// code. Defaults to "db/generated" if empty.
 	GeneratedOutputDirectory string
 
-	// SeedDirectory is the directory within SeedFS containing the seed files.
-	// Defaults to "." if empty.
+	// SeedDirectory is the directory within SeedFS containing the seed files. Defaults to
+	// "." if empty.
 	SeedDirectory string
 
-	// DSN is the data source name for opening the database connection.
-	// Ignored when DB is set.
+	// DSN is the data source name for opening the database connection. Ignored when DB is
+	// set.
 	DSN string
 
-	// MigrationDirectory is the directory within MigrationFS containing the
-	// migration files. Defaults to "." if empty.
+	// MigrationDirectory is the directory within MigrationFS containing the migration files.
+	// Defaults to "." if empty.
 	MigrationDirectory string
 
-	// QueryDirectory is the directory within QueryFS containing the query
-	// SQL files. Defaults to "." if empty.
+	// QueryDirectory is the directory within QueryFS containing the query SQL files.
+	// Defaults to "." if empty.
 	QueryDirectory string
 
-	// GeneratedPackageName is the Go package name for generated code.
-	// Defaults to "generated" if empty.
+	// GeneratedPackageName is the Go package name for generated code. Defaults to
+	// "generated" if empty.
 	GeneratedPackageName string
 
-	// DriverName holds the database/sql driver name (e.g. "postgres", "mysql",
-	// "sqlite") passed to sql.Open, ignored when DB is set.
+	// DriverName holds the database/sql driver name (e.g. "postgres", "mysql", "sqlite")
+	// passed to sql.Open, ignored when DB is set.
 	DriverName string
 
-	// MigrationOptions holds optional migration service configuration such as
-	// non-blocking locks and lifecycle hooks.
+	// MigrationOptions holds optional migration service configuration such as non-blocking
+	// locks and lifecycle hooks.
 	MigrationOptions []querier_domain.MigrationServiceOption
 
 	// Replicas configures read replica connections for this database, where
-	// GetDatabaseReader returns a round-robin balancer across replicas when set
-	// or the primary connection when empty.
+	// GetDatabaseReader returns a round-robin balancer across replicas when set or the
+	// primary connection when empty.
 	Replicas []Replica
 
-	// EngineConfig bundles the dialect, codegen engine, and optional catalogue
-	// factory. When set, its MigrationDialect takes precedence over the
-	// top-level MigrationDialect field.
+	// EngineConfig bundles the dialect, codegen engine, and optional catalogue factory. When
+	// set, its MigrationDialect takes precedence over the top-level MigrationDialect field.
 	EngineConfig EngineConfig
 
-	// MigrationDialect configures the migration executor for this database's
-	// SQL dialect.
+	// MigrationDialect configures the migration executor for this database's SQL dialect.
 	MigrationDialect migration_sql.DialectConfig
 
-	// ConnMaxLifetime sets the maximum amount of time a connection may be
-	// reused. Zero means connections are not closed due to age.
+	// ConnMaxLifetime sets the maximum amount of time a connection may be reused. Zero means
+	// connections are not closed due to age.
 	ConnMaxLifetime time.Duration
 
-	// ConnMaxIdleTime sets the maximum amount of time a connection may be idle.
-	// Zero means connections are not closed due to idle time.
+	// ConnMaxIdleTime sets the maximum amount of time a connection may be idle. Zero means
+	// connections are not closed due to idle time.
 	ConnMaxIdleTime time.Duration
 
-	// MaxOpenConns sets the maximum number of open connections to the database.
-	// Zero means unlimited.
+	// MaxOpenConns sets the maximum number of open connections to the database. Zero means
+	// unlimited.
 	MaxOpenConns int
 
-	// MaxIdleConns sets the maximum number of idle connections in the pool.
-	// Zero uses the default (2).
+	// MaxIdleConns sets the maximum number of idle connections in the pool. Zero uses the
+	// default (2).
 	MaxIdleConns int
 
-	// EnableOTel enables OpenTelemetry instrumentation for this database,
-	// wrapping all DBTX operations with OTel spans and metrics. When the OTel
-	// SDK is not configured, no-op providers ensure zero overhead.
+	// EnableOTel enables OpenTelemetry instrumentation for this database, wrapping all DBTX
+	// operations with OTel spans and metrics. When the OTel SDK is not configured, no-op
+	// providers ensure zero overhead.
 	EnableOTel bool
 }
 
-// databaseInstance holds a live database connection and its associated
-// migration service.
+// databaseInstance holds a live database connection and its associated migration service.
 type databaseInstance struct {
-	// reader holds the DBTX used for read queries, which is either the primary
-	// connection or a replica balancer.
+	// reader holds the DBTX used for read queries, which is either the primary connection or
+	// a replica balancer.
 	reader DBTX
 
-	// writer holds the DBTX used for write queries. This is the primary
-	// connection, optionally wrapped with OTel instrumentation.
+	// writer holds the DBTX used for write queries. This is the primary connection,
+	// optionally wrapped with OTel instrumentation.
 	writer DBTX
 
-	// migrator holds the migration service for this database, or nil when no
-	// migration filesystem is configured.
+	// migrator holds the migration service for this database, or nil when no migration
+	// filesystem is configured.
 	migrator querier_domain.MigrationServicePort
 
-	// seeder holds the seed service for this database, or nil when no seed
-	// filesystem is configured.
+	// seeder holds the seed service for this database, or nil when no seed filesystem is
+	// configured.
 	seeder querier_domain.SeedServicePort
 
-	// engineHealthChecker holds the optional engine-specific health checker
-	// discovered via type assertion on the engine.
+	// engineHealthChecker holds the optional engine-specific health checker discovered via
+	// type assertion on the engine.
 	engineHealthChecker DatabaseHealthChecker
 
 	// db holds the primary database connection.
 	db *sql.DB
 
-	// driverName holds the resolved database/sql driver name (e.g. "postgres",
-	// "mysql", "sqlite") for provider discovery, set to "pre-opened" when the
-	// caller supplies a pre-opened *sql.DB without engine configuration.
+	// driverName holds the resolved database/sql driver name (e.g. "postgres", "mysql",
+	// "sqlite") for provider discovery, set to "pre-opened" when the caller supplies a
+	// pre-opened *sql.DB without engine configuration.
 	driverName string
 
 	// replicas holds the open replica connections for health checks and cleanup.
 	replicas []*sql.DB
 
-	// replicaCount holds the number of configured read replicas for this
-	// database instance.
+	// replicaCount holds the number of configured read replicas for this database instance.
 	replicaCount int
 }
 
-// replicaBalancer distributes read queries across a pool of connections using
-// lock-free weighted round-robin. Weighted replicas are expanded into the flat
-// pool (a replica with weight 2 appears twice).
+// replicaBalancer distributes read queries across a pool of connections using lock-free
+// weighted round-robin. Weighted replicas are expanded into the flat pool (a replica with
+// weight 2 appears twice).
 type replicaBalancer struct {
-	// pool holds the weighted flat list of DBTX connections for round-robin
-	// selection.
+	// pool holds the weighted flat list of DBTX connections for round-robin selection.
 	pool []DBTX
 
 	// counter holds the atomic counter used for lock-free round-robin indexing.
@@ -371,8 +361,7 @@ func (balancer *replicaBalancer) QueryRowContext(ctx context.Context, query stri
 	return balancer.next().QueryRowContext(ctx, query, args...)
 }
 
-// next selects the next DBTX connection from the pool using lock-free
-// round-robin.
+// next selects the next DBTX connection from the pool using lock-free round-robin.
 //
 // Returns DBTX which is the next connection in the rotation.
 func (balancer *replicaBalancer) next() DBTX {
@@ -380,8 +369,8 @@ func (balancer *replicaBalancer) next() DBTX {
 	return balancer.pool[index%uint64(len(balancer.pool))]
 }
 
-// databaseService manages named database connections and their migration
-// services. It implements healthprobe_domain.Probe by pinging each connection.
+// databaseService manages named database connections and their migration services. It
+// implements healthprobe_domain.Probe by pinging each connection.
 type databaseService struct {
 	// instances holds the named database connections keyed by registration name.
 	instances map[string]*databaseInstance
@@ -394,17 +383,15 @@ func (*databaseService) Name() string {
 	return databaseServiceName
 }
 
-// Check performs a health check on all registered database connections,
-// where liveness checks ping all connections and readiness checks additionally
-// report connection pool statistics and engine-specific diagnostics.
+// Check performs a health check on all registered database connections, where liveness
+// checks ping all connections and readiness checks additionally report connection pool
+// statistics and engine-specific diagnostics.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
-// Takes checkType (healthprobe_dto.CheckType) which controls the depth of the
-// check: liveness is a simple ping; readiness includes pool stats and engine
-// diagnostics.
+// Takes checkType (healthprobe_dto.CheckType) which controls the depth of the check:
+// liveness is a simple ping; readiness includes pool stats and engine diagnostics.
 //
-// Returns healthprobe_dto.Status which indicates the health of all database
-// connections.
+// Returns healthprobe_dto.Status which indicates the health of all database connections.
 func (s *databaseService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -415,13 +402,12 @@ func (s *databaseService) Check(ctx context.Context, checkType healthprobe_dto.C
 	return s.checkReadiness(ctx, startTime)
 }
 
-// checkLiveness pings all primaries and replicas, returning immediately on
-// first failure.
+// checkLiveness pings all primaries and replicas, returning immediately on first failure.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 //
-// Returns healthprobe_dto.Status which indicates the liveness state of all
-// database connections.
+// Returns healthprobe_dto.Status which indicates the liveness state of all database
+// connections.
 func (s *databaseService) checkLiveness(ctx context.Context, startTime time.Time) healthprobe_dto.Status {
 	overallState := healthprobe_dto.StateHealthy
 	dependencies := make([]*healthprobe_dto.Status, 0, len(s.instances))
@@ -481,13 +467,13 @@ func (s *databaseService) checkLiveness(ctx context.Context, startTime time.Time
 	}
 }
 
-// checkReadiness builds a full hierarchical status with pool stats and
-// engine-specific diagnostics for each connection.
+// checkReadiness builds a full hierarchical status with pool stats and engine-specific
+// diagnostics for each connection.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 //
-// Returns healthprobe_dto.Status which indicates the readiness state of all
-// database connections.
+// Returns healthprobe_dto.Status which indicates the readiness state of all database
+// connections.
 func (s *databaseService) checkReadiness(ctx context.Context, startTime time.Time) healthprobe_dto.Status {
 	overallState := healthprobe_dto.StateHealthy
 	dependencies := make([]*healthprobe_dto.Status, 0, len(s.instances))
@@ -517,14 +503,14 @@ func (s *databaseService) checkReadiness(ctx context.Context, startTime time.Tim
 	}
 }
 
-// buildInstanceReadiness builds the readiness status for a single named
-// database, including its primary and all replicas.
+// buildInstanceReadiness builds the readiness status for a single named database,
+// including its primary and all replicas.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 // Takes name (string) which identifies the database instance.
 //
-// Returns *healthprobe_dto.Status which indicates the readiness state of the
-// database instance.
+// Returns *healthprobe_dto.Status which indicates the readiness state of the database
+// instance.
 func (*databaseService) buildInstanceReadiness(
 	ctx context.Context,
 	name string,
@@ -557,15 +543,14 @@ func (*databaseService) buildInstanceReadiness(
 	}
 }
 
-// buildConnectionReadiness builds the readiness status for a single database
-// connection, including ping, pool stats, and optional engine diagnostics.
+// buildConnectionReadiness builds the readiness status for a single database connection,
+// including ping, pool stats, and optional engine diagnostics.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 // Takes name (string) which identifies the connection.
 // Takes database (*sql.DB) which is the database connection to check.
 //
-// Returns *healthprobe_dto.Status which indicates the readiness state of the
-// connection.
+// Returns *healthprobe_dto.Status which indicates the readiness state of the connection.
 func buildConnectionReadiness(
 	ctx context.Context,
 	name string,
@@ -629,14 +614,14 @@ func buildPoolStatus(database *sql.DB) *healthprobe_dto.Status {
 	}
 }
 
-// poolUtilisationState determines the health state based on connection pool
-// utilisation, returning HEALTHY when unlimited (MaxOpenConnections == 0).
+// poolUtilisationState determines the health state based on connection pool utilisation,
+// returning HEALTHY when unlimited (MaxOpenConnections == 0).
 //
 // Takes stats (sql.DBStats) which holds the current pool statistics.
 //
 // Returns healthprobe_dto.State which is the computed health state.
-// Returns string which is a human-readable message describing the utilisation,
-// or empty when healthy.
+// Returns string which is a human-readable message describing the utilisation, or empty
+// when healthy.
 func poolUtilisationState(stats sql.DBStats) (healthprobe_dto.State, string) {
 	if stats.MaxOpenConnections <= 0 {
 		return healthprobe_dto.StateHealthy, ""
@@ -663,8 +648,7 @@ func poolUtilisationState(stats sql.DBStats) (healthprobe_dto.State, string) {
 // Takes ctx (context.Context) for cancellation and timeout control.
 // Takes database (*sql.DB) which is the database connection to diagnose.
 //
-// Returns []*healthprobe_dto.Status which holds the translated diagnostic
-// results.
+// Returns []*healthprobe_dto.Status which holds the translated diagnostic results.
 func translateDiagnostics(
 	ctx context.Context,
 	database *sql.DB,
@@ -690,8 +674,8 @@ func translateDiagnostics(
 	return statuses
 }
 
-// diagnosticStateToProbeState converts a string state from
-// DatabaseHealthDiagnostic to a healthprobe_dto.State.
+// diagnosticStateToProbeState converts a string state from DatabaseHealthDiagnostic to a
+// healthprobe_dto.State.
 //
 // Takes state (string) which is the diagnostic state string to convert.
 //
@@ -723,16 +707,16 @@ func aggregateState(current, incoming healthprobe_dto.State) healthprobe_dto.Sta
 	return current
 }
 
-// AddDatabase registers a named database connection configuration. The actual
-// connection is opened lazily when GetDatabaseService is first called.
+// AddDatabase registers a named database connection configuration. The actual connection
+// is opened lazily when GetDatabaseService is first called.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the database for later retrieval via
 // GetDatabaseConnection and GetMigrationService.
-// Takes registration (*DatabaseRegistration) which provides connection and
-// migration configuration.
+// Takes registration (*DatabaseRegistration) which provides connection and migration
+// configuration.
 func (c *Container) AddDatabase(name string, registration *DatabaseRegistration) {
 	if c.dbRegistrations == nil {
 		c.dbRegistrations = make(map[string]*DatabaseRegistration)
@@ -740,8 +724,8 @@ func (c *Container) AddDatabase(name string, registration *DatabaseRegistration)
 	c.dbRegistrations[name] = registration
 }
 
-// GetDatabaseService returns the database service, creating it and opening all
-// registered database connections if needed.
+// GetDatabaseService returns the database service, creating it and opening all registered
+// database connections if needed.
 //
 // Returns *databaseService which manages all named database connections.
 // Returns error when a database connection cannot be opened or migrations fail.
@@ -756,8 +740,7 @@ func (c *Container) GetDatabaseService() (*databaseService, error) {
 
 // GetDatabaseConnection returns the *sql.DB for a named database.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
 // Returns *sql.DB which is the open database connection.
 // Returns error when the database service cannot be created or the name is not
@@ -775,12 +758,11 @@ func (c *Container) GetDatabaseConnection(name string) (*sql.DB, error) {
 	return inst.db, nil
 }
 
-// GetDatabaseReader returns the DBTX for reading from a named database, where
-// replicas are balanced via round-robin when configured or the primary
-// connection is returned otherwise.
+// GetDatabaseReader returns the DBTX for reading from a named database, where replicas
+// are balanced via round-robin when configured or the primary connection is returned
+// otherwise.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
 // Returns DBTX which can execute read queries.
 // Returns error when the database service cannot be created or the name is not
@@ -798,12 +780,11 @@ func (c *Container) GetDatabaseReader(name string) (DBTX, error) {
 	return instance.reader, nil
 }
 
-// GetDatabaseWriter returns the DBTX for writing to a named database. When
-// EnableOTel is set on the registration, the returned DBTX is wrapped with
-// OpenTelemetry spans and metrics.
+// GetDatabaseWriter returns the DBTX for writing to a named database. When EnableOTel is
+// set on the registration, the returned DBTX is wrapped with OpenTelemetry spans and
+// metrics.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
 // Returns DBTX which can execute write queries.
 // Returns error when the database service cannot be created or the name is not
@@ -821,16 +802,13 @@ func (c *Container) GetDatabaseWriter(name string) (DBTX, error) {
 	return instance.writer, nil
 }
 
-// GetQuerierMigrationService returns the migration service for a named
-// database.
+// GetQuerierMigrationService returns the migration service for a named database.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
-// Returns querier_domain.MigrationServicePort which can apply and roll back
-// migrations.
-// Returns error when the database service cannot be created, the name is not
-// registered, or no migration filesystem was configured for this database.
+// Returns querier_domain.MigrationServicePort which can apply and roll back migrations.
+// Returns error when the database service cannot be created, the name is not registered,
+// or no migration filesystem was configured for this database.
 func (c *Container) GetQuerierMigrationService(name string) (querier_domain.MigrationServicePort, error) {
 	svc, err := c.GetDatabaseService()
 	if err != nil {
@@ -847,16 +825,15 @@ func (c *Container) GetQuerierMigrationService(name string) (querier_domain.Migr
 	return inst.migrator, nil
 }
 
-// runMigrationsIfConfigured applies all pending migrations for a named
-// database when a migration filesystem is configured. This is used by
-// built-in subsystems (registry, orchestrator) to ensure their schema exists
-// before the DAL is used.
+// runMigrationsIfConfigured applies all pending migrations for a named database when a
+// migration filesystem is configured. This is used by built-in subsystems (registry,
+// orchestrator) to ensure their schema exists before the DAL is used.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
-// Returns error when the migration service cannot be obtained or a migration
-// fails to apply. Returns nil when no migration filesystem is configured.
+// Returns error when the migration service cannot be obtained or a migration fails to
+// apply.
+// Returns nil when no migration filesystem is configured.
 func (c *Container) runMigrationsIfConfigured(name string) error {
 	migrator, err := c.GetQuerierMigrationService(name)
 	if errors.Is(err, ErrNoMigrationFilesystem) {
@@ -875,12 +852,11 @@ func (c *Container) runMigrationsIfConfigured(name string) error {
 
 // GetQuerierSeedService returns the seed service for a named database.
 //
-// Takes name (string) which identifies the database registered via
-// AddDatabase.
+// Takes name (string) which identifies the database registered via AddDatabase.
 //
 // Returns querier_domain.SeedServicePort which can apply and inspect seeds.
-// Returns error when the database service cannot be created, the name is not
-// registered, or no seed filesystem was configured for this database.
+// Returns error when the database service cannot be created, the name is not registered,
+// or no seed filesystem was configured for this database.
 func (c *Container) GetQuerierSeedService(name string) (querier_domain.SeedServicePort, error) {
 	svc, err := c.GetDatabaseService()
 	if err != nil {
@@ -897,8 +873,8 @@ func (c *Container) GetQuerierSeedService(name string) (querier_domain.SeedServi
 	return inst.seeder, nil
 }
 
-// createDatabaseService opens all registered database connections and builds
-// migration services. Errors are stored in c.querierDBErr.
+// createDatabaseService opens all registered database connections and builds migration
+// services. Errors are stored in c.querierDBErr.
 func (c *Container) createDatabaseService() {
 	ctx := c.GetAppContext()
 	_, l := logger_domain.From(ctx, log)
@@ -936,15 +912,14 @@ func (c *Container) createDatabaseService() {
 		logger_domain.Int("connections", len(instances)))
 }
 
-// openDatabaseInstance opens a single database connection and optionally
-// creates a migration service.
+// openDatabaseInstance opens a single database connection and optionally creates a
+// migration service.
 //
 // Takes ctx (context.Context) for shutdown registration.
 // Takes name (string) which identifies the database.
 // Takes reg (DatabaseRegistration) which provides connection configuration.
 //
-// Returns *databaseInstance which holds the open connection and migration
-// service.
+// Returns *databaseInstance which holds the open connection and migration service.
 // Returns error when the connection cannot be opened or the ping fails.
 func (c *Container) openDatabaseInstance(
 	ctx context.Context,
@@ -988,8 +963,8 @@ func (c *Container) openDatabaseInstance(
 	return instance, nil
 }
 
-// acquireConnection returns a live *sql.DB for the registration, either
-// reusing a pre-opened connection or opening a new one with pool settings.
+// acquireConnection returns a live *sql.DB for the registration, either reusing a
+// pre-opened connection or opening a new one with pool settings.
 //
 // Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
@@ -1008,8 +983,8 @@ func (*Container) acquireConnection(
 	return openNewConnection(ctx, name, reg)
 }
 
-// verifyPreOpenedConnection pings a caller-supplied *sql.DB and returns it
-// when reachable.
+// verifyPreOpenedConnection pings a caller-supplied *sql.DB and returns it when
+// reachable.
 //
 // Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
@@ -1029,17 +1004,16 @@ func verifyPreOpenedConnection(ctx context.Context, name string, database *sql.D
 	return database, nil
 }
 
-// openNewConnection opens a fresh database connection using the registration's
-// DSN and driver, applies pool settings, and verifies reachability with a ping.
+// openNewConnection opens a fresh database connection using the registration's DSN and
+// driver, applies pool settings, and verifies reachability with a ping.
 //
 // Takes ctx (context.Context) for ping verification.
 // Takes name (string) which identifies the database for logging.
-// Takes reg (*DatabaseRegistration) which provides DSN, driver, and pool
-// settings.
+// Takes reg (*DatabaseRegistration) which provides DSN, driver, and pool settings.
 //
 // Returns *sql.DB which is the opened and verified connection.
-// Returns error when no driver is configured, the connection cannot be opened,
-// or the ping fails.
+// Returns error when no driver is configured, the connection cannot be opened, or the
+// ping fails.
 func openNewConnection(ctx context.Context, name string, reg *DatabaseRegistration) (*sql.DB, error) {
 	driverName := reg.DriverName
 	if driverName == "" {
@@ -1069,8 +1043,8 @@ func openNewConnection(ctx context.Context, name string, reg *DatabaseRegistrati
 	return database, nil
 }
 
-// applyPoolSettings configures connection pool limits on the database when
-// the registration specifies non-zero values.
+// applyPoolSettings configures connection pool limits on the database when the
+// registration specifies non-zero values.
 //
 // Takes database (*sql.DB) which is the connection to configure.
 // Takes reg (*DatabaseRegistration) which provides pool settings.
@@ -1090,8 +1064,8 @@ func applyPoolSettings(database *sql.DB, reg *DatabaseRegistration) {
 }
 
 // resolveDBSystem returns the OpenTelemetry db.system attribute value for the
-// registration's driver, normalising common names to semantic convention values
-// (e.g. "pgx" becomes "postgresql").
+// registration's driver, normalising common names to semantic convention values (e.g.
+// "pgx" becomes "postgresql").
 //
 // Takes reg (*DatabaseRegistration) which provides driver configuration.
 //
@@ -1115,14 +1089,14 @@ func resolveDBSystem(reg *DatabaseRegistration) string {
 	}
 }
 
-// resolveDriverName returns the raw database/sql driver name for the
-// registration. Unlike resolveDBSystem, this preserves the original driver
-// name without normalising to OTel semantic conventions.
+// resolveDriverName returns the raw database/sql driver name for the registration. Unlike
+// resolveDBSystem, this preserves the original driver name without normalising to OTel
+// semantic conventions.
 //
 // Takes reg (*DatabaseRegistration) which provides driver configuration.
 //
-// Returns string which is the driver name, or "pre-opened" when the caller
-// supplies a pre-opened *sql.DB without engine configuration.
+// Returns string which is the driver name, or "pre-opened" when the caller supplies a
+// pre-opened *sql.DB without engine configuration.
 func resolveDriverName(reg *DatabaseRegistration) string {
 	if reg.DB != nil {
 		if reg.EngineConfig.DriverName != "" {
@@ -1136,15 +1110,14 @@ func resolveDriverName(reg *DatabaseRegistration) string {
 	return reg.EngineConfig.DriverName
 }
 
-// attachReplicas opens replica connections when configured and attaches them
-// to the instance. Closes the primary connection on failure.
+// attachReplicas opens replica connections when configured and attaches them to the
+// instance. Closes the primary connection on failure.
 //
 // Takes ctx (context.Context) for shutdown registration and logging.
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides replica configuration.
 // Takes database (*sql.DB) which is the primary connection, closed on error.
-// Takes instance (*databaseInstance) which receives the replica connections
-// and balancer.
+// Takes instance (*databaseInstance) which receives the replica connections and balancer.
 //
 // Returns error when a replica connection cannot be opened or pinged.
 func (c *Container) attachReplicas(
@@ -1175,15 +1148,15 @@ func (c *Container) attachReplicas(
 	return nil
 }
 
-// createMigrationServiceForInstance creates a migration service for a database
-// instance if a migration filesystem is configured.
+// createMigrationServiceForInstance creates a migration service for a database instance
+// if a migration filesystem is configured.
 //
 // Takes ctx (context.Context) for logging context.
 // Takes database (*sql.DB) which is the database connection for migrations.
 // Takes name (string) which identifies the database for logging.
 //
-// Returns querier_domain.MigrationServicePort which is the migration service,
-// or nil when no migration filesystem is configured.
+// Returns querier_domain.MigrationServicePort which is the migration service, or nil when
+// no migration filesystem is configured.
 func (*Container) createMigrationServiceForInstance(
 	ctx context.Context,
 	database *sql.DB,
@@ -1219,8 +1192,8 @@ func (*Container) createMigrationServiceForInstance(
 	return migrator
 }
 
-// createSeedServiceForInstance creates a seed service from the registration's
-// SeedFS, or returns nil when no seed filesystem is configured.
+// createSeedServiceForInstance creates a seed service from the registration's SeedFS, or
+// returns nil when no seed filesystem is configured.
 //
 // Takes ctx (context.Context) for logging.
 // Takes database (*sql.DB) which is the open database connection.
@@ -1261,9 +1234,9 @@ func (*Container) createSeedServiceForInstance(
 	return seeder
 }
 
-// openReplicas opens all replica connections for a database registration and
-// returns them as both a flat slice of *sql.DB (for health checks and cleanup)
-// and a weighted pool of DBTX (for the balancer).
+// openReplicas opens all replica connections for a database registration and returns them
+// as both a flat slice of *sql.DB (for health checks and cleanup) and a weighted pool of
+// DBTX (for the balancer).
 //
 // Takes ctx (context.Context) for shutdown registration and logging.
 // Takes name (string) which identifies the database for logging.
@@ -1326,11 +1299,10 @@ func (*Container) openReplicas(
 	return replicaConnections, balancerPool, nil
 }
 
-// closeAllInstances closes every database instance (primary + replicas),
-// logging errors for primaries.
+// closeAllInstances closes every database instance (primary + replicas), logging errors
+// for primaries.
 //
-// Takes instances (map[string]*databaseInstance) which holds the instances to
-// close.
+// Takes instances (map[string]*databaseInstance) which holds the instances to close.
 func closeAllInstances(ctx context.Context, instances map[string]*databaseInstance) {
 	_, l := logger_domain.From(ctx, log)
 	for name, instance := range instances {
@@ -1352,13 +1324,13 @@ func closeAllConnections(connections []*sql.DB) {
 	}
 }
 
-// configureReplicaPool applies pool settings to a replica connection, using
-// the replica's own values when non-zero and falling back to the primary's
-// settings from the registration.
+// configureReplicaPool applies pool settings to a replica connection, using the replica's
+// own values when non-zero and falling back to the primary's settings from the
+// registration.
 //
 // Takes replicaDB (*sql.DB) which is the replica connection to configure.
-// Takes registration (*DatabaseRegistration) which provides fallback pool
-// settings from the primary.
+// Takes registration (*DatabaseRegistration) which provides fallback pool settings from
+// the primary.
 // Takes replica (*Replica) which provides replica-specific pool overrides.
 func configureReplicaPool(replicaDB *sql.DB, registration *DatabaseRegistration, replica *Replica) {
 	maxOpenConnections := registration.MaxOpenConns

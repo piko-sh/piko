@@ -26,12 +26,14 @@ import (
 )
 
 // DisabledCaptchaService implements CaptchaServicePort but returns errors for
-// verification operations. It is used when no captcha provider is configured,
-// allowing the application to start without captcha while giving clear errors
-// if verification is attempted.
+// verification operations. It is used when no captcha provider is configured, allowing
+// the application to start without captcha while giving clear errors if verification is
+// attempted.
 type DisabledCaptchaService struct{}
 
-var _ CaptchaServicePort = (*DisabledCaptchaService)(nil)
+var (
+	_ CaptchaServicePort = (*DisabledCaptchaService)(nil)
+)
 
 // NewDisabledCaptchaService creates a new disabled captcha service.
 //
@@ -100,16 +102,16 @@ func (*DisabledCaptchaService) IsEnabled() bool {
 	return false
 }
 
-// RegisterProvider returns ErrCaptchaDisabled since provider registration is
-// not supported when captcha is disabled.
+// RegisterProvider returns ErrCaptchaDisabled since provider registration is not
+// supported when captcha is disabled.
 //
 // Returns error which is always ErrCaptchaDisabled.
 func (*DisabledCaptchaService) RegisterProvider(_ context.Context, _ string, _ CaptchaProvider) error {
 	return captcha_dto.ErrCaptchaDisabled
 }
 
-// SetDefaultProvider returns ErrCaptchaDisabled since provider management is
-// not supported when captcha is disabled.
+// SetDefaultProvider returns ErrCaptchaDisabled since provider management is not
+// supported when captcha is disabled.
 //
 // Returns error which is always ErrCaptchaDisabled.
 func (*DisabledCaptchaService) SetDefaultProvider(_ string) error {
@@ -137,16 +139,15 @@ func (*DisabledCaptchaService) ListProviders(_ context.Context) []provider_domai
 	return nil
 }
 
-// HealthCheck returns nil since the disabled service is healthy in the sense
-// that it correctly reports its disabled state.
+// HealthCheck returns nil since the disabled service is healthy in the sense that it
+// correctly reports its disabled state.
 //
 // Returns error which is always nil.
 func (*DisabledCaptchaService) HealthCheck(_ context.Context) error {
 	return nil
 }
 
-// Close is a no-op for the disabled service since there are no providers to
-// shut down.
+// Close is a no-op for the disabled service since there are no providers to shut down.
 //
 // Returns error which is always nil.
 func (*DisabledCaptchaService) Close(_ context.Context) error {

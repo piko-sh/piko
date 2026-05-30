@@ -26,6 +26,7 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"strings"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/fbs"
@@ -37,54 +38,53 @@ import (
 )
 
 const (
-	// bytecodeDefaultDirPerm is the default directory permission
-	// for the bytecode cache directory.
+	// bytecodeDefaultDirPerm is the default directory permission for the bytecode cache
+	// directory.
 	bytecodeDefaultDirPerm = 0755
 
-	// bytecodeDefaultFilePerm is the default file permission for
-	// cached bytecode files.
+	// bytecodeDefaultFilePerm is the default file permission for cached bytecode files.
 	bytecodeDefaultFilePerm = 0644
 
-	// bytecodeInitialBuilder is the initial capacity in bytes for
-	// the FlatBuffer builder used during serialisation.
+	// bytecodeInitialBuilder is the initial capacity in bytes for the FlatBuffer builder
+	// used during serialisation.
 	bytecodeInitialBuilder = 4096
 
-	// bytecodeVectorAlignment is the byte alignment used when
-	// building FlatBuffer offset vectors.
+	// bytecodeVectorAlignment is the byte alignment used when building FlatBuffer offset
+	// vectors.
 	bytecodeVectorAlignment = 4
 )
 
-// BytecodeStore provides FlatBuffer-based persistence for compiled
-// bytecode. It implements interp_domain.BytecodeStorePort.
+// BytecodeStore provides FlatBuffer-based persistence for compiled bytecode. It
+// implements interp_domain.BytecodeStorePort.
 type BytecodeStore struct {
-	// sandbox provides sandboxed filesystem access to the bytecode
-	// cache directory.
+	// sandbox provides sandboxed filesystem access to the bytecode cache directory.
 	sandbox safedisk.Sandbox
 }
 
-var _ interp_domain.BytecodeStorePort = (*BytecodeStore)(nil)
+var (
+	_ interp_domain.BytecodeStorePort = (*BytecodeStore)(nil)
+)
 
-// NewBytecodeStore creates a new BytecodeStore with the given
-// sandbox. The sandbox root is the bytecode cache directory.
+// NewBytecodeStore creates a new BytecodeStore with the given sandbox. The sandbox root
+// is the bytecode cache directory.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed
-// filesystem access to the cache directory.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access to the
+// cache directory.
 //
 // Returns *BytecodeStore which is ready for use.
 func NewBytecodeStore(sandbox safedisk.Sandbox) *BytecodeStore {
 	return &BytecodeStore{sandbox: sandbox}
 }
 
-// SaveCompiledFileSet serialises and persists a compiled file set
-// under the given key. The payload is wrapped with a schema version
-// header and written atomically to prevent partial writes.
+// SaveCompiledFileSet serialises and persists a compiled file set under the given key.
+// The payload is wrapped with a schema version header and written atomically to prevent
+// partial writes.
 //
 // Takes key (string) which identifies the compiled file set.
-// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is
-// the compiled file set to persist.
+// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the compiled file set
+// to persist.
 //
-// Returns error when the sandbox is nil, the key is empty, or
-// filesystem operations fail.
+// Returns error when the sandbox is nil, the key is empty, or filesystem operations fail.
 func (bytecodeStore *BytecodeStore) SaveCompiledFileSet(_ context.Context, key string, compiledFileSet *interp_domain.CompiledFileSet) error {
 	if bytecodeStore.sandbox == nil || key == "" {
 		return errors.New("bytecode store requires a sandbox and key")
@@ -110,17 +110,19 @@ func (bytecodeStore *BytecodeStore) SaveCompiledFileSet(_ context.Context, key s
 	return nil
 }
 
-// InvalidateCache removes the cached bytecode for the given key.
-// If the file does not exist, no error is returned.
+// InvalidateCache removes the cached bytecode for the given key. If the file does not
+// exist, no error is returned.
 //
-// Takes key (string) which identifies the cached bytecode to
-// remove.
+// Takes key (string) which identifies the cached bytecode to remove.
 //
-// Returns error when the sandbox is nil, the key is empty, or the
-// removal fails for a reason other than the file not existing.
-func (bytecodeStore *BytecodeStore) InvalidateCache(_ context.Context, key string) error {
+// Returns error when the sandbox is nil, the key is empty, or the removal fails for a
+// reason other than the file not existing.
+func (bytecodeStore *BytecodeStore) InvalidateCache(ctx context.Context, key string) error {
 	if bytecodeStore.sandbox == nil || key == "" {
 		return errors.New("bytecode store requires a sandbox and key")
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("bytecode invalidate cancelled: %w", err)
 	}
 
 	fileName := fmt.Sprintf("bytecode-%s.bin", key)
@@ -131,11 +133,11 @@ func (bytecodeStore *BytecodeStore) InvalidateCache(_ context.Context, key strin
 	return nil
 }
 
-// PackCompiledFileSetToBytes serialises a CompiledFileSet into
-// a versioned FlatBuffer byte slice ready for writing to disk.
+// PackCompiledFileSetToBytes serialises a CompiledFileSet into a versioned FlatBuffer
+// byte slice ready for writing to disk.
 //
-// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is
-// the compiled file set to serialise.
+// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the compiled file set
+// to serialise.
 //
 // Returns []byte which is the versioned FlatBuffer payload.
 func PackCompiledFileSetToBytes(compiledFileSet *interp_domain.CompiledFileSet) []byte {
@@ -150,17 +152,14 @@ func PackCompiledFileSetToBytes(compiledFileSet *interp_domain.CompiledFileSet) 
 	return versionedData
 }
 
-// packCompiledFileSet serialises a CompiledFileSet into a
-// FlatBuffer. The root and variable init functions are packed
-// recursively.
+// packCompiledFileSet serialises a CompiledFileSet into a FlatBuffer. The root and
+// variable init functions are packed recursively.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is
-// the compiled file set to serialise.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the compiled file set
+// to serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// CompiledFileSet table.
+// Returns flatbuffers.UOffsetT which is the offset of the packed CompiledFileSet table.
 func packCompiledFileSet(builder *flatbuffers.Builder, compiledFileSet *interp_domain.CompiledFileSet) flatbuffers.UOffsetT {
 	var rootOffset flatbuffers.UOffsetT
 	if compiledFileSet.Root() != nil {
@@ -174,6 +173,7 @@ func packCompiledFileSet(builder *flatbuffers.Builder, compiledFileSet *interp_d
 
 	entrypointsOffset := packEntrypoints(builder, compiledFileSet.Entrypoints())
 	initFunctionIndicesOffset := packUint16Slice(builder, compiledFileSet.InitFuncs())
+	packageVariablesOffset := packPackageVariables(builder, compiledFileSet.PackageVariables())
 
 	interp_schema_gen.CompiledFileSetStart(builder)
 	if rootOffset != 0 {
@@ -188,26 +188,89 @@ func packCompiledFileSet(builder *flatbuffers.Builder, compiledFileSet *interp_d
 	if initFunctionIndicesOffset != 0 {
 		interp_schema_gen.CompiledFileSetAddInitialisationFunctions(builder, initFunctionIndicesOffset)
 	}
+	if alloc := compiledFileSet.SlotAllocation(); !isZeroSlotAllocation(alloc) {
+		slotAllocationOffset := interp_schema_gen.CreateSlotAllocation(
+			builder,
+			alloc[0], alloc[1], alloc[2], alloc[3], alloc[4], alloc[5], alloc[6],
+		)
+		interp_schema_gen.CompiledFileSetAddSlotAllocation(builder, slotAllocationOffset)
+	}
+	if packageVariablesOffset != 0 {
+		interp_schema_gen.CompiledFileSetAddPackageVariables(builder, packageVariablesOffset)
+	}
 	return interp_schema_gen.CompiledFileSetEnd(builder)
 }
 
-// packCompiledFunction recursively serialises a CompiledFunction
-// into a FlatBuffer. All constant pools, descriptors, call sites,
-// and child functions are packed.
+// isZeroSlotAllocation reports whether the bundle reserved no global-store slots.
+// Serialisation skips the SlotAllocation struct in that case to keep payloads minimal for
+// function-only modules.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes compiledFunction (*interp_domain.CompiledFunction) which is
-// the function to serialise.
+// Takes alloc (interp_domain.SlotAllocation) which is the bundle's per-bank slot
+// allocation tuple.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// CompiledFunction table.
+// Returns bool which is true when every entry is zero.
+func isZeroSlotAllocation(alloc interp_domain.SlotAllocation) bool {
+	for _, v := range alloc {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// packPackageVariables serialises the PackageVariableMetadata vector that the load path
+// uses to rebuild settable storage and pendingVarBridge entries.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes vars ([]interp_domain.PackageVariableMetadata) which holds the package-variable
+// entries to serialise.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// bundle has no exported vars.
+func packPackageVariables(builder *flatbuffers.Builder, vars []interp_domain.PackageVariableMetadata) flatbuffers.UOffsetT {
+	if len(vars) == 0 {
+		return 0
+	}
+	offsets := make([]flatbuffers.UOffsetT, len(vars))
+	for i, v := range vars {
+		nameOffset := builder.CreateString(v.Name)
+		pathOffset := builder.CreateString(v.PackagePath)
+		var typeOffset flatbuffers.UOffsetT
+		if v.Type != nil {
+			typeOffset = packTypeDescriptor(builder, *v.Type)
+		}
+		interp_schema_gen.PackageVariableEntryStart(builder)
+		interp_schema_gen.PackageVariableEntryAddName(builder, nameOffset)
+		interp_schema_gen.PackageVariableEntryAddPackagePath(builder, pathOffset)
+		if typeOffset != 0 {
+			interp_schema_gen.PackageVariableEntryAddTypeDescriptor(builder, typeOffset)
+		}
+		interp_schema_gen.PackageVariableEntryAddRegisterKind(builder, interp_schema_gen.RegisterKind(safeconv.MustUint8ToInt8(v.RegisterKind)))
+		interp_schema_gen.PackageVariableEntryAddRelativeSlot(builder, v.RelativeSlot)
+		offsets[i] = interp_schema_gen.PackageVariableEntryEnd(builder)
+	}
+	interp_schema_gen.CompiledFileSetStartPackageVariablesVector(builder, len(offsets))
+	for _, v := range slices.Backward(offsets) {
+		builder.PrependUOffsetT(v)
+	}
+	return builder.EndVector(len(offsets))
+}
+
+// packCompiledFunction recursively serialises a CompiledFunction into a FlatBuffer. All
+// constant pools, descriptors, call sites, and child functions are packed.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes compiledFunction (*interp_domain.CompiledFunction) which is the function to
+// serialise.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the packed CompiledFunction table.
 func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp_domain.CompiledFunction) flatbuffers.UOffsetT { //nolint:revive // serialisation dispatch
 	nameOffset := builder.CreateString(compiledFunction.ExportName())
 	sourceFileOffset := builder.CreateString(compiledFunction.ExportSourceFile())
 
 	numRegistersOffset := packRegisterCounts(builder, compiledFunction.NumRegistersSlice())
 	paramKindsOffset := packRegisterKinds(builder, compiledFunction.ParamKinds())
+	paramRegistersOffset := packParameterRegisters(builder, compiledFunction.ParamRegisters())
 	resultKindsOffset := packRegisterKinds(builder, compiledFunction.ResultKinds())
 
 	bodyOffset := packInstructions(builder, compiledFunction.Body())
@@ -220,6 +283,7 @@ func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp
 
 	generalDescriptorsOffset := packGeneralConstantDescriptors(builder, compiledFunction.GeneralConstantDescriptors())
 	typeTableDescriptorsOffset := packTypeDescriptors(builder, compiledFunction.TypeTableDescriptors())
+	typeTableInterfaceMethodsOffset := packInterfaceMethodSets(builder, compiledFunction.TypeTableInterfaceMethods())
 	typeNamesOffset := packTypeNames(builder, compiledFunction.TypeNames())
 
 	callSitesOffset := packCallSites(builder, compiledFunction.CallSites())
@@ -232,8 +296,9 @@ func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp
 	}
 	functionsOffset := createVector(builder, childOffsets)
 
-	namedResultLocsOffset := packVarLocations(builder, compiledFunction.NamedResultLocs())
+	namedResultLocsOffset := packVarLocations(builder, compiledFunction.NamedResultLocations())
 	methodTableOffset := packMethodTable(builder, compiledFunction.MethodTable())
+	structLayoutTableOffset := packStructLayoutTable(builder, compiledFunction.StructLayoutTable())
 
 	var varInitFunctionOffset flatbuffers.UOffsetT
 	if compiledFunction.VariableInitFunction() != nil {
@@ -244,11 +309,15 @@ func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp
 	interp_schema_gen.CompiledFunctionAddName(builder, nameOffset)
 	interp_schema_gen.CompiledFunctionAddSourceFile(builder, sourceFileOffset)
 	interp_schema_gen.CompiledFunctionAddIsVariadic(builder, compiledFunction.ExportIsVariadic())
+	interp_schema_gen.CompiledFunctionAddIsPointerReceiver(builder, compiledFunction.ExportIsPointerReceiver())
 	if numRegistersOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddRegisterCounts(builder, numRegistersOffset)
 	}
 	if paramKindsOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddParameterKinds(builder, paramKindsOffset)
+	}
+	if paramRegistersOffset != 0 {
+		interp_schema_gen.CompiledFunctionAddParameterRegisters(builder, paramRegistersOffset)
 	}
 	if resultKindsOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddResultKinds(builder, resultKindsOffset)
@@ -280,6 +349,9 @@ func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp
 	if typeTableDescriptorsOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddTypeTableDescriptors(builder, typeTableDescriptorsOffset)
 	}
+	if typeTableInterfaceMethodsOffset != 0 {
+		interp_schema_gen.CompiledFunctionAddTypeTableInterfaceMethods(builder, typeTableInterfaceMethodsOffset)
+	}
 	if typeNamesOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddTypeNames(builder, typeNamesOffset)
 	}
@@ -301,61 +373,90 @@ func packCompiledFunction(builder *flatbuffers.Builder, compiledFunction *interp
 	if varInitFunctionOffset != 0 {
 		interp_schema_gen.CompiledFunctionAddVariableInitFunction(builder, varInitFunctionOffset)
 	}
+	if structLayoutTableOffset != 0 {
+		interp_schema_gen.CompiledFunctionAddStructLayoutTable(builder, structLayoutTableOffset)
+	}
 	return interp_schema_gen.CompiledFunctionEnd(builder)
 }
 
-// packInstructions packs a slice of instructions as FlatBuffer
-// structs. Instructions are 4-byte fixed-size structs enabling
-// zero-copy reads.
+// packStructLayoutTable packs the compile-time-resolved struct field layout table as a
+// vector of FlatBuffer structs.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes instructions ([]interp_domain.InstructionData) which holds
-// the bytecode instructions to pack.
+// Takes builder (*flatbuffers.Builder) which is the buffer to write into.
+// Takes layouts ([]interp_domain.StructFieldLayoutData) which holds the entries to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// instruction vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
+func packStructLayoutTable(builder *flatbuffers.Builder, layouts []interp_domain.StructFieldLayoutData) flatbuffers.UOffsetT {
+	if len(layouts) == 0 {
+		return 0
+	}
+	interp_schema_gen.CompiledFunctionStartStructLayoutTableVector(builder, len(layouts))
+	for _, layout := range slices.Backward(layouts) {
+		interp_schema_gen.CreateStructFieldLayout(builder,
+			layout.Offset, layout.TypeIndex,
+			layout.Path[0], layout.Path[1], layout.Path[2], layout.Path[3],
+			layout.PathLength, layout.Kind, layout.RegisterKind, layout.Flags,
+			layout.FieldTypeIndex)
+	}
+	return builder.EndVector(len(layouts))
+}
+
+// packInstructions packs a slice of instructions as FlatBuffer structs. Instructions are
+// 4-byte fixed-size structs enabling zero-copy reads.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes instructions ([]interp_domain.InstructionData) which holds the bytecode
+// instructions to pack.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the packed instruction vector, or 0
+// when the slice is empty.
 func packInstructions(builder *flatbuffers.Builder, instructions []interp_domain.InstructionData) flatbuffers.UOffsetT {
 	if len(instructions) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartBodyVector(builder, len(instructions))
-	for i := len(instructions) - 1; i >= 0; i-- {
-		interp_schema_gen.CreateInstruction(builder, instructions[i].Operation, instructions[i].A, instructions[i].B, instructions[i].C)
+	for _, instruction := range slices.Backward(instructions) {
+		interp_schema_gen.CreateInstruction(builder, instruction.Operation, instruction.A, instruction.B, instruction.C)
 	}
 	return builder.EndVector(len(instructions))
 }
 
-// packUpvalueDescriptors packs upvalue descriptors as FlatBuffer
-// structs. Each descriptor is a 3-byte fixed-size struct.
+// packUpvalueDescriptors packs upvalue descriptors as FlatBuffer structs. Each descriptor
+// is a 5-byte fixed-size struct.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes descriptors ([]interp_domain.UpvalueDescriptorData) which
-// holds the upvalue descriptors to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes descriptors ([]interp_domain.UpvalueDescriptorData) which holds the upvalue
+// descriptors to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packUpvalueDescriptors(builder *flatbuffers.Builder, descriptors []interp_domain.UpvalueDescriptorData) flatbuffers.UOffsetT {
 	if len(descriptors) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartUpvalueDescriptorsVector(builder, len(descriptors))
-	for i := len(descriptors) - 1; i >= 0; i-- {
-		interp_schema_gen.CreateUpvalueDescriptor(builder, descriptors[i].Index, interp_schema_gen.RegisterKind(safeconv.MustUint8ToInt8(descriptors[i].Kind)), descriptors[i].IsLocal)
+	for _, descriptor := range slices.Backward(descriptors) {
+		interp_schema_gen.CreateUpvalueDescriptor(
+			builder,
+			descriptor.Index,
+			interp_schema_gen.RegisterKind(safeconv.MustUint8ToInt8(descriptor.Kind)),
+			descriptor.IsLocal,
+			descriptor.IsIndirect,
+			interp_schema_gen.RegisterKind(safeconv.MustUint8ToInt8(descriptor.OriginalKind)),
+		)
 	}
 	return builder.EndVector(len(descriptors))
 }
 
 // packVarLocations packs variable locations as FlatBuffer tables.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes locations ([]interp_domain.VarLocationData) which holds the
-// variable locations to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes locations ([]interp_domain.VarLocationData) which holds the variable locations to
+// pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packVarLocations(builder *flatbuffers.Builder, locations []interp_domain.VarLocationData) flatbuffers.UOffsetT {
 	if len(locations) == 0 {
 		return 0
@@ -367,16 +468,13 @@ func packVarLocations(builder *flatbuffers.Builder, locations []interp_domain.Va
 	return createVector(builder, offsets)
 }
 
-// packVarLocation packs a single variable location as a FlatBuffer
-// table.
+// packVarLocation packs a single variable location as a FlatBuffer table.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes location (interp_domain.VarLocationData) which holds the
-// variable location fields.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes location (interp_domain.VarLocationData) which holds the variable location
+// fields.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// VarLocation table.
+// Returns flatbuffers.UOffsetT which is the offset of the packed VarLocation table.
 func packVarLocation(builder *flatbuffers.Builder, location interp_domain.VarLocationData) flatbuffers.UOffsetT {
 	interp_schema_gen.VarLocationStart(builder)
 	interp_schema_gen.VarLocationAddUpvalueIndex(builder, location.UpvalueIndex)
@@ -392,13 +490,12 @@ func packVarLocation(builder *flatbuffers.Builder, location interp_domain.VarLoc
 
 // packCallSites packs call site descriptors as FlatBuffer tables.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes callSites ([]interp_domain.CallSiteData) which holds the
-// call site descriptors to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes callSites ([]interp_domain.CallSiteData) which holds the call site descriptors to
+// pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packCallSites(builder *flatbuffers.Builder, callSites []interp_domain.CallSiteData) flatbuffers.UOffsetT {
 	if len(callSites) == 0 {
 		return 0
@@ -410,17 +507,13 @@ func packCallSites(builder *flatbuffers.Builder, callSites []interp_domain.CallS
 	return createVector(builder, offsets)
 }
 
-// packCallSite packs a single call site as a FlatBuffer table.
-// Only static metadata is serialised; runtime caches are
-// reconstructed on load.
+// packCallSite packs a single call site as a FlatBuffer table. Only static metadata is
+// serialised; runtime caches are reconstructed on load.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes site (interp_domain.CallSiteData) which holds the call
-// site fields.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes site (interp_domain.CallSiteData) which holds the call site fields.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// CallSite table.
+// Returns flatbuffers.UOffsetT which is the offset of the packed CallSite table.
 func packCallSite(builder *flatbuffers.Builder, site interp_domain.CallSiteData) flatbuffers.UOffsetT {
 	argumentsOffset := packVarLocations(builder, site.Arguments)
 	returnsOffset := packVarLocations(builder, site.Returns)
@@ -432,27 +525,27 @@ func packCallSite(builder *flatbuffers.Builder, site interp_domain.CallSiteData)
 	interp_schema_gen.CallSiteAddIsClosure(builder, site.IsClosure)
 	interp_schema_gen.CallSiteAddIsNative(builder, site.IsNative)
 	interp_schema_gen.CallSiteAddIsMethod(builder, site.IsMethod)
-	interp_schema_gen.CallSiteAddMethodReceiverRegister(builder, site.MethodRecvReg)
+	interp_schema_gen.CallSiteAddMethodReceiverRegister(builder, site.MethodReceiverRegister)
 	if argumentsOffset != 0 {
 		interp_schema_gen.CallSiteAddArguments(builder, argumentsOffset)
 	}
 	if returnsOffset != 0 {
 		interp_schema_gen.CallSiteAddReturns(builder, returnsOffset)
 	}
+	if site.IsEllipsisSpread {
+		interp_schema_gen.CallSiteAddIsEllipsisSpread(builder, site.IsEllipsisSpread)
+	}
 	return interp_schema_gen.CallSiteEnd(builder)
 }
 
-// packTypeDescriptor recursively packs a type descriptor as a
-// FlatBuffer table. Recursive fields (elem, key, value, fields,
-// params, results) are packed depth-first.
+// packTypeDescriptor recursively packs a type descriptor as a FlatBuffer table. Recursive
+// fields (elem, key, value, fields, params, results) are packed depth-first.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes descriptor (interp_domain.TypeDescriptorData) which holds
-// the type descriptor to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes descriptor (interp_domain.TypeDescriptorData) which holds the type descriptor to
+// pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// TypeDescriptor table.
+// Returns flatbuffers.UOffsetT which is the offset of the packed TypeDescriptor table.
 func packTypeDescriptor(builder *flatbuffers.Builder, descriptor interp_domain.TypeDescriptorData) flatbuffers.UOffsetT {
 	packagePathOffset := builder.CreateString(descriptor.PackagePath)
 	nameOffset := builder.CreateString(descriptor.Name)
@@ -501,16 +594,14 @@ func packTypeDescriptor(builder *flatbuffers.Builder, descriptor interp_domain.T
 	return interp_schema_gen.TypeDescriptorEnd(builder)
 }
 
-// packTypeDescriptors packs a slice of type descriptors as a
-// FlatBuffer vector.
+// packTypeDescriptors packs a slice of type descriptors as a FlatBuffer vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes descriptors ([]interp_domain.TypeDescriptorData) which
-// holds the type descriptors to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes descriptors ([]interp_domain.TypeDescriptorData) which holds the type descriptors
+// to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packTypeDescriptors(builder *flatbuffers.Builder, descriptors []interp_domain.TypeDescriptorData) flatbuffers.UOffsetT {
 	if len(descriptors) == 0 {
 		return 0
@@ -522,16 +613,14 @@ func packTypeDescriptors(builder *flatbuffers.Builder, descriptors []interp_doma
 	return createVector(builder, offsets)
 }
 
-// packTypeDescFields packs struct field descriptors as FlatBuffer
-// tables.
+// packTypeDescFields packs struct field descriptors as FlatBuffer tables.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes fields ([]interp_domain.TypeDescFieldData) which holds the
-// struct field descriptors to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes fields ([]interp_domain.TypeDescFieldData) which holds the struct field
+// descriptors to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packTypeDescFields(builder *flatbuffers.Builder, fields []interp_domain.TypeDescFieldData) flatbuffers.UOffsetT {
 	if len(fields) == 0 {
 		return 0
@@ -553,16 +642,14 @@ func packTypeDescFields(builder *flatbuffers.Builder, fields []interp_domain.Typ
 	return createVector(builder, offsets)
 }
 
-// packGeneralConstantDescriptors packs general constant descriptors
-// as FlatBuffer tables.
+// packGeneralConstantDescriptors packs general constant descriptors as FlatBuffer tables.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes descriptors ([]interp_domain.GeneralConstantDescriptorData)
-// which holds the descriptors to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes descriptors ([]interp_domain.GeneralConstantDescriptorData) which holds the
+// descriptors to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packGeneralConstantDescriptors(builder *flatbuffers.Builder, descriptors []interp_domain.GeneralConstantDescriptorData) flatbuffers.UOffsetT {
 	if len(descriptors) == 0 {
 		return 0
@@ -583,22 +670,31 @@ func packGeneralConstantDescriptors(builder *flatbuffers.Builder, descriptors []
 	return createVector(builder, offsets)
 }
 
-// packTypeNames packs the type names map as a vector of entries.
-// Each entry pairs a type descriptor with its string name.
+// packTypeNames packs the type names map as a vector of entries. Each entry pairs a type
+// descriptor with its string name.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes typeNames (map[reflect.Type]interp_domain.TypeNameData)
-// which maps runtime types to their serialisable name entries.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes typeNames (map[reflect.Type]interp_domain.TypeNameData) which maps runtime types
+// to their serialisable name entries.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// map is empty.
 func packTypeNames(builder *flatbuffers.Builder, typeNames map[reflect.Type]interp_domain.TypeNameData) flatbuffers.UOffsetT {
 	if len(typeNames) == 0 {
 		return 0
 	}
-	offsets := make([]flatbuffers.UOffsetT, 0, len(typeNames))
+
+	sortedData := make([]interp_domain.TypeNameData, 0, len(typeNames))
 	for _, data := range typeNames { //nolint:gocritic // map iteration copies values
+		sortedData = append(sortedData, data)
+	}
+	slices.SortFunc(sortedData, func(a, b interp_domain.TypeNameData) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
+	offsets := make([]flatbuffers.UOffsetT, 0, len(sortedData))
+	for i := range sortedData {
+		data := &sortedData[i]
 		nameOffset := builder.CreateString(data.Name)
 		typeDescOffset := packTypeDescriptor(builder, data.TypeDesc)
 
@@ -610,16 +706,13 @@ func packTypeNames(builder *flatbuffers.Builder, typeNames map[reflect.Type]inte
 	return createVector(builder, offsets)
 }
 
-// packEntrypoints packs the entrypoints map as a sorted vector of
-// entrypoint entries.
+// packEntrypoints packs the entrypoints map as a sorted vector of entrypoint entries.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes entrypoints (map[string]uint16) which maps function names
-// to their indices.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes entrypoints (map[string]uint16) which maps function names to their indices.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// map is empty.
 func packEntrypoints(builder *flatbuffers.Builder, entrypoints map[string]uint16) flatbuffers.UOffsetT {
 	return packStringUint16Map(builder, entrypoints, func(mapBuilder *flatbuffers.Builder, nameOffset flatbuffers.UOffsetT, index uint16) flatbuffers.UOffsetT {
 		interp_schema_gen.EntrypointEntryStart(mapBuilder)
@@ -629,16 +722,14 @@ func packEntrypoints(builder *flatbuffers.Builder, entrypoints map[string]uint16
 	})
 }
 
-// packMethodTable packs the method table map as a sorted vector of
-// method table entries.
+// packMethodTable packs the method table map as a sorted vector of method table entries.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes methodTable (map[string]uint16) which maps method names to
-// their function indices.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes methodTable (map[string]uint16) which maps method names to their function
+// indices.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// map is empty.
 func packMethodTable(builder *flatbuffers.Builder, methodTable map[string]uint16) flatbuffers.UOffsetT {
 	return packStringUint16Map(builder, methodTable, func(mapBuilder *flatbuffers.Builder, nameOffset flatbuffers.UOffsetT, index uint16) flatbuffers.UOffsetT {
 		interp_schema_gen.MethodTableEntryStart(mapBuilder)
@@ -648,18 +739,15 @@ func packMethodTable(builder *flatbuffers.Builder, methodTable map[string]uint16
 	})
 }
 
-// packStringUint16Map packs a map[string]uint16 as a sorted vector
-// of FlatBuffer entries using the provided entry builder function.
-// Keys are sorted for deterministic output.
+// packStringUint16Map packs a map[string]uint16 as a sorted vector of FlatBuffer entries
+// using the provided entry builder function. Keys are sorted for deterministic output.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
 // Takes entries (map[string]uint16) which is the map to serialise.
-// Takes buildEntry (func) which creates each entry from a name
-// offset and uint16 value.
+// Takes buildEntry (func) which creates each entry from a name offset and uint16 value.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// map is empty.
 func packStringUint16Map(
 	builder *flatbuffers.Builder,
 	entries map[string]uint16,
@@ -677,36 +765,32 @@ func packStringUint16Map(
 	return createVector(builder, offsets)
 }
 
-// packComplexSlice packs complex128 constants as FlatBuffer
-// ComplexValue structs. Each struct is 16 bytes (two float64).
+// packComplexSlice packs complex128 constants as FlatBuffer ComplexValue structs. Each
+// struct is 16 bytes (two float64).
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes values ([]complex128) which holds the complex constants to
-// pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]complex128) which holds the complex constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packComplexSlice(builder *flatbuffers.Builder, values []complex128) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartComplexConstantsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		interp_schema_gen.CreateComplexValue(builder, real(values[i]), imag(values[i]))
+	for _, value := range slices.Backward(values) {
+		interp_schema_gen.CreateComplexValue(builder, real(value), imag(value))
 	}
 	return builder.EndVector(len(values))
 }
 
-// packStringSlice packs string constants as a FlatBuffer string
-// vector.
+// packStringSlice packs string constants as a FlatBuffer string vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
 // Takes values ([]string) which holds the string constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packStringSlice(builder *flatbuffers.Builder, values []string) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
@@ -720,163 +804,197 @@ func packStringSlice(builder *flatbuffers.Builder, values []string) flatbuffers.
 
 // packBoolSlice packs bool constants as a FlatBuffer boolean vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
 // Takes values ([]bool) which holds the boolean constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packBoolSlice(builder *flatbuffers.Builder, values []bool) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartBoolConstantsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependBool(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependBool(value)
 	}
 	return builder.EndVector(len(values))
 }
 
 // packInt64Slice packs int64 constants as a FlatBuffer int64 vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
 // Takes values ([]int64) which holds the integer constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packInt64Slice(builder *flatbuffers.Builder, values []int64) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartIntConstantsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependInt64(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependInt64(value)
 	}
 	return builder.EndVector(len(values))
 }
 
-// packFloat64Slice packs float64 constants as a FlatBuffer float64
-// vector.
+// packFloat64Slice packs float64 constants as a FlatBuffer float64 vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes values ([]float64) which holds the floating-point constants
-// to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]float64) which holds the floating-point constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packFloat64Slice(builder *flatbuffers.Builder, values []float64) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartFloatConstantsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependFloat64(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependFloat64(value)
 	}
 	return builder.EndVector(len(values))
 }
 
-// packUint64Slice packs uint64 constants as a FlatBuffer uint64
-// vector.
+// packUint64Slice packs uint64 constants as a FlatBuffer uint64 vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes values ([]uint64) which holds the unsigned integer constants
-// to pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]uint64) which holds the unsigned integer constants to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packUint64Slice(builder *flatbuffers.Builder, values []uint64) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartUintConstantsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependUint64(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependUint64(value)
 	}
 	return builder.EndVector(len(values))
 }
 
-// packUint16Slice packs uint16 init function indices as a FlatBuffer
-// uint16 vector.
+// packUint16Slice packs uint16 init function indices as a FlatBuffer uint16 vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes values ([]uint16) which holds the init function indices to
-// pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]uint16) which holds the init function indices to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packUint16Slice(builder *flatbuffers.Builder, values []uint16) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFileSetStartInitialisationFunctionsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependUint16(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependUint16(value)
 	}
 	return builder.EndVector(len(values))
 }
 
-// packRegisterCounts packs per-bank register counts as a uint32
-// FlatBuffer vector.
+// packRegisterCounts packs per-bank register counts as a uint32 FlatBuffer vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
 // Takes values ([]uint32) which holds the register counts to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packRegisterCounts(builder *flatbuffers.Builder, values []uint32) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartRegisterCountsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependUint32(values[i])
+	for _, value := range slices.Backward(values) {
+		builder.PrependUint32(value)
 	}
 	return builder.EndVector(len(values))
 }
 
-// packRegisterKinds packs register kind values as a FlatBuffer int8
-// vector.
+// packRegisterKinds packs register kind values as a FlatBuffer int8 vector.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes values ([]uint8) which holds the register kind values to
-// pack.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]uint8) which holds the register kind values to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func packRegisterKinds(builder *flatbuffers.Builder, values []uint8) flatbuffers.UOffsetT {
 	if len(values) == 0 {
 		return 0
 	}
 	interp_schema_gen.CompiledFunctionStartParameterKindsVector(builder, len(values))
-	for i := len(values) - 1; i >= 0; i-- {
-		builder.PrependInt8(safeconv.MustUint8ToInt8(values[i]))
+	for _, value := range slices.Backward(values) {
+		builder.PrependInt8(safeconv.MustUint8ToInt8(value))
 	}
 	return builder.EndVector(len(values))
 }
 
-// createVector builds a FlatBuffers vector from pre-built table
-// offsets.
+// packInterfaceMethodSets packs the per-type-table-entry interface method-name sets as a
+// FlatBuffer vector of InterfaceMethodSet tables. Empty entries are preserved by emitting
+// an empty InterfaceMethodSet so that the unpacker can recover the original alignment
+// with the type table.
 //
-// Takes builder (*flatbuffers.Builder) which is the FlatBuffer
-// builder to write into.
-// Takes offsets ([]flatbuffers.UOffsetT) which holds the table
-// offsets to include in the vector.
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes sets ([][]string) which holds the per-slot method-name lists.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed
-// vector, or 0 when the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// input is empty.
+func packInterfaceMethodSets(builder *flatbuffers.Builder, sets [][]string) flatbuffers.UOffsetT {
+	if len(sets) == 0 {
+		return 0
+	}
+	entryOffsets := make([]flatbuffers.UOffsetT, len(sets))
+	for i, methods := range sets {
+		var methodsVectorOffset flatbuffers.UOffsetT
+		if len(methods) > 0 {
+			methodOffsets := make([]flatbuffers.UOffsetT, len(methods))
+			for j, methodName := range methods {
+				methodOffsets[j] = builder.CreateString(methodName)
+			}
+			methodsVectorOffset = createVector(builder, methodOffsets)
+		}
+		interp_schema_gen.InterfaceMethodSetStart(builder)
+		if methodsVectorOffset != 0 {
+			interp_schema_gen.InterfaceMethodSetAddMethods(builder, methodsVectorOffset)
+		}
+		entryOffsets[i] = interp_schema_gen.InterfaceMethodSetEnd(builder)
+	}
+	return createVector(builder, entryOffsets)
+}
+
+// packParameterRegisters packs the per-parameter destination register slot table as a
+// FlatBuffers vector of uint8 values.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes values ([]uint8) which holds the parameter register slot assignments.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
+func packParameterRegisters(builder *flatbuffers.Builder, values []uint8) flatbuffers.UOffsetT {
+	if len(values) == 0 {
+		return 0
+	}
+	interp_schema_gen.CompiledFunctionStartParameterRegistersVector(builder, len(values))
+	for _, value := range slices.Backward(values) {
+		builder.PrependByte(value)
+	}
+	return builder.EndVector(len(values))
+}
+
+// createVector builds a FlatBuffers vector from pre-built table offsets.
+//
+// Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to write into.
+// Takes offsets ([]flatbuffers.UOffsetT) which holds the table offsets to include in the
+// vector.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 when the
+// slice is empty.
 func createVector(builder *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	if len(offsets) == 0 {
 		return 0
 	}
 	builder.StartVector(bytecodeVectorAlignment, len(offsets), bytecodeVectorAlignment)
-	for i := len(offsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		builder.PrependUOffsetT(offset)
 	}
 	return builder.EndVector(len(offsets))
 }

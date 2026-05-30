@@ -47,36 +47,35 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// overlayFileMode is the permission mode for temporary overlay files.
-const overlayFileMode = 0o600
+const (
+	// overlayFileMode is the permission mode for temporary overlay files.
+	overlayFileMode = 0o600
 
-// exportReaderBufSize is the buffer size for the buffered reader wrapping
-// export data files.
-const exportReaderBufSize = 65536
+	// exportReaderBufSize is the buffer size for the buffered reader wrapping export data
+	// files.
+	exportReaderBufSize = 65536
 
-// logKeyPackage is the structured logging key for package paths.
-const logKeyPackage = "package"
+	// logKeyPackage is the structured logging key for package paths.
+	logKeyPackage = "package"
 
-// logKeyError is the structured logging key for error messages.
-const logKeyError = "error"
+	// logKeyError is the structured logging key for error messages.
+	logKeyError = "error"
+)
 
 // parseFileFunc is the signature for ParseFile callbacks used during loading.
 type parseFileFunc = func(*token.FileSet, string, []byte) (*ast.File, error)
 
-// Load loads and type-checks Go packages for compatibility with
-// existing code. It optimises for the common case where only root
-// packages need full TypesInfo and Syntax, while dependency packages
-// only need their types.Package for type resolution.
+// Load loads and type-checks Go packages for compatibility with existing code. It
+// optimises for the common case where only root packages need full TypesInfo and Syntax,
+// while dependency packages only need their types.Package for type resolution.
 //
-// Takes cfg (*packages.Config) which provides loading configuration
-// including directory, environment, build flags, overlay, and
-// ParseFile callback.
+// Takes cfg (*packages.Config) which provides loading configuration including directory,
+// environment, build flags, overlay, and ParseFile callback.
 // Takes patterns ([]string) which specifies the packages to load.
 //
-// Returns []*Package which contains the loaded root
-// packages with their full dependency graph.
-// Returns error when go list fails or packages contain
-// errors.
+// Returns []*Package which contains the loaded root packages with their full dependency
+// graph.
+// Returns error when go list fails or packages contain errors.
 func Load(cfg *packages.Config, patterns ...string) ([]*packages.Package, error) {
 	if cfg == nil {
 		cfg = &packages.Config{}
@@ -126,12 +125,9 @@ func Load(cfg *packages.Config, patterns ...string) ([]*packages.Package, error)
 // logLoadStats logs summary statistics after a successful load.
 //
 // Takes l (logger_domain.Logger) which is the logger instance.
-// Takes driverDur (time.Duration) which is the time spent in go
-// list.
-// Takes refineDur (time.Duration) which is the time spent parsing
-// and type-checking.
-// Takes pkgMap (map[string]*loaderPkg) which contains all loaded
-// packages.
+// Takes driverDur (time.Duration) which is the time spent in go list.
+// Takes refineDur (time.Duration) which is the time spent parsing and type-checking.
+// Takes pkgMap (map[string]*loaderPkg) which contains all loaded packages.
 func logLoadStats(l logger_domain.Logger, driverDur, refineDur time.Duration, pkgMap map[string]*loaderPkg) {
 	exportCount := 0
 	sourceCount := 0
@@ -153,12 +149,11 @@ func logLoadStats(l logger_domain.Logger, driverDur, refineDur time.Duration, pk
 	)
 }
 
-// selectParseInitial returns the ParseFile callback for root
-// packages. If the caller provided one, it is used; otherwise a
-// default is returned.
+// selectParseInitial returns the ParseFile callback for root packages. If the caller
+// provided one, it is used; otherwise a default is returned.
 //
-// Takes callerParseFile (parseFileFunc) which is the caller-supplied
-// parse callback, or nil.
+// Takes callerParseFile (parseFileFunc) which is the caller-supplied parse callback, or
+// nil.
 //
 // Returns parseFileFunc which is the selected parse callback.
 func selectParseInitial(callerParseFile parseFileFunc) parseFileFunc {
@@ -170,19 +165,18 @@ func selectParseInitial(callerParseFile parseFileFunc) parseFileFunc {
 	}
 }
 
-// parseDep parses a dependency package source file using the leanest
-// possible configuration.
+// parseDep parses a dependency package source file using the leanest possible
+// configuration.
 //
-// It uses no comments, no object resolution, and strips all function
-// bodies except init() and generics. This is safe because the type
-// checker runs with IgnoreFuncBodies=true for dep packages.
+// It uses no comments, no object resolution, and strips all function bodies except init()
+// and generics. This is safe because the type checker runs with IgnoreFuncBodies=true for
+// dep packages.
 //
 // Takes fset (*token.FileSet) which is the shared file set.
 // Takes filename (string) which is the path to the source file.
 // Takes src ([]byte) which is the file contents.
 //
-// Returns *File which is the parsed file with bodies
-// stripped.
+// Returns *File which is the parsed file with bodies stripped.
 // Returns error when parsing fails.
 func parseDep(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
 	file, err := parser.ParseFile(fset, filename, src, parser.AllErrors|parser.SkipObjectResolution)
@@ -202,19 +196,18 @@ func parseDep(fset *token.FileSet, filename string, src []byte) (*ast.File, erro
 	return file, nil
 }
 
-// Visit visits all packages in the import graph in depth-first post-order.
-// It provides the same interface as packages.Visit for compatibility.
+// Visit visits all packages in the import graph in depth-first post-order. It provides
+// the same interface as packages.Visit for compatibility.
 //
 // Takes pkgs ([]*packages.Package) which are the root packages to start from.
-// Takes pre (func(*packages.Package) bool) which is called before visiting
-// imports. If pre returns false, imports are not visited.
+// Takes pre (func(*packages.Package) bool) which is called before visiting imports. If
+// pre returns false, imports are not visited.
 // Takes post (func(*packages.Package)) which is called after visiting imports.
 func Visit(pkgs []*packages.Package, pre func(*packages.Package) bool, post func(*packages.Package)) {
 	packages.Visit(pkgs, pre, post)
 }
 
-// goListPkg is the JSON structure returned by go list -json -deps
-// -export.
+// goListPkg is the JSON structure returned by go list -json -deps -export.
 type goListPkg struct {
 	// Module is the module containing the package.
 	Module *packages.Module
@@ -234,22 +227,19 @@ type goListPkg struct {
 	// Name is the package name declared in the source.
 	Name string
 
-	// Export is the path to compiled export data in the build
-	// cache.
+	// Export is the path to compiled export data in the build cache.
 	Export string
 
 	// GoFiles is the list of Go source file names.
 	GoFiles []string
 
-	// CompiledGoFiles is the list of compiled Go source file
-	// names.
+	// CompiledGoFiles is the list of compiled Go source file names.
 	CompiledGoFiles []string
 
 	// Imports is the list of import paths used by the package.
 	Imports []string
 
-	// DepOnly is true if the package is only a dependency, not a
-	// root.
+	// DepOnly is true if the package is only a dependency, not a root.
 	DepOnly bool
 }
 
@@ -269,12 +259,10 @@ type loaderPkg struct {
 	// parseFile is the parse callback for the package.
 	parseFile parseFileFunc
 
-	// importMap maps source import paths to resolved import
-	// paths.
+	// importMap maps source import paths to resolved import paths.
 	importMap map[string]string
 
-	// exportFile is the path to compiled export data, or empty if
-	// unavailable.
+	// exportFile is the path to compiled export data, or empty if unavailable.
 	exportFile string
 
 	// preds is the list of packages that import this one.
@@ -286,8 +274,7 @@ type loaderPkg struct {
 	// importPaths is the list of raw import paths from go list.
 	importPaths []string
 
-	// unfinishedDeps is the count of dependencies not yet
-	// type-checked.
+	// unfinishedDeps is the count of dependencies not yet type-checked.
 	unfinishedDeps atomic.Int32
 
 	// processing guards against double-enqueue.
@@ -303,13 +290,12 @@ type overlayJSON struct {
 	Replace map[string]string `json:"replace"`
 }
 
-// writeOverlayJSON writes the in-memory overlay to a temporary JSON file
-// in the format expected by go list -overlay.
+// writeOverlayJSON writes the in-memory overlay to a temporary JSON file in the format
+// expected by go list -overlay.
 //
 // Takes overlay (map[string][]byte) which maps file paths to their content.
 //
-// Returns the path to the overlay JSON file, a cleanup function, and any
-// error.
+// Returns the path to the overlay JSON file, a cleanup function, and any error.
 func writeOverlayJSON(overlay map[string][]byte) (string, func(), error) {
 	noop := func() {}
 	if len(overlay) == 0 {
@@ -345,16 +331,14 @@ func writeOverlayJSON(overlay map[string][]byte) (string, func(), error) {
 	return overlayPath, cleanupFn, nil
 }
 
-// collectOverlayFiles returns all overlay paths that need to be
-// written to the overlay JSON for go list.
+// collectOverlayFiles returns all overlay paths that need to be written to the overlay
+// JSON for go list.
 //
-// All entries are included because on-disk files may have different
-// build tags than their overlay replacements (e.g. generated files
-// with //go:build !piko_analysis that the overlay replaces with
-// analysis-friendly versions).
+// All entries are included because on-disk files may have different build tags than their
+// overlay replacements (e.g. generated files with //go:build !piko_analysis that the
+// overlay replaces with analysis-friendly versions).
 //
-// Takes overlay (map[string][]byte) which maps logical file paths to
-// their content.
+// Takes overlay (map[string][]byte) which maps logical file paths to their content.
 //
 // Returns map[string]string mapping logical paths to content strings.
 func collectOverlayFiles(overlay map[string][]byte) map[string]string {
@@ -365,15 +349,13 @@ func collectOverlayFiles(overlay map[string][]byte) map[string]string {
 	return result
 }
 
-// writeOverlayToDisk writes overlay files to a sandbox and produces
-// the overlay JSON file for go list.
+// writeOverlayToDisk writes overlay files to a sandbox and produces the overlay JSON file
+// for go list.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed file
-// system access for writing overlay files.
-// Takes newFiles (map[string]string) which maps logical paths to
-// content.
-// Takes overlay (map[string][]byte) which is the original overlay
-// for raw byte content.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed file system access for
+// writing overlay files.
+// Takes newFiles (map[string]string) which maps logical paths to content.
+// Takes overlay (map[string][]byte) which is the original overlay for raw byte content.
 //
 // Returns string which is the path to the overlay JSON file.
 // Returns error when writing fails.
@@ -403,17 +385,15 @@ func writeOverlayToDisk(sandbox safedisk.Sandbox, newFiles map[string]string, ov
 	return filepath.Join(sandbox.Root(), "overlay.json"), nil
 }
 
-// runGoList executes go list -json -deps and returns the parsed
-// packages.
+// runGoList executes go list -json -deps and returns the parsed packages.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes cfg (*packages.Config) for directory, env, and build flags.
-// Takes overlayFile (string) which is the path to the overlay JSON
-// file, or empty if no overlay.
+// Takes overlayFile (string) which is the path to the overlay JSON file, or empty if no
+// overlay.
 // Takes patterns ([]string) which are the package patterns to list.
 //
-// Returns []goListPkg which contains all listed packages
-// including dependencies.
+// Returns []goListPkg which contains all listed packages including dependencies.
 // Returns error when the command fails.
 func runGoList(ctx context.Context, cfg *packages.Config, overlayFile string, patterns []string) ([]goListPkg, error) {
 	args := []string{"list", "-json=ImportPath,Name,Dir,GoFiles,Imports,ImportMap,DepOnly,Module,Error,Export", "-deps", "-export", "-e"}
@@ -448,14 +428,14 @@ func runGoList(ctx context.Context, cfg *packages.Config, overlayFile string, pa
 	return result, nil
 }
 
-// buildPackageGraph creates packages.Package structs from go list output
-// and wires up the import graph.
+// buildPackageGraph creates packages.Package structs from go list output and wires up the
+// import graph.
 //
 // Takes listed ([]goListPkg) which is the go list JSON output.
 // Takes fset (*token.FileSet) which is the shared file set.
 //
-// Returns a map of all loader packages keyed by import path, the root
-// packages slice, and any error.
+// Returns a map of all loader packages keyed by import path, the root packages slice, and
+// any error.
 func buildPackageGraph(
 	listed []goListPkg,
 	fset *token.FileSet,
@@ -466,19 +446,15 @@ func buildPackageGraph(
 	return pkgMap, roots, nil
 }
 
-// createPackages allocates all packages.Package and loaderPkg structs
-// from go list output. It uses contiguous slab allocation for cache
-// locality.
+// createPackages allocates all packages.Package and loaderPkg structs from go list
+// output. It uses contiguous slab allocation for cache locality.
 //
 // Takes listed ([]goListPkg) which is the go list JSON output.
 // Takes fset (*token.FileSet) which is the shared file set.
-// Takes parseInitial (parseFileFunc) which is the parse callback for
-// root packages.
-// Takes parseDepFn (parseFileFunc) which is the parse callback for
-// dependency packages.
+// Takes parseInitial (parseFileFunc) which is the parse callback for root packages.
+// Takes parseDepFn (parseFileFunc) which is the parse callback for dependency packages.
 //
-// Returns map[string]*loaderPkg which contains all packages
-// keyed by import path.
+// Returns map[string]*loaderPkg which contains all packages keyed by import path.
 // Returns []*Package which contains only the root packages.
 func createPackages(
 	listed []goListPkg,
@@ -537,11 +513,9 @@ func createPackages(
 	return pkgMap, roots
 }
 
-// wireImports resolves import paths and counts dependencies for each
-// package.
+// wireImports resolves import paths and counts dependencies for each package.
 //
-// Takes pkgMap (map[string]*loaderPkg) which contains all packages
-// keyed by import path.
+// Takes pkgMap (map[string]*loaderPkg) which contains all packages keyed by import path.
 func wireImports(pkgMap map[string]*loaderPkg) {
 	for _, lp := range pkgMap {
 		depCount := 0
@@ -565,13 +539,11 @@ func wireImports(pkgMap map[string]*loaderPkg) {
 	}
 }
 
-// resolveImportPath resolves an import path through the ImportMap,
-// handling vendored stdlib packages where source says
-// "golang.org/x/..." but the actual package is
+// resolveImportPath resolves an import path through the ImportMap, handling vendored
+// stdlib packages where source says "golang.org/x/..." but the actual package is
 // "vendor/golang.org/x/...".
 //
-// Takes importMap (map[string]string) which maps source paths to
-// resolved paths.
+// Takes importMap (map[string]string) which maps source paths to resolved paths.
 // Takes impPath (string) which is the import path to resolve.
 //
 // Returns string which is the resolved import path.
@@ -584,23 +556,20 @@ func resolveImportPath(importMap map[string]string, impPath string) string {
 	return impPath
 }
 
-// typeCheckState holds shared state for the parallel type-checking
-// pass.
+// typeCheckState holds shared state for the parallel type-checking pass.
 type typeCheckState struct {
-	// exportBufPool recycles byte buffers used for reading export data
-	// files. Each buffer is used for a single io.ReadAll then returned
-	// to the pool after gcexportdata.Read finishes decoding.
+	// exportBufPool recycles byte buffers used for reading export data files. Each buffer is
+	// used for a single io.ReadAll then returned to the pool after gcexportdata.Read
+	// finishes decoding.
 	exportBufPool sync.Pool
 
 	// sizes provides type size information for the target arch.
 	sizes types.Sizes
 
-	// readFile reads a file by path. Defaults to os.ReadFile;
-	// injectable for testing.
+	// readFile reads a file by path. Defaults to os.ReadFile; injectable for testing.
 	readFile func(string) ([]byte, error)
 
-	// openFile opens a file by path. Defaults to os.Open;
-	// injectable for testing.
+	// openFile opens a file by path. Defaults to os.Open; injectable for testing.
 	openFile func(string) (io.ReadCloser, error)
 
 	// overlay maps file paths to in-memory content.
@@ -622,8 +591,8 @@ type typeCheckState struct {
 	exportMu sync.Mutex
 }
 
-// parseAndTypeCheck parses source files and type-checks all packages in
-// dependency order using parallel workers.
+// parseAndTypeCheck parses source files and type-checks all packages in dependency order
+// using parallel workers.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes pkgMap (map[string]*loaderPkg) which contains all packages.
@@ -689,9 +658,8 @@ func (st *typeCheckState) enqueue(ctx context.Context, lp *loaderPkg) {
 	})
 }
 
-// loadSinglePackage loads a single package, choosing the fastest
-// path: export data for deps when available, or source parsing plus
-// type-checking.
+// loadSinglePackage loads a single package, choosing the fastest path: export data for
+// deps when available, or source parsing plus type-checking.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package to load.
@@ -718,16 +686,15 @@ func (st *typeCheckState) loadSinglePackage(ctx context.Context, lp *loaderPkg) 
 	st.registerExportPkg(lp.PkgPath, lp.Types)
 }
 
-// loadFromExportData reads pre-compiled type information from the
-// build cache, avoiding source parsing and type-checking entirely.
+// loadFromExportData reads pre-compiled type information from the build cache, avoiding
+// source parsing and type-checking entirely.
 //
-// Takes lp (*loaderPkg) which is the package to load export data
-// for.
+// Takes lp (*loaderPkg) which is the package to load export data for.
 //
 // Returns bool which is true if export data was loaded successfully.
 //
-// Concurrency: safe for concurrent use; serialises access to the
-// shared exportImports map via exportMu.
+// Concurrency: safe for concurrent use; serialises access to the shared exportImports map
+// via exportMu.
 func (st *typeCheckState) loadFromExportData(ctx context.Context, lp *loaderPkg) bool {
 	if ctx.Err() != nil {
 		return false
@@ -790,29 +757,26 @@ func (st *typeCheckState) loadFromExportData(ctx context.Context, lp *loaderPkg)
 	return true
 }
 
-// registerExportPkg adds a loaded package to the shared export
-// imports map so that gcexportdata.Read can find it when loading
-// dependents.
+// registerExportPkg adds a loaded package to the shared export imports map so that
+// gcexportdata.Read can find it when loading dependents.
 //
 // Takes pkgPath (string) which is the import path of the package.
 // Takes pkg (*types.Package) which is the loaded type information.
 //
-// Concurrency: safe for concurrent use; serialises access to the
-// shared exportImports map via exportMu.
+// Concurrency: safe for concurrent use; serialises access to the shared exportImports map
+// via exportMu.
 func (st *typeCheckState) registerExportPkg(pkgPath string, pkg *types.Package) {
 	st.exportMu.Lock()
 	st.exportImports[pkgPath] = pkg
 	st.exportMu.Unlock()
 }
 
-// parsePackageFiles reads and parses all Go source files for a
-// package.
+// parsePackageFiles reads and parses all Go source files for a package.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package whose files to parse.
 //
-// Returns []*File which contains the successfully parsed
-// files.
+// Returns []*File which contains the successfully parsed files.
 func (st *typeCheckState) parsePackageFiles(ctx context.Context, lp *loaderPkg) []*ast.File {
 	syntax := make([]*ast.File, 0, len(lp.goFiles))
 	for _, filename := range lp.goFiles {
@@ -902,14 +866,12 @@ func (st *typeCheckState) typeCheckPackage(ctx context.Context, lp *loaderPkg) {
 	lp.TypesSizes = st.sizes
 }
 
-// newTypesInfo returns a fully initialised types.Info for root
-// packages, or nil for dependency packages.
+// newTypesInfo returns a fully initialised types.Info for root packages, or nil for
+// dependency packages.
 //
-// Takes initial (bool) which indicates whether this is a root
-// package.
+// Takes initial (bool) which indicates whether this is a root package.
 //
-// Returns *Info which is the type information collector, or
-// nil for deps.
+// Returns *Info which is the type information collector, or nil for deps.
 func newTypesInfo(initial bool) *types.Info {
 	if !initial {
 		return nil
@@ -926,8 +888,8 @@ func newTypesInfo(initial bool) *types.Info {
 	}
 }
 
-// goarch extracts the GOARCH value from the environment, defaulting to
-// the runtime architecture.
+// goarch extracts the GOARCH value from the environment, defaulting to the runtime
+// architecture.
 //
 // Takes env ([]string) which is the environment variable list.
 //
@@ -948,7 +910,6 @@ type importerFunc func(path string) (*types.Package, error)
 //
 // Takes path (string) which is the import path to resolve.
 //
-// Returns *Package which contains the imported package
-// types.
+// Returns *Package which contains the imported package types.
 // Returns error when the import path cannot be resolved.
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }

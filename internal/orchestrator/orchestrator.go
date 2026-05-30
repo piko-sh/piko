@@ -61,12 +61,10 @@ const (
 )
 
 var (
-	// errTaskStoreNil is returned when the orchestrator configuration has a
-	// nil TaskStore.
+	// errTaskStoreNil is returned when the orchestrator configuration has a nil TaskStore.
 	errTaskStoreNil = errors.New("config: TaskStore cannot be nil")
 
-	// errEventBusNil is returned when the orchestrator configuration has a
-	// nil EventBus.
+	// errEventBusNil is returned when the orchestrator configuration has a nil EventBus.
 	errEventBusNil = errors.New("config: EventBus cannot be nil (required for event-driven orchestration)")
 )
 
@@ -84,8 +82,8 @@ type Config struct {
 	// SchedulerInterval is time between scheduler runs; 0 uses the default.
 	SchedulerInterval time.Duration
 
-	// DispatcherInterval is the time between dispatch cycles; defaults to 1 second
-	// if not set or non-positive.
+	// DispatcherInterval is the time between dispatch cycles; defaults to 1 second if not
+	// set or non-positive.
 	DispatcherInterval time.Duration
 }
 
@@ -114,11 +112,11 @@ func NewTask(executor string, payload map[string]any) *Task {
 
 // NewService creates a new orchestrator service with the given configuration.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation through background goroutines.
-// Takes config (Config) which specifies the orchestrator settings including worker
-// count, scheduler interval, and dispatcher interval. Default values are used
-// for any unset or invalid fields.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation through background goroutines.
+// Takes config (Config) which specifies the orchestrator settings including worker count,
+// scheduler interval, and dispatcher interval. Default values are used for any unset or
+// invalid fields.
 //
 // Returns Service which is the configured orchestrator ready for use.
 // Returns error when validation fails or the task dispatcher cannot be created.

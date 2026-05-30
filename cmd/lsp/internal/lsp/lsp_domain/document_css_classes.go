@@ -19,13 +19,15 @@
 package lsp_domain
 
 import (
+	"strings"
+
 	"go.lsp.dev/protocol"
 	"piko.sh/piko/internal/sfcparser"
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// cssClassDefinition holds a CSS class name and its absolute position in the
-// document. Positions are 0-based for direct use as LSP protocol values.
+// cssClassDefinition holds a CSS class name and its absolute position in the document.
+// Positions are 0-based for direct use as LSP protocol values.
 type cssClassDefinition struct {
 	// Name is the CSS class name without the leading dot.
 	Name string
@@ -49,15 +51,17 @@ type cssClassMatch struct {
 	DotOffset int
 }
 
-// pClassShorthandPrefix is the text before the class name in a p-class
-// shorthand attribute.
-const pClassShorthandPrefix = "p-class:"
+const (
+	// pClassShorthandPrefix is the text before the class name in a p-class shorthand
+	// attribute.
+	pClassShorthandPrefix = "p-class:"
+)
 
-// findCSSClassDefinitions scans all style blocks for CSS class selectors and
-// returns a map of class name to its first definition position.
+// findCSSClassDefinitions scans all style blocks for CSS class selectors and returns a
+// map of class name to its first definition position.
 //
-// Returns map[string]cssClassDefinition which maps each class name to the
-// position of its first occurrence across all style blocks.
+// Returns map[string]cssClassDefinition which maps each class name to the position of its
+// first occurrence across all style blocks.
 func (d *document) findCSSClassDefinitions() map[string]cssClassDefinition {
 	if d.isPKCFile() {
 		meta := d.getPKCMetadata()
@@ -88,13 +92,12 @@ func (d *document) findCSSClassDefinitions() map[string]cssClassDefinition {
 	return result
 }
 
-// findCSSClassDefinitionByName finds a specific CSS class definition by name
-// in the style blocks.
+// findCSSClassDefinitionByName finds a specific CSS class definition by name in the style
+// blocks.
 //
 // Takes className (string) which is the class name to search for.
 //
-// Returns *cssClassDefinition which holds the position of the class, or nil
-// if not found.
+// Returns *cssClassDefinition which holds the position of the class, or nil if not found.
 func (d *document) findCSSClassDefinitionByName(className string) *cssClassDefinition {
 	definitions := d.findCSSClassDefinitions()
 	if definitions == nil {
@@ -107,8 +110,8 @@ func (d *document) findCSSClassDefinitionByName(className string) *cssClassDefin
 	return &definition
 }
 
-// findCSSClassDefinitionLocation finds the location of a CSS class definition
-// in the style blocks and returns it as an LSP location.
+// findCSSClassDefinitionLocation finds the location of a CSS class definition in the
+// style blocks and returns it as an LSP location.
 //
 // Takes className (string) which is the class name to search for.
 //
@@ -135,14 +138,13 @@ func (d *document) findCSSClassDefinitionLocation(className string) ([]protocol.
 	}}, nil
 }
 
-// getCSSClassCompletions returns completion suggestions for CSS class names
-// defined in the style blocks, filtered by the given prefix.
+// getCSSClassCompletions returns completion suggestions for CSS class names defined in
+// the style blocks, filtered by the given prefix.
 //
-// Takes prefix (string) which filters class names to those containing this
-// substring (case-insensitive). An empty string means no filtering.
+// Takes prefix (string) which filters class names to those containing this substring
+// (case-insensitive). An empty string means no filtering.
 //
-// Returns *protocol.CompletionList which contains the matching CSS class
-// completions.
+// Returns *protocol.CompletionList which contains the matching CSS class completions.
 // Returns error which is always nil.
 func (d *document) getCSSClassCompletions(prefix string) (*protocol.CompletionList, error) {
 	definitions := d.findCSSClassDefinitions()
@@ -168,8 +170,8 @@ func (d *document) getCSSClassCompletions(prefix string) (*protocol.CompletionLi
 	}, nil
 }
 
-// checkCSSClassDefinitionContext checks whether the cursor is on a CSS class
-// name reference in the template section.
+// checkCSSClassDefinitionContext checks whether the cursor is on a CSS class name
+// reference in the template section.
 //
 // Handles four patterns:
 //   - class="foo bar" - static class attribute, extracts word under cursor
@@ -181,8 +183,8 @@ func (d *document) getCSSClassCompletions(prefix string) (*protocol.CompletionLi
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKDefinitionContext which provides the CSS class definition context
-// if found, or nil if the cursor is not on a class reference.
+// Returns *PKDefinitionContext which provides the CSS class definition context if found,
+// or nil if the cursor is not on a class reference.
 func (*document) checkCSSClassDefinitionContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	if ctx := tryExtractStaticClassContext(line, cursor, position); ctx != nil {
 		return ctx
@@ -193,12 +195,11 @@ func (*document) checkCSSClassDefinitionContext(line string, cursor int, positio
 	return tryExtractDirectiveClassStringContext(line, cursor, position)
 }
 
-// collectClassDefinitions scans a single style block for CSS class selectors
-// and adds them to the result map. Only the first occurrence of each class
-// name is recorded.
+// collectClassDefinitions scans a single style block for CSS class selectors and adds
+// them to the result map. Only the first occurrence of each class name is recorded.
 //
-// Takes block (sfcparser.Style) which provides the CSS content and its base
-// position in the source file.
+// Takes block (sfcparser.Style) which provides the CSS content and its base position in
+// the source file.
 // Takes result (map[string]cssClassDefinition) which collects the found class
 // definitions.
 func collectClassDefinitions(block sfcparser.Style, result map[string]cssClassDefinition) {
@@ -227,12 +228,12 @@ func collectClassDefinitions(block sfcparser.Style, result map[string]cssClassDe
 	}
 }
 
-// scanCSSClassSelectors scans CSS content for class selectors (.className)
-// and returns all matches with their byte offsets.
+// scanCSSClassSelectors scans CSS content for class selectors (.className) and returns
+// all matches with their byte offsets.
 //
-// Skips dots inside comments (/* ... */), single-quoted strings, and
-// double-quoted strings. Also skips dots preceded by identifier characters
-// or digits to avoid matching numeric values like 0.5em.
+// Skips dots inside comments (/* ... */), single-quoted strings, and double-quoted
+// strings. Also skips dots preceded by identifier characters or digits to avoid matching
+// numeric values like 0.5em.
 //
 // Takes content (string) which is the raw CSS text to scan.
 //
@@ -273,8 +274,8 @@ func scanCSSClassSelectors(content string) []cssClassMatch {
 // Takes content (string) which is the CSS text being scanned.
 // Takes position (int) which is the position of the opening slash.
 //
-// Returns int which is the position after the closing */, or the end of
-// content if no closing is found.
+// Returns int which is the position after the closing */, or the end of content if no
+// closing is found.
 func skipBlockComment(content string, position int) int {
 	i := position + 2
 	for i < len(content)-1 {
@@ -292,8 +293,8 @@ func skipBlockComment(content string, position int) int {
 // Takes position (int) which is the position of the opening quote.
 // Takes quote (byte) which is the quote character to match.
 //
-// Returns int which is the position after the closing quote, or the end of
-// content if no closing quote is found.
+// Returns int which is the position after the closing quote, or the end of content if no
+// closing quote is found.
 func skipString(content string, position int, quote byte) int {
 	i := position + 1
 	for i < len(content) {
@@ -309,18 +310,17 @@ func skipString(content string, position int, quote byte) int {
 	return len(content)
 }
 
-// tryMatchClassSelector checks whether a dot at the given position starts a
-// valid CSS class selector.
+// tryMatchClassSelector checks whether a dot at the given position starts a valid CSS
+// class selector.
 //
-// A valid class selector requires:
-// - The dot is not preceded by an identifier character or digit
-// - The dot is followed by a letter or underscore (start of identifier)
+// A valid class selector requires: - The dot is not preceded by an identifier character
+// or digit - The dot is followed by a letter or underscore (start of identifier)
 //
 // Takes content (string) which is the CSS text being scanned.
 // Takes dotPosition (int) which is the position of the dot character.
 //
-// Returns *cssClassMatch which holds the matched class name, or nil if the
-// dot does not start a valid class selector.
+// Returns *cssClassMatch which holds the matched class name, or nil if the dot does not
+// start a valid class selector.
 func tryMatchClassSelector(content string, dotPosition int) *cssClassMatch {
 	if dotPosition > 0 && isDigit(content[dotPosition-1]) {
 		return nil
@@ -347,9 +347,9 @@ func tryMatchClassSelector(content string, dotPosition int) *cssClassMatch {
 	}
 }
 
-// isCSSIdentStart reports whether a byte can start a CSS identifier name.
-// CSS identifiers start with a letter, underscore, or hyphen (followed by
-// another valid character, but we check only the first byte here).
+// isCSSIdentStart reports whether a byte can start a CSS identifier name. CSS identifiers
+// start with a letter, underscore, or hyphen (followed by another valid character, but we
+// check only the first byte here).
 //
 // Takes b (byte) which is the character to check.
 //
@@ -368,9 +368,9 @@ func isCSSIdentChar(b byte) bool {
 		(b >= '0' && b <= '9') || b == '_' || b == '-'
 }
 
-// isDigit reports whether a byte is a decimal digit. Used to check the
-// character before a dot to exclude numeric values like 0.5em while allowing
-// compound selectors like div.active.
+// isDigit reports whether a byte is a decimal digit. Used to check the character before a
+// dot to exclude numeric values like 0.5em while allowing compound selectors like
+// div.active.
 //
 // Takes b (byte) which is the character to check.
 //
@@ -379,18 +379,18 @@ func isDigit(b byte) bool {
 	return b >= '0' && b <= '9'
 }
 
-// tryExtractStaticClassContext checks for class="foo bar" and extracts the
-// word under the cursor.
+// tryExtractStaticClassContext checks for class="foo bar" and extracts the word under the
+// cursor.
 //
 // Takes line (string) which is the current line of text.
 // Takes cursor (int) which is the cursor position in the line.
 // Takes position (protocol.Position) which is the LSP position.
 //
-// Returns *PKDefinitionContext which holds the class name, or nil if the
-// cursor is not inside a static class attribute value.
+// Returns *PKDefinitionContext which holds the class name, or nil if the cursor is not
+// inside a static class attribute value.
 func tryExtractStaticClassContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	for _, pattern := range []string{`class="`, `class='`} {
-		index := findLastOccurrence(line[:min(cursor+patternSearchRadius, len(line))], pattern)
+		index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 		if index == -1 || index > cursor {
 			continue
 		}
@@ -420,14 +420,14 @@ func tryExtractStaticClassContext(line string, cursor int, position protocol.Pos
 	return nil
 }
 
-// findWordAtOffset finds the whitespace-delimited word at the given offset
-// within a string.
+// findWordAtOffset finds the whitespace-delimited word at the given offset within a
+// string.
 //
 // Takes text (string) which is the text to search in.
 // Takes offset (int) which is the character offset within the text.
 //
-// Returns string which is the word at the offset, or empty if the offset is
-// on whitespace or out of bounds.
+// Returns string which is the word at the offset, or empty if the offset is on whitespace
+// or out of bounds.
 func findWordAtOffset(text string, offset int) string {
 	if offset < 0 || offset > len(text) {
 		return ""
@@ -450,17 +450,17 @@ func findWordAtOffset(text string, offset int) string {
 	return text[start:end]
 }
 
-// tryExtractPClassShorthandContext checks for p-class:active="..." and
-// extracts the class name suffix.
+// tryExtractPClassShorthandContext checks for p-class:active="..." and extracts the class
+// name suffix.
 //
 // Takes line (string) which is the current line of text.
 // Takes cursor (int) which is the cursor position in the line.
 // Takes position (protocol.Position) which is the LSP position.
 //
-// Returns *PKDefinitionContext which holds the class name, or nil if the
-// cursor is not on a p-class shorthand attribute.
+// Returns *PKDefinitionContext which holds the class name, or nil if the cursor is not on
+// a p-class shorthand attribute.
 func tryExtractPClassShorthandContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
-	index := findLastOccurrence(line[:min(cursor+patternSearchRadius, len(line))], pClassShorthandPrefix)
+	index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pClassShorthandPrefix)
 	if index == -1 || index > cursor {
 		return nil
 	}
@@ -486,18 +486,18 @@ func tryExtractPClassShorthandContext(line string, cursor int, position protocol
 	}
 }
 
-// tryExtractDirectiveClassStringContext checks for p-class="{ 'x': true }"
-// and :class="'x'" patterns. Extracts the string literal under the cursor.
+// tryExtractDirectiveClassStringContext checks for p-class="{ 'x': true }" and
+// :class="'x'" patterns. Extracts the string literal under the cursor.
 //
 // Takes line (string) which is the current line of text.
 // Takes cursor (int) which is the cursor position in the line.
 // Takes position (protocol.Position) which is the LSP position.
 //
-// Returns *PKDefinitionContext which holds the class name, or nil if the
-// cursor is not on a string literal inside a class directive value.
+// Returns *PKDefinitionContext which holds the class name, or nil if the cursor is not on
+// a string literal inside a class directive value.
 func tryExtractDirectiveClassStringContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	for _, pattern := range []string{`p-class="`, `:class="`} {
-		index := findLastOccurrence(line[:min(cursor+patternSearchRadius, len(line))], pattern)
+		index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 		if index == -1 || index > cursor {
 			continue
 		}
@@ -522,14 +522,14 @@ func tryExtractDirectiveClassStringContext(line string, cursor int, position pro
 	return nil
 }
 
-// extractStringLiteralAtCursor finds the single-quoted string literal under
-// the cursor within a directive value.
+// extractStringLiteralAtCursor finds the single-quoted string literal under the cursor
+// within a directive value.
 //
 // Takes text (string) which is the directive value content.
 // Takes cursor (int) which is the cursor position within the text.
 //
-// Returns string which is the string literal content, or empty if the cursor
-// is not inside a single-quoted string.
+// Returns string which is the string literal content, or empty if the cursor is not
+// inside a single-quoted string.
 func extractStringLiteralAtCursor(text string, cursor int) string {
 	if cursor < 0 || cursor >= len(text) {
 		return ""
@@ -551,18 +551,18 @@ func extractStringLiteralAtCursor(text string, cursor int) string {
 	return ""
 }
 
-// tryCSSClassValueContext checks if the cursor is inside a class="..."
-// attribute value and sets up the completion context for CSS class matching.
+// tryCSSClassValueContext checks if the cursor is inside a class="..." attribute value
+// and sets up the completion context for CSS class matching.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix
-// when a class attribute value is found.
+// Takes ctx (*completionContext) which receives the trigger kind and prefix when a class
+// attribute value is found.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when the cursor is inside a class="..." value.
 func tryCSSClassValueContext(ctx *completionContext, lineString string, cursorPosition int) bool {
 	for _, pattern := range []string{`class="`, `class='`} {
-		index := findLastOccurrence(lineString[:cursorPosition], pattern)
+		index := strings.LastIndex(lineString[:cursorPosition], pattern)
 		if index == -1 {
 			continue
 		}
@@ -601,13 +601,12 @@ func containsByte(s string, c byte) bool {
 	return false
 }
 
-// extractLastWord extracts the last whitespace-delimited word from a string.
-// This is the partial class name being typed.
+// extractLastWord extracts the last whitespace-delimited word from a string. This is the
+// partial class name being typed.
 //
 // Takes text (string) which is the text to extract from.
 //
-// Returns string which is the last word, or empty if the text ends with
-// whitespace.
+// Returns string which is the last word, or empty if the text ends with whitespace.
 func extractLastWord(text string) string {
 	end := len(text)
 	if end == 0 {

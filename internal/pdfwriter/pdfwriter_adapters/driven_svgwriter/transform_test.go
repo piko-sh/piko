@@ -23,7 +23,9 @@ import (
 	"testing"
 )
 
-const matrixTol = 1e-9
+const (
+	matrixTol = 1e-9
+)
 
 func matrixApproxEqual(a, b Matrix, tol float64) bool {
 	return math.Abs(a.A-b.A) < tol &&

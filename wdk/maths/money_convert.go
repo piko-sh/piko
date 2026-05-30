@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// Amount returns the underlying numeric value of the Money object as a
-// Decimal. This is the way to get the value for non-monetary calculations.
+// Amount returns the underlying numeric value of the Money object as a Decimal. This is
+// the way to get the value for non-monetary calculations.
 //
 // Returns Decimal which contains the numeric value.
 // Returns error when the Money object holds an error from a prior operation.
@@ -41,8 +41,8 @@ func (m Money) Amount() (Decimal, error) {
 	return NewDecimalFromString(m.amount.Number()), nil
 }
 
-// Number returns the raw, full-precision numeric value as a string, without
-// currency symbols or formatting.
+// Number returns the raw, full-precision numeric value as a string, without currency
+// symbols or formatting.
 //
 // For example, a Money object representing 123.456 EUR returns "123.456".
 //
@@ -55,9 +55,9 @@ func (m Money) Number() (string, error) {
 	return m.amount.Number(), nil
 }
 
-// RoundedNumber returns the value as a string, rounded to the currency's
-// standard decimal places, without trailing zeros for whole numbers.
-// For example, 123.456 EUR becomes "123.46" and 500.00 EUR becomes "500".
+// RoundedNumber returns the value as a string, rounded to the currency's standard decimal
+// places, without trailing zeros for whole numbers. For example, 123.456 EUR becomes
+// "123.46" and 500.00 EUR becomes "500".
 //
 // Returns string which is the formatted rounded value.
 // Returns error when the Money has an existing error or conversion fails.
@@ -74,11 +74,11 @@ func (m Money) RoundedNumber() (string, error) {
 	return decimalFromRounded.String()
 }
 
-// FormattedNumber returns the mathematical value as a string, rounded and
-// padded with zeros to the currency's standard number of decimal places.
+// FormattedNumber returns the mathematical value as a string, rounded and padded with
+// zeros to the currency's standard number of decimal places.
 //
-// This is suitable for display where consistent formatting is required.
-// Example: 123.456 EUR -> "123.46", 500 EUR -> "500.00", 500 JPY -> "500".
+// This is suitable for display where consistent formatting is required. Example: 123.456
+// EUR -> "123.46", 500 EUR -> "500.00", 500 JPY -> "500".
 //
 // Returns string which is the formatted number with correct decimal places.
 // Returns error when the Money instance has a stored error or conversion fails.
@@ -116,8 +116,8 @@ func (m Money) CurrencyCode() (string, error) {
 	return m.amount.CurrencyCode(), nil
 }
 
-// String returns a developer-friendly string representation of the money
-// value, including the currency code.
+// String returns a developer-friendly string representation of the money value, including
+// the currency code.
 //
 // Example: "123.45 USD". This uses the full internal precision.
 //
@@ -130,15 +130,15 @@ func (m Money) String() (string, error) {
 	return m.amount.String(), nil
 }
 
-// Format returns a locale-aware, formatted string suitable for display to
-// end-users. It includes the correct currency symbol, grouping, and decimal
-// separators for the given locale.
+// Format returns a locale-aware, formatted string suitable for display to end-users. It
+// includes the correct currency symbol, grouping, and decimal separators for the given
+// locale.
 //
-// Takes localeID (string) which specifies the locale for formatting, such as
-// "en-US" or "de-DE".
+// Takes localeID (string) which specifies the locale for formatting, such as "en-US" or
+// "de-DE".
 //
-// Returns string which is the formatted currency value, for example
-// "$1,234.57" for locale "en-US".
+// Returns string which is the formatted currency value, for example "$1,234.57" for
+// locale "en-US".
 // Returns error when the Money value was created with an error.
 //
 // Safe for concurrent use; uses a read lock on the currency registry.
@@ -171,8 +171,8 @@ func (m Money) DefaultFormat() string {
 	return formatter.Format(m.amount.Round())
 }
 
-// MustNumber returns the numeric string representation of the money value.
-// It is the panicking version of Number.
+// MustNumber returns the numeric string representation of the money value. It is the
+// panicking version of Number.
 //
 // Returns string which is the numeric representation.
 //
@@ -261,14 +261,14 @@ type moneyJSON struct {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 //
-// It handles both object format ({"number": "10.99", "currency": "USD"}) and
-// simple string format ("10.99") which assumes DefaultCurrencyCode. Currency
-// codes are case-insensitive and the number field accepts strings or numbers.
+// It handles both object format ({"number": "10.99", "currency": "USD"}) and simple
+// string format ("10.99") which assumes DefaultCurrencyCode. Currency codes are
+// case-insensitive and the number field accepts strings or numbers.
 //
 // Takes data ([]byte) which contains the JSON-encoded money value.
 //
-// Returns error when the receiver is nil, required fields are missing, or the
-// value cannot be parsed.
+// Returns error when the receiver is nil, required fields are missing, or the value
+// cannot be parsed.
 func (m *Money) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.New("money: UnmarshalJSON on nil Money pointer")
@@ -288,13 +288,13 @@ func (m *Money) UnmarshalJSON(data []byte) error {
 	return m.err
 }
 
-// unmarshalJSONObject handles unmarshalling from a JSON object with number and
-// currency fields.
+// unmarshalJSONObject handles unmarshalling from a JSON object with number and currency
+// fields.
 //
 // Takes parsedMoney (moneyJSON) which contains the parsed JSON fields.
 //
-// Returns error when the currency code is missing, the number field is missing,
-// or the amount cannot be parsed.
+// Returns error when the currency code is missing, the number field is missing, or the
+// amount cannot be parsed.
 func (m *Money) unmarshalJSONObject(parsedMoney moneyJSON) error {
 	if parsedMoney.Currency == "" {
 		m.err = errors.New("money: missing currency code in JSON object")
@@ -345,8 +345,7 @@ func (m *Money) unmarshalJSONString(strValue string) error {
 // Value implements the driver.Valuer interface for database serialisation.
 //
 // Returns driver.Value which contains the serialised monetary amount.
-// Returns error when the Money instance has a prior error or serialisation
-// fails.
+// Returns error when the Money instance has a prior error or serialisation fails.
 func (m Money) Value() (driver.Value, error) {
 	if m.err != nil {
 		return nil, m.err

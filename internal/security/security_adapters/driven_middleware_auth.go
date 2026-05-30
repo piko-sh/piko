@@ -25,13 +25,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// AuthMiddleware calls the configured AuthProvider on every request
-// and stores the resolved AuthContext on PikoRequestCtx.CachedAuth.
+// AuthMiddleware calls the configured AuthProvider on every request and stores the
+// resolved AuthContext on PikoRequestCtx.CachedAuth.
 //
-// It runs after RealIP (so ClientIP is available to the provider)
-// and before rate limiting. On error, the middleware logs the failure
-// and treats the request as unauthenticated - it never blocks a
-// request.
+// It runs after RealIP (so ClientIP is available to the provider) and before rate
+// limiting. On error, the middleware logs the failure and treats the request as
+// unauthenticated - it never blocks a request.
 type AuthMiddleware struct {
 	// provider holds the auth provider that resolves authentication state.
 	provider daemon_dto.AuthProvider
@@ -40,8 +39,7 @@ type AuthMiddleware struct {
 	logger logger_domain.Logger
 }
 
-// NewAuthMiddleware creates an AuthMiddleware that delegates to the
-// given provider.
+// NewAuthMiddleware creates an AuthMiddleware that delegates to the given provider.
 //
 // Takes provider (daemon_dto.AuthProvider) which resolves auth state.
 // Takes logger (logger_domain.Logger) which receives error logs.
@@ -54,9 +52,8 @@ func NewAuthMiddleware(provider daemon_dto.AuthProvider, logger logger_domain.Lo
 	}
 }
 
-// Handler returns an http.Handler middleware that resolves
-// authentication state and stores it on the per-request context
-// carrier.
+// Handler returns an http.Handler middleware that resolves authentication state and
+// stores it on the per-request context carrier.
 //
 // Takes next (http.Handler) which is the next handler in the chain.
 //

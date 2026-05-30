@@ -31,18 +31,19 @@ type poolAdapter struct {
 	// pool holds reusable interpreter service instances.
 	pool *sync.Pool
 
-	// bytecodeEmissionDirectory is the root directory for emitting
-	// source and compiled bytecode to disk. Empty disables emission.
+	// bytecodeEmissionDirectory is the root directory for emitting source and compiled
+	// bytecode to disk. Empty disables emission.
 	bytecodeEmissionDirectory string
 }
 
-var _ templater_domain.InterpreterPoolPort = (*poolAdapter)(nil)
+var (
+	_ templater_domain.InterpreterPoolPort = (*poolAdapter)(nil)
+)
 
-// Get retrieves an interpreter from the pool.
-// The returned interpreter is ready for use with symbols pre-loaded.
+// Get retrieves an interpreter from the pool. The returned interpreter is ready for use
+// with symbols pre-loaded.
 //
-// Returns templater_domain.InterpreterPort which is a ready-to-use
-// interpreter.
+// Returns templater_domain.InterpreterPort which is a ready-to-use interpreter.
 // Returns error when the pool returns an invalid type.
 func (p *poolAdapter) Get() (templater_domain.InterpreterPort, error) {
 	item := p.pool.Get()
@@ -56,8 +57,8 @@ func (p *poolAdapter) Get() (templater_domain.InterpreterPort, error) {
 	}, nil
 }
 
-// Put returns an interpreter to the pool after resetting it.
-// The interpreter's state is cleared before being returned to the pool.
+// Put returns an interpreter to the pool after resetting it. The interpreter's state is
+// cleared before being returned to the pool.
 //
 // Takes i (InterpreterPort) which is the interpreter to return.
 func (p *poolAdapter) Put(i templater_domain.InterpreterPort) {
@@ -67,13 +68,13 @@ func (p *poolAdapter) Put(i templater_domain.InterpreterPort) {
 	}
 }
 
-// newPoolAdapter creates a new pool adapter with a golden interpreter
-// service. Each Get() call returns a clone of the golden service.
+// newPoolAdapter creates a new pool adapter with a golden interpreter service. Each Get()
+// call returns a clone of the golden service.
 //
-// Takes golden (*interp_domain.Service) which is the pre-warmed service
-// with symbols loaded.
-// Takes bytecodeEmissionDirectory (string) which is the root directory
-// for emitting source and bytecode to disk. Empty disables emission.
+// Takes golden (*interp_domain.Service) which is the pre-warmed service with symbols
+// loaded.
+// Takes bytecodeEmissionDirectory (string) which is the root directory for emitting
+// source and bytecode to disk. Empty disables emission.
 //
 // Returns *poolAdapter which provides pooled interpreters.
 func newPoolAdapter(golden *interp_domain.Service, bytecodeEmissionDirectory string) *poolAdapter {

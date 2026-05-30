@@ -25,8 +25,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// PartKind represents the kind of part in an i18n template.
-// It implements fmt.Stringer.
+// PartKind represents the kind of part in an i18n template. It implements fmt.Stringer.
 type PartKind uint8
 
 const (
@@ -56,22 +55,22 @@ func (k PartKind) String() string {
 	}
 }
 
-// TemplatePart represents a segment of a parsed translation template.
-// It supports ${expression} syntax and @linked.message references.
+// TemplatePart represents a segment of a parsed translation template. It supports
+// ${expression} syntax and @linked.message references.
 type TemplatePart struct {
-	// Expression is the parsed AST for PartExpression, set at render time.
-	// Not stored; filled in when rendering.
+	// Expression is the parsed AST for PartExpression, set at render time. Not stored;
+	// filled in when rendering.
 	Expression ast_domain.Expression
 
 	// Literal holds the static text when Kind is PartLiteral.
 	Literal string
 
-	// ExprSource is the original expression text for PartExpression fields.
-	// The expression is parsed when first needed and stored for later use.
+	// ExprSource is the original expression text for PartExpression fields. The expression
+	// is parsed when first needed and stored for later use.
 	ExprSource string
 
-	// LinkedKey is the message key path for linked messages (PartLinkedMessage).
-	// For example, @common.greeting has LinkedKey "common.greeting".
+	// LinkedKey is the message key path for linked messages (PartLinkedMessage). For
+	// example, @common.greeting has LinkedKey "common.greeting".
 	LinkedKey string
 
 	// Kind indicates what type of content this template part holds.
@@ -163,11 +162,10 @@ func (p *templateParser) parseExpression() {
 	p.position = endPosition + 1
 }
 
-// findMatchingBrace finds the closing brace for an expression, handling
-// nesting.
+// findMatchingBrace finds the closing brace for an expression, handling nesting.
 //
-// Returns endPosition (int) which is the position of the matching closing brace,
-// or -1 if not found.
+// Returns endPosition (int) which is the position of the matching closing brace, or -1 if
+// not found.
 // Returns found (bool) which indicates whether a matching brace was found.
 func (p *templateParser) findMatchingBrace() (endPosition int, found bool) {
 	braceLevel := 1
@@ -242,9 +240,9 @@ func (p *templateParser) scanIdentifier() {
 	}
 }
 
-// ParseTemplate parses a translation template string into its parts.
-// It handles ${expression} for value insertion, @key.path for linked
-// messages, and \$ and \@ for escape sequences.
+// ParseTemplate parses a translation template string into its parts. It handles
+// ${expression} for value insertion, @key.path for linked messages, and \$ and \@ for
+// escape sequences.
 //
 // Takes template (string) which is the translation template to parse.
 //

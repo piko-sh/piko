@@ -30,14 +30,16 @@ import (
 type mockRegistryService struct {
 	GetArtefactFunc         func(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 	GetVariantDataFunc      func(ctx context.Context, variant *registry_dto.Variant) (io.ReadCloser, error)
-	GetArtefactCallCount    int64
-	GetVariantDataCallCount int64
+	GetArtefactCallCount    atomic.Int64
+	GetVariantDataCallCount atomic.Int64
 }
 
-var _ registry_domain.RegistryService = (*mockRegistryService)(nil)
+var (
+	_ registry_domain.RegistryService = (*mockRegistryService)(nil)
+)
 
 func (m *mockRegistryService) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.GetArtefactCallCount, 1)
+	m.GetArtefactCallCount.Add(1)
 	if m.GetArtefactFunc != nil {
 		return m.GetArtefactFunc(ctx, artefactID)
 	}
@@ -45,7 +47,7 @@ func (m *mockRegistryService) GetArtefact(ctx context.Context, artefactID string
 }
 
 func (m *mockRegistryService) GetVariantData(ctx context.Context, variant *registry_dto.Variant) (io.ReadCloser, error) {
-	atomic.AddInt64(&m.GetVariantDataCallCount, 1)
+	m.GetVariantDataCallCount.Add(1)
 	if m.GetVariantDataFunc != nil {
 		return m.GetVariantDataFunc(ctx, variant)
 	}

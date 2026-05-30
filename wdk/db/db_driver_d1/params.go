@@ -26,11 +26,10 @@ import (
 	"time"
 )
 
-// stringifyNamedParams converts a slice of driver.NamedValue arguments to the
-// []string format required by the D1 HTTP API.
+// stringifyNamedParams converts a slice of driver.NamedValue arguments to the []string
+// format required by the D1 HTTP API.
 //
-// Takes args ([]driver.NamedValue) which are the named parameter values to
-// convert.
+// Takes args ([]driver.NamedValue) which are the named parameter values to convert.
 //
 // Returns []string which contains the stringified parameters.
 func stringifyNamedParams(args []driver.NamedValue) []string {

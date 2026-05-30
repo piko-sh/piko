@@ -18,8 +18,8 @@
 
 package annotator_domain
 
-// Extracts nil guards from p-if condition expressions to enable compile-time tracking
-// of known non-nil values within guarded blocks, suppressing false positive warnings.
+// Extracts nil guards from p-if condition expressions to enable compile-time tracking of
+// known non-nil values within guarded blocks, suppressing false positive warnings.
 
 import (
 	goast "go/ast"
@@ -27,9 +27,8 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ExtractNilGuardsFromCondition analyses a condition expression and returns
-// the string forms of expressions that are guaranteed non-nil when the
-// condition is true.
+// ExtractNilGuardsFromCondition analyses a condition expression and returns the string
+// forms of expressions that are guaranteed non-nil when the condition is true.
 //
 // Supports patterns like:
 //   - expr != nil
@@ -107,9 +106,8 @@ func handleUnaryExpr(e *ast_domain.UnaryExpression, guards *[]string) {
 	}
 }
 
-// handleTruthinessCheck handles bare expressions used as boolean conditions.
-// If the expression has been annotated and is a pointer type, it implies a
-// nil check.
+// handleTruthinessCheck handles bare expressions used as boolean conditions. If the
+// expression has been annotated and is a pointer type, it implies a nil check.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 // Takes guards (*[]string) which collects any discovered guards.

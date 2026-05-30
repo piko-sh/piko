@@ -30,8 +30,8 @@ var (
 
 // getLog returns the logger for the LSP command.
 //
-// The logger must be retrieved fresh each time rather than cached, as this
-// allows it to pick up handler changes made via AddFileOutputOnly.
+// The logger must be retrieved fresh each time rather than cached, as this allows it to
+// pick up handler changes made via AddFileOutputOnly.
 //
 // Returns logger.Logger which provides logging for the LSP command.
 func getLog() logger.Logger {

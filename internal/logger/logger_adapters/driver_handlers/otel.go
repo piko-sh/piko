@@ -34,49 +34,45 @@ import (
 
 // OtelSetupOptions provides additional configuration for OTEL setup.
 type OtelSetupOptions struct {
-	// AdditionalSpanProcessors contains span processors to register with the
-	// tracer provider. Concrete types must satisfy sdktrace.SpanProcessor when
-	// an SDK provider factory is registered.
+	// AdditionalSpanProcessors contains span processors to register with the tracer
+	// provider. Concrete types must satisfy sdktrace.SpanProcessor when an SDK provider
+	// factory is registered.
 	AdditionalSpanProcessors []any
 
-	// AdditionalMetricReaders are extra metric readers to register with the
-	// meter provider alongside any default readers. Concrete types must satisfy
-	// sdkmetric.Reader when an SDK provider factory is registered.
+	// AdditionalMetricReaders are extra metric readers to register with the meter provider
+	// alongside any default readers. Concrete types must satisfy sdkmetric.Reader when an
+	// SDK provider factory is registered.
 	AdditionalMetricReaders []any
 }
 
 var (
-	// otelInitialised tracks whether OTEL providers have been set up with
-	// additional processors or readers. This prevents subsequent calls to
-	// SetupOtel from overwriting the configured providers (e.g., when
-	// logger.Apply is called after logger.Initialise).
+	// otelInitialised tracks whether OTEL providers have been set up with additional
+	// processors or readers. This prevents subsequent calls to SetupOtel from overwriting
+	// the configured providers (e.g., when logger.Apply is called after logger.Initialise).
 	otelInitialised bool
 )
 
 // SetupOtel initialises OpenTelemetry tracing and metrics providers based on
-// configuration. It returns a shutdown function to gracefully close all
-// providers and any initialisation errors.
+// configuration. It returns a shutdown function to gracefully close all providers and any
+// initialisation errors.
 //
-// The enabledIntegrations parameter contains the type names of integrations that
-// are both enabled in config and have their adapter package imported. Allows
-// collection of OTel components from all relevant integrations without knowing
-// about them.
+// The enabledIntegrations parameter contains the type names of integrations that are both
+// enabled in config and have their adapter package imported. Allows collection of OTel
+// components from all relevant integrations without knowing about them.
 //
-// If OTEL was already set up with additional processors/readers, skips
-// re-initialisation to avoid overwriting the configured providers.
+// If OTEL was already set up with additional processors/readers, skips re-initialisation
+// to avoid overwriting the configured providers.
 //
-// When no OtelProviderFactory has been registered (i.e. the SDK module is not
-// imported), noop providers are used even when config.Enabled is true.
+// When no OtelProviderFactory has been registered (i.e. the SDK module is not imported),
+// noop providers are used even when config.Enabled is true.
 //
-// Takes config (OtelSetupConfig) which provides endpoint, protocol, and TLS
-// settings.
-// Takes enabledIntegrations ([]string) which lists integration type names
-// that are both enabled and imported.
-// Takes opts (*OtelSetupOptions) which provides additional span processors
-// and metric readers; may be nil.
+// Takes config (OtelSetupConfig) which provides endpoint, protocol, and TLS settings.
+// Takes enabledIntegrations ([]string) which lists integration type names that are both
+// enabled and imported.
+// Takes opts (*OtelSetupOptions) which provides additional span processors and metric
+// readers; may be nil.
 //
-// Returns shutdown (func(context.Context) error) which gracefully closes all
-// providers.
+// Returns shutdown (func(context.Context) error) which gracefully closes all providers.
 // Returns err (error) when provider creation fails.
 func SetupOtel(ctx context.Context, config OtelSetupConfig, enabledIntegrations []string, opts *OtelSetupOptions) (shutdown func(context.Context) error, err error) {
 	if otelInitialised && opts == nil {

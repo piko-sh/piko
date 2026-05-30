@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	// defaultRatio is the fraction of the cgroup memory limit used as
-	// GOMEMLIMIT when no custom ratio is specified.
+	// defaultRatio is the fraction of the cgroup memory limit used as GOMEMLIMIT when no
+	// custom ratio is specified.
 	defaultRatio = 0.9
 )
 
@@ -39,8 +39,8 @@ type providerConfig struct {
 	ratio float64
 }
 
-// WithRatio sets the fraction of the cgroup memory limit to use. The
-// default is 0.9 (90%).
+// WithRatio sets the fraction of the cgroup memory limit to use. The default is 0.9
+// (90%).
 //
 // Takes ratio (float64) which is the fraction between 0.0 and 1.0.
 //
@@ -51,9 +51,8 @@ func WithRatio(ratio float64) ProviderOption {
 	}
 }
 
-// Provider returns a function that detects the container's cgroup memory
-// limit and sets GOMEMLIMIT to a fraction of it. Pass the result to
-// piko.WithAutoMemoryLimit.
+// Provider returns a function that detects the container's cgroup memory limit and sets
+// GOMEMLIMIT to a fraction of it. Pass the result to piko.WithAutoMemoryLimit.
 //
 // Takes opts (...ProviderOption) which configure the ratio and behaviour.
 //

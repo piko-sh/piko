@@ -33,21 +33,21 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// minQueryLength is the minimum number of characters required for a workspace
-// symbol search.
-const minQueryLength = 2
+const (
+	// minQueryLength is the minimum number of characters required for a workspace symbol
+	// search.
+	minQueryLength = 2
+)
 
-// DidChangeWatchedFiles handles notifications when watched files change on
-// disk.
+// DidChangeWatchedFiles handles notifications when watched files change on disk.
 //
-// Takes params (*protocol.DidChangeWatchedFilesParams) which contains the list
-// of file change events to process.
+// Takes params (*protocol.DidChangeWatchedFilesParams) which contains the list of file
+// change events to process.
 //
 // Returns error when processing fails (currently always returns nil).
 //
-// Runs analysis for changed files using a bounded worker pool to prevent
-// resource exhaustion. Uses the server context so analysis stops during
-// shutdown.
+// Runs analysis for changed files using a bounded worker pool to prevent resource
+// exhaustion. Uses the server context so analysis stops during shutdown.
 func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.DidChangeWatchedFilesParams) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -79,18 +79,16 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.Did
 	return nil
 }
 
-// classifyFileChanges categorises watched file changes into Go file changes,
-// structural changes (create/delete), and non-Go changed URIs needing
-// re-analysis.
+// classifyFileChanges categorises watched file changes into Go file changes, structural
+// changes (create/delete), and non-Go changed URIs needing re-analysis.
 //
 // Takes l (logger_domain.Logger) which is the logger for debug output.
-// Takes changes ([]*protocol.FileEvent) which contains the file change events
-// to classify.
+// Takes changes ([]*protocol.FileEvent) which contains the file change events to
+// classify.
 //
 // Returns changedURIs ([]protocol.DocumentURI) which holds non-Go changed URIs.
 // Returns hasGoFileChange (bool) which is true when a Go source file changed.
-// Returns hasStructuralChange (bool) which is true when files were created or
-// deleted.
+// Returns hasStructuralChange (bool) which is true when files were created or deleted.
 func classifyFileChanges(l logger_domain.Logger, changes []*protocol.FileEvent) (changedURIs []protocol.DocumentURI, hasGoFileChange, hasStructuralChange bool) {
 	for _, change := range changes {
 		l.Debug("File change", logger_domain.String(keyURI, change.URI.Filename()), logger_domain.Int("type", int(change.Type)))
@@ -122,8 +120,8 @@ func classifyFileChanges(l logger_domain.Logger, changes []*protocol.FileEvent) 
 	return changedURIs, hasGoFileChange, hasStructuralChange
 }
 
-// isIgnoredWatchPath returns true for paths inside build output directories
-// that should not trigger re-analysis.
+// isIgnoredWatchPath returns true for paths inside build output directories that should
+// not trigger re-analysis.
 //
 // Takes filename (string) which is the file path to check.
 //
@@ -135,11 +133,11 @@ func isIgnoredWatchPath(filename string) bool {
 		strings.Contains(normalised, "/dist/")
 }
 
-// DidChangeWorkspaceFolders handles notifications when workspace folders are
-// added or removed.
+// DidChangeWorkspaceFolders handles notifications when workspace folders are added or
+// removed.
 //
-// Takes params (*protocol.DidChangeWorkspaceFoldersParams) which contains the
-// added and removed workspace folders.
+// Takes params (*protocol.DidChangeWorkspaceFoldersParams) which contains the added and
+// removed workspace folders.
 //
 // Returns error when the folder changes cannot be processed.
 func (*Server) DidChangeWorkspaceFolders(ctx context.Context, params *protocol.DidChangeWorkspaceFoldersParams) error {
@@ -176,14 +174,14 @@ func (s *Server) DidChangeConfiguration(ctx context.Context, _ *protocol.DidChan
 
 // ExecuteCommand handles requests to run a custom command.
 //
-// Takes params (*protocol.ExecuteCommandParams) which specifies the command
-// name and its arguments.
+// Takes params (*protocol.ExecuteCommandParams) which specifies the command name and its
+// arguments.
 //
 // Returns any which is a status message describing the result.
 // Returns error when the command is not recognised.
 //
-// Uses a bounded worker pool when refreshing diagnostics to prevent resource
-// exhaustion. Uses the server context so analysis stops during shutdown.
+// Uses a bounded worker pool when refreshing diagnostics to prevent resource exhaustion.
+// Uses the server context so analysis stops during shutdown.
 func (s *Server) ExecuteCommand(ctx context.Context, params *protocol.ExecuteCommandParams) (any, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -205,11 +203,10 @@ func (s *Server) ExecuteCommand(ctx context.Context, params *protocol.ExecuteCom
 
 // Symbols handles workspace-wide symbol searches.
 //
-// Takes params (*protocol.WorkspaceSymbolParams) which contains the search
-// query.
+// Takes params (*protocol.WorkspaceSymbolParams) which contains the search query.
 //
-// Returns []protocol.SymbolInformation which contains matching symbols from
-// Go files and PK documents.
+// Returns []protocol.SymbolInformation which contains matching symbols from Go files and
+// PK documents.
 // Returns error when the search fails.
 func (s *Server) Symbols(ctx context.Context, params *protocol.WorkspaceSymbolParams) ([]protocol.SymbolInformation, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -232,11 +229,11 @@ func (s *Server) Symbols(ctx context.Context, params *protocol.WorkspaceSymbolPa
 
 // searchGoSymbols searches through Go symbols from the TypeInspector.
 //
-// Takes queryLower (string) which is the lowercase search query to match
-// against symbol names.
+// Takes queryLower (string) which is the lowercase search query to match against symbol
+// names.
 //
-// Returns []protocol.SymbolInformation which contains matching symbols
-// converted to LSP format, or nil if the TypeInspector is unavailable.
+// Returns []protocol.SymbolInformation which contains matching symbols converted to LSP
+// format, or nil if the TypeInspector is unavailable.
 func (s *Server) searchGoSymbols(queryLower string) []protocol.SymbolInformation {
 	if s.workspace.typeInspectorManager == nil {
 		return nil
@@ -256,17 +253,16 @@ func (s *Server) searchGoSymbols(queryLower string) []protocol.SymbolInformation
 	return symbols
 }
 
-// searchPKDocuments searches through open PK documents for elements with
-// matching IDs.
+// searchPKDocuments searches through open PK documents for elements with matching IDs.
 //
-// Takes queryLower (string) which specifies the lowercase search query to
-// match against element IDs.
+// Takes queryLower (string) which specifies the lowercase search query to match against
+// element IDs.
 //
-// Returns []protocol.SymbolInformation which contains all matching symbols
-// found across open documents.
+// Returns []protocol.SymbolInformation which contains all matching symbols found across
+// open documents.
 //
-// Safe for concurrent use. Takes a read lock on the workspace documents map
-// before copying.
+// Safe for concurrent use. Takes a read lock on the workspace documents map before
+// copying.
 func (s *Server) searchPKDocuments(queryLower string) []protocol.SymbolInformation {
 	s.workspace.mu.RLock()
 	docs := make(map[protocol.DocumentURI]*document)
@@ -282,8 +278,7 @@ func (s *Server) searchPKDocuments(queryLower string) []protocol.SymbolInformati
 
 // DocumentSymbol returns the document outline and structure.
 //
-// Takes params (*protocol.DocumentSymbolParams) which specifies the document
-// to analyse.
+// Takes params (*protocol.DocumentSymbolParams) which specifies the document to analyse.
 //
 // Returns []any which contains the document symbols that form the outline.
 // Returns error when the analysis fails.
@@ -303,8 +298,8 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 
 // DidCreateFiles handles notifications when files are created.
 //
-// Takes params (*protocol.CreateFilesParams) which holds the list of files
-// that were created.
+// Takes params (*protocol.CreateFilesParams) which holds the list of files that were
+// created.
 //
 // Returns error when the notification cannot be processed.
 func (s *Server) DidCreateFiles(ctx context.Context, params *protocol.CreateFilesParams) error {
@@ -325,11 +320,10 @@ func (s *Server) DidCreateFiles(ctx context.Context, params *protocol.CreateFile
 
 // WillCreateFiles handles requests before files are created.
 //
-// Takes params (*protocol.CreateFilesParams) which contains the files about to
-// be created.
+// Takes params (*protocol.CreateFilesParams) which contains the files about to be
+// created.
 //
-// Returns *protocol.WorkspaceEdit which provides edits to apply before file
-// creation.
+// Returns *protocol.WorkspaceEdit which provides edits to apply before file creation.
 // Returns error when the request cannot be processed.
 func (*Server) WillCreateFiles(ctx context.Context, params *protocol.CreateFilesParams) (*protocol.WorkspaceEdit, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -343,8 +337,8 @@ func (*Server) WillCreateFiles(ctx context.Context, params *protocol.CreateFiles
 
 // DidRenameFiles handles notifications when files are renamed.
 //
-// Takes params (*protocol.RenameFilesParams) which contains the old and new
-// URIs for each renamed file.
+// Takes params (*protocol.RenameFilesParams) which contains the old and new URIs for each
+// renamed file.
 //
 // Returns error when the rename operation cannot be processed.
 func (s *Server) DidRenameFiles(ctx context.Context, params *protocol.RenameFilesParams) error {
@@ -369,11 +363,9 @@ func (s *Server) DidRenameFiles(ctx context.Context, params *protocol.RenameFile
 
 // WillRenameFiles handles requests before files are renamed.
 //
-// Takes params (*protocol.RenameFilesParams) which contains the files to be
-// renamed.
+// Takes params (*protocol.RenameFilesParams) which contains the files to be renamed.
 //
-// Returns *protocol.WorkspaceEdit which contains edits to apply before the
-// rename occurs.
+// Returns *protocol.WorkspaceEdit which contains edits to apply before the rename occurs.
 // Returns error when the request cannot be processed.
 func (*Server) WillRenameFiles(ctx context.Context, params *protocol.RenameFilesParams) (*protocol.WorkspaceEdit, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -387,8 +379,7 @@ func (*Server) WillRenameFiles(ctx context.Context, params *protocol.RenameFiles
 
 // DidDeleteFiles handles notifications when files are deleted.
 //
-// Takes params (*protocol.DeleteFilesParams) which contains the list of
-// deleted files.
+// Takes params (*protocol.DeleteFilesParams) which contains the list of deleted files.
 //
 // Returns error when handling fails.
 func (s *Server) DidDeleteFiles(ctx context.Context, params *protocol.DeleteFilesParams) error {
@@ -410,11 +401,9 @@ func (s *Server) DidDeleteFiles(ctx context.Context, params *protocol.DeleteFile
 
 // WillDeleteFiles handles requests before files are deleted.
 //
-// Takes params (*protocol.DeleteFilesParams) which contains the files to be
-// deleted.
+// Takes params (*protocol.DeleteFilesParams) which contains the files to be deleted.
 //
-// Returns *protocol.WorkspaceEdit which contains edits to apply before
-// deletion.
+// Returns *protocol.WorkspaceEdit which contains edits to apply before deletion.
 // Returns error when the request cannot be processed.
 func (*Server) WillDeleteFiles(ctx context.Context, params *protocol.DeleteFilesParams) (*protocol.WorkspaceEdit, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -428,11 +417,11 @@ func (*Server) WillDeleteFiles(ctx context.Context, params *protocol.DeleteFiles
 
 // CodeAction provides quick fixes and code actions for a document.
 //
-// Takes params (*protocol.CodeActionParams) which specifies the document and
-// range for which code actions are requested.
+// Takes params (*protocol.CodeActionParams) which specifies the document and range for
+// which code actions are requested.
 //
-// Returns []protocol.CodeAction which contains the available actions including
-// format document, refresh diagnostics, and context-specific quick fixes.
+// Returns []protocol.CodeAction which contains the available actions including format
+// document, refresh diagnostics, and context-specific quick fixes.
 // Returns error when the operation fails.
 func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionParams) ([]protocol.CodeAction, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -482,8 +471,7 @@ func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionPara
 
 // CodeLens provides inline commands and information within the document.
 //
-// Takes params (*protocol.CodeLensParams) which identifies the document to
-// analyse.
+// Takes params (*protocol.CodeLensParams) which identifies the document to analyse.
 //
 // Returns []protocol.CodeLens which contains the code lenses for the document.
 // Returns error when the document cannot be processed.
@@ -517,11 +505,9 @@ func (*Server) SemanticTokensRefresh(ctx context.Context) error {
 
 // ShowDocument asks the client to show a document.
 //
-// Takes params (*protocol.ShowDocumentParams) which specifies the document to
-// display.
+// Takes params (*protocol.ShowDocumentParams) which specifies the document to display.
 //
-// Returns *protocol.ShowDocumentResult which indicates whether the document
-// was shown.
+// Returns *protocol.ShowDocumentResult which indicates whether the document was shown.
 // Returns error when the request fails.
 func (*Server) ShowDocument(ctx context.Context, params *protocol.ShowDocumentParams) (*protocol.ShowDocumentResult, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -532,14 +518,14 @@ func (*Server) ShowDocument(ctx context.Context, params *protocol.ShowDocumentPa
 	}, nil
 }
 
-// convertGoSymbolToLSP converts a Go symbol to an LSP SymbolInformation if it
-// matches the query.
+// convertGoSymbolToLSP converts a Go symbol to an LSP SymbolInformation if it matches the
+// query.
 //
 // Takes symbol (inspector_dto.WorkspaceSymbol) which is the Go symbol to convert.
 // Takes queryLower (string) which is the search query in lowercase.
 //
-// Returns *protocol.SymbolInformation which is the converted symbol, or nil if
-// the symbol does not match the query or lacks the required location data.
+// Returns *protocol.SymbolInformation which is the converted symbol, or nil if the symbol
+// does not match the query or lacks the required location data.
 func convertGoSymbolToLSP(symbol inspector_dto.WorkspaceSymbol, queryLower string) *protocol.SymbolInformation {
 	if !strings.Contains(strings.ToLower(symbol.Name), queryLower) {
 		return nil
@@ -582,9 +568,8 @@ func mapGoSymbolKind(kind string) protocol.SymbolKind {
 // Takes packageName (string) which is the package name prefix.
 // Takes containerName (string) which is the container name to add.
 //
-// Returns string which is the full container name in the format
-// "pkg.container",
-// or just the package name if containerName is empty.
+// Returns string which is the full container name in the format "pkg.container", or just
+// the package name if containerName is empty.
 func buildContainerName(packageName, containerName string) string {
 	if containerName != "" {
 		return packageName + "." + containerName
@@ -597,11 +582,10 @@ func buildContainerName(packageName, containerName string) string {
 // Takes filePath (string) which is the path to the file containing the symbol.
 // Takes line (int) which is the one-based line number of the symbol.
 // Takes column (int) which is the one-based column number of the symbol.
-// Takes name (string) which is the symbol name, used to calculate the range
-// end position.
+// Takes name (string) which is the symbol name, used to calculate the range end position.
 //
-// Returns protocol.Location which holds the symbol's position as an LSP
-// Location with zero-based line and character offsets.
+// Returns protocol.Location which holds the symbol's position as an LSP Location with
+// zero-based line and character offsets.
 func buildSymbolLocation(filePath string, line, column int, name string) protocol.Location {
 	return protocol.Location{
 		URI: protocol.DocumentURI("file://" + filePath),
@@ -618,15 +602,15 @@ func buildSymbolLocation(filePath string, line, column int, name string) protoco
 	}
 }
 
-// searchDocumentForIDs searches a single document for elements with IDs that
-// match the query.
+// searchDocumentForIDs searches a single document for elements with IDs that match the
+// query.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document location.
 // Takes document (*document) which is the document to search.
 // Takes queryLower (string) which is the lowercase search query to match.
 //
-// Returns []protocol.SymbolInformation which contains matching ID symbols, or
-// nil if the document has no annotations.
+// Returns []protocol.SymbolInformation which contains matching ID symbols, or nil if the
+// document has no annotations.
 func searchDocumentForIDs(uri protocol.DocumentURI, document *document, queryLower string) []protocol.SymbolInformation {
 	if document.AnnotationResult == nil || document.AnnotationResult.AnnotatedAST == nil {
 		return nil
@@ -642,15 +626,14 @@ func searchDocumentForIDs(uri protocol.DocumentURI, document *document, queryLow
 	return symbols
 }
 
-// findIDSymbolInNode searches a node for an ID attribute that matches the
-// query.
+// findIDSymbolInNode searches a node for an ID attribute that matches the query.
 //
 // Takes uri (protocol.DocumentURI) which is the document location.
 // Takes node (*ast_domain.TemplateNode) which is the node to search.
 // Takes queryLower (string) which is the lowercase search term.
 //
-// Returns *protocol.SymbolInformation which holds the matching ID symbol, or
-// nil if no match is found.
+// Returns *protocol.SymbolInformation which holds the matching ID symbol, or nil if no
+// match is found.
 func findIDSymbolInNode(uri protocol.DocumentURI, node *ast_domain.TemplateNode, queryLower string) *protocol.SymbolInformation {
 	for i := range node.Attributes {
 		attribute := &node.Attributes[i]

@@ -22,8 +22,8 @@ import (
 	"piko.sh/piko/internal/email/email_dto"
 )
 
-// RenderedEmailContent holds the output of a rendered email template.
-// It includes both HTML and plain text versions, along with any needed assets.
+// RenderedEmailContent holds the output of a rendered email template. It includes both
+// HTML and plain text versions, along with any needed assets.
 type RenderedEmailContent struct {
 	// HTML contains the rendered email content with CSS styles applied inline.
 	HTML string

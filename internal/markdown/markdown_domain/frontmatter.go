@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_dto"
 )
 
-// Frontmatter represents the structured metadata extracted from the YAML front
-// matter of a markdown file.
+// Frontmatter represents the structured metadata extracted from the YAML front matter of
+// a markdown file.
 type Frontmatter struct {
 	// PublishDate is when the content should be published.
 	PublishDate time.Time
@@ -48,16 +48,15 @@ type Frontmatter struct {
 	// Tags contains labels used to group and filter content.
 	Tags []string
 
-	// Draft indicates whether this content is a draft that should not be
-	// published.
+	// Draft indicates whether this content is a draft that should not be published.
 	Draft bool
 }
 
-// ParseFrontmatter parses raw frontmatter data into a structured Frontmatter
-// object and checks that required fields are present.
+// ParseFrontmatter parses raw frontmatter data into a structured Frontmatter object and
+// checks that required fields are present.
 //
-// Takes rawData (map[string]any) which contains the raw frontmatter key-value
-// pairs to parse.
+// Takes rawData (map[string]any) which contains the raw frontmatter key-value pairs to
+// parse.
 //
 // Returns *Frontmatter which is the parsed and checked frontmatter data.
 // Returns error when required field 'title' is missing or empty.
@@ -118,8 +117,7 @@ func ParseFrontmatter(rawData map[string]any) (*Frontmatter, error) {
 //
 // Takes v (any) which is the value to extract.
 //
-// Returns string which is the extracted value, or an empty string if v is not
-// a string.
+// Returns string which is the extracted value, or an empty string if v is not a string.
 func getString(v any) string {
 	if s, ok := v.(string); ok {
 		return s
@@ -141,8 +139,8 @@ func getBool(v any) bool {
 
 // getDate converts a value to a time.Time.
 //
-// When v is already a time.Time, returns it directly. When v is a string,
-// tries to parse it using RFC3339, datetime, and date-only formats.
+// When v is already a time.Time, returns it directly. When v is a string, tries to parse
+// it using RFC3339, datetime, and date-only formats.
 //
 // Takes v (any) which is the value to convert.
 //
@@ -231,14 +229,12 @@ func parseStringAsSlice(value string) []string {
 //
 // Takes v (any) which is the frontmatter value to parse.
 //
-// Returns *markdown_dto.NavigationMetadata which contains the parsed navigation
-// groups, or nil if parsing fails or the value is empty.
+// Returns *markdown_dto.NavigationMetadata which contains the parsed navigation groups,
+// or nil if parsing fails or the value is empty.
 //
-// Supports both map[string]any (from YAML parsing) and NavigationMetadata
-// structs.
+// Supports both map[string]any (from YAML parsing) and NavigationMetadata structs.
 //
-// Expected YAML structure:
-// nav:
+// Expected YAML structure: nav:
 //
 //	sidebar:
 //	  section: "get-started"
@@ -284,8 +280,8 @@ func parseNavigationMetadata(v any) *markdown_dto.NavigationMetadata {
 //
 // Takes v (any) which is the value to convert.
 //
-// Returns map[string]any which is the converted map, or nil if the input
-// is not a supported map type.
+// Returns map[string]any which is the converted map, or nil if the input is not a
+// supported map type.
 func toStringKeyMap(v any) map[string]any {
 	if m, ok := v.(map[string]any); ok {
 		return m
@@ -300,8 +296,8 @@ func toStringKeyMap(v any) map[string]any {
 //
 // Takes groupData (any) which contains the raw map data to parse.
 //
-// Returns *markdown_dto.NavGroupMetadata which contains the parsed navigation
-// group, or nil if groupData cannot be converted to a string-keyed map.
+// Returns *markdown_dto.NavGroupMetadata which contains the parsed navigation group, or
+// nil if groupData cannot be converted to a string-keyed map.
 func parseNavGroup(groupData any) *markdown_dto.NavGroupMetadata {
 	groupMap := toStringKeyMap(groupData)
 	if groupMap == nil {
@@ -320,8 +316,7 @@ func parseNavGroup(groupData any) *markdown_dto.NavGroupMetadata {
 
 // isNonEmptyNavGroup reports whether the group has any non-zero values.
 //
-// Takes g (*markdown_dto.NavGroupMetadata) which is the navigation group to
-// check.
+// Takes g (*markdown_dto.NavGroupMetadata) which is the navigation group to check.
 //
 // Returns bool which is true when any field in the group has a non-zero value.
 func isNonEmptyNavGroup(g *markdown_dto.NavGroupMetadata) bool {
@@ -329,8 +324,8 @@ func isNonEmptyNavGroup(g *markdown_dto.NavGroupMetadata) bool {
 		g.Icon != "" || g.Hidden || g.Parent != "" || g.Label != ""
 }
 
-// convertInterfaceMap converts map[any]any to map[string]any.
-// This is needed because YAML parsers return any keys by default.
+// convertInterfaceMap converts map[any]any to map[string]any. This is needed because YAML
+// parsers return any keys by default.
 //
 // Takes m (map[any]any) which is the map with any-typed keys to convert.
 //

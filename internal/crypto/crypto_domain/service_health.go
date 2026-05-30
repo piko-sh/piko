@@ -44,14 +44,14 @@ func (*cryptoService) Name() string {
 	return "CryptoService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies the encryption provider is functional.
+// Check implements the healthprobe_domain.Probe interface. It verifies the encryption
+// provider is functional.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
 //
-// Returns healthprobe_dto.Status which contains the health state, message,
-// and any provider dependencies.
+// Returns healthprobe_dto.Status which contains the health state, message, and any
+// provider dependencies.
 func (s *cryptoService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -79,7 +79,7 @@ func (s *cryptoService) Check(ctx context.Context, checkType healthprobe_dto.Che
 		providerStatus := probe.Check(ctx, checkType)
 		dependencies = append(dependencies, &providerStatus)
 
-		switch providerStatus.State {
+		switch providerStatus.State { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case healthprobe_dto.StateUnhealthy:
 			state = healthprobe_dto.StateUnhealthy
 			message = "Crypto provider unavailable"

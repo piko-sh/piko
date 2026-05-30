@@ -27,16 +27,18 @@ import (
 	"piko.sh/piko/internal/notification/notification_dto"
 )
 
-var _ notification_domain.NotificationProviderPort = (*StdoutProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*StdoutProvider)(nil)
+)
 
-// StdoutProvider writes notifications to standard output for development and
-// testing. It implements the NotificationProviderPort interface.
+// StdoutProvider writes notifications to standard output for development and testing. It
+// implements the NotificationProviderPort interface.
 type StdoutProvider struct{}
 
 // Send delivers a notification to stdout.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to display.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to display.
 //
 // Returns error when the notification cannot be written.
 func (*StdoutProvider) Send(_ context.Context, params *notification_dto.SendParams) error {
@@ -60,8 +62,8 @@ func (*StdoutProvider) Send(_ context.Context, params *notification_dto.SendPara
 
 // SendBulk sends multiple notifications to stdout.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+// to send.
 //
 // Returns error when any notification fails to send.
 func (s *StdoutProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -82,9 +84,8 @@ func (*StdoutProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the stdout provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features including bulk sending but no rich formatting, images,
-// or attachments.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// including bulk sending but no rich formatting, images, or attachments.
 func (*StdoutProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: false,

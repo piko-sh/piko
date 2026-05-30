@@ -18,29 +18,30 @@
 
 package tui_domain
 
-import "sync"
+import (
+	"slices"
+
+	"sync"
+)
 
 // MouseTargetKind classifies a hit-region registered with the MouseRouter.
 type MouseTargetKind int
 
 const (
-	// MouseTargetPane covers a panel's rendered rectangle. Clicks focus
-	// the panel; wheel events scroll it.
+	// MouseTargetPane covers a panel's rendered rectangle. Clicks focus the panel; wheel
+	// events scroll it.
 	MouseTargetPane MouseTargetKind = iota
 
-	// MouseTargetTab covers a single tab in the tab bar. Clicks focus the
-	// associated panel.
+	// MouseTargetTab covers a single tab in the tab bar. Clicks focus the associated panel.
 	MouseTargetTab
 
 	// MouseTargetStatusBar covers the bottom-of-screen status bar.
 	//
-	// Clicks here are reserved for future segments (e.g. clickable
-	// provider indicators).
+	// Clicks here are reserved for future segments (e.g. clickable provider indicators).
 	MouseTargetStatusBar
 )
 
-// MouseTarget describes a hit-region the router can resolve from a click
-// or wheel event.
+// MouseTarget describes a hit-region the router can resolve from a click or wheel event.
 type MouseTarget struct {
 	// PanelID identifies the panel whose region this target covers.
 	PanelID string
@@ -52,18 +53,16 @@ type MouseTarget struct {
 	Kind MouseTargetKind
 }
 
-// MouseRouter buffers the set of hit-regions registered during the most
-// recent render.
+// MouseRouter buffers the set of hit-regions registered during the most recent render.
 //
-// The Model resets the router before rendering, layouts (and the Model
-// itself for tabs) add targets via Add, and click/wheel handlers query
-// Hit. Concurrent reads are safe; mutation must be single-writer.
+// The Model resets the router before rendering, layouts (and the Model itself for tabs)
+// add targets via Add, and click/wheel handlers query Hit. Concurrent reads are safe;
+// mutation must be single-writer.
 type MouseRouter struct {
 	// targets is the registered hit-region list, ordered as added.
 	targets []MouseTarget
 
-	// mu guards targets for safe concurrent reads alongside
-	// single-writer mutation.
+	// mu guards targets for safe concurrent reads alongside single-writer mutation.
 	mu sync.RWMutex
 }
 
@@ -74,8 +73,8 @@ func NewMouseRouter() *MouseRouter {
 	return &MouseRouter{}
 }
 
-// Reset clears the registered targets. Called once per frame before the
-// new render registers fresh ones.
+// Reset clears the registered targets. Called once per frame before the new render
+// registers fresh ones.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (r *MouseRouter) Reset() {
@@ -84,10 +83,9 @@ func (r *MouseRouter) Reset() {
 	r.targets = r.targets[:0]
 }
 
-// Add appends a target to the router. The first registered target whose
-// rectangle contains the click coordinates wins; register foreground
-// elements (overlays, tab bar) before background elements (panes) when
-// they overlap.
+// Add appends a target to the router. The first registered target whose rectangle
+// contains the click coordinates wins; register foreground elements (overlays, tab bar)
+// before background elements (panes) when they overlap.
 //
 // Takes target (MouseTarget) which is the hit-region to register.
 //
@@ -100,31 +98,30 @@ func (r *MouseRouter) Add(target MouseTarget) {
 
 // Hit returns the first registered target whose rectangle contains (x, y).
 //
-// The most-recently-added target wins, allowing layered chrome (e.g.
-// tabs over panes) to be queried correctly when the registration order
-// is "background first, foreground last".
+// The most-recently-added target wins, allowing layered chrome (e.g. tabs over panes) to
+// be queried correctly when the registration order is "background first, foreground
+// last".
 //
 // Takes x (int) which is the column.
 // Takes y (int) which is the row.
 //
-// Returns MouseTarget which is the matched target (zero value when no
-// hit).
+// Returns MouseTarget which is the matched target (zero value when no hit).
 // Returns bool which is true when a target contains (x, y).
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (r *MouseRouter) Hit(x, y int) (MouseTarget, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	for i := len(r.targets) - 1; i >= 0; i-- {
-		if rectContains(r.targets[i].Rect, x, y) {
-			return r.targets[i], true
+	for _, target := range slices.Backward(r.targets) {
+		if rectContains(target.Rect, x, y) {
+			return target, true
 		}
 	}
 	return MouseTarget{}, false
 }
 
-// Targets returns a snapshot of the registered targets, primarily for
-// tests and diagnostics.
+// Targets returns a snapshot of the registered targets, primarily for tests and
+// diagnostics.
 //
 // Returns []MouseTarget which is a copy of the current target slice.
 //
@@ -137,8 +134,8 @@ func (r *MouseRouter) Targets() []MouseTarget {
 	return out
 }
 
-// rectContains reports whether (x, y) falls within the half-open
-// rectangle [Rect.X, Rect.X+Rect.Width) x [Rect.Y, Rect.Y+Rect.Height).
+// rectContains reports whether (x, y) falls within the half-open rectangle [Rect.X,
+// Rect.X+Rect.Width) x [Rect.Y, Rect.Y+Rect.Height).
 //
 // Takes rect (PaneRect) which is the rectangle to test.
 // Takes x (int) which is the column.

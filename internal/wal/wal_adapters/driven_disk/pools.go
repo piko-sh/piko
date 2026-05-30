@@ -20,9 +20,9 @@
 
 package driven_disk
 
-// Provides object pooling for byte slices and tag slices to reduce allocations
-// during WAL encode/decode operations. Implements size-specific pools with
-// automatic capacity selection based on required size.
+// Provides object pooling for byte slices and tag slices to reduce allocations during WAL
+// encode/decode operations. Implements size-specific pools with automatic capacity
+// selection based on required size.
 
 import (
 	"sync"
@@ -30,8 +30,10 @@ import (
 
 //nolint:revive // pool thresholds
 
-// defaultTagCapacity is the default capacity for tag slices in the pool.
-const defaultTagCapacity = 16
+const (
+	// defaultTagCapacity is the default capacity for tag slices in the pool.
+	defaultTagCapacity = 16
+)
 
 var (
 	// bufPool64 reuses byte slices (cap 64) to reduce allocation pressure.
@@ -70,8 +72,8 @@ var (
 	// bufPool128K reuses byte slices (cap 128K) to reduce allocation pressure.
 	bufPool128K = sync.Pool{New: func() any { return new(make([]byte, 0, 131072)) }}
 
-	// tagSlicePool reuses string slices to reduce allocation pressure during WAL
-	// tag encoding and decoding.
+	// tagSlicePool reuses string slices to reduce allocation pressure during WAL tag
+	// encoding and decoding.
 	tagSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, defaultTagCapacity))
@@ -79,15 +81,14 @@ var (
 	}
 )
 
-// GetByteBuffer retrieves a pooled byte slice with at least the requested
-// capacity. The capacity rounds up to the nearest bucket size (64, 128, 256,
-// 512, 1K, 2K, 4K, 8K, 16K, 32K, 64K, 128K) and falls back to make() for
-// capacities above 128K.
+// GetByteBuffer retrieves a pooled byte slice with at least the requested capacity. The
+// capacity rounds up to the nearest bucket size (64, 128, 256, 512, 1K, 2K, 4K, 8K, 16K,
+// 32K, 64K, 128K) and falls back to make() for capacities above 128K.
 //
 // Takes capacity (int) which specifies the minimum slice capacity needed.
 //
-// Returns *[]byte which is the pool pointer for use with PutByteBuffer,
-// or nil for non-poolable capacities (above 128K) or zero/negative capacity.
+// Returns *[]byte which is the pool pointer for use with PutByteBuffer, or nil for
+// non-poolable capacities (above 128K) or zero/negative capacity.
 // Returns []byte which is the slice ready for use, already sized to 0 length.
 func GetByteBuffer(capacity int) (*[]byte, []byte) {
 	if capacity <= 0 {
@@ -130,8 +131,8 @@ func GetByteBuffer(capacity int) (*[]byte, []byte) {
 	return ptr, *ptr
 }
 
-// PutByteBuffer returns a byte slice to the pool using its pointer. The slice
-// is synced back to the pointer in case append reallocated it.
+// PutByteBuffer returns a byte slice to the pool using its pointer. The slice is synced
+// back to the pointer in case append reallocated it.
 //
 // When ptr is nil, this is a no-op for non-poolable slices.
 //
@@ -171,8 +172,8 @@ func PutByteBuffer(ptr *[]byte, b []byte) {
 	}
 }
 
-// ResetBytePools resets all byte slice pools to their initial state,
-// ensuring tests run in isolation from one another.
+// ResetBytePools resets all byte slice pools to their initial state, ensuring tests run
+// in isolation from one another.
 func ResetBytePools() {
 	bufPool64 = sync.Pool{New: func() any { return new(make([]byte, 0, 64)) }}
 	bufPool128 = sync.Pool{New: func() any { return new(make([]byte, 0, 128)) }}
@@ -202,8 +203,7 @@ func GetTagSlice() (*[]string, []string) {
 	return ptr, *ptr
 }
 
-// PutTagSlice returns a tag slice to the pool.
-// If ptr is nil, this is a no-op.
+// PutTagSlice returns a tag slice to the pool. If ptr is nil, this is a no-op.
 //
 // Takes ptr (*[]string) which is the pool pointer from GetTagSlice.
 // Takes s ([]string) which is the current slice (may have grown via append).

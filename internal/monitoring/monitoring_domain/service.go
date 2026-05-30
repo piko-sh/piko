@@ -34,40 +34,39 @@ import (
 
 // ServiceConfig holds settings for the monitoring service.
 type ServiceConfig struct {
-	// TransportFactory creates the transport server for remote monitoring access.
-	// When nil, the service runs in local-only mode (collectors run but no
-	// transport serves remote clients).
+	// TransportFactory creates the transport server for remote monitoring access. When nil,
+	// the service runs in local-only mode (collectors run but no transport serves remote
+	// clients).
 	TransportFactory TransportFactory
 
-	// Factories overrides the default noop service factories with real
-	// implementations (e.g. from logger_otel_sdk.OtelServiceFactories()).
+	// Factories overrides the default noop service factories with real implementations (e.g.
+	// from logger_otel_sdk.OtelServiceFactories()).
 	//
 	// When nil, the bootstrap layer uses its default noop factories.
 	Factories *ServiceFactories
 
-	// WatchdogConfig holds runtime watchdog settings. When non-nil, the
-	// watchdog monitors heap and goroutine counts and captures profiles
-	// automatically.
+	// WatchdogConfig holds runtime watchdog settings. When non-nil, the watchdog monitors
+	// heap and goroutine counts and captures profiles automatically.
 	WatchdogConfig *WatchdogConfig
 
-	// WatchdogNotifier delivers watchdog event notifications to external
-	// systems. May be nil when notifications are not configured.
+	// WatchdogNotifier delivers watchdog event notifications to external systems. May be nil
+	// when notifications are not configured.
 	WatchdogNotifier WatchdogNotifier
 
-	// WatchdogProfileUploader uploads captured profiles to remote storage
-	// for preservation across pod restarts. May be nil when not configured.
+	// WatchdogProfileUploader uploads captured profiles to remote storage for preservation
+	// across pod restarts. May be nil when not configured.
 	WatchdogProfileUploader WatchdogProfileUploader
 
-	// Address specifies the transport server listen address. If it starts with
-	// a colon, BindAddress is prepended to form the full address.
+	// Address specifies the transport server listen address. If it starts with a colon,
+	// BindAddress is prepended to form the full address.
 	Address string
 
-	// BindAddress is the network address to bind to when the Address field starts
-	// with a colon.
+	// BindAddress is the network address to bind to when the Address field starts with a
+	// colon.
 	BindAddress string
 
-	// TLS holds the resolved TLS settings for the monitoring transport.
-	// When enabled, the transport uses TLS for security.
+	// TLS holds the resolved TLS settings for the monitoring transport. When enabled, the
+	// transport uses TLS for security.
 	TLS tlscert.TLSValues
 
 	// MaxMetricAge is the maximum age for metric data points; older data is discarded.
@@ -82,26 +81,29 @@ type ServiceConfig struct {
 	// MaxMetrics is the maximum number of unique metrics to store.
 	MaxMetrics int
 
-	// AutoNextPort enables automatic port selection when the configured port
-	// is already in use.
+	// AutoNextPort enables automatic port selection when the configured port is already in
+	// use.
 	AutoNextPort bool
 
-	// ProfilingEnabled enables the remote profiling gRPC service. When false
-	// (the default), the ProfilingService is not registered and profiling
-	// cannot be controlled remotely.
+	// ProfilingEnabled enables the remote profiling gRPC service. When false (the default),
+	// the ProfilingService is not registered and profiling cannot be controlled remotely.
 	ProfilingEnabled bool
 }
 
-// DefaultMetricsCollectionInterval is the default interval for collecting metrics.
-const DefaultMetricsCollectionInterval = 5 * time.Second
+const (
+	// DefaultMetricsCollectionInterval is the default interval for collecting metrics.
+	DefaultMetricsCollectionInterval = 5 * time.Second
+)
 
-var _ MonitoringService = (*Service)(nil)
+var (
+	_ MonitoringService = (*Service)(nil)
+)
 
 // ServiceOption configures the monitoring service.
 type ServiceOption func(*ServiceConfig)
 
-// Service implements MonitoringService.
-// It manages all monitoring parts and controls their lifecycle.
+// Service implements MonitoringService. It manages all monitoring parts and controls
+// their lifecycle.
 type Service struct {
 	// factories holds the service factory functions for creating OTEL adapters.
 	factories ServiceFactories
@@ -109,8 +111,7 @@ type Service struct {
 	// spanProcessor handles span processing and storage for traces.
 	spanProcessor SpanProcessor
 
-	// metricsCollector collects and stores metrics; started and stopped with the
-	// service.
+	// metricsCollector collects and stores metrics; started and stopped with the service.
 	metricsCollector MetricsCollectorAdapter
 
 	// orchestratorInspector queries orchestrator state for monitoring.
@@ -134,30 +135,30 @@ type Service struct {
 	// renderCacheStats provides render cache statistics; nil when not available.
 	renderCacheStats RenderCacheStatsProvider
 
-	// profilingController manages on-demand pprof profiling; nil when
-	// remote profiling is not enabled.
+	// profilingController manages on-demand pprof profiling; nil when remote profiling is
+	// not enabled.
 	profilingController ProfilingController
 
-	// watchdogInspector provides read-only access to watchdog state and stored
-	// profiles; nil when the watchdog is not enabled.
+	// watchdogInspector provides read-only access to watchdog state and stored profiles; nil
+	// when the watchdog is not enabled.
 	watchdogInspector WatchdogInspector
 
-	// watchdog monitors runtime metrics and captures diagnostic profiles
-	// when anomalies are detected; nil when the watchdog is not enabled.
+	// watchdog monitors runtime metrics and captures diagnostic profiles when anomalies are
+	// detected; nil when the watchdog is not enabled.
 	watchdog *Watchdog
 
 	// store provides telemetry data for the server dashboard.
 	store *TelemetryStore
 
-	// systemCollector gathers system-level metrics and is started and stopped
-	// with the service lifecycle.
+	// systemCollector gathers system-level metrics and is started and stopped with the
+	// service lifecycle.
 	systemCollector *SystemCollector
 
 	// resourceCollector provides file descriptor metrics for telemetry.
 	resourceCollector *ResourceCollector
 
-	// transport holds the transport server instance; nil when no transport is
-	// configured or Start has not been called yet.
+	// transport holds the transport server instance; nil when no transport is configured or
+	// Start has not been called yet.
 	transport TransportServer
 
 	// config holds the service configuration for address binding.
@@ -167,8 +168,8 @@ type Service struct {
 	mu sync.RWMutex
 }
 
-// ServiceFactories holds the factory functions required by the Service.
-// These are provided by adapters to create the OTEL adapter components.
+// ServiceFactories holds the factory functions required by the Service. These are
+// provided by adapters to create the OTEL adapter components.
 type ServiceFactories struct {
 	// SpanProcessorFactory creates span processors for the monitoring service.
 	SpanProcessorFactory SpanProcessorFactory
@@ -236,9 +237,9 @@ func NewService(deps MonitoringDeps, factories ServiceFactories, opts ...Service
 	return service
 }
 
-// SetInspectors updates the orchestrator, registry, dispatcher, rate limiter
-// inspectors and health probe service. This must be called before Start() for
-// the inspectors to be available via the transport.
+// SetInspectors updates the orchestrator, registry, dispatcher, rate limiter inspectors
+// and health probe service. This must be called before Start() for the inspectors to be
+// available via the transport.
 //
 // Takes orchestrator (OrchestratorInspector) which may be nil.
 // Takes registry (RegistryInspector) which may be nil.
@@ -263,9 +264,8 @@ func (s *Service) SetInspectors(
 	s.rateLimiterInspector = rateLimiter
 }
 
-// SetProviderInfoInspector sets the provider info inspector for resource
-// discovery. This must be called before Start() for the inspector to be
-// available via the transport.
+// SetProviderInfoInspector sets the provider info inspector for resource discovery. This
+// must be called before Start() for the inspector to be available via the transport.
 //
 // Takes inspector (ProviderInfoInspector) which may be nil.
 //
@@ -276,9 +276,9 @@ func (s *Service) SetProviderInfoInspector(inspector ProviderInfoInspector) {
 	s.providerInfoInspector = inspector
 }
 
-// SetRenderCacheStatsProvider sets the render cache stats provider for
-// reporting cache sizes via the system stats endpoint. Must be called before
-// Start() for the stats to be available.
+// SetRenderCacheStatsProvider sets the render cache stats provider for reporting cache
+// sizes via the system stats endpoint. Must be called before Start() for the stats to be
+// available.
 //
 // Takes provider (RenderCacheStatsProvider) which may be nil.
 //
@@ -289,9 +289,8 @@ func (s *Service) SetRenderCacheStatsProvider(provider RenderCacheStatsProvider)
 	s.renderCacheStats = provider
 }
 
-// SetProfilingController sets the profiling controller for remote on-demand
-// profiling. Must be called before Start() for the profiling gRPC service
-// to be available.
+// SetProfilingController sets the profiling controller for remote on-demand profiling.
+// Must be called before Start() for the profiling gRPC service to be available.
 //
 // Takes controller (ProfilingController) which may be nil.
 //
@@ -305,9 +304,9 @@ func (s *Service) SetProfilingController(controller ProfilingController) {
 	}
 }
 
-// SetWatchdogInspector sets the watchdog inspector for remote access to
-// watchdog state and stored profiles. Must be called before Start() for the
-// inspector to be available via the transport.
+// SetWatchdogInspector sets the watchdog inspector for remote access to watchdog state
+// and stored profiles. Must be called before Start() for the inspector to be available
+// via the transport.
 //
 // Takes inspector (WatchdogInspector) which may be nil.
 //
@@ -318,13 +317,13 @@ func (s *Service) SetWatchdogInspector(inspector WatchdogInspector) {
 	s.watchdogInspector = inspector
 }
 
-// Start begins background collection and, when a transport factory is configured,
-// the transport server. Blocks until the context is cancelled or an error occurs.
+// Start begins background collection and, when a transport factory is configured, the
+// transport server. Blocks until the context is cancelled or an error occurs.
 //
 // Returns error when the transport fails to start.
 //
-// Safe for concurrent use. Starts metric and system collectors in the
-// background, then blocks on the transport (or context) until cancelled.
+// Safe for concurrent use. Starts metric and system collectors in the background, then
+// blocks on the transport (or context) until cancelled.
 func (s *Service) Start(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Starting monitoring service")
@@ -414,24 +413,24 @@ func (s *Service) Stop(ctx context.Context) {
 	s.metricsCollector.Stop()
 }
 
-// SpanProcessor returns the OTEL span processor for SDK integration.
-// This should be registered with the OTEL trace provider.
+// SpanProcessor returns the OTEL span processor for SDK integration. This should be
+// registered with the OTEL trace provider.
 //
 // Returns SpanProcessor which processes and stores spans.
 func (s *Service) SpanProcessor() SpanProcessor {
 	return s.spanProcessor
 }
 
-// MetricsReader returns the OTEL metrics reader for SDK integration.
-// This should be registered with the OTEL meter provider.
+// MetricsReader returns the OTEL metrics reader for SDK integration. This should be
+// registered with the OTEL meter provider.
 //
 // Returns MetricReader which reads and stores metrics.
 func (s *Service) MetricsReader() MetricReader {
 	return s.metricsCollector.Reader()
 }
 
-// Address returns the address the transport server is listening on, or the
-// configured address when no transport is running.
+// Address returns the address the transport server is listening on, or the configured
+// address when no transport is running.
 //
 // Returns string which is the server address.
 //
@@ -496,8 +495,7 @@ func WithServiceMaxMetrics(n int) ServiceOption {
 
 // WithServiceMaxMetricAge sets the maximum age for metric data points.
 //
-// Takes d (time.Duration) which specifies the maximum age before metrics
-// expire.
+// Takes d (time.Duration) which specifies the maximum age before metrics expire.
 //
 // Returns ServiceOption which configures the maximum metric age on a service.
 func WithServiceMaxMetricAge(d time.Duration) ServiceOption {
@@ -517,9 +515,9 @@ func WithServiceMetricsInterval(d time.Duration) ServiceOption {
 	}
 }
 
-// WithServiceAutoNextPort enables automatic port selection for the monitoring
-// server. When enabled, if the configured port is already in use, the server
-// tries the next port, up to 100 attempts.
+// WithServiceAutoNextPort enables automatic port selection for the monitoring server.
+// When enabled, if the configured port is already in use, the server tries the next port,
+// up to 100 attempts.
 //
 // Takes enabled (bool) which controls whether auto-port selection is active.
 //
@@ -541,9 +539,9 @@ func WithServiceTLS(tls tlscert.TLSValues) ServiceOption {
 	}
 }
 
-// WithServiceTransportFactory sets the transport factory for remote monitoring
-// access. When nil (default), the service runs in local-only mode: collectors
-// are active but no transport serves remote clients.
+// WithServiceTransportFactory sets the transport factory for remote monitoring access.
+// When nil (default), the service runs in local-only mode: collectors are active but no
+// transport serves remote clients.
 //
 // Takes factory (TransportFactory) which creates the transport server.
 //
@@ -565,8 +563,8 @@ func WithServiceWatchdogConfig(config *WatchdogConfig) ServiceOption {
 	}
 }
 
-// WithServiceWatchdogNotifier sets the notification delivery mechanism for the
-// watchdog on the service.
+// WithServiceWatchdogNotifier sets the notification delivery mechanism for the watchdog
+// on the service.
 //
 // Takes notifier (WatchdogNotifier) which delivers event notifications.
 //
@@ -577,8 +575,8 @@ func WithServiceWatchdogNotifier(notifier WatchdogNotifier) ServiceOption {
 	}
 }
 
-// WithServiceWatchdogProfileUploader sets the remote storage backend for
-// profile uploads on the service.
+// WithServiceWatchdogProfileUploader sets the remote storage backend for profile uploads
+// on the service.
 //
 // Takes uploader (WatchdogProfileUploader) which handles remote storage.
 //
@@ -589,16 +587,15 @@ func WithServiceWatchdogProfileUploader(uploader WatchdogProfileUploader) Servic
 	}
 }
 
-// createWatchdogFromConfig creates a Watchdog from the service configuration
-// if enabled.
+// createWatchdogFromConfig creates a Watchdog from the service configuration if enabled.
 //
-// Takes config (*ServiceConfig) which provides the watchdog settings and
-// optional notifier and uploader.
-// Takes systemCollector (*SystemCollector) which provides system statistics
-// for the watchdog to evaluate.
+// Takes config (*ServiceConfig) which provides the watchdog settings and optional
+// notifier and uploader.
+// Takes systemCollector (*SystemCollector) which provides system statistics for the
+// watchdog to evaluate.
 //
-// Returns *Watchdog which is the initialised watchdog, or nil when the
-// watchdog is not configured or fails to initialise.
+// Returns *Watchdog which is the initialised watchdog, or nil when the watchdog is not
+// configured or fails to initialise.
 func createWatchdogFromConfig(config *ServiceConfig, systemCollector *SystemCollector) *Watchdog {
 	if config.WatchdogConfig == nil || !config.WatchdogConfig.Enabled {
 		return nil

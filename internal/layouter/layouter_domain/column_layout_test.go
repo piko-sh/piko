@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const columnEpsilon = 0.001
+const (
+	columnEpsilon = 0.001
+)
 
 func TestResolveColumnDimensions(t *testing.T) {
 	tests := []struct {

@@ -25,12 +25,11 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
-// CopyJS returns a passthrough capability that copies JavaScript without
-// transformation. This produces a readable non-minified variant alongside
-// the minified version for debugging.
+// CopyJS returns a passthrough capability that copies JavaScript without transformation.
+// This produces a readable non-minified variant alongside the minified version for
+// debugging.
 //
-// Returns capabilities_domain.CapabilityFunc which passes data through
-// unchanged.
+// Returns capabilities_domain.CapabilityFunc which passes data through unchanged.
 func CopyJS() capabilities_domain.CapabilityFunc {
 	return func(_ context.Context, inputData io.Reader, _ capabilities_domain.CapabilityParams) (io.Reader, error) {
 		return inputData, nil

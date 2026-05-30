@@ -26,13 +26,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// RecoverPanic recovers from a panic in a goroutine, logging the panic
-// information and stack trace at error level and incrementing an OTel
-// counter.
+// RecoverPanic recovers from a panic in a goroutine, logging the panic information and
+// stack trace at error level and incrementing an OTel counter.
 //
-// Must be called via defer. Designed to work alongside other deferred calls such
-// as wg.Done(). Because Go executes defers in LIFO order, declare RecoverPanic
-// after wg.Done so that recovery happens first:
+// Must be called via defer. Designed to work alongside other deferred calls such as
+// wg.Done(). Because Go executes defers in LIFO order, declare RecoverPanic after wg.Done
+// so that recovery happens first:
 //
 //	go func() {
 //	    defer wg.Done()
@@ -41,8 +40,8 @@ import (
 //	}()
 //
 // Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
-// Takes component (string) which identifies the goroutine for logging and
-// diagnostics. Use the format "package.functionName" for consistency.
+// Takes component (string) which identifies the goroutine for logging and diagnostics.
+// Use the format "package.functionName" for consistency.
 func RecoverPanic(ctx context.Context, component string) {
 	r := recover() //nolint:revive // called via defer
 	if r == nil {
@@ -62,14 +61,14 @@ func RecoverPanic(ctx context.Context, component string) {
 	PanicRecoveryCount.Add(ctx, 1)
 }
 
-// RecoverPanicToChannel recovers from a panic in a goroutine, logging the
-// panic information at error level, incrementing an OTel counter, and
-// sending the panic as an error on the provided channel.
+// RecoverPanicToChannel recovers from a panic in a goroutine, logging the panic
+// information at error level, incrementing an OTel counter, and sending the panic as an
+// error on the provided channel.
 //
 // Intended for goroutines that communicate failures via error channels, such as
-// background server processes. The panic is converted to an error and sent on
-// errCh. If the channel is full or nil, the error is logged but not sent, to
-// avoid blocking the recovery.
+// background server processes. The panic is converted to an error and sent on errCh. If
+// the channel is full or nil, the error is logged but not sent, to avoid blocking the
+// recovery.
 //
 // Must be called via defer. Declare after close(errCh) in the defer stack so that
 // recovery and the channel send happen before the close:
@@ -82,8 +81,7 @@ func RecoverPanic(ctx context.Context, component string) {
 //
 // Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the goroutine for logging.
-// Takes errCh (chan<- error) which receives the panic converted to an
-// error.
+// Takes errCh (chan<- error) which receives the panic converted to an error.
 func RecoverPanicToChannel(ctx context.Context, component string, errCh chan<- error) {
 	r := recover() //nolint:revive // called via defer
 	if r == nil {

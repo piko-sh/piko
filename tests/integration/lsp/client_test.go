@@ -30,8 +30,8 @@ import (
 	"time"
 
 	"go.lsp.dev/jsonrpc2"
-	"piko.sh/piko/wdk/json"
 	"go.lsp.dev/protocol"
+	"piko.sh/piko/wdk/json"
 )
 
 type analysisCompleteParams struct {

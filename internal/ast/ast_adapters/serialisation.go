@@ -32,18 +32,16 @@ import (
 )
 
 var (
-	// builderPool provides a pool of FlatBuffers builders to reduce allocation
-	// overhead during AST serialisation. Builders are reset before being returned
-	// to the pool.
+	// builderPool provides a pool of FlatBuffers builders to reduce allocation overhead
+	// during AST serialisation. Builders are reset before being returned to the pool.
 	builderPool = sync.Pool{
 		New: func() any {
 			return flatbuffers.NewBuilder(8192)
 		},
 	}
 
-	// errASTSchemaVersionMismatch indicates the cached AST was encoded with a
-	// different schema version. The caller should treat this as a cache miss and
-	// regenerate the AST.
+	// errASTSchemaVersionMismatch indicates the cached AST was encoded with a different
+	// schema version. The caller should treat this as a cache miss and regenerate the AST.
 	errASTSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
 )
 
@@ -55,10 +53,10 @@ type encoder struct {
 
 // decoder holds state for converting FlatBuffers data to Go types.
 //
-// The FlatBuffer wrapper fields (locFB, rangeFB, etc.) are reused across
-// unpacking calls to avoid per-accessor heap allocations. Each FlatBuffer
-// accessor's Init method overwrites two fields (Bytes, Pos) and the unpacker
-// reads values immediately into stack-allocated value types, making reuse safe.
+// The FlatBuffer wrapper fields (locFB, rangeFB, etc.) are reused across unpacking calls
+// to avoid per-accessor heap allocations. Each FlatBuffer accessor's Init method
+// overwrites two fields (Bytes, Pos) and the unpacker reads values immediately into
+// stack-allocated value types, making reuse safe.
 type decoder struct {
 	// locFB is a reusable wrapper for decoding LocationFB accessors.
 	locFB ast_schema_gen.LocationFB
@@ -106,29 +104,26 @@ type decoder struct {
 	skipRanges bool
 }
 
-// buildFunc is a function type that builds a FlatBuffers table from a Go
-// struct pointer. T is the Go domain struct type.
+// buildFunc is a function type that builds a FlatBuffers table from a Go struct pointer.
+// T is the Go domain struct type.
 type buildFunc[T any] func(s *encoder, item *T) (flatbuffers.UOffsetT, error)
 
-// unpackerFunc is a function type that converts a FlatBuffers table to a Go
-// struct. FBType is the FlatBuffers type and GoType is the Go domain type.
+// unpackerFunc is a function type that converts a FlatBuffers table to a Go struct.
+// FBType is the FlatBuffers type and GoType is the Go domain type.
 type unpackerFunc[FBType any, GoType any] func(d *decoder, fb *FBType) (GoType, error)
 
-// unpackerPtrFunc is a function type that converts a FlatBuffers table to a
-// Go pointer struct. FBType is the FlatBuffers type and GoType is the target
-// Go type.
+// unpackerPtrFunc is a function type that converts a FlatBuffers table to a Go pointer
+// struct. FBType is the FlatBuffers type and GoType is the target Go type.
 type unpackerPtrFunc[FBType any, GoType any] func(d *decoder, fb *FBType) (*GoType, error)
 
-// EncodeAST converts an in-memory TemplateAST to its versioned FlatBuffers
-// byte representation. The output includes a 32-byte schema hash prefix for
-// automatic cache invalidation when the schema changes between Piko versions.
+// EncodeAST converts an in-memory TemplateAST to its versioned FlatBuffers byte
+// representation. The output includes a 32-byte schema hash prefix for automatic cache
+// invalidation when the schema changes between Piko versions.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the template AST to encode.
 //
-// Returns []byte which contains the encoded FlatBuffers data with schema
-// hash prefix.
-// Returns error when the builder pool returns an unexpected type or
-// encoding fails.
+// Returns []byte which contains the encoded FlatBuffers data with schema hash prefix.
+// Returns error when the builder pool returns an unexpected type or encoding fails.
 func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 	builder, ok := builderPool.Get().(*flatbuffers.Builder)
 	if !ok {
@@ -154,22 +149,22 @@ func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 	return result, nil
 }
 
-// DecodeAST converts a versioned FlatBuffers byte slice back into an
-// in-memory TemplateAST.
+// DecodeAST converts a versioned FlatBuffers byte slice back into an in-memory
+// TemplateAST.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context
-// through the deserialisation path.
+// Takes ctx (context.Context) which carries logging and cancellation context through the
+// deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
 // Returns error when the data is empty or cannot be unpacked.
 //
-// Returns errASTSchemaVersionMismatch if the data was encoded with a
-// different schema version.
+// Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
+// version.
 //
 // SAFETY: The returned AST contains strings that reference 'data' directly via
-// mem.String. Go's GC keeps 'data' alive through these string references. The
-// caller must not modify 'data' while the AST is in use.
+// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
+// not modify 'data' while the AST is in use.
 func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
 	if len(data) == 0 {
 		return nil, errors.New("cannot decode empty byte slice")
@@ -192,23 +187,23 @@ func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error
 	return ast, nil
 }
 
-// DecodeASTForRender converts a versioned FlatBuffers byte slice back into an
-// in-memory TemplateAST, skipping location and range fields that are only
-// needed by the LSP, formatter, and error reporter.
+// DecodeASTForRender converts a versioned FlatBuffers byte slice back into an in-memory
+// TemplateAST, skipping location and range fields that are only needed by the LSP,
+// formatter, and error reporter.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context
-// through the deserialisation path.
+// Takes ctx (context.Context) which carries logging and cancellation context through the
+// deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
 // Returns error when the data is empty or cannot be unpacked.
 //
-// Returns errASTSchemaVersionMismatch if the data was encoded with a
-// different schema version.
+// Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
+// version.
 //
 // SAFETY: The returned AST contains strings that reference 'data' directly via
-// mem.String. Go's GC keeps 'data' alive through these string references. The
-// caller must not modify 'data' while the AST is in use.
+// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
+// not modify 'data' while the AST is in use.
 func DecodeASTForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
 	if len(data) == 0 {
 		return nil, errors.New("cannot decode empty byte slice")

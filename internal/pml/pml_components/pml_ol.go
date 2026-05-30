@@ -25,19 +25,21 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// OrderedList represents the <pml-ol> tag and implements the
-// pml_domain.Component interface. It renders HTML ordered lists that work
-// well with screen readers and email clients, including Gmail and Outlook.
+// OrderedList represents the <pml-ol> tag and implements the pml_domain.Component
+// interface. It renders HTML ordered lists that work well with screen readers and email
+// clients, including Gmail and Outlook.
 type OrderedList struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*OrderedList)(nil)
+var (
+	_ pml_domain.Component = (*OrderedList)(nil)
+)
 
 // NewOrderedList creates a new OrderedList component instance.
 //
-// An OrderedList renders semantic HTML lists (<ul> or <ol>) with proper
-// email client compatibility.
+// An OrderedList renders semantic HTML lists (<ul> or <ol>) with proper email client
+// compatibility.
 //
 // Returns *OrderedList which is the component ready for configuration.
 func NewOrderedList() *OrderedList {
@@ -55,8 +57,8 @@ func (*OrderedList) TagName() string {
 
 // DefaultAttributes returns the default attribute values for this component.
 //
-// Returns map[string]string which is an empty map as ordered lists have no
-// default attributes.
+// Returns map[string]string which is an empty map as ordered lists have no default
+// attributes.
 func (*OrderedList) DefaultAttributes() map[string]string {
 	return map[string]string{}
 }
@@ -70,9 +72,9 @@ func (*OrderedList) AllowedParents() []string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute definitions for list style, bullet type, typography, spacing,
-// alignment, and container styling.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute
+// definitions for list style, bullet type, typography, spacing, alignment, and container
+// styling.
 func (*OrderedList) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		AttrListStyle: NewEnumAttributeDefinition([]string{ValueUnordered, ValueOrdered}),
@@ -98,8 +100,8 @@ func (*OrderedList) AllowedAttributes() map[string]pml_domain.AttributeDefinitio
 
 // GetStyleTargets returns the style targets for this ordered list.
 //
-// Returns []pml_domain.StyleTarget which lists the CSS properties and their
-// target elements that can be styled.
+// Returns []pml_domain.StyleTarget which lists the CSS properties and their target
+// elements that can be styled.
 func (*OrderedList) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: CSSFontFamily, Target: TargetContainer},
@@ -112,49 +114,44 @@ func (*OrderedList) GetStyleTargets() []pml_domain.StyleTarget {
 	}
 }
 
-// Transform converts the <pml-ol> node into its final, email-safe HTML
-// structure. This generates a properly formatted `<ul>` or `<ol>` element with
-// all necessary workarounds for Gmail and Outlook compatibility.
+// Transform converts the <pml-ol> node into its final, email-safe HTML structure. This
+// generates a properly formatted `<ul>` or `<ol>` element with all necessary workarounds
+// for Gmail and Outlook compatibility.
 //
 // Takes node (*ast_domain.TemplateNode) which is the source node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the style
-// manager and collects diagnostics.
+// Takes ctx (*pml_domain.TransformationContext) which provides the style manager and
+// collects diagnostics.
 //
-// Returns *ast_domain.TemplateNode which is the transformed list wrapped in an
-// Outlook compatibility div.
+// Returns *ast_domain.TemplateNode which is the transformed list wrapped in an Outlook
+// compatibility div.
 // Returns []*pml_domain.Error which contains any diagnostics collected during
 // transformation.
 //
 // The transformation implements several key patterns from the Litmus guide:
 //
-//  1. **Semantic HTML Structure**:
-//     Renders as proper `<ul>` or `<ol>` tags with `<li>` children for
-//     accessibility. Screen readers will correctly announce "OrderedList with
-//     X items", "Bullet", "Out of list".
+//  1. **Semantic HTML Structure**: Renders as proper `<ul>` or `<ol>` tags with `<li>`
+//     children for accessibility. Screen readers will correctly announce "OrderedList
+//     with X items", "Bullet", "Out of list".
 //
-//  2. **Margin-Left for Bullet Alignment**:
-//     Applies `margin-left: 25px` (or custom value) to ensure bullets render
-//     inside container boundaries rather than being cut off or misaligned.
+//  2. **Margin-Left for Bullet Alignment**: Applies `margin-left: 25px` (or custom value)
+//     to ensure bullets render inside container boundaries rather than being cut off or
+//     misaligned.
 //
-//  3. **Gmail Webmail Fix**:
-//     Adds a CSS class that can be targeted with Gmail-specific selectors to
-//     remove the margin-left indentation in Gmail webmail only (not mobile
+//  3. **Gmail Webmail Fix**: Adds a CSS class that can be targeted with Gmail-specific
+//     selectors to remove the margin-left indentation in Gmail webmail only (not mobile
 //     app).
 //
-//  4. **Outlook Container**:
-//     Wraps the list in a `<div class="pml-list-wrapper">` to eliminate
-//     Outlook's large default margins. This wrapper is styled via Outlook
+//  4. **Outlook Container**: Wraps the list in a `<div class="pml-list-wrapper">` to
+//     eliminate Outlook's large default margins. This wrapper is styled via Outlook
 //     conditional CSS.
 //
-//  5. **Style Application**:
-//     Applies typography (font-family, font-size, colour, line-height) directly
-//     to the list element. Individual list items inherit these styles and can
-//     override them.
+//  5. **Style Application**: Applies typography (font-family, font-size, colour,
+//     line-height) directly to the list element. Individual list items inherit these
+//     styles and can override them.
 //
-//  6. **Piko Directive Preservation**:
-//     All `p-*` directives are transferred to the outermost element (the
-//     Outlook wrapper div), allowing for dynamic lists:
-//     `<pml-ol p-for="item in items">`.
+//  6. **Piko Directive Preservation**: All `p-*` directives are transferred to the
+//     outermost element (the Outlook wrapper div), allowing for dynamic lists: `<pml-ol
+//     p-for="item in items">`.
 func (*OrderedList) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 
@@ -181,8 +178,8 @@ func (*OrderedList) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Tra
 
 // determineListProperties gets the style settings for a list element.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to the style
-// values for the list element.
+// Takes styles (*pml_domain.StyleManager) which provides access to the style values for
+// the list element.
 //
 // Returns tagName (string) which is the HTML element name (ul or ol).
 // Returns listType (string) which is the bullet or number style.
@@ -223,12 +220,10 @@ func determineListProperties(styles *pml_domain.StyleManager) (tagName, listType
 
 // buildOrderedListStyles builds the style map for an ordered list element.
 //
-// Takes styles (*pml_domain.StyleManager) which provides the base styles to
-// copy from.
+// Takes styles (*pml_domain.StyleManager) which provides the base styles to copy from.
 // Takes marginLeft (string) which sets the left margin value for the list.
 //
-// Returns map[string]string which contains the CSS styles for the ordered
-// list.
+// Returns map[string]string which contains the CSS styles for the ordered list.
 func buildOrderedListStyles(styles *pml_domain.StyleManager, marginLeft string) map[string]string {
 	listStyles := map[string]string{
 		CSSMargin:     ValueZero,
@@ -261,11 +256,11 @@ func buildOrderedListStyles(styles *pml_domain.StyleManager, marginLeft string) 
 	return listStyles
 }
 
-// registerListMSOStyles registers Outlook-specific conditional styles for
-// correct list display in Microsoft Outlook email clients.
+// registerListMSOStyles registers Outlook-specific conditional styles for correct list
+// display in Microsoft Outlook email clients.
 //
-// Takes ctx (*pml_domain.TransformationContext) which provides access to the
-// MSO conditional style collector.
+// Takes ctx (*pml_domain.TransformationContext) which provides access to the MSO
+// conditional style collector.
 func registerListMSOStyles(ctx *pml_domain.TransformationContext) {
 	if ctx.MSOConditionalCollector == nil {
 		return
@@ -280,8 +275,8 @@ func registerListMSOStyles(ctx *pml_domain.TransformationContext) {
 	ctx.MSOConditionalCollector.RegisterStyle(ElementLi+"."+ClassListLast, msoLastListItemMarginBottom)
 }
 
-// createListWrapper wraps a list node in a div for Outlook email clients.
-// It also adds a background colour wrapper if one is set in the styles.
+// createListWrapper wraps a list node in a div for Outlook email clients. It also adds a
+// background colour wrapper if one is set in the styles.
 //
 // Takes listNode (*ast_domain.TemplateNode) which is the list to wrap.
 // Takes styles (*pml_domain.StyleManager) which provides style values.

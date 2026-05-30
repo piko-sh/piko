@@ -1,0 +1,17 @@
+{
+  "name": "01_fib_iterative",
+  "description": "TENGO_SKIPPED: uint64 result exceeds tengo's signed int64 range. Iterative Fibonacci to 100k terms modulo 2^64. Hand-rolled integer-to-string conversion keeps the whole pipeline in interpreter loops.",
+  "args": [],
+  "expected_stdout_sha256": "9585727d05706f02c297c8b606cee97d8148c96672706e3045ec1aa967d265b5",
+  "k_inner": 5,
+  "timeout_seconds": 180,
+  "skip_runners": [
+    "tengo"
+  ],
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "8aa5b29a470c4b3dc9953864e046e70e7a5f18ae0bd6bcbfee6afeaa0a424a3a",
+    "py/cpython.py": "30449876473b772f4c2476091c7b67708bbf052132927a73afc39e1ddf1e92b7",
+    "py/pypy.py": "30449876473b772f4c2476091c7b67708bbf052132927a73afc39e1ddf1e92b7"
+  }
+}

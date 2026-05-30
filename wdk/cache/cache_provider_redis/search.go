@@ -30,33 +30,34 @@ import (
 	"sync"
 
 	"github.com/redis/go-redis/v9"
-	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/cache"
+	"piko.sh/piko/wdk/logger"
 )
 
 const (
-	// DefaultSearchResultLimit is the default number of search results returned
-	// when no explicit limit is specified.
+	// DefaultSearchResultLimit is the default number of search results returned when no
+	// explicit limit is specified.
 	DefaultSearchResultLimit = 10
 
 	// redisJSONPath is the root path selector for Redis JSON commands.
 	redisJSONPath = "$"
 
-	// redisLogKeyField is the attribute key for logging Redis keys in search
-	// operations.
+	// redisLogKeyField is the attribute key for logging Redis keys in search operations.
 	redisLogKeyField = "key"
 )
 
-// indexCreationMu protects concurrent index creation attempts.
-var indexCreationMu sync.Mutex
+var (
+	// indexCreationMu protects concurrent index creation attempts.
+	indexCreationMu sync.Mutex
+)
 
-// ensureIndexExists creates the RediSearch index if it does not already exist.
-// This is called lazily on first search operation.
+// ensureIndexExists creates the RediSearch index if it does not already exist. This is
+// called lazily on first search operation.
 //
 // Returns error when the index cannot be created or search is not supported.
 //
-// Safe for concurrent use. Uses double-checked locking to ensure the index is
-// created only once.
+// Safe for concurrent use. Uses double-checked locking to ensure the index is created
+// only once.
 func (a *RedisAdapter[K, V]) ensureIndexExists(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 	if a.schema == nil {
@@ -148,8 +149,7 @@ func (a *RedisAdapter[K, V]) createIndex(ctx context.Context) error {
 // Takes textQuery (string) which is the text search term to include.
 // Takes filters ([]cache.Filter) which are the filter clauses to apply.
 //
-// Returns string which is the complete query string, or "*" if no terms are
-// provided.
+// Returns string which is the complete query string, or "*" if no terms are provided.
 func (a *RedisAdapter[K, V]) buildSearchQuery(textQuery string, filters []cache.Filter) string {
 	parts := make([]string, 0, len(filters)+1)
 
@@ -175,8 +175,8 @@ func (a *RedisAdapter[K, V]) buildSearchQuery(textQuery string, filters []cache.
 //
 // Takes f (cache.Filter) which specifies the filter to convert.
 //
-// Returns string which is the RediSearch query clause, or empty if the
-// filter operation is not supported.
+// Returns string which is the RediSearch query clause, or empty if the filter operation
+// is not supported.
 func (*RedisAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 	switch f.Operation {
 	case cache.FilterOpEq:
@@ -221,8 +221,7 @@ func (*RedisAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 // executeSearch runs the FT.SEARCH command and returns raw results.
 //
 // Takes query (string) which specifies the RediSearch query to execute.
-// Takes opts (*cache.SearchOptions) which provides pagination and sorting
-// options.
+// Takes opts (*cache.SearchOptions) which provides pagination and sorting options.
 //
 // Returns []any which contains the raw document results from the search.
 // Returns int64 which is the total count of matching documents.
@@ -271,15 +270,13 @@ func (a *RedisAdapter[K, V]) executeSearch(ctx context.Context, query string, op
 
 // parseSearchResults converts raw FT.SEARCH results to SearchResult.
 //
-// Takes rawResults ([]any) which contains the document pairs from
-// the FT.SEARCH response.
-// Takes total (int64) which is the total number of matching
-// documents reported by Redis.
-// Takes opts (*cache.SearchOptions) which provides the pagination
-// settings for the result.
+// Takes rawResults ([]any) which contains the document pairs from the FT.SEARCH response.
+// Takes total (int64) which is the total number of matching documents reported by Redis.
+// Takes opts (*cache.SearchOptions) which provides the pagination settings for the
+// result.
 //
-// Returns the parsed search hits with pagination metadata and
-// an error when result parsing fails.
+// Returns the parsed search hits with pagination metadata and an error when result
+// parsing fails.
 func (a *RedisAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []any, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
 		Items: make([]cache.SearchHit[K, V], 0),
@@ -301,16 +298,12 @@ func (a *RedisAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults 
 	return result, nil
 }
 
-// parseSearchHit parses a single search hit from the raw results at the given
-// index.
+// parseSearchHit parses a single search hit from the raw results at the given index.
 //
-// Takes rawResults ([]any) which contains the raw FT.SEARCH
-// result pairs.
-// Takes i (int) which is the index of the key element in the
-// results slice.
+// Takes rawResults ([]any) which contains the raw FT.SEARCH result pairs.
+// Takes i (int) which is the index of the key element in the results slice.
 //
-// Returns the decoded search hit and a bool indicating whether
-// parsing succeeded.
+// Returns the decoded search hit and a bool indicating whether parsing succeeded.
 func (a *RedisAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []any, i int) (cache.SearchHit[K, V], bool) {
 	_, l := logger.From(ctx, log)
 
@@ -384,8 +377,8 @@ func (a *RedisAdapter[K, V]) setJSONValue(ctx context.Context, keyString string,
 	return nil
 }
 
-// indexDocument stores a document for RediSearch indexing.
-// This is called from Set when search schema is configured.
+// indexDocument stores a document for RediSearch indexing. This is called from Set when
+// search schema is configured.
 //
 // Takes keyString (string) which is the key to store the document under.
 // Takes value (V) which is the document to index.
@@ -413,11 +406,11 @@ func (a *RedisAdapter[K, V]) indexDocument(ctx context.Context, keyString string
 // searchWithRediSearch performs a full-text search using FT.SEARCH.
 //
 // Takes query (string) which is the text query to search for.
-// Takes opts (*cache.SearchOptions) which provides filters,
-// pagination, sorting, and optional vector search parameters.
+// Takes opts (*cache.SearchOptions) which provides filters, pagination, sorting, and
+// optional vector search parameters.
 //
-// Returns the matched documents with pagination metadata and an
-// error when index creation or the search command fails.
+// Returns the matched documents with pagination metadata and an error when index creation
+// or the search command fails.
 func (a *RedisAdapter[K, V]) searchWithRediSearch(ctx context.Context, query string, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
 		return cache.SearchResult[K, V]{}, err
@@ -443,11 +436,11 @@ func (a *RedisAdapter[K, V]) searchWithRediSearch(ctx context.Context, query str
 
 // queryWithRediSearch performs a structured query using FT.SEARCH.
 //
-// Takes opts (*cache.QueryOptions) which provides filters,
-// pagination, sorting, and optional vector search parameters.
+// Takes opts (*cache.QueryOptions) which provides filters, pagination, sorting, and
+// optional vector search parameters.
 //
-// Returns the matched documents with pagination metadata and an
-// error when index creation or the search command fails.
+// Returns the matched documents with pagination metadata and an error when index creation
+// or the search command fails.
 func (a *RedisAdapter[K, V]) queryWithRediSearch(ctx context.Context, opts *cache.QueryOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
 		return cache.SearchResult[K, V]{}, err
@@ -490,8 +483,8 @@ func (a *RedisAdapter[K, V]) queryWithRediSearch(ctx context.Context, opts *cach
 	return a.parseSearchResults(ctx, rawResults, total, searchOpts)
 }
 
-// dropIndex removes the RediSearch index. Called during InvalidateAll if search
-// is enabled.
+// dropIndex removes the RediSearch index. Called during InvalidateAll if search is
+// enabled.
 func (a *RedisAdapter[K, V]) dropIndex(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 	if a.schema == nil || !a.indexCreated {
@@ -509,8 +502,7 @@ func (a *RedisAdapter[K, V]) dropIndex(ctx context.Context) {
 	a.indexCreated = false
 }
 
-// needsJSONStorage reports whether search is enabled and values should be
-// stored as JSON.
+// needsJSONStorage reports whether search is enabled and values should be stored as JSON.
 //
 // Returns bool which is true when a schema is set for search indexing.
 func (a *RedisAdapter[K, V]) needsJSONStorage() bool {
@@ -552,16 +544,15 @@ func (a *RedisAdapter[K, V]) getJSONValue(ctx context.Context, keyString string)
 	return values[0], true, nil
 }
 
-// vectorSearchWithRediSearch performs a vector similarity search using
-// FT.SEARCH with KNN query syntax and DIALECT 2.
+// vectorSearchWithRediSearch performs a vector similarity search using FT.SEARCH with KNN
+// query syntax and DIALECT 2.
 //
-// Takes query (string) which is the optional text query to intersect with
-// vector results.
-// Takes opts (*cache.SearchOptions) which provides the vector, filters, and
-// pagination options.
+// Takes query (string) which is the optional text query to intersect with vector results.
+// Takes opts (*cache.SearchOptions) which provides the vector, filters, and pagination
+// options.
 //
-// Returns the matched documents with similarity scores and an
-// error when the search command fails.
+// Returns the matched documents with similarity scores and an error when the search
+// command fails.
 func (a *RedisAdapter[K, V]) vectorSearchWithRediSearch(ctx context.Context, query string, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	vectorField := opts.VectorField
 	if vectorField == "" {
@@ -609,20 +600,19 @@ func (a *RedisAdapter[K, V]) vectorSearchWithRediSearch(ctx context.Context, que
 	return a.parseVectorSearchResults(ctx, results[1:], total, opts, vectorField)
 }
 
-// parseVectorSearchResults converts raw FT.SEARCH vector results to
-// SearchResult, extracting similarity scores from the distance field.
+// parseVectorSearchResults converts raw FT.SEARCH vector results to SearchResult,
+// extracting similarity scores from the distance field.
 //
-// Takes rawResults ([]any) which contains the document pairs from
-// the FT.SEARCH vector response.
-// Takes total (int64) which is the total number of matching
-// documents reported by Redis.
-// Takes opts (*cache.SearchOptions) which provides pagination
-// settings and the minimum score threshold.
-// Takes vectorField (string) which identifies the vector field
-// used to derive the score field name.
+// Takes rawResults ([]any) which contains the document pairs from the FT.SEARCH vector
+// response.
+// Takes total (int64) which is the total number of matching documents reported by Redis.
+// Takes opts (*cache.SearchOptions) which provides pagination settings and the minimum
+// score threshold.
+// Takes vectorField (string) which identifies the vector field used to derive the score
+// field name.
 //
-// Returns the parsed hits with similarity scores and pagination
-// metadata, and an error when result parsing fails.
+// Returns the parsed hits with similarity scores and pagination metadata, and an error
+// when result parsing fails.
 func (a *RedisAdapter[K, V]) parseVectorSearchResults(ctx context.Context, rawResults []any, total int64, opts *cache.SearchOptions, vectorField string) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
 		Items:  make([]cache.SearchHit[K, V], 0),
@@ -647,18 +637,16 @@ func (a *RedisAdapter[K, V]) parseVectorSearchResults(ctx context.Context, rawRe
 	return result, nil
 }
 
-// parseVectorSearchHit parses a single vector search hit, extracting the
-// document and its distance score.
+// parseVectorSearchHit parses a single vector search hit, extracting the document and its
+// distance score.
 //
-// Takes rawResults ([]any) which contains the raw FT.SEARCH
-// vector result pairs.
-// Takes i (int) which is the index of the key element in the
-// results slice.
-// Takes scoreField (string) which is the name of the distance
-// score field in the document data.
+// Takes rawResults ([]any) which contains the raw FT.SEARCH vector result pairs.
+// Takes i (int) which is the index of the key element in the results slice.
+// Takes scoreField (string) which is the name of the distance score field in the document
+// data.
 //
-// Returns the decoded search hit with similarity score and a
-// bool indicating whether parsing succeeded.
+// Returns the decoded search hit with similarity score and a bool indicating whether
+// parsing succeeded.
 func (a *RedisAdapter[K, V]) parseVectorSearchHit(ctx context.Context, rawResults []any, i int, scoreField string) (cache.SearchHit[K, V], bool) {
 	_, l := logger.From(ctx, log)
 
@@ -719,8 +707,7 @@ func (a *RedisAdapter[K, V]) resolveVectorField() string {
 	return ""
 }
 
-// isUnknownIndexError reports whether the error indicates
-// an unknown RediSearch index.
+// isUnknownIndexError reports whether the error indicates an unknown RediSearch index.
 //
 // Takes err (error) which is the error to check for an unknown index message.
 //
@@ -770,8 +757,8 @@ func escapeTagValue(v any) string {
 //
 // Takes docData ([]any) which contains alternating field name and value pairs.
 //
-// Returns string which is the JSON value for the redisJSONPath field, or an
-// empty string if not found.
+// Returns string which is the JSON value for the redisJSONPath field, or an empty string
+// if not found.
 func extractJSONFromDocData(docData []any) string {
 	for j := 0; j < len(docData); j += 2 {
 		fieldName, ok := docData[j].(string)
@@ -787,15 +774,14 @@ func extractJSONFromDocData(docData []any) string {
 	return ""
 }
 
-// extractVectorScore extracts the distance score from document data and
-// converts it to a similarity score. Redis returns distance (lower is better),
-// so we convert to similarity (higher is better) as 1 - distance.
+// extractVectorScore extracts the distance score from document data and converts it to a
+// similarity score. Redis returns distance (lower is better), so we convert to similarity
+// (higher is better) as 1 - distance.
 //
 // Takes docData ([]any) which contains field name and value pairs.
 // Takes scoreField (string) which specifies the field name holding the score.
 //
-// Returns float64 which is the similarity score, or 0 if the field is not
-// found.
+// Returns float64 which is the similarity score, or 0 if the field is not found.
 func extractVectorScore(docData []any, scoreField string) float64 {
 	for j := 0; j < len(docData); j += 2 {
 		fieldName, ok := docData[j].(string)
@@ -817,8 +803,8 @@ func extractVectorScore(docData []any, scoreField string) float64 {
 	return 0
 }
 
-// vectorDistanceMetric converts a cache DTO distance metric string to the
-// Redis FT.CREATE DISTANCE_METRIC parameter value.
+// vectorDistanceMetric converts a cache DTO distance metric string to the Redis FT.CREATE
+// DISTANCE_METRIC parameter value.
 //
 // Takes metric (string) which is the metric name from FieldSchema.
 //
@@ -834,8 +820,8 @@ func vectorDistanceMetric(metric string) string {
 	}
 }
 
-// vectorToBlob serialises a float32 vector to a little-endian byte blob
-// for use as a PARAMS argument in FT.SEARCH KNN queries.
+// vectorToBlob serialises a float32 vector to a little-endian byte blob for use as a
+// PARAMS argument in FT.SEARCH KNN queries.
 //
 // Takes v ([]float32) which is the vector to serialise.
 //

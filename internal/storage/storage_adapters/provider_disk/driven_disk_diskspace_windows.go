@@ -26,8 +26,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// getDiskSpace returns available and total disk space in megabytes for the
-// given path.
+// getDiskSpace returns available and total disk space in megabytes for the given path.
 //
 // Takes rootPath (string) which specifies the filesystem path to check.
 //

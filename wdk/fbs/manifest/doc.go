@@ -16,13 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package manifest provides public access to the manifest FlatBuffer
-// schema for inspecting compiled manifest.bin files.
+// Package manifest provides public access to the manifest FlatBuffer schema for
+// inspecting compiled manifest.bin files.
 //
-// It exposes the schema hash, an [Unpack] function to strip the
-// version header, and [ConvertManifest] to decode the raw FlatBuffer
-// payload into a JSON-serialisable [Manifest] struct. The manifest
-// contains metadata for pages, partials, emails, and PDFs, including
-// route patterns, style blocks, i18n strategies, and local
-// translations.
+// It exposes the schema hash, an [Unpack] function to strip the version header, and
+// [ConvertManifest] to decode the raw FlatBuffer payload into a JSON-serialisable
+// [Manifest] struct. The manifest contains metadata for pages, partials, emails, and
+// PDFs, including route patterns, style blocks, i18n strategies, and local translations.
 package manifest

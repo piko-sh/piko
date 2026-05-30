@@ -26,6 +26,10 @@ import (
 )
 
 // parseCreateIndex parses a CREATE [UNIQUE] INDEX statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new index, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseCreateIndex() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -67,6 +71,10 @@ func (p *parser) parseCreateIndex() (mutation *querier_dto.CatalogueMutation, er
 }
 
 // parseDropIndex parses a DROP INDEX ... ON table statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the index to drop, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseDropIndex() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -104,6 +112,10 @@ func (p *parser) parseDropIndex() (mutation *querier_dto.CatalogueMutation, err 
 }
 
 // parseCreateView parses a CREATE [OR REPLACE] VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new view, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseCreateView() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -140,12 +152,14 @@ func (p *parser) parseCreateView() (mutation *querier_dto.CatalogueMutation, err
 	}, nil
 }
 
+// skipOrReplace consumes an optional OR REPLACE clause.
 func (p *parser) skipOrReplace() {
 	if p.matchKeyword("OR") {
 		p.matchKeyword("REPLACE")
 	}
 }
 
+// skipViewPrefixes consumes ALGORITHM, DEFINER, and SQL SECURITY prefixes.
 func (p *parser) skipViewPrefixes() {
 	if p.matchKeyword("ALGORITHM") {
 		if p.current().kind == tokenOperator && p.current().value == "=" {
@@ -164,6 +178,7 @@ func (p *parser) skipViewPrefixes() {
 	}
 }
 
+// skipDefinerClause consumes a DEFINER = user clause on a CREATE statement.
 func (p *parser) skipDefinerClause() {
 	if p.current().kind == tokenOperator && p.current().value == "=" {
 		p.advance()
@@ -185,6 +200,10 @@ func (p *parser) skipDefinerClause() {
 }
 
 // parseDropView parses a DROP VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the view to drop, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseDropView() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -210,7 +229,14 @@ func (p *parser) parseDropView() (mutation *querier_dto.CatalogueMutation, err e
 	}, nil
 }
 
-// parseCreateOrDropTrigger parses a CREATE TRIGGER or DROP TRIGGER statement.
+// parseCreateOrDropTrigger parses a CREATE or DROP TRIGGER statement.
+//
+// Takes kind (statementKind) which selects between the CREATE and DROP trigger entry
+// points.
+//
+// Returns *querier_dto.CatalogueMutation which describes the trigger mutation, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseCreateOrDropTrigger(kind statementKind) (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -225,6 +251,10 @@ func (p *parser) parseCreateOrDropTrigger(kind statementKind) (mutation *querier
 	return p.parseDropTrigger()
 }
 
+// parseCreateTrigger parses the body of a CREATE TRIGGER statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new trigger.
+// Returns error when the statement is malformed.
 func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -262,6 +292,7 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// skipTriggerBody advances past a trigger body's BEGIN ... END block.
 func (p *parser) skipTriggerBody() {
 	for !p.atEnd() && !p.isKeyword("BEGIN") {
 		if p.current().kind == tokenSemicolon || p.current().kind == tokenEOF {
@@ -290,6 +321,10 @@ func (p *parser) skipTriggerBody() {
 	}
 }
 
+// parseDropTrigger parses the body of a DROP TRIGGER statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the trigger to drop.
+// Returns error when the statement is malformed.
 func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("TRIGGER")
@@ -310,6 +345,10 @@ func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 }
 
 // parseCreateDatabase parses a CREATE DATABASE/SCHEMA statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new schema, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseCreateDatabase() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -339,6 +378,10 @@ func (p *parser) parseCreateDatabase() (mutation *querier_dto.CatalogueMutation,
 }
 
 // parseDropDatabase parses a DROP DATABASE/SCHEMA statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the schema to drop, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseDropDatabase() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {

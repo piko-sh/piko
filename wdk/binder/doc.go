@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package binder provides form-data binding for populating Go structs
-// from key-value form submissions.
+// Package binder provides form-data binding for populating Go structs from key-value form
+// submissions.
 //
-// It supports nested structs, slices, maps, and custom type converters.
-// Configurable security limits protect against hash-flooding, memory
-// exhaustion, and stack overflow from malicious input.
+// It supports nested structs, slices, maps, and custom type converters. Configurable
+// security limits protect against hash-flooding, memory exhaustion, and stack overflow
+// from malicious input.
 //
 // # Binding form data
 //
@@ -54,8 +54,7 @@
 //
 // # Security limits
 //
-// Global limits control field count, nesting depth, path length,
-// value length, and slice size. These can be set at startup with
-// the Set* functions, or overridden per call with the corresponding
-// option functions.
+// Global limits control field count, nesting depth, path length, value length, and slice
+// size. These can be set at startup with the Set* functions, or overridden per call with
+// the corresponding option functions.
 package binder

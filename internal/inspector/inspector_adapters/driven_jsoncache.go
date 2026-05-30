@@ -24,27 +24,28 @@ import (
 	"fmt"
 	"io/fs"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// JSONCache provides JSON-based file caching for TypeData.
-// It implements TypeDataProvider and is simpler than FlatBufferCache but
-// slower and uses more disk space.
+// JSONCache provides JSON-based file caching for TypeData. It implements TypeDataProvider
+// and is simpler than FlatBufferCache but slower and uses more disk space.
 type JSONCache struct {
 	// sandbox provides sandboxed file system operations for cache storage.
 	sandbox safedisk.Sandbox
 }
 
-var _ inspector_domain.TypeDataProvider = (*JSONCache)(nil)
+var (
+	_ inspector_domain.TypeDataProvider = (*JSONCache)(nil)
+)
 
-// NewJSONCache creates a new JSONCache with the given sandbox.
-// The sandbox root is the cache directory.
+// NewJSONCache creates a new JSONCache with the given sandbox. The sandbox root is the
+// cache directory.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access
-// to the cache directory.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access to the
+// cache directory.
 //
 // Returns *JSONCache which is ready for use.
 func NewJSONCache(sandbox safedisk.Sandbox) *JSONCache {
@@ -56,8 +57,8 @@ func NewJSONCache(sandbox safedisk.Sandbox) *JSONCache {
 // Takes cacheKey (string) which identifies the cached type data to fetch.
 //
 // Returns *inspector_dto.TypeData which holds the cached type information.
-// Returns error when the cache directory or key is empty, the cache file does
-// not exist, or the cached data cannot be read.
+// Returns error when the cache directory or key is empty, the cache file does not exist,
+// or the cached data cannot be read.
 func (fc *JSONCache) GetTypeData(_ context.Context, cacheKey string) (*inspector_dto.TypeData, error) {
 	if fc.sandbox == nil || cacheKey == "" {
 		return nil, errors.New("file cache provider requires a sandbox and key")
@@ -77,14 +78,13 @@ func (fc *JSONCache) GetTypeData(_ context.Context, cacheKey string) (*inspector
 	return &typeData, nil
 }
 
-// SaveTypeData serialises and stores TypeData to the cache with the given key.
-// The write is atomic via the sandbox's WriteFileAtomic method.
+// SaveTypeData serialises and stores TypeData to the cache with the given key. The write
+// is atomic via the sandbox's WriteFileAtomic method.
 //
 // Takes cacheKey (string) which identifies the cache entry.
 // Takes data (*inspector_dto.TypeData) which contains the type data to store.
 //
-// Returns error when the sandbox or key is empty, or when any file
-// operation fails.
+// Returns error when the sandbox or key is empty, or when any file operation fails.
 func (fc *JSONCache) SaveTypeData(_ context.Context, cacheKey string, data *inspector_dto.TypeData) error {
 	if fc.sandbox == nil || cacheKey == "" {
 		return errors.New("file cache saver requires a sandbox and key")
@@ -111,8 +111,7 @@ func (fc *JSONCache) SaveTypeData(_ context.Context, cacheKey string, data *insp
 //
 // Takes cacheKey (string) which identifies the cache entry to remove.
 //
-// Returns error when the sandbox or key is empty, or when the file
-// cannot be removed.
+// Returns error when the sandbox or key is empty, or when the file cannot be removed.
 func (fc *JSONCache) InvalidateCache(_ context.Context, cacheKey string) error {
 	if fc.sandbox == nil || cacheKey == "" {
 		return errors.New("file cache invalidator requires a sandbox and key")

@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_mistral provides an LLM provider backed by
-// the Mistral AI API.
+// Package llm_provider_mistral provides an LLM provider backed by the Mistral AI API.
 //
-// The provider supports completions, streaming, tool/function
-// calling, and structured output.
+// The provider supports completions, streaming, tool/function calling, and structured
+// output.
 //
 // # Thread safety
 //

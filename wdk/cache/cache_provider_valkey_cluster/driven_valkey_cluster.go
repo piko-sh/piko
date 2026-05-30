@@ -43,21 +43,20 @@ const (
 	// logKeyNode is the attribute key used when logging cluster node addresses.
 	logKeyNode = "node"
 
-	// maxTransactionCommands is the maximum number of commands in a
-	// MULTI/EXEC transaction (MULTI + action + EXEC).
+	// maxTransactionCommands is the maximum number of commands in a MULTI/EXEC transaction
+	// (MULTI + action + EXEC).
 	maxTransactionCommands = 3
 
 	// errFmtEncodeKey is the format string used when key encoding fails.
 	errFmtEncodeKey = "failed to encode key: %w"
 )
 
-// ValkeyClusterAdapter implements the ProviderPort using a Valkey Cluster
-// client. It supports generics by encoding keys to strings and using a
-// type-driven EncodingRegistry for values.
+// ValkeyClusterAdapter implements the ProviderPort using a Valkey Cluster client. It
+// supports generics by encoding keys to strings and using a type-driven EncodingRegistry
+// for values.
 //
 // IMPORTANT CLUSTER CONSTRAINTS:
-//   - Multi-key operations (MGET, MSET) only work if all keys hash to the same
-//     slot
+//   - Multi-key operations (MGET, MSET) only work if all keys hash to the same slot
 //   - Tag operations use hash tags {...} to ensure same-slot placement
 //   - WATCH/MULTI/EXEC transactions are scoped to single nodes via hash tags
 //   - Some operations may be slower due to cross-node coordination
@@ -65,8 +64,8 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 	// expiryCalculator calculates expiry durations for each key; optional.
 	expiryCalculator cache.ExpiryCalculator[K, V]
 
-	// refreshCalculator calculates when entries become eligible for background
-	// refresh; optional.
+	// refreshCalculator calculates when entries become eligible for background refresh;
+	// optional.
 	refreshCalculator cache.RefreshCalculator[K, V]
 
 	// registry stores the encoding registry used to encode values.
@@ -93,16 +92,14 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 	// ttl is the default time-to-live for cache entries.
 	ttl time.Duration
 
-	// operationTimeout is the maximum duration for Valkey operations; 0 means no
-	// limit.
+	// operationTimeout is the maximum duration for Valkey operations; 0 means no limit.
 	operationTimeout time.Duration
 
-	// atomicOperationTimeout is the maximum duration for WATCH/MULTI/EXEC
-	// operations.
+	// atomicOperationTimeout is the maximum duration for WATCH/MULTI/EXEC operations.
 	atomicOperationTimeout time.Duration
 
-	// bulkOperationTimeout is the timeout for bulk operations such as MGET, MSET,
-	// and pipelines.
+	// bulkOperationTimeout is the timeout for bulk operations such as MGET, MSET, and
+	// pipelines.
 	bulkOperationTimeout time.Duration
 
 	// flushTimeout is the timeout for InvalidateAll flush operations.
@@ -111,49 +108,50 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 	// searchTimeout is the time limit for FT.SEARCH operations.
 	searchTimeout time.Duration
 
-	// maxComputeRetries is the maximum number of retries for optimistic locking
-	// in Compute methods.
+	// maxComputeRetries is the maximum number of retries for optimistic locking in Compute
+	// methods.
 	maxComputeRetries int
 
-	// If true and no namespace is set, InvalidateAll uses FLUSHDB.
-	// If false, InvalidateAll is blocked without a namespace for safety.
+	// If true and no namespace is set, InvalidateAll uses FLUSHDB. If false, InvalidateAll
+	// is blocked without a namespace for safety.
 	allowUnsafeFLUSHDB bool
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
 }
 
-var _ cache.ProviderPort[any, any] = (*ValkeyClusterAdapter[any, any])(nil)
+var (
+	_ cache.ProviderPort[any, any] = (*ValkeyClusterAdapter[any, any])(nil)
+)
 
-// encodeKey converts a key of type K to a namespace-prefixed Valkey key string
-// using the shared encoding logic in cache_domain.
+// encodeKey converts a key of type K to a namespace-prefixed Valkey key string using the
+// shared encoding logic in cache_domain.
 //
 // Takes key (K) which is the cache key to encode.
 //
 // Returns string which is the encoded Valkey key, with namespace prefix if set.
-// Returns error when no encoder is registered for the key type or when
-// marshalling fails.
+// Returns error when no encoder is registered for the key type or when marshalling fails.
 func (a *ValkeyClusterAdapter[K, V]) encodeKey(key K) (string, error) {
 	return cache_domain.EncodeKey(key, a.namespace, a.keyRegistry)
 }
 
-// decodeKey converts a Valkey key string back to a key of type K using the
-// shared decoding logic in cache_domain.
+// decodeKey converts a Valkey key string back to a key of type K using the shared
+// decoding logic in cache_domain.
 //
 // Takes keyString (string) which is the Valkey key to decode.
 //
 // Returns K which is the decoded key value.
-// Returns error when the namespace prefix is missing, decoding fails, or no
-// encoder is registered for the key type.
+// Returns error when the namespace prefix is missing, decoding fails, or no encoder is
+// registered for the key type.
 func (a *ValkeyClusterAdapter[K, V]) decodeKey(keyString string) (K, error) {
 	return cache_domain.DecodeKey[K](keyString, a.namespace, a.keyRegistry)
 }
 
-// GetIfPresent retrieves a value from the cache if it exists, without blocking
-// or loading. When SearchSchema is configured, reads from JSON storage.
+// GetIfPresent retrieves a value from the cache if it exists, without blocking or
+// loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
@@ -206,16 +204,15 @@ func (a *ValkeyClusterAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V
 	return result, true, nil
 }
 
-// Get retrieves a value from the cache, loading it via the provided loader
-// if not present.
+// Get retrieves a value from the cache, loading it via the provided loader if not
+// present.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 // Takes loader (Loader[K, V]) which loads the value on cache miss.
 //
 // Returns V which is the cached or newly loaded value.
-// Returns error when key encoding fails, the loader fails, or type assertion
-// fails.
+// Returns error when key encoding fails, the loader fails, or type assertion fails.
 func (a *ValkeyClusterAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loader[K, V]) (V, error) {
 	keyString, err := a.encodeKey(key)
 	if err != nil {
@@ -250,12 +247,12 @@ func (a *ValkeyClusterAdapter[K, V]) Get(ctx context.Context, key K, loader cach
 	return value, nil
 }
 
-// Set stores a key-value pair in the cache with optional tags for grouped
-// invalidation. When a SearchSchema is configured, values are stored as JSON
-// for Valkey Search indexing.
+// Set stores a key-value pair in the cache with optional tags for grouped invalidation.
+// When a SearchSchema is configured, values are stored as JSON for Valkey Search
+// indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
@@ -326,8 +323,7 @@ func (a *ValkeyClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, ta
 // Takes ttl (time.Duration) which specifies how long the entry remains valid.
 // Takes tags (...string) which are optional tags to associate with the key.
 //
-// Returns error when encoding fails, marshalling fails, or the Valkey operation
-// fails.
+// Returns error when encoding fails, marshalling fails, or the Valkey operation fails.
 func (a *ValkeyClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -367,14 +363,13 @@ func (a *ValkeyClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, valu
 //
 // Takes key (K) which is the cache key to encode.
 // Takes value (V) which is the value to marshal for storage.
-// Takes defaultTTL (time.Duration) which is the fallback TTL when no expiry
-// calculator is configured.
+// Takes defaultTTL (time.Duration) which is the fallback TTL when no expiry calculator is
+// configured.
 //
 // Returns string which is the encoded key.
 // Returns []byte which is the marshalled value.
 // Returns time.Duration which is the calculated TTL for the entry.
-// Returns bool which is true on success, or false if encoding or marshalling
-// fails.
+// Returns bool which is true on success, or false if encoding or marshalling fails.
 func (a *ValkeyClusterAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, value V, defaultTTL time.Duration) (string, []byte, time.Duration, bool) {
 	_, l := logger.From(ctx, log)
 
@@ -409,12 +404,10 @@ func (a *ValkeyClusterAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key
 	return keyString, valBytes, entryTTL, true
 }
 
-// BulkSet stores multiple key-value pairs in the cache using DoMulti for
-// efficiency.
+// BulkSet stores multiple key-value pairs in the cache using DoMulti for efficiency.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
-// Takes tags (...string) which specifies optional tags to associate with each
-// key.
+// Takes tags (...string) which specifies optional tags to associate with each key.
 //
 // Returns error when the pipeline execution fails.
 func (a *ValkeyClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ...string) error {
@@ -460,8 +453,8 @@ func (a *ValkeyClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V,
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which specifies the cache key to remove.
@@ -493,20 +486,20 @@ func (a *ValkeyClusterAdapter[K, V]) Invalidate(ctx context.Context, key K) erro
 	return nil
 }
 
-// decodeValue decodes bytes into a value of type V using the shared decoding
-// logic in cache_domain.
+// decodeValue decodes bytes into a value of type V using the shared decoding logic in
+// cache_domain.
 //
 // Takes valBytes ([]byte) which contains the encoded data to decode.
 //
 // Returns V which is the decoded value.
-// Returns error when the encoder cannot be found, unmarshalling fails, or type
-// assertion fails.
+// Returns error when the encoder cannot be found, unmarshalling fails, or type assertion
+// fails.
 func (a *ValkeyClusterAdapter[K, V]) decodeValue(valBytes []byte) (V, error) {
 	return cache_domain.DecodeValue[V](valBytes, a.registry)
 }
 
-// encodeValue encodes a value of type V to bytes using the shared encoding
-// logic in cache_domain.
+// encodeValue encodes a value of type V to bytes using the shared encoding logic in
+// cache_domain.
 //
 // Takes value (V) which is the value to encode.
 //
@@ -516,8 +509,8 @@ func (a *ValkeyClusterAdapter[K, V]) encodeValue(value V) ([]byte, error) {
 	return cache_domain.EncodeValue(value, a.registry)
 }
 
-// bulkEncodeKeys encodes a slice of keys and returns the encoded strings with a
-// reverse lookup map.
+// bulkEncodeKeys encodes a slice of keys and returns the encoded strings with a reverse
+// lookup map.
 //
 // Takes keys ([]K) which specifies the keys to encode.
 //
@@ -545,8 +538,7 @@ func (a *ValkeyClusterAdapter[K, V]) bulkEncodeKeys(ctx context.Context, keys []
 // Takes valBytes ([]byte) which is the raw value bytes from the GET response.
 // Takes keyString (string) which identifies the key for logging purposes.
 //
-// Returns V which is the unmarshalled value on success, or the zero value on
-// failure.
+// Returns V which is the unmarshalled value on success, or the zero value on failure.
 // Returns bool which is true on success, or false to indicate a cache miss.
 func (a *ValkeyClusterAdapter[K, V]) processBulkGetResultBytes(ctx context.Context, valBytes []byte, keyString string) (V, bool) {
 	_, l := logger.From(ctx, log)
@@ -574,8 +566,8 @@ func (a *ValkeyClusterAdapter[K, V]) processBulkGetResultBytes(ctx context.Conte
 	return result, true
 }
 
-// storeLoadedValues stores loaded values to Valkey via DoMulti and updates
-// the results map.
+// storeLoadedValues stores loaded values to Valkey via DoMulti and updates the results
+// map.
 //
 // Takes loaded (map[K]V) which contains the key-value pairs to store.
 // Takes results (map[K]V) which receives successfully stored entries.
@@ -615,17 +607,15 @@ func (a *ValkeyClusterAdapter[K, V]) storeLoadedValues(ctx context.Context, load
 // BulkGet fetches multiple keys in a single operation.
 //
 // Takes keys ([]K) which specifies the cache keys to retrieve.
-// Takes bulkLoader (BulkLoader) which loads values for any keys not found in
-// the cache.
+// Takes bulkLoader (BulkLoader) which loads values for any keys not found in the cache.
 //
-// Returns map[K]V which contains the retrieved values keyed by their original
-// keys.
+// Returns map[K]V which contains the retrieved values keyed by their original keys.
 // Returns error when the Valkey MGET operation fails or the bulk loader fails.
 //
-// CLUSTER WARNING: MGET only works efficiently if all keys hash to the same
-// slot. In a cluster deployment with randomly distributed keys, this will
-// result in multiple round-trips to different nodes, reducing performance.
-// Consider using hash tags in your key design if bulk operations are critical.
+// CLUSTER WARNING: MGET only works efficiently if all keys hash to the same slot. In a
+// cluster deployment with randomly distributed keys, this will result in multiple
+// round-trips to different nodes, reducing performance. Consider using hash tags in your
+// key design if bulk operations are critical.
 func (a *ValkeyClusterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader cache.BulkLoader[K, V]) (map[K]V, error) {
 	if len(keys) == 0 {
 		return make(map[K]V), nil
@@ -676,12 +666,11 @@ func (a *ValkeyClusterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulk
 
 // InvalidateByTags removes all cache entries associated with the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
-// Takes tags (...string) which specifies the tags whose entries should be
-// removed.
+// Takes tags (...string) which specifies the tags whose entries should be removed.
 //
 // Returns int which is the number of entries that were invalidated.
 // Returns error when the operation fails.
@@ -700,8 +689,8 @@ func (a *ValkeyClusterAdapter[K, V]) InvalidateByTags(ctx context.Context, tags 
 	return count, nil
 }
 
-// flushClusterUnsafe runs FLUSHDB on all master nodes in the Valkey Cluster.
-// This deletes all keys on all nodes and should only be used in unsafe mode.
+// flushClusterUnsafe runs FLUSHDB on all master nodes in the Valkey Cluster. This deletes
+// all keys on all nodes and should only be used in unsafe mode.
 //
 // Returns error when FLUSHDB fails on any cluster node.
 func (a *ValkeyClusterAdapter[K, V]) flushClusterUnsafe(ctx context.Context) error {
@@ -723,9 +712,9 @@ func (a *ValkeyClusterAdapter[K, V]) flushClusterUnsafe(ctx context.Context) err
 	return errors.Join(errs...)
 }
 
-// deleteBatch deletes a batch of keys individually via DoMulti and returns
-// the number deleted. Each key is deleted with a separate DEL command to avoid
-// cross-slot panics in cluster mode.
+// deleteBatch deletes a batch of keys individually via DoMulti and returns the number
+// deleted. Each key is deleted with a separate DEL command to avoid cross-slot panics in
+// cluster mode.
 //
 // Takes batch ([]string) which contains the keys to delete.
 //
@@ -745,8 +734,8 @@ func (a *ValkeyClusterAdapter[K, V]) deleteBatch(ctx context.Context, batch []st
 	return deleted
 }
 
-// invalidateByNamespace scans and deletes all keys that match the namespace
-// pattern across the Valkey cluster.
+// invalidateByNamespace scans and deletes all keys that match the namespace pattern
+// across the Valkey cluster.
 func (a *ValkeyClusterAdapter[K, V]) invalidateByNamespace(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
@@ -785,18 +774,18 @@ func (a *ValkeyClusterAdapter[K, V]) invalidateByNamespace(ctx context.Context) 
 		logger.Int("keys_deleted", deletedCount))
 }
 
-// InvalidateAll flushes all data from the cluster.
-// If search is enabled, also drops the Valkey Search index.
+// InvalidateAll flushes all data from the cluster. If search is enabled, also drops the
+// Valkey Search index.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the operation fails.
 //
-// CLUSTER NOTE: FLUSHDB in cluster mode flushes all databases on all nodes.
-// This is an EXTREMELY destructive operation that affects the entire cluster.
+// CLUSTER NOTE: FLUSHDB in cluster mode flushes all databases on all nodes. This is an
+// EXTREMELY destructive operation that affects the entire cluster.
 func (a *ValkeyClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -819,16 +808,14 @@ func (a *ValkeyClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	return nil
 }
 
-// BulkRefresh asynchronously refreshes multiple cache entries using the bulk
-// loader.
+// BulkRefresh asynchronously refreshes multiple cache entries using the bulk loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the values for the given keys.
 //
-// Safe for concurrent use. Spawns a goroutine that loads
-// values and updates the cache. The goroutine runs
-// independently and logs warnings on failure.
+// Safe for concurrent use. Spawns a goroutine that loads values and updates the cache.
+// The goroutine runs independently and logs warnings on failure.
 func (a *ValkeyClusterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache.BulkLoader[K, V]) {
 	ctx, l := logger.From(ctx, log)
 
@@ -847,19 +834,17 @@ func (a *ValkeyClusterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, 
 	}()
 }
 
-// Refresh asynchronously refreshes a single cache entry using the
-// provided loader.
+// Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
-// Takes loader (Loader[K, V]) which loads the fresh value for the
-// given key.
+// Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
-// Returns <-chan cache.LoadResult[V] which receives the load outcome
-// once the background goroutine completes.
+// Returns <-chan cache.LoadResult[V] which receives the load outcome once the background
+// goroutine completes.
 //
-// Safe for concurrent use. Spawns a goroutine that loads the value and updates
-// the cache. The channel is closed after the result is sent.
+// Safe for concurrent use. Spawns a goroutine that loads the value and updates the cache.
+// The channel is closed after the result is sent.
 func (a *ValkeyClusterAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.Loader[K, V]) <-chan cache.LoadResult[V] {
 	ctx, l := logger.From(ctx, log)
 
@@ -878,14 +863,12 @@ func (a *ValkeyClusterAdapter[K, V]) Refresh(ctx context.Context, key K, loader 
 	return resultChan
 }
 
-// Search performs full-text search across indexed TEXT fields. Valkey Search
-// does not support full-text TEXT fields; returns ErrSearchNotSupported for
-// text queries.
+// Search performs full-text search across indexed TEXT fields. Valkey Search does not
+// support full-text TEXT fields; returns ErrSearchNotSupported for text queries.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes query (string) which is the search query to match against TEXT fields.
-// Takes opts (*cache.SearchOptions) which contains filters, pagination, and
-// sorting.
+// Takes opts (*cache.SearchOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.
 // Returns error if search is not supported or the search fails.
@@ -910,13 +893,11 @@ func (a *ValkeyClusterAdapter[K, V]) Search(ctx context.Context, query string, o
 	return a.searchWithValkeySearch(timeoutCtx, query, opts)
 }
 
-// Query performs structured filtering, sorting, and pagination without
-// full-text search.
+// Query performs structured filtering, sorting, and pagination without full-text search.
 // Returns ErrSearchNotSupported if no SearchSchema was configured.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
-// Takes opts (*cache.QueryOptions) which contains filters, pagination, and
-// sorting.
+// Takes opts (*cache.QueryOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.
 // Returns error if search is not supported or the query fails.

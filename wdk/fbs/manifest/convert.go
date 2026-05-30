@@ -24,9 +24,10 @@ import (
 	gen_fb "piko.sh/piko/internal/generator/generator_schema/generator_schema_gen"
 )
 
-// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be
-// decoded.
-var errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+var (
+	// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be decoded.
+	errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+)
 
 // Manifest is a JSON-serialisable representation of a compiled Piko manifest.
 type Manifest struct {
@@ -172,11 +173,11 @@ type AssetRef struct {
 	Path string `json:"path"`
 }
 
-// ConvertManifest parses a raw FlatBuffer manifest payload into a
-// JSON-serialisable Manifest struct.
+// ConvertManifest parses a raw FlatBuffer manifest payload into a JSON-serialisable
+// Manifest struct.
 //
-// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the
-// version header (use Unpack first).
+// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the version
+// header (use Unpack first).
 //
 // Returns *Manifest which contains all pages, partials, and emails.
 // Returns error when the payload cannot be parsed.
@@ -196,11 +197,10 @@ func ConvertManifest(payload []byte) (*Manifest, error) {
 
 // convertPageMap extracts all page entries from the FlatBuffer manifest.
 //
-// Takes fb (*gen_fb.ManifestFB) which is the FlatBuffer manifest to extract
-// pages from.
+// Takes fb (*gen_fb.ManifestFB) which is the FlatBuffer manifest to extract pages from.
 //
-// Returns map[string]PageEntry which maps page keys to their entries, or nil
-// if the manifest contains no pages.
+// Returns map[string]PageEntry which maps page keys to their entries, or nil if the
+// manifest contains no pages.
 func convertPageMap(fb *gen_fb.ManifestFB) map[string]PageEntry {
 	length := fb.PagesLength()
 	if length == 0 {
@@ -220,8 +220,7 @@ func convertPageMap(fb *gen_fb.ManifestFB) map[string]PageEntry {
 
 // convertPageEntry converts a single FlatBuffer page entry.
 //
-// Takes fb (*gen_fb.ManifestPageEntryFB) which is the FlatBuffer page entry to
-// convert.
+// Takes fb (*gen_fb.ManifestPageEntryFB) which is the FlatBuffer page entry to convert.
 //
 // Returns PageEntry which contains the converted page entry data.
 func convertPageEntry(fb *gen_fb.ManifestPageEntryFB) PageEntry {
@@ -249,8 +248,8 @@ func convertPageEntry(fb *gen_fb.ManifestPageEntryFB) PageEntry {
 //
 // Takes fb (*gen_fb.ManifestPageEntryFB) which provides the page entry data.
 //
-// Returns map[string]string which maps locale codes to their route patterns,
-// or nil when no patterns exist.
+// Returns map[string]string which maps locale codes to their route patterns, or nil when
+// no patterns exist.
 func convertRoutePatterns(fb *gen_fb.ManifestPageEntryFB) map[string]string {
 	length := fb.RoutePatternsLength()
 	if length == 0 {
@@ -268,11 +267,11 @@ func convertRoutePatterns(fb *gen_fb.ManifestPageEntryFB) map[string]string {
 
 // convertAssetRefs extracts asset references from the FlatBuffer.
 //
-// Takes fb (*gen_fb.ManifestPageEntryFB) which is the FlatBuffer page entry
-// to extract asset references from.
+// Takes fb (*gen_fb.ManifestPageEntryFB) which is the FlatBuffer page entry to extract
+// asset references from.
 //
-// Returns []AssetRef which contains the extracted asset references, or nil if
-// the entry has no asset references.
+// Returns []AssetRef which contains the extracted asset references, or nil if the entry
+// has no asset references.
 func convertAssetRefs(fb *gen_fb.ManifestPageEntryFB) []AssetRef {
 	length := fb.AssetRefsLength()
 	if length == 0 {
@@ -293,11 +292,11 @@ func convertAssetRefs(fb *gen_fb.ManifestPageEntryFB) []AssetRef {
 
 // convertPartialMap extracts all partial entries from the FlatBuffer manifest.
 //
-// Takes fb (*gen_fb.ManifestFB) which is the FlatBuffer manifest to extract
-// partials from.
+// Takes fb (*gen_fb.ManifestFB) which is the FlatBuffer manifest to extract partials
+// from.
 //
-// Returns map[string]PartialEntry which maps partial keys to their entries,
-// or nil when the manifest contains no partials.
+// Returns map[string]PartialEntry which maps partial keys to their entries, or nil when
+// the manifest contains no partials.
 func convertPartialMap(fb *gen_fb.ManifestFB) map[string]PartialEntry {
 	length := fb.PartialsLength()
 	if length == 0 {
@@ -317,8 +316,8 @@ func convertPartialMap(fb *gen_fb.ManifestFB) map[string]PartialEntry {
 
 // convertPartialEntry converts a single FlatBuffer partial entry.
 //
-// Takes fb (*gen_fb.ManifestPartialEntryFB) which is the FlatBuffer partial
-// entry to convert.
+// Takes fb (*gen_fb.ManifestPartialEntryFB) which is the FlatBuffer partial entry to
+// convert.
 //
 // Returns PartialEntry which contains the converted partial entry data.
 func convertPartialEntry(fb *gen_fb.ManifestPartialEntryFB) PartialEntry {
@@ -336,11 +335,10 @@ func convertPartialEntry(fb *gen_fb.ManifestPartialEntryFB) PartialEntry {
 
 // convertEmailMap extracts all email entries from the FlatBuffer manifest.
 //
-// Takes fb (*gen_fb.ManifestFB) which provides the FlatBuffer manifest to read
-// from.
+// Takes fb (*gen_fb.ManifestFB) which provides the FlatBuffer manifest to read from.
 //
-// Returns map[string]EmailEntry which maps email keys to their entries, or nil
-// if no emails exist.
+// Returns map[string]EmailEntry which maps email keys to their entries, or nil if no
+// emails exist.
 func convertEmailMap(fb *gen_fb.ManifestFB) map[string]EmailEntry {
 	length := fb.EmailsLength()
 	if length == 0 {
@@ -360,8 +358,7 @@ func convertEmailMap(fb *gen_fb.ManifestFB) map[string]EmailEntry {
 
 // convertEmailEntry converts a single FlatBuffer email entry.
 //
-// Takes fb (*gen_fb.ManifestEmailEntryFB) which is the FlatBuffer email entry
-// to convert.
+// Takes fb (*gen_fb.ManifestEmailEntryFB) which is the FlatBuffer email entry to convert.
 //
 // Returns EmailEntry which contains the converted email entry data.
 func convertEmailEntry(fb *gen_fb.ManifestEmailEntryFB) EmailEntry {
@@ -377,11 +374,10 @@ func convertEmailEntry(fb *gen_fb.ManifestEmailEntryFB) EmailEntry {
 
 // convertPdfMap extracts all PDF entries from the FlatBuffer manifest.
 //
-// Takes fb (*gen_fb.ManifestFB) which provides the FlatBuffer manifest to read
-// from.
+// Takes fb (*gen_fb.ManifestFB) which provides the FlatBuffer manifest to read from.
 //
-// Returns map[string]PdfEntry which maps PDF keys to their entries, or nil
-// if no PDFs exist.
+// Returns map[string]PdfEntry which maps PDF keys to their entries, or nil if no PDFs
+// exist.
 func convertPdfMap(fb *gen_fb.ManifestFB) map[string]PdfEntry {
 	length := fb.PdfsLength()
 	if length == 0 {
@@ -401,8 +397,7 @@ func convertPdfMap(fb *gen_fb.ManifestFB) map[string]PdfEntry {
 
 // convertPdfEntry converts a single FlatBuffer PDF entry.
 //
-// Takes fb (*gen_fb.ManifestPdfEntryFB) which is the FlatBuffer PDF entry
-// to convert.
+// Takes fb (*gen_fb.ManifestPdfEntryFB) which is the FlatBuffer PDF entry to convert.
 //
 // Returns PdfEntry which contains the converted PDF entry data.
 func convertPdfEntry(fb *gen_fb.ManifestPdfEntryFB) PdfEntry {
@@ -416,14 +411,13 @@ func convertPdfEntry(fb *gen_fb.ManifestPdfEntryFB) PdfEntry {
 	}
 }
 
-// convertLocaleTranslations extracts locale translation maps from the
-// FlatBuffer.
+// convertLocaleTranslations extracts locale translation maps from the FlatBuffer.
 //
 // Takes length (int) which specifies the number of locale entries to process.
 // Takes getItem (func(...)) which retrieves each locale translation item.
 //
-// Returns map[string]map[string]string which maps locale codes to their
-// translation key-value pairs, or nil when length is zero.
+// Returns map[string]map[string]string which maps locale codes to their translation
+// key-value pairs, or nil when length is zero.
 func convertLocaleTranslations(length int, getItem func(*gen_fb.LocaleTranslationsFB, int) bool) map[string]map[string]string {
 	if length == 0 {
 		return nil
@@ -439,14 +433,13 @@ func convertLocaleTranslations(length int, getItem func(*gen_fb.LocaleTranslatio
 	return translations
 }
 
-// convertTranslationKVMap extracts a key-value translation map from the
-// FlatBuffer.
+// convertTranslationKVMap extracts a key-value translation map from the FlatBuffer.
 //
 // Takes length (int) which specifies the number of items to process.
 // Takes getItem (func(...)) which retrieves each translation key-value pair.
 //
-// Returns map[string]string which contains the extracted translations, or nil
-// when length is zero.
+// Returns map[string]string which contains the extracted translations, or nil when length
+// is zero.
 func convertTranslationKVMap(length int, getItem func(*gen_fb.TranslationKeyValueFB, int) bool) map[string]string {
 	if length == 0 {
 		return nil
@@ -466,8 +459,7 @@ func convertTranslationKVMap(length int, getItem func(*gen_fb.TranslationKeyValu
 // Takes length (int) which specifies the number of items in the vector.
 // Takes getItem (func(int) []byte) which retrieves each item by index.
 //
-// Returns []string which contains the converted string values, or nil if
-// length is zero.
+// Returns []string which contains the converted string values, or nil if length is zero.
 func convertStringSlice(length int, getItem func(int) []byte) []string {
 	if length == 0 {
 		return nil

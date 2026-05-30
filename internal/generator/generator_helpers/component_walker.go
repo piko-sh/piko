@@ -24,23 +24,23 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// metaComponentTags defines a set of Piko-specific tags that should be ignored
-// when searching for potential user-defined custom elements.
-var metaComponentTags = map[string]bool{
-	"piko:svg":   true,
-	"piko:a":     true,
-	"piko:video": true,
-}
+var (
+	// metaComponentTags defines a set of Piko-specific tags that should be ignored when
+	// searching for potential user-defined custom elements.
+	metaComponentTags = map[string]bool{
+		"piko:svg":   true,
+		"piko:a":     true,
+		"piko:video": true,
+	}
+)
 
-// CollectComponentComponents walks a given AST to find all potential custom
-// element tags. A tag is considered a potential custom element if its name
-// contains a hyphen or is prefixed with "piko:", following common conventions.
+// CollectComponentComponents walks a given AST to find all potential custom element tags.
+// A tag is considered a potential custom element if its name contains a hyphen or is
+// prefixed with "piko:", following common conventions.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the template
-// tree to walk.
+// Takes templateAST (*ast_domain.TemplateAST) which is the template tree to walk.
 //
-// Returns []string which contains the unique custom element tag names
-// found.
+// Returns []string which contains the unique custom element tag names found.
 func CollectComponentComponents(templateAST *ast_domain.TemplateAST, _ string) []string {
 	if templateAST == nil {
 		return nil

@@ -36,7 +36,9 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-var registerTestdataDocBlueprint sync.Once
+var (
+	registerTestdataDocBlueprint sync.Once
+)
 
 func TestLLM_TestData_Ingest_And_Query(t *testing.T) {
 	h := newTestHarness(t)

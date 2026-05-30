@@ -26,23 +26,20 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// computeDynamicFlags determines whether a query is
-// dynamic and collects sortable column names.
+// computeDynamicFlags determines whether a query is dynamic and collects sortable column
+// names.
 //
-// Takes parameters ([]*querier_dto.ParameterDirective)
-// which holds the parsed parameter directives for the
-// query.
+// Takes parameters ([]*querier_dto.ParameterDirective) which holds the parsed parameter
+// directives for the query.
 //
-// Returns bool which indicates whether any parameter
-// makes the query dynamic.
+// Returns bool which indicates whether any parameter makes the query dynamic.
 //
-// Returns []string which holds the column names
-// declared on sortable parameters.
+// Returns []string which holds the column names declared on sortable parameters.
 func computeDynamicFlags(parameters []*querier_dto.ParameterDirective) (bool, []string) {
 	isDynamic := false
 	var dynamicColumns []string
 	for _, parameter := range parameters {
-		switch parameter.Kind {
+		switch parameter.Kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case querier_dto.ParameterDirectiveOptional,
 			querier_dto.ParameterDirectiveSortable,
 			querier_dto.ParameterDirectiveLimit,
@@ -58,8 +55,8 @@ func computeDynamicFlags(parameters []*querier_dto.ParameterDirective) (bool, []
 
 // assembleQueryInput groups the inputs needed to construct an AnalysedQuery result.
 type assembleQueryInput struct {
-	// directives holds the parsed query-level directives
-	// such as group_by and nullable overrides.
+	// directives holds the parsed query-level directives such as group_by and nullable
+	// overrides.
 	directives *querier_dto.QueryDirectives
 
 	// rawAnalysis holds the raw analysis result produced by the engine.
@@ -87,14 +84,12 @@ type assembleQueryInput struct {
 	isDynamic bool
 }
 
-// assembleQuery constructs an AnalysedQuery from the
-// provided input fields.
+// assembleQuery constructs an AnalysedQuery from the provided input fields.
 //
-// Takes input (assembleQueryInput) which holds all
-// resolved query components.
+// Takes input (assembleQueryInput) which holds all resolved query components.
 //
-// Returns *querier_dto.AnalysedQuery which holds the
-// fully assembled query ready for code generation.
+// Returns *querier_dto.AnalysedQuery which holds the fully assembled query ready for code
+// generation.
 func (a *queryAnalyser) assembleQuery(input assembleQueryInput) *querier_dto.AnalysedQuery {
 	readOnly := input.rawAnalysis.ReadOnly
 	if input.directives.ReadOnlyOverride != nil {
@@ -125,15 +120,13 @@ func (a *queryAnalyser) assembleQuery(input assembleQueryInput) *querier_dto.Ana
 	return query
 }
 
-// extractAllowedColumns collects the columns from all
-// FROM and JOIN tables for dynamic runtime queries.
+// extractAllowedColumns collects the columns from all FROM and JOIN tables for dynamic
+// runtime queries.
 //
-// Takes raw (*querier_dto.RawQueryAnalysis) which holds
-// the parsed table references.
+// Takes raw (*querier_dto.RawQueryAnalysis) which holds the parsed table references.
 //
-// Returns []querier_dto.AllowedColumn which holds the
-// deduplicated set of columns available for dynamic
-// ordering.
+// Returns []querier_dto.AllowedColumn which holds the deduplicated set of columns
+// available for dynamic ordering.
 func (a *queryAnalyser) extractAllowedColumns(raw *querier_dto.RawQueryAnalysis) []querier_dto.AllowedColumn {
 	var allowed []querier_dto.AllowedColumn
 	seen := make(map[string]struct{})
@@ -151,20 +144,18 @@ func (a *queryAnalyser) extractAllowedColumns(raw *querier_dto.RawQueryAnalysis)
 	return allowed
 }
 
-// appendUniqueColumns appends columns from the given
-// table that have not already been seen.
+// appendUniqueColumns appends columns from the given table that have not already been
+// seen.
 //
-// Takes allowed ([]querier_dto.AllowedColumn) which
-// holds the accumulated columns so far.
+// Takes allowed ([]querier_dto.AllowedColumn) which holds the accumulated columns so far.
 //
-// Takes seen (map[string]struct{}) which tracks column
-// names already added.
+// Takes seen (map[string]struct{}) which tracks column names already added.
 //
-// Takes table (*querier_dto.Table) which holds the
-// catalogue table whose columns are appended.
+// Takes table (*querier_dto.Table) which holds the catalogue table whose columns are
+// appended.
 //
-// Returns []querier_dto.AllowedColumn which holds the
-// updated column list with any new entries appended.
+// Returns []querier_dto.AllowedColumn which holds the updated column list with any new
+// entries appended.
 func appendUniqueColumns(
 	allowed []querier_dto.AllowedColumn,
 	seen map[string]struct{},
@@ -186,17 +177,14 @@ func appendUniqueColumns(
 	return allowed
 }
 
-// findTable looks up a table in the catalogue by schema
-// and name.
+// findTable looks up a table in the catalogue by schema and name.
 //
-// Takes schema (string) which specifies the schema
-// name, defaulting to the catalogue default if empty.
+// Takes schema (string) which specifies the schema name, defaulting to the catalogue
+// default if empty.
 //
-// Takes name (string) which specifies the table name to
-// look up.
+// Takes name (string) which specifies the table name to look up.
 //
-// Returns *querier_dto.Table which holds the matched
-// table, or nil if not found.
+// Returns *querier_dto.Table which holds the matched table, or nil if not found.
 func (a *queryAnalyser) findTable(schema string, name string) *querier_dto.Table {
 	if schema == "" {
 		schema = a.catalogue.DefaultSchema
@@ -208,22 +196,19 @@ func (a *queryAnalyser) findTable(schema string, name string) *querier_dto.Table
 	return schemaObject.Tables[name]
 }
 
-// buildScopeChain populates the scope chain from a raw
-// query analysis result.
+// buildScopeChain populates the scope chain from a raw query analysis result.
 //
-// FROM tables and JOIN tables are added with correct
-// nullability adjustments. FROM entries that match
-// previously resolved CTEs are registered as CTE
-// aliases rather than resolved against the catalogue.
+// FROM tables and JOIN tables are added with correct nullability adjustments. FROM
+// entries that match previously resolved CTEs are registered as CTE aliases rather than
+// resolved against the catalogue.
 //
-// Takes raw (*querier_dto.RawQueryAnalysis) which holds
-// the parsed FROM, JOIN, and derived table references.
+// Takes raw (*querier_dto.RawQueryAnalysis) which holds the parsed FROM, JOIN, and
+// derived table references.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// to populate.
+// Takes scope (*scopeChain) which holds the scope chain to populate.
 //
-// Returns []querier_dto.SourceError which holds any
-// warnings produced when tables cannot be resolved.
+// Returns []querier_dto.SourceError which holds any warnings produced when tables cannot
+// be resolved.
 func (a *queryAnalyser) buildScopeChain(
 	raw *querier_dto.RawQueryAnalysis,
 	scope *scopeChain,
@@ -263,18 +248,17 @@ func (a *queryAnalyser) buildScopeChain(
 	return diagnostics
 }
 
-// resolveJoinClauses adds each join clause to the scope
-// chain, resolving CTE references or catalogue tables.
+// resolveJoinClauses adds each join clause to the scope chain, resolving CTE references
+// or catalogue tables.
 //
-// Takes joinClauses ([]querier_dto.JoinClause) which
-// holds the parsed JOIN clauses from the query.
+// Takes joinClauses ([]querier_dto.JoinClause) which holds the parsed JOIN clauses from
+// the query.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// to populate with join table entries.
+// Takes scope (*scopeChain) which holds the scope chain to populate with join table
+// entries.
 //
-// Returns []querier_dto.SourceError which holds any
-// warnings produced when join tables cannot be
-// resolved.
+// Returns []querier_dto.SourceError which holds any warnings produced when join tables
+// cannot be resolved.
 func (a *queryAnalyser) resolveJoinClauses(
 	joinClauses []querier_dto.JoinClause,
 	scope *scopeChain,
@@ -306,17 +290,14 @@ func (a *queryAnalyser) resolveJoinClauses(
 	return diagnostics
 }
 
-// resolveTableReference looks up a table or view in the
-// catalogue by its reference.
+// resolveTableReference looks up a table or view in the catalogue by its reference.
 //
-// Takes reference (querier_dto.TableReference) which
-// specifies the schema, name, and alias of the table.
+// Takes reference (querier_dto.TableReference) which specifies the schema, name, and
+// alias of the table.
 //
-// Returns *querier_dto.Table which holds the matched
-// catalogue table or view.
+// Returns *querier_dto.Table which holds the matched catalogue table or view.
 //
-// Returns error when the schema or table name cannot be
-// found in the catalogue.
+// Returns error when the schema or table name cannot be found in the catalogue.
 func (a *queryAnalyser) resolveTableReference(
 	reference querier_dto.TableReference,
 ) (*querier_dto.Table, error) {
@@ -345,21 +326,19 @@ func (a *queryAnalyser) resolveTableReference(
 	return nil, fmt.Errorf("unknown table or view %q in schema %q", reference.Name, schemaName)
 }
 
-// resolveCTEs resolves each CTE definition in order and
-// registers the results in the scope chain.
+// resolveCTEs resolves each CTE definition in order and registers the results in the
+// scope chain.
 //
-// Takes ctx (context.Context) which controls
-// cancellation of the resolution.
+// Takes ctx (context.Context) which controls cancellation of the resolution.
 //
-// Takes cteDefinitions ([]querier_dto.RawCTEDefinition)
-// which holds the parsed CTE definitions from the
-// query.
+// Takes cteDefinitions ([]querier_dto.RawCTEDefinition) which holds the parsed CTE
+// definitions from the query.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// where resolved CTEs are registered.
+// Takes scope (*scopeChain) which holds the scope chain where resolved CTEs are
+// registered.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics produced during CTE resolution.
+// Returns []querier_dto.SourceError which holds any diagnostics produced during CTE
+// resolution.
 func (a *queryAnalyser) resolveCTEs(
 	ctx context.Context,
 	cteDefinitions []querier_dto.RawCTEDefinition,
@@ -374,21 +353,19 @@ func (a *queryAnalyser) resolveCTEs(
 	return diagnostics
 }
 
-// resolveSingleCTE resolves one CTE definition by
-// building a child scope, resolving its output columns,
-// and registering it.
+// resolveSingleCTE resolves one CTE definition by building a child scope, resolving its
+// output columns, and registering it.
 //
-// Takes ctx (context.Context) which controls
-// cancellation.
+// Takes ctx (context.Context) which controls cancellation.
 //
-// Takes cteDefinition (querier_dto.RawCTEDefinition)
-// which holds the parsed CTE definition to resolve.
+// Takes cteDefinition (querier_dto.RawCTEDefinition) which holds the parsed CTE
+// definition to resolve.
 //
-// Takes scope (*scopeChain) which holds the parent
-// scope chain where the CTE is registered.
+// Takes scope (*scopeChain) which holds the parent scope chain where the CTE is
+// registered.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics produced during resolution.
+// Returns []querier_dto.SourceError which holds any diagnostics produced during
+// resolution.
 func (a *queryAnalyser) resolveSingleCTE(
 	ctx context.Context,
 	cteDefinition querier_dto.RawCTEDefinition,
@@ -418,21 +395,19 @@ func (a *queryAnalyser) resolveSingleCTE(
 	return diagnostics
 }
 
-// populateCTEScope adds FROM table references to a
-// CTE's child scope, resolving against the parent
-// scope's CTEs or catalogue.
+// populateCTEScope adds FROM table references to a CTE's child scope, resolving against
+// the parent scope's CTEs or catalogue.
 //
-// Takes fromTables ([]querier_dto.TableReference) which
-// holds the FROM clause tables of the CTE body.
+// Takes fromTables ([]querier_dto.TableReference) which holds the FROM clause tables of
+// the CTE body.
 //
-// Takes parentScope (*scopeChain) which holds the
-// parent scope containing previously resolved CTEs.
+// Takes parentScope (*scopeChain) which holds the parent scope containing previously
+// resolved CTEs.
 //
-// Takes cteScope (*scopeChain) which holds the child
-// scope to populate.
+// Takes cteScope (*scopeChain) which holds the child scope to populate.
 //
-// Returns []querier_dto.SourceError which holds any
-// warnings when tables cannot be resolved.
+// Returns []querier_dto.SourceError which holds any warnings when tables cannot be
+// resolved.
 func (a *queryAnalyser) populateCTEScope(
 	fromTables []querier_dto.TableReference,
 	parentScope *scopeChain,
@@ -464,15 +439,13 @@ func (a *queryAnalyser) populateCTEScope(
 	return diagnostics
 }
 
-// outputColumnsToScoped converts output columns to
-// scoped columns for CTE registration.
+// outputColumnsToScoped converts output columns to scoped columns for CTE registration.
 //
-// Takes columns ([]querier_dto.OutputColumn) which
-// holds the resolved output columns to convert.
+// Takes columns ([]querier_dto.OutputColumn) which holds the resolved output columns to
+// convert.
 //
-// Returns []querier_dto.ScopedColumn which holds the
-// converted scoped columns preserving name, type, and
-// nullability.
+// Returns []querier_dto.ScopedColumn which holds the converted scoped columns preserving
+// name, type, and nullability.
 func (*queryAnalyser) outputColumnsToScoped(columns []querier_dto.OutputColumn) []querier_dto.ScopedColumn {
 	scoped := make([]querier_dto.ScopedColumn, len(columns))
 	for i := range columns {
@@ -485,19 +458,17 @@ func (*queryAnalyser) outputColumnsToScoped(columns []querier_dto.OutputColumn) 
 	return scoped
 }
 
-// resolveTableValuedFunctions resolves table-valued
-// function references and adds them to the scope as
-// derived tables.
+// resolveTableValuedFunctions resolves table-valued function references and adds them to
+// the scope as derived tables.
 //
-// Takes tableValuedFunctions
-// ([]querier_dto.RawTableValuedFunctionReference) which
-// holds the parsed function references.
+// Takes tableValuedFunctions ([]querier_dto.RawTableValuedFunctionReference) which holds
+// the parsed function references.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// to populate with derived table entries.
+// Takes scope (*scopeChain) which holds the scope chain to populate with derived table
+// entries.
 //
-// Returns []querier_dto.SourceError which holds any
-// warnings for unresolvable function references.
+// Returns []querier_dto.SourceError which holds any warnings for unresolvable function
+// references.
 func (a *queryAnalyser) resolveTableValuedFunctions(
 	tableValuedFunctions []querier_dto.RawTableValuedFunctionReference,
 	scope *scopeChain,
@@ -523,17 +494,14 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 	return diagnostics
 }
 
-// resolveColumnDefinitionsOrLookup resolves columns for
-// a table-valued function, preferring explicit
-// definitions over catalogue lookup.
+// resolveColumnDefinitionsOrLookup resolves columns for a table-valued function,
+// preferring explicit definitions over catalogue lookup.
 //
-// Takes tvf (querier_dto.RawTableValuedFunctionReference)
-// which holds the function reference with optional
-// column definitions.
+// Takes tvf (querier_dto.RawTableValuedFunctionReference) which holds the function
+// reference with optional column definitions.
 //
-// Returns []querier_dto.ScopedColumn which holds the
-// resolved columns, or nil if the function cannot be
-// resolved.
+// Returns []querier_dto.ScopedColumn which holds the resolved columns, or nil if the
+// function cannot be resolved.
 func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
 	tvf querier_dto.RawTableValuedFunctionReference,
 ) []querier_dto.ScopedColumn {
@@ -569,22 +537,19 @@ func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
 	return columns
 }
 
-// resolveRawDerivedTables resolves subquery-based
-// derived tables by recursively analysing each inner
-// query.
+// resolveRawDerivedTables resolves subquery-based derived tables by recursively analysing
+// each inner query.
 //
-// Takes ctx (context.Context) which controls
-// cancellation of the resolution.
+// Takes ctx (context.Context) which controls cancellation of the resolution.
 //
-// Takes rawDerivedTables
-// ([]querier_dto.RawDerivedTableReference) which holds
-// the parsed derived table references.
+// Takes rawDerivedTables ([]querier_dto.RawDerivedTableReference) which holds the parsed
+// derived table references.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// to populate with resolved derived tables.
+// Takes scope (*scopeChain) which holds the scope chain to populate with resolved derived
+// tables.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics produced during resolution.
+// Returns []querier_dto.SourceError which holds any diagnostics produced during
+// resolution.
 func (a *queryAnalyser) resolveRawDerivedTables(
 	ctx context.Context,
 	rawDerivedTables []querier_dto.RawDerivedTableReference,
@@ -632,22 +597,19 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 	return diagnostics
 }
 
-// resolveCompoundBranches resolves UNION, INTERSECT,
-// and EXCEPT branches and promotes types to match the
-// primary SELECT.
+// resolveCompoundBranches resolves UNION, INTERSECT, and EXCEPT branches and promotes
+// types to match the primary SELECT.
 //
-// Takes ctx (context.Context) which controls
-// cancellation.
+// Takes ctx (context.Context) which controls cancellation.
 //
-// Takes branches ([]querier_dto.RawCompoundBranch)
-// which holds the parsed compound query branches.
+// Takes branches ([]querier_dto.RawCompoundBranch) which holds the parsed compound query
+// branches.
 //
-// Takes primaryColumns ([]querier_dto.OutputColumn)
-// which holds the primary SELECT columns whose types
-// are promoted in place.
+// Takes primaryColumns ([]querier_dto.OutputColumn) which holds the primary SELECT
+// columns whose types are promoted in place.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics produced during branch resolution.
+// Returns []querier_dto.SourceError which holds any diagnostics produced during branch
+// resolution.
 func (a *queryAnalyser) resolveCompoundBranches(
 	ctx context.Context,
 	branches []querier_dto.RawCompoundBranch,
@@ -702,22 +664,18 @@ func (a *queryAnalyser) resolveCompoundBranches(
 	return diagnostics
 }
 
-// analyseStatements analyses parsed SQL statements,
-// delegating to multi-statement analysis when
-// available.
+// analyseStatements analyses parsed SQL statements, delegating to multi-statement
+// analysis when available.
 //
-// Takes statements ([]querier_dto.ParsedStatement)
-// which holds all parsed statements in the query block.
+// Takes statements ([]querier_dto.ParsedStatement) which holds all parsed statements in
+// the query block.
 //
-// Takes primaryStatement (querier_dto.ParsedStatement)
-// which holds the last statement used for
-// single-statement analysis.
+// Takes primaryStatement (querier_dto.ParsedStatement) which holds the last statement
+// used for single-statement analysis.
 //
-// Returns *querier_dto.RawQueryAnalysis which holds the
-// raw analysis result.
+// Returns *querier_dto.RawQueryAnalysis which holds the raw analysis result.
 //
-// Returns error when the engine fails to analyse the
-// statements.
+// Returns error when the engine fails to analyse the statements.
 func (a *queryAnalyser) analyseStatements(
 	statements []querier_dto.ParsedStatement,
 	primaryStatement querier_dto.ParsedStatement,
@@ -728,26 +686,19 @@ func (a *queryAnalyser) analyseStatements(
 	return a.engine.AnalyseQuery(a.catalogue, primaryStatement)
 }
 
-// blockError constructs a SourceError positioned at the
-// start of a query block.
+// blockError constructs a SourceError positioned at the start of a query block.
 //
-// Takes filename (string) which specifies the source
-// file path.
+// Takes filename (string) which specifies the source file path.
 //
-// Takes line (int) which specifies the line number
-// within the file.
+// Takes line (int) which specifies the line number within the file.
 //
-// Takes code (string) which specifies the diagnostic
-// error code.
+// Takes code (string) which specifies the diagnostic error code.
 //
-// Takes severity (querier_dto.ErrorSeverity) which
-// specifies the error severity level.
+// Takes severity (querier_dto.ErrorSeverity) which specifies the error severity level.
 //
-// Takes message (string) which specifies the
-// human-readable error message.
+// Takes message (string) which specifies the human-readable error message.
 //
-// Returns querier_dto.SourceError which holds the
-// constructed source error.
+// Returns querier_dto.SourceError which holds the constructed source error.
 func blockError(filename string, line int, code string, severity querier_dto.ErrorSeverity, message string) querier_dto.SourceError {
 	return querier_dto.SourceError{
 		Filename: filename,
@@ -759,20 +710,18 @@ func blockError(filename string, line int, code string, severity querier_dto.Err
 	}
 }
 
-// addFileLocation fills in missing file location fields
-// on a slice of diagnostics.
+// addFileLocation fills in missing file location fields on a slice of diagnostics.
 //
-// Takes diagnostics ([]querier_dto.SourceError) which
-// holds the diagnostics to augment.
+// Takes diagnostics ([]querier_dto.SourceError) which holds the diagnostics to augment.
 //
-// Takes filename (string) which specifies the default
-// filename for diagnostics that lack one.
+// Takes filename (string) which specifies the default filename for diagnostics that lack
+// one.
 //
-// Takes startLine (int) which specifies the default
-// line number for diagnostics that lack one.
+// Takes startLine (int) which specifies the default line number for diagnostics that lack
+// one.
 //
-// Returns []querier_dto.SourceError which holds a new
-// slice with file locations filled in.
+// Returns []querier_dto.SourceError which holds a new slice with file locations filled
+// in.
 func addFileLocation(
 	diagnostics []querier_dto.SourceError,
 	filename string,
@@ -794,26 +743,22 @@ func addFileLocation(
 	return result
 }
 
-// resolveEmbedDirectives scans SQL for inline
-// piko.embed comments and marks matching output columns
-// as embedded.
+// resolveEmbedDirectives scans SQL for inline piko.embed comments and marks matching
+// output columns as embedded.
 //
-// It sets IsEmbedded, EmbedTable, and EmbedIsOuter on
-// each column whose SourceTable matches an embed
-// directive table name.
+// It sets IsEmbedded, EmbedTable, and EmbedIsOuter on each column whose SourceTable
+// matches an embed directive table name.
 //
-// Takes sql (string) which holds the raw SQL text to
-// scan for embed comments.
+// Takes sql (string) which holds the raw SQL text to scan for embed comments.
 //
-// Takes outputColumns ([]querier_dto.OutputColumn)
-// which holds the resolved output columns to annotate.
+// Takes outputColumns ([]querier_dto.OutputColumn) which holds the resolved output
+// columns to annotate.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// used to determine outer join status.
+// Takes scope (*scopeChain) which holds the scope chain used to determine outer join
+// status.
 //
-// Returns []querier_dto.OutputColumn which holds the
-// updated output columns with embed annotations
-// applied.
+// Returns []querier_dto.OutputColumn which holds the updated output columns with embed
+// annotations applied.
 func resolveEmbedDirectives(
 	sql string,
 	outputColumns []querier_dto.OutputColumn,
@@ -843,15 +788,12 @@ func resolveEmbedDirectives(
 	return outputColumns
 }
 
-// extractEmbedTableNames finds all table names
-// referenced by inline piko.embed comments in the SQL
-// text.
+// extractEmbedTableNames finds all table names referenced by inline piko.embed comments
+// in the SQL text.
 //
-// Takes sql (string) which holds the raw SQL text to
-// scan.
+// Takes sql (string) which holds the raw SQL text to scan.
 //
-// Returns []string which holds the extracted table
-// names in the order they appear.
+// Returns []string which holds the extracted table names in the order they appear.
 func extractEmbedTableNames(sql string) []string {
 	var tables []string
 	marker := "/* piko.embed("
@@ -878,23 +820,21 @@ func extractEmbedTableNames(sql string) []string {
 	return tables
 }
 
-// isOuterJoinTable checks whether the given table was
-// introduced via a LEFT, RIGHT, or FULL JOIN.
+// isOuterJoinTable checks whether the given table was introduced via a LEFT, RIGHT, or
+// FULL JOIN.
 //
-// Takes tableName (string) which specifies the table
-// name or alias to look up.
+// Takes tableName (string) which specifies the table name or alias to look up.
 //
-// Takes scope (*scopeChain) which holds the scope chain
-// containing resolved table entries.
+// Takes scope (*scopeChain) which holds the scope chain containing resolved table
+// entries.
 //
-// Returns bool which indicates whether the table's join
-// kind implies nullable columns.
+// Returns bool which indicates whether the table's join kind implies nullable columns.
 func isOuterJoinTable(tableName string, scope *scopeChain) bool {
 	for _, table := range scope.tables {
 		if !strings.EqualFold(table.Name, tableName) && !strings.EqualFold(table.Alias, tableName) {
 			continue
 		}
-		switch table.JoinKind {
+		switch table.JoinKind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case querier_dto.JoinLeft, querier_dto.JoinRight, querier_dto.JoinFull, querier_dto.JoinPositional:
 			return true
 		}

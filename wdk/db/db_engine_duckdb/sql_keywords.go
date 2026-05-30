@@ -19,127 +19,190 @@
 package db_engine_duckdb
 
 const (
+	// keywordALL holds the SQL keyword "ALL".
 	keywordALL = "ALL"
 
+	// keywordAND holds the SQL keyword "AND".
 	keywordAND = "AND"
 
+	// keywordAS holds the SQL keyword "AS".
 	keywordAS = "AS"
 
+	// keywordASC holds the SQL keyword "ASC".
 	keywordASC = "ASC"
 
+	// keywordBY holds the SQL keyword "BY".
 	keywordBY = "BY"
 
+	// keywordCASCADE holds the SQL keyword "CASCADE".
 	keywordCASCADE = "CASCADE"
 
+	// keywordCHECK holds the SQL keyword "CHECK".
 	keywordCHECK = "CHECK"
 
+	// keywordCOLUMN holds the SQL keyword "COLUMN".
 	keywordCOLUMN = "COLUMN"
 
+	// keywordCONSTRAINT holds the SQL keyword "CONSTRAINT".
 	keywordCONSTRAINT = "CONSTRAINT"
 
+	// keywordCREATE holds the SQL keyword "CREATE".
 	keywordCREATE = "CREATE"
 
+	// keywordCURRENT holds the SQL keyword "CURRENT".
 	keywordCURRENT = "CURRENT"
 
+	// keywordDEFAULT holds the SQL keyword "DEFAULT".
 	keywordDEFAULT = "DEFAULT"
 
+	// keywordDESC holds the SQL keyword "DESC".
 	keywordDESC = "DESC"
 
+	// keywordDROP holds the SQL keyword "DROP".
 	keywordDROP = "DROP"
 
+	// keywordEXCEPT holds the SQL keyword "EXCEPT".
 	keywordEXCEPT = "EXCEPT"
 
+	// keywordEXISTS holds the SQL keyword "EXISTS".
 	keywordEXISTS = "EXISTS"
 
+	// keywordFETCH holds the SQL keyword "FETCH".
 	keywordFETCH = "FETCH"
 
+	// keywordFIRST holds the SQL keyword "FIRST".
 	keywordFIRST = "FIRST"
 
+	// keywordFOR holds the SQL keyword "FOR".
 	keywordFOR = "FOR"
 
+	// keywordFROM holds the SQL keyword "FROM".
 	keywordFROM = "FROM"
 
+	// keywordGROUP holds the SQL keyword "GROUP".
 	keywordGROUP = "GROUP"
 
+	// keywordHAVING holds the SQL keyword "HAVING".
 	keywordHAVING = "HAVING"
 
+	// keywordINSTALL holds the SQL keyword "INSTALL".
 	keywordINSTALL = "INSTALL"
 
+	// keywordINTERSECT holds the SQL keyword "INTERSECT".
 	keywordINTERSECT = "INTERSECT"
 
+	// keywordJOIN holds the SQL keyword "JOIN".
 	keywordJOIN = "JOIN"
 
+	// keywordKEY holds the SQL keyword "KEY".
 	keywordKEY = "KEY"
 
+	// keywordLAST holds the SQL keyword "LAST".
 	keywordLAST = "LAST"
 
+	// keywordLATERAL holds the SQL keyword "LATERAL".
 	keywordLATERAL = "LATERAL"
 
+	// keywordLIMIT holds the SQL keyword "LIMIT".
 	keywordLIMIT = "LIMIT"
 
+	// keywordLOAD holds the SQL keyword "LOAD".
 	keywordLOAD = "LOAD"
 
+	// keywordMACRO holds the SQL keyword "MACRO".
 	keywordMACRO = "MACRO"
 
+	// keywordNOT holds the SQL keyword "NOT".
 	keywordNOT = "NOT"
 
+	// keywordNULL holds the SQL keyword "NULL".
 	keywordNULL = "NULL"
 
+	// keywordNULLS holds the SQL keyword "NULLS".
 	keywordNULLS = "NULLS"
 
+	// keywordOFFSET holds the SQL keyword "OFFSET".
 	keywordOFFSET = "OFFSET"
 
+	// keywordON holds the SQL keyword "ON".
 	keywordON = "ON"
 
+	// keywordORDER holds the SQL keyword "ORDER".
 	keywordORDER = "ORDER"
 
+	// keywordPIVOT holds the SQL keyword "PIVOT".
 	keywordPIVOT = "PIVOT"
 
+	// keywordPOSITIONAL holds the SQL keyword "POSITIONAL".
 	keywordPOSITIONAL = "POSITIONAL"
 
+	// keywordPRIMARY holds the SQL keyword "PRIMARY".
 	keywordPRIMARY = "PRIMARY"
 
+	// keywordQUALIFY holds the SQL keyword "QUALIFY".
 	keywordQUALIFY = "QUALIFY"
 
+	// keywordRESTRICT holds the SQL keyword "RESTRICT".
 	keywordRESTRICT = "RESTRICT"
 
+	// keywordRETURNING holds the SQL keyword "RETURNING".
 	keywordRETURNING = "RETURNING"
 
+	// keywordROW holds the SQL keyword "ROW".
 	keywordROW = "ROW"
 
+	// keywordROWS holds the SQL keyword "ROWS".
 	keywordROWS = "ROWS"
 
+	// keywordSCHEMA holds the SQL keyword "SCHEMA".
 	keywordSCHEMA = "SCHEMA"
 
+	// keywordSELECT holds the SQL keyword "SELECT".
 	keywordSELECT = "SELECT"
 
+	// keywordSET holds the SQL keyword "SET".
 	keywordSET = "SET"
 
+	// keywordTABLE holds the SQL keyword "TABLE".
 	keywordTABLE = "TABLE"
 
+	// keywordTIME holds the SQL keyword "TIME".
 	keywordTIME = "TIME"
 
+	// keywordTYPE holds the SQL keyword "TYPE".
 	keywordTYPE = "TYPE"
 
+	// keywordUNION holds the SQL keyword "UNION".
 	keywordUNION = "UNION"
 
+	// keywordUNIQUE holds the SQL keyword "UNIQUE".
 	keywordUNIQUE = "UNIQUE"
 
+	// keywordUNPIVOT holds the SQL keyword "UNPIVOT".
 	keywordUNPIVOT = "UNPIVOT"
 
+	// keywordUSING holds the SQL keyword "USING".
 	keywordUSING = "USING"
 
+	// keywordVALUES holds the SQL keyword "VALUES".
 	keywordVALUES = "VALUES"
 
+	// keywordWHERE holds the SQL keyword "WHERE".
 	keywordWHERE = "WHERE"
 
+	// keywordWITH holds the SQL keyword "WITH".
 	keywordWITH = "WITH"
 
+	// keywordZONE holds the SQL keyword "ZONE".
 	keywordZONE = "ZONE"
 
+	// arraySubscriptSuffix is appended to a type name to mark it as an array.
 	arraySubscriptSuffix = "[]"
 
+	// fallbackListEngineName is the engine name used when a list element type cannot be
+	// resolved.
 	fallbackListEngineName = "list"
 
+	// decimalBase is the radix used when parsing decimal integer literals.
 	decimalBase = 10
 )

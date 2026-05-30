@@ -26,18 +26,17 @@ import (
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/image/image_domain"
 	"piko.sh/piko/internal/image/image_dto"
-	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/internal/video/video_domain"
 	"piko.sh/piko/internal/video/video_dto"
+	"piko.sh/piko/wdk/logger"
 )
 
-// ImageTransformerPort is the interface that image processing providers must
-// implement. Providers receive image data, apply transformations, and write the
-// result.
+// ImageTransformerPort is the interface that image processing providers must implement.
+// Providers receive image data, apply transformations, and write the result.
 type ImageTransformerPort = image_domain.TransformerPort
 
-// ImageService is the high-level service interface for image operations.
-// Providers implement ImageTransformerPort; framework code uses ImageService.
+// ImageService is the high-level service interface for image operations. Providers
+// implement ImageTransformerPort; framework code uses ImageService.
 type ImageService = image_domain.Service
 
 // ImageServiceConfig holds settings for the image service.
@@ -46,8 +45,7 @@ type ImageServiceConfig = image_domain.ServiceConfig
 // TransformationSpec holds the settings for an image transformation.
 type TransformationSpec = image_dto.TransformationSpec
 
-// FitMode determines how an image is resized when both width and height are
-// set.
+// FitMode determines how an image is resized when both width and height are set.
 type FitMode = image_dto.FitMode
 
 const (
@@ -70,8 +68,7 @@ const (
 // ResponsiveSpec holds settings for creating responsive image variants.
 type ResponsiveSpec = image_dto.ResponsiveSpec
 
-// ResponsiveVariant represents a single image variant generated for responsive
-// images.
+// ResponsiveVariant represents a single image variant generated for responsive images.
 type ResponsiveVariant = image_dto.ResponsiveVariant
 
 // PlaceholderSpec holds settings for creating LQIP placeholders.
@@ -84,16 +81,14 @@ type Logger = logger.Logger
 type Attr = logger.Attr
 
 var (
-	// DefaultTransformationSpec returns a TransformationSpec with sensible
-	// defaults.
+	// DefaultTransformationSpec returns a TransformationSpec with sensible defaults.
 	DefaultTransformationSpec = image_dto.DefaultTransformationSpec
 
-	// DefaultImageServiceConfig returns an ImageServiceConfig with sensible
-	// defaults.
+	// DefaultImageServiceConfig returns an ImageServiceConfig with sensible defaults.
 	DefaultImageServiceConfig = image_domain.DefaultServiceConfig
 
-	// DefaultPredefinedVariants returns the default set of predefined variants.
-	// These are included when using ImageConfigBuilder.FromDefaults().
+	// DefaultPredefinedVariants returns the default set of predefined variants. These are
+	// included when using ImageConfigBuilder.FromDefaults().
 	DefaultPredefinedVariants = image_domain.DefaultPredefinedVariants
 
 	// NewThumbnailSpec creates a ThumbnailSpec with default values.
@@ -105,38 +100,31 @@ var (
 	// ParseTranscodeSpec parses capability parameters into a TranscodeSpec.
 	ParseTranscodeSpec = video_dto.ParseTranscodeSpec
 
-	// DefaultVideoServiceConfig returns a VideoServiceConfig with sensible
-	// defaults.
+	// DefaultVideoServiceConfig returns a VideoServiceConfig with sensible defaults.
 	DefaultVideoServiceConfig = video_domain.DefaultServiceConfig
 
-	// ErrUnsupportedCodec is returned when the requested output codec is not
-	// supported.
+	// ErrUnsupportedCodec is returned when the requested output codec is not supported.
 	ErrUnsupportedCodec = video_domain.ErrUnsupportedCodec
 
-	// ErrUnsupportedFormat is returned when the input or output format is not
-	// supported.
+	// ErrUnsupportedFormat is returned when the input or output format is not supported.
 	ErrUnsupportedFormat = video_domain.ErrUnsupportedFormat
 
-	// ErrInvalidResolution is returned when the requested output resolution is
-	// invalid.
+	// ErrInvalidResolution is returned when the requested output resolution is invalid.
 	ErrInvalidResolution = video_domain.ErrInvalidResolution
 
-	// ErrInvalidBitrate is returned when the requested bitrate is invalid or
-	// exceeds limits.
+	// ErrInvalidBitrate is returned when the requested bitrate is invalid or exceeds limits.
 	ErrInvalidBitrate = video_domain.ErrInvalidBitrate
 
 	// ErrInvalidFramerate is returned when the video framerate is not valid.
 	ErrInvalidFramerate = video_domain.ErrInvalidFramerate
 
-	// ErrDurationExceedsLimit is returned when the input video duration exceeds
-	// limits.
+	// ErrDurationExceedsLimit is returned when the input video duration exceeds limits.
 	ErrDurationExceedsLimit = video_domain.ErrDurationExceedsLimit
 
 	// ErrFileSizeExceedsLimit is returned when the input file size exceeds limits.
 	ErrFileSizeExceedsLimit = video_domain.ErrFileSizeExceedsLimit
 
-	// ErrResolutionExceedsLimit is returned when the requested resolution
-	// exceeds the limit.
+	// ErrResolutionExceedsLimit is returned when the requested resolution exceeds the limit.
 	ErrResolutionExceedsLimit = video_domain.ErrResolutionExceedsLimit
 
 	// ErrTranscodingFailed is returned when the transcoding operation fails.
@@ -145,8 +133,7 @@ var (
 	// ErrInvalidStream is returned when the input video has no valid video stream.
 	ErrInvalidStream = video_domain.ErrInvalidStream
 
-	// ErrContextCancelled is returned when the transcoding is cancelled via
-	// context.
+	// ErrContextCancelled is returned when the transcoding is cancelled via context.
 	ErrContextCancelled = video_domain.ErrContextCancelled
 
 	// ErrTimeout is returned when a transcoding operation exceeds the timeout.
@@ -162,8 +149,8 @@ var (
 	ErrSegmentationFailed = video_domain.ErrSegmentationFailed
 )
 
-// ImageConfig holds the settings for an image hexagon.
-// Pass this to piko.WithImage() after building it with ImageConfigBuilder.
+// ImageConfig holds the settings for an image hexagon. Pass this to piko.WithImage()
+// after building it with ImageConfigBuilder.
 type ImageConfig = image_domain.ImageConfig
 
 // ImageConfigBuilder provides a fluent API for setting up image options.
@@ -178,17 +165,15 @@ type TransformBuilder = image_domain.TransformBuilder
 // TransformedImageResult holds the output of an image transformation.
 type TransformedImageResult = image_dto.TransformedImageResult
 
-// VideoTranscoderPort is the interface that video transcoding providers must
-// implement. Providers receive video data, transcode it according to spec, and
-// return the result.
+// VideoTranscoderPort is the interface that video transcoding providers must implement.
+// Providers receive video data, transcode it according to spec, and return the result.
 type VideoTranscoderPort = video_domain.TranscoderPort
 
-// StreamingTranscoderPort extends VideoTranscoderPort with HLS streaming
-// support.
+// StreamingTranscoderPort extends VideoTranscoderPort with HLS streaming support.
 type StreamingTranscoderPort = video_domain.StreamingTranscoderPort
 
-// VideoService is the high-level service interface for video operations. It is
-// used by the framework internally; providers implement VideoTranscoderPort.
+// VideoService is the high-level service interface for video operations. It is used by
+// the framework internally; providers implement VideoTranscoderPort.
 type VideoService = video_domain.Service
 
 // VideoServiceConfig holds settings for the video service.
@@ -200,8 +185,7 @@ type TranscodeSpec = video_dto.TranscodeSpec
 // ThumbnailSpec defines the parameters for extracting a thumbnail from video.
 type ThumbnailSpec = video_dto.ThumbnailSpec
 
-// VideoCapabilities holds the properties and supported output options for a
-// video.
+// VideoCapabilities holds the properties and supported output options for a video.
 type VideoCapabilities = video_dto.VideoCapabilities
 
 // HLSSpec defines the settings for HLS (HTTP Live Streaming) output.
@@ -227,8 +211,8 @@ type TranscodeResult = video_dto.TranscodeResult
 
 // NewService creates a new image service instance.
 //
-// Takes defaultTransformerName (string) which specifies the transformer to use
-// when none is specified.
+// Takes defaultTransformerName (string) which specifies the transformer to use when none
+// is specified.
 //
 // Returns ImageService which is the configured image service ready for use.
 //
@@ -253,19 +237,17 @@ func GetDefaultService() (ImageService, error) {
 	return service, nil
 }
 
-// GetImageDimensions extracts width and height from image data
-// using the framework's image service, reading only the image
-// header (first few KB) and supporting all formats registered
-// with Go's image package (JPEG, PNG, GIF, WebP).
+// GetImageDimensions extracts width and height from image data using the framework's
+// image service, reading only the image header (first few KB) and supporting all formats
+// registered with Go's image package (JPEG, PNG, GIF, WebP).
 //
 // Takes ctx (context.Context) which controls cancellation.
-// Takes input (io.Reader) which provides the source image data. The caller
-// retains ownership and is responsible for closing it afterwards.
+// Takes input (io.Reader) which provides the source image data. The caller retains
+// ownership and is responsible for closing it afterwards.
 //
 // Returns width (int) in pixels.
 // Returns height (int) in pixels.
-// Returns error when the image service is not configured or the image
-// cannot be decoded.
+// Returns error when the image service is not configured or the image cannot be decoded.
 //
 // Example:
 //
@@ -286,8 +268,8 @@ func GetImageDimensions(ctx context.Context, input io.Reader) (width int, height
 // Takes service (ImageService) which performs the transformations.
 // Takes input (io.Reader) which provides the source image data.
 //
-// Returns *TransformBuilder which provides a fluent interface for configuring
-// and executing transformations.
+// Returns *TransformBuilder which provides a fluent interface for configuring and
+// executing transformations.
 //
 // Example:
 //
@@ -300,8 +282,8 @@ func NewTransformBuilder(service ImageService, input io.Reader) *TransformBuilde
 	return service.Transform(input)
 }
 
-// NewTransformBuilderFromDefault creates a new transform builder using the
-// framework's bootstrapped image service.
+// NewTransformBuilderFromDefault creates a new transform builder using the framework's
+// bootstrapped image service.
 //
 // Takes input (io.Reader) which provides the source image data.
 //
@@ -326,8 +308,8 @@ func NewTransformBuilderFromDefault(input io.Reader) (*TransformBuilder, error) 
 	return NewTransformBuilder(service, input), nil
 }
 
-// Image creates a new image configuration builder with sensible defaults. Use
-// this to set up the image service at startup.
+// Image creates a new image configuration builder with sensible defaults. Use this to set
+// up the image service at startup.
 //
 // Example:
 //
@@ -341,14 +323,14 @@ func NewTransformBuilderFromDefault(input io.Reader) (*TransformBuilder, error) 
 //	    ),
 //	)
 //
-// Returns *ImageConfigBuilder which provides a fluent interface for setting
-// up the image service.
+// Returns *ImageConfigBuilder which provides a fluent interface for setting up the image
+// service.
 func Image() *ImageConfigBuilder {
 	return image_domain.Image()
 }
 
-// Variant creates a new variant specification builder with sensible defaults.
-// Use this to define reusable transformation specifications.
+// Variant creates a new variant specification builder with sensible defaults. Use this to
+// define reusable transformation specifications.
 //
 // Example:
 //
@@ -359,8 +341,8 @@ func Image() *ImageConfigBuilder {
 //	    Cover().
 //	    Build()
 //
-// Returns *VariantBuilder which provides a fluent interface for building
-// a TransformationSpec.
+// Returns *VariantBuilder which provides a fluent interface for building a
+// TransformationSpec.
 func Variant() *VariantBuilder {
 	return image_domain.Variant()
 }
@@ -369,8 +351,8 @@ func Variant() *VariantBuilder {
 //
 // Returns nil if no variants are set up or the framework is not initialised.
 //
-// Returns map[string]TransformationSpec which maps variant names to their
-// transformation settings.
+// Returns map[string]TransformationSpec which maps variant names to their transformation
+// settings.
 func GetPredefinedVariants() map[string]TransformationSpec {
 	return bootstrap.GetImagePredefinedVariants()
 }

@@ -1,0 +1,5 @@
+{
+  "description": "main reads an exported struct var initialised via composite literal",
+  "modulePath": "testpkg",
+  "expected": "name=Ada year=1815"
+}

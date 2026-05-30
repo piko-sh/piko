@@ -33,35 +33,36 @@ import (
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 	"piko.sh/piko/internal/layouter/layouter_dto"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 const (
-	// variableWeightStep is the increment between weight stops when
-	// registering a variable font's weight axis.
+	// variableWeightStep is the increment between weight stops when registering a variable
+	// font's weight axis.
 	variableWeightStep = 100
 
-	// fallbackAdvanceFraction is the fraction of the font size used as
-	// the advance width when no matching font is found.
+	// fallbackAdvanceFraction is the fraction of the font size used as the advance width
+	// when no matching font is found.
 	fallbackAdvanceFraction = 0.5
 
-	// defaultAscentFraction is the fraction of font size used as ascent
-	// when real font metrics are unavailable.
+	// defaultAscentFraction is the fraction of font size used as ascent when real font
+	// metrics are unavailable.
 	defaultAscentFraction = 0.8
 
-	// defaultDescentFraction is the fraction of font size used as
-	// descent when real font metrics are unavailable.
+	// defaultDescentFraction is the fraction of font size used as descent when real font
+	// metrics are unavailable.
 	defaultDescentFraction = 0.2
 
-	// defaultUnitsPerEm is the fallback units-per-em value when no real
-	// font metrics are available.
+	// defaultUnitsPerEm is the fallback units-per-em value when no real font metrics are
+	// available.
 	defaultUnitsPerEm = 1000
 
-	// defaultFallbackWeight is the normal CSS font-weight used as a
-	// last resort when resolving a font descriptor.
+	// defaultFallbackWeight is the normal CSS font-weight used as a last resort when
+	// resolving a font descriptor.
 	defaultFallbackWeight = 400
 
-	// fixedPointScale converts a floating-point ppem value to the
-	// fixed.Int26_6 representation used by go-text.
+	// fixedPointScale converts a floating-point ppem value to the fixed.Int26_6
+	// representation used by go-text.
 	fixedPointScale = 64.0
 )
 
@@ -95,8 +96,8 @@ type fontRecord struct {
 	weight int
 }
 
-// GoTextFontMetrics implements FontMetricsPort using the go-text/typesetting
-// library for HarfBuzz-based text shaping with full GSUB/GPOS support.
+// GoTextFontMetrics implements FontMetricsPort using the go-text/typesetting library for
+// HarfBuzz-based text shaping with full GSUB/GPOS support.
 type GoTextFontMetrics struct {
 	// fonts maps font keys to their parsed records.
 	fonts map[fontKey]*fontRecord
@@ -120,11 +121,10 @@ func mustTag(s string) font.Tag {
 	return font.Tag(uint32(s[0])<<24 | uint32(s[1])<<16 | uint32(s[2])<<8 | uint32(s[3]))
 }
 
-// NewGoTextFontMetrics creates a new GoTextFontMetrics from a slice of font
-// registration entries.
+// NewGoTextFontMetrics creates a new GoTextFontMetrics from a slice of font registration
+// entries.
 //
-// Takes entries ([]layouter_dto.FontEntry) which describes the fonts to
-// register.
+// Takes entries ([]layouter_dto.FontEntry) which describes the fonts to register.
 //
 // Returns *GoTextFontMetrics which is the configured metrics adapter.
 // Returns error which is non-nil if any font data fails to parse.
@@ -190,16 +190,15 @@ func NewGoTextFontMetrics(entries []layouter_dto.FontEntry) (*GoTextFontMetrics,
 	}, nil
 }
 
-// MeasureText returns the width in points of the given text string when
-// rendered with the specified font and size, using HarfBuzz shaping for
-// accurate GSUB/GPOS-aware measurement.
+// MeasureText returns the width in points of the given text string when rendered with the
+// specified font and size, using HarfBuzz shaping for accurate GSUB/GPOS-aware
+// measurement.
 //
-// The shaper is invoked at CSS pixel ppem rather than point ppem. go-text's
-// HarfBuzz wrapper applies Ceil() to the ppem before computing the font
-// scale, which distorts fractional ppem values. Since CSS pixel sizes are
-// typically integers (e.g. font-size: 14px becomes 10.5pt, but 14px is
-// integer), shaping at CSS pixels avoids this rounding and matches Chrome's
-// HarfBuzz behaviour. The output is then converted back to points.
+// The shaper is invoked at CSS pixel ppem rather than point ppem. go-text's HarfBuzz
+// wrapper applies Ceil() to the ppem before computing the font scale, which distorts
+// fractional ppem values. Since CSS pixel sizes are typically integers (e.g. font-size:
+// 14px becomes 10.5pt, but 14px is integer), shaping at CSS pixels avoids this rounding
+// and matches Chrome's HarfBuzz behaviour. The output is then converted back to points.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the typeface.
 // Takes size (float64) which is the font size in points.
@@ -246,10 +245,10 @@ func (m *GoTextFontMetrics) MeasureText(
 	return fixedToFloat(output.Advance) * layouter_domain.PixelsToPoints
 }
 
-// ShapeText produces positioned glyphs for the given text using HarfBuzz
-// shaping, applying kerning, GSUB, and GPOS. Like MeasureText, the shaper
-// is invoked at CSS pixel ppem to avoid go-text's Ceil() rounding on
-// fractional ppem values, and the output is converted back to points.
+// ShapeText produces positioned glyphs for the given text using HarfBuzz shaping,
+// applying kerning, GSUB, and GPOS. Like MeasureText, the shaper is invoked at CSS pixel
+// ppem to avoid go-text's Ceil() rounding on fractional ppem values, and the output is
+// converted back to points.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the typeface.
 // Takes size (float64) which is the font size in points.
@@ -313,8 +312,8 @@ func (m *GoTextFontMetrics) ShapeText(
 	return positions
 }
 
-// GetMetrics returns the vertical metrics (ascent, descent, line gap,
-// cap height, x-height) for the specified font at the given size.
+// GetMetrics returns the vertical metrics (ascent, descent, line gap, cap height,
+// x-height) for the specified font at the given size.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the typeface.
 // Takes size (float64) which is the font size in points.
@@ -361,15 +360,14 @@ func (m *GoTextFontMetrics) GetMetrics(
 	}
 }
 
-// ResolveFallback returns a font descriptor for a font that contains the
-// given character, walking the fallback chain if the primary font lacks
-// coverage.
+// ResolveFallback returns a font descriptor for a font that contains the given character,
+// walking the fallback chain if the primary font lacks coverage.
 //
 // Takes fontDescriptor (FontDescriptor) which is the primary font.
 // Takes character (rune) which is the character needing a fallback.
 //
-// Returns a FontDescriptor for a font containing the character, or the
-// original if no fallback has coverage.
+// Returns a FontDescriptor for a font containing the character, or the original if no
+// fallback has coverage.
 //
 // Safe for concurrent use; font face access is guarded by a mutex.
 func (m *GoTextFontMetrics) ResolveFallback(
@@ -403,8 +401,8 @@ func (m *GoTextFontMetrics) ResolveFallback(
 	return fontDescriptor
 }
 
-// GetFontData returns the raw TTF bytes for the font matching the given
-// descriptor. This is used by the PDF embedder for font subsetting.
+// GetFontData returns the raw TTF bytes for the font matching the given descriptor. This
+// is used by the PDF embedder for font subsetting.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the font.
 //
@@ -419,9 +417,8 @@ func (m *GoTextFontMetrics) GetFontData(
 	return record.data, true
 }
 
-// GetFontFace returns the go-text Face for the font matching the given
-// descriptor. Used by the PDF pipeline to compute variation-aware glyph
-// advance widths for variable fonts.
+// GetFontFace returns the go-text Face for the font matching the given descriptor. Used
+// by the PDF pipeline to compute variation-aware glyph advance widths for variable fonts.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the font.
 //
@@ -436,8 +433,8 @@ func (m *GoTextFontMetrics) GetFontFace(
 	return record.face
 }
 
-// SplitGraphemeClusters segments text into grapheme clusters using
-// Unicode UAX #29 rules via the go-text/typesetting segmenter.
+// SplitGraphemeClusters segments text into grapheme clusters using Unicode UAX #29 rules
+// via the go-text/typesetting segmenter.
 //
 // Takes text (string) which is the text to segment.
 //
@@ -470,8 +467,8 @@ func mapDirection(d layouter_domain.DirectionType) di.Direction {
 	return di.DirectionLTR
 }
 
-// resolveFont looks up the best matching fontRecord for the given descriptor,
-// falling back through style, weight, and the global fallback chain.
+// resolveFont looks up the best matching fontRecord for the given descriptor, falling
+// back through style, weight, and the global fallback chain.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the desired font.
 //
@@ -516,8 +513,8 @@ func (m *GoTextFontMetrics) resolveFont(
 	return nil
 }
 
-// fallbackShapeText produces synthetic glyph positions when no real font is
-// available, assigning each rune a uniform advance width.
+// fallbackShapeText produces synthetic glyph positions when no real font is available,
+// assigning each rune a uniform advance width.
 //
 // Takes size (float64) which is the font size in points.
 // Takes text (string) which is the text to shape.
@@ -532,7 +529,7 @@ func fallbackShapeText(
 	advance := size * fallbackAdvanceFraction
 	for index, character := range runes {
 		positions[index] = layouter_domain.GlyphPosition{
-			GlyphID:      uint16(character),
+			GlyphID:      safeconv.RuneToUint16(character),
 			XAdvance:     advance,
 			ClusterIndex: index,
 			RuneCount:    1,
@@ -541,10 +538,9 @@ func fallbackShapeText(
 	return positions
 }
 
-// detectScriptAndLanguage examines the runes in the text to find the
-// dominant non-Common, non-Inherited script and returns the
-// corresponding HarfBuzz script tag and a default language for that
-// script. Falls back to Latin/EN when the text contains only common
+// detectScriptAndLanguage examines the runes in the text to find the dominant non-Common,
+// non-Inherited script and returns the corresponding HarfBuzz script tag and a default
+// language for that script. Falls back to Latin/EN when the text contains only common
 // characters (punctuation, digits, emoji).
 //
 // Takes runes ([]rune) which is the text to analyse.

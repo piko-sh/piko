@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_encrypt implements PDF encryption as a
-// post-processing transformer.
+// Package driven_transform_encrypt implements PDF encryption as a post-processing
+// transformer.
 //
-// It parses existing PDF bytes, encrypts all string and stream objects
-// using AES-256-CBC (PDF 2.0, V=5 R=6), and adds an /Encrypt dictionary
-// to the trailer. The implementation follows ISO 32000-2 section 7.6 for
-// encryption key generation, password hashing, and object encryption.
+// It parses existing PDF bytes, encrypts all string and stream objects using AES-256-CBC
+// (PDF 2.0, V=5 R=6), and adds an /Encrypt dictionary to the trailer. The implementation
+// follows ISO 32000-2 section 7.6 for encryption key generation, password hashing, and
+// object encryption.
 package driven_transform_encrypt

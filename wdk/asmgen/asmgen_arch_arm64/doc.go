@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package asmgen_arch_arm64 implements ArchitecturePort for ARM 64-bit Plan 9
-// assembly generation. It translates abstract assembly primitives into
-// concrete arm64 Plan 9 text.
+// Package asmgen_arch_arm64 implements ArchitecturePort for ARM 64-bit Plan 9 assembly
+// generation. It translates abstract assembly primitives into concrete arm64 Plan 9 text.
 package asmgen_arch_arm64

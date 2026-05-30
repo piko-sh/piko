@@ -24,14 +24,16 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// CacheAPI is a JSON configuration for long-lived decoded objects that will
-// be stored and reused. It copies strings instead of referencing the source
-// buffer, preventing memory issues when objects outlive the original JSON data.
-var CacheAPI = json.Freeze(json.Config{
-	CopyString: true,
-	UseInt64:   true,
-	EscapeHTML: false,
-})
+var (
+	// CacheAPI is a JSON configuration for long-lived decoded objects that will be stored
+	// and reused. It copies strings instead of referencing the source buffer, preventing
+	// memory issues when objects outlive the original JSON data.
+	CacheAPI = json.Freeze(json.Config{
+		CopyString: true,
+		UseInt64:   true,
+		EscapeHTML: false,
+	})
+)
 
 func init() {
 	pretouchTypes := []reflect.Type{

@@ -16,6 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pdfwriter_dto defines the data transfer objects for the PDF writer
-// module, including configuration and result types.
+// Package pdfwriter_dto defines the data transfer objects for the PDF writer module,
+// including configuration and result types.
 package pdfwriter_dto

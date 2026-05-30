@@ -59,7 +59,7 @@ func main() {
 
 	result := map[string]any{
 		"subtree_from_electronics": subtree,
-		"ancestors_of_iphones":    ancestors,
+		"ancestors_of_iphones":     ancestors,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

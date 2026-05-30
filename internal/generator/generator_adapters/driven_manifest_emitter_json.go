@@ -22,35 +22,35 @@ import (
 	"context"
 	"fmt"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// JSONManifestEmitter implements ManifestEmitterPort to write a JSON manifest.
-// It uses atomic writes to prevent file corruption and sandboxes all file
-// operations to prevent path traversal attacks.
+// JSONManifestEmitter implements ManifestEmitterPort to write a JSON manifest. It uses
+// atomic writes to prevent file corruption and sandboxes all file operations to prevent
+// path traversal attacks.
 type JSONManifestEmitter struct {
 	// sandbox provides safe file system access for writing manifest files.
 	sandbox safedisk.Sandbox
 }
 
-var _ generator_domain.ManifestEmitterPort = (*JSONManifestEmitter)(nil)
+var (
+	_ generator_domain.ManifestEmitterPort = (*JSONManifestEmitter)(nil)
+)
 
-// NewJSONManifestEmitter creates an emitter that writes manifests in JSON
-// format.
+// NewJSONManifestEmitter creates an emitter that writes manifests in JSON format.
 //
-// Takes sandbox (safedisk.Sandbox) which is the output folder for the manifest
-// file.
+// Takes sandbox (safedisk.Sandbox) which is the output folder for the manifest file.
 //
 // Returns *JSONManifestEmitter which is ready to write manifests.
 func NewJSONManifestEmitter(sandbox safedisk.Sandbox) *JSONManifestEmitter {
 	return &JSONManifestEmitter{sandbox: sandbox}
 }
 
-// EmitCode generates the final manifest.json file by serialising the manifest
-// to JSON and writing it atomically to the specified output path.
+// EmitCode generates the final manifest.json file by serialising the manifest to JSON and
+// writing it atomically to the specified output path.
 //
 // Takes manifest (*generator_dto.Manifest) which contains the data to write.
 // Takes outputPath (string) which specifies where to write the JSON file.

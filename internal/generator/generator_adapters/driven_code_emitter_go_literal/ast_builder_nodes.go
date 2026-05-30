@@ -28,14 +28,13 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 )
 
-// nodeEmissionParams groups parameters for creating a nodeEmissionContext.
-// Field ordering is set for memory alignment.
+// nodeEmissionParams groups parameters for creating a nodeEmissionContext. Field ordering
+// is set for memory alignment.
 type nodeEmissionParams struct {
 	// Node is the template node to emit.
 	Node *ast_domain.TemplateNode
 
-	// ParentSliceExpression is the slice expression to which
-	// emitted nodes are appended.
+	// ParentSliceExpression is the slice expression to which emitted nodes are appended.
 	ParentSliceExpression goast.Expr
 
 	// PartialScopeID is the HashedName of the current partial for CSS scoping.
@@ -65,20 +64,19 @@ type nodeEmissionContext struct {
 	// node is the template node being emitted.
 	node *ast_domain.TemplateNode
 
-	// partialScopeID holds the HashedName of the current partial for CSS scoping.
-	// Element nodes in a partial use this as their `partial` attribute value;
-	// empty string for pages (no scoping).
+	// partialScopeID holds the HashedName of the current partial for CSS scoping. Element
+	// nodes in a partial use this as their `partial` attribute value; empty string for pages
+	// (no scoping).
 	partialScopeID string
 
-	// mainComponentScope is the HashedName of the main component being generated.
-	// Used to distinguish slotted content (same scope as main) from nested partial
-	// content (different scope).
+	// mainComponentScope is the HashedName of the main component being generated. Used to
+	// distinguish slotted content (same scope as main) from nested partial content
+	// (different scope).
 	mainComponentScope string
 
-	// loopIterInfo holds pre-extracted loop iterable info for p-for nodes.
-	// When set, the for_emitter uses this instead of re-emitting the collection
-	// expression, enabling accurate child slice capacity and avoiding
-	// double-evaluation.
+	// loopIterInfo holds pre-extracted loop iterable info for p-for nodes. When set, the
+	// for_emitter uses this instead of re-emitting the collection expression, enabling
+	// accurate child slice capacity and avoiding double-evaluation.
 	loopIterInfo *LoopIterableInfo
 
 	// siblings holds the sibling template nodes used during iteration.
@@ -102,11 +100,10 @@ func (b *astBuilder) emitNode(emitCtx *nodeEmissionContext) (statements []goast.
 	return b.emitNodeWithContext(emitCtx)
 }
 
-// emitNodeWithContext converts a node into Go AST statements using the given
-// context.
+// emitNodeWithContext converts a node into Go AST statements using the given context.
 //
-// Takes emitCtx (*nodeEmissionContext) which provides the node and settings
-// for the emission.
+// Takes emitCtx (*nodeEmissionContext) which provides the node and settings for the
+// emission.
 //
 // Returns []goast.Stmt which contains the generated Go AST statements.
 // Returns int which is the number of nodes that were processed.
@@ -124,13 +121,13 @@ func (b *astBuilder) emitNodeWithContext(emitCtx *nodeEmissionContext) ([]goast.
 	return b.dispatchNodeEmission(emitCtx, nodeForEmission)
 }
 
-// prepareNodeForEmission prepares a node for emission by adding partial
-// metadata if needed. Uses the context to avoid a flag parameter.
+// prepareNodeForEmission prepares a node for emission by adding partial metadata if
+// needed. Uses the context to avoid a flag parameter.
 //
 // Takes emitCtx (*nodeEmissionContext) which provides the emission context.
 //
-// Returns *ast_domain.TemplateNode which is the prepared node, either the
-// original or with partial metadata added.
+// Returns *ast_domain.TemplateNode which is the prepared node, either the original or
+// with partial metadata added.
 func (b *astBuilder) prepareNodeForEmission(emitCtx *nodeEmissionContext) *ast_domain.TemplateNode {
 	if !b.shouldAddPartialMetadata(emitCtx) {
 		return emitCtx.node
@@ -139,15 +136,14 @@ func (b *astBuilder) prepareNodeForEmission(emitCtx *nodeEmissionContext) *ast_d
 	return b.addPartialMetadataToNode(emitCtx.node)
 }
 
-// shouldAddPartialMetadata determines if partial metadata should be added to
-// a node.
+// shouldAddPartialMetadata determines if partial metadata should be added to a node.
 //
-// Uses context instead of a separate isRootNode flag. Always returns true for
-// root element nodes in non-page partials, even if the node has PartialInfo
-// from a nested partial. In that case, both partial IDs are accumulated.
+// Uses context instead of a separate isRootNode flag. Always returns true for root
+// element nodes in non-page partials, even if the node has PartialInfo from a nested
+// partial. In that case, both partial IDs are accumulated.
 //
-// Takes emitCtx (*nodeEmissionContext) which provides the emission context
-// including root node status.
+// Takes emitCtx (*nodeEmissionContext) which provides the emission context including root
+// node status.
 //
 // Returns bool which indicates whether partial metadata should be added.
 func (b *astBuilder) shouldAddPartialMetadata(emitCtx *nodeEmissionContext) bool {
@@ -156,16 +152,16 @@ func (b *astBuilder) shouldAddPartialMetadata(emitCtx *nodeEmissionContext) bool
 
 // addPartialMetadataToNode clones a node and adds partial metadata attributes.
 //
-// When the node has nested PartialInfo (i.e., it is a partial's root that is
-// itself another partial), the attributes accumulate values in space-separated
-// format: "outer inner". This enables CSS selectors using [partial~=xxx] to
-// match any partial in the chain.
+// When the node has nested PartialInfo (i.e., it is a partial's root that is itself
+// another partial), the attributes accumulate values in space-separated format: "outer
+// inner". This enables CSS selectors using [partial~=name] to match any partial in the
+// chain.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to clone
-// and augment with partial metadata.
+// Takes node (*ast_domain.TemplateNode) which is the template node to clone and augment
+// with partial metadata.
 //
-// Returns *ast_domain.TemplateNode which is a deep clone of the input node
-// with partial, partial_name, and optionally partial_src attributes added.
+// Returns *ast_domain.TemplateNode which is a deep clone of the input node with partial,
+// partial_name, and optionally partial_src attributes added.
 func (b *astBuilder) addPartialMetadataToNode(node *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	nodeForEmission := node.DeepClone()
 
@@ -221,16 +217,13 @@ func (b *astBuilder) addPartialMetadataToNode(node *ast_domain.TemplateNode) *as
 	return nodeForEmission
 }
 
-// validateNodeForEmission checks whether a node can be emitted after
-// preparation.
+// validateNodeForEmission checks whether a node can be emitted after preparation.
 //
-// Takes originalNode (*ast_domain.TemplateNode) which is the node before
-// preparation.
-// Takes preparedNode (*ast_domain.TemplateNode) which is the node after
-// preparation.
+// Takes originalNode (*ast_domain.TemplateNode) which is the node before preparation.
+// Takes preparedNode (*ast_domain.TemplateNode) which is the node after preparation.
 //
-// Returns *ast_domain.Diagnostic which describes any error found, or nil if
-// the node is valid.
+// Returns *ast_domain.Diagnostic which describes any error found, or nil if the node is
+// valid.
 func (b *astBuilder) validateNodeForEmission(
 	originalNode *ast_domain.TemplateNode,
 	preparedNode *ast_domain.TemplateNode,
@@ -253,8 +246,8 @@ func (b *astBuilder) validateNodeForEmission(
 	return nil
 }
 
-// dispatchNodeEmission sends a template node to the right emitter based on its
-// type and directives.
+// dispatchNodeEmission sends a template node to the right emitter based on its type and
+// directives.
 //
 // Takes emitCtx (*nodeEmissionContext) which holds the current emission state.
 // Takes nodeForEmission (*ast_domain.TemplateNode) which is the node to emit.
@@ -308,9 +301,8 @@ func (*astBuilder) isElseClauseNode(original, prepared *ast_domain.TemplateNode)
 		prepared.DirElseIf != nil || prepared.DirElse != nil
 }
 
-// canEmitAsStatic determines if a node can be emitted as a static node.
-// Nodes with srcset data must go through dynamic emission to generate srcset
-// attributes.
+// canEmitAsStatic determines if a node can be emitted as a static node. Nodes with srcset
+// data must go through dynamic emission to generate srcset attributes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -329,13 +321,13 @@ func (b *astBuilder) canEmitAsStatic(node *ast_domain.TemplateNode) bool {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to output.
 // Takes parentSliceExpr (goast.Expr) which is the slice to append the node to.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns []goast.Stmt which contains the statements to append the static node.
 // Returns int which is the count of nodes output.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// registering the static node.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from registering the
+// static node.
 func (b *astBuilder) emitStaticNode(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -349,10 +341,8 @@ func (b *astBuilder) emitStaticNode(
 
 // emitFragment creates Go AST statements for a fragment node.
 //
-// Takes emitCtx (*nodeEmissionContext) which provides the context for code
-// generation.
-// Takes nodeForEmission (*ast_domain.TemplateNode) which is the fragment node
-// to process.
+// Takes emitCtx (*nodeEmissionContext) which provides the context for code generation.
+// Takes nodeForEmission (*ast_domain.TemplateNode) which is the fragment node to process.
 //
 // Returns []goast.Stmt which contains the generated Go AST statements.
 // Returns int which is the number of statements created.
@@ -368,13 +358,13 @@ func (b *astBuilder) emitFragment(
 	return b.emitFragmentChildren(emitCtx, nodeForEmission)
 }
 
-// fragmentHasDynamicFeatures checks if a fragment has dynamic features
-// requiring special handling.
+// fragmentHasDynamicFeatures checks if a fragment has dynamic features requiring special
+// handling.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has partial info annotations or
-// dynamic attributes.
+// Returns bool which is true if the node has partial info annotations or dynamic
+// attributes.
 func (*astBuilder) fragmentHasDynamicFeatures(node *ast_domain.TemplateNode) bool {
 	return (node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil) ||
 		len(node.DynamicAttributes) > 0
@@ -383,13 +373,12 @@ func (*astBuilder) fragmentHasDynamicFeatures(node *ast_domain.TemplateNode) boo
 // emitFragmentChildren emits all children of a fragment node.
 //
 // Takes emitCtx (*nodeEmissionContext) which provides the emission context.
-// Takes nodeForEmission (*ast_domain.TemplateNode) which is the fragment node
-// whose children are emitted.
+// Takes nodeForEmission (*ast_domain.TemplateNode) which is the fragment node whose
+// children are emitted.
 //
 // Returns []goast.Stmt which contains the statements for all child nodes.
 // Returns int which is the number of nodes consumed (always 1).
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// child emissions.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from child emissions.
 func (b *astBuilder) emitFragmentChildren(
 	emitCtx *nodeEmissionContext,
 	nodeForEmission *ast_domain.TemplateNode,
@@ -421,16 +410,13 @@ func (b *astBuilder) emitFragmentChildren(
 // emitDynamicNode creates statements for a dynamic template node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes parentSliceExpr (goast.Expr) which is the slice to append the new node
-// to.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes parentSliceExpr (goast.Expr) which is the slice to append the new node to.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
-// Returns []goast.Stmt which contains the statements to create and append the
-// node.
+// Returns []goast.Stmt which contains the statements to create and append the node.
 // Returns int which is the number of nodes created (always 1).
-// Returns []*ast_domain.Diagnostic which contains any warnings or errors from
-// processing.
+// Returns []*ast_domain.Diagnostic which contains any warnings or errors from processing.
 func (b *astBuilder) emitDynamicNode(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -442,9 +428,9 @@ func (b *astBuilder) emitDynamicNode(
 	return nodeStmts, 1, nodeDiags
 }
 
-// nodeContainsForLoops checks if a node or any of its descendants contain a
-// p-for directive. This prevents treating nodes with internal loops as static,
-// which would cause issues with dynamic key expressions.
+// nodeContainsForLoops checks if a node or any of its descendants contain a p-for
+// directive. This prevents treating nodes with internal loops as static, which would
+// cause issues with dynamic key expressions.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to check.
 //
@@ -461,11 +447,11 @@ func (b *astBuilder) nodeContainsForLoops(node *ast_domain.TemplateNode) bool {
 	return slices.ContainsFunc(node.Children, b.nodeContainsForLoops)
 }
 
-// nodeContainsPikoContent checks if a node or any of its descendants
-// contain a <piko:content /> tag.
+// nodeContainsPikoContent checks if a node or any of its descendants contain a
+// <piko:content /> tag.
 //
-// This prevents treating nodes with piko:content children as static, since
-// piko:content requires runtime fetching of contentAST from CollectionData.
+// This prevents treating nodes with piko:content children as static, since piko:content
+// requires runtime fetching of contentAST from CollectionData.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to check.
 //
@@ -482,10 +468,9 @@ func (b *astBuilder) nodeContainsPikoContent(node *ast_domain.TemplateNode) bool
 	return slices.ContainsFunc(node.Children, b.nodeContainsPikoContent)
 }
 
-// nodeContainsRichText checks if a node or any of its descendants contain
-// RichText (interpolations). This prevents treating nodes with dynamic
-// interpolations as static, since RichText requires runtime evaluation of
-// expressions like {{ state.Query }}.
+// nodeContainsRichText checks if a node or any of its descendants contain RichText
+// (interpolations). This prevents treating nodes with dynamic interpolations as static,
+// since RichText requires runtime evaluation of expressions like {{ state.Query }}.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to check.
 //

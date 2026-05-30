@@ -25,23 +25,41 @@ import (
 	vectormaths_arm64 "piko.sh/piko/internal/vectormaths/asm/asmgen_arch_arm64"
 )
 
-var _ VectormathsArchitecturePort = (*vectormaths_amd64.VectormathsAMD64Arch)(nil)
-var _ VectormathsArchitecturePort = (*vectormaths_arm64.VectormathsARM64Arch)(nil)
+var (
+	_ VectormathsArchitecturePort = (*vectormaths_amd64.VectormathsAMD64Arch)(nil)
 
-// VectormathsArchitecturePort extends the core ArchitecturePort with
-// SIMD vectormaths operations for dot product and euclidean distance.
+	_ VectormathsArchitecturePort = (*vectormaths_arm64.VectormathsARM64Arch)(nil)
+)
+
+// VectormathsArchitecturePort extends the core ArchitecturePort with SIMD vectormaths
+// operations for dot product and euclidean distance.
 type VectormathsArchitecturePort interface {
 	asmgen.ArchitecturePort
 
-	// EmitDotProduct emits the dot product assembly function body for the given SIMD variant.
+	// EmitDotProduct emits the dot product assembly function body for the given SIMD
+	// variant.
 	EmitDotProduct(emitter *asmgen.Emitter, variant string)
 
-	// EmitEuclideanDistanceSquared emits the squared Euclidean
-	// distance assembly function body for the given SIMD
-	// variant.
+	// EmitEuclideanDistanceSquared emits the squared Euclidean distance assembly function
+	// body for the given SIMD variant.
 	EmitEuclideanDistanceSquared(emitter *asmgen.Emitter, variant string)
 
-	// EmitNormalise emits the in-place normalisation assembly
-	// function body for the given SIMD variant.
+	// EmitNormalise emits the in-place normalisation assembly function body for the given
+	// SIMD variant.
 	EmitNormalise(emitter *asmgen.Emitter, variant string)
+
+	// EmitSum emits the float64 slice sum assembly function body for the given SIMD variant.
+	EmitSum(emitter *asmgen.Emitter, variant string)
+
+	// EmitAdd emits the float64 pointwise add assembly function body for the given SIMD
+	// variant.
+	EmitAdd(emitter *asmgen.Emitter, variant string)
+
+	// EmitDotF64 emits the float64 dot product assembly function body for the given SIMD
+	// variant.
+	EmitDotF64(emitter *asmgen.Emitter, variant string)
+
+	// EmitScaleF64 emits the in-place float64 vector-by-scalar multiply assembly function
+	// body for the given SIMD variant.
+	EmitScaleF64(emitter *asmgen.Emitter, variant string)
 }

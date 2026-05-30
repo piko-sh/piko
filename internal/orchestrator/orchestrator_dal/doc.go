@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package orchestrator_dal defines data access layer abstractions for
-// the orchestrator hexagon.
+// Package orchestrator_dal defines data access layer abstractions for the orchestrator
+// hexagon.
 //
-// Storage backends implement the port interfaces here to persist and query task
-// and workflow state. Sentinel errors for database-agnostic error handling are also
-// defined, and atomic operations are supported.
+// Storage backends implement the port interfaces here to persist and query task and
+// workflow state. Sentinel errors for database-agnostic error handling are also defined,
+// and atomic operations are supported.
 //
 // All implementations are safe for concurrent use.
 package orchestrator_dal

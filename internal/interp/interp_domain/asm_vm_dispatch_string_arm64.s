@@ -21,32 +21,12 @@
 //go:build !safe && !(js && wasm) && arm64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_arm64.h"
 
-// String operation handlers.
-//
-// String memory layout: Go strings are 16-byte headers {Data uintptr, Len int}.
-// stringsBase is loaded on demand from CTX_STRINGS_BASE(R19).
-// strings[i] is at stringsBase + i*16:
-//   - Data pointer at offset +0
-//   - Length at offset +8
-
-// handlerLenString sets ints[A] = len(strings[B]).
-TEXT ·handlerLenString(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD CTX_STRINGS_BASE(R19), R5
-	LSL  $4, R4, R4
-	ADD  R4, R5, R6
-	MOVD 8(R6), R7
-	MOVD R7, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
 // handlerStringIndex sets uints[A] = uint64(strings[B][ints[C]]).
-TEXT ·handlerStringIndex(SB), NOSPLIT, $0
+TEXT ·handlerStringIndex(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -69,14 +49,14 @@ TEXT ·handlerStringIndex(SB), NOSPLIT, $0
 
 si_fallback_arm:
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_TIER2, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerEqString sets ints[A] = (strings[B] == strings[C]) ? 1 : 0.
-TEXT ·handlerEqString(SB), NOSPLIT, $0
+TEXT ·handlerEqString(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -119,7 +99,7 @@ eqs_done_arm:
 	DISPATCH_NEXT()
 
 // handlerNeString sets ints[A] = (strings[B] != strings[C]) ? 1 : 0.
-TEXT ·handlerNeString(SB), NOSPLIT, $0
+TEXT ·handlerNeString(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -162,7 +142,7 @@ nes_done_arm:
 	DISPATCH_NEXT()
 
 // handlerSliceString sets strings[A] = strings[B][low:high].
-TEXT ·handlerSliceString(SB), NOSPLIT, $0
+TEXT ·handlerSliceString(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -206,14 +186,14 @@ sl_got_high_arm:
 
 sl_bounds_fail_arm:
 	SUB  $2, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_TIER2, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerStringIndexToInt sets ints[A] = int64(strings[B][ints[C]]).
-TEXT ·handlerStringIndexToInt(SB), NOSPLIT, $0
+TEXT ·handlerStringIndexToInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -235,17 +215,17 @@ TEXT ·handlerStringIndexToInt(SB), NOSPLIT, $0
 
 sit_fallback_arm:
 	SUB  $1, R20, R20
-	MOVD R20, 16(R19)
+	MOVD R20, CTX_PC(R19)
 	MOVD $EXIT_TIER2, R0
-	MOVD R0, 96(R19)
-	MOVD R20, 104(R19)
+	MOVD R0, CTX_EXIT_REASON(R19)
+	MOVD R20, CTX_EXIT_PC(R19)
 	RET
 
 // handlerLenStringLtJumpFalse jumps if ints[A] >= len(strings[B]).
-TEXT ·handlerLenStringLtJumpFalse(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
+TEXT ·handlerLenStringLtJumpFalse(SB), NOSPLIT|NOFRAME, $0
+	LSR  $16, R0, R3
 	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
+	LSR  $24, R0, R4
 	AND  $0xFF, R4, R4
 	MOVD CTX_STRINGS_BASE(R19), R5
 	LSL  $4, R4, R4

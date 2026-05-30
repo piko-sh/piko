@@ -22,69 +22,74 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "english"
+const (
 
-// stopWords contains common English stop words organised by grammatical category.
-var stopWords = map[string]bool{
-	"a": true, "an": true, "the": true,
+	// Language is the language code for this provider.
+	Language = "english"
+)
 
-	"and": true, "but": true, "or": true, "nor": true, "for": true, "yet": true, "so": true,
+var (
+	// stopWords contains common English stop words organised by grammatical category.
+	stopWords = map[string]bool{
+		"a": true, "an": true, "the": true,
 
-	"in": true, "on": true, "at": true, "to": true, "from": true, "of": true, "with": true,
-	"about": true, "by": true, "into": true, "through": true, "during": true, "before": true,
-	"after": true, "above": true, "below": true, "between": true, "under": true, "over": true,
-	"out": true, "off": true, "up": true, "down": true, "around": true, "against": true,
+		"and": true, "but": true, "or": true, "nor": true, "for": true, "yet": true, "so": true,
 
-	"i": true, "you": true, "he": true, "she": true, "it": true, "we": true, "they": true,
+		"in": true, "on": true, "at": true, "to": true, "from": true, "of": true, "with": true,
+		"about": true, "by": true, "into": true, "through": true, "during": true, "before": true,
+		"after": true, "above": true, "below": true, "between": true, "under": true, "over": true,
+		"out": true, "off": true, "up": true, "down": true, "around": true, "against": true,
 
-	"me": true, "him": true, "her": true, "us": true, "them": true,
+		"i": true, "you": true, "he": true, "she": true, "it": true, "we": true, "they": true,
 
-	"my": true, "your": true, "his": true, "its": true, "our": true, "their": true, "whose": true,
+		"me": true, "him": true, "her": true, "us": true, "them": true,
 
-	"mine": true, "yours": true, "hers": true, "ours": true, "theirs": true, "own": true,
+		"my": true, "your": true, "his": true, "its": true, "our": true, "their": true, "whose": true,
 
-	"myself": true, "yourself": true, "himself": true, "herself": true, "itself": true,
-	"ourselves": true, "yourselves": true, "themselves": true,
+		"mine": true, "yours": true, "hers": true, "ours": true, "theirs": true, "own": true,
 
-	"is": true, "am": true, "are": true, "was": true, "were": true, "be": true, "been": true, "being": true,
+		"myself": true, "yourself": true, "himself": true, "herself": true, "itself": true,
+		"ourselves": true, "yourselves": true, "themselves": true,
 
-	"have": true, "has": true, "had": true, "having": true,
+		"is": true, "am": true, "are": true, "was": true, "were": true, "be": true, "been": true, "being": true,
 
-	"do": true, "does": true, "did": true, "doing": true,
+		"have": true, "has": true, "had": true, "having": true,
 
-	"can": true, "could": true, "will": true, "would": true, "shall": true, "should": true,
-	"may": true, "might": true, "must": true,
+		"do": true, "does": true, "did": true, "doing": true,
 
-	"this": true, "that": true, "these": true, "those": true,
+		"can": true, "could": true, "will": true, "would": true, "shall": true, "should": true,
+		"may": true, "might": true, "must": true,
 
-	"what": true, "which": true, "who": true, "whom": true, "when": true, "where": true, "why": true, "how": true,
+		"this": true, "that": true, "these": true, "those": true,
 
-	"all": true, "any": true, "some": true, "each": true, "every": true, "no": true, "none": true,
-	"many": true, "much": true, "few": true, "little": true, "more": true, "most": true,
-	"less": true, "least": true,
+		"what": true, "which": true, "who": true, "whom": true, "when": true, "where": true, "why": true, "how": true,
 
-	"anyone": true, "anything": true, "someone": true, "something": true, "everyone": true,
-	"everything": true, "nobody": true, "nothing": true, "anybody": true, "somebody": true,
+		"all": true, "any": true, "some": true, "each": true, "every": true, "no": true, "none": true,
+		"many": true, "much": true, "few": true, "little": true, "more": true, "most": true,
+		"less": true, "least": true,
 
-	"very": true, "really": true, "just": true, "only": true, "even": true, "still": true,
-	"already": true, "always": true, "never": true, "ever": true, "often": true, "sometimes": true,
-	"here": true, "there": true, "then": true,
+		"anyone": true, "anything": true, "someone": true, "something": true, "everyone": true,
+		"everything": true, "nobody": true, "nothing": true, "anybody": true, "somebody": true,
 
-	"now": true, "again": true, "once": true, "twice": true, "further": true, "soon": true,
-	"today": true, "tomorrow": true,
+		"very": true, "really": true, "just": true, "only": true, "even": true, "still": true,
+		"already": true, "always": true, "never": true, "ever": true, "often": true, "sometimes": true,
+		"here": true, "there": true, "then": true,
 
-	"not": true,
+		"now": true, "again": true, "once": true, "twice": true, "further": true, "soon": true,
+		"today": true, "tomorrow": true,
 
-	"than": true, "also": true, "too": true, "both": true, "either": true, "neither": true,
-	"other": true, "another": true, "such": true, "same": true, "like": true, "as": true,
+		"not": true,
 
-	"because": true, "although": true, "if": true, "unless": true, "while": true,
-	"whether": true, "until": true, "since": true, "however": true, "therefore": true,
-}
+		"than": true, "also": true, "too": true, "both": true, "either": true, "neither": true,
+		"other": true, "another": true, "such": true, "same": true, "like": true, "as": true,
 
-// Provider provides English stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+		"because": true, "although": true, "if": true, "unless": true, "while": true,
+		"whether": true, "until": true, "since": true, "however": true, "therefore": true,
+	}
+)
+
+// Provider provides English stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the English stop words.
@@ -103,15 +108,17 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new English stop words provider instance.
 //
-// Use this with linguistics_domain.RegisterStopWordsProviderFactory for
-// explicit registration.
+// Use this with linguistics_domain.RegisterStopWordsProviderFactory for explicit
+// registration.
 //
-// Returns linguistics_domain.StopWordsProviderPort which provides English stop
-// word filtering.
+// Returns linguistics_domain.StopWordsProviderPort which provides English stop word
+// filtering.
 // Returns error when the provider cannot be created.
 func Factory() (linguistics_domain.StopWordsProviderPort, error) {
 	return New()

@@ -26,12 +26,12 @@ import (
 	"piko.sh/piko/internal/esbuild/logger"
 )
 
-// extractClientScriptExports parses the TypeScript or JavaScript client
-// script block and returns the names of exported functions. This is used for
-// LSP completion suggestions when the user types p-on:click="".
+// extractClientScriptExports parses the TypeScript or JavaScript client script block and
+// returns the names of exported functions. This is used for LSP completion suggestions
+// when the user types p-on:click="".
 //
-// Returns []string which contains the exported function names, or nil if
-// parsing fails or no client script exists.
+// Returns []string which contains the exported function names, or nil if parsing fails or
+// no client script exists.
 func (d *document) extractClientScriptExports() []string {
 	tree, ok := d.parseClientScript()
 	if !ok {
@@ -41,8 +41,8 @@ func (d *document) extractClientScriptExports() []string {
 	return extractExportsFromAST(tree)
 }
 
-// parseClientScript parses the client script block and returns the resulting
-// AST. This is shared between export extraction and function extraction.
+// parseClientScript parses the client script block and returns the resulting AST. This is
+// shared between export extraction and function extraction.
 //
 // Returns *js_ast.AST which is the parsed AST, or nil if parsing fails.
 // Returns bool which indicates whether the parsing succeeded.
@@ -91,12 +91,12 @@ type clientScriptFunction struct {
 	Exported bool
 }
 
-// extractClientScriptFunctions parses the client script block and returns all
-// top-level function names, both exported and non-exported. This is used for
-// event handler completion in templates.
+// extractClientScriptFunctions parses the client script block and returns all top-level
+// function names, both exported and non-exported. This is used for event handler
+// completion in templates.
 //
-// Returns []clientScriptFunction which contains the function names, or nil if
-// parsing fails or no client script exists.
+// Returns []clientScriptFunction which contains the function names, or nil if parsing
+// fails or no client script exists.
 func (d *document) extractClientScriptFunctions() []clientScriptFunction {
 	tree, ok := d.parseClientScript()
 	if !ok {
@@ -147,8 +147,8 @@ func extractExportsFromAST(tree *js_ast.AST) []string {
 // Takes statement (js_ast.Stmt) which is the JavaScript AST statement to check.
 // Takes symbols ([]ast.Symbol) which provides symbol data for lookups.
 //
-// Returns []string which contains the extracted export names, or nil if the
-// statement is not an export.
+// Returns []string which contains the extracted export names, or nil if the statement is
+// not an export.
 func extractExportNamesFromStmt(statement js_ast.Stmt, symbols []ast.Symbol) []string {
 	switch s := statement.Data.(type) {
 	case *js_ast.SFunction:
@@ -169,8 +169,8 @@ func extractExportNamesFromStmt(statement js_ast.Stmt, symbols []ast.Symbol) []s
 // Takes s (*js_ast.SFunction) which is the function statement to check.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 //
-// Returns []string which contains the function name, or nil if the function
-// is not exported or has no name.
+// Returns []string which contains the function name, or nil if the function is not
+// exported or has no name.
 func extractExportedFunctionName(s *js_ast.SFunction, symbols []ast.Symbol) []string {
 	if !s.IsExport || s.Fn.Name == nil {
 		return nil
@@ -182,8 +182,8 @@ func extractExportedFunctionName(s *js_ast.SFunction, symbols []ast.Symbol) []st
 	return []string{name}
 }
 
-// extractExportClauseNames gets all names from an export clause
-// (e.g. export { foo, bar }).
+// extractExportClauseNames gets all names from an export clause (e.g. export { foo, bar
+// }).
 //
 // Takes s (*js_ast.SExportClause) which is the export clause to process.
 //
@@ -203,8 +203,8 @@ func extractExportClauseNames(s *js_ast.SExportClause) []string {
 // Takes s (*js_ast.SExportDefault) which is the default export statement.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 //
-// Returns []string which contains the function name, or nil if the export is
-// not a named function.
+// Returns []string which contains the function name, or nil if the export is not a named
+// function.
 func extractDefaultExportName(s *js_ast.SExportDefault, symbols []ast.Symbol) []string {
 	fnStmt, ok := s.Value.Data.(*js_ast.SFunction)
 	if !ok || fnStmt.Fn.Name == nil {
@@ -217,8 +217,8 @@ func extractDefaultExportName(s *js_ast.SExportDefault, symbols []ast.Symbol) []
 	return []string{name}
 }
 
-// extractLocalExportNames extracts names from exported local declarations
-// (export const foo = ...).
+// extractLocalExportNames extracts names from exported local declarations (export const
+// foo = ...).
 //
 // Takes s (*js_ast.SLocal) which is the local declaration statement to check.
 // Takes symbols ([]ast.Symbol) which provides symbol data for bindings.
@@ -238,8 +238,8 @@ func extractLocalExportNames(s *js_ast.SLocal, symbols []ast.Symbol) []string {
 	return names
 }
 
-// extractAllFunctionsFromAST walks the AST and collects all top-level function
-// names, both exported and non-exported.
+// extractAllFunctionsFromAST walks the AST and collects all top-level function names,
+// both exported and non-exported.
 //
 // Takes tree (*js_ast.AST) which is the parsed JavaScript AST to walk.
 //
@@ -323,8 +323,8 @@ func extractFunctionNamesFromStmt(statement js_ast.Stmt, symbols []ast.Symbol) [
 // Takes ref (ast.Ref) which identifies the symbol to look up.
 // Takes symbols ([]ast.Symbol) which contains the list of known symbols.
 //
-// Returns string which is the original name, or empty if the reference index
-// is out of range.
+// Returns string which is the original name, or empty if the reference index is out of
+// range.
 func getSymbolName(ref ast.Ref, symbols []ast.Symbol) string {
 	if int(ref.InnerIndex) < len(symbols) {
 		return symbols[ref.InnerIndex].OriginalName
@@ -332,15 +332,12 @@ func getSymbolName(ref ast.Ref, symbols []ast.Symbol) string {
 	return ""
 }
 
-// extractBindingName gets the name from a binding pattern when it is a simple
-// identifier.
+// extractBindingName gets the name from a binding pattern when it is a simple identifier.
 //
-// Takes binding (js_ast.Binding) which is the binding pattern to extract the
-// name from.
+// Takes binding (js_ast.Binding) which is the binding pattern to extract the name from.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 //
-// Returns string which is the name, or empty if the binding is not a simple
-// identifier.
+// Returns string which is the name, or empty if the binding is not a simple identifier.
 func extractBindingName(binding js_ast.Binding, symbols []ast.Symbol) string {
 	if id, ok := binding.Data.(*js_ast.BIdentifier); ok {
 		return getSymbolName(id.Ref, symbols)

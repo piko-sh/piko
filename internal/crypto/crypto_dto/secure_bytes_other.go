@@ -40,8 +40,8 @@ type secureBytesCleanupData struct {
 	size int
 }
 
-// platformClose performs cleanup by zeroing memory. On this platform
-// mmap and mlock are not available, so memory protection is best-effort.
+// platformClose performs cleanup by zeroing memory. On this platform mmap and mlock are
+// not available, so memory protection is best-effort.
 //
 // Returns error which is always nil on this platform.
 func (secureBytes *SecureBytes) platformClose() error {
@@ -51,9 +51,9 @@ func (secureBytes *SecureBytes) platformClose() error {
 
 // NewSecureBytes creates a new SecureBytes instance using regular Go memory.
 //
-// This platform does not support mmap or mlock, so the memory is not
-// protected against swapping. Use a supported platform for production
-// deployments that handle sensitive data.
+// This platform does not support mmap or mlock, so the memory is not protected against
+// swapping. Use a supported platform for production deployments that handle sensitive
+// data.
 //
 // Takes size (int) which specifies the number of bytes to allocate.
 // Takes opts (...Option) which provides optional configuration settings.
@@ -95,8 +95,7 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 // Returns *SecureBytes which contains a copy of the source data.
 // Returns error when the source slice is empty or allocation fails.
 //
-// Safe for concurrent use. The copy into the secure buffer is protected by
-// a mutex.
+// Safe for concurrent use. The copy into the secure buffer is protected by a mutex.
 func NewSecureBytesFromSlice(source []byte, opts ...Option) (*SecureBytes, error) {
 	if len(source) == 0 {
 		return nil, fmt.Errorf("%w: source slice is empty", errSecureBytesInvalidSize)
@@ -114,8 +113,7 @@ func NewSecureBytesFromSlice(source []byte, opts ...Option) (*SecureBytes, error
 	return secureBytes, nil
 }
 
-// secureBytesCleanup is called by the runtime when a SecureBytes becomes
-// unreachable.
+// secureBytesCleanup is called by the runtime when a SecureBytes becomes unreachable.
 //
 // Takes argument (*secureBytesCleanupData) which contains the data to clear.
 func secureBytesCleanup(argument *secureBytesCleanupData) {

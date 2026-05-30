@@ -24,8 +24,7 @@ import (
 
 // LinkingResult holds the output of linking a template with its partials.
 type LinkingResult struct {
-	// LinkedAST is the flattened template AST with partials inlined
-	// and types resolved.
+	// LinkedAST is the flattened template AST with partials inlined and types resolved.
 	LinkedAST *ast_domain.TemplateAST
 
 	// VirtualModule is the Go module structure built during the linking step.

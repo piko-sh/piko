@@ -23,27 +23,16 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-// Error is an error that carries a user-safe message separate from
-// its internal cause.
+// Error is an error that carries a user-safe message separate from its internal
+// cause.
 //
-// In production, only SafeMessage() reaches the user; the full error
-// detail is logged server-side. In development mode (dev or dev-i),
-// the full error string is shown for easier debugging.
+// In production, only SafeMessage() reaches the user; the full error detail is
+// logged server-side. In development mode (dev or dev-i), the full error string is
+// shown for easier debugging.
 //
-// Any error in the chain can implement Error; the error boundary will discover
-// it via errors.As. Existing sentinels and errors.Is chains are preserved
-// through Unwrap().
-//
-// Example:
-//
-//	func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
-//	    user, err := loadUser(r.Context(), id)
-//	    if err != nil {
-//	        return Response{}, piko.Metadata{},
-//	            piko.NewError("could not load user profile", err)
-//	    }
-//	    return Response{User: user}, piko.Metadata{}, nil
-//	}
+// Any error in the chain can implement Error; the error boundary will discover it
+// via errors.As. Existing sentinels and errors.Is chains are preserved through
+// Unwrap().
 type Error = safeerror.Error
 
 var (
@@ -70,32 +59,16 @@ var (
 )
 
 // IsDevelopmentMode reports whether the current request is being
-// served in development mode (dev or dev-i).
+// served under the dev or dev-i runtime modes.
 //
 // Use this in error page Render functions to decide whether to show
 // internal error details. Returns false when r is nil or the request
-// context does not carry development mode information.
+// context does not carry runtime mode information.
 //
 // Takes r (*RequestData) which provides the request context to check.
 //
-// Returns bool which is true when the request is being served
-// in development mode.
-//
-// Example:
-//
-//	func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
-//	    errCtx := piko.GetErrorContext(r)
-//	    if errCtx == nil {
-//	        return Response{Message: "Unknown error"}, piko.Metadata{}, nil
-//	    }
-//
-//	    message := errCtx.Message
-//	    if piko.IsDevelopmentMode(r) && errCtx.InternalMessage != "" {
-//	        message = errCtx.InternalMessage
-//	    }
-//
-//	    return Response{Code: errCtx.StatusCode, Message: message}, piko.Metadata{}, nil
-//	}
+// Returns bool which is true when the request is being served under
+// the dev or dev-i runtime modes.
 func IsDevelopmentMode(r *RequestData) bool {
 	if r == nil {
 		return false

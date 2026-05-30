@@ -42,16 +42,16 @@ type secureBytesCleanupData struct {
 
 // platformClose performs WASM-specific cleanup by zeroing memory.
 //
-// Returns error when the cleanup fails, though currently this always returns
-// nil as Go's garbage collector handles deallocation.
+// Returns error when the cleanup fails, though currently this always returns nil as Go's
+// garbage collector handles deallocation.
 func (secureBytes *SecureBytes) platformClose() error {
 	zeroMemory(secureBytes.data)
 	return nil
 }
 
-// NewSecureBytes creates a new SecureBytes instance using regular Go memory.
-// WASM does not support mmap/mlock, so this is less secure than native
-// platforms but functional for WASM environments.
+// NewSecureBytes creates a new SecureBytes instance using regular Go memory. WASM does
+// not support mmap/mlock, so this is less secure than native platforms but functional for
+// WASM environments.
 //
 // Takes size (int) which specifies the number of bytes to allocate.
 // Takes opts (...Option) which provides optional configuration settings.
@@ -91,8 +91,7 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 // Takes opts (...Option) which configures the secure bytes behaviour.
 //
 // Returns *SecureBytes which contains a protected copy of the source data.
-// Returns error when the source slice is empty or secure memory allocation
-// fails.
+// Returns error when the source slice is empty or secure memory allocation fails.
 //
 // Safe for concurrent use by multiple goroutines.
 func NewSecureBytesFromSlice(source []byte, opts ...Option) (*SecureBytes, error) {
@@ -112,8 +111,7 @@ func NewSecureBytesFromSlice(source []byte, opts ...Option) (*SecureBytes, error
 	return secureBytes, nil
 }
 
-// secureBytesCleanup is called by the runtime when a SecureBytes becomes
-// unreachable.
+// secureBytesCleanup is called by the runtime when a SecureBytes becomes unreachable.
 //
 // Takes argument (*secureBytesCleanupData) which contains the data to clear.
 func secureBytesCleanup(argument *secureBytesCleanupData) {

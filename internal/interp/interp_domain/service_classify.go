@@ -18,10 +18,12 @@
 
 package interp_domain
 
-import "strings"
+import (
+	"strings"
+)
 
-// classifiedLines holds source lines separated into imports,
-// declarations, and executable statements for mixed-mode evaluation.
+// classifiedLines holds source lines separated into imports, declarations, and executable
+// statements for mixed-mode evaluation.
 type classifiedLines struct {
 	// imports holds import declaration lines.
 	imports []string
@@ -33,8 +35,8 @@ type classifiedLines struct {
 	statements []string
 }
 
-// classifyLines separates source lines into imports, declarations,
-// and executable statements.
+// classifyLines separates source lines into imports, declarations, and executable
+// statements.
 //
 // Takes lines ([]string) which are the source lines to classify.
 //
@@ -71,8 +73,8 @@ func isImportLine(trimmed string) bool {
 	return strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "import\t")
 }
 
-// isDeclarationLine reports whether a trimmed line starts a
-// top-level declaration (func, type, var, const).
+// isDeclarationLine reports whether a trimmed line starts a top-level declaration (func,
+// type, var, const).
 //
 // Takes trimmed (string) which is the left-trimmed source line.
 //
@@ -85,19 +87,19 @@ func isDeclarationLine(trimmed string) bool {
 		strings.HasPrefix(trimmed, "const ")
 }
 
-// collectImportLines collects a single or grouped import starting at
-// index i, appending lines to dst.
+// collectImportLines collects a single or grouped import starting at index i, appending
+// lines to destination.
 //
 // Takes lines ([]string) which are all source lines.
 // Takes i (int) which is the starting index of the import.
-// Takes dst (*[]string) which is the destination slice for
-// collected import lines.
+// Takes destination (*[]string) which is the destination slice for collected import
+// lines.
 //
 // Returns int which is the new index after the collected import lines.
-func collectImportLines(lines []string, i int, dst *[]string) int {
+func collectImportLines(lines []string, i int, destination *[]string) int {
 	if strings.Contains(lines[i], "(") {
 		for i < len(lines) {
-			*dst = append(*dst, lines[i])
+			*destination = append(*destination, lines[i])
 			if strings.Contains(lines[i], ")") {
 				i++
 				break
@@ -106,20 +108,20 @@ func collectImportLines(lines []string, i int, dst *[]string) int {
 		}
 		return i
 	}
-	*dst = append(*dst, lines[i])
+	*destination = append(*destination, lines[i])
 	return i + 1
 }
 
-// collectDeclarationLines collects a brace-delimited declaration
-// starting at index i, appending lines to dst.
+// collectDeclarationLines collects a brace-delimited declaration starting at index i,
+// appending lines to destination.
 //
 // Takes lines ([]string) which are all source lines.
 // Takes i (int) which is the starting index of the declaration.
-// Takes dst (*[]string) which is the destination slice for
-// collected declaration lines.
+// Takes destination (*[]string) which is the destination slice for collected declaration
+// lines.
 //
 // Returns int which is the new index after the collected lines.
-func collectDeclarationLines(lines []string, i int, dst *[]string) int {
+func collectDeclarationLines(lines []string, i int, destination *[]string) int {
 	depth := 0
 	start := i
 	for i < len(lines) {
@@ -136,33 +138,33 @@ func collectDeclarationLines(lines []string, i int, dst *[]string) int {
 			break
 		}
 	}
-	*dst = append(*dst, lines[start:i]...)
+	*destination = append(*destination, lines[start:i]...)
 	return i
 }
 
-// buildMixedSource reconstructs a Go source file from classified lines,
-// wrapping statements in a synthetic _eval_ function.
+// buildMixedSource reconstructs a Go source file from classified lines, wrapping
+// statements in a synthetic _eval_ function.
 //
-// Takes cl (classifiedLines) which holds the classified import,
-// declaration, and statement lines.
+// Takes cl (classifiedLines) which holds the classified import, declaration, and
+// statement lines.
 //
 // Returns string which is the reconstructed Go source file.
 func buildMixedSource(cl classifiedLines) string {
-	var src strings.Builder
-	src.WriteString("package main\n")
+	var source strings.Builder
+	source.WriteString("package main\n")
 	for _, l := range cl.imports {
-		src.WriteString(l)
-		src.WriteString(newlineSep)
+		source.WriteString(l)
+		source.WriteString(newlineSep)
 	}
 	for _, l := range cl.decls {
-		src.WriteString(l)
-		src.WriteString(newlineSep)
+		source.WriteString(l)
+		source.WriteString(newlineSep)
 	}
-	src.WriteString("func _eval_() {\n")
+	source.WriteString("func _eval_() {\n")
 	for _, l := range cl.statements {
-		src.WriteString(l)
-		src.WriteString(newlineSep)
+		source.WriteString(l)
+		source.WriteString(newlineSep)
 	}
-	src.WriteString("}\n")
-	return src.String()
+	source.WriteString("}\n")
+	return source.String()
 }

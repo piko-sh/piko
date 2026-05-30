@@ -23,11 +23,13 @@ import (
 	"io"
 )
 
-var _ io.Reader = (*reader)(nil)
+var (
+	_ io.Reader = (*reader)(nil)
+)
 
-// reader wraps an io.Reader and checks the context before each read.
-// When the context is cancelled, Read returns the context error
-// immediately, allowing io.Copy loops to exit promptly.
+// reader wraps an io.Reader and checks the context before each read. When the context is
+// cancelled, Read returns the context error immediately, allowing io.Copy loops to exit
+// promptly.
 type reader struct {
 	// ctx is the context checked before each read call.
 	ctx context.Context
@@ -49,9 +51,9 @@ func (c *reader) Read(p []byte) (int, error) {
 	return c.r.Read(p)
 }
 
-// NewReader returns an [io.Reader] that checks ctx before each Read
-// call. When ctx is cancelled or its deadline expires, Read returns
-// the context error instead of delegating to r.
+// NewReader returns an io.Reader that checks ctx before each Read call. When ctx is
+// cancelled or its deadline expires, Read returns the context error instead of delegating
+// to r.
 //
 // Takes r (io.Reader) which is the underlying reader to wrap.
 //

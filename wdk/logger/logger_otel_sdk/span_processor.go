@@ -26,10 +26,12 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
-var _ sdktrace.SpanProcessor = (*SpanProcessor)(nil)
+var (
+	_ sdktrace.SpanProcessor = (*SpanProcessor)(nil)
+)
 
-// SpanProcessor stores completed spans in a TelemetryStore.
-// It implements sdktrace.SpanProcessor.
+// SpanProcessor stores completed spans in a TelemetryStore. It implements
+// sdktrace.SpanProcessor.
 type SpanProcessor struct {
 	// store records telemetry spans for later retrieval.
 	store *monitoring_domain.TelemetryStore
@@ -37,8 +39,7 @@ type SpanProcessor struct {
 
 // NewSpanProcessor creates a new span processor that writes to the given store.
 //
-// Takes store (*monitoring_domain.TelemetryStore) which receives the processed
-// span data.
+// Takes store (*monitoring_domain.TelemetryStore) which receives the processed span data.
 //
 // Returns *SpanProcessor which is ready to process spans.
 func NewSpanProcessor(store *monitoring_domain.TelemetryStore) *SpanProcessor {
@@ -51,8 +52,7 @@ func (*SpanProcessor) OnStart(_ context.Context, _ sdktrace.ReadWriteSpan) {
 
 // OnEnd is called when a span ends.
 //
-// Takes s (sdktrace.ReadOnlySpan) which provides the completed span data to
-// process.
+// Takes s (sdktrace.ReadOnlySpan) which provides the completed span data to process.
 func (p *SpanProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 	var parentSpanID string
 	if s.Parent().HasSpanID() {

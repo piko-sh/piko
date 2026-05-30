@@ -18,7 +18,8 @@
 
 package inspector_domain
 
-// This file contains the core business logic and helper utilities for the Go source code querier.
+// This file contains the core business logic and helper utilities for the Go source code
+// querier.
 
 import (
 	"fmt"
@@ -33,11 +34,11 @@ import (
 
 // GetAllPackages returns all packages from the TypeData.
 //
-// This is used for package-wide searches when the caller needs to iterate
-// over all known packages.
+// This is used for package-wide searches when the caller needs to iterate over all known
+// packages.
 //
-// Returns map[string]*inspector_dto.Package which contains all packages keyed
-// by their import path, or an empty map if no packages are available.
+// Returns map[string]*inspector_dto.Package which contains all packages keyed by their
+// import path, or an empty map if no packages are available.
 func (ti *TypeQuerier) GetAllPackages() map[string]*inspector_dto.Package {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
 		return make(map[string]*inspector_dto.Package)
@@ -45,20 +46,16 @@ func (ti *TypeQuerier) GetAllPackages() map[string]*inspector_dto.Package {
 	return ti.typeData.Packages
 }
 
-// FindRenderReturnType finds the return type of a component's Render
-// function.
+// FindRenderReturnType finds the return type of a component's Render function.
 //
-// It requires both the package path and the specific file path of the
-// component to correctly resolve the function within the proper file-scoped
-// context.
+// It requires both the package path and the specific file path of the component to
+// correctly resolve the function within the proper file-scoped context.
 //
-// Takes componentPackagePath (string) which specifies the package path of the
-// component.
-// Takes componentFilePath (string) which specifies the file path of the
-// component.
+// Takes componentPackagePath (string) which specifies the package path of the component.
+// Takes componentFilePath (string) which specifies the file path of the component.
 //
-// Returns goast.Expr which is the return type expression, or nil if the
-// querier is uninitialised or the component cannot be found.
+// Returns goast.Expr which is the return type expression, or nil if the querier is
+// uninitialised or the component cannot be found.
 func (ti *TypeQuerier) FindRenderReturnType(componentPackagePath, componentFilePath string) goast.Expr {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
 		return nil
@@ -78,17 +75,15 @@ func (ti *TypeQuerier) FindRenderReturnType(componentPackagePath, componentFileP
 	)
 }
 
-// GetImportsForFile returns a map of all imports for a specific file.
-// The map contains alias to full package path mappings, plus identity mappings
-// for convenience lookups.
+// GetImportsForFile returns a map of all imports for a specific file. The map contains
+// alias to full package path mappings, plus identity mappings for convenience lookups.
 //
-// Takes importerPackagePath (string) which identifies the package containing the
-// file.
+// Takes importerPackagePath (string) which identifies the package containing the file.
 // Takes importerFilePath (string) which specifies the file to get imports for.
 //
-// Returns map[string]string which maps import aliases and paths to their full
-// package paths. Returns an empty map when the file is not found or state is
-// uninitialised.
+// Returns map[string]string which maps import aliases and paths to their full package
+// paths.
+// Returns an empty map when the file is not found or state is uninitialised.
 func (ti *TypeQuerier) GetImportsForFile(importerPackagePath, importerFilePath string) map[string]string {
 	if ti.typeData == nil || ti.typeData.Packages == nil || importerFilePath == "" {
 		return make(map[string]string)
@@ -139,16 +134,16 @@ func (ti *TypeQuerier) FindPropsType(filePath string) goast.Expr {
 	return propsType
 }
 
-// GetAllFieldsAndMethods returns a sorted list of all exported field and
-// method names for a given type.
+// GetAllFieldsAndMethods returns a sorted list of all exported field and method names for
+// a given type.
 //
 // Takes baseType (goast.Expr) which is the type expression to analyse.
 // Takes importerPackagePath (string) which is the package path for resolution.
-// Takes importerFilePath (string) which provides file-scoped context to
-// correctly resolve the base type.
+// Takes importerFilePath (string) which provides file-scoped context to correctly resolve
+// the base type.
 //
-// Returns []string which contains the sorted field and method names, or nil
-// if the type cannot be resolved.
+// Returns []string which contains the sorted field and method names, or nil if the type
+// cannot be resolved.
 func (ti *TypeQuerier) GetAllFieldsAndMethods(baseType goast.Expr, importerPackagePath, importerFilePath string) []string {
 	if baseType == nil {
 		return nil
@@ -180,16 +175,15 @@ func (ti *TypeQuerier) GetAllFieldsAndMethods(baseType goast.Expr, importerPacka
 	return result
 }
 
-// FindFileWithImportAlias searches through all files in a package to find which
-// file contains the specified import alias that maps to the given canonical
-// package path. Determines the correct file context for resolving aliased types.
+// FindFileWithImportAlias searches through all files in a package to find which file
+// contains the specified import alias that maps to the given canonical package path.
+// Determines the correct file context for resolving aliased types.
 //
 // Takes packagePath (string) which specifies the package to search within.
 // Takes alias (string) which is the import alias to find.
 // Takes canonicalPath (string) which is the expected target package path.
 //
-// Returns string which is the file path containing the alias, or empty if
-// not found.
+// Returns string which is the file path containing the alias, or empty if not found.
 func (ti *TypeQuerier) FindFileWithImportAlias(packagePath, alias, canonicalPath string) string {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
 		return ""
@@ -209,9 +203,8 @@ func (ti *TypeQuerier) FindFileWithImportAlias(packagePath, alias, canonicalPath
 	return ""
 }
 
-// FindPackagePathForTypeDTO locates the package path that owns the provided
-// Type DTO. The PackagePath is stored directly on the Type DTO for O(1)
-// lookup.
+// FindPackagePathForTypeDTO locates the package path that owns the provided Type DTO. The
+// PackagePath is stored directly on the Type DTO for O(1) lookup.
 //
 // Takes target (*inspector_dto.Type) which is the type to look up.
 //
@@ -223,8 +216,7 @@ func (*TypeQuerier) FindPackagePathForTypeDTO(target *inspector_dto.Type) string
 	return target.PackagePath
 }
 
-// getNamedTypeByPackageAndName looks up a Type DTO by its package path and type
-// name.
+// getNamedTypeByPackageAndName looks up a Type DTO by its package path and type name.
 //
 // Takes packagePath (string) which specifies the import path of the package.
 // Takes typeName (string) which specifies the name of the type to find.
@@ -242,8 +234,8 @@ func (ti *TypeQuerier) getNamedTypeByPackageAndName(packagePath, typeName string
 	return nil
 }
 
-// Debug returns a formatted string slice detailing the current state of the
-// TypeQuerier. It delegates the formatting of each section to helpers.
+// Debug returns a formatted string slice detailing the current state of the TypeQuerier.
+// It delegates the formatting of each section to helpers.
 //
 // Takes importerPackagePath (string) which specifies the package path to focus on.
 // Takes importerFilePath (string) which specifies the file path to focus on.
@@ -258,8 +250,7 @@ func (ti *TypeQuerier) Debug(importerPackagePath, importerFilePath string) []str
 	return lines
 }
 
-// appendGlobalContext adds details about all loaded packages to the debug
-// output.
+// appendGlobalContext adds details about all loaded packages to the debug output.
 //
 // Takes lines ([]string) which is the existing output to add to.
 //
@@ -286,11 +277,9 @@ func (ti *TypeQuerier) appendGlobalContext(lines []string) []string {
 //
 // Takes lines ([]string) which is the existing context lines to append to.
 // Takes importerPackagePath (string) which specifies the package path to focus on.
-// Takes importerFilePath (string) which specifies the file path for scoped
-// imports.
+// Takes importerFilePath (string) which specifies the file path for scoped imports.
 //
-// Returns []string which contains the original lines with focused context
-// appended.
+// Returns []string which contains the original lines with focused context appended.
 func (ti *TypeQuerier) appendFocusedContext(lines []string, importerPackagePath, importerFilePath string) []string {
 	if importerPackagePath == "" {
 		return lines
@@ -313,9 +302,9 @@ func (ti *TypeQuerier) appendFocusedContext(lines []string, importerPackagePath,
 	return lines
 }
 
-// PackagePathForFile returns the package import path for a given file path.
-// This is the public entry point for callers who need to determine the correct
-// package context after resolving through type aliases.
+// PackagePathForFile returns the package import path for a given file path. This is the
+// public entry point for callers who need to determine the correct package context after
+// resolving through type aliases.
 //
 // Takes filePath (string) which specifies the file to look up.
 //
@@ -324,14 +313,14 @@ func (ti *TypeQuerier) PackagePathForFile(filePath string) string {
 	return ti.lookupPackagePathForFile(filePath)
 }
 
-// GetFilesForPackage returns all files that belong to the given package path.
-// Use it to find a valid file context when you need to interpret type
-// expressions from a specific package.
+// GetFilesForPackage returns all files that belong to the given package path. Use it to
+// find a valid file context when you need to interpret type expressions from a specific
+// package.
 //
 // Takes packagePath (string) which specifies the package import path to look up.
 //
-// Returns []string which contains the file paths belonging to the package, or
-// nil if the package is not found.
+// Returns []string which contains the file paths belonging to the package, or nil if the
+// package is not found.
 func (ti *TypeQuerier) GetFilesForPackage(packagePath string) []string {
 	if ti == nil || ti.typeData == nil || ti.typeData.Packages == nil {
 		return nil
@@ -349,12 +338,11 @@ func (ti *TypeQuerier) GetFilesForPackage(packagePath string) []string {
 	return files
 }
 
-// lookupPackagePathForFile returns the package import path that owns the given
-// file path.
+// lookupPackagePathForFile returns the package import path that owns the given file path.
 //
 // It first attempts to find a matching package by consulting the pre-computed
-// file-to-package map (O(1)). If not found, it falls back to deriving the path
-// from the querier's BaseDir and ModuleName.
+// file-to-package map (O(1)). If not found, it falls back to deriving the path from the
+// querier's BaseDir and ModuleName.
 //
 // Takes filePath (string) which is the absolute path to a Go source file.
 //
@@ -384,12 +372,12 @@ func (ti *TypeQuerier) lookupPackagePathForFile(filePath string) string {
 	return ""
 }
 
-// DebugDTO returns a structured dump of the entire TypeData artefact for
-// inspection. It discovers all packages, sorts them for deterministic output,
-// and calls DebugPackageDTO for each one.
+// DebugDTO returns a structured dump of the entire TypeData artefact for inspection. It
+// discovers all packages, sorts them for deterministic output, and calls DebugPackageDTO
+// for each one.
 //
-// Returns map[string][]string which maps each canonical package path to its
-// detailed string dump.
+// Returns map[string][]string which maps each canonical package path to its detailed
+// string dump.
 func (ti *TypeQuerier) DebugDTO() map[string][]string {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
 		return map[string][]string{
@@ -412,18 +400,17 @@ func (ti *TypeQuerier) DebugDTO() map[string][]string {
 	return allDumps
 }
 
-// DebugPackageDTO returns a detailed string representation of a package's
-// data as stored in the TypeData cache.
+// DebugPackageDTO returns a detailed string representation of a package's data as stored
+// in the TypeData cache.
 //
-// Acts as a debugging tool for verifying the output of the serialisation stage.
-// It formats every piece of information, including types, fields, methods,
-// functions, and file-scoped import maps.
+// Acts as a debugging tool for verifying the output of the serialisation stage. It
+// formats every piece of information, including types, fields, methods, functions, and
+// file-scoped import maps.
 //
-// Takes packagePath (string) which specifies the import path of the package to
-// inspect.
+// Takes packagePath (string) which specifies the import path of the package to inspect.
 //
-// Returns []string which contains formatted debug lines, or an error message
-// if the package is not found.
+// Returns []string which contains formatted debug lines, or an error message if the
+// package is not found.
 func (ti *TypeQuerier) DebugPackageDTO(packagePath string) []string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("--- DEBUG DTO for package: %s ---", packagePath))
@@ -452,19 +439,15 @@ func (ti *TypeQuerier) DebugPackageDTO(packagePath string) []string {
 	return lines
 }
 
-// DeconstructTypeExpr extracts the core parts from a type expression
-// AST.
+// DeconstructTypeExpr extracts the core parts from a type expression AST.
 //
-// It removes wrapper types such as pointers, arrays, channels, and
-// generics to find the base type. If the expression is an unqualified
-// identifier, pkgAlias will be empty.
+// It removes wrapper types such as pointers, arrays, channels, and generics to find the
+// base type. If the expression is an unqualified identifier, pkgAlias will be empty.
 //
-// Takes expression (goast.Expr) which is the type expression to
-// deconstruct.
+// Takes expression (goast.Expr) which is the type expression to deconstruct.
 //
 // Returns typeName (string) which is the base type name.
-// Returns pkgAlias (string) which is the package alias, or empty if
-// local.
+// Returns pkgAlias (string) which is the package alias, or empty if local.
 // Returns ok (bool) which indicates whether deconstruction succeeded.
 func DeconstructTypeExpr(expression goast.Expr) (typeName, pkgAlias string, ok bool) {
 	for {
@@ -504,8 +487,8 @@ func DeconstructTypeExpr(expression goast.Expr) (typeName, pkgAlias string, ok b
 	}
 }
 
-// ToExportedName converts a string to its exported Go form by making the first
-// letter upper case (e.g., "name" becomes "Name").
+// ToExportedName converts a string to its exported Go form by making the first letter
+// upper case (e.g., "name" becomes "Name").
 //
 // Takes s (string) which is the name to convert.
 //
@@ -573,12 +556,10 @@ func appendFileScopedImports(lines []string, pkgData *inspector_dto.Package, imp
 	return lines
 }
 
-// appendDeclarations adds cached type and function declarations to the debug
-// output.
+// appendDeclarations adds cached type and function declarations to the debug output.
 //
 // Takes lines ([]string) which holds the existing debug output lines.
-// Takes pkgData (*inspector_dto.Package) which provides the cached
-// declarations.
+// Takes pkgData (*inspector_dto.Package) which provides the cached declarations.
 //
 // Returns []string which contains the lines with declarations appended.
 func appendDeclarations(lines []string, pkgData *inspector_dto.Package) []string {
@@ -615,11 +596,10 @@ func appendDeclarations(lines []string, pkgData *inspector_dto.Package) []string
 	return lines
 }
 
-// appendLiveASTImports adds import details from the current live AST to the
-// debug output.
+// appendLiveASTImports adds import details from the current live AST to the debug output.
 //
-// Takes localPackageFiles (map[string]*goast.File) which maps file paths to
-// their parsed AST data.
+// Takes localPackageFiles (map[string]*goast.File) which maps file paths to their parsed
+// AST data.
 // Takes lines ([]string) which is the current debug output to add to.
 // Takes importerFilePath (string) which names the file to get imports from.
 //

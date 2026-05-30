@@ -30,10 +30,12 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-var _ tui_domain.SystemProvider = (*SystemProvider)(nil)
+var (
+	_ tui_domain.SystemProvider = (*SystemProvider)(nil)
+)
 
-// SystemProvider provides system statistics through a gRPC connection.
-// It implements tui_domain.SystemProvider.
+// SystemProvider provides system statistics through a gRPC connection. It implements
+// tui_domain.SystemProvider.
 type SystemProvider struct {
 	// conn holds the gRPC connection with health and metrics clients.
 	conn *Connection
@@ -99,8 +101,8 @@ func (p *SystemProvider) RefreshInterval() time.Duration {
 //
 // Returns error when the gRPC call fails or the connection is unavailable.
 //
-// Safe for concurrent use. The method locks the internal mutex when updating
-// the cached stats.
+// Safe for concurrent use. The method locks the internal mutex when updating the cached
+// stats.
 func (p *SystemProvider) Refresh(ctx context.Context) error {
 	return refreshProvider(ctx,
 		func(ctx context.Context) (*tui_domain.SystemStats, error) {
@@ -136,14 +138,12 @@ func (p *SystemProvider) GetStats(_ context.Context) (*tui_domain.SystemStats, e
 	return p.stats, nil
 }
 
-// convertSystemStats converts a protobuf system stats response to the domain
-// model.
+// convertSystemStats converts a protobuf system stats response to the domain model.
 //
-// Takes response (*pb.GetSystemStatsResponse) which is the protobuf response to
-// convert.
+// Takes response (*pb.GetSystemStatsResponse) which is the protobuf response to convert.
 //
-// Returns *tui_domain.SystemStats which is the domain representation, or nil
-// if response is nil.
+// Returns *tui_domain.SystemStats which is the domain representation, or nil if response
+// is nil.
 func convertSystemStats(response *pb.GetSystemStatsResponse) *tui_domain.SystemStats {
 	if response == nil {
 		return nil
@@ -168,11 +168,11 @@ func convertSystemStats(response *pb.GetSystemStatsResponse) *tui_domain.SystemS
 
 // convertMemoryStats converts protobuf memory stats to domain format.
 //
-// Takes mem (*pb.MemoryInfo) which contains the memory statistics from the
-// monitoring API.
+// Takes mem (*pb.MemoryInfo) which contains the memory statistics from the monitoring
+// API.
 //
-// Returns tui_domain.SystemMemoryStats which contains the converted memory
-// statistics for the TUI layer.
+// Returns tui_domain.SystemMemoryStats which contains the converted memory statistics for
+// the TUI layer.
 func convertMemoryStats(mem *pb.MemoryInfo) tui_domain.SystemMemoryStats {
 	return tui_domain.SystemMemoryStats{
 		Alloc:        mem.GetAlloc(),
@@ -240,8 +240,7 @@ func convertRuntimeConfig(runtime *pb.RuntimeInfo) tui_domain.SystemRuntimeConfi
 //
 // Takes cache (*pb.CacheInfo) which provides the render cache statistics.
 //
-// Returns tui_domain.SystemCacheStats which contains the converted cache
-// statistics.
+// Returns tui_domain.SystemCacheStats which contains the converted cache statistics.
 func convertCacheStats(cache *pb.CacheInfo) tui_domain.SystemCacheStats {
 	if cache == nil {
 		return tui_domain.SystemCacheStats{}
@@ -256,8 +255,7 @@ func convertCacheStats(cache *pb.CacheInfo) tui_domain.SystemCacheStats {
 //
 // Takes process (*pb.ProcessInfo) which provides the protobuf process data.
 //
-// Returns tui_domain.SystemProcessInfo which contains the converted process
-// information.
+// Returns tui_domain.SystemProcessInfo which contains the converted process information.
 func convertProcessInfo(process *pb.ProcessInfo) tui_domain.SystemProcessInfo {
 	return tui_domain.SystemProcessInfo{
 		PID:         safeconv.Int32ToInt(process.GetPid()),

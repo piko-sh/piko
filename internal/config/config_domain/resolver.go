@@ -29,9 +29,9 @@ import (
 	"github.com/maypok86/otter/v2"
 )
 
-// Resolver defines how to look up values for placeholders in configuration.
-// It implements config.Resolver and can get values from sources such as
-// environment variables, files, or secret management systems.
+// Resolver defines how to look up values for placeholders in configuration. It implements
+// config.Resolver and can get values from sources such as environment variables, files,
+// or secret management systems.
 type Resolver interface {
 	// GetPrefix returns the prefix string for this rule.
 	GetPrefix() string
@@ -45,8 +45,8 @@ type Resolver interface {
 	Resolve(ctx context.Context, value string) (string, error)
 }
 
-// BatchResolver extends Resolver with batch resolution for better performance
-// when resolving many values from the same source at once.
+// BatchResolver extends Resolver with batch resolution for better performance when
+// resolving many values from the same source at once.
 type BatchResolver interface {
 	Resolver
 
@@ -59,8 +59,8 @@ type BatchResolver interface {
 	ResolveBatch(ctx context.Context, values []string) (map[string]string, error)
 }
 
-// resolutionJob represents a piece of work for a resolver.
-// Fields are ordered for memory efficiency per the fieldalignment linter.
+// resolutionJob represents a piece of work for a resolver. Fields are ordered for memory
+// efficiency per the fieldalignment linter.
 type resolutionJob struct {
 	// keyPath is the dotted path to the field, used in error messages.
 	keyPath string
@@ -113,15 +113,14 @@ var (
 		New: func() any { return new(resolutionJob) },
 	}
 
-	// resultPool reuses resolutionResult instances to reduce allocation pressure
-	// during placeholder resolution.
+	// resultPool reuses resolutionResult instances to reduce allocation pressure during
+	// placeholder resolution.
 	resultPool = sync.Pool{
 		New: func() any { return new(resolutionResult) },
 	}
 )
 
-// resolutionOperation holds the state and logic for a single placeholder
-// resolution pass.
+// resolutionOperation holds the state and logic for a single placeholder resolution pass.
 type resolutionOperation struct {
 	// groupedJobs maps provider prefixes to their resolution jobs.
 	groupedJobs map[string][]*resolutionJob
@@ -145,15 +144,14 @@ type resolutionOperation struct {
 	totalJobs int
 }
 
-// resolvePlaceholders is the main entry point for the resolver pass.
-// It handles placeholder resolution in three phases: discovery, execution,
-// and result application.
+// resolvePlaceholders is the main entry point for the resolver pass. It handles token
+// resolution in three phases: discovery, execution, and result application.
 //
-// Takes ptr (any) which points to the struct containing placeholder fields.
+// Takes ptr (any) which points to the struct containing token-bearing fields.
 // Takes ctx (*LoadContext) which provides the loading context and settings.
 //
-// Returns error when discovery fails, the context is cancelled, or any
-// resolution job fails.
+// Returns error when discovery fails, the context is cancelled, or any resolution job
+// fails.
 func (l *Loader) resolvePlaceholders(ptr any, ctx *LoadContext) error {
 	if len(l.resolverMap) == 0 {
 		return nil
@@ -228,11 +226,10 @@ func (op *resolutionOperation) discoverJobs(ptr any) error {
 	return nil
 }
 
-// executeJobs starts a goroutine for each resolver type and waits for all to
-// finish.
+// executeJobs starts a goroutine for each resolver type and waits for all to finish.
 //
-// Safe for concurrent use. Spawns one goroutine per resolver prefix, plus a
-// cleanup goroutine that closes the results channel when all work finishes.
+// Safe for concurrent use. Spawns one goroutine per resolver prefix, plus a cleanup
+// goroutine that closes the results channel when all work finishes.
 func (op *resolutionOperation) executeJobs() {
 	op.resultsChan = make(chan *resolutionResult, op.totalJobs)
 
@@ -248,8 +245,7 @@ func (op *resolutionOperation) executeJobs() {
 	}()
 }
 
-// dispatchResolver intelligently chooses between batch and single resolution
-// methods.
+// dispatchResolver intelligently chooses between batch and single resolution methods.
 //
 // Takes prefix (string) which identifies the resolver to dispatch to.
 // Takes jobs ([]*resolutionJob) which contains the jobs to be resolved.
@@ -263,8 +259,8 @@ func (op *resolutionOperation) dispatchResolver(prefix string, jobs []*resolutio
 	}
 }
 
-// applyResults reads all results from the channel, sets the struct fields,
-// and gathers any errors.
+// applyResults reads all results from the channel, sets the struct fields, and gathers
+// any errors.
 //
 // Returns error when any resolution or field setting fails.
 func (op *resolutionOperation) applyResults() error {
@@ -289,13 +285,11 @@ func (op *resolutionOperation) applyResults() error {
 	return nil
 }
 
-// runBatchResolver resolves multiple placeholder values using a
-// BatchResolver in a single batch call, deduplicating lookup keys
-// before fetching.
+// runBatchResolver resolves multiple placeholder values using a BatchResolver in a single
+// batch call, deduplicating lookup keys before fetching.
 //
-// Takes resolver (BatchResolver) which performs the batch lookup.
-// Takes jobs ([]*resolutionJob) which are the placeholder jobs to
-// resolve.
+// Takes resolver (BatchResolver) which performs the batch lookup. Takes jobs
+// ([]*resolutionJob) which are the placeholder jobs to resolve.
 func (op *resolutionOperation) runBatchResolver(resolver BatchResolver, _ string, jobs []*resolutionJob) {
 	uniqueKeys := make(map[string]struct{})
 	keysToFetch := make([]string, 0, len(jobs))
@@ -352,12 +346,11 @@ func (op *resolutionOperation) runSingleResolver(resolver Resolver, prefix strin
 	wg.Wait()
 }
 
-// resolveSingleValue resolves a single value using either direct resolution or
-// cached resolution.
+// resolveSingleValue resolves a single value using either direct resolution or cached
+// resolution.
 //
 // Takes resolver (Resolver) which performs the actual resolution.
-// Takes prefix (string) which is the resolver prefix for cache key
-// construction.
+// Takes prefix (string) which is the resolver prefix for cache key construction.
 // Takes lookupKey (string) which is the key to resolve.
 //
 // Returns string which is the resolved value.
@@ -400,8 +393,8 @@ func (op *resolutionOperation) resolveWithoutCache(resolver Resolver, lookupKey 
 // Takes lookupKey (string) which identifies the item to resolve.
 //
 // Returns string which is the resolved value from cache or resolver.
-// Returns error when the circuit breaker fails or the resolver returns an
-// unexpected type.
+// Returns error when the circuit breaker fails or the resolver returns an unexpected
+// type.
 func (op *resolutionOperation) resolveWithCache(resolver Resolver, prefix, lookupKey string) (string, error) {
 	cacheKey := prefix + lookupKey
 
@@ -443,8 +436,8 @@ func (op *resolutionOperation) sendResult(job *resolutionJob, resolvedValue stri
 	op.resultsChan <- result
 }
 
-// clearResolutionPools is a no-op provided for API consistency. sync.Pool
-// cannot be cleared since objects are lazily garbage collected, and pool
-// objects are stateless between operations as Reset is called before reuse.
+// clearResolutionPools is a no-op provided for API consistency. sync.Pool cannot be
+// cleared since objects are lazily garbage collected, and pool objects are stateless
+// between operations as Reset is called before reuse.
 func clearResolutionPools() {
 }

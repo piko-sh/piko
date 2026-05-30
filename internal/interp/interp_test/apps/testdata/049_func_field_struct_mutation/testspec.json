@@ -1,0 +1,4 @@
+{
+  "description": "Struct with func-typed field declared in fileA, populated by func in fileB, invoked through pointer receiver method in fileC",
+  "expected": "first=hi-1 second=hi-2 count=2"
+}

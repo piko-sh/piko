@@ -24,9 +24,9 @@ import (
 	"time"
 )
 
-// WatchdogProvider supplies watchdog state to the TUI. Implementations
-// wrap the gRPC inspector client; Refresh polls snapshot operations
-// concurrently and caches them so panels read synchronously.
+// WatchdogProvider supplies watchdog state to the TUI. Implementations wrap the gRPC
+// inspector client; Refresh polls snapshot operations concurrently and caches them so
+// panels read synchronously.
 type WatchdogProvider interface {
 	RefreshableProvider
 
@@ -34,14 +34,14 @@ type WatchdogProvider interface {
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	//
-	// Returns *WatchdogStatus which is the cached snapshot. Implementations
-	// that have not yet refreshed return a zero-value status with
-	// LastUpdated zero so callers can detect the stale state.
+	// Returns *WatchdogStatus which is the cached snapshot. Implementations that have not
+	// yet refreshed return a zero-value status with LastUpdated zero so callers can detect
+	// the stale state.
 	// Returns error when the underlying transport fails.
 	GetStatus(ctx context.Context) (*WatchdogStatus, error)
 
-	// ListProfiles returns the cached list of stored profile artefacts in
-	// reverse chronological order.
+	// ListProfiles returns the cached list of stored profile artefacts in reverse
+	// chronological order.
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	//
@@ -49,8 +49,8 @@ type WatchdogProvider interface {
 	// Returns error when the underlying transport fails.
 	ListProfiles(ctx context.Context) ([]WatchdogProfile, error)
 
-	// GetStartupHistory returns the cached startup-history entries in
-	// chronological order (oldest first).
+	// GetStartupHistory returns the cached startup-history entries in chronological order
+	// (oldest first).
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	//
@@ -58,40 +58,36 @@ type WatchdogProvider interface {
 	// Returns error when the underlying transport fails.
 	GetStartupHistory(ctx context.Context) ([]WatchdogStartupEntry, error)
 
-	// ListEvents queries historical events from the server's in-memory
-	// ring. This is a one-shot RPC; the streaming feed is exposed through
-	// SubscribeEvents.
+	// ListEvents queries historical events from the server's in-memory ring. This is a
+	// one-shot RPC; the streaming feed is exposed through SubscribeEvents.
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes query (WatchdogEventQuery) which describes the filter.
 	//
-	// Returns []WatchdogEvent which is the matching events in
-	// chronological order.
+	// Returns []WatchdogEvent which is the matching events in chronological order.
 	// Returns error when the underlying transport fails.
 	ListEvents(ctx context.Context, query WatchdogEventQuery) ([]WatchdogEvent, error)
 
-	// SubscribeEvents opens a streaming subscription to live events,
-	// optionally back-filling from since.
+	// SubscribeEvents opens a streaming subscription to live events, optionally back-filling
+	// from since.
 	//
-	// Takes ctx (context.Context) which controls the subscription
-	// lifetime; cancelling it closes the channel.
-	// Takes since (time.Time) which is the back-fill cutoff. Zero
-	// disables back-fill.
+	// Takes ctx (context.Context) which controls the subscription lifetime; cancelling it
+	// closes the channel.
+	// Takes since (time.Time) which is the back-fill cutoff. Zero disables back-fill.
 	//
-	// Returns <-chan WatchdogEvent which delivers events in emission
-	// order.
+	// Returns <-chan WatchdogEvent which delivers events in emission order.
 	// Returns func() which cancels the subscription.
 	// Returns error when the subscription cannot be opened.
 	SubscribeEvents(ctx context.Context, since time.Time) (<-chan WatchdogEvent, func(), error)
 
-	// DroppedEvents returns the running count of events that the
-	// underlying stream had to drop because the consumer fell behind.
+	// DroppedEvents returns the running count of events that the underlying stream had to
+	// drop because the consumer fell behind.
 	//
 	// Returns uint64 which is the cumulative drop count.
 	DroppedEvents() uint64
 
-	// PruneProfiles removes stored profiles. When profileType is empty
-	// every profile is removed.
+	// PruneProfiles removes stored profiles. When profileType is empty every profile is
+	// removed.
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes profileType (string) which selects the profile category.
@@ -100,8 +96,7 @@ type WatchdogProvider interface {
 	// Returns error when the underlying transport fails.
 	PruneProfiles(ctx context.Context, profileType string) (int, error)
 
-	// DownloadProfile streams the raw compressed bytes of a profile to
-	// the supplied writer.
+	// DownloadProfile streams the raw compressed bytes of a profile to the supplied writer.
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes filename (string) which identifies the profile.
@@ -115,19 +110,18 @@ type WatchdogProvider interface {
 	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes profileFilename (string) which is the profile filename.
 	//
-	// Returns []byte which is the sidecar JSON, or nil when no sidecar
-	// exists.
+	// Returns []byte which is the sidecar JSON, or nil when no sidecar exists.
 	// Returns bool which is true when a sidecar was found.
-	// Returns error when the underlying transport fails for reasons
-	// other than the sidecar being absent.
+	// Returns error when the underlying transport fails for reasons other than the sidecar
+	// being absent.
 	DownloadSidecar(ctx context.Context, profileFilename string) ([]byte, bool, error)
 
-	// RunContentionDiagnostic triggers an on-demand contention diagnostic
-	// on the server. The call blocks until the diagnostic completes.
+	// RunContentionDiagnostic triggers an on-demand contention diagnostic on the server. The
+	// call blocks until the diagnostic completes.
 	//
 	// Takes ctx (context.Context) which controls the request lifetime.
 	//
-	// Returns error when the diagnostic cannot start (already running,
-	// in cooldown, watchdog stopped) or fails partway through.
+	// Returns error when the diagnostic cannot start (already running, in cooldown, watchdog
+	// stopped) or fails partway through.
 	RunContentionDiagnostic(ctx context.Context) error
 }

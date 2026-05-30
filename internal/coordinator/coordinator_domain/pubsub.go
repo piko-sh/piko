@@ -26,8 +26,7 @@ import (
 
 // subscriber holds a channel and name for receiving build notifications.
 type subscriber struct {
-	// notificationChannel is the channel for sending build
-	// notifications to this subscriber.
+	// notificationChannel is the channel for sending build notifications to this subscriber.
 	notificationChannel chan BuildNotification
 
 	// name identifies the subscriber for logging purposes.
@@ -38,13 +37,12 @@ type subscriber struct {
 //
 // Takes name (string) which identifies the subscriber for debugging.
 //
-// Returns <-chan BuildNotification which yields notifications when builds
-// complete.
-// Returns UnsubscribeFunc which must be called to stop receiving
-// notifications and release resources.
+// Returns <-chan BuildNotification which yields notifications when builds complete.
+// Returns UnsubscribeFunc which must be called to stop receiving notifications and
+// release resources.
 //
-// Safe for concurrent use. The returned channel is closed when the
-// unsubscribe function is called.
+// Safe for concurrent use. The returned channel is closed when the unsubscribe function
+// is called.
 func (s *coordinatorService) Subscribe(name string) (<-chan BuildNotification, UnsubscribeFunc) {
 	s.subMutex.Lock()
 	defer s.subMutex.Unlock()
@@ -72,12 +70,11 @@ func (s *coordinatorService) Subscribe(name string) (<-chan BuildNotification, U
 
 // publish sends a build notification to all registered subscribers.
 //
-// Takes notification (BuildNotification) which contains the build result to
-// send.
+// Takes notification (BuildNotification) which contains the build result to send.
 //
-// Safe for concurrent use. Uses a read lock to protect the subscribers map.
-// Sends do not block; if a subscriber's channel is full, the subscriber is
-// skipped and a warning is logged.
+// Safe for concurrent use. Uses a read lock to protect the subscribers map. Sends do not
+// block; if a subscriber's channel is full, the subscriber is skipped and a warning is
+// logged.
 func (s *coordinatorService) publish(ctx context.Context, notification BuildNotification) {
 	s.subMutex.RLock()
 	defer s.subMutex.RUnlock()

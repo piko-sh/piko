@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package asmgen_arch_arm64 provides the ARM64 assembly code
-// generation backend for the piko bytecode interpreter.
+// Package asmgen_arch_arm64 provides the ARM64 assembly code generation backend for the
+// piko bytecode interpreter.
 //
-// It extends the core ARM64 architecture with bytecode
-// dispatch-specific operations including register initialisation,
-// inline call sequences, and string operations. All emitted
-// instructions use Plan 9 assembly syntax with standard
-// column-aligned formatting.
+// It extends the core ARM64 architecture with bytecode dispatch-specific operations
+// including register initialisation, inline call sequences, and string operations. All
+// emitted instructions use Plan 9 assembly syntax with standard column-aligned
+// formatting.
 package asmgen_arch_arm64

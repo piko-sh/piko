@@ -27,14 +27,12 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// DetailView renders the detail-pane body for the section currently
-// under the cursor, with a high-fidelity ntcharts trend graph below
-// when the section has historic data (memory, CPU, goroutines, GC).
-// When no row is selected the system overview is shown without a
-// chart.
+// DetailView renders the detail-pane body for the section currently under the cursor,
+// with a high-fidelity ntcharts trend graph below when the section has historic data
+// (memory, CPU, goroutines, GC). When no row is selected the system overview is shown
+// without a chart.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *SystemPanel) DetailView(width, height int) string {
@@ -46,8 +44,7 @@ func (p *SystemPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(nil, body, series, title, width, height)
 }
 
-// currentSectionKey returns the key of the section under the cursor,
-// or empty when none.
+// currentSectionKey returns the key of the section under the cursor, or empty when none.
 //
 // Returns string which is the section key, or empty when no row is selected.
 func (p *SystemPanel) currentSectionKey() string {
@@ -58,8 +55,8 @@ func (p *SystemPanel) currentSectionKey() string {
 	return item.key
 }
 
-// detailChartFor returns a chart series + title for the selected
-// section, or (nil, "") when the section has no chart-friendly data.
+// detailChartFor returns a chart series + title for the selected section, or (nil, "")
+// when the section has no chart-friendly data.
 //
 // Takes section (string) which is the section key.
 //
@@ -78,15 +75,14 @@ func (p *SystemPanel) detailChartFor(section string) ([]ChartSeries, string) {
 	return nil, ""
 }
 
-// historyRingSeries converts a HistoryRing into a ChartSeries with
-// even-spaced timestamps. Returns nil when the ring is empty.
+// historyRingSeries converts a HistoryRing into a ChartSeries with even-spaced
+// timestamps. Returns nil when the ring is empty.
 //
 // Takes name (string) which becomes the series name.
 // Takes ring (*HistoryRing) which holds the samples.
 // Takes severity (Severity) which drives the line colour.
 //
-// Returns []ChartSeries with one entry, or nil when no data is
-// available.
+// Returns []ChartSeries with one entry, or nil when no data is available.
 func historyRingSeries(name string, ring *HistoryRing, severity Severity) []ChartSeries {
 	if ring == nil {
 		return nil
@@ -107,12 +103,11 @@ func historyRingSeries(name string, ring *HistoryRing, severity Severity) []Char
 	return []ChartSeries{{Name: name, Points: points, Severity: severity}}
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current section cursor.
+// buildDetailBody assembles the structured detail content based on the current section
+// cursor.
 //
-// Returns inspector.DetailBody which is the rendered detail content for the
-// selected section, falling back to the system overview when no row
-// is highlighted.
+// Returns inspector.DetailBody which is the rendered detail content for the selected
+// section, falling back to the system overview when no row is highlighted.
 //
 // Concurrency: Safe for concurrent use; guarded by stateMutex.
 func (p *SystemPanel) buildDetailBody() inspector.DetailBody {
@@ -171,11 +166,10 @@ func systemOverviewDetailBody(s *SystemStats) inspector.DetailBody {
 
 // systemMemoryDetailBody builds the memory section detail body.
 //
-// Lifts row construction into inspector.BuildMemoryDetailRows so the CLI
-// `piko info memory` and the TUI memory detail show the same fields in
-// the same order. The TUI's lossy SystemMemoryStats does not carry the
-// secondary "Sys" pools (mspan / mcache / etc.) so those rows render as
-// "0 B" rather than being hidden.
+// Lifts row construction into inspector.BuildMemoryDetailRows so the CLI `piko info
+// memory` and the TUI memory detail show the same fields in the same order. The TUI's
+// lossy SystemMemoryStats does not carry the secondary "Sys" pools (mspan / mcache /
+// etc.) so those rows render as "0 B" rather than being hidden.
 //
 // Takes s (*SystemStats) which is the current snapshot.
 //
@@ -193,9 +187,8 @@ func systemMemoryDetailBody(s *SystemStats) inspector.DetailBody {
 
 // systemGCDetailBody builds the garbage collector section detail body.
 //
-// Lifts row construction into inspector.BuildGCDetailRows so the CLI
-// `piko info gc` and the TUI GC detail share the same labels and value
-// formats.
+// Lifts row construction into inspector.BuildGCDetailRows so the CLI `piko info gc` and
+// the TUI GC detail share the same labels and value formats.
 //
 // Takes s (*SystemStats) which is the current snapshot.
 //
@@ -213,11 +206,10 @@ func systemGCDetailBody(s *SystemStats) inspector.DetailBody {
 
 // systemProcessDetailBody builds the process section detail body.
 //
-// Lifts row construction into inspector.BuildProcessDetailRows so the
-// CLI `piko info process` and the TUI process detail share the same
-// fields. Process fields not carried by the TUI domain (UID / GID /
-// PPID / executable / hostname / I/O counters) render as zero or empty
-// rather than being hidden.
+// Lifts row construction into inspector.BuildProcessDetailRows so the CLI `piko info
+// process` and the TUI process detail share the same fields. Process fields not carried
+// by the TUI domain (UID / GID / PPID / executable / hostname / I/O counters) render as
+// zero or empty rather than being hidden.
 //
 // Takes s (*SystemStats) which is the current snapshot.
 //
@@ -235,15 +227,13 @@ func systemProcessDetailBody(s *SystemStats) inspector.DetailBody {
 
 // systemBuildDetailBody builds the build-info section detail body.
 //
-// Lifts row construction into inspector.BuildBuildDetailRows so the CLI
-// `piko info build` and the TUI build detail share the same field set.
-// The TUI's lossy SystemBuildInfo does not carry the module path / VCS
-// metadata so those rows render empty.
+// Lifts row construction into inspector.BuildBuildDetailRows so the CLI `piko info build`
+// and the TUI build detail share the same field set. The TUI's lossy SystemBuildInfo does
+// not carry the module path / VCS metadata so those rows render empty.
 //
 // Takes s (*SystemStats) which is the current snapshot.
 //
-// Returns inspector.DetailBody describing version, commit, build time, and
-// platform.
+// Returns inspector.DetailBody describing version, commit, build time, and platform.
 func systemBuildDetailBody(s *SystemStats) inspector.DetailBody {
 	return inspector.DetailBody{
 		Title:    "Build",
@@ -255,18 +245,15 @@ func systemBuildDetailBody(s *SystemStats) inspector.DetailBody {
 	}
 }
 
-// systemRuntimeDetailBody builds the runtime configuration section
-// detail body.
+// systemRuntimeDetailBody builds the runtime configuration section detail body.
 //
-// Reuses inspector.BuildRuntimeDetailRows for GOGC / GOMEMLIMIT /
-// Compiler so CLI and TUI agree, and appends GOMAXPROCS + Go version
-// rows that the runtime detail pane shows but the CLI's `piko info
-// runtime` does not.
+// Reuses inspector.BuildRuntimeDetailRows for GOGC / GOMEMLIMIT / Compiler so CLI and TUI
+// agree, and appends GOMAXPROCS + Go version rows that the runtime detail pane shows but
+// the CLI's `piko info runtime` does not.
 //
 // Takes s (*SystemStats) which is the current snapshot.
 //
-// Returns inspector.DetailBody describing GOGC, GOMEMLIMIT, GOMAXPROCS, and Go
-// version.
+// Returns inspector.DetailBody describing GOGC, GOMEMLIMIT, GOMAXPROCS, and Go version.
 func systemRuntimeDetailBody(s *SystemStats) inspector.DetailBody {
 	rows := inspector.BuildRuntimeDetailRows(runtimeConfigToProto(s.Runtime))
 	rows = append(rows,
@@ -297,9 +284,9 @@ func systemUptimeDetailBody(s *SystemStats) inspector.DetailBody {
 	}
 }
 
-// buildInfoToProto adapts the lossy SystemBuildInfo domain type into
-// the proto BuildInfo expected by inspector.BuildBuildDetailRows.
-// Fields the domain does not carry stay at their zero value.
+// buildInfoToProto adapts the lossy SystemBuildInfo domain type into the proto BuildInfo
+// expected by inspector.BuildBuildDetailRows. Fields the domain does not carry stay at
+// their zero value.
 //
 // Takes b (SystemBuildInfo) which is the domain build snapshot.
 //
@@ -315,13 +302,13 @@ func buildInfoToProto(b SystemBuildInfo) *pb.BuildInfo {
 	}
 }
 
-// runtimeConfigToProto adapts SystemRuntimeConfig into the proto
-// RuntimeInfo expected by inspector.BuildRuntimeDetailRows.
+// runtimeConfigToProto adapts SystemRuntimeConfig into the proto RuntimeInfo expected by
+// inspector.BuildRuntimeDetailRows.
 //
 // Takes r (SystemRuntimeConfig) which is the domain runtime snapshot.
 //
-// Returns *pb.RuntimeInfo with GOGC / GOMEMLIMIT populated; the
-// compiler row stays empty because the domain does not carry it.
+// Returns *pb.RuntimeInfo with GOGC / GOMEMLIMIT populated; the compiler row stays empty
+// because the domain does not carry it.
 func runtimeConfigToProto(r SystemRuntimeConfig) *pb.RuntimeInfo {
 	return &pb.RuntimeInfo{
 		Gogc:       r.GOGC,
@@ -329,10 +316,10 @@ func runtimeConfigToProto(r SystemRuntimeConfig) *pb.RuntimeInfo {
 	}
 }
 
-// memoryStatsToProto adapts SystemMemoryStats into the proto MemoryInfo
-// expected by inspector.BuildMemoryDetailRows. The TUI domain only
-// carries the high-level allocation counters, so the secondary "Sys"
-// pools (mspan / mcache / etc.) render as zero-byte rows.
+// memoryStatsToProto adapts SystemMemoryStats into the proto MemoryInfo expected by
+// inspector.BuildMemoryDetailRows. The TUI domain only carries the high-level allocation
+// counters, so the secondary "Sys" pools (mspan / mcache / etc.) render as zero-byte
+// rows.
 //
 // Takes m (SystemMemoryStats) which is the domain memory snapshot.
 //
@@ -373,15 +360,14 @@ func gcStatsToProto(g SystemGCStats) *pb.GCInfo {
 	}
 }
 
-// processInfoToProto adapts SystemProcessInfo into the proto ProcessInfo
-// expected by inspector.BuildProcessDetailRows. The TUI domain only
-// carries the four headline counters so most rows (UID / GID / hostname
-// etc.) render as zero or empty in the detail pane.
+// processInfoToProto adapts SystemProcessInfo into the proto ProcessInfo expected by
+// inspector.BuildProcessDetailRows. The TUI domain only carries the four headline
+// counters so most rows (UID / GID / hostname etc.) render as zero or empty in the detail
+// pane.
 //
 // Takes p (SystemProcessInfo) which is the domain process snapshot.
 //
-// Returns *pb.ProcessInfo with PID / thread count / FD count / RSS
-// populated.
+// Returns *pb.ProcessInfo with PID / thread count / FD count / RSS populated.
 func processInfoToProto(p SystemProcessInfo) *pb.ProcessInfo {
 	return &pb.ProcessInfo{
 		Pid:         safeconv.IntToInt32(p.PID),

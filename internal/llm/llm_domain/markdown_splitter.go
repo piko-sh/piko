@@ -29,32 +29,32 @@ import (
 )
 
 const (
-	// maxHeadingLevel is the highest heading level (h1-h6) recognised by the
-	// markdown splitter.
+	// maxHeadingLevel is the highest heading level (h1-h6) recognised by the markdown
+	// splitter.
 	maxHeadingLevel = 6
 
-	// fenceMinLength is the minimum length of a fence delimiter (``` or ~~~)
-	// for code block detection.
+	// fenceMinLength is the minimum length of a fence delimiter (``` or ~~~) for code block
+	// detection.
 	fenceMinLength = 3
 
-	// metadataKeyHeading is the metadata key used to store the section heading
-	// in split document chunks.
+	// metadataKeyHeading is the metadata key used to store the section heading in split
+	// document chunks.
 	metadataKeyHeading = "heading"
 
-	// minMergeChunkSize is the minimum content length below which a chunk is
-	// force-merged into an adjacent chunk regardless of maxSize constraints.
+	// minMergeChunkSize is the minimum content length below which a chunk is force-merged
+	// into an adjacent chunk regardless of maxSize constraints.
 	minMergeChunkSize = 50
 )
 
-// MarkdownSplitterOption configures optional behaviour of [MarkdownSplitter].
+// MarkdownSplitterOption configures optional behaviour of MarkdownSplitter.
 type MarkdownSplitterOption func(*MarkdownSplitter)
 
-// MarkdownSplitter splits markdown documents at heading boundaries using the
-// goldmark AST parser. It implements SplitterPort and uses
-// RecursiveCharacterSplitter for sections that exceed the chunk size.
+// MarkdownSplitter splits markdown documents at heading boundaries using the goldmark AST
+// parser. It implements SplitterPort and uses RecursiveCharacterSplitter for sections
+// that exceed the chunk size.
 type MarkdownSplitter struct {
-	// parser is an optional markdown parser for AST-based heading detection.
-	// When nil, a simple line-based heuristic is used instead.
+	// parser is an optional markdown parser for AST-based heading detection. When nil, a
+	// simple line-based heuristic is used instead.
 	parser markdown_domain.MarkdownParserPort
 
 	// fallback splits content that does not match markdown boundaries.
@@ -66,8 +66,8 @@ type MarkdownSplitter struct {
 	// overlap is the number of characters shared between consecutive chunks.
 	overlap int
 
-	// minChunkSize is the minimum chunk size; smaller chunks get merged.
-	// Zero disables merging.
+	// minChunkSize is the minimum chunk size; smaller chunks get merged. Zero disables
+	// merging.
 	minChunkSize int
 
 	// maxSplitLevel specifies the deepest heading level (1-6) used for splitting.
@@ -77,12 +77,12 @@ type MarkdownSplitter struct {
 // NewMarkdownSplitter creates a new MarkdownSplitter.
 //
 // Takes chunkSize (int) which specifies the maximum chunk size in bytes.
-// Takes overlap (int) which specifies the character overlap for sub-split
-// chunks. Must be less than chunkSize.
-// Takes opts (...MarkdownSplitterOption) which provides optional settings.
-// Use [WithMaxSplitLevel] to change the heading split threshold.
+// Takes overlap (int) which specifies the character overlap for sub-split chunks. Must be
+// less than chunkSize.
+// Takes opts (...MarkdownSplitterOption) which provides optional settings. Use
+// WithMaxSplitLevel to change the heading split threshold.
 //
-// Returns *MarkdownSplitter which implements [SplitterPort].
+// Returns *MarkdownSplitter which implements SplitterPort.
 // Returns error when the overlap is greater than or equal to chunkSize.
 func NewMarkdownSplitter(chunkSize, overlap int, opts ...MarkdownSplitterOption) (*MarkdownSplitter, error) {
 	fallback, err := NewRecursiveCharacterSplitter(chunkSize, overlap)
@@ -101,10 +101,9 @@ func NewMarkdownSplitter(chunkSize, overlap int, opts ...MarkdownSplitterOption)
 	return s, nil
 }
 
-// Split divides a markdown document into chunks at heading
-// boundaries. Each chunk inherits the parent document's metadata
-// with an additional metadataKeyHeading key set to the text of
-// the heading that introduces the section.
+// Split divides a markdown document into chunks at heading boundaries. Each chunk
+// inherits the parent document's metadata with an additional metadataKeyHeading key set
+// to the text of the heading that introduces the section.
 //
 // Takes document (Document) which is the markdown document to split.
 //
@@ -144,8 +143,8 @@ func (s *MarkdownSplitter) Split(document Document) []Document {
 	return chunks
 }
 
-// appendSmallSection appends a section that fits within the chunk size as a
-// single document chunk.
+// appendSmallSection appends a section that fits within the chunk size as a single
+// document chunk.
 //
 // Takes chunks ([]Document) which is the accumulator for document chunks.
 // Takes document (Document) which provides the parent document ID and metadata.
@@ -190,8 +189,8 @@ func (s *MarkdownSplitter) splitOversizedSection(chunks []Document, document Doc
 	return chunks
 }
 
-// fallbackSplitSubText uses the recursive character splitter on a sub-text
-// that exceeds the chunk size and is not a code fence.
+// fallbackSplitSubText uses the recursive character splitter on a sub-text that exceeds
+// the chunk size and is not a code fence.
 //
 // Takes chunks ([]Document) which is the accumulator for document chunks.
 // Takes document (Document) which provides the parent document ID and metadata.
@@ -231,8 +230,8 @@ type headingPos struct {
 	offset int
 }
 
-// segment represents a contiguous piece of a markdown section, tagged as either
-// prose or a fenced code block.
+// segment represents a contiguous piece of a markdown section, tagged as either prose or
+// a fenced code block.
 type segment struct {
 	// text holds the raw text content of the segment.
 	text string
@@ -241,11 +240,10 @@ type segment struct {
 	isCode bool
 }
 
-// WithMaxSplitLevel sets the maximum heading level that acts as a split
-// boundary.
+// WithMaxSplitLevel sets the maximum heading level that acts as a split boundary.
 //
-// For example, level 3 splits on h1, h2, and h3 but groups h4-h6 content
-// with their parent section. The default is 2.
+// For example, level 3 splits on h1, h2, and h3 but groups h4-h6 content with their
+// parent section. The default is 2.
 //
 // Takes level (int) which specifies the maximum heading level (1-6).
 //
@@ -258,12 +256,11 @@ func WithMaxSplitLevel(level int) MarkdownSplitterOption {
 	}
 }
 
-// WithSplitterMarkdownParser sets the markdown parser for AST-based heading
-// detection. When nil (default), the splitter returns the entire document as
-// a single section - users must provide a parser for heading-based splitting.
+// WithSplitterMarkdownParser sets the markdown parser for AST-based heading detection.
+// When nil (default), the splitter returns the entire document as a single section -
+// users must provide a parser for heading-based splitting.
 //
-// Takes parser (markdown_domain.MarkdownParserPort) which parses markdown into
-// piko AST.
+// Takes parser (markdown_domain.MarkdownParserPort) which parses markdown into piko AST.
 //
 // Returns MarkdownSplitterOption which applies the setting.
 func WithSplitterMarkdownParser(parser markdown_domain.MarkdownParserPort) MarkdownSplitterOption {
@@ -274,14 +271,12 @@ func WithSplitterMarkdownParser(parser markdown_domain.MarkdownParserPort) Markd
 
 // WithMinChunkSize sets the minimum chunk size in bytes.
 //
-// When chunks are smaller than this threshold, they are merged with an
-// adjacent chunk. The merge prefers forward merge into the next chunk, and
-// falls back to backward merge into the previous chunk. This eliminates
-// orphaned intro text, tables without context, and other undersized fragments
-// that are useless for vector search.
+// When chunks are smaller than this threshold, they are merged with an adjacent chunk.
+// The merge prefers forward merge into the next chunk, and falls back to backward merge
+// into the previous chunk. This eliminates orphaned intro text, tables without context,
+// and other undersized fragments that are useless for vector search.
 //
-// When the value is greater than 0, horizontal-rule-only chunks are filtered
-// entirely.
+// When the value is greater than 0, horizontal-rule-only chunks are filtered entirely.
 //
 // When the value is 0 (the default), the merge pass is disabled for backward
 // compatibility.
@@ -297,8 +292,8 @@ func WithMinChunkSize(size int) MarkdownSplitterOption {
 	}
 }
 
-// metadataWithHeading copies the source metadata and sets the heading key
-// when the heading is non-empty.
+// metadataWithHeading copies the source metadata and sets the heading key when the
+// heading is non-empty.
 //
 // Takes src (map[string]any) which is the metadata to copy.
 // Takes heading (string) which is the heading text to set.
@@ -317,17 +312,17 @@ func metadataWithHeading(src map[string]any, heading string) map[string]any {
 
 // splitOnHeadings splits markdown content into sections at heading boundaries.
 //
-// Headings with level <= maxSplitLevel act as split boundaries. Text before the
-// first qualifying heading becomes a section with an empty heading. Heading
-// identification uses the goldmark parser so that headings inside fenced code
-// blocks, HTML blocks, and other constructs are correctly ignored.
+// Headings with level <= maxSplitLevel act as split boundaries. Text before the first
+// qualifying heading becomes a section with an empty heading. Heading identification uses
+// the goldmark parser so that headings inside fenced code blocks, HTML blocks, and other
+// constructs are correctly ignored.
 //
 // Takes content (string) which is the markdown text to split.
-// Takes maxSplitLevel (int) which sets the maximum heading level to act as a
-// split boundary.
+// Takes maxSplitLevel (int) which sets the maximum heading level to act as a split
+// boundary.
 //
-// Returns []section which contains the resulting sections, each with a heading
-// and its content.
+// Returns []section which contains the resulting sections, each with a heading and its
+// content.
 func (s *MarkdownSplitter) splitOnHeadings(content string, maxSplitLevel int) []section {
 	source := []byte(content)
 
@@ -384,9 +379,9 @@ func (s *MarkdownSplitter) splitOnHeadings(content string, maxSplitLevel int) []
 	return sections
 }
 
-// headingLineStart returns the byte offset of the start of the line containing
-// the heading node. It walks backward from the heading's content position to
-// find the beginning of the line, including the # prefix.
+// headingLineStart returns the byte offset of the start of the line containing the
+// heading node. It walks backward from the heading's content position to find the
+// beginning of the line, including the # prefix.
 //
 // Takes source ([]byte) which is the document source text.
 // Takes h (*ast.Heading) which is the heading node to locate.
@@ -414,13 +409,13 @@ func headingLineStart(source []byte, h *markdown_ast.Heading) int {
 	return 0
 }
 
-// stripHeadingLine removes the first line (the heading syntax) from a section's
-// bytes, returning the remaining body content.
+// stripHeadingLine removes the first line (the heading syntax) from a section's bytes,
+// returning the remaining body content.
 //
 // Takes section ([]byte) which contains the section bytes including the heading.
 //
-// Returns []byte which is the content after the first line, or nil if no
-// newline is found.
+// Returns []byte which is the content after the first line, or nil if no newline is
+// found.
 func stripHeadingLine(section []byte) []byte {
 	_, after, found := bytes.Cut(section, []byte{'\n'})
 	if !found {
@@ -429,16 +424,15 @@ func stripHeadingLine(section []byte) []byte {
 	return after
 }
 
-// splitAroundCodeFences divides content into alternating prose and code-fence
-// segments.
+// splitAroundCodeFences divides content into alternating prose and code-fence segments.
 //
-// Code fences (``` or ~~~) are kept intact so they are never broken across
-// chunks. Concatenating the segment texts reproduces the original content.
+// Code fences (``` or ~~~) are kept intact so they are never broken across chunks.
+// Concatenating the segment texts reproduces the original content.
 //
 // Takes content (string) which is the text to split around code fences.
 //
-// Returns []segment which contains segments in document order, alternating
-// between prose and code sections.
+// Returns []segment which contains segments in document order, alternating between prose
+// and code sections.
 func splitAroundCodeFences(content string) []segment {
 	var segments []segment
 	lines := strings.Split(content, "\n")
@@ -471,9 +465,8 @@ func splitAroundCodeFences(content string) []segment {
 	return segments
 }
 
-// handleProseLineInFenceSplit processes a line when not inside a code fence.
-// If the line opens a code fence, it flushes accumulated prose and begins
-// code accumulation.
+// handleProseLineInFenceSplit processes a line when not inside a code fence. If the line
+// opens a code fence, it flushes accumulated prose and begins code accumulation.
 //
 // Takes trimmed (string) which is the whitespace-trimmed line.
 // Takes line (string) which is the original line text.
@@ -508,8 +501,8 @@ func handleProseLineInFenceSplit(
 	return segments, false, ""
 }
 
-// handleCodeLineInFenceSplit processes a line when inside a code fence.
-// If the line closes the fence, it flushes the code segment.
+// handleCodeLineInFenceSplit processes a line when inside a code fence. If the line
+// closes the fence, it flushes the code segment.
 //
 // Takes trimmed (string) which is the whitespace-trimmed line.
 // Takes line (string) which is the original line text.
@@ -535,12 +528,11 @@ func handleCodeLineInFenceSplit(
 	return true
 }
 
-// groupSegments merges consecutive segments into chunks within the given size
-// limit.
+// groupSegments merges consecutive segments into chunks within the given size limit.
 //
-// When a single code block exceeds chunkSize, it becomes its own chunk rather
-// than being split. When minSegmentSize is positive, small prose segments stay
-// attached to the following code block.
+// When a single code block exceeds chunkSize, it becomes its own chunk rather than being
+// split. When minSegmentSize is positive, small prose segments stay attached to the
+// following code block.
 //
 // Takes segments ([]segment) which contains the text segments to group.
 // Takes chunkSize (int) which specifies the maximum size for each chunk.
@@ -576,8 +568,8 @@ func groupSegments(segments []segment, chunkSize, minSegmentSize int) []string {
 	return result
 }
 
-// flushOversizedCode handles a code segment that exceeds the chunk size by
-// flushing or merging the current prose buffer, then emitting the code block.
+// flushOversizedCode handles a code segment that exceeds the chunk size by flushing or
+// merging the current prose buffer, then emitting the code block.
 //
 // Takes current (*strings.Builder) which holds accumulated text.
 // Takes segText (string) which is the oversized code block text.
@@ -603,8 +595,8 @@ func flushOversizedCode(current *strings.Builder, segText string, result []strin
 	return append(result, segText)
 }
 
-// appendSegmentText adds a normal-sized segment to the current builder,
-// flushing it first when the combined size would exceed the chunk limit.
+// appendSegmentText adds a normal-sized segment to the current builder, flushing it first
+// when the combined size would exceed the chunk limit.
 //
 // Takes current (*strings.Builder) which holds accumulated text.
 // Takes segText (string) which is the segment text to append.
@@ -634,9 +626,9 @@ func appendSegmentText(current *strings.Builder, segText string, isCode bool, re
 	return result
 }
 
-// startsWithCodeFence reports whether content begins with a fenced code block
-// marker (``` or ~~~). Used to detect oversized code blocks that should be
-// kept intact rather than character-split.
+// startsWithCodeFence reports whether content begins with a fenced code block marker (```
+// or ~~~). Used to detect oversized code blocks that should be kept intact rather than
+// character-split.
 //
 // Takes bodyText (string) which is the text to check for a code fence prefix.
 //
@@ -646,9 +638,9 @@ func startsWithCodeFence(bodyText string) bool {
 	return strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~")
 }
 
-// isJunkContent reports whether content is structurally empty and should be
-// filtered from the chunk output. Horizontal rules, whitespace-only content,
-// and other purely decorative elements contribute nothing to vector search.
+// isJunkContent reports whether content is structurally empty and should be filtered from
+// the chunk output. Horizontal rules, whitespace-only content, and other purely
+// decorative elements contribute nothing to vector search.
 //
 // Takes content (string) which is the text to check for junk patterns.
 //
@@ -667,9 +659,9 @@ func isJunkContent(content string) bool {
 	return strings.TrimSpace(stripped) == "" && len(trimmed) >= fenceMinLength
 }
 
-// mergeSmallChunks merges undersized chunks with their neighbours to eliminate
-// orphaned intro text, context-free tables, and other fragments that are too
-// small for useful vector search.
+// mergeSmallChunks merges undersized chunks with their neighbours to eliminate orphaned
+// intro text, context-free tables, and other fragments that are too small for useful
+// vector search.
 //
 // Takes chunks ([]Document) which contains the document chunks to process.
 // Takes minSize (int) which specifies the minimum acceptable chunk size.
@@ -680,12 +672,12 @@ func isJunkContent(content string) bool {
 // The algorithm:
 //
 //  1. Filter junk content (horizontal rules, whitespace).
-//  2. Forward merge: if a chunk is smaller than minSize and a next chunk exists,
-//     merge into the next chunk (prepend). Very small chunks (< 50 bytes) merge
-//     even if the combined size exceeds maxSize.
-//  3. Backward merge: if a chunk is still smaller than minSize and a previous
-//     chunk exists and the combined size fits within maxSize, merge into the
-//     previous chunk (append).
+//  2. Forward merge: if a chunk is smaller than minSize and a next chunk exists, merge
+//     into the next chunk (prepend). Very small chunks (< 50 bytes) merge even if the
+//     combined size exceeds maxSize.
+//  3. Backward merge: if a chunk is still smaller than minSize and a previous chunk
+//     exists and the combined size fits within maxSize, merge into the previous chunk
+//     (append).
 func mergeSmallChunks(chunks []Document, minSize, maxSize int) []Document {
 	filtered := filterJunkChunks(chunks)
 	if len(filtered) == 0 {
@@ -770,8 +762,8 @@ func backwardMergePass(filtered []Document, merged []bool, minSize, maxSize int)
 	}
 }
 
-// findNextUnmerged returns the index of the next unmerged chunk starting from
-// start, or -1 if none exists.
+// findNextUnmerged returns the index of the next unmerged chunk starting from start, or
+// -1 if none exists.
 //
 // Takes merged ([]bool) which tracks which chunks have been merged.
 // Takes start (int) which is the first index to check.
@@ -787,8 +779,8 @@ func findNextUnmerged(merged []bool, start, limit int) int {
 	return -1
 }
 
-// findPrevUnmerged returns the index of the previous unmerged chunk starting
-// from start scanning backwards, or -1 if none exists.
+// findPrevUnmerged returns the index of the previous unmerged chunk starting from start
+// scanning backwards, or -1 if none exists.
 //
 // Takes merged ([]bool) which tracks which chunks have been merged.
 // Takes start (int) which is the first index to check.
@@ -803,8 +795,8 @@ func findPrevUnmerged(merged []bool, start int) int {
 	return -1
 }
 
-// mergeChunkInto merges the content of src into dst and propagates the heading
-// metadata when the destination lacks one.
+// mergeChunkInto merges the content of src into dst and propagates the heading metadata
+// when the destination lacks one.
 //
 // Takes dst (*Document) which receives the merged content.
 // Takes src (*Document) which provides the content to merge.
@@ -825,8 +817,8 @@ func mergeChunkInto(dst, src *Document, prepend bool) {
 	}
 }
 
-// extractNodeText extracts the text content from a piko markdown AST node by
-// recursively walking its inline children.
+// extractNodeText extracts the text content from a piko markdown AST node by recursively
+// walking its inline children.
 //
 // Takes node (markdown_ast.Node) which is the AST node to extract text from.
 //

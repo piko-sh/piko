@@ -27,11 +27,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// DetailView renders the detail-pane body for the profile currently
-// under the cursor; otherwise renders a profile-inventory summary.
+// DetailView renders the detail-pane body for the profile currently under the cursor;
+// otherwise renders a profile-inventory summary.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogProfilesPanel) DetailView(width, height int) string {
@@ -39,8 +38,8 @@ func (p *WatchdogProfilesPanel) DetailView(width, height int) string {
 	return RenderDetailBody(p.theme, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody describing the selected profile, or the inventory summary.
 func (p *WatchdogProfilesPanel) buildDetailBody() inspector.DetailBody {
@@ -112,9 +111,8 @@ func (p *WatchdogProfilesPanel) profilesOverviewDetailBody() inspector.DetailBod
 	}
 }
 
-// sortedKeys returns the map keys in stable alphabetical order. Used by
-// detail-pane summaries that group counts by category and need a
-// deterministic render.
+// sortedKeys returns the map keys in stable alphabetical order. Used by detail-pane
+// summaries that group counts by category and need a deterministic render.
 //
 // Takes m (map[string]int) which is the map whose keys are sorted.
 //

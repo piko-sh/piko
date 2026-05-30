@@ -27,12 +27,11 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// Normaliser handles text normalisation operations like lowercasing and
-// diacritic removal. It implements NormaliserPort and is safe for concurrent
-// use.
+// Normaliser handles text normalisation operations like lowercasing and diacritic
+// removal. It implements NormaliserPort and is safe for concurrent use.
 type Normaliser struct {
-	// preserveCase indicates whether text case should be preserved during
-	// normalisation; when false, text is converted to lowercase.
+	// preserveCase indicates whether text case should be preserved during normalisation;
+	// when false, text is converted to lowercase.
 	preserveCase bool
 }
 
@@ -51,8 +50,7 @@ func NewNormaliser(preserveCase bool) *Normaliser {
 //
 // Takes text (string) which is the input to normalise.
 //
-// Returns string which is the normalised version ready for indexing and
-// searching.
+// Returns string which is the normalised version ready for indexing and searching.
 func (n *Normaliser) Normalise(text string) string {
 	transformer := getDiacriticRemover()
 
@@ -72,8 +70,8 @@ func (n *Normaliser) Normalise(text string) string {
 //
 // Takes r (rune) which is the character to normalise.
 //
-// Returns rune which is the normalised character, lowercased if case
-// preservation is disabled.
+// Returns rune which is the normalised character, lowercased if case preservation is
+// disabled.
 func (n *Normaliser) NormaliseRune(r rune) rune {
 	if !n.preserveCase {
 		r = unicode.ToLower(r)
@@ -81,8 +79,8 @@ func (n *Normaliser) NormaliseRune(r rune) rune {
 	return r
 }
 
-// getDiacriticRemover creates a transformer that removes diacritics from text.
-// A new transformer is created for each call to ensure thread safety.
+// getDiacriticRemover creates a transformer that removes diacritics from text. A new
+// transformer is created for each call to ensure thread safety.
 //
 // Returns transform.Transformer which removes diacritics from Unicode text.
 func getDiacriticRemover() transform.Transformer {
@@ -93,8 +91,8 @@ func getDiacriticRemover() transform.Transformer {
 	)
 }
 
-// isWordChar reports whether the rune is part of a word.
-// Letters, numbers, underscores, and hyphens are considered word characters.
+// isWordChar reports whether the rune is part of a word. Letters, numbers, underscores,
+// and hyphens are considered word characters.
 //
 // Takes r (rune) which is the character to check.
 //

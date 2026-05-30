@@ -37,13 +37,12 @@ import (
 )
 
 const (
-	// defaultSentryFlushTimeout is the fallback flush deadline applied when the
-	// shutdown context carries no deadline.
+	// defaultSentryFlushTimeout is the fallback flush deadline applied when the shutdown
+	// context carries no deadline.
 	defaultSentryFlushTimeout = 2 * time.Second
 
-	// maxSentryFlushTimeout caps the flush deadline derived from the shutdown
-	// context to prevent a long-running shutdown from blocking the flush
-	// indefinitely.
+	// maxSentryFlushTimeout caps the flush deadline derived from the shutdown context to
+	// prevent a long-running shutdown from blocking the flush indefinitely.
 	maxSentryFlushTimeout = 30 * time.Second
 )
 
@@ -87,8 +86,8 @@ type sentryConfig struct {
 	// breadcrumbLevels specifies which log levels to record as Sentry breadcrumbs.
 	breadcrumbLevels []slog.Level
 
-	// tracesSampleRate is the portion of transactions to send to Sentry.
-	// Values range from 0.0 (none) to 1.0 (all).
+	// tracesSampleRate is the portion of transactions to send to Sentry. Values range from
+	// 0.0 (none) to 1.0 (all).
 	tracesSampleRate float64
 
 	// sampleRate is the fraction of events sent to Sentry; 1.0 sends all events.
@@ -112,8 +111,7 @@ type sentryConfig struct {
 // Takes config (any) which should be *logger_dto.SentryConfig or Config.
 //
 // Returns slog.Handler which sends log events to Sentry.
-// Returns error when the configuration is invalid or Sentry initialisation
-// fails.
+// Returns error when the configuration is invalid or Sentry initialisation fails.
 func (*sentryIntegration) CreateHandler(config any) (slog.Handler, error) {
 	parsedConfig, err := parseSentryConfig(config)
 	if err != nil {
@@ -129,8 +127,7 @@ func (*sentryIntegration) CreateHandler(config any) (slog.Handler, error) {
 	return createSentryHandler(parsedConfig), nil
 }
 
-// OtelComponents returns the Sentry OpenTelemetry span processor and
-// propagator.
+// OtelComponents returns the Sentry OpenTelemetry span processor and propagator.
 //
 // Returns logger_domain.SpanProcessor which processes spans for Sentry tracing.
 // Returns propagation.TextMapPropagator which propagates trace context.
@@ -140,8 +137,8 @@ func (*sentryIntegration) OtelComponents() (logger_domain.SpanProcessor, propaga
 	return spanProcessor, propagator
 }
 
-// Config holds the settings for Sentry integration.
-// It provides a stable public API for setting up Sentry in code.
+// Config holds the settings for Sentry integration. It provides a stable public API for
+// setting up Sentry in code.
 type Config struct {
 	// DSN is the data source name for connecting to the database.
 	DSN string
@@ -152,21 +149,20 @@ type Config struct {
 	// Release specifies the version or release identifier.
 	Release string
 
-	// TracesSampleRate sets the fraction of traces to collect; 0.0 means none,
-	// 1.0 means all.
+	// TracesSampleRate sets the fraction of traces to collect; 0.0 means none, 1.0 means
+	// all.
 	TracesSampleRate float64
 
-	// SampleRate specifies the sampling rate as a fraction; 1.0 samples
-	// everything, 0.0 samples nothing.
+	// SampleRate specifies the sampling rate as a fraction; 1.0 samples everything, 0.0
+	// samples nothing.
 	SampleRate float64
 
 	// Debug enables detailed logging for troubleshooting; default is false.
 	Debug bool
 }
 
-// Enable sets up the Sentry SDK and adds Sentry as a log handler. Uses
-// sync.Once to ensure Sentry is only set up once, even if called multiple
-// times.
+// Enable sets up the Sentry SDK and adds Sentry as a log handler. Uses sync.Once to
+// ensure Sentry is only set up once, even if called multiple times.
 //
 // Use Enable from your func main to set up Sentry.
 //
@@ -196,8 +192,8 @@ func Enable(config Config) {
 
 // parseSentryConfig parses settings from different config types.
 //
-// Takes config (any) which is the config to parse. It should be
-// *logger_dto.SentryConfig or Config.
+// Takes config (any) which is the config to parse. It should be *logger_dto.SentryConfig
+// or Config.
 //
 // Returns sentryConfig which contains the parsed Sentry settings.
 // Returns error when config is nil or has an unsupported type.
@@ -262,11 +258,10 @@ func initialiseSentryClient(config sentryConfig) error {
 	return nil
 }
 
-// registerSentryShutdownHook registers a shutdown hook to flush Sentry events
-// before the program exits. The shutdown context's deadline is honoured: if
-// the context has a deadline, the remaining time (capped at
-// maxSentryFlushTimeout) is used as the flush budget; otherwise a default of
-// defaultSentryFlushTimeout applies.
+// registerSentryShutdownHook registers a shutdown hook to flush Sentry events before the
+// program exits. The shutdown context's deadline is honoured: if the context has a
+// deadline, the remaining time (capped at maxSentryFlushTimeout) is used as the flush
+// budget; otherwise a default of defaultSentryFlushTimeout applies.
 func registerSentryShutdownHook() {
 	logger_state.AddShutdownHook(func(ctx context.Context) error {
 		flushTimeout := flushTimeoutFromContext(ctx)
@@ -284,11 +279,10 @@ func registerSentryShutdownHook() {
 
 // flushTimeoutFromContext derives the Sentry flush deadline from ctx.
 //
-// When ctx carries a deadline the remaining time (clamped to
-// maxSentryFlushTimeout) is returned; otherwise defaultSentryFlushTimeout
-// is returned. A non-positive remaining time falls back to a small
-// positive value so sentry.Flush can observe the deadline rather than
-// blocking indefinitely.
+// When ctx carries a deadline the remaining time (clamped to maxSentryFlushTimeout) is
+// returned; otherwise defaultSentryFlushTimeout is returned. A non-positive remaining
+// time falls back to a small positive value so sentry.Flush can observe the deadline
+// rather than blocking indefinitely.
 //
 // Takes ctx (context.Context) which may carry a shutdown deadline.
 //
@@ -322,14 +316,13 @@ func createSentryHandler(config sentryConfig) slog.Handler {
 	return handlerOptions.NewSentryHandler(context.Background())
 }
 
-// parseSlogLevels parses a comma-separated string of log level names into
-// slog.Level values.
+// parseSlogLevels parses a comma-separated string of log level names into slog.Level
+// values.
 //
-// Takes levels (string) which contains comma-separated level names such as
-// "trace", "internal", "debug", "info", "notice", "warn", or "error".
+// Takes levels (string) which contains comma-separated level names such as "trace",
+// "internal", "debug", "info", "notice", "warn", or "error".
 //
-// Returns []slog.Level which contains the parsed levels, or nil if the input
-// is empty.
+// Returns []slog.Level which contains the parsed levels, or nil if the input is empty.
 func parseSlogLevels(levels string) []slog.Level {
 	var result []slog.Level
 	if levels == "" {

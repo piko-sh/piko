@@ -18,8 +18,7 @@
 
 // Package clitest exposes CLI internals for integration testing.
 //
-// It re-exports functions from the internal CLI package so that
-// integration test modules outside of cmd/piko can exercise the
-// full command dispatch chain without importing internal packages
-// directly. The key entry point is [RunCommandWithIO].
+// It re-exports functions from the internal CLI package so that integration test modules
+// outside of cmd/piko can exercise the full command dispatch chain without importing
+// internal packages directly. The key entry point is [RunCommandWithIO].
 package clitest

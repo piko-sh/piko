@@ -18,10 +18,9 @@
 
 package interp_domain
 
-// frameRootSnapshot captures the VM dispatch state saved across a
-// cross-compile closure call. popFrame restores these values so the
-// caller sees the same functions slice and rootFunction it had
-// before the swap.
+// frameRootSnapshot captures the VM dispatch state saved across a cross-compile closure
+// call. popFrame restores these values so the caller sees the same functions slice and
+// rootFunction it had before the swap.
 type frameRootSnapshot struct {
 	// rootFunction is the caller's rootFunction prior to the swap.
 	rootFunction *CompiledFunction
@@ -32,17 +31,15 @@ type frameRootSnapshot struct {
 
 // swapToClosureRoot points the VM's dispatch tables at the closure's root.
 //
-// The frame-stack caller stores the returned snapshot in
-// vm.rootSnapshots[framePointer] via recordFrameSnapshot so popFrame
-// can restore it. A nil root, or a root that matches the current
-// VM's, is a no-op and returns a nil snapshot.
+// The frame-stack caller stores the returned snapshot in vm.rootSnapshots[framePointer]
+// via recordFrameSnapshot so popFrame can restore it. A nil root, or a root that matches
+// the current VM's, is a no-op and returns a nil snapshot.
 //
-// Takes closureRoot (*CompiledFunction) which is the closure's own
-// rootFunction; may be nil when the closure was authored inside the
-// current compile or lacks provenance.
+// Takes closureRoot (*CompiledFunction) which is the closure's own rootFunction; may be
+// nil when the closure was authored inside the current compile or lacks provenance.
 //
-// Returns *frameRootSnapshot containing the prior dispatch state, or
-// nil when no swap occurred.
+// Returns *frameRootSnapshot containing the prior dispatch state, or nil when no swap
+// occurred.
 func (vm *VM) swapToClosureRoot(closureRoot *CompiledFunction) *frameRootSnapshot {
 	if closureRoot == nil || closureRoot == vm.rootFunction {
 		return nil
@@ -53,18 +50,19 @@ func (vm *VM) swapToClosureRoot(closureRoot *CompiledFunction) *frameRootSnapsho
 	}
 	vm.functions = closureRoot.functions
 	vm.rootFunction = closureRoot
+	vm.usesTypedSliceBanks = vm.usesTypedSliceBanks || bundleUsesTypedSliceBanks(closureRoot)
 	return snapshot
 }
 
-// recordFrameSnapshot stores the given snapshot for the current frame
-// index, growing the parallel rootSnapshots slice when it is shorter
-// than the call stack. A nil snapshot is a no-op when the slot is
-// absent, since the zero value of an absent index is already nil.
+// recordFrameSnapshot stores the given snapshot for the current frame index, growing the
+// parallel rootSnapshots slice when it is shorter than the call stack. A nil snapshot is
+// a no-op when the slot is absent, since the zero value of an absent index is already
+// nil.
 //
-// Takes framePointer (int) which is the index of the frame whose
-// snapshot is being recorded.
-// Takes snapshot (*frameRootSnapshot) which holds the prior dispatch
-// state; nil when no swap occurred.
+// Takes framePointer (int) which is the index of the frame whose snapshot is being
+// recorded.
+// Takes snapshot (*frameRootSnapshot) which holds the prior dispatch state; nil when no
+// swap occurred.
 func (vm *VM) recordFrameSnapshot(framePointer int, snapshot *frameRootSnapshot) {
 	if snapshot == nil && framePointer >= len(vm.rootSnapshots) {
 		return

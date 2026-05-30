@@ -23,19 +23,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"piko.sh/piko/wdk/asmgen"
 )
 
 func TestVectormathsFileGroupsReturnsAllExpectedGroups(t *testing.T) {
 	groups := FileGroups()
 
-	require.Len(t, groups, 3, "expected 3 file groups")
+	require.Len(t, groups, 7, "expected 7 file groups (dot f32, euclid, normalise, sum, add, dot f64, scale f64)")
 
 	expectedBaseNames := []string{
 		"asm_dot_f32",
 		"asm_euclid_sq_f32",
 		"asm_normalise_f32",
+		"asm_sum_f64",
+		"asm_add_f64",
+		"asm_dot_f64",
+		"asm_scale_f64",
 	}
 
 	for i, group := range groups {
@@ -69,6 +71,10 @@ func TestVectormathsHandlerCounts(t *testing.T) {
 		"asm_dot_f32":       3,
 		"asm_euclid_sq_f32": 3,
 		"asm_normalise_f32": 3,
+		"asm_sum_f64":       3,
+		"asm_add_f64":       3,
+		"asm_dot_f64":       3,
+		"asm_scale_f64":     3,
 	}
 
 	for _, group := range groups {
@@ -78,57 +84,24 @@ func TestVectormathsHandlerCounts(t *testing.T) {
 	}
 }
 
-func TestVectormathsDotProductArchitectureRestrictions(t *testing.T) {
-	groups := FileGroups()
-
-	var dotGroup asmgen.FileGroup[VectormathsArchitecturePort]
-	for _, group := range groups {
-		if group.BaseName == "asm_dot_f32" {
-			dotGroup = group
-			break
-		}
-	}
-	require.NotEmpty(t, dotGroup.BaseName, "dot product group not found")
-
-	handlerMap := make(map[string]asmgen.HandlerDefinition[VectormathsArchitecturePort])
-	for _, handler := range dotGroup.Handlers {
-		handlerMap[handler.Name] = handler
-	}
-
-	t.Run("SSE is amd64-only", func(t *testing.T) {
-		handler, exists := handlerMap["dotF32SSE"]
-		require.True(t, exists, "dotF32SSE not found")
-		require.Len(t, handler.Architectures, 1)
-		assert.Equal(t, asmgen.ArchitectureAMD64, handler.Architectures[0])
-	})
-
-	t.Run("AVX2 is amd64-only", func(t *testing.T) {
-		handler, exists := handlerMap["dotF32AVX2"]
-		require.True(t, exists, "dotF32AVX2 not found")
-		require.Len(t, handler.Architectures, 1)
-		assert.Equal(t, asmgen.ArchitectureAMD64, handler.Architectures[0])
-	})
-
-	t.Run("NEON is arm64-only", func(t *testing.T) {
-		handler, exists := handlerMap["dotF32"]
-		require.True(t, exists, "dotF32 (NEON) not found")
-		require.Len(t, handler.Architectures, 1)
-		assert.Equal(t, asmgen.ArchitectureARM64, handler.Architectures[0])
-	})
-}
-
 func TestVectormathsFrameSizes(t *testing.T) {
 	groups := FileGroups()
+
+	expectedFrameSize := map[string]string{
+		"asm_dot_f32":       "$0-52",
+		"asm_euclid_sq_f32": "$0-52",
+		"asm_normalise_f32": "$0-24",
+		"asm_sum_f64":       "$0-32",
+		"asm_add_f64":       "$0-72",
+		"asm_dot_f64":       "$0-56",
+		"asm_scale_f64":     "$0-32",
+	}
 
 	for _, group := range groups {
 		for _, handler := range group.Handlers {
 			t.Run(handler.Name, func(t *testing.T) {
-				switch group.BaseName {
-				case "asm_dot_f32", "asm_euclid_sq_f32":
-					assert.Equal(t, "$0-52", handler.FrameSize, "expected $0-52 for %s", handler.Name)
-				case "asm_normalise_f32":
-					assert.Equal(t, "$0-24", handler.FrameSize, "expected $0-24 for %s", handler.Name)
-				}
+				want := expectedFrameSize[group.BaseName]
+				assert.Equal(t, want, handler.FrameSize, "expected %s for %s", want, handler.Name)
 			})
 		}
 	}

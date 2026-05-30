@@ -1,0 +1,4 @@
+{
+  "description": "Base struct in one file, embedding struct in another, methods spread across files using promotion",
+  "expected": "name=Bob role=Engineer greet=hello-Bob role=Engineer-Bob"
+}

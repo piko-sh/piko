@@ -43,24 +43,23 @@ var (
 	// interpreted mode.
 	InterpretedManifestRunnerRunPageCount metric.Int64Counter
 
-	// InterpretedManifestRunnerRunPageErrorCount tracks RunPage errors in interpreted
-	// mode.
+	// InterpretedManifestRunnerRunPageErrorCount tracks RunPage errors in interpreted mode.
 	InterpretedManifestRunnerRunPageErrorCount metric.Int64Counter
 
 	// InterpretedManifestRunnerRunPageDuration measures RunPage operation duration in
 	// interpreted mode.
 	InterpretedManifestRunnerRunPageDuration metric.Float64Histogram
 
-	// InterpretedManifestRunnerRunPartialCount tracks the number of RunPartial
-	// operations in interpreted mode.
+	// InterpretedManifestRunnerRunPartialCount tracks the number of RunPartial operations in
+	// interpreted mode.
 	InterpretedManifestRunnerRunPartialCount metric.Int64Counter
 
-	// InterpretedManifestRunnerRunPartialErrorCount tracks RunPartial errors in
-	// interpreted mode.
+	// InterpretedManifestRunnerRunPartialErrorCount tracks RunPartial errors in interpreted
+	// mode.
 	InterpretedManifestRunnerRunPartialErrorCount metric.Int64Counter
 
-	// InterpretedManifestRunnerRunPartialDuration measures
-	// RunPartial operation duration in interpreted mode.
+	// InterpretedManifestRunnerRunPartialDuration measures RunPartial operation duration in
+	// interpreted mode.
 	InterpretedManifestRunnerRunPartialDuration metric.Float64Histogram
 
 	// InterpretedManifestRunnerGetPageEntryCount tracks the number of GetPageEntry
@@ -71,56 +70,54 @@ var (
 	// interpreted mode.
 	InterpretedManifestRunnerGetPageEntryErrorCount metric.Int64Counter
 
-	// InterpretedManifestRunnerGetPageEntryDuration measures GetPageEntry operation
-	// duration in interpreted mode.
+	// InterpretedManifestRunnerGetPageEntryDuration measures GetPageEntry operation duration
+	// in interpreted mode.
 	InterpretedManifestRunnerGetPageEntryDuration metric.Float64Histogram
 
-	// InterpretedManifestRunnerCompilationCount tracks the number of template
-	// compilations in interpreted mode.
+	// InterpretedManifestRunnerCompilationCount tracks the number of template compilations
+	// in interpreted mode.
 	InterpretedManifestRunnerCompilationCount metric.Int64Counter
 
-	// InterpretedManifestRunnerCompilationErrorCount tracks
-	// template compilation errors in interpreted mode.
+	// InterpretedManifestRunnerCompilationErrorCount tracks template compilation errors in
+	// interpreted mode.
 	InterpretedManifestRunnerCompilationErrorCount metric.Int64Counter
 
-	// InterpretedManifestRunnerCompilationDuration measures template compilation
-	// duration in interpreted mode.
+	// InterpretedManifestRunnerCompilationDuration measures template compilation duration in
+	// interpreted mode.
 	InterpretedManifestRunnerCompilationDuration metric.Float64Histogram
 
-	// CompiledManifestRunnerRunPageCount tracks the number of RunPage operations
-	// in compiled mode.
+	// CompiledManifestRunnerRunPageCount tracks the number of RunPage operations in compiled
+	// mode.
 	CompiledManifestRunnerRunPageCount metric.Int64Counter
 
-	// CompiledManifestRunnerRunPageErrorCount tracks RunPage errors in compiled
-	// mode.
+	// CompiledManifestRunnerRunPageErrorCount tracks RunPage errors in compiled mode.
 	CompiledManifestRunnerRunPageErrorCount metric.Int64Counter
 
-	// CompiledManifestRunnerRunPageDuration measures RunPage operation duration in
-	// compiled mode.
+	// CompiledManifestRunnerRunPageDuration measures RunPage operation duration in compiled
+	// mode.
 	CompiledManifestRunnerRunPageDuration metric.Float64Histogram
 
-	// CompiledManifestRunnerRunPartialCount tracks the number of RunPartial
-	// operations in compiled mode.
+	// CompiledManifestRunnerRunPartialCount tracks the number of RunPartial operations in
+	// compiled mode.
 	CompiledManifestRunnerRunPartialCount metric.Int64Counter
 
-	// CompiledManifestRunnerRunPartialErrorCount tracks RunPartial errors in
-	// compiled mode.
+	// CompiledManifestRunnerRunPartialErrorCount tracks RunPartial errors in compiled mode.
 	CompiledManifestRunnerRunPartialErrorCount metric.Int64Counter
 
-	// CompiledManifestRunnerRunPartialDuration measures RunPartial operation
-	// duration in compiled mode.
+	// CompiledManifestRunnerRunPartialDuration measures RunPartial operation duration in
+	// compiled mode.
 	CompiledManifestRunnerRunPartialDuration metric.Float64Histogram
 
-	// CompiledManifestRunnerGetPageEntryCount tracks the number of GetPageEntry
-	// operations in compiled mode.
+	// CompiledManifestRunnerGetPageEntryCount tracks the number of GetPageEntry operations
+	// in compiled mode.
 	CompiledManifestRunnerGetPageEntryCount metric.Int64Counter
 
-	// CompiledManifestRunnerGetPageEntryErrorCount tracks GetPageEntry errors in
-	// compiled mode.
+	// CompiledManifestRunnerGetPageEntryErrorCount tracks GetPageEntry errors in compiled
+	// mode.
 	CompiledManifestRunnerGetPageEntryErrorCount metric.Int64Counter
 
-	// CompiledManifestRunnerGetPageEntryDuration measures GetPageEntry operation
-	// duration in compiled mode.
+	// CompiledManifestRunnerGetPageEntryDuration measures GetPageEntry operation duration in
+	// compiled mode.
 	CompiledManifestRunnerGetPageEntryDuration metric.Float64Histogram
 )
 

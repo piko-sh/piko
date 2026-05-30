@@ -43,8 +43,8 @@ const (
 // Takes sourceSelector (string) which identifies the element to drag.
 // Takes targetSelector (string) which identifies the drop target element.
 //
-// Returns error when the source or target element cannot be found, or when
-// the drag operation fails.
+// Returns error when the source or target element cannot be found, or when the drag
+// operation fails.
 func DragAndDrop(ctx *ActionContext, sourceSelector, targetSelector string) error {
 	sourceX, sourceY, err := getElementCentre(ctx, sourceSelector)
 	if err != nil {
@@ -66,8 +66,8 @@ func DragAndDrop(ctx *ActionContext, sourceSelector, targetSelector string) erro
 // Takes targetX (float64) which specifies the target x coordinate.
 // Takes targetY (float64) which specifies the target y coordinate.
 //
-// Returns error when the source element position cannot be determined or the
-// drag operation fails.
+// Returns error when the source element position cannot be determined or the drag
+// operation fails.
 func DragTo(ctx *ActionContext, sourceSelector string, targetX, targetY float64) error {
 	sourceX, sourceY, err := getElementCentre(ctx, sourceSelector)
 	if err != nil {
@@ -94,8 +94,8 @@ func DragByOffset(ctx *ActionContext, selector string, offsetX, offsetY float64)
 	return performDrag(ctx, x, y, x+offsetX, y+offsetY)
 }
 
-// DragAndDropHTML5 performs an HTML5 drag and drop operation using
-// dataTransfer. This is more reliable for HTML5 drag-and-drop implementations.
+// DragAndDropHTML5 performs an HTML5 drag and drop operation using dataTransfer. This is
+// more reliable for HTML5 drag-and-drop implementations.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes sourceSelector (string) which identifies the element to drag.
@@ -145,8 +145,8 @@ func DragAndDropWithData(ctx *ActionContext, sourceSelector, targetSelector stri
 	return nil
 }
 
-// interpolateDragPoint computes the intermediate (x, y) position for a given
-// step in a linear drag operation.
+// interpolateDragPoint computes the intermediate (x, y) position for a given step in a
+// linear drag operation.
 //
 // Takes startX (float64) which specifies the x-coordinate of the drag origin.
 // Takes startY (float64) which specifies the y-coordinate of the drag origin.
@@ -223,14 +223,12 @@ func performDrag(ctx *ActionContext, fromX, fromY, toX, toY float64) error {
 
 // getElementCentre returns the centre coordinates of an element.
 //
-// Takes ctx (*ActionContext) which provides the browser context for
-// executing JavaScript.
+// Takes ctx (*ActionContext) which provides the browser context for executing JavaScript.
 // Takes selector (string) which identifies the element by CSS selector.
 //
 // Returns centreX (float64) which is the horizontal centre of the element.
 // Returns centreY (float64) which is the vertical centre of the element.
-// Returns err (error) when the element cannot be found or the coordinates
-// are invalid.
+// Returns err (error) when the element cannot be found or the coordinates are invalid.
 func getElementCentre(ctx *ActionContext, selector string) (centreX float64, centreY float64, err error) {
 	js := scripts.MustExecute("get_element_centre.js.tmpl", map[string]any{
 		"Selector": selector,

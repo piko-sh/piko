@@ -23,19 +23,20 @@ import (
 	"math"
 )
 
-// minRandomValue is the smallest value used when a random draw returns zero,
-// to avoid log(0) in the level calculation formula.
-const minRandomValue = 1e-10
+const (
+	// minRandomValue is the smallest value used when a random draw returns zero, to avoid
+	// log(0) in the level calculation formula.
+	minRandomValue = 1e-10
+)
 
-// Insert adds a vector to the graph with the given key. If the key already
-// exists, its vector is updated in place.
+// Insert adds a vector to the graph with the given key. If the key already exists, its
+// vector is updated in place.
 //
 // Takes key (K) which identifies the vector.
-// Takes vector ([]float32) which is the vector data. Must match the graph's
-// dimension.
+// Takes vector ([]float32) which is the vector data. Must match the graph's dimension.
 //
-// Returns ErrVectorDimensionMismatch if the vector length does not match the
-// graph's configured dimension.
+// Returns ErrVectorDimensionMismatch if the vector length does not match the graph's
+// configured dimension.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) Insert(key K, vector []float32) error {
@@ -50,18 +51,18 @@ func (g *Graph[K]) Insert(key K, vector []float32) error {
 	return nil
 }
 
-// InsertBatch adds multiple vectors to the graph in a single operation.
-// More efficient than calling Insert in a loop because it acquires the write
-// lock once and amortises the overhead across all insertions.
+// InsertBatch adds multiple vectors to the graph in a single operation. More efficient
+// than calling Insert in a loop because it acquires the write lock once and amortises the
+// overhead across all insertions.
 //
 // Takes keys ([]K) which identifies each vector to insert.
 // Takes vectors ([][]float32) which contains the vector data to insert.
 //
-// Each vector must match the graph's dimension. If lengths differ or either
-// slice is empty, this is a no-op.
+// Each vector must match the graph's dimension. If lengths differ or either slice is
+// empty, this is a no-op.
 //
-// Returns ErrVectorDimensionMismatch if any vector length does not match the
-// graph's configured dimension. No vectors are inserted in that case.
+// Returns ErrVectorDimensionMismatch if any vector length does not match the graph's
+// configured dimension. No vectors are inserted in that case.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
@@ -117,8 +118,8 @@ func (g *Graph[K]) insertLocked(key K, vector []float32) {
 	g.connectNode(insertedNode)
 }
 
-// randomLevel assigns a random layer using the exponential distribution from
-// the HNSW paper: level = floor(-ln(uniform(0,1)) * ml).
+// randomLevel assigns a random layer using the exponential distribution from the HNSW
+// paper: level = floor(-ln(uniform(0,1)) * ml).
 //
 // Returns int which is the assigned level (0-based).
 func (g *Graph[K]) randomLevel() int {
@@ -139,8 +140,8 @@ func (g *Graph[K]) ensureLayers(level int) {
 	}
 }
 
-// connectNode wires a newly inserted node into the graph by finding its
-// nearest neighbours at each layer and adding bidirectional edges.
+// connectNode wires a newly inserted node into the graph by finding its nearest
+// neighbours at each layer and adding bidirectional edges.
 //
 // Takes target (*node[K]) which is the node to connect.
 //
@@ -180,9 +181,9 @@ func (g *Graph[K]) connectNode(target *node[K]) {
 	}
 }
 
-// greedyClosest descends greedily from the start node to find the closest
-// node to the target vector at the given layer. It follows the best neighbour
-// until no improvement is found.
+// greedyClosest descends greedily from the start node to find the closest node to the
+// target vector at the given layer. It follows the best neighbour until no improvement is
+// found.
 //
 // Takes start (*node[K]) which is the starting node.
 // Takes target ([]float32) which is the query vector.
@@ -211,12 +212,11 @@ func (g *Graph[K]) greedyClosest(start *node[K], target []float32, layer int) *n
 	}
 }
 
-// shrinkNeighbours prunes a node's neighbour list at the given layer if it
-// exceeds the limit, keeping only the closest neighbours.
+// shrinkNeighbours prunes a node's neighbour list at the given layer if it exceeds the
+// limit, keeping only the closest neighbours.
 //
-// Scores all neighbours, sorts by distance using insertion sort, then keeps
-// only the closest maxNeighbourCount. Removes back-references from evicted
-// nodes.
+// Scores all neighbours, sorts by distance using insertion sort, then keeps only the
+// closest maxNeighbourCount. Removes back-references from evicted nodes.
 //
 // Takes target (*node[K]) which is the node to prune.
 // Takes layer (int) which is the layer index.
@@ -265,12 +265,11 @@ func (g *Graph[K]) shrinkNeighbours(target *node[K], layer, maxNeighbourCount in
 	target.neighbours[layer] = neighbours[:maxNeighbourCount]
 }
 
-// selectNearest selects up to limit items from the candidate list, keeping
-// those closest to the query. The candidates must be sorted by distance with
-// the nearest first.
+// selectNearest selects up to limit items from the candidate list, keeping those closest
+// to the query. The candidates must be sorted by distance with the nearest first.
 //
-// Takes candidates ([]priorityQueueItem[K]) which are the candidate items
-// sorted by distance, nearest first.
+// Takes candidates ([]priorityQueueItem[K]) which are the candidate items sorted by
+// distance, nearest first.
 // Takes limit (int) which is the maximum number of neighbours to return.
 //
 // Returns []priorityQueueItem[K] containing at most limit nearest items.

@@ -142,7 +142,9 @@ func (*mockCryptoService) Close(context.Context) error {
 	panic("not implemented")
 }
 
-var _ crypto_domain.CryptoServicePort = (*mockCryptoService)(nil)
+var (
+	_ crypto_domain.CryptoServicePort = (*mockCryptoService)(nil)
+)
 
 func TestNew_DefaultValues(t *testing.T) {
 	t.Parallel()

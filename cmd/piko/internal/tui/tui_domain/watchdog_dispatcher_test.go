@@ -20,11 +20,19 @@ package tui_domain
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
 
-const dispatcherTestTimeout = 2 * time.Second
+const (
+	dispatcherTestTimeout = 2 * time.Second
+)
+
+var (
+	errDispatcherTestCancelled = errors.New("dispatcher test cancelled")
+	errDispatcherDropTestEnded = errors.New("dispatcher drop test ended")
+)
 
 func newTestDispatcher(t *testing.T) (*EventDispatcher, *MockWatchdogProvider, context.CancelFunc) {
 	t.Helper()
@@ -33,7 +41,8 @@ func newTestDispatcher(t *testing.T) (*EventDispatcher, *MockWatchdogProvider, c
 	dispatcher.SetBackoff(10*time.Millisecond, 50*time.Millisecond)
 	dispatcher.SetHistoryCap(64)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, causeCancel := context.WithCancelCause(context.Background())
+	cancel := func() { causeCancel(errDispatcherTestCancelled) }
 	dispatcher.Start(ctx)
 
 	t.Cleanup(func() {
@@ -192,7 +201,8 @@ func TestDispatcherDropCounters(t *testing.T) {
 
 	dispatcher.subscriberBuffer = 1
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, causeCancel := context.WithCancelCause(context.Background())
+	cancel := func() { causeCancel(errDispatcherDropTestEnded) }
 	t.Cleanup(func() { cancel(); dispatcher.Stop() })
 	dispatcher.Start(ctx)
 	waitForState(t, dispatcher, WatchdogStreamConnected)

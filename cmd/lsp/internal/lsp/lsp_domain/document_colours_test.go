@@ -27,7 +27,9 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-const floatTolerance = 0.01
+const (
+	floatTolerance = 0.01
+)
 
 func floatEqual(a, b float64) bool {
 	return math.Abs(a-b) < floatTolerance

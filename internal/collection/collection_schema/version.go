@@ -24,22 +24,24 @@ import (
 	"piko.sh/piko/internal/fbs"
 )
 
-//go:embed collection.fbs
-var schemaContent []byte
+var (
+	//go:embed collection.fbs
+	schemaContent []byte
 
-// SchemaHash is the SHA-256 hash of collection.fbs, computed at init time.
-// This hash changes whenever the schema file is modified, so the
-// cache invalidates automatically when the schema evolves.
-var SchemaHash = fbs.ComputeSchemaHash(schemaContent)
+	// SchemaHash is the SHA-256 hash of collection.fbs, computed at init time. This hash
+	// changes whenever the schema file is modified, so the cache invalidates automatically
+	// when the schema evolves.
+	SchemaHash = fbs.ComputeSchemaHash(schemaContent)
+)
 
-// Pack wraps a serialised Collection FlatBuffer with the schema version hash.
-// The returned slice has format: [32-byte hash][payload].
+// Pack wraps a serialised Collection FlatBuffer with the schema version hash. The
+// returned slice has format: [32-byte hash][payload].
 func Pack(payload []byte) []byte {
 	return fbs.PackAlloc(SchemaHash, payload)
 }
 
-// PackInto writes the schema hash and payload into dst.
-// dst must have length >= fbs.PackedSize(len(payload)).
+// PackInto writes the schema hash and payload into dst. dst must have length >=
+// fbs.PackedSize(len(payload)).
 // Returns the number of bytes written.
 //
 // Use this zero-allocation variant in hot paths where the buffer is reused.
@@ -48,16 +50,16 @@ func PackInto(dst, payload []byte) int {
 }
 
 // Unpack validates the schema hash and returns the raw FlatBuffer payload.
-// Returns fbs.ErrSchemaVersionMismatch if the stored hash doesn't match
-// the current schema version (indicating stale cache data).
+// Returns fbs.ErrSchemaVersionMismatch if the stored hash doesn't match the current
+// schema version (indicating stale cache data).
 //
 // The returned slice is a zero-copy view into the original data.
 func Unpack(data []byte) ([]byte, error) {
 	return fbs.Unpack(SchemaHash, data)
 }
 
-// Validate checks if data was serialised with the current schema version.
-// This is a fast check that doesn't extract the payload.
+// Validate checks if data was serialised with the current schema version. This is a fast
+// check that doesn't extract the payload.
 func Validate(data []byte) bool {
 	return fbs.ValidateHash(SchemaHash, data)
 }

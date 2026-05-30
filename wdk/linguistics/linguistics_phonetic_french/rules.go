@@ -70,16 +70,16 @@ const (
 	// QuadgraphLength is the length of a quadgraph in characters.
 	QuadgraphLength = 4
 
-	// minWordLengthForEntRemoval is the minimum word length required before
-	// removing -ENT suffix. Words must be longer than this to avoid removing the
-	// suffix from roots like "VENT", "DENT".
+	// minWordLengthForEntRemoval is the minimum word length required before removing -ENT
+	// suffix. Words must be longer than this to avoid removing the suffix from roots like
+	// "VENT", "DENT".
 	minWordLengthForEntRemoval = 4
 
 	// entSuffixLength is the length of the "-ent" verb ending suffix.
 	entSuffixLength = 3
 
-	// minWordLengthForSilentConsonant is the minimum word length required for
-	// silent consonant removal.
+	// minWordLengthForSilentConsonant is the minimum word length required for silent
+	// consonant removal.
 	minWordLengthForSilentConsonant = 2
 )
 
@@ -109,9 +109,8 @@ func isFrenchConsonant(character byte) bool {
 	return !isFrenchVowel(character)
 }
 
-// isNasalFollower reports whether the character at the given position can
-// follow a nasal vowel. In French, M and N before a consonant or at word end
-// create nasal vowels.
+// isNasalFollower reports whether the character at the given position can follow a nasal
+// vowel. In French, M and N before a consonant or at word end create nasal vowels.
 //
 // Takes word (string) which is the word to check.
 // Takes position (int) which is the position of the character in the word.

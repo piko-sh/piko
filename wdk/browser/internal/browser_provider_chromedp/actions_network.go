@@ -91,8 +91,8 @@ type NetworkTracker struct {
 	mu sync.RWMutex
 }
 
-// NewNetworkTracker creates a new network tracker.
-// Call StartTracking to begin capturing requests.
+// NewNetworkTracker creates a new network tracker. Call StartTracking to begin capturing
+// requests.
 //
 // Returns *NetworkTracker which is ready to track network requests.
 func NewNetworkTracker() *NetworkTracker {
@@ -106,8 +106,7 @@ func NewNetworkTracker() *NetworkTracker {
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 //
-// Returns error when enabling the network domain or setting up interceptors
-// fails.
+// Returns error when enabling the network domain or setting up interceptors fails.
 //
 // Safe for concurrent use. Protects internal state with a mutex.
 func (nt *NetworkTracker) StartTracking(ctx *ActionContext) error {
@@ -220,8 +219,7 @@ func (ri *RequestInterceptor) AddMock(urlPattern string, response MockResponse) 
 
 // RemoveMock removes a mock response for the given URL pattern.
 //
-// Takes urlPattern (string) which is the pattern to remove from the mock
-// registry.
+// Takes urlPattern (string) which is the pattern to remove from the mock registry.
 //
 // Safe for concurrent use.
 func (ri *RequestInterceptor) RemoveMock(urlPattern string) {
@@ -318,12 +316,12 @@ func (ri *RequestInterceptor) Disable(ctx *ActionContext) error {
 	return nil
 }
 
-// WaitForNetworkIdle waits until no network requests have been made for the
-// specified duration.
+// WaitForNetworkIdle waits until no network requests have been made for the specified
+// duration.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
-// Takes idleDuration (time.Duration) which specifies how long the network must
-// be idle before returning.
+// Takes idleDuration (time.Duration) which specifies how long the network must be idle
+// before returning.
 // Takes timeout (time.Duration) which sets the maximum time to wait for idle.
 //
 // Returns error when the JavaScript execution fails or the context is invalid.
@@ -391,8 +389,8 @@ func WaitForRequest(ctx *ActionContext, matcher RequestMatcher, timeout time.Dur
 	return nil, fmt.Errorf("timeout waiting for request matching %+v", matcher)
 }
 
-// InterceptRequest sets up a simple request interceptor using JavaScript.
-// This is easier to use than CDP fetch for basic mocking scenarios.
+// InterceptRequest sets up a simple request interceptor using JavaScript. This is easier
+// to use than CDP fetch for basic mocking scenarios.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes urlPattern (string) which specifies the URL pattern to intercept.
@@ -460,8 +458,7 @@ func getString(m map[string]any, key string) string {
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 //
-// Returns []NetworkRequest which contains the network requests tracked on the
-// page.
+// Returns []NetworkRequest which contains the network requests tracked on the page.
 // Returns error when the JavaScript evaluation fails.
 func getTrackedRequests(ctx *ActionContext) ([]NetworkRequest, error) {
 	js := `window.__networkRequests || []`
@@ -481,11 +478,10 @@ func getTrackedRequests(ctx *ActionContext) ([]NetworkRequest, error) {
 	return requests, nil
 }
 
-// parseTrackedRequestEntry converts a JavaScript object (map) into a
-// NetworkRequest.
+// parseTrackedRequestEntry converts a JavaScript object (map) into a NetworkRequest.
 //
-// Takes m (map[string]any) which holds the raw key-value pairs from the
-// browser-side tracker.
+// Takes m (map[string]any) which holds the raw key-value pairs from the browser-side
+// tracker.
 //
 // Returns NetworkRequest which contains the parsed request data.
 func parseTrackedRequestEntry(m map[string]any) NetworkRequest {

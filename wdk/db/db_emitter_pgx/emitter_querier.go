@@ -28,12 +28,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// EmitQuerier generates the top-level querier scaffold containing the DBTX
-// interface, Queries struct, New constructor, WithTx helper, and RunInTx
-// convenience method for the pgx runtime.
+// EmitQuerier generates the top-level querier scaffold containing the DBTX interface,
+// Queries struct, New constructor, WithTx helper, and RunInTx convenience method for the
+// pgx runtime.
 //
-// Takes packageName (string) which is the Go package name for the generated
-// code.
+// Takes packageName (string) which is the Go package name for the generated code.
 //
 // Returns querier_dto.GeneratedFile which contains the querier.go source.
 // Returns error when code generation fails.
@@ -62,8 +61,8 @@ func (*PgxEmitter) EmitQuerier(packageName string, _ querier_dto.QueryCapabiliti
 	}, nil
 }
 
-// buildDBTXInterface constructs the DBTX interface type declaration for the
-// pgx runtime, including Exec, Query, QueryRow, SendBatch, and CopyFrom.
+// buildDBTXInterface constructs the DBTX interface type declaration for the pgx runtime,
+// including Exec, Query, QueryRow, SendBatch, and CopyFrom.
 //
 // Returns *ast.GenDecl which is the type DBTX interface { ... } declaration.
 func buildDBTXInterface() *ast.GenDecl {
@@ -114,8 +113,8 @@ func buildDBTXQueryMethod() *ast.Field {
 	}
 }
 
-// buildDBTXQueryRowMethod constructs the QueryRow(ctx, sql, args...) pgx.Row
-// interface method.
+// buildDBTXQueryRowMethod constructs the QueryRow(ctx, sql, args...) pgx.Row interface
+// method.
 //
 // Returns *ast.Field which is the QueryRow method declaration.
 func buildDBTXQueryRowMethod() *ast.Field {
@@ -171,8 +170,8 @@ func buildDBTXCopyFromMethod() *ast.Field {
 	}
 }
 
-// buildDBTXCommonParams constructs the common parameter list shared by Exec,
-// Query, and QueryRow: (ctx context.Context, sql string, args ...any).
+// buildDBTXCommonParams constructs the common parameter list shared by Exec, Query, and
+// QueryRow: (ctx context.Context, sql string, args ...any).
 //
 // Returns *ast.FieldList which defines the common parameters.
 func buildDBTXCommonParams() *ast.FieldList {
@@ -186,9 +185,9 @@ func buildDBTXCommonParams() *ast.FieldList {
 	)
 }
 
-// buildQueriesStruct constructs the Queries struct type declaration with a
-// single db DBTX field. Unlike the database/sql emitter, pgx does not use
-// reader/writer splitting since pgx pools handle this natively.
+// buildQueriesStruct constructs the Queries struct type declaration with a single db DBTX
+// field. Unlike the database/sql emitter, pgx does not use reader/writer splitting since
+// pgx pools handle this natively.
 //
 // Returns *ast.GenDecl which is the type Queries struct { db DBTX } declaration.
 func buildQueriesStruct() *ast.GenDecl {
@@ -222,8 +221,8 @@ func buildNewFunction() *ast.FuncDecl {
 	)
 }
 
-// buildWithTxMethod constructs the WithTx(tx pgx.Tx) *Queries method on the
-// Queries struct.
+// buildWithTxMethod constructs the WithTx(tx pgx.Tx) *Queries method on the Queries
+// struct.
 //
 // Returns *ast.FuncDecl which is the WithTx method declaration with receiver.
 func buildWithTxMethod() *ast.FuncDecl {
@@ -253,9 +252,9 @@ func buildWithTxMethod() *ast.FuncDecl {
 	}
 }
 
-// buildRunInTxMethod constructs the RunInTx method on the Queries struct,
-// providing a convenience wrapper for running a function inside a pgx
-// transaction. Uses pool.Begin(ctx) and passes ctx to Rollback and Commit.
+// buildRunInTxMethod constructs the RunInTx method on the Queries struct, providing a
+// convenience wrapper for running a function inside a pgx transaction. Uses
+// pool.Begin(ctx) and passes ctx to Rollback and Commit.
 //
 // Returns *ast.FuncDecl which is the RunInTx method declaration.
 func buildRunInTxMethod() *ast.FuncDecl {
@@ -272,8 +271,8 @@ func buildRunInTxMethod() *ast.FuncDecl {
 	}
 }
 
-// buildRunInTxParams constructs the parameter list for the RunInTx method.
-// Uses pgx.Tx from pool.Begin(ctx) rather than *sql.DB.BeginTx.
+// buildRunInTxParams constructs the parameter list for the RunInTx method. Uses pgx.Tx
+// from pool.Begin(ctx) rather than *sql.DB.BeginTx.
 //
 // Returns *ast.FieldList which defines (ctx, pool, fn) parameters.
 func buildRunInTxParams() *ast.FieldList {
@@ -291,9 +290,9 @@ func buildRunInTxParams() *ast.FieldList {
 	)
 }
 
-// buildRunInTxBody constructs the body statements for the RunInTx method,
-// including pool.Begin(ctx), defer tx.Rollback(ctx), fn call, and
-// tx.Commit(ctx). Note that pgx methods take ctx, unlike database/sql.
+// buildRunInTxBody constructs the body statements for the RunInTx method, including
+// pool.Begin(ctx), defer tx.Rollback(ctx), fn call, and tx.Commit(ctx). Note that pgx
+// methods take ctx, unlike database/sql.
 //
 // Returns []ast.Stmt which are the method body statements.
 func buildRunInTxBody() []ast.Stmt {

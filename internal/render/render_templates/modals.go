@@ -66,20 +66,20 @@ type BasePageData struct {
 	// CSRFEphemeralToken is the raw ephemeral token for CSRF protection.
 	CSRFEphemeralToken string
 
-	// DevWidgetHTML contains the HTML for the dev tools overlay widget element.
-	// Only set in development mode; empty in production.
+	// DevWidgetHTML contains the HTML for the dev tools overlay widget element. Only set in
+	// development mode; empty in production.
 	DevWidgetHTML string
 
-	// FontsHTML contains the HTML markup for loading web fonts.
-	// This is []byte to enable zero-allocation font link generation.
+	// FontsHTML contains the HTML markup for loading web fonts. This is []byte to enable
+	// zero-allocation font link generation.
 	FontsHTML []byte
 
-	// FaviconsHTML contains pre-rendered HTML markup for favicon link elements.
-	// This is []byte to enable zero-allocation favicon link generation.
+	// FaviconsHTML contains pre-rendered HTML markup for favicon link elements. This is
+	// []byte to enable zero-allocation favicon link generation.
 	FaviconsHTML []byte
 
-	// CSRFActionToken is the CSRF action token for page-wide protection via meta tags.
-	// This is []byte to enable zero-allocation CSRF token generation.
+	// CSRFActionToken is the CSRF action token for page-wide protection via meta tags. This
+	// is []byte to enable zero-allocation CSRF token generation.
 	CSRFActionToken []byte
 
 	// OGTags contains Open Graph meta tags for social media sharing.
@@ -106,15 +106,15 @@ type BasePageData struct {
 	// ThemeCSSSRIHash is the SRI integrity hash for the theme CSS stylesheet.
 	ThemeCSSSRIHash string
 
-	// PKScriptMetas lists all client-side JavaScript modules needed by this page.
-	// This includes the page's own script (if any) plus scripts from all embedded
-	// partials. Each script is loaded as an ES module to enable p-on:* handlers.
-	// Each entry includes the URL and optional partial name for function scoping.
+	// PKScriptMetas lists all client-side JavaScript modules needed by this page. This
+	// includes the page's own script (if any) plus scripts from all embedded partials. Each
+	// script is loaded as an ES module to enable p-on:* handlers. Each entry includes the
+	// URL and optional partial name for function scoping.
 	PKScriptMetas []templater_dto.JSScriptMeta
 
-	// WidgetScripts lists classic (non-module) script URLs that need loading
-	// during soft navigation. Emitted as meta[name="pk-widget-script"] tags in
-	// the footer so the framework can discover and load them dynamically.
+	// WidgetScripts lists classic (non-module) script URLs that need loading during soft
+	// navigation. Emitted as meta[name="pk-widget-script"] tags in the footer so the
+	// framework can discover and load them dynamically.
 	WidgetScripts []string
 }
 
@@ -144,8 +144,8 @@ type FragmentPageData struct {
 	// Title is the page title shown in the browser tab.
 	Title string
 
-	// CSRFActionToken is the CSRF action token for page-wide protection via meta tags.
-	// This is []byte to enable zero-allocation CSRF token generation.
+	// CSRFActionToken is the CSRF action token for page-wide protection via meta tags. This
+	// is []byte to enable zero-allocation CSRF token generation.
 	CSRFActionToken []byte
 
 	// SvgSpriteSheet contains the SVG sprite definitions for icons used on the page.
@@ -157,15 +157,15 @@ type FragmentPageData struct {
 	// OGTags contains Open Graph meta tags for the page.
 	OGTags []templater_dto.OGTag
 
-	// PKScriptMetas lists all client-side JavaScript modules needed by this page.
-	// This includes the page's own script (if any) plus scripts from all embedded
-	// partials. Each script is loaded as an ES module to enable p-on:* handlers.
-	// Each entry includes the URL and optional partial name for function scoping.
+	// PKScriptMetas lists all client-side JavaScript modules needed by this page. This
+	// includes the page's own script (if any) plus scripts from all embedded partials. Each
+	// script is loaded as an ES module to enable p-on:* handlers. Each entry includes the
+	// URL and optional partial name for function scoping.
 	PKScriptMetas []templater_dto.JSScriptMeta
 
-	// WidgetScripts lists classic (non-module) script URLs that need loading
-	// during soft navigation. Emitted as meta[name="pk-widget-script"] tags in
-	// the footer so the framework can discover and load them dynamically.
+	// WidgetScripts lists classic (non-module) script URLs that need loading during soft
+	// navigation. Emitted as meta[name="pk-widget-script"] tags in the footer so the
+	// framework can discover and load them dynamically.
 	WidgetScripts []string
 
 	// AlternateLinks contains alternate link metadata for the page.

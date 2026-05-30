@@ -18,7 +18,9 @@
 
 package lsp_domain
 
-import "piko.sh/piko/internal/annotator/annotator_dto"
+import (
+	"piko.sh/piko/internal/annotator/annotator_dto"
+)
 
 const (
 	// DiagCodeTypeMismatch is the diagnostic code for prop type mismatch errors.
@@ -27,24 +29,24 @@ const (
 	// DiagCodeUndefinedVariable is the diagnostic code for undefined variables.
 	DiagCodeUndefinedVariable = annotator_dto.CodeUndefinedVariable
 
-	// DiagCodeUndefinedPartialAlias is the diagnostic code for references to
-	// partial template aliases that are not defined.
+	// DiagCodeUndefinedPartialAlias is the diagnostic code for references to partial
+	// template aliases that are not defined.
 	DiagCodeUndefinedPartialAlias = annotator_dto.CodeUndefinedPartialAlias
 
-	// DiagCodeMissingRequiredProp is the diagnostic code for a missing required
-	// property in a schema.
+	// DiagCodeMissingRequiredProp is the diagnostic code for a missing required property in
+	// a schema.
 	DiagCodeMissingRequiredProp = annotator_dto.CodeMissingRequiredProp
 
-	// DiagCodeShadowsBuiltin is the diagnostic code for names that shadow
-	// builtin identifiers.
+	// DiagCodeShadowsBuiltin is the diagnostic code for names that shadow builtin
+	// identifiers.
 	DiagCodeShadowsBuiltin = annotator_dto.CodeVariableShadowing
 
 	// DiagCodeMissingImport is the diagnostic code for a missing import.
 	DiagCodeMissingImport = annotator_dto.CodeUnresolvedImport
 )
 
-// typeMismatchData holds details for type mismatch diagnostics.
-// Used by generateCoerceFix to add coerce:"true" tags to struct fields.
+// typeMismatchData holds details for type mismatch diagnostics. Used by generateCoerceFix
+// to add coerce:"true" tags to struct fields.
 type typeMismatchData struct {
 	// PropDefPath is the path to the file where the property is defined.
 	PropDefPath string `json:"prop_def_path"`
@@ -59,8 +61,8 @@ type typeMismatchData struct {
 	CanCoerce bool `json:"can_coerce"`
 }
 
-// undefinedVariableData holds data for undefined variable diagnostics.
-// Used by generateUndefinedVariableFixes to suggest typo fixes or add props.
+// undefinedVariableData holds data for undefined variable diagnostics. Used by
+// generateUndefinedVariableFixes to suggest typo fixes or add props.
 type undefinedVariableData struct {
 	// Suggestion is a possible spelling fix for the undefined variable.
 	Suggestion string `json:"suggestion"`
@@ -76,8 +78,8 @@ type undefinedVariableData struct {
 }
 
 // undefinedPartialAliasData holds structured data for undefined partial alias
-// diagnostics. Used by generateUndefinedPartialAliasFixes to suggest
-// corrections or add imports.
+// diagnostics. Used by generateUndefinedPartialAliasFixes to suggest corrections or add
+// imports.
 type undefinedPartialAliasData struct {
 	// Suggestion is the corrected partial name for typo fixes.
 	Suggestion string `json:"suggestion"`
@@ -89,9 +91,8 @@ type undefinedPartialAliasData struct {
 	PotentialPath string `json:"potential_path"`
 }
 
-// missingRequiredPropData holds structured data for missing required prop
-// diagnostics. Used by generateAddMissingPropFix to insert the missing prop
-// into the component tag.
+// missingRequiredPropData holds structured data for missing required prop diagnostics.
+// Used by generateAddMissingPropFix to insert the missing prop into the component tag.
 type missingRequiredPropData struct {
 	// PropName is the name of the missing required prop to add.
 	PropName string `json:"prop_name"`
@@ -103,8 +104,8 @@ type missingRequiredPropData struct {
 	SuggestedValue string `json:"suggested_value"`
 }
 
-// missingImportData holds data for a missing import diagnostic.
-// Used by generateAddImportFix to add import statements to the script block.
+// missingImportData holds data for a missing import diagnostic. Used by
+// generateAddImportFix to add import statements to the script block.
 type missingImportData struct {
 	// Alias is the short name for the import statement.
 	Alias string `json:"alias"`

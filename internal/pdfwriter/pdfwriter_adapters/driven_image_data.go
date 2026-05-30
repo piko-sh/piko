@@ -18,8 +18,8 @@
 
 package pdfwriter_adapters
 
-// Implements ImageDataPort by fetching image bytes from the registry service.
-// Follows the same pattern as the email asset resolver at
+// Implements ImageDataPort by fetching image bytes from the registry service. Follows the
+// same pattern as the email asset resolver at
 // internal/email/email_adapters/asset_resolver/driven_registry.go.
 
 import (
@@ -36,41 +36,41 @@ import (
 )
 
 const (
-	// minimumMagicByteLength holds the minimum number of bytes needed to
-	// detect an image format from its magic bytes.
+	// minimumMagicByteLength holds the minimum number of bytes needed to detect an image
+	// format from its magic bytes.
 	minimumMagicByteLength = 4
 
-	// maxImageSize is the upper bound for image data reads to guard against
-	// excessively large images (100 MiB).
+	// maxImageSize is the upper bound for image data reads to guard against excessively
+	// large images (100 MiB).
 	maxImageSize = 100 << 20
 
-	// base64DecodeNumerator and base64DecodeDenominator approximate the decoded
-	// length of a base64 string: every four input characters decode to three
-	// bytes, so the decoded size is len(encoded) * 3 / 4. The estimate is used
-	// only to short-circuit oversized payloads before the full decode runs.
+	// base64DecodeNumerator and base64DecodeDenominator approximate the decoded length of a
+	// base64 string: every four input characters decode to three bytes, so the decoded size
+	// is len(encoded) * 3 / 4. The estimate is used only to short-circuit oversized payloads
+	// before the full decode runs.
 	base64DecodeNumerator = 3
 
-	// base64DecodeDenominator is the denominator paired with
-	// base64DecodeNumerator for the size estimate.
+	// base64DecodeDenominator is the denominator paired with base64DecodeNumerator for the
+	// size estimate.
 	base64DecodeDenominator = 4
 )
 
 var (
-	// errImageArtefactNotFound is returned when the registry does not contain
-	// an artefact for the requested image source.
+	// errImageArtefactNotFound is returned when the registry does not contain an artefact
+	// for the requested image source.
 	errImageArtefactNotFound = errors.New("artefact not found for image")
 
-	// errImageNoVariants is returned when an image artefact has no available
-	// variants to read data from.
+	// errImageNoVariants is returned when an image artefact has no available variants to
+	// read data from.
 	errImageNoVariants = errors.New("no variants available for image")
 
-	// errImageUnsupportedFormat is returned when the image data cannot be
-	// identified as a supported format (JPEG or PNG).
+	// errImageUnsupportedFormat is returned when the image data cannot be identified as a
+	// supported format (JPEG or PNG).
 	errImageUnsupportedFormat = errors.New("unsupported image format")
 
-	// ErrImageDataTooLarge is returned when image bytes exceed the maximum
-	// allowed size, indicating that the source has overflowed maxImageSize
-	// rather than been silently truncated.
+	// ErrImageDataTooLarge is returned when image bytes exceed the maximum allowed size,
+	// indicating that the source has overflowed maxImageSize rather than been silently
+	// truncated.
 	ErrImageDataTooLarge = errors.New("image data exceeds maximum allowed size")
 )
 
@@ -90,19 +90,18 @@ var (
 	_ pdfwriter_domain.ImageDataPort = (*MockImageDataAdapter)(nil)
 )
 
-// RegistryImageDataAdapter implements ImageDataPort by delegating to the
-// registry service to fetch image bytes.
+// RegistryImageDataAdapter implements ImageDataPort by delegating to the registry service
+// to fetch image bytes.
 type RegistryImageDataAdapter struct {
-	// registryService holds the registry service used to fetch artefacts
-	// and variant data.
+	// registryService holds the registry service used to fetch artefacts and variant data.
 	registryService registry_domain.RegistryService
 }
 
-// NewRegistryImageDataAdapter creates an adapter that fetches image data
-// from the registry service.
+// NewRegistryImageDataAdapter creates an adapter that fetches image data from the
+// registry service.
 //
-// Takes registryService (registry_domain.RegistryService) which provides
-// artefact and variant data access.
+// Takes registryService (registry_domain.RegistryService) which provides artefact and
+// variant data access.
 //
 // Returns *RegistryImageDataAdapter which implements ImageDataPort.
 func NewRegistryImageDataAdapter(registryService registry_domain.RegistryService) *RegistryImageDataAdapter {
@@ -111,9 +110,9 @@ func NewRegistryImageDataAdapter(registryService registry_domain.RegistryService
 	}
 }
 
-// GetImageData fetches the raw image bytes for the given source path
-// from the registry. It looks up the artefact, selects the source
-// variant, and returns the bytes with the detected format.
+// GetImageData fetches the raw image bytes for the given source path from the registry.
+// It looks up the artefact, selects the source variant, and returns the bytes with the
+// detected format.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes source (string) which is the image source path.
@@ -196,30 +195,29 @@ func detectImageFormat(data []byte) string {
 	return ""
 }
 
-// DataURIImageDataAdapter implements ImageDataPort by decoding inline
-// data URIs (e.g. "data:image/png;base64,...").
+// DataURIImageDataAdapter implements ImageDataPort by decoding inline data URIs (e.g.
+// "data:image/png;base64,...").
 //
-// Non-data-URI sources are delegated to an optional fallback; if no
-// fallback is configured the source is silently skipped.
+// Non-data-URI sources are delegated to an optional fallback; if no fallback is
+// configured the source is silently skipped.
 type DataURIImageDataAdapter struct {
-	// fallback holds the optional delegate adapter consulted for
-	// non-data-URI sources.
+	// fallback holds the optional delegate adapter consulted for non-data-URI sources.
 	fallback pdfwriter_domain.ImageDataPort
 }
 
-// NewDataURIImageDataAdapter creates an adapter that decodes data URI
-// image sources. An optional fallback handles non-data-URI sources.
+// NewDataURIImageDataAdapter creates an adapter that decodes data URI image sources. An
+// optional fallback handles non-data-URI sources.
 //
-// Takes fallback (ImageDataPort) which is consulted for non-data-URI
-// sources, or nil to silently skip them.
+// Takes fallback (ImageDataPort) which is consulted for non-data-URI sources, or nil to
+// silently skip them.
 //
 // Returns *DataURIImageDataAdapter which implements ImageDataPort.
 func NewDataURIImageDataAdapter(fallback pdfwriter_domain.ImageDataPort) *DataURIImageDataAdapter {
 	return &DataURIImageDataAdapter{fallback: fallback}
 }
 
-// GetImageData decodes a data URI into raw image bytes and format.
-// For non-data-URI sources, delegates to the fallback adapter.
+// GetImageData decodes a data URI into raw image bytes and format. For non-data-URI
+// sources, delegates to the fallback adapter.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes source (string) which is the image source (data URI or path).
@@ -272,16 +270,15 @@ func (a *DataURIImageDataAdapter) GetImageData(ctx context.Context, source strin
 	return data, format, nil
 }
 
-// MockImageDataAdapter is a test double for ImageDataPort that uses
-// a function field for overriding behaviour.
+// MockImageDataAdapter is a test double for ImageDataPort that uses a function field for
+// overriding behaviour.
 type MockImageDataAdapter struct {
-	// GetImageDataFunc is an optional override. When nil, returns an
-	// error indicating no image data is available.
+	// GetImageDataFunc is an optional override. When nil, returns an error indicating no
+	// image data is available.
 	GetImageDataFunc func(ctx context.Context, source string) ([]byte, string, error)
 }
 
-// GetImageData delegates to the function field if set, otherwise
-// returns an error.
+// GetImageData delegates to the function field if set, otherwise returns an error.
 //
 // Takes source (string) which is the image source path or data URI.
 //

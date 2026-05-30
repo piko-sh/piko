@@ -16,12 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package annotator_dto defines data transfer objects for the
-// annotator module.
+// Package annotator_dto defines data transfer objects for the annotator module.
 //
-// It contains the structures used to pass data between the stages
-// of the annotation pipeline: parsing, graph building, module
-// virtualisation, expansion, and linking. These types bridge the
-// Piko-centric world of components and the Go-centric world of
-// packages and types.
+// It contains the structures used to pass data between the stages of the annotation
+// pipeline: parsing, graph building, module virtualisation, expansion, and linking. These
+// types bridge the Piko-centric world of components and the Go-centric world of packages
+// and types.
 package annotator_dto

@@ -22,48 +22,46 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ProjectAnnotationResult holds the results of a full project build. It
-// contains the annotation results for each component and the overall project
-// structure.
+// ProjectAnnotationResult holds the results of a full project build. It contains the
+// annotation results for each component and the overall project structure.
 type ProjectAnnotationResult struct {
 	// FinalGeneratedArtefacts holds the fully-emitted code for each component.
 	//
-	// Populated by the coordinator after code emission and contains the
-	// complete, executable Go code (including BuildAST, init(), etc.) that is
-	// either compiled (in dev/prod modes) or interpreted (in dev-i mode).
-	// Critical for interpreted mode to receive the correct code.
+	// Populated by the coordinator after code emission and contains the complete, executable
+	// Go code (including BuildAST, init(), etc.) that is either compiled (in dev/prod modes)
+	// or interpreted (in dev-i mode). Critical for interpreted mode to receive the correct
+	// code.
 	//
-	// Type: any (actual type is []*generator_dto.GeneratedArtefact).
-	// Uses any to avoid import cycles between annotator and generator.
+	// Type: any (actual type is []*generator_dto.GeneratedArtefact). Uses any to avoid
+	// import cycles between annotator and generator.
 	FinalGeneratedArtefacts any
 
-	// ComponentResults maps each component's stable hashed name to its full
-	// annotation result. This is the main output, containing results for both
-	// pages and partials.
+	// ComponentResults maps each component's stable hashed name to its full annotation
+	// result. This is the main output, containing results for both pages and partials.
 	ComponentResults map[string]*AnnotationResult
 
-	// AllSourceContents maps each source file path to its content. This data is
-	// used to show detailed error messages for the whole project build.
+	// AllSourceContents maps each source file path to its content. This data is used to show
+	// detailed error messages for the whole project build.
 	AllSourceContents map[string][]byte
 
-	// VirtualModule holds the full Go structure of the project. The generator uses
-	// this to find all components, their package paths, and output file locations.
+	// VirtualModule holds the full Go structure of the project. The generator uses this to
+	// find all components, their package paths, and output file locations.
 	VirtualModule *VirtualModule
 
-	// AllDiagnostics holds all errors and warnings found across the entire
-	// project during all compilation stages.
+	// AllDiagnostics holds all errors and warnings found across the entire project during
+	// all compilation stages.
 	AllDiagnostics []*ast_domain.Diagnostic
 
-	// FinalAssetManifest holds the complete list of static asset dependencies
-	// found across the project, with duplicates removed.
+	// FinalAssetManifest holds the complete list of static asset dependencies found across
+	// the project, with duplicates removed.
 	FinalAssetManifest []*FinalAssetDependency
 
-	// AnnotatedComponentCount tracks how many components were actually
-	// processed during Phase 2 annotation. For scoped rebuilds this will be
-	// less than the total number of components in the project.
+	// AnnotatedComponentCount tracks how many components were actually processed during the
+	// annotation pass. For scoped rebuilds this will be less than the total number of
+	// components in the project.
 	AnnotatedComponentCount int
 
-	// GeneratedArtefactCount tracks how many code artefacts were generated.
-	// For scoped rebuilds this matches the number of targeted components.
+	// GeneratedArtefactCount tracks how many code artefacts were generated. For scoped
+	// rebuilds this matches the number of targeted components.
 	GeneratedArtefactCount int
 }

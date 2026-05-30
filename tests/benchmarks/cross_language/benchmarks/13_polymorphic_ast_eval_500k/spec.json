@@ -1,0 +1,14 @@
+{
+  "name": "13_polymorphic_ast_eval_500k",
+  "description": "Polymorphic AST evaluator. Tree of mixed node kinds (Add/Sub/Mul/Mod/Min/Max/IfPos/Const/Var) built deterministically from an LCG; each kind is a distinct type implementing Eval(env). 33 walks per outer call drives ~500k virtual-method dispatches per inner timing window. Stresses interface / virtual method dispatch.",
+  "args": [],
+  "expected_stdout_sha256": "2614542e0e885cc22723f3bf8ed13c18246a09dcedbd7e25acd6203b843ae412",
+  "k_inner": 5,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "1c239fb28558d056974489e05216a18d2d03c5303acfae3c215d524ddb2ce08f",
+    "py/cpython.py": "2a39084e0131b6a324e7b3f95cebd84dc6a0042215ae5c56a165703de5634b5b",
+    "py/pypy.py": "2a39084e0131b6a324e7b3f95cebd84dc6a0042215ae5c56a165703de5634b5b"
+  }
+}

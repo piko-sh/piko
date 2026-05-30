@@ -18,10 +18,10 @@
 
 // Package interp_domain implements a bytecode-compiling Go interpreter.
 //
-// The interpreter uses Go's standard library packages [go/parser] and
-// [go/types] for parsing and type checking, then compiles the typed AST to
-// a compact bytecode representation which runs on a register-based virtual
-// machine with typed register banks (int64, float64, string, reflect.Value).
+// The interpreter uses Go's standard library packages [go/parser] and [go/types] for
+// parsing and type checking, then compiles the typed AST to a compact bytecode
+// representation which runs on a register-based virtual machine with typed register banks
+// (int64, float64, string, reflect.Value).
 //
 // # Architecture
 //
@@ -29,17 +29,16 @@
 //
 //	Go source -> go/parser -> go/types.Check -> Compiler -> Program -> VM -> result
 //
-// Using [go/types] for type checking means the interpreter supports the full
-// Go language including generics, out-of-order declarations, type inference,
-// and constraint checking, without reimplementing any of these.
+// Using [go/types] for type checking means the interpreter supports the full Go language
+// including generics, out-of-order declarations, type inference, and constraint checking,
+// without reimplementing any of these.
 //
 // # Design rationale
 //
-// Bytecode compilation is chosen over tree-walking because a flat instruction
-// stream has better cache locality and avoids repeatedly traversing AST
-// pointers. A register-based VM is used instead of a stack-based one because
-// register machines reduce instruction count by eliminating push/pop overhead.
-// Typed register banks (int64, float64, string, reflect.Value) let arithmetic
-// hot paths operate on native Go values with specialised opcodes, avoiding
-// the cost of boxing every value into reflect.Value.
+// Bytecode compilation is chosen over tree-walking because a flat instruction stream has
+// better cache locality and avoids repeatedly traversing AST pointers. A register-based
+// VM is used instead of a stack-based one because register machines reduce instruction
+// count by eliminating push/pop overhead. Typed register banks (int64, float64, string,
+// reflect.Value) let arithmetic hot paths operate on native Go values with specialised
+// opcodes, avoiding the cost of boxing every value into reflect.Value.
 package interp_domain

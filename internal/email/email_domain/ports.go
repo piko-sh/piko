@@ -27,9 +27,8 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// Service is the driving port: the hexagon's public API for sending emails
-// and managing providers. It implements email_domain.Service and
-// wdk/email.Service interfaces.
+// Service is the driving port: the hexagon's public API for sending emails and managing
+// providers. It implements email_domain.Service and wdk/email.Service interfaces.
 type Service interface {
 	// NewEmail creates a new email builder for writing and sending emails.
 	//
@@ -86,8 +85,8 @@ type Service interface {
 	//
 	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
-	// Returns []provider_domain.ProviderInfo which contains provider metadata,
-	// health status, and capabilities.
+	// Returns []provider_domain.ProviderInfo which contains provider metadata, health
+	// status, and capabilities.
 	ListProviders(ctx context.Context) []provider_domain.ProviderInfo
 
 	// RegisterDispatcher sets the email dispatcher for sending notifications.
@@ -104,9 +103,9 @@ type Service interface {
 	FlushDispatcher(ctx context.Context) error
 }
 
-// EmailProviderPort defines the interface that email provider adapters must
-// implement. It is a driven port in the hexagonal architecture pattern,
-// allowing the domain to send emails through different providers.
+// EmailProviderPort defines the interface that email provider adapters must implement. It
+// is a driven port in the hexagonal architecture pattern, allowing the domain to send
+// emails through different providers.
 type EmailProviderPort interface {
 	// Send delivers an email using the provided parameters.
 	//
@@ -117,8 +116,8 @@ type EmailProviderPort interface {
 
 	// SendBulk sends multiple emails in a single operation.
 	//
-	// Takes emails ([]*email_dto.SendParams) which contains the email parameters
-	// for each message to send.
+	// Takes emails ([]*email_dto.SendParams) which contains the email parameters for each
+	// message to send.
 	//
 	// Returns error when the bulk send operation fails.
 	SendBulk(ctx context.Context, emails []*email_dto.SendParams) error
@@ -134,9 +133,9 @@ type EmailProviderPort interface {
 	Close(ctx context.Context) error
 }
 
-// EmailDispatcherPort defines the interface for email dispatching services.
-// It provides batched sending, retry handling, dead letter queue management,
-// and lifecycle control for email delivery.
+// EmailDispatcherPort defines the interface for email dispatching services. It provides
+// batched sending, retry handling, dead letter queue management, and lifecycle control
+// for email delivery.
 type EmailDispatcherPort interface {
 	// Queue adds an email to the batch queue for later sending.
 	//
@@ -239,34 +238,30 @@ type DispatcherStats struct {
 	Uptime time.Duration
 }
 
-// AssetResolverPort is the driven port for resolving email assets from the
-// registry. It implements email_domain.AssetResolverPort and bridges the email
-// domain with the asset processing system, enabling automatic CID embedding of
-// local images in email templates.
+// AssetResolverPort is the driven port for resolving email assets from the registry. It
+// implements email_domain.AssetResolverPort and bridges the email domain with the asset
+// processing system, enabling automatic CID embedding of local images in email templates.
 //
-// The resolver fetches assets from the registry using the source path, applies
-// the requested transformation profile (e.g. "email-default", "email-outlook"),
-// and returns ready-to-embed attachments with ContentID set. It handles missing
-// assets and transformation errors gracefully.
+// The resolver fetches assets from the registry using the source path, applies the
+// requested transformation profile (e.g. "email-default", "email-outlook"), and returns
+// ready-to-embed attachments with ContentID set. It handles missing assets and
+// transformation errors gracefully.
 type AssetResolverPort interface {
 	// ResolveAsset fetches and transforms a single asset based on the request.
 	//
-	// Takes request (*email_dto.EmailAssetRequest) which specifies the asset to
-	// resolve.
+	// Takes request (*email_dto.EmailAssetRequest) which specifies the asset to resolve.
 	//
-	// Returns *email_dto.Attachment which is the ready-to-embed attachment with
-	// ContentID, MIME type, and content populated.
+	// Returns *email_dto.Attachment which is the ready-to-embed attachment with ContentID,
+	// MIME type, and content populated.
 	// Returns error when the asset cannot be found or transformation fails.
 	ResolveAsset(ctx context.Context, request *email_dto.EmailAssetRequest) (*email_dto.Attachment, error)
 
 	// ResolveAssets resolves multiple assets in batch for efficiency.
 	//
-	// Takes requests ([]*email_dto.EmailAssetRequest) which contains the assets
-	// to resolve.
+	// Takes requests ([]*email_dto.EmailAssetRequest) which contains the assets to resolve.
 	//
-	// Returns []*email_dto.Attachment which contains the successfully resolved
-	// attachments.
-	// Returns []error which contains one error per request, where non-nil errors
-	// indicate which assets failed to resolve, supporting partial success.
+	// Returns []*email_dto.Attachment which contains the successfully resolved attachments.
+	// Returns []error which contains one error per request, where non-nil errors indicate
+	// which assets failed to resolve, supporting partial success.
 	ResolveAssets(ctx context.Context, requests []*email_dto.EmailAssetRequest) ([]*email_dto.Attachment, []error)
 }

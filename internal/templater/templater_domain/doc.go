@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package templater_domain provides domain types and services for the
-// template compilation and rendering pipeline.
+// Package templater_domain provides domain types and services for the template
+// compilation and rendering pipeline.
 //
 // Register AST and cache policy functions during initialisation:
 //
@@ -26,13 +26,12 @@
 //	    templater_domain.RegisterCachePolicyFunc("myapp/pages/home", CachePolicy)
 //	}
 //
-// For testing, use [NewIsolatedRegistry] to create independent
-// registries that enable parallel test execution.
+// For testing, use [NewIsolatedRegistry] to create independent registries that enable
+// parallel test execution.
 //
 // # Thread safety
 //
-// The [FunctionRegistry] and its package-level accessor functions are
-// safe for concurrent use. The [InspectionCache] is also thread-safe.
-// Service implementations are thread-safe when their injected
-// dependencies are thread-safe.
+// The [FunctionRegistry] and its package-level accessor functions are safe for concurrent
+// use. The [InspectionCache] is also thread-safe. Service implementations are thread-safe
+// when their injected dependencies are thread-safe.
 package templater_domain

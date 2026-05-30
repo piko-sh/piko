@@ -115,11 +115,11 @@ type Style struct {
 	WordSpacing float64
 }
 
-// DefaultStyle returns a Style with SVG default values.
-// Per SVG spec the default fill is black.
+// DefaultStyle returns a Style with SVG default values. Per SVG spec the default fill is
+// black.
 //
-// Returns Style which holds the SVG specification default values for all
-// style properties.
+// Returns Style which holds the SVG specification default values for all style
+// properties.
 func DefaultStyle() Style {
 	black := Colour{R: 0, G: 0, B: 0, A: 1}
 	return Style{
@@ -144,12 +144,12 @@ func DefaultStyle() Style {
 	}
 }
 
-// ResolveStyle resolves style from a node's attributes and inline style,
-// inheriting from the parent style where appropriate.
+// ResolveStyle resolves style from a node's attributes and inline style, inheriting from
+// the parent style where appropriate.
 //
-// Takes node (*Node) which specifies the SVG element whose attributes provide
-// style overrides. Takes parent (*Style) which specifies the inherited style
-// from the parent element.
+// Takes node (*Node) which specifies the SVG element whose attributes provide style
+// overrides.
+// Takes parent (*Style) which specifies the inherited style from the parent element.
 //
 // Returns Style which holds the fully resolved style with inheritance applied.
 func ResolveStyle(node *Node, parent *Style) Style {
@@ -199,8 +199,8 @@ func ResolveStyle(node *Node, parent *Style) Style {
 
 // applyProperties applies the given CSS property map to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes props
-// (map[string]string) which specifies the CSS property key-value pairs.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes props (map[string]string) which specifies the CSS property key-value pairs.
 func applyProperties(s *Style, props map[string]string) {
 	for key, val := range props {
 		val = strings.TrimSpace(val)
@@ -214,9 +214,9 @@ func applyProperties(s *Style, props map[string]string) {
 
 // applyFillProperties applies fill-related CSS properties to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes key (string)
-// which specifies the CSS property name. Takes val (string) which specifies
-// the CSS property value.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes key (string) which specifies the CSS property name.
+// Takes val (string) which specifies the CSS property value.
 func applyFillProperties(s *Style, key, val string) {
 	switch key {
 	case "fill":
@@ -234,8 +234,9 @@ func applyFillProperties(s *Style, key, val string) {
 
 // applyFillColour parses and applies a fill colour value to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes val (string)
-// which specifies the CSS fill value (colour, "none", or url() reference).
+// Takes s (*Style) which specifies the style to mutate.
+// Takes val (string) which specifies the CSS fill value (colour, "none", or url()
+// reference).
 func applyFillColour(s *Style, val string) {
 	if val == "none" {
 		s.Fill = nil
@@ -250,9 +251,9 @@ func applyFillColour(s *Style, val string) {
 
 // applyStrokeProperties applies stroke-related CSS properties to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes key (string)
-// which specifies the CSS property name. Takes val (string) which specifies
-// the CSS property value.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes key (string) which specifies the CSS property name.
+// Takes val (string) which specifies the CSS property value.
 func applyStrokeProperties(s *Style, key, val string) {
 	switch key {
 	case "stroke":
@@ -284,8 +285,9 @@ func applyStrokeProperties(s *Style, key, val string) {
 
 // applyStrokeColour parses and applies a stroke colour value to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes val (string)
-// which specifies the CSS stroke value (colour, "none", or url() reference).
+// Takes s (*Style) which specifies the style to mutate.
+// Takes val (string) which specifies the CSS stroke value (colour, "none", or url()
+// reference).
 func applyStrokeColour(s *Style, val string) {
 	if val == "none" {
 		s.Stroke = nil
@@ -298,15 +300,14 @@ func applyStrokeColour(s *Style, val string) {
 	}
 }
 
-// resolveCurrentColour returns a pointer to the inherited colour when the
-// parsed colour is currentColor, otherwise a pointer to the parsed colour
-// itself.
+// resolveCurrentColour returns a pointer to the inherited colour when the parsed colour
+// is currentColor, otherwise a pointer to the parsed colour itself.
 //
-// Takes parsed (Colour) which specifies the colour value to check. Takes
-// inherited (Colour) which specifies the inherited currentColor value.
+// Takes parsed (Colour) which specifies the colour value to check.
+// Takes inherited (Colour) which specifies the inherited currentColor value.
 //
-// Returns *Colour which holds a pointer to either the inherited colour or a
-// copy of the parsed colour.
+// Returns *Colour which holds a pointer to either the inherited colour or a copy of the
+// parsed colour.
 func resolveCurrentColour(parsed Colour, inherited Colour) *Colour {
 	if parsed.IsCurrentColour() {
 		return &inherited
@@ -316,8 +317,8 @@ func resolveCurrentColour(parsed Colour, inherited Colour) *Colour {
 
 // applyStrokeLineCap sets the stroke line cap if the value is valid.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes val (string)
-// which specifies the line cap value (butt, round, or square).
+// Takes s (*Style) which specifies the style to mutate.
+// Takes val (string) which specifies the line cap value (butt, round, or square).
 func applyStrokeLineCap(s *Style, val string) {
 	if val == "butt" || val == "round" || val == "square" {
 		s.StrokeLineCap = val
@@ -326,8 +327,8 @@ func applyStrokeLineCap(s *Style, val string) {
 
 // applyStrokeLineJoin sets the stroke line join if the value is valid.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes val (string)
-// which specifies the line join value (mitre, round, or bevel).
+// Takes s (*Style) which specifies the style to mutate.
+// Takes val (string) which specifies the line join value (mitre, round, or bevel).
 func applyStrokeLineJoin(s *Style, val string) {
 	if val == "miter" || val == "round" || val == "bevel" {
 		s.StrokeLineJoin = val
@@ -336,8 +337,9 @@ func applyStrokeLineJoin(s *Style, val string) {
 
 // applyStrokeDashArray parses and applies a stroke dash array to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes val (string)
-// which specifies the dash array value ("none" or comma/space-separated lengths).
+// Takes s (*Style) which specifies the style to mutate.
+// Takes val (string) which specifies the dash array value ("none" or
+// comma/space-separated lengths).
 func applyStrokeDashArray(s *Style, val string) {
 	if val == "none" {
 		s.StrokeDashArray = nil
@@ -346,12 +348,12 @@ func applyStrokeDashArray(s *Style, val string) {
 	}
 }
 
-// applyGeneralProperties applies general CSS properties such as opacity,
-// display, visibility, and color to the style.
+// applyGeneralProperties applies general CSS properties such as opacity, display,
+// visibility, and color to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes key (string)
-// which specifies the CSS property name. Takes val (string) which specifies
-// the CSS property value.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes key (string) which specifies the CSS property name.
+// Takes val (string) which specifies the CSS property value.
 func applyGeneralProperties(s *Style, key, val string) {
 	switch key {
 	case "opacity":
@@ -373,9 +375,9 @@ func applyGeneralProperties(s *Style, key, val string) {
 
 // applyFontProperties applies font-related CSS properties to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes key (string)
-// which specifies the CSS property name. Takes val (string) which specifies
-// the CSS property value.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes key (string) which specifies the CSS property name.
+// Takes val (string) which specifies the CSS property value.
 func applyFontProperties(s *Style, key, val string) {
 	switch key {
 	case "font-family":
@@ -393,9 +395,9 @@ func applyFontProperties(s *Style, key, val string) {
 
 // applyTextProperties applies text-related CSS properties to the style.
 //
-// Takes s (*Style) which specifies the style to mutate. Takes key (string)
-// which specifies the CSS property name. Takes val (string) which specifies
-// the CSS property value.
+// Takes s (*Style) which specifies the style to mutate.
+// Takes key (string) which specifies the CSS property name.
+// Takes val (string) which specifies the CSS property value.
 func applyTextProperties(s *Style, key, val string) {
 	switch key {
 	case "text-anchor":
@@ -451,11 +453,10 @@ func parseInlineStyle(s string) map[string]string {
 
 // ParseURLRef extracts the id from a url(#id) reference.
 //
-// Takes s (string) which specifies the CSS value that may contain a url()
-// reference.
+// Takes s (string) which specifies the CSS value that may contain a url() reference.
 //
-// Returns string which holds the extracted identifier, or "" if the value is
-// not a url() reference.
+// Returns string which holds the extracted identifier, or "" if the value is not a url()
+// reference.
 func ParseURLRef(s string) string {
 	s = strings.TrimSpace(s)
 	if !strings.HasPrefix(s, "url(") {
@@ -472,8 +473,7 @@ func ParseURLRef(s string) string {
 //
 // Takes s (string) which specifies the comma or space-separated dash lengths.
 //
-// Returns []float64 which holds the parsed dash lengths, or nil if any value
-// is invalid.
+// Returns []float64 which holds the parsed dash lengths, or nil if any value is invalid.
 func parseDashArray(s string) []float64 {
 	s = strings.ReplaceAll(s, ",", " ")
 	parts := strings.Fields(s)

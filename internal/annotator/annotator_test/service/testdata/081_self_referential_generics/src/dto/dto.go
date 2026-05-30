@@ -41,6 +41,6 @@ func (t Task) Display() string {
 }
 
 type PageData struct {
-	CategoryTree fields.Node[Category]  `json:"category_tree"`
+	CategoryTree fields.Node[Category]   `json:"category_tree"`
 	TaskList     fields.LinkedList[Task] `json:"task_list"`
 }

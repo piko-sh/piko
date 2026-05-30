@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// DrivenRenderer is a production renderer implementation that delegates all
-// rendering operations to the core render service. It implements RendererPort.
+// DrivenRenderer is a production renderer implementation that delegates all rendering
+// operations to the core render service. It implements RendererPort.
 type DrivenRenderer struct {
 	// renderService handles rendering of pages, partials, and emails.
 	renderService render_domain.RenderService
@@ -40,8 +40,8 @@ type DrivenRenderer struct {
 
 // RenderPage delegates page rendering to the render service.
 //
-// Takes params (RenderPageParams) which contains the page definition, template
-// AST, metadata, and styling options for rendering.
+// Takes params (RenderPageParams) which contains the page definition, template AST,
+// metadata, and styling options for rendering.
 //
 // Returns error when the underlying render service fails.
 func (r *DrivenRenderer) RenderPage(ctx context.Context, params templater_domain.RenderPageParams) error {
@@ -58,8 +58,8 @@ func (r *DrivenRenderer) RenderPage(ctx context.Context, params templater_domain
 
 // RenderPartial delegates partial rendering to the render service.
 //
-// Takes params (templater_domain.RenderPageParams) which contains the page
-// definition, template AST, metadata, and styling for the partial render.
+// Takes params (templater_domain.RenderPageParams) which contains the page definition,
+// template AST, metadata, and styling for the partial render.
 //
 // Returns error when the underlying render service fails to render the AST.
 func (r *DrivenRenderer) RenderPartial(ctx context.Context, params templater_domain.RenderPageParams) error {
@@ -76,8 +76,8 @@ func (r *DrivenRenderer) RenderPartial(ctx context.Context, params templater_dom
 
 // RenderEmail delegates email rendering to the render service.
 //
-// Takes params (templater_domain.RenderEmailParams) which contains the email
-// template and rendering configuration.
+// Takes params (templater_domain.RenderEmailParams) which contains the email template and
+// rendering configuration.
 //
 // Returns error when the render service fails to produce the email output.
 func (r *DrivenRenderer) RenderEmail(ctx context.Context, params templater_domain.RenderEmailParams) error {
@@ -94,15 +94,12 @@ func (r *DrivenRenderer) RenderEmail(ctx context.Context, params templater_domai
 // CollectMetadata extracts link headers and metadata from the internal metadata.
 //
 // Takes request (*http.Request) which provides the current HTTP request context.
-// Takes metadata (*templater_dto.InternalMetadata) which contains the internal
-// metadata to extract from.
-// Takes websiteConfig (*config.WebsiteConfig) which specifies the
-// website configuration.
+// Takes metadata (*templater_dto.InternalMetadata) which contains the internal metadata
+// to extract from.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the website configuration.
 //
-// Returns []render_dto.LinkHeader which contains the extracted link
-// headers.
-// Returns *ProbeData which contains component probe metadata, or nil
-// when unavailable.
+// Returns []render_dto.LinkHeader which contains the extracted link headers.
+// Returns *ProbeData which contains component probe metadata, or nil when unavailable.
 // Returns error when metadata extraction fails.
 func (r *DrivenRenderer) CollectMetadata(
 	ctx context.Context,
@@ -115,8 +112,8 @@ func (r *DrivenRenderer) CollectMetadata(
 
 // RenderASTToPlainText converts an AST to plain text for email rendering.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which contains the parsed
-// template structure to render.
+// Takes templateAST (*ast_domain.TemplateAST) which contains the parsed template
+// structure to render.
 //
 // Returns string which is the rendered plain text output.
 // Returns error when rendering fails.
@@ -127,22 +124,20 @@ func (r *DrivenRenderer) RenderASTToPlainText(
 	return r.renderService.RenderASTToPlainText(ctx, templateAST)
 }
 
-// GetLastEmailAssetRequests retrieves the last batch of email asset requests
-// for debugging.
+// GetLastEmailAssetRequests retrieves the last batch of email asset requests for
+// debugging.
 //
-// Returns []*email_dto.EmailAssetRequest which contains the most recent batch
-// of asset requests made during email rendering.
+// Returns []*email_dto.EmailAssetRequest which contains the most recent batch of asset
+// requests made during email rendering.
 func (r *DrivenRenderer) GetLastEmailAssetRequests() []*email_dto.EmailAssetRequest {
 	return r.renderService.GetLastEmailAssetRequests()
 }
 
 // NewDrivenRenderer creates a new production renderer adapter.
 //
-// Takes service (render_domain.RenderService) which provides the rendering
-// functionality.
+// Takes service (render_domain.RenderService) which provides the rendering functionality.
 //
-// Returns templater_domain.RendererPort which is the configured renderer ready
-// for use.
+// Returns templater_domain.RendererPort which is the configured renderer ready for use.
 func NewDrivenRenderer(service render_domain.RenderService) templater_domain.RendererPort {
 	return &DrivenRenderer{
 		renderService: service,

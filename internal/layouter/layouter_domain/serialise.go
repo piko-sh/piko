@@ -28,65 +28,56 @@ import (
 )
 
 const (
-	// identLayouterDomain is the package qualifier for
-	// layouter_domain types in generated code.
+	// identLayouterDomain is the package qualifier for layouter_domain types in generated
+	// code.
 	identLayouterDomain = "layouter_domain"
 
-	// identWithStyle is the local variable name for the style
-	// override helper function.
+	// identWithStyle is the local variable name for the style override helper function.
 	identWithStyle = "withStyle"
 
-	// identOverrides is the parameter name for the style
-	// override callback.
+	// identOverrides is the parameter name for the style override callback.
 	identOverrides = "overrides"
 
-	// identStyle is the local variable name for the computed
-	// style being built.
+	// identStyle is the local variable name for the computed style being built.
 	identStyle = "style"
 
-	// identS is the short parameter name used in generated
-	// style override closures.
+	// identS is the short parameter name used in generated style override closures.
 	identS = "s"
 
-	// identDefaultComputedStyle is the function name for
-	// constructing a default computed style.
+	// identDefaultComputedStyle is the function name for constructing a default computed
+	// style.
 	identDefaultComputedStyle = "DefaultComputedStyle"
 
-	// typeLayoutBox is the type name for LayoutBox in generated
-	// code.
+	// typeLayoutBox is the type name for LayoutBox in generated code.
 	typeLayoutBox = "LayoutBox"
 
-	// typeComputedStyle is the type name for ComputedStyle in
-	// generated code.
+	// typeComputedStyle is the type name for ComputedStyle in generated code.
 	typeComputedStyle = "ComputedStyle"
 
-	// typeBoxEdges is the type name for BoxEdges in generated
-	// code.
+	// typeBoxEdges is the type name for BoxEdges in generated code.
 	typeBoxEdges = "BoxEdges"
 
-	// printTabWidth is the tab width used when printing AST
-	// expressions.
+	// printTabWidth is the tab width used when printing AST expressions.
 	printTabWidth = 4
 )
 
-// goldenFileTemplate is the Go source file template used to embed
-// a serialised LayoutBox tree as a package-level variable.
-const goldenFileTemplate = `package %s
+const (
+	// goldenFileTemplate is the Go source file template used to embed a serialised LayoutBox
+	// tree as a package-level variable.
+	goldenFileTemplate = `package %s
 
 import "piko.sh/piko/internal/layouter/layouter_domain"
 
 var GeneratedLayoutBox = %s
 `
+)
 
-// SerialiseLayoutBoxToGoFileContent creates a compilable Go file
-// that constructs the given LayoutBox tree as a variable. Style
-// properties are expressed as overrides from
+// SerialiseLayoutBoxToGoFileContent creates a compilable Go file that constructs the
+// given LayoutBox tree as a variable. Style properties are expressed as overrides from
 // DefaultComputedStyle for readability.
 //
-// Takes root (*LayoutBox) which is the root of the layout tree
-// to serialise.
-// Takes packageName (string) which is the Go package name for
-// the generated file.
+// Takes root (*LayoutBox) which is the root of the layout tree to serialise.
+// Takes packageName (string) which is the Go package name for the generated file.
 //
 // Returns the formatted Go source file content as a string.
 func SerialiseLayoutBoxToGoFileContent(root *LayoutBox, packageName string) string {
@@ -108,12 +99,10 @@ func SerialiseLayoutBoxToGoFileContent(root *LayoutBox, packageName string) stri
 	return string(formatted)
 }
 
-// buildIIFE wraps the given expression in an immediately
-// invoked function expression that declares the withStyle
-// helper.
+// buildIIFE wraps the given expression in an immediately invoked function expression that
+// declares the withStyle helper.
 //
-// Takes bodyExpr (goast.Expr) which is the expression to
-// wrap in the IIFE body.
+// Takes bodyExpr (goast.Expr) which is the expression to wrap in the IIFE body.
 //
 // Returns *goast.CallExpr which is the IIFE call node.
 func buildIIFE(bodyExpr goast.Expr) *goast.CallExpr {
@@ -138,11 +127,10 @@ func buildIIFE(bodyExpr goast.Expr) *goast.CallExpr {
 	)
 }
 
-// buildWithStyleAssignment builds the short variable
-// declaration that assigns the withStyle function literal.
+// buildWithStyleAssignment builds the short variable declaration that assigns the
+// withStyle function literal.
 //
-// Returns *goast.AssignStmt which is the declaration
-// statement.
+// Returns *goast.AssignStmt which is the declaration statement.
 func buildWithStyleAssignment() *goast.AssignStmt {
 	return &goast.AssignStmt{
 		Lhs: []goast.Expr{goast.NewIdent(identWithStyle)},
@@ -151,11 +139,10 @@ func buildWithStyleAssignment() *goast.AssignStmt {
 	}
 }
 
-// buildWithStyleFuncLit constructs the function literal
-// that applies style overrides to a DefaultComputedStyle.
+// buildWithStyleFuncLit constructs the function literal that applies style overrides to a
+// DefaultComputedStyle.
 //
-// Returns *goast.FuncLit which is the function literal
-// node.
+// Returns *goast.FuncLit which is the function literal node.
 func buildWithStyleFuncLit() *goast.FuncLit {
 	return &goast.FuncLit{
 		Type: &goast.FuncType{
@@ -197,14 +184,12 @@ func buildWithStyleFuncLit() *goast.FuncLit {
 	}
 }
 
-// buildBlankAssignment creates a blank identifier
-// assignment to suppress unused variable warnings.
+// buildBlankAssignment creates a blank identifier assignment to suppress unused variable
+// warnings.
 //
-// Takes varName (string) which is the variable name to
-// assign to the blank identifier.
+// Takes varName (string) which is the variable name to assign to the blank identifier.
 //
-// Returns *goast.AssignStmt which is the blank
-// assignment statement.
+// Returns *goast.AssignStmt which is the blank assignment statement.
 func buildBlankAssignment(varName string) *goast.AssignStmt {
 	return &goast.AssignStmt{
 		Lhs: []goast.Expr{goast.NewIdent("_")},
@@ -213,11 +198,10 @@ func buildBlankAssignment(varName string) *goast.AssignStmt {
 	}
 }
 
-// layouterType builds a qualified selector expression for
-// a type in the layouter_domain package.
+// layouterType builds a qualified selector expression for a type in the layouter_domain
+// package.
 //
-// Takes name (string) which is the type or function name
-// to qualify.
+// Takes name (string) which is the type or function name to qualify.
 //
 // Returns goast.Expr which is the selector expression.
 func layouterType(name string) goast.Expr {
@@ -227,89 +211,68 @@ func layouterType(name string) goast.Expr {
 	}
 }
 
-// newCompositeLit creates a composite literal AST node
-// with the given type and elements.
+// newCompositeLit creates a composite literal AST node with the given type and elements.
 //
-// Takes typ (goast.Expr) which is the literal's type
-// expression.
-// Takes elements ([]goast.Expr) which is the list of
-// element expressions.
+// Takes typ (goast.Expr) which is the literal's type expression.
+// Takes elements ([]goast.Expr) which is the list of element expressions.
 //
-// Returns *goast.CompositeLit which is the composite
-// literal node.
+// Returns *goast.CompositeLit which is the composite literal node.
 func newCompositeLit(typ goast.Expr, elements []goast.Expr) *goast.CompositeLit {
 	return &goast.CompositeLit{Type: typ, Elts: elements}
 }
 
-// newKeyValueExpr creates a key-value expression AST
-// node.
+// newKeyValueExpr creates a key-value expression AST node.
 //
 // Takes key (goast.Expr) which is the key expression.
 // Takes value (goast.Expr) which is the value expression.
 //
-// Returns *goast.KeyValueExpr which is the key-value
-// node.
+// Returns *goast.KeyValueExpr which is the key-value node.
 func newKeyValueExpr(key, value goast.Expr) *goast.KeyValueExpr {
 	return &goast.KeyValueExpr{Key: key, Value: value}
 }
 
-// newBasicLit creates a basic literal AST node with the
-// given token kind and value.
+// newBasicLit creates a basic literal AST node with the given token kind and value.
 //
-// Takes kind (token.Token) which is the literal's token
-// type.
-// Takes value (string) which is the literal's source
-// text.
+// Takes kind (token.Token) which is the literal's token type.
+// Takes value (string) which is the literal's source text.
 //
 // Returns *goast.BasicLit which is the literal node.
 func newBasicLit(kind token.Token, value string) *goast.BasicLit {
 	return &goast.BasicLit{Kind: kind, Value: value}
 }
 
-// newCallExpr creates a function call expression AST
-// node.
+// newCallExpr creates a function call expression AST node.
 //
 // Takes fun (goast.Expr) which is the function to call.
-// Takes arguments ([]goast.Expr) which is the list of
-// call arguments.
+// Takes arguments ([]goast.Expr) which is the list of call arguments.
 //
-// Returns *goast.CallExpr which is the call expression
-// node.
+// Returns *goast.CallExpr which is the call expression node.
 func newCallExpr(fun goast.Expr, arguments []goast.Expr) *goast.CallExpr {
 	return &goast.CallExpr{Fun: fun, Args: arguments}
 }
 
-// newStarExpr creates a pointer dereference or pointer
-// type AST node.
+// newStarExpr creates a pointer dereference or pointer type AST node.
 //
-// Takes expression (goast.Expr) which is the operand
-// expression.
+// Takes expression (goast.Expr) which is the operand expression.
 //
-// Returns *goast.StarExpr which is the star expression
-// node.
+// Returns *goast.StarExpr which is the star expression node.
 func newStarExpr(expression goast.Expr) *goast.StarExpr {
 	return &goast.StarExpr{X: expression}
 }
 
-// newUnaryExpr creates a unary expression AST node with
-// the given operator and operand.
+// newUnaryExpr creates a unary expression AST node with the given operator and operand.
 //
-// Takes operator (token.Token) which is the unary
-// operator.
-// Takes expression (goast.Expr) which is the operand
-// expression.
+// Takes operator (token.Token) which is the unary operator.
+// Takes expression (goast.Expr) which is the operand expression.
 //
-// Returns *goast.UnaryExpr which is the unary expression
-// node.
+// Returns *goast.UnaryExpr which is the unary expression node.
 func newUnaryExpr(operator token.Token, expression goast.Expr) *goast.UnaryExpr {
 	return &goast.UnaryExpr{Op: operator, X: expression}
 }
 
-// printExpr formats an AST expression to its Go source
-// representation as a string.
+// printExpr formats an AST expression to its Go source representation as a string.
 //
-// Takes node (goast.Expr) which is the expression to
-// print.
+// Takes node (goast.Expr) which is the expression to print.
 //
 // Returns string which is the formatted Go source text.
 func printExpr(node goast.Expr) string {

@@ -24,15 +24,19 @@ import (
 	"piko.sh/piko/wdk/asmgen"
 )
 
-// mnemonicColumnWidth is the standard column width for amd64 Plan 9
-// assembly mnemonic alignment.
-const mnemonicColumnWidth = 8
+const (
+	// mnemonicColumnWidth is the standard column width for amd64 Plan 9 assembly mnemonic
+	// alignment.
+	mnemonicColumnWidth = 8
+)
 
-// AMD64Arch implements ArchitecturePort for x86-64 Plan 9 assembly generation.
-// All methods are stateless text mappers.
+// AMD64Arch implements ArchitecturePort for x86-64 Plan 9 assembly generation. All
+// methods are stateless text mappers.
 type AMD64Arch struct{}
 
-var _ asmgen.ArchitecturePort = (*AMD64Arch)(nil)
+var (
+	_ asmgen.ArchitecturePort = (*AMD64Arch)(nil)
+)
 
 // New creates a new AMD64 architecture adapter.
 //
@@ -88,8 +92,8 @@ func (*AMD64Arch) Convention() asmgen.RegisterConvention {
 	}
 }
 
-// inst emits a tab-indented instruction line with the mnemonic padded
-// to the standard column width for amd64 Plan 9 assembly.
+// inst emits a tab-indented instruction line with the mnemonic padded to the standard
+// column width for amd64 Plan 9 assembly.
 //
 // Takes e (*asmgen.Emitter) which is the output buffer.
 // Takes mnemonic (string) which is the assembly instruction name.

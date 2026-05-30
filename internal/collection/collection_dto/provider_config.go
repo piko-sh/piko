@@ -18,12 +18,14 @@
 
 package collection_dto
 
-import "slices"
+import (
+	"slices"
+)
 
 // ProviderConfig contains configuration for a collection provider.
 //
-// Passed to providers during initialisation and collection discovery. Provides
-// both generic framework configuration and provider-specific custom settings.
+// Passed to providers during initialisation and collection discovery. Provides both
+// generic framework configuration and provider-specific custom settings.
 //
 // Design philosophy:
 //   - Generic config: Common settings all providers need (base paths, locales)
@@ -32,9 +34,9 @@ import "slices"
 type ProviderConfig struct {
 	// Custom holds provider-specific settings as key-value pairs.
 	//
-	// The framework does not read these values. They are passed directly
-	// to the provider from the user's piko.config.yaml file.
-	// Use GetCustomString, GetCustomInt, or GetCustomBool to retrieve values.
+	// The framework does not read these values. They are passed directly to the provider
+	// from the user's piko.config.yaml file. Use GetCustomString, GetCustomInt, or
+	// GetCustomBool to retrieve values.
 	Custom map[string]any
 
 	// BasePath is the root folder of the project.
@@ -47,16 +49,16 @@ type ProviderConfig struct {
 
 	// Locales is the list of locales configured for the project.
 	//
-	// Providers should use this to validate locale-specific content
-	// and filter results appropriately.
+	// Providers should use this to validate locale-specific content and filter results
+	// appropriately.
 	Locales []string
 }
 
 // GetCustomString retrieves a string value from custom config with a fallback.
 //
 // Takes key (string) which specifies the custom config key to look up.
-// Takes defaultValue (string) which provides the fallback if the key is missing
-// or if the value is not a string.
+// Takes defaultValue (string) which provides the fallback if the key is missing or if the
+// value is not a string.
 //
 // Returns string which is the value from custom config or the default.
 func (c *ProviderConfig) GetCustomString(key, defaultValue string) string {
@@ -71,11 +73,11 @@ func (c *ProviderConfig) GetCustomString(key, defaultValue string) string {
 // GetCustomInt retrieves an integer value from custom config with a fallback.
 //
 // Takes key (string) which specifies the custom config key to look up.
-// Takes defaultValue (int) which is returned when the key is not found or
-// cannot be converted to int.
+// Takes defaultValue (int) which is returned when the key is not found or cannot be
+// converted to int.
 //
-// Returns int which is the value from custom config, or defaultValue if the
-// key is missing or not a numeric type.
+// Returns int which is the value from custom config, or defaultValue if the key is
+// missing or not a numeric type.
 func (c *ProviderConfig) GetCustomInt(key string, defaultValue int) int {
 	if value, ok := c.Custom[key]; ok {
 		switch v := value.(type) {
@@ -93,8 +95,8 @@ func (c *ProviderConfig) GetCustomInt(key string, defaultValue int) int {
 // GetCustomBool retrieves a boolean value from custom config with a fallback.
 //
 // Takes key (string) which specifies the configuration key to look up.
-// Takes defaultValue (bool) which is returned if the key is not found or is
-// not a boolean.
+// Takes defaultValue (bool) which is returned if the key is not found or is not a
+// boolean.
 //
 // Returns bool which is the value from custom config, or the default.
 func (c *ProviderConfig) GetCustomBool(key string, defaultValue bool) bool {
@@ -118,19 +120,19 @@ func (c *ProviderConfig) HasCustom(key string) bool {
 
 // CollectionInfo describes a collection offered by a provider.
 //
-// This is returned by the provider's DiscoverCollections() method to inform
-// the framework about available collections.
+// This is returned by the provider's DiscoverCollections() method to inform the framework
+// about available collections.
 type CollectionInfo struct {
 	// Schema maps field names to their types for this collection.
 	//
-	// The key is the field name and the value is the type as a string
-	// (e.g., "string", "int", "bool", "[]string").
+	// The key is the field name and the value is the type as a string (e.g., "string",
+	// "int", "bool", "[]string").
 	//
 	// Checks that user-defined target structs match the available fields.
 	Schema map[string]string
 
-	// Metadata holds extra details from the provider for display and debugging.
-	// Not used by the framework.
+	// Metadata holds extra details from the provider for display and debugging. Not used by
+	// the framework.
 	Metadata map[string]any
 
 	// Name is the unique identifier for this collection.
@@ -146,12 +148,12 @@ type CollectionInfo struct {
 	//   - Database providers: table name (e.g. "public.blog_posts")
 	Path string
 
-	// Locales lists the locales this collection supports. Empty when the
-	// collection does not use locales.
+	// Locales lists the locales this collection supports. Empty when the collection does not
+	// use locales.
 	Locales []string
 
-	// ItemCount is the number of items in this collection.
-	// Set to -1 if the count is not known or does not apply.
+	// ItemCount is the number of items in this collection. Set to -1 if the count is not
+	// known or does not apply.
 	ItemCount int
 }
 
@@ -182,8 +184,8 @@ func (c *CollectionInfo) HasSchema() bool {
 //
 // Takes fieldName (string) which specifies the field to look up.
 //
-// Returns string which is the field type, or an empty string if the field is
-// not in the schema.
+// Returns string which is the field type, or an empty string if the field is not in the
+// schema.
 func (c *CollectionInfo) GetFieldType(fieldName string) string {
 	if c.Schema == nil {
 		return ""

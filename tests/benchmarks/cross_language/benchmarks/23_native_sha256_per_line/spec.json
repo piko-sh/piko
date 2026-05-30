@@ -1,0 +1,15 @@
+{
+  "name": "23_native_sha256_per_line",
+  "description": "Per-line SHA-256 hashing of Frankenstein (Project Gutenberg #84, ~7700 lines, full text including header/footer). Script walks the corpus byte-by-byte to find newline boundaries, calls each runner's bundled SHA-256 primitive once per line (crypto/sha256.Sum256 for Go family; hashlib.sha256 for Python; host-registered sha256_sum builtin for Tengo since its stdlib lacks SHA-256), folds every 32-byte digest into a running XOR accumulator, and emits the result as 64 lowercase hex characters. Measures interpreter throughput + per-call native FFI overhead in equal measure: ~7700 FFI dispatches per inner iteration is enough to expose differences in each runner's reflect.Value.Call() fast-path coverage. Banned: whole-buffer hashing (sha256.Sum256(corpus) / hashlib.sha256(corpus).hexdigest()), native split helpers (strings.Split, str.splitlines), encoding/hex / binascii. Allowed: each runner's bundled SHA-256 primitive.",
+  "args": [],
+  "expected_stdout_sha256": "2a11933a55606b673013fd240d779850c8ac22c7f3d5e5b76319be97b44d1bc5",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "31f85e391e3eb264b3a19403aae9b87a563383278803e68788d17abb78746dd7",
+    "py/cpython.py": "5eed1518c4cd1e73a02957a25bb9ca508d55971791be0f6fe3e66551d67e3340",
+    "py/pypy.py": "5eed1518c4cd1e73a02957a25bb9ca508d55971791be0f6fe3e66551d67e3340",
+    "testdata/corpus.txt": "bd777267bc7ef3b97d819c771a5294515788f975dcb650004cab0302a42c7e54"
+  }
+}

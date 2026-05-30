@@ -24,53 +24,44 @@ import (
 	"slices"
 )
 
-// flexItem holds the intermediate layout state for a
-// single flex item during the flex layout algorithm.
+// flexItem holds the intermediate layout state for a single flex item during the flex
+// layout algorithm.
 type flexItem struct {
 	// box is the layout box that this flex item wraps.
 	box *LayoutBox
 
-	// fragment is the layout result from layoutBox,
-	// carrying child fragments with relative offsets.
+	// fragment is the layout result from layoutBox, carrying child fragments with relative
+	// offsets.
 	fragment *Fragment
 
-	// flexBaseSize is the initial main size before flex
-	// grow or shrink adjustments.
+	// flexBaseSize is the initial main size before flex grow or shrink adjustments.
 	flexBaseSize float64
 
-	// mainSize is the resolved main axis size after
-	// flexible length distribution.
+	// mainSize is the resolved main axis size after flexible length distribution.
 	mainSize float64
 
-	// crossSize is the resolved cross axis size of the
-	// item.
+	// crossSize is the resolved cross axis size of the item.
 	crossSize float64
 
-	// flexGrow is the flex grow factor from the item
-	// style.
+	// flexGrow is the flex grow factor from the item style.
 	flexGrow float64
 
-	// flexShrink is the flex shrink factor from the item
-	// style.
+	// flexShrink is the flex shrink factor from the item style.
 	flexShrink float64
 
-	// targetMainSize is the target main size computed
-	// during flexible length resolution.
+	// targetMainSize is the target main size computed during flexible length resolution.
 	targetMainSize float64
 
-	// autoMarginStart is the resolved auto margin on the
-	// start side of the main axis (left for row, top for
-	// column). Zero when the margin is not auto.
+	// autoMarginStart is the resolved auto margin on the start side of the main axis (left
+	// for row, top for column). Zero when the margin is not auto.
 	autoMarginStart float64
 
-	// autoMarginEnd is the resolved auto margin on the
-	// end side of the main axis (right for row, bottom
-	// for column). Zero when the margin is not auto.
+	// autoMarginEnd is the resolved auto margin on the end side of the main axis (right for
+	// row, bottom for column). Zero when the margin is not auto.
 	autoMarginEnd float64
 }
 
-// flexLine holds a group of flex items that share a
-// single line in the flex container.
+// flexLine holds a group of flex items that share a single line in the flex container.
 type flexLine struct {
 	// items is the slice of flex items on this line.
 	items []*flexItem
@@ -78,13 +69,12 @@ type flexLine struct {
 	// mainSize is the total main axis size of this line.
 	mainSize float64
 
-	// crossSize is the resolved cross axis size of this
-	// line.
+	// crossSize is the resolved cross axis size of this line.
 	crossSize float64
 }
 
-// flexContainerParams holds the resolved direction flags,
-// axis sizes, and gap values for a flex container.
+// flexContainerParams holds the resolved direction flags, axis sizes, and gap values for
+// a flex container.
 type flexContainerParams struct {
 	// containerMainSize holds the main axis size of the container.
 	containerMainSize float64
@@ -114,13 +104,12 @@ type flexContainerParams struct {
 	mainSizeIndefinite bool
 }
 
-// resolveFlexContainerParams resolves the direction flags,
-// container axis sizes, and gap values from the box style
-// and available layout space.
+// resolveFlexContainerParams resolves the direction flags, container axis sizes, and gap
+// values from the box style and available layout space.
 //
 // Takes box (*LayoutBox) which is the flex container.
-// Takes input (layoutInput) which carries available
-// width and block size from the parent context.
+// Takes input (layoutInput) which carries available width and block size from the parent
+// context.
 //
 // Returns the populated flexContainerParams.
 func resolveFlexContainerParams(box *LayoutBox, input layoutInput) flexContainerParams {
@@ -151,17 +140,13 @@ func resolveFlexContainerParams(box *LayoutBox, input layoutInput) flexContainer
 	return params
 }
 
-// resolveColumnFlexParams populates the container main size,
-// cross size, gaps, and indefinite flag for a column-direction
-// flex container.
+// resolveColumnFlexParams populates the container main size, cross size, gaps, and
+// indefinite flag for a column-direction flex container.
 //
-// Takes params (*flexContainerParams) which is the params
-// struct to populate.
+// Takes params (*flexContainerParams) which is the params struct to populate.
 // Takes box (*LayoutBox) which is the flex container.
-// Takes input (layoutInput) which carries the available
-// block size.
-// Takes containerWidth (float64) which is the inline-axis
-// available width.
+// Takes input (layoutInput) which carries the available block size.
+// Takes containerWidth (float64) which is the inline-axis available width.
 func resolveColumnFlexParams(params *flexContainerParams, box *LayoutBox, input layoutInput, containerWidth float64) {
 	if !box.Style.Height.IsAuto() && !box.Style.Height.IsIntrinsic() {
 		params.containerMainSize = adjustForBoxSizing(box.Style.Height.Resolve(0, 0), &box.Style, false)
@@ -176,18 +161,14 @@ func resolveColumnFlexParams(params *flexContainerParams, box *LayoutBox, input 
 	params.crossGap = box.Style.ColumnGap
 }
 
-// adjustIndefiniteMainSize replaces an indefinite container
-// main size with the sum of item base sizes plus gaps so
-// that flex-grow and flex-shrink distribute correctly.
+// adjustIndefiniteMainSize replaces an indefinite container main size with the sum of
+// item base sizes plus gaps so that flex-grow and flex-shrink distribute correctly.
 //
-// Takes containerMainSize (float64) which is the current
-// main axis size (zero when indefinite).
-// Takes items ([]*flexItem) which is the collected flex
-// items.
-// Takes mainGap (float64) which is the gap between items
-// along the main axis.
-// Takes indefinite (bool) which is true when the main
-// axis size was not explicitly set.
+// Takes containerMainSize (float64) which is the current main axis size (zero when
+// indefinite).
+// Takes items ([]*flexItem) which is the collected flex items.
+// Takes mainGap (float64) which is the gap between items along the main axis.
+// Takes indefinite (bool) which is true when the main axis size was not explicitly set.
 //
 // Returns the adjusted container main size.
 func adjustIndefiniteMainSize(containerMainSize float64, items []*flexItem, mainGap float64, indefinite bool) float64 {
@@ -201,12 +182,11 @@ func adjustIndefiniteMainSize(containerMainSize float64, items []*flexItem, main
 	return total + float64(len(items)-1)*mainGap
 }
 
-// preStretchColumnItems sets the cross size of column-direction
-// flex items with auto width to the line cross size, so that
-// children receive the correct available width before layout.
+// preStretchColumnItems sets the cross size of column-direction flex items with auto
+// width to the line cross size, so that children receive the correct available width
+// before layout.
 //
-// Takes lines ([]*flexLine) which is the slice of flex
-// lines to adjust.
+// Takes lines ([]*flexLine) which is the slice of flex lines to adjust.
 func preStretchColumnItems(lines []*flexLine) {
 	for _, line := range lines {
 		for _, item := range line.items {
@@ -217,18 +197,17 @@ func preStretchColumnItems(lines []*flexLine) {
 	}
 }
 
-// layoutFlexContainer performs the full CSS flexbox layout
-// algorithm on the given container box.
+// layoutFlexContainer performs the full CSS flexbox layout algorithm on the given
+// container box.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
-// Takes box (*LayoutBox) which is the flex container
-// to lay out.
-// Takes input (layoutInput) which carries the available
-// width and font metrics from the parent context.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
+// Takes box (*LayoutBox) which is the flex container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
-// Returns formattingContextResult which holds the child
-// fragments, content height, and margin edges.
+// Returns formattingContextResult which holds the child fragments, content height, and
+// margin edges.
 func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	params := resolveFlexContainerParams(box, input)
 
@@ -279,8 +258,8 @@ func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 	}
 }
 
-// collectFlexFragments gathers all item fragments from the
-// resolved flex lines into a single slice.
+// collectFlexFragments gathers all item fragments from the resolved flex lines into a
+// single slice.
 //
 // Takes lines ([]*flexLine) which holds the resolved flex lines.
 //
@@ -295,19 +274,15 @@ func collectFlexFragments(lines []*flexLine) []*Fragment {
 	return fragments
 }
 
-// collectFlexItems builds flex items from the container
-// children, skipping absolutely positioned elements.
+// collectFlexItems builds flex items from the container children, skipping absolutely
+// positioned elements.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
-// Takes container (*LayoutBox) which is the flex
-// container whose children are collected.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes input (layoutInput) which carries font metrics
-// and cache from the parent context.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
+// Takes container (*LayoutBox) which is the flex container whose children are collected.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 //
 // Returns the slice of flex items ready for layout.
 func collectFlexItems(
@@ -338,19 +313,15 @@ func collectFlexItems(
 	return items
 }
 
-// resolveFlexBaseSize computes the flex base size for a
-// child box using flex-basis, explicit size, or intrinsic
-// content measurement.
+// resolveFlexBaseSize computes the flex base size for a child box using flex-basis,
+// explicit size, or intrinsic content measurement.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
 // Takes child (*LayoutBox) which is the flex item box.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes input (layoutInput) which carries font metrics
-// and cache from the parent context.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 //
 // Returns the resolved base size in points.
 func resolveFlexBaseSize(
@@ -371,15 +342,14 @@ func resolveFlexBaseSize(
 	return resolveFlexIntrinsicSize(ctx, child, isRowDirection, containerMainSize, input)
 }
 
-// resolveFlexDimension resolves a dimension value for a flex item,
-// adding edge widths when box-sizing is not border-box.
+// resolveFlexDimension resolves a dimension value for a flex item, adding edge widths
+// when box-sizing is not border-box.
 //
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes dim (Dimension) which is the dimension to resolve.
-// Takes containerMainSize (float64) which is the main axis
-// size for percentage resolution.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical edges.
+// Takes containerMainSize (float64) which is the main axis size for percentage
+// resolution.
+// Takes isRowDirection (bool) which selects horizontal or vertical edges.
 //
 // Returns float64 which is the resolved border-box size in points.
 func resolveFlexDimension(
@@ -397,18 +367,16 @@ func resolveFlexDimension(
 	return resolved
 }
 
-// resolveExplicitMainSize checks for an explicit width (row) or
-// height (column) on the flex item and returns the resolved border-
-// box size.
+// resolveExplicitMainSize checks for an explicit width (row) or height (column) on the
+// flex item and returns the resolved border- box size.
 //
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes isRowDirection (bool) which selects width or height.
-// Takes containerMainSize (float64) which is the main axis
-// size for percentage resolution.
+// Takes containerMainSize (float64) which is the main axis size for percentage
+// resolution.
 //
 // Returns float64 which is the resolved size.
-// Returns bool which is false when the main-axis dimension
-// is auto.
+// Returns bool which is false when the main-axis dimension is auto.
 func resolveExplicitMainSize(child *LayoutBox, isRowDirection bool, containerMainSize float64) (float64, bool) {
 	if isRowDirection && !child.Style.Width.IsAuto() && !child.Style.Width.IsFitContent() {
 		return resolveFlexDimension(child, child.Style.Width, containerMainSize, true), true
@@ -419,17 +387,14 @@ func resolveExplicitMainSize(child *LayoutBox, isRowDirection bool, containerMai
 	return 0, false
 }
 
-// resolveFlexIntrinsicSize measures the intrinsic content of a
-// flex item when neither flex-basis nor an explicit main-axis size
-// is set. Uses max-content sizing so flex items size to their
-// content rather than filling 100% of the container.
+// resolveFlexIntrinsicSize measures the intrinsic content of a flex item when neither
+// flex-basis nor an explicit main-axis size is set. Uses max-content sizing so flex items
+// size to their content rather than filling 100% of the container.
 //
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes child (*LayoutBox) which is the flex item box.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical measurement.
-// Takes containerMainSize (float64) which is the main axis
-// size for column layout.
+// Takes isRowDirection (bool) which selects horizontal or vertical measurement.
+// Takes containerMainSize (float64) which is the main axis size for column layout.
 //
 // Returns float64 which is the intrinsic content size in points.
 func resolveFlexIntrinsicSize(
@@ -443,28 +408,23 @@ func resolveFlexIntrinsicSize(
 	return fragment.ContentHeight + fragment.Padding.Vertical() + fragment.Border.Vertical()
 }
 
-// sortItemsByOrder sorts flex items in place by their CSS
-// order property using a stable sort.
+// sortItemsByOrder sorts flex items in place by their CSS order property using a stable
+// sort.
 //
-// Takes items ([]*flexItem) which is the slice of flex
-// items to sort.
+// Takes items ([]*flexItem) which is the slice of flex items to sort.
 func sortItemsByOrder(items []*flexItem) {
 	slices.SortStableFunc(items, func(a, b *flexItem) int {
 		return a.box.Style.Order - b.box.Style.Order
 	})
 }
 
-// collectFlexLines groups flex items into lines based on
-// the container main size and wrap mode.
+// collectFlexLines groups flex items into lines based on the container main size and wrap
+// mode.
 //
-// Takes items ([]*flexItem) which is the slice of flex
-// items to group into lines.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes mainGap (float64) which is the gap between
-// items along the main axis.
-// Takes isWrap (bool) which is true when flex wrapping
-// is enabled.
+// Takes items ([]*flexItem) which is the slice of flex items to group into lines.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes mainGap (float64) which is the gap between items along the main axis.
+// Takes isWrap (bool) which is true when flex wrapping is enabled.
 //
 // Returns the slice of flex lines.
 func collectFlexLines(
@@ -516,20 +476,16 @@ func collectFlexLines(
 	return lines
 }
 
-// resolveFlexibleLengths distributes free space among flex
-// items on a line using flex-grow or flex-shrink factors.
+// resolveFlexibleLengths distributes free space among flex items on a line using
+// flex-grow or flex-shrink factors.
 //
-// The algorithm follows CSS Flexbox spec section 9.7:
-// determine whether the line is growing or shrinking,
-// freeze inflexible items, then iteratively redistribute
-// free space until no min/max violations remain.
+// The algorithm follows CSS Flexbox spec section 9.7: determine whether the line is
+// growing or shrinking, freeze inflexible items, then iteratively redistribute free space
+// until no min/max violations remain.
 //
-// Takes line (*flexLine) which is the flex line whose
-// items receive distributed space.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes mainGap (float64) which is the gap between
-// items along the main axis.
+// Takes line (*flexLine) which is the flex line whose items receive distributed space.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes mainGap (float64) which is the gap between items along the main axis.
 // Takes isRowDirection (bool) which is true for row flex.
 func resolveFlexibleLengths(line *flexLine, containerMainSize, mainGap float64, isRowDirection bool) {
 	totalGaps := mainGap * float64(len(line.items)-1)
@@ -540,18 +496,14 @@ func resolveFlexibleLengths(line *flexLine, containerMainSize, mainGap float64, 
 	flexFreezeLoop(line, frozen, growing, totalGaps, containerMainSize, isRowDirection)
 }
 
-// isFlexLineGrowing returns true when the sum of hypothetical
-// main sizes (base sizes clamped to min/max) plus gaps does
-// not exceed the container main size, meaning items should
-// grow rather than shrink.
+// isFlexLineGrowing returns true when the sum of hypothetical main sizes (base sizes
+// clamped to min/max) plus gaps does not exceed the container main size, meaning items
+// should grow rather than shrink.
 //
 // Takes line (*flexLine) which is the flex line to check.
-// Takes totalGaps (float64) which is the total gap space
-// between items.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical clamping.
-// Takes containerMainSize (float64) which is the main axis
-// size of the container.
+// Takes totalGaps (float64) which is the total gap space between items.
+// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
+// Takes containerMainSize (float64) which is the main axis size of the container.
 //
 // Returns bool which is true when items should grow.
 func isFlexLineGrowing(line *flexLine, totalGaps float64, isRowDirection bool, containerMainSize float64) bool {
@@ -562,16 +514,14 @@ func isFlexLineGrowing(line *flexLine, totalGaps float64, isRowDirection bool, c
 	return used <= containerMainSize
 }
 
-// freezeInflexibleItems freezes items that have a zero
-// flex factor for the current grow/shrink mode, setting
-// their main size to the clamped base size.
+// freezeInflexibleItems freezes items that have a zero flex factor for the current
+// grow/shrink mode, setting their main size to the clamped base size.
 //
 // Takes line (*flexLine) which is the flex line to process.
 // Takes growing (bool) which indicates the grow/shrink mode.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical clamping.
-// Takes containerMainSize (float64) which is the main axis
-// size for percentage resolution.
+// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
+// Takes containerMainSize (float64) which is the main axis size for percentage
+// resolution.
 //
 // Returns []bool which holds the frozen flag for each item.
 func freezeInflexibleItems(line *flexLine, growing, isRowDirection bool, containerMainSize float64) []bool {
@@ -588,18 +538,16 @@ func freezeInflexibleItems(line *flexLine, growing, isRowDirection bool, contain
 	return frozen
 }
 
-// flexFreezeLoop performs the iterative freeze-and-redistribute
-// loop per CSS Flexbox spec section 9.7, distributing free
-// space to unfrozen items and freezing any that violate their
-// min/max constraints until convergence.
+// flexFreezeLoop performs the iterative freeze-and-redistribute loop per CSS Flexbox spec
+// section 9.7, distributing free space to unfrozen items and freezing any that violate
+// their min/max constraints until convergence.
 //
 // Takes line (*flexLine) which is the flex line to process.
 // Takes frozen ([]bool) which tracks which items are frozen.
 // Takes growing (bool) which indicates the grow/shrink mode.
 // Takes totalGaps (float64) which is the total gap space.
 // Takes containerMainSize (float64) which is the main axis size.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical clamping.
+// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
 func flexFreezeLoop(
 	line *flexLine, frozen []bool, growing bool,
 	totalGaps, containerMainSize float64, isRowDirection bool,
@@ -615,8 +563,8 @@ func flexFreezeLoop(
 	}
 }
 
-// computeFlexFreeSpace calculates the remaining free space
-// and the total flex factor among unfrozen items.
+// computeFlexFreeSpace calculates the remaining free space and the total flex factor
+// among unfrozen items.
 //
 // Takes line (*flexLine) which is the flex line to measure.
 // Takes frozen ([]bool) which tracks which items are frozen.
@@ -624,10 +572,9 @@ func flexFreezeLoop(
 // Takes totalGaps (float64) which is the total gap space.
 // Takes containerMainSize (float64) which is the main axis size.
 //
-// Returns freeSpace (float64) which is the remaining free
-// space in points.
-// Returns totalFactor (float64) which is the flex-grow sum
-// when growing or weighted flex-shrink sum when shrinking.
+// Returns freeSpace (float64) which is the remaining free space in points.
+// Returns totalFactor (float64) which is the flex-grow sum when growing or weighted
+// flex-shrink sum when shrinking.
 func computeFlexFreeSpace(
 	line *flexLine, frozen []bool, growing bool,
 	totalGaps, containerMainSize float64,
@@ -648,9 +595,8 @@ func computeFlexFreeSpace(
 	return containerMainSize - usedByFrozen, totalFactor
 }
 
-// distributeFlexFreeSpace assigns target main sizes to
-// unfrozen items by distributing the available free space
-// according to their flex factors.
+// distributeFlexFreeSpace assigns target main sizes to unfrozen items by distributing the
+// available free space according to their flex factors.
 //
 // Takes line (*flexLine) which is the flex line to update.
 // Takes frozen ([]bool) which tracks which items are frozen.
@@ -674,16 +620,14 @@ func distributeFlexFreeSpace(line *flexLine, frozen []bool, growing bool, freeSp
 	}
 }
 
-// freezeFlexViolators clamps each unfrozen item's target
-// main size to its min/max constraints and freezes any
-// item that was clamped.
+// freezeFlexViolators clamps each unfrozen item's target main size to its min/max
+// constraints and freezes any item that was clamped.
 //
 // Takes line (*flexLine) which is the flex line to check.
 // Takes frozen ([]bool) which tracks which items are frozen.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical clamping.
-// Takes containerMainSize (float64) which is the main axis
-// size for percentage resolution.
+// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
+// Takes containerMainSize (float64) which is the main axis size for percentage
+// resolution.
 //
 // Returns bool which is true if at least one item was frozen.
 func freezeFlexViolators(line *flexLine, frozen []bool, isRowDirection bool, containerMainSize float64) bool {
@@ -705,8 +649,8 @@ func freezeFlexViolators(line *flexLine, frozen []bool, isRowDirection bool, con
 	return anyFrozen
 }
 
-// applyUnfrozenTargets copies the target main size to the
-// resolved main size for all items that were never frozen.
+// applyUnfrozenTargets copies the target main size to the resolved main size for all
+// items that were never frozen.
 //
 // Takes line (*flexLine) which is the flex line to update.
 // Takes frozen ([]bool) which tracks which items are frozen.
@@ -718,14 +662,13 @@ func applyUnfrozenTargets(line *flexLine, frozen []bool) {
 	}
 }
 
-// clampFlexMainSize applies min/max main-axis constraints
-// to a flex item's border-box size.
+// clampFlexMainSize applies min/max main-axis constraints to a flex item's border-box
+// size.
 //
 // Takes size (float64) which is the border-box main size.
 // Takes box (*LayoutBox) which is the flex item.
 // Takes isRowDirection (bool) which is true for row flex.
-// Takes containerMainSize (float64) for percentage
-// resolution.
+// Takes containerMainSize (float64) for percentage resolution.
 //
 // Returns the clamped border-box size.
 func clampFlexMainSize(size float64, box *LayoutBox, isRowDirection bool, containerMainSize float64) float64 {
@@ -751,25 +694,18 @@ func clampFlexMainSize(size float64, box *LayoutBox, isRowDirection bool, contai
 	return size
 }
 
-// resolveFlexLineCrossSizes computes the cross size for
-// each flex line and adjusts for explicit container cross
-// size when applicable.
+// resolveFlexLineCrossSizes computes the cross size for each flex line and adjusts for
+// explicit container cross size when applicable.
 //
-// Takes lines ([]*flexLine) which is the slice of flex
-// lines to resolve.
-// Takes container (*LayoutBox) which is the flex
-// container box.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes containerCrossSize (float64) which is the
-// cross axis size of the container.
-// Takes crossGap (float64) which is the gap between
-// lines along the cross axis.
-// Takes isWrap (bool) which is true when flex wrapping
-// is enabled.
+// Takes lines ([]*flexLine) which is the slice of flex lines to resolve.
+// Takes container (*LayoutBox) which is the flex container box.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes containerCrossSize (float64) which is the cross axis size of the container.
+// Takes crossGap (float64) which is the gap between lines along the cross axis.
+// Takes isWrap (bool) which is true when flex wrapping is enabled.
 //
-// Returns alignContentResult which holds the initial cross
-// offset and per-line spacing from align-content distribution.
+// Returns alignContentResult which holds the initial cross offset and per-line spacing
+// from align-content distribution.
 func resolveFlexLineCrossSizes(
 	lines []*flexLine,
 	container *LayoutBox,
@@ -804,13 +740,11 @@ func resolveFlexLineCrossSizes(
 	return alignContentResult{}
 }
 
-// resolveItemCrossSize computes the cross axis size for a
-// single flex item, including padding and border.
+// resolveItemCrossSize computes the cross axis size for a single flex item, including
+// padding and border.
 //
-// Takes item (*flexItem) which is the flex item to
-// measure.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
+// Takes item (*flexItem) which is the flex item to measure.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
 //
 // Returns the total cross size in points.
 func resolveItemCrossSize(item *flexItem, isRowDirection bool) float64 {
@@ -838,8 +772,8 @@ func resolveItemCrossSize(item *flexItem, isRowDirection bool) float64 {
 	return edges.Padding.Horizontal() + edges.Border.Horizontal()
 }
 
-// alignContentResult holds the initial cross offset and
-// per-line spacing computed by distributeAlignContent.
+// alignContentResult holds the initial cross offset and per-line spacing computed by
+// distributeAlignContent.
 type alignContentResult struct {
 	// initialOffset holds the cross axis offset before the first line.
 	initialOffset float64
@@ -848,21 +782,17 @@ type alignContentResult struct {
 	lineSpacing float64
 }
 
-// distributeAlignContent distributes remaining cross axis
-// space among flex lines according to the align-content
-// property.
+// distributeAlignContent distributes remaining cross axis space among flex lines
+// according to the align-content property.
 //
-// Takes lines ([]*flexLine) which is the slice of flex
-// lines to adjust.
-// Takes containerCrossSize (float64) which is the
-// cross axis size of the container.
-// Takes totalCrossGaps (float64) which is the total
-// gap space between lines.
-// Takes alignContent (AlignContentType) which is the
-// align-content value from the container style.
+// Takes lines ([]*flexLine) which is the slice of flex lines to adjust.
+// Takes containerCrossSize (float64) which is the cross axis size of the container.
+// Takes totalCrossGaps (float64) which is the total gap space between lines.
+// Takes alignContent (AlignContentType) which is the align-content value from the
+// container style.
 //
-// Returns alignContentResult which holds the computed
-// initial offset and per-line spacing.
+// Returns alignContentResult which holds the computed initial offset and per-line
+// spacing.
 func distributeAlignContent(
 	lines []*flexLine,
 	containerCrossSize float64,
@@ -879,7 +809,7 @@ func distributeAlignContent(
 		return alignContentResult{}
 	}
 
-	switch alignContent {
+	switch alignContent { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case AlignContentStretch:
 		extra := remainingSpace / float64(len(lines))
 		for _, line := range lines {
@@ -902,74 +832,59 @@ func distributeAlignContent(
 	return alignContentResult{}
 }
 
-// flexPositionContext holds the parameters needed to
-// position flex items after their sizes are resolved.
+// flexPositionContext holds the parameters needed to position flex items after their
+// sizes are resolved.
 type flexPositionContext struct {
-	// input carries the layout constraints and cache
-	// from the parent context.
+	// input carries the layout constraints and cache from the parent context.
 	input layoutInput
 
-	// contentOffsetX is the horizontal offset from
-	// the container's ContentX to the content start
-	// (padding + border).
+	// contentOffsetX is the horizontal offset from the container's ContentX to the content
+	// start (padding + border).
 	contentOffsetX float64
 
-	// contentOffsetY is the vertical offset from
-	// the container's ContentY to the content start
-	// (padding + border).
+	// contentOffsetY is the vertical offset from the container's ContentY to the content
+	// start (padding + border).
 	contentOffsetY float64
 
-	// containerMainSize is the main axis size of the
-	// container content area.
+	// containerMainSize is the main axis size of the container content area.
 	containerMainSize float64
 
-	// containerCrossSize is the explicit cross axis size
-	// of the container, or 0 when the cross size is auto.
+	// containerCrossSize is the explicit cross axis size of the container, or 0 when the
+	// cross size is auto.
 	containerCrossSize float64
 
-	// mainGap is the gap between items along the main
-	// axis.
+	// mainGap is the gap between items along the main axis.
 	mainGap float64
 
-	// crossGap is the gap between lines along the cross
-	// axis.
+	// crossGap is the gap between lines along the cross axis.
 	crossGap float64
 
-	// alignItems is the container align-items value used
-	// as the default cross axis alignment.
+	// alignItems is the container align-items value used as the default cross axis
+	// alignment.
 	alignItems AlignItemsType
 
-	// justifyContent is the container justify-content
-	// value for main axis distribution.
+	// justifyContent is the container justify-content value for main axis distribution.
 	justifyContent JustifyContentType
 
-	// isRowDirection is true when the main axis is
-	// horizontal.
+	// isRowDirection is true when the main axis is horizontal.
 	isRowDirection bool
 
-	// isReversed is true when the main axis direction is
-	// reversed.
+	// isReversed is true when the main axis direction is reversed.
 	isReversed bool
 
 	// isWrap is true when the container uses flex-wrap.
 	isWrap bool
 }
 
-// buildFlexPositionContext constructs a position context
-// from the container box and layout parameters.
+// buildFlexPositionContext constructs a position context from the container box and
+// layout parameters.
 //
-// Takes container (*LayoutBox) which is the flex
-// container box.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes isReversed (bool) which is true when the main
-// axis direction is reversed.
-// Takes mainGap (float64) which is the gap between
-// items along the main axis.
-// Takes crossGap (float64) which is the gap between
-// lines along the cross axis.
-// Takes input (layoutInput) which carries font metrics
-// and cache from the parent context.
+// Takes container (*LayoutBox) which is the flex container box.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes isReversed (bool) which is true when the main axis direction is reversed.
+// Takes mainGap (float64) which is the gap between items along the main axis.
+// Takes crossGap (float64) which is the gap between lines along the cross axis.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 //
 // Returns the populated flexPositionContext.
 func buildFlexPositionContext(
@@ -1009,17 +924,15 @@ func buildFlexPositionContext(
 	}
 }
 
-// positionFlexItems positions all flex items across all
-// lines, respecting wrap-reverse ordering.
+// positionFlexItems positions all flex items across all lines, respecting wrap-reverse
+// ordering.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
-// Takes lines ([]*flexLine) which is the slice of flex
-// lines containing items to position.
-// Takes isWrapReverse (bool) which is true when line
-// ordering is reversed.
-// Takes positionContext (*flexPositionContext) which holds the
-// positioning parameters.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
+// Takes lines ([]*flexLine) which is the slice of flex lines containing items to
+// position.
+// Takes isWrapReverse (bool) which is true when line ordering is reversed.
+// Takes positionContext (*flexPositionContext) which holds the positioning parameters.
 func positionFlexItems(ctx context.Context, lines []*flexLine, isWrapReverse bool, acResult alignContentResult, positionContext *flexPositionContext) {
 	lineOrder := make([]int, len(lines))
 	for index := range lineOrder {
@@ -1039,17 +952,14 @@ func positionFlexItems(ctx context.Context, lines []*flexLine, isWrapReverse boo
 	}
 }
 
-// positionFlexLine positions all items within a single
-// flex line using justify-content and item ordering.
+// positionFlexLine positions all items within a single flex line using justify-content
+// and item ordering.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
-// Takes line (*flexLine) which is the flex line to
-// position.
-// Takes crossOffset (float64) which is the cross axis
-// offset for this line.
-// Takes positionContext (*flexPositionContext) which holds the
-// positioning parameters.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
+// Takes line (*flexLine) which is the flex line to position.
+// Takes crossOffset (float64) which is the cross axis offset for this line.
+// Takes positionContext (*flexPositionContext) which holds the positioning parameters.
 func positionFlexLine(ctx context.Context, line *flexLine, crossOffset float64, positionContext *flexPositionContext) {
 	layoutFlexLineItems(ctx, line, positionContext)
 	recomputeLineCrossSize(line)
@@ -1060,10 +970,8 @@ func positionFlexLine(ctx context.Context, line *flexLine, crossOffset float64, 
 	positionFlexLineItems(line, crossOffset, justify, positionContext)
 }
 
-// layoutFlexLineItems performs the first layout pass for
-// every item on the line, using auto cross sizes so that
-// intrinsic heights (aspect-ratio, table content) are
-// preserved.
+// layoutFlexLineItems performs the first layout pass for every item on the line, using
+// auto cross sizes so that intrinsic heights (aspect-ratio, table content) are preserved.
 //
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to lay out.
@@ -1077,25 +985,22 @@ func layoutFlexLineItems(ctx context.Context, line *flexLine, positionContext *f
 	}
 }
 
-// clampLineCrossToContainer ensures that a single-line
-// (non-wrap) row container's line cross size is at least
-// the container cross size. Multi-line containers handle
-// cross space distribution via align-content instead.
+// clampLineCrossToContainer ensures that a single-line (non-wrap) row container's line
+// cross size is at least the container cross size. Multi-line containers handle cross
+// space distribution via align-content instead.
 //
 // Takes line (*flexLine) which is the flex line to clamp.
-// Takes positionContext (*flexPositionContext) which holds
-// the container cross size and wrap flag.
+// Takes positionContext (*flexPositionContext) which holds the container cross size and
+// wrap flag.
 func clampLineCrossToContainer(line *flexLine, positionContext *flexPositionContext) {
 	if positionContext.isRowDirection && positionContext.containerCrossSize > 0 && !positionContext.isWrap {
 		line.crossSize = math.Max(line.crossSize, positionContext.containerCrossSize)
 	}
 }
 
-// stretchRelayoutLineItems re-lays out row-direction items
-// that have align-self: stretch and an auto cross dimension,
-// using the line's definite cross size so children with
-// percentage heights and nested flex containers resolve
-// correctly.
+// stretchRelayoutLineItems re-lays out row-direction items that have align-self: stretch
+// and an auto cross dimension, using the line's definite cross size so children with
+// percentage heights and nested flex containers resolve correctly.
 //
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to re-lay out.
@@ -1111,16 +1016,14 @@ func stretchRelayoutLineItems(ctx context.Context, line *flexLine, positionConte
 	}
 }
 
-// needsStretchRelayout returns true when a row-direction
-// flex item should be re-laid out with the line's definite
-// cross size. The item must have auto height, no auto cross
-// margins, align-self resolving to stretch, and a line
-// cross size exceeding its current cross size.
+// needsStretchRelayout returns true when a row-direction flex item should be re-laid out
+// with the line's definite cross size. The item must have auto height, no auto cross
+// margins, align-self resolving to stretch, and a line cross size exceeding its current
+// cross size.
 //
 // Takes item (*flexItem) which is the flex item to check.
 // Takes lineCrossSize (float64) which is the line's cross size.
-// Takes alignItems (AlignItemsType) which is the container's
-// align-items fallback.
+// Takes alignItems (AlignItemsType) which is the container's align-items fallback.
 //
 // Returns bool which is true when the item needs re-layout.
 func needsStretchRelayout(item *flexItem, lineCrossSize float64, alignItems AlignItemsType) bool {
@@ -1136,16 +1039,13 @@ func needsStretchRelayout(item *flexItem, lineCrossSize float64, alignItems Alig
 	return lineCrossSize > item.crossSize
 }
 
-// resolveLineJustifyContent resolves the effective
-// justify-content value for a flex line, falling back to
-// flex-start when auto margins consume the free space.
+// resolveLineJustifyContent resolves the effective justify-content value for a flex line,
+// falling back to flex-start when auto margins consume the free space.
 //
 // Takes line (*flexLine) which is the flex line to check.
-// Takes positionContext (*flexPositionContext) which holds
-// the justify-content value.
+// Takes positionContext (*flexPositionContext) which holds the justify-content value.
 //
-// Returns JustifyContentType which is the resolved
-// justify-content value.
+// Returns JustifyContentType which is the resolved justify-content value.
 func resolveLineJustifyContent(line *flexLine, positionContext *flexPositionContext) JustifyContentType {
 	if resolveFlexAutoMargins(line, positionContext) {
 		return JustifyFlexStart
@@ -1153,17 +1053,13 @@ func resolveLineJustifyContent(line *flexLine, positionContext *flexPositionCont
 	return positionContext.justifyContent
 }
 
-// positionFlexLineItems places each item on both axes
-// using justify-content offsets and spacing, then mirrors
-// positions when the main axis direction is reversed.
+// positionFlexLineItems places each item on both axes using justify-content offsets and
+// spacing, then mirrors positions when the main axis direction is reversed.
 //
 // Takes line (*flexLine) which is the flex line to position.
-// Takes crossOffset (float64) which is the cross axis offset
-// for this line.
-// Takes justify (JustifyContentType) which is the resolved
-// justify-content value.
-// Takes positionContext (*flexPositionContext) which holds
-// the positioning parameters.
+// Takes crossOffset (float64) which is the cross axis offset for this line.
+// Takes justify (JustifyContentType) which is the resolved justify-content value.
+// Takes positionContext (*flexPositionContext) which holds the positioning parameters.
 func positionFlexLineItems(
 	line *flexLine, crossOffset float64,
 	justify JustifyContentType, positionContext *flexPositionContext,
@@ -1196,9 +1092,8 @@ func positionFlexLineItems(
 	}
 }
 
-// relayoutFlexItemWithCrossSize re-lays out a row-direction
-// flex item with a definite cross (height) size, enabling
-// children with percentage heights and nested column flex
+// relayoutFlexItemWithCrossSize re-lays out a row-direction flex item with a definite
+// cross (height) size, enabling children with percentage heights and nested column flex
 // containers to resolve against the stretched cross size.
 //
 // Takes ctx (context.Context) which carries cancellation signals.
@@ -1242,8 +1137,8 @@ func relayoutFlexItemWithCrossSize(ctx context.Context, item *flexItem, lineCros
 		childEdges.MarginTop + childEdges.MarginBottom
 }
 
-// mirrorFlexItemPosition mirrors a flex item's position along
-// the main axis when flex-direction is reversed.
+// mirrorFlexItemPosition mirrors a flex item's position along the main axis when
+// flex-direction is reversed.
 //
 // Takes fragment (*Fragment) which is the item fragment to mirror.
 // Takes containerMainSize (float64) which is the main axis size.
@@ -1272,9 +1167,8 @@ func mirrorFlexItemPosition(fragment *Fragment, containerMainSize float64, isRow
 	}
 }
 
-// recomputeLineCrossSize updates the line cross size after
-// all items have been laid out, using the actual computed
-// cross sizes rather than the pre-layout estimates.
+// recomputeLineCrossSize updates the line cross size after all items have been laid out,
+// using the actual computed cross sizes rather than the pre-layout estimates.
 //
 // Takes line (*flexLine) which is the flex line to update.
 func recomputeLineCrossSize(line *flexLine) {
@@ -1287,20 +1181,14 @@ func recomputeLineCrossSize(line *flexLine) {
 	line.crossSize = maxCrossSize
 }
 
-// placeFlexItemOnAxes sets the content position of a flex
-// item by mapping main and cross offsets to x and y
-// coordinates.
+// placeFlexItemOnAxes sets the content position of a flex item by mapping main and cross
+// offsets to x and y coordinates.
 //
-// Takes item (*flexItem) which is the flex item to
-// place.
-// Takes lineCrossSize (float64) which is the cross
-// axis size of the item's line.
-// Takes crossOffset (float64) which is the cross axis
-// offset for the line.
-// Takes mainOffset (float64) which is the main axis
-// offset for this item.
-// Takes positionContext (*flexPositionContext) which holds the
-// positioning parameters.
+// Takes item (*flexItem) which is the flex item to place.
+// Takes lineCrossSize (float64) which is the cross axis size of the item's line.
+// Takes crossOffset (float64) which is the cross axis offset for the line.
+// Takes mainOffset (float64) which is the main axis offset for this item.
+// Takes positionContext (*flexPositionContext) which holds the positioning parameters.
 func placeFlexItemOnAxes(
 	item *flexItem,
 	lineCrossSize float64,
@@ -1325,22 +1213,18 @@ func placeFlexItemOnAxes(
 	}
 }
 
-// layoutFlexItem resolves edges, margins, and content
-// dimensions for a single flex item, then lays out its
-// children.
+// layoutFlexItem resolves edges, margins, and content dimensions for a single flex item,
+// then lays out its children.
 //
-// Takes ctx (context.Context) which carries cancellation
-// and deadline signals from the caller.
+// Takes ctx (context.Context) which carries cancellation and deadline signals from the
+// caller.
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes item (*flexItem) which is the flex item state.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes containerCrossSize (float64) which is the cross
-// axis size of the container, or 0 when indefinite.
-// Takes input (layoutInput) which carries font metrics
-// and cache from the parent context.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes containerCrossSize (float64) which is the cross axis size of the container, or 0
+// when indefinite.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 func layoutFlexItem(
 	ctx context.Context,
 	child *LayoutBox,
@@ -1396,18 +1280,13 @@ func layoutFlexItem(
 	}
 }
 
-// computeJustifyOffset calculates the initial main axis
-// offset for the first item based on the justify-content
-// mode.
+// computeJustifyOffset calculates the initial main axis offset for the first item based
+// on the justify-content mode.
 //
-// Takes justify (JustifyContentType) which is the
-// justify-content value.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes line (*flexLine) which is the flex line being
-// justified.
-// Takes mainGap (float64) which is the gap between
-// items along the main axis.
+// Takes justify (JustifyContentType) which is the justify-content value.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes line (*flexLine) which is the flex line being justified.
+// Takes mainGap (float64) which is the gap between items along the main axis.
 //
 // Returns the offset in points.
 func computeJustifyOffset(
@@ -1443,17 +1322,13 @@ func computeJustifyOffset(
 	}
 }
 
-// computeJustifySpacing calculates the extra spacing
-// between items based on the justify-content mode.
+// computeJustifySpacing calculates the extra spacing between items based on the
+// justify-content mode.
 //
-// Takes justify (JustifyContentType) which is the
-// justify-content value.
-// Takes containerMainSize (float64) which is the main
-// axis size of the container.
-// Takes line (*flexLine) which is the flex line being
-// spaced.
-// Takes mainGap (float64) which is the gap between
-// items along the main axis.
+// Takes justify (JustifyContentType) which is the justify-content value.
+// Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes line (*flexLine) which is the flex line being spaced.
+// Takes mainGap (float64) which is the gap between items along the main axis.
 //
 // Returns the per-item spacing in points.
 func computeJustifySpacing(
@@ -1492,20 +1367,15 @@ func computeJustifySpacing(
 	}
 }
 
-// computeCrossPosition calculates the cross axis position
-// of a flex item within its line, applying align-self or
-// the container align-items fallback.
+// computeCrossPosition calculates the cross axis position of a flex item within its line,
+// applying align-self or the container align-items fallback.
 //
-// Takes item (*flexItem) which is the flex item to
-// position.
-// Takes lineCrossSize (float64) which is the cross
-// axis size of the item's line.
-// Takes crossOffset (float64) which is the cross axis
-// offset for the line.
-// Takes containerAlignItems (AlignItemsType) which is
-// the container's align-items fallback.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
+// Takes item (*flexItem) which is the flex item to position.
+// Takes lineCrossSize (float64) which is the cross axis size of the item's line.
+// Takes crossOffset (float64) which is the cross axis offset for the line.
+// Takes containerAlignItems (AlignItemsType) which is the container's align-items
+// fallback.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
 //
 // Returns the cross axis offset in points.
 func computeCrossPosition(
@@ -1534,8 +1404,8 @@ func computeCrossPosition(
 	}
 }
 
-// hasAutoCrossMargins returns true if the flex item has any
-// auto margins on the cross axis.
+// hasAutoCrossMargins returns true if the flex item has any auto margins on the cross
+// axis.
 //
 // Takes item (*flexItem) which is the flex item to check.
 // Takes isRowDirection (bool) which selects the cross axis.
@@ -1548,9 +1418,8 @@ func hasAutoCrossMargins(item *flexItem, isRowDirection bool) bool {
 	return item.box.Style.MarginLeft.IsAuto() || item.box.Style.MarginRight.IsAuto()
 }
 
-// resolveAutoCrossMargins distributes the cross-axis free
-// space to auto margins on the cross axis, centering the
-// item when both margins are auto.
+// resolveAutoCrossMargins distributes the cross-axis free space to auto margins on the
+// cross axis, centering the item when both margins are auto.
 //
 // Takes item (*flexItem) which is the flex item to position.
 // Takes lineCrossSize (float64) which is the line's cross size.
@@ -1597,16 +1466,12 @@ func resolveAutoCrossMargins(item *flexItem, lineCrossSize, crossOffset float64,
 	return crossOffset + startMargin
 }
 
-// applyStretchCrossSize stretches a flex item to fill the
-// line cross size when the item has an auto cross
-// dimension.
+// applyStretchCrossSize stretches a flex item to fill the line cross size when the item
+// has an auto cross dimension.
 //
-// Takes item (*flexItem) which is the flex item to
-// stretch.
-// Takes lineCrossSize (float64) which is the cross
-// axis size of the item's line.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
+// Takes item (*flexItem) which is the flex item to stretch.
+// Takes lineCrossSize (float64) which is the cross axis size of the item's line.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
 func applyStretchCrossSize(item *flexItem, lineCrossSize float64, isRowDirection bool) {
 	fragment := item.fragment
 	style := &item.box.Style
@@ -1639,14 +1504,12 @@ func applyStretchCrossSize(item *flexItem, lineCrossSize float64, isRowDirection
 	}
 }
 
-// resolveAlignSelf maps an align-self value to the
-// corresponding align-items value, falling back to the
-// container align-items when align-self is auto.
+// resolveAlignSelf maps an align-self value to the corresponding align-items value,
+// falling back to the container align-items when align-self is auto.
 //
-// Takes alignSelf (AlignSelfType) which is the item's
-// align-self value.
-// Takes containerAlignItems (AlignItemsType) which is
-// the container's align-items fallback.
+// Takes alignSelf (AlignSelfType) which is the item's align-self value.
+// Takes containerAlignItems (AlignItemsType) which is the container's align-items
+// fallback.
 //
 // Returns the resolved AlignItemsType.
 func resolveAlignSelf(alignSelf AlignSelfType, containerAlignItems AlignItemsType) AlignItemsType {
@@ -1666,17 +1529,13 @@ func resolveAlignSelf(alignSelf AlignSelfType, containerAlignItems AlignItemsTyp
 	}
 }
 
-// computeFlexContainerHeight computes the container content
-// height based on the resolved flex line sizes.
+// computeFlexContainerHeight computes the container content height based on the resolved
+// flex line sizes.
 //
-// Takes container (*LayoutBox) which is the flex
-// container box used for style queries.
-// Takes lines ([]*flexLine) which is the slice of
-// resolved flex lines.
-// Takes isRowDirection (bool) which is true when the
-// main axis is horizontal.
-// Takes crossGap (float64) which is the gap between
-// lines along the cross axis.
+// Takes container (*LayoutBox) which is the flex container box used for style queries.
+// Takes lines ([]*flexLine) which is the slice of resolved flex lines.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes crossGap (float64) which is the gap between lines along the cross axis.
 //
 // Returns float64 which is the resolved content height.
 func computeFlexContainerHeight(

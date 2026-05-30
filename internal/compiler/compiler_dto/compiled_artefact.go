@@ -35,9 +35,8 @@ type CompiledArtefact struct {
 	// BaseJSPath is the key in Files for the main JavaScript output.
 	BaseJSPath string
 
-	// JSDependencies holds the resolved JS import paths that need registry
-	// registration. These are imports that used the @/ alias and were changed
-	// to served paths.
+	// JSDependencies holds the resolved JS import paths that need registry registration.
+	// These are imports that used the @/ alias and were changed to served paths.
 	JSDependencies []JSDependency
 
 	// Diagnostics carries non-fatal issues surfaced during compilation.
@@ -46,8 +45,8 @@ type CompiledArtefact struct {
 
 // CompilationDiagnostic is a non-fatal compile-time issue.
 //
-// The message is suitable for surfacing directly to the playground or
-// developer logs and avoids leaking framework error chains.
+// The message is suitable for surfacing directly to the playground or developer logs and
+// avoids leaking framework error chains.
 type CompilationDiagnostic struct {
 	// Severity is "error", "warning", or "info".
 	Severity string
@@ -55,24 +54,22 @@ type CompilationDiagnostic struct {
 	// Message is the human-readable description.
 	Message string
 
-	// SourceIdentifier echoes CompiledArtefact.SourceIdentifier so
-	// downstream filters can route the diagnostic.
+	// SourceIdentifier echoes CompiledArtefact.SourceIdentifier so downstream filters can
+	// route the diagnostic.
 	SourceIdentifier string
 }
 
-// JSDependency represents a JavaScript file that a component imports.
-// The file needs to be registered to the artefact registry for serving.
+// JSDependency represents a JavaScript file that a component imports. The file needs to
+// be registered to the artefact registry for serving.
 type JSDependency struct {
-	// OriginalPath is the path as written in the source file
-	// (e.g. "@/lib/utils.js").
+	// OriginalPath is the path as written in the source file (e.g. "@/lib/utils.js").
 	OriginalPath string `json:"originalPath"`
 
-	// ResolvedPath is the module-qualified path (for example a GitHub-hosted
-	// module path with a "/lib/utils.js" suffix).
+	// ResolvedPath is the module-qualified path (for example a GitHub-hosted module path
+	// with a "/lib/utils.js" suffix).
 	ResolvedPath string `json:"resolvedPath"`
 
-	// ServedPath is the URL path for serving (for example a "/_piko/assets/"
-	// prefix followed by a GitHub-hosted module path and a "/lib/utils.js"
-	// suffix).
+	// ServedPath is the URL path for serving (for example a "/_piko/assets/" prefix followed
+	// by a GitHub-hosted module path and a "/lib/utils.js" suffix).
 	ServedPath string `json:"servedPath"`
 }

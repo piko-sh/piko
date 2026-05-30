@@ -38,20 +38,20 @@ const (
 	// profilingRefreshTimeout caps the status RPC fetch.
 	profilingRefreshTimeout = 5 * time.Second
 
-	// profilingDefaultCaptureSeconds is the default sampling window
-	// presented to the user for one-shot captures.
+	// profilingDefaultCaptureSeconds is the default sampling window presented to the user
+	// for one-shot captures.
 	profilingDefaultCaptureSeconds = 10
 
-	// profileFilePerm is the POSIX permission applied to captured
-	// profile files written under the OS temp dir. Read/write owner
-	// only, captures may contain sensitive runtime state.
+	// profileFilePerm is the POSIX permission applied to captured profile files written
+	// under the OS temp dir. Read/write owner only, captures may contain sensitive runtime
+	// state.
 	profileFilePerm = 0o600
 
 	// percentScale converts a [0,1] ratio to a percentage in [0,100].
 	percentScale = 100
 
-	// captureSectionHeading is the common heading for the
-	// capture-status section in the detail body.
+	// captureSectionHeading is the common heading for the capture-status section in the
+	// detail body.
 	captureSectionHeading = "Capture"
 )
 
@@ -64,8 +64,7 @@ type profilingRefreshMessage struct {
 	err error
 }
 
-// profilingActionMessage carries the result of an enable/disable
-// action.
+// profilingActionMessage carries the result of an enable/disable action.
 type profilingActionMessage struct {
 	// err is the action error, or nil on success.
 	err error
@@ -76,8 +75,8 @@ type profilingActionMessage struct {
 
 // profilingCaptureMessage carries the result of a one-shot capture.
 type profilingCaptureMessage struct {
-	// summary is the parsed top-N for the captured profile; nil when
-	// the capture or parse failed.
+	// summary is the parsed top-N for the captured profile; nil when the capture or parse
+	// failed.
 	summary *inspector.ProfileSummary
 
 	// err holds any capture or parse error.
@@ -93,8 +92,8 @@ type profilingCaptureMessage struct {
 	bytes int
 }
 
-// ProfilingPanel surfaces the on-demand profiling controls. It is the
-// TUI counterpart of `piko profiling enable|disable|status|capture`.
+// ProfilingPanel surfaces the on-demand profiling controls. It is the TUI counterpart of
+// `piko profiling enable|disable|status|capture`.
 type ProfilingPanel struct {
 	// lastRefresh records when the panel last received a status payload.
 	lastRefresh time.Time
@@ -108,38 +107,39 @@ type ProfilingPanel struct {
 	// err holds the last status refresh error, or nil after success.
 	err error
 
-	// captureErr holds the most recent capture / enable / disable
-	// failure. Cleared on the next successful action.
+	// captureErr holds the most recent capture / enable / disable failure. Cleared on the
+	// next successful action.
 	captureErr error
 
 	// status holds the most recent status snapshot.
 	status *ProfilingStatus
 
-	// captureMessage is the last user-facing capture status (saved
-	// path, "in flight...", failure label).
+	// captureMessage is the last user-facing capture status (saved path, active-capture
+	// label, failure label).
 	captureMessage string
 
-	// lastSummary is the parsed top-N for the most recent successful
-	// capture; nil before any capture finishes.
+	// lastSummary is the parsed top-N for the most recent successful capture; nil before any
+	// capture finishes.
 	lastSummary *inspector.ProfileSummary
 
 	BasePanel
 
-	// stateMutex guards status / err / capture state for safe
-	// concurrent reads.
+	// stateMutex guards status / err / capture state for safe concurrent reads.
 	stateMutex sync.RWMutex
 
-	// capturing reports whether a capture RPC is currently in flight.
+	// capturing reports whether a capture RPC is active.
 	capturing bool
 }
 
-var _ Panel = (*ProfilingPanel)(nil)
+var (
+	_ Panel = (*ProfilingPanel)(nil)
+)
 
 // NewProfilingPanel constructs a ProfilingPanel.
 //
 // Takes provider (ProfilingInspector) which supplies the profiling RPC port.
-// Takes c (clock.Clock) which yields the current time; nil falls back
-// to the real system clock.
+// Takes c (clock.Clock) which yields the current time; nil falls back to the real system
+// clock.
 //
 // Returns *ProfilingPanel ready to register with the model.
 func NewProfilingPanel(provider ProfilingInspector, c clock.Clock) *ProfilingPanel {
@@ -373,9 +373,8 @@ func (p *ProfilingPanel) detailBody(status *ProfilingStatus, err error) inspecto
 	}
 }
 
-// profilingStatusRows builds the Status section rows from the latest
-// status snapshot. Hoisted from detailBody to keep the parent under
-// the cyclomatic-complexity threshold.
+// profilingStatusRows builds the Status section rows from the latest status snapshot.
+// Hoisted from detailBody to keep the parent under the cyclomatic-complexity threshold.
 //
 // Takes status (*ProfilingStatus) which is the snapshot.
 //
@@ -403,10 +402,9 @@ func profilingStatusRows(status *ProfilingStatus) []inspector.DetailRow {
 	return rows
 }
 
-// captureSection builds the "Capture" section based on the panel's
-// in-flight / last / error state. Returns a section with at most one
-// row even when no capture has run, so callers can append it
-// unconditionally.
+// captureSection builds the "Capture" section based on the panel's in-flight / last /
+// error state. Returns a section with at most one row even when no capture has run, so
+// callers can append it unconditionally.
 //
 // Returns inspector.DetailSection describing the capture state.
 //
@@ -433,9 +431,8 @@ func (p *ProfilingPanel) captureSection() inspector.DetailSection {
 	}
 }
 
-// profileTopSection builds the "TOP FUNCTIONS" detail section from
-// the parsed pprof summary. Each row shows the function name (left)
-// and a flat-percentage + value (right).
+// profileTopSection builds the "TOP FUNCTIONS" detail section from the parsed pprof
+// summary. Each row shows the function name (left) and a flat-percentage + value (right).
 //
 // Takes summary (*inspector.ProfileSummary) which is the parsed top-N list.
 //
@@ -509,8 +506,8 @@ func (p *ProfilingPanel) disableCmd() tea.Cmd {
 // Takes profile (string) which names the profile kind (cpu, heap, ...).
 // Takes duration (time.Duration) which is the sampling window.
 //
-// Returns tea.Cmd that delivers a profilingCaptureMessage and pushes
-// the capture-in-progress overlay.
+// Returns tea.Cmd that delivers a profilingCaptureMessage and pushes the
+// capture-in-progress overlay.
 //
 // Concurrency: Safe for concurrent use; guarded by stateMutex.
 func (p *ProfilingPanel) captureCmd(profile string, duration time.Duration) tea.Cmd {
@@ -554,13 +551,13 @@ func (p *ProfilingPanel) captureCmd(profile string, duration time.Duration) tea.
 	return tea.Batch(overlayPush, captureFn)
 }
 
-// writeCaptureToTempFile persists the capture bytes to a deterministic
-// temp-dir filename so the user can analyse it externally. The
-// profile kind is sanitised to base-name characters so a hostile or
-// mistyped value cannot escape the temp directory via path traversal.
+// writeCaptureToTempFile persists the capture bytes to a deterministic temp-dir filename
+// so the user can analyse it externally. The profile kind is sanitised to base-name
+// characters so a hostile or mistyped value cannot escape the temp directory via path
+// traversal.
 //
-// Takes clk (clock.Clock) which supplies the timestamp baked into the
-// filename so tests can assert against a known clock.
+// Takes clk (clock.Clock) which supplies the timestamp baked into the filename so tests
+// can assert against a known clock.
 // Takes profile (string) which names the profile kind.
 // Takes data ([]byte) which is the captured pprof payload.
 //
@@ -576,14 +573,14 @@ func writeCaptureToTempFile(clk clock.Clock, profile string, data []byte) (strin
 	return path, nil
 }
 
-// sanitiseProfileName strips any character that is not a letter,
-// digit, hyphen, or underscore so the value is safe to interpolate
-// into a filename without enabling directory traversal.
+// sanitiseProfileName strips any character that is not a letter, digit, hyphen, or
+// underscore so the value is safe to interpolate into a filename without enabling
+// directory traversal.
 //
 // Takes profile (string) which is the raw profile kind.
 //
-// Returns string containing only filename-safe characters; "profile"
-// when every input character was disallowed.
+// Returns string containing only filename-safe characters; "profile" when every input
+// character was disallowed.
 func sanitiseProfileName(profile string) string {
 	var b strings.Builder
 	b.Grow(len(profile))
@@ -598,9 +595,8 @@ func sanitiseProfileName(profile string) string {
 	return b.String()
 }
 
-// isFilenameSafeRune reports whether r is a letter, digit, hyphen,
-// or underscore. Used to gate which runes survive the profile-name
-// sanitiser.
+// isFilenameSafeRune reports whether r is a letter, digit, hyphen, or underscore. Used to
+// gate which runes survive the profile-name sanitiser.
 //
 // Takes r (rune) which is the rune to classify.
 //

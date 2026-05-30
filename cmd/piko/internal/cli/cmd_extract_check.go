@@ -36,9 +36,9 @@ type extractCheckFlags struct {
 	root string
 }
 
-// runExtractCheck verifies that the current manifest covers every
-// required third-party import for the project. Missing entries
-// produce exit code 1 so this command can gate CI.
+// runExtractCheck verifies that the current manifest covers every required third-party
+// import for the project. Missing entries produce exit code 1 so this command can gate
+// CI.
 //
 // Takes arguments ([]string) which contains the subcommand arguments.
 // Takes stdout (io.Writer) which receives summary output.
@@ -72,24 +72,20 @@ func runExtractCheck(arguments []string, stdout, stderr io.Writer) int {
 	return reportCheckResult(stdout, stderr, flags.manifest, manifest, result)
 }
 
-// reportCheckResult computes the manifest-vs-project diff, surfaces
-// warnings, and returns the right exit code. Splitting this out of
-// runExtractCheck keeps the reporting logic testable with synthesised
-// manifests and DiscoverResults, no filesystem or packages.Load
+// reportCheckResult computes the manifest-vs-project diff, surfaces warnings, and returns
+// the right exit code. Splitting this out of runExtractCheck keeps the reporting logic
+// testable with synthesised manifests and DiscoverResults, no filesystem or packages.Load
 // involvement required.
 //
-// Takes stdout (io.Writer) which receives the up-to-date summary on
-// success.
-// Takes stderr (io.Writer) which receives warnings and the missing
-// package list on drift.
+// Takes stdout (io.Writer) which receives the up-to-date summary on success.
+// Takes stderr (io.Writer) which receives warnings and the missing package list on drift.
 // Takes manifestPath (string) which is the path shown in messages.
-// Takes manifest (*driver_symbols_extract.Manifest) which is the
-// declared set.
-// Takes result (driver_symbols_extract.DiscoverResult) which is the
-// discovered required set.
+// Takes manifest (*driver_symbols_extract.Manifest) which is the declared set.
+// Takes result (driver_symbols_extract.DiscoverResult) which is the discovered required
+// set.
 //
-// Returns int which is the exit code: 0 when the manifest covers
-// every required package, 1 when packages are missing.
+// Returns int which is the exit code: 0 when the manifest covers every required package,
+// 1 when packages are missing.
 func reportCheckResult(
 	stdout, stderr io.Writer,
 	manifestPath string,

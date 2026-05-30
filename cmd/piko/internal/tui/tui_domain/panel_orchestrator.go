@@ -43,8 +43,8 @@ const (
 )
 
 const (
-	// taskRowSuffixWidth is the fixed width for the status and time at the end of
-	// a task row.
+	// taskRowSuffixWidth is the fixed width for the status and time at the end of a task
+	// row.
 	taskRowSuffixWidth = 27
 
 	// taskRowMinNameWidth is the minimum width in characters for task names.
@@ -63,8 +63,8 @@ var (
 	_ ItemRenderer[Resource] = (*orchestratorRenderer)(nil)
 )
 
-// OrchestratorPanel displays task queue and workflow status. It implements
-// the Panel interface.
+// OrchestratorPanel displays task queue and workflow status. It implements the Panel
+// interface.
 type OrchestratorPanel struct {
 	*AssetViewer[Resource]
 
@@ -91,8 +91,8 @@ type orchestratorRenderer struct {
 
 // NewOrchestratorPanel creates a new orchestrator panel.
 //
-// Takes c (clock.Clock) which specifies the clock for time operations. If nil,
-// defaults to a real clock.
+// Takes c (clock.Clock) which specifies the clock for time operations. If nil, defaults
+// to a real clock.
 //
 // Returns *OrchestratorPanel which is the configured panel ready for use.
 func NewOrchestratorPanel(c clock.Clock) *OrchestratorPanel {
@@ -303,8 +303,7 @@ func (p *OrchestratorPanel) renderOrchestratorHeader(content *strings.Builder) i
 	return usedLines
 }
 
-// renderOrchestratorEmptyState writes the empty state message to the content
-// builder.
+// renderOrchestratorEmptyState writes the empty state message to the content builder.
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 func (p *OrchestratorPanel) renderOrchestratorEmptyState(content *strings.Builder) {
@@ -321,8 +320,8 @@ func (p *OrchestratorPanel) renderOrchestratorEmptyState(content *strings.Builde
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes displayItems ([]int) which specifies which item indices to show.
-// Takes headerLines (int) which is the number of header lines to exclude from
-// the content height.
+// Takes headerLines (int) which is the number of header lines to exclude from the content
+// height.
 func (p *OrchestratorPanel) renderOrchestratorItems(content *strings.Builder, displayItems []int, headerLines int) {
 	RenderExpandableItems(RenderExpandableItemsConfig[Resource]{
 		Ctx:          NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines),
@@ -342,8 +341,7 @@ func (p *OrchestratorPanel) renderOrchestratorItems(content *strings.Builder, di
 // Takes selected (bool) which indicates if this row is selected.
 // Takes _ (bool) which is the unused expanded state.
 //
-// Returns string which is the formatted row for the current view
-// mode.
+// Returns string which is the formatted row for the current view mode.
 func (p *OrchestratorPanel) renderItemRow(item Resource, selected, _ bool) string {
 	if p.viewMode == ViewModeTasks {
 		return p.renderTaskRow(item, selected)
@@ -509,8 +507,7 @@ func (*orchestratorRenderer) MatchesFilter(item Resource, query string) bool {
 //
 // Takes item (Resource) which is the resource to check.
 //
-// Returns bool which is true when the resource has at least one non-empty
-// metadata value.
+// Returns bool which is true when the resource has at least one non-empty metadata value.
 func (*orchestratorRenderer) IsExpandable(item Resource) bool {
 	for _, value := range item.Metadata {
 		if value != "" {

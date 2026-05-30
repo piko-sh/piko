@@ -46,16 +46,14 @@ type eventBinding struct {
 	// Index is the position of this binding in the bindings list.
 	Index int
 
-	// IsFrameworkHandler indicates whether this binding is handled by the
-	// framework.
+	// IsFrameworkHandler indicates whether this binding is handled by the framework.
 	IsFrameworkHandler bool
 
 	// IsHOF indicates whether this binding wraps a higher-order function.
 	IsHOF bool
 }
 
-// eventBindingCollection holds event bindings for a component during
-// compilation.
+// eventBindingCollection holds event bindings for a component during compilation.
 type eventBindingCollection struct {
 	// registry provides symbol lookup and type resolution for AST expressions.
 	registry *RegistryContext
@@ -81,8 +79,8 @@ func (ec *eventBindingCollection) getRegistry() *RegistryContext {
 	return ec.registry
 }
 
-// eventHandlerNames groups the naming parameters used when constructing
-// event handler bindings.
+// eventHandlerNames groups the naming parameters used when constructing event handler
+// bindings.
 type eventHandlerNames struct {
 	// safeEventName is the sanitised event name used in handler identifiers.
 	safeEventName string
@@ -97,8 +95,7 @@ type eventHandlerNames struct {
 	rawEventName string
 }
 
-// astBindingOptions groups optional parameters for creating an AST-based
-// event binding.
+// astBindingOptions groups optional parameters for creating an AST-based event binding.
 type astBindingOptions struct {
 	// userArgs contains the arguments passed to the handler.
 	userArgs []js_ast.Expr
@@ -106,8 +103,7 @@ type astBindingOptions struct {
 	// loopVarNames lists the loop variable names in scope.
 	loopVarNames []string
 
-	// directFrameworkBody is the framework handler body, or nil for user
-	// method calls.
+	// directFrameworkBody is the framework handler body, or nil for user method calls.
 	directFrameworkBody *js_ast.SBlock
 
 	// eventModifiers contains the user-facing event modifiers.
@@ -131,29 +127,24 @@ type eventBindingParams struct {
 	// suffix is added to the handler name to make it unique.
 	suffix string
 
-	// directFrameworkBody contains the raw JavaScript handler body for framework
-	// event bindings; empty string indicates a non-framework handler.
+	// directFrameworkBody contains the raw JavaScript handler body for framework event
+	// bindings; empty string indicates a non-framework handler.
 	directFrameworkBody string
 
 	// isLoopContext indicates that the event is bound inside a loop.
 	isLoopContext bool
 }
 
-// createAndStoreBinding creates and stores an event binding, returning a
-// property access expression.
+// createAndStoreBinding creates and stores an event binding, returning a property access
+// expression.
 //
-// Takes rawEventName (string) which is the original event name before
-// sanitisation.
-// Takes rawUserMethod (string) which is the method string as given by
-// the user.
-// Takes isLoopContext (bool) which indicates that the event is bound
-// inside a loop.
-// Takes directFrameworkBody (string) which contains the raw JavaScript
-// handler body for framework event bindings, or empty for user method
-// handlers.
+// Takes rawEventName (string) which is the original event name before sanitisation.
+// Takes rawUserMethod (string) which is the method string as given by the user.
+// Takes isLoopContext (bool) which indicates that the event is bound inside a loop.
+// Takes directFrameworkBody (string) which contains the raw JavaScript handler body for
+// framework event bindings, or empty for user method handlers.
 //
-// Returns js_ast.Expr which is a property access expression for the
-// bound handler.
+// Returns js_ast.Expr which is a property access expression for the bound handler.
 // Returns error when the handler code snippet cannot be parsed.
 func (ec *eventBindingCollection) createAndStoreBinding(
 	ctx context.Context,
@@ -187,15 +178,13 @@ func (ec *eventBindingCollection) createAndStoreBinding(
 	return js_ast.Expr{Data: buildDotExpr(jsThis, handlerName, ec.registry)}, nil
 }
 
-// createAndStoreBindingAST creates and stores an event binding using AST
-// structures directly.
+// createAndStoreBindingAST creates and stores an event binding using AST structures
+// directly.
 //
-// Takes rawEventName (string) which is the original event name before
-// sanitisation.
-// Takes rawUserMethod (string) which is the method string as given by
-// the user.
-// Takes opts (astBindingOptions) which groups the handler arguments,
-// loop variable names, framework body, and event modifiers.
+// Takes rawEventName (string) which is the original event name before sanitisation.
+// Takes rawUserMethod (string) which is the method string as given by the user.
+// Takes opts (astBindingOptions) which groups the handler arguments, loop variable names,
+// framework body, and event modifiers.
 //
 // Returns js_ast.Expr which is the expression for the bound handler.
 // Returns error when the handler code snippet cannot be parsed.
@@ -228,8 +217,8 @@ func (ec *eventBindingCollection) createAndStoreBindingAST(
 	return ec.createDirectBinding(ctx, names, opts.userArgs, opts.directFrameworkBody, opts.eventModifiers)
 }
 
-// createHOFBinding creates a higher-order function binding for event handlers
-// that reference loop variables.
+// createHOFBinding creates a higher-order function binding for event handlers that
+// reference loop variables.
 //
 // This generates code like:
 //
@@ -239,14 +228,11 @@ func (ec *eventBindingCollection) createAndStoreBindingAST(
 //
 // And returns a call expression: this._hof_click_fn_evt_1(item)
 //
-// Takes names (eventHandlerNames) which groups the sanitised and raw
-// event and method names together with the unique suffix.
-// Takes userArgs ([]js_ast.Expr) which contains the arguments passed to
-// the handler.
-// Takes loopVarNames ([]string) which lists the loop variable names in
-// scope.
-// Takes eventModifiers ([]string) which contains the user-facing event
-// modifiers.
+// Takes names (eventHandlerNames) which groups the sanitised and raw event and method
+// names together with the unique suffix.
+// Takes userArgs ([]js_ast.Expr) which contains the arguments passed to the handler.
+// Takes loopVarNames ([]string) which lists the loop variable names in scope.
+// Takes eventModifiers ([]string) which contains the user-facing event modifiers.
 //
 // Returns js_ast.Expr which is the call expression for the HOF binding.
 // Returns error when the handler code snippet cannot be parsed.
@@ -292,19 +278,17 @@ func (ec *eventBindingCollection) createHOFBinding(
 	return callExpr, nil
 }
 
-// createDirectBinding creates a direct event handler binding that is not a
-// higher-order function.
+// createDirectBinding creates a direct event handler binding that is not a higher-order
+// function.
 //
-// Takes names (eventHandlerNames) which groups the sanitised and raw
-// event and method names together with the unique suffix.
+// Takes names (eventHandlerNames) which groups the sanitised and raw event and method
+// names together with the unique suffix.
 // Takes userArgs ([]js_ast.Expr) which contains arguments from the user.
-// Takes directFrameworkBody (*js_ast.SBlock) which is the framework
-// handler body, or nil for user method calls.
-// Takes eventModifiers ([]string) which contains the user-facing event
-// modifiers.
+// Takes directFrameworkBody (*js_ast.SBlock) which is the framework handler body, or nil
+// for user method calls.
+// Takes eventModifiers ([]string) which contains the user-facing event modifiers.
 //
-// Returns js_ast.Expr which is a property access expression for the
-// handler.
+// Returns js_ast.Expr which is a property access expression for the handler.
 // Returns error when the handler snippet cannot be parsed.
 func (ec *eventBindingCollection) createDirectBinding(
 	ctx context.Context,
@@ -349,8 +333,7 @@ func (ec *eventBindingCollection) createDirectBinding(
 	return propertyAccess, nil
 }
 
-// buildEventBinding creates an event binding and returns the handler name
-// and binding.
+// buildEventBinding creates an event binding and returns the handler name and binding.
 //
 // Takes span (trace.Span) which provides tracing context for the operation.
 // Takes params (eventBindingParams) which contains the binding settings.
@@ -429,11 +412,10 @@ func (*eventBindingCollection) createHandlerAssignment(ctx context.Context, hand
 	return statement
 }
 
-// newEventBindingCollection creates a new event binding collection with the
-// given registry.
+// newEventBindingCollection creates a new event binding collection with the given
+// registry.
 //
-// Takes registry (*RegistryContext) which provides the context for event
-// registration.
+// Takes registry (*RegistryContext) which provides the context for event registration.
 //
 // Returns *eventBindingCollection which is ready to accept bindings.
 func newEventBindingCollection(registry *RegistryContext) *eventBindingCollection {
@@ -444,11 +426,11 @@ func newEventBindingCollection(registry *RegistryContext) *eventBindingCollectio
 	}
 }
 
-// astContainsVar checks whether a JavaScript AST node contains any
-// identifier reference. Accepts both statement and expression nodes.
+// astContainsVar checks whether a JavaScript AST node contains any identifier reference.
+// Accepts both statement and expression nodes.
 //
-// Takes node (any) which is the AST node to search, expected to be
-// a js_ast.Stmt or js_ast.Expr.
+// Takes node (any) which is the AST node to search, expected to be a js_ast.Stmt or
+// js_ast.Expr.
 //
 // Returns bool which is true if the node contains an identifier.
 func astContainsVar(node any, _ string) bool {
@@ -465,8 +447,8 @@ func astContainsVar(node any, _ string) bool {
 //
 // Takes statement (js_ast.Stmt) which is the statement to search.
 //
-// Returns bool which is true if any expression in the statement tree contains
-// an identifier.
+// Returns bool which is true if any expression in the statement tree contains an
+// identifier.
 func statementContainsIdentifier(statement js_ast.Stmt) bool {
 	found := false
 	walkStmt(statement, func(s js_ast.Stmt) bool {
@@ -479,8 +461,8 @@ func statementContainsIdentifier(statement js_ast.Stmt) bool {
 	return found
 }
 
-// expressionContainsIdentifier checks whether the given expression
-// contains an identifier.
+// expressionContainsIdentifier checks whether the given expression contains an
+// identifier.
 //
 // Takes expression (js_ast.Expr) which is the expression to search.
 //
@@ -497,8 +479,8 @@ func expressionContainsIdentifier(expression js_ast.Expr) bool {
 	return found
 }
 
-// injectEventBindingsIntoConstructor adds event binding assignments into a
-// class constructor.
+// injectEventBindingsIntoConstructor adds event binding assignments into a class
+// constructor.
 //
 // Takes classDecl (*js_ast.Class) which is the class declaration to modify.
 // Takes ec (*eventBindingCollection) which holds the event bindings to inject.
@@ -535,13 +517,11 @@ func injectEventBindingsIntoConstructor(
 	return nil
 }
 
-// findAndValidateConstructor finds the constructor method in the given class
-// and checks that it exists.
+// findAndValidateConstructor finds the constructor method in the given class and checks
+// that it exists.
 //
-// Takes classDecl (*js_ast.Class) which is the class to search for a
-// constructor.
-// Takes registry (*RegistryContext) which provides the registry context for
-// lookup.
+// Takes classDecl (*js_ast.Class) which is the class to search for a constructor.
+// Takes registry (*RegistryContext) which provides the registry context for lookup.
 //
 // Returns *js_ast.EFunction which is the constructor method if found.
 // Returns error when the class has no constructor after standardisation.
@@ -557,8 +537,7 @@ func findAndValidateConstructor(_ context.Context, classDecl *js_ast.Class, regi
 //
 // Takes ec (*eventBindingCollection) which holds the bindings to process.
 //
-// Returns []js_ast.Stmt which contains the expression statements from each
-// binding.
+// Returns []js_ast.Stmt which contains the expression statements from each binding.
 func collectBindingStatements(ec *eventBindingCollection) []js_ast.Stmt {
 	statements := make([]js_ast.Stmt, 0, len(ec.bindings))
 	for _, b := range ec.bindings {
@@ -567,8 +546,8 @@ func collectBindingStatements(ec *eventBindingCollection) []js_ast.Stmt {
 	return statements
 }
 
-// insertBindingsIntoConstructor adds binding statements to a constructor
-// function body, placing them after super() and init() calls.
+// insertBindingsIntoConstructor adds binding statements to a constructor function body,
+// placing them after super() and init() calls.
 //
 // Takes constructor (*js_ast.EFunction) which is the constructor to modify.
 // Takes newStmts ([]js_ast.Stmt) which contains the binding statements to add.
@@ -625,8 +604,7 @@ func sanitiseForJSIdentifier(name string) string {
 //
 // Takes base (string) which is the name of the base identifier.
 // Takes prop (string) which is the property name to access.
-// Takes registry (*RegistryContext) which creates the base identifier
-// expression.
+// Takes registry (*RegistryContext) which creates the base identifier expression.
 //
 // Returns *js_ast.EDot which is the property access expression.
 func buildDotExpr(base string, prop string, registry *RegistryContext) *js_ast.EDot {
@@ -636,14 +614,11 @@ func buildDotExpr(base string, prop string, registry *RegistryContext) *js_ast.E
 	}
 }
 
-// walkExpr walks a JavaScript expression tree, calling the callback
-// for each node.
+// walkExpr walks a JavaScript expression tree, calling the callback for each node.
 //
-// Takes expression (js_ast.Expr) which is the root expression to
-// walk.
-// Takes callback (func(js_ast.Expr) bool) which is called for
-// each node. When callback returns false, walking stops for that
-// branch.
+// Takes expression (js_ast.Expr) which is the root expression to walk.
+// Takes callback (func(js_ast.Expr) bool) which is called for each node. When callback
+// returns false, walking stops for that branch.
 func walkExpr(expression js_ast.Expr, callback func(js_ast.Expr) bool) {
 	if expression.Data == nil || !callback(expression) {
 		return
@@ -653,10 +628,8 @@ func walkExpr(expression js_ast.Expr, callback func(js_ast.Expr) bool) {
 
 // walkExprChildren visits the child nodes of the given expression.
 //
-// Takes expression (js_ast.Expr) which is the parent expression to
-// visit.
-// Takes callback (func(...)) which is called for each child
-// expression found.
+// Takes expression (js_ast.Expr) which is the parent expression to visit.
+// Takes callback (func(...)) which is called for each child expression found.
 func walkExprChildren(expression js_ast.Expr, callback func(js_ast.Expr) bool) {
 	switch e := expression.Data.(type) {
 	case *js_ast.EDot:
@@ -680,8 +653,7 @@ func walkExprChildren(expression js_ast.Expr, callback func(js_ast.Expr) bool) {
 	}
 }
 
-// walkIndexExpr walks an index expression by visiting both its target and
-// index parts.
+// walkIndexExpr walks an index expression by visiting both its target and index parts.
 //
 // Takes e (*js_ast.EIndex) which is the index expression to walk.
 // Takes callback (func(...)) which is called for each expression node visited.
@@ -730,8 +702,8 @@ func walkArrayExpr(e *js_ast.EArray, callback func(js_ast.Expr) bool) {
 	}
 }
 
-// walkObjectExpr visits each property in a JavaScript object expression and
-// calls the callback for each property value.
+// walkObjectExpr visits each property in a JavaScript object expression and calls the
+// callback for each property value.
 //
 // Takes e (*js_ast.EObject) which is the object expression to walk.
 // Takes callback (func(...)) which is called for each expression found.
@@ -743,8 +715,8 @@ func walkObjectExpr(e *js_ast.EObject, callback func(js_ast.Expr) bool) {
 	}
 }
 
-// walkArrowExpr walks through an arrow function expression and applies the
-// callback to each expression within its body statements.
+// walkArrowExpr walks through an arrow function expression and applies the callback to
+// each expression within its body statements.
 //
 // Takes e (*js_ast.EArrow) which is the arrow expression to walk.
 // Takes callback (func(...)) which is called for each expression found.
@@ -762,8 +734,8 @@ func walkArrowExpr(e *js_ast.EArrow, callback func(js_ast.Expr) bool) {
 // walkStmt walks a statement tree and calls the callback for each statement.
 //
 // Takes statement (js_ast.Stmt) which is the root statement to walk.
-// Takes callback (func(...)) which is called for each statement. Return false to
-// stop walking children.
+// Takes callback (func(...)) which is called for each statement. Return false to stop
+// walking children.
 func walkStmt(statement js_ast.Stmt, callback func(js_ast.Stmt) bool) {
 	if statement.Data == nil || !callback(statement) {
 		return
@@ -848,21 +820,19 @@ func walkTryStmt(s *js_ast.STry, callback func(js_ast.Stmt) bool) {
 	}
 }
 
-// buildModifierGuards generates JavaScript guard statements for
-// event modifiers.
+// buildModifierGuards generates JavaScript guard statements for event modifiers.
 //
-// The generated code is prepended to the event handler body. Only
-// handler-body modifiers (prevent, stop, once, self) are emitted;
-// listener-option modifiers (passive, capture) are handled
-// separately via the prop key encoding. The execution order matches
-// the DOMBinder implementation: self guard -> preventDefault ->
-// stopPropagation -> once guard.
+// The generated code is prepended to the event handler body. Only handler-body modifiers
+// (prevent, stop, once, self) are emitted; listener-option modifiers (passive, capture)
+// are handled separately via the prop key encoding. The execution order matches the
+// DOMBinder implementation: self guard -> preventDefault -> stopPropagation -> once
+// guard.
 //
 // Takes modifiers ([]string) which contains the user-facing event modifiers.
 // Takes handlerName (string) which is used to derive the once-flag property name.
 //
-// Returns string which is the concatenated guard statements with a trailing
-// space if non-empty, or an empty string if no handler-body modifiers are present.
+// Returns string which is the concatenated guard statements with a trailing space if
+// non-empty, or an empty string if no handler-body modifiers are present.
 func buildModifierGuards(modifiers []string, handlerName string) string {
 	if len(modifiers) == 0 {
 		return ""
@@ -897,14 +867,13 @@ func buildModifierGuards(modifiers []string, handlerName string) string {
 	return strings.Join(guards, " ") + " "
 }
 
-// filterHandlerModifiers returns only the handler-body modifiers
-// from the full modifier list.
+// filterHandlerModifiers returns only the handler-body modifiers from the full modifier
+// list.
 //
-// Handler-body modifiers are prevent, stop, once, and self.
-// Listener-option modifiers (passive, capture) are excluded.
+// Handler-body modifiers are prevent, stop, once, and self. Listener-option modifiers
+// (passive, capture) are excluded.
 //
-// Takes modifiers ([]string) which contains the full list of
-// user-facing event modifiers.
+// Takes modifiers ([]string) which contains the full list of user-facing event modifiers.
 //
 // Returns []string which contains only the handler-body modifiers.
 func filterHandlerModifiers(modifiers []string) []string {
@@ -922,17 +891,16 @@ func filterHandlerModifiers(modifiers []string) []string {
 }
 
 // buildListenerOptionSuffix returns a $-delimited suffix encoding listener-option
-// modifiers (capture, passive) for the VDOM prop key. Handler-body modifiers
-// (prevent, stop, once, self) are not included as they are injected into the
-// handler body at compile time.
+// modifiers (capture, passive) for the VDOM prop key. Handler-body modifiers (prevent,
+// stop, once, self) are not included as they are injected into the handler body at
+// compile time.
 //
 // The suffixes are emitted in alphabetical order for deterministic output.
 //
-// Takes modifiers ([]string) which is the full list of user-facing
-// event modifiers.
+// Takes modifiers ([]string) which is the full list of user-facing event modifiers.
 //
-// Returns string which is the suffix (e.g. "$capture", "$capture$passive"),
-// or an empty string if no listener-option modifiers are present.
+// Returns string which is the suffix (e.g. "$capture", "$capture$passive"), or an empty
+// string if no listener-option modifiers are present.
 func buildListenerOptionSuffix(modifiers []string) string {
 	if len(modifiers) == 0 {
 		return ""
@@ -955,13 +923,11 @@ func buildListenerOptionSuffix(modifiers []string) string {
 	return strings.Join(parts, "")
 }
 
-// findUsedLoopVars returns the loop variable names that appear in the given
-// expressions.
+// findUsedLoopVars returns the loop variable names that appear in the given expressions.
 //
 // Takes arguments ([]js_ast.Expr) which contains the expressions to search.
 // Takes loopVarNames ([]string) which lists the variable names to find.
-// Takes registry (*RegistryContext) which provides context for printing
-// expressions.
+// Takes registry (*RegistryContext) which provides context for printing expressions.
 //
 // Returns []string which contains the matching variable names.
 func findUsedLoopVars(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) []string {
@@ -982,8 +948,7 @@ func findUsedLoopVars(arguments []js_ast.Expr, loopVarNames []string, registry *
 // this._hof_handler(loopVar1, loopVar2, ...).
 //
 // Takes handlerName (string) which specifies the method name to call on this.
-// Takes loopVarNames ([]string) which lists the loop variable names to pass as
-// arguments.
+// Takes loopVarNames ([]string) which lists the loop variable names to pass as arguments.
 // Takes registry (*RegistryContext) which provides identifier creation.
 //
 // Returns js_ast.Expr which is the built call expression.
@@ -1001,14 +966,12 @@ func buildHOFCallExpr(handlerName string, loopVarNames []string, registry *Regis
 	}
 }
 
-// encodeEventHandlerArgs converts user arguments to a comma-separated JS
-// string, replacing "$event" with "e" (the closure's event parameter name)
-// and "$form" with a FormData expression for the closest form element.
+// encodeEventHandlerArgs converts user arguments to a comma-separated JS string,
+// replacing "$event" with "e" (the closure's event parameter name) and "$form" with a
+// FormData expression for the closest form element.
 //
-// Takes arguments ([]js_ast.Expr) which contains the argument expressions to
-// encode.
-// Takes registry (*RegistryContext) which provides context for printing
-// expressions.
+// Takes arguments ([]js_ast.Expr) which contains the argument expressions to encode.
+// Takes registry (*RegistryContext) which provides context for printing expressions.
 //
 // Returns string which is the comma-separated JavaScript argument list.
 func encodeEventHandlerArgs(arguments []js_ast.Expr, _ []string, registry *RegistryContext) string {
@@ -1029,10 +992,8 @@ func encodeEventHandlerArgs(arguments []js_ast.Expr, _ []string, registry *Regis
 // usesLoopVar checks if any of the arguments refer to a loop variable.
 //
 // Takes arguments ([]js_ast.Expr) which contains the expressions to check.
-// Takes loopVarNames ([]string) which lists the loop variable names to look
-// for.
-// Takes registry (*RegistryContext) which provides context for printing
-// expressions.
+// Takes loopVarNames ([]string) which lists the loop variable names to look for.
+// Takes registry (*RegistryContext) which provides context for printing expressions.
 //
 // Returns bool which is true if any argument contains a loop variable name.
 func usesLoopVar(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) bool {
@@ -1050,14 +1011,13 @@ func usesLoopVar(arguments []js_ast.Expr, loopVarNames []string, registry *Regis
 	return false
 }
 
-// encodeBlockStatements converts the statements in a block to a JavaScript
-// string.
+// encodeBlockStatements converts the statements in a block to a JavaScript string.
 //
 // Takes block (*js_ast.SBlock) which contains the statements to convert.
 // Takes registry (*RegistryContext) which provides the compilation context.
 //
-// Returns string which contains the converted statements joined by spaces, or
-// an empty string if the block is nil or has no statements.
+// Returns string which contains the converted statements joined by spaces, or an empty
+// string if the block is nil or has no statements.
 func encodeBlockStatements(block *js_ast.SBlock, registry *RegistryContext) string {
 	if block == nil || len(block.Stmts) == 0 {
 		return ""

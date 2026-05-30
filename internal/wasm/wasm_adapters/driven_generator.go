@@ -42,64 +42,61 @@ import (
 )
 
 const (
-	// modulePathComponents is the number of path parts in a standard Go module
-	// path (domain/org/repo).
+	// modulePathComponents is the number of path parts in a standard Go module path
+	// (domain/org/repo).
 	modulePathComponents = 3
 
-	// moduleSplitParts is the number of parts to split an import path into when
-	// extracting the module path and subpath.
+	// moduleSplitParts is the number of parts to split an import path into when extracting
+	// the module path and subpath.
 	moduleSplitParts = 4
 
-	// defaultMaxGenerateSourceFiles caps how many source files Generate /
-	// DynamicRender will accept in a single call. Mirrors the convention
-	// used elsewhere in the framework: bound the user-controlled input
-	// before walking it.
+	// defaultMaxGenerateSourceFiles caps how many source files Generate / DynamicRender will
+	// accept in a single call. Mirrors the convention used elsewhere in the framework: bound
+	// the user-controlled input before walking it.
 	defaultMaxGenerateSourceFiles = 4096
 
-	// defaultMaxGenerateSourceBytes caps the aggregated payload size of
-	// every source file in a single Generate / DynamicRender. Defaults to
-	// 8 MiB; raise via WithGeneratorLimits if a project legitimately needs
-	// more.
+	// defaultMaxGenerateSourceBytes caps the aggregated payload size of every source file in
+	// a single Generate / DynamicRender. Defaults to 8 MiB; raise via WithGeneratorLimits if
+	// a project legitimately needs more.
 	defaultMaxGenerateSourceBytes = 8 * 1024 * 1024
 
-	// defaultMaxGenerateFileBytes caps an individual source file's size
-	// before it is fed to the SFC compiler / annotator. Per-file gate so a
-	// pathological 100 MiB single-line file cannot drive the lexer's
-	// PositionAt into O(n) per token.
+	// defaultMaxGenerateFileBytes caps an individual source file's size before it is fed to
+	// the SFC compiler / annotator. Per-file gate so a pathological 100 MiB single-line file
+	// cannot drive the lexer's PositionAt into O(n) per token.
 	defaultMaxGenerateFileBytes = 1 * 1024 * 1024
 )
 
 const (
-	// errorPositionLineGroup is the submatch index for the line component
-	// of errorPositionPattern.
+	// errorPositionLineGroup is the submatch index for the line component of
+	// errorPositionPattern.
 	errorPositionLineGroup = 2
 
-	// errorPositionColumnGroup is the submatch index for the column
-	// component of errorPositionPattern.
+	// errorPositionColumnGroup is the submatch index for the column component of
+	// errorPositionPattern.
 	errorPositionColumnGroup = 3
 
-	// errorPositionMinMatches is the minimum number of submatches for
-	// errorPositionPattern to yield a usable line/column pair.
+	// errorPositionMinMatches is the minimum number of submatches for errorPositionPattern
+	// to yield a usable line/column pair.
 	errorPositionMinMatches = 4
 )
 
 var (
-	// errGenerateLimitsExceeded is returned by validateGenerateRequest
-	// when caller-supplied sources exceed the adapter's configured
-	// limits.
+	// errGenerateLimitsExceeded is returned by validateGenerateRequest when caller-supplied
+	// sources exceed the adapter's configured limits.
 	errGenerateLimitsExceeded = errors.New("generate request exceeds configured limits")
 
-	// errorPositionPattern recovers a line/column pair from rendered Go-
-	// scanner-style "file:line:col: message" prefixes, used as a best-
-	// effort fallback for SFC error positions that aren't yet exposed via
-	// a typed error.
+	// errorPositionPattern recovers a line/column pair from rendered Go- scanner-style
+	// "file:line:col: message" prefixes, used as a best- effort fallback for SFC error
+	// positions that aren't yet exposed via a typed error.
 	errorPositionPattern = regexp.MustCompile(`^([^:]+):(\d+):(\d+)?:?\s*(.*)$`)
 )
 
-var _ resolver_domain.ResolverPort = (*inMemoryResolver)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*inMemoryResolver)(nil)
+)
 
-// parsePositiveInt returns the integer value of s, or an error when s is
-// non-positive or unparseable. Used to validate line/column captures.
+// parsePositiveInt returns the integer value of s, or an error when s is non-positive or
+// unparseable. Used to validate line/column captures.
 //
 // Takes s (string) which is the captured digit run.
 //
@@ -119,45 +116,40 @@ func parsePositiveInt(s string) (int, error) {
 	return value, nil
 }
 
-// generatorLimits caps caller-supplied input on every Generate so the WASM
-// heap cannot blow up under untrusted source maps. Defaults are sourced
-// from the const block above; override per adapter via WithGeneratorLimits.
+// generatorLimits caps caller-supplied input on every Generate so the WASM heap cannot
+// blow up under untrusted source maps. Defaults are sourced from the const block above;
+// override per adapter via WithGeneratorLimits.
 type generatorLimits struct {
-	// MaxFileCount is the maximum number of entries allowed in
-	// request.Sources.
+	// MaxFileCount is the maximum number of entries allowed in request.Sources.
 	MaxFileCount int
 
-	// MaxTotalBytes is the maximum aggregate length (in bytes) of all
-	// source files in request.Sources combined.
+	// MaxTotalBytes is the maximum aggregate length (in bytes) of all source files in
+	// request.Sources combined.
 	MaxTotalBytes int
 
-	// MaxFileBytes is the maximum length (in bytes) of any single source
-	// file.
+	// MaxFileBytes is the maximum length (in bytes) of any single source file.
 	MaxFileBytes int
 }
 
-// GeneratorAdapter implements GeneratorPort using the real generator service
-// with in-memory adapters for file system operations.
+// GeneratorAdapter implements GeneratorPort using the real generator service with
+// in-memory adapters for file system operations.
 //
-// This adapter is designed for WASM and testing contexts where actual file
-// system access is not available or desired.
+// This adapter is designed for WASM and testing contexts where actual file system access
+// is not available or desired.
 //
-// Concurrent Generate calls on the same adapter are serialised by an
-// internal mutex so the shared pkJSEmitter cannot observe a half-mutated
-// per-run state from a parallel run.
+// Concurrent Generate calls on the same adapter are serialised by an internal mutex so
+// the shared pkJSEmitter cannot observe a half-mutated per-run state from a parallel run.
 type GeneratorAdapter struct {
-	// stdlibDataGetter retrieves the pre-bundled standard library type
-	// information. This is a function because the data may not be available
-	// at construction time (it's loaded during orchestrator initialisation).
+	// stdlibDataGetter retrieves the pre-bundled standard library type information. This is
+	// a function because the data may not be available at construction time (it's loaded
+	// during orchestrator initialisation).
 	stdlibDataGetter func() (*inspector_dto.TypeData, error)
 
-	// pkJSEmitter captures compiled client-side JavaScript across
-	// Generate calls.
+	// pkJSEmitter captures compiled client-side JavaScript across Generate calls.
 	//
-	// Lifted to adapter scope so the content-hash cache amortises
-	// transpile work between keystroke-rate renders. Reset at the start
-	// of each Generate to ensure responses contain only the current
-	// run's artefacts.
+	// Lifted to adapter scope so the content-hash cache amortises transpile work between
+	// keystroke-rate renders. Reset at the start of each Generate to ensure responses
+	// contain only the current run's artefacts.
 	pkJSEmitter *InMemoryPKJSEmitter
 
 	// pathsConfig holds the resolved path settings.
@@ -172,16 +164,17 @@ type GeneratorAdapter struct {
 	// limits caps caller-supplied source map size; see generatorLimits.
 	limits generatorLimits
 
-	// generateMu serialises Generate calls so concurrent invocations on
-	// the same adapter cannot race on the shared pkJSEmitter's per-run
-	// state (artefacts, producedThisRun).
+	// generateMu serialises Generate calls so concurrent invocations on the same adapter
+	// cannot race on the shared pkJSEmitter's per-run state (artefacts, producedThisRun).
 	generateMu sync.Mutex
 
 	// hasConfig indicates whether explicit configuration was provided.
 	hasConfig bool
 }
 
-var _ wasm_domain.GeneratorPort = (*GeneratorAdapter)(nil)
+var (
+	_ wasm_domain.GeneratorPort = (*GeneratorAdapter)(nil)
+)
 
 // GeneratorAdapterOption configures a GeneratorAdapter instance.
 type GeneratorAdapterOption func(*GeneratorAdapter)
@@ -209,16 +202,16 @@ func NewGeneratorAdapter(opts ...GeneratorAdapterOption) *GeneratorAdapter {
 
 // Generate produces code artefacts from in-memory sources.
 //
-// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
-// files and configuration for code generation.
+// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
+// and configuration for code generation.
 //
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated
-// artefacts and manifest on success, or error details on failure.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated artefacts
+// and manifest on success, or error details on failure.
 // Returns error when an unexpected error occurs during generation.
 //
-// Concurrency: Concurrent Generate calls on the same adapter are
-// serialised by an internal mutex so the shared pkJSEmitter cannot
-// observe half-mutated per-run state from a parallel run.
+// Concurrency: Concurrent Generate calls on the same adapter are serialised by an
+// internal mutex so the shared pkJSEmitter cannot observe half-mutated per-run state from
+// a parallel run.
 func (a *GeneratorAdapter) Generate(
 	ctx context.Context,
 	request *wasm_dto.GenerateFromSourcesRequest,
@@ -284,17 +277,15 @@ func (a *GeneratorAdapter) Generate(
 
 // validateGenerateRequest enforces caller-supplied limits.
 //
-// Mirrors validateAnalyseRequest's gate so expensive work never runs on
-// an oversize request. Returns nil when the request is acceptable, or a
-// failed response carrying a developer-facing message when a limit is
-// exceeded.
+// Mirrors validateAnalyseRequest's gate so expensive work never runs on an oversize
+// request. Returns nil when the request is acceptable, or a failed response carrying a
+// developer-facing message when a limit is exceeded.
 //
-// Takes request (*wasm_dto.GenerateFromSourcesRequest) which is the request
-// to validate.
+// Takes request (*wasm_dto.GenerateFromSourcesRequest) which is the request to validate.
 // Takes limits (generatorLimits) which configures the caps.
 //
-// Returns *wasm_dto.GenerateFromSourcesResponse which is non-nil when a
-// limit is exceeded.
+// Returns *wasm_dto.GenerateFromSourcesResponse which is non-nil when a limit is
+// exceeded.
 func validateGenerateRequest(request *wasm_dto.GenerateFromSourcesRequest, limits generatorLimits) *wasm_dto.GenerateFromSourcesResponse {
 	fileCount := len(request.Sources)
 	if fileCount == 0 {
@@ -331,11 +322,9 @@ func validateGenerateRequest(request *wasm_dto.GenerateFromSourcesRequest, limit
 
 // validateAndGetStdlib validates the adapter and returns stdlib data.
 //
-// Returns *inspector_dto.TypeData which contains the standard library type
-// information.
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains an error
-// response when validation fails or stdlib data cannot be retrieved, or nil
-// on success.
+// Returns *inspector_dto.TypeData which contains the standard library type information.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains an error response when
+// validation fails or stdlib data cannot be retrieved, or nil on success.
 func (a *GeneratorAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *wasm_dto.GenerateFromSourcesResponse) {
 	if a.stdlibDataGetter == nil {
 		return nil, a.errorResponse("generator adapter not configured: stdlib data getter is nil")
@@ -351,12 +340,12 @@ func (a *GeneratorAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *was
 //
 // Takes sources (map[string]string) which provides the source files to parse.
 // Takes moduleName (string) which specifies the Go module name.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information.
 //
 // Returns annotator_domain.AnnotatorPort which is the configured annotator.
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the error
-// response when creation fails, or nil on success.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains the error response when
+// creation fails, or nil on success.
 func (a *GeneratorAdapter) createAnnotator(sources map[string]string, moduleName string, stdlibData *inspector_dto.TypeData) (annotator_domain.AnnotatorPort, *wasm_dto.GenerateFromSourcesResponse) {
 	annotator, err := NewInMemoryAnnotatorService(sources, moduleName, stdlibData)
 	if err != nil {
@@ -368,16 +357,16 @@ func (a *GeneratorAdapter) createAnnotator(sources map[string]string, moduleName
 // createGeneratorService creates the generator service with in-memory ports.
 //
 // Takes ctx (context.Context) which provides the base context for the service.
-// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
-// files and configuration for generation.
+// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
+// and configuration for generation.
 // Takes moduleName (string) which specifies the Go module name for resolution.
-// Takes annotator (annotator_domain.AnnotatorPort) which provides annotation
-// services for the coordinator.
+// Takes annotator (annotator_domain.AnnotatorPort) which provides annotation services for
+// the coordinator.
 //
 // Returns *InMemoryFSWriter which captures generated file output.
 // Returns generator_domain.GeneratorService which is the configured service.
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains any error
-// response, or nil on success.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains any error response, or nil
+// on success.
 func (a *GeneratorAdapter) createGeneratorService(
 	ctx context.Context,
 	request *wasm_dto.GenerateFromSourcesRequest,
@@ -426,26 +415,25 @@ func (a *GeneratorAdapter) createGeneratorService(
 //
 // Takes message (string) which provides the error message to include.
 //
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the failure
-// status and error message.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains the failure status and
+// error message.
 func (*GeneratorAdapter) errorResponse(message string) *wasm_dto.GenerateFromSourcesResponse {
 	return &wasm_dto.GenerateFromSourcesResponse{Success: false, Error: message}
 }
 
-// discoverEntryPoints finds .pk files in the sources map and returns them
-// as entry points. The paths are prefixed with the module name to create
-// fully-qualified import paths.
+// discoverEntryPoints finds .pk files in the sources map and returns them as entry
+// points. The paths are prefixed with the module name to create fully-qualified import
+// paths.
 //
-// .pkc client-side components are NOT entry points; they're compiled
-// separately by compileClientComponents because the annotator's
-// page/partial-style type checking would mistakenly demand a Render
-// function or a Response DTO that .pkc components don't have.
+// .pkc client-side components are NOT entry points; they're compiled separately by
+// compileClientComponents because the annotator's page/partial-style type checking would
+// mistakenly demand a Render function or a Response DTO that .pkc components don't have.
 //
 // Takes sources (map[string]string) which contains the source files to scan.
 // Takes moduleName (string) which is the prefix for fully-qualified paths.
 //
-// Returns []annotator_dto.EntryPoint which contains the discovered entry
-// points with their paths and page status.
+// Returns []annotator_dto.EntryPoint which contains the discovered entry points with
+// their paths and page status.
 func (*GeneratorAdapter) discoverEntryPoints(sources map[string]string, moduleName string) []annotator_dto.EntryPoint {
 	entryPoints := make([]annotator_dto.EntryPoint, 0, len(sources))
 
@@ -467,33 +455,30 @@ func (*GeneratorAdapter) discoverEntryPoints(sources map[string]string, moduleNa
 	return entryPoints
 }
 
-// compileClientComponents walks sources for .pkc client-side components
-// and runs each one through the SFC compiler. This produces a class
-// extending PPElement with a customElements.define call so the browser
-// can upgrade <pp-foo> elements in the page.
+// compileClientComponents walks sources for .pkc client-side components and runs each one
+// through the SFC compiler. This produces a class extending PPElement with a
+// customElements.define call so the browser can upgrade <pp-foo> elements in the page.
 //
-// .pkc is deliberately not routed through pkJSEmitter.EmitJS. That path
-// applies the partial-style TransformPKSource (factory + _createPKContext
-// wrapper) intended for inline <script> blocks inside .pk pages and
-// partials, not for client-side Web Components. The disk pipeline keeps
-// the two paths separate; the WASM adapter mirrors that.
+// .pkc is deliberately not routed through pkJSEmitter.EmitJS. That path applies the
+// partial-style TransformPKSource (factory + _createPKContext wrapper) intended for
+// inline <script> blocks inside .pk pages and partials, not for client-side Web
+// Components. The disk pipeline keeps the two paths separate; the WASM adapter mirrors
+// that.
 //
-// Per-component errors land in the returned Diagnostic slice; a
-// well-formed component that produces no JS surfaces a warning so a
-// silently-broken playground preview is impossible.
+// Per-component errors land in the returned Diagnostic slice; a well-formed component
+// that produces no JS surfaces a warning so a silently-broken playground preview is
+// impossible.
 //
-// Takes ctx (context.Context) which propagates through compilation; ctx
-// cancellation is checked between iterations so a long-running run can be
-// cancelled by the WASM Promise's deadline.
-// Takes sources (map[string]string) which contains every source file the
-// playground sent.
-// Takes moduleName (string) which the SFC compiler uses to resolve "@/"
-// alias paths in component imports.
+// Takes ctx (context.Context) which propagates through compilation; ctx cancellation is
+// checked between iterations so a long-running run can be cancelled by the WASM Promise's
+// deadline.
+// Takes sources (map[string]string) which contains every source file the playground sent.
+// Takes moduleName (string) which the SFC compiler uses to resolve "@/" alias paths in
+// component imports.
 //
-// Returns []wasm_dto.Diagnostic with one entry per failed or empty
-// component compile.
-// Returns error only when ctx is cancelled mid-run (the partial diagnostic
-// list is still returned alongside).
+// Returns []wasm_dto.Diagnostic with one entry per failed or empty component compile.
+// Returns error only when ctx is cancelled mid-run (the partial diagnostic list is still
+// returned alongside).
 func (a *GeneratorAdapter) compileClientComponents(
 	ctx context.Context,
 	sources map[string]string,
@@ -514,17 +499,17 @@ func (a *GeneratorAdapter) compileClientComponents(
 	return diagnostics, nil
 }
 
-// compileSingleClientComponent runs one .pkc through the SFC compiler and
-// stores its output in the emitter. Returns the slice of diagnostics that
-// should be appended to the caller's collection (empty on a clean success).
+// compileSingleClientComponent runs one .pkc through the SFC compiler and stores its
+// output in the emitter. Returns the slice of diagnostics that should be appended to the
+// caller's collection (empty on a clean success).
 //
 // Takes ctx (context.Context) which threads through CompileSFC.
 // Takes sfcCompiler which compiles the SFC.
 // Takes sourcePath (string) which is the user-supplied source key.
 // Takes content (string) which is the user-supplied raw .pkc text.
 //
-// Returns []wasm_dto.Diagnostic which is the per-component diagnostic
-// stream (compiler-internal warnings plus this layer's own findings).
+// Returns []wasm_dto.Diagnostic which is the per-component diagnostic stream
+// (compiler-internal warnings plus this layer's own findings).
 func (a *GeneratorAdapter) compileSingleClientComponent(
 	ctx context.Context,
 	sfcCompiler compiler_domain.SFCCompiler,
@@ -575,9 +560,9 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 	return diagnostics
 }
 
-// locationFromError walks the error chain looking for a structured
-// sfcparser location or a Go scanner-style "file:line:col" prefix. Falls
-// back to (path, 0, 0) when no location can be recovered.
+// locationFromError walks the error chain looking for a structured sfcparser location or
+// a Go scanner-style "file:line:col" prefix. Falls back to (path, 0, 0) when no location
+// can be recovered.
 //
 // Takes err (error) which is the error returned from CompileSFC.
 // Takes sourcePath (string) which is used as the FilePath of the location.
@@ -601,17 +586,17 @@ func locationFromError(err error, sourcePath string) wasm_dto.Location {
 	return location
 }
 
-// convertArtefacts converts generator artefacts to WASM DTOs, merging output
-// from three sources: the generator's direct artefact slice, the in-memory
-// filesystem (for register/manifest emitters that write through it), and the
-// PKJS emitter (which captures compiled client-side JavaScript directly).
+// convertArtefacts converts generator artefacts to WASM DTOs, merging output from three
+// sources: the generator's direct artefact slice, the in-memory filesystem (for
+// register/manifest emitters that write through it), and the PKJS emitter (which captures
+// compiled client-side JavaScript directly).
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which holds the
-// generated Go output from the generator.
-// Takes fsWriter (*InMemoryFSWriter) which provides access to files written
-// to the in-memory filesystem.
-// Takes pkJSEmitter (*InMemoryPKJSEmitter) which captures transpiled
-// client-side JavaScript artefacts.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which holds the generated Go
+// output from the generator.
+// Takes fsWriter (*InMemoryFSWriter) which provides access to files written to the
+// in-memory filesystem.
+// Takes pkJSEmitter (*InMemoryPKJSEmitter) which captures transpiled client-side
+// JavaScript artefacts.
 //
 // Returns []wasm_dto.GeneratedArtefact with deduplication by Path.
 func (*GeneratorAdapter) convertArtefacts(
@@ -673,11 +658,10 @@ func (*GeneratorAdapter) convertArtefacts(
 
 // convertManifest converts a generator manifest to the WASM DTO format.
 //
-// Takes manifest (*generator_dto.Manifest) which is the source manifest to
-// convert.
+// Takes manifest (*generator_dto.Manifest) which is the source manifest to convert.
 //
-// Returns *wasm_dto.GeneratedManifest which contains the converted manifest
-// data, or nil if the input is nil.
+// Returns *wasm_dto.GeneratedManifest which contains the converted manifest data, or nil
+// if the input is nil.
 func (*GeneratorAdapter) convertManifest(manifest *generator_dto.Manifest) *wasm_dto.GeneratedManifest {
 	if manifest == nil {
 		return nil
@@ -710,8 +694,8 @@ func (*GeneratorAdapter) convertManifest(manifest *generator_dto.Manifest) *wasm
 	return result
 }
 
-// inMemoryResolver provides path resolution for in-memory file systems.
-// It implements resolver_domain.ResolverPort.
+// inMemoryResolver provides path resolution for in-memory file systems. It implements
+// resolver_domain.ResolverPort.
 type inMemoryResolver struct {
 	// moduleName is the Go module path used to resolve import paths.
 	moduleName string
@@ -807,8 +791,8 @@ func (r *inMemoryResolver) ResolveAssetPath(_ context.Context, importPath string
 //
 // Takes entryPointPath (string) which is the module-absolute path to convert.
 //
-// Returns string which is the project-relative key with the module name prefix
-// removed, or the original path if no prefix was present.
+// Returns string which is the project-relative key with the module name prefix removed,
+// or the original path if no prefix was present.
 func (r *inMemoryResolver) ConvertEntryPointPathToManifestKey(entryPointPath string) string {
 	if trimmed, ok := strings.CutPrefix(entryPointPath, r.moduleName+"/"); ok {
 		return trimmed
@@ -816,9 +800,8 @@ func (r *inMemoryResolver) ConvertEntryPointPathToManifestKey(entryPointPath str
 	return entryPointPath
 }
 
-// GetModuleDir resolves a Go module path to its filesystem directory.
-// For in-memory resolver, this returns an error as external modules are not
-// available.
+// GetModuleDir resolves a Go module path to its filesystem directory. For in-memory
+// resolver, this returns an error as external modules are not available.
 //
 // Takes modulePath (string) which specifies the Go module path to resolve.
 //
@@ -828,8 +811,8 @@ func (*inMemoryResolver) GetModuleDir(_ context.Context, modulePath string) (str
 	return "", fmt.Errorf("external module %q not available in in-memory resolver", modulePath)
 }
 
-// FindModuleBoundary splits an import path into module and subpath.
-// For in-memory resolver, this assumes everything is in the local module.
+// FindModuleBoundary splits an import path into module and subpath. For in-memory
+// resolver, this assumes everything is in the local module.
 //
 // Takes importPath (string) which is the full import path to split.
 //
@@ -854,12 +837,12 @@ func (r *inMemoryResolver) FindModuleBoundary(_ context.Context, importPath stri
 	return importPath, "", nil
 }
 
-// WithStdlibDataGetter sets a function to fetch the pre-bundled standard
-// library type data. This is a function because the stdlib data may not be
-// ready when the adapter is created.
+// WithStdlibDataGetter sets a function to fetch the pre-bundled standard library type
+// data. This is a function because the stdlib data may not be ready when the adapter is
+// created.
 //
-// Takes getter (func() (*inspector_dto.TypeData, error)) which fetches
-// the stdlib types when called.
+// Takes getter (func() (*inspector_dto.TypeData, error)) which fetches the stdlib types
+// when called.
 //
 // Returns GeneratorAdapterOption which configures the adapter.
 func WithStdlibDataGetter(getter func() (*inspector_dto.TypeData, error)) GeneratorAdapterOption {
@@ -870,12 +853,10 @@ func WithStdlibDataGetter(getter func() (*inspector_dto.TypeData, error)) Genera
 
 // WithGeneratorConfig sets the generator configuration for the adapter.
 //
-// Takes pathsConfig (generator_domain.GeneratorPathsConfig) which provides path
-// settings.
+// Takes pathsConfig (generator_domain.GeneratorPathsConfig) which provides path settings.
 // Takes i18nDefaultLocale (string) which specifies the default locale.
 //
-// Returns GeneratorAdapterOption which configures the adapter with the given
-// settings.
+// Returns GeneratorAdapterOption which configures the adapter with the given settings.
 func WithGeneratorConfig(pathsConfig generator_domain.GeneratorPathsConfig, i18nDefaultLocale string) GeneratorAdapterOption {
 	return func(a *GeneratorAdapter) {
 		a.pathsConfig = pathsConfig
@@ -897,15 +878,13 @@ func WithModuleName(moduleName string) GeneratorAdapterOption {
 
 // WithGeneratorLimits overrides the default per-call caps.
 //
-// Bounds how many sources Generate / DynamicRender accept and how large
-// each source can be. Pass zero on any field to disable that specific
-// limit. Defaults are intentionally generous so they do not get in the
-// way of real projects but still close the unbounded-input attack
-// surface.
+// Bounds how many sources Generate / DynamicRender accept and how large each source can
+// be. Pass zero on any field to disable that specific limit. Defaults are intentionally
+// generous so they do not get in the way of real projects but still close the
+// unbounded-input attack surface.
 //
 // Takes maxFileCount (int) which caps len(request.Sources).
-// Takes maxTotalBytes (int) which caps the aggregate byte size of every
-// source file.
+// Takes maxTotalBytes (int) which caps the aggregate byte size of every source file.
 // Takes maxFileBytes (int) which caps any single source file's byte size.
 //
 // Returns GeneratorAdapterOption which configures the adapter.
@@ -923,8 +902,8 @@ func WithGeneratorLimits(maxFileCount, maxTotalBytes, maxFileBytes int) Generato
 //
 // Takes filePath (string) which is the file path to analyse.
 //
-// Returns wasm_dto.ArtefactType which is the guessed type based on path
-// patterns, defaulting to ArtefactTypePage if no pattern matches.
+// Returns wasm_dto.ArtefactType which is the guessed type based on path patterns,
+// defaulting to ArtefactTypePage if no pattern matches.
 func determineArtefactType(filePath string) wasm_dto.ArtefactType {
 	switch {
 	case strings.Contains(filePath, "/pages/"):

@@ -27,20 +27,19 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// watchdogChartMinPoints is the smallest number of events required
-// before the rate chart is rendered. Below this we omit the chart so
-// the body uses the full pane.
-const watchdogChartMinPoints = 3
+const (
+	// watchdogChartMinPoints is the smallest number of events required before the rate chart
+	// is rendered. Below this we omit the chart so the body uses the full pane.
+	watchdogChartMinPoints = 3
+)
 
 // DetailView renders the detail-pane body for the active section.
 //
-// Each section drills into its corresponding watchdog status fields
-// and is followed by an event-rate trend chart derived from the
-// panel's local event ring. When no section is selected the
-// high-level budget summary is rendered with the same chart below it.
+// Each section drills into its corresponding watchdog status fields and is followed by an
+// event-rate trend chart derived from the panel's local event ring. When no section is
+// selected the high-level budget summary is rendered with the same chart below it.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogOverviewPanel) DetailView(width, height int) string {
@@ -52,9 +51,8 @@ func (p *WatchdogOverviewPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(p.theme, body, series, "events / min", width, height)
 }
 
-// eventRateSeries derives a coarse events-per-minute time series from
-// the panel's local event ring. Returns nil when there are too few
-// events to draw a meaningful chart.
+// eventRateSeries derives a coarse events-per-minute time series from the panel's local
+// event ring. Returns nil when there are too few events to draw a meaningful chart.
 //
 // Returns []ChartSeries which is the rate trend, or nil.
 //
@@ -89,8 +87,8 @@ func (p *WatchdogOverviewPanel) eventRateSeries() []ChartSeries {
 	return []ChartSeries{{Name: "events/min", Points: points, Severity: SeverityWarning}}
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current section cursor.
+// buildDetailBody assembles the structured detail content based on the current section
+// cursor.
 //
 // Returns inspector.DetailBody for the currently selected section.
 //
@@ -135,8 +133,8 @@ func (p *WatchdogOverviewPanel) buildDetailBody() inspector.DetailBody {
 	return overviewBudgetDetailBody(status, events, lastErr, statusFetched)
 }
 
-// overviewBudgetDetailBody builds the high-level budget summary shown
-// when no specific section is selected.
+// overviewBudgetDetailBody builds the high-level budget summary shown when no specific
+// section is selected.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 // Takes events ([]WatchdogEvent) which is the local event ring snapshot.
@@ -166,8 +164,8 @@ func overviewBudgetDetailBody(status *WatchdogStatus, events []WatchdogEvent, la
 	}
 }
 
-// overviewLifecycleDetailBody renders the watchdog lifecycle settings
-// (started-at, warm-up, cooldown, and capture window).
+// overviewLifecycleDetailBody renders the watchdog lifecycle settings (started-at,
+// warm-up, cooldown, and capture window).
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
@@ -225,8 +223,7 @@ func overviewHeapDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	}
 }
 
-// overviewGoroutinesDetailBody renders the goroutine-guards detail
-// section.
+// overviewGoroutinesDetailBody renders the goroutine-guards detail section.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
@@ -244,8 +241,7 @@ func overviewGoroutinesDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	}
 }
 
-// overviewGCDetailBody renders the GC-pressure thresholds detail
-// section.
+// overviewGCDetailBody renders the GC-pressure thresholds detail section.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
@@ -261,8 +257,7 @@ func overviewGCDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	}
 }
 
-// overviewFDDetailBody renders the file-descriptor pressure detail
-// section.
+// overviewFDDetailBody renders the file-descriptor pressure detail section.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
@@ -277,8 +272,7 @@ func overviewFDDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	}
 }
 
-// overviewSchedulerDetailBody renders the scheduler-latency detail
-// section.
+// overviewSchedulerDetailBody renders the scheduler-latency detail section.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //
@@ -293,8 +287,8 @@ func overviewSchedulerDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	}
 }
 
-// overviewContinuousDetailBody renders the continuous-profiling
-// configuration detail section.
+// overviewContinuousDetailBody renders the continuous-profiling configuration detail
+// section.
 //
 // Takes status (*WatchdogStatus) which is the latest watchdog snapshot.
 //

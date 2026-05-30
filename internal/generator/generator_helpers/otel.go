@@ -18,7 +18,11 @@
 
 package generator_helpers
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
-// log is the package-level logger for the generator_helpers package.
-var log = logger_domain.GetLogger("piko/internal/generator/generator_helpers")
+var (
+	// log is the package-level logger for the generator_helpers package.
+	log = logger_domain.GetLogger("piko/internal/generator/generator_helpers")
+)

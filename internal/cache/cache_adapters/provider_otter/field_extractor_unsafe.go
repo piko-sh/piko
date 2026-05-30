@@ -28,17 +28,15 @@ import (
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
-// compareFieldDirect performs zero-allocation field comparison without boxing.
-// This is the optimised path for filtering; it reads the field via unsafe
-// and compares directly, never boxing to interface{}.
+// compareFieldDirect performs zero-allocation field comparison without boxing. This is
+// the optimised path for filtering; it reads the field via unsafe and compares directly,
+// never boxing to interface{}.
 //
 // Takes value (V) which is the struct value to extract the field from.
-// Takes fieldPath (string) which specifies the dot-separated path to
-// the field.
+// Takes fieldPath (string) which specifies the dot-separated path to the field.
 // Takes operator (any) which is the comparison operator to apply.
 // Takes targetValue (any) which is the value to compare against.
-// Takes targetValues ([]any) which provides multiple values for set
-// operations.
+// Takes targetValues ([]any) which provides multiple values for set operations.
 //
 // Returns matched (bool) which is the comparison result.
 // Returns ok (bool) which indicates whether the operation succeeded.
@@ -117,9 +115,9 @@ func (*FieldExtractor[V]) compareByKind(fieldPtr unsafe.Pointer, kind reflect.Ki
 // Returns any which is the extracted field value, or nil if extraction fails.
 // Returns bool which indicates whether the extraction was successful.
 //
-// Note: intentionally not decomposed into helpers despite high complexity.
-// Extracting helper functions causes them to not be inlined, which reintroduces
-// allocations in the hot path.
+// Note: intentionally not decomposed into helpers despite high complexity. Extracting
+// helper functions causes them to not be inlined, which reintroduces allocations in the
+// hot path.
 //
 //nolint:revive // inlined for zero-alloc
 func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) (any, bool) {
@@ -193,8 +191,8 @@ func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) 
 	return nil, false
 }
 
-// typeKey extracts a uintptr from a reflect.Type for use as a map key.
-// This is safe because type descriptors are fixed and never move or get freed.
+// typeKey extracts a uintptr from a reflect.Type for use as a map key. This is safe
+// because type descriptors are fixed and never move or get freed.
 //
 // Takes t (reflect.Type) which is the type to get a key from.
 //
@@ -209,17 +207,13 @@ func typeKey(t reflect.Type) uintptr {
 
 // compareFloat64Direct compares a float64 field without boxing.
 //
-// Takes fieldPtr (unsafe.Pointer) which points to the float64
-// field to compare.
-// Takes operator (cache_dto.FilterOp) which specifies the comparison
-// operation.
+// Takes fieldPtr (unsafe.Pointer) which points to the float64 field to compare.
+// Takes operator (cache_dto.FilterOp) which specifies the comparison operation.
 // Takes targetValue (any) which is the value to compare against.
-// Takes targetValues ([]any) which provides range bounds for
-// between operations.
+// Takes targetValues ([]any) which provides range bounds for between operations.
 //
 // Returns matched (bool) which is the comparison result.
-// Returns ok (bool) which indicates whether the operation
-// succeeded.
+// Returns ok (bool) which indicates whether the operation succeeded.
 //
 //nolint:revive // switch filter dispatch
 func compareFloat64Direct(fieldPtr unsafe.Pointer, operator cache_dto.FilterOp, targetValue any, targetValues []any) (matched bool, ok bool) {
@@ -270,15 +264,11 @@ func compareFloat64Direct(fieldPtr unsafe.Pointer, operator cache_dto.FilterOp, 
 
 // compareIntDirect compares an int or int64 field without boxing.
 //
-// Takes fieldPtr (unsafe.Pointer) which points to the int or
-// int64 field.
-// Takes kind (reflect.Kind) which indicates whether the field is
-// int or int64.
-// Takes operator (cache_dto.FilterOp) which specifies the comparison
-// operation.
+// Takes fieldPtr (unsafe.Pointer) which points to the int or int64 field.
+// Takes kind (reflect.Kind) which indicates whether the field is int or int64.
+// Takes operator (cache_dto.FilterOp) which specifies the comparison operation.
 // Takes targetValue (any) which is the value to compare against.
-// Takes targetValues ([]any) which provides range values for
-// between operations.
+// Takes targetValues ([]any) which provides range values for between operations.
 //
 // Returns matched (bool) which is the comparison result.
 // Returns ok (bool) which indicates whether the operation succeeded.
@@ -340,8 +330,7 @@ func compareIntDirect(fieldPtr unsafe.Pointer, kind reflect.Kind, operator cache
 // compareStringDirect compares a string field directly without type wrapping.
 //
 // Takes fieldPtr (unsafe.Pointer) which points to the string field to compare.
-// Takes operator (cache_dto.FilterOp) which specifies the comparison to
-// perform.
+// Takes operator (cache_dto.FilterOp) which specifies the comparison to perform.
 // Takes targetValue (any) which is the value to compare against.
 // Takes targetValues ([]any) which provides values for the In operation.
 //

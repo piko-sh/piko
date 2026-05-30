@@ -50,11 +50,10 @@ func WithRegistration(tag string, fn validator.Func) Option {
 	}
 }
 
-// WithPlaygroundOption adds raw playground validator options that are passed
-// to validator.New().
+// WithPlaygroundOption adds raw playground validator options that are passed to
+// validator.New().
 //
-// Takes opts (...validator.Option) which specifies the validator options to
-// add.
+// Takes opts (...validator.Option) which specifies the validator options to add.
 //
 // Returns Option which appends the playground options.
 func WithPlaygroundOption(opts ...validator.Option) Option {
@@ -63,8 +62,8 @@ func WithPlaygroundOption(opts ...validator.Option) Option {
 	}
 }
 
-// Validator wraps the go-playground/validator with Piko-specific custom rules
-// for Money and Decimal types pre-registered.
+// Validator wraps the go-playground/validator with Piko-specific custom rules for Money
+// and Decimal types pre-registered.
 //
 // It satisfies the bootstrap.StructValidator interface.
 type Validator struct {
@@ -72,8 +71,8 @@ type Validator struct {
 	v *validator.Validate
 }
 
-// NewValidator creates a playground validator with Piko's custom Money/Decimal
-// validation rules pre-registered.
+// NewValidator creates a playground validator with Piko's custom Money/Decimal validation
+// rules pre-registered.
 //
 // Takes opts (...Option) which provides optional configuration such as custom
 // registrations or playground options.
@@ -112,8 +111,8 @@ func (val *Validator) Struct(s any) error {
 	return val.v.Struct(s)
 }
 
-// Underlying returns the raw *validator.Validate instance for advanced use
-// cases such as registering additional validations after creation.
+// Underlying returns the raw *validator.Validate instance for advanced use cases such as
+// registering additional validations after creation.
 //
 // Returns *validator.Validate which is the underlying playground validator.
 func (val *Validator) Underlying() *validator.Validate {
@@ -158,25 +157,22 @@ func isDecimalNotNegative(fl validator.FieldLevel) bool {
 	return !isDecimalNegative(fl)
 }
 
-// numericValidator is satisfied by types that support error checking and
-// sign/zero comparison - currently maths.Money and maths.Decimal.
+// numericValidator is satisfied by types that support error checking and sign/zero
+// comparison - currently maths.Money and maths.Decimal.
 type numericValidator interface {
 	// Err returns any error stored in the numeric value.
 	Err() error
 }
 
-// validateNumeric extracts a value of type T (or *T) from the
-// field, returning nilResult when the pointer is nil.
+// validateNumeric extracts a value of type T (or *T) from the field, returning nilResult
+// when the pointer is nil.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
-// Takes nilResult (bool) which is the result to return when the
-// pointer is nil.
-// Takes check (func(T) (bool, error)) which is the validation
-// function to apply to the extracted value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
+// Takes nilResult (bool) which is the result to return when the pointer is nil.
+// Takes check (func(T) (bool, error)) which is the validation function to apply to the
+// extracted value.
 //
-// Returns true when the check function passes for the extracted
-// value.
+// Returns true when the check function passes for the extracted value.
 func validateNumeric[T numericValidator](
 	fl validator.FieldLevel,
 	nilResult bool,
@@ -206,8 +202,7 @@ func validateNumeric[T numericValidator](
 
 // isMoneyPositive checks that a money field value is positive.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the money value is positive.
 func isMoneyPositive(fl validator.FieldLevel) bool {
@@ -216,8 +211,7 @@ func isMoneyPositive(fl validator.FieldLevel) bool {
 
 // isMoneyNegative checks that a money field value is negative.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the money value is negative.
 func isMoneyNegative(fl validator.FieldLevel) bool {
@@ -226,8 +220,7 @@ func isMoneyNegative(fl validator.FieldLevel) bool {
 
 // isMoneyNotZero checks that a money field value is not zero.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the money value is not zero.
 func isMoneyNotZero(fl validator.FieldLevel) bool {
@@ -239,8 +232,7 @@ func isMoneyNotZero(fl validator.FieldLevel) bool {
 
 // isDecimalPositive checks that a decimal field value is positive.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the decimal value is positive.
 func isDecimalPositive(fl validator.FieldLevel) bool {
@@ -249,8 +241,7 @@ func isDecimalPositive(fl validator.FieldLevel) bool {
 
 // isDecimalNegative checks that a decimal field value is negative.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the decimal value is negative.
 func isDecimalNegative(fl validator.FieldLevel) bool {
@@ -259,8 +250,7 @@ func isDecimalNegative(fl validator.FieldLevel) bool {
 
 // isDecimalNotZero checks that a decimal field value is not zero.
 //
-// Takes fl (validator.FieldLevel) which provides access to the
-// field value.
+// Takes fl (validator.FieldLevel) which provides access to the field value.
 //
 // Returns bool which is true when the decimal value is not zero.
 func isDecimalNotZero(fl validator.FieldLevel) bool {

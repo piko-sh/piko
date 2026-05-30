@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// MigrationCatalogueProvider builds a schema catalogue by reading migration
-// SQL files and replaying their DDL statements. This is the default catalogue
-// provider, suitable for engines that use file-based migration workflows.
+// MigrationCatalogueProvider builds a schema catalogue by reading migration SQL files and
+// replaying their DDL statements. This is the default catalogue provider, suitable for
+// engines that use file-based migration workflows.
 type MigrationCatalogueProvider struct {
 	// engine holds the SQL dialect parser and DDL interpreter.
 	engine EnginePort
@@ -38,18 +38,14 @@ type MigrationCatalogueProvider struct {
 	directory string
 }
 
-// NewMigrationCatalogueProvider creates a catalogue provider
-// that reads migration files from the given directory.
+// NewMigrationCatalogueProvider creates a catalogue provider that reads migration files
+// from the given directory.
 //
-// Takes engine (EnginePort) which provides SQL parsing and
-// DDL interpretation.
-// Takes fileReader (FileReaderPort) which provides
-// filesystem access.
-// Takes directory (string) which is the path to the
-// migration files.
+// Takes engine (EnginePort) which provides SQL parsing and DDL interpretation.
+// Takes fileReader (FileReaderPort) which provides filesystem access.
+// Takes directory (string) which is the path to the migration files.
 //
-// Returns *MigrationCatalogueProvider which is ready to
-// build catalogues.
+// Returns *MigrationCatalogueProvider which is ready to build catalogues.
 func NewMigrationCatalogueProvider(
 	engine EnginePort,
 	fileReader FileReaderPort,
@@ -62,15 +58,13 @@ func NewMigrationCatalogueProvider(
 	}
 }
 
-// BuildCatalogue reads migration files from the configured
-// directory, parses their DDL statements via the engine
-// adapter, and replays the mutations to construct the schema
+// BuildCatalogue reads migration files from the configured directory, parses their DDL
+// statements via the engine adapter, and replays the mutations to construct the schema
 // catalogue.
 //
-// Returns *querier_dto.Catalogue which holds the built
-// schema state.
-// Returns []querier_dto.SourceError which contains any
-// diagnostics from parsing or applying migrations.
+// Returns *querier_dto.Catalogue which holds the built schema state.
+// Returns []querier_dto.SourceError which contains any diagnostics from parsing or
+// applying migrations.
 // Returns error when reading migration files fails.
 func (provider *MigrationCatalogueProvider) BuildCatalogue(
 	ctx context.Context,

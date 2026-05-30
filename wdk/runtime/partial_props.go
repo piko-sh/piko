@@ -18,17 +18,19 @@
 
 package runtime
 
-import "net/url"
+import (
+	"net/url"
+)
 
-// BuildPartialPropsQuery constructs a URI-encoded query string from alternating
-// key-value string pairs. Generated code calls this to build the partial_props
-// attribute for public partials with query-bound props.
+// BuildPartialPropsQuery constructs a URI-encoded query string from alternating key-value
+// string pairs. Generated code calls this to build the partial_props attribute for public
+// partials with query-bound props.
 //
-// Takes pairs (...string) which are alternating key-value pairs where each
-// even index is a query parameter name and each odd index is its value.
+// Takes pairs (...string) which are alternating key-value pairs where each even index is
+// a query parameter name and each odd index is its value.
 //
-// Returns string which is the URI-encoded query string, or empty if no valid
-// pairs are provided.
+// Returns string which is the URI-encoded query string, or empty if no valid pairs are
+// provided.
 func BuildPartialPropsQuery(pairs ...string) string {
 	if len(pairs) < 2 || len(pairs)%2 != 0 {
 		return ""

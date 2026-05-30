@@ -24,12 +24,10 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Artefact rows show metadata; otherwise the storage
-// overview is rendered.
+// DetailView renders the detail-pane body for the row currently under the cursor.
+// Artefact rows show metadata; otherwise the storage overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *StoragePanel) DetailView(width, height int) string {
@@ -37,8 +35,8 @@ func (p *StoragePanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody describing the selected artefact or the overview.
 func (p *StoragePanel) buildDetailBody() inspector.DetailBody {

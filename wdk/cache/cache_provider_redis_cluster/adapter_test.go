@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/cache"
-	"piko.sh/piko/wdk/cache/cache_provider_redis_cluster"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
+	"piko.sh/piko/wdk/cache/cache_provider_redis_cluster"
 )
 
 func createRedisClusterCache[K comparable, V any](t *testing.T, defaultTTL time.Duration) (*cache_provider_redis_cluster.RedisClusterAdapter[K, V], *miniredis.Miniredis) {

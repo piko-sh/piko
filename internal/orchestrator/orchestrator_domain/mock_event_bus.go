@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 )
 
-// MockEventBus is a test double for EventBus where nil function fields
-// return zero values and call counts are tracked atomically.
+// MockEventBus is a test double for EventBus where nil function fields return zero values
+// and call counts are tracked atomically.
 type MockEventBus struct {
 	// PublishFunc is the function called by Publish.
 	PublishFunc func(ctx context.Context, topic string, event Event) error
@@ -38,21 +38,17 @@ type MockEventBus struct {
 	// CloseFunc is the function called by Close.
 	CloseFunc func(ctx context.Context) error
 
-	// PublishCallCount tracks how many times Publish
-	// was called.
-	PublishCallCount int64
+	// PublishCallCount tracks how many times Publish was called.
+	PublishCallCount atomic.Int64
 
-	// SubscribeCallCount tracks how many times
-	// Subscribe was called.
-	SubscribeCallCount int64
+	// SubscribeCallCount tracks how many times Subscribe was called.
+	SubscribeCallCount atomic.Int64
 
-	// SubscribeWithHandlerCallCount tracks how many
-	// times SubscribeWithHandler was called.
-	SubscribeWithHandlerCallCount int64
+	// SubscribeWithHandlerCallCount tracks how many times SubscribeWithHandler was called.
+	SubscribeWithHandlerCallCount atomic.Int64
 
-	// CloseCallCount tracks how many times Close was
-	// called.
-	CloseCallCount int64
+	// CloseCallCount tracks how many times Close was called.
+	CloseCallCount atomic.Int64
 }
 
 // Publish sends an event to the given topic.
@@ -63,7 +59,7 @@ type MockEventBus struct {
 //
 // Returns error, or nil if PublishFunc is nil.
 func (m *MockEventBus) Publish(ctx context.Context, topic string, event Event) error {
-	atomic.AddInt64(&m.PublishCallCount, 1)
+	m.PublishCallCount.Add(1)
 	if m.PublishFunc != nil {
 		return m.PublishFunc(ctx, topic, event)
 	}
@@ -77,7 +73,7 @@ func (m *MockEventBus) Publish(ctx context.Context, topic string, event Event) e
 //
 // Returns (<-chan Event, error), or (nil, nil) if SubscribeFunc is nil.
 func (m *MockEventBus) Subscribe(ctx context.Context, topic string) (<-chan Event, error) {
-	atomic.AddInt64(&m.SubscribeCallCount, 1)
+	m.SubscribeCallCount.Add(1)
 	if m.SubscribeFunc != nil {
 		return m.SubscribeFunc(ctx, topic)
 	}
@@ -92,7 +88,7 @@ func (m *MockEventBus) Subscribe(ctx context.Context, topic string) (<-chan Even
 //
 // Returns error, or nil if SubscribeWithHandlerFunc is nil.
 func (m *MockEventBus) SubscribeWithHandler(ctx context.Context, topic string, handler EventHandler) error {
-	atomic.AddInt64(&m.SubscribeWithHandlerCallCount, 1)
+	m.SubscribeWithHandlerCallCount.Add(1)
 	if m.SubscribeWithHandlerFunc != nil {
 		return m.SubscribeWithHandlerFunc(ctx, topic, handler)
 	}
@@ -101,12 +97,11 @@ func (m *MockEventBus) SubscribeWithHandler(ctx context.Context, topic string, h
 
 // Close releases all resources and closes active subscriptions.
 //
-// Takes ctx (context.Context) which carries logging context for the
-// shutdown operation.
+// Takes ctx (context.Context) which carries logging context for the shutdown operation.
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockEventBus) Close(ctx context.Context) error {
-	atomic.AddInt64(&m.CloseCallCount, 1)
+	m.CloseCallCount.Add(1)
 	if m.CloseFunc != nil {
 		return m.CloseFunc(ctx)
 	}

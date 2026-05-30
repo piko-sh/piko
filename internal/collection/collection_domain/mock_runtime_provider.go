@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
-// MockRuntimeProvider is a test double for RuntimeProvider that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockRuntimeProvider is a test double for RuntimeProvider that returns zero values from
+// nil function fields and tracks call counts atomically.
 type MockRuntimeProvider struct {
 	// NameFunc is the function called by Name.
 	NameFunc func() string
@@ -34,22 +34,22 @@ type MockRuntimeProvider struct {
 	// FetchFunc is the function called by Fetch.
 	FetchFunc func(ctx context.Context, collectionName string, options *collection_dto.FetchOptions, target any) error
 
-	// NameCallCount tracks how many times Name was
-	// called.
-	NameCallCount int64
+	// NameCallCount tracks how many times Name was called.
+	NameCallCount atomic.Int64
 
-	// FetchCallCount tracks how many times Fetch was
-	// called.
-	FetchCallCount int64
+	// FetchCallCount tracks how many times Fetch was called.
+	FetchCallCount atomic.Int64
 }
 
-var _ RuntimeProvider = (*MockRuntimeProvider)(nil)
+var (
+	_ RuntimeProvider = (*MockRuntimeProvider)(nil)
+)
 
 // Name delegates to NameFunc if set.
 //
 // Returns "" if NameFunc is nil.
 func (m *MockRuntimeProvider) Name() string {
-	atomic.AddInt64(&m.NameCallCount, 1)
+	m.NameCallCount.Add(1)
 	if m.NameFunc != nil {
 		return m.NameFunc()
 	}
@@ -58,16 +58,15 @@ func (m *MockRuntimeProvider) Name() string {
 
 // Fetch delegates to FetchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
-// Takes options (*collection_dto.FetchOptions) which provides fetch
-// configuration options.
+// Takes options (*collection_dto.FetchOptions) which provides fetch configuration
+// options.
 // Takes target (any) which is the destination to decode collection data into.
 //
 // Returns nil if FetchFunc is nil.
 func (m *MockRuntimeProvider) Fetch(ctx context.Context, collectionName string, options *collection_dto.FetchOptions, target any) error {
-	atomic.AddInt64(&m.FetchCallCount, 1)
+	m.FetchCallCount.Add(1)
 	if m.FetchFunc != nil {
 		return m.FetchFunc(ctx, collectionName, options, target)
 	}

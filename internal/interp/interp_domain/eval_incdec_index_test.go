@@ -29,10 +29,10 @@ func TestIncDecOnIndexExpression(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "map_value_inc",

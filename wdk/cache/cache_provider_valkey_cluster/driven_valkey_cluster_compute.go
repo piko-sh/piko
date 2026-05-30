@@ -29,11 +29,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// fetchValueInDedicated fetches and decodes a value inside a dedicated client
-// context.
+// fetchValueInDedicated fetches and decodes a value inside a dedicated client context.
 //
-// Takes c (valkey.DedicatedClient) which is the dedicated client for the watch
-// operation.
+// Takes c (valkey.DedicatedClient) which is the dedicated client for the watch operation.
 // Takes keyString (string) which is the key to fetch from Valkey.
 //
 // Returns V which is the decoded value if found.
@@ -56,8 +54,7 @@ func (a *ValkeyClusterAdapter[K, V]) fetchValueInDedicated(ctx context.Context, 
 	return value, true, nil
 }
 
-// handleComputeRetryResult processes the result of a compute transaction
-// attempt.
+// handleComputeRetryResult processes the result of a compute transaction attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -95,11 +92,11 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeRetryResult(ctx context.Contex
 	return false, zero, false, fmt.Errorf("compute transaction error for key %s: %w", keyString, err)
 }
 
-// Compute atomically updates a cache entry using a compute function with
-// optimistic locking. Computes and writes the new value in one round trip.
+// Compute atomically updates a cache entry using a compute function with optimistic
+// locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -152,11 +149,9 @@ func (a *ValkeyClusterAdapter[K, V]) Compute(ctx context.Context, key K, compute
 	return *new(V), false, fmt.Errorf("compute max retries exceeded for key %s", keyString)
 }
 
-// buildComputeCommands builds the MULTI/action/EXEC commands for a compute
-// transaction.
+// buildComputeCommands builds the MULTI/action/EXEC commands for a compute transaction.
 //
-// Takes c (valkey.DedicatedClient) which provides the client for building
-// commands.
+// Takes c (valkey.DedicatedClient) which provides the client for building commands.
 // Takes keyString (string) which is the cache key to operate on.
 // Takes newValue (V) which is the value to set when action is Set.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
@@ -186,11 +181,10 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(c valkey.DedicatedClie
 	return cmds
 }
 
-// computeIfAbsentTransaction executes the WATCH/EXISTS/MULTI/SET/EXEC
-// transaction for ComputeIfAbsent within a dedicated client.
+// computeIfAbsentTransaction executes the WATCH/EXISTS/MULTI/SET/EXEC transaction for
+// ComputeIfAbsent within a dedicated client.
 //
-// Takes c (valkey.DedicatedClient) which is the dedicated client for the
-// transaction.
+// Takes c (valkey.DedicatedClient) which is the dedicated client for the transaction.
 // Takes keyString (string) which is the encoded cache key.
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 //
@@ -224,11 +218,10 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfAbsentTransaction(ctx context.Cont
 	return true, results[len(results)-1].Error()
 }
 
-// ComputeIfAbsent atomically computes and stores a value only if the key is
-// not present.
+// ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key to look up or compute.
@@ -270,8 +263,8 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K,
 	return *new(V), false, fmt.Errorf("ComputeIfAbsent max retries exceeded for key %s", keyString)
 }
 
-// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent
-// transaction attempt.
+// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -281,8 +274,8 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K,
 //
 // Returns value (V) which is the final cached value if present.
 // Returns computed (bool) which indicates whether the value was computed.
-// Returns shouldRetry (bool) which indicates whether the caller should retry
-// the transaction due to a conflict.
+// Returns shouldRetry (bool) which indicates whether the caller should retry the
+// transaction due to a conflict.
 // Returns error when the operation fails.
 func (a *ValkeyClusterAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, key K, keyString string, err error, didCompute bool) (value V, computed bool, shouldRetry bool, retryErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -309,19 +302,17 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Con
 	return zero, false, false, fmt.Errorf("ComputeIfAbsent transaction error for key %s: %w", keyString, err)
 }
 
-// ComputeIfPresent atomically updates a value only if the key exists in the
-// cache.
+// ComputeIfPresent atomically updates a value only if the key exists in the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to update.
-// Takes computeFunction (func(...)) which computes the new value
-// from the old value.
+// Takes computeFunction (func(...)) which computes the new value from the old value.
 //
-// Returns V which is the computed value, or the zero value if the key was not
-// found or the operation failed.
+// Returns V which is the computed value, or the zero value if the key was not found or
+// the operation failed.
 // Returns bool which indicates whether the key existed and was updated.
 // Returns error when the operation fails.
 //
@@ -356,14 +347,13 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K
 	return *new(V), false, fmt.Errorf("ComputeIfPresent max retries exceeded for key %s", keyString)
 }
 
-// computeIfPresentTxn executes the WATCH/compute/MULTI/EXEC
-// sequence for ComputeIfPresent within a dedicated connection.
+// computeIfPresentTxn executes the WATCH/compute/MULTI/EXEC sequence for ComputeIfPresent
+// within a dedicated connection.
 //
-// Takes c (valkey.DedicatedClient) which is the dedicated
-// client for the watch transaction.
+// Takes c (valkey.DedicatedClient) which is the dedicated client for the watch
+// transaction.
 // Takes keyString (string) which is the encoded cache key.
-// Takes computeFunction (func(...)) which computes the new value
-// from the existing value.
+// Takes computeFunction (func(...)) which computes the new value from the existing value.
 //
 // Returns error when any step of the transaction fails.
 func (a *ValkeyClusterAdapter[K, V]) computeIfPresentTxn(
@@ -389,11 +379,9 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfPresentTxn(
 	return results[len(results)-1].Error()
 }
 
-// buildComputePresentCommands builds the MULTI/action/EXEC commands for
-// ComputeIfPresent.
+// buildComputePresentCommands builds the MULTI/action/EXEC commands for ComputeIfPresent.
 //
-// Takes c (valkey.DedicatedClient) which provides the client for building
-// commands.
+// Takes c (valkey.DedicatedClient) which provides the client for building commands.
 // Takes keyString (string) which is the cache key to operate on.
 // Takes newValue (V) which is the value to set if action is ComputeActionSet.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
@@ -420,8 +408,8 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(c valkey.Dedica
 	return cmds
 }
 
-// handleComputeIfPresentResult processes the result of a ComputeIfPresent
-// transaction attempt.
+// handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -431,8 +419,8 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(c valkey.Dedica
 //
 // Returns value (V) which is the computed value if present and successful.
 // Returns found (bool) which indicates whether the key was present.
-// Returns shouldRetry (bool) which indicates whether the operation should be
-// retried due to a transaction conflict.
+// Returns shouldRetry (bool) which indicates whether the operation should be retried due
+// to a transaction conflict.
 // Returns error when the operation fails.
 func (a *ValkeyClusterAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, key K, keyString string, err error, attempt int) (value V, found bool, shouldRetry bool, retryErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -462,8 +450,8 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeIfPresentResult(ctx context.Co
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -505,14 +493,14 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeWithTTL(ctx context.Context, key K, 
 	return *new(V), false, fmt.Errorf("ComputeWithTTL max retries exceeded for key %s", keyString)
 }
 
-// computeWithTTLTxn executes the WATCH/compute/MULTI/EXEC
-// sequence for ComputeWithTTL within a dedicated connection.
+// computeWithTTLTxn executes the WATCH/compute/MULTI/EXEC sequence for ComputeWithTTL
+// within a dedicated connection.
 //
-// Takes c (valkey.DedicatedClient) which is the dedicated
-// client for the watch transaction.
+// Takes c (valkey.DedicatedClient) which is the dedicated client for the watch
+// transaction.
 // Takes keyString (string) which is the encoded cache key.
-// Takes computeFunction (func(...)) which computes the new value,
-// action, and optional TTL from the existing value.
+// Takes computeFunction (func(...)) which computes the new value, action, and optional
+// TTL from the existing value.
 //
 // Returns error when any step of the transaction fails.
 func (a *ValkeyClusterAdapter[K, V]) computeWithTTLTxn(
@@ -540,9 +528,9 @@ func (a *ValkeyClusterAdapter[K, V]) computeWithTTLTxn(
 	return results[len(results)-1].Error()
 }
 
-// isTransactionConflict checks if an error indicates a WATCH/MULTI/EXEC
-// conflict (optimistic lock failure). When EXEC runs after a WATCH conflict,
-// Valkey returns a nil response which valkey-go surfaces as a ValkeyNil error.
+// isTransactionConflict checks if an error indicates a WATCH/MULTI/EXEC conflict
+// (optimistic lock failure). When EXEC runs after a WATCH conflict, Valkey returns a nil
+// response which valkey-go surfaces as a ValkeyNil error.
 //
 // Takes err (error) which is the error to check for transaction conflict.
 //

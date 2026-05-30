@@ -34,7 +34,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var updateGolden = flag.Bool("update", false, "update golden files")
+var (
+	updateGolden = flag.Bool("update", false, "update golden files")
+)
 
 func runPdfTestCase(t *testing.T, tc testCase) {
 	t.Helper()
@@ -142,7 +144,9 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 	fmt.Printf("--- [PDF] COMPLETE: %s ---\n", tc.Name)
 }
 
-var pdfTimestampPattern = regexp.MustCompile(`/(CreationDate|ModDate) \(D:\d{14}[^)]*\)`)
+var (
+	pdfTimestampPattern = regexp.MustCompile(`/(CreationDate|ModDate) \(D:\d{14}[^)]*\)`)
+)
 
 func stripPdfTimestamps(data []byte) []byte {
 	return pdfTimestampPattern.ReplaceAll(data, []byte("/$1 (D:19700101000000+00'00')"))

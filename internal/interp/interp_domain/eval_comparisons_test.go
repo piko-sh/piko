@@ -144,10 +144,10 @@ func TestEvalGenericComparisons(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "generic_uint_lt",

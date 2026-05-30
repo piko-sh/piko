@@ -125,4 +125,3 @@ func startPostgres(ctx context.Context) (testcontainers.Container, string) {
 
 	return container, dsn
 }
-

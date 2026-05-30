@@ -18,7 +18,9 @@
 
 package llm_dto
 
-import "time"
+import (
+	"time"
+)
 
 // BatchStatus represents the state of a batch processing job.
 type BatchStatus string
@@ -48,8 +50,8 @@ type BatchRequest struct {
 	// Requests holds the list of completion requests to process in the batch.
 	Requests []CompletionRequest
 
-	// CompletionWindow is the time window for batch completion.
-	// Longer windows typically result in lower costs.
+	// CompletionWindow is the time window for batch completion. Longer windows typically
+	// result in lower costs.
 	CompletionWindow time.Duration
 }
 
@@ -70,8 +72,8 @@ type BatchResponse struct {
 	// Status is the current state of the batch job.
 	Status BatchStatus
 
-	// Results holds the completion responses for each request.
-	// Only filled when Status is BatchStatusCompleted.
+	// Results holds the completion responses for each request. Only filled when Status is
+	// BatchStatusCompleted.
 	Results []CompletionResponse
 
 	// RequestCounts holds the number of requests grouped by their status.
@@ -104,9 +106,8 @@ func (r *BatchResponse) IsComplete() bool {
 
 // Progress returns the completion progress as a value from 0.0 to 1.0.
 //
-// Returns float64 which is the progress where 0.0 means no requests are done
-// and 1.0 means all requests are done. Both completed and failed requests
-// count towards progress.
+// Returns float64 which is the progress where 0.0 means no requests are done and 1.0
+// means all requests are done. Both completed and failed requests count towards progress.
 func (r *BatchResponse) Progress() float64 {
 	if r.RequestCounts.Total == 0 {
 		return 0

@@ -19,187 +19,547 @@
 package interp_domain
 
 import (
-	"fmt"
 	"reflect"
-	"slices"
+	"sync"
+	"unsafe"
+
+	"piko.sh/piko/wdk/safeconv"
 )
 
-// registerToReflectValue reads a register value and returns it as
-// a reflect.Value. Used for marshalling arguments to native calls.
+var (
+	// reflectValueBufferPool pools reflect.Value scratch buffers.
+	//
+	// Amortises allocation of the []reflect.Value scratch slices that buildReflectArgs and
+	// handleCallBoundMethodReflect hand to reflect.Call. The pool gives each acquiring
+	// caller its own buffer, returned via releaseReflectValueBuffer once the call has read
+	// the values back, so concurrent invocations of the same call site never share a buffer
+	// and tear each other's arguments.
+	//
+	// Pool stores small slices keyed implicitly by capacity-growth via reset-on-release.
+	// Buffers with capacity smaller than the request are allocated fresh; oversized buffers
+	// from the pool are reused as long as they still fit.
+	reflectValueBufferPool = sync.Pool{
+		New: func() any {
+			return new(make([]reflect.Value, 0, 8))
+		},
+	}
+)
+
+// acquireReflectValueBuffer returns a buffer with at least n slots, zero-padded for safe
+// writes. The caller MUST pass the returned buffer through releaseReflectValueBuffer once
+// the values are no longer needed (typically via defer immediately after acquisition).
 //
+// Takes n (int) which is the required length.
+//
+// Returns a buffer sized to n with zeroed entries.
+func acquireReflectValueBuffer(n int) []reflect.Value {
+	pointer, ok := reflectValueBufferPool.Get().(*[]reflect.Value)
+	if !ok {
+		buffer := make([]reflect.Value, n)
+		return buffer
+	}
+	buffer := *pointer
+	if cap(buffer) < n {
+		buffer = make([]reflect.Value, n)
+	} else {
+		buffer = buffer[:n]
+		clear(buffer)
+	}
+	*pointer = buffer
+	return buffer
+}
+
+// releaseReflectValueBuffer returns a buffer to the pool.
+//
+// The caller must not retain references to any reflect.Value inside the buffer after
+// release; subsequent acquirers may zero or overwrite the entries. Safe to call with a
+// nil-or-zero-length buffer (no-op).
+//
+// Takes buffer ([]reflect.Value) which is the buffer to recycle.
+func releaseReflectValueBuffer(buffer []reflect.Value) {
+	if cap(buffer) == 0 {
+		return
+	}
+	fullBuffer := buffer[:cap(buffer)]
+	clear(fullBuffer)
+	reflectValueBufferPool.Put(new(fullBuffer[:0]))
+}
+
+// registerToReflectValue reads a register value and returns it as a reflect.Value. Used
+// for marshalling arguments to native calls.
+//
+// When arena is non-nil, primitive scalar kinds route through the arena box helpers (zero
+// mallocgc per call); typed slice kinds use the arena slice-header pool. When arena is
+// nil, falls back to the allocating reflect.ValueOf path (test contexts).
+//
+// Takes arena (*RegisterArena) which provides the bump arena; may be nil.
 // Takes registers (*Registers) which provides the register banks.
 // Takes kind (registerKind) which selects the typed register bank.
 // Takes register (uint8) which is the index within the selected bank.
 //
-// Returns reflect.Value wrapping the register value, or an invalid
-// reflect.Value if the kind is unrecognised.
-func registerToReflectValue(registers *Registers, kind registerKind, register uint8) reflect.Value {
+// Returns reflect.Value wrapping the register value, or an invalid reflect.Value if the
+// kind is unrecognised.
+func registerToReflectValue(arena *RegisterArena, registers *Registers, kind registerKind, register uint8) reflect.Value {
 	switch kind {
 	case registerInt:
-		return reflect.ValueOf(registers.ints[register])
+		return boxInt64ToGeneral(arena, registers.ints[register])
 	case registerFloat:
-		return reflect.ValueOf(registers.floats[register])
+		return boxFloat64ToGeneral(arena, registers.floats[register])
 	case registerString:
-		return reflect.ValueOf(registers.strings[register])
+		return boxStringToGeneral(arena, registers.strings[register])
 	case registerGeneral:
 		return registers.general[register]
 	case registerBool:
-		return reflect.ValueOf(registers.bools[register])
+		return boxBoolToGeneral(registers.bools[register])
 	case registerUint:
-		return reflect.ValueOf(registers.uints[register])
+		return boxUint64ToGeneral(arena, registers.uints[register])
 	case registerComplex:
-		return reflect.ValueOf(registers.complex[register])
+		return boxComplex128ToGeneral(arena, registers.complex[register])
+	case registerSliceInt:
+		return packTypedSliceToGeneral(arena, registers.slicesInt[register], intSliceReflectType)
+	case registerSliceFloat:
+		return packTypedSliceFloatToGeneral(arena, registers.slicesFloat[register])
+	case registerSliceString:
+		return packTypedSliceStringToGeneral(arena, registers.slicesString[register])
+	case registerSliceBool:
+		return packTypedSliceBoolToGeneral(arena, registers.slicesBool[register])
+	case registerSliceUint:
+		return packTypedSliceUintToGeneral(arena, registers.slicesUint[register])
+	case registerSliceByte:
+		if arena == nil {
+			return reflect.ValueOf(registers.slicesByte[register])
+		}
+		return arenaWrapByteSlice(arena, registers.slicesByte[register])
 	default:
 		return reflect.Value{}
 	}
 }
 
-// unpackReflectArgs reads numArgs extension words from the bytecode stream
-// and returns them as a []reflect.Value slice. Each extension word encodes
-// a source register (extensionWord.b) and its kind (extensionWord.c).
+// unpackReflectArgs reads argumentCount extension words from the bytecode stream and
+// returns them as a []reflect.Value slice. Each extension word encodes a source register
+// (extensionWord.b) and its kind (extensionWord.c).
 //
 // Takes frame (*callFrame) which provides the bytecode body and counter.
 // Takes registers (*Registers) which holds the typed register banks.
-// Takes numArgs (int) which specifies how many extension words to consume.
+// Takes argumentCount (int) which specifies how many extension words to consume.
 //
-// Returns []reflect.Value with length numArgs containing the arguments.
-func unpackReflectArgs(frame *callFrame, registers *Registers, numArgs int) []reflect.Value {
-	arguments := make([]reflect.Value, numArgs)
-	for i := range numArgs {
+// Returns []reflect.Value with length argumentCount containing the arguments.
+func unpackReflectArgs(frame *callFrame, registers *Registers, argumentCount int) []reflect.Value {
+	arguments := make([]reflect.Value, argumentCount)
+	for i := range argumentCount {
 		extensionWord := frame.function.body[frame.programCounter]
 		frame.programCounter++
-		arguments[i] = registerToReflectValue(registers, registerKind(extensionWord.c), extensionWord.b)
+		arguments[i] = registerToReflectValue(nil, registers, registerKind(extensionWord.c), extensionWord.b)
 	}
 	return arguments
 }
 
-// copyCallArgs copies arguments from caller registers to a new callee frame.
-// Destination indices are per-kind (matching the compiler's per-bank
-// allocation) rather than the overall parameter index.
+// copyCallArgs copies arguments from caller registers to a new callee frame. Destination
+// indices are per-kind (matching the compiler's per-bank allocation) rather than the
+// overall parameter index.
 //
 // Takes callerRegisters (*Registers) which holds the source values.
 // Takes newFrame (*callFrame) which is the destination frame to populate.
-// Takes site (callSite) which describes argument locations in the caller.
+// Takes site (*callSite) which describes argument locations in the caller.
 // Takes callee (*CompiledFunction) which provides expected parameter kinds.
-func copyCallArgs(callerRegisters *Registers, newFrame *callFrame, site callSite, callee *CompiledFunction) {
+func copyCallArgs(vm *VM, arena *RegisterArena, callerRegisters *Registers, newFrame *callFrame, site *callSite, callee *CompiledFunction) {
+	if site.argCopyProgram != nil {
+		runArgCopyProgram(vm, arena, callerRegisters, &newFrame.registers, site.argCopyProgram)
+		return
+	}
 	var kindIndex [NumRegisterKinds]int
-	for i, argLocation := range site.arguments {
-		if i >= len(callee.paramKinds) {
+	for i, argumentLocation := range site.arguments {
+		if i >= len(callee.parameterKinds) {
 			break
 		}
-		paramKind := callee.paramKinds[i]
-		dest := kindIndex[paramKind]
-		kindIndex[paramKind]++
-		copyOneCallArg(&newFrame.registers, callerRegisters, paramKind, argLocation.kind, dest, argLocation.register)
+		parameterKind := callee.parameterKinds[i]
+		dest := kindIndex[parameterKind]
+		kindIndex[parameterKind]++
+		copyOneCallArgument(&newFrame.registers, callerRegisters, parameterKind, argumentLocation.kind, dest, argumentLocation.register, arena)
 	}
 }
 
-// copyOneCallArg copies a single argument value from the source register bank
-// to the destination register bank, handling same-kind copies,
-// scalar-to-general boxing, and general-to-scalar unboxing.
+// runArgCopyProgram executes the per-site precomputed argument-copy program. Each entry
+// maps a source register slot directly to a destination slot in the same bank, except for
+// general-bank entries (which detect struct/array values and arena-copy them to defeat
+// caller aliasing) and the boxing/unboxing fallback.
 //
-// Takes dst (*Registers) which is the destination register set.
+// Takes vm (*VM) which carries the per-call boundary helpers used for general-bank
+// struct/array copies.
+// Takes arena (*RegisterArena) which provides the arena copy helpers; may be nil.
+// Takes callerRegisters (*Registers) which holds the source values.
+// Takes destination (*Registers) which receives the copied values.
+// Takes program ([]callArgCopy) which lists each per-entry copy op.
+//
+//nolint:revive // one switch over callArgCopyOp beats per-bank fragments
+func runArgCopyProgram(vm *VM, arena *RegisterArena, callerRegisters *Registers, destination *Registers, program []callArgCopy) {
+	for i := range program {
+		c := &program[i]
+		switch c.op {
+		case copyIntToInt:
+			destination.ints[c.destinationRegister] = callerRegisters.ints[c.sourceRegister]
+		case copyFloatToFloat:
+			destination.floats[c.destinationRegister] = callerRegisters.floats[c.sourceRegister]
+		case copyStringToString:
+			destination.strings[c.destinationRegister] = callerRegisters.strings[c.sourceRegister]
+		case copyGeneralToGeneral:
+			source := callerRegisters.general[c.sourceRegister]
+			if source.Kind() == reflect.Struct || source.Kind() == reflect.Array {
+				destination.general[c.destinationRegister] = valueCopyForBoundaryArenaWithVM(arena, vm, source)
+			} else {
+				destination.general[c.destinationRegister] = source
+			}
+		case copyBoolToBool:
+			destination.bools[c.destinationRegister] = callerRegisters.bools[c.sourceRegister]
+		case copyUintToUint:
+			destination.uints[c.destinationRegister] = callerRegisters.uints[c.sourceRegister]
+		case copyComplexToComplex:
+			destination.complex[c.destinationRegister] = callerRegisters.complex[c.sourceRegister]
+		case copySliceIntToSliceInt:
+			destination.slicesInt[c.destinationRegister] = callerRegisters.slicesInt[c.sourceRegister]
+		case copySliceFloatToSliceFloat:
+			destination.slicesFloat[c.destinationRegister] = callerRegisters.slicesFloat[c.sourceRegister]
+		case copySliceStringToSliceString:
+			destination.slicesString[c.destinationRegister] = callerRegisters.slicesString[c.sourceRegister]
+		case copySliceBoolToSliceBool:
+			destination.slicesBool[c.destinationRegister] = callerRegisters.slicesBool[c.sourceRegister]
+		case copySliceUintToSliceUint:
+			destination.slicesUint[c.destinationRegister] = callerRegisters.slicesUint[c.sourceRegister]
+		case copySliceByteToSliceByte:
+			destination.slicesByte[c.destinationRegister] = callerRegisters.slicesByte[c.sourceRegister]
+		case copyBoxOrUnbox:
+			sourceKind := registerKind(c.kindByte & 0x0F)
+			destinationKind := registerKind(c.kindByte >> 4)
+			copyOneCallArgument(destination, callerRegisters, destinationKind, sourceKind, int(c.destinationRegister), c.sourceRegister, arena)
+		}
+	}
+}
+
+// copyOneCallArgument copies a single argument value from the source register bank to the
+// destination register bank, handling same-kind copies, scalar-to-general boxing, and
+// general-to-scalar unboxing.
+//
+// Takes destination (*Registers) which is the destination register set.
 // Takes source (*Registers) which is the source register set.
-// Takes dstKind (registerKind) which is the expected kind in the callee.
-// Takes srcKind (registerKind) which is the actual kind in the caller.
-// Takes dstReg (int) which is the destination index in the typed bank.
-// Takes srcReg (uint8) which is the source index in the typed bank.
-func copyOneCallArg(dst, source *Registers, dstKind, srcKind registerKind, dstReg int, srcReg uint8) {
-	if srcKind == dstKind {
-		copySameKindArg(dst, source, dstKind, dstReg, srcReg)
-	} else if dstKind == registerGeneral {
-		boxScalarToGeneral(dst, source, srcKind, dstReg, srcReg)
-	} else if srcKind == registerGeneral {
-		unboxGeneralToScalar(dst, source.general[srcReg], dstKind, dstReg)
+// Takes destinationKind (registerKind) which is the expected kind in the callee.
+// Takes sourceKind (registerKind) which is the actual kind in the caller.
+// Takes destinationRegister (int) which is the destination index in the typed bank.
+// Takes sourceRegister (uint8) which is the source index in the typed bank.
+// Takes arena (*RegisterArena) which receives bump-allocated narrow-int widening backings
+// when unboxing crosses element widths; may be nil when no active VM context is
+// available.
+func copyOneCallArgument(destination, source *Registers, destinationKind, sourceKind registerKind, destinationRegister int, sourceRegister uint8, arena *RegisterArena) {
+	if sourceKind == destinationKind {
+		copySameKindArg(destination, source, destinationKind, destinationRegister, sourceRegister)
+	} else if destinationKind == registerGeneral {
+		boxScalarToGeneral(destination, source, sourceKind, destinationRegister, sourceRegister)
+	} else if sourceKind == registerGeneral {
+		unboxGeneralToScalar(destination, source.general[sourceRegister], destinationKind, destinationRegister, arena)
 	}
 }
 
-// copySameKindArg copies a register value when source and destination
-// kinds match.
+// copySameKindArg copies a register value when source and destination kinds match.
 //
-// Takes dst (*Registers) which is the destination register set.
+// Takes destination (*Registers) which is the destination register set.
 // Takes source (*Registers) which is the source register set.
 // Takes kind (registerKind) which selects the typed bank to use.
-// Takes dstReg (int) which is the destination index in the bank.
-// Takes srcReg (uint8) which is the source index in the bank.
-func copySameKindArg(dst, source *Registers, kind registerKind, dstReg int, srcReg uint8) {
+// Takes destinationRegister (int) which is the destination index in the bank.
+// Takes sourceRegister (uint8) which is the source index in the bank.
+func copySameKindArg(destination, source *Registers, kind registerKind, destinationRegister int, sourceRegister uint8) {
 	switch kind {
 	case registerInt:
-		dst.ints[dstReg] = source.ints[srcReg]
+		destination.ints[destinationRegister] = source.ints[sourceRegister]
 	case registerFloat:
-		dst.floats[dstReg] = source.floats[srcReg]
+		destination.floats[destinationRegister] = source.floats[sourceRegister]
 	case registerString:
-		dst.strings[dstReg] = source.strings[srcReg]
+		destination.strings[destinationRegister] = source.strings[sourceRegister]
 	case registerGeneral:
-		dst.general[dstReg] = source.general[srcReg]
+		destination.general[destinationRegister] = valueCopyForBoundary(source.general[sourceRegister])
 	case registerBool:
-		dst.bools[dstReg] = source.bools[srcReg]
+		destination.bools[destinationRegister] = source.bools[sourceRegister]
 	case registerUint:
-		dst.uints[dstReg] = source.uints[srcReg]
+		destination.uints[destinationRegister] = source.uints[sourceRegister]
 	case registerComplex:
-		dst.complex[dstReg] = source.complex[srcReg]
+		destination.complex[destinationRegister] = source.complex[sourceRegister]
+	case registerSliceInt:
+		destination.slicesInt[destinationRegister] = source.slicesInt[sourceRegister]
+	case registerSliceFloat:
+		destination.slicesFloat[destinationRegister] = source.slicesFloat[sourceRegister]
+	case registerSliceString:
+		destination.slicesString[destinationRegister] = source.slicesString[sourceRegister]
+	case registerSliceBool:
+		destination.slicesBool[destinationRegister] = source.slicesBool[sourceRegister]
+	case registerSliceUint:
+		destination.slicesUint[destinationRegister] = source.slicesUint[sourceRegister]
+	case registerSliceByte:
+		destination.slicesByte[destinationRegister] = source.slicesByte[sourceRegister]
+	default:
 	}
 }
 
-// boxScalarToGeneral wraps a typed register value into a reflect.Value
-// stored in the general bank. Used when a scalar argument must be passed
-// as interface{}.
+// boxScalarToGeneral wraps a typed register value into a reflect.Value stored in the
+// general bank. Used when a scalar argument must be passed as interface{}.
 //
-// Takes dst (*Registers) which is the destination register set.
+// Takes destination (*Registers) which is the destination register set.
 // Takes source (*Registers) which is the source register set.
-// Takes srcKind (registerKind) which selects the source typed bank.
-// Takes dstReg (int) which is the general bank destination index.
-// Takes srcReg (uint8) which is the source index in the typed bank.
-func boxScalarToGeneral(dst, source *Registers, srcKind registerKind, dstReg int, srcReg uint8) {
-	switch srcKind {
+// Takes sourceKind (registerKind) which selects the source typed bank.
+// Takes destinationRegister (int) which is the general bank destination index.
+// Takes sourceRegister (uint8) which is the source index in the typed bank.
+func boxScalarToGeneral(destination, source *Registers, sourceKind registerKind, destinationRegister int, sourceRegister uint8) {
+	switch sourceKind {
 	case registerInt:
-		dst.general[dstReg] = reflect.ValueOf(source.ints[srcReg])
+		destination.general[destinationRegister] = boxInt64ToGeneral(nil, source.ints[sourceRegister])
 	case registerFloat:
-		dst.general[dstReg] = reflect.ValueOf(source.floats[srcReg])
+		destination.general[destinationRegister] = boxFloat64ToGeneral(nil, source.floats[sourceRegister])
 	case registerString:
-		dst.general[dstReg] = reflect.ValueOf(source.strings[srcReg])
+		destination.general[destinationRegister] = boxStringToGeneral(nil, source.strings[sourceRegister])
 	case registerBool:
-		dst.general[dstReg] = reflect.ValueOf(source.bools[srcReg])
+		destination.general[destinationRegister] = boxBoolToGeneral(source.bools[sourceRegister])
 	case registerUint:
-		dst.general[dstReg] = reflect.ValueOf(source.uints[srcReg])
+		destination.general[destinationRegister] = boxUint64ToGeneral(nil, source.uints[sourceRegister])
 	case registerComplex:
-		dst.general[dstReg] = reflect.ValueOf(source.complex[srcReg])
+		destination.general[destinationRegister] = reflect.ValueOf(source.complex[sourceRegister])
+	case registerSliceInt:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesInt[sourceRegister])
+	case registerSliceFloat:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesFloat[sourceRegister])
+	case registerSliceString:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesString[sourceRegister])
+	case registerSliceBool:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesBool[sourceRegister])
+	case registerSliceUint:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesUint[sourceRegister])
+	case registerSliceByte:
+		destination.general[destinationRegister] = reflect.ValueOf(source.slicesByte[sourceRegister])
+	default:
 	}
 }
 
-// unboxGeneralToScalar extracts a concrete value from a reflect.Value and
-// stores it in the appropriate typed register bank.
+// unboxGeneralToScalar extracts a concrete value from a reflect.Value and stores it in
+// the appropriate typed register bank.
 //
-// Takes dst (*Registers) which is the destination register set.
+// For typed-slice destinations the fast path is a same-storage-type assertion ([]int64 /
+// []uint64 / []float64 / []string / []bool / []byte). When the assertion fails (typically
+// because the caller's slice was declared at a narrower integer width such as []int32 and
+// the typed-bank storage uses the 64-bit sibling) the fallback widens each element
+// through reflect into a freshly-allocated 64-bit-backed slice. The allocation is
+// unavoidable: the user's narrower slice and the typed-bank's 64-bit slice have different
+// element strides, so the backing arrays cannot be aliased.
+//
+// Takes destination (*Registers) which is the destination register set.
 // Takes value (reflect.Value) which is the value to unbox.
-// Takes dstKind (registerKind) which selects the target typed bank.
-// Takes dstReg (int) which is the destination index within that bank.
-func unboxGeneralToScalar(dst *Registers, value reflect.Value, dstKind registerKind, dstReg int) {
-	switch dstKind {
+// Takes destinationKind (registerKind) which selects the target typed bank.
+// Takes destinationRegister (int) which is the destination index within that bank.
+// Takes arena (*RegisterArena) which receives bump-allocated narrow-int widening
+// backings; may be nil for test entry without an active VM.
+func unboxGeneralToScalar(destination *Registers, value reflect.Value, destinationKind registerKind, destinationRegister int, arena *RegisterArena) {
+	switch destinationKind {
 	case registerInt:
-		dst.ints[dstReg] = value.Int()
+		destination.ints[destinationRegister] = value.Int()
 	case registerFloat:
-		dst.floats[dstReg] = value.Float()
+		destination.floats[destinationRegister] = value.Float()
 	case registerString:
-		dst.strings[dstReg] = value.String()
+		destination.strings[destinationRegister] = value.String()
 	case registerBool:
-		dst.bools[dstReg] = value.Bool()
+		destination.bools[destinationRegister] = value.Bool()
 	case registerUint:
-		dst.uints[dstReg] = value.Uint()
+		destination.uints[destinationRegister] = value.Uint()
 	case registerComplex:
-		dst.complex[dstReg] = value.Complex()
+		destination.complex[destinationRegister] = value.Complex()
+	case registerSliceInt:
+		destination.slicesInt[destinationRegister] = unboxToTypedIntSlice(value, arena)
+	case registerSliceFloat:
+		if slice, ok := reflect.TypeAssert[[]float64](value); ok {
+			destination.slicesFloat[destinationRegister] = slice
+		}
+	case registerSliceString:
+		if slice, ok := reflect.TypeAssert[[]string](value); ok {
+			destination.slicesString[destinationRegister] = slice
+		}
+	case registerSliceBool:
+		if slice, ok := reflect.TypeAssert[[]bool](value); ok {
+			destination.slicesBool[destinationRegister] = slice
+		}
+	case registerSliceUint:
+		destination.slicesUint[destinationRegister] = unboxToTypedUintSlice(value, arena)
+	case registerSliceByte:
+		if slice, ok := reflect.TypeAssert[[]byte](value); ok {
+			destination.slicesByte[destinationRegister] = slice
+		}
+	default:
 	}
 }
 
-// handleCall dispatches a compiled function call or closure invocation by
-// pushing a new frame onto the call stack and copying arguments.
+// matchesNarrowIntKind reports whether elemKind is a narrower signed- integer slice
+// element that should widen into int64-backed storage.
+//
+// Takes elemKind (reflect.Kind) which is the slice element kind.
+//
+// Returns bool which is true when widening is required.
+func matchesNarrowIntKind(elemKind reflect.Kind) bool {
+	return elemKind == reflect.Int || elemKind == reflect.Int8 ||
+		elemKind == reflect.Int16 || elemKind == reflect.Int32
+}
+
+// matchesNarrowUintKind reports whether elemKind is a narrower unsigned-integer slice
+// element that should widen into uint64-backed storage.
+//
+// Takes elemKind (reflect.Kind) which is the slice element kind.
+//
+// Returns bool which is true when widening is required.
+func matchesNarrowUintKind(elemKind reflect.Kind) bool {
+	return elemKind == reflect.Uint || elemKind == reflect.Uint16 ||
+		elemKind == reflect.Uint32 || elemKind == reflect.Uintptr
+}
+
+// widenIntSliceWithArena widens a narrow-int slice into []int64.
+//
+// Walks each element of a slice-typed reflect.Value, reading it through reflect.Value.Int
+// and writing the int64 result into the typed-bank's canonical 64-bit storage. Used by
+// unboxToTypedIntSlice when the source element width is narrower than int64 ([]int8 /
+// []int16 / []int32 / []int reaching this path through interface refinement after the
+// narrow-int disqualification).
+//
+// When arena is non-nil the backing is bump-allocated through arena.AllocIntBacking,
+// recycling per-execution storage instead of charging Go's allocator. When arena is nil
+// (test/library entry, no active VM) the function falls back to a fresh make.
+//
+// The fresh backing intentionally severs aliasing with the source slice: source and
+// destination strides differ, so a Data pointer alias is impossible. Mutations through
+// the typed-bank slot do not propagate back to the source, which is why narrow-int kinds
+// are disqualified from kindForCallSlot (register.go) and this path stays dormant for the
+// hot dispatch. See TestEvalSubIntSliceMutationPropagation for the regression guard.
+//
+// Takes value (reflect.Value) which is the source slice.
+// Takes arena (*RegisterArena) which provides the bump-allocator; may be nil for test
+// entry.
+//
+// Returns the widened []int64 with one entry per source element.
+func widenIntSliceWithArena(value reflect.Value, arena *RegisterArena) []int64 {
+	length := value.Len()
+	var target []int64
+	if arena != nil {
+		target = arena.AllocIntBacking(length)
+	}
+	if target == nil {
+		target = make([]int64, length)
+	}
+	for i := range length {
+		target[i] = value.Index(i).Int()
+	}
+	return target
+}
+
+// widenUintSliceWithArena widens a narrow-uint slice into []uint64.
+//
+// Unsigned-int sibling of widenIntSliceWithArena. Uses arena.AllocUintBacking when arena
+// is non-nil. See widenIntSliceWithArena for the aliasing rationale.
+//
+// Takes value (reflect.Value) which is the source slice.
+// Takes arena (*RegisterArena) which provides the bump-allocator; may be nil for test
+// entry.
+//
+// Returns the widened []uint64 with one entry per source element.
+func widenUintSliceWithArena(value reflect.Value, arena *RegisterArena) []uint64 {
+	length := value.Len()
+	var target []uint64
+	if arena != nil {
+		target = arena.AllocUintBacking(length)
+	}
+	if target == nil {
+		target = make([]uint64, length)
+	}
+	for i := range length {
+		target[i] = value.Index(i).Uint()
+	}
+	return target
+}
+
+// unboxToTypedIntSlice converts a signed-int slice into []int64.
+//
+// Converts a reflect.Value holding a signed integer slice (any width: int / int8 / int16
+// / int32 / int64) into the int64-backed storage shared by registerSliceInt. When the
+// source is exactly []int64 the slice header is returned without copying; for narrower
+// widths the elements are widened element-by-element via reflect.Value.Int(). The
+// widening cost is the price paid for preserving the caller's declared element width
+// across the call boundary; signed-int sign-extension is handled by reflect.
+//
+// Takes value (reflect.Value) which is the source slice value.
+// Takes arena (*RegisterArena) which receives bump-allocated widened backings; may be nil
+// for test/library entry without an active VM.
+//
+// Returns the int64-backed slice for the typed-slice bank, or nil when the source is not
+// a recognised signed-int slice.
+//
+//nolint:dupl // intentional twin of unboxToTypedUintSlice
+func unboxToTypedIntSlice(value reflect.Value, arena *RegisterArena) []int64 {
+	if slice, ok := reflect.TypeAssert[[]int64](value); ok {
+		return slice
+	}
+	if value.Kind() != reflect.Slice {
+		return nil
+	}
+	elemKind := value.Type().Elem().Kind()
+
+	if elemKind == reflect.Int {
+		if slice, ok := reflect.TypeAssert[[]int](value); ok {
+			return *(*[]int64)(unsafe.Pointer(&slice))
+		}
+	}
+	if !matchesNarrowIntKind(elemKind) {
+		return nil
+	}
+	return widenIntSliceWithArena(value, arena)
+}
+
+// unboxToTypedUintSlice is the unsigned-int companion of unboxToTypedIntSlice. Widens
+// []uint / []uint16 / []uint32 elements into the uint64 storage shared by
+// registerSliceUint without re-aliasing the backing array.
+//
+// Takes value (reflect.Value) which is the source slice value.
+// Takes arena (*RegisterArena) which receives bump-allocated widened backings; may be nil
+// for test/library entry without an active VM.
+//
+// Returns the uint64-backed slice for the typed-slice bank, or nil when the source is not
+// a recognised unsigned-int slice.
+//
+//nolint:dupl // intentional twin of unboxToTypedIntSlice; see its docstring.
+func unboxToTypedUintSlice(value reflect.Value, arena *RegisterArena) []uint64 {
+	if slice, ok := reflect.TypeAssert[[]uint64](value); ok {
+		return slice
+	}
+	if value.Kind() != reflect.Slice {
+		return nil
+	}
+	elemKind := value.Type().Elem().Kind()
+
+	if elemKind == reflect.Uint {
+		if slice, ok := reflect.TypeAssert[[]uint](value); ok {
+			return *(*[]uint64)(unsafe.Pointer(&slice))
+		}
+	}
+	if !matchesNarrowUintKind(elemKind) {
+		return nil
+	}
+	return widenUintSliceWithArena(value, arena)
+}
+
+// handleCall dispatches a compiled function call or closure invocation by pushing a new
+// frame onto the call stack and copying arguments.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes frame (*callFrame) which is the current call frame.
 // Takes registers (*Registers) which holds the current register banks.
 // Takes instruction (instruction) which encodes the call site index.
 //
-// Returns opResult indicating the next execution step.
+// Returns opResult indicating the next execution step. handleCall is the hot interpreter
+// call dispatcher. The body is inlined rather than decomposed into helpers because every
+// Go-function-call boundary on this path adds overhead. Keeping the body monolithic
+// preserves Go's ability to keep the call site, framePointer, and arena handle in
+// registers across the whole dispatch.
+//
+//nolint:revive // function-length: hot path; see header comment above
+//nolint:gocognit,cyclop // dispatcher: branches are flat (direct vs closure), not nested
 func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
 	siteIndex := instruction.wideIndex()
 	if int(siteIndex) >= len(frame.function.callSites) {
@@ -211,33 +571,70 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 	var closureCells []*upvalueCell
 	var closureRoot *CompiledFunction
 	if !site.isClosure {
-		if int(site.funcIndex) >= len(vm.functions) {
-			vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
-			return opPanicError
+		if site.cachedCallee != nil {
+			callee = site.cachedCallee
+			if site.argCopyProgram == nil {
+				site.argCopyProgram = buildCallArgCopyProgram(site.arguments, callee.parameterKinds, callee.parameterRegisters)
+			}
+		} else {
+			if int(site.funcIndex) >= len(vm.functions) {
+				vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
+				return opPanicError
+			}
+			callee = vm.functions[site.funcIndex]
+			if site.argCopyProgram == nil {
+				site.argCopyProgram = buildCallArgCopyProgram(site.arguments, callee.parameterKinds, callee.parameterRegisters)
+			}
 		}
-		callee = vm.functions[site.funcIndex]
 	} else {
 		value := registers.general[site.closureRegister]
-		closure, ok := reflect.TypeAssert[*runtimeClosure](value)
-		if !ok {
-			return handleCallNativeReflect(vm, registers, site, value)
+		if !value.IsValid() || (value.Kind() == reflect.Func && value.IsNil()) {
+			return raiseNativePanicAsInterpreted(vm, "runtime error: invalid memory address or nil pointer dereference")
 		}
-		callee = closure.function
-		closureCells = closure.upvalues
-		closureRoot = closure.rootFunction
+		rv := (*unsafeReflectValue)(unsafe.Pointer(&value))
+		var closurePointer unsafe.Pointer
+		if rv.flag&flagIndir != 0 {
+			closurePointer = *(*unsafe.Pointer)(rv.ptr)
+		} else {
+			closurePointer = rv.ptr
+		}
+		if closurePointer != nil && closurePointer == site.cachedClosurePtr {
+			callee = site.cachedClosureCallee
+			closureCells = site.cachedClosureUpvalues
+			closureRoot = site.cachedClosureRoot
+		} else {
+			closure, ok := reflect.TypeAssert[*runtimeClosure](value)
+			if !ok {
+				return handleCallNativeReflect(vm, registers, site, value)
+			}
+			callee = closure.function
+			closureCells = closure.upvalues
+			closureRoot = closure.rootFunction
+			site.cachedClosurePtr = closurePointer
+			site.cachedClosureCallee = callee
+			site.cachedClosureUpvalues = closureCells
+			site.cachedClosureRoot = closureRoot
+			if site.argCopyProgram == nil {
+				site.argCopyProgram = buildCallArgCopyProgram(site.arguments, callee.parameterKinds, callee.parameterRegisters)
+			}
+		}
 	}
 	if vm.framePointer >= vm.callDepthLimit() {
 		return opStackOverflow
 	}
-	snapshot := vm.swapToClosureRoot(closureRoot)
+	var snapshot *frameRootSnapshot
+	if site.isClosure {
+		snapshot = vm.swapToClosureRoot(closureRoot)
+	}
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
 	}
 	f := &vm.callStack[vm.framePointer]
 	if vm.arena != nil {
-		f.arenaSave = vm.arena.Save()
-		vm.arena.AllocRegistersInto(&f.registers, callee.numRegisters)
+		vm.arena.SaveInto(&f.arenaSave)
+		callee.ensurePrecomputedAllocCounts()
+		vm.arena.AllocRegistersIntoCached(&f.registers, callee.precomputedAllocCounts, callee.nonZeroBankMask)
 	} else {
 		f.registers = newRegisters(callee.numRegisters)
 	}
@@ -245,19 +642,50 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 	f.programCounter = 0
 	f.returnDestination = site.returns
 	f.deferBase = len(vm.deferStack)
+	if f.simpleDefer != nil {
+		f.simpleDefer.active = false
+	}
 	f.upvalues = nil
+	f.hasGeneralAlloc = callee.numRegisters[registerGeneral] > 0
+	releaseSharedCellMap(f.sharedCells)
 	f.sharedCells = nil
 	vm.recordFrameSnapshot(vm.framePointer, snapshot)
 	if closureCells != nil {
-		f.initialiseUpvalues(closureCells)
+		f.initialiseUpvalues(closureCells, vm.arena)
 	}
-	copyCallArgs(registers, f, *site, callee)
+
+	if site.isClosure && callee.isVariadic && !site.isEllipsisSpread && site.runtimeVariadicSliceType == nil && len(callee.parameterKinds) > 0 && len(site.arguments) >= len(callee.parameterKinds)-1 {
+		lastKind := callee.parameterKinds[len(callee.parameterKinds)-1]
+		elementType := kindDefaultReflectType(lastKind)
+		site.runtimeVariadicSliceType = reflect.SliceOf(elementType)
+		site.runtimeVariadicNumFixed = safeconv.MustIntToUint8(len(callee.parameterKinds) - 1)
+	}
+	if site.runtimeVariadicSliceType != nil && callee.isVariadic {
+		copyCallArgsWithVariadicPacking(registers, f, site, callee, vm.arena)
+	} else {
+		copyCallArgs(vm, vm.arena, registers, f, site, callee)
+	}
 	return opFrameChanged
 }
 
-// handleCallNative dispatches a call to a native Go function, using
-// fast-path caching when available or falling back to reflect-based
-// invocation.
+// handleCallScalar dispatches a scalar-only interpreted call.
+//
+// Dispatches when the callee's signature uses only typed register banks (int / uint /
+// float / bool / string / complex) with no general-bank parameters or results, no
+// variadic spreading, no closure or linked-generic dispatch. The compile-time gate
+// calleeUsesScalarBanksOnly (compiler_calls.go) is the eligibility proof; this handler is
+// opCall with the dead branches for that shape elided. The isClosure branch and its
+// swapToClosureRoot / closure-cell init are gone (the gate excludes closure call sites),
+// the runtimeVariadicSliceType / isVariadic branch is gone (the gate excludes variadic
+// callees) so the handler always calls copyCallArgs directly, and hasGeneralAlloc is
+// statically false (no general-bank params or results) while the arena's nonZeroBankMask
+// still drives per-bank allocation exactly as it does for opCall.
+//
+// Bounds checks on siteIndex and funcIndex are preserved verbatim from handleCall: the
+// compile-time gate is the eligibility gate, not a safety waiver, and a corrupt bytecode
+// operand must still produce opPanicError the same way. Any change to handleCall (new
+// safety guard, new vm flag, new arena step) that applies to the non-closure non-variadic
+// shape must be mirrored here.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes frame (*callFrame) which is the current call frame.
@@ -266,123 +694,40 @@ func handleCall(vm *VM, frame *callFrame, registers *Registers, instruction inst
 //
 // Returns opResult indicating the next execution step.
 //
-// Panics if the native function register is a zero reflect.Value.
-func handleCallNative(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
+//nolint:revive // function-length: hot path; mirrors handleCall intentionally
+//nolint:gocognit,cyclop // monolithic dispatcher mirrors handleCall
+func handleCallScalar(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
 	siteIndex := instruction.wideIndex()
 	if int(siteIndex) >= len(frame.function.callSites) {
 		vmBoundsError(vm, frame, boundsTableCallSite, int(siteIndex), len(frame.function.callSites))
 		return opPanicError
 	}
 	site := &frame.function.callSites[siteIndex]
-
-	if cached := site.nativeFastPath; cached != nil && cached != nativeFastPathNone && len(site.linkedTypeArgs) == 0 {
-		return dispatchCachedNativeFastPath(site, registers, cached)
-	}
-
-	reflectedFunction := registers.general[site.nativeRegister]
-	if !reflectedFunction.IsValid() {
-		panic(fmt.Sprintf(
-			"interp: handleCallNative - general[%d] (native function) is zero reflect.Value; "+
-				"site %d has %d arguments and %d returns; pc=%d funcName=%s; "+
-				"isMethod=%v methodRecvReg=%d\n%s%s",
-			site.nativeRegister, siteIndex, len(site.arguments), len(site.returns),
-			frame.programCounter, frame.function.name,
-			site.isMethod, site.methodRecvReg,
-			vmDiagnosticContext(frame, registers, int(site.nativeRegister)),
-			vmCallSiteDiagnostic(frame, site),
-		))
-	}
-
-	if len(site.linkedTypeArgs) > 0 {
-		return handleCallLinkedReflect(vm, registers, site, reflectedFunction)
-	}
-
-	v := reflectedFunction.Interface()
-
-	if closure, ok := v.(*runtimeClosure); ok {
-		return handleCallNativeClosure(vm, registers, site, closure)
-	}
-
-	if site.nativeFastPath != nativeFastPathNone {
-		if ok, tag := tryNativeFastPath(site, v, registers); ok {
-			site.nativeFastPath = v
-			site.nativeFastPathTag = tag
-			cacheMethodRecvAddr(site, registers)
-			return opContinue
+	var callee *CompiledFunction
+	if site.cachedCallee != nil {
+		callee = site.cachedCallee
+	} else {
+		if int(site.funcIndex) >= len(vm.functions) {
+			vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
+			return opPanicError
+		}
+		callee = vm.functions[site.funcIndex]
+		if site.argCopyProgram == nil {
+			site.argCopyProgram = buildCallArgCopyProgram(site.arguments, callee.parameterKinds, callee.parameterRegisters)
 		}
 	}
-
-	return handleCallNativeReflect(vm, registers, site, reflectedFunction)
-}
-
-// dispatchCachedNativeFastPath handles the case where a native call site
-// already has a cached fast-path function. For method calls it validates
-// the receiver address and refreshes the cache when the receiver has moved.
-//
-// Takes site (*callSite) which provides the call site metadata and cache.
-// Takes registers (*Registers) which holds the current register banks.
-// Takes cached (any) which is the previously cached fast-path function.
-//
-// Returns opResult after dispatching the fast-path call.
-func dispatchCachedNativeFastPath(site *callSite, registers *Registers, cached any) opResult {
-	if !site.isMethod {
-		dispatchNativeFastPathTagged(site.nativeFastPathTag, cached, site, registers)
-		return opContinue
-	}
-	receiver := registers.general[site.methodRecvReg]
-	if receiver.CanAddr() && receiver.Addr().Pointer() == site.cachedRecvAddr {
-		dispatchNativeFastPathTagged(site.nativeFastPathTag, cached, site, registers)
-		return opContinue
-	}
-	reflectedFunction := registers.general[site.nativeRegister]
-	v := reflectedFunction.Interface()
-	site.nativeFastPath = v
-	if receiver.CanAddr() {
-		site.cachedRecvAddr = receiver.Addr().Pointer()
-	}
-	dispatchNativeFastPathTagged(site.nativeFastPathTag, v, site, registers)
-	return opContinue
-}
-
-// cacheMethodRecvAddr stores the receiver's address in the call site cache
-// so that subsequent calls can skip method rebinding when the receiver
-// has not moved.
-//
-// Takes site (*callSite) which is the call site whose cache is updated.
-// Takes registers (*Registers) which provides the receiver register.
-func cacheMethodRecvAddr(site *callSite, registers *Registers) {
-	if !site.isMethod {
-		return
-	}
-	receiver := registers.general[site.methodRecvReg]
-	if receiver.CanAddr() {
-		site.cachedRecvAddr = receiver.Addr().Pointer()
-	}
-}
-
-// handleCallNativeClosure invokes a compiled closure that was resolved from
-// a native call site by pushing a new frame and copying arguments.
-//
-// Takes vm (*VM) which is the virtual machine executing the instruction.
-// Takes registers (*Registers) which holds the current register banks.
-// Takes site (*callSite) which describes argument and return locations.
-// Takes closure (*runtimeClosure) which is the closure to invoke.
-//
-// Returns opResult indicating the next execution step.
-func handleCallNativeClosure(vm *VM, registers *Registers, site *callSite, closure *runtimeClosure) opResult {
-	callee := closure.function
 	if vm.framePointer >= vm.callDepthLimit() {
 		return opStackOverflow
 	}
-	snapshot := vm.swapToClosureRoot(closure.rootFunction)
 	vm.framePointer++
 	if vm.framePointer >= len(vm.callStack) {
 		vm.growCallStack()
 	}
 	f := &vm.callStack[vm.framePointer]
 	if vm.arena != nil {
-		f.arenaSave = vm.arena.Save()
-		vm.arena.AllocRegistersInto(&f.registers, callee.numRegisters)
+		vm.arena.SaveInto(&f.arenaSave)
+		callee.ensurePrecomputedAllocCounts()
+		vm.arena.AllocRegistersIntoCached(&f.registers, callee.precomputedAllocCounts, callee.nonZeroBankMask)
 	} else {
 		f.registers = newRegisters(callee.numRegisters)
 	}
@@ -390,254 +735,41 @@ func handleCallNativeClosure(vm *VM, registers *Registers, site *callSite, closu
 	f.programCounter = 0
 	f.returnDestination = site.returns
 	f.deferBase = len(vm.deferStack)
-	f.upvalues = nil
-	f.sharedCells = nil
-	vm.recordFrameSnapshot(vm.framePointer, snapshot)
-	if closure.upvalues != nil {
-		f.initialiseUpvalues(closure.upvalues)
+	if f.simpleDefer != nil {
+		f.simpleDefer.active = false
 	}
-	copyCallArgs(registers, f, *site, callee)
+	f.upvalues = nil
+	f.hasGeneralAlloc = false
+	releaseSharedCellMap(f.sharedCells)
+	f.sharedCells = nil
+	vm.recordFrameSnapshot(vm.framePointer, nil)
+	copyCallArgs(vm, vm.arena, registers, f, site, callee)
 	return opFrameChanged
 }
 
-// handleCallNativeReflect invokes a native function via
-// reflect.Value.Call, building arguments from registers and storing
-// results back.
+// resolveDirectCallee returns the callee for a direct (non-closure) call site, mirroring
+// the inline lookup inside handleCall. Kept as a helper because the tail-call path
+// consumes the (callee, result) pair without needing the rest of the dispatch sequence.
 //
-// Takes vm (*VM) which is the virtual machine executing the instruction.
-// Takes registers (*Registers) which holds the current register banks.
-// Takes site (*callSite) which describes argument and return locations.
-// Takes reflectedFunction (reflect.Value) which is the native
-// function to call.
+// Takes vm (*VM) which is the active interpreter instance.
+// Takes site (*callSite) which describes the callee to resolve.
 //
-// Returns opResult indicating the next execution step.
-//
-// Panics if reflectedFunction is a zero reflect.Value.
-func handleCallNativeReflect(vm *VM, registers *Registers, site *callSite, reflectedFunction reflect.Value) opResult {
-	if !reflectedFunction.IsValid() {
-		panic(fmt.Sprintf(
-			"interp: handleCallNativeReflect - function register is zero reflect.Value; "+
-				"site has %d arguments and %d returns",
-			len(site.arguments), len(site.returns),
-		))
+// Returns the resolved callee function (or nil on failure) and the dispatch result
+// (opContinue on success).
+func resolveDirectCallee(vm *VM, site *callSite) (*CompiledFunction, opResult) {
+	if site.cachedCallee != nil {
+		return site.cachedCallee, opContinue
 	}
-	if len(site.linkedTypeArgs) > 0 {
-		return handleCallLinkedReflect(vm, registers, site, reflectedFunction)
+	if int(site.funcIndex) >= len(vm.functions) {
+		frame := &vm.callStack[vm.framePointer]
+		vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
+		return nil, opPanicError
 	}
-	if site.nativeFastPath != nativeFastPathNone {
-		if ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), registers); ok {
-			return opContinue
-		}
-	}
-	cacheParamTypes(site, reflectedFunction)
-	arguments := buildReflectArgs(vm, registers, site)
-	results, err := safeReflectCall(reflectedFunction, arguments)
-	if err != nil {
-		vm.evalError = err
-		return opPanicError
-	}
-	storeReflectResults(registers, site.returns, results)
-	return opContinue
+	return vm.functions[site.funcIndex], opContinue
 }
 
-// handleCallBoundMethodReflect invokes a native method obtained via
-// reflect.Value.MethodByName. The method value is already bound to
-// its receiver, so arguments[0] (the receiver) must be skipped to
-// avoid passing the receiver twice.
-//
-// Takes vm (*VM) which provides context for closure coercion.
-// Takes registers (*Registers) which holds the source values.
-// Takes site (*callSite) which describes argument and return locations.
-// Takes boundMethod (reflect.Value) which is the receiver-bound
-// method.
-//
-// Returns opResult indicating the next execution step.
-//
-// Panics if boundMethod is a zero reflect.Value.
-func handleCallBoundMethodReflect(vm *VM, registers *Registers, site *callSite, boundMethod reflect.Value) opResult {
-	if !boundMethod.IsValid() {
-		panic(fmt.Sprintf(
-			"interp: handleCallBoundMethodReflect - bound method is zero reflect.Value; "+
-				"site has %d arguments and %d returns",
-			len(site.arguments), len(site.returns),
-		))
-	}
-	methodArgs := site.arguments[1:]
-	methodType := boundMethod.Type()
-	arguments := make([]reflect.Value, len(methodArgs))
-	for i, argLocation := range methodArgs {
-		arguments[i] = registerToReflectValue(registers, argLocation.kind, argLocation.register)
-		if i < methodType.NumIn() {
-			arguments[i] = coerceReflectArg(vm, arguments[i], methodType.In(i))
-		}
-	}
-	results, err := safeReflectCall(boundMethod, arguments)
-	if err != nil {
-		vm.evalError = err
-		return opPanicError
-	}
-	storeReflectResults(registers, site.returns, results)
-	return opContinue
-}
-
-// safeReflectCall invokes fn.Call(arguments) under a recover guard so
-// that a shape-drifted or ill-typed native call returns a structured
-// error instead of crashing the host process.
-//
-// Takes fn (reflect.Value) which is the function to invoke.
-// Takes arguments ([]reflect.Value) which are the prepared arguments.
-//
-// Returns the result slice plus any recovered panic wrapped as an
-// error with the errNativeCallPanic sentinel.
-func safeReflectCall(fn reflect.Value, arguments []reflect.Value) (results []reflect.Value, err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			results = nil
-			err = fmt.Errorf("%w: %v", errNativeCallPanic, recovered)
-		}
-	}()
-	results = fn.Call(arguments)
-	return results, nil
-}
-
-// cacheParamTypes lazily populates the call site's ParamTypes cache from
-// the function's reflect.Type to avoid repeated reflect.Type.In(i) calls.
-//
-// Takes site (*callSite) which is the call site to populate.
-// Takes reflectedFunction (reflect.Value) which is the native function to inspect.
-func cacheParamTypes(site *callSite, reflectedFunction reflect.Value) {
-	if site.paramTypes != nil || len(site.arguments) == 0 {
-		return
-	}
-	site.paramTypes = slices.Collect(reflectedFunction.Type().Ins())
-}
-
-// buildReflectArgs marshals call-site arguments from registers into a
-// []reflect.Value slice, coercing types where necessary to match the
-// expected parameter types of the target native function.
-//
-// Takes vm (*VM) which provides context for closure coercion.
-// Takes registers (*Registers) which holds the source values.
-// Takes site (*callSite) which describes argument locations and types.
-//
-// Returns []reflect.Value ready for reflect.Value.Call.
-func buildReflectArgs(vm *VM, registers *Registers, site *callSite) []reflect.Value {
-	nArgs := len(site.arguments)
-	var arguments []reflect.Value
-	if cap(site.argumentsBuffer) >= nArgs {
-		arguments = site.argumentsBuffer[:nArgs]
-	} else {
-		site.argumentsBuffer = make([]reflect.Value, nArgs)
-		arguments = site.argumentsBuffer
-	}
-	nParam := len(site.paramTypes)
-	for i, argLocation := range site.arguments {
-		arguments[i] = registerToReflectValue(registers, argLocation.kind, argLocation.register)
-		if i < nParam {
-			arguments[i] = coerceReflectArg(vm, arguments[i], site.paramTypes[i])
-		} else if nParam > 0 && site.paramTypes[nParam-1].Kind() == reflect.Slice {
-			elemType := site.paramTypes[nParam-1].Elem()
-			arguments[i] = coerceReflectArg(vm, arguments[i], elemType)
-		}
-	}
-	return arguments
-}
-
-// coerceReflectArg adjusts a single argument value to match the expected
-// parameter type. Handles closure-to-func wrapping, bool/int conversion,
-// and general reflect.Convert coercion.
-//
-// Takes vm (*VM) which provides context for closure coercion.
-// Takes argument (reflect.Value) which is the value to coerce.
-// Takes expectedType (reflect.Type) which is the target parameter type.
-//
-// Returns reflect.Value coerced to expectedType, or the original if none.
-func coerceReflectArg(vm *VM, argument reflect.Value, expectedType reflect.Type) reflect.Value {
-	if !argument.IsValid() || argument.Type() == expectedType {
-		return argument
-	}
-	if _, isClosure := reflect.TypeAssert[*runtimeClosure](argument); isClosure {
-		return coerceClosureArg(vm, argument, expectedType)
-	}
-	if expectedType.Kind() == reflect.Bool && argument.Kind() == reflect.Int64 {
-		return reflect.ValueOf(argument.Int() != 0)
-	}
-	if argument.Type().ConvertibleTo(expectedType) {
-		return argument.Convert(expectedType)
-	}
-	return argument
-}
-
-// coerceClosureArg wraps a runtime closure into a reflect.Func or callable
-// interface value matching the expected parameter type.
-//
-// Takes vm (*VM) which provides context for closure wrapping.
-// Takes argument (reflect.Value) which holds the runtime closure.
-// Takes expectedType (reflect.Type) which is the target parameter type.
-//
-// Returns reflect.Value wrapping the closure as a func or interface.
-func coerceClosureArg(vm *VM, argument reflect.Value, expectedType reflect.Type) reflect.Value {
-	switch expectedType.Kind() {
-	case reflect.Func:
-		return coerceClosureToFunc(vm, argument, expectedType)
-	case reflect.Interface:
-		return closureCallableValue(vm, argument)
-	default:
-		return argument
-	}
-}
-
-// storeReflectResults unpacks reflect.Call results into the caller's register
-// banks according to the return location descriptors.
-//
-// Takes registers (*Registers) which is the destination register set.
-// Takes returns ([]varLocation) which describes where to store each result.
-// Takes results ([]reflect.Value) which holds the values from the call.
-func storeReflectResults(registers *Registers, returns []varLocation, results []reflect.Value) {
-	for i, retLocation := range returns {
-		if i >= len(results) {
-			break
-		}
-		reflectValue := results[i]
-		if reflectValue.Kind() == reflect.Interface && !reflectValue.IsNil() {
-			reflectValue = reflectValue.Elem()
-		}
-		storeOneReflectResult(registers, retLocation, reflectValue)
-	}
-}
-
-// storeOneReflectResult writes a single reflect.Value into the appropriate
-// register bank. Special-cases bool-to-int64 for the int register bank.
-//
-// Takes registers (*Registers) which is the destination register set.
-// Takes retLocation (varLocation) which describes the target bank and index.
-// Takes value (reflect.Value) which is the value to store.
-func storeOneReflectResult(registers *Registers, retLocation varLocation, value reflect.Value) {
-	switch retLocation.kind {
-	case registerInt:
-		if value.Kind() == reflect.Bool {
-			registers.ints[retLocation.register] = boolToInt64(value.Bool())
-		} else {
-			registers.ints[retLocation.register] = value.Int()
-		}
-	case registerFloat:
-		registers.floats[retLocation.register] = value.Float()
-	case registerString:
-		registers.strings[retLocation.register] = value.String()
-	case registerGeneral:
-		registers.general[retLocation.register] = value
-	case registerBool:
-		registers.bools[retLocation.register] = value.Bool()
-	case registerUint:
-		registers.uints[retLocation.register] = value.Uint()
-	case registerComplex:
-		registers.complex[retLocation.register] = value.Complex()
-	}
-}
-
-// handleCallIIFE handles an immediately-invoked function expression by
-// pushing a new frame with upvalue cells snapshotted from the caller's
-// registers.
+// handleCallIIFE handles an immediately-invoked function expression by pushing a new
+// frame with upvalue cells snapshotted from the caller's registers.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes frame (*callFrame) which is the current call frame.
@@ -652,11 +784,16 @@ func handleCallIIFE(vm *VM, frame *callFrame, registers *Registers, instruction 
 		return opPanicError
 	}
 	site := &frame.function.callSites[siteIndex]
-	if int(site.funcIndex) >= len(vm.functions) {
-		vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
-		return opPanicError
+	var callee *CompiledFunction
+	if site.cachedCallee != nil {
+		callee = site.cachedCallee
+	} else {
+		if int(site.funcIndex) >= len(vm.functions) {
+			vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
+			return opPanicError
+		}
+		callee = vm.functions[site.funcIndex]
 	}
-	callee := vm.functions[site.funcIndex]
 	if vm.framePointer >= vm.callDepthLimit() {
 		return opStackOverflow
 	}
@@ -670,10 +807,11 @@ func handleCallIIFE(vm *VM, frame *callFrame, registers *Registers, instruction 
 	var cellBatch []upvalueCell
 	var upvals []upvalue
 	if vm.arena != nil {
-		f.arenaSave = vm.arena.Save()
+		vm.arena.SaveInto(&f.arenaSave)
 		cellBatch = vm.arena.allocUpvalueCells(n)
 		upvals = vm.arena.allocUpvalueRefs(n)
-		vm.arena.AllocRegistersInto(&f.registers, callee.numRegisters)
+		callee.ensurePrecomputedAllocCounts()
+		vm.arena.AllocRegistersIntoCached(&f.registers, callee.precomputedAllocCounts, callee.nonZeroBankMask)
 	} else {
 		cellBatch = make([]upvalueCell, n)
 		upvals = make([]upvalue, n)
@@ -684,15 +822,19 @@ func handleCallIIFE(vm *VM, frame *callFrame, registers *Registers, instruction 
 	f.programCounter = 0
 	f.returnDestination = site.returns
 	f.deferBase = len(vm.deferStack)
+	if f.simpleDefer != nil {
+		f.simpleDefer.active = false
+	}
 	f.upvalues = upvals
+	f.hasGeneralAlloc = callee.numRegisters[registerGeneral] > 0
 	f.sharedCells = nil
-	copyCallArgs(registers, f, *site, callee)
+	copyCallArgs(vm, vm.arena, registers, f, site, callee)
 	return opFrameChanged
 }
 
-// initialiseIIFEUpvalues populates the upvalue cells and references for an IIFE
-// call, either inheriting from the parent frame or snapshotting register
-// values into freshly allocated cells.
+// initialiseIIFEUpvalues populates the upvalue cells and references for an IIFE call,
+// either inheriting from the parent frame or snapshotting register values into freshly
+// allocated cells.
 //
 // Takes upvals ([]upvalue) which receives upvalue references for the frame.
 // Takes cellBatch ([]upvalueCell) which provides pre-allocated cells.
@@ -707,13 +849,19 @@ func initialiseIIFEUpvalues(upvals []upvalue, cellBatch []upvalueCell, descripto
 			continue
 		}
 		cellBatch[i].kind = descriptor.kind
-		snapshotRegisterToCell(&cellBatch[i], registers, descriptor.kind, descriptor.index)
+		if descriptor.isIndirect {
+			cellBatch[i].isIndirect = true
+			cellBatch[i].originalKind = descriptor.originalKind
+			cellBatch[i].generalValue = registers.general[descriptor.index]
+		} else {
+			snapshotRegisterToCell(&cellBatch[i], registers, descriptor.kind, descriptor.index)
+		}
 		upvals[i].value = &cellBatch[i]
 	}
 }
 
-// snapshotRegisterToCell copies the current register value into an upvalue
-// cell. Used when creating closure captures for IIFE calls.
+// snapshotRegisterToCell copies the current register value into an upvalue cell. Used
+// when creating closure captures for IIFE calls.
 //
 // Takes cell (*upvalueCell) which is the destination upvalue cell.
 // Takes registers (*Registers) which holds the source values.
@@ -735,192 +883,12 @@ func snapshotRegisterToCell(cell *upvalueCell, registers *Registers, kind regist
 		cell.uintValue = registers.uints[index]
 	case registerComplex:
 		cell.complexValue = registers.complex[index]
-	}
-}
-
-// handleTailCall performs a tail call optimisation by reusing the current
-// frame, snapshotting arguments before reclaiming the arena region.
-//
-// Takes vm (*VM) which is the virtual machine executing the instruction.
-// Takes frame (*callFrame) which is the current call frame to reuse.
-// Takes registers (*Registers) which holds the current register banks.
-// Takes instruction (instruction) which encodes the call site index.
-//
-// Returns opResult indicating the next execution step.
-func handleTailCall(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
-	siteIndex := instruction.wideIndex()
-	if int(siteIndex) >= len(frame.function.callSites) {
-		vmBoundsError(vm, frame, boundsTableCallSite, int(siteIndex), len(frame.function.callSites))
-		return opPanicError
-	}
-	site := &frame.function.callSites[siteIndex]
-	if int(site.funcIndex) >= len(vm.functions) {
-		vmBoundsError(vm, frame, boundsTableFunction, int(site.funcIndex), len(vm.functions))
-		return opPanicError
-	}
-	callee := vm.functions[site.funcIndex]
-	arguments := snapshotTailCallArgs(site, registers, callee)
-	if vm.arena != nil {
-		vm.arena.Restore(frame.arenaSave)
-	}
-	var calleeRegs Registers
-	var calleeSave ArenaSavePoint
-	if vm.arena != nil {
-		calleeSave = vm.arena.Save()
-		vm.arena.AllocRegistersInto(&calleeRegs, callee.numRegisters)
-	} else {
-		calleeRegs = newRegisters(callee.numRegisters)
-	}
-	placeTailCallArgs(&calleeRegs, arguments, callee.paramKinds)
-	frame.function = callee
-	frame.programCounter = 0
-	frame.registers = calleeRegs
-	frame.arenaSave = calleeSave
-	frame.upvalues = nil
-	return opFrameChanged
-}
-
-// snapshotTailCallArgs captures all argument values from the current
-// registers into a buffer of tailCallArg values. This snapshot is taken
-// before the current frame's arena region is reclaimed, preserving
-// arguments that may overlap with the callee's registers.
-//
-// Takes site (*callSite) which describes argument locations and the buffer.
-// Takes registers (*Registers) which holds the current values to snapshot.
-// Takes callee (*CompiledFunction) which provides parameter kinds.
-//
-// Returns []tailCallArg containing the snapshotted argument values.
-func snapshotTailCallArgs(site *callSite, registers *Registers, callee *CompiledFunction) []tailCallArg {
-	numArgs := len(site.arguments)
-	if cap(site.tailArgsBuf) < numArgs {
-		site.tailArgsBuf = make([]tailCallArg, numArgs)
-	}
-	arguments := site.tailArgsBuf[:numArgs]
-	for i, argLocation := range site.arguments {
-		if i >= len(callee.paramKinds) {
-			break
-		}
-		arguments[i] = snapshotOneTailArg(registers, argLocation)
-	}
-	return arguments
-}
-
-// snapshotOneTailArg reads a single argument from the caller's registers and
-// returns it as a tailCallArg tagged with the source register kind.
-//
-// Takes registers (*Registers) which holds the source values.
-// Takes argLocation (varLocation) which identifies the register bank and index.
-//
-// Returns tailCallArg containing the copied value and its kind.
-func snapshotOneTailArg(registers *Registers, argLocation varLocation) tailCallArg {
-	switch argLocation.kind {
-	case registerInt:
-		return tailCallArg{intValue: registers.ints[argLocation.register], kind: registerInt}
-	case registerFloat:
-		return tailCallArg{floatValue: registers.floats[argLocation.register], kind: registerFloat}
-	case registerString:
-		return tailCallArg{stringValue: registers.strings[argLocation.register], kind: registerString}
-	case registerGeneral:
-		return tailCallArg{generalValue: registers.general[argLocation.register], kind: registerGeneral}
-	case registerBool:
-		return tailCallArg{boolValue: registers.bools[argLocation.register], kind: registerBool}
-	case registerUint:
-		return tailCallArg{uintValue: registers.uints[argLocation.register], kind: registerUint}
-	case registerComplex:
-		return tailCallArg{complexValue: registers.complex[argLocation.register], kind: registerComplex}
 	default:
-		return tailCallArg{}
 	}
 }
 
-// placeTailCallArgs writes snapshotted tail call arguments into the new
-// callee registers, handling same-kind placement, scalar-to-general boxing,
-// and general-to-scalar unboxing.
-//
-// Takes calleeRegs (*Registers) which is the destination register set.
-// Takes arguments ([]tailCallArg) which holds the snapshotted argument values.
-// Takes paramKinds ([]registerKind) which is the expected kind per param.
-func placeTailCallArgs(calleeRegs *Registers, arguments []tailCallArg, paramKinds []registerKind) {
-	var kindIndex [NumRegisterKinds]int
-	for i, arg := range arguments {
-		if i >= len(paramKinds) {
-			break
-		}
-		paramKind := paramKinds[i]
-		dest := kindIndex[paramKind]
-		kindIndex[paramKind]++
-		placeOneTailArg(calleeRegs, arg, paramKind, dest)
-	}
-}
-
-// placeOneTailArg writes a single snapshotted argument into the destination
-// register, converting between kinds as needed.
-//
-// Takes regs (*Registers) which is the destination register set.
-// Takes argument (tailCallArg) which holds the snapshotted value.
-// Takes paramKind (registerKind) which is the expected destination kind.
-// Takes dest (int) which is the destination index within the typed bank.
-func placeOneTailArg(regs *Registers, argument tailCallArg, paramKind registerKind, dest int) {
-	if argument.kind == paramKind {
-		placeTailArgSameKind(regs, argument, paramKind, dest)
-	} else if paramKind == registerGeneral {
-		boxTailArgToGeneral(regs, argument, dest)
-	} else if argument.kind == registerGeneral {
-		unboxGeneralToScalar(regs, argument.generalValue, paramKind, dest)
-	}
-}
-
-// placeTailArgSameKind handles the common case where source and destination
-// kinds match, performing a direct value copy with no conversion.
-//
-// Takes regs (*Registers) which is the destination register set.
-// Takes argument (tailCallArg) which holds the snapshotted value.
-// Takes kind (registerKind) which selects the typed bank.
-// Takes dest (int) which is the destination index in the bank.
-func placeTailArgSameKind(regs *Registers, argument tailCallArg, kind registerKind, dest int) {
-	switch kind {
-	case registerInt:
-		regs.ints[dest] = argument.intValue
-	case registerFloat:
-		regs.floats[dest] = argument.floatValue
-	case registerString:
-		regs.strings[dest] = argument.stringValue
-	case registerGeneral:
-		regs.general[dest] = argument.generalValue
-	case registerBool:
-		regs.bools[dest] = argument.boolValue
-	case registerUint:
-		regs.uints[dest] = argument.uintValue
-	case registerComplex:
-		regs.complex[dest] = argument.complexValue
-	}
-}
-
-// boxTailArgToGeneral wraps a typed tail-call argument into a reflect.Value
-// and stores it in the general register bank.
-//
-// Takes regs (*Registers) which is the destination register set.
-// Takes argument (tailCallArg) which holds the snapshotted value to box.
-// Takes dest (int) which is the index in the general register bank.
-func boxTailArgToGeneral(regs *Registers, argument tailCallArg, dest int) {
-	switch argument.kind {
-	case registerInt:
-		regs.general[dest] = reflect.ValueOf(argument.intValue)
-	case registerFloat:
-		regs.general[dest] = reflect.ValueOf(argument.floatValue)
-	case registerString:
-		regs.general[dest] = reflect.ValueOf(argument.stringValue)
-	case registerBool:
-		regs.general[dest] = reflect.ValueOf(argument.boolValue)
-	case registerUint:
-		regs.general[dest] = reflect.ValueOf(argument.uintValue)
-	case registerComplex:
-		regs.general[dest] = reflect.ValueOf(argument.complexValue)
-	}
-}
-
-// handleReturn processes a function return by running deferred calls, copying
-// return values to the caller's registers, and popping the frame.
+// handleReturn processes a function return by running deferred calls, copying return
+// values to the caller's registers, and popping the frame.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes frame (*callFrame) which is the returning call frame.
@@ -929,13 +897,30 @@ func boxTailArgToGeneral(regs *Registers, argument tailCallArg, dest int) {
 // Returns opResult indicating whether execution is done or continuing.
 func handleReturn(vm *VM, frame *callFrame, _ *Registers, instruction instruction) opResult {
 	returnCount := int(instruction.a)
+	expectedFp := vm.framePointer
+	if frame.simpleDefer != nil && frame.simpleDefer.active {
+		vm.runFrameSimpleDefer(frame)
+	}
 	if len(vm.deferStack) > frame.deferBase {
 		vm.runDefers()
-		vm.syncNamedResults(frame)
 	}
+	if vm.evalError != nil || vm.framePointer < expectedFp {
+		if vm.framePointer < vm.baseFramePointer {
+			return opDone
+		}
+		if vm.evalError != nil {
+			return opPanicError
+		}
+		return opFrameChanged
+	}
+	vm.syncNamedResults(frame)
 	if vm.framePointer == vm.baseFramePointer {
-		vm.evalResult, _ = vm.extractResult(frame)
-		vm.evalAllResults = vm.extractAllResults(frame)
+		if vm.inlineDispatchExpectUintResult && len(frame.function.resultKinds) > 0 && frame.function.resultKinds[0] == registerUint {
+			vm.inlineDispatchUintResult = frame.registers.uints[0]
+		} else {
+			vm.evalResult, _ = vm.extractResult(frame)
+			vm.evalAllResults = vm.extractAllResults(frame)
+		}
 		vm.popFrame()
 		return opDone
 	}
@@ -944,26 +929,39 @@ func handleReturn(vm *VM, frame *callFrame, _ *Registers, instruction instructio
 	for i := 0; i < returnCount && i < len(returnDestination); i++ {
 		dest := returnDestination[i]
 		kind := frame.function.resultKinds[i]
-		srcReg := bankCounters[kind]
+		sourceRegister := bankCounters[kind]
 		bankCounters[kind]++
-		vm.copyReturnValueAt(frame, kind, srcReg, dest)
+		vm.copyReturnValueAt(frame, kind, sourceRegister, dest)
 	}
 	vm.popFrame()
 	return opFrameChanged
 }
 
-// handleReturnVoid processes a void function return by running deferred
-// calls and popping the frame without copying any return values.
+// handleReturnVoid processes a void function return by running deferred calls and popping
+// the frame without copying any return values.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes frame (*callFrame) which is the returning call frame.
 //
 // Returns opResult indicating whether execution is done or continuing.
 func handleReturnVoid(vm *VM, frame *callFrame, _ *Registers, _ instruction) opResult {
+	expectedFp := vm.framePointer
+	if frame.simpleDefer != nil && frame.simpleDefer.active {
+		vm.runFrameSimpleDefer(frame)
+	}
 	if len(vm.deferStack) > frame.deferBase {
 		vm.runDefers()
-		vm.syncNamedResults(frame)
 	}
+	if vm.evalError != nil || vm.framePointer < expectedFp {
+		if vm.framePointer < vm.baseFramePointer {
+			return opDone
+		}
+		if vm.evalError != nil {
+			return opPanicError
+		}
+		return opFrameChanged
+	}
+	vm.syncNamedResults(frame)
 	vm.popFrame()
 	if vm.framePointer < vm.baseFramePointer {
 		return opDone

@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package browser provides a fluent API for writing browser-based
-// end-to-end tests for Piko applications. It supports both
-// programmatic testing with method chaining and declarative
-// spec-based testing using JSON files.
+// Package browser provides a fluent API for writing browser-based end-to-end tests for
+// Piko applications. It supports both programmatic testing with method chaining and
+// declarative spec-based testing using JSON files.
 //
 // # Setup
 //
-// Create a TestMain to initialise the test harness with the e2e
-// build tag:
+// Create a TestMain to initialise the test harness with the e2e build tag:
 //
 //	//go:build e2e
 //
@@ -43,8 +41,8 @@
 //
 // # Programmatic tests
 //
-// Write tests using the fluent [Page] API. All action methods return
-// *Page for method chaining:
+// Write tests using the fluent [Page] API. All action methods return *Page for method
+// chaining:
 //
 //	func TestCalculator(t *testing.T) {
 //	    p := browser.New(t)
@@ -68,14 +66,13 @@
 //
 // # Page
 //
-// The [Page] type covers navigation, element interaction, waiting,
-// assertions via an [Assertion] builder, screenshots, storage and
-// cookie access, network interception, iframe support, and
-// Piko-specific operations such as partial reloads and bus events.
+// The [Page] type covers navigation, element interaction, waiting, assertions via an
+// [Assertion] builder, screenshots, storage and cookie access, network interception,
+// iframe support, and Piko-specific operations such as partial reloads and bus events.
 //
 // # Thread safety
 //
-// [Harness] and [New] are safe for concurrent use. Each test
-// receives its own isolated [Page] backed by an incognito browser
-// context, so tests can run in parallel without interference.
+// [Harness] and [New] are safe for concurrent use. Each test receives its own isolated
+// [Page] backed by an incognito browser context, so tests can run in parallel without
+// interference.
 package browser

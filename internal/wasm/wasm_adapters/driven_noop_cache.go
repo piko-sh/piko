@@ -25,12 +25,14 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// NoOpComponentCache implements ComponentCachePort without caching.
-// Each call executes the loader function directly, which is suitable for WASM
-// contexts where each generation request is independent.
+// NoOpComponentCache implements ComponentCachePort without caching. Each call executes
+// the loader function directly, which is suitable for WASM contexts where each generation
+// request is independent.
 type NoOpComponentCache struct{}
 
-var _ annotator_domain.ComponentCachePort = (*NoOpComponentCache)(nil)
+var (
+	_ annotator_domain.ComponentCachePort = (*NoOpComponentCache)(nil)
+)
 
 // NewNoOpComponentCache creates a new no-op component cache.
 //
@@ -39,16 +41,13 @@ func NewNoOpComponentCache() *NoOpComponentCache {
 	return &NoOpComponentCache{}
 }
 
-// GetOrSet always executes the loader function directly without
-// caching.
+// GetOrSet always executes the loader function directly without caching.
 //
 // Takes ctx (context.Context) which is the request context.
-// Takes loader (func(ctx context.Context)
-// (*annotator_dto.ParsedComponent, error)) which fetches the
-// component.
+// Takes loader (func(ctx context.Context) (*annotator_dto.ParsedComponent, error)) which
+// fetches the component.
 //
-// Returns *annotator_dto.ParsedComponent which is the result from
-// the loader.
+// Returns *annotator_dto.ParsedComponent which is the result from the loader.
 // Returns error when the loader fails.
 func (*NoOpComponentCache) GetOrSet(
 	ctx context.Context,

@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-// DevAPIHandler serves JSON REST endpoints for the dev tools overlay widget.
-// These endpoints provide system stats, build pipeline info, health probes,
-// file descriptor data, and provider info at /_piko/dev/api/*.
+// DevAPIHandler serves JSON REST endpoints for the dev tools overlay widget. These
+// endpoints provide system stats, build pipeline info, health probes, file descriptor
+// data, and provider info at /_piko/dev/api/*.
 type DevAPIHandler struct {
 	// systemStats provides system metrics for the stats and overview endpoints.
 	systemStats monitoring_domain.SystemStatsProvider
@@ -46,41 +46,39 @@ type DevAPIHandler struct {
 	// providerInfo provides resource type and provider discovery data.
 	providerInfo monitoring_domain.ProviderInfoInspector
 
-	// developmentMode controls whether internal error details are echoed back
-	// to clients. Production deployments should leave this false so that
-	// raw err.Error() output never reaches the dev tools client.
+	// developmentMode controls whether internal error details are echoed back to clients.
+	// Production deployments should leave this false so that raw err.Error() output never
+	// reaches the dev tools client.
 	developmentMode bool
 }
 
-// DevAPIHandlerOption configures optional behaviour for DevAPIHandler.
-// Options are applied in order; later options override earlier ones.
+// DevAPIHandlerOption configures optional behaviour for DevAPIHandler. Options are
+// applied in order; later options override earlier ones.
 type DevAPIHandlerOption func(*DevAPIHandler)
 
-// WithDevAPIDevelopmentMode toggles whether the dev API echoes raw internal
-// error messages back to the client. Production deployments must leave this
-// false so the handler returns a sanitised generic message instead.
+// WithDevAPIDevelopmentMode toggles whether the dev API echoes raw internal error
+// messages back to the client. Production deployments must leave this false so the
+// handler returns a sanitised generic message instead.
 //
 // Takes enabled (bool) which is true when development mode is active.
 //
-// Returns DevAPIHandlerOption which sets the development mode flag when
-// passed to NewDevAPIHandler.
+// Returns DevAPIHandlerOption which sets the development mode flag when passed to
+// NewDevAPIHandler.
 func WithDevAPIDevelopmentMode(enabled bool) DevAPIHandlerOption {
 	return func(h *DevAPIHandler) {
 		h.developmentMode = enabled
 	}
 }
 
-// NewDevAPIHandler creates a new handler for dev tool REST endpoints.
-// All parameters may be nil; handlers degrade gracefully when their
-// data source is unavailable.
+// NewDevAPIHandler creates a new handler for dev tool REST endpoints. All parameters may
+// be nil; handlers degrade gracefully when their data source is unavailable.
 //
-// Takes systemStats (monitoring_domain.SystemStatsProvider)
-// which supplies system metrics.
-// Takes orchestrator
-// (orchestrator_domain.OrchestratorInspector) which supplies
-// build pipeline state.
-// Takes opts (...DevAPIHandlerOption) which configure optional behaviour
-// such as toggling development mode for error sanitisation.
+// Takes systemStats (monitoring_domain.SystemStatsProvider) which supplies system
+// metrics.
+// Takes orchestrator (orchestrator_domain.OrchestratorInspector) which supplies build
+// pipeline state.
+// Takes opts (...DevAPIHandlerOption) which configure optional behaviour such as toggling
+// development mode for error sanitisation.
 //
 // Returns *DevAPIHandler which is the initialised handler.
 func NewDevAPIHandler(
@@ -98,28 +96,27 @@ func NewDevAPIHandler(
 	return h
 }
 
-// SetHealthProbeService sets the health probe provider. Must be called before
-// the handler starts serving.
+// SetHealthProbeService sets the health probe provider. Must be called before the handler
+// starts serving.
 //
-// Takes p (monitoring_domain.HealthProbeService) which
-// supplies liveness and readiness probes.
+// Takes p (monitoring_domain.HealthProbeService) which supplies liveness and readiness
+// probes.
 func (h *DevAPIHandler) SetHealthProbeService(p monitoring_domain.HealthProbeService) {
 	h.healthProbe = p
 }
 
 // SetResourceProvider sets the file descriptor / resource provider.
 //
-// Takes p (monitoring_domain.ResourceProvider) which supplies
-// resource and file descriptor data.
+// Takes p (monitoring_domain.ResourceProvider) which supplies resource and file
+// descriptor data.
 func (h *DevAPIHandler) SetResourceProvider(p monitoring_domain.ResourceProvider) {
 	h.resources = p
 }
 
-// SetProviderInfoInspector sets the provider info inspector for resource
-// discovery.
+// SetProviderInfoInspector sets the provider info inspector for resource discovery.
 //
-// Takes p (monitoring_domain.ProviderInfoInspector) which
-// supplies resource type and provider discovery.
+// Takes p (monitoring_domain.ProviderInfoInspector) which supplies resource type and
+// provider discovery.
 func (h *DevAPIHandler) SetProviderInfoInspector(p monitoring_domain.ProviderInfoInspector) {
 	h.providerInfo = p
 }
@@ -238,8 +235,8 @@ func (h *DevAPIHandler) handleResources(w http.ResponseWriter, _ *http.Request) 
 	writeJSON(w, http.StatusOK, h.resources.GetResources())
 }
 
-// handleProviders returns registered resource types and their providers,
-// including per-provider detail sections and sub-resources.
+// handleProviders returns registered resource types and their providers, including
+// per-provider detail sections and sub-resources.
 //
 // Takes w (http.ResponseWriter) which is the response writer for the JSON response.
 // Takes r (*http.Request) which provides the request context.

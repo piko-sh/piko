@@ -26,8 +26,7 @@ import (
 	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
-// exportedFunctionInfo holds details about a top-level function for code
-// generation.
+// exportedFunctionInfo holds details about a top-level function for code generation.
 type exportedFunctionInfo struct {
 	// name is the function name used when building export wrappers.
 	name string
@@ -35,24 +34,22 @@ type exportedFunctionInfo struct {
 	// isArrow indicates whether the function uses arrow syntax (const name =).
 	isArrow bool
 
-	// wasExported indicates whether the original declaration had the export
-	// keyword.
+	// wasExported indicates whether the original declaration had the export keyword.
 	wasExported bool
 }
 
 var (
-	// topLevelTokenHandlers maps token types to their scanning functions for
-	// top-level function detection. Each handler returns a function info if found.
-	topLevelTokenHandlers = map[parsejs.TokenType]func(*parsejs.Lexer) *exportedFunctionInfo{
+	// topLevelTokenHandlers maps token types to their scanning functions for top-level
+	// function detection. Each handler returns a function info if found.
+	topLevelTokenHandlers = map[parsejs.TokenType]func(*parsejs.Lexer) *exportedFunctionInfo{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		parsejs.ExportToken:   scanExportedFunctionWithFlag,
 		parsejs.FunctionToken: scanNonExportedFunction,
 		parsejs.ConstToken:    scanNonExportedArrowFunction,
 		parsejs.AsyncToken:    scanNonExportedAsyncFunction,
 	}
 
-	// pkIdentifiersWithoutRefs is the list of PK identifiers excluding
-	// refs/_createRefs. User-facing helpers are now accessed via the global piko.*
-	// namespace.
+	// pkIdentifiersWithoutRefs is the list of PK identifiers excluding refs/_createRefs.
+	// User-facing helpers are now accessed via the global piko.* namespace.
 	pkIdentifiersWithoutRefs = []string{
 		"action",
 	}
@@ -60,8 +57,8 @@ var (
 	// refsPattern matches the identifier "refs" as a whole word.
 	refsPattern = regexp.MustCompile(`\brefs\b`)
 
-	// pkContextPattern matches the "pk." prefix, indicating the source uses the
-	// pk context object.
+	// pkContextPattern matches the "pk." prefix, indicating the source uses the pk context
+	// object.
 	pkContextPattern = regexp.MustCompile(`\bpk\.`)
 )
 
@@ -84,22 +81,22 @@ var (
 //	    refs.button.click();
 //	}
 //
-// And have it work correctly with multiple partial instances, each with their
-// own scoped refs.
+// And have it work correctly with multiple partial instances, each with their own scoped
+// refs.
 //
 // When the source is empty, returns it unchanged.
 //
-// When the source is a TypeScript module file with export interface
-// declarations, returns it unchanged. These ES modules should be transpiled
-// directly without the scoped refs change.
+// When the source is a TypeScript module file with export interface declarations, returns
+// it unchanged. These ES modules should be transpiled directly without the scoped refs
+// change.
 //
 // When no top-level functions are found, only adds the required imports.
 //
 // Takes source (string) which is the PK script source code to change.
-// Takes componentName (string) which is the partial_name attribute value
-// (e.g. "modals/listing_lightbox") or empty for pages. When set, the eager
-// init and __reinit__ selectors target the specific partial element instead
-// of matching the first [partial_name] element on the page.
+// Takes componentName (string) which is the partial_name attribute value (e.g.
+// "modals/listing_lightbox") or empty for pages. When set, the eager init and __reinit__
+// selectors target the specific partial element instead of matching the first
+// [partial_name] element on the page.
 //
 // Returns string which is the changed source with scoped ref support.
 func TransformPKSource(source string, componentName string) string {
@@ -124,25 +121,24 @@ func TransformPKSource(source string, componentName string) string {
 	return buildTransformedSource(source, topLevelFunctions, usedIdentifiers, componentName)
 }
 
-// isTypeScriptModuleFile reports whether the source appears to be a TypeScript
-// module file with interface declarations. Such files should be transpiled
-// directly without the PK source transformation.
+// isTypeScriptModuleFile reports whether the source appears to be a TypeScript module
+// file with interface declarations. Such files should be transpiled directly without the
+// PK source transformation.
 //
 // Takes source (string) which is the file content to check.
 //
-// Returns bool which is true if the source contains export interface
-// declarations.
+// Returns bool which is true if the source contains export interface declarations.
 func isTypeScriptModuleFile(source string) bool {
 	return strings.Contains(source, "export interface ")
 }
 
-// scanExportedFunctionWithFlag wraps scanExportedFunction and marks the
-// result as exported.
+// scanExportedFunctionWithFlag wraps scanExportedFunction and marks the result as
+// exported.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
 //
-// Returns *exportedFunctionInfo which holds the function info with wasExported
-// set to true, or nil if no exported function was found.
+// Returns *exportedFunctionInfo which holds the function info with wasExported set to
+// true, or nil if no exported function was found.
 func scanExportedFunctionWithFlag(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	function := scanExportedFunction(lexer)
 	if function != nil {
@@ -151,18 +147,17 @@ func scanExportedFunctionWithFlag(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	return function
 }
 
-// findTopLevelFunctions extracts all top-level function declarations from source
-// code using token scanning. Works with both JavaScript and TypeScript, unlike
-// full AST parsing which fails on TypeScript type hints.
+// findTopLevelFunctions extracts all top-level function declarations from source code
+// using token scanning. Works with both JavaScript and TypeScript, unlike full AST
+// parsing which fails on TypeScript type hints.
 //
-// The function finds both exported and non-exported functions, and tracks
-// whether each function had an export keyword via the wasExported field.
+// The function finds both exported and non-exported functions, and tracks whether each
+// function had an export keyword via the wasExported field.
 //
 // Takes source (string) which contains the source code to parse.
 //
-// Returns []exportedFunctionInfo which contains details of each top-level
-// function found, including both regular function declarations and arrow
-// functions.
+// Returns []exportedFunctionInfo which contains details of each top-level function found,
+// including both regular function declarations and arrow functions.
 func findTopLevelFunctions(source string) []exportedFunctionInfo {
 	input := parse.NewInputString(source)
 	lexer := parsejs.NewLexer(input)
@@ -194,8 +189,8 @@ func findTopLevelFunctions(source string) []exportedFunctionInfo {
 // Takes tt (parsejs.TokenType) which is the token to check for braces.
 // Takes depth (int) which is the current brace depth.
 //
-// Returns int which is the updated depth, incremented for open braces and
-// decremented for close braces.
+// Returns int which is the updated depth, incremented for open braces and decremented for
+// close braces.
 func updateBraceDepth(tt parsejs.TokenType, depth int) int {
 	switch tt {
 	case parsejs.OpenBraceToken:
@@ -221,8 +216,8 @@ func isBraceToken(tt parsejs.TokenType) bool {
 // Takes lexer (*parsejs.Lexer) which provides the token stream to process.
 // Takes tt (parsejs.TokenType) which specifies the token type to handle.
 //
-// Returns *exportedFunctionInfo which holds the parsed function details,
-// or nil if no handler exists for the token type.
+// Returns *exportedFunctionInfo which holds the parsed function details, or nil if no
+// handler exists for the token type.
 func processTopLevelToken(lexer *parsejs.Lexer, tt parsejs.TokenType) *exportedFunctionInfo {
 	handler, ok := topLevelTokenHandlers[tt]
 	if !ok {
@@ -231,13 +226,14 @@ func processTopLevelToken(lexer *parsejs.Lexer, tt parsejs.TokenType) *exportedF
 	return handler(lexer)
 }
 
-// scanExportedFunction scans tokens after an export keyword to check if it is
-// a function export and extract the function name.
+// scanExportedFunction scans tokens after an export keyword to check if it is a function
+// export and extract the function name.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
 //
-// Returns *exportedFunctionInfo which contains the function name and whether
-// it is an arrow function. Returns nil if no function export was found.
+// Returns *exportedFunctionInfo which contains the function name and whether it is an
+// arrow function.
+// Returns nil if no function export was found.
 func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	tt, _ := skipWhitespace(lexer)
 
@@ -245,7 +241,7 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 		tt, _ = skipWhitespace(lexer)
 	}
 
-	switch tt {
+	switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case parsejs.FunctionToken:
 		tt, data := skipWhitespace(lexer)
 		if tt == parsejs.IdentifierToken {
@@ -293,8 +289,8 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
 //
-// Returns *exportedFunctionInfo which holds the function name, or nil if no
-// function name is found.
+// Returns *exportedFunctionInfo which holds the function name, or nil if no function name
+// is found.
 func scanNonExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	tt, data := skipWhitespace(lexer)
 	if tt == parsejs.IdentifierToken {
@@ -308,13 +304,13 @@ func scanNonExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	return nil
 }
 
-// scanNonExportedArrowFunction scans for a const name = (...) => pattern at
-// the top level of a file.
+// scanNonExportedArrowFunction scans for a const name = (...) => pattern at the top level
+// of a file.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
 //
-// Returns *exportedFunctionInfo which contains the function name, or nil if no
-// arrow function pattern was found.
+// Returns *exportedFunctionInfo which contains the function name, or nil if no arrow
+// function pattern was found.
 func scanNonExportedArrowFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	tt, data := skipWhitespace(lexer)
 	if tt != parsejs.IdentifierToken {
@@ -347,13 +343,13 @@ func scanNonExportedArrowFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	return nil
 }
 
-// scanNonExportedAsyncFunction scans for a non-exported async function name
-// at the top level of the token stream.
+// scanNonExportedAsyncFunction scans for a non-exported async function name at the top
+// level of the token stream.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
 //
-// Returns *exportedFunctionInfo which contains the function name, or nil if no
-// async function pattern was found.
+// Returns *exportedFunctionInfo which contains the function name, or nil if no async
+// function pattern was found.
 func scanNonExportedAsyncFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	tt, _ := skipWhitespace(lexer)
 	if tt != parsejs.FunctionToken {
@@ -362,18 +358,18 @@ func scanNonExportedAsyncFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 	return scanNonExportedFunction(lexer)
 }
 
-// skipGenericTypeParams skips over TypeScript generic type parameters such as
-// <T> or <T extends Foo, U> and returns the next token after the closing >.
+// skipGenericTypeParams skips over TypeScript generic type parameters such as <T> or <T
+// extends Foo, U> and returns the next token after the closing >.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to read from.
 //
-// Returns parsejs.TokenType which is the next token after the closing angle
-// bracket, or ErrorToken if parsing fails.
+// Returns parsejs.TokenType which is the next token after the closing angle bracket, or
+// ErrorToken if parsing fails.
 func skipGenericTypeParams(lexer *parsejs.Lexer) parsejs.TokenType {
 	depth := 1
 	for depth > 0 {
 		tt, _ := lexer.Next()
-		switch tt {
+		switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case parsejs.LtToken:
 			depth++
 		case parsejs.GtToken:
@@ -386,8 +382,8 @@ func skipGenericTypeParams(lexer *parsejs.Lexer) parsejs.TokenType {
 	return tt
 }
 
-// skipWhitespace advances the lexer past whitespace and line terminator
-// tokens, returning the next meaningful token.
+// skipWhitespace advances the lexer past whitespace and line terminator tokens, returning
+// the next meaningful token.
 //
 // Takes lexer (*parsejs.Lexer) which provides the token stream to advance.
 //
@@ -402,8 +398,8 @@ func skipWhitespace(lexer *parsejs.Lexer) (parsejs.TokenType, []byte) {
 	}
 }
 
-// detectUsedIdentifiersExcludingRefs finds PK identifiers in source code,
-// but does not include reference identifiers.
+// detectUsedIdentifiersExcludingRefs finds PK identifiers in source code, but does not
+// include reference identifiers.
 //
 // Takes source (string) which contains the PK source code to scan.
 //
@@ -419,9 +415,8 @@ func detectUsedIdentifiersExcludingRefs(source string) []string {
 	return used
 }
 
-// sourceUsesRefs reports whether the source code references the "refs"
-// identifier or the "pk." context prefix, indicating it needs the scoped
-// pk context factory wrapper.
+// sourceUsesRefs reports whether the source code references the "refs" identifier or the
+// "pk." context prefix, indicating it needs the scoped pk context factory wrapper.
 //
 // Takes source (string) which contains the PK source code to check.
 //
@@ -430,16 +425,16 @@ func sourceUsesRefs(source string) bool {
 	return refsPattern.MatchString(source) || pkContextPattern.MatchString(source)
 }
 
-// buildInlineRefsSource wraps source code that uses refs or pk context
-// but has no top-level functions, creating a pk context inline from the
-// partial's scope element instead of the full factory/WeakMap pattern.
+// buildInlineRefsSource wraps source code that uses refs or pk context but has no
+// top-level functions, creating a pk context inline from the partial's scope element
+// instead of the full factory/WeakMap pattern.
 //
-// Module scripts execute after DOM parsing, so document.querySelector
-// will find the partial container.
+// Module scripts execute after DOM parsing, so document.querySelector will find the
+// partial container.
 //
 // Takes source (string) which contains the PK source code to wrap.
-// Takes componentName (string) which is the partial_name attribute value
-// for targeted scope resolution, or empty for generic fallback.
+// Takes componentName (string) which is the partial_name attribute value for targeted
+// scope resolution, or empty for generic fallback.
 //
 // Returns string which is the source with pk context creation added inline.
 func buildInlineRefsSource(source string, componentName string) string {
@@ -466,25 +461,23 @@ func buildInlineRefsSource(source string, componentName string) string {
 //
 // Takes source (string) which contains the Go source code to process.
 //
-// Returns string which is the source with import statements added at the
-// start.
+// Returns string which is the source with import statements added at the start.
 func addImportsOnly(source string) string {
 	usedIdentifiers := detectUsedIdentifiers(source)
 	importStmt := buildImportStatement(usedIdentifiers)
 	return importStmt + source
 }
 
-// buildTransformedSource creates the full transformed source code using the
-// factory pattern and PageContext self-registration. It uses AST-based code
-// generation to apply these changes.
+// buildTransformedSource creates the full transformed source code using the factory
+// pattern and PageContext self-registration. It uses AST-based code generation to apply
+// these changes.
 //
 // Takes source (string) which contains the original source code to transform.
-// Takes functions ([]exportedFunctionInfo) which lists the top-level functions
-// to wrap.
+// Takes functions ([]exportedFunctionInfo) which lists the top-level functions to wrap.
 // Takes otherImports ([]string) which specifies extra imports to include.
 //
-// Returns string which is the transformed source with the factory pattern
-// applied and self-registration with PageContext for p-on:* event binding.
+// Returns string which is the transformed source with the factory pattern applied and
+// self-registration with PageContext for p-on:* event binding.
 func buildTransformedSource(source string, functions []exportedFunctionInfo, otherImports []string, componentName string) string {
 	transformedSource := source
 	for _, function := range functions {

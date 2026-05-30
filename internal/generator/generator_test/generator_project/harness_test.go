@@ -30,7 +30,6 @@ import (
 	"sort"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_adapters"
@@ -46,6 +45,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/wdk/safedisk"
@@ -55,7 +55,9 @@ func newTestCacheService() cache_domain.Service {
 	return cache_domain.NewService("")
 }
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testCase struct {
 	Name string

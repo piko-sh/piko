@@ -33,13 +33,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// typeBuiltInFunction is the type name for Go built-in functions.
-// This must match the constant in annotator_domain/analysis_context.go.
-const typeBuiltInFunction = "builtin_function"
+const (
+	// typeBuiltInFunction is the type name for Go built-in functions. This must match the
+	// constant in annotator_domain/analysis_context.go.
+	typeBuiltInFunction = "builtin_function"
+)
 
 var (
-	// eventPlaceholders defines the special placeholder variables available in
-	// event handlers.
+	// eventPlaceholders defines the special variables available in event handlers.
 	eventPlaceholders = []struct {
 		name          string
 		detail        string
@@ -90,8 +91,7 @@ var (
 		},
 	}
 
-	// directiveCompletions defines all available directive completions with
-	// metadata.
+	// directiveCompletions defines all available directive completions with metadata.
 	directiveCompletions = []directiveCompletionInfo{
 		{Name: "if", NeedsValue: true, SortPriority: "01"},
 		{Name: "else-if", NeedsValue: true, SortPriority: "02"},
@@ -127,9 +127,9 @@ var (
 	}
 )
 
-// GetCompletions returns completion suggestions for the given position.
-// It uses the AnalysisMap to access the SymbolTable at that location and
-// provides context-aware suggestions based on what the user is typing.
+// GetCompletions returns completion suggestions for the given position. It uses the
+// AnalysisMap to access the SymbolTable at that location and provides context-aware
+// suggestions based on what the user is typing.
 //
 // Takes position (protocol.Position) which specifies the cursor location.
 //
@@ -230,12 +230,12 @@ func (d *document) getScopeCompletions(position protocol.Position) (*protocol.Co
 	}, nil
 }
 
-// getScopeCompletionsWithPrefix returns symbols visible at the position,
-// filtered by the given prefix.
+// getScopeCompletionsWithPrefix returns symbols visible at the position, filtered by the
+// given prefix.
 //
 // Takes position (protocol.Position) which specifies the cursor position.
-// Takes prefix (string) which filters completions to names starting with this
-// text (case-insensitive).
+// Takes prefix (string) which filters completions to names starting with this text
+// (case-insensitive).
 //
 // Returns *protocol.CompletionList which contains the matching symbols.
 // Returns error when the scope lookup fails.
@@ -270,14 +270,14 @@ func (d *document) getScopeCompletionsWithPrefix(position protocol.Position, pre
 	}, nil
 }
 
-// getMemberCompletions provides completions for member access (e.g.,
-// state.user.<here>). It resolves the base expression's type and provides all
-// accessible fields and methods that match the given prefix.
+// getMemberCompletions provides completions for member access (e.g., state.user.<here>).
+// It resolves the base expression's type and provides all accessible fields and methods
+// that match the given prefix.
 //
 // Takes position (protocol.Position) which specifies the cursor position.
 // Takes baseExpr (string) which is the expression before the dot.
-// Takes prefix (string) which filters completions to those starting with this
-// text (case-insensitive).
+// Takes prefix (string) which filters completions to those starting with this text
+// (case-insensitive).
 //
 // Returns *protocol.CompletionList which contains the matching members.
 // Returns error when resolution fails.
@@ -311,8 +311,8 @@ func (d *document) getMemberCompletions(ctx context.Context, position protocol.P
 	}, nil
 }
 
-// hasCompletionPrerequisites checks if the document has the necessary data
-// for completions.
+// hasCompletionPrerequisites checks if the document has the necessary data for
+// completions.
 //
 // Returns bool which is true when all required fields are present.
 func (d *document) hasCompletionPrerequisites() bool {
@@ -322,14 +322,14 @@ func (d *document) hasCompletionPrerequisites() bool {
 		d.TypeInspector != nil
 }
 
-// resolveBaseAnnotation finds the Go annotation for a base expression.
-// It first tries AST lookup, then falls back to text-based resolution.
+// resolveBaseAnnotation finds the Go annotation for a base expression. It first tries AST
+// lookup, then falls back to text-based resolution.
 //
 // Takes position (protocol.Position) which specifies the cursor position.
 // Takes baseExpr (string) which is the base expression text to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information, or nil if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
+// or nil if resolution fails.
 func (d *document) resolveBaseAnnotation(ctx context.Context, position protocol.Position, baseExpr string) *ast_domain.GoGeneratorAnnotation {
 	_, l := logger_domain.From(ctx, log)
 
@@ -355,13 +355,12 @@ func (d *document) resolveBaseAnnotation(ctx context.Context, position protocol.
 	return &ast_domain.GoGeneratorAnnotation{ResolvedType: resolvedType}
 }
 
-// getCompletionContext returns the analysis context for completion at the
-// given position.
+// getCompletionContext returns the analysis context for completion at the given position.
 //
 // Takes position (protocol.Position) which specifies the cursor location.
 //
-// Returns *annotator_domain.AnalysisContext which provides the analysis
-// context for the node at the position, or nil if no node is found.
+// Returns *annotator_domain.AnalysisContext which provides the analysis context for the
+// node at the position, or nil if no node is found.
 func (d *document) getCompletionContext(position protocol.Position) *annotator_domain.AnalysisContext {
 	targetNode := findNodeAtPosition(d.AnnotationResult.AnnotatedAST, position, d.URI.Filename())
 	if targetNode == nil {
@@ -375,16 +374,15 @@ func (d *document) getCompletionContext(position protocol.Position) *annotator_d
 	return analysisCtx
 }
 
-// resolveToNamedType converts a base annotation to a named type with full
-// metadata.
+// resolveToNamedType converts a base annotation to a named type with full metadata.
 //
-// Takes baseAnnotation (*ast_domain.GoGeneratorAnnotation) which contains the
-// type to resolve.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the
-// current analysis context, including source paths.
+// Takes baseAnnotation (*ast_domain.GoGeneratorAnnotation) which contains the type to
+// resolve.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the current
+// analysis context, including source paths.
 //
-// Returns *inspector_dto.Type which is the resolved named type, or nil if
-// resolution fails.
+// Returns *inspector_dto.Type which is the resolved named type, or nil if resolution
+// fails.
 func (d *document) resolveToNamedType(
 	baseAnnotation *ast_domain.GoGeneratorAnnotation,
 	analysisCtx *annotator_domain.AnalysisContext,
@@ -406,15 +404,14 @@ func (d *document) resolveToNamedType(
 	return resolveTypeViaCanonicalPath(d.TypeInspector, baseAnnotation.ResolvedType)
 }
 
-// resolveTypeViaCanonicalPath resolves a type using the canonical package
-// path stored in the annotation.
+// resolveTypeViaCanonicalPath resolves a type using the canonical package path stored in
+// the annotation.
 //
 // Takes ti (TypeInspectorPort) which provides type resolution.
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which contains the
-// canonical package path from the original type resolution.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which contains the canonical package
+// path from the original type resolution.
 //
-// Returns *inspector_dto.Type which is the resolved type, or nil if lookup
-// fails.
+// Returns *inspector_dto.Type which is the resolved type, or nil if lookup fails.
 func resolveTypeViaCanonicalPath(ti TypeInspectorPort, resolvedType *ast_domain.ResolvedTypeInfo) *inspector_dto.Type {
 	if resolvedType == nil || resolvedType.CanonicalPackagePath == "" {
 		return nil
@@ -439,12 +436,11 @@ type directiveCompletionInfo struct {
 	// Name is the directive name without the "p-" prefix (e.g. "if", "bind").
 	Name string
 
-	// ArgumentPlaceholder is the placeholder text for the argument (e.g., "attr",
+	// ArgumentPlaceholder is the snippet token shown for the argument (e.g., "attr",
 	// "event").
 	ArgumentPlaceholder string
 
-	// SortPriority controls the order in the completion list; lower values
-	// appear higher.
+	// SortPriority controls the order in the completion list; lower values appear higher.
 	SortPriority string
 
 	// NeedsValue indicates whether the directive requires a value (="").
@@ -455,12 +451,12 @@ type directiveCompletionInfo struct {
 	NeedsArgument bool
 }
 
-// getDirectiveCompletions provides completions for Piko directives (p-<here>).
-// It returns all available directives with proper snippets that auto-insert
-// the attribute value with cursor positioning.
+// getDirectiveCompletions provides completions for Piko directives (p-<here>). It returns
+// all available directives with proper snippets that auto-insert the attribute value with
+// cursor positioning.
 //
-// Takes prefix (string) which filters directives to those starting with this
-// text (case-insensitive). Empty string means no filtering.
+// Takes prefix (string) which filters directives to those starting with this text
+// (case-insensitive). Empty string means no filtering.
 //
 // Returns *protocol.CompletionList which contains matching Piko directives.
 // Returns error when completion generation fails.
@@ -468,9 +464,9 @@ func (*document) getDirectiveCompletions(prefix string) (*protocol.CompletionLis
 	return getStaticDirectiveCompletions(prefix), nil
 }
 
-// getPartialAliasCompletions provides completions for partial component
-// aliases (is="<here>"). It gets all available partial imports from the
-// current component's VirtualModule and offers them as completion options.
+// getPartialAliasCompletions provides completions for partial component aliases
+// (is="<here>"). It gets all available partial imports from the current component's
+// VirtualModule and offers them as completion options.
 //
 // Takes prefix (string) which filters the partial aliases to match.
 //
@@ -495,8 +491,8 @@ func (d *document) getPartialAliasCompletions(prefix string) (*protocol.Completi
 
 // findCurrentComponent locates the VirtualComponent for this document.
 //
-// Returns *annotator_dto.VirtualComponent which matches the document's file
-// path, or nil if no match is found.
+// Returns *annotator_dto.VirtualComponent which matches the document's file path, or nil
+// if no match is found.
 func (d *document) findCurrentComponent() *annotator_dto.VirtualComponent {
 	if d.ProjectResult == nil || d.ProjectResult.VirtualModule == nil || d.ProjectResult.VirtualModule.Graph == nil {
 		return nil
@@ -515,15 +511,14 @@ func (d *document) findCurrentComponent() *annotator_dto.VirtualComponent {
 	return nil
 }
 
-// getEventHandlerCompletions provides completions for p-on:*="" handlers.
-// It extracts exported functions from the TypeScript/JavaScript script block
-// and includes special placeholder variables ($event, $form).
+// getEventHandlerCompletions provides completions for p-on:*="" handlers. It extracts
+// exported functions from the TypeScript/JavaScript script block and includes special
+// placeholder variables ($event, $form).
 //
-// Takes prefix (string) which filters completions to those containing this
-// substring.
+// Takes prefix (string) which filters completions to those containing this substring.
 //
-// Returns *protocol.CompletionList which contains matching exported functions
-// and placeholder variables.
+// Returns *protocol.CompletionList which contains matching exported functions and
+// placeholder variables.
 // Returns error when extraction fails.
 func (d *document) getEventHandlerCompletions(prefix string) (*protocol.CompletionList, error) {
 	items := make([]protocol.CompletionItem, 0)
@@ -555,14 +550,12 @@ func (d *document) getEventHandlerCompletions(prefix string) (*protocol.Completi
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// getEventPlaceholderCompletions returns completion items for $event and $form.
-// These are special placeholder variables available in event handlers.
+// getEventPlaceholderCompletions returns completion items for $event and $form. These are
+// special variables available in event handlers.
 //
-// Takes prefix (string) which filters completions to those matching this
-// prefix.
+// Takes prefix (string) which filters completions to those matching this prefix.
 //
-// Returns []protocol.CompletionItem which contains matching placeholder
-// variables.
+// Returns []protocol.CompletionItem which contains matching event handler variables.
 func (*document) getEventPlaceholderCompletions(prefix string) []protocol.CompletionItem {
 	items := make([]protocol.CompletionItem, 0, len(eventPlaceholders))
 	for _, p := range eventPlaceholders {
@@ -584,13 +577,13 @@ func (*document) getEventPlaceholderCompletions(prefix string) []protocol.Comple
 	return items
 }
 
-// getPartialNameCompletions provides completions for reloadPartial() and
-// reloadGroup() calls.
+// getPartialNameCompletions provides completions for reloadPartial() and reloadGroup()
+// calls.
 //
 // Takes prefix (string) which filters partial names by matching the text.
 //
-// Returns *protocol.CompletionList which contains the names of partials
-// available in the current component.
+// Returns *protocol.CompletionList which contains the names of partials available in the
+// current component.
 // Returns error when completion generation fails.
 func (d *document) getPartialNameCompletions(prefix string) (*protocol.CompletionList, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.VirtualModule == nil {
@@ -621,8 +614,8 @@ func (d *document) getPartialNameCompletions(prefix string) (*protocol.Completio
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// getRefCompletions provides completions for refs.* access in JavaScript.
-// It extracts all p-ref attribute values from the template.
+// getRefCompletions provides completions for refs.* access in JavaScript. It extracts all
+// p-ref attribute values from the template.
 //
 // Takes prefix (string) which filters results to names that contain this text.
 //
@@ -654,15 +647,13 @@ func (d *document) getRefCompletions(prefix string) (*protocol.CompletionList, e
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// getStateFieldCompletionsJS provides completions for state.* access in
-// JavaScript script blocks. It resolves the RenderReturnTypeExpression to get the
-// available state fields.
+// getStateFieldCompletionsJS provides completions for state.* access in JavaScript script
+// blocks. It resolves the RenderReturnTypeExpression to get the available state fields.
 //
-// Takes prefix (string) which filters completions to those containing the
-// given substring.
+// Takes prefix (string) which filters completions to those containing the given
+// substring.
 //
-// Returns *protocol.CompletionList which contains matching state field
-// completions.
+// Returns *protocol.CompletionList which contains matching state field completions.
 // Returns error when resolution fails.
 func (d *document) getStateFieldCompletionsJS(prefix string) (*protocol.CompletionList, error) {
 	comp := d.findCurrentComponent()
@@ -678,15 +669,13 @@ func (d *document) getStateFieldCompletionsJS(prefix string) (*protocol.Completi
 	)
 }
 
-// getPropsFieldCompletionsJS provides completions for props.*
-// access in JavaScript script blocks. It resolves the
-// PropsTypeExpression to get the available prop fields.
+// getPropsFieldCompletionsJS provides completions for props.* access in JavaScript script
+// blocks. It resolves the PropsTypeExpression to get the available prop fields.
 //
-// Takes prefix (string) which filters completions to those containing the
-// given substring.
+// Takes prefix (string) which filters completions to those containing the given
+// substring.
 //
-// Returns *protocol.CompletionList which contains matching prop field
-// completions.
+// Returns *protocol.CompletionList which contains matching prop field completions.
 // Returns error when resolution fails.
 func (d *document) getPropsFieldCompletionsJS(prefix string) (*protocol.CompletionList, error) {
 	comp := d.findCurrentComponent()
@@ -705,8 +694,8 @@ func (d *document) getPropsFieldCompletionsJS(prefix string) (*protocol.Completi
 // fieldDocFormatter formats documentation for a field completion item.
 type fieldDocFormatter func(field *inspector_dto.Field, tsType string) string
 
-// getFieldCompletionsJS provides completions for field access in JavaScript
-// script blocks. It resolves the type expression and builds completion items.
+// getFieldCompletionsJS provides completions for field access in JavaScript script
+// blocks. It resolves the type expression and builds completion items.
 //
 // Takes comp (*annotator_dto.VirtualComponent) which is the component context.
 // Takes typeExpr (goast.Expr) which is the Go AST expression to resolve.
@@ -863,13 +852,13 @@ func (*document) getPikoSubNamespaceCompletions(namespace, prefix string) (*prot
 	}, nil
 }
 
-// getActionNamespaceCompletions returns hierarchical completions for the
-// action.* namespace based on the prefix depth.
+// getActionNamespaceCompletions returns hierarchical completions for the action.*
+// namespace based on the prefix depth.
 //
 // The prefix determines the completion level:
 //   - No dots (e.g. "" or "em"): show unique namespace groups as modules
-//   - One dot with namespace (e.g. "email." or "email.Con"): show actions
-//     within that namespace as functions
+//   - One dot with namespace (e.g. "email." or "email.Con"): show actions within that
+//     namespace as functions
 //
 // Takes prefix (string) which filters completions to those matching the prefix.
 //
@@ -893,8 +882,8 @@ func (d *document) getActionNamespaceCompletions(prefix string) (*protocol.Compl
 	return d.getActionNamespaceGroupCompletions(manifest, prefix)
 }
 
-// getActionNamespaceGroupCompletions returns completions for the top-level
-// namespace groups (e.g. "email", "user") filtered by the prefix.
+// getActionNamespaceGroupCompletions returns completions for the top-level namespace
+// groups (e.g. "email", "user") filtered by the prefix.
 //
 // Takes manifest (*annotator_dto.ActionManifest) which provides the actions.
 // Takes filter (string) which filters namespace names.
@@ -932,8 +921,8 @@ func (*document) getActionNamespaceGroupCompletions(
 	}, nil
 }
 
-// getActionFunctionCompletions returns completions for actions within a
-// specific namespace, filtered by the action name prefix.
+// getActionFunctionCompletions returns completions for actions within a specific
+// namespace, filtered by the action name prefix.
 //
 // Takes manifest (*annotator_dto.ActionManifest) which provides the actions.
 // Takes namespace (string) which is the namespace to search within.
@@ -982,14 +971,13 @@ func (*document) getActionFunctionCompletions(
 
 // emptyCompletionList returns an empty completion list.
 //
-// Returns *protocol.CompletionList which has no items and is marked as
-// complete.
+// Returns *protocol.CompletionList which has no items and is marked as complete.
 func emptyCompletionList() *protocol.CompletionList {
 	return &protocol.CompletionList{IsIncomplete: false, Items: []protocol.CompletionItem{}}
 }
 
-// buildSymbolCompletionItem creates a completion item for a symbol. For
-// built-in functions, it adds brackets as a snippet and uses Function kind.
+// buildSymbolCompletionItem creates a completion item for a symbol. For built-in
+// functions, it adds brackets as a snippet and uses Function kind.
 //
 // Takes name (string) which is the symbol name to look up.
 // Takes symbols (*annotator_domain.SymbolTable) which holds the symbol data.
@@ -1033,16 +1021,16 @@ func isBuiltInFunction(symbol annotator_domain.Symbol) bool {
 	return ok && identifier.Name == typeBuiltInFunction
 }
 
-// buildMemberCompletionItems builds completion items from a named type's
-// fields and methods, filtered by the given prefix.
+// buildMemberCompletionItems builds completion items from a named type's fields and
+// methods, filtered by the given prefix.
 //
-// Takes namedType (*inspector_dto.Type) which provides the fields and methods
-// to turn into completion items.
+// Takes namedType (*inspector_dto.Type) which provides the fields and methods to turn
+// into completion items.
 // Takes prefix (string) which filters results to names starting with this text
 // (case-insensitive). An empty string means no filtering.
 //
-// Returns []protocol.CompletionItem which contains one item for each matching
-// field and method of the named type.
+// Returns []protocol.CompletionItem which contains one item for each matching field and
+// method of the named type.
 func buildMemberCompletionItems(namedType *inspector_dto.Type, prefix string) []protocol.CompletionItem {
 	items := make([]protocol.CompletionItem, 0, len(namedType.Fields)+len(namedType.Methods))
 	prefixLower := toLower(prefix)
@@ -1094,11 +1082,11 @@ func hasPrefix(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
-// getStaticDirectiveCompletions returns directive completions without needing
-// a document. The fast path uses this because directive completions are fixed.
+// getStaticDirectiveCompletions returns directive completions without needing a document.
+// The fast path uses this because directive completions are fixed.
 //
-// Takes prefix (string) which filters directives to those starting with this
-// text (case-insensitive). An empty string means no filtering.
+// Takes prefix (string) which filters directives to those starting with this text
+// (case-insensitive). An empty string means no filtering.
 //
 // Returns *protocol.CompletionList which contains matching Piko directives.
 func getStaticDirectiveCompletions(prefix string) *protocol.CompletionList {
@@ -1121,11 +1109,10 @@ func getStaticDirectiveCompletions(prefix string) *protocol.CompletionList {
 
 // buildDirectiveCompletionItem creates a completion item for a directive.
 //
-// Takes directive (directiveCompletionInfo) which describes the
-// directive to build.
+// Takes directive (directiveCompletionInfo) which describes the directive to build.
 //
-// Returns protocol.CompletionItem which is the formatted completion item ready
-// for use in the editor.
+// Returns protocol.CompletionItem which is the formatted completion item ready for use in
+// the editor.
 func buildDirectiveCompletionItem(directive directiveCompletionInfo) protocol.CompletionItem {
 	fullName := "p-" + directive.Name
 	var insertText string
@@ -1170,16 +1157,14 @@ func buildDirectiveCompletionItem(directive directiveCompletionInfo) protocol.Co
 	}
 }
 
-// buildPartialImportItems creates completion items from a component's partial
-// imports.
+// buildPartialImportItems creates completion items from a component's partial imports.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which provides the source
-// component containing partial imports.
-// Takes prefix (string) which filters imports to those containing this
-// substring.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the source component
+// containing partial imports.
+// Takes prefix (string) which filters imports to those containing this substring.
 //
-// Returns []protocol.CompletionItem which contains completion suggestions for
-// matching partial imports.
+// Returns []protocol.CompletionItem which contains completion suggestions for matching
+// partial imports.
 func buildPartialImportItems(comp *annotator_dto.VirtualComponent, prefix string) []protocol.CompletionItem {
 	items := make([]protocol.CompletionItem, 0, len(comp.Source.PikoImports))
 
@@ -1332,15 +1317,15 @@ func formatPropsFieldDoc(field *inspector_dto.Field, tsType string) string {
 	return documentation
 }
 
-// parseActionCompletionPrefix splits the prefix into namespace and action
-// filter parts. If the prefix contains a dot, the part before the dot is the
-// namespace and the part after is the action filter.
+// parseActionCompletionPrefix splits the prefix into namespace and action filter parts.
+// If the prefix contains a dot, the part before the dot is the namespace and the part
+// after is the action filter.
 //
 // Takes prefix (string) which is the text after "action.".
 //
 // Returns namespace (string) which is the part before the dot, or empty.
-// Returns actionFilter (string) which is the part after the dot, or the full
-// prefix if no dot is present.
+// Returns actionFilter (string) which is the part after the dot, or the full prefix if no
+// dot is present.
 // Returns hasNamespace (bool) which is true when a dot separator was found.
 func parseActionCompletionPrefix(prefix string) (namespace, actionFilter string, hasNamespace bool) {
 	if namespace, filter, found := strings.Cut(prefix, "."); found {
@@ -1349,11 +1334,11 @@ func parseActionCompletionPrefix(prefix string) (namespace, actionFilter string,
 	return "", prefix, false
 }
 
-// buildActionCompletionSignature constructs a TypeScript function signature
-// for display in the completion item detail.
+// buildActionCompletionSignature constructs a TypeScript function signature for display
+// in the completion item detail.
 //
-// Takes action (*annotator_dto.ActionDefinition) which provides the action
-// definition containing type information.
+// Takes action (*annotator_dto.ActionDefinition) which provides the action definition
+// containing type information.
 //
 // Returns string which is the formatted TypeScript signature.
 func buildActionCompletionSignature(action *annotator_dto.ActionDefinition) string {

@@ -22,15 +22,53 @@
 
 #include "textflag.h"
 
-// func dotF32SSE(a, b []float32) float32
+// dotF32SSE computes sum(a[i]*b[i]) for f32 vectors using 4-way SSE unrolling.
 TEXT ·dotF32SSE(SB), NOSPLIT, $0-52
 	MOVQ    a_base+0(FP), SI
 	MOVQ    a_len+8(FP), CX
 	MOVQ    b_base+24(FP), DI
 
 	XORPS   X0, X0
+	XORPS   X4, X4
+	XORPS   X5, X5
+	XORPS   X6, X6
 	XORPS   X3, X3
 
+	CMPQ    CX, $16
+	JL      dotsse_tail4
+
+dotsse_loop16:
+	MOVUPS  0(SI), X1
+	MOVUPS  0(DI), X2
+	MULPS   X2, X1
+	ADDPS   X1, X0
+
+	MOVUPS  16(SI), X1
+	MOVUPS  16(DI), X2
+	MULPS   X2, X1
+	ADDPS   X1, X4
+
+	MOVUPS  32(SI), X1
+	MOVUPS  32(DI), X2
+	MULPS   X2, X1
+	ADDPS   X1, X5
+
+	MOVUPS  48(SI), X1
+	MOVUPS  48(DI), X2
+	MULPS   X2, X1
+	ADDPS   X1, X6
+
+	ADDQ    $64, SI
+	ADDQ    $64, DI
+	SUBQ    $16, CX
+	CMPQ    CX, $16
+	JGE     dotsse_loop16
+
+	ADDPS   X4, X0
+	ADDPS   X5, X0
+	ADDPS   X6, X0
+
+dotsse_tail4:
 	CMPQ    CX, $4
 	JL      dotsse_tail
 
@@ -71,15 +109,81 @@ dotsse_reduce:
 	MOVSS   X0, ret+48(FP)
 	RET
 
-// func dotF32AVX2(a, b []float32) float32
+// dotF32AVX2 computes sum(a[i]*b[i]) for f32 vectors using 8-way AVX2 unrolling.
 TEXT ·dotF32AVX2(SB), NOSPLIT, $0-52
 	MOVQ    a_base+0(FP), SI
 	MOVQ    a_len+8(FP), CX
 	MOVQ    b_base+24(FP), DI
 
 	VXORPS  Y0, Y0, Y0
+	VXORPS  Y4, Y4, Y4
+	VXORPS  Y5, Y5, Y5
+	VXORPS  Y6, Y6, Y6
+	VXORPS  Y7, Y7, Y7
+	VXORPS  Y8, Y8, Y8
+	VXORPS  Y9, Y9, Y9
+	VXORPS  Y10, Y10, Y10
 	VXORPS  X3, X3, X3
 
+	CMPQ    CX, $64
+	JL      dotavx_tail8
+
+dotavx_loop64:
+	VMOVUPS 0(SI), Y1
+	VMOVUPS 0(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y0, Y0
+
+	VMOVUPS 32(SI), Y1
+	VMOVUPS 32(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y4, Y4
+
+	VMOVUPS 64(SI), Y1
+	VMOVUPS 64(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y5, Y5
+
+	VMOVUPS 96(SI), Y1
+	VMOVUPS 96(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y6, Y6
+
+	VMOVUPS 128(SI), Y1
+	VMOVUPS 128(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y7, Y7
+
+	VMOVUPS 160(SI), Y1
+	VMOVUPS 160(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y8, Y8
+
+	VMOVUPS 192(SI), Y1
+	VMOVUPS 192(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y9, Y9
+
+	VMOVUPS 224(SI), Y1
+	VMOVUPS 224(DI), Y2
+	VMULPS  Y2, Y1, Y1
+	VADDPS  Y1, Y10, Y10
+
+	ADDQ    $256, SI
+	ADDQ    $256, DI
+	SUBQ    $64, CX
+	CMPQ    CX, $64
+	JGE     dotavx_loop64
+
+	VADDPS  Y4, Y0, Y0
+	VADDPS  Y5, Y0, Y0
+	VADDPS  Y6, Y0, Y0
+	VADDPS  Y7, Y0, Y0
+	VADDPS  Y8, Y0, Y0
+	VADDPS  Y9, Y0, Y0
+	VADDPS  Y10, Y0, Y0
+
+dotavx_tail8:
 	CMPQ    CX, $8
 	JL      dotavx_tail
 

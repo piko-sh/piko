@@ -28,22 +28,24 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"piko.sh/piko/wdk/json"
 	pikoconfig "piko.sh/piko/wdk/config"
+	"piko.sh/piko/wdk/json"
 )
 
-var _ = pikoconfig.Resolver(&Resolver{})
+var (
+	_ = pikoconfig.Resolver(&Resolver{})
+)
 
-// Resolver fetches secrets from AWS Secrets Manager.
-// It implements the config.Resolver interface.
+// Resolver fetches secrets from AWS Secrets Manager. It implements the config.Resolver
+// interface.
 //
-// Circuit breaker protection is provided by the config Loader layer,
-// not by this resolver directly.
+// Circuit breaker protection is provided by the config Loader layer, not by this resolver
+// directly.
 //
 // It supports two formats for secrets:
 //   - Plain string: "aws-secret:my/secret/name"
-//   - JSON key: "aws-secret:my/json/secret#key" fetches the value of "key"
-//     from the JSON secret.
+//   - JSON key: "aws-secret:my/json/secret#key" fetches the value of "key" from the JSON
+//     secret.
 type Resolver struct {
 	// client is the AWS Secrets Manager client used to fetch secret values.
 	client *secretsmanager.Client
@@ -51,9 +53,9 @@ type Resolver struct {
 
 // NewResolver creates and initialises a new AWS Secrets Manager resolver.
 //
-// It uses the default AWS credential chain (environment variables, shared
-// credentials file, IAM roles). Ensure the application has the
-// `secretsmanager:GetSecretValue` IAM permission.
+// It uses the default AWS credential chain (environment variables, shared credentials
+// file, IAM roles). Ensure the application has the `secretsmanager:GetSecretValue` IAM
+// permission.
 //
 // Returns *Resolver which is the configured resolver ready for use.
 // Returns error when the AWS configuration cannot be loaded.
@@ -70,20 +72,20 @@ func NewResolver(ctx context.Context) (*Resolver, error) {
 
 // GetPrefix returns the prefix this resolver handles.
 //
-// Returns string which is the prefix "aws-secret:" used to identify secrets
-// that should be resolved by this resolver.
+// Returns string which is the prefix "aws-secret:" used to identify secrets that should
+// be resolved by this resolver.
 func (*Resolver) GetPrefix() string {
 	return "aws-secret:"
 }
 
 // Resolve fetches the secret value from AWS Secrets Manager.
 //
-// Takes value (string) which specifies the secret ID, optionally followed by
-// "#key" to extract a specific field from a JSON secret.
+// Takes value (string) which specifies the secret ID, optionally followed by "#key" to
+// extract a specific field from a JSON secret.
 //
 // Returns string which is the resolved secret value.
-// Returns error when the secret format is invalid, the secret is not found,
-// the secret is binary rather than a string, or JSON parsing fails.
+// Returns error when the secret format is invalid, the secret is not found, the secret is
+// binary rather than a string, or JSON parsing fails.
 func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	secretID, jsonKey, _ := strings.Cut(value, "#")
 	if secretID == "" {
@@ -120,9 +122,9 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	return secretValue, nil
 }
 
-// Register creates a new AWS Secrets Manager resolver and registers it in the
-// global resolver registry. This is a convenience function equivalent to
-// [NewResolver] followed by [config.RegisterResolver].
+// Register creates a new AWS Secrets Manager resolver and registers it in the global
+// resolver registry. This is a convenience function equivalent to NewResolver followed by
+// config.RegisterResolver.
 //
 // Returns error when resolver creation or registration fails.
 //

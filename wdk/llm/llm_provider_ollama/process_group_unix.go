@@ -22,20 +22,17 @@ import (
 	"syscall"
 )
 
-// configureManagedOllamaCommand sets up a dedicated process
-// group for the managed Ollama subprocess on Unix.
+// configureManagedOllamaCommand sets up a dedicated process group for the managed Ollama
+// subprocess on Unix.
 //
-// Takes command (*exec.Cmd) which is the subprocess to
-// configure.
+// Takes command (*exec.Cmd) which is the subprocess to configure.
 func configureManagedOllamaCommand(command *exec.Cmd) {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 }
 
-// interruptManagedOllamaCommand sends SIGINT to the managed
-// process group.
+// interruptManagedOllamaCommand sends SIGINT to the managed process group.
 //
-// Takes command (*exec.Cmd) which is the subprocess to
-// interrupt.
+// Takes command (*exec.Cmd) which is the subprocess to interrupt.
 //
 // Returns error if the signal cannot be delivered.
 func interruptManagedOllamaCommand(command *exec.Cmd) error {
@@ -49,8 +46,7 @@ func interruptManagedOllamaCommand(command *exec.Cmd) error {
 	return syscall.Kill(-pgid, syscall.SIGINT)
 }
 
-// killManagedOllamaCommand sends SIGKILL to the managed
-// process group.
+// killManagedOllamaCommand sends SIGKILL to the managed process group.
 //
 // Takes command (*exec.Cmd) which is the subprocess to kill.
 //

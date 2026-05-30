@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crypto_adapters implements encryption providers for the
-// crypto domain.
+// Package crypto_adapters implements encryption providers for the crypto domain.
 //
-// It supplies concrete implementations of the encryption provider port
-// along with factory functions for common initialisation patterns and a
-// cache factory blueprint for secure caching of sensitive data.
+// It supplies concrete implementations of the encryption provider port along with factory
+// functions for common initialisation patterns and a cache factory blueprint for secure
+// caching of sensitive data.
 //
-// All provider implementations are safe for concurrent use. The
-// streaming encryption/decryption writers and readers are not safe
-// for concurrent access and should be used from a single goroutine.
+// All provider implementations are safe for concurrent use. The streaming
+// encryption/decryption writers and readers are not safe for concurrent access and should
+// be used from a single goroutine.
 package crypto_adapters

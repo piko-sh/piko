@@ -25,8 +25,10 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// nilLiteral is the string "nil" used to create nil expressions in Go code.
-const nilLiteral = "nil"
+const (
+	// nilLiteral is the string "nil" used to create nil expressions in Go code.
+	nilLiteral = "nil"
+)
 
 // defineAndAssign creates a short variable declaration statement (varName :=
 // rightHandSide). Used to create new local variables.
@@ -43,8 +45,7 @@ func defineAndAssign(varName string, rightHandSide goast.Expr) *goast.AssignStmt
 	}
 }
 
-// assignExpression creates a Go assignment statement that assigns a value to a
-// variable.
+// assignExpression creates a Go assignment statement that assigns a value to a variable.
 //
 // Takes varName (string) which is the name of the variable to assign to.
 // Takes rightHandSide (goast.Expr) which is the expression to assign.
@@ -58,10 +59,10 @@ func assignExpression(varName string, rightHandSide goast.Expr) *goast.AssignStm
 	}
 }
 
-// appendToSlice creates a Go assignment statement of the form
-// `slice = append(slice, element)` for adding items to slices. It accepts
-// goast.Expr for both parameters, allowing appends to complex expressions
-// like `tempVar1.Children` or `tempVar2.Attributes`.
+// appendToSlice creates a Go assignment statement of the form `slice = append(slice,
+// element)` for adding items to slices. It accepts goast.Expr for both parameters,
+// allowing appends to complex expressions like `tempVar1.Children` or
+// `tempVar2.Attributes`.
 //
 // Takes sliceExpr (goast.Expr) which is the slice to append to.
 // Takes elemExpr (goast.Expr) which is the element to add.
@@ -80,8 +81,8 @@ func appendToSlice(sliceExpr goast.Expr, elemExpr goast.Expr) *goast.AssignStmt 
 	}
 }
 
-// strLit creates a Go AST string literal from a string value.
-// This is a thin wrapper around goastutil.StrLit.
+// strLit creates a Go AST string literal from a string value. This is a thin wrapper
+// around goastutil.StrLit.
 //
 // Takes s (string) which is the value to convert to an AST literal.
 //
@@ -90,8 +91,8 @@ func strLit(s string) *goast.BasicLit {
 	return goastutil.StrLit(s)
 }
 
-// intLit creates a Go AST integer literal from an int value.
-// This is a thin wrapper around goastutil.IntLit.
+// intLit creates a Go AST integer literal from an int value. This is a thin wrapper
+// around goastutil.IntLit.
 //
 // Takes i (int) which is the integer value to convert.
 //
@@ -100,8 +101,8 @@ func intLit(i int) *goast.BasicLit {
 	return goastutil.IntLit(i)
 }
 
-// callHelper creates a function call to a helper in the generator_helpers
-// package. This is the standard way to call runtime helper functions.
+// callHelper creates a function call to a helper in the generator_helpers package. This
+// is the standard way to call runtime helper functions.
 //
 // Takes functionName (string) which is the name of the helper function to call.
 // Takes arguments (...goast.Expr) which are the arguments to pass to the function.
@@ -117,16 +118,14 @@ func callHelper(functionName string, arguments ...goast.Expr) *goast.CallExpr {
 	}
 }
 
-// callHelperArena constructs a call to a pikoruntime arena-aware helper.
-// It automatically prepends the arena variable as the first argument.
+// callHelperArena constructs a call to a pikoruntime arena-aware helper. It automatically
+// prepends the arena variable as the first argument.
 //
-// This is used for arena-based ByteBuf functions that take arena as their
-// first parameter to eliminate sync.Pool allocations.
+// This is used for arena-based ByteBuf functions that take arena as their first parameter
+// to eliminate sync.Pool allocations.
 //
-// Takes functionName (string) which is the name of the
-// arena-aware helper function.
-// Takes arguments (...goast.Expr) which are the arguments after
-// the arena parameter.
+// Takes functionName (string) which is the name of the arena-aware helper function.
+// Takes arguments (...goast.Expr) which are the arguments after the arena parameter.
 //
 // Returns *goast.CallExpr which is the built function call expression.
 func callHelperArena(functionName string, arguments ...goast.Expr) *goast.CallExpr {
@@ -142,16 +141,15 @@ func callHelperArena(functionName string, arguments ...goast.Expr) *goast.CallEx
 	}
 }
 
-// wrapInTruthinessCall wraps an expression in a runtime helper call for
-// JavaScript-like truthiness checks.
+// wrapInTruthinessCall wraps an expression in a runtime helper call for JavaScript-like
+// truthiness checks.
 //
-// The control flow emitter decides when to use this based on type notes. If
-// the type is already a bool, the wrapper is not called.
+// The control flow emitter decides when to use this based on type notes. If the type is
+// already a bool, the wrapper is not called.
 //
 // Takes expression (goast.Expr) which is the expression to wrap.
 //
-// Returns goast.Expr which is a call expression that invokes
-// EvaluateTruthiness.
+// Returns goast.Expr which is a call expression that invokes EvaluateTruthiness.
 func wrapInTruthinessCall(expression goast.Expr) goast.Expr {
 	return callHelper("EvaluateTruthiness", expression)
 }
@@ -160,10 +158,10 @@ func wrapInTruthinessCall(expression goast.Expr) goast.Expr {
 //
 // Takes typeExpr (goast.Expr) which specifies the type to get a zero value for.
 //
-// Returns goast.Expr which is the AST node for the zero value. For pointer,
-// map, function, channel, and interface types, this returns nil. For basic
-// types like string, bool, and numeric types, this returns the correct zero
-// value. For other types, this returns an empty composite literal.
+// Returns goast.Expr which is the AST node for the zero value. For pointer, map,
+// function, channel, and interface types, this returns nil. For basic types like string,
+// bool, and numeric types, this returns the correct zero value. For other types, this
+// returns an empty composite literal.
 func getZeroValueExpr(typeExpr goast.Expr) goast.Expr {
 	if typeExpr == nil {
 		return cachedIdent(nilLiteral)
@@ -194,14 +192,14 @@ func getZeroValueExpr(typeExpr goast.Expr) goast.Expr {
 	return &goast.CompositeLit{Type: typeExpr}
 }
 
-// createHTMLAttributeLiteral creates an HTMLAttribute struct literal for use
-// in Go AST code generation.
+// createHTMLAttributeLiteral creates an HTMLAttribute struct literal for use in Go AST
+// code generation.
 //
 // Takes name (string) which is the attribute name.
 // Takes value (string) which is the attribute value.
 //
-// Returns *goast.CompositeLit which is the HTMLAttribute literal ready for
-// code generation.
+// Returns *goast.CompositeLit which is the HTMLAttribute literal ready for code
+// generation.
 func createHTMLAttributeLiteral(name, value string) *goast.CompositeLit {
 	return &goast.CompositeLit{
 		Type: cachedIdent("pikoruntime.HTMLAttribute"),

@@ -889,7 +889,9 @@ func TestEvalCrossPackageStringConst(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() bool {
 	return lib.Flag
@@ -922,7 +924,9 @@ func TestEvalCrossPackageFloatConstUsage(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/lib"
+import (
+	"testmod/lib"
+)
 
 func entrypoint() float64 {
 	return lib.Pi * 2
@@ -1032,7 +1036,9 @@ func TestEvalWithEnv(t *testing.T) {
 		service := NewService(WithEnv(map[string]string{}))
 		service.UseSymbols(newOSSymbols())
 		source := `package main
-import "os"
+import (
+	"os"
+)
 func Run() string {
 	os.Setenv("NEW_KEY", "new_val")
 	return os.Getenv("NEW_KEY")

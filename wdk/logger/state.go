@@ -43,12 +43,12 @@ var (
 	ClearAllHandlers = logger_state.ClearAllHandlers
 )
 
-// Apply configures the logger with server-specific settings, including
-// OpenTelemetry integration. It sets up trace and metrics exporters based on
-// the provided OtelSetupConfig.
+// Apply configures the logger with server-specific settings, including OpenTelemetry
+// integration. It sets up trace and metrics exporters based on the provided
+// OtelSetupConfig.
 //
-// Takes otelConfig (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// exporter settings for OpenTelemetry integration.
+// Takes otelConfig (driver_handlers.OtelSetupConfig) which specifies the OTLP exporter
+// settings for OpenTelemetry integration.
 //
 // Returns error when the OpenTelemetry setup fails.
 func Apply(otelConfig driver_handlers.OtelSetupConfig) error {

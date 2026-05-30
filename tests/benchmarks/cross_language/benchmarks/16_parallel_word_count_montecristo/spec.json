@@ -1,0 +1,20 @@
+{
+  "name": "16_parallel_word_count_montecristo",
+  "description": "TENGO_SKIPPED: tengo has no goroutines/threads. Parallel word-frequency count over The Count of Monte Cristo (Project Gutenberg #1184, ~2.7MB). 16 workers per the language's idiomatic CPU-parallel primitive: goroutines+WaitGroup on Go family, multiprocessing.Pool on Python. Banned: str.split, strings.Fields, regexp, sort.*, sorted(key=...), threading/asyncio. Demonstrates piko's GIL-free multi-core throughput.",
+  "args": [],
+  "expected_stdout_sha256": "c7108ebe89b00f1cd029f7def4bbefc3fadb3aec497deed800431cc09fa5fc1f",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "skip_runners": [
+    "yaegi",
+    "tengo"
+  ],
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "5ce2b1fd2a0b1a3895a439b45a893ea2869360f7d60543f4c908886956ee933f",
+    "py/cpython.py": "8bda3f16e67afa425530792f4622fe06989b3df37971083db884b39f2eddaa34",
+    "py/pypy.py": "8bda3f16e67afa425530792f4622fe06989b3df37971083db884b39f2eddaa34",
+    "testdata/SOURCE.md": "d851cdd9a2895794117b90ccee6164876fe0e2aed9756b395e3590db6d825f87",
+    "testdata/corpus.txt": "e278c29c036c2cec47eeec47e79d5580d3b379489c5df7d71e095a22eb686217"
+  }
+}

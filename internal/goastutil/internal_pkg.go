@@ -18,20 +18,21 @@
 
 package goastutil
 
-import "strings"
+import (
+	"strings"
+)
 
-// IsInternalPackage checks if a package path contains an internal component.
-// In Go, a directory named "internal" is special: packages within it can only
-// be imported by packages rooted at the parent of the internal directory.
+// IsInternalPackage checks if a package path contains an internal component. In Go, a
+// directory named "internal" is special: packages within it can only be imported by
+// packages rooted at the parent of the internal directory.
 //
-// Uses a single-pass algorithm: one strings.Index call followed by boundary
-// checks, rather than multiple string operations.
+// Uses a single-pass algorithm: one strings.Index call followed by boundary checks,
+// rather than multiple string operations.
 //
 // Takes packagePath (string) which is the package path to check.
 //
-// Returns bool which is true if the path contains "internal" as a path
-// component (e.g., "/internal/", "/internal", "internal/", or exactly
-// "internal").
+// Returns bool which is true if the path contains "internal" as a path component (e.g.,
+// "/internal/", "/internal", "internal/", or exactly "internal").
 func IsInternalPackage(packagePath string) bool {
 	const target = "internal"
 	const targetLen = 8
@@ -49,19 +50,18 @@ func IsInternalPackage(packagePath string) bool {
 	return end == len(packagePath) || packagePath[end] == '/'
 }
 
-// CanAccessInternalPackage checks if a module can access an internal package
-// based on path analysis alone.
+// CanAccessInternalPackage checks if a module can access an internal package based on
+// path analysis alone.
 //
 // Handles two cases:
 //   - User's own internal packages -> accessible (direct imports allowed)
-//   - Stdlib internal packages -> filtered (truly unreachable, e.g.
-//     crypto/internal)
+//   - Stdlib internal packages -> filtered (truly unreachable, e.g. crypto/internal)
 //
-// For third-party internal packages, use ShouldIncludeInternalPackage which
-// takes a hasModule parameter for more reliable detection.
+// For third-party internal packages, use ShouldIncludeInternalPackage which takes a
+// hasModule parameter for more reliable detection.
 //
-// Takes userModulePath (string) which is the user's module path (e.g.
-// a local module name or a GitHub-hosted module path).
+// Takes userModulePath (string) which is the user's module path (e.g. a local module name
+// or a GitHub-hosted module path).
 // Takes targetPath (string) which is the package path being checked.
 //
 // Returns bool which is true if targetPath is the user's own internal package.
@@ -79,8 +79,8 @@ func CanAccessInternalPackage(userModulePath, targetPath string) bool {
 		userModulePath == requiredPrefix
 }
 
-// ShouldIncludeInternalPackage checks if an internal package should be used
-// in type analysis. This is the main filter used during package discovery.
+// ShouldIncludeInternalPackage checks if an internal package should be used in type
+// analysis. This is the main filter used during package discovery.
 //
 // The rules are:
 //   - Non-internal packages are always included.
@@ -88,14 +88,14 @@ func CanAccessInternalPackage(userModulePath, targetPath string) bool {
 //   - Third-party internal packages are included for type alias resolution.
 //   - Standard library internal packages are excluded.
 //
-// Third-party libraries often have public types that are aliases to internal
-// types. For example, piko.RequestData may be an alias to an internal type.
-// Without including those internal packages, method resolution would fail.
+// Third-party libraries often have public types that are aliases to internal types. For
+// example, piko.RequestData may be an alias to an internal type. Without including those
+// internal packages, method resolution would fail.
 //
 // Takes userModulePath (string) which is the module path of the user's code.
 // Takes targetPath (string) which is the package path to check.
-// Takes hasModule (bool) which is true for third-party packages with a go.mod,
-// or false for standard library packages.
+// Takes hasModule (bool) which is true for third-party packages with a go.mod, or false
+// for standard library packages.
 //
 // Returns bool which is true if the package should be included.
 func ShouldIncludeInternalPackage(userModulePath, targetPath string, hasModule bool) bool {

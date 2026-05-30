@@ -32,12 +32,12 @@ import (
 //
 // Takes data ([]byte) which contains the FlatBuffer-encoded action manifest.
 //
-// Returns *typegen_dto.ActionManifest which is the parsed manifest, or nil if
-// data is empty.
+// Returns *typegen_dto.ActionManifest which is the parsed manifest, or nil if data is
+// empty.
 //
-// SAFETY: The returned DTO contains strings that reference 'data' directly
-// via mem.String. Go's GC keeps 'data' alive through these string references.
-// The caller must not modify 'data' while the DTO is in use.
+// SAFETY: The returned DTO contains strings that reference 'data' directly via
+// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
+// not modify 'data' while the DTO is in use.
 func ParseActionManifest(data []byte) *typegen_dto.ActionManifest {
 	if len(data) == 0 {
 		return nil
@@ -84,11 +84,10 @@ func convertActionManifestFB(fb *fbs.ActionManifestFB) *typegen_dto.ActionManife
 
 // convertActionEntryFB converts a FlatBuffers action entry to a DTO.
 //
-// Takes fb (*fbs.ActionEntryFB) which is the FlatBuffers action entry to
-// convert.
+// Takes fb (*fbs.ActionEntryFB) which is the FlatBuffers action entry to convert.
 //
-// Returns typegen_dto.ActionEntry which is the converted action entry with all
-// fields populated.
+// Returns typegen_dto.ActionEntry which is the converted action entry with all fields
+// populated.
 func convertActionEntryFB(fb *fbs.ActionEntryFB) typegen_dto.ActionEntry {
 	entry := typegen_dto.ActionEntry{
 		Name:           mem.String(fb.Name()),
@@ -133,8 +132,8 @@ func convertActionParamFB(fb *fbs.ActionParamFB) typegen_dto.ActionParam {
 //
 // Takes fb (*fbs.ActionTypeFB) which is the FlatBuffers representation to convert.
 //
-// Returns typegen_dto.ActionType which contains the converted action type with
-// its name, package path, and fields.
+// Returns typegen_dto.ActionType which contains the converted action type with its name,
+// package path, and fields.
 func convertActionTypeFB(fb *fbs.ActionTypeFB) typegen_dto.ActionType {
 	actionType := typegen_dto.ActionType{
 		Name:        mem.String(fb.Name()),
@@ -157,8 +156,7 @@ func convertActionTypeFB(fb *fbs.ActionTypeFB) typegen_dto.ActionType {
 
 // convertActionFieldFB converts a FlatBuffers action field to a DTO.
 //
-// Takes fb (*fbs.ActionFieldFB) which is the FlatBuffers representation to
-// convert.
+// Takes fb (*fbs.ActionFieldFB) which is the FlatBuffers representation to convert.
 //
 // Returns typegen_dto.ActionField which contains the converted field data.
 func convertActionFieldFB(fb *fbs.ActionFieldFB) typegen_dto.ActionField {

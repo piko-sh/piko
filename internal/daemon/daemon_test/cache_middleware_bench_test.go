@@ -30,9 +30,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"

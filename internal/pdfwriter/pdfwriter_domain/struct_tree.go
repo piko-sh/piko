@@ -105,59 +105,61 @@ const (
 	pdfSeparator = " "
 )
 
-// htmlToStructTagMap maps HTML tag names to PDF structure tags.
-var htmlToStructTagMap = map[string]StructTag{
-	"h1":       TagH1,
-	"h2":       TagH2,
-	"h3":       TagH3,
-	"h4":       TagH4,
-	"h5":       TagH5,
-	"h6":       TagH6,
-	"p":        TagP,
-	"div":      TagDiv,
-	"section":  TagDiv,
-	"article":  TagDiv,
-	"main":     TagDiv,
-	"nav":      TagDiv,
-	"aside":    TagDiv,
-	"header":   TagDiv,
-	"footer":   TagDiv,
-	"span":     TagSpan,
-	"em":       TagSpan,
-	"strong":   TagSpan,
-	"b":        TagSpan,
-	"i":        TagSpan,
-	"u":        TagSpan,
-	"s":        TagSpan,
-	"small":    TagSpan,
-	"sub":      TagSpan,
-	"sup":      TagSpan,
-	"code":     TagSpan,
-	"label":    TagSpan,
-	"table":    TagTable,
-	"tr":       TagTR,
-	"th":       TagTH,
-	"td":       TagTD,
-	"thead":    TagTHead,
-	"tbody":    TagTBody,
-	"img":      TagFigure,
-	"a":        TagLink,
-	"ul":       TagL,
-	"ol":       TagL,
-	"li":       TagLI,
-	"form":     TagForm,
-	"input":    TagForm,
-	"textarea": TagForm,
-	"select":   TagForm,
-	"button":   TagForm,
-}
+var (
+	// htmlToStructTagMap maps HTML tag names to PDF structure tags.
+	htmlToStructTagMap = map[string]StructTag{
+		"h1":       TagH1,
+		"h2":       TagH2,
+		"h3":       TagH3,
+		"h4":       TagH4,
+		"h5":       TagH5,
+		"h6":       TagH6,
+		"p":        TagP,
+		"div":      TagDiv,
+		"section":  TagDiv,
+		"article":  TagDiv,
+		"main":     TagDiv,
+		"nav":      TagDiv,
+		"aside":    TagDiv,
+		"header":   TagDiv,
+		"footer":   TagDiv,
+		"span":     TagSpan,
+		"em":       TagSpan,
+		"strong":   TagSpan,
+		"b":        TagSpan,
+		"i":        TagSpan,
+		"u":        TagSpan,
+		"s":        TagSpan,
+		"small":    TagSpan,
+		"sub":      TagSpan,
+		"sup":      TagSpan,
+		"code":     TagSpan,
+		"label":    TagSpan,
+		"table":    TagTable,
+		"tr":       TagTR,
+		"th":       TagTH,
+		"td":       TagTD,
+		"thead":    TagTHead,
+		"tbody":    TagTBody,
+		"img":      TagFigure,
+		"a":        TagLink,
+		"ul":       TagL,
+		"ol":       TagL,
+		"li":       TagLI,
+		"form":     TagForm,
+		"input":    TagForm,
+		"textarea": TagForm,
+		"select":   TagForm,
+		"button":   TagForm,
+	}
+)
 
 // MapHTMLToStructTag maps an HTML tag name to the corresponding PDF structure tag.
 //
 // Takes tagName (string) which specifies the lowercase HTML element name to look up.
 //
-// Returns StructTag which holds the corresponding PDF structure tag, or an empty
-// string for elements that should not be tagged.
+// Returns StructTag which holds the corresponding PDF structure tag, or an empty string
+// for elements that should not be tagged.
 func MapHTMLToStructTag(tagName string) StructTag {
 	if tag, ok := htmlToStructTagMap[tagName]; ok {
 		return tag
@@ -230,13 +232,13 @@ func (*StructTree) AddChild(parent *StructNode, tag StructTag) *StructNode {
 	return node
 }
 
-// MarkContent allocates a marked content ID (MCID) for
-// the given page and associates it with the node.
+// MarkContent allocates a marked content ID (MCID) for the given page and associates it
+// with the node.
 //
-// Takes node (*StructNode) which specifies the structure
-// element to associate with the content.
-// Takes pageIndex (int) which specifies the zero-based
-// page index where the content appears.
+// Takes node (*StructNode) which specifies the structure element to associate with the
+// content.
+// Takes pageIndex (int) which specifies the zero-based page index where the content
+// appears.
 //
 // Returns int which holds the MCID to emit in the content stream via BDC/BMC operators.
 func (st *StructTree) MarkContent(node *StructNode, pageIndex int) int {
@@ -258,10 +260,9 @@ func (st *StructTree) IsEmpty() bool {
 
 // WriteObjects serialises the structure tree into PDF objects.
 //
-// Takes writer (*PdfDocumentWriter) which specifies the
-// document writer to emit objects to.
-// Takes pageObjNumbers ([]int) which specifies the PDF
-// object numbers for each page.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
 //
 // Returns int which holds the StructTreeRoot object number, or 0 if the tree is empty.
 func (st *StructTree) WriteObjects(writer *PdfDocumentWriter, pageObjNumbers []int) int {
@@ -305,22 +306,18 @@ type parentTreeEntry struct {
 	elemRef int
 }
 
-// writeChildren recursively writes StructElem objects for
-// a node's children.
+// writeChildren recursively writes StructElem objects for a node's children.
 //
-// Takes writer (*PdfDocumentWriter) which specifies the
-// document writer to emit objects to.
-// Takes node (*StructNode) which specifies the parent
-// node whose children are written.
-// Takes parentNumber (int) which specifies the PDF object
-// number of the parent element.
-// Takes pageObjNumbers ([]int) which specifies the PDF
-// object numbers for each page.
-// Takes parentEntries (*[]parentTreeEntry) which specifies
-// the accumulator for parent tree entries.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes node (*StructNode) which specifies the parent node whose children are written.
+// Takes parentNumber (int) which specifies the PDF object number of the parent element.
+// Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
+// Takes parentEntries (*[]parentTreeEntry) which specifies the accumulator for parent
+// tree entries.
 //
-// Returns string which holds the /K value (single
-// reference or array) for the parent dictionary.
+// Returns string which holds the /K value (single reference or array) for the parent
+// dictionary.
 func (st *StructTree) writeChildren(
 	writer *PdfDocumentWriter,
 	node *StructNode,
@@ -383,13 +380,13 @@ func (st *StructTree) writeChildren(
 	return fmt.Sprintf("[%s]", strings.Join(kidRefs, pdfSeparator))
 }
 
-// writeParentTree constructs the /ParentTree number tree
-// mapping page indices to struct element references.
+// writeParentTree constructs the /ParentTree number tree mapping page indices to struct
+// element references.
 //
-// Takes writer (*PdfDocumentWriter) which specifies the
-// document writer to emit objects to.
-// Takes entries ([]parentTreeEntry) which specifies the
-// MCID-to-element mappings for all pages.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes entries ([]parentTreeEntry) which specifies the MCID-to-element mappings for all
+// pages.
 // Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
 //
 // Returns int which holds the PDF object number of the parent tree dictionary.
@@ -432,14 +429,13 @@ func groupParentEntriesByPage(entries []parentTreeEntry) map[int][]parentTreeEnt
 	return pageMap
 }
 
-// buildParentRefArray builds the reference array for a
-// single page's parent tree entry, indexed by MCID.
+// buildParentRefArray builds the reference array for a single page's parent tree entry,
+// indexed by MCID.
 //
-// Takes pes ([]parentTreeEntry) which specifies the
-// parent tree entries for one page.
+// Takes pes ([]parentTreeEntry) which specifies the parent tree entries for one page.
 //
-// Returns []string which holds the PDF object references
-// indexed by MCID, with null for unused slots.
+// Returns []string which holds the PDF object references indexed by MCID, with null for
+// unused slots.
 func buildParentRefArray(pes []parentTreeEntry) []string {
 	maxMcid := 0
 	for _, pe := range pes {

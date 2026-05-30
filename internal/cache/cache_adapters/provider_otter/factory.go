@@ -45,15 +45,14 @@ type entryData[V any] struct {
 	ExpiresAt int64
 }
 
-// OtterProviderFactory is the factory function for creating Otter adapters
-// that accepts typed Options and returns a properly configured OtterAdapter
-// with cache_dto-to-otter type conversions handled by adapter wrappers.
+// OtterProviderFactory is the factory function for creating Otter adapters that accepts
+// typed Options and returns a properly configured OtterAdapter with cache_dto-to-otter
+// type conversions handled by adapter wrappers.
 //
-// Takes options (cache_dto.Options[K, V]) which provides the cache
-// configuration including size limits, expiry, and search schema.
+// Takes options (cache_dto.Options[K, V]) which provides the cache configuration
+// including size limits, expiry, and search schema.
 //
-// Returns cache_domain.ProviderPort[K, V] which is the configured
-// Otter cache adapter.
+// Returns cache_domain.ProviderPort[K, V] which is the configured Otter cache adapter.
 // Returns error when the otter cache instance cannot be created.
 func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) (cache_domain.ProviderPort[K, V], error) {
 	adapter := &OtterAdapter[K, V]{
@@ -82,8 +81,8 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 	return adapter, nil
 }
 
-// configureSearchSchema sets up the tag, inverted, sorted, and vector indexes
-// on the adapter from the provided search schema.
+// configureSearchSchema sets up the tag, inverted, sorted, and vector indexes on the
+// adapter from the provided search schema.
 //
 // Takes adapter (*OtterAdapter[K, V]) which is the adapter to configure.
 // Takes schema (*cache_dto.SearchSchema) which defines the index configuration.
@@ -107,12 +106,10 @@ func configureSearchSchema[K comparable, V any](adapter *OtterAdapter[K, V], sch
 	configureFieldIndexes(adapter, schema)
 }
 
-// configureFieldIndexes creates sorted and vector indexes for each field in the
-// schema.
+// configureFieldIndexes creates sorted and vector indexes for each field in the schema.
 //
 // Takes adapter (*OtterAdapter[K, V]) which receives the index instances.
-// Takes schema (*cache_dto.SearchSchema) which defines the fields and their
-// properties.
+// Takes schema (*cache_dto.SearchSchema) which defines the fields and their properties.
 func configureFieldIndexes[K comparable, V any](adapter *OtterAdapter[K, V], schema *cache_dto.SearchSchema) {
 	for _, field := range schema.Fields {
 		if field.Sortable {
@@ -132,15 +129,14 @@ func configureFieldIndexes[K comparable, V any](adapter *OtterAdapter[K, V], sch
 	}
 }
 
-// initialisePersistence initialises WAL and snapshot store if persistence is
-// configured.
+// initialisePersistence initialises WAL and snapshot store if persistence is configured.
 //
-// Takes options (Options) which provides cache configuration including
-// persistence settings.
+// Takes options (Options) which provides cache configuration including persistence
+// settings.
 // Takes adapter (*OtterAdapter) which is the cache adapter to configure.
 //
-// Returns error when persistence configuration is invalid, WAL creation fails,
-// snapshot store creation fails, or recovery from persistence fails.
+// Returns error when persistence configuration is invalid, WAL creation fails, snapshot
+// store creation fails, or recovery from persistence fails.
 func initialisePersistence[K comparable, V any](ctx context.Context, options cache_dto.Options[K, V], adapter *OtterAdapter[K, V]) error {
 	persistConfig, ok := options.ProviderSpecific.(PersistenceConfig[K, V])
 	if !ok || !persistConfig.Enabled {
@@ -183,8 +179,8 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 	return nil
 }
 
-// recoverFromPersistence loads data from snapshot and WAL using streaming APIs,
-// replaying operations into the cache without loading all entries into memory.
+// recoverFromPersistence loads data from snapshot and WAL using streaming APIs, replaying
+// operations into the cache without loading all entries into memory.
 //
 // Takes adapter (*OtterAdapter) which provides the cache and persistence layer.
 //
@@ -277,8 +273,7 @@ func loadWALEntries[K comparable, V any](
 //
 // Takes adapter (*OtterAdapter[K, V]) which is the cache adapter to populate.
 // Takes state (map[K]entryData[V]) which contains the recovered entries.
-// Takes nowNano (int64) which is the current time in nanoseconds for expiry
-// calculations.
+// Takes nowNano (int64) which is the current time in nanoseconds for expiry calculations.
 func populateCacheFromState[K comparable, V any](adapter *OtterAdapter[K, V], state map[K]entryData[V], nowNano int64) {
 	for key, data := range state {
 		adapter.tagIndex.Add(key, data.Tags)
@@ -298,8 +293,7 @@ func populateCacheFromState[K comparable, V any](adapter *OtterAdapter[K, V], st
 //
 // Takes state (map[K]entryData[V]) which is the current state to modify.
 // Takes entry (wal_domain.Entry[K, V]) which is the WAL entry to apply.
-// Takes nowNano (int64) which is the current time in nanoseconds for expiry
-// checks.
+// Takes nowNano (int64) which is the current time in nanoseconds for expiry checks.
 func applyEntryToState[K comparable, V any](state map[K]entryData[V], entry wal_domain.Entry[K, V], nowNano int64) {
 	switch entry.Operation {
 	case wal_domain.OpSet:
@@ -320,16 +314,15 @@ func applyEntryToState[K comparable, V any](state map[K]entryData[V], entry wal_
 	}
 }
 
-// buildOtterOptions constructs otter.Options from cache_dto.Options, wiring up
-// the tag index cleanup handlers and converting interface types.
+// buildOtterOptions constructs otter.Options from cache_dto.Options, wiring up the tag
+// index cleanup handlers and converting interface types.
 //
-// Takes options (cache_dto.Options[K, V]) which provides the cache
-// configuration to convert.
-// Takes adapter (*OtterAdapter[K, V]) which provides access to
-// the tag and search indexes for deletion handlers.
+// Takes options (cache_dto.Options[K, V]) which provides the cache configuration to
+// convert.
+// Takes adapter (*OtterAdapter[K, V]) which provides access to the tag and search indexes
+// for deletion handlers.
 //
-// Returns *otter.Options[K, V] which contains the converted otter
-// configuration.
+// Returns *otter.Options[K, V] which contains the converted otter configuration.
 func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], adapter *OtterAdapter[K, V]) *otter.Options[K, V] {
 	otterOpts := &otter.Options[K, V]{
 		MaximumSize:       options.MaximumSize,
@@ -350,16 +343,15 @@ func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], ada
 	return otterOpts
 }
 
-// buildDeletionHandler creates a handler for deletion events that removes
-// entries from the tag index and search indexes, then calls any user-provided
-// handler.
+// buildDeletionHandler creates a handler for deletion events that removes entries from
+// the tag index and search indexes, then calls any user-provided handler.
 //
 // Takes adapter (*OtterAdapter[K, V]) which provides access to the indexes.
-// Takes userHandler (func(otter.DeletionEvent[K, V])) which is an optional
-// callback to run after cleanup.
+// Takes userHandler (func(otter.DeletionEvent[K, V])) which is an optional callback to
+// run after cleanup.
 //
-// Returns func(otter.DeletionEvent[K, V]) which handles deletion events by
-// removing the key from all indexes and calling the user handler if provided.
+// Returns func(otter.DeletionEvent[K, V]) which handles deletion events by removing the
+// key from all indexes and calling the user handler if provided.
 func buildDeletionHandler[K comparable, V any](adapter *OtterAdapter[K, V], userHandler func(otter.DeletionEvent[K, V])) func(otter.DeletionEvent[K, V]) {
 	return func(e otter.DeletionEvent[K, V]) {
 		if e.Cause != otter.CauseReplacement {

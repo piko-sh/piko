@@ -23,10 +23,9 @@ import (
 	"time"
 )
 
-// sseDeadlineWriter wraps an http.ResponseWriter and applies a per-write
-// deadline before each Write call so a slow consumer cannot hold the
-// connection open indefinitely. The wrapper preserves http.Flusher semantics
-// for SSE streaming.
+// sseDeadlineWriter wraps an http.ResponseWriter and applies a per-write deadline before
+// each Write call so a slow consumer cannot hold the connection open indefinitely. The
+// wrapper preserves http.Flusher semantics for SSE streaming.
 type sseDeadlineWriter struct {
 	// ResponseWriter is the underlying writer the deadline is applied to.
 	http.ResponseWriter
@@ -39,11 +38,10 @@ type sseDeadlineWriter struct {
 }
 
 // newSSEDeadlineWriter wraps w so each subsequent Write call is preceded by
-// SetWriteDeadline(now + timeout). When timeout is non-positive the wrapper
-// is returned unmodified for callers that prefer to disable the deadline.
+// SetWriteDeadline(now + timeout). When timeout is non-positive the wrapper is returned
+// unmodified for callers that prefer to disable the deadline.
 //
-// Takes w (http.ResponseWriter) which is the underlying writer for the SSE
-// response.
+// Takes w (http.ResponseWriter) which is the underlying writer for the SSE response.
 // Takes timeout (time.Duration) which bounds individual write durations.
 //
 // Returns http.ResponseWriter which applies the deadline before each write.
@@ -58,9 +56,9 @@ func newSSEDeadlineWriter(w http.ResponseWriter, timeout time.Duration) http.Res
 	}
 }
 
-// Write applies the configured write deadline to the underlying connection
-// and forwards the data. SetWriteDeadline failures are ignored so backends
-// without deadline support degrade to the original behaviour.
+// Write applies the configured write deadline to the underlying connection and forwards
+// the data. SetWriteDeadline failures are ignored so backends without deadline support
+// degrade to the original behaviour.
 //
 // Takes p ([]byte) which holds the bytes to write.
 //
@@ -71,17 +69,17 @@ func (w *sseDeadlineWriter) Write(p []byte) (int, error) {
 	return w.ResponseWriter.Write(p)
 }
 
-// Flush forwards Flush to the underlying writer's controller so SSE clients
-// receive events immediately.
+// Flush forwards Flush to the underlying writer's controller so SSE clients receive
+// events immediately.
 //
-// Returns nothing; flush errors are ignored, mirroring the standard
-// http.Flusher contract.
+// Returns nothing; flush errors are ignored, mirroring the standard http.Flusher
+// contract.
 func (w *sseDeadlineWriter) Flush() {
 	_ = w.controller.Flush()
 }
 
-// Unwrap exposes the wrapped writer for response controllers that walk
-// wrappers via the Unwrap convention.
+// Unwrap exposes the wrapped writer for response controllers that walk wrappers via the
+// Unwrap convention.
 //
 // Returns http.ResponseWriter which is the wrapped writer.
 func (w *sseDeadlineWriter) Unwrap() http.ResponseWriter {

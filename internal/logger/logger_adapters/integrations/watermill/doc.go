@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package watermill bridges Piko's structured logging with
-// Watermill's LoggerAdapter interface so that Watermill components
-// (publishers, subscribers, routers) log through Piko's unified
-// infrastructure. Watermill's Info and Debug levels map to Piko's
-// Internal level; Trace maps to Piko's Trace level.
+// Package watermill bridges Piko's structured logging with Watermill's LoggerAdapter
+// interface so that Watermill components (publishers, subscribers, routers) log through
+// Piko's unified infrastructure. Watermill's Info and Debug levels map to Piko's Internal
+// level; Trace maps to Piko's Trace level.
 //
 // # Usage
 //
@@ -29,8 +28,7 @@
 //
 // # Integration
 //
-// This adapter converts Watermill's LogFields to Piko's structured attributes,
-// handling type conversion for common types (string, int, int64, bool, error).
-// Use this when configuring any Watermill component that accepts a
-// LoggerAdapter.
+// This adapter converts Watermill's LogFields to Piko's structured attributes, handling
+// type conversion for common types (string, int, int64, bool, error). Use this when
+// configuring any Watermill component that accepts a LoggerAdapter.
 package watermill

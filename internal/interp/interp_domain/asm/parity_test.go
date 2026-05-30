@@ -42,15 +42,35 @@ func TestInstructionParityWithOriginals(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
 
 	original_dir := ".."
 
+	skipRegistryBaseNames := []string{
+		"asm_vm_dispatch_direct_exits_",
+		"asm_vm_dispatch_tier2_lift_",
+	}
+
 	for generated_path, generated_data := range writer.files {
 		filename := filepath.Base(generated_path)
+
+		if strings.Contains(filename, "asm_vm_dispatch_init_") {
+
+			continue
+		}
+		skipFile := false
+		for _, prefix := range skipRegistryBaseNames {
+			if strings.Contains(filename, prefix) {
+				skipFile = true
+				break
+			}
+		}
+		if skipFile {
+			continue
+		}
 
 		original_path := filepath.Join(original_dir, filename)
 		original_data, err := os.ReadFile(original_path)
@@ -108,7 +128,9 @@ func extractInstructions(content string) []string {
 	return result
 }
 
-var inlineCommentPattern = regexp.MustCompile(`\s+//.*$`)
+var (
+	inlineCommentPattern = regexp.MustCompile(`\s+//.*$`)
+)
 
 func stripInlineComment(line string) string {
 

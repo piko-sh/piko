@@ -23,7 +23,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"sync/atomic"
 	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -40,9 +39,13 @@ const (
 	hoursPerDay = 24
 )
 
-var _ provider_domain.ResourceDescriptor = (*service)(nil)
-var _ provider_domain.SubResourceDescriptor = (*service)(nil)
-var _ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.SubResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+)
 
 // ResourceType returns the CLI resource name for the storage hexagon.
 //
@@ -51,11 +54,10 @@ func (*service) ResourceType() string {
 	return "storage"
 }
 
-// ResourceListColumns returns column definitions for the storage provider list
-// table.
+// ResourceListColumns returns column definitions for the storage provider list table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAME, TYPE,
-// REGISTERED, MULTIPART, BATCH, and PRESIGNED columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAME, TYPE, REGISTERED,
+// MULTIPART, BATCH, and PRESIGNED columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAME", Key: fieldName},
@@ -69,8 +71,7 @@ func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 
 // ResourceListProviders returns all registered storage providers as list rows.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// provider.
+// Returns []provider_domain.ProviderListEntry which contains one entry per provider.
 func (s *service) ResourceListProviders(ctx context.Context) []provider_domain.ProviderListEntry {
 	providers := s.registry.ListProviders(ctx)
 	entries := make([]provider_domain.ProviderListEntry, len(providers))
@@ -100,13 +101,12 @@ func (s *service) ResourceListProviders(ctx context.Context) []provider_domain.P
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// storage provider.
+// ResourceDescribeProvider returns detailed information for a single named storage
+// provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
-// Returns *provider_domain.ProviderDetail which contains the structured
-// sections.
+// Returns *provider_domain.ProviderDetail which contains the structured sections.
 // Returns error when the named provider is not found.
 func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*provider_domain.ProviderDetail, error) {
 	provider, err := s.registry.GetProvider(ctx, name)
@@ -131,14 +131,14 @@ func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*p
 	}, nil
 }
 
-// findProviderInfo locates the ProviderInfo for the named provider from the
-// registry listing.
+// findProviderInfo locates the ProviderInfo for the named provider from the registry
+// listing.
 //
 // Takes ctx (context.Context) which carries tracing and cancellation.
 // Takes name (string) which identifies the provider to find.
 //
-// Returns provider_domain.ProviderInfo which holds the matching entry, or a
-// zero value when not found.
+// Returns provider_domain.ProviderInfo which holds the matching entry, or a zero value
+// when not found.
 func (s *service) findProviderInfo(ctx context.Context, name string) provider_domain.ProviderInfo {
 	for _, p := range s.registry.ListProviders(ctx) {
 		if p.Name == name {
@@ -148,8 +148,8 @@ func (s *service) findProviderInfo(ctx context.Context, name string) provider_do
 	return provider_domain.ProviderInfo{}
 }
 
-// appendRepositoriesSection appends a Repositories section to the given
-// sections when the service has a repository registry with entries.
+// appendRepositoriesSection appends a Repositories section to the given sections when the
+// service has a repository registry with entries.
 //
 // Takes sections ([]provider_domain.InfoSection) which is the current list.
 //
@@ -189,11 +189,11 @@ func (*service) ResourceSubResourceName() string {
 	return "repositories"
 }
 
-// ResourceSubResourceColumns returns column definitions for the repository
-// sub-resource table.
+// ResourceSubResourceColumns returns column definitions for the repository sub-resource
+// table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAME, PUBLIC,
-// and CACHE-CONTROL columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAME, PUBLIC, and
+// CACHE-CONTROL columns.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAME", Key: fieldName},
@@ -203,11 +203,9 @@ func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition 
 }
 
 // ResourceListSubResources returns all repositories. Storage repositories are
-// service-level rather than per-provider, so the provider name is accepted
-// but ignored.
+// service-level rather than per-provider, so the provider name is accepted but ignored.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// repository.
+// Returns []provider_domain.ProviderListEntry which contains one entry per repository.
 // Returns error when the repository registry is not available.
 func (s *service) ResourceListSubResources(_ context.Context, _ string) ([]provider_domain.ProviderListEntry, error) {
 	if s.repositoryRegistry == nil {
@@ -241,8 +239,8 @@ func (s *service) ResourceListSubResources(_ context.Context, _ string) ([]provi
 
 // ResourceDescribeType returns a service-level overview of the storage system.
 //
-// Returns *provider_domain.ProviderDetail which contains provider count,
-// default provider, repository count, and operation statistics.
+// Returns *provider_domain.ProviderDetail which contains provider count, default
+// provider, repository count, and operation statistics.
 func (s *service) ResourceDescribeType(ctx context.Context) *provider_domain.ProviderDetail {
 	providers := s.registry.ListProviders(ctx)
 	defaultProvider := ""
@@ -270,15 +268,15 @@ func (s *service) ResourceDescribeType(ctx context.Context) *provider_domain.Pro
 		},
 	}
 
-	total := atomic.LoadInt64(&s.stats.TotalOperations)
+	total := s.stats.TotalOperations.Load()
 	if total > 0 {
 		sections = append(sections, provider_domain.InfoSection{
 			Title: "Statistics",
 			Entries: []provider_domain.InfoEntry{
 				{Key: "Total Operations", Value: fmt.Sprintf("%d", total)},
-				{Key: "Successful", Value: fmt.Sprintf("%d", atomic.LoadInt64(&s.stats.SuccessfulOperations))},
-				{Key: "Failed", Value: fmt.Sprintf("%d", atomic.LoadInt64(&s.stats.FailedOperations))},
-				{Key: "Retries", Value: fmt.Sprintf("%d", atomic.LoadInt64(&s.stats.RetryAttempts))},
+				{Key: "Successful", Value: fmt.Sprintf("%d", s.stats.SuccessfulOperations.Load())},
+				{Key: "Failed", Value: fmt.Sprintf("%d", s.stats.FailedOperations.Load())},
+				{Key: "Retries", Value: fmt.Sprintf("%d", s.stats.RetryAttempts.Load())},
 			},
 		})
 	}
@@ -289,14 +287,12 @@ func (s *service) ResourceDescribeType(ctx context.Context) *provider_domain.Pro
 	}
 }
 
-// storageOverviewSection builds the overview info section for a storage
-// provider.
+// storageOverviewSection builds the overview info section for a storage provider.
 //
-// Takes info (provider_domain.ProviderInfo) which provides the provider
-// details.
+// Takes info (provider_domain.ProviderInfo) which provides the provider details.
 //
-// Returns provider_domain.InfoSection which contains name, type, default
-// status, and registration age.
+// Returns provider_domain.InfoSection which contains name, type, default status, and
+// registration age.
 func storageOverviewSection(info provider_domain.ProviderInfo) provider_domain.InfoSection {
 	isDefault := "false"
 	if info.IsDefault {
@@ -313,11 +309,10 @@ func storageOverviewSection(info provider_domain.ProviderInfo) provider_domain.I
 	}
 }
 
-// storageCapabilitiesSection builds the capabilities info section for a
-// storage provider.
+// storageCapabilitiesSection builds the capabilities info section for a storage provider.
 //
-// Takes raw (StorageProviderPort) which exposes multipart, batch, and presigned
-// URL support flags.
+// Takes raw (StorageProviderPort) which exposes multipart, batch, and presigned URL
+// support flags.
 //
 // Returns provider_domain.InfoSection which lists the provider capabilities.
 func storageCapabilitiesSection(raw StorageProviderPort) provider_domain.InfoSection {
@@ -331,8 +326,8 @@ func storageCapabilitiesSection(raw StorageProviderPort) provider_domain.InfoSec
 	}
 }
 
-// appendMetadataSection appends a Configuration section to the given sections
-// when the provider exposes metadata.
+// appendMetadataSection appends a Configuration section to the given sections when the
+// provider exposes metadata.
 //
 // Takes sections ([]provider_domain.InfoSection) which is the current list.
 // Takes raw (StorageProviderPort) which may implement ProviderMetadata.
@@ -364,13 +359,12 @@ func appendMetadataSection(sections []provider_domain.InfoSection, raw StoragePr
 	})
 }
 
-// storageFormatRegisteredAge returns a human-readable duration since
-// registration.
+// storageFormatRegisteredAge returns a human-readable duration since registration.
 //
 // Takes registeredAt (time.Time) which specifies when the registration occurred.
 //
-// Returns string which describes the elapsed time in a short format such as
-// "5m ago" or "3d ago", or "unknown" if the time is zero.
+// Returns string which describes the elapsed time in a short format such as "5m ago" or
+// "3d ago", or "unknown" if the time is zero.
 func storageFormatRegisteredAge(registeredAt time.Time) string {
 	if registeredAt.IsZero() {
 		return "unknown"

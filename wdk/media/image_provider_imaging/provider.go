@@ -50,15 +50,13 @@ const (
 	// rotationAngle270 is 270 degrees clockwise.
 	rotationAngle270 = 270
 
-	// maxConcurrentTransforms is the upper limit for concurrent
-	// image transformations, capped at runtime.NumCPU() to
-	// prevent memory exhaustion from the pure Go WebP encoder's
-	// large temporary buffers.
+	// maxConcurrentTransforms is the upper limit for concurrent image transformations,
+	// capped at runtime.NumCPU() to prevent memory exhaustion from the pure Go WebP
+	// encoder's large temporary buffers.
 	maxConcurrentTransforms = 2
 
-	// dimensionHeaderPeekBytes caps the bytes read by GetDimensions
-	// when peeking image headers; sufficient for the standard
-	// formats supported by image.DecodeConfig.
+	// dimensionHeaderPeekBytes caps the bytes read by GetDimensions when peeking image
+	// headers; sufficient for the standard formats supported by image.DecodeConfig.
 	dimensionHeaderPeekBytes = 64 << 10
 
 	// logKeyWidth is the structured-log key for image width.
@@ -80,26 +78,25 @@ var (
 
 // Config holds configuration options for the imaging provider.
 type Config struct {
-	// ImageServiceConfig holds security settings for input validation and resource
-	// limits. If nil, default configuration will be used.
+	// ImageServiceConfig holds security settings for input validation and resource limits.
+	// If nil, default configuration will be used.
 	media.ImageServiceConfig
 }
 
-// Provider implements the ImageTransformerPort interface using pure Go
-// libraries. WebP encoding is lossless-only; use VipsTransformer for lossy
-// WebP and better performance.
+// Provider implements the ImageTransformerPort interface using pure Go libraries. WebP
+// encoding is lossless-only; use VipsTransformer for lossy WebP and better performance.
 type Provider struct {
-	// semaphore limits how many transforms run at the same time to prevent
-	// memory exhaustion. The nativewebp encoder uses large temporary buffers
-	// (100-500MB per image), so concurrent transforms must be limited.
+	// semaphore limits how many transforms run at the same time to prevent memory
+	// exhaustion. The nativewebp encoder uses large temporary buffers (100-500MB per image),
+	// so concurrent transforms must be limited.
 	semaphore chan struct{}
 
 	// config holds settings for image processing and size limits.
 	config media.ImageServiceConfig
 }
 
-// NewProvider creates a pure Go image transformer for development and testing.
-// Unlike VipsTransformer, this requires no external dependencies or setup.
+// NewProvider creates a pure Go image transformer for development and testing. Unlike
+// VipsTransformer, this requires no external dependencies or setup.
 //
 // Takes config (Config) which specifies the image processing settings.
 //
@@ -124,18 +121,16 @@ func NewProvider(config Config) *Provider {
 	}
 }
 
-// Transform applies the specified transformations to the input image stream. It
-// decodes the image, performs resizing/cropping and modifiers, then encodes to
-// the target format.
+// Transform applies the specified transformations to the input image stream. It decodes
+// the image, performs resizing/cropping and modifiers, then encodes to the target format.
 //
 // Takes input (io.Reader) which provides the source image data.
 // Takes output (io.Writer) which receives the transformed image data.
-// Takes spec (media.TransformationSpec) which defines the transformations to
-// apply.
+// Takes spec (media.TransformationSpec) which defines the transformations to apply.
 //
 // Returns string which is the resulting image format after transformation.
-// Returns error when the spec is invalid, the format is disallowed, or
-// decoding/encoding fails.
+// Returns error when the spec is invalid, the format is disallowed, or decoding/encoding
+// fails.
 func (p *Provider) Transform(
 	ctx context.Context,
 	input io.Reader,
@@ -182,19 +177,19 @@ func (p *Provider) Transform(
 	return p.encode(transformedImage, output, spec)
 }
 
-// GetSupportedFormats returns the list of output formats that the pure Go
-// imaging library can generate.
+// GetSupportedFormats returns the list of output formats that the pure Go imaging library
+// can generate.
 //
-// Returns []string which contains the supported format names. WebP is
-// lossless-only (VP8L); for lossy WebP, use VipsTransformer. AVIF is not
-// supported by the pure Go stack.
+// Returns []string which contains the supported format names. WebP is lossless-only
+// (VP8L); for lossy WebP, use VipsTransformer. AVIF is not supported by the pure Go
+// stack.
 func (*Provider) GetSupportedFormats() []string {
 	return []string{"jpeg", "jpg", "png", "webp", "gif"}
 }
 
-// GetSupportedModifiers returns the list of transformation modifiers
-// supported by the pure Go imaging library. Advanced modifiers like hue,
-// tint, gravity, and radius are not supported.
+// GetSupportedModifiers returns the list of transformation modifiers supported by the
+// pure Go imaging library. Advanced modifiers like hue, tint, gravity, and radius are not
+// supported.
 //
 // Returns []string which contains the names of supported modifiers.
 func (*Provider) GetSupportedModifiers() []string {
@@ -204,17 +199,15 @@ func (*Provider) GetSupportedModifiers() []string {
 	}
 }
 
-// GetDimensions extracts width and height from image data using
-// lightweight header decoding via image.DecodeConfig. The reader is
-// capped at [dimensionHeaderPeekBytes] so malformed input cannot pull
-// unbounded bytes.
+// GetDimensions extracts width and height from image data using lightweight header
+// decoding via image.DecodeConfig. The reader is capped at dimensionHeaderPeekBytes so
+// malformed input cannot pull unbounded bytes.
 //
 // Takes input (io.Reader) which provides the source image data.
 //
 // Returns width (int) in pixels.
 // Returns height (int) in pixels.
-// Returns error when the image cannot be decoded or the format is
-// unsupported.
+// Returns error when the image cannot be decoded or the format is unsupported.
 func (*Provider) GetDimensions(_ context.Context, input io.Reader) (width int, height int, err error) {
 	limited := bufio.NewReader(io.LimitReader(input, dimensionHeaderPeekBytes))
 	config, _, err := image.DecodeConfig(limited)
@@ -228,15 +221,11 @@ func (*Provider) GetDimensions(_ context.Context, input io.Reader) (width int, h
 // validateSpec runs the upfront spec and format checks.
 //
 // Takes ctx (context.Context) which carries cancellation.
-// Takes spec (media.TransformationSpec) which is the incoming spec
-// to validate.
-// Takes l (logger.Logger) which is the request-scoped logger used to
-// surface rejections.
+// Takes spec (media.TransformationSpec) which is the incoming spec to validate.
+// Takes l (logger.Logger) which is the request-scoped logger used to surface rejections.
 //
-// Returns media.TransformationSpec which is the validated spec with
-// defaults applied.
-// Returns error which wraps the validation or format-rejection
-// failure.
+// Returns media.TransformationSpec which is the validated spec with defaults applied.
+// Returns error which wraps the validation or format-rejection failure.
 func (p *Provider) validateSpec(ctx context.Context, spec media.TransformationSpec, l logger.Logger) (media.TransformationSpec, error) {
 	validatedSpec, err := image_domain.ValidateTransformationSpec(spec, nil)
 	if err != nil {
@@ -253,19 +242,16 @@ func (p *Provider) validateSpec(ctx context.Context, spec media.TransformationSp
 	return validatedSpec, nil
 }
 
-// bufferAndPeek reads input up to MaxFileSizeBytes and rejects the
-// payload when the header-declared dimensions or pixel count exceed
-// configured limits, defending against decompression bombs before
-// imaging.Decode allocates RGBA pixels.
+// bufferAndPeek reads input up to MaxFileSizeBytes and rejects the payload when the
+// header-declared dimensions or pixel count exceed configured limits, defending against
+// decompression bombs before imaging.Decode allocates RGBA pixels.
 //
 // Takes ctx (context.Context) which carries cancellation.
 // Takes input (io.Reader) which supplies the encoded image bytes.
-// Takes l (logger.Logger) which is the request-scoped logger used to
-// surface rejections.
+// Takes l (logger.Logger) which is the request-scoped logger used to surface rejections.
 //
 // Returns []byte which is the buffered payload.
-// Returns error which wraps the underlying read or validation
-// failure.
+// Returns error which wraps the underlying read or validation failure.
 func (p *Provider) bufferAndPeek(ctx context.Context, input io.Reader, l logger.Logger) ([]byte, error) {
 	buffered, err := io.ReadAll(image_domain.NewLimitedReader(input, p.config.MaxFileSizeBytes))
 	if err != nil {
@@ -299,8 +285,7 @@ func (p *Provider) bufferAndPeek(ctx context.Context, input io.Reader, l logger.
 	return buffered, nil
 }
 
-// decodeImage decodes the input stream into an image.Image, applying size
-// limits.
+// decodeImage decodes the input stream into an image.Image, applying size limits.
 //
 // Takes ctx (context.Context) which provides the request-scoped logger.
 // Takes input (io.Reader) which provides the image data to decode.
@@ -322,8 +307,8 @@ func (p *Provider) decodeImage(ctx context.Context, input io.Reader) (image.Imag
 	return srcImage, nil
 }
 
-// validateImageSecurity validates image dimensions and pixel count against
-// security limits.
+// validateImageSecurity validates image dimensions and pixel count against security
+// limits.
 //
 // Takes img (image.Image) which is the image to validate.
 //
@@ -362,11 +347,10 @@ func (p *Provider) validateImageSecurity(ctx context.Context, img image.Image) e
 // resizeOrCrop handles the resizing and cropping logic based on the fit mode.
 //
 // Takes img (image.Image) which is the source image to transform.
-// Takes spec (TransformationSpec) which defines the target dimensions and fit
-// mode.
+// Takes spec (TransformationSpec) which defines the target dimensions and fit mode.
 //
-// Returns image.Image which is the transformed image, or the original if no
-// resize is needed.
+// Returns image.Image which is the transformed image, or the original if no resize is
+// needed.
 func (*Provider) resizeOrCrop(img image.Image, spec media.TransformationSpec) image.Image {
 	targetWidth, targetHeight := calculateTargetDimensions(spec.Width, spec.Height, spec.AspectRatio)
 
@@ -403,13 +387,13 @@ func (*Provider) resizeOrCrop(img image.Image, spec media.TransformationSpec) im
 // applyModifiers applies transformations to an image using the modifiers map.
 //
 // Takes img (*image.Image) which is the image to transform.
-// Takes modifiers (map[string]string) which specifies transformations such as
-// greyscale, blur, sharpen, rotation, flip, and colour adjustments.
+// Takes modifiers (map[string]string) which specifies transformations such as greyscale,
+// blur, sharpen, rotation, flip, and colour adjustments.
 //
 // Returns error when a transformation fails.
 //
-// Hue rotation is not available in the pure Go imaging library. Use
-// provider="vips" for hue rotation support.
+// Hue rotation is not available in the pure Go imaging library. Use provider="vips" for
+// hue rotation support.
 func (*Provider) applyModifiers(img *image.Image, modifiers map[string]string) error {
 	applyGreyscale(img, modifiers)
 	applyBlur(img, modifiers)
@@ -424,8 +408,8 @@ func (*Provider) applyModifiers(img *image.Image, modifiers map[string]string) e
 //
 // Takes img (image.Image) which is the transformed image to encode.
 // Takes output (io.Writer) which receives the encoded image data.
-// Takes spec (media.TransformationSpec) which specifies the output format
-// and quality settings.
+// Takes spec (media.TransformationSpec) which specifies the output format and quality
+// settings.
 //
 // Returns string which is the MIME type of the encoded image.
 // Returns error when encoding fails or the format is unsupported.
@@ -460,8 +444,8 @@ func (*Provider) encode(img image.Image, output io.Writer, spec media.Transforma
 	}
 }
 
-// parseAspectRatio parses an aspect ratio string like "16:9" and returns the
-// ratio as width divided by height.
+// parseAspectRatio parses an aspect ratio string like "16:9" and returns the ratio as
+// width divided by height.
 //
 // Takes ar (string) which specifies the aspect ratio in "width:height" format.
 //
@@ -490,12 +474,11 @@ func parseAspectRatio(ar string) (float64, error) {
 	return w / h, nil
 }
 
-// calculateTargetDimensions computes the final target dimensions based on
-// aspect ratio.
+// calculateTargetDimensions computes the final target dimensions based on aspect ratio.
 //
-// When aspectRatio is empty or invalid, returns the original width and height
-// unchanged. When only width is provided, calculates height from the ratio.
-// When only height is provided, calculates width from the ratio.
+// When aspectRatio is empty or invalid, returns the original width and height unchanged.
+// When only width is provided, calculates height from the ratio. When only height is
+// provided, calculates width from the ratio.
 //
 // Takes width (int) which specifies the input width, or zero if unknown.
 // Takes height (int) which specifies the input height, or zero if unknown.
@@ -522,14 +505,13 @@ func calculateTargetDimensions(width, height int, aspectRatio string) (targetWid
 	return width, height
 }
 
-// applyWithoutEnlargement clamps a target dimension to not exceed the current
-// dimension.
+// applyWithoutEnlargement clamps a target dimension to not exceed the current dimension.
 //
 // Takes target (int) which is the desired dimension value.
 // Takes current (int) which is the existing dimension to compare against.
 //
-// Returns int which is the clamped value, either target or current if target
-// would cause enlargement.
+// Returns int which is the clamped value, either target or current if target would cause
+// enlargement.
 func applyWithoutEnlargement(target, current int) int {
 	if target > 0 && target > current {
 		return current
@@ -537,8 +519,8 @@ func applyWithoutEnlargement(target, current int) int {
 	return target
 }
 
-// resizeOutside calculates dimensions for "outside" fit mode and resizes the
-// image to the smallest size that is greater than or equal to the target.
+// resizeOutside calculates dimensions for "outside" fit mode and resizes the image to the
+// smallest size that is greater than or equal to the target.
 //
 // Takes img (image.Image) which is the source image to resize.
 // Takes targetW (int) which is the desired minimum width.
@@ -570,8 +552,8 @@ func resizeOutside(img image.Image, targetW, targetH, currentW, currentH int) im
 // Takes targetW (int) which is the target width in pixels.
 // Takes targetH (int) which is the target height in pixels.
 //
-// Returns image.Image which is the resized image that fits within the target
-// dimensions while preserving aspect ratio.
+// Returns image.Image which is the resized image that fits within the target dimensions
+// while preserving aspect ratio.
 func resizeContain(img image.Image, targetW, targetH int) image.Image {
 	if targetW == 0 || targetH == 0 {
 		return imaging.Resize(img, targetW, targetH, imaging.Lanczos)
@@ -582,10 +564,8 @@ func resizeContain(img image.Image, targetW, targetH int) image.Image {
 // resizeFill resizes an image to the exact target size by stretching.
 //
 // Takes img (image.Image) which is the source image to resize.
-// Takes targetW (int) which is the target width, or zero to keep the current
-// width.
-// Takes targetH (int) which is the target height, or zero to keep the current
-// height.
+// Takes targetW (int) which is the target width, or zero to keep the current width.
+// Takes targetH (int) which is the target height, or zero to keep the current height.
 // Takes currentW (int) which is the current width of the image.
 // Takes currentH (int) which is the current height of the image.
 //
@@ -603,8 +583,8 @@ func resizeFill(img image.Image, targetW, targetH, currentW, currentH int) image
 // applyGreyscale converts an image to greyscale if the filter is enabled.
 //
 // Takes img (*image.Image) which is the image to modify in place.
-// Takes modifiers (map[string]string) which holds filter settings; the
-// "greyscale" key enables the filter when set to "true" or left empty.
+// Takes modifiers (map[string]string) which holds filter settings; the "greyscale" key
+// enables the filter when set to "true" or left empty.
 func applyGreyscale(img *image.Image, modifiers map[string]string) {
 	greyscale, ok := modifiers["greyscale"]
 	if ok && (greyscale == "true" || greyscale == "") {
@@ -615,8 +595,8 @@ func applyGreyscale(img *image.Image, modifiers map[string]string) {
 // applyBlur applies a Gaussian blur to an image using the given sigma value.
 //
 // Takes img (*image.Image) which is the image to blur, changed in place.
-// Takes modifiers (map[string]string) which holds the blur sigma value under
-// the "blur" key.
+// Takes modifiers (map[string]string) which holds the blur sigma value under the "blur"
+// key.
 func applyBlur(img *image.Image, modifiers map[string]string) {
 	blurString, ok := modifiers["blur"]
 	if !ok {
@@ -646,8 +626,8 @@ func applySharpen(img *image.Image, modifiers map[string]string) {
 // applyRotation rotates an image by 90, 180, or 270 degrees.
 //
 // Takes img (*image.Image) which is the image to rotate.
-// Takes modifiers (map[string]string) which holds the rotation angle under
-// the "rotate" key.
+// Takes modifiers (map[string]string) which holds the rotation angle under the "rotate"
+// key.
 func applyRotation(img *image.Image, modifiers map[string]string) {
 	rotateString, ok := modifiers["rotate"]
 	if !ok {
@@ -670,8 +650,8 @@ func applyRotation(img *image.Image, modifiers map[string]string) {
 // applyFlip flips an image horizontally or vertically based on the modifier.
 //
 // Takes img (*image.Image) which is the image to flip in place.
-// Takes modifiers (map[string]string) which contains the flip direction
-// ("horizontal", "h", "vertical", or "v").
+// Takes modifiers (map[string]string) which contains the flip direction ("horizontal",
+// "h", "vertical", or "v").
 func applyFlip(img *image.Image, modifiers map[string]string) {
 	flip, ok := modifiers["flip"]
 	if !ok {
@@ -685,12 +665,11 @@ func applyFlip(img *image.Image, modifiers map[string]string) {
 	}
 }
 
-// applyColourAdjustments changes the brightness, contrast, and saturation of
-// an image.
+// applyColourAdjustments changes the brightness, contrast, and saturation of an image.
 //
 // Takes img (*image.Image) which is changed in place with the new values.
-// Takes modifiers (map[string]string) which holds the adjustment values keyed
-// by "brightness", "contrast", and "saturation".
+// Takes modifiers (map[string]string) which holds the adjustment values keyed by
+// "brightness", "contrast", and "saturation".
 func applyColourAdjustments(img *image.Image, modifiers map[string]string) {
 	if brightnessString, ok := modifiers["brightness"]; ok {
 		if brightness, err := strconv.ParseFloat(brightnessString, 64); err == nil {

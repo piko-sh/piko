@@ -30,11 +30,13 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// DefaultRefreshTimeout is the default timeout for panel refresh operations.
-const DefaultRefreshTimeout = 5 * time.Second
+const (
+	// DefaultRefreshTimeout is the default timeout for panel refresh operations.
+	DefaultRefreshTimeout = 5 * time.Second
+)
 
-// PanelState holds common state that most panels need for error handling
-// and refresh tracking. Embed this in panel structs to reduce boilerplate.
+// PanelState holds common state that most panels need for error handling and refresh
+// tracking. Embed this in panel structs to reduce boilerplate.
 type PanelState struct {
 	// LastRefresh is the time of the last refresh, whether it succeeded or failed.
 	LastRefresh time.Time
@@ -70,8 +72,8 @@ func NewPanelState(c clock.Clock) PanelState {
 
 // Clock returns the panel's clock for time operations.
 //
-// Returns clock.Clock which provides time functions, defaulting to the real
-// clock when none is set.
+// Returns clock.Clock which provides time functions, defaulting to the real clock when
+// none is set.
 func (s *PanelState) Clock() clock.Clock {
 	if s.clock == nil {
 		return clock.RealClock()
@@ -159,8 +161,8 @@ func (s *PanelState) GetLastRefresh() time.Time {
 	return s.LastRefresh
 }
 
-// KeyResult holds the outcome of a key handler, indicating whether the key was
-// processed and any command to run as a result.
+// KeyResult holds the outcome of a key handler, indicating whether the key was processed
+// and any command to run as a result.
 type KeyResult struct {
 	// Cmd holds the command to run after handling the key, or nil if none.
 	Cmd tea.Cmd
@@ -171,21 +173,21 @@ type KeyResult struct {
 
 // RefreshConfig configures the BuildRefreshCmd helper.
 type RefreshConfig struct {
-	// NoProvider returns the message to send when the provider is nil. This is
-	// usually an error message for the panel type.
+	// NoProvider returns the message to send when the provider is nil. This is usually an
+	// error message for the panel type.
 	NoProvider func() tea.Msg
 
-	// Fetch performs the data fetch and returns the result message. The
-	// context has the configured timeout applied.
+	// Fetch performs the data fetch and returns the result message. The context has the
+	// configured timeout applied.
 	Fetch func(ctx context.Context) tea.Msg
 
-	// Timeout is the maximum time allowed for the refresh operation.
-	// Defaults to DefaultRefreshTimeout if zero.
+	// Timeout is the maximum time allowed for the refresh operation. Defaults to
+	// DefaultRefreshTimeout if zero.
 	Timeout time.Duration
 }
 
-// ViewBuilder helps build panel views with a consistent structure.
-// It manages the content buffer, header line counting, and mutex handling.
+// ViewBuilder helps build panel views with a consistent structure. It manages the content
+// buffer, header line counting, and mutex handling.
 type ViewBuilder struct {
 	// panel is the base panel used for sizing and rendering frames.
 	panel *BasePanel
@@ -193,8 +195,7 @@ type ViewBuilder struct {
 	// search provides optional filtering for panel content; nil means no filtering.
 	search *SearchMixin
 
-	// viewerMutex protects concurrent access during view rendering;
-	// nil means no locking.
+	// viewerMutex protects concurrent access during view rendering; nil means no locking.
 	viewerMutex *sync.RWMutex
 
 	// content holds the rendered panel text before final framing is applied.
@@ -204,8 +205,8 @@ type ViewBuilder struct {
 	headerLines int
 }
 
-// NewViewBuilder creates a new view builder for the given panel.
-// Pass the search mixin and viewer mutex if the panel uses them, or nil if not.
+// NewViewBuilder creates a new view builder for the given panel. Pass the search mixin
+// and viewer mutex if the panel uses them, or nil if not.
 //
 // Takes panel (*BasePanel) which specifies the panel to build views for.
 // Takes search (*SearchMixin) which provides search functionality, or nil.
@@ -222,8 +223,7 @@ func NewViewBuilder(panel *BasePanel, search *SearchMixin, viewerMutex *sync.RWM
 	}
 }
 
-// SetupView sets up the view with standard settings: panel size and search
-// width.
+// SetupView sets up the view with standard settings: panel size and search width.
 //
 // Takes width (int) which specifies the panel width.
 // Takes height (int) which specifies the panel height.
@@ -234,14 +234,14 @@ func (vb *ViewBuilder) SetupView(width, height int) {
 	}
 }
 
-// WithReadLock executes the render function with the viewer mutex held.
-// If no mutex was provided, it executes the function directly.
+// WithReadLock executes the render function with the viewer mutex held. If no mutex was
+// provided, it executes the function directly.
 //
-// Takes renderFunction (func()) which is the function to execute while holding
-// the read lock.
+// Takes renderFunction (func()) which is the function to execute while holding the read
+// lock.
 //
-// Safe for concurrent use. Acquires a read lock for the duration of the
-// render function call.
+// Safe for concurrent use. Acquires a read lock for the duration of the render function
+// call.
 func (vb *ViewBuilder) WithReadLock(renderFunction func()) {
 	if vb.viewerMutex != nil {
 		vb.viewerMutex.RLock()
@@ -299,8 +299,8 @@ func (vb *ViewBuilder) AddHeaderLines(count int) {
 	vb.headerLines += count
 }
 
-// Finish completes the view and returns the rendered frame.
-// This trims any trailing newline and applies the panel frame.
+// Finish completes the view and returns the rendered frame. This trims any trailing
+// newline and applies the panel frame.
 //
 // Returns string which is the final rendered view with panel framing applied.
 func (vb *ViewBuilder) Finish() string {
@@ -328,9 +328,8 @@ func (vb *ViewBuilder) ContentHeight() int {
 	return vb.panel.ContentHeight()
 }
 
-// RenderExpandableItemsConfig configures the RenderExpandableItems helper.
-// It reduces boilerplate in panel render methods by handling the common
-// loop structure.
+// RenderExpandableItemsConfig configures the RenderExpandableItems helper. It reduces
+// boilerplate in panel render methods by handling the common loop structure.
 type RenderExpandableItemsConfig[T any] struct {
 	// Ctx is the scroll context used for writing lines.
 	Ctx *ScrollContext
@@ -341,12 +340,12 @@ type RenderExpandableItemsConfig[T any] struct {
 	// IsExpanded checks whether the given ID is currently expanded.
 	IsExpanded func(string) bool
 
-	// RenderRow renders a single item row. It receives the item, its selected
-	// state, and its expanded state, and returns the formatted row string.
+	// RenderRow renders a single item row. It receives the item, its selected state, and its
+	// expanded state, and returns the formatted row string.
 	RenderRow func(T, bool, bool) string
 
-	// RenderExpand renders expanded content for an item. May be nil
-	// to skip expansion rendering.
+	// RenderExpand renders expanded content for an item. May be nil to skip expansion
+	// rendering.
 	RenderExpand func(*ScrollContext, T)
 
 	// Items is the complete list of items to render.
@@ -359,17 +358,14 @@ type RenderExpandableItemsConfig[T any] struct {
 	Cursor int
 }
 
-// Handled returns a KeyResult that shows the key was processed with no
-// command.
+// Handled returns a KeyResult that shows the key was processed with no command.
 //
-// Returns KeyResult which shows that a key press was handled and needs no
-// further action.
+// Returns KeyResult which shows that a key press was handled and needs no further action.
 func Handled() KeyResult {
 	return KeyResult{Handled: true, Cmd: nil}
 }
 
-// HandledWithCmd returns a KeyResult showing the key was handled with a
-// command.
+// HandledWithCmd returns a KeyResult showing the key was handled with a command.
 //
 // Takes command (tea.Cmd) which is the command to run after handling.
 //
@@ -387,16 +383,16 @@ func NotHandled() KeyResult {
 
 // HandleCommonKeys processes key events that are shared by most panels.
 //
-// This includes navigation (j/k, arrows, g/G, pgup/pgdown), expansion
-// (enter, space), search (/, esc), and refresh (r).
+// This includes navigation (j/k, arrows, g/G, pgup/pgdown), expansion (enter, space),
+// search (/, esc), and refresh (r).
 //
-// Panels should call this first in their key handler, then handle
-// panel-specific keys if the result is NotHandled.
+// Panels should call this first in their key handler, then handle panel-specific keys if
+// the result is NotHandled.
 //
 // Takes viewer (*AssetViewer[T]) which is the panel to handle keys for.
 // Takes message (tea.KeyPressMsg) which is the key event to process.
-// Takes refreshFunction (func() tea.Cmd) which is the panel's refresh function.
-// Pass nil to disable the 'r' key refresh.
+// Takes refreshFunction (func() tea.Cmd) which is the panel's refresh function. Pass nil
+// to disable the 'r' key refresh.
 //
 // Returns KeyResult which shows whether the key was handled.
 func HandleCommonKeys[T any](
@@ -439,11 +435,11 @@ func HandleCommonKeys[T any](
 	return NotHandled()
 }
 
-// BuildRefreshCmd creates a standard refresh command with timeout handling.
-// This reduces repeated code in panel refresh methods.
+// BuildRefreshCmd creates a standard refresh command with timeout handling. This reduces
+// repeated code in panel refresh methods.
 //
-// Takes config (RefreshConfig) which specifies the fetch function, timeout,
-// and fallback behaviour when no provider is set.
+// Takes config (RefreshConfig) which specifies the fetch function, timeout, and fallback
+// behaviour when no provider is set.
 //
 // Returns tea.Cmd which wraps the fetch operation with timeout handling.
 func BuildRefreshCmd(config RefreshConfig) tea.Cmd {
@@ -465,13 +461,13 @@ func BuildRefreshCmd(config RefreshConfig) tea.Cmd {
 	}
 }
 
-// RenderExpandableItems renders a scrollable list of items that can be
-// expanded. It loops through the display items, checks if each one is selected
-// or expanded, and draws rows with optional expanded content.
+// RenderExpandableItems renders a scrollable list of items that can be expanded. It loops
+// through the display items, checks if each one is selected or expanded, and draws rows
+// with optional expanded content.
 //
-// Takes config (RenderExpandableItemsConfig[T]) which provides all settings
-// for rendering, including items, display indices, cursor position, and
-// callbacks for drawing rows and expanded content.
+// Takes config (RenderExpandableItemsConfig[T]) which provides all settings for
+// rendering, including items, display indices, cursor position, and callbacks for drawing
+// rows and expanded content.
 func RenderExpandableItems[T any](config RenderExpandableItemsConfig[T]) {
 	for _, itemIndex := range config.DisplayItems {
 		if itemIndex >= len(config.Items) {

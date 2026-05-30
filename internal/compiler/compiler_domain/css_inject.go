@@ -34,18 +34,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// InsertStaticCSS inserts minified CSS as a static getter on the component
-// class.
+// InsertStaticCSS inserts minified CSS as a static getter on the component class.
 //
-// Takes fullSyntaxTree (*js_ast.AST) which is the parsed JavaScript AST to
-// modify.
-// Takes cascadingStyleSheet (string) which is the CSS content to minify and
-// insert.
-// Takes targetClassName (string) which identifies the class to add the getter
-// to.
+// Takes fullSyntaxTree (*js_ast.AST) which is the parsed JavaScript AST to modify.
+// Takes cascadingStyleSheet (string) which is the CSS content to minify and insert.
+// Takes targetClassName (string) which identifies the class to add the getter to.
 //
-// Returns error when CSS minification fails, getter creation fails, or the
-// target class cannot be found.
+// Returns error when CSS minification fails, getter creation fails, or the target class
+// cannot be found.
 func InsertStaticCSS(
 	executionContext context.Context,
 	fullSyntaxTree *js_ast.AST,
@@ -157,13 +153,11 @@ func insertGetterIntoClass(ctx context.Context, span trace.Span, ast *js_ast.AST
 	return nil
 }
 
-// recordCSSInsertionMetrics records metrics after CSS insertion and logs the
-// result.
+// recordCSSInsertionMetrics records metrics after CSS insertion and logs the result.
 //
 // Takes span (trace.Span) which receives duration and length attributes.
 // Takes startTime (time.Time) which marks when the insertion started.
-// Takes className (string) which is the component class that
-// received the CSS insertion.
+// Takes className (string) which is the component class that received the CSS insertion.
 // Takes cssLength (int) which gives the length of the minified CSS.
 func recordCSSInsertionMetrics(ctx context.Context, span trace.Span, startTime time.Time, className string, cssLength int) {
 	ctx, l := logger_domain.From(ctx, log)

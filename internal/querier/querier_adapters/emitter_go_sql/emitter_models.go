@@ -27,11 +27,10 @@ import (
 //
 // Takes packageName (string) which is the Go package name for generated files.
 // Takes catalogue (*querier_dto.Catalogue) which is the schema state.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
-// Returns []querier_dto.GeneratedFile which contains the models.go file, or an
-// empty slice if the catalogue has no tables.
+// Returns []querier_dto.GeneratedFile which contains the models.go file, or an empty
+// slice if the catalogue has no tables.
 // Returns error when code generation fails.
 func (*SQLEmitter) EmitModels(
 	packageName string,

@@ -30,10 +30,14 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-var _ tui_domain.TracesProvider = (*TracesProvider)(nil)
+var (
+	_ tui_domain.TracesProvider = (*TracesProvider)(nil)
+)
 
-// defaultTracesLimit is the default number of traces to fetch per query.
-const defaultTracesLimit = 100
+const (
+	// defaultTracesLimit is the default number of traces to fetch per query.
+	defaultTracesLimit = 100
+)
 
 // TracesProvider implements tui_domain.TracesProvider using gRPC.
 type TracesProvider struct {
@@ -105,8 +109,8 @@ func (p *TracesProvider) RefreshInterval() time.Duration {
 //
 // Returns error when the gRPC call fails or the connection is unavailable.
 //
-// Safe for concurrent use. Uses a mutex to protect the internal spans and
-// errors state during updates.
+// Safe for concurrent use. Uses a mutex to protect the internal spans and errors state
+// during updates.
 func (p *TracesProvider) Refresh(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -160,8 +164,7 @@ func (p *TracesProvider) Recent(_ context.Context, limit int) ([]tui_domain.Span
 // Returns []tui_domain.Span which contains the most recent error spans.
 // Returns error which is always nil.
 //
-// Safe for concurrent use. Uses a read lock to protect access to the error
-// spans.
+// Safe for concurrent use. Uses a read lock to protect access to the error spans.
 func (p *TracesProvider) Errors(_ context.Context, limit int) ([]tui_domain.Span, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

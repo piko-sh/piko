@@ -29,16 +29,16 @@ type RepositoryConfig struct {
 	// Name is the repository identifier (e.g., "media-public", "media-private").
 	Name string
 
-	// CacheControl is the default Cache-Control header for files in
-	// this repository (e.g., "public, max-age=31536000, immutable"
-	// for public repos or "private, max-age=3600" for private repos).
+	// CacheControl is the default Cache-Control header for files in this repository (e.g.,
+	// "public, max-age=31536000, immutable" for public repos or "private, max-age=3600" for
+	// private repos).
 	CacheControl string
 
 	// AllowedOrigins for CORS on public repositories (optional).
 	AllowedOrigins []string
 
-	// IsPublic indicates whether this repository allows unauthenticated access.
-	// Public repositories serve files via permanent URLs without presigning.
+	// IsPublic indicates whether this repository allows unauthenticated access. Public
+	// repositories serve files via permanent URLs without presigning.
 	IsPublic bool
 }
 
@@ -111,8 +111,8 @@ func (r *RepositoryRegistry) ListAll() []*RepositoryConfig {
 //
 // Takes name (string) which identifies the repository.
 //
-// Returns bool which is true if the repository is public, false otherwise.
-// Defaults to false for unknown repositories.
+// Returns bool which is true if the repository is public, false otherwise. Defaults to
+// false for unknown repositories.
 //
 // Safe for concurrent use.
 func (r *RepositoryRegistry) IsPublic(name string) bool {

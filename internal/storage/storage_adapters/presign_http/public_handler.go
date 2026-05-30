@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	// publicPathMinParts is the minimum number of path parts needed for a valid
-	// public download URL (/_piko/storage/public/{provider}/{repository}/{key}).
+	// publicPathMinParts is the minimum number of path parts needed for a valid public
+	// download URL (/_piko/storage/public/{provider}/{repository}/{key}).
 	publicPathMinParts = 6
 
 	// publicPathProviderIndex is the index of the provider in the path parts.
@@ -47,8 +47,8 @@ const (
 	publicPathKeyStartIndex = 5
 )
 
-// PublicDownloadHandler serves files from public repositories without
-// authentication. It implements http.Handler.
+// PublicDownloadHandler serves files from public repositories without authentication. It
+// implements http.Handler.
 type PublicDownloadHandler struct {
 	// storageService checks repository access and reads files from storage.
 	storageService storage_domain.Service
@@ -67,8 +67,8 @@ func NewPublicDownloadHandler(
 	}
 }
 
-// ServeHTTP handles public file downloads without authentication.
-// URL format: /_piko/storage/public/{provider}/{repository}/{key}.
+// ServeHTTP handles public file downloads without authentication. URL format:
+// /_piko/storage/public/{provider}/{repository}/{key}.
 //
 // Takes w (http.ResponseWriter) which receives the file content and headers.
 // Takes r (*http.Request) which contains the path and request details.
@@ -183,12 +183,11 @@ func (h *PublicDownloadHandler) setPublicHeaders(w http.ResponseWriter, reposito
 	}
 }
 
-// setContentDisposition sets the Content-Disposition header based on the
-// content type.
+// setContentDisposition sets the Content-Disposition header based on the content type.
 //
 // Takes w (http.ResponseWriter) which receives the header.
-// Takes contentType (string) which determines if the response is shown inline
-// or as a download attachment.
+// Takes contentType (string) which determines if the response is shown inline or as a
+// download attachment.
 func (*PublicDownloadHandler) setContentDisposition(w http.ResponseWriter, contentType string) {
 	if isInlineContentType(contentType) {
 		w.Header().Set(headerContentDisposition, "inline")
@@ -224,8 +223,8 @@ func (*PublicDownloadHandler) checkConditionalRequest(w http.ResponseWriter, r *
 	return false
 }
 
-// parsePath extracts provider, repository, and key from a URL path.
-// The expected format is /_piko/storage/public/{provider}/{repository}/{key...}.
+// parsePath extracts provider, repository, and key from a URL path. The expected format
+// is /_piko/storage/public/{provider}/{repository}/{key...}.
 //
 // Takes path (string) which is the URL path to parse.
 //

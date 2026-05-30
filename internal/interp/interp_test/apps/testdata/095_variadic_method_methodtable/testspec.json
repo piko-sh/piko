@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package variadic method via methodTable dispatch: lib.Printer with a *Printer.Print(items ...interface{}) method. When the method IS in methodTable (cross-package registration), opCallMethod routes through pushCompiledFrame which previously called copyCallArgs without variadic packing - so the first variadic arg landed in the variadic slot directly and trailing args were dropped. Fix mirrors the variadic-packing branch from handleCall (vm_handler_calls.go:480-484) into pushCompiledFrame.",
+  "modulePath": "testpkg",
+  "expected": "alpha|beta|gamma"
+}

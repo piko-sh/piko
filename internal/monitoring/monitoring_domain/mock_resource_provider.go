@@ -18,27 +18,29 @@
 
 package monitoring_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockResourceProvider is a test double for ResourceProvider where nil
-// function fields return zero values and call counts are tracked atomically.
+// MockResourceProvider is a test double for ResourceProvider where nil function fields
+// return zero values and call counts are tracked atomically.
 type MockResourceProvider struct {
-	// GetResourcesFunc is the function called by
-	// GetResources.
+	// GetResourcesFunc is the function called by GetResources.
 	GetResourcesFunc func() ResourceData
 
-	// GetResourcesCallCount tracks how many times
-	// GetResources was called.
-	GetResourcesCallCount int64
+	// GetResourcesCallCount tracks how many times GetResources was called.
+	GetResourcesCallCount atomic.Int64
 }
 
-var _ ResourceProvider = (*MockResourceProvider)(nil)
+var (
+	_ ResourceProvider = (*MockResourceProvider)(nil)
+)
 
 // GetResources delegates to GetResourcesFunc if set.
 //
 // Returns ResourceData{} if GetResourcesFunc is nil.
 func (m *MockResourceProvider) GetResources() ResourceData {
-	atomic.AddInt64(&m.GetResourcesCallCount, 1)
+	m.GetResourcesCallCount.Add(1)
 	if m.GetResourcesFunc != nil {
 		return m.GetResourcesFunc()
 	}

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockRuntimeProvider_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 
 	t.Run("delegates to NameFunc", func(t *testing.T) {
@@ -53,7 +52,7 @@ func TestMockRuntimeProvider_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "api-provider", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 }
 
@@ -67,7 +66,7 @@ func TestMockRuntimeProvider_Fetch(t *testing.T) {
 		err := m.Fetch(context.Background(), "blog", nil, nil)
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FetchCallCount))
+		assert.Equal(t, int64(1), m.FetchCallCount.Load())
 	})
 
 	t.Run("delegates to FetchFunc", func(t *testing.T) {
@@ -136,6 +135,6 @@ func TestMockRuntimeProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.NameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.FetchCallCount))
+	assert.Equal(t, int64(goroutines), m.NameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.FetchCallCount.Load())
 }

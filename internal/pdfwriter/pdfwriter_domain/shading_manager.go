@@ -18,11 +18,10 @@
 
 package pdfwriter_domain
 
-// Manages PDF shading dictionaries for gradient backgrounds. Produces
-// native PDF Type 2 (axial/linear) and Type 3 (radial) shading objects
-// using stitching functions (Type 3 function) that compose piecewise
-// Type 2 exponential interpolation functions between adjacent colour
-// stops. This gives vector-quality gradients with no rasterisation.
+// Manages PDF shading dictionaries for gradient backgrounds. Produces native PDF Type 2
+// (axial/linear) and Type 3 (radial) shading objects using stitching functions (Type 3
+// function) that compose piecewise Type 2 exponential interpolation functions between
+// adjacent colour stops. This gives vector-quality gradients with no rasterisation.
 
 import (
 	"fmt"
@@ -40,8 +39,8 @@ const (
 	degreesToRadiansDivisor = 180.0
 )
 
-// ShadingEntry holds a registered shading's resource name
-// and the data needed to write its PDF objects.
+// ShadingEntry holds a registered shading's resource name and the data needed to write
+// its PDF objects.
 type ShadingEntry struct {
 	// name holds the PDF resource name for this shading (e.g. "Sh1").
 	name string
@@ -74,8 +73,8 @@ type ShadingEntry struct {
 	grayscale bool
 }
 
-// ResolvedStop holds a colour stop with a position in
-// [0, 1] and RGB+alpha channels in [0, 1].
+// ResolvedStop holds a colour stop with a position in [0, 1] and RGB+alpha channels in
+// [0, 1].
 type ResolvedStop struct {
 	// Position holds the normalised position of this stop along the gradient axis.
 	Position float64
@@ -95,11 +94,11 @@ type ResolvedStop struct {
 
 // ShadingManager tracks shading patterns and writes their PDF objects.
 type ShadingManager struct {
-	// writtenRefs maps shading names to their PDF object references
-	// after WriteObjects has been called.
+	// writtenRefs maps shading names to their PDF object references after WriteObjects has
+	// been called.
 	writtenRefs map[string]string
 
-	// entries holds the registered shading definitions awaiting serialisation.
+	// entries holds the registered shading definitions queued for serialisation.
 	entries []ShadingEntry
 }
 
@@ -117,8 +116,8 @@ func (m *ShadingManager) HasShadings() bool {
 	return len(m.entries) > 0
 }
 
-// RegisterLinearGradient registers an axial (linear)
-// gradient shading and returns its resource name.
+// RegisterLinearGradient registers an axial (linear) gradient shading and returns its
+// resource name.
 //
 // Takes x0 (float64) which specifies the x coordinate of the gradient start point.
 // Takes y0 (float64) which specifies the y coordinate of the gradient start point.
@@ -144,8 +143,8 @@ func (m *ShadingManager) RegisterLinearGradient(
 	return name
 }
 
-// RegisterRadialGradient registers a radial gradient
-// shading and returns its resource name.
+// RegisterRadialGradient registers a radial gradient shading and returns its resource
+// name.
 //
 // Takes cx (float64) which specifies the x coordinate of the gradient centre.
 // Takes cy (float64) which specifies the y coordinate of the gradient centre.
@@ -172,16 +171,15 @@ func (m *ShadingManager) RegisterRadialGradient(
 	return name
 }
 
-// RegisterLinearGradientGray registers a DeviceGray axial
-// shading for use in luminosity soft masks.
+// RegisterLinearGradientGray registers a DeviceGray axial shading for use in luminosity
+// soft masks.
 //
 // Takes x0 (float64) which specifies the x coordinate of the gradient start point.
 // Takes y0 (float64) which specifies the y coordinate of the gradient start point.
 // Takes x1 (float64) which specifies the x coordinate of the gradient end point.
 // Takes y1 (float64) which specifies the y coordinate of the gradient end point.
-// Takes stops ([]ResolvedStop) which specifies the
-// normalised stops where the red channel is used as
-// grey.
+// Takes stops ([]ResolvedStop) which specifies the normalised stops where the red channel
+// is used as grey.
 //
 // Returns string which holds the assigned PDF shading resource name.
 func (m *ShadingManager) RegisterLinearGradientGray(
@@ -202,15 +200,14 @@ func (m *ShadingManager) RegisterLinearGradientGray(
 	return name
 }
 
-// RegisterRadialGradientGray registers a DeviceGray
-// radial shading for use in luminosity soft masks.
+// RegisterRadialGradientGray registers a DeviceGray radial shading for use in luminosity
+// soft masks.
 //
 // Takes cx (float64) which specifies the x coordinate of the gradient centre.
 // Takes cy (float64) which specifies the y coordinate of the gradient centre.
 // Takes r (float64) which specifies the outer circle radius.
-// Takes stops ([]ResolvedStop) which specifies the
-// normalised stops where the red channel is used as
-// grey.
+// Takes stops ([]ResolvedStop) which specifies the normalised stops where the red channel
+// is used as grey.
 //
 // Returns string which holds the assigned PDF shading resource name.
 func (m *ShadingManager) RegisterRadialGradientGray(
@@ -247,8 +244,8 @@ func (m *ShadingManager) ShadingRef(name string) string {
 
 // WriteObjects writes all shading objects to the document writer.
 //
-// Takes writer (*PdfDocumentWriter) which specifies
-// the document writer to emit objects to.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
 //
 // Returns string which holds the resource dictionary entries for all shadings.
 func (m *ShadingManager) WriteObjects(writer *PdfDocumentWriter) string {
@@ -288,16 +285,16 @@ func (m *ShadingManager) WriteObjects(writer *PdfDocumentWriter) string {
 	return entries.String()
 }
 
-// writeShadingFunction writes the interpolation function
-// objects for a set of gradient stops.
+// writeShadingFunction writes the interpolation function objects for a set of gradient
+// stops.
 //
-// When there are exactly two stops, writes a single Type 2 exponential function.
-// For more stops, writes a Type 3 stitching function chaining Type 2 segments.
+// When there are exactly two stops, writes a single Type 2 exponential function. For more
+// stops, writes a Type 3 stitching function chaining Type 2 segments.
 //
-// Takes writer (*PdfDocumentWriter) which specifies
-// the document writer to emit objects to.
-// Takes entry (*ShadingEntry) which specifies the
-// shading whose stops define the function.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes entry (*ShadingEntry) which specifies the shading whose stops define the
+// function.
 //
 // Returns int which holds the PDF object number of the written function.
 func (*ShadingManager) writeShadingFunction(writer *PdfDocumentWriter, entry *ShadingEntry) int {
@@ -340,13 +337,13 @@ func (*ShadingManager) writeShadingFunction(writer *PdfDocumentWriter, entry *Sh
 	return stitchNumber
 }
 
-// formatType2Function formats a Type 2 exponential
-// interpolation function between two stops.
+// formatType2Function formats a Type 2 exponential interpolation function between two
+// stops.
 //
 // Takes c0 (ResolvedStop) which specifies the start colour stop.
 // Takes c1 (ResolvedStop) which specifies the end colour stop.
-// Takes grayscale (bool) which specifies whether to
-// produce single-channel DeviceGray output.
+// Takes grayscale (bool) which specifies whether to produce single-channel DeviceGray
+// output.
 //
 // Returns string which holds the PDF function dictionary.
 func formatType2Function(c0, c1 ResolvedStop, grayscale bool) string {
@@ -361,16 +358,14 @@ func formatType2Function(c0, c1 ResolvedStop, grayscale bool) string {
 		formatFloat(c1.Red), formatFloat(c1.Green), formatFloat(c1.Blue))
 }
 
-// NormaliseGradientStops resolves auto-placed stop
-// positions and ensures all positions are sorted in
-// [0, 1].
+// NormaliseGradientStops resolves auto-placed stop positions and ensures all positions
+// are sorted in [0, 1].
 //
-// Takes stops ([]layouter_domain.GradientStop) which
-// specifies the input stops where Position == -1 means
-// auto-placed.
+// Takes stops ([]layouter_domain.GradientStop) which specifies the input stops where
+// Position == -1 means auto-placed.
 //
-// Returns []ResolvedStop which holds the resolved stops
-// with all positions assigned and sorted.
+// Returns []ResolvedStop which holds the resolved stops with all positions assigned and
+// sorted.
 func NormaliseGradientStops(stops []layouter_domain.GradientStop) []ResolvedStop {
 	n := len(stops)
 	if n == 0 {
@@ -426,14 +421,14 @@ func NormaliseGradientStops(stops []layouter_domain.GradientStop) []ResolvedStop
 	return result
 }
 
-// ExpandRepeatingStops replicates normalised stops until
-// they cover the full [0, 1] range.
+// ExpandRepeatingStops replicates normalised stops until they cover the full [0, 1]
+// range.
 //
-// If the pattern length is zero or the stops already span
-// the full range, returns the input unchanged.
+// If the pattern length is zero or the stops already span the full range, returns the
+// input unchanged.
 //
-// Takes stops ([]ResolvedStop) which specifies the
-// normalised stops that may span a sub-range.
+// Takes stops ([]ResolvedStop) which specifies the normalised stops that may span a
+// sub-range.
 //
 // Returns []ResolvedStop which holds the expanded stops covering [0, 1].
 func ExpandRepeatingStops(stops []ResolvedStop) []ResolvedStop {
@@ -493,14 +488,14 @@ func StopsHaveAlpha(stops []ResolvedStop) bool {
 	return false
 }
 
-// AlphaStops converts resolved stops into greyscale stops
-// for building a luminosity soft mask.
+// AlphaStops converts resolved stops into greyscale stops for building a luminosity soft
+// mask.
 //
-// Takes stops ([]ResolvedStop) which specifies the source
-// stops whose alpha values become the grey channel.
+// Takes stops ([]ResolvedStop) which specifies the source stops whose alpha values become
+// the grey channel.
 //
-// Returns []ResolvedStop which holds the greyscale stops
-// with all channels set to the original alpha.
+// Returns []ResolvedStop which holds the greyscale stops with all channels set to the
+// original alpha.
 func AlphaStops(stops []ResolvedStop) []ResolvedStop {
 	result := make([]ResolvedStop, len(stops))
 	for i, s := range stops {
@@ -515,16 +510,13 @@ func AlphaStops(stops []ResolvedStop) []ResolvedStop {
 	return result
 }
 
-// ComputeLinearGradientAxis computes the axis endpoints in
-// PDF coordinates for a CSS linear-gradient angle.
+// ComputeLinearGradientAxis computes the axis endpoints in PDF coordinates for a CSS
+// linear-gradient angle.
 //
-// Takes angleDeg (float64) which specifies the gradient
-// angle in degrees (CSS convention: 0 = to top, 90 = to
-// right).
-// Takes x (float64) which specifies the left edge of the
-// bounding rectangle.
-// Takes y (float64) which specifies the bottom edge of
-// the bounding rectangle.
+// Takes angleDeg (float64) which specifies the gradient angle in degrees (CSS convention:
+// 0 = to top, 90 = to right).
+// Takes x (float64) which specifies the left edge of the bounding rectangle.
+// Takes y (float64) which specifies the bottom edge of the bounding rectangle.
 // Takes w (float64) which specifies the width of the bounding rectangle.
 // Takes h (float64) which specifies the height of the bounding rectangle.
 //

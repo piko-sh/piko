@@ -25,14 +25,13 @@ import (
 	"piko.sh/piko/internal/email/email_dto"
 )
 
-// EmailAssetRegistry collects requests for static assets to be embedded in
-// emails during PML rendering. When <pml-img> components reference local
-// assets, they register a request here, which is later fulfilled by the email
-// builder querying the registry and attaching the transformed image data.
+// EmailAssetRegistry collects requests for static assets to be embedded in emails during
+// PML rendering. When <pml-img> components reference local assets, they register a
+// request here, which is later fulfilled by the email builder querying the registry and
+// attaching the transformed image data.
 //
 // This registry is created for email rendering contexts and attached to the
-// TransformationContext so that all components can access it during the render
-// tree walk.
+// TransformationContext so that all components can access it during the render tree walk.
 type EmailAssetRegistry struct {
 	// Requests holds all asset requests gathered during rendering.
 	Requests []*email_dto.EmailAssetRequest
@@ -40,8 +39,7 @@ type EmailAssetRegistry struct {
 
 // NewEmailAssetRegistry creates a new, empty asset registry for email rendering.
 //
-// Returns *EmailAssetRegistry which is an empty registry ready to collect
-// asset requests.
+// Returns *EmailAssetRegistry which is an empty registry ready to collect asset requests.
 func NewEmailAssetRegistry() *EmailAssetRegistry {
 	return &EmailAssetRegistry{
 		Requests: make([]*email_dto.EmailAssetRequest, 0),
@@ -50,9 +48,8 @@ func NewEmailAssetRegistry() *EmailAssetRegistry {
 
 // RegisterAsset records an asset to be fetched and embedded in the email.
 //
-// It returns a unique Content-ID (CID) for use in HTML as <img src="cid:...">.
-// The same asset, profile, width, and density combination always returns the
-// same CID.
+// It returns a unique Content-ID (CID) for use in HTML as <img src="cid:...">. The same
+// asset, profile, width, and density combination always returns the same CID.
 //
 // Takes sourcePath (string) which is the original path to the asset.
 // Takes profile (string) which is the transformation profile to use.
@@ -80,9 +77,8 @@ func (r *EmailAssetRegistry) RegisterAsset(sourcePath, profile string, width int
 	return cid
 }
 
-// generateCID creates a unique, deterministic Content-ID from the given asset
-// properties using xxhash. The CID is unique within an email and stable for
-// the same inputs.
+// generateCID creates a unique, deterministic Content-ID from the given asset properties
+// using xxhash. The CID is unique within an email and stable for the same inputs.
 //
 // Takes sourcePath (string) which specifies the path to the asset file.
 // Takes profile (string) which identifies the image profile to use.

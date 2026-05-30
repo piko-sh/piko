@@ -18,10 +18,12 @@
 
 package monitoring_domain
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// validateWatchdogConfig checks the configuration for invalid or dangerous
-// values and returns an error describing the first problem found.
+// validateWatchdogConfig checks the configuration for invalid or dangerous values and
+// returns an error describing the first problem found.
 //
 // Takes config (WatchdogConfig) which provides the configuration to validate.
 //
@@ -34,9 +36,9 @@ func validateWatchdogConfig(config *WatchdogConfig) error {
 	return validateWatchdogTimings(config)
 }
 
-// validateWatchdogThresholds validates threshold and limit fields in the
-// watchdog configuration. The function delegates per-section validation to
-// keep each helper short and focused.
+// validateWatchdogThresholds validates threshold and limit fields in the watchdog
+// configuration. The function delegates per-section validation to keep each helper short
+// and focused.
 //
 // Takes config (*WatchdogConfig) which provides the configuration to validate.
 //
@@ -57,13 +59,13 @@ func validateWatchdogThresholds(config *WatchdogConfig) error {
 	return validateContentionDiagnostic(config)
 }
 
-// validateHeapAndRSSThresholds validates the heap and RSS percent thresholds
-// and the goroutine threshold/ceiling pairing.
+// validateHeapAndRSSThresholds validates the heap and RSS percent thresholds and the
+// goroutine threshold/ceiling pairing.
 //
 // Takes config (*WatchdogConfig) which holds the candidate configuration.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when any threshold is
-// out of range or the goroutine ceiling does not exceed the threshold.
+// Returns error wrapping ErrInvalidWatchdogConfig when any threshold is out of range or
+// the goroutine ceiling does not exceed the threshold.
 func validateHeapAndRSSThresholds(config *WatchdogConfig) error {
 	if config.HeapThresholdPercent <= 0 || config.HeapThresholdPercent > 1.0 {
 		return fmt.Errorf("%w: HeapThresholdPercent must be in (0.0, 1.0], got %v", ErrInvalidWatchdogConfig, config.HeapThresholdPercent)
@@ -87,13 +89,13 @@ func validateHeapAndRSSThresholds(config *WatchdogConfig) error {
 	return nil
 }
 
-// validateBudgetAndCountThresholds validates the rate-limit budgets and
-// per-type retention caps.
+// validateBudgetAndCountThresholds validates the rate-limit budgets and per-type
+// retention caps.
 //
 // Takes config (*WatchdogConfig) which holds the candidate configuration.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when any budget or
-// retention cap is below 1.
+// Returns error wrapping ErrInvalidWatchdogConfig when any budget or retention cap is
+// below 1.
 func validateBudgetAndCountThresholds(config *WatchdogConfig) error {
 	if config.MaxProfilesPerType < 1 {
 		return fmt.Errorf("%w: MaxProfilesPerType must be at least 1, got %d", ErrInvalidWatchdogConfig, config.MaxProfilesPerType)
@@ -107,13 +109,13 @@ func validateBudgetAndCountThresholds(config *WatchdogConfig) error {
 	return nil
 }
 
-// validateForensicThresholds validates the FD pressure, scheduler latency,
-// and crash-loop thresholds.
+// validateForensicThresholds validates the FD pressure, scheduler latency, and crash-loop
+// thresholds.
 //
 // Takes config (*WatchdogConfig) which holds the candidate configuration.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when any threshold is
-// out of range; zero is permitted to disable a rule.
+// Returns error wrapping ErrInvalidWatchdogConfig when any threshold is out of range;
+// zero is permitted to disable a rule.
 func validateForensicThresholds(config *WatchdogConfig) error {
 	if config.FDPressureThresholdPercent < 0 || config.FDPressureThresholdPercent > 1.0 {
 		return fmt.Errorf("%w: FDPressureThresholdPercent must be in [0.0, 1.0], got %v", ErrInvalidWatchdogConfig, config.FDPressureThresholdPercent)
@@ -130,13 +132,13 @@ func validateForensicThresholds(config *WatchdogConfig) error {
 	return nil
 }
 
-// validateContinuousProfiling validates the continuous-profiling fields when
-// the feature is enabled. When disabled the fields are ignored.
+// validateContinuousProfiling validates the continuous-profiling fields when the feature
+// is enabled. When disabled the fields are ignored.
 //
 // Takes config (*WatchdogConfig) which holds the candidate configuration.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when the interval,
-// retention, or types are unsupported.
+// Returns error wrapping ErrInvalidWatchdogConfig when the interval, retention, or types
+// are unsupported.
 func validateContinuousProfiling(config *WatchdogConfig) error {
 	if !config.ContinuousProfilingEnabled {
 		return nil
@@ -161,14 +163,13 @@ func validateContinuousProfiling(config *WatchdogConfig) error {
 	return nil
 }
 
-// validateContentionDiagnostic validates the contention-diagnostic
-// configuration. These fields are always validated because the diagnostic
-// can be invoked manually even when AutoFire is disabled.
+// validateContentionDiagnostic validates the contention-diagnostic configuration. These
+// fields are always validated because the diagnostic can be invoked manually even when
+// AutoFire is disabled.
 //
 // Takes config (*WatchdogConfig) which holds the candidate configuration.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when any field is out
-// of range.
+// Returns error wrapping ErrInvalidWatchdogConfig when any field is out of range.
 func validateContentionDiagnostic(config *WatchdogConfig) error {
 	if config.ContentionDiagnosticWindowDuration < minContentionDiagnosticWindow ||
 		config.ContentionDiagnosticWindowDuration > maxContentionDiagnosticWindow {
@@ -198,17 +199,16 @@ func validateContentionDiagnostic(config *WatchdogConfig) error {
 	return nil
 }
 
-// validateWatchdogTimings validates interval and duration fields in the
-// watchdog configuration.
+// validateWatchdogTimings validates interval and duration fields in the watchdog
+// configuration.
 //
-// The helper signature uses *WatchdogConfig to avoid passing the large
-// config struct by value.
+// The helper signature uses *WatchdogConfig to avoid passing the large config struct by
+// value.
 //
-// Takes config (*WatchdogConfig) which provides the configuration to
-// validate.
+// Takes config (*WatchdogConfig) which provides the configuration to validate.
 //
-// Returns error wrapping ErrInvalidWatchdogConfig when an interval or
-// duration field contains an invalid value.
+// Returns error wrapping ErrInvalidWatchdogConfig when an interval or duration field
+// contains an invalid value.
 func validateWatchdogTimings(config *WatchdogConfig) error {
 	if config.CheckInterval <= 0 {
 		return fmt.Errorf("%w: CheckInterval must be positive, got %v", ErrInvalidWatchdogConfig, config.CheckInterval)

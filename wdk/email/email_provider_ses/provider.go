@@ -37,7 +37,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-var _ email.ProviderPort = (*SESProvider)(nil)
+var (
+	_ email.ProviderPort = (*SESProvider)(nil)
+)
 
 const (
 	// defaultCallsPerSecond is the default AWS SES rate limit in calls per second.
@@ -62,8 +64,8 @@ const (
 	metricSendTypeBulk = "bulk"
 )
 
-// SESProvider wraps an AWS SES client for sending emails. It implements
-// the EmailProviderPort interface.
+// SESProvider wraps an AWS SES client for sending emails. It implements the
+// EmailProviderPort interface.
 type SESProvider struct {
 	// client is the AWS SES API client for sending emails.
 	client *ses.Client
@@ -96,11 +98,11 @@ type SESProviderArgs struct {
 // ProviderOption is a functional option for setting up the SES provider.
 type ProviderOption = email_domain.ProviderOption
 
-// Send delivers an email through AWS SES, selecting the correct API based on
-// whether the email has attachments.
+// Send delivers an email through AWS SES, selecting the correct API based on whether the
+// email has attachments.
 //
-// Takes params (*email_dto.SendParams) which contains the email details
-// including recipients, subject, body, and optional attachments.
+// Takes params (*email_dto.SendParams) which contains the email details including
+// recipients, subject, body, and optional attachments.
 //
 // Returns error when validation fails or the email cannot be sent.
 func (p *SESProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
@@ -135,20 +137,19 @@ func (*SESProvider) Close(context.Context) error {
 
 // SupportsBulkSending reports whether SES supports bulk sending.
 //
-// AWS SES does not have a native bulk sending API. While SES has templated
-// bulk sending, it uses a different workflow than what the SendBulk method
-// implies (sending discrete, different emails).
+// AWS SES does not have a native bulk sending API. While SES has templated bulk sending,
+// it uses a different workflow than what the SendBulk method implies (sending discrete,
+// different emails).
 //
 // Returns bool which is always false for this provider.
 func (*SESProvider) SupportsBulkSending() bool {
 	return false
 }
 
-// SendBulk sends multiple emails by falling back to individual sends with
-// MultiError tracking.
+// SendBulk sends multiple emails by falling back to individual sends with MultiError
+// tracking.
 //
-// Takes emails ([]*email_dto.SendParams) which contains the email messages to
-// send.
+// Takes emails ([]*email_dto.SendParams) which contains the email messages to send.
 //
 // Returns error when one or more emails fail to send.
 func (p *SESProvider) SendBulk(ctx context.Context, emails []*email_dto.SendParams) error {
@@ -175,11 +176,10 @@ func (p *SESProvider) SendBulk(ctx context.Context, emails []*email_dto.SendPara
 
 // validateSendParams performs all validation checks for send parameters.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// validate.
+// Takes params (*email_dto.SendParams) which contains the email details to validate.
 //
-// Returns error when rate limiting fails, no recipients are provided, or both
-// body fields are empty.
+// Returns error when rate limiting fails, no recipients are provided, or both body fields
+// are empty.
 func (p *SESProvider) validateSendParams(ctx context.Context, params *email_dto.SendParams) error {
 	if err := p.rateLimiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limiter wait failed: %w", err)
@@ -193,8 +193,8 @@ func (p *SESProvider) validateSendParams(ctx context.Context, params *email_dto.
 	return nil
 }
 
-// determineSenderAddress returns the appropriate sender address from params
-// or the default.
+// determineSenderAddress returns the appropriate sender address from params or the
+// default.
 //
 // Takes params (*email_dto.SendParams) which contains the email send options.
 //
@@ -241,8 +241,8 @@ func (*SESProvider) recordSingleSendMetrics(ctx context.Context, startTime time.
 
 // sendSimpleEmail uses the ses.SendEmail API for messages without attachments.
 //
-// Takes params (*email_dto.SendParams) which contains the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which contains the email recipients, subject, and
+// body content.
 // Takes from (string) which specifies the sender email address.
 //
 // Returns error when the SES API call fails.
@@ -270,12 +270,12 @@ func (p *SESProvider) sendSimpleEmail(ctx context.Context, params *email_dto.Sen
 	return nil
 }
 
-// sendRawEmail constructs and sends a standard RFC 5322 MIME message for emails
-// with attachments. It uses a dedicated mail library to handle the complexities
-// of MIME encoding.
+// sendRawEmail constructs and sends a standard RFC 5322 MIME message for emails with
+// attachments. It uses a dedicated mail library to handle the complexities of MIME
+// encoding.
 //
-// Takes params (*email_dto.SendParams) which contains the email content and
-// recipient details.
+// Takes params (*email_dto.SendParams) which contains the email content and recipient
+// details.
 // Takes from (string) which specifies the sender address.
 //
 // Returns error when building the MIME message fails or sending via SES fails.
@@ -309,8 +309,8 @@ func (p *SESProvider) sendRawEmail(ctx context.Context, params *email_dto.SendPa
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns *email_domain.MultiError which contains all failed email attempts,
-// or nil if all emails were sent successfully.
+// Returns *email_domain.MultiError which contains all failed email attempts, or nil if
+// all emails were sent successfully.
 func (p *SESProvider) sendBulkEmails(ctx context.Context, emails []*email_dto.SendParams) *email_domain.MultiError {
 	ctx, l := logger.From(ctx, log)
 	var multiError *email_domain.MultiError
@@ -342,8 +342,8 @@ func (p *SESProvider) sendBulkEmails(ctx context.Context, emails []*email_dto.Se
 //
 // Takes startTime (time.Time) which marks when the send operation began.
 // Takes emailCount (int) which is the number of emails in the bulk send.
-// Takes multiError (*email_domain.MultiError) which holds any errors from the
-// send operation.
+// Takes multiError (*email_domain.MultiError) which holds any errors from the send
+// operation.
 func (*SESProvider) recordBulkSendMetrics(ctx context.Context, startTime time.Time, emailCount int, multiError *email_domain.MultiError) {
 	duration := float64(time.Since(startTime).Milliseconds())
 	count := int64(emailCount)
@@ -365,8 +365,7 @@ func (*SESProvider) recordBulkSendMetrics(ctx context.Context, startTime time.Ti
 // NewSESProvider creates an SESProvider with a new AWS config and SES client.
 //
 // Takes arguments (SESProviderArgs) which specifies the AWS and email settings.
-// Takes opts (...ProviderOption) which provides optional rate
-// limiting controls.
+// Takes opts (...ProviderOption) which provides optional rate limiting controls.
 //
 // Returns email.ProviderPort which is the configured provider ready for use.
 // Returns error when FromEmail is empty or AWS config cannot be loaded.
@@ -420,8 +419,8 @@ func loadAWSConfig(ctx context.Context, arguments SESProviderArgs) (aws.Config, 
 // createSESClient creates an SES client with the given AWS settings.
 //
 // Takes awsConfig (*aws.Config) which provides the AWS settings.
-// Takes localEndpoint (string) which sets a custom endpoint for local testing;
-// when empty, the default AWS endpoint is used.
+// Takes localEndpoint (string) which sets a custom endpoint for local testing; when
+// empty, the default AWS endpoint is used.
 //
 // Returns *ses.Client which is the configured SES client ready for use.
 func createSESClient(ctx context.Context, awsConfig *aws.Config, localEndpoint string) *ses.Client {
@@ -436,13 +435,11 @@ func createSESClient(ctx context.Context, awsConfig *aws.Config, localEndpoint s
 	return ses.NewFromConfig(*awsConfig, clientOptions...)
 }
 
-// buildSESMessageBody constructs the Body part of a ses.Message for the
-// simple send API.
+// buildSESMessageBody constructs the Body part of a ses.Message for the simple send API.
 //
 // Takes params (*email_dto.SendParams) which contains the email body content.
 //
-// Returns *types.Body which contains the formatted message body with charset
-// encoding.
+// Returns *types.Body which contains the formatted message body with charset encoding.
 func buildSESMessageBody(params *email_dto.SendParams) *types.Body {
 	body := &types.Body{}
 	if params.BodyHTML != "" {

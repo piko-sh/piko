@@ -42,8 +42,8 @@ const (
 	// tokenParts is the expected number of parts in a decoded challenge token.
 	tokenParts = 4
 
-	// maxUsedTokens is the maximum number of consumed challenge IDs to track.
-	// Once reached, new verifications are rejected until entries expire.
+	// maxUsedTokens is the maximum number of consumed challenge IDs to track. Once reached,
+	// new verifications are rejected until entries expire.
 	maxUsedTokens = 100_000
 
 	// errorCodeMissing indicates no token was provided.
@@ -52,32 +52,29 @@ const (
 	// errorCodeInvalid indicates the token is malformed or tampered with.
 	errorCodeInvalid = "invalid-input-response"
 
-	// errorCodeExpired indicates the token has exceeded its TTL or has already
-	// been used.
+	// errorCodeExpired indicates the token has exceeded its TTL or has already been used.
 	errorCodeExpired = "timeout-or-duplicate"
 
-	// errorCodeActionMismatch indicates the token was generated for a different
-	// action than the one being verified.
+	// errorCodeActionMismatch indicates the token was generated for a different action than
+	// the one being verified.
 	errorCodeActionMismatch = "action-mismatch"
 
-	// maxTokenLength is the maximum allowed length of a challenge token string
-	// before decoding. Prevents unbounded memory allocation from oversized input.
+	// maxTokenLength is the maximum allowed length of a challenge token string before
+	// decoding. Prevents unbounded memory allocation from oversized input.
 	maxTokenLength = 4096
 
 	// maxActionLength is the maximum allowed length of an action name.
 	maxActionLength = 256
 
-	// evictionIntervalDivisor controls how often eviction runs relative to the
-	// TTL. With a divisor of 5 and a 5-minute TTL, eviction runs at most once
-	// per minute.
+	// evictionIntervalDivisor controls how often eviction runs relative to the TTL. With a
+	// divisor of 5 and a 5-minute TTL, eviction runs at most once per minute.
 	evictionIntervalDivisor = 5
 )
 
-// provider implements captcha_domain.CaptchaProvider using HMAC-based challenge
-// tokens.
+// provider implements captcha_domain.CaptchaProvider using HMAC-based challenge tokens.
 type provider struct {
-	// lastEviction is when the last eviction pass ran, used to throttle
-	// eviction frequency to avoid O(n) scans on every verification.
+	// lastEviction is when the last eviction pass ran, used to throttle eviction frequency
+	// to avoid O(n) scans on every verification.
 	lastEviction time.Time
 
 	// clock provides the time source for token generation and TTL checks.
@@ -96,14 +93,15 @@ type provider struct {
 	usedMutex sync.Mutex
 }
 
-var _ captcha_domain.CaptchaProvider = (*provider)(nil)
+var (
+	_ captcha_domain.CaptchaProvider = (*provider)(nil)
+)
 
 // NewProvider creates a new HMAC challenge captcha provider.
 //
 // Takes config (Config) which specifies the HMAC secret and token TTL.
 //
-// Returns captcha_domain.CaptchaProvider which provides HMAC-based captcha
-// verification.
+// Returns captcha_domain.CaptchaProvider which provides HMAC-based captcha verification.
 // Returns error when the configuration is invalid.
 func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 	if err := config.validate(); err != nil {
@@ -133,8 +131,7 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 
 // Type returns the provider type identifier.
 //
-// Returns captcha_dto.ProviderType which identifies this as an HMAC challenge
-// provider.
+// Returns captcha_dto.ProviderType which identifies this as an HMAC challenge provider.
 func (*provider) Type() captcha_dto.ProviderType {
 	return captcha_dto.ProviderTypeHMACChallenge
 }
@@ -146,17 +143,17 @@ func (*provider) SiteKey() string {
 	return "hmac-challenge"
 }
 
-// ScriptURL returns an empty string because the HMAC challenge provider does
-// not require an external JavaScript SDK.
+// ScriptURL returns an empty string because the HMAC challenge provider does not require
+// an external JavaScript SDK.
 //
 // Returns string which is always empty for this provider.
 func (*provider) ScriptURL() string {
 	return ""
 }
 
-// RenderRequirements returns a server-side-only configuration. The HMAC
-// provider generates tokens at render time and pre-populates the hidden input,
-// so no client JavaScript or external scripts are needed.
+// RenderRequirements returns a server-side-only configuration. The HMAC provider
+// generates tokens at render time and pre-populates the hidden input, so no client
+// JavaScript or external scripts are needed.
 //
 // Returns *captcha_dto.RenderRequirements with ServerSideToken set to true.
 func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
@@ -207,8 +204,8 @@ type parsedToken struct {
 
 // Verify verifies a challenge token.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the token and
-// action to verify.
+// Takes request (*captcha_dto.VerifyRequest) which contains the token and action to
+// verify.
 //
 // Returns *captcha_dto.VerifyResponse which contains the verification result.
 // Returns error when verification encounters an unexpected failure.
@@ -253,8 +250,8 @@ func (p *provider) Verify(_ context.Context, request *captcha_dto.VerifyRequest)
 	}, nil
 }
 
-// HealthCheck verifies the provider is operational by generating and verifying
-// a test token.
+// HealthCheck verifies the provider is operational by generating and verifying a test
+// token.
 //
 // Returns error when the health check round-trip fails.
 func (p *provider) HealthCheck(ctx context.Context) error {
@@ -277,14 +274,13 @@ func (p *provider) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// parseAndValidateToken decodes a token string, verifies its HMAC signature,
-// and checks the timestamp is within the TTL.
+// parseAndValidateToken decodes a token string, verifies its HMAC signature, and checks
+// the timestamp is within the TTL.
 //
 // Takes tokenString (string) which is the base64-encoded challenge token.
 //
 // Returns *parsedToken which holds the decoded token components on success.
-// Returns *captcha_dto.VerifyResponse which describes the failure, or nil on
-// success.
+// Returns *captcha_dto.VerifyResponse which describes the failure, or nil on success.
 func (p *provider) parseAndValidateToken(tokenString string) (*parsedToken, *captcha_dto.VerifyResponse) {
 	decoded, err := base64.RawURLEncoding.DecodeString(tokenString)
 	if err != nil {
@@ -331,8 +327,8 @@ func (p *provider) parseAndValidateToken(tokenString string) (*parsedToken, *cap
 	}, nil
 }
 
-// computeSignature returns the base64-encoded HMAC-SHA256 signature for the
-// given payload.
+// computeSignature returns the base64-encoded HMAC-SHA256 signature for the given
+// payload.
 //
 // Takes payload (string) which is the data to sign.
 //
@@ -343,8 +339,8 @@ func (p *provider) computeSignature(payload string) string {
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// verifySignature checks whether the provided signature matches the expected
-// HMAC for the given token components.
+// verifySignature checks whether the provided signature matches the expected HMAC for the
+// given token components.
 //
 // Takes challengeID (string) which is the unique challenge identifier.
 // Takes timestampStr (string) which is the Unix timestamp as a string.
@@ -358,15 +354,15 @@ func (p *provider) verifySignature(challengeID, timestampStr, action, providedSi
 	return hmac.Equal([]byte(providedSignature), []byte(expected))
 }
 
-// claimChallengeID atomically checks whether a challenge ID has been used and
-// marks it as consumed if not. This prevents TOCTOU races between concurrent
-// verification requests for the same token.
+// claimChallengeID atomically checks whether a challenge ID has been used and marks it as
+// consumed if not. This prevents TOCTOU races between concurrent verification requests
+// for the same token.
 //
 // Takes challengeID (string) which is the identifier to claim.
 // Takes challengeTime (time.Time) which is when the challenge was created.
 //
-// Returns bool which is true when the claim succeeded (first use), false when
-// already consumed or the map is at capacity.
+// Returns bool which is true when the claim succeeded (first use), false when already
+// consumed or the map is at capacity.
 //
 // Concurrency: Safe for concurrent use; acquires usedMutex internally.
 func (p *provider) claimChallengeID(challengeID string, challengeTime time.Time) bool {
@@ -395,8 +391,7 @@ func (p *provider) claimChallengeID(challengeID string, challengeTime time.Time)
 	return true
 }
 
-// evictExpired removes expired challenge IDs. Must be called with usedMutex
-// held.
+// evictExpired removes expired challenge IDs. Must be called with usedMutex held.
 //
 // Takes now (time.Time) which is the current time for expiry comparison.
 func (p *provider) evictExpired(now time.Time) {
@@ -407,8 +402,7 @@ func (p *provider) evictExpired(now time.Time) {
 	}
 }
 
-// failedResponse returns a VerifyResponse indicating failure with the given
-// error code.
+// failedResponse returns a VerifyResponse indicating failure with the given error code.
 //
 // Takes errorCode (string) which identifies the failure reason.
 //

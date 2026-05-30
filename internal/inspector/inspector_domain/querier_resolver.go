@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file focuses on the logic for resolving package aliases and type names
-// from various contexts, including file-scoped imports and local aliases.
+// This file focuses on the logic for resolving package aliases and type names from
+// various contexts, including file-scoped imports and local aliases.
 
 import (
 	goast "go/ast"
@@ -29,16 +29,15 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// findNamedType locates a type DTO from the cache by resolving a package
-// alias from the perspective of an importer.
+// findNamedType locates a type DTO from the cache by resolving a package alias from the
+// perspective of an importer.
 //
 // Takes typeName (string) which specifies the name of the type to find.
-// Takes typePackageAlias (string) which specifies the package alias used in the
-// importing file.
-// Takes importerPackagePath (string) which specifies the package path of the
-// importing code.
-// Takes importerFilePath (string) which specifies the file path of the
-// importing code.
+// Takes typePackageAlias (string) which specifies the package alias used in the importing
+// file.
+// Takes importerPackagePath (string) which specifies the package path of the importing
+// code.
+// Takes importerFilePath (string) which specifies the file path of the importing code.
 //
 // Returns *inspector_dto.Type which is the resolved type, or nil if not found.
 // Returns string which is the resolved package path.
@@ -52,10 +51,9 @@ func (ti *TypeQuerier) findNamedType(typeName, typePackageAlias, importerPackage
 	return ti.lookupTypeInPackage(typeName, typePackageAlias, packagePath)
 }
 
-// findTypeThroughAliasFallback handles the case where an alias refers to the
-// current package. For example, dto_alias.TransactionDto where dto_alias is an
-// import alias for the dtos package, but we are trying to resolve it from
-// within that same package.
+// findTypeThroughAliasFallback handles the case where an alias refers to the current
+// package. For example, dto_alias.TransactionDto where dto_alias is an import alias for
+// the dtos package, but we are trying to resolve it from within that same package.
 //
 // Takes typeName (string) which is the name of the type to find.
 // Takes typePackageAlias (string) which is the import alias used for the package.
@@ -81,8 +79,8 @@ func (ti *TypeQuerier) findTypeThroughAliasFallback(typeName, typePackageAlias, 
 	return nil, ""
 }
 
-// findTypeViaFileImports checks if a package's file imports contain an alias
-// pointing to the target path.
+// findTypeViaFileImports checks if a package's file imports contain an alias pointing to
+// the target path.
 //
 // Iterates over file imports in sorted order for deterministic results.
 //
@@ -112,12 +110,11 @@ func (ti *TypeQuerier) findTypeViaFileImports(pkg *inspector_dto.Package, typeNa
 	return nil
 }
 
-// lookupTypeInPackage looks up a type in the resolved package and handles
-// alias access detection.
+// lookupTypeInPackage looks up a type in the resolved package and handles alias access
+// detection.
 //
 // Takes typeName (string) which is the name of the type to look up.
-// Takes typePackageAlias (string) which is the import
-// alias used to access the type.
+// Takes typePackageAlias (string) which is the import alias used to access the type.
 // Takes packagePath (string) which is the full import path of the package.
 //
 // Returns *inspector_dto.Type which is the resolved type, or nil if not found.
@@ -142,14 +139,14 @@ func (ti *TypeQuerier) lookupTypeInPackage(typeName, typePackageAlias, packagePa
 	return namedType, typePackageAlias
 }
 
-// resolvePackagePath determines the canonical package import path from a
-// given alias or name. It tries resolution strategies in order of priority.
+// resolvePackagePath determines the canonical package import path from a given alias or
+// name. It tries resolution strategies in order of priority.
 //
 // Takes aliasToResolve (string) which is the package alias or name to resolve.
-// Takes importerPackagePath (string) which is the import path of the package where
-// the lookup is happening.
-// Takes importerFilePath (string) which is the file path used for file-scoped
-// import resolution.
+// Takes importerPackagePath (string) which is the import path of the package where the
+// lookup is happening.
+// Takes importerFilePath (string) which is the file path used for file-scoped import
+// resolution.
 //
 // Returns string which is the resolved canonical package import path.
 // Returns bool which indicates whether resolution succeeded.
@@ -170,12 +167,11 @@ func (ti *TypeQuerier) resolvePackagePath(aliasToResolve, importerPackagePath, i
 	return "", false
 }
 
-// getImporterPackage retrieves the package DTO for the given importer path,
-// handling the special case for no-gomod projects where the path may be
-// represented by the "command-line-arguments" package.
+// getImporterPackage retrieves the package DTO for the given importer path, handling the
+// special case for no-gomod projects where the path may be represented by the
+// "command-line-arguments" package.
 //
-// Takes importerPackagePath (string) which is the import path of the package to
-// retrieve.
+// Takes importerPackagePath (string) which is the import path of the package to retrieve.
 //
 // Returns *inspector_dto.Package which is the package metadata if found.
 // Returns bool which indicates whether the package was found.
@@ -195,8 +191,8 @@ func (ti *TypeQuerier) getImporterPackage(importerPackagePath string) (*inspecto
 	return importerPackage, true
 }
 
-// resolveFromFileScope attempts to resolve a package alias using the import
-// map of the specific file where the lookup is occurring.
+// resolveFromFileScope attempts to resolve a package alias using the import map of the
+// specific file where the lookup is occurring.
 //
 // Takes aliasToResolve (string) which is the package alias to look up.
 // Takes importerPackage (*inspector_dto.Package) which contains the file imports.
@@ -221,19 +217,18 @@ func (ti *TypeQuerier) resolveFromFileScope(aliasToResolve string, importerPacka
 	return ti.resolveByImportedPackageName(fileImports, aliasToResolve)
 }
 
-// resolveByImportedPackageName searches a file's imports to see if the alias
-// matches the actual name of an imported package.
+// resolveByImportedPackageName searches a file's imports to see if the alias matches the
+// actual name of an imported package.
 //
-// Takes fileImports (map[string]string) which maps import aliases to package
-// paths.
+// Takes fileImports (map[string]string) which maps import aliases to package paths.
 // Takes aliasToResolve (string) which is the package name to search for.
 //
 // Returns string which is the package path if found, or empty string.
 // Returns bool which indicates whether a matching package was found.
 //
-// Note: iterates over imports in sorted order to ensure deterministic resolution
-// when multiple packages share the same name. Without sorting, map iteration
-// order is random and could cause different packages to be selected across runs.
+// Note: iterates over imports in sorted order to ensure deterministic resolution when
+// multiple packages share the same name. Without sorting, map iteration order is random
+// and could cause different packages to be selected across runs.
 func (ti *TypeQuerier) resolveByImportedPackageName(fileImports map[string]string, aliasToResolve string) (string, bool) {
 	aliases := make([]string, 0, len(fileImports))
 	for alias := range fileImports {
@@ -251,8 +246,8 @@ func (ti *TypeQuerier) resolveByImportedPackageName(fileImports map[string]strin
 	return "", false
 }
 
-// resolveWithFallbacks attempts several lower-priority strategies for
-// resolving a package path.
+// resolveWithFallbacks attempts several lower-priority strategies for resolving a package
+// path.
 //
 // Takes aliasToResolve (string) which is the alias or path to resolve.
 // Takes importerPackage (*inspector_dto.Package) which is the package context.
@@ -281,14 +276,11 @@ func (ti *TypeQuerier) resolveWithFallbacks(aliasToResolve string, importerPacka
 	return "", false
 }
 
-// findNamedTypeInDotPackage handles looking for a type that may have been
-// dot-imported.
+// findNamedTypeInDotPackage handles looking for a type that may have been dot-imported.
 //
 // Takes typeName (string) which is the name of the type to find.
-// Takes importerPackagePath (string) which is the package path performing the
-// import.
-// Takes importerFilePath (string) which is the file path where the import
-// occurs.
+// Takes importerPackagePath (string) which is the package path performing the import.
+// Takes importerFilePath (string) which is the file path where the import occurs.
 //
 // Returns *inspector_dto.Type which is the found type, or nil if not found.
 // Returns string which is the canonical package name, or empty if not found.
@@ -325,15 +317,13 @@ func (ti *TypeQuerier) findNamedTypeInDotPackage(typeName, importerPackagePath, 
 	return namedType, dotImportedPackage.Name
 }
 
-// resolveLocalAlias tries to resolve one level of a type alias in the
-// local package files.
+// resolveLocalAlias tries to resolve one level of a type alias in the local package
+// files.
 //
 // Takes expression (goast.Expr) which is the expression to resolve.
-// Takes currentFilePath (string) which identifies the file containing
-// the type.
+// Takes currentFilePath (string) which identifies the file containing the type.
 //
-// Returns goast.Expr which is the resolved expression the alias
-// points to.
+// Returns goast.Expr which is the resolved expression the alias points to.
 // Returns string which is the file path for the next step.
 // Returns bool which is true when an alias was found and resolved.
 func (ti *TypeQuerier) resolveLocalAlias(expression goast.Expr, currentFilePath string) (goast.Expr, string, bool) {
@@ -373,15 +363,13 @@ func (ti *TypeQuerier) resolveLocalAlias(expression goast.Expr, currentFilePath 
 	return nil, "", false
 }
 
-// ResolvePackageAlias resolves a package alias to its canonical import path
-// from a specific file and package context. For example, given alias "url"
-// from a file that imports "net/url", this returns "net/url".
+// ResolvePackageAlias resolves a package alias to its canonical import path from a
+// specific file and package context. For example, given alias "url" from a file that
+// imports "net/url", this returns "net/url".
 //
 // Takes aliasToResolve (string) which is the package alias to resolve.
-// Takes importerPackagePath (string) which is the package path of the importing
-// file.
-// Takes importerFilePath (string) which is the file path of the importing
-// file.
+// Takes importerPackagePath (string) which is the package path of the importing file.
+// Takes importerFilePath (string) which is the file path of the importing file.
 //
 // Returns string which is the canonical import path, or empty if not found.
 func (ti *TypeQuerier) ResolvePackageAlias(aliasToResolve, importerPackagePath, importerFilePath string) string {

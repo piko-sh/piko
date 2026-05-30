@@ -18,16 +18,18 @@
 
 package driven_piko_symbols
 
-import "piko.sh/piko/internal/interp/interp_domain"
+import (
+	"piko.sh/piko/internal/interp/interp_domain"
+)
 
-// PikoSymbolsProvider provides vendored piko runtime symbols to the
-// bytecode interpreter.
+// PikoSymbolsProvider provides vendored piko runtime symbols to the bytecode interpreter.
 type PikoSymbolsProvider struct{}
 
-var _ interp_domain.SymbolProviderPort = (*PikoSymbolsProvider)(nil)
+var (
+	_ interp_domain.SymbolProviderPort = (*PikoSymbolsProvider)(nil)
+)
 
-// NewProvider creates a new provider backed by the vendored piko runtime
-// symbol tables.
+// NewProvider creates a new provider backed by the vendored piko runtime symbol tables.
 //
 // Returns a pointer to a newly allocated PikoSymbolsProvider.
 func NewProvider() *PikoSymbolsProvider {

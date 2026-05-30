@@ -29,16 +29,15 @@ import (
 
 // wrapError wraps an OpenAI SDK error as a *llm_domain.ProviderError.
 //
-// Preserves the HTTP status code when the underlying error is an
-// *openai.Error. When the upstream response carries a Retry-After header,
-// its parsed value is propagated so the retry executor can honour the
-// server hint. For non-API errors the original error is returned
-// unchanged.
+// Preserves the HTTP status code when the underlying error is an *openai.Error. When the
+// upstream response carries a Retry-After header, its parsed value is propagated so the
+// retry executor can honour the server hint. For non-API errors the original error is
+// returned unchanged.
 //
 // Takes err (error) which is the error to inspect and potentially wrap.
 //
-// Returns error which is either a wrapped *llm_domain.ProviderError or the
-// original error.
+// Returns error which is either a wrapped *llm_domain.ProviderError or the original
+// error.
 func wrapError(err error) error {
 	if apiErr, ok := errors.AsType[*openai.Error](err); ok {
 		providerErr := &llm_domain.ProviderError{

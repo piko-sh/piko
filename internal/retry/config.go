@@ -23,11 +23,10 @@ import (
 	"time"
 )
 
-// Config holds settings for retrying failed operations with exponential
-// backoff.
+// Config holds settings for retrying failed operations with exponential backoff.
 type Config struct {
-	// JitterFunc adds randomness to retry delays to spread out requests.
-	// If nil, defaults to [DefaultJitter] which adds 10% of the delay.
+	// JitterFunc adds randomness to retry delays to spread out requests. If nil, defaults to
+	// DefaultJitter which adds 10% of the delay.
 	JitterFunc func(delay time.Duration) time.Duration `json:"-"`
 
 	// InitialDelay is the wait time before the first retry attempt.
@@ -43,8 +42,8 @@ type Config struct {
 	MaxRetries int `json:"max_retries"`
 }
 
-// CalculateNextRetry calculates the next retry time using exponential backoff
-// with jitter.
+// CalculateNextRetry calculates the next retry time using exponential backoff with
+// jitter.
 //
 // Takes attempt (int) which is the current retry attempt number.
 // Takes baseTime (time.Time) which is the reference time to calculate from.
@@ -68,8 +67,7 @@ func (c Config) CalculateNextRetry(attempt int, baseTime time.Time) time.Time {
 	return baseTime.Add(delay + jitter)
 }
 
-// ShouldRetry determines if an operation should be retried based on attempt
-// count.
+// ShouldRetry determines if an operation should be retried based on attempt count.
 //
 // Takes attempt (int) which is the current attempt number.
 //
@@ -78,8 +76,7 @@ func (c Config) ShouldRetry(attempt int) bool {
 	return attempt <= c.MaxRetries
 }
 
-// getJitter returns the jitter duration using the configured function or the
-// default.
+// getJitter returns the jitter duration using the configured function or the default.
 //
 // Takes delay (time.Duration) which is the base delay to calculate jitter for.
 //
@@ -91,12 +88,10 @@ func (c Config) getJitter(delay time.Duration) time.Duration {
 	return DefaultJitter(delay)
 }
 
-// DefaultJitter returns a random duration between 0 and 10% of the given
-// delay. This is the default jitter strategy used when Config.JitterFunc is
-// nil.
+// DefaultJitter returns a random duration between 0 and 10% of the given delay. This is
+// the default jitter strategy used when Config.JitterFunc is nil.
 //
-// Takes delay (time.Duration) which is the base delay to calculate jitter
-// from.
+// Takes delay (time.Duration) which is the base delay to calculate jitter from.
 //
 // Returns time.Duration which is a random value in [0, delay/10).
 func DefaultJitter(delay time.Duration) time.Duration {

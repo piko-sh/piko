@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// interpretedManifestStoreView implements ManifestStoreView as a lightweight
-// read-only view over the InterpretedManifestRunner's cache. The RouterManager
-// uses it in dev-i mode to mount routes after each JIT build.
+// interpretedManifestStoreView implements ManifestStoreView as a lightweight read-only
+// view over the InterpretedManifestRunner's cache. The RouterManager uses it in dev-i
+// mode to mount routes after each JIT build.
 type interpretedManifestStoreView struct {
 	// r references the parent runner for cache and lock access.
 	r *InterpretedManifestRunner
@@ -46,8 +46,7 @@ func (v *interpretedManifestStoreView) GetKeys() []string {
 	return slices.Sorted(maps.Keys(v.r.progCache))
 }
 
-// GetPageEntry returns a snapshot view of the page entry for the given path,
-// if present.
+// GetPageEntry returns a snapshot view of the page entry for the given path, if present.
 //
 // Takes path (string) which specifies the key to look up in the cache.
 //
@@ -62,17 +61,15 @@ func (v *interpretedManifestStoreView) GetPageEntry(path string) (templater_doma
 	return pe, ok
 }
 
-// FindErrorPage looks up the most specific error page for the given
-// HTTP status code and request path using the same three-tier
-// fallback chain as the compiled ManifestStore: exact status-code
-// match first, then range match, then catch-all. Within each tier
-// the candidate with the longest matching ScopePath wins.
+// FindErrorPage looks up the most specific error page for the given HTTP status code and
+// request path using the same three-tier fallback chain as the compiled ManifestStore:
+// exact status-code match first, then range match, then catch-all. Within each tier the
+// candidate with the longest matching ScopePath wins.
 //
 // Takes statusCode (int) which is the HTTP status code to match.
 // Takes requestPath (string) which is the URL path being requested.
 //
-// Returns templater_domain.PageEntryView which is the matching error
-// page entry.
+// Returns templater_domain.PageEntryView which is the matching error page entry.
 // Returns bool which is true when a matching error page was found.
 //
 // Concurrency: read-locks the runner's progCache for the scan duration.
@@ -96,18 +93,17 @@ func (v *interpretedManifestStoreView) FindErrorPage(statusCode int, requestPath
 	})
 }
 
-// findErrorPageTier scans progCache for entries whose ErrorDispatch
-// satisfies match and whose ScopePath is a prefix of requestPath,
-// returning the entry with the longest matching ScopePath.
+// findErrorPageTier scans progCache for entries whose ErrorDispatch satisfies match and
+// whose ScopePath is a prefix of requestPath, returning the entry with the longest
+// matching ScopePath.
 //
-// Takes progCache (map[string]*PageEntry) holding the compiled
-// entries to scan.
+// Takes progCache (map[string]*PageEntry) holding the compiled entries to scan.
 // Takes requestPath (string) which is the incoming request path.
-// Takes match (func(*ErrorPageDispatch) bool) which selects entries
-// belonging to the current tier.
+// Takes match (func(*ErrorPageDispatch) bool) which selects entries belonging to the
+// current tier.
 //
-// Returns templater_domain.PageEntryView and true when an entry was
-// found; nil and false otherwise.
+// Returns templater_domain.PageEntryView and true when an entry was found; nil and false
+// otherwise.
 func findErrorPageTier(
 	progCache map[string]*PageEntry,
 	requestPath string,
@@ -134,11 +130,11 @@ func findErrorPageTier(
 	return best, true
 }
 
-// ListPreviewEntries returns all entries with a Preview function from the
-// interpreted runner's in-memory cache.
+// ListPreviewEntries returns all entries with a Preview function from the interpreted
+// runner's in-memory cache.
 //
-// Returns []templater_domain.PreviewCatalogueEntry which contains preview
-// entries sorted by source path.
+// Returns []templater_domain.PreviewCatalogueEntry which contains preview entries sorted
+// by source path.
 //
 // Concurrency: acquires a read lock on the runner's cache.
 func (v *interpretedManifestStoreView) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
@@ -166,13 +162,12 @@ func (v *interpretedManifestStoreView) ListPreviewEntries() []templater_domain.P
 	return entries
 }
 
-// classifyComponentType determines the component type from its source path
-// prefix.
+// classifyComponentType determines the component type from its source path prefix.
 //
 // Takes sourcePath (string) which is the source path to classify.
 //
-// Returns string which is the component type ("page", "partial", "email",
-// "pdf", or "component").
+// Returns string which is the component type ("page", "partial", "email", "pdf", or
+// "component").
 func classifyComponentType(sourcePath string) string {
 	switch {
 	case strings.HasPrefix(sourcePath, "pages/") || strings.HasPrefix(sourcePath, "e2e/pages/"):
@@ -188,14 +183,14 @@ func classifyComponentType(sourcePath string) string {
 	}
 }
 
-// NewInterpretedManifestStoreView creates a ManifestStoreView that uses the
-// interpreted runner's in-memory cache.
+// NewInterpretedManifestStoreView creates a ManifestStoreView that uses the interpreted
+// runner's in-memory cache.
 //
-// Takes r (*InterpretedManifestRunner) which provides the in-memory cache for
-// manifest data.
+// Takes r (*InterpretedManifestRunner) which provides the in-memory cache for manifest
+// data.
 //
-// Returns templater_domain.ManifestStoreView which gives read access to the
-// cached manifest entries.
+// Returns templater_domain.ManifestStoreView which gives read access to the cached
+// manifest entries.
 func NewInterpretedManifestStoreView(r *InterpretedManifestRunner) templater_domain.ManifestStoreView {
 	return &interpretedManifestStoreView{r: r}
 }

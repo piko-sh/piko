@@ -29,10 +29,11 @@ import (
 	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/safeconv"
 )
 
-// ReactiveTransformer defines the interface for transforming component state
-// into reactive form. Implements compiler_domain.ReactiveTransformer.
+// ReactiveTransformer defines the interface for transforming component state into
+// reactive form. Implements compiler_domain.ReactiveTransformer.
 type ReactiveTransformer interface {
 	// Transform converts a component AST into a reactive form.
 	//
@@ -40,8 +41,7 @@ type ReactiveTransformer interface {
 	// Takes metadata (*ComponentMetadata) which provides component information.
 	// Takes className (string) which is the name of the component class.
 	// Takes behaviours ([]string) which lists the reactive behaviours to apply.
-	// Takes registry (*RegistryContext) which provides access to component
-	// definitions.
+	// Takes registry (*RegistryContext) which provides access to component definitions.
 	//
 	// Returns *ReactiveTransformResult which contains the transformed component.
 	// Returns error when the transformation fails.
@@ -52,7 +52,9 @@ type ReactiveTransformer interface {
 // reactiveTransformer implements the ReactiveTransformer interface.
 type reactiveTransformer struct{}
 
-var _ ReactiveTransformer = (*reactiveTransformer)(nil)
+var (
+	_ ReactiveTransformer = (*reactiveTransformer)(nil)
+)
 
 // ReactiveTransformResult holds the output of reactive state transformation.
 type ReactiveTransformResult struct {
@@ -77,16 +79,14 @@ type TypedProperty struct {
 
 // userFunctionDefinition holds a parsed user function with its name and AST.
 type userFunctionDefinition struct {
-	// FunctionName is the name used to expose the function on the component
-	// instance.
+	// FunctionName is the name used to expose the function on the component instance.
 	FunctionName string
 
 	// Statement is the AST node for the function declaration.
 	Statement js_ast.Stmt
 }
 
-// reactiveTransformContext holds intermediate state during reactive
-// transformation.
+// reactiveTransformContext holds intermediate state during reactive transformation.
 type reactiveTransformContext struct {
 	// componentAST holds the parsed JavaScript AST of the component file.
 	componentAST *js_ast.AST
@@ -94,12 +94,11 @@ type reactiveTransformContext struct {
 	// metadata holds the component metadata for accessing state properties.
 	metadata *ComponentMetadata
 
-	// stateDeclaration holds the AST node for the state variable declaration
-	// found in the component; nil if no state declaration exists.
+	// stateDeclaration holds the AST node for the state variable declaration found in the
+	// component; nil if no state declaration exists.
 	stateDeclaration *js_ast.SLocal
 
-	// initialStateObject holds the parsed object literal from the state
-	// declaration.
+	// initialStateObject holds the parsed object literal from the state declaration.
 	initialStateObject *js_ast.EObject
 
 	// targetClass is the AST class node being transformed.
@@ -117,12 +116,11 @@ type reactiveTransformContext struct {
 	// userFunctions holds the user-defined functions found in the component.
 	userFunctions []userFunctionDefinition
 
-	// statementsBeforeState holds statements that appear before the state
-	// declaration.
+	// statementsBeforeState holds statements that appear before the state declaration.
 	statementsBeforeState []js_ast.Stmt
 
-	// statementsAfterState holds statements that appear after the state
-	// declaration in the user's code.
+	// statementsAfterState holds statements that appear after the state declaration in the
+	// user's code.
 	statementsAfterState []js_ast.Stmt
 
 	// instanceProps holds the names of properties to attach to class instances.
@@ -131,17 +129,13 @@ type reactiveTransformContext struct {
 
 // Transform implements the ReactiveTransformer interface.
 //
-// Takes componentAST (*js_ast.AST) which is the parsed JavaScript AST to
-// transform.
+// Takes componentAST (*js_ast.AST) which is the parsed JavaScript AST to transform.
 // Takes metadata (*ComponentMetadata) which provides component information.
 // Takes componentClassName (string) which is the name of the component class.
-// Takes enabledBehaviours ([]string) which lists the reactive behaviours to
-// enable.
-// Takes registry (*RegistryContext) which provides access to registered
-// components.
+// Takes enabledBehaviours ([]string) which lists the reactive behaviours to enable.
+// Takes registry (*RegistryContext) which provides access to registered components.
 //
-// Returns *ReactiveTransformResult which contains the transformed AST and
-// metadata.
+// Returns *ReactiveTransformResult which contains the transformed AST and metadata.
 // Returns error when the transformation fails.
 func (*reactiveTransformer) Transform(
 	ctx context.Context,
@@ -154,8 +148,8 @@ func (*reactiveTransformer) Transform(
 	return ReactiveStateTransform(ctx, componentAST, metadata, componentClassName, enabledBehaviours, registry)
 }
 
-// extractStateAndFunctions finds the state declaration and user-defined
-// functions in the component AST.
+// extractStateAndFunctions finds the state declaration and user-defined functions in the
+// component AST.
 //
 // Returns error when state or function extraction fails.
 func (rtc *reactiveTransformContext) extractStateAndFunctions(ctx context.Context) error {
@@ -183,8 +177,7 @@ func (rtc *reactiveTransformContext) extractStateAndFunctions(ctx context.Contex
 	return nil
 }
 
-// buildAndInjectInstanceFunction builds the instance function from the
-// extracted state.
+// buildAndInjectInstanceFunction builds the instance function from the extracted state.
 //
 // Returns *js_ast.SFunction which is the instance function AST.
 // Returns error when building the instance function AST fails.
@@ -217,8 +210,8 @@ func (rtc *reactiveTransformContext) findOrCreateTargetClass(ctx context.Context
 	return nil
 }
 
-// injectBehavioursAndProperties adds behaviours and static property getters to
-// the target class.
+// injectBehavioursAndProperties adds behaviours and static property getters to the target
+// class.
 func (rtc *reactiveTransformContext) injectBehavioursAndProperties(ctx context.Context) {
 	if len(rtc.enabledBehaviours) > 0 {
 		rtc.injectEnabledBehaviours(ctx)
@@ -232,8 +225,7 @@ func (rtc *reactiveTransformContext) injectBehavioursAndProperties(ctx context.C
 	ensureConstructorHandlesInstance(ctx, rtc.targetClass, rtc.registry)
 }
 
-// injectEnabledBehaviours adds the enabledBehaviours static property to the
-// target class.
+// injectEnabledBehaviours adds the enabledBehaviours static property to the target class.
 func (rtc *reactiveTransformContext) injectEnabledBehaviours(ctx context.Context) {
 	behaviourList := make([]string, 0, len(rtc.enabledBehaviours))
 	for _, b := range rtc.enabledBehaviours {
@@ -249,8 +241,8 @@ func (rtc *reactiveTransformContext) injectEnabledBehaviours(ctx context.Context
 
 // finaliseAST adds the instance function to the start of the AST.
 //
-// Takes instanceFunction (*js_ast.SFunction) which is the function to insert
-// at the beginning of the component statements.
+// Takes instanceFunction (*js_ast.SFunction) which is the function to insert at the
+// beginning of the component statements.
 func (rtc *reactiveTransformContext) finaliseAST(instanceFunction *js_ast.SFunction) {
 	currentStmts := getStmtsFromAST(rtc.componentAST)
 	newStmts := make([]js_ast.Stmt, 0, len(currentStmts)+1)
@@ -266,21 +258,19 @@ func NewReactiveTransformer() ReactiveTransformer {
 	return &reactiveTransformer{}
 }
 
-// ReactiveStateTransform transforms component state properties into reactive
-// getters and setters.
+// ReactiveStateTransform transforms component state properties into reactive getters and
+// setters.
 //
-// Takes componentAST (*js_ast.AST) which provides the parsed JavaScript AST
-// to transform.
+// Takes componentAST (*js_ast.AST) which provides the parsed JavaScript AST to transform.
 // Takes metadata (*ComponentMetadata) which holds component state information.
 // Takes componentClassName (string) which specifies the target class name.
 // Takes enabledBehaviours ([]string) which lists behaviours to inject.
-// Takes registry (*RegistryContext) which provides access to the component
-// registry.
+// Takes registry (*RegistryContext) which provides access to the component registry.
 //
-// Returns *ReactiveTransformResult which contains the instance and boolean
-// properties extracted during transformation.
-// Returns error when state extraction, instance function building, or class
-// creation fails.
+// Returns *ReactiveTransformResult which contains the instance and boolean properties
+// extracted during transformation.
+// Returns error when state extraction, instance function building, or class creation
+// fails.
 func ReactiveStateTransform(
 	ctx context.Context,
 	componentAST *js_ast.AST,
@@ -347,19 +337,18 @@ func ReactiveStateTransform(
 	}, nil
 }
 
-// buildInstanceFunctionAST constructs the AST for an instance function that
-// manages component state and user-defined functions.
+// buildInstanceFunctionAST constructs the AST for an instance function that manages
+// component state and user-defined functions.
 //
-// Takes initialStateObject (*js_ast.EObject) which defines the initial state
-// properties.
-// Takes statementsBeforeState ([]js_ast.Stmt) which contains statements to
-// execute before state initialisation.
-// Takes statementsAfterState ([]js_ast.Stmt) which contains statements to
-// execute after state initialisation.
-// Takes userFunctions ([]userFunctionDefinition) which provides the user
-// functions to include in the instance.
-// Takes registry (*RegistryContext) which provides the symbol registry for
-// generating references.
+// Takes initialStateObject (*js_ast.EObject) which defines the initial state properties.
+// Takes statementsBeforeState ([]js_ast.Stmt) which contains statements to execute before
+// state initialisation.
+// Takes statementsAfterState ([]js_ast.Stmt) which contains statements to execute after
+// state initialisation.
+// Takes userFunctions ([]userFunctionDefinition) which provides the user functions to
+// include in the instance.
+// Takes registry (*RegistryContext) which provides the symbol registry for generating
+// references.
 //
 // Returns *js_ast.SFunction which is the complete instance function AST node.
 // Returns error when construction fails.
@@ -386,11 +375,11 @@ func buildInstanceFunctionAST(
 	}, nil
 }
 
-// buildInitialStateDecl creates a const declaration for the initial state
-// object, producing: const $$initialState = { ... }.
+// buildInitialStateDecl creates a const declaration for the initial state object,
+// producing: const $$initialState = { ... }.
 //
-// Takes initialStateObject (*js_ast.EObject) which holds the initial state
-// properties, or nil for an empty object.
+// Takes initialStateObject (*js_ast.EObject) which holds the initial state properties, or
+// nil for an empty object.
 // Takes registry (*RegistryContext) which creates bindings.
 //
 // Returns *js_ast.SLocal which is the const declaration statement.
@@ -410,11 +399,11 @@ func buildInitialStateDecl(initialStateObject *js_ast.EObject, registry *Registr
 	}
 }
 
-// buildStateDecl creates a const declaration that sets up reactive state. The
-// generated code is: const state = makeReactive($$initialState, contextParam).
+// buildStateDecl creates a const declaration that sets up reactive state. The generated
+// code is: const state = makeReactive($$initialState, contextParam).
 //
-// Takes registry (*RegistryContext) which provides helpers to create
-// identifiers and bindings.
+// Takes registry (*RegistryContext) which provides helpers to create identifiers and
+// bindings.
 //
 // Returns *js_ast.SLocal which is the local variable declaration AST node.
 func buildStateDecl(registry *RegistryContext) *js_ast.SLocal {
@@ -436,14 +425,13 @@ func buildStateDecl(registry *RegistryContext) *js_ast.SLocal {
 	}
 }
 
-// buildInstanceReturnStmt creates a return statement for the instance object.
-// The returned object contains state, initial state, and user-defined functions
-// in the pattern: return { state, $$initialState, ...userFunctions }.
+// buildInstanceReturnStmt creates a return statement for the instance object. The
+// returned object contains state, initial state, and user-defined functions in the
+// pattern: return { state, $$initialState, ...userFunctions }.
 //
-// Takes userFunctions ([]userFunctionDefinition) which lists the user-defined
-// functions to include in the returned object.
-// Takes registry (*RegistryContext) which provides identifier expression
-// creation.
+// Takes userFunctions ([]userFunctionDefinition) which lists the user-defined functions
+// to include in the returned object.
+// Takes registry (*RegistryContext) which provides identifier expression creation.
 //
 // Returns *js_ast.SReturn which is the return statement for the instance.
 func buildInstanceReturnStmt(userFunctions []userFunctionDefinition, registry *RegistryContext) *js_ast.SReturn {
@@ -469,8 +457,8 @@ func buildInstanceReturnStmt(userFunctions []userFunctionDefinition, registry *R
 	}
 }
 
-// buildInstanceFunctionBody builds the function body while keeping the user's
-// original statement order.
+// buildInstanceFunctionBody builds the function body while keeping the user's original
+// statement order.
 //
 // The output structure is:
 //  1. const pkc = this (stable alias for the component instance)
@@ -480,26 +468,23 @@ func buildInstanceReturnStmt(userFunctions []userFunctionDefinition, registry *R
 //  5. Statements that came after `const state = {...}` in the user's code
 //  6. return statement
 //
-// The `pkc` alias is placed first so it is available to all user code. It
-// captures a lexical reference to the component instance (`this`), preventing
-// issues where JavaScript `this` is rebound inside callbacks or event
-// handlers.
+// The `pkc` alias is placed first so it is available to all user code. It captures a
+// lexical reference to the component instance (`this`), preventing issues where
+// JavaScript `this` is rebound inside callbacks or event handlers.
 //
-// This keeps the user's ordering as written. If the user's ordering causes
-// temporal dead zone errors, that is their concern. The compiler does not try
-// to reorder statements.
+// This keeps the user's ordering as written. If the user's ordering causes temporal dead
+// zone errors, that is their concern. The compiler does not try to reorder statements.
 //
-// Takes statementsBeforeState ([]js_ast.Stmt) which contains statements that
-// appeared before the state declaration.
-// Takes statementsAfterState ([]js_ast.Stmt) which contains statements that
-// appeared after the state declaration.
+// Takes statementsBeforeState ([]js_ast.Stmt) which contains statements that appeared
+// before the state declaration.
+// Takes statementsAfterState ([]js_ast.Stmt) which contains statements that appeared
+// after the state declaration.
 // Takes initialStateDecl (*js_ast.SLocal) which is the $$initialState variable
 // declaration.
-// Takes stateDecl (*js_ast.SLocal) which is the reactive state variable
-// declaration.
+// Takes stateDecl (*js_ast.SLocal) which is the reactive state variable declaration.
 // Takes returnStmt (*js_ast.SReturn) which is the return statement to append.
-// Takes registry (*RegistryContext) which provides helpers for creating
-// identifier bindings.
+// Takes registry (*RegistryContext) which provides helpers for creating identifier
+// bindings.
 //
 // Returns []js_ast.Stmt which is the complete function body in correct order.
 func buildInstanceFunctionBody(
@@ -532,12 +517,12 @@ func buildInstanceFunctionBody(
 
 // buildPkcAliasDecl creates a `const pkc = this;` declaration.
 //
-// This provides a stable lexical alias for the component instance so that
-// user code can reference `pkc.refs`, `pkc.state`, etc. without worrying
-// about JavaScript's `this` rebinding in callbacks and closures.
+// This provides a stable lexical alias for the component instance so that user code can
+// reference `pkc.refs`, `pkc.state`, etc. without worrying about JavaScript's `this`
+// rebinding in callbacks and closures.
 //
-// Takes registry (*RegistryContext) which provides helpers for creating
-// identifier bindings.
+// Takes registry (*RegistryContext) which provides helpers for creating identifier
+// bindings.
 //
 // Returns *js_ast.SLocal which is the const declaration AST node.
 func buildPkcAliasDecl(registry *RegistryContext) *js_ast.SLocal {
@@ -552,8 +537,7 @@ func buildPkcAliasDecl(registry *RegistryContext) *js_ast.SLocal {
 	}
 }
 
-// stringToUint16 converts a string to a UTF-16 slice for use in the esbuild
-// AST.
+// stringToUint16 converts a string to a UTF-16 slice for use in the esbuild AST.
 //
 // Takes s (string) which is the input string to convert.
 //
@@ -562,7 +546,7 @@ func stringToUint16(s string) []uint16 {
 	runes := []rune(s)
 	result := make([]uint16, len(runes))
 	for i, r := range runes {
-		result[i] = uint16(r)
+		result[i] = safeconv.RuneToUint16(r)
 	}
 	return result
 }
@@ -600,23 +584,23 @@ func injectStaticProperty(ctx context.Context, classNode *js_ast.Class, propName
 	classNode.Properties = append([]js_ast.Property{staticFieldElement}, classNode.Properties...)
 }
 
-// filterTopLevelStatements sorts AST statements into three groups based on
-// their type and position relative to the state declaration.
+// filterTopLevelStatements sorts AST statements into three groups based on their type and
+// position relative to the state declaration.
 //
-// Statements are sorted into: imports, exports, and classes that stay at the
-// top level; statements before the state declaration; and statements after
-// the state declaration. This keeps the original order.
+// Statements are sorted into: imports, exports, and classes that stay at the top level;
+// statements before the state declaration; and statements after the state declaration.
+// This keeps the original order.
 //
 // Takes tree (*js_ast.AST) which contains the parsed JavaScript AST.
 // Takes stateDeclaration (*js_ast.SLocal) which marks the state variable.
 // Takes userFunctions ([]userFunctionDefinition) which lists user functions.
 //
-// Returns keptStatements ([]js_ast.Stmt) which contains imports, exports,
-// and classes that remain at the top level.
-// Returns beforeState ([]js_ast.Stmt) which contains statements that appear
-// before the state declaration.
-// Returns afterState ([]js_ast.Stmt) which contains statements that appear
-// after the state declaration.
+// Returns keptStatements ([]js_ast.Stmt) which contains imports, exports, and classes
+// that remain at the top level.
+// Returns beforeState ([]js_ast.Stmt) which contains statements that appear before the
+// state declaration.
+// Returns afterState ([]js_ast.Stmt) which contains statements that appear after the
+// state declaration.
 func filterTopLevelStatements(
 	tree *js_ast.AST,
 	stateDeclaration *js_ast.SLocal,
@@ -655,8 +639,8 @@ func filterTopLevelStatements(
 //
 // Takes tree (*js_ast.AST) which is the parsed JavaScript syntax tree to scan.
 //
-// Returns []userFunctionDefinition which contains all function definitions
-// found in the tree.
+// Returns []userFunctionDefinition which contains all function definitions found in the
+// tree.
 func locateUserFunctions(tree *js_ast.AST) []userFunctionDefinition {
 	var definitions []userFunctionDefinition
 	for _, statement := range getStmtsFromAST(tree) {
@@ -667,14 +651,14 @@ func locateUserFunctions(tree *js_ast.AST) []userFunctionDefinition {
 	return definitions
 }
 
-// extractFunctionDefinition extracts a function definition from a statement
-// if one is present.
+// extractFunctionDefinition extracts a function definition from a statement if one is
+// present.
 //
 // Takes tree (*js_ast.AST) which provides the parsed JavaScript AST.
 // Takes statement (js_ast.Stmt) which is the statement to extract from.
 //
-// Returns *userFunctionDefinition which contains the extracted function, or
-// nil if the statement is not a function definition.
+// Returns *userFunctionDefinition which contains the extracted function, or nil if the
+// statement is not a function definition.
 func extractFunctionDefinition(tree *js_ast.AST, statement js_ast.Stmt) *userFunctionDefinition {
 	switch node := statement.Data.(type) {
 	case *js_ast.SLocal:
@@ -686,16 +670,16 @@ func extractFunctionDefinition(tree *js_ast.AST, statement js_ast.Stmt) *userFun
 	}
 }
 
-// extractFunctionFromLocal extracts a function definition from a local
-// variable declaration.
+// extractFunctionFromLocal extracts a function definition from a local variable
+// declaration.
 //
 // Takes tree (*js_ast.AST) which provides the AST for name resolution.
 // Takes node (*js_ast.SLocal) which contains the local variable declarations.
-// Takes statement (js_ast.Stmt) which is the statement to link with the
-// function definition.
+// Takes statement (js_ast.Stmt) which is the statement to link with the function
+// definition.
 //
-// Returns *userFunctionDefinition which contains the extracted function, or
-// nil when no function expression is found.
+// Returns *userFunctionDefinition which contains the extracted function, or nil when no
+// function expression is found.
 func extractFunctionFromLocal(tree *js_ast.AST, node *js_ast.SLocal, statement js_ast.Stmt) *userFunctionDefinition {
 	for _, declaration := range node.Decls {
 		if !isFunctionExpression(declaration.ValueOrNil) {
@@ -712,15 +696,14 @@ func extractFunctionFromLocal(tree *js_ast.AST, node *js_ast.SLocal, statement j
 	return nil
 }
 
-// extractFunctionFromSFunction gets a function definition from a function
-// statement.
+// extractFunctionFromSFunction gets a function definition from a function statement.
 //
 // Takes tree (*js_ast.AST) which provides the AST for resolving references.
 // Takes node (*js_ast.SFunction) which is the function statement to extract.
 // Takes statement (js_ast.Stmt) which is the original statement to store.
 //
-// Returns *userFunctionDefinition which contains the extracted function, or
-// nil when the function has no name or the name cannot be resolved.
+// Returns *userFunctionDefinition which contains the extracted function, or nil when the
+// function has no name or the name cannot be resolved.
 func extractFunctionFromSFunction(tree *js_ast.AST, node *js_ast.SFunction, statement js_ast.Stmt) *userFunctionDefinition {
 	if node.Fn.Name == nil {
 		return nil
@@ -739,8 +722,8 @@ func extractFunctionFromSFunction(tree *js_ast.AST, node *js_ast.SFunction, stat
 //
 // Takes expression (js_ast.Expr) which is the expression to check.
 //
-// Returns bool which is true if the expression is an arrow function
-// or a regular function expression.
+// Returns bool which is true if the expression is an arrow function or a regular function
+// expression.
 func isFunctionExpression(expression js_ast.Expr) bool {
 	switch expression.Data.(type) {
 	case *js_ast.EArrow, *js_ast.EFunction:
@@ -750,14 +733,13 @@ func isFunctionExpression(expression js_ast.Expr) bool {
 	}
 }
 
-// resolveBindingName finds the name of a binding by looking it up in the
-// symbol table.
+// resolveBindingName finds the name of a binding by looking it up in the symbol table.
 //
 // Takes tree (*js_ast.AST) which provides access to the symbol table.
 // Takes binding (js_ast.Binding) which is the binding to look up.
 //
-// Returns string which is the name found, or an empty string if the binding
-// is not an identifier.
+// Returns string which is the name found, or an empty string if the binding is not an
+// identifier.
 func resolveBindingName(tree *js_ast.AST, binding js_ast.Binding) string {
 	identifier, ok := binding.Data.(*js_ast.BIdentifier)
 	if !ok {
@@ -771,8 +753,8 @@ func resolveBindingName(tree *js_ast.AST, binding js_ast.Binding) string {
 // Takes tree (*js_ast.AST) which holds the symbol table to search.
 // Takes ref (ast.Ref) which identifies the symbol to look up.
 //
-// Returns string which is the original name of the symbol, or an empty string
-// if the reference is not valid or out of bounds.
+// Returns string which is the original name of the symbol, or an empty string if the
+// reference is not valid or out of bounds.
 func resolveRefName(tree *js_ast.AST, ref ast.Ref) string {
 	if tree.Symbols == nil || int(ref.InnerIndex) >= len(tree.Symbols) {
 		return ""
@@ -780,11 +762,9 @@ func resolveRefName(tree *js_ast.AST, ref ast.Ref) string {
 	return tree.Symbols[ref.InnerIndex].OriginalName
 }
 
-// locateStateDeclaration finds the const declaration for the state object in
-// the AST.
+// locateStateDeclaration finds the const declaration for the state object in the AST.
 //
-// Takes tree (*js_ast.AST) which is the parsed JavaScript syntax tree to
-// search.
+// Takes tree (*js_ast.AST) which is the parsed JavaScript syntax tree to search.
 //
 // Returns *js_ast.SLocal which is the state declaration, or nil if not found.
 func locateStateDeclaration(tree *js_ast.AST) *js_ast.SLocal {
@@ -800,8 +780,7 @@ func locateStateDeclaration(tree *js_ast.AST) *js_ast.SLocal {
 	return nil
 }
 
-// isStateObjectDeclaration checks if a local declaration is `const state =
-// {...}`.
+// isStateObjectDeclaration checks if a local declaration is `const state = {...}`.
 //
 // Takes tree (*js_ast.AST) which provides the syntax tree for name resolution.
 // Takes local (*js_ast.SLocal) which is the local declaration to check.
@@ -821,12 +800,12 @@ func isStateObjectDeclaration(tree *js_ast.AST, local *js_ast.SLocal) bool {
 
 // parseStateObjectLiteral extracts typed properties from a state declaration.
 //
-// Takes stateDeclaration (*js_ast.SLocal) which contains the local variable
-// declaration to parse.
+// Takes stateDeclaration (*js_ast.SLocal) which contains the local variable declaration
+// to parse.
 //
 // Returns *js_ast.EObject which is the parsed object literal node.
-// Returns []TypedProperty which contains the extracted properties with their
-// types worked out from the values.
+// Returns []TypedProperty which contains the extracted properties with their types worked
+// out from the values.
 // Returns error when the declaration is empty or not an object literal.
 func parseStateObjectLiteral(stateDeclaration *js_ast.SLocal) (*js_ast.EObject, []TypedProperty, error) {
 	if len(stateDeclaration.Decls) == 0 {
@@ -868,9 +847,9 @@ func parseStateObjectLiteral(stateDeclaration *js_ast.SLocal) (*js_ast.EObject, 
 //
 // Takes expression (js_ast.Expr) which is the AST node to check.
 //
-// Returns string which is the type name found, such as "string", "number",
-// "boolean", "array", "object", or "function". Returns "any" for nil,
-// undefined, or unknown expression types.
+// Returns string which is the type name found, such as "string", "number", "boolean",
+// "array", "object", or "function".
+// Returns "any" for nil, undefined, or unknown expression types.
 func guessTypeFromExpression(expression js_ast.Expr) string {
 	switch expression.Data.(type) {
 	case *js_ast.EString:
@@ -892,13 +871,12 @@ func guessTypeFromExpression(expression js_ast.Expr) string {
 	}
 }
 
-// expressionToJSString converts an esbuild AST expression to its JavaScript
-// string form.
+// expressionToJSString converts an esbuild AST expression to its JavaScript string form.
 //
 // Takes expression (js_ast.Expr) which is the AST node to convert.
 //
-// Returns string which is the JavaScript literal value, or "null" for
-// expressions that cannot be shown as a simple value.
+// Returns string which is the JavaScript literal value, or "null" for expressions that
+// cannot be shown as a simple value.
 func expressionToJSString(expression js_ast.Expr) string {
 	switch v := expression.Data.(type) {
 	case *js_ast.ENumber:
@@ -923,8 +901,8 @@ func expressionToJSString(expression js_ast.Expr) string {
 	}
 }
 
-// ensureConstructorHandlesInstance sets up a class constructor and lifecycle
-// methods for handling instance setup.
+// ensureConstructorHandlesInstance sets up a class constructor and lifecycle methods for
+// handling instance setup.
 //
 // Takes classDeclaration (*js_ast.Class) which is the class to change.
 // Takes registry (*RegistryContext) which provides the build context.
@@ -951,8 +929,8 @@ func ensureConstructorHandlesInstance(ctx context.Context, classDeclaration *js_
 // insertStaticPropTypesGetter adds a static propTypes getter to a class.
 //
 // Takes classDeclaration (*js_ast.Class) which is the class to modify.
-// Takes properties (map[string]*PropertyMetadata) which defines the property
-// types to expose.
+// Takes properties (map[string]*PropertyMetadata) which defines the property types to
+// expose.
 func insertStaticPropTypesGetter(
 	classDeclaration *js_ast.Class,
 	properties map[string]*PropertyMetadata,
@@ -998,8 +976,8 @@ func insertStaticPropTypesGetter(
 // insertStaticDefaultPropsGetter adds a static defaultProps getter to a class.
 //
 // Takes classDeclaration (*js_ast.Class) which is the class to modify.
-// Takes properties (map[string]*PropertyMetadata) which contains the
-// properties with their default values.
+// Takes properties (map[string]*PropertyMetadata) which contains the properties with
+// their default values.
 func insertStaticDefaultPropsGetter(
 	classDeclaration *js_ast.Class,
 	properties map[string]*PropertyMetadata,
@@ -1031,8 +1009,7 @@ func insertStaticDefaultPropsGetter(
 //
 // Takes classNode (*js_ast.Class) which is the class to change.
 // Takes getterName (string) which is the name of the getter to add.
-// Takes getterSnippet (string) which is the JavaScript code for the getter
-// body.
+// Takes getterSnippet (string) which is the JavaScript code for the getter body.
 func injectStaticGetter(classNode *js_ast.Class, getterName, getterSnippet string) {
 	ctx := context.Background()
 	ctx, l := logger_domain.From(ctx, log)
@@ -1054,8 +1031,8 @@ func injectStaticGetter(classNode *js_ast.Class, getterName, getterSnippet strin
 // Takes getterName (string) which names the getter for logging.
 // Takes getterSnippet (string) which contains the getter code to parse.
 //
-// Returns *js_ast.Property which is the parsed property, or nil if parsing
-// yields no valid class property.
+// Returns *js_ast.Property which is the parsed property, or nil if parsing yields no
+// valid class property.
 // Returns error when the snippet cannot be parsed as valid TypeScript.
 func parseGetterSnippet(ctx context.Context, getterName, getterSnippet string) (*js_ast.Property, error) {
 	ctx, l := logger_domain.From(ctx, log)

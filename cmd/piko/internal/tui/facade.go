@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// TUI provides the main entry point to the terminal monitoring interface.
-// It implements io.Closer and MCPServerPort.
+// TUI provides the main entry point to the terminal monitoring interface. It implements
+// io.Closer and MCPServerPort.
 type TUI struct {
 	// config holds the TUI configuration settings.
 	config *tui_dto.Config
@@ -44,11 +44,13 @@ type TUI struct {
 	service *tui_domain.Service
 }
 
-// log is the package-level logger for the tui package.
-var log = logger.GetLogger("tui")
+var (
+	// log is the package-level logger for the tui package.
+	log = logger.GetLogger("tui")
+)
 
-// Run starts the TUI and blocks until the user exits or an error occurs.
-// The context can be used for cancellation.
+// Run starts the TUI and blocks until the user exits or an error occurs. The context can
+// be used for cancellation.
 //
 // Returns error when the TUI encounters a fatal error.
 func (t *TUI) Run(ctx context.Context) error {
@@ -104,26 +106,25 @@ func New(opts ...Option) (*TUI, error) {
 // Takes directory (string) which specifies the directory path to use as the home
 // directory.
 //
-// Returns LoadConfigOption which configures the home directory for config
-// search.
+// Returns LoadConfigOption which configures the home directory for config search.
 func WithHomeDir(directory string) LoadConfigOption {
 	return func(o *loadConfigOptions) {
 		o.homeDir = directory
 	}
 }
 
-// LoadConfig loads TUI configuration using the user-facing config_domain
-// loader, with PIKO_TUI_* environment variables and tui.yaml file support.
+// LoadConfig loads TUI configuration using the user-facing config_domain loader, with
+// PIKO_TUI_* environment variables and tui.yaml file support.
 //
-// When configPath is not empty, that file is loaded directly. Otherwise the
-// loader searches ./tui.yaml and then $HOME/.config/piko/tui.yaml.
+// When configPath is not empty, that file is loaded directly. Otherwise the loader
+// searches ./tui.yaml and then $HOME/.config/piko/tui.yaml.
 //
-// Precedence (lowest to highest): struct-tag defaults, file values,
-// PIKO_TUI_* environment variables.
+// Precedence (lowest to highest): struct-tag defaults, file values, PIKO_TUI_*
+// environment variables.
 //
 // Takes configPath (string) which is an optional path to the config file.
-// Takes opts (...LoadConfigOption) which provides optional configuration
-// such as WithHomeDir for testing.
+// Takes opts (...LoadConfigOption) which provides optional configuration such as
+// WithHomeDir for testing.
 //
 // Returns Config which contains the loaded configuration with defaults applied.
 // Returns error when the config file cannot be read or parsed.
@@ -155,10 +156,8 @@ func LoadConfig(configPath string, opts ...LoadConfigOption) (Config, error) {
 
 // initialiseProviders creates providers based on endpoint configuration.
 //
-// Takes tuiConfig (*tui_dto.Config) which specifies the TUI configuration
-// settings.
-// Takes providers (*tui_domain.Providers) which receives the initialised data
-// providers.
+// Takes tuiConfig (*tui_dto.Config) which specifies the TUI configuration settings.
+// Takes providers (*tui_domain.Providers) which receives the initialised data providers.
 func initialiseProviders(tuiConfig *tui_dto.Config, providers *tui_domain.Providers) {
 	_, l := logger.From(context.Background(), log)
 
@@ -190,19 +189,18 @@ func initialiseProviders(tuiConfig *tui_dto.Config, providers *tui_domain.Provid
 	l.Debug("Using gRPC monitoring providers", logger.String("endpoint", tuiConfig.MonitoringEndpoint))
 }
 
-// discoverConfigFiles returns the existing tui.yaml paths to feed to the
-// config_domain loader.
+// discoverConfigFiles returns the existing tui.yaml paths to feed to the config_domain
+// loader.
 //
-// When configPath is non-empty it is the only file loaded. Otherwise the
-// loader looks in the user's home config directory first (lowest
-// precedence) and then the working directory (highest precedence) so a
-// project-local tui.yaml wins over the global one.
+// When configPath is non-empty it is the only file loaded. Otherwise the loader looks in
+// the user's home config directory first (lowest precedence) and then the working
+// directory (highest precedence) so a project-local tui.yaml wins over the global one.
 //
 // Takes configPath (string) which is an optional explicit config file path.
 // Takes homeDir (string) which overrides the user home directory when non-empty.
 //
-// Returns []string which lists existing config files in load order
-// (lowest-to-highest precedence; later files override earlier).
+// Returns []string which lists existing config files in load order (lowest-to-highest
+// precedence; later files override earlier).
 func discoverConfigFiles(configPath, homeDir string) []string {
 	if configPath != "" {
 		if _, err := os.Stat(configPath); err == nil {

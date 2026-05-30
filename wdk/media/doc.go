@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package media provides a provider-agnostic framework for image and
-// video processing. It uses hexagonal architecture (ports and adapters)
-// to support pluggable processing backends, allowing you to swap
-// implementations without changing application code.
+// Package media provides a provider-agnostic framework for image and video processing. It
+// uses hexagonal architecture (ports and adapters) to support pluggable processing
+// backends, allowing you to swap implementations without changing application code.
 //
-// Media services are optional and require explicit provider
-// configuration.
+// Media services are optional and require explicit provider configuration.
 //
 // # Without providers
 //
-// If no providers are configured, media services are nil and
-// components like piko:img and piko:video gracefully degrade to
-// basic HTML output without responsive images or video transcoding.
+// If no providers are configured, media services are nil and components like piko:img and
+// piko:video gracefully degrade to basic HTML output without responsive images or video
+// transcoding.
 //
 // # Image transformations
 //
@@ -55,11 +53,11 @@
 //
 // # Available providers
 //
-// Image providers are available in the image_provider_* sub-packages.
-// Video providers are available in the video_provider_* sub-packages.
+// Image providers are available in the image_provider_* sub-packages. Video providers are
+// available in the video_provider_* sub-packages.
 //
 // # Thread safety
 //
-// All exported functions and builder types are safe for concurrent
-// use. The underlying providers manage their own concurrency.
+// All exported functions and builder types are safe for concurrent use. The underlying
+// providers manage their own concurrency.
 package media

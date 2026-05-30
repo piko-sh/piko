@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_provider_gcs implements the storage provider port
-// using Google Cloud Storage.
+// Package storage_provider_gcs implements the storage provider port using Google Cloud
+// Storage.
 //
-// It translates storage operations into GCS API calls, handling
-// concerns such as signed URLs, chunked uploads for large files,
-// server-side copying, and rate limiting. Credentials default to
-// application default credentials when not explicitly provided.
+// It translates storage operations into GCS API calls, handling concerns such as signed
+// URLs, chunked uploads for large files, server-side copying, and rate limiting.
+// Credentials default to application default credentials when not explicitly provided.
 //
 // All methods are safe for concurrent use.
 package storage_provider_gcs

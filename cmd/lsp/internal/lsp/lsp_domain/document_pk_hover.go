@@ -38,8 +38,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// PKHoverContext holds the context needed to show hover information for a
-// PK element, including its kind, name, and location in the source file.
+// PKHoverContext holds the context needed to show hover information for a PK element,
+// including its kind, name, and location in the source file.
 type PKHoverContext struct {
 	// Name is the identifier of the PK element being hovered over.
 	Name string
@@ -54,15 +54,14 @@ type PKHoverContext struct {
 	Position protocol.Position
 }
 
-// GetPKHoverInfo returns hover information for PK-specific constructs.
-// This handles p-on:click="handler" to show handler function signatures,
-// reloadPartial('name') to show partial information, and refs.refName to show
-// element information.
+// GetPKHoverInfo returns hover information for PK-specific constructs. This handles
+// p-on:click="handler" to show handler function signatures, reloadPartial('name') to show
+// partial information, and refs.refName to show element information.
 //
 // Takes position (protocol.Position) which specifies the cursor position to query.
 //
-// Returns *protocol.Hover which contains the hover content, or nil if no
-// PK construct is found at the position.
+// Returns *protocol.Hover which contains the hover content, or nil if no PK construct is
+// found at the position.
 // Returns error when hover information cannot be retrieved.
 func (d *document) GetPKHoverInfo(ctx context.Context, position protocol.Position) (*protocol.Hover, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -147,14 +146,12 @@ func (ctx *PKHoverContext) kindString() string {
 	}
 }
 
-// analysePKHoverContext determines the PK hover context at the cursor
-// position.
+// analysePKHoverContext determines the PK hover context at the cursor position.
 //
-// Takes position (protocol.Position) which specifies the cursor
-// location to analyse.
+// Takes position (protocol.Position) which specifies the cursor location to analyse.
 //
-// Returns *PKHoverContext which describes the hover context, or nil if no
-// context applies.
+// Returns *PKHoverContext which describes the hover context, or nil if no context
+// applies.
 func (d *document) analysePKHoverContext(position protocol.Position) *PKHoverContext {
 	lines := strings.Split(string(d.Content), newlineChar)
 	if int(position.Line) >= len(lines) {
@@ -217,16 +214,15 @@ func (d *document) analysePKHoverContext(position protocol.Position) *PKHoverCon
 	return nil
 }
 
-// checkIsAttributeHoverContext checks if cursor is on an is="..." attribute
-// for hover. This handles the partial alias attribute that triggers partial
-// invocation.
+// checkIsAttributeHoverContext checks if cursor is on an is="..." attribute for hover.
+// This handles the partial alias attribute that triggers partial invocation.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context if the cursor is on an
-// is="..." attribute, or nil if no match.
+// Returns *PKHoverContext which provides hover context if the cursor is on an is="..."
+// attribute, or nil if no match.
 func (*document) checkIsAttributeHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	patterns := []string{`is="`, `is='`}
 
@@ -268,8 +264,7 @@ func (*document) checkIsAttributeHoverContext(line string, cursor int, position 
 }
 
 var (
-	// handlerHoverPatterns are the directive patterns to search for handler hover
-	// context.
+	// handlerHoverPatterns are the directive patterns to search for handler hover context.
 	handlerHoverPatterns = []string{
 		`p-on:click="`, `p-on:change="`, `p-on:submit="`, `p-on:input="`,
 		`p-on:focus="`, `p-on:blur="`, `p-on:keydown="`, `p-on:keyup="`,
@@ -285,8 +280,8 @@ var (
 // Takes cursor (int) which is the character offset within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a handler name, or nil when no handler pattern matches.
+// Returns *PKHoverContext which provides hover context when the cursor is on a handler
+// name, or nil when no handler pattern matches.
 func (*document) checkHandlerHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	for _, pattern := range handlerHoverPatterns {
 		if ctx := tryExtractHandlerHoverContext(line, cursor, position, pattern); ctx != nil {
@@ -302,8 +297,8 @@ func (*document) checkHandlerHoverContext(line string, cursor int, position prot
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context if a partial name
-// pattern matches at the cursor position, or nil if no pattern matches.
+// Returns *PKHoverContext which provides hover context if a partial name pattern matches
+// at the cursor position, or nil if no pattern matches.
 func (*document) checkPartialHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	for _, pattern := range partialHoverPatterns {
 		if ctx := tryExtractPartialHoverContext(line, cursor, position, pattern); ctx != nil {
@@ -319,8 +314,8 @@ func (*document) checkPartialHoverContext(line string, cursor int, position prot
 // Takes cursor (int) which gives the cursor position within the line.
 // Takes position (protocol.Position) which gives the document position context.
 //
-// Returns *PKHoverContext which holds the ref hover context, or nil if the
-// cursor is not on a valid ref name.
+// Returns *PKHoverContext which holds the ref hover context, or nil if the cursor is not
+// on a valid ref name.
 func (*document) checkRefHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	name, startPosition, endPosition, ok := scanIdentifierAfterPrefix(line, cursor, "refs.", patternSearchRadius)
 	if !ok {
@@ -422,15 +417,15 @@ func (d *document) extractFunctionSignature(statement js_ast.Stmt, symbols []ast
 	}
 }
 
-// extractRegularFunctionSignature extracts the signature from a regular
-// function declaration.
+// extractRegularFunctionSignature extracts the signature from a regular function
+// declaration.
 //
 // Takes s (*js_ast.SFunction) which provides the function statement to extract.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 // Takes functionName (string) which specifies the function name to match.
 //
-// Returns string which contains the formatted signature, or empty if the
-// function has no name or the name does not match.
+// Returns string which contains the formatted signature, or empty if the function has no
+// name or the name does not match.
 func (d *document) extractRegularFunctionSignature(s *js_ast.SFunction, symbols []ast.Symbol, functionName string) string {
 	if s.Fn.Name == nil {
 		return ""
@@ -449,8 +444,8 @@ func (d *document) extractRegularFunctionSignature(s *js_ast.SFunction, symbols 
 // Takes symbols ([]ast.Symbol) which provides symbol data for binding names.
 // Takes functionName (string) which specifies the function name to match.
 //
-// Returns string which is the formatted arrow signature, or empty if not found
-// or not exported.
+// Returns string which is the formatted arrow signature, or empty if not found or not
+// exported.
 func (d *document) extractLocalFunctionSignature(s *js_ast.SLocal, symbols []ast.Symbol, functionName string) string {
 	if !s.IsExport {
 		return ""
@@ -464,15 +459,13 @@ func (d *document) extractLocalFunctionSignature(s *js_ast.SLocal, symbols []ast
 	return ""
 }
 
-// extractDefaultFunctionSignature gets the signature from a default export
-// function.
+// extractDefaultFunctionSignature gets the signature from a default export function.
 //
 // Takes s (*js_ast.SExportDefault) which is the default export statement.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 // Takes functionName (string) which is the expected function name to match.
 //
-// Returns string which is the formatted signature, or empty if no match is
-// found.
+// Returns string which is the formatted signature, or empty if no match is found.
 func (d *document) extractDefaultFunctionSignature(s *js_ast.SExportDefault, symbols []ast.Symbol, functionName string) string {
 	fnStmt, ok := s.Value.Data.(*js_ast.SFunction)
 	if !ok || fnStmt.Fn.Name == nil {
@@ -550,10 +543,9 @@ func (*document) formatArrowSignature(name string, value js_ast.Expr) string {
 
 // getPartialHover returns hover information for a partial.
 //
-// Takes ctx (*PKHoverContext) which provides the hover context including the
-// partial name and range.
-// Takes showProps (bool) which controls whether to show properties in the
-// hover content.
+// Takes ctx (*PKHoverContext) which provides the hover context including the partial name
+// and range.
+// Takes showProps (bool) which controls whether to show properties in the hover content.
 //
 // Returns *protocol.Hover which contains the formatted hover content.
 // Returns error when the simple hover cannot be created.
@@ -585,12 +577,12 @@ func (d *document) getPartialHover(ctx *PKHoverContext, showProps bool) (*protoc
 
 // findPikoImportByAlias finds a Piko import by its alias name.
 //
-// Takes component (*annotator_dto.VirtualComponent) which provides the source
-// containing the Piko imports to search.
+// Takes component (*annotator_dto.VirtualComponent) which provides the source containing
+// the Piko imports to search.
 // Takes alias (string) which is the alias name to match.
 //
-// Returns *annotator_dto.PikoImport which is the matching import, or nil if
-// no import with the given alias exists.
+// Returns *annotator_dto.PikoImport which is the matching import, or nil if no import
+// with the given alias exists.
 func (*document) findPikoImportByAlias(component *annotator_dto.VirtualComponent, alias string) *annotator_dto.PikoImport {
 	for i := range component.Source.PikoImports {
 		if component.Source.PikoImports[i].Alias == alias {
@@ -629,12 +621,11 @@ func (d *document) buildPartialHoverContent(importPath string, showProps bool) s
 	return b.String()
 }
 
-// appendPropsTable appends a Props table to the builder if the component has
-// props.
+// appendPropsTable appends a Props table to the builder if the component has props.
 //
 // Takes b (*strings.Builder) which receives the formatted table output.
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component to
-// extract props from.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component to extract
+// props from.
 func (d *document) appendPropsTable(b *strings.Builder, vc *annotator_dto.VirtualComponent) {
 	props := d.extractPropsFromComponent(vc)
 	if len(props) == 0 {
@@ -665,13 +656,12 @@ type propInfo struct {
 	isRequired bool
 }
 
-// extractPropsFromComponent extracts Props struct fields from a
-// VirtualComponent.
+// extractPropsFromComponent extracts Props struct fields from a VirtualComponent.
 //
 // Takes vc (*annotator_dto.VirtualComponent) which is the component to inspect.
 //
-// Returns []propInfo which contains the extracted prop details, or nil if no
-// Props struct is found.
+// Returns []propInfo which contains the extracted prop details, or nil if no Props struct
+// is found.
 func (*document) extractPropsFromComponent(vc *annotator_dto.VirtualComponent) []propInfo {
 	propsStruct := findPropsStructInComponent(vc)
 	if propsStruct == nil {
@@ -685,8 +675,8 @@ func (*document) extractPropsFromComponent(vc *annotator_dto.VirtualComponent) [
 //
 // Takes importPath (string) which is the Piko import path to search for.
 //
-// Returns *annotator_dto.VirtualComponent which is the matching component, or
-// nil if not found.
+// Returns *annotator_dto.VirtualComponent which is the matching component, or nil if not
+// found.
 func (d *document) findVirtualComponentByImportPath(importPath string) *annotator_dto.VirtualComponent {
 	if d.AnnotationResult == nil || d.AnnotationResult.VirtualModule == nil {
 		return nil
@@ -701,15 +691,15 @@ func (d *document) findVirtualComponentByImportPath(importPath string) *annotato
 	return nil
 }
 
-// checkTemplateTagHoverContext checks if the cursor is on a <template> or
-// </template> tag for hover.
+// checkTemplateTagHoverContext checks if the cursor is on a <template> or </template> tag
+// for hover.
 //
 // Takes line (string) which is the current line text.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a template tag, or nil when no match is found.
+// Returns *PKHoverContext which provides hover context when the cursor is on a template
+// tag, or nil when no match is found.
 func (*document) checkTemplateTagHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	for _, pattern := range []string{"<template", "</template"} {
 		index := strings.Index(line, pattern)
@@ -739,15 +729,15 @@ func (*document) checkTemplateTagHoverContext(line string, cursor int, position 
 	return nil
 }
 
-// checkPikoPartialTagHoverContext checks if the cursor is on a <piko:partial>
-// tag name for hover. This shows the partial-specific info including Props.
+// checkPikoPartialTagHoverContext checks if the cursor is on a <piko:partial> tag name
+// for hover. This shows the partial-specific info including Props.
 //
 // Takes line (string) which is the current line text.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a piko:partial tag name, or nil when no match is found.
+// Returns *PKHoverContext which provides hover context when the cursor is on a
+// piko:partial tag name, or nil when no match is found.
 func (d *document) checkPikoPartialTagHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	for _, pattern := range []string{"<piko:partial", "</piko:partial"} {
 		index := strings.Index(line, pattern)
@@ -788,8 +778,8 @@ func (d *document) checkPikoPartialTagHoverContext(line string, cursor int, posi
 //
 // Takes ctx (*PKHoverContext) which provides the hover context.
 //
-// Returns *protocol.Hover which contains the formatted hover content with a
-// link to the generated file.
+// Returns *protocol.Hover which contains the formatted hover content with a link to the
+// generated file.
 // Returns error when the hover cannot be created.
 func (d *document) getTemplateTagHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	var b strings.Builder
@@ -852,11 +842,11 @@ type refElementInfo struct {
 
 // findRefElementInfo finds details about the element with a given p-ref.
 //
-// Takes refName (string) which specifies the p-ref attribute value to search
-// for.
+// Takes refName (string) which specifies the p-ref attribute value to search for.
 //
-// Returns refElementInfo which contains the tag name and element type for the
-// matched element. Returns default values if no match is found.
+// Returns refElementInfo which contains the tag name and element type for the matched
+// element.
+// Returns default values if no match is found.
 func (d *document) findRefElementInfo(refName string) refElementInfo {
 	info := refElementInfo{
 		elementType: "HTMLElement",
@@ -880,8 +870,7 @@ func (d *document) findRefElementInfo(refName string) refElementInfo {
 
 // makeSimpleHover creates a hover with plain text content.
 //
-// Takes ctx (*PKHoverContext) which provides the position and range for the
-// hover.
+// Takes ctx (*PKHoverContext) which provides the position and range for the hover.
 // Takes text (string) which is the plain text content to show.
 //
 // Returns *protocol.Hover which contains the hover content and position.
@@ -914,16 +903,16 @@ func (*document) makeCodeHover(ctx *PKHoverContext, code, language string) (*pro
 	}, nil
 }
 
-// tryExtractHandlerHoverContext tries to extract a handler hover context for a
-// single pattern.
+// tryExtractHandlerHoverContext tries to extract a handler hover context for a single
+// pattern.
 //
 // Takes line (string) which contains the text to search within.
 // Takes cursor (int) which is the cursor position in the line.
 // Takes position (protocol.Position) which gives the document position.
 // Takes pattern (string) which is the handler pattern to match.
 //
-// Returns *PKHoverContext which holds the hover context if found, or nil if no
-// valid handler context could be extracted.
+// Returns *PKHoverContext which holds the hover context if found, or nil if no valid
+// handler context could be extracted.
 func tryExtractHandlerHoverContext(line string, cursor int, position protocol.Position, pattern string) *PKHoverContext {
 	index := strings.LastIndex(line[:min(cursor+20, len(line))], pattern)
 	if index == -1 || index > cursor {
@@ -959,9 +948,8 @@ func tryExtractHandlerHoverContext(line string, cursor int, position protocol.Po
 	}
 }
 
-// isCursorOnEventPlaceholder checks if the cursor is on $event or $form.
-// These special placeholders should get their own hover showing synthetic
-// type info.
+// isCursorOnEventPlaceholder checks if the cursor is on $event or $form. These special
+// placeholders should get their own hover showing synthetic type info.
 //
 // Takes line (string) which is the line text to search.
 // Takes cursor (int) which is the cursor position within the line.
@@ -991,8 +979,8 @@ func isCursorOnEventPlaceholder(line string, cursor int) bool {
 	return false
 }
 
-// findHandlerNameBounds finds the start and end positions of a handler name
-// in a line of text.
+// findHandlerNameBounds finds the start and end positions of a handler name in a line of
+// text.
 //
 // Takes line (string) which contains the text to search.
 // Takes startPosition (int) which specifies where to begin searching.
@@ -1007,8 +995,8 @@ func findHandlerNameBounds(line string, startPosition int) (start int, end int) 
 	return startPosition, endPosition
 }
 
-// extractCleanHandlerName removes any trailing parentheses and whitespace
-// from a handler name string.
+// extractCleanHandlerName removes any trailing parentheses and whitespace from a handler
+// name string.
 //
 // Takes raw (string) which is the handler name that may include parentheses.
 //
@@ -1021,16 +1009,16 @@ func extractCleanHandlerName(raw string) string {
 	return strings.TrimSpace(handlerName)
 }
 
-// tryExtractPartialHoverContext tries to extract a partial hover context for
-// a single pattern.
+// tryExtractPartialHoverContext tries to extract a partial hover context for a single
+// pattern.
 //
 // Takes line (string) which contains the text to search within.
 // Takes cursor (int) which specifies the cursor position in the line.
 // Takes position (protocol.Position) which provides the document position.
 // Takes pattern (string) which defines the pattern to match against.
 //
-// Returns *PKHoverContext which contains the extracted context, or nil if the
-// pattern is not found or the cursor is outside the matched range.
+// Returns *PKHoverContext which contains the extracted context, or nil if the pattern is
+// not found or the cursor is outside the matched range.
 func tryExtractPartialHoverContext(line string, cursor int, position protocol.Position, pattern string) *PKHoverContext {
 	name, startPosition, endPosition, ok := tryExtractQuotedValue(line, cursor, pattern)
 	if !ok {
@@ -1048,8 +1036,7 @@ func tryExtractPartialHoverContext(line string, cursor int, position protocol.Po
 	}
 }
 
-// findQuoteEndPosition finds the position of the closing quote character in
-// a line.
+// findQuoteEndPosition finds the position of the closing quote character in a line.
 //
 // Takes line (string) which contains the text to search.
 // Takes startPosition (int) which specifies where to begin searching.
@@ -1065,13 +1052,12 @@ func findQuoteEndPosition(line string, startPosition int, quoteChar byte) int {
 	return -1
 }
 
-// extractPartialName extracts the partial name from an import path.
-// For example, "myapp/partials/status_badge.pk" returns "status_badge".
+// extractPartialName extracts the partial name from an import path. For example,
+// "myapp/partials/status_badge.pk" returns "status_badge".
 //
 // Takes importPath (string) which is the full import path to extract from.
 //
-// Returns string which is the final path segment without the .pk or .pkc
-// extension.
+// Returns string which is the final path segment without the .pk or .pkc extension.
 func extractPartialName(importPath string) string {
 	name := strings.TrimSuffix(importPath, ".pk")
 	name = strings.TrimSuffix(name, ".pkc")
@@ -1086,8 +1072,8 @@ func extractPartialName(importPath string) string {
 // appendComponentLinks appends source and generated file links to the builder.
 //
 // Takes b (*strings.Builder) which receives the formatted file links.
-// Takes vc (*annotator_dto.VirtualComponent) which provides the source and
-// generated file paths.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the source and generated file
+// paths.
 func appendComponentLinks(b *strings.Builder, vc *annotator_dto.VirtualComponent) {
 	if vc.Source != nil && vc.Source.SourcePath != "" {
 		_, _ = fmt.Fprintf(b, "\n[Open source file](%s)\n", uri.File(vc.Source.SourcePath))
@@ -1138,14 +1124,13 @@ func isPikoNoProps(propsExpr goast.Expr) bool {
 	return ok && x.Name == "piko" && selectorExpression.Sel.Name == "NoProps"
 }
 
-// getComponentAST returns the AST for a component, preferring the rewritten
-// version.
+// getComponentAST returns the AST for a component, preferring the rewritten version.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component to
-// get the AST from.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component to get the AST
+// from.
 //
-// Returns *goast.File which is the rewritten AST if available, otherwise the
-// original script AST, or nil if neither exists.
+// Returns *goast.File which is the rewritten AST if available, otherwise the original
+// script AST, or nil if neither exists.
 func getComponentAST(vc *annotator_dto.VirtualComponent) *goast.File {
 	if vc.RewrittenScriptAST != nil {
 		return vc.RewrittenScriptAST
@@ -1160,8 +1145,7 @@ func getComponentAST(vc *annotator_dto.VirtualComponent) *goast.File {
 //
 // Takes file (*goast.File) which is the parsed Go source file to search.
 //
-// Returns *goast.StructType which is the Props struct if found, or nil if not
-// present.
+// Returns *goast.StructType which is the Props struct if found, or nil if not present.
 func findPropsStructInAST(file *goast.File) *goast.StructType {
 	for _, declaration := range file.Decls {
 		genDecl, ok := declaration.(*goast.GenDecl)
@@ -1235,8 +1219,7 @@ func extractPropFromField(field *goast.Field) propInfo {
 	}
 }
 
-// extractPropTagInfo extracts the property name and required status from struct
-// tags.
+// extractPropTagInfo extracts the property name and required status from struct tags.
 //
 // Takes tagValue (string) which contains the struct tag to parse.
 // Takes defaultName (string) which is used when no property name is found.
@@ -1282,8 +1265,8 @@ func extractTagValue(tagString, key string) string {
 	return ""
 }
 
-// containsUnquotedTagClose checks if a line contains a > or /> that closes
-// an HTML tag, not inside a quoted attribute value.
+// containsUnquotedTagClose checks if a line contains a > or /> that closes an HTML tag,
+// not inside a quoted attribute value.
 //
 // Takes line (string) which is the text to check.
 //

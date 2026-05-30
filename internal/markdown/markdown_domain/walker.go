@@ -28,9 +28,11 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_dto"
 )
 
-// excerptSeparator is the standard HTML comment used to manually mark the end
-// of an excerpt.
-var excerptSeparator = []byte("<!--more-->")
+var (
+	// excerptSeparator is the standard HTML comment used to manually mark the end of an
+	// excerpt.
+	excerptSeparator = []byte("<!--more-->")
+)
 
 // walker provides AST traversal to produce ProcessedMarkdown.
 type walker interface {
@@ -44,13 +46,12 @@ type walker interface {
 	Transform(ctx context.Context, doc *markdown_ast.Document) (*markdown_dto.ProcessedMarkdown, error)
 }
 
-// markdownWalker traverses a piko markdown AST and builds a Piko template AST.
-// It implements the walker interface, using a nodeTransformer to convert nodes
-// and assembling a structured ProcessedMarkdown DTO.
+// markdownWalker traverses a piko markdown AST and builds a Piko template AST. It
+// implements the walker interface, using a nodeTransformer to convert nodes and
+// assembling a structured ProcessedMarkdown DTO.
 type markdownWalker struct {
-	// ctx carries the logger and trace spans through the walk; set at the
-	// start of Transform because the walk callback signature does not accept
-	// a context parameter.
+	// ctx carries the logger and trace spans through the walk; set at the start of Transform
+	// because the walk callback signature does not accept a context parameter.
 	ctx context.Context
 
 	// blocks maps block names to their template nodes.
@@ -59,8 +60,8 @@ type markdownWalker struct {
 	// transformer converts AST nodes into Piko nodes.
 	transformer nodeTransformer
 
-	// currentBlockName holds the name of the block being parsed; empty when
-	// not inside a named block.
+	// currentBlockName holds the name of the block being parsed; empty when not inside a
+	// named block.
 	currentBlockName string
 
 	// source holds the original markdown text used to get node content.
@@ -82,21 +83,21 @@ type markdownWalker struct {
 	wordCount int
 }
 
-var _ walker = (*markdownWalker)(nil)
+var (
+	_ walker = (*markdownWalker)(nil)
+)
 
-// Transform is the main entry point for the walker that orchestrates the
-// entire Markdown processing pipeline.
+// Transform is the main entry point for the walker that orchestrates the entire Markdown
+// processing pipeline.
 //
-// It first walks the piko markdown AST to produce a flat list of Piko AST
-// nodes, then post-processes this flat list to create the distinct build
-// artefacts.
+// It first walks the piko markdown AST to produce a flat list of Piko AST nodes, then
+// post-processes this flat list to create the distinct build artefacts.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
-// Takes doc (*markdown_ast.Document) which is the root of the piko markdown
-// AST tree.
+// Takes doc (*markdown_ast.Document) which is the root of the piko markdown AST tree.
 //
-// Returns *markdown_dto.ProcessedMarkdown which contains the page AST,
-// excerpt AST, metadata, and diagnostics.
+// Returns *markdown_dto.ProcessedMarkdown which contains the page AST, excerpt AST,
+// metadata, and diagnostics.
 // Returns error when the AST walk fails.
 func (w *markdownWalker) Transform(ctx context.Context, doc *markdown_ast.Document) (*markdown_dto.ProcessedMarkdown, error) {
 	w.ctx = ctx
@@ -150,8 +151,8 @@ func (w *markdownWalker) Transform(ctx context.Context, doc *markdown_ast.Docume
 	}, nil
 }
 
-// handleNodeEnter is called when the walker first enters a node. It handles
-// state changes, node transformation, and controls how the walk proceeds.
+// handleNodeEnter is called when the walker first enters a node. It handles state
+// changes, node transformation, and controls how the walk proceeds.
 //
 // Takes node (markdown_ast.Node) which is the AST node being entered.
 //
@@ -174,8 +175,8 @@ func (w *markdownWalker) handleNodeEnter(node markdown_ast.Node) markdown_ast.Wa
 	return markdown_ast.WalkContinue
 }
 
-// handleNodeExit is called when the walker is leaving a node.
-// It clears the current block name when exiting a fenced container.
+// handleNodeExit is called when the walker is leaving a node. It clears the current block
+// name when exiting a fenced container.
 //
 // Takes node (markdown_ast.Node) which is the node being exited.
 //
@@ -189,10 +190,9 @@ func (w *markdownWalker) handleNodeExit(node markdown_ast.Node) markdown_ast.Wal
 
 // appendNode adds a node to the correct content bucket.
 //
-// Either the main flow or a named block. Fragment nodes are flattened by
-// adding their children directly. Recursion is capped at
-// markdown_ast.MaxMarkdownDepth so a pathological fragment cannot overflow
-// the stack.
+// Either the main flow or a named block. Fragment nodes are flattened by adding their
+// children directly. Recursion is capped at markdown_ast.MaxMarkdownDepth so a
+// pathological fragment cannot overflow the stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to add.
 func (w *markdownWalker) appendNode(node *ast_domain.TemplateNode) {
@@ -222,9 +222,8 @@ func (w *markdownWalker) appendNodeAt(node *ast_domain.TemplateNode, depth int) 
 	}
 }
 
-// collectMetadata walks a Piko AST node to find images and links. Recursion
-// is capped at markdown_ast.MaxMarkdownDepth so a pathological tree cannot
-// overflow the stack.
+// collectMetadata walks a Piko AST node to find images and links. Recursion is capped at
+// markdown_ast.MaxMarkdownDepth so a pathological tree cannot overflow the stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to walk.
 func (w *markdownWalker) collectMetadata(node *ast_domain.TemplateNode) {
@@ -256,11 +255,11 @@ func (w *markdownWalker) collectMetadataAt(node *ast_domain.TemplateNode, depth 
 	}
 }
 
-// handleNamedBlock extracts the name from a fenced block and updates the
-// walker's state. The first child Text node is consumed as the block name.
+// handleNamedBlock extracts the name from a fenced block and updates the walker's state.
+// The first child Text node is consumed as the block name.
 //
-// Takes container (*markdown_ast.FencedContainer) which holds the fenced block
-// to process.
+// Takes container (*markdown_ast.FencedContainer) which holds the fenced block to
+// process.
 func (w *markdownWalker) handleNamedBlock(container *markdown_ast.FencedContainer) {
 	if !container.HasChildren() {
 		return
@@ -280,9 +279,8 @@ func (w *markdownWalker) handleNamedBlock(container *markdown_ast.FencedContaine
 	}
 }
 
-// buildSectionsData creates section data from the content AST.
-// It returns plain data, not AST nodes, suitable for building a table of
-// contents.
+// buildSectionsData creates section data from the content AST. It returns plain data, not
+// AST nodes, suitable for building a table of contents.
 //
 // Returns []markdown_dto.SectionData which contains the heading hierarchy.
 func (w *markdownWalker) buildSectionsData() []markdown_dto.SectionData {
@@ -302,12 +300,12 @@ func (w *markdownWalker) buildSectionsData() []markdown_dto.SectionData {
 	return sections
 }
 
-// buildExcerptNodes finds the excerpt separator and returns a deep-cloned
-// slice of the nodes that constitute the excerpt. If no separator is found, it
-// defaults to the first paragraph.
+// buildExcerptNodes finds the excerpt separator and returns a deep-cloned slice of the
+// nodes that constitute the excerpt. If no separator is found, it defaults to the first
+// paragraph.
 //
-// Returns []*ast_domain.TemplateNode which contains the excerpt nodes, or nil
-// if no suitable content is found.
+// Returns []*ast_domain.TemplateNode which contains the excerpt nodes, or nil if no
+// suitable content is found.
 func (w *markdownWalker) buildExcerptNodes() []*ast_domain.TemplateNode {
 	for i, node := range w.pikoContent {
 		if node.NodeType == ast_domain.NodeText && node.TextContent == string(excerptSeparator) {
@@ -324,18 +322,17 @@ func (w *markdownWalker) buildExcerptNodes() []*ast_domain.TemplateNode {
 	return nil
 }
 
-// newMarkdownWalker creates a new walker with the given transformer, source,
-// and diagnostics slice.
+// newMarkdownWalker creates a new walker with the given transformer, source, and
+// diagnostics slice.
 //
-// The transformer and diagnostics are passed in to allow testing and loose
-// coupling. The diagnostics slice is shared between the walker and transformer
-// to collect all issues found.
+// The transformer and diagnostics are passed in to allow testing and loose coupling. The
+// diagnostics slice is shared between the walker and transformer to collect all issues
+// found.
 //
-// Takes transformer (nodeTransformer) which processes markdown nodes during
-// traversal.
+// Takes transformer (nodeTransformer) which processes markdown nodes during traversal.
 // Takes source ([]byte) which contains the raw markdown content.
-// Takes diagnostics ([]*ast_domain.Diagnostic) which collects issues found
-// during walking.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which collects issues found during
+// walking.
 //
 // Returns *markdownWalker which is ready to traverse a markdown AST.
 func newMarkdownWalker(transformer nodeTransformer, source []byte, diagnostics []*ast_domain.Diagnostic) *markdownWalker {
@@ -352,13 +349,11 @@ func newMarkdownWalker(transformer nodeTransformer, source []byte, diagnostics [
 	}
 }
 
-// countWords counts the words in a transformed Piko node tree by summing the
-// words in all NodeText nodes. Recursion is capped at
-// markdown_ast.MaxMarkdownDepth so a pathological tree cannot overflow the
-// stack.
+// countWords counts the words in a transformed Piko node tree by summing the words in all
+// NodeText nodes. Recursion is capped at markdown_ast.MaxMarkdownDepth so a pathological
+// tree cannot overflow the stack.
 //
-// Takes node (*ast_domain.TemplateNode) which is the root of the subtree to
-// count.
+// Takes node (*ast_domain.TemplateNode) which is the root of the subtree to count.
 //
 // Returns int which is the total number of words found.
 func countWords(node *ast_domain.TemplateNode) int {
@@ -386,8 +381,7 @@ func countWordsAt(node *ast_domain.TemplateNode, depth int) int {
 	return count
 }
 
-// transformMarkdownAST converts a piko markdown syntax tree into Piko build
-// artefacts.
+// transformMarkdownAST converts a piko markdown syntax tree into Piko build artefacts.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes doc (*markdown_ast.Document) which is the parsed markdown document.

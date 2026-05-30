@@ -67,9 +67,9 @@ var (
 	spamDetectCheckDuration metric.Float64Histogram
 )
 
-// metricAttributes builds an OTel measurement option from key-value
-// pairs. Logs at error level when an odd argument count is supplied so
-// the misuse is not silently dropped from telemetry.
+// metricAttributes builds an OTel measurement option from key-value pairs. Logs at error
+// level when an odd argument count is supplied so the misuse is not silently dropped from
+// telemetry.
 //
 // Takes ctx (context.Context) which carries trace baggage for logging.
 // Takes keyValues (...string) which are alternating key-value pairs.

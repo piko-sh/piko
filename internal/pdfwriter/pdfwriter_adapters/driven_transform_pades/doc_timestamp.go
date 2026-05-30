@@ -27,21 +27,20 @@ import (
 )
 
 const (
-	// docTimestampContentsSize is the byte reservation for the document
-	// timestamp CMS ContentInfo. A timestamp token is typically 3-5 KB
-	// DER; 16384 bytes provides ample headroom.
+	// docTimestampContentsSize is the byte reservation for the document timestamp CMS
+	// ContentInfo. A timestamp token is typically 3-5 KB DER; 16384 bytes provides ample
+	// headroom.
 	docTimestampContentsSize = 16384
 )
 
-// appendDocumentTimestamp adds a PAdES document timestamp to the signed
-// PDF as an incremental update. The document timestamp is a second
-// signature with /SubFilter /ETSI.RFC3161 whose /Contents holds an
-// RFC 3161 timestamp token covering the entire document (including the
-// original PAdES signature and DSS data).
+// appendDocumentTimestamp adds a PAdES document timestamp to the signed PDF as an
+// incremental update. The document timestamp is a second signature with /SubFilter
+// /ETSI.RFC3161 whose /Contents holds an RFC 3161 timestamp token covering the entire
+// document (including the original PAdES signature and DSS data).
 //
-// The incremental update appends new objects (signature dictionary,
-// widget annotation, updated catalog and page) plus a new xref section
-// and trailer with /Prev pointing to the original startxref.
+// The incremental update appends new objects (signature dictionary, widget annotation,
+// updated catalog and page) plus a new xref section and trailer with /Prev pointing to
+// the original startxref.
 //
 // Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes signedPDF ([]byte) which is the B-LT signed PDF.
@@ -58,9 +57,8 @@ func appendDocumentTimestamp(ctx context.Context, signedPDF []byte, tsaURL strin
 	return embedDocTimestamp(ctx, pdfBytes, tsSigObjNum, tsaURL)
 }
 
-// buildDocTimestampIncrement parses the signed PDF, adds a document
-// timestamp signature dictionary and widget annotation as an
-// incremental update.
+// buildDocTimestampIncrement parses the signed PDF, adds a document timestamp signature
+// dictionary and widget annotation as an incremental update.
 //
 // Takes signedPDF ([]byte) which is the B-LT signed PDF.
 //
@@ -100,14 +98,13 @@ func buildDocTimestampIncrement(signedPDF []byte) ([]byte, int, error) {
 	return pdfBytes, tsSigObjNum, nil
 }
 
-// embedDocTimestamp locates the /Contents placeholder for the document
-// timestamp, computes the byte-range digest, requests a timestamp
-// token from the TSA, and embeds it into the PDF.
+// embedDocTimestamp locates the /Contents placeholder for the document timestamp,
+// computes the byte-range digest, requests a timestamp token from the TSA, and embeds it
+// into the PDF.
 //
 // Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes pdfBytes ([]byte) which is the serialised PDF with placeholder.
-// Takes tsSigObjNum (int) which is the timestamp signature dictionary
-// object number.
+// Takes tsSigObjNum (int) which is the timestamp signature dictionary object number.
 // Takes tsaURL (string) which is the TSA endpoint URL.
 //
 // Returns []byte which is the PDF with the embedded timestamp token.
@@ -134,13 +131,12 @@ func embedDocTimestamp(ctx context.Context, pdfBytes []byte, tsSigObjNum int, ts
 	return result, nil
 }
 
-// appendAnnotAndAcroForm updates the first page's /Annots array and the
-// catalog's /AcroForm to include the document timestamp widget.
+// appendAnnotAndAcroForm updates the first page's /Annots array and the catalog's
+// /AcroForm to include the document timestamp widget.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
 // Takes widgetObjNum (int) which is the widget annotation object number.
-// Takes dirtyNums ([]int) which holds the current list of modified
-// object numbers.
+// Takes dirtyNums ([]int) which holds the current list of modified object numbers.
 //
 // Returns []int which is the updated dirty object numbers list.
 func appendAnnotAndAcroForm(writer *pdfparse.Writer, widgetObjNum int, dirtyNums []int) []int {
@@ -149,13 +145,11 @@ func appendAnnotAndAcroForm(writer *pdfparse.Writer, widgetObjNum int, dirtyNums
 	return dirtyNums
 }
 
-// appendAcroFormField adds the widget reference to the catalog's
-// /AcroForm /Fields array.
+// appendAcroFormField adds the widget reference to the catalog's /AcroForm /Fields array.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
 // Takes widgetObjNum (int) which is the widget annotation object number.
-// Takes dirtyNums ([]int) which holds the current list of modified
-// object numbers.
+// Takes dirtyNums ([]int) which holds the current list of modified object numbers.
 //
 // Returns []int which is the updated dirty object numbers list.
 func appendAcroFormField(writer *pdfparse.Writer, widgetObjNum int, dirtyNums []int) []int {
@@ -186,13 +180,12 @@ func appendAcroFormField(writer *pdfparse.Writer, widgetObjNum int, dirtyNums []
 	return append(dirtyNums, rootRef.Number)
 }
 
-// appendFirstPageAnnot adds the widget annotation reference to the
-// first page's /Annots array.
+// appendFirstPageAnnot adds the widget annotation reference to the first page's /Annots
+// array.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
 // Takes widgetObjNum (int) which is the widget annotation object number.
-// Takes dirtyNums ([]int) which holds the current list of modified
-// object numbers.
+// Takes dirtyNums ([]int) which holds the current list of modified object numbers.
 //
 // Returns []int which is the updated dirty object numbers list.
 func appendFirstPageAnnot(writer *pdfparse.Writer, widgetObjNum int, dirtyNums []int) []int {
@@ -226,13 +219,13 @@ func appendFirstPageAnnot(writer *pdfparse.Writer, widgetObjNum int, dirtyNums [
 	return append(dirtyNums, firstPageNum)
 }
 
-// findFirstPageNumber resolves the object number of the first page
-// by walking trailer -> Root -> Pages -> Kids[0].
+// findFirstPageNumber resolves the object number of the first page by walking trailer ->
+// Root -> Pages -> Kids[0].
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
 //
-// Returns int which is the first page object number, or 0 if the
-// chain cannot be resolved.
+// Returns int which is the first page object number, or 0 if the chain cannot be
+// resolved.
 func findFirstPageNumber(writer *pdfparse.Writer) int {
 	trailer := writer.Trailer()
 	rootRef := trailer.GetRef("Root")

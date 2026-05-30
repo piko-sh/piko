@@ -26,13 +26,12 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// BinaryOpEmitter provides a way to emit binary operation expressions.
-// This enables mocking and testing of binary operation logic.
+// BinaryOpEmitter provides a way to emit binary operation expressions. This enables
+// mocking and testing of binary operation logic.
 type BinaryOpEmitter interface {
 	// emit converts a binary expression to its Go AST representation.
 	//
-	// Takes n (*ast_domain.BinaryExpression) which is the binary
-	// expression to convert.
+	// Takes n (*ast_domain.BinaryExpression) which is the binary expression to convert.
 	//
 	// Returns goast.Expr which is the converted Go expression.
 	// Returns []goast.Stmt which contains any auxiliary statements needed.
@@ -40,23 +39,23 @@ type BinaryOpEmitter interface {
 	emit(n *ast_domain.BinaryExpression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
 }
 
-// binaryOpEmitter handles code generation for binary expressions.
-// It implements BinaryOpEmitter.
+// binaryOpEmitter handles code generation for binary expressions. It implements
+// BinaryOpEmitter.
 type binaryOpEmitter struct {
 	// emitter provides access to the main code emitter.
 	emitter *emitter
 
-	// expressionEmitter handles emitting the left and right operands
-	// of binary operations.
+	// expressionEmitter handles emitting the left and right operands of binary operations.
 	expressionEmitter ExpressionEmitter
 }
 
-var _ BinaryOpEmitter = (*binaryOpEmitter)(nil)
+var (
+	_ BinaryOpEmitter = (*binaryOpEmitter)(nil)
+)
 
 // emit generates a Go binary expression from a domain binary expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to convert.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to convert.
 //
 // Returns goast.Expr which is the generated Go expression.
 // Returns []goast.Stmt which contains any statements needed for the expression.
@@ -75,14 +74,13 @@ func (be *binaryOpEmitter) emit(n *ast_domain.BinaryExpression) (goast.Expr, []g
 
 // emitOperands emits both operands of a binary expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to process.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to process.
 //
 // Returns leftExpr (goast.Expr) which is the emitted left operand.
 // Returns rightExpr (goast.Expr) which is the emitted right operand.
 // Returns statements ([]goast.Stmt) which contains statements from both operands.
-// Returns diagnostics ([]*ast_domain.Diagnostic) which contains
-// diagnostics from both operands.
+// Returns diagnostics ([]*ast_domain.Diagnostic) which contains diagnostics from both
+// operands.
 func (be *binaryOpEmitter) emitOperands(n *ast_domain.BinaryExpression) (leftExpr, rightExpr goast.Expr, statements []goast.Stmt, diagnostics []*ast_domain.Diagnostic) {
 	leftExpr, leftStmts, leftDiags := be.expressionEmitter.emit(n.Left)
 	rightExpr, rightStmts, rightDiags := be.expressionEmitter.emit(n.Right)
@@ -164,20 +162,18 @@ func (be *binaryOpEmitter) applyTypeCoercion(
 	}
 }
 
-// tryEmitLogicalOperator handles logical AND/OR operators and emits the
-// appropriate Go expression.
+// tryEmitLogicalOperator handles logical AND/OR operators and emits the appropriate Go
+// expression.
 //
-// For || (OpOr): Uses EvaluateOr helper which returns the first truthy value
-// (JavaScript semantics).
-// For && (OpAnd): Uses native Go && wrapped in truthiness checks (returns
+// For || (OpOr): Uses EvaluateOr helper which returns the first truthy value (JavaScript
+// semantics). For && (OpAnd): Uses native Go && wrapped in truthiness checks (returns
 // bool).
 //
 // Takes n (*ast_domain.BinaryExpression) which is the binary expression to emit.
 // Takes leftGoExpr (goast.Expr) which is the already-emitted left operand.
 // Takes rightGoExpr (goast.Expr) which is the already-emitted right operand.
 //
-// Returns goast.Expr which is the emitted Go expression, or nil if not
-// handled.
+// Returns goast.Expr which is the emitted Go expression, or nil if not handled.
 // Returns bool which indicates whether the operator was a logical operator.
 func (*binaryOpEmitter) tryEmitLogicalOperator(
 	n *ast_domain.BinaryExpression,
@@ -219,24 +215,21 @@ type binaryOpContext struct {
 	// statements holds statements to emit before the binary operation expression.
 	statements []goast.Stmt
 
-	// diagnostics holds any warnings or errors found while processing
-	// the binary operation.
+	// diagnostics holds any warnings or errors found while processing the binary operation.
 	diagnostics []*ast_domain.Diagnostic
 }
 
-// emitNativeOrHelperOp determines whether to use a native operator or runtime
-// helper.
+// emitNativeOrHelperOp determines whether to use a native operator or runtime helper.
 //
 // Takes n (*ast_domain.BinaryExpression) which is the binary expression to emit.
 // Takes leftGoExpr (goast.Expr) which is the left operand Go expression.
 // Takes rightGoExpr (goast.Expr) which is the right operand Go expression.
-// Takes finalLeftType (*ast_domain.ResolvedTypeInfo) which is the resolved
-// type of the left operand.
-// Takes finalRightType (*ast_domain.ResolvedTypeInfo) which is the resolved
-// type of the right operand.
+// Takes finalLeftType (*ast_domain.ResolvedTypeInfo) which is the resolved type of the
+// left operand.
+// Takes finalRightType (*ast_domain.ResolvedTypeInfo) which is the resolved type of the
+// right operand.
 // Takes allStmts ([]goast.Stmt) which contains accumulated statements.
-// Takes allDiags ([]*ast_domain.Diagnostic) which contains accumulated
-// diagnostics.
+// Takes allDiags ([]*ast_domain.Diagnostic) which contains accumulated diagnostics.
 //
 // Returns goast.Expr which is the resulting Go expression for the operation.
 // Returns []goast.Stmt which contains any additional statements needed.
@@ -262,8 +255,7 @@ func (be *binaryOpEmitter) emitNativeOrHelperOp(
 	return be.emitNativeOrHelperOpWithContext(ctx)
 }
 
-// emitNativeOrHelperOpWithContext handles a binary operation using the given
-// context.
+// emitNativeOrHelperOpWithContext handles a binary operation using the given context.
 //
 // Takes ctx (*binaryOpContext) which provides the operands and type details.
 //
@@ -286,20 +278,20 @@ func (be *binaryOpEmitter) emitNativeOrHelperOpWithContext(ctx *binaryOpContext)
 	return be.emitHelperBinaryOp(ctx.expression, ctx.leftExpr, ctx.rightExpr), ctx.statements, ctx.diagnostics
 }
 
-// emitNativeBinaryOp generates a standard Go binary expression (e.g., `a + b`).
-// It uses the final, potentially coerced types of its operands to perform
-// correct type promotion and casting.
+// emitNativeBinaryOp generates a standard Go binary expression (e.g., `a + b`). It uses
+// the final, potentially coerced types of its operands to perform correct type promotion
+// and casting.
 //
 // Takes operator (token.Token) which specifies the binary operator to apply.
 // Takes left (goast.Expr) which is the left operand expression.
-// Takes leftType (*ast_domain.ResolvedTypeInfo) which is the resolved type of
-// the left operand.
+// Takes leftType (*ast_domain.ResolvedTypeInfo) which is the resolved type of the left
+// operand.
 // Takes right (goast.Expr) which is the right operand expression.
-// Takes rightType (*ast_domain.ResolvedTypeInfo) which is the resolved type of
-// the right operand.
+// Takes rightType (*ast_domain.ResolvedTypeInfo) which is the resolved type of the right
+// operand.
 //
-// Returns goast.Expr which is the resulting binary expression with any
-// necessary type casts applied.
+// Returns goast.Expr which is the resulting binary expression with any necessary type
+// casts applied.
 func (*binaryOpEmitter) emitNativeBinaryOp(operator token.Token, left goast.Expr, leftType *ast_domain.ResolvedTypeInfo, right goast.Expr, rightType *ast_domain.ResolvedTypeInfo) goast.Expr {
 	if isNumeric(leftType) && isNumeric(rightType) {
 		promotedTypeInfo := promoteNumericTypes(leftType, rightType)
@@ -319,11 +311,10 @@ func (*binaryOpEmitter) emitNativeBinaryOp(operator token.Token, left goast.Expr
 	return &goast.BinaryExpr{X: left, Op: operator, Y: right}
 }
 
-// emitHelperBinaryOp creates a call to a runtime helper function for complex
-// or loose comparisons.
+// emitHelperBinaryOp creates a call to a runtime helper function for complex or loose
+// comparisons.
 //
-// Takes n (*ast_domain.BinaryExpression) which provides the operator
-// and annotations.
+// Takes n (*ast_domain.BinaryExpression) which provides the operator and annotations.
 // Takes left (goast.Expr) which is the left operand expression.
 // Takes right (goast.Expr) which is the right operand expression.
 //
@@ -353,15 +344,13 @@ func (*binaryOpEmitter) emitHelperBinaryOp(n *ast_domain.BinaryExpression, left,
 	}
 }
 
-// coerceToNumber generates code to convert a boolean expression to an integer
-// (0 or 1).
+// coerceToNumber generates code to convert a boolean expression to an integer (0 or 1).
 //
 // Takes expression (goast.Expr) which is the expression to convert.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type info.
 //
 // Returns goast.Expr which is the converted expression.
-// Returns []goast.Stmt which contains prerequisite statements for the
-// conversion.
+// Returns []goast.Stmt which contains prerequisite statements for the conversion.
 // Returns *ast_domain.ResolvedTypeInfo which describes the resulting type.
 func (be *binaryOpEmitter) coerceToNumber(expression goast.Expr, ann *ast_domain.GoGeneratorAnnotation) (goast.Expr, []goast.Stmt, *ast_domain.ResolvedTypeInfo) {
 	if ann == nil {
@@ -390,8 +379,8 @@ func (be *binaryOpEmitter) coerceToNumber(expression goast.Expr, ann *ast_domain
 	return tempVar, prereqStmts, newTypeInfo
 }
 
-// IsArithmeticOperator determines whether a binary operator is an arithmetic
-// operator (addition, subtraction, multiplication, division, or modulo).
+// IsArithmeticOperator determines whether a binary operator is an arithmetic operator
+// (addition, subtraction, multiplication, division, or modulo).
 //
 // Takes operator (ast_domain.BinaryOp) which is the binary operator to check.
 //
@@ -418,16 +407,15 @@ func newBinaryOpEmitter(emitter *emitter, expressionEmitter ExpressionEmitter) *
 	}
 }
 
-// wrapWithTypeAssertion wraps an expression that returns 'any' with a type
-// assertion when the expected type is known from annotations.
+// wrapWithTypeAssertion wraps an expression that returns 'any' with a type assertion when
+// the expected type is known from annotations.
 //
 // Takes expression (goast.Expr) which is the expression to wrap.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved
-// type for the assertion.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved type for the
+// assertion.
 //
-// Returns goast.Expr which is the original expression if no type information
-// is available, or a type assertion expression if the annotation contains a
-// resolved type.
+// Returns goast.Expr which is the original expression if no type information is
+// available, or a type assertion expression if the annotation contains a resolved type.
 func wrapWithTypeAssertion(expression goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
 	if ann == nil || ann.ResolvedType == nil || ann.ResolvedType.TypeExpression == nil {
 		return expression
@@ -438,10 +426,9 @@ func wrapWithTypeAssertion(expression goast.Expr, ann *ast_domain.GoGeneratorAnn
 	}
 }
 
-// resolveArithmeticResultAnnotation determines the result type annotation
-// for an arithmetic binary expression, using a three-step strategy to
-// provide a concrete type assertion that EvaluateBinary (which returns
-// 'any') cannot supply on its own.
+// resolveArithmeticResultAnnotation determines the result type annotation for an
+// arithmetic binary expression, using a three-step strategy to provide a concrete type
+// assertion that EvaluateBinary (which returns 'any') cannot supply on its own.
 //
 // The strategy tries, in order:
 //  1. The BinaryExpr's own annotation, if it has a concrete (non-any) type.
@@ -450,8 +437,8 @@ func wrapWithTypeAssertion(expression goast.Expr, ann *ast_domain.GoGeneratorAnn
 //
 // Takes n (*ast_domain.BinaryExpression) which is the arithmetic expression.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which provides the result type for
-// the type assertion, or nil if no type can be determined.
+// Returns *ast_domain.GoGeneratorAnnotation which provides the result type for the type
+// assertion, or nil if no type can be determined.
 func resolveArithmeticResultAnnotation(n *ast_domain.BinaryExpression) *ast_domain.GoGeneratorAnnotation {
 	if ann := n.GoAnnotations; ann != nil && ann.ResolvedType != nil && ann.ResolvedType.TypeExpression != nil {
 		if !isAnyType(ann.ResolvedType.TypeExpression) {
@@ -468,14 +455,14 @@ func resolveArithmeticResultAnnotation(n *ast_domain.BinaryExpression) *ast_doma
 	return inferMathsTypeAnnotation(n.Left)
 }
 
-// inferMathsTypeAnnotation creates a synthetic annotation for known maths
-// literal types. For nested binary expressions it recurses into the left
-// operand to find the underlying literal type.
+// inferMathsTypeAnnotation creates a synthetic annotation for known maths literal types.
+// For nested binary expressions it recurses into the left operand to find the underlying
+// literal type.
 //
 // Takes expression (ast_domain.Expression) which is the expression to inspect.
 //
-// Returns *ast_domain.GoGeneratorAnnotation with the maths type, or nil if the
-// expression is not a maths literal.
+// Returns *ast_domain.GoGeneratorAnnotation with the maths type, or nil if the expression
+// is not a maths literal.
 func inferMathsTypeAnnotation(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	switch e := expression.(type) {
 	case *ast_domain.DecimalLiteral:
@@ -495,8 +482,8 @@ func inferMathsTypeAnnotation(expression ast_domain.Expression) *ast_domain.GoGe
 //
 // Takes typeName (string) which is the type name (e.g. "Decimal", "BigInt").
 //
-// Returns *ast_domain.GoGeneratorAnnotation with the resolved type set to the
-// maths package type.
+// Returns *ast_domain.GoGeneratorAnnotation with the resolved type set to the maths
+// package type.
 func makeMathsAnnotation(typeName string) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -509,8 +496,8 @@ func makeMathsAnnotation(typeName string) *ast_domain.GoGeneratorAnnotation {
 	}
 }
 
-// isAnyType reports whether a Go AST type expression represents the untyped
-// 'any' or 'interface{}' type.
+// isAnyType reports whether a Go AST type expression represents the untyped 'any' or
+// 'interface{}' type.
 //
 // Takes expression (goast.Expr) which is the type expression to check.
 //
@@ -520,16 +507,15 @@ func isAnyType(expression goast.Expr) bool {
 	return ok && identifier.Name == "any"
 }
 
-// tryNilComparison checks if one operand is a nil literal and the other is a
-// nillable type (pointer, map, slice, func, chan, interface). If so, it returns
-// a direct Go binary expression (e.g., `ptr == nil` or `ptr != nil`).
+// tryNilComparison checks if one operand is a nil literal and the other is a nillable
+// type (pointer, map, slice, func, chan, interface). If so, it returns a direct Go binary
+// expression (e.g., `ptr == nil` or `ptr != nil`).
 //
-// This optimisation avoids calling EvaluateStrictEquality at runtime, which
-// would otherwise fail to correctly compare a typed nil (e.g., (*Image)(nil))
-// with an untyped nil due to type information differences.
+// This optimisation avoids calling EvaluateStrictEquality at runtime, which would
+// otherwise fail to correctly compare a typed nil (e.g., (*Image)(nil)) with an untyped
+// nil due to type information differences.
 //
-// Takes ctx (*binaryOpContext) which provides the original expression and type
-// info.
+// Takes ctx (*binaryOpContext) which provides the original expression and type info.
 //
 // Returns goast.Expr which is the direct comparison expression if applicable.
 // Returns bool which is true if the nil comparison optimisation was applied.
@@ -599,11 +585,10 @@ func isNilLiteral(expression ast_domain.Expression) bool {
 
 // createTempAnnotation creates a simple annotation for type checking.
 //
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which provides the type
-// data to wrap.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which provides the type data to wrap.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds only the resolved type
-// with all other fields set to nil or zero values.
+// Returns *ast_domain.GoGeneratorAnnotation which holds only the resolved type with all
+// other fields set to nil or zero values.
 func createTempAnnotation(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		ResolvedType:            resolvedType,
@@ -635,17 +620,17 @@ func createTempAnnotation(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domain
 	}
 }
 
-// getNativeBinaryOp checks whether a binary operation can use a native Go
-// operator instead of a custom implementation.
+// getNativeBinaryOp checks whether a binary operation can use a native Go operator
+// instead of a custom implementation.
 //
 // Takes operator (ast_domain.BinaryOp) which is the binary operation to check.
-// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which provides type
-// information for the left operand.
-// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which provides type
-// information for the right operand.
+// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which provides type information for
+// the left operand.
+// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which provides type information for
+// the right operand.
 //
-// Returns token.Token which is the Go token for the native operation, or
-// token.ILLEGAL if no native operator applies.
+// Returns token.Token which is the Go token for the native operation, or token.ILLEGAL if
+// no native operator applies.
 // Returns bool which is true if a native operation can be used.
 func getNativeBinaryOp(operator ast_domain.BinaryOp, leftAnn, rightAnn *ast_domain.GoGeneratorAnnotation) (token.Token, bool) {
 	if isLogicalOperator(operator) {
@@ -688,13 +673,11 @@ func isLogicalOperator(operator ast_domain.BinaryOp) bool {
 
 // hasTypeInformation checks if both annotations have full type information.
 //
-// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which is the left operand
+// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which is the left operand annotation.
+// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which is the right operand
 // annotation.
-// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which is the right
-// operand annotation.
 //
-// Returns bool which is true when both annotations are not nil and have
-// resolved types.
+// Returns bool which is true when both annotations are not nil and have resolved types.
 func hasTypeInformation(leftAnn, rightAnn *ast_domain.GoGeneratorAnnotation) bool {
 	return leftAnn != nil && rightAnn != nil &&
 		leftAnn.ResolvedType != nil && rightAnn.ResolvedType != nil
@@ -702,18 +685,18 @@ func hasTypeInformation(leftAnn, rightAnn *ast_domain.GoGeneratorAnnotation) boo
 
 // hasBoolOperand checks if either operand is a boolean type.
 //
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type info for
-// the left operand.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type info for
-// the right operand.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type info for the left
+// operand.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type info for the right
+// operand.
 //
 // Returns bool which is true if either operand has a boolean type.
 func hasBoolOperand(leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return isBoolType(leftTypeInfo.TypeExpression) || isBoolType(rightTypeInfo.TypeExpression)
 }
 
-// isOrderedComparisonOperator reports whether operator is an ordered comparison
-// operator (greater than, less than, or their equal variants).
+// isOrderedComparisonOperator reports whether operator is an ordered comparison operator
+// (greater than, less than, or their equal variants).
 //
 // Takes operator (ast_domain.BinaryOp) which is the binary operator to check.
 //
@@ -727,8 +710,7 @@ func isOrderedComparisonOperator(operator ast_domain.BinaryOp) bool {
 	}
 }
 
-// isEqualityOperator reports whether operator is an equality or inequality
-// operator.
+// isEqualityOperator reports whether operator is an equality or inequality operator.
 //
 // Takes operator (ast_domain.BinaryOp) which is the binary operator to check.
 //
@@ -743,8 +725,8 @@ func isEqualityOperator(operator ast_domain.BinaryOp) bool {
 // Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the first type.
 // Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the second type.
 //
-// Returns bool which is true when both types are numeric, both are strings,
-// or both are booleans.
+// Returns bool which is true when both types are numeric, both are strings, or both are
+// booleans.
 func typesAreComparable(leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return (isNumeric(leftTypeInfo) && isNumeric(rightTypeInfo)) ||
 		(isExpressionStringType(leftTypeInfo) && isExpressionStringType(rightTypeInfo)) ||
@@ -753,16 +735,14 @@ func typesAreComparable(leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo
 
 // tryEqualityOperation finds the Go token for an equality operator.
 //
-// Takes operator (ast_domain.BinaryOp) which is the equality operator to
-// match.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left
-// operand type.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right
-// operand type.
+// Takes operator (ast_domain.BinaryOp) which is the equality operator to match.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left operand
+// type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right operand
+// type.
 //
-// Returns token.Token which is the Go token for the operator, or token.ILLEGAL
-// if the types cannot be compared or the operator is not a strict equality
-// operator.
+// Returns token.Token which is the Go token for the operator, or token.ILLEGAL if the
+// types cannot be compared or the operator is not a strict equality operator.
 // Returns bool which is true when a valid token was found.
 func tryEqualityOperation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) (token.Token, bool) {
 	if !typesAreComparable(leftTypeInfo, rightTypeInfo) {
@@ -783,18 +763,17 @@ func tryEqualityOperation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeI
 //
 // Takes operator (BinaryOp) which specifies the binary operation to map.
 // Takes leftTypeInfo (*ResolvedTypeInfo) which describes the left operand type.
-// Takes rightTypeInfo (*ResolvedTypeInfo) which describes the right operand
-// type.
+// Takes rightTypeInfo (*ResolvedTypeInfo) which describes the right operand type.
 //
 // Returns token.Token which is the Go token for the operation.
-// Returns bool which is true when both operands are numeric and the operation
-// is supported.
+// Returns bool which is true when both operands are numeric and the operation is
+// supported.
 func tryNumericOperation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) (token.Token, bool) {
 	if !isNumeric(leftTypeInfo) || !isNumeric(rightTypeInfo) {
 		return token.ILLEGAL, false
 	}
 
-	numericOps := map[ast_domain.BinaryOp]token.Token{
+	numericOps := map[ast_domain.BinaryOp]token.Token{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		ast_domain.OpPlus:  token.ADD,
 		ast_domain.OpMinus: token.SUB,
 		ast_domain.OpMul:   token.MUL,
@@ -815,15 +794,13 @@ func tryNumericOperation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeIn
 
 // tryStringConcatenation attempts string concatenation using the + operator.
 //
-// Takes operator (ast_domain.BinaryOp) which specifies the binary operation to
-// check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the left
-// operand type.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the right
-// operand type.
+// Takes operator (ast_domain.BinaryOp) which specifies the binary operation to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the left operand type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the right operand
+// type.
 //
-// Returns token.Token which is token.ADD for string concatenation or
-// token.ILLEGAL otherwise.
+// Returns token.Token which is token.ADD for string concatenation or token.ILLEGAL
+// otherwise.
 // Returns bool which indicates whether string concatenation applies.
 func tryStringConcatenation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) (token.Token, bool) {
 	if operator == ast_domain.OpPlus && isExpressionStringType(leftTypeInfo) && isExpressionStringType(rightTypeInfo) {
@@ -834,11 +811,10 @@ func tryStringConcatenation(operator ast_domain.BinaryOp, leftTypeInfo, rightTyp
 
 // getNumericRank returns a rank value for numeric type promotion.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to
-// rank.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to rank.
 //
-// Returns int which is the numeric rank for the given type, or
-// NumericRankUnknown if the type is nil or not a known numeric type.
+// Returns int which is the numeric rank for the given type, or NumericRankUnknown if the
+// type is nil or not a known numeric type.
 func getNumericRank(typeInfo *ast_domain.ResolvedTypeInfo) int {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return NumericRankUnknown
@@ -869,8 +845,8 @@ func getNumericRank(typeInfo *ast_domain.ResolvedTypeInfo) int {
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to compare.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to compare.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the type with the higher numeric
-// rank, used to find the target type for numeric conversions.
+// Returns *ast_domain.ResolvedTypeInfo which is the type with the higher numeric rank,
+// used to find the target type for numeric conversions.
 func promoteNumericTypes(left, right *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {
 	if getNumericRank(left) >= getNumericRank(right) {
 		return left

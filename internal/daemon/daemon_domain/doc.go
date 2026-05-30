@@ -16,24 +16,23 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package daemon_domain orchestrates HTTP server lifecycle, graceful
-// shutdown, build notification processing, and on-demand image variant
-// generation. It defines port interfaces (DaemonService, ServerAdapter,
-// RouterBuilder, SEOServicePort, SignalNotifier) and the action system
-// that enables server-side operations called from PK templates,
-// including SSE transport.
+// Package daemon_domain orchestrates HTTP server lifecycle, graceful shutdown, build
+// notification processing, and on-demand image variant generation. It defines port
+// interfaces (DaemonService, ServerAdapter, RouterBuilder, SEOServicePort,
+// SignalNotifier) and the action system that enables server-side operations called from
+// PK templates, including SSE transport.
 //
 // # Server modes
 //
 // The daemon supports two operating modes:
 //
-//   - Development: Includes file watching, hot-reload, and build
-//     notifications via the coordinator
+//   - Development: Includes file watching, hot-reload, and build notifications via the
+//     coordinator
 //   - Production: Assumes pre-built artefacts, optimised for performance
 //
 // # Thread safety
 //
-// The DaemonService is safe for concurrent use. The on-demand variant
-// generator uses per-variant locking to prevent duplicate generation of the
-// same variant by concurrent requests.
+// The DaemonService is safe for concurrent use. The on-demand variant generator uses
+// per-variant locking to prevent duplicate generation of the same variant by concurrent
+// requests.
 package daemon_domain

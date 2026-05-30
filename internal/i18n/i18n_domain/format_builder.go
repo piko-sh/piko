@@ -29,20 +29,24 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// defaultPrecision signals that no explicit precision has been set.
-const defaultPrecision = -1
+const (
 
-// formatBuilderPool reuses FormatBuilder instances to reduce allocations.
-var formatBuilderPool = sync.Pool{
-	New: func() any { return &FormatBuilder{} },
-}
+	// defaultPrecision signals that no explicit precision has been set.
+	defaultPrecision = -1
+)
 
-// FormatBuilder provides a fluent API for formatting numeric and temporal
-// values. It implements fmt.Stringer so templates auto-stringify the result.
+var (
+	// formatBuilderPool reuses FormatBuilder instances to reduce allocations.
+	formatBuilderPool = sync.Pool{
+		New: func() any { return &FormatBuilder{} },
+	}
+)
+
+// FormatBuilder provides a fluent API for formatting numeric and temporal values. It
+// implements fmt.Stringer so templates auto-stringify the result.
 //
-// Use F() for locale-free formatting and NewLF() (via r.LF()) for
-// locale-aware formatting with thousand separators, currency symbols, and
-// localised date patterns.
+// Use F() for locale-free formatting and NewLF() (via r.LF()) for locale-aware formatting
+// with thousand separators, currency symbols, and localised date patterns.
 type FormatBuilder struct {
 	// value is the data to format; may be any supported type.
 	value any
@@ -88,8 +92,8 @@ func NewLF(value any, locale string) *FormatBuilder {
 	return fb
 }
 
-// Precision sets the number of decimal places for numeric values.
-// For non-numeric types this is a no-op.
+// Precision sets the number of decimal places for numeric values. For non-numeric types
+// this is a no-op.
 //
 // Takes n (int) which is the number of decimal places.
 //
@@ -157,8 +161,7 @@ func (fb *FormatBuilder) UTC() *FormatBuilder {
 	return fb
 }
 
-// Locale overrides the locale for formatting. This works on both F() and LF()
-// builders.
+// Locale overrides the locale for formatting. This works on both F() and LF() builders.
 //
 // Takes code (string) which is the locale code (e.g. "de-DE", "en-GB").
 //
@@ -418,16 +421,17 @@ func (fb *FormatBuilder) formatDateTime(dt DateTime) string {
 	return dt.Format("")
 }
 
-var _ fmt.Stringer = (*FormatBuilder)(nil)
+var (
+	_ fmt.Stringer = (*FormatBuilder)(nil)
+)
 
-// F creates a FormatBuilder with no locale applied. The value is formatted
-// using its default string representation, with optional precision control
-// via method chaining.
+// F creates a FormatBuilder with no locale applied. The value is formatted using its
+// default string representation, with optional precision control via method chaining.
 //
 // Takes value (any) which is the value to format.
 //
-// Returns *FormatBuilder which is ready for optional method chaining and
-// implements fmt.Stringer.
+// Returns *FormatBuilder which is ready for optional method chaining and implements
+// fmt.Stringer.
 func F(value any) *FormatBuilder {
 	fb, ok := formatBuilderPool.Get().(*FormatBuilder)
 	if !ok {
@@ -438,8 +442,8 @@ func F(value any) *FormatBuilder {
 	return fb
 }
 
-// moneyLocale converts a dash-separated locale code (such as "en-GB")
-// to the underscore format expected by the currency library ("en_GB").
+// moneyLocale converts a dash-separated locale code (such as "en-GB") to the underscore
+// format expected by the currency library ("en_GB").
 //
 // Takes locale (string) which is the dash-separated locale code.
 //

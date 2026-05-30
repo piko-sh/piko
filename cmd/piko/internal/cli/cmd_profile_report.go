@@ -42,38 +42,39 @@ const (
 	reportPercentageFactor = 100
 )
 
-// reportPercentiles lists the percentile values used in load test reports.
-var reportPercentiles = []float64{50, 66, 75, 80, 90, 95, 98, 99, 100} //nolint:revive // percentile thresholds
+var (
+	// reportPercentiles lists the percentile values used in load test reports.
+	reportPercentiles = []float64{50, 66, 75, 80, 90, 95, 98, 99, 100} //nolint:revive // percentile thresholds
+)
 
 // profileReportConfig controls how a single report section is generated.
 type profileReportConfig struct {
-	// focusRegex is an optional compiled regex. When non-nil, only
-	// locations whose function name matches are included.
+	// focusRegex is an optional compiled regex. When non-nil, only locations whose function
+	// name matches are included.
 	focusRegex *regexp.Regexp
 
 	// sectionTitle is the heading printed in the report.
 	sectionTitle string
 
-	// sampleIndex selects which sample type to report on (e.g. 0 for
-	// alloc_objects, 1 for alloc_space in a heap profile).
+	// sampleIndex selects which sample type to report on (e.g. 0 for alloc_objects, 1 for
+	// alloc_space in a heap profile).
 	sampleIndex int
 
 	// topN limits output to the top N entries by flat value.
 	topN int
 
-	// byLine groups results by source file and line number when true.
-	// When false, results are grouped by function name.
+	// byLine groups results by source file and line number when true. When false, results
+	// are grouped by function name.
 	byLine bool
 }
 
-// generateProfileReport parses the given pprof data and writes a
-// formatted report section to w.
+// generateProfileReport parses the given pprof data and writes a formatted report section
+// to w.
 //
 // Takes w (io.Writer) which receives the report output.
 // Takes data ([]byte) which is the raw pprof profile data.
 // Takes reportConfig (profileReportConfig) which controls the report layout.
-// Takes totalRequests (int64) which enables per-request columns
-// when positive.
+// Takes totalRequests (int64) which enables per-request columns when positive.
 //
 // Returns error when parsing or reporting fails.
 func generateProfileReport(w io.Writer, data []byte, reportConfig profileReportConfig, totalRequests int64) error {
@@ -108,8 +109,7 @@ func generateProfileReport(w io.Writer, data []byte, reportConfig profileReportC
 // Takes st (*profile.ValueType) which describes the sample type.
 // Takes entries ([]inspector.ProfileEntry) which holds the aggregated data.
 // Takes topN (int) which limits output to the top N entries.
-// Takes totalRequests (int64) which enables a per-request column
-// when positive.
+// Takes totalRequests (int64) which enables a per-request column when positive.
 func writeReportSection(w io.Writer, title string, st *profile.ValueType, entries []inspector.ProfileEntry, topN int, totalRequests int64) {
 	_, _ = fmt.Fprint(w, reportSeparator)
 	_, _ = fmt.Fprintf(w, "PROFILE:   %s\n", title)
@@ -183,8 +183,8 @@ func pct(value, total int64) float64 {
 	return float64(value) / float64(total) * reportPercentageFactor
 }
 
-// profileUnitFormatter returns a function that formats profile values
-// in the appropriate human-readable unit.
+// profileUnitFormatter returns a function that formats profile values in the appropriate
+// human-readable unit.
 //
 // Takes typeName (string) which is the pprof sample type name.
 // Takes unit (string) which is the pprof sample unit.
@@ -230,8 +230,7 @@ func profileFormatBytes(b int64) string {
 	}
 }
 
-// profileFormatDuration formats nanoseconds as a human-readable
-// duration string.
+// profileFormatDuration formats nanoseconds as a human-readable duration string.
 //
 // Takes nanoseconds (int64) which is the duration in nanoseconds.
 //
@@ -261,8 +260,8 @@ func profileFormatCount(n int64) string {
 	return strconv.FormatInt(n, 10)
 }
 
-// writeProfileStats writes a companion .stats file alongside a .pprof
-// file, recording the load conditions during capture.
+// writeProfileStats writes a companion .stats file alongside a .pprof file, recording the
+// load conditions during capture.
 //
 // Takes outputSandbox (safedisk.Sandbox) which writes the file.
 // Takes name (string) which is the stats file name.
@@ -286,8 +285,7 @@ func writeProfileStats(outputSandbox safedisk.Sandbox, name string, result *load
 	return outputSandbox.WriteFile(name, []byte(b.String()), profileFilePerms)
 }
 
-// writeLoadTestReport writes the baseline load test results section
-// to w.
+// writeLoadTestReport writes the baseline load test results section to w.
 //
 // Takes w (io.Writer) which receives the report output.
 // Takes result (*loadResult) which provides the load metrics.
@@ -312,8 +310,8 @@ func writeLoadTestReport(w io.Writer, result *loadResult) {
 	_, _ = fmt.Fprint(w, "\n\n")
 }
 
-// computeDeltaProfile subtracts the "before" profile from the "after"
-// profile, producing a delta of allocations between the snapshots.
+// computeDeltaProfile subtracts the "before" profile from the "after" profile, producing
+// a delta of allocations between the snapshots.
 //
 // Takes before ([]byte) which is the baseline profile data.
 // Takes after ([]byte) which is the post-load profile data.
@@ -345,8 +343,8 @@ func computeDeltaProfile(before, after []byte) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// writeAllocChurnSummary parses a delta allocs profile and writes a
-// summary of total and per-request allocation churn to w.
+// writeAllocChurnSummary parses a delta allocs profile and writes a summary of total and
+// per-request allocation churn to w.
 //
 // Takes w (io.Writer) which receives the summary output.
 // Takes deltaData ([]byte) which is the raw delta profile data.

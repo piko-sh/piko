@@ -26,13 +26,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// BuildStreamMethod constructs a :stream query method that returns a
-// range-over-func iterator: func(yield func(Row, error) bool).
+// BuildStreamMethod constructs a :stream query method that returns a range-over-func
+// iterator: func(yield func(Row, error) bool).
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// metadata.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query metadata.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 // Takes tracker (*ImportTracker) which collects required import paths.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
@@ -65,11 +63,10 @@ func BuildStreamMethod(
 	)
 }
 
-// BuildDynamicStreamMethod constructs a :stream query method with a params
-// struct for dynamic queries.
+// BuildDynamicStreamMethod constructs a :stream query method with a params struct for
+// dynamic queries.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// metadata.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query metadata.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which is the dynamic stream method declaration.
@@ -115,12 +112,11 @@ func BuildDynamicStreamMethod(query *querier_dto.AnalysedQuery, strategy MethodS
 // Takes queryName (string) which is the method name.
 // Takes rowTypeName (string) which is the name of the row result type.
 // Takes params (*ast.FieldList) which defines the method parameters.
-// Takes bodyStatements ([]ast.Stmt) which are the statements in the iterator
-// body.
+// Takes bodyStatements ([]ast.Stmt) which are the statements in the iterator body.
 // Takes strategy (MethodStrategy) which provides the receiver.
 //
-// Returns *ast.FuncDecl which is the method returning func(yield func(RowType,
-// error) bool).
+// Returns *ast.FuncDecl which is the method returning func(yield func(RowType, error)
+// bool).
 func buildStreamFuncDecl(
 	queryName string,
 	rowTypeName string,
@@ -176,15 +172,13 @@ func streamYieldType(rowTypeName string) *ast.FuncType {
 	)
 }
 
-// buildStreamIteratorBody constructs the body of the iterator closure:
-// Query, error yield, defer Close, for rows.Next scan+yield loop, final
-// rows.Err yield.
+// buildStreamIteratorBody constructs the body of the iterator closure: Query, error
+// yield, defer Close, for rows.Next scan+yield loop, final rows.Err yield.
 //
 // Takes rowTypeName (string) which is the name of the row result type.
 // Takes queryArguments ([]ast.Expr) which are the arguments for Query.
 // Takes scanArguments ([]ast.Expr) which are the arguments for rows.Scan.
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// metadata.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query metadata.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns []ast.Stmt which are the statements forming the iterator body.
@@ -199,8 +193,8 @@ func buildStreamIteratorBody(
 	return buildStreamIteratorBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
-// buildStreamIteratorBodyFromCall constructs the full body of a :stream method
-// from a database call expression.
+// buildStreamIteratorBodyFromCall constructs the full body of a :stream method from a
+// database call expression.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes dbCall (*ast.CallExpr) which is the database call expression.
@@ -251,13 +245,12 @@ func buildStreamIteratorBodyFromCall(
 	}
 }
 
-// buildStreamScanLoop constructs the inner for-loop body that declares a row,
-// scans into it, and yields it.
+// buildStreamScanLoop constructs the inner for-loop body that declares a row, scans into
+// it, and yields it.
 //
 // Takes rowTypeName (string) which is the name of the row result type.
 // Takes scanArguments ([]ast.Expr) which are the arguments for rows.Scan.
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// metadata.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query metadata.
 //
 // Returns []ast.Stmt which are the statements forming the scan loop body.
 func buildStreamScanLoop(rowTypeName string, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery) []ast.Stmt {
@@ -317,8 +310,8 @@ func buildStreamScanLoop(rowTypeName string, scanArguments []ast.Expr, query *qu
 	return statements
 }
 
-// buildStreamFinalErrCheck constructs the final rows.Err() check after the
-// iteration loop, yielding the error if present.
+// buildStreamFinalErrCheck constructs the final rows.Err() check after the iteration
+// loop, yielding the error if present.
 //
 // Takes rowTypeName (string) which is the name of the row result type.
 //

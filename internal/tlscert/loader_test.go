@@ -19,6 +19,7 @@
 package tlscert
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -29,7 +30,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
-	"context"
 	"testing"
 	"time"
 

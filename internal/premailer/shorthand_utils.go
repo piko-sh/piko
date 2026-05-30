@@ -38,16 +38,16 @@ type cssValueSplitState struct {
 	inParens int
 }
 
-// expandListStyleShorthand splits a CSS list-style shorthand value into its
-// separate properties.
+// expandListStyleShorthand splits a CSS list-style shorthand value into its separate
+// properties.
 //
-// The shorthand may include list-style-type, list-style-position, and
-// list-style-image in any order. All three are optional.
+// The shorthand may include list-style-type, list-style-position, and list-style-image in
+// any order. All three are optional.
 //
 // Takes value (string) which is the shorthand value to expand.
 //
-// Returns map[string]string which holds the individual properties, or nil if
-// no valid properties are found.
+// Returns map[string]string which holds the individual properties, or nil if no valid
+// properties are found.
 func expandListStyleShorthand(value string) map[string]string {
 	parts := splitSpaceDelimited(value)
 	if len(parts) == 0 {
@@ -82,14 +82,14 @@ func expandListStyleShorthand(value string) map[string]string {
 	return result
 }
 
-// expandOverflowShorthand expands an overflow shorthand into separate
-// properties. One value sets both axes; two values set x and y in that order.
+// expandOverflowShorthand expands an overflow shorthand into separate properties. One
+// value sets both axes; two values set x and y in that order.
 //
-// Takes value (string) which is the overflow shorthand, such as "hidden" or
-// "scroll auto".
+// Takes value (string) which is the overflow shorthand, such as "hidden" or "scroll
+// auto".
 //
-// Returns map[string]string which holds overflow-x and overflow-y properties,
-// or nil when the input is empty or has more than two values.
+// Returns map[string]string which holds overflow-x and overflow-y properties, or nil when
+// the input is empty or has more than two values.
 func expandOverflowShorthand(value string) map[string]string {
 	values := splitSpaceDelimited(value)
 	if len(values) == 0 {
@@ -113,17 +113,16 @@ func expandOverflowShorthand(value string) map[string]string {
 	return nil
 }
 
-// expandInsetShorthand expands an inset shorthand value into individual
-// top, right, bottom, and left positioning properties.
+// expandInsetShorthand expands an inset shorthand value into individual top, right,
+// bottom, and left positioning properties.
 //
-// This is the logical property equivalent of setting all four positioning
-// properties at once. Follows the same 1-4 value pattern as margin and
-// padding.
+// This is the logical property equivalent of setting all four positioning properties at
+// once. Follows the same 1-4 value pattern as margin and padding.
 //
 // Takes value (string) which contains space-delimited inset values.
 //
-// Returns map[string]string which maps direction names to their values,
-// or nil when the input is empty or has more than four values.
+// Returns map[string]string which maps direction names to their values, or nil when the
+// input is empty or has more than four values.
 func expandInsetShorthand(value string) map[string]string {
 	fv, ok := expandFourValues(value)
 	if !ok {
@@ -139,16 +138,16 @@ func expandInsetShorthand(value string) map[string]string {
 	}
 }
 
-// expandTextDecorationShorthand expands a text-decoration shorthand value into
-// its longhand properties.
+// expandTextDecorationShorthand expands a text-decoration shorthand value into its
+// longhand properties.
 //
-// The syntax is: <line> || <style> || <colour> || <thickness>. All values are
-// optional and can appear in any order. For example: "underline solid blue 2px".
+// The syntax is: <line> || <style> || <colour> || <thickness>. All values are optional
+// and can appear in any order. For example: "underline solid blue 2px".
 //
 // Takes value (string) which is the shorthand text-decoration value to expand.
 //
-// Returns map[string]string which contains the expanded longhand properties,
-// or nil when the value is empty or contains no recognised properties.
+// Returns map[string]string which contains the expanded longhand properties, or nil when
+// the value is empty or contains no recognised properties.
 func expandTextDecorationShorthand(value string) map[string]string {
 	parts := splitSpaceDelimited(value)
 	if len(parts) == 0 {
@@ -189,8 +188,8 @@ func expandTextDecorationShorthand(value string) map[string]string {
 	return result
 }
 
-// splitCommaOutsideParens splits a string on commas that are not
-// inside parentheses or quotes.
+// splitCommaOutsideParens splits a string on commas that are not inside parentheses or
+// quotes.
 //
 // Takes s (string) which is the CSS value string to split.
 //
@@ -223,13 +222,12 @@ func splitCommaOutsideParens(s string) []string {
 	return parts
 }
 
-// splitSpaceDelimited splits a CSS value by spaces while keeping quoted
-// strings and function calls together.
+// splitSpaceDelimited splits a CSS value by spaces while keeping quoted strings and
+// function calls together.
 //
 // Takes value (string) which is the CSS property value to split.
 //
-// Returns []string which contains the split parts with quotes and brackets
-// kept whole.
+// Returns []string which contains the split parts with quotes and brackets kept whole.
 func splitSpaceDelimited(value string) []string {
 	state := &cssValueSplitState{}
 	value = strings.TrimSpace(value)
@@ -260,9 +258,8 @@ func splitSpaceDelimited(value string) []string {
 	return state.parts
 }
 
-// handleWhitespaceInSplit processes a whitespace character during CSS value
-// splitting. It keeps whitespace inside quotes or brackets, or uses it to
-// separate values.
+// handleWhitespaceInSplit processes a whitespace character during CSS value splitting. It
+// keeps whitespace inside quotes or brackets, or uses it to separate values.
 //
 // Takes char (byte) which is the whitespace character to process.
 // Takes state (*cssValueSplitState) which holds the current parsing state.
@@ -282,8 +279,8 @@ func handleWhitespaceInSplit(char byte, state *cssValueSplitState) {
 //
 // Takes value (string) which is the CSS property value to check.
 //
-// Returns bool which is true if the value matches a known list-style-type
-// keyword, or false otherwise.
+// Returns bool which is true if the value matches a known list-style-type keyword, or
+// false otherwise.
 func isListStyleType(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 
@@ -304,8 +301,7 @@ func isListStyleType(value string) bool {
 	return slices.Contains(types, value)
 }
 
-// isListStylePosition checks whether a value is a valid CSS list-style-position
-// keyword.
+// isListStylePosition checks whether a value is a valid CSS list-style-position keyword.
 //
 // Takes value (string) which is the CSS value to check.
 //
@@ -315,26 +311,25 @@ func isListStylePosition(value string) bool {
 	return value == "inside" || value == "outside"
 }
 
-// isTextDecorationLine checks whether a value is a valid text-decoration-line
-// keyword.
+// isTextDecorationLine checks whether a value is a valid text-decoration-line keyword.
 //
 // Takes value (string) which is the CSS value to check.
 //
-// Returns bool which is true if the value is a valid keyword such as none,
-// underline, overline, line-through, or blink.
+// Returns bool which is true if the value is a valid keyword such as none, underline,
+// overline, line-through, or blink.
 func isTextDecorationLine(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	lines := []string{"none", "underline", "overline", "line-through", "blink"}
 	return slices.Contains(lines, value)
 }
 
-// isTextDecorationStyle checks whether a value is a valid text-decoration-style
-// CSS keyword.
+// isTextDecorationStyle checks whether a value is a valid text-decoration-style CSS
+// keyword.
 //
 // Takes value (string) which is the CSS value to check.
 //
-// Returns bool which is true if the value matches a valid style keyword (solid,
-// double, dotted, dashed, or wavy).
+// Returns bool which is true if the value matches a valid style keyword (solid, double,
+// dotted, dashed, or wavy).
 func isTextDecorationStyle(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	styles := []string{"solid", "double", "dotted", "dashed", "wavy"}
@@ -346,8 +341,8 @@ func isTextDecorationStyle(value string) bool {
 //
 // Takes value (string) which is the CSS property value to check.
 //
-// Returns bool which is true if the value is auto, from-font, or a length
-// unit such as px, em, rem, %, or 0.
+// Returns bool which is true if the value is auto, from-font, or a length unit such as
+// px, em, rem, %, or 0.
 func isTextDecorationThickness(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	if value == "auto" || value == "from-font" {

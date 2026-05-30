@@ -27,23 +27,25 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// errMessageProviderInfoNotAvailable is the error message returned when the
-// provider inspector is not configured.
-const errMessageProviderInfoNotAvailable = "provider info not available"
+const (
+	// errMessageProviderInfoNotAvailable is the error message returned when the provider
+	// inspector is not configured.
+	errMessageProviderInfoNotAvailable = "provider info not available"
+)
 
 // ProviderInfoService implements the gRPC ProviderInfoService interface.
 type ProviderInfoService struct {
 	pb.UnimplementedProviderInfoServiceServer
 
-	// inspector provides access to provider information across hexagons.
-	// May be nil if no resource descriptors are registered.
+	// inspector provides access to provider information across hexagons. May be nil if no
+	// resource descriptors are registered.
 	inspector monitoring_domain.ProviderInfoInspector
 }
 
 // NewProviderInfoService creates a new ProviderInfoService.
 //
-// Takes inspector (monitoring_domain.ProviderInfoInspector) which provides
-// access to provider information. May be nil for graceful degradation.
+// Takes inspector (monitoring_domain.ProviderInfoInspector) which provides access to
+// provider information. May be nil for graceful degradation.
 //
 // Returns *ProviderInfoService which is ready for gRPC registration.
 func NewProviderInfoService(inspector monitoring_domain.ProviderInfoInspector) *ProviderInfoService {
@@ -68,11 +70,11 @@ func (s *ProviderInfoService) ListResourceTypes(ctx context.Context, _ *pb.ListR
 	}, nil
 }
 
-// ListProviders returns providers for a specific resource type with dynamic
-// column definitions.
+// ListProviders returns providers for a specific resource type with dynamic column
+// definitions.
 //
-// Takes request (*pb.ListProvidersRequest) which specifies the resource type to
-// list providers for.
+// Takes request (*pb.ListProvidersRequest) which specifies the resource type to list
+// providers for.
 //
 // Returns *pb.ListProvidersResponse which contains columns and provider rows.
 // Returns error when the resource type is unknown.
@@ -112,11 +114,10 @@ func (s *ProviderInfoService) ListProviders(ctx context.Context, request *pb.Lis
 
 // DescribeProvider returns detailed information for a single provider.
 //
-// Takes request (*pb.DescribeProviderRequest) which specifies the resource type
-// and provider name to describe.
+// Takes request (*pb.DescribeProviderRequest) which specifies the resource type and
+// provider name to describe.
 //
-// Returns *pb.DescribeProviderResponse which contains structured detail
-// sections.
+// Returns *pb.DescribeProviderResponse which contains structured detail sections.
 // Returns error when the resource type or provider is not found.
 func (s *ProviderInfoService) DescribeProvider(ctx context.Context, request *pb.DescribeProviderRequest) (*pb.DescribeProviderResponse, error) {
 	if s.inspector == nil {
@@ -152,13 +153,12 @@ func (s *ProviderInfoService) DescribeProvider(ctx context.Context, request *pb.
 
 // ListSubResources returns sub-resources for a named provider.
 //
-// Takes request (*pb.ListSubResourcesRequest) which specifies the resource type
-// and provider name to query.
+// Takes request (*pb.ListSubResourcesRequest) which specifies the resource type and
+// provider name to query.
 //
-// Returns *pb.ListSubResourcesResponse which contains columns, rows, and
-// the sub-resource name.
-// Returns error when the resource type or provider does not support
-// sub-resources.
+// Returns *pb.ListSubResourcesResponse which contains columns, rows, and the sub-resource
+// name.
+// Returns error when the resource type or provider does not support sub-resources.
 func (s *ProviderInfoService) ListSubResources(ctx context.Context, request *pb.ListSubResourcesRequest) (*pb.ListSubResourcesResponse, error) {
 	if s.inspector == nil {
 		return nil, errors.New(errMessageProviderInfoNotAvailable)
@@ -196,8 +196,8 @@ func (s *ProviderInfoService) ListSubResources(ctx context.Context, request *pb.
 
 // DescribeResourceType returns a service-level overview for a resource type.
 //
-// Takes request (*pb.DescribeResourceTypeRequest) which specifies the resource
-// type to describe.
+// Takes request (*pb.DescribeResourceTypeRequest) which specifies the resource type to
+// describe.
 //
 // Returns *pb.DescribeProviderResponse which contains the overview sections.
 // Returns error when the resource type does not support type-level describe.

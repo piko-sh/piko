@@ -28,11 +28,13 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// ModuleAliasPrefix is the prefix used to reference the current module in
-// import paths. When a developer writes `@/partials/card.pk`, it expands to
-// `<module-name>/partials/card.pk` where <module-name> is determined from the
-// go.mod of the file containing the import.
-const ModuleAliasPrefix = "@/"
+const (
+	// ModuleAliasPrefix is the prefix used to reference the current module in import paths.
+	// When a developer writes `@/partials/card.pk`, it expands to
+	// `<module-name>/partials/card.pk` where <module-name> is determined from the go.mod of
+	// the file containing the import.
+	ModuleAliasPrefix = "@/"
+)
 
 var (
 	// moduleNameCache holds the cached directory-to-module-name mappings.
@@ -42,13 +44,12 @@ var (
 	moduleNameCacheMutex sync.RWMutex
 )
 
-// ExpandModuleAlias replaces the @ prefix with the module name that owns the
-// containing file. This enables module-relative imports that are concise and
-// portable.
+// ExpandModuleAlias replaces the @ prefix with the module name that owns the containing
+// file. This enables module-relative imports that are concise and portable.
 //
-// The @ alias is resolved relative to the file that contains the import, not
-// the project being built. This means that when Module A imports from Module B,
-// and Module B's files use @, the @ resolves to Module B's module name.
+// The @ alias is resolved relative to the file that contains the import, not the project
+// being built. This means that when Module A imports from Module B, and Module B's files
+// use @, the @ resolves to Module B's module name.
 //
 // If the import path does not start with @/, it is returned unchanged.
 //
@@ -94,11 +95,11 @@ func ExpandModuleAlias(importPath string, containingFilePath string) (string, er
 
 // findModuleNameForPath looks up the module name for a given file path.
 //
-// It searches upward from the file's folder to find the nearest go.mod file
-// and reads the module name from it. Results are stored in a cache for speed.
+// It searches upward from the file's folder to find the nearest go.mod file and reads the
+// module name from it. Results are stored in a cache for speed.
 //
-// This works for both local project files and external module files in
-// GOMODCACHE, as cached modules keep their go.mod files.
+// This works for both local project files and external module files in GOMODCACHE, as
+// cached modules keep their go.mod files.
 //
 // Takes filePath (string) which is the path to a Go source file.
 //

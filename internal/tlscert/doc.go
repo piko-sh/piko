@@ -16,10 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package tlscert provides TLS certificate management shared by
-// the daemon HTTP server and the monitoring gRPC server.
+// Package tlscert provides TLS certificate management shared by the daemon HTTP server
+// and the monitoring gRPC server.
 //
-// It handles loading X.509 key pairs, watching for file changes
-// to hot-reload certificates, and loading PEM CA bundles for
-// mTLS client verification.
+// It handles loading X.509 key pairs, watching for file changes to hot-reload
+// certificates, and loading PEM CA bundles for mTLS client verification.
 package tlscert

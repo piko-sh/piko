@@ -26,11 +26,10 @@ import (
 	"strings"
 )
 
-// SetRuntimeRates configures the Go runtime block, mutex, and memory
-// profiling rates.
+// SetRuntimeRates configures the Go runtime block, mutex, and memory profiling rates.
 //
-// Takes config (Config) which provides BlockProfileRate, MutexProfileFraction,
-// and MemProfileRate.
+// Takes config (Config) which provides BlockProfileRate, MutexProfileFraction, and
+// MemProfileRate.
 func SetRuntimeRates(config Config) {
 	runtime.SetBlockProfileRate(config.BlockProfileRate)
 	runtime.SetMutexProfileFraction(config.MutexProfileFraction)
@@ -46,20 +45,18 @@ func GoroutineCount() int {
 	return runtime.NumGoroutine()
 }
 
-// CheckBuildFlags detects whether the binary was built with optimisations
-// disabled.
+// CheckBuildFlags detects whether the binary was built with optimisations disabled.
 //
 // It checks two signals:
 //
 //  1. debug.ReadBuildInfo() for explicit -gcflags containing -N or -l.
-//  2. Whether a debugger (e.g. Delve) is attached as a parent process,
-//     since debuggers typically build with -gcflags="all=-N -l".
+//  2. Whether a debugger (e.g. Delve) is attached as a parent process, since debuggers
+//     typically build with -gcflags="all=-N -l".
 //
-// Profiling such a binary produces results that do not reflect production
-// behaviour.
+// Profiling such a binary produces results that do not reflect production behaviour.
 //
-// Returns string which contains a warning message if optimisations appear
-// disabled, or an empty string if the build is suitable for profiling.
+// Returns string which contains a warning message if optimisations appear disabled, or an
+// empty string if the build is suitable for profiling.
 func CheckBuildFlags() string {
 	if hasBuildInfoFlags() {
 		return "Binary built with optimisations disabled (-gcflags contains -l/-N). " +
@@ -76,11 +73,10 @@ func CheckBuildFlags() string {
 	return ""
 }
 
-// hasBuildInfoFlags checks debug.ReadBuildInfo for -gcflags containing
-// -N or -l, which indicate disabled optimisations.
+// hasBuildInfoFlags checks debug.ReadBuildInfo for -gcflags containing -N or -l, which
+// indicate disabled optimisations.
 //
-// Returns bool which is true if the build flags suggest optimisations
-// are disabled.
+// Returns bool which is true if the build flags suggest optimisations are disabled.
 func hasBuildInfoFlags() bool {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -94,8 +90,7 @@ func hasBuildInfoFlags() bool {
 	return false
 }
 
-// isDebuggerAttached checks whether the parent process is a known debugger
-// such as Delve.
+// isDebuggerAttached checks whether the parent process is a known debugger such as Delve.
 //
 // Returns bool which is true if a debugger appears to be attached.
 func isDebuggerAttached() bool {

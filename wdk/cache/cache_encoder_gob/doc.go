@@ -18,11 +18,10 @@
 
 // Package cache_encoder_gob provides Gob-based encoding for cache values.
 //
-// Gob is Go's native binary encoding format. It outperforms JSON for complex Go
-// types, supports unexported fields (when registered with
-// [encoding/gob.Register]), but is not human-readable and only works between Go
-// processes.
+// Gob is Go's native binary encoding format. It outperforms JSON for complex Go types,
+// supports unexported fields (when registered with [encoding/gob.Register]), but is not
+// human-readable and only works between Go processes.
 //
-// Implements [cache.EncoderPort] and works with any cache provider that
-// supports encoding registries.
+// Implements [cache.EncoderPort] and works with any cache provider that supports encoding
+// registries.
 package cache_encoder_gob

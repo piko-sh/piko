@@ -22,9 +22,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// SilentDiagnosticOutput implements DiagnosticOutputPort for cases where
-// diagnostics are sent by other means, such as LSP mode where writing to
-// stderr would break the JSON-RPC stream.
+// SilentDiagnosticOutput implements DiagnosticOutputPort for cases where diagnostics are
+// sent by other means, such as LSP mode where writing to stderr would break the JSON-RPC
+// stream.
 type SilentDiagnosticOutput struct{}
 
 // NewSilentDiagnosticOutput creates a new silent diagnostic output adapter.
@@ -34,9 +34,8 @@ func NewSilentDiagnosticOutput() *SilentDiagnosticOutput {
 	return &SilentDiagnosticOutput{}
 }
 
-// OutputDiagnostics does nothing by design.
-// Diagnostics are sent through the LSP protocol's publishDiagnostics message
-// in the LSP workspace layer instead.
+// OutputDiagnostics does nothing by design. Diagnostics are sent through the LSP
+// protocol's publishDiagnostics message in the LSP workspace layer instead.
 func (*SilentDiagnosticOutput) OutputDiagnostics(
 	_ []*ast_domain.Diagnostic,
 	_ map[string][]byte,

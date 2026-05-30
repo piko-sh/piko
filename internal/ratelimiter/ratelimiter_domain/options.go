@@ -26,8 +26,8 @@ import (
 // Option configures a Limiter.
 type Option func(*Limiter)
 
-// WithClock sets the clock used for time operations, defaulting to
-// clock.RealClock() if not set. This is primarily useful for testing.
+// WithClock sets the clock used for time operations, defaulting to clock.RealClock() if
+// not set. This is primarily useful for testing.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -38,11 +38,10 @@ func WithClock(c clock.Clock) Option {
 	}
 }
 
-// WithFailPolicy sets the behaviour when the backing store is unavailable.
-// The default is FailOpen, which allows requests when the store is unreachable.
+// WithFailPolicy sets the behaviour when the backing store is unavailable. The default is
+// FailOpen, which allows requests when the store is unreachable.
 //
-// Takes policy (ratelimiter_dto.FailPolicy) which specifies the failure
-// behaviour.
+// Takes policy (ratelimiter_dto.FailPolicy) which specifies the failure behaviour.
 //
 // Returns Option to apply to the limiter.
 func WithFailPolicy(policy ratelimiter_dto.FailPolicy) Option {
@@ -51,8 +50,8 @@ func WithFailPolicy(policy ratelimiter_dto.FailPolicy) Option {
 	}
 }
 
-// WithKeyPrefix sets a prefix prepended to all rate limit keys. This prevents
-// key collisions when multiple limiters share the same backing store.
+// WithKeyPrefix sets a prefix prepended to all rate limit keys. This prevents key
+// collisions when multiple limiters share the same backing store.
 //
 // Takes prefix (string) which is prepended to all keys with a colon separator.
 //
@@ -63,9 +62,8 @@ func WithKeyPrefix(prefix string) Option {
 	}
 }
 
-// WithTokenStoreName sets the human-readable name of the token bucket store
-// for monitoring inspection. This name appears in CLI output and gRPC
-// responses.
+// WithTokenStoreName sets the human-readable name of the token bucket store for
+// monitoring inspection. This name appears in CLI output and gRPC responses.
 //
 // Takes name (string) such as "cache", "inmemory", or "noop".
 //
@@ -76,9 +74,8 @@ func WithTokenStoreName(name string) Option {
 	}
 }
 
-// WithCounterStoreName sets the human-readable name of the counter store
-// for monitoring inspection. This name appears in CLI output and gRPC
-// responses.
+// WithCounterStoreName sets the human-readable name of the counter store for monitoring
+// inspection. This name appears in CLI output and gRPC responses.
 //
 // Takes name (string) such as "cache" or "noop".
 //

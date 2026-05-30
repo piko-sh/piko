@@ -28,12 +28,12 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// extractFilePerms is the file permission used when writing
-// extracted Go source files.
-const extractFilePerms = 0o644
+const (
+	// extractFilePerms is the file permission used when writing extracted Go source files.
+	extractFilePerms = 0o644
+)
 
-// extractGenerateFlags holds the parsed flags for the extract
-// generate subcommand.
+// extractGenerateFlags holds the parsed flags for the extract generate subcommand.
 type extractGenerateFlags struct {
 	// manifest is the path to the YAML manifest file.
 	manifest string
@@ -48,16 +48,15 @@ type extractGenerateFlags struct {
 	dryRun bool
 }
 
-// extractEmitContext bundles the parameters needed by the
-// package file emission helpers, reducing argument counts on
-// the individual functions.
+// extractEmitContext bundles the parameters needed by the package file emission helpers,
+// reducing argument counts on the individual functions.
 type extractEmitContext struct {
-	// genericConfigs maps import paths to their package-level
-	// extraction configuration for generic handling.
+	// genericConfigs maps import paths to their package-level extraction configuration for
+	// generic handling.
 	genericConfigs map[string]driver_symbols_extract.PackageConfig
 
-	// manifest holds the loaded extraction manifest describing
-	// which packages to extract and where to write output.
+	// manifest holds the loaded extraction manifest describing which packages to extract and
+	// where to write output.
 	manifest *driver_symbols_extract.Manifest
 
 	// sandbox scopes file writes to the output directory.
@@ -73,12 +72,12 @@ type extractEmitContext struct {
 	flags extractGenerateFlags
 }
 
-// runExtractGenerate runs the extract generate subcommand, which reads a
-// piko-symbols manifest and produces the reflect-based Go symbol files that
-// the interpreter uses to resolve external package imports.
+// runExtractGenerate runs the extract generate subcommand, which reads a piko-symbols
+// manifest and produces the reflect-based Go symbol files that the interpreter uses to
+// resolve external package imports.
 //
-// Takes arguments ([]string) which contains the subcommand arguments (without
-// the leading "generate").
+// Takes arguments ([]string) which contains the subcommand arguments (without the leading
+// "generate").
 // Takes stdout (io.Writer) which receives normal progress messages.
 // Takes stderr (io.Writer) which receives error and diagnostic messages.
 //
@@ -146,8 +145,7 @@ func runExtractGenerate(arguments []string, stdout, stderr io.Writer) int {
 // Takes stderr (io.Writer) which receives error and usage output.
 //
 // Returns extractGenerateFlags which holds the parsed flag values.
-// Returns parseStatus which discriminates success, help, and error
-// outcomes.
+// Returns parseStatus which discriminates success, help, and error outcomes.
 func parseExtractGenerateArgs(arguments []string, stderr io.Writer) (extractGenerateFlags, parseStatus) {
 	flags := extractGenerateFlags{
 		manifest: "piko-symbols.yaml",
@@ -199,11 +197,11 @@ func parseExtractGenerateArgs(arguments []string, stderr io.Writer) (extractGene
 
 // loadAndApplyManifest loads the extraction manifest and applies flag overrides.
 //
-// Takes flags (extractGenerateFlags) which holds the parsed command-line flags
-// including optional output and package name overrides.
+// Takes flags (extractGenerateFlags) which holds the parsed command-line flags including
+// optional output and package name overrides.
 //
-// Returns *driver_symbols_extract.Manifest which is the loaded manifest with
-// overrides applied.
+// Returns *driver_symbols_extract.Manifest which is the loaded manifest with overrides
+// applied.
 // Returns error when the manifest cannot be loaded.
 func loadAndApplyManifest(flags extractGenerateFlags) (*driver_symbols_extract.Manifest, error) {
 	manifest, err := driver_symbols_extract.LoadManifest(flags.manifest)
@@ -220,13 +218,13 @@ func loadAndApplyManifest(flags extractGenerateFlags) (*driver_symbols_extract.M
 	return manifest, nil
 }
 
-// emitPackageFiles generates and writes Go source files for each extracted
-// package, including the types loader when generics are present.
+// emitPackageFiles generates and writes Go source files for each extracted package,
+// including the types loader when generics are present.
 //
-// Takes packages ([]driver_symbols_extract.ExtractedPackage) which are the
-// extracted packages to generate files for.
-// Takes ec (extractEmitContext) which bundles manifest, configs, flags, sandbox,
-// and output writers.
+// Takes packages ([]driver_symbols_extract.ExtractedPackage) which are the extracted
+// packages to generate files for.
+// Takes ec (extractEmitContext) which bundles manifest, configs, flags, sandbox, and
+// output writers.
 //
 // Returns error when any generation or write step fails.
 func emitPackageFiles(
@@ -257,16 +255,14 @@ func emitPackageFiles(
 	return nil
 }
 
-// writeRegisterFile emits gen_register.go, which declares the
-// package-level Symbols map that every other gen_*.go file populates
-// in its init(). Without this file the generated package fails to
-// compile.
+// writeRegisterFile emits gen_register.go, which declares the package-level Symbols map
+// that every other gen_*.go file populates in its init(). Without this file the generated
+// package fails to compile.
 //
-// Takes manifest (*driver_symbols_extract.Manifest) which supplies
-// the destination package name and output directory.
+// Takes manifest (*driver_symbols_extract.Manifest) which supplies the destination
+// package name and output directory.
 // Takes flags (extractGenerateFlags) which indicates dry-run mode.
-// Takes sandbox (safedisk.Sandbox) which scopes the file write to
-// the output directory.
+// Takes sandbox (safedisk.Sandbox) which scopes the file write to the output directory.
 // Takes stdout (io.Writer) which receives progress messages.
 // Takes stderr (io.Writer) which receives error messages.
 //
@@ -291,13 +287,12 @@ func writeRegisterFile(manifest *driver_symbols_extract.Manifest, flags extractG
 	return nil
 }
 
-// emitSinglePackage generates and writes (or dry-run prints) the source file
-// for one extracted package.
+// emitSinglePackage generates and writes (or dry-run prints) the source file for one
+// extracted package.
 //
-// Takes pkg (driver_symbols_extract.ExtractedPackage) which is the package to
-// process.
-// Takes ec (extractEmitContext) which bundles manifest, configs, flags, sandbox,
-// and output writers.
+// Takes pkg (driver_symbols_extract.ExtractedPackage) which is the package to process.
+// Takes ec (extractEmitContext) which bundles manifest, configs, flags, sandbox, and
+// output writers.
 //
 // Returns error when generation or writing fails.
 func emitSinglePackage(
@@ -333,13 +328,13 @@ func emitSinglePackage(
 	return nil
 }
 
-// collectAllImportPaths returns the import paths of all extracted packages.
-// These are loaded via go/importer at init time to provide complete
-// types.Package objects (including untyped constants, type aliases, and
-// interface embeddings) that cannot be synthesised from reflect values alone.
+// collectAllImportPaths returns the import paths of all extracted packages. These are
+// loaded via go/importer at init time to provide complete types.Package objects
+// (including untyped constants, type aliases, and interface embeddings) that cannot be
+// synthesised from reflect values alone.
 //
-// Takes packages ([]driver_symbols_extract.ExtractedPackage) which are the
-// extracted packages to collect paths from.
+// Takes packages ([]driver_symbols_extract.ExtractedPackage) which are the extracted
+// packages to collect paths from.
 //
 // Returns []string which lists all package import paths.
 func collectAllImportPaths(packages []driver_symbols_extract.ExtractedPackage) []string {
@@ -350,11 +345,10 @@ func collectAllImportPaths(packages []driver_symbols_extract.ExtractedPackage) [
 	return paths
 }
 
-// printExtractGenerateSummary prints the final status line for the extract
-// generate command.
+// printExtractGenerateSummary prints the final status line for the extract generate
+// command.
 //
-// Takes flags (extractGenerateFlags) which determines whether this was a
-// dry run.
+// Takes flags (extractGenerateFlags) which determines whether this was a dry run.
 // Takes stdout (io.Writer) which receives the summary message.
 func printExtractGenerateSummary(flags extractGenerateFlags, stdout io.Writer) {
 	if flags.dryRun {
@@ -364,24 +358,19 @@ func printExtractGenerateSummary(flags extractGenerateFlags, stdout io.Writer) {
 	}
 }
 
-// writeTypesLoader generates and writes the types loader Go
-// source files. These provide pre-built types.Package objects
-// for all registered packages, ensuring the type checker has
-// complete information (including untyped constants, type
-// aliases, and interface embeddings).
+// writeTypesLoader generates and writes the types loader Go source files. These provide
+// pre-built types.Package objects for all registered packages, ensuring the type checker
+// has complete information (including untyped constants, type aliases, and interface
+// embeddings).
 //
-// Takes genericPaths ([]string) which lists the import paths
-// of packages to load.
-// Takes manifest (*driver_symbols_extract.Manifest) which
-// provides the output directory and package name.
-// Takes flags (extractGenerateFlags) which holds the parsed
-// command-line flags.
-// Takes sandbox (safedisk.Sandbox) which scopes file writes
-// to the output directory.
+// Takes genericPaths ([]string) which lists the import paths of packages to load.
+// Takes manifest (*driver_symbols_extract.Manifest) which provides the output directory
+// and package name.
+// Takes flags (extractGenerateFlags) which holds the parsed command-line flags.
+// Takes sandbox (safedisk.Sandbox) which scopes file writes to the output directory.
 // Takes stdout (io.Writer) which receives progress messages.
 //
-// Returns error when generation or writing of the loader
-// files fails.
+// Returns error when generation or writing of the loader files fails.
 func writeTypesLoader(genericPaths []string, manifest *driver_symbols_extract.Manifest, flags extractGenerateFlags, sandbox safedisk.Sandbox, stdout, _ io.Writer) error {
 	source, err := driver_symbols_extract.GenerateTypesLoaderFile(genericPaths, manifest.Package)
 	if err != nil {
@@ -415,16 +404,14 @@ func writeTypesLoader(genericPaths []string, manifest *driver_symbols_extract.Ma
 	return nil
 }
 
-// writeTypesDescriptor generates and writes the types descriptor JSON file.
-// This file lists all extracted import paths so that piko bytecode can load
-// the corresponding types.Package objects at compile time.
+// writeTypesDescriptor generates and writes the types descriptor JSON file. This file
+// lists all extracted import paths so that piko bytecode can load the corresponding
+// types.Package objects at compile time.
 //
 // Takes importPaths ([]string) which lists the import paths to include.
-// Takes manifest (*driver_symbols_extract.Manifest) which provides the output
-// directory.
+// Takes manifest (*driver_symbols_extract.Manifest) which provides the output directory.
 // Takes flags (extractGenerateFlags) which holds the parsed command-line flags.
-// Takes sandbox (safedisk.Sandbox) which scopes file writes to the output
-// directory.
+// Takes sandbox (safedisk.Sandbox) which scopes file writes to the output directory.
 // Takes stdout (io.Writer) which receives progress messages.
 //
 // Returns error when generation or writing of the descriptor fails.
@@ -450,8 +437,7 @@ func writeTypesDescriptor(importPaths []string, manifest *driver_symbols_extract
 	return nil
 }
 
-// extractGenerateUsage writes the usage information for the extract generate
-// subcommand.
+// extractGenerateUsage writes the usage information for the extract generate subcommand.
 //
 // Takes w (io.Writer) which receives the usage text.
 func extractGenerateUsage(w io.Writer) {

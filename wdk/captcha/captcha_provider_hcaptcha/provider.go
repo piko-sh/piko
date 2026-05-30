@@ -40,18 +40,17 @@ const (
 	// httpTimeout is the timeout for HTTP requests to the hCaptcha API.
 	httpTimeout = 10 * time.Second
 
-	// maxResponseBodySize is the maximum number of bytes read from the hCaptcha
-	// verification response. Prevents unbounded memory allocation from a
-	// misbehaving upstream.
+	// maxResponseBodySize is the maximum number of bytes read from the hCaptcha verification
+	// response. Prevents unbounded memory allocation from a misbehaving upstream.
 	maxResponseBodySize = 64 * 1024
 )
 
-// hcaptchaVerifyResult represents the JSON response from the hCaptcha siteverify
-// API endpoint.
+// hcaptchaVerifyResult represents the JSON response from the hCaptcha siteverify API
+// endpoint.
 type hcaptchaVerifyResult struct {
-	// Score is the Enterprise risk score where 0.0 = no risk and 1.0 =
-	// confirmed threat; nil distinguishes "not present" from zero, and
-	// the value is inverted compared to the normalised convention.
+	// Score is the Enterprise risk score where 0.0 = no risk and 1.0 = confirmed threat; nil
+	// distinguishes "not present" from zero, and the value is inverted compared to the
+	// normalised convention.
 	Score *float64 `json:"score"`
 
 	// ChallengeTimestamp is the ISO 8601 timestamp of the challenge.
@@ -70,8 +69,7 @@ type hcaptchaVerifyResult struct {
 	Success bool `json:"success"`
 }
 
-// provider implements captcha_domain.CaptchaProvider using hCaptcha for bot
-// detection.
+// provider implements captcha_domain.CaptchaProvider using hCaptcha for bot detection.
 type provider struct {
 	// httpClient is the HTTP client used for calls to the hCaptcha API.
 	httpClient *http.Client
@@ -80,7 +78,9 @@ type provider struct {
 	config Config
 }
 
-var _ captcha_domain.CaptchaProvider = (*provider)(nil)
+var (
+	_ captcha_domain.CaptchaProvider = (*provider)(nil)
+)
 
 // NewProvider creates a new hCaptcha captcha provider.
 //
@@ -104,8 +104,7 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 
 // Type returns the provider type identifier.
 //
-// Returns captcha_dto.ProviderType which identifies this as an hCaptcha
-// provider.
+// Returns captcha_dto.ProviderType which identifies this as an hCaptcha provider.
 func (*provider) Type() captcha_dto.ProviderType {
 	return captcha_dto.ProviderTypeHCaptcha
 }
@@ -126,11 +125,11 @@ func (*provider) ScriptURL() string {
 
 // Verify verifies an hCaptcha token by calling the hCaptcha siteverify API.
 //
-// The method POSTs the token, secret key, client IP, and site key to the
-// hCaptcha verification endpoint and parses the JSON response.
+// The method POSTs the token, secret key, client IP, and site key to the hCaptcha
+// verification endpoint and parses the JSON response.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the captcha token,
-// client IP, and action name.
+// Takes request (*captcha_dto.VerifyRequest) which contains the captcha token, client IP,
+// and action name.
 //
 // Returns *captcha_dto.VerifyResponse which contains the verification result.
 // Returns error when the HTTP request fails or the response cannot be parsed.
@@ -159,8 +158,8 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	}, nil
 }
 
-// parseChallengeTimestamp parses an RFC 3339 timestamp string, returning the
-// zero time if the input is empty or malformed.
+// parseChallengeTimestamp parses an RFC 3339 timestamp string, returning the zero time if
+// the input is empty or malformed.
 //
 // Takes raw (string) which is the RFC 3339 timestamp to parse.
 //
@@ -173,11 +172,11 @@ func parseChallengeTimestamp(raw string) time.Time {
 	return t
 }
 
-// RenderRequirements returns the frontend rendering configuration for the
-// hCaptcha widget.
+// RenderRequirements returns the frontend rendering configuration for the hCaptcha
+// widget.
 //
-// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP
-// domains, container HTML, and init script needed to render the widget.
+// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP domains,
+// container HTML, and init script needed to render the widget.
 func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	return &captcha_dto.RenderRequirements{
 		InitScript:        scripts.InitScript,
@@ -189,23 +188,23 @@ func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	}
 }
 
-// HealthCheck returns nil because hCaptcha does not provide a dedicated health
-// check endpoint. Connectivity is verified implicitly during token verification.
+// HealthCheck returns nil because hCaptcha does not provide a dedicated health check
+// endpoint. Connectivity is verified implicitly during token verification.
 //
 // Returns error which is always nil for this provider.
 func (*provider) HealthCheck(_ context.Context) error {
 	return nil
 }
 
-// callVerifyAPI sends the verification request to the hCaptcha API and parses
-// the response.
+// callVerifyAPI sends the verification request to the hCaptcha API and parses the
+// response.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the token, client
-// IP, and site key for verification.
+// Takes request (*captcha_dto.VerifyRequest) which contains the token, client IP, and
+// site key for verification.
 //
 // Returns *hcaptchaVerifyResult which is the raw API response.
-// Returns error when the HTTP request fails, the response is invalid, or the
-// body exceeds size limits.
+// Returns error when the HTTP request fails, the response is invalid, or the body exceeds
+// size limits.
 func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.VerifyRequest) (*hcaptchaVerifyResult, error) {
 	formData := url.Values{
 		"secret":   {p.config.SecretKey},
@@ -260,14 +259,12 @@ func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.Verif
 	return &result, nil
 }
 
-// normaliseScore converts the hCaptcha score to the normalised convention
-// where 0.0 = bot and 1.0 = human, inverting the Enterprise score when
-// present (hCaptcha uses 0.0 = safe, 1.0 = threat) and falling back to
-// 1.0 for success or 0.0 for failure when absent.
+// normaliseScore converts the hCaptcha score to the normalised convention where 0.0 = bot
+// and 1.0 = human, inverting the Enterprise score when present (hCaptcha uses 0.0 = safe,
+// 1.0 = threat) and falling back to 1.0 for success or 0.0 for failure when absent.
 //
 // Takes success (bool) which indicates whether the verification passed.
-// Takes enterpriseScore (*float64) which is the optional Enterprise risk
-// score.
+// Takes enterpriseScore (*float64) which is the optional Enterprise risk score.
 //
 // Returns float64 which is the normalised score.
 func normaliseScore(success bool, enterpriseScore *float64) float64 {

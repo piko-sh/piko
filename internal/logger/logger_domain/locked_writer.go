@@ -24,13 +24,13 @@ import (
 	"sync"
 )
 
-// LockedWriter serialises writes to an underlying io.Writer using a mutex.
-// All writes through LockedWriter instances sharing the same mutex are
-// guaranteed not to interleave, preventing corrupted output when multiple
-// goroutines write concurrently to the same destination.
+// LockedWriter serialises writes to an underlying io.Writer using a mutex. All writes
+// through LockedWriter instances sharing the same mutex are guaranteed not to interleave,
+// preventing corrupted output when multiple goroutines write concurrently to the same
+// destination.
 //
-// Use HoldWrites to temporarily prevent all writes (for example, while
-// printing a startup banner that must not be interrupted by log output).
+// Use HoldWrites to temporarily prevent all writes (for example, while printing a startup
+// banner that must not be interrupted by log output).
 type LockedWriter struct {
 	// mu serialises access to the underlying writer.
 	mu *sync.Mutex
@@ -39,8 +39,7 @@ type LockedWriter struct {
 	w io.Writer
 }
 
-// NewLockedWriter creates a LockedWriter that serialises writes to w
-// using mu.
+// NewLockedWriter creates a LockedWriter that serialises writes to w using mu.
 //
 // Takes w (io.Writer) which is the destination writer.
 // Takes mu (*sync.Mutex) which serialises access.
@@ -50,8 +49,8 @@ func NewLockedWriter(w io.Writer, mu *sync.Mutex) *LockedWriter {
 	return &LockedWriter{w: w, mu: mu}
 }
 
-// Write acquires the mutex, writes p to the underlying writer, and releases
-// the mutex. This ensures that concurrent Write calls do not interleave.
+// Write acquires the mutex, writes p to the underlying writer, and releases the mutex.
+// This ensures that concurrent Write calls do not interleave.
 //
 // Takes p ([]byte) which is the data to write.
 //
@@ -63,13 +62,12 @@ func (lw *LockedWriter) Write(p []byte) (int, error) {
 	return lw.w.Write(p)
 }
 
-// HoldWrites acquires the write lock and returns a release
-// function that resumes writes when called.
+// HoldWrites acquires the write lock and returns a release function that resumes writes
+// when called.
 //
 // Returns func() which releases the write lock when called.
 //
-// Concurrency: acquires lw.mu; the returned function releases
-// it.
+// Concurrency: acquires lw.mu; the returned function releases it.
 func (lw *LockedWriter) HoldWrites() func() {
 	lw.mu.Lock()
 	return lw.mu.Unlock
@@ -79,14 +77,14 @@ var (
 	// stderrMu is the shared mutex that serialises all writes to os.Stderr.
 	stderrMu sync.Mutex
 
-	// stderrWriter is the shared LockedWriter that serialises stderr output across goroutines.
+	// stderrWriter is the shared LockedWriter that serialises stderr output across
+	// goroutines.
 	stderrWriter = &LockedWriter{w: os.Stderr, mu: &stderrMu}
 )
 
-// StderrWriter returns a shared LockedWriter that serialises writes to
-// os.Stderr. All callers receive the same instance, so log handlers and
-// other stderr writers (such as the startup banner) automatically
-// serialise against each other.
+// StderrWriter returns a shared LockedWriter that serialises writes to os.Stderr. All
+// callers receive the same instance, so log handlers and other stderr writers (such as
+// the startup banner) automatically serialise against each other.
 //
 // Returns *LockedWriter which wraps os.Stderr with a shared mutex.
 func StderrWriter() *LockedWriter {

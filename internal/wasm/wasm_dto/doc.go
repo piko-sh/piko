@@ -18,11 +18,9 @@
 
 // Package wasm_dto defines data transfer objects for the WASM hexagon.
 //
-// These types define the API contract between JavaScript and the Go WASM
-// module. They support IDE-like features such as code analysis,
-// autocompletion, hover information, template rendering, and code
-// generation in a browser-based REPL.
+// These types define the API contract between JavaScript and the Go WASM module. They
+// support IDE-like features such as code analysis, autocompletion, hover information,
+// template rendering, and code generation in a browser-based REPL.
 //
-// All types are JSON-serialisable for communication via the JavaScript
-// interop layer.
+// All types are JSON-serialisable for communication via the JavaScript interop layer.
 package wasm_dto

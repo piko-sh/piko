@@ -18,7 +18,9 @@
 
 package premailer
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	// cssFlexGrow is the CSS flex-grow property name.
@@ -40,8 +42,8 @@ const (
 	flexThreeValues = 3
 )
 
-// expandFlexShorthand expands a CSS flex shorthand value into its longhand
-// properties: flex-grow, flex-shrink, and flex-basis.
+// expandFlexShorthand expands a CSS flex shorthand value into its longhand properties:
+// flex-grow, flex-shrink, and flex-basis.
 //
 // The flex shorthand accepts one, two, or three values:
 //   - Single number: sets flex-grow, with flex-shrink=1, flex-basis=0.
@@ -52,8 +54,8 @@ const (
 //
 // Takes value (string) which is the flex shorthand value to expand.
 //
-// Returns map[string]string which maps longhand property names to values,
-// or nil when the value is empty.
+// Returns map[string]string which maps longhand property names to values, or nil when the
+// value is empty.
 func expandFlexShorthand(value string) map[string]string {
 	switch value {
 	case "none":
@@ -91,9 +93,8 @@ func expandFlexShorthand(value string) map[string]string {
 	}
 }
 
-// expandFlexSingleValue expands a single-value flex shorthand. A numeric value
-// is treated as flex-grow; a length, percentage, or "auto" is treated as
-// flex-basis.
+// expandFlexSingleValue expands a single-value flex shorthand. A numeric value is treated
+// as flex-grow; a length, percentage, or "auto" is treated as flex-basis.
 //
 // Takes value (string) which is the single flex value.
 //
@@ -111,14 +112,12 @@ func expandFlexSingleValue(value string) map[string]string {
 	}
 }
 
-// isFlexBasisValue checks whether a value looks like a flex-basis value
-// (a CSS length, percentage, or "auto") rather than a unitless flex-grow
-// number.
+// isFlexBasisValue checks whether a value looks like a flex-basis value (a CSS length,
+// percentage, or "auto") rather than a unitless flex-grow number.
 //
 // Takes value (string) which is the CSS value to check.
 //
-// Returns bool which is true if the value is auto or ends with a length/
-// percentage unit.
+// Returns bool which is true if the value is auto or ends with a length/ percentage unit.
 func isFlexBasisValue(value string) bool {
 	if value == cssAuto || value == "content" {
 		return true
@@ -131,14 +130,14 @@ func isFlexBasisValue(value string) bool {
 		strings.HasSuffix(value, "vh")
 }
 
-// expandFlexFlowShorthand expands a CSS flex-flow shorthand into flex-direction
-// and flex-wrap longhand properties. The two values can appear in either order
-// and both are optional.
+// expandFlexFlowShorthand expands a CSS flex-flow shorthand into flex-direction and
+// flex-wrap longhand properties. The two values can appear in either order and both are
+// optional.
 //
 // Takes value (string) which is the flex-flow shorthand value.
 //
-// Returns map[string]string which maps longhand property names to values,
-// or nil when no valid properties are found.
+// Returns map[string]string which maps longhand property names to values, or nil when no
+// valid properties are found.
 func expandFlexFlowShorthand(value string) map[string]string {
 	result := make(map[string]string)
 	for part := range strings.FieldsSeq(value) {

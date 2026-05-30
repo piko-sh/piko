@@ -31,8 +31,8 @@ const (
 	DefaultPollingInterval = 30 * time.Second
 )
 
-// BatchProviderPort defines the interface that batch provider adapters must
-// implement. It is a driven port in the hexagonal architecture pattern.
+// BatchProviderPort defines the interface that batch provider adapters must implement. It
+// is a driven port in the hexagonal architecture pattern.
 type BatchProviderPort interface {
 	// CreateBatch submits a batch of completion requests for processing.
 	//
@@ -139,8 +139,8 @@ func (b *BatchBuilder) AddBuilder(builder *CompletionBuilder) *BatchBuilder {
 	return b
 }
 
-// Window sets the completion window for the batch.
-// Longer windows typically result in lower costs.
+// Window sets the completion window for the batch. Longer windows typically result in
+// lower costs.
 //
 // Takes d (time.Duration) which is the completion window.
 //
@@ -230,14 +230,12 @@ func NewBatchPoller(service *service, batchID, providerName string, interval tim
 	}
 }
 
-// PollChannel returns a channel that is closed when the context
-// is cancelled.
+// PollChannel returns a channel that is closed when the context is cancelled.
 //
-// Returns <-chan *llm_dto.BatchResponse which is closed on
-// cancellation.
+// Returns <-chan *llm_dto.BatchResponse which is closed on cancellation.
 //
-// Spawns a goroutine that polls at the configured interval until the context
-// is cancelled.
+// Spawns a goroutine that polls at the configured interval until the context is
+// cancelled.
 func (p *BatchPoller) PollChannel(ctx context.Context) <-chan *llm_dto.BatchResponse {
 	responseChannel := make(chan *llm_dto.BatchResponse)
 

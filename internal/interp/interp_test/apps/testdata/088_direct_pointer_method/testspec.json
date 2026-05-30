@@ -1,0 +1,5 @@
+{
+  "description": "Like 087 but calls Write directly without fmt.Fprint adapter. Tests if cross-package pointer-receiver direct method dispatch preserves mutations.",
+  "modulePath": "testpkg",
+  "expected": "buf=>>hello world<<"
+}

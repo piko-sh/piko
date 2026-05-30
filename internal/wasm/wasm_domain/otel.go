@@ -57,8 +57,7 @@ var (
 	// generateCount tracks the number of code generation requests.
 	generateCount metric.Int64Counter
 
-	// generateDuration tracks the duration of generation operations in
-	// milliseconds.
+	// generateDuration tracks the duration of generation operations in milliseconds.
 	generateDuration metric.Float64Histogram
 
 	// generateErrorCount counts the number of generation errors.

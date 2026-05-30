@@ -28,28 +28,26 @@ import (
 )
 
 var (
-	// errKeyIDsEmpty is returned when either the old or new key ID is empty
-	// during key rotation.
+	// errKeyIDsEmpty is returned when either the old or new key ID is empty during key
+	// rotation.
 	errKeyIDsEmpty = errors.New("both oldKeyID and newKeyID must be non-empty")
 
-	// errKeyIDsSame is returned when the old and new key IDs are identical
-	// during key rotation.
+	// errKeyIDsSame is returned when the old and new key IDs are identical during key
+	// rotation.
 	errKeyIDsSame = errors.New("old and new key IDs cannot be the same")
 )
 
-// RotateKey initiates key rotation by marking the old key as deprecated and
-// activating the new key.
-//
-// This is a graceful rotation strategy that allows existing encrypted data to
-// remain encrypted with the old key while all new encryption operations use
+// RotateKey initiates key rotation by marking the old key as deprecated and activating
 // the new key.
 //
-// Takes oldKeyID (string) which identifies the currently active key to
-// deprecate.
+// This is a graceful rotation strategy that allows existing encrypted data to remain
+// encrypted with the old key while all new encryption operations use the new key.
+//
+// Takes oldKeyID (string) which identifies the currently active key to deprecate.
 // Takes newKeyID (string) which identifies the key to activate.
 //
-// Returns error when either key ID is empty, both IDs are the same, the old
-// key is not currently active, or the old key is already deprecated.
+// Returns error when either key ID is empty, both IDs are the same, the old key is not
+// currently active, or the old key is already deprecated.
 //
 // Steps:
 //  1. Validate the old and new key IDs
@@ -57,9 +55,8 @@ var (
 //  3. Set the new key as active
 //  4. Log the rotation event
 //
-// This does NOT automatically re-encrypt existing data. For automatic
-// re-encryption, use the Decrypt-and-re-encrypt pattern or trigger a
-// background migration job.
+// This does NOT automatically re-encrypt existing data. For automatic re-encryption, use
+// the Decrypt-and-re-encrypt pattern or trigger a background migration job.
 func (s *cryptoService) RotateKey(ctx context.Context, oldKeyID, newKeyID string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	if oldKeyID == "" || newKeyID == "" {
@@ -115,18 +112,17 @@ func (s *cryptoService) isDeprecatedKey(keyID string) bool {
 	return slices.Contains(s.deprecatedKeyIDs, keyID)
 }
 
-// DecryptAndReEncrypt decrypts ciphertext and optionally re-encrypts it if
-// using a deprecated key, supporting gradual key rotation without explicit
-// migration.
+// DecryptAndReEncrypt decrypts ciphertext and optionally re-encrypts it if using a
+// deprecated key, supporting gradual key rotation without explicit migration.
 //
-// Takes ciphertext (string) which is the encrypted value to decrypt and
-// potentially re-encrypt with the active key.
+// Takes ciphertext (string) which is the encrypted value to decrypt and potentially
+// re-encrypt with the active key.
 //
 // Returns plaintext (string) which is the decrypted value.
-// Returns newCiphertext (string) which is the re-encrypted value using
-// the active key, or empty if re-encryption did not occur.
-// Returns wasReEncrypted (bool) which is true when the value was
-// re-encrypted with the active key.
+// Returns newCiphertext (string) which is the re-encrypted value using the active key, or
+// empty if re-encryption did not occur.
+// Returns wasReEncrypted (bool) which is true when the value was re-encrypted with the
+// active key.
 // Returns err (error) when decryption fails.
 func (s *cryptoService) DecryptAndReEncrypt(ctx context.Context, ciphertext string) (plaintext, newCiphertext string, wasReEncrypted bool, err error) {
 	ctx, l := logger_domain.From(ctx, log)

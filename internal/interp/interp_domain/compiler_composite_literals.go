@@ -20,19 +20,86 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
+	"go/constant"
+	"go/types"
 	"reflect"
 )
 
+// compileLiteralElement compiles a single composite-literal element with typed-nil
+// awareness so that bare `nil` keeps its concrete type tag when the element/key/value
+// type is a pointer, slice, map, chan or function. Falls through to compileExpression for
+// every other shape.
+//
+// Takes ctx (context.Context) used for reflect-type synthesis.
+// Takes element (ast.Expr) which is the element expression.
+// Takes expectedType (types.Type) which is the static target type at the element
+// position.
+//
+// Returns the compiled location and any compilation error.
+func (c *compiler) compileLiteralElement(ctx context.Context, element ast.Expr, expectedType types.Type) (varLocation, error) {
+	if expectedType != nil {
+		if location, handled, err := c.compileTypedNilOrExpression(ctx, element, expectedType); err != nil {
+			return varLocation{}, err
+		} else if handled {
+			return location, nil
+		}
+	}
+	return c.compileExpression(ctx, element)
+}
+
+// literalElementType returns the static Go type at element index 0 of the composite
+// literal. Used to feed compileLiteralElement so bare `nil` keeps its concrete typing.
+//
+// Takes lit (*ast.CompositeLit) whose declared container type drives the lookup.
+//
+// Returns the element Go type, or nil when go/types cannot resolve the container's type
+// or its underlying kind has no element notion.
+func (c *compiler) literalElementType(lit *ast.CompositeLit) types.Type {
+	if c.info == nil {
+		return nil
+	}
+	tv, ok := c.info.Types[lit]
+	if !ok || tv.Type == nil {
+		return nil
+	}
+	switch container := tv.Type.Underlying().(type) {
+	case *types.Slice:
+		return container.Elem()
+	case *types.Array:
+		return container.Elem()
+	case *types.Map:
+		return container.Elem()
+	default:
+		return nil
+	}
+}
+
+// literalKeyType returns the static key type of a map literal.
+//
+// Takes lit (*ast.CompositeLit) which is the candidate literal.
+//
+// Returns types.Type which is the map key type, or nil for non-map literals.
+func (c *compiler) literalKeyType(lit *ast.CompositeLit) types.Type {
+	if c.info == nil {
+		return nil
+	}
+	tv, ok := c.info.Types[lit]
+	if !ok || tv.Type == nil {
+		return nil
+	}
+	if container, isMap := tv.Type.Underlying().(*types.Map); isMap {
+		return container.Key()
+	}
+	return nil
+}
+
 // compileCompositeLit compiles a composite literal (slice, map, struct).
 //
-// Takes lit (*ast.CompositeLit) which is the AST composite literal node
-// to compile.
+// Takes lit (*ast.CompositeLit) which is the AST composite literal node to compile.
 //
-// Returns varLocation holding the compiled literal value and any
-// compilation error.
+// Returns varLocation holding the compiled literal value and any compilation error.
 func (c *compiler) compileCompositeLit(ctx context.Context, lit *ast.CompositeLit) (varLocation, error) {
 	tv := c.info.Types[lit]
 	reflectType := c.typeToReflect(ctx, tv.Type)
@@ -46,7 +113,7 @@ func (c *compiler) compileCompositeLit(ctx context.Context, lit *ast.CompositeLi
 		return c.compileMapLiteral(ctx, lit, reflectType)
 	case reflect.Struct:
 		return c.compileStructLiteral(ctx, lit, reflectType)
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return c.compilePointerCompositeLit(ctx, lit, reflectType)
 	default:
 		return varLocation{}, fmt.Errorf("unsupported composite literal type: %v (%v) at %s", reflectType.Kind(), reflectType, c.positionString(lit.Pos()))
@@ -56,42 +123,53 @@ func (c *compiler) compileCompositeLit(ctx context.Context, lit *ast.CompositeLi
 // compileArrayLiteral compiles an array literal like [5]int{2, 4, 6, 8, 10}.
 //
 // Takes lit (*ast.CompositeLit) which is the AST composite literal node.
-// Takes reflectType (reflect.Type) which is the reflect.Type of the
-// array.
+// Takes reflectType (reflect.Type) which is the reflect.Type of the array.
 //
-// Returns varLocation holding the compiled array and any compilation
-// error.
+// Returns varLocation holding the compiled array and any compilation error.
 func (c *compiler) compileArrayLiteral(ctx context.Context, lit *ast.CompositeLit, reflectType reflect.Type) (varLocation, error) {
 	if c.maxLiteralElements > 0 && len(lit.Elts) > c.maxLiteralElements {
 		return varLocation{}, fmt.Errorf("%w: %d elements exceeds limit %d at %s",
 			errLiteralElementLimit, len(lit.Elts), c.maxLiteralElements, c.positionString(lit.Lbrace))
 	}
 	zeroValue := reflect.New(reflectType).Elem()
-	constIndex := c.function.addGeneralConstant(zeroValue, generalConstantDescriptor{
+	constIndex, err := c.function.addGeneralConstant(zeroValue, generalConstantDescriptor{
 		kind:     generalConstantCompositeZero,
 		typeDesc: reflectTypeToDescriptor(reflectType),
 	})
+	if err != nil {
+		return varLocation{}, err
+	}
 	dest := c.scopes.alloc.alloc(registerGeneral)
 	c.function.emitWide(opLoadGeneralConst, dest, constIndex)
 
-	for i, elt := range lit.Elts {
-		elemLocation, err := c.compileExpression(ctx, elt)
-		if err != nil {
-			return varLocation{}, err
+	elementType := c.literalElementType(lit)
+	cursor := 0
+	for _, elt := range lit.Elts {
+		elementExpr, index, indexErr := c.resolveKeyedLiteralIndex(elt, cursor)
+		if indexErr != nil {
+			return varLocation{}, indexErr
 		}
-		elemLocation = c.coerceEvalBoolResult(ctx, c.info, elt, elemLocation)
+		cursor = index + 1
+		elementLocation, exprErr := c.compileLiteralElement(ctx, elementExpr, elementType)
+		if exprErr != nil {
+			return varLocation{}, exprErr
+		}
+		elementLocation = c.coerceEvalBoolResult(ctx, c.info, elementExpr, elementLocation)
 
-		idxConst := c.function.addIntConstant(int64(i))
+		idxConst, idxErr := c.function.addIntConstant(int64(index))
+		if idxErr != nil {
+			return varLocation{}, idxErr
+		}
 		indexRegister := c.scopes.alloc.allocTemp(registerInt)
 		c.function.emitWide(opLoadIntConst, indexRegister, idxConst)
 
-		if elemLocation.kind != registerGeneral {
-			genReg := c.scopes.alloc.allocTemp(registerGeneral)
-			c.emitBoxToGeneral(ctx, genReg, elemLocation)
-			c.function.emit(opIndexSet, dest, indexRegister, genReg)
-			c.scopes.alloc.freeTemp(registerGeneral, genReg)
+		if elementLocation.kind != registerGeneral {
+			generalRegister := c.scopes.alloc.allocTemp(registerGeneral)
+			c.emitBoxToGeneral(ctx, generalRegister, elementLocation)
+			c.function.emit(opIndexSet, dest, indexRegister, generalRegister)
+			c.scopes.alloc.freeTemp(registerGeneral, generalRegister)
 		} else {
-			c.function.emit(opIndexSet, dest, indexRegister, elemLocation.register)
+			c.function.emit(opIndexSet, dest, indexRegister, elementLocation.register)
 		}
 
 		c.scopes.alloc.freeTemp(registerInt, indexRegister)
@@ -100,50 +178,95 @@ func (c *compiler) compileArrayLiteral(ctx context.Context, lit *ast.CompositeLi
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }
 
+// resolveKeyedLiteralIndex returns the destination index for an element.
+//
+// Plain elements use the running cursor as their index. *ast.KeyValueExpr forms (sparse
+// `index: value` syntax from `[10]int{0:1, 5:7}`) use the keyed index instead. Unkeyed
+// elements that follow a keyed one continue from `key+1` per Go's composite-literal index
+// semantics.
+//
+// Takes element (ast.Expr) which is the literal element to inspect.
+// Takes cursor (int) which is the next implicit-index position.
+//
+// Returns the underlying value expression to compile, the index it should land at, and
+// any error when the key is not a constant integer expression.
+func (c *compiler) resolveKeyedLiteralIndex(element ast.Expr, cursor int) (ast.Expr, int, error) {
+	kv, ok := element.(*ast.KeyValueExpr)
+	if !ok {
+		return element, cursor, nil
+	}
+	if c.info == nil {
+		return kv.Value, cursor, fmt.Errorf("composite literal index has no type info at %s", c.positionString(kv.Key.Pos()))
+	}
+	tv, hasType := c.info.Types[kv.Key]
+	if !hasType || tv.Value == nil {
+		return kv.Value, cursor, fmt.Errorf("composite literal index must be a constant at %s", c.positionString(kv.Key.Pos()))
+	}
+	keyInt, ok := constant.Int64Val(tv.Value)
+	if !ok {
+		return kv.Value, cursor, fmt.Errorf("composite literal index out of range at %s", c.positionString(kv.Key.Pos()))
+	}
+	return kv.Value, int(keyInt), nil
+}
+
 // compileSliceLiteral compiles a slice literal like []int{1, 2, 3}.
 //
 // Takes lit (*ast.CompositeLit) which is the AST composite literal node.
-// Takes reflectType (reflect.Type) which is the reflect.Type of the
-// slice.
+// Takes reflectType (reflect.Type) which is the reflect.Type of the slice.
 //
-// Returns varLocation holding the compiled slice and any compilation
-// error.
+// Returns varLocation holding the compiled slice and any compilation error.
 func (c *compiler) compileSliceLiteral(ctx context.Context, lit *ast.CompositeLit, reflectType reflect.Type) (varLocation, error) {
 	if c.maxLiteralElements > 0 && len(lit.Elts) > c.maxLiteralElements {
 		return varLocation{}, fmt.Errorf("%w: %d elements exceeds limit %d at %s",
 			errLiteralElementLimit, len(lit.Elts), c.maxLiteralElements, c.positionString(lit.Lbrace))
 	}
-	typeIndex := c.function.addTypeRef(reflectType)
+	typeIndex, err := c.function.addTypeRef(reflectType)
+	if err != nil {
+		return varLocation{}, err
+	}
 
-	lenIndex := c.function.addIntConstant(int64(len(lit.Elts)))
-	lenReg := c.scopes.alloc.allocTemp(registerInt)
-	c.function.emitWide(opLoadIntConst, lenReg, lenIndex)
+	lenIndex, err := c.function.addIntConstant(int64(len(lit.Elts)))
+	if err != nil {
+		return varLocation{}, err
+	}
+	lengthRegister := c.scopes.alloc.allocTemp(registerInt)
+	c.function.emitWide(opLoadIntConst, lengthRegister, lenIndex)
 
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opMakeSlice, dest, lenReg, lenReg)
+	c.function.emit(opMakeSlice, dest, lengthRegister, lengthRegister)
 	c.function.emitExtension(typeIndex, 0)
 
-	c.scopes.alloc.freeTemp(registerInt, lenReg)
+	c.scopes.alloc.freeTemp(registerInt, lengthRegister)
 
-	for i, elt := range lit.Elts {
-		elemLocation, err := c.compileExpression(ctx, elt)
-		if err != nil {
-			return varLocation{}, err
+	elementType := c.literalElementType(lit)
+	cursor := 0
+	for _, elt := range lit.Elts {
+		elementExpr, index, indexErr := c.resolveKeyedLiteralIndex(elt, cursor)
+		if indexErr != nil {
+			return varLocation{}, indexErr
 		}
-		elemLocation = c.coerceEvalBoolResult(ctx, c.info, elt, elemLocation)
+		cursor = index + 1
+		elementLocation, exprErr := c.compileLiteralElement(ctx, elementExpr, elementType)
+		if exprErr != nil {
+			return varLocation{}, exprErr
+		}
+		elementLocation = c.coerceEvalBoolResult(ctx, c.info, elementExpr, elementLocation)
 
-		idxConst := c.function.addIntConstant(int64(i))
+		idxConst, idxErr := c.function.addIntConstant(int64(index))
+		if idxErr != nil {
+			return varLocation{}, idxErr
+		}
 		indexRegister := c.scopes.alloc.allocTemp(registerInt)
 		c.function.emitWide(opLoadIntConst, indexRegister, idxConst)
 
-		if elemLocation.kind != registerGeneral {
-			genReg := c.scopes.alloc.allocTemp(registerGeneral)
-			c.emitBoxToGeneral(ctx, genReg, elemLocation)
-			elemLocation = varLocation{register: genReg, kind: registerGeneral}
-			c.function.emit(opIndexSet, dest, indexRegister, elemLocation.register)
-			c.scopes.alloc.freeTemp(registerGeneral, genReg)
+		if elementLocation.kind != registerGeneral {
+			generalRegister := c.scopes.alloc.allocTemp(registerGeneral)
+			c.emitBoxToGeneral(ctx, generalRegister, elementLocation)
+			elementLocation = varLocation{register: generalRegister, kind: registerGeneral}
+			c.function.emit(opIndexSet, dest, indexRegister, elementLocation.register)
+			c.scopes.alloc.freeTemp(registerGeneral, generalRegister)
 		} else {
-			c.function.emit(opIndexSet, dest, indexRegister, elemLocation.register)
+			c.function.emit(opIndexSet, dest, indexRegister, elementLocation.register)
 		}
 
 		c.scopes.alloc.freeTemp(registerInt, indexRegister)
@@ -163,61 +286,65 @@ func (c *compiler) compileMapLiteral(ctx context.Context, lit *ast.CompositeLit,
 		return varLocation{}, fmt.Errorf("%w: %d elements exceeds limit %d at %s",
 			errLiteralElementLimit, len(lit.Elts), c.maxLiteralElements, c.positionString(lit.Lbrace))
 	}
-	typeIndex := c.function.addTypeRef(reflectType)
+	typeIndex, err := c.function.addTypeRef(reflectType)
+	if err != nil {
+		return varLocation{}, err
+	}
 
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opMakeMap, dest, 0, 0)
-	c.function.emitExtension(typeIndex, 0)
+	c.function.emit(opDrillTier1, uint8(subOpMakeMap), dest, 0)
+	c.function.emitExtension(typeIndex, mapSizeHintLog2(len(lit.Elts)))
 
+	keyType := c.literalKeyType(lit)
+	valueType := c.literalElementType(lit)
 	for _, elt := range lit.Elts {
 		kv, ok := elt.(*ast.KeyValueExpr)
 		if !ok {
-			return varLocation{}, errors.New("expected key-value in map literal")
+			return varLocation{}, ErrCompileMapLiteralExpectKeyValue
 		}
 
-		keyLocation, err := c.compileExpression(ctx, kv.Key)
+		keyLocation, err := c.compileLiteralElement(ctx, kv.Key, keyType)
 		if err != nil {
 			return varLocation{}, err
 		}
 		keyLocation = c.coerceEvalBoolResult(ctx, c.info, kv.Key, keyLocation)
-		valLocation, err := c.compileExpression(ctx, kv.Value)
+		valueLocation, err := c.compileLiteralElement(ctx, kv.Value, valueType)
 		if err != nil {
 			return varLocation{}, err
 		}
-		valLocation = c.coerceEvalBoolResult(ctx, c.info, kv.Value, valLocation)
+		valueLocation = c.coerceEvalBoolResult(ctx, c.info, kv.Value, valueLocation)
 
 		c.boxToGeneralTemp(ctx, &keyLocation)
-		c.boxToGeneralTemp(ctx, &valLocation)
+		c.boxToGeneralTemp(ctx, &valueLocation)
 
-		c.function.emit(opMapSet, dest, keyLocation.register, valLocation.register)
+		c.function.emit(opMapSet, dest, keyLocation.register, valueLocation.register)
 	}
 
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }
 
-// compilePointerCompositeLit compiles a composite literal whose type
-// is a pointer, as produced by elided forms such as
-// map[K]*T{"k": {...}} or []*T{{...}} where the inner literal is
-// sugar for &T{...}.
+// compilePointerCompositeLit compiles a composite literal whose type is a pointer, as
+// produced by elided forms such as map[K]*T{"k": {...}} or []*T{{...}} where the inner
+// literal is sugar for &T{...}.
 //
 // Takes lit (*ast.CompositeLit) which is the AST composite literal node.
-// Takes reflectType (reflect.Type) which is the pointer reflect.Type
-// recorded for lit by the go/types checker.
+// Takes reflectType (reflect.Type) which is the pointer reflect.Type recorded for lit by
+// the go/types checker.
 //
 // Returns varLocation holding the pointer value and any compilation error.
 func (c *compiler) compilePointerCompositeLit(ctx context.Context, lit *ast.CompositeLit, reflectType reflect.Type) (varLocation, error) {
-	elemType := reflectType.Elem()
-	var elemLocation varLocation
+	elementType := reflectType.Elem()
+	var elementLocation varLocation
 	var err error
-	switch elemType.Kind() {
+	switch elementType.Kind() {
 	case reflect.Struct:
-		elemLocation, err = c.compileStructLiteral(ctx, lit, elemType)
+		elementLocation, err = c.compileStructLiteral(ctx, lit, elementType)
 	case reflect.Array:
-		elemLocation, err = c.compileArrayLiteral(ctx, lit, elemType)
+		elementLocation, err = c.compileArrayLiteral(ctx, lit, elementType)
 	case reflect.Slice:
-		elemLocation, err = c.compileSliceLiteral(ctx, lit, elemType)
+		elementLocation, err = c.compileSliceLiteral(ctx, lit, elementType)
 	case reflect.Map:
-		elemLocation, err = c.compileMapLiteral(ctx, lit, elemType)
+		elementLocation, err = c.compileMapLiteral(ctx, lit, elementType)
 	default:
 		return varLocation{}, fmt.Errorf("unsupported composite literal type: %v (%v) at %s", reflectType.Kind(), reflectType, c.positionString(lit.Pos()))
 	}
@@ -226,6 +353,6 @@ func (c *compiler) compilePointerCompositeLit(ctx context.Context, lit *ast.Comp
 	}
 
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAddr, dest, elemLocation.register, 0)
+	c.function.emit(opAddr, dest, elementLocation.register, 0)
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }

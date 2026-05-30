@@ -43,8 +43,8 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// stdrwc combines stdin and stdout into a single read-write-closer for
-// JSON-RPC streams. It implements io.ReadWriteCloser.
+// stdrwc combines stdin and stdout into a single read-write-closer for JSON-RPC streams.
+// It implements io.ReadWriteCloser.
 type stdrwc struct {
 	io.Reader
 
@@ -52,8 +52,8 @@ type stdrwc struct {
 }
 
 const (
-	// defaultDriverMode is the default driver mode used when the PIKO_LSP_DRIVER
-	// environment variable is not set.
+	// defaultDriverMode is the default driver mode used when the PIKO_LSP_DRIVER environment
+	// variable is not set.
 	defaultDriverMode = "stdio"
 
 	// defaultTCPHost is the default host address for TCP connections.
@@ -132,13 +132,13 @@ func main() {
 	runServer(ctx, driverMode, driver)
 }
 
-// startPprofServer starts the pprof HTTP server on the given port.
-// The server provides profiling endpoints at /_piko/debug/pprof/*.
+// startPprofServer starts the pprof HTTP server on the given port. The server provides
+// profiling endpoints at /_piko/debug/pprof/*.
 //
 // Takes port (int) which specifies the port number to listen on.
 //
-// Runs the server in a separate goroutine. The goroutine runs until the
-// server stops or fails.
+// Runs the server in a separate goroutine. The goroutine runs until the server stops or
+// fails.
 func startPprofServer(port int) {
 	profilerConfig := profiler.Config{
 		Port:                 port,
@@ -166,8 +166,8 @@ func startPprofServer(port int) {
 	getLog().Info("Starting pprof server", logger.String("address", fmt.Sprintf("http://%s%s/debug/pprof/", addr, profiler.BasePath)))
 }
 
-// getDriverConfig reads driver configuration from command-line flags first,
-// then falls back to environment variables.
+// getDriverConfig reads driver configuration from command-line flags first, then falls
+// back to environment variables.
 //
 // Returns driverMode (string) which specifies the LSP driver mode to use.
 // Returns tcpAddr (string) which specifies the TCP address for connections.
@@ -193,8 +193,8 @@ func getDriverConfig() (driverMode, tcpAddr string) {
 
 // initialiseLSP bootstraps the DI container and LSP-specific components.
 //
-// Returns lspServices which contains the initialised container, config
-// provider, document cache, and LSP file reader.
+// Returns lspServices which contains the initialised container, config provider, document
+// cache, and LSP file reader.
 func initialiseLSP() lspServices {
 	deps := &bootstrap.Dependencies{
 		AppRouter: chi.NewRouter(),
@@ -280,8 +280,7 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 // runServer starts the LSP server and handles shutdown.
 //
 // Takes driverMode (string) which specifies the transport mode (e.g. "stdio").
-// Takes driver (lsp_domain.LSPServerPort) which provides the LSP server
-// implementation.
+// Takes driver (lsp_domain.LSPServerPort) which provides the LSP server implementation.
 func runServer(ctx context.Context, driverMode string, driver lsp_domain.LSPServerPort) {
 	getLog().Info("Starting Piko LSP server...")
 
@@ -297,9 +296,8 @@ func runServer(ctx context.Context, driverMode string, driver lsp_domain.LSPServ
 	getLog().Info("Piko LSP server stopped gracefully.")
 }
 
-// cleanStaleLSPLogs removes piko-lsp log files from /tmp that are
-// older than 24 hours as best-effort cleanup, silently ignoring
-// errors.
+// cleanStaleLSPLogs removes piko-lsp log files from /tmp that are older than 24 hours as
+// best-effort cleanup, silently ignoring errors.
 func cleanStaleLSPLogs() {
 	const maxAge = 24 * time.Hour
 	cutoff := time.Now().Add(-maxAge)

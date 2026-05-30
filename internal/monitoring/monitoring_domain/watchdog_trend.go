@@ -28,30 +28,28 @@ import (
 )
 
 const (
-	// defaultTrendWindowSize is the number of heap samples to retain for
-	// linear regression (120 samples at 500ms = 60 seconds of history).
+	// defaultTrendWindowSize is the number of heap samples to retain for linear regression
+	// (120 samples at 500ms = 60 seconds of history).
 	defaultTrendWindowSize = 120
 
-	// defaultTrendEvaluationInterval is the period between trend regression
-	// computations.
+	// defaultTrendEvaluationInterval is the period between trend regression computations.
 	defaultTrendEvaluationInterval = 30 * time.Second
 
-	// defaultTrendWarningHorizon is the projected time-to-breach below which
-	// a heap trend warning is emitted.
+	// defaultTrendWarningHorizon is the projected time-to-breach below which a heap trend
+	// warning is emitted.
 	defaultTrendWarningHorizon = 5 * time.Minute
 
-	// minimumTrendSamples is the minimum number of samples required before a
-	// slope computation is meaningful.
+	// minimumTrendSamples is the minimum number of samples required before a slope
+	// computation is meaningful.
 	minimumTrendSamples = 10
 
-	// trendForensicsCaptureKey is the cooldown key used for heap-trend
-	// forensic captures; distinct from the per-profile-type keys so the
-	// trend path has its own cooldown bucket.
+	// trendForensicsCaptureKey is the cooldown key used for heap-trend forensic captures;
+	// distinct from the per-profile-type keys so the trend path has its own cooldown bucket.
 	trendForensicsCaptureKey = "heap_trend_forensics"
 )
 
-// heapTrendBuffer is a fixed-capacity ring buffer of uint64 heap allocation
-// samples used for linear regression analysis.
+// heapTrendBuffer is a fixed-capacity ring buffer of uint64 heap allocation samples used
+// for linear regression analysis.
 type heapTrendBuffer struct {
 	// samples holds the ring buffer of heap allocation values.
 	samples []uint64
@@ -78,8 +76,8 @@ func newHeapTrendBuffer(capacity int) *heapTrendBuffer {
 	}
 }
 
-// add appends a heap allocation sample to the ring buffer, overwriting the
-// oldest sample when the buffer is full.
+// add appends a heap allocation sample to the ring buffer, overwriting the oldest sample
+// when the buffer is full.
 //
 // Takes value (uint64) which is the heap allocation sample in bytes.
 func (b *heapTrendBuffer) add(value uint64) {
@@ -98,11 +96,11 @@ func (b *heapTrendBuffer) isFull() bool {
 	return b.count >= b.capacity
 }
 
-// slope computes the least-squares linear regression slope of the buffered
-// samples in bytes per sample index.
+// slope computes the least-squares linear regression slope of the buffered samples in
+// bytes per sample index.
 //
-// Returns float64 which is the slope in bytes per sample index, or 0 when
-// fewer than two samples are recorded.
+// Returns float64 which is the slope in bytes per sample index, or 0 when fewer than two
+// samples are recorded.
 //
 // The slope formula is:
 //
@@ -145,13 +143,13 @@ func (b *heapTrendBuffer) slope() float64 {
 	return (n*sumIndexValue - sumIndex*sumValue) / denominator
 }
 
-// evaluateHeapTrend appends the current heap allocation to the ring buffer
-// and periodically computes a linear regression to project whether the heap
-// will breach the memory limit within the configured warning horizon.
+// evaluateHeapTrend appends the current heap allocation to the ring buffer and
+// periodically computes a linear regression to project whether the heap will breach the
+// memory limit within the configured warning horizon.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the current system metrics
-// including heap allocation.
+// Takes stats (*SystemStats) which contains the current system metrics including heap
+// allocation.
 func (w *Watchdog) evaluateHeapTrend(ctx context.Context, now time.Time, stats *SystemStats) {
 	if ctx.Err() != nil || w.heapTrendBuffer == nil {
 		return
@@ -202,14 +200,12 @@ func (w *Watchdog) evaluateHeapTrend(ctx context.Context, now time.Time, stats *
 	w.emitHeapTrendWarning(ctx, slopePerSecond, currentHeap, effectiveLimit, secondsToBreach)
 }
 
-// resolveEffectiveMemoryLimit returns the effective memory limit from
-// GOMEMLIMIT or the cgroup memory limit.
+// resolveEffectiveMemoryLimit returns the effective memory limit from GOMEMLIMIT or the
+// cgroup memory limit.
 //
-// Takes stats (*SystemStats) which provides the cgroup memory limit as a
-// fallback.
+// Takes stats (*SystemStats) which provides the cgroup memory limit as a fallback.
 //
-// Returns uint64 which is the effective limit in bytes, or 0 when no limit
-// is available.
+// Returns uint64 which is the effective limit in bytes, or 0 when no limit is available.
 func (w *Watchdog) resolveEffectiveMemoryLimit(stats *SystemStats) uint64 {
 	if w.gomemlimit > 0 && w.gomemlimit < math.MaxInt64 {
 		return uint64(w.gomemlimit)
@@ -220,12 +216,11 @@ func (w *Watchdog) resolveEffectiveMemoryLimit(stats *SystemStats) uint64 {
 
 // emitHeapTrendWarning logs and notifies about projected memory limit breach.
 //
-// Takes slopePerSecond (float64) which is the heap growth rate in bytes per
-// second.
+// Takes slopePerSecond (float64) which is the heap growth rate in bytes per second.
 // Takes currentHeap (uint64) which is the current heap allocation in bytes.
 // Takes effectiveLimit (uint64) which is the effective memory limit in bytes.
-// Takes secondsToBreach (time.Duration) which is the projected time until the
-// limit is reached.
+// Takes secondsToBreach (time.Duration) which is the projected time until the limit is
+// reached.
 func (w *Watchdog) emitHeapTrendWarning(
 	ctx context.Context,
 	slopePerSecond float64,
@@ -257,17 +252,14 @@ func (w *Watchdog) emitHeapTrendWarning(
 	w.captureTrendForensics(ctx, currentHeap, effectiveLimit, secondsToBreach)
 }
 
-// captureTrendForensics triggers heap + goroutine pprof captures on a
-// heap-trend warning so operators have forensic data before OOM. Uses
-// the threshold-capture cooldown so back-to-back warnings do not spam
-// the disk.
+// captureTrendForensics triggers heap + goroutine pprof captures on a heap-trend warning
+// so operators have forensic data before OOM. Uses the threshold-capture cooldown so
+// back-to-back warnings do not spam the disk.
 //
-// Takes ctx (context.Context) which carries cancellation and the
-// request-scoped logger.
+// Takes ctx (context.Context) which carries cancellation and the request-scoped logger.
 // Takes currentHeap (uint64) which is recorded in the sidecar.
 // Takes effectiveLimit (uint64) which is recorded in the sidecar.
-// Takes secondsToBreach (time.Duration) which is recorded in the
-// sidecar.
+// Takes secondsToBreach (time.Duration) which is recorded in the sidecar.
 func (w *Watchdog) captureTrendForensics(
 	ctx context.Context,
 	currentHeap, effectiveLimit uint64,

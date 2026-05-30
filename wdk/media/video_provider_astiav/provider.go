@@ -36,16 +36,16 @@ import (
 type Config struct {
 	media.VideoServiceConfig
 
-	// MaxConcurrentTranscodes sets the maximum number of transcode operations
-	// that can run at the same time. Defaults to 10.
+	// MaxConcurrentTranscodes sets the maximum number of transcode operations that can run
+	// at the same time. Defaults to 10.
 	MaxConcurrentTranscodes int
 
 	// EnableHWAccel enables hardware acceleration when supported.
 	EnableHWAccel bool
 }
 
-// Provider implements VideoTranscoderPort and StreamingTranscoderPort using
-// FFmpeg through go-astiav bindings.
+// Provider implements VideoTranscoderPort and StreamingTranscoderPort using FFmpeg
+// through go-astiav bindings.
 type Provider struct {
 	// codecRegistry provides codec lookup for encoding and decoding.
 	codecRegistry *CodecRegistry
@@ -57,11 +57,14 @@ type Provider struct {
 	maxConcurrent int
 }
 
-var _ media.VideoTranscoderPort = (*Provider)(nil)
-var _ media.StreamingTranscoderPort = (*Provider)(nil)
+var (
+	_ media.VideoTranscoderPort = (*Provider)(nil)
 
-// errNoFramesInVideo is returned when a video contains no decodable frames.
-var errNoFramesInVideo = errors.New("no frames in video")
+	_ media.StreamingTranscoderPort = (*Provider)(nil)
+
+	// errNoFramesInVideo is returned when a video contains no decodable frames.
+	errNoFramesInVideo = errors.New("no frames in video")
+)
 
 // NewProvider creates a new FFmpeg-based video transcoding provider.
 //
@@ -90,18 +93,18 @@ func NewProvider(config Config) (*Provider, error) {
 	return p, nil
 }
 
-// Transcode converts video from one format/codec to another.
-// Delegates the actual transcoding work to startTranscodeGoroutine
-// after validating the spec and acquiring a semaphore slot.
+// Transcode converts video from one format/codec to another. Delegates the actual
+// transcoding work to startTranscodeGoroutine after validating the spec and acquiring a
+// semaphore slot.
 //
 // Takes input (io.Reader) which provides the source video data.
-// Takes spec (TranscodeSpec) which defines the output format,
-// codec, and encoding parameters.
+// Takes spec (TranscodeSpec) which defines the output format, codec, and encoding
+// parameters.
 //
-// Returns io.ReadCloser which streams the transcoded video data.
-// The caller must close this reader when finished.
-// Returns error when the context is cancelled before starting,
-// when defaults cannot be applied, or when the spec is invalid.
+// Returns io.ReadCloser which streams the transcoded video data. The caller must close
+// this reader when finished.
+// Returns error when the context is cancelled before starting, when defaults cannot be
+// applied, or when the spec is invalid.
 func (p *Provider) Transcode(ctx context.Context, input io.Reader, spec media.TranscodeSpec) (io.ReadCloser, error) {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "Provider.Transcode",
@@ -133,10 +136,10 @@ func (p *Provider) Transcode(ctx context.Context, input io.Reader, spec media.Tr
 //
 // Takes input (io.Reader) which provides the video data to analyse.
 //
-// Returns media.VideoCapabilities which contains the extracted metadata
-// including dimensions, codec, duration, bitrate, and framerate.
-// Returns error when the input format context cannot be created or no video
-// stream is found.
+// Returns media.VideoCapabilities which contains the extracted metadata including
+// dimensions, codec, duration, bitrate, and framerate.
+// Returns error when the input format context cannot be created or no video stream is
+// found.
 func (p *Provider) ExtractCapabilities(ctx context.Context, input io.Reader) (media.VideoCapabilities, error) {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "Provider.ExtractCapabilities")
@@ -195,8 +198,8 @@ func (p *Provider) SupportsCodec(codec string) bool {
 	return p.codecRegistry.SupportsCodec(codec)
 }
 
-// TranscodeHLS generates HLS manifest and segments.
-// This will be implemented in Phase 3.
+// TranscodeHLS is the planned HLS manifest and segment generator. The current build
+// returns an unimplemented error.
 //
 // Returns media.HLSResult which contains the manifest and segment paths.
 // Returns error when the transcoding fails.
@@ -209,8 +212,7 @@ func (*Provider) TranscodeHLS(ctx context.Context, _ io.Reader, _ media.HLSSpec)
 	return media.HLSResult{}, errors.New("HLS transcoding not yet implemented")
 }
 
-// ExtractThumbnail extracts a single frame from a video and encodes it as an
-// image.
+// ExtractThumbnail extracts a single frame from a video and encodes it as an image.
 //
 // Takes input (io.Reader) which provides the source video data.
 // Takes spec (ThumbnailSpec) which defines the extraction parameters.
@@ -249,12 +251,10 @@ func (p *Provider) ExtractThumbnail(ctx context.Context, input io.Reader, spec m
 	return p.scaleThumbnailAndEncode(ctx, frame, spec)
 }
 
-// acquireSemaphore attempts to acquire a transcode semaphore
-// slot, blocking until a slot is available or the context is
-// cancelled.
+// acquireSemaphore attempts to acquire a transcode semaphore slot, blocking until a slot
+// is available or the context is cancelled.
 //
-// Returns error when the context is cancelled before a slot
-// becomes available.
+// Returns error when the context is cancelled before a slot becomes available.
 func (p *Provider) acquireSemaphore(ctx context.Context) error {
 	select {
 	case p.semaphore <- struct{}{}:
@@ -264,14 +264,12 @@ func (p *Provider) acquireSemaphore(ctx context.Context) error {
 	}
 }
 
-// validateTranscodeSpec applies codec defaults and validates
-// the transcode specification.
+// validateTranscodeSpec applies codec defaults and validates the transcode specification.
 //
-// Takes spec (*media.TranscodeSpec) which is the specification
-// to validate and populate with defaults.
+// Takes spec (*media.TranscodeSpec) which is the specification to validate and populate
+// with defaults.
 //
-// Returns error when defaults cannot be applied or the spec
-// is invalid.
+// Returns error when defaults cannot be applied or the spec is invalid.
 func (p *Provider) validateTranscodeSpec(ctx context.Context, spec *media.TranscodeSpec) error {
 	if err := p.codecRegistry.ApplyDefaults(spec); err != nil {
 		return err
@@ -285,20 +283,18 @@ func (p *Provider) validateTranscodeSpec(ctx context.Context, spec *media.Transc
 	return nil
 }
 
-// startTranscodeGoroutine spawns the asynchronous transcode
-// pipeline and returns a reader for consuming the output.
+// startTranscodeGoroutine spawns the asynchronous transcode pipeline and returns a reader
+// for consuming the output.
 //
 // Takes input (io.Reader) which provides the source video data.
-// Takes spec (media.TranscodeSpec) which defines the transcode
-// settings.
-// Takes l (logger.Logger) which is used for logging within the
-// spawned goroutine.
+// Takes spec (media.TranscodeSpec) which defines the transcode settings.
+// Takes l (logger.Logger) which is used for logging within the spawned goroutine.
 //
 // Returns io.ReadCloser which streams the transcoded output.
 // Returns error when the pipe cannot be created.
 //
-// Safe for concurrent use; the spawned goroutine writes to an
-// io.Pipe independently of the caller.
+// Safe for concurrent use; the spawned goroutine writes to an io.Pipe independently of
+// the caller.
 func (p *Provider) startTranscodeGoroutine(
 	ctx context.Context, input io.Reader, spec media.TranscodeSpec, l logger.Logger,
 ) (io.ReadCloser, error) {
@@ -321,14 +317,12 @@ func (p *Provider) startTranscodeGoroutine(
 	return outputReader, nil
 }
 
-// decodeThumbnailFrame locates the video stream, optionally
-// seeks to the requested timestamp, and decodes the first
-// available frame.
+// decodeThumbnailFrame locates the video stream, optionally seeks to the requested
+// timestamp, and decodes the first available frame.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides access
-// to the input media container.
-// Takes spec (media.ThumbnailSpec) which defines the timestamp
-// and extraction parameters.
+// Takes inputCtx (*astiav.FormatContext) which provides access to the input media
+// container.
+// Takes spec (media.ThumbnailSpec) which defines the timestamp and extraction parameters.
 //
 // Returns *astiav.Frame which contains the decoded video frame.
 // Returns error when no video stream is found or decoding fails.
@@ -363,13 +357,12 @@ func (p *Provider) decodeThumbnailFrame(
 	return p.decodeFirstFrame(ctx, inputCtx, decoder, videoStreamIndex)
 }
 
-// scaleThumbnailAndEncode optionally scales the frame and
-// encodes it to the requested image format.
+// scaleThumbnailAndEncode optionally scales the frame and encodes it to the requested
+// image format.
 //
-// Takes frame (*astiav.Frame) which contains the decoded video
-// frame to process.
-// Takes spec (media.ThumbnailSpec) which defines the desired
-// dimensions and output format.
+// Takes frame (*astiav.Frame) which contains the decoded video frame to process.
+// Takes spec (media.ThumbnailSpec) which defines the desired dimensions and output
+// format.
 //
 // Returns io.ReadCloser which streams the encoded image data.
 // Returns error when scaling or encoding fails.
@@ -465,14 +458,13 @@ func (*Provider) createDecoder(ctx context.Context, stream *astiav.Stream) (*ast
 
 // decodeFirstFrame reads and decodes the first available video frame.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides access to the input
-// media container.
+// Takes inputCtx (*astiav.FormatContext) which provides access to the input media
+// container.
 // Takes decoder (*astiav.CodecContext) which decodes the video stream.
 // Takes videoStreamIndex (int) which identifies which stream to decode.
 //
 // Returns *astiav.Frame which contains the first decoded video frame.
-// Returns error when packet allocation fails, no frames exist, or decoding
-// fails.
+// Returns error when packet allocation fails, no frames exist, or decoding fails.
 func (*Provider) decodeFirstFrame(
 	ctx context.Context,
 	inputCtx *astiav.FormatContext,
@@ -516,19 +508,14 @@ func (*Provider) decodeFirstFrame(
 
 // scaleFrame scales a frame to the given size.
 //
-// Takes source (*astiav.Frame) which is the source frame to
-// scale.
-// Takes targetWidth (int) which is the desired output width.
-// Set to zero to work out the width from the height while
-// keeping the aspect ratio.
-// Takes targetHeight (int) which is the desired output height.
-// Set to zero to work out the height from the width while
-// keeping the aspect ratio.
+// Takes source (*astiav.Frame) which is the source frame to scale.
+// Takes targetWidth (int) which is the desired output width. Set to zero to work out the
+// width from the height while keeping the aspect ratio.
+// Takes targetHeight (int) which is the desired output height. Set to zero to work out
+// the height from the width while keeping the aspect ratio.
 //
-// Returns *astiav.Frame which is the scaled frame in RGB24
-// format.
-// Returns error when the scaler cannot be created or scaling
-// fails.
+// Returns *astiav.Frame which is the scaled frame in RGB24 format.
+// Returns error when the scaler cannot be created or scaling fails.
 func (*Provider) scaleFrame(ctx context.Context, source *astiav.Frame, targetWidth, targetHeight int) (*astiav.Frame, error) {
 	ctx, l := logger.From(ctx, log)
 	_, span, _ := l.Span(ctx, "scaleFrame")
@@ -633,14 +620,13 @@ func (*Provider) encodeFrameToImage(ctx context.Context, frame *astiav.Frame, fo
 	return imageData, nil
 }
 
-// createInputFormatContext creates an FFmpeg input format context from an
-// io.Reader.
+// createInputFormatContext creates an FFmpeg input format context from an io.Reader.
 //
 // Takes input (io.Reader) which provides the media data to be read.
 //
 // Returns *astiav.FormatContext which is the configured input format context.
-// Returns error when allocation fails, IO context creation fails, or stream
-// info cannot be found.
+// Returns error when allocation fails, IO context creation fails, or stream info cannot
+// be found.
 func (*Provider) createInputFormatContext(ctx context.Context, input io.Reader) (*astiav.FormatContext, error) {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "createInputFormatContext")
@@ -689,13 +675,11 @@ func (*Provider) createInputFormatContext(ctx context.Context, input io.Reader) 
 	return inputFormatContext, nil
 }
 
-// recordTranscodeMetrics records duration and codec-specific
-// counters after a successful transcode.
+// recordTranscodeMetrics records duration and codec-specific counters after a successful
+// transcode.
 //
-// Takes codec (string) which identifies which codec counter
-// to increment.
-// Takes duration (time.Duration) which is the elapsed
-// transcoding time to record.
+// Takes codec (string) which identifies which codec counter to increment.
+// Takes duration (time.Duration) which is the elapsed transcoding time to record.
 func recordTranscodeMetrics(ctx context.Context, codec string, duration time.Duration) {
 	TranscodeDuration.Record(ctx, float64(duration.Milliseconds()))
 	TranscodeCount.Add(ctx, 1)
@@ -710,14 +694,13 @@ func recordTranscodeMetrics(ctx context.Context, codec string, duration time.Dur
 	}
 }
 
-// findFirstVideoStreamIndex returns the index of the first
-// video stream, or -1 if none is found.
+// findFirstVideoStreamIndex returns the index of the first video stream, or -1 if none is
+// found.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides access
-// to the media container's streams.
+// Takes inputCtx (*astiav.FormatContext) which provides access to the media container's
+// streams.
 //
-// Returns int which is the zero-based stream index, or -1 when
-// no video stream exists.
+// Returns int which is the zero-based stream index, or -1 when no video stream exists.
 func findFirstVideoStreamIndex(inputCtx *astiav.FormatContext) int {
 	for i := range inputCtx.NbStreams() {
 		stream := inputCtx.Streams()[i]
@@ -728,13 +711,12 @@ func findFirstVideoStreamIndex(inputCtx *astiav.FormatContext) int {
 	return -1
 }
 
-// readFrameError converts a ReadFrame error into a user-facing
-// error, translating EOF into a descriptive message.
+// readFrameError converts a ReadFrame error into a user-facing error, translating EOF
+// into a descriptive message.
 //
 // Takes err (error) which is the original ReadFrame error.
 //
-// Returns error which wraps the original or replaces EOF with
-// a descriptive message.
+// Returns error which wraps the original or replaces EOF with a descriptive message.
 func readFrameError(err error) error {
 	if errors.Is(err, astiav.ErrEof) {
 		return errNoFramesInVideo
@@ -742,20 +724,15 @@ func readFrameError(err error) error {
 	return fmt.Errorf("reading frame: %w", err)
 }
 
-// tryDecodeVideoPacket attempts to decode a single packet for
-// the target video stream.
+// tryDecodeVideoPacket attempts to decode a single packet for the target video stream.
 //
-// Takes decoder (*astiav.CodecContext) which decodes the video
-// packet.
+// Takes decoder (*astiav.CodecContext) which decodes the video packet.
 // Takes packet (*astiav.Packet) which is the packet to decode.
-// Takes frame (*astiav.Frame) which receives the decoded frame
-// data.
-// Takes videoStreamIndex (int) which identifies the target
-// stream.
+// Takes frame (*astiav.Frame) which receives the decoded frame data.
+// Takes videoStreamIndex (int) which identifies the target stream.
 //
-// Returns bool which is true when a frame was successfully
-// decoded, false when the packet was skipped or more data is
-// needed.
+// Returns bool which is true when a frame was successfully decoded, false when the packet
+// was skipped or more data is needed.
 // Returns error when decoding fails.
 func tryDecodeVideoPacket(
 	decoder *astiav.CodecContext, packet *astiav.Packet,

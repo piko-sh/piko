@@ -18,9 +18,9 @@
 
 package generator_domain
 
-// GeneratorPathsConfig holds the resolved path values needed by the generator
-// service. All fields are value types; pointer-to-value conversion is performed
-// in the bootstrap layer.
+// GeneratorPathsConfig holds the resolved path values needed by the generator service.
+// All fields are value types; pointer-to-value conversion is performed in the bootstrap
+// layer.
 type GeneratorPathsConfig struct {
 	// BaseDir is the root directory of the website project.
 	BaseDir string

@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package capabilities provides a registry for named capabilities that can be
-// invoked to transform content.
+// Package capabilities provides a registry for named capabilities that can be invoked to
+// transform content.
 //
-// Capabilities are pluggable functions for tasks such as compression,
-// minification, image processing, video transcoding, and component
-// compilation. Factory functions here create a service with all built-in
-// capabilities registered. Some capabilities require optional provider
-// dependencies passed via functional options.
+// Capabilities are pluggable functions for tasks such as compression, minification, image
+// processing, video transcoding, and component compilation. Factory functions here create
+// a service with all built-in capabilities registered. Some capabilities require optional
+// provider dependencies passed via functional options.
 //
-// Sub-packages contain the domain interfaces, data transfer objects, and
-// built-in capability implementations.
+// Sub-packages contain the domain interfaces, data transfer objects, and built-in
+// capability implementations.
 //
 // # Usage
 //
@@ -45,6 +44,6 @@
 //
 // # Thread safety
 //
-// The Service implementation is safe for concurrent use. Capabilities can be
-// registered and executed from multiple goroutines.
+// The Service implementation is safe for concurrent use. Capabilities can be registered
+// and executed from multiple goroutines.
 package capabilities

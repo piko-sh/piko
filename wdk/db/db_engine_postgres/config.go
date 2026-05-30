@@ -23,8 +23,11 @@ import (
 	"piko.sh/piko/wdk/db"
 )
 
-// Postgres returns an EngineConfig for PostgreSQL databases with advisory
-// lock-based migration locking.
+// Postgres returns a Postgres engine configuration.
+//
+// Configures advisory lock-based migration locking.
+//
+// Returns db.EngineConfig which carries the driver name, engine, and migration dialect.
 func Postgres() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "postgres",
@@ -33,9 +36,12 @@ func Postgres() db.EngineConfig {
 	}
 }
 
-// PostgresPgBouncer returns an EngineConfig for PostgreSQL databases behind
-// PgBouncer in transaction mode, using table-based locking instead of
-// advisory locks.
+// PostgresPgBouncer returns a Postgres engine configuration for PgBouncer.
+//
+// Targets PgBouncer transaction mode and uses table-based locking instead of advisory
+// locks.
+//
+// Returns db.EngineConfig which carries the driver name, engine, and migration dialect.
 func PostgresPgBouncer() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "postgres",

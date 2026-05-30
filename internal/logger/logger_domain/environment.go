@@ -27,9 +27,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
-// envMapping defines how a single environment variable maps to slog and OTEL
-// attributes. When the env var is present and non-empty, both attributes are
-// emitted.
+// envMapping defines how a single environment variable maps to slog and OTEL attributes.
+// When the env var is present and non-empty, both attributes are emitted.
 type envMapping struct {
 	// otelFunction builds an OTEL resource attribute from the env var value.
 	otelFunction func(string) attribute.KeyValue
@@ -41,11 +40,10 @@ type envMapping struct {
 	slogKey string
 }
 
-// runtimeEnvProbe detects which runtime environment the process is in based
-// on the presence of a sentinel environment variable. The first match wins.
+// runtimeEnvProbe detects which runtime environment the process is in based on the
+// presence of a sentinel environment variable. The first match wins.
 type runtimeEnvProbe struct {
-	// envKey is the sentinel environment variable whose presence indicates
-	// this runtime.
+	// envKey is the sentinel environment variable whose presence indicates this runtime.
 	envKey string
 
 	// label is the value emitted for the runtime.environment attribute.
@@ -78,9 +76,9 @@ var (
 		{envKey: "PIKO_SERVICE_VERSION", slogKey: "service.version", otelFunction: semconv.ServiceVersion},
 	}
 
-	// runtimeEnvProbes is checked in order; the first matching sentinel env var
-	// determines the runtime.environment label. Detection is presence-only: the
-	// value of the variable is not used.
+	// runtimeEnvProbes is checked in order; the first matching sentinel env var determines
+	// the runtime.environment label. Detection is presence-only: the value of the variable
+	// is not used.
 	runtimeEnvProbes = []runtimeEnvProbe{
 		{envKey: "POD_NAME", label: "kubernetes"},
 		{envKey: "AWS_LAMBDA_FUNCTION_NAME", label: "aws-lambda"},
@@ -89,13 +87,13 @@ var (
 		{envKey: "ECS_CONTAINER_METADATA_URI_V4", label: "aws-ecs"},
 	}
 
-	// cachedDetection stores the one-time detection result. Both
-	// EnvironmentSlogAttrs and EnvironmentOtelAttrs read from this cache.
+	// cachedDetection stores the one-time detection result. Both EnvironmentSlogAttrs and
+	// EnvironmentOtelAttrs read from this cache.
 	cachedDetection = sync.OnceValues(detectEnvironment)
 )
 
-// EnvironmentSlogAttrs returns the detected environment attributes for slog
-// logger enrichment via Logger.With().
+// EnvironmentSlogAttrs returns the detected environment attributes for slog logger
+// enrichment via Logger.With().
 //
 // Returns []slog.Attr which contains the detected environment attributes.
 func EnvironmentSlogAttrs() []slog.Attr {
@@ -103,8 +101,8 @@ func EnvironmentSlogAttrs() []slog.Attr {
 	return attrs
 }
 
-// EnvironmentOtelAttrs returns the detected environment attributes for OTEL
-// resource enrichment.
+// EnvironmentOtelAttrs returns the detected environment attributes for OTEL resource
+// enrichment.
 //
 // Returns []attribute.KeyValue which contains the detected OTEL attributes.
 func EnvironmentOtelAttrs() []attribute.KeyValue {
@@ -112,8 +110,8 @@ func EnvironmentOtelAttrs() []attribute.KeyValue {
 	return otelAttrs
 }
 
-// EnvironmentOverridesServiceName reports whether the environment provides a
-// service name override via PIKO_SERVICE_NAME.
+// EnvironmentOverridesServiceName reports whether the environment provides a service name
+// override via PIKO_SERVICE_NAME.
 //
 // Returns bool which is true when PIKO_SERVICE_NAME is set.
 func EnvironmentOverridesServiceName() bool {
@@ -121,8 +119,8 @@ func EnvironmentOverridesServiceName() bool {
 	return ok
 }
 
-// EnvironmentOverridesServiceVersion reports whether the environment provides
-// a service version override via PIKO_SERVICE_VERSION.
+// EnvironmentOverridesServiceVersion reports whether the environment provides a service
+// version override via PIKO_SERVICE_VERSION.
 //
 // Returns bool which is true when PIKO_SERVICE_VERSION is set.
 func EnvironmentOverridesServiceVersion() bool {
@@ -130,8 +128,7 @@ func EnvironmentOverridesServiceVersion() bool {
 	return ok
 }
 
-// SlogAttrsToAny converts a slice of slog.Attr to []any for use with
-// slog.Logger.With().
+// SlogAttrsToAny converts a slice of slog.Attr to []any for use with slog.Logger.With().
 //
 // Takes attrs ([]slog.Attr) which contains the attributes to convert.
 //
@@ -144,8 +141,8 @@ func SlogAttrsToAny(attrs []slog.Attr) []any {
 	return result
 }
 
-// detectEnvironment reads well-known environment variables and returns slog
-// and OTEL resource attributes for any that are present and non-empty.
+// detectEnvironment reads well-known environment variables and returns slog and OTEL
+// resource attributes for any that are present and non-empty.
 //
 // Returns []slog.Attr which contains the slog attributes for detected vars.
 // Returns []attribute.KeyValue which contains the OTEL attributes.

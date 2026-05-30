@@ -25,14 +25,14 @@ import (
 )
 
 // BuildASTFunc is the signature of the generated BuildAST function in compiled
-// components. It takes a RequestData and props, and returns the AST, metadata,
-// and any runtime diagnostics.
+// components. It takes a RequestData and props, and returns the AST, metadata, and any
+// runtime diagnostics.
 type BuildASTFunc func(
 	r *templater_dto.RequestData,
 	propsData any,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*RuntimeDiagnostic)
 
-// RuntimeDiagnostic represents a runtime error or warning from component
-// execution. This is a type alias to generator_dto.RuntimeDiagnostic for
-// compatibility with the generated BuildAST functions.
+// RuntimeDiagnostic represents a runtime error or warning from component execution. This
+// is a type alias to generator_dto.RuntimeDiagnostic for compatibility with the generated
+// BuildAST functions.
 type RuntimeDiagnostic = generator_dto.RuntimeDiagnostic

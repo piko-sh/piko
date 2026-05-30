@@ -24,21 +24,22 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 )
 
-// EmitterFactory creates go_literal emitter instances.
-// It implements CodeEmitterFactoryPort.
+// EmitterFactory creates go_literal emitter instances. It implements
+// CodeEmitterFactoryPort.
 type EmitterFactory struct {
-	// prerenderer renders static nodes to HTML bytes at generation time.
-	// May be nil, in which case prerendering is disabled.
+	// prerenderer renders static nodes to HTML bytes at generation time. May be nil, in
+	// which case prerendering is disabled.
 	prerenderer generator_domain.StaticPrerenderer
 }
 
-var _ generator_domain.CodeEmitterFactoryPort = (*EmitterFactory)(nil)
+var (
+	_ generator_domain.CodeEmitterFactoryPort = (*EmitterFactory)(nil)
+)
 
 // NewEmitterFactory creates a new emitter factory.
 //
-// Takes prerenderer (generator_domain.StaticPrerenderer) which
-// renders static nodes to HTML bytes at generation time. May be
-// nil to disable prerendering.
+// Takes prerenderer (generator_domain.StaticPrerenderer) which renders static nodes to
+// HTML bytes at generation time. May be nil to disable prerendering.
 //
 // Returns *EmitterFactory which is the new factory instance.
 func NewEmitterFactory(_ context.Context, prerenderer generator_domain.StaticPrerenderer) *EmitterFactory {
@@ -47,8 +48,8 @@ func NewEmitterFactory(_ context.Context, prerenderer generator_domain.StaticPre
 	}
 }
 
-// NewEmitter creates and returns a new emitter instance that satisfies the
-// factory's contract.
+// NewEmitter creates and returns a new emitter instance that satisfies the factory's
+// contract.
 //
 // Returns generator_domain.CodeEmitterPort which is the emitter instance.
 func (f *EmitterFactory) NewEmitter() generator_domain.CodeEmitterPort {

@@ -16,6 +16,5 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package contextaware wraps standard library types to respect context
-// cancellation.
+// Package contextaware wraps standard library types to respect context cancellation.
 package contextaware

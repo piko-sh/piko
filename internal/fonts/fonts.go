@@ -18,22 +18,28 @@
 
 package fonts
 
-import _ "embed"
+import (
+	_ "embed"
+)
 
-// NotoSansFamilyName is the CSS family name used for NotoSans fonts.
-const NotoSansFamilyName = "NotoSans"
+const (
+	// NotoSansFamilyName is the CSS family name used for NotoSans fonts.
+	NotoSansFamilyName = "NotoSans"
+)
 
-// NotoSansRegularTTF holds the embedded NotoSans-Regular TrueType font data.
-//
-//go:embed NotoSans-Regular.ttf
-var NotoSansRegularTTF []byte
+var (
+	// NotoSansRegularTTF holds the embedded NotoSans-Regular TrueType font data.
+	//
+	//go:embed NotoSans-Regular.ttf
+	NotoSansRegularTTF []byte
 
-// NotoSansBoldTTF holds the embedded NotoSans-Bold TrueType font data.
-//
-//go:embed NotoSans-Bold.ttf
-var NotoSansBoldTTF []byte
+	// NotoSansBoldTTF holds the embedded NotoSans-Bold TrueType font data.
+	//
+	//go:embed NotoSans-Bold.ttf
+	NotoSansBoldTTF []byte
 
-// NotoSansVariableTTF holds the embedded NotoSans variable-weight TrueType font data.
-//
-//go:embed NotoSans-VariableFont_wght.ttf
-var NotoSansVariableTTF []byte
+	// NotoSansVariableTTF holds the embedded NotoSans variable-weight TrueType font data.
+	//
+	//go:embed NotoSans-VariableFont_wght.ttf
+	NotoSansVariableTTF []byte
+)

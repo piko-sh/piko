@@ -25,8 +25,7 @@ import (
 	"strings"
 )
 
-// FitMode determines how an image is resized when both width and height are
-// set.
+// FitMode determines how an image is resized when both width and height are set.
 type FitMode string
 
 const (
@@ -49,49 +48,47 @@ const (
 	FitOutside FitMode = "outside"
 )
 
-// ResponsiveSpec holds configuration for generating responsive image variants.
-// It enables generation of multiple image sizes for srcset attributes.
+// ResponsiveSpec holds configuration for generating responsive image variants. It enables
+// generation of multiple image sizes for srcset attributes.
 type ResponsiveSpec struct {
-	// Screens maps breakpoint names to pixel widths (e.g., {"sm": 640, "md":
-	// 768}). Used to convert the Sizes string into actual pixel widths.
+	// Screens maps breakpoint names to pixel widths (e.g., {"sm": 640, "md": 768}). Used to
+	// convert the Sizes string into actual pixel widths.
 	Screens map[string]int
 
-	// Sizes defines viewport-based widths, such as "100vw sm:50vw md:400px".
-	// The parser finds each distinct width for every breakpoint.
+	// Sizes defines viewport-based widths, such as "100vw sm:50vw md:400px". The parser
+	// finds each distinct width for every breakpoint.
 	Sizes string
 
-	// Densities is a list of pixel density multipliers (e.g., ["x1", "x2", "x3"]).
-	// For each base width, a variant is created at each density.
+	// Densities is a list of pixel density multipliers (e.g., ["x1", "x2", "x3"]). For each
+	// base width, a variant is created at each density.
 	Densities []string
 }
 
-// PlaceholderSpec holds configuration for generating LQIP (Low Quality Image
-// Placeholder). Placeholders are tiny, heavily blurred versions of images used
-// during initial page load.
+// PlaceholderSpec holds configuration for generating a low-quality image preview (LQIP),
+// a tiny, heavily blurred copy of the source image used during initial page load.
 type PlaceholderSpec struct {
 	// Enabled indicates whether to generate a placeholder image.
 	Enabled bool
 
-	// Width is the target width for the placeholder in pixels (typically very
-	// small, e.g., 20px). If 0, a default of 20px will be used.
+	// Width is the target width for the placeholder in pixels (typically very small, e.g.,
+	// 20px). If 0, a default of 20px will be used.
 	Width int
 
-	// Height is the target height in pixels for the placeholder image.
-	// If 0, it is worked out from the aspect ratio.
+	// Height is the target height in pixels for the placeholder image. If 0, it is worked
+	// out from the aspect ratio.
 	Height int
 
-	// Quality is the compression quality for the placeholder.
-	// Valid range is 1-100; typically very low, like 10.
+	// Quality is the compression quality for the placeholder. Valid range is 1-100;
+	// typically very low, like 10.
 	Quality int
 
-	// BlurSigma is the blur strength applied to the placeholder.
-	// Typically 5.0 or higher; must not be negative.
+	// BlurSigma is the blur strength applied to the placeholder. Typically 5.0 or higher;
+	// must not be negative.
 	BlurSigma float64
 }
 
-// ResponsiveVariant represents a single image variant generated for responsive
-// images. It contains the transformation result and metadata for building
-// srcset attributes.
+// ResponsiveVariant represents a single image variant generated for responsive images. It
+// contains the transformation result and metadata for building srcset attributes.
 type ResponsiveVariant struct {
 	// Density is the pixel density multiplier (e.g., "x1", "x2", "x3").
 	Density string
@@ -99,12 +96,11 @@ type ResponsiveVariant struct {
 	// URL is the address or path for this variant, usually set by the caller.
 	URL string
 
-	// SrcsetEntry is the full srcset entry for this variant, in the format
-	// "url widthw" or "url densityx" (e.g. "/images/hero-800.webp 800w").
+	// SrcsetEntry is the full srcset entry for this variant, in the format "url widthw" or
+	// "url densityx" (e.g. "/images/hero-800.webp 800w").
 	SrcsetEntry string
 
-	// Specification is the full transformation specification used
-	// to generate this variant.
+	// Specification is the full transformation specification used to generate this variant.
 	Specification TransformationSpec
 
 	// Width is the width of this variant in pixels.
@@ -114,42 +110,40 @@ type ResponsiveVariant struct {
 	Height int
 }
 
-// TransformationSpec holds all desired operations for an image, such as
-// resizing, format conversion, and quality adjustments. It is the central
-// configuration object for any image processing task.
+// TransformationSpec holds all desired operations for an image, such as resizing, format
+// conversion, and quality adjustments. It is the central configuration object for any
+// image processing task.
 type TransformationSpec struct {
-	// Placeholder holds configuration for generating a low-quality image
-	// placeholder (LQIP). If nil, no placeholder is generated.
+	// Placeholder configures generation of a low-quality image preview (LQIP). When nil, no
+	// preview is generated.
 	Placeholder *PlaceholderSpec
 
-	// Responsive holds configuration for generating multiple responsive image
-	// variants. If nil, only a single image is generated.
+	// Responsive holds configuration for generating multiple responsive image variants. If
+	// nil, only a single image is generated.
 	Responsive *ResponsiveSpec
 
-	// Modifiers holds provider-specific key/value options not covered by standard
-	// fields.
+	// Modifiers holds provider-specific key/value options not covered by standard fields.
 	Modifiers map[string]string
 
-	// Format is the target output format, e.g., "webp", "jpeg", "png", "avif".
-	// It will be normalised to lowercase.
+	// Format is the target output format, e.g., "webp", "jpeg", "png", "avif". It will be
+	// normalised to lowercase.
 	Format string
 
-	// Fit determines how the image is resized when both width and height are
-	// set. Defaults to FitContain.
+	// Fit determines how the image is resized when both width and height are set. Defaults
+	// to FitContain.
 	Fit FitMode
 
-	// AspectRatio specifies the target aspect ratio such as "16:9", "4:3", or
-	// "1:1". When set, one dimension may be left out and will be worked out from
-	// the ratio.
+	// AspectRatio specifies the target aspect ratio such as "16:9", "4:3", or "1:1". When
+	// set, one dimension may be left out and will be worked out from the ratio.
 	AspectRatio string
 
-	// Provider is the name of the image transformer to use, such as "vips" or
-	// "imaging". If empty, the domain service default is used.
+	// Provider is the name of the image transformer to use, such as "vips" or "imaging". If
+	// empty, the domain service default is used.
 	Provider string
 
-	// Background is the hex colour (e.g., "#FFFFFF") used for letterboxing in
-	// "contain" mode or to fill transparent areas. If empty, defaults to
-	// transparent or black depending on format.
+	// Background is the hex colour (e.g., "#FFFFFF") used for letterboxing in "contain" mode
+	// or to fill transparent areas. If empty, defaults to transparent or black depending on
+	// format.
 	Background string
 
 	// Quality controls the compression level (1-100). Meaning varies by format:
@@ -159,18 +153,16 @@ type TransformationSpec struct {
 	// Height is the output image height in pixels; 0 keeps the aspect ratio.
 	Height int
 
-	// Width is the output image width in pixels. If 0, the aspect ratio is
-	// kept based on Height.
+	// Width is the output image width in pixels. If 0, the aspect ratio is kept based on
+	// Height.
 	Width int
 
-	// WithoutEnlargement prevents images from being scaled up beyond their
-	// original size. When true, images smaller than the target size keep their
-	// original dimensions.
+	// WithoutEnlargement prevents images from being scaled up beyond their original size.
+	// When true, images smaller than the target size keep their original dimensions.
 	WithoutEnlargement bool
 }
 
-// String returns a text form of the transformation settings for use as a
-// cache key.
+// String returns a text form of the transformation settings for use as a cache key.
 //
 // Returns string which contains all transformation fields in a fixed format.
 func (s TransformationSpec) String() string {
@@ -204,8 +196,7 @@ func (s TransformationSpec) String() string {
 	return b.String()
 }
 
-// DefaultTransformationSpec returns a TransformationSpec with sensible default
-// values.
+// DefaultTransformationSpec returns a TransformationSpec with sensible default values.
 //
 // Returns TransformationSpec which uses WebP format and contain fit mode.
 func DefaultTransformationSpec() TransformationSpec {

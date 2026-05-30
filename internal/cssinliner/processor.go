@@ -41,8 +41,8 @@ type ProcessorConfig struct {
 	// Options controls CSS output formatting (minification, etc.).
 	Options *config.Options
 
-	// DiagnosticCode is assigned to diagnostics generated during processing
-	// (e.g. "T114" for import errors, "T115" for processing errors).
+	// DiagnosticCode is assigned to diagnostics generated during processing (e.g. "T114" for
+	// import errors, "T115" for processing errors).
 	DiagnosticCode string
 
 	// Loader configures the CSS parser mode (e.g. LoaderLocalCSS).
@@ -82,17 +82,17 @@ func NewProcessor(cfg ProcessorConfig) *Processor {
 	}
 }
 
-// SetResolver updates the resolver used for @import resolution.
-// This is used by the LSP to provide per-module resolvers.
+// SetResolver updates the resolver used for @import resolution. This is used by the LSP
+// to provide per-module resolvers.
 //
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 func (p *Processor) SetResolver(resolver resolver_domain.ResolverPort) {
 	p.resolver = resolver
 }
 
-// WithResolver returns a shallow copy of the Processor that uses the given
-// resolver. This is safe for concurrent use because the copy does not share
-// mutable state with the original.
+// WithResolver returns a shallow copy of the Processor that uses the given resolver. This
+// is safe for concurrent use because the copy does not share mutable state with the
+// original.
 //
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 //
@@ -127,8 +127,8 @@ func (p *Processor) GetResolver() resolver_domain.ResolverPort {
 	return p.resolver
 }
 
-// Process takes a raw CSS string, resolves all @import rules, cleans the AST,
-// and returns the final printed result. This is the string-in/string-out API.
+// Process takes a raw CSS string, resolves all @import rules, cleans the AST, and returns
+// the final printed result. This is the string-in/string-out API.
 //
 // Takes cssBlock (string) which contains the raw CSS to process.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
@@ -189,8 +189,8 @@ func (p *Processor) Process(
 	return result, inlinerDiags, nil
 }
 
-// InlineToAST resolves all @import rules in a raw CSS string and returns the
-// cleaned syntax tree for further manipulation.
+// InlineToAST resolves all @import rules in a raw CSS string and returns the cleaned
+// syntax tree for further manipulation.
 //
 // Takes cssBlock (string) which contains the raw CSS to process.
 // Takes sourcePath (string) which identifies the source file for diagnostics.

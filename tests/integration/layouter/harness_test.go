@@ -67,92 +67,94 @@ type layouterHarness struct {
 	actionContext   *browserpkg.ActionContext
 }
 
-var serverMainTemplate = template.Must(template.New("main.go").Parse(`package main
+var (
+	serverMainTemplate = template.Must(template.New("main.go").Parse(`package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"strconv"
+	import (
+		"encoding/json"
+		"fmt"
+		"os"
+		"strconv"
 
-	"piko.sh/piko"
-	"piko.sh/piko/wdk/runtime"
-	_ "{{.ModuleName}}/dist"
-)
-
-func main() {
-	if os.Getenv("PIKO_EXTRACT_POSITIONS") == "1" {
-		extractPositions()
-		return
-	}
-
-	portString := os.Getenv("PIKO_TEST_PORT")
-	if portString == "" {
-		portString = "8080"
-	}
-	port, _ := strconv.Atoi(portString)
-
-	server := piko.New(
-		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		"piko.sh/piko"
+		"piko.sh/piko/wdk/runtime"
+		_ "{{.ModuleName}}/dist"
 	)
-	server.Configure(piko.PublicConfig{
-		BaseDir:        ".",
-		PagesSourceDir: "pages",
-		Port:           port,
-	})
 
-	fmt.Printf("Test server starting on port %s\n", portString)
-	if err := server.Run(piko.RunModeProd); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
-	}
-}
+	func main() {
+		if os.Getenv("PIKO_EXTRACT_POSITIONS") == "1" {
+			extractPositions()
+			return
+		}
 
-func extractPositions() {
-	manifestPath := os.Getenv("PIKO_MANIFEST_PATH")
-	requestPath := os.Getenv("PIKO_REQUEST_PATH")
-	fontPath := os.Getenv("PIKO_FONT_PATH")
-	viewportWidth, _ := strconv.Atoi(os.Getenv("PIKO_VIEWPORT_WIDTH"))
-	viewportHeight, _ := strconv.Atoi(os.Getenv("PIKO_VIEWPORT_HEIGHT"))
+		portString := os.Getenv("PIKO_TEST_PORT")
+		if portString == "" {
+			portString = "8080"
+		}
+		port, _ := strconv.Atoi(portString)
 
-	fontData, err := os.ReadFile(fontPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read font file: %v\n", err)
-		os.Exit(1)
-	}
+		server := piko.New(
+			piko.WithCSSReset(piko.WithCSSResetComplete()),
+		)
+		server.Configure(piko.PublicConfig{
+			BaseDir:        ".",
+			PagesSourceDir: "pages",
+			Port:           port,
+		})
 
-	config := runtime.LayoutPositionConfig{
-		ManifestPath:   manifestPath,
-		RequestPath:    requestPath,
-		ViewportWidth:  viewportWidth,
-		ViewportHeight: viewportHeight,
-		FontData:       fontData,
-		AttributeName:  "data-layout-id",
+		fmt.Printf("Test server starting on port %s\n", portString)
+		if err := server.Run(piko.RunModeProd); err != nil {
+			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
-	if os.Getenv("PIKO_PAGINATE") == "1" {
-		config.Paginate = true
-		config.PageWidthPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_WIDTH_PX"), 64)
-		config.PageHeightPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_HEIGHT_PX"), 64)
-		config.PageMarginPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_MARGIN_PX"), 64)
-	}
+	func extractPositions() {
+		manifestPath := os.Getenv("PIKO_MANIFEST_PATH")
+		requestPath := os.Getenv("PIKO_REQUEST_PATH")
+		fontPath := os.Getenv("PIKO_FONT_PATH")
+		viewportWidth, _ := strconv.Atoi(os.Getenv("PIKO_VIEWPORT_WIDTH"))
+		viewportHeight, _ := strconv.Atoi(os.Getenv("PIKO_VIEWPORT_HEIGHT"))
 
-	if extraCSS := os.Getenv("PIKO_EXTRA_CSS"); extraCSS != "" {
-		config.ExtraStylesheets = append(config.ExtraStylesheets, extraCSS)
-	}
+		fontData, err := os.ReadFile(fontPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to read font file: %v\n", err)
+			os.Exit(1)
+		}
 
-	positions, err := runtime.ExtractLayoutPositions(config)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "layout extraction failed: %v\n", err)
-		os.Exit(1)
-	}
+		config := runtime.LayoutPositionConfig{
+			ManifestPath:   manifestPath,
+			RequestPath:    requestPath,
+			ViewportWidth:  viewportWidth,
+			ViewportHeight: viewportHeight,
+			FontData:       fontData,
+			AttributeName:  "data-layout-id",
+		}
 
-	if err := json.NewEncoder(os.Stdout).Encode(positions); err != nil {
-		fmt.Fprintf(os.Stderr, "JSON encode failed: %v\n", err)
-		os.Exit(1)
+		if os.Getenv("PIKO_PAGINATE") == "1" {
+			config.Paginate = true
+			config.PageWidthPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_WIDTH_PX"), 64)
+			config.PageHeightPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_HEIGHT_PX"), 64)
+			config.PageMarginPx, _ = strconv.ParseFloat(os.Getenv("PIKO_PAGE_MARGIN_PX"), 64)
+		}
+
+		if extraCSS := os.Getenv("PIKO_EXTRA_CSS"); extraCSS != "" {
+			config.ExtraStylesheets = append(config.ExtraStylesheets, extraCSS)
+		}
+
+		positions, err := runtime.ExtractLayoutPositions(config)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "layout extraction failed: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := json.NewEncoder(os.Stdout).Encode(positions); err != nil {
+			fmt.Fprintf(os.Stderr, "JSON encode failed: %v\n", err)
+			os.Exit(1)
+		}
 	}
-}
-`))
+	`))
+)
 
 func newLayouterHarness(t *testing.T, tc testCase) *layouterHarness {
 	t.Helper()

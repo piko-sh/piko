@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -85,18 +84,12 @@ func TestMockDeadLetterPort_Add(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               tt.addFunc,
-				GetFunc:               nil,
-				RemoveFunc:            nil,
-				CountFunc:             nil,
-				ClearFunc:             nil,
-				GetOlderThanFunc:      nil,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          tt.addFunc,
+				GetFunc:          nil,
+				RemoveFunc:       nil,
+				CountFunc:        nil,
+				ClearFunc:        nil,
+				GetOlderThanFunc: nil,
 			}
 
 			ctx := context.Background()
@@ -110,7 +103,7 @@ func TestMockDeadLetterPort_Add(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.AddCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.AddCallCount.Load())
 		})
 	}
 }
@@ -119,18 +112,12 @@ func TestMockDeadLetterPort_Add_MultipleCalls(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:               nil,
-		GetFunc:               nil,
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		AddFunc:          nil,
+		GetFunc:          nil,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -140,7 +127,7 @@ func TestMockDeadLetterPort_Add_MultipleCalls(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	assert.Equal(t, int64(5), atomic.LoadInt64(&mock.AddCallCount))
+	assert.Equal(t, int64(5), mock.AddCallCount.Load())
 }
 
 func TestMockDeadLetterPort_Add_PassesArguments(t *testing.T) {
@@ -155,17 +142,11 @@ func TestMockDeadLetterPort_Add_PassesArguments(t *testing.T) {
 			capturedEntry = entry
 			return nil
 		},
-		GetFunc:               nil,
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		GetFunc:          nil,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.WithValue(context.Background(), testContextKey{}, "test-value")
@@ -249,18 +230,12 @@ func TestMockDeadLetterPort_Get(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               nil,
-				GetFunc:               tt.getFunc,
-				RemoveFunc:            nil,
-				CountFunc:             nil,
-				ClearFunc:             nil,
-				GetOlderThanFunc:      nil,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          nil,
+				GetFunc:          tt.getFunc,
+				RemoveFunc:       nil,
+				CountFunc:        nil,
+				ClearFunc:        nil,
+				GetOlderThanFunc: nil,
 			}
 
 			ctx := context.Background()
@@ -274,7 +249,7 @@ func TestMockDeadLetterPort_Get(t *testing.T) {
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tt.expectedResult, result)
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.GetCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.GetCallCount.Load())
 		})
 	}
 }
@@ -290,16 +265,10 @@ func TestMockDeadLetterPort_Get_PassesLimit(t *testing.T) {
 			capturedLimit = limit
 			return nil, nil
 		},
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -366,18 +335,12 @@ func TestMockDeadLetterPort_Remove(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               nil,
-				GetFunc:               nil,
-				RemoveFunc:            tt.removeFunc,
-				CountFunc:             nil,
-				ClearFunc:             nil,
-				GetOlderThanFunc:      nil,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          nil,
+				GetFunc:          nil,
+				RemoveFunc:       tt.removeFunc,
+				CountFunc:        nil,
+				ClearFunc:        nil,
+				GetOlderThanFunc: nil,
 			}
 
 			ctx := context.Background()
@@ -390,7 +353,7 @@ func TestMockDeadLetterPort_Remove(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.RemoveCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.RemoveCallCount.Load())
 		})
 	}
 }
@@ -407,15 +370,9 @@ func TestMockDeadLetterPort_Remove_PassesEntries(t *testing.T) {
 			capturedEntries = entries
 			return nil
 		},
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -481,18 +438,12 @@ func TestMockDeadLetterPort_Count(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               nil,
-				GetFunc:               nil,
-				RemoveFunc:            nil,
-				CountFunc:             tt.countFunc,
-				ClearFunc:             nil,
-				GetOlderThanFunc:      nil,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          nil,
+				GetFunc:          nil,
+				RemoveFunc:       nil,
+				CountFunc:        tt.countFunc,
+				ClearFunc:        nil,
+				GetOlderThanFunc: nil,
 			}
 
 			ctx := context.Background()
@@ -506,7 +457,7 @@ func TestMockDeadLetterPort_Count(t *testing.T) {
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tt.expectedCount, count)
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.CountCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.CountCallCount.Load())
 		})
 	}
 }
@@ -549,18 +500,12 @@ func TestMockDeadLetterPort_Clear(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               nil,
-				GetFunc:               nil,
-				RemoveFunc:            nil,
-				CountFunc:             nil,
-				ClearFunc:             tt.clearFunc,
-				GetOlderThanFunc:      nil,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          nil,
+				GetFunc:          nil,
+				RemoveFunc:       nil,
+				CountFunc:        nil,
+				ClearFunc:        tt.clearFunc,
+				GetOlderThanFunc: nil,
 			}
 
 			ctx := context.Background()
@@ -573,7 +518,7 @@ func TestMockDeadLetterPort_Clear(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.ClearCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.ClearCallCount.Load())
 		})
 	}
 }
@@ -642,18 +587,12 @@ func TestMockDeadLetterPort_GetOlderThan(t *testing.T) {
 			t.Parallel()
 
 			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:               nil,
-				GetFunc:               nil,
-				RemoveFunc:            nil,
-				CountFunc:             nil,
-				ClearFunc:             nil,
-				GetOlderThanFunc:      tt.getOlderFunc,
-				AddCallCount:          0,
-				GetCallCount:          0,
-				RemoveCallCount:       0,
-				CountCallCount:        0,
-				ClearCallCount:        0,
-				GetOlderThanCallCount: 0,
+				AddFunc:          nil,
+				GetFunc:          nil,
+				RemoveFunc:       nil,
+				CountFunc:        nil,
+				ClearFunc:        nil,
+				GetOlderThanFunc: tt.getOlderFunc,
 			}
 
 			ctx := context.Background()
@@ -667,7 +606,7 @@ func TestMockDeadLetterPort_GetOlderThan(t *testing.T) {
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tt.expectedResult, result)
-			assert.Equal(t, tt.expectedCalls, atomic.LoadInt64(&mock.GetOlderThanCallCount))
+			assert.Equal(t, tt.expectedCalls, mock.GetOlderThanCallCount.Load())
 		})
 	}
 }
@@ -687,12 +626,6 @@ func TestMockDeadLetterPort_GetOlderThan_PassesDuration(t *testing.T) {
 			capturedDuration = duration
 			return nil, nil
 		},
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
 	}
 
 	ctx := context.Background()
@@ -707,18 +640,12 @@ func TestMockDeadLetterPort_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:               nil,
-		GetFunc:               nil,
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		AddFunc:          nil,
+		GetFunc:          nil,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -734,30 +661,24 @@ func TestMockDeadLetterPort_CallCountsAreIndependent(t *testing.T) {
 	_, _ = mock.GetOlderThan(ctx, time.Hour)
 	_, _ = mock.GetOlderThan(ctx, time.Hour)
 
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.AddCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveCallCount))
-	assert.Equal(t, int64(3), atomic.LoadInt64(&mock.CountCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ClearCallCount))
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.GetOlderThanCallCount))
+	assert.Equal(t, int64(2), mock.AddCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetCallCount.Load())
+	assert.Equal(t, int64(1), mock.RemoveCallCount.Load())
+	assert.Equal(t, int64(3), mock.CountCallCount.Load())
+	assert.Equal(t, int64(1), mock.ClearCallCount.Load())
+	assert.Equal(t, int64(2), mock.GetOlderThanCallCount.Load())
 }
 
 func TestMockDeadLetterPort_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:               nil,
-		GetFunc:               nil,
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		AddFunc:          nil,
+		GetFunc:          nil,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -795,30 +716,24 @@ func TestMockDeadLetterPort_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.AddCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.RemoveCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.CountCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ClearCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetOlderThanCallCount))
+	assert.Equal(t, int64(goroutines), mock.AddCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.RemoveCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.CountCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ClearCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetOlderThanCallCount.Load())
 }
 
 func TestMockDeadLetterPort_ImplementsDeadLetterPort(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:               nil,
-		GetFunc:               nil,
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		AddFunc:          nil,
+		GetFunc:          nil,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	var _ DeadLetterPort[*testEntry] = mock
@@ -853,12 +768,12 @@ func TestMockDeadLetterPort_ZeroValueIsUsable(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, older)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.AddCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CountCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ClearCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetOlderThanCallCount))
+	assert.Equal(t, int64(1), mock.AddCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetCallCount.Load())
+	assert.Equal(t, int64(1), mock.RemoveCallCount.Load())
+	assert.Equal(t, int64(1), mock.CountCallCount.Load())
+	assert.Equal(t, int64(1), mock.ClearCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetOlderThanCallCount.Load())
 }
 
 func TestMockDeadLetterPort_WithStringType(t *testing.T) {
@@ -874,16 +789,10 @@ func TestMockDeadLetterPort_WithStringType(t *testing.T) {
 		GetFunc: func(_ context.Context, _ int) ([]string, error) {
 			return []string{"alpha", "beta", "gamma"}, nil
 		},
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -909,16 +818,10 @@ func TestMockDeadLetterPort_WithIntType(t *testing.T) {
 			}
 			return result, nil
 		},
-		RemoveFunc:            nil,
-		CountFunc:             nil,
-		ClearFunc:             nil,
-		GetOlderThanFunc:      nil,
-		AddCallCount:          0,
-		GetCallCount:          0,
-		RemoveCallCount:       0,
-		CountCallCount:        0,
-		ClearCallCount:        0,
-		GetOlderThanCallCount: 0,
+		RemoveFunc:       nil,
+		CountFunc:        nil,
+		ClearFunc:        nil,
+		GetOlderThanFunc: nil,
 	}
 
 	ctx := context.Background()

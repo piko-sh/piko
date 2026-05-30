@@ -38,10 +38,10 @@ type spyTB struct {
 	testing.TB
 	errors       []string
 	fatals       []string
-	helperCalled int64
+	helperCalled atomic.Int64
 }
 
-func (s *spyTB) Helper() { atomic.AddInt64(&s.helperCalled, 1) }
+func (s *spyTB) Helper() { s.helperCalled.Add(1) }
 func (s *spyTB) Errorf(format string, arguments ...any) {
 	s.errors = append(s.errors, format)
 	_ = arguments
@@ -349,11 +349,11 @@ func TestMockRegistry_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetComponentMetadataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.BulkGetComponentMetadataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetAssetRawSVGCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.BulkGetAssetRawSVGCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetStatsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ClearComponentCacheCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ClearSvgCacheCallCount))
+	assert.Equal(t, int64(goroutines), m.GetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.BulkGetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.BulkGetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetStatsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ClearComponentCacheCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ClearSvgCacheCallCount.Load())
 }

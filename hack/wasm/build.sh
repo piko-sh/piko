@@ -98,9 +98,6 @@ optimise_wasm() {
         return
     fi
 
-    # Go's WASM output uses post-MVP features: bulk memory operations
-    # (memory.copy/fill), non-trapping float-to-int conversions
-    # (i64.trunc_sat_f64_s), sign extension, and mutable globals.
     piko::log::info "Running wasm-opt -Oz..."
     if wasm-opt -Oz \
         --enable-bulk-memory \
@@ -164,8 +161,7 @@ copy_wasm_exec() {
         return
     fi
 
-    # The source file may be read-only, so remove any existing copy first.
-    rm -f "$WASM_OUT_DIR/wasm_exec.js"
+    rm -f "$WASM_OUT_DIR/wasm_exec.js" "$WASM_OUT_DIR/wasm_exec.js.gz" "$WASM_OUT_DIR/wasm_exec.js.br"
     cp "$wasm_exec" "$WASM_OUT_DIR/"
     report_size "wasm_exec.js" "$WASM_OUT_DIR/wasm_exec.js"
     piko::log::success "Copied wasm_exec.js"

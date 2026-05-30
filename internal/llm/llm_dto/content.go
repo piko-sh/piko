@@ -32,8 +32,8 @@ const (
 	ContentPartTypeImageData ContentPartType = "image_data"
 )
 
-// ContentPart represents a single part of message content.
-// It is used for multi-modal messages that combine text and images.
+// ContentPart represents a single part of message content. It is used for multi-modal
+// messages that combine text and images.
 type ContentPart struct {
 	// Text holds the text content when Type is ContentPartTypeText.
 	Text *string
@@ -50,8 +50,8 @@ type ContentPart struct {
 
 // ImageURL holds the URL and detail settings for an image in a vision request.
 type ImageURL struct {
-	// Detail specifies the image detail level; valid options are "auto", "low",
-	// or "high". If nil, defaults to "auto".
+	// Detail specifies the image detail level; valid options are "auto", "low", or "high".
+	// If nil, defaults to "auto".
 	Detail *string
 
 	// URL is the web address of the image.
@@ -82,8 +82,7 @@ func TextPart(text string) ContentPart {
 // ImageURLPart creates an image URL content part.
 //
 // Takes url (string) which is the image URL.
-// Takes detail (...string) which is the optional detail level ("auto", "low",
-// "high").
+// Takes detail (...string) which is the optional detail level ("auto", "low", "high").
 //
 // Returns ContentPart configured as image URL.
 func ImageURLPart(url string, detail ...string) ContentPart {

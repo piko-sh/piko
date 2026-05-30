@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Provides builder utilities for generating Go struct literals from AST nodes during serialisation.
-// Constructs field assignments, handles nested structures, and formats Go code for TemplateNode and related types.
+// Provides builder utilities for generating Go struct literals from AST nodes during
+// serialisation. Constructs field assignments, handles nested structures, and formats Go
+// code for TemplateNode and related types.
 
 import (
 	"bytes"
@@ -66,8 +67,8 @@ const (
 	// identString is the identifier name for the string type in generated Go AST code.
 	identString = "string"
 
-	// identTypeExprFromString is the identifier name for a helper function that
-	// converts a type string into a type expression AST node.
+	// identTypeExprFromString is the identifier name for a helper function that converts a
+	// type string into a type expression AST node.
 	identTypeExprFromString = "typeExprFromString"
 
 	// typeTemplateNode is the type name for template nodes in AST literals.
@@ -76,13 +77,13 @@ const (
 	// identNew is the identifier name for the Go built-in new() function.
 	identNew = "new"
 
-	// compositeExpressionCapacity is the pre-allocation capacity for composite
-	// literal expression slices during AST serialisation.
+	// compositeExpressionCapacity is the pre-allocation capacity for composite literal
+	// expression slices during AST serialisation.
 	compositeExpressionCapacity = 8
 )
 
-// buildTemplateASTLiteral builds a Go AST expression that represents a
-// TemplateAST composite literal.
+// buildTemplateASTLiteral builds a Go AST expression that represents a TemplateAST
+// composite literal.
 //
 // Takes tree (*TemplateAST) which provides the template structure to convert.
 //
@@ -115,8 +116,7 @@ func buildTemplateASTLiteral(tree *TemplateAST) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("TemplateAST"), elts))
 }
 
-// buildNodeLiteral creates a Go AST composite literal expression for a
-// TemplateNode.
+// buildNodeLiteral creates a Go AST composite literal expression for a TemplateNode.
 //
 // Takes node (*TemplateNode) which provides the template node to convert.
 //
@@ -245,8 +245,8 @@ func appendNodeEventsAndBindings(node *TemplateNode, elts *[]goast.Expr) {
 	}
 }
 
-// appendNodeDiagnosticsAndChildren adds diagnostics and child nodes to a node
-// literal that is being built.
+// appendNodeDiagnosticsAndChildren adds diagnostics and child nodes to a node literal
+// that is being built.
 //
 // Takes node (*TemplateNode) which is the source node to read from.
 // Takes elts (*[]goast.Expr) which receives the built AST expressions.
@@ -316,8 +316,7 @@ func buildLocationLiteral(location *Location) goast.Expr {
 	)
 }
 
-// buildGoAnnotationLiteral builds a Go AST expression for a generator
-// annotation.
+// buildGoAnnotationLiteral builds a Go AST expression for a generator annotation.
 //
 // When ann is nil, returns a nil identifier.
 //
@@ -337,8 +336,8 @@ func buildGoAnnotationLiteral(ann *GoGeneratorAnnotation) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("GoGeneratorAnnotation"), elts))
 }
 
-// addGoAnnotationTypeFields appends type, symbol, and property data source
-// fields to the given expression slice.
+// addGoAnnotationTypeFields appends type, symbol, and property data source fields to the
+// given expression slice.
 //
 // Takes ann (*GoGeneratorAnnotation) which provides the annotation data.
 // Takes elts (*[]goast.Expr) which collects the generated field expressions.
@@ -385,8 +384,8 @@ func addGoAnnotationTypeFields(ann *GoGeneratorAnnotation, elts *[]goast.Expr) {
 	}
 }
 
-// addGoAnnotationMetadataFields appends metadata fields from the annotation
-// to the expression list.
+// addGoAnnotationMetadataFields appends metadata fields from the annotation to the
+// expression list.
 //
 // Takes ann (*GoGeneratorAnnotation) which holds the metadata to add.
 // Takes elts (*[]goast.Expr) which receives the key-value expressions.
@@ -420,8 +419,8 @@ func addGoAnnotationMetadataFields(ann *GoGeneratorAnnotation, elts *[]goast.Exp
 	}
 }
 
-// addGoAnnotationFlagFields adds flag field expressions to the element slice
-// based on the annotation's boolean and numeric properties.
+// addGoAnnotationFlagFields adds flag field expressions to the element slice based on the
+// annotation's boolean and numeric properties.
 //
 // Takes ann (*GoGeneratorAnnotation) which provides the flag values to check.
 // Takes elts (*[]goast.Expr) which receives the key-value expressions.
@@ -446,13 +445,13 @@ func addGoAnnotationFlagFields(ann *GoGeneratorAnnotation, elts *[]goast.Expr) {
 	}
 }
 
-// buildRuntimeAnnotationLiteral builds an AST expression for a runtime
-// annotation literal.
+// buildRuntimeAnnotationLiteral builds an AST expression for a runtime annotation
+// literal.
 //
 // Takes ann (*RuntimeAnnotation) which specifies the annotation to convert.
 //
-// Returns goast.Expr which is the composite literal expression, or a nil
-// identifier when ann is nil.
+// Returns goast.Expr which is the composite literal expression, or a nil identifier when
+// ann is nil.
 func buildRuntimeAnnotationLiteral(ann *RuntimeAnnotation) goast.Expr {
 	if ann == nil {
 		return goast.NewIdent(identNil)
@@ -467,13 +466,13 @@ func buildRuntimeAnnotationLiteral(ann *RuntimeAnnotation) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("RuntimeAnnotation"), elts))
 }
 
-// buildPropDataSourceLiteral builds an AST expression for a PropDataSource
-// composite literal.
+// buildPropDataSourceLiteral builds an AST expression for a PropDataSource composite
+// literal.
 //
 // Takes pds (*PropDataSource) which is the data source to convert.
 //
-// Returns goast.Expr which is the composite literal expression, or a nil
-// identifier if pds is nil.
+// Returns goast.Expr which is the composite literal expression, or a nil identifier if
+// pds is nil.
 func buildPropDataSourceLiteral(pds *PropDataSource) goast.Expr {
 	if pds == nil {
 		return goast.NewIdent(identNil)
@@ -530,8 +529,8 @@ func buildPropDataSourceLiteral(pds *PropDataSource) goast.Expr {
 //
 // Takes directive (*Directive) which is the directive to convert to AST form.
 //
-// Returns goast.Expr which is the composite literal for the directive, or a
-// nil identifier if directive is nil.
+// Returns goast.Expr which is the composite literal for the directive, or a nil
+// identifier if directive is nil.
 func buildDirectiveLiteral(directive *Directive) goast.Expr {
 	if directive == nil {
 		return goast.NewIdent(identNil)
@@ -581,8 +580,8 @@ func buildDirectivesSliceLiteral(dirs []Directive) goast.Expr {
 	return newCompositeLit(newArrayType(astType(fieldDirective)), elts)
 }
 
-// buildAttributesLiteral builds a Go AST composite literal that represents a
-// slice of HTML attributes.
+// buildAttributesLiteral builds a Go AST composite literal that represents a slice of
+// HTML attributes.
 //
 // Takes attrs ([]HTMLAttribute) which contains the attributes to convert.
 //
@@ -607,11 +606,11 @@ func buildAttributesLiteral(attrs []HTMLAttribute) goast.Expr {
 	)
 }
 
-// buildDynamicAttributesLiteral builds a Go AST composite literal for a slice
-// of dynamic attributes.
+// buildDynamicAttributesLiteral builds a Go AST composite literal for a slice of dynamic
+// attributes.
 //
-// Takes attrs ([]DynamicAttribute) which contains the dynamic attributes to
-// convert into AST form.
+// Takes attrs ([]DynamicAttribute) which contains the dynamic attributes to convert into
+// AST form.
 //
 // Returns goast.Expr which is the composite literal representing the slice.
 func buildDynamicAttributesLiteral(attrs []DynamicAttribute) goast.Expr {
@@ -669,8 +668,8 @@ func buildRichTextLiteral(parts []TextPart) goast.Expr {
 //
 // Takes expression (Expression) which is the expression to convert.
 //
-// Returns goast.Expr which is the Go AST expression, or a nil identifier if
-// the input is nil.
+// Returns goast.Expr which is the Go AST expression, or a nil identifier if the input is
+// nil.
 func buildExpressionLiteral(expression Expression) goast.Expr {
 	if expression == nil || (reflect.ValueOf(expression).Kind() == reflect.Pointer && reflect.ValueOf(expression).IsNil()) {
 		return goast.NewIdent(identNil)
@@ -688,15 +687,14 @@ func buildExpressionLiteral(expression Expression) goast.Expr {
 	return coreExpr
 }
 
-// dispatchExpressionLiteral selects and calls the right literal builder for
-// the given expression type.
+// dispatchExpressionLiteral selects and calls the right literal builder for the given
+// expression type.
 //
 // Takes expression (Expression) which specifies the expression to build.
 //
-// Returns goast.Expr which is the built Go AST expression, or nil if no
-// builder matched.
-// Returns *GoGeneratorAnnotation which provides metadata about the built
-// expression, or nil if not needed.
+// Returns goast.Expr which is the built Go AST expression, or nil if no builder matched.
+// Returns *GoGeneratorAnnotation which provides metadata about the built expression, or
+// nil if not needed.
 func dispatchExpressionLiteral(expression Expression) (goast.Expr, *GoGeneratorAnnotation) {
 	if coreExpr, goAnn, ok := buildPrimitiveLiteralExpr(expression); ok {
 		return coreExpr, goAnn
@@ -710,8 +708,7 @@ func dispatchExpressionLiteral(expression Expression) (goast.Expr, *GoGeneratorA
 	return nil, nil
 }
 
-// buildPrimitiveLiteralExpr converts a primitive literal expression to its Go
-// AST form.
+// buildPrimitiveLiteralExpr converts a primitive literal expression to its Go AST form.
 //
 // Takes expression (Expression) which is the expression to convert.
 //
@@ -749,8 +746,8 @@ func buildPrimitiveLiteralExpr(expression Expression) (goast.Expr, *GoGeneratorA
 	}
 }
 
-// buildAnnotatedExprLiteral converts an expression to a Go AST node and
-// returns its annotations.
+// buildAnnotatedExprLiteral converts an expression to a Go AST node and returns its
+// annotations.
 //
 // Takes expression (Expression) which is the expression to convert.
 //
@@ -780,8 +777,8 @@ func buildAnnotatedExprLiteral(expression Expression) (goast.Expr, *GoGeneratorA
 	}
 }
 
-// buildCompositeLiteralExpr converts composite expression types to Go AST
-// nodes. It handles arrays, objects, and ternary expressions.
+// buildCompositeLiteralExpr converts composite expression types to Go AST nodes. It
+// handles arrays, objects, and ternary expressions.
 //
 // Takes expression (Expression) which is the expression to convert.
 //
@@ -800,11 +797,10 @@ func buildCompositeLiteralExpr(expression Expression) (goast.Expr, bool) {
 	}
 }
 
-// attachGoAnnotationToLiteral adds a GoGeneratorAnnotation to a composite
-// literal expression.
+// attachGoAnnotationToLiteral adds a GoGeneratorAnnotation to a composite literal
+// expression.
 //
-// Takes coreExpr (goast.Expr) which is the expression to attach the annotation
-// to.
+// Takes coreExpr (goast.Expr) which is the expression to attach the annotation to.
 // Takes goAnn (*GoGeneratorAnnotation) which is the annotation to add.
 func attachGoAnnotationToLiteral(coreExpr goast.Expr, goAnn *GoGeneratorAnnotation) {
 	unary, isUnary := coreExpr.(*goast.UnaryExpr)
@@ -1024,8 +1020,8 @@ func buildArrayLiteral(n *ArrayLiteral) goast.Expr {
 //
 // Takes n (*ObjectLiteral) which is the object literal to convert.
 //
-// Returns goast.Expr which is a composite literal containing the pairs,
-// location, and annotations.
+// Returns goast.Expr which is a composite literal containing the pairs, location, and
+// annotations.
 func buildObjectLiteral(n *ObjectLiteral) goast.Expr {
 	elts := []goast.Expr{
 		buildKV("Pairs", buildExpressionMapLiteral(n.Pairs)),
@@ -1109,11 +1105,10 @@ func buildRuneLiteral(n *RuneLiteral) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("RuneLiteral"), elts))
 }
 
-// buildEventsMapLiteral builds a Go AST composite literal for a map of event
-// names to directive slices.
+// buildEventsMapLiteral builds a Go AST composite literal for a map of event names to
+// directive slices.
 //
-// Takes events (map[string][]Directive) which contains the event mappings to
-// convert.
+// Takes events (map[string][]Directive) which contains the event mappings to convert.
 //
 // Returns goast.Expr which is the composite literal representing the map.
 func buildEventsMapLiteral(events map[string][]Directive) goast.Expr {
@@ -1158,13 +1153,13 @@ func buildDiagnosticLiteral(diagnostic *Diagnostic) goast.Expr {
 	))
 }
 
-// buildPartialInfoLiteral builds an AST composite literal for a
-// PartialInvocationInfo struct.
+// buildPartialInfoLiteral builds an AST composite literal for a PartialInvocationInfo
+// struct.
 //
 // Takes info (*PartialInvocationInfo) which holds the partial invocation data.
 //
-// Returns goast.Expr which is the composite literal expression, or a nil
-// identifier when info is nil.
+// Returns goast.Expr which is the composite literal expression, or a nil identifier when
+// info is nil.
 func buildPartialInfoLiteral(info *PartialInvocationInfo) goast.Expr {
 	if info == nil {
 		return goast.NewIdent(identNil)
@@ -1186,11 +1181,11 @@ func buildPartialInfoLiteral(info *PartialInvocationInfo) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("PartialInvocationInfo"), elts))
 }
 
-// buildPropValueMapLiteral builds a Go AST composite literal for a map of
-// property values.
+// buildPropValueMapLiteral builds a Go AST composite literal for a map of property
+// values.
 //
-// Takes propMap (map[string]PropValue) which contains the property values to
-// convert into an AST representation.
+// Takes propMap (map[string]PropValue) which contains the property values to convert into
+// an AST representation.
 //
 // Returns goast.Expr which is the composite literal representing the map.
 func buildPropValueMapLiteral(propMap map[string]PropValue) goast.Expr {
@@ -1229,11 +1224,11 @@ func buildPropValueMapLiteral(propMap map[string]PropValue) goast.Expr {
 	)
 }
 
-// buildExpressionMapLiteral builds a Go AST map literal from an expression map.
-// The keys are sorted to ensure stable output order.
+// buildExpressionMapLiteral builds a Go AST map literal from an expression map. The keys
+// are sorted to ensure stable output order.
 //
-// Takes expressionMap (map[string]Expression) which contains the
-// key-value pairs to convert.
+// Takes expressionMap (map[string]Expression) which contains the key-value pairs to
+// convert.
 //
 // Returns goast.Expr which is the composite literal for the map.
 func buildExpressionMapLiteral(expressionMap map[string]Expression) goast.Expr {
@@ -1248,8 +1243,7 @@ func buildExpressionMapLiteral(expressionMap map[string]Expression) goast.Expr {
 	)
 }
 
-// buildIdentifierLiteral builds an AST composite literal for an Identifier
-// node.
+// buildIdentifierLiteral builds an AST composite literal for an Identifier node.
 //
 // Takes n (*Identifier) which provides the identifier to convert.
 //
@@ -1262,8 +1256,7 @@ func buildIdentifierLiteral(n *Identifier) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("Identifier"), elts))
 }
 
-// buildMemberExprLiteral builds a Go AST composite literal for
-// a MemberExpression node.
+// buildMemberExprLiteral builds a Go AST composite literal for a MemberExpression node.
 //
 // Takes n (*MemberExpression) which is the member expression to convert.
 //
@@ -1312,8 +1305,7 @@ func buildCallExprLiteral(n *CallExpression) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("CallExpression"), elts))
 }
 
-// buildBinaryExprLiteral builds a composite literal for a binary expression
-// node.
+// buildBinaryExprLiteral builds a composite literal for a binary expression node.
 //
 // Takes n (*BinaryExpression) which provides the binary expression to convert.
 //
@@ -1328,8 +1320,8 @@ func buildBinaryExprLiteral(n *BinaryExpression) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(astType("BinaryExpression"), elts))
 }
 
-// buildStringMapLiteral builds a Go AST expression for a map[string]string
-// literal. Keys are sorted to give stable output.
+// buildStringMapLiteral builds a Go AST expression for a map[string]string literal. Keys
+// are sorted to give stable output.
 //
 // Takes strMap (map[string]string) which provides the key-value pairs.
 //

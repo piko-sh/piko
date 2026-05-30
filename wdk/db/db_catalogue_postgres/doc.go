@@ -16,8 +16,8 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_catalogue_postgres provides a pg_catalog-based catalogue provider
-// for PostgreSQL databases. It implements CatalogueProviderPort by introspecting
-// a live database through information_schema and pg_catalog queries rather than
-// replaying migration files.
+// Package db_catalogue_postgres provides a pg_catalog-based catalogue provider for
+// PostgreSQL databases. It implements CatalogueProviderPort by introspecting a live
+// database through information_schema and pg_catalog queries rather than replaying
+// migration files.
 package db_catalogue_postgres

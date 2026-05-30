@@ -28,11 +28,11 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// FileSystem defines file operations for reading and traversing files.
-// Tests can use mock versions instead of real filesystem access.
+// FileSystem defines file operations for reading and traversing files. Tests can use mock
+// versions instead of real filesystem access.
 type FileSystem interface {
-	// WalkDir walks the file tree rooted at root, calling
-	// walkFunction for each file or directory.
+	// WalkDir walks the file tree rooted at root, calling walkFunction for each file or
+	// directory.
 	//
 	// Takes root (string) which is the starting directory for the walk.
 	// Takes walkFunction (fs.WalkDirFunc) which is called for each file or directory.
@@ -56,8 +56,7 @@ type FileSystem interface {
 	// Returns error when the file does not exist or cannot be accessed.
 	Stat(name string) (fs.FileInfo, error)
 
-	// Rel returns a path that, when joined to basepath, gives the same path as
-	// targpath.
+	// Rel returns a path that, when joined to basepath, gives the same path as targpath.
 	//
 	// Takes basepath (string) which is the starting path.
 	// Takes targpath (string) which is the target path to reach.
@@ -73,8 +72,7 @@ type FileSystem interface {
 	// Returns string which is the combined path.
 	Join(element ...string) string
 
-	// IsNotExist returns whether the error is known to report that a file does
-	// not exist.
+	// IsNotExist returns whether the error is known to report that a file does not exist.
 	//
 	// Takes err (error) which is the error to check.
 	//
@@ -101,16 +99,16 @@ func (*osFileSystem) WalkDir(root string, walkFunction fs.WalkDirFunc) error {
 	return filepath.WalkDir(root, walkFunction)
 }
 
-// Open opens the named file for reading by constructing a one-shot read-only
-// sandbox at the file's parent directory. This routes the read through
-// safedisk path-traversal protection even when no project sandbox is wired in.
+// Open opens the named file for reading by constructing a one-shot read-only sandbox at
+// the file's parent directory. This routes the read through safedisk path-traversal
+// protection even when no project sandbox is wired in.
 //
 // Takes name (string) which specifies the path to the file to open.
 //
 // Returns io.ReadCloser which provides access to the file contents.
-// Returns error when the parent sandbox cannot be created or the file cannot
-// be opened. Preserves the underlying *fs.PathError so callers using
-// os.IsNotExist continue to detect missing files.
+// Returns error when the parent sandbox cannot be created or the file cannot be opened.
+// Preserves the underlying *fs.PathError so callers using os.IsNotExist continue to
+// detect missing files.
 func (*osFileSystem) Open(name string) (io.ReadCloser, error) {
 	directory := filepath.Dir(name)
 	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
@@ -126,14 +124,13 @@ func (*osFileSystem) Open(name string) (io.ReadCloser, error) {
 	return handle, nil
 }
 
-// unwrapToFSError unwraps an error chain looking for an underlying syscall or
-// filesystem error so that it can be re-wrapped in a *fs.PathError that
-// os.IsNotExist understands.
+// unwrapToFSError unwraps an error chain looking for an underlying syscall or filesystem
+// error so that it can be re-wrapped in a *fs.PathError that os.IsNotExist understands.
 //
 // Takes err (error) which is the error to inspect.
 //
-// Returns error which is the deepest meaningful error in the chain, or err
-// itself when no inner error is present.
+// Returns error which is the deepest meaningful error in the chain, or err itself when no
+// inner error is present.
 func unwrapToFSError(err error) error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return fs.ErrNotExist
@@ -183,9 +180,9 @@ func (*osFileSystem) IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// sandboxedFileSystem provides safe filesystem access within a restricted directory.
-// It implements the filesystem interface using safedisk.Sandbox for secure,
-// sandboxed operations.
+// sandboxedFileSystem provides safe filesystem access within a restricted directory. It
+// implements the filesystem interface using safedisk.Sandbox for secure, sandboxed
+// operations.
 type sandboxedFileSystem struct {
 	// sandbox provides filesystem operations within a safe boundary.
 	sandbox safedisk.Sandbox

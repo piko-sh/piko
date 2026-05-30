@@ -35,15 +35,15 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// CompileComponent returns a capability function that compiles a component
-// using the provided compiler service. It requires a 'sourcePath' parameter
-// to identify the component being compiled.
+// CompileComponent returns a capability function that compiles a component using the
+// provided compiler service. It requires a 'sourcePath' parameter to identify the
+// component being compiled.
 //
-// Takes compiler (compiler_domain.CompilerService) which provides the
-// compilation service for processing component source code.
+// Takes compiler (compiler_domain.CompilerService) which provides the compilation service
+// for processing component source code.
 //
-// Returns capabilities_domain.CapabilityFunc which is the capability function
-// that performs the compilation when invoked.
+// Returns capabilities_domain.CapabilityFunc which is the capability function that
+// performs the compilation when invoked.
 func CompileComponent(compiler compiler_domain.CompilerService) capabilities_domain.CapabilityFunc {
 	return func(ctx context.Context, inputData io.Reader, params capabilities_domain.CapabilityParams) (io.Reader, error) {
 		ctx, span, l := log.Span(ctx, "CompileComponent",
@@ -94,8 +94,8 @@ func CompileComponent(compiler compiler_domain.CompilerService) capabilities_dom
 // extractSourcePath checks and returns the required sourcePath parameter.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes params (capabilities_domain.CapabilityParams) which holds the
-// parameters to read from.
+// Takes params (capabilities_domain.CapabilityParams) which holds the parameters to read
+// from.
 // Takes span (trace.Span) which gives tracing context for error reporting.
 //
 // Returns string which is the checked source path.
@@ -140,8 +140,7 @@ func readInputData(ctx context.Context, span trace.Span, inputData io.Reader) ([
 
 // compileSource runs the compiler and records how long it takes.
 //
-// Takes compiler (compiler_domain.CompilerService) which performs the
-// compilation.
+// Takes compiler (compiler_domain.CompilerService) which performs the compilation.
 // Takes sourcePath (string) which identifies the source file being compiled.
 // Takes inputBytes ([]byte) which contains the source content to compile.
 //
@@ -180,14 +179,13 @@ func compileSource(
 // extractOutput finds and returns the compiled JavaScript from the artefact.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes artefact (*compiler_dto.CompiledArtefact) which contains the compiled
-// files and metadata.
+// Takes artefact (*compiler_dto.CompiledArtefact) which contains the compiled files and
+// metadata.
 // Takes sourcePath (string) which identifies the source for error messages.
 // Takes span (trace.Span) which records telemetry attributes.
 //
 // Returns string which is the JavaScript content from the entrypoint file.
-// Returns error when the expected entrypoint file is not found in the
-// artefact.
+// Returns error when the expected entrypoint file is not found in the artefact.
 func extractOutput(
 	ctx context.Context,
 	artefact *compiler_dto.CompiledArtefact,

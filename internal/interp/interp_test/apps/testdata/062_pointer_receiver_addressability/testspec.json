@@ -1,0 +1,4 @@
+{
+  "description": "Pointer-receiver methods declared in one file are invoked on values returned by factories in another file (direct local) and on slice elements (addressable through indexing); tests addressability across file boundaries and through slice indexing",
+  "expected": "direct=6 slice=39"
+}

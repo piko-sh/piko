@@ -35,35 +35,31 @@ import (
 )
 
 const (
-	// defaultOutputChannelBuffer is the default buffer size for subscriber output
-	// channels.
+	// defaultOutputChannelBuffer is the default buffer size for subscriber output channels.
 	defaultOutputChannelBuffer = 8192
 
-	// defaultCloseTimeoutSeconds is the default timeout in seconds for closing the
-	// router.
+	// defaultCloseTimeoutSeconds is the default timeout in seconds for closing the router.
 	defaultCloseTimeoutSeconds = 30
 )
 
 // Config contains configuration options for the GoChannel provider.
 type Config struct {
-	// OutputChannelBuffer is the buffer size for subscriber output channels.
-	// Larger buffers reduce blocking but use more memory; default is 1024.
+	// OutputChannelBuffer is the buffer size for subscriber output channels. Larger buffers
+	// reduce blocking but use more memory; default is 1024.
 	OutputChannelBuffer int64
 
 	// BlockPublishUntilSubscriberAck controls back-pressure behaviour.
 	//
-	// When true (default), Publish blocks until all subscribers have acknowledged.
-	// This guarantees no message loss but may reduce throughput. When false,
-	// messages are delivered asynchronously and may be dropped if subscriber
-	// channels are full.
+	// When true (default), Publish blocks until all subscribers have acknowledged. This
+	// guarantees no message loss but may reduce throughput. When false, messages are
+	// delivered asynchronously and may be dropped if subscriber channels are full.
 	//
-	// Unlike the old MemoryEventBus which silently dropped events, the default
-	// here blocks to guarantee delivery.
+	// Unlike the old MemoryEventBus which silently dropped events, the default here blocks
+	// to guarantee delivery.
 	BlockPublishUntilSubscriberAck bool
 
-	// Persistent controls whether messages are persisted until
-	// consumed, where true causes messages published before
-	// subscriptions exist to be delivered when a subscription is
+	// Persistent controls whether messages are persisted until consumed, where true causes
+	// messages published before subscriptions exist to be delivered when a subscription is
 	// created via fan-out to all subscribers (default: false).
 	Persistent bool
 
@@ -71,10 +67,12 @@ type Config struct {
 	RouterConfig events_domain.RouterConfig
 }
 
-var _ events_domain.Provider = (*GoChannelProvider)(nil)
+var (
+	_ events_domain.Provider = (*GoChannelProvider)(nil)
+)
 
-// GoChannelProvider provides in-memory message passing using Watermill's
-// GoChannel pub/sub. It implements the events_domain.Provider interface.
+// GoChannelProvider provides in-memory message passing using Watermill's GoChannel
+// pub/sub. It implements the events_domain.Provider interface.
 type GoChannelProvider struct {
 	// logger adapts logging for the Watermill router.
 	logger watermill.LoggerAdapter
@@ -85,8 +83,7 @@ type GoChannelProvider struct {
 	// ctx controls the lifetime of the router goroutine.
 	ctx context.Context
 
-	// pubsub is the GoChannel instance that implements both Publisher and
-	// Subscriber.
+	// pubsub is the GoChannel instance that implements both Publisher and Subscriber.
 	pubsub *gochannel.GoChannel
 
 	// router is the Watermill message router that handles pub/sub events.
@@ -105,11 +102,11 @@ type GoChannelProvider struct {
 	running bool
 }
 
-// NewGoChannelProvider creates a new GoChannel provider with the given
-// configuration. Call Start() to set up the router before use.
+// NewGoChannelProvider creates a new GoChannel provider with the given configuration.
+// Call Start() to set up the router before use.
 //
-// Takes config (Config) which specifies the channel buffer size, persistence,
-// and acknowledgement behaviour.
+// Takes config (Config) which specifies the channel buffer size, persistence, and
+// acknowledgement behaviour.
 //
 // Returns *GoChannelProvider which is ready to use after calling Start().
 // Returns error when the provider cannot be created.
@@ -132,13 +129,13 @@ func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
 	}, nil
 }
 
-// Start initialises the Watermill router and starts processing messages.
-// The provided context controls the router's lifecycle.
+// Start initialises the Watermill router and starts processing messages. The provided
+// context controls the router's lifecycle.
 //
 // Returns error when router initialisation fails.
 //
-// Safe for concurrent use. Spawns a goroutine for the router which runs until
-// Stop is called.
+// Safe for concurrent use. Spawns a goroutine for the router which runs until Stop is
+// called.
 func (p *GoChannelProvider) Start(ctx context.Context) error {
 	startTime := time.Now()
 
@@ -170,22 +167,21 @@ func (p *GoChannelProvider) Start(ctx context.Context) error {
 
 // Router returns the Watermill Router for adding handlers.
 //
-// Returns *message.Router which is the router instance for registering
-// message handlers.
+// Returns *message.Router which is the router instance for registering message handlers.
 func (p *GoChannelProvider) Router() *message.Router {
 	return p.router
 }
 
-// Publisher returns the Watermill Publisher for sending messages.
-// For GoChannel, the pub/sub instance implements both Publisher and Subscriber.
+// Publisher returns the Watermill Publisher for sending messages. For GoChannel, the
+// pub/sub instance implements both Publisher and Subscriber.
 //
 // Returns message.Publisher which is the publisher for sending messages.
 func (p *GoChannelProvider) Publisher() message.Publisher {
 	return p.pubsub
 }
 
-// Subscriber returns the Watermill Subscriber for subscribing to topics.
-// For GoChannel, the pub/sub instance implements both Publisher and Subscriber.
+// Subscriber returns the Watermill Subscriber for subscribing to topics. For GoChannel,
+// the pub/sub instance implements both Publisher and Subscriber.
 //
 // Returns message.Subscriber which provides topic subscription capabilities.
 func (p *GoChannelProvider) Subscriber() message.Subscriber {
@@ -270,11 +266,11 @@ func (p *GoChannelProvider) initialiseRouter(ctx context.Context) error {
 
 // startRouterGoroutine starts the router in a background goroutine.
 //
-// The spawned goroutine runs until the context is cancelled or the router
-// stops. It updates the running state when the router exits.
+// The spawned goroutine runs until the context is cancelled or the router stops. It
+// updates the running state when the router exits.
 //
-// Concurrency: Safe for concurrent use. The spawned goroutine runs until the
-// context is cancelled.
+// Concurrency: Safe for concurrent use. The spawned goroutine runs until the context is
+// cancelled.
 func (p *GoChannelProvider) startRouterGoroutine() {
 	go func() {
 		defer goroutine.RecoverPanic(p.ctx, "events.goChannelRouter")
@@ -307,10 +303,9 @@ func (p *GoChannelProvider) recordStartMetrics(ctx context.Context, startTime ti
 
 // DefaultConfig returns sensible defaults for production use.
 //
-// BlockPublishUntilSubscriberAck is disabled to allow fire-and-forget
-// publishing. This supports high-throughput event streams without blocking.
-// Large output buffers and idempotent event handlers (via singleflight)
-// prevent message loss.
+// BlockPublishUntilSubscriberAck is disabled to allow fire-and-forget publishing. This
+// supports high-throughput event streams without blocking. Large output buffers and
+// idempotent event handlers (via singleflight) prevent message loss.
 //
 // Returns Config which contains the default settings for the event system.
 func DefaultConfig() Config {

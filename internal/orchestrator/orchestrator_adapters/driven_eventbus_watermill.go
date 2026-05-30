@@ -50,13 +50,12 @@ const (
 	// logKeyDurationMs is the logging key for operation duration in milliseconds.
 	logKeyDurationMs = "duration_ms"
 
-	// eventBusSubscriptionBufferSize is the buffer size for event bus subscription
-	// channels.
+	// eventBusSubscriptionBufferSize is the buffer size for event bus subscription channels.
 	eventBusSubscriptionBufferSize = 128
 
-	// DefaultMaxEventPayloadBytes caps the watermill message payload size at
-	// 1 MiB before unmarshal. Oversized payloads are rejected without
-	// allocating reflective decode storage.
+	// DefaultMaxEventPayloadBytes caps the watermill message payload size at 1 MiB before
+	// unmarshal. Oversized payloads are rejected without allocating reflective decode
+	// storage.
 	DefaultMaxEventPayloadBytes = 1 << 20
 )
 
@@ -65,41 +64,43 @@ const (
 type BackpressureMode int
 
 const (
-	// BackpressureDropNewest discards the incoming message when the
-	// subscription buffer is full.
+	// BackpressureDropNewest discards the incoming message when the subscription buffer is
+	// full.
 	//
-	// The message is Nacked so the broker may redeliver. This is the
-	// historical behaviour and remains the default.
+	// The message is Nacked so the broker may redeliver. This is the historical behaviour
+	// and remains the default.
 	BackpressureDropNewest BackpressureMode = iota
 
-	// BackpressureDropOldest evicts one buffered event to make room for
-	// the incoming message.
+	// BackpressureDropOldest evicts one buffered event to make room for the incoming
+	// message.
 	//
-	// The dropped event is counted towards WatermillEventBusDroppedEvents.
-	// Useful when freshness matters more than completeness.
+	// The dropped event is counted towards WatermillEventBusDroppedEvents. Useful when
+	// freshness matters more than completeness.
 	BackpressureDropOldest
 
-	// BackpressureBlock waits for buffer capacity to free up before
-	// delivering the message, applying back-pressure to the broker. The
-	// goroutine still respects subscription cancellation.
+	// BackpressureBlock waits for buffer capacity to free up before delivering the message,
+	// applying back-pressure to the broker. The goroutine still respects subscription
+	// cancellation.
 	BackpressureBlock
 )
 
-// ErrEventPayloadTooLarge is returned when a watermill message exceeds the
-// configured payload size cap. Callers can use errors.Is to detect this
-// condition without parsing the message.
-var ErrEventPayloadTooLarge = errors.New("watermill event payload exceeds configured size limit")
+var (
+	// ErrEventPayloadTooLarge is returned when a watermill message exceeds the configured
+	// payload size cap. Callers can use errors.Is to detect this condition without parsing
+	// the message.
+	ErrEventPayloadTooLarge = errors.New("watermill event payload exceeds configured size limit")
+)
 
-// watermillEventBus adapts Watermill's Publisher and Subscriber interfaces
-// to implement the EventBus interface.
+// watermillEventBus adapts Watermill's Publisher and Subscriber interfaces to implement
+// the EventBus interface.
 //
-// This adapter enables the orchestrator to use any Watermill-compatible
-// pub/sub implementation (GoChannel, Redis, NATS, Kafka, etc.) whilst
-// maintaining the existing EventBus contract.
+// This adapter enables the orchestrator to use any Watermill-compatible pub/sub
+// implementation (GoChannel, Redis, NATS, Kafka, etc.) whilst maintaining the existing
+// EventBus contract.
 //
-// It supports two subscription modes:
-// 1. Subscribe() - Channel-based, fire-and-forget (messages Acked immediately)
-// 2. SubscribeWithHandler() - Handler-based with manual Ack/Nack control
+// It supports two subscription modes: 1. Subscribe() - Channel-based, fire-and-forget
+// (messages Acked immediately) 2. SubscribeWithHandler() - Handler-based with manual
+// Ack/Nack control
 type watermillEventBus struct {
 	// publisher sends messages to topics.
 	publisher message.Publisher
@@ -113,24 +114,23 @@ type watermillEventBus struct {
 	// subscriptions maps topic names to active subscription records for cleanup.
 	subscriptions map[string]*watermillSubscription
 
-	// monitorWaitGroup tracks background context-cancellation monitor
-	// goroutines so Close can wait for them to finish.
+	// monitorWaitGroup tracks background context-cancellation monitor goroutines so Close
+	// can wait for them to finish.
 	monitorWaitGroup sync.WaitGroup
 
-	// processorWaitGroup tracks background message-processor goroutines
-	// spawned by SubscribeWithHandler so Close can wait for them to finish.
+	// processorWaitGroup tracks background message-processor goroutines spawned by
+	// SubscribeWithHandler so Close can wait for them to finish.
 	processorWaitGroup sync.WaitGroup
 
 	// subscriptionsMutex guards access to the subscriptions map.
 	subscriptionsMutex sync.RWMutex
 
-	// maxPayloadBytes caps the watermill message payload size accepted by
-	// receive handlers. A non-positive value falls back to
-	// DefaultMaxEventPayloadBytes.
+	// maxPayloadBytes caps the watermill message payload size accepted by receive handlers.
+	// A non-positive value falls back to DefaultMaxEventPayloadBytes.
 	maxPayloadBytes int64
 
-	// backpressureMode selects the policy applied when the per-subscription
-	// buffer is full. Defaults to BackpressureDropNewest.
+	// backpressureMode selects the policy applied when the per-subscription buffer is full.
+	// Defaults to BackpressureDropNewest.
 	backpressureMode BackpressureMode
 
 	// isClosed indicates whether the event bus has been closed.
@@ -140,19 +140,18 @@ type watermillEventBus struct {
 	closeMutex sync.RWMutex
 }
 
-// WatermillEventBusOption configures optional behaviour for
-// watermillEventBus instances. Options are applied in order and may overwrite
-// earlier settings.
+// WatermillEventBusOption configures optional behaviour for watermillEventBus instances.
+// Options are applied in order and may overwrite earlier settings.
 type WatermillEventBusOption func(*watermillEventBus)
 
-// WithMaxEventPayloadBytes overrides the per-message payload cap enforced
-// before unmarshalling watermill messages. Non-positive values reset the cap
-// to DefaultMaxEventPayloadBytes.
+// WithMaxEventPayloadBytes overrides the per-message payload cap enforced before
+// unmarshalling watermill messages. Non-positive values reset the cap to
+// DefaultMaxEventPayloadBytes.
 //
 // Takes maxBytes (int64) which is the maximum payload size in bytes.
 //
-// Returns WatermillEventBusOption which applies the cap to the bus when
-// passed to NewWatermillEventBus.
+// Returns WatermillEventBusOption which applies the cap to the bus when passed to
+// NewWatermillEventBus.
 func WithMaxEventPayloadBytes(maxBytes int64) WatermillEventBusOption {
 	return func(b *watermillEventBus) {
 		if maxBytes <= 0 {
@@ -163,14 +162,13 @@ func WithMaxEventPayloadBytes(maxBytes int64) WatermillEventBusOption {
 	}
 }
 
-// WithBackpressureMode selects the policy applied when a channel-mode
-// subscription buffer is full. Unrecognised values fall back to
-// BackpressureDropNewest.
+// WithBackpressureMode selects the policy applied when a channel-mode subscription buffer
+// is full. Unrecognised values fall back to BackpressureDropNewest.
 //
 // Takes mode (BackpressureMode) which is the policy to apply.
 //
-// Returns WatermillEventBusOption which applies the mode to the bus when
-// passed to NewWatermillEventBus.
+// Returns WatermillEventBusOption which applies the mode to the bus when passed to
+// NewWatermillEventBus.
 func WithBackpressureMode(mode BackpressureMode) WatermillEventBusOption {
 	return func(b *watermillEventBus) {
 		switch mode {
@@ -190,34 +188,32 @@ type watermillSubscription struct {
 	// cancelFunc cancels the subscription's context to stop message processing.
 	cancelFunc context.CancelCauseFunc
 
-	// closeOutput ensures outputChan is only closed once across the
-	// concurrent unsubscribe and Close-all paths.
+	// closeOutput ensures outputChan is only closed once across the concurrent unsubscribe
+	// and Close-all paths.
 	closeOutput *sync.Once
 
 	// topic is the Watermill subscription topic name.
 	topic string
 }
 
-// closeChannel closes outputChan exactly once across all callers.
-// Safe for concurrent use; subsequent calls become no-ops.
+// closeChannel closes outputChan exactly once across all callers. Safe for concurrent
+// use; subsequent calls become no-ops.
 func (s *watermillSubscription) closeChannel() {
 	s.closeOutput.Do(func() {
 		close(s.outputChan)
 	})
 }
 
-// Publish converts an orchestrator Event to a Watermill Message and publishes
-// it.
+// Publish converts an orchestrator Event to a Watermill Message and publishes it.
 //
 // The context's trace information is propagated via message metadata to enable
 // distributed tracing across the pub/sub boundary.
 //
 // Takes topic (string) which specifies the destination topic for the message.
-// Takes event (orchestrator_domain.Event) which contains the event data to
-// publish.
+// Takes event (orchestrator_domain.Event) which contains the event data to publish.
 //
-// Returns error when the bus is closed, message creation fails, or publishing
-// to Watermill fails.
+// Returns error when the bus is closed, message creation fails, or publishing to
+// Watermill fails.
 func (b *watermillEventBus) Publish(ctx context.Context, topic string, event orchestrator_domain.Event) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "WatermillEventBus.Publish",
@@ -261,11 +257,11 @@ func (b *watermillEventBus) Publish(ctx context.Context, topic string, event orc
 	return nil
 }
 
-// Subscribe creates a subscription to the given topic and returns a channel
-// of orchestrator events.
+// Subscribe creates a subscription to the given topic and returns a channel of
+// orchestrator events.
 //
-// The subscription supports wildcard patterns (e.g., "artefact.*") by
-// converting them to the appropriate Watermill subscription pattern.
+// The subscription supports wildcard patterns (e.g., "artefact.*") by converting them to
+// the appropriate Watermill subscription pattern.
 //
 // The returned channel will be closed when:
 //   - The provided context is cancelled
@@ -274,8 +270,8 @@ func (b *watermillEventBus) Publish(ctx context.Context, topic string, event orc
 //
 // Takes topic (string) which specifies the topic name or wildcard pattern.
 //
-// Returns <-chan orchestrator_domain.Event which yields events as they are
-// published to the topic.
+// Returns <-chan orchestrator_domain.Event which yields events as they are published to
+// the topic.
 // Returns error when the event bus is closed.
 func (b *watermillEventBus) Subscribe(ctx context.Context, topic string) (<-chan orchestrator_domain.Event, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -316,8 +312,8 @@ func (b *watermillEventBus) Subscribe(ctx context.Context, topic string) (<-chan
 	return outputChan, nil
 }
 
-// SubscribeWithHandler subscribes to a topic using direct subscription with
-// proper Ack/Nack semantics for at-least-once delivery.
+// SubscribeWithHandler subscribes to a topic using direct subscription with proper
+// Ack/Nack semantics for at-least-once delivery.
 //
 // Unlike the router-based Subscribe, creates its own message processing goroutine,
 // allowing subscriptions to be established after the router has started running.
@@ -328,12 +324,12 @@ func (b *watermillEventBus) Subscribe(ctx context.Context, topic string) (<-chan
 //
 // Returns error when the event bus is closed or subscription fails.
 //
-// The handler function is called for each message. If the handler returns nil,
-// the message is Acked. If the handler returns an error, the message is Nacked
-// and will be redelivered depending on the underlying pub/sub implementation.
+// The handler function is called for each message. If the handler returns nil, the
+// message is Acked. If the handler returns an error, the message is Nacked and will be
+// redelivered depending on the underlying pub/sub implementation.
 //
-// Suitable for critical message processing where message loss is unacceptable, such
-// as processing artefact events that trigger orchestrator tasks.
+// Suitable for critical message processing where message loss is unacceptable, such as
+// processing artefact events that trigger orchestrator tasks.
 //
 // The handler MUST be idempotent as messages may be delivered multiple times.
 func (b *watermillEventBus) SubscribeWithHandler(ctx context.Context, topic string, handler orchestrator_domain.EventHandler) error {
@@ -374,8 +370,8 @@ func (b *watermillEventBus) SubscribeWithHandler(ctx context.Context, topic stri
 	return nil
 }
 
-// Router returns the underlying Watermill router for advanced use cases.
-// Users can add their own handlers to this router.
+// Router returns the underlying Watermill router for advanced use cases. Users can add
+// their own handlers to this router.
 //
 // Returns *message.Router which provides access to the internal message router.
 func (b *watermillEventBus) Router() *message.Router {
@@ -396,11 +392,10 @@ func (b *watermillEventBus) Subscriber() message.Subscriber {
 	return b.subscriber
 }
 
-// Close shuts down the EventBus, closing all active subscriptions and
-// stopping the Watermill router.
+// Close shuts down the EventBus, closing all active subscriptions and stopping the
+// Watermill router.
 //
-// Takes ctx (context.Context) which carries logging context for the shutdown
-// operation.
+// Takes ctx (context.Context) which carries logging context for the shutdown operation.
 //
 // Returns error when shutdown fails, or nil if already closed.
 func (b *watermillEventBus) Close(ctx context.Context) error {
@@ -436,8 +431,8 @@ func (b *watermillEventBus) Close(ctx context.Context) error {
 // effectiveMaxPayloadBytes returns the configured cap, defaulting to
 // DefaultMaxEventPayloadBytes when no positive override has been supplied.
 //
-// Returns int64 which is the active payload byte cap (DefaultMaxEventPayloadBytes
-// when no positive override has been applied).
+// Returns int64 which is the active payload byte cap (DefaultMaxEventPayloadBytes when no
+// positive override has been applied).
 func (b *watermillEventBus) effectiveMaxPayloadBytes() int64 {
 	if b.maxPayloadBytes <= 0 {
 		return DefaultMaxEventPayloadBytes
@@ -472,8 +467,7 @@ func (b *watermillEventBus) checkNotClosed(ctx context.Context, span trace.Span)
 // Takes span (trace.Span) which provides trace context for error reporting.
 // Takes event (orchestrator_domain.Event) which is the event to convert.
 //
-// Returns *message.Message which contains the serialised event with trace
-// metadata.
+// Returns *message.Message which contains the serialised event with trace metadata.
 // Returns error when the event cannot be marshalled to JSON.
 func (*watermillEventBus) createMessage(
 	ctx context.Context,
@@ -501,11 +495,10 @@ func (*watermillEventBus) createMessage(
 	return wmMessage, nil
 }
 
-// createSubscription creates a new subscription with output channel and
-// registers it.
+// createSubscription creates a new subscription with output channel and registers it.
 //
-// Takes ctx (context.Context) which is the parent context for the
-// subscription's cancellable context.
+// Takes ctx (context.Context) which is the parent context for the subscription's
+// cancellable context.
 // Takes topic (string) which specifies the event topic to subscribe to.
 //
 // Returns chan orchestrator_domain.Event which yields events for the topic.
@@ -530,15 +523,14 @@ func (b *watermillEventBus) createSubscription(ctx context.Context, topic string
 	return outputChan, subCtx
 }
 
-// createChannelMessageHandler creates a message handler that sends events to
-// a channel.
+// createChannelMessageHandler creates a message handler that sends events to a channel.
 //
 // Takes topic (string) which names the subscription topic for logging.
-// Takes outputChan (chan orchestrator_domain.Event) which receives decoded
-// events from messages.
+// Takes outputChan (chan orchestrator_domain.Event) which receives decoded events from
+// messages.
 //
-// Returns func(*message.Message) error which handles incoming messages by
-// decoding them into events and sending them to the output channel.
+// Returns func(*message.Message) error which handles incoming messages by decoding them
+// into events and sending them to the output channel.
 func (b *watermillEventBus) createChannelMessageHandler(
 	subCtx context.Context,
 	topic string,
@@ -587,16 +579,14 @@ func (b *watermillEventBus) createChannelMessageHandler(
 // deliverWithBackpressure sends event to outputChan honouring the configured
 // BackpressureMode when the buffer is full.
 //
-// Takes msgCtx (context.Context) which carries metric and logging
-// scope for this delivery.
+// Takes msgCtx (context.Context) which carries metric and logging scope for this
+// delivery.
 // Takes subCtx (context.Context) which signals subscription cancellation.
 // Takes msgLog (logger_domain.Logger) which is the per-message logger.
-// Takes outputChan (chan orchestrator_domain.Event) which buffers events
-// for the subscription.
-// Takes event (orchestrator_domain.Event) which is the decoded event to
-// deliver.
-// Takes wmMessage (*message.Message) which receives Ack or Nack based on
-// the outcome.
+// Takes outputChan (chan orchestrator_domain.Event) which buffers events for the
+// subscription.
+// Takes event (orchestrator_domain.Event) which is the decoded event to deliver.
+// Takes wmMessage (*message.Message) which receives Ack or Nack based on the outcome.
 func (b *watermillEventBus) deliverWithBackpressure(
 	msgCtx context.Context,
 	subCtx context.Context,
@@ -652,16 +642,16 @@ func (b *watermillEventBus) deliverWithBackpressure(
 	}
 }
 
-// monitorContextCancellation starts a background task to clean up
-// the subscription on context cancellation.
+// monitorContextCancellation starts a background task to clean up the subscription on
+// context cancellation.
 //
 // Takes ctx (context.Context) which is the subscription context to monitor.
-// Takes topic (string) which identifies the subscription to clean
-// up when the context is done.
+// Takes topic (string) which identifies the subscription to clean up when the context is
+// done.
 //
-// The spawned goroutine is tracked via the bus's monitorWaitGroup so
-// Close can wait for it to complete, and is wrapped in
-// goroutine.RecoverPanic to prevent panics from crashing the process.
+// The spawned goroutine is tracked via the bus's monitorWaitGroup so Close can wait for
+// it to complete, and is wrapped in goroutine.RecoverPanic to prevent panics from
+// crashing the process.
 func (b *watermillEventBus) monitorContextCancellation(ctx context.Context, topic string) {
 	b.monitorWaitGroup.Go(func() {
 		defer goroutine.RecoverPanic(ctx, "orchestrator.watermillEventBus.monitorContextCancellation")
@@ -682,19 +672,16 @@ func (b *watermillEventBus) monitorContextCancellation(ctx context.Context, topi
 	})
 }
 
-// startMessageProcessor starts a background task that processes
-// messages from the channel until it is closed or the context
-// is cancelled.
+// startMessageProcessor starts a background task that processes messages from the channel
+// until it is closed or the context is cancelled.
 //
-// A processor goroutine is spawned via processorWaitGroup.Go and runs
-// until the channel is closed or ctx is cancelled.
+// A processor goroutine is spawned via processorWaitGroup.Go and runs until the channel
+// is closed or ctx is cancelled.
 //
-// Takes topic (string) which identifies the subscription topic for
-// logging.
-// Takes messages (<-chan *message.Message) which provides the
-// Watermill messages to process.
-// Takes handler (orchestrator_domain.EventHandler) which processes
-// each decoded event.
+// Takes topic (string) which identifies the subscription topic for logging.
+// Takes messages (<-chan *message.Message) which provides the Watermill messages to
+// process.
+// Takes handler (orchestrator_domain.EventHandler) which processes each decoded event.
 func (b *watermillEventBus) startMessageProcessor(
 	ctx context.Context,
 	topic string,
@@ -733,12 +720,11 @@ func (b *watermillEventBus) startMessageProcessor(
 	<-ready
 }
 
-// processMessage handles a single message from a subscription, calling the
-// handler and managing Ack/Nack based on the result.
+// processMessage handles a single message from a subscription, calling the handler and
+// managing Ack/Nack based on the result.
 //
 // Takes topic (string) which identifies the subscription topic.
-// Takes wmMessage (*message.Message) which contains the message
-// payload and metadata.
+// Takes wmMessage (*message.Message) which contains the message payload and metadata.
 // Takes handler (orchestrator_domain.EventHandler) which processes the event.
 func (b *watermillEventBus) processMessage(
 	ctx context.Context,
@@ -801,8 +787,8 @@ func (b *watermillEventBus) processMessage(
 
 // markAsClosed atomically marks the bus as closed.
 //
-// Returns bool which is true if this call closed the bus, or false if it was
-// already closed.
+// Returns bool which is true if this call closed the bus, or false if it was already
+// closed.
 //
 // Safe for concurrent use.
 func (b *watermillEventBus) markAsClosed() bool {
@@ -846,8 +832,9 @@ func (b *watermillEventBus) closeAllSubscriptions(ctx context.Context) int {
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which records errors during component closure.
 //
-// Returns error which aggregates router, publisher, and subscriber close
-// errors via errors.Join. Returns nil when every component closes cleanly.
+// Returns error which aggregates router, publisher, and subscriber close errors via
+// errors.Join.
+// Returns nil when every component closes cleanly.
 func (b *watermillEventBus) closeWatermillComponents(ctx context.Context, span trace.Span) error {
 	ctx, l := logger_domain.From(ctx, log)
 	var aggregated error
@@ -873,8 +860,8 @@ func (b *watermillEventBus) closeWatermillComponents(ctx context.Context, span t
 
 // unsubscribe removes a subscription and cleans up its resources.
 //
-// Takes ctx (context.Context) which carries logging context for the
-// unsubscribe operation.
+// Takes ctx (context.Context) which carries logging context for the unsubscribe
+// operation.
 // Takes topic (string) which identifies the subscription to remove.
 //
 // Safe for concurrent use; protects subscriptions with a mutex.
@@ -906,20 +893,19 @@ func (b *watermillEventBus) unsubscribe(ctx context.Context, topic string) {
 		logger_domain.Int("remainingSubscriptions", len(b.subscriptions)))
 }
 
-// NewWatermillEventBus creates a new EventBus adapter using the provided
-// Watermill Publisher and Subscriber.
+// NewWatermillEventBus creates a new EventBus adapter using the provided Watermill
+// Publisher and Subscriber.
 //
-// The router manages subscription lifecycle and message routing. It will be
-// started automatically when the first subscription is created.
+// The router manages subscription lifecycle and message routing. It will be started
+// automatically when the first subscription is created.
 //
 // Takes publisher (message.Publisher) which handles sending messages.
 // Takes subscriber (message.Subscriber) which handles receiving messages.
 // Takes router (*message.Router) which manages subscription lifecycle.
-// Takes opts (...WatermillEventBusOption) which configure optional behaviour
-// such as the maximum accepted payload size.
+// Takes opts (...WatermillEventBusOption) which configure optional behaviour such as the
+// maximum accepted payload size.
 //
-// Returns orchestrator_domain.EventBus which is the configured event bus
-// ready for use.
+// Returns orchestrator_domain.EventBus which is the configured event bus ready for use.
 func NewWatermillEventBus(
 	publisher message.Publisher,
 	subscriber message.Subscriber,

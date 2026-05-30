@@ -20,7 +20,9 @@
 
 package layouter_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 type stubFontMetrics struct{}
 

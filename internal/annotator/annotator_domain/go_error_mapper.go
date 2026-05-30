@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Maps Go compiler errors from generated code back to their original template
-// source locations. Parses error messages, resolves virtual file paths, and
-// creates diagnostics with accurate line and column information for developers.
+// Maps Go compiler errors from generated code back to their original template source
+// locations. Parses error messages, resolves virtual file paths, and creates diagnostics
+// with accurate line and column information for developers.
 
 import (
 	"context"
@@ -86,16 +86,15 @@ var (
 	// /path/to/file.go:line:column: message.
 	goErrorPattern = regexp.MustCompile(`^(.+\.go):(\d+):(\d+):\s*(.+)$`)
 
-	// methodCallPattern matches "expr.method" patterns in error messages. Used to
-	// find method calls like "editorService.GetFolderAncestors" for highlighting.
+	// methodCallPattern matches "expr.method" patterns in error messages. Used to find
+	// method calls like "editorService.GetFolderAncestors" for highlighting.
 	methodCallPattern = regexp.MustCompile(`(\w+\.\w+)`)
 
-	// identifierPattern extracts any identifier from error messages for source
-	// searching.
+	// identifierPattern extracts any identifier from error messages for source searching.
 	identifierPattern = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_]*)\b`)
 
-	// noiseWords contains words to filter out when extracting search terms.
-	// Includes Go keywords, types, and common words from error messages.
+	// noiseWords contains words to filter out when extracting search terms. Includes Go
+	// keywords, types, and common words from error messages.
 	noiseWords = map[string]bool{
 		"type": true, "func": true, "var": true, "const": true,
 		"if": true, "else": true, "for": true, "range": true,
@@ -119,9 +118,9 @@ var (
 	}
 )
 
-// parseGoCompileError parses a Go compiler error message into structured data.
-// It uses the first line to extract file path, line, and column details, but
-// keeps the full message for display.
+// parseGoCompileError parses a Go compiler error message into structured data. It uses
+// the first line to extract file path, line, and column details, but keeps the full
+// message for display.
 //
 // Takes errMessage (string) which is the raw error message from the Go compiler.
 //
@@ -161,13 +160,12 @@ func parseGoCompileError(errMessage string) (*goCompileError, bool) {
 	}, true
 }
 
-// mapGoErrorToDiagnostic converts a Go compiler error into a diagnostic that
-// points to the original PK source file. When no mapping exists, it points to
-// the Go file instead.
+// mapGoErrorToDiagnostic converts a Go compiler error into a diagnostic that points to
+// the original PK source file. When no mapping exists, it points to the Go file instead.
 //
 // Takes goErr (*goCompileError) which is the parsed Go compiler error.
-// Takes virtualModule (*annotator_dto.VirtualModule) which maps generated
-// files to source files.
+// Takes virtualModule (*annotator_dto.VirtualModule) which maps generated files to source
+// files.
 // Takes fsReader (FSReaderPort) which reads files from the file system.
 //
 // Returns *ast_domain.Diagnostic which is the mapped diagnostic.
@@ -197,8 +195,8 @@ func mapGoErrorToDiagnostic(ctx context.Context, goErr *goCompileError, virtualM
 	}, true
 }
 
-// createDiagnosticForGoFile creates a diagnostic for errors in standard Go
-// files that are not generated from PK source.
+// createDiagnosticForGoFile creates a diagnostic for errors in standard Go files that are
+// not generated from PK source.
 //
 // Takes goErr (*goCompileError) which is the parsed Go compiler error.
 // Takes vm (*annotator_dto.VirtualModule) which provides source overlay paths.
@@ -258,14 +256,13 @@ func createDiagnosticForGoFile(ctx context.Context, goErr *goCompileError, vm *a
 	}, true
 }
 
-// findVirtualComponentForGeneratedFile finds the VirtualComponent that owns
-// the given generated file path.
+// findVirtualComponentForGeneratedFile finds the VirtualComponent that owns the given
+// generated file path.
 //
 // Takes generatedPath (string) which is the path to the generated Go file.
 // Takes vm (*annotator_dto.VirtualModule) which holds the component mappings.
 //
-// Returns *annotator_dto.VirtualComponent which owns the file, or nil if not
-// found.
+// Returns *annotator_dto.VirtualComponent which owns the file, or nil if not found.
 func findVirtualComponentForGeneratedFile(generatedPath string, vm *annotator_dto.VirtualModule) *annotator_dto.VirtualComponent {
 	generatedPath = filepath.Clean(generatedPath)
 
@@ -286,17 +283,15 @@ func findVirtualComponentForGeneratedFile(generatedPath string, vm *annotator_dt
 	return nil
 }
 
-// mapGeneratedLineToSource attempts to map a line number from the generated
-// Go file back to the PK source file.
+// mapGeneratedLineToSource attempts to map a line number from the generated Go file back
+// to the PK source file.
 //
 // Takes ctx (context.Context) which is the context for file operations.
 // Takes goErr (*goCompileError) which contains the error location.
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component
-// context.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component context.
 // Takes fsReader (FSReaderPort) which provides safe file reading operations.
 //
-// Returns sourceLocation which contains the best-guess line and column in the
-// PK source.
+// Returns sourceLocation which contains the best-guess line and column in the PK source.
 func mapGeneratedLineToSource(ctx context.Context, goErr *goCompileError, vc *annotator_dto.VirtualComponent, _ *annotator_dto.VirtualModule, fsReader FSReaderPort) sourceLocation {
 	ctx, l := logger_domain.From(ctx, log)
 	searchTerms := extractSearchTerms(goErr.Message)
@@ -328,9 +323,8 @@ func mapGeneratedLineToSource(ctx context.Context, goErr *goCompileError, vc *an
 	}
 }
 
-// extractSearchTerms pulls searchable names from a Go compiler error message.
-// It first looks for method calls (such as expr.method), then pulls out single
-// names.
+// extractSearchTerms pulls searchable names from a Go compiler error message. It first
+// looks for method calls (such as expr.method), then pulls out single names.
 //
 // Takes errMessage (string) which contains the Go compiler error message to parse.
 //
@@ -356,19 +350,19 @@ func extractSearchTerms(errMessage string) []string {
 	return terms
 }
 
-// isNoiseWord reports whether the word should be filtered out during search
-// term extraction.
+// isNoiseWord reports whether the word should be filtered out during search term
+// extraction.
 //
 // Takes word (string) which is the word to check.
 //
-// Returns bool which is true if the word is too short or is a common word
-// that does not help with searching.
+// Returns bool which is true if the word is too short or is a common word that does not
+// help with searching.
 func isNoiseWord(word string) bool {
 	return len(word) < 2 || noiseWords[word]
 }
 
-// findTermInSource searches for a term in source code and returns its location.
-// It prefers matches on code lines over matches in comments.
+// findTermInSource searches for a term in source code and returns its location. It
+// prefers matches on code lines over matches in comments.
 //
 // Takes source (string) which is the source code to search.
 // Takes term (string) which is the text to find.
@@ -413,15 +407,15 @@ func findTermInSource(source, term string) sourceLocation {
 //
 // Takes line (string) which is the source line to check.
 //
-// Returns bool which is true if the line starts with // or /* after
-// removing leading whitespace.
+// Returns bool which is true if the line starts with // or /* after removing leading
+// whitespace.
 func isCommentLine(line string) bool {
 	trimmed := strings.TrimSpace(line)
 	return strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*")
 }
 
-// estimateLineFromGeneratedLine gives a rough estimate of the source line
-// number based on a line number from the generated file.
+// estimateLineFromGeneratedLine gives a rough estimate of the source line number based on
+// a line number from the generated file.
 //
 // Takes generatedLine (int) which is the line number in the generated file.
 // Takes vc (*annotator_dto.VirtualComponent) which provides component context.
@@ -436,16 +430,16 @@ func estimateLineFromGeneratedLine(generatedLine int, vc *annotator_dto.VirtualC
 	return generatedLine
 }
 
-// convertTypeInspectorErrorToDiagnostics parses build errors from TypeInspector
-// and converts them into diagnostics that point to PK source files.
+// convertTypeInspectorErrorToDiagnostics parses build errors from TypeInspector and
+// converts them into diagnostics that point to PK source files.
 //
 // Takes err (error) which is the error from TypeInspector.Build.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides mappings
-// between generated code and source files.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides mappings between
+// generated code and source files.
 // Takes fsReader (FSReaderPort) which provides file reading.
 //
-// Returns []*ast_domain.Diagnostic which contains the converted diagnostics,
-// or nil when err or virtualModule is nil.
+// Returns []*ast_domain.Diagnostic which contains the converted diagnostics, or nil when
+// err or virtualModule is nil.
 func convertTypeInspectorErrorToDiagnostics(ctx context.Context, err error, virtualModule *annotator_dto.VirtualModule, fsReader FSReaderPort) []*ast_domain.Diagnostic {
 	if err == nil || virtualModule == nil {
 		return nil

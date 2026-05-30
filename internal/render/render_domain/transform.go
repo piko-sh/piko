@@ -42,12 +42,12 @@ const (
 	// attributeClass is the HTML class attribute name for case-insensitive matching.
 	attributeClass = "class"
 
-	// initialThemeCSSCapacity is the initial capacity for the CSS theme builder,
-	// set based on typical theme sizes.
+	// initialThemeCSSCapacity is the initial capacity for the CSS theme builder, set based
+	// on typical theme sizes.
 	initialThemeCSSCapacity = 3072
 
-	// standardSortedKeysSize is the buffer size for pooled key slices, set to
-	// handle the typical number of attributes found in SVG elements.
+	// standardSortedKeysSize is the buffer size for pooled key slices, set to handle the
+	// typical number of attributes found in SVG elements.
 	standardSortedKeysSize = 16
 
 	// sortThresholdManual is the largest array size that uses manual sorting.
@@ -65,23 +65,24 @@ const (
 	maxFastPathAttrCount = 8
 )
 
-// stringBuilderPool uses a sync.Pool to reuse strings.Builder objects,
-// reducing allocation pressure in high-throughput rendering paths.
-var stringBuilderPool = sync.Pool{
-	New: func() any {
-		b := &strings.Builder{}
-		b.Grow(128)
-		return b
-	},
-}
+var (
+	// stringBuilderPool uses a sync.Pool to reuse strings.Builder objects, reducing
+	// allocation pressure in high-throughput rendering paths.
+	stringBuilderPool = sync.Pool{
+		New: func() any {
+			b := &strings.Builder{}
+			b.Grow(128)
+			return b
+		},
+	}
+)
 
-// writeErrorDiv writes an error message inside a div element with the given
-// attributes. This matches the output of createErrorNode for consistent error
-// display.
+// writeErrorDiv writes an error message inside a div element with the given attributes.
+// This matches the output of createErrorNode for consistent error display.
 //
 // Takes qw (*qt.Writer) which receives the HTML output.
-// Takes userAttrs ([]ast_domain.HTMLAttribute) which provides attributes to
-// add to the div element.
+// Takes userAttrs ([]ast_domain.HTMLAttribute) which provides attributes to add to the
+// div element.
 // Takes errorMessage (string) which contains the error text to display.
 func writeErrorDiv(qw *qt.Writer, userAttrs []ast_domain.HTMLAttribute, errorMessage string) {
 	qw.N().S("<div")
@@ -100,14 +101,13 @@ func writeErrorDiv(qw *qt.Writer, userAttrs []ast_domain.HTMLAttribute, errorMes
 	qw.N().S("</div>")
 }
 
-// toLowerIfNeeded converts a string to lowercase only if it contains
-// uppercase letters. This avoids making a new string when the input is
-// already lowercase.
+// toLowerIfNeeded converts a string to lowercase only if it contains uppercase letters.
+// This avoids making a new string when the input is already lowercase.
 //
 // Takes s (string) which is the input string to check and convert.
 //
-// Returns string which is the lowercase version, or the original string if it
-// is already lowercase.
+// Returns string which is the lowercase version, or the original string if it is already
+// lowercase.
 func toLowerIfNeeded(s string) string {
 	for i := range len(s) {
 		c := s[i]

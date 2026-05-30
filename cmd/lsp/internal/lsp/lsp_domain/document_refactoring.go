@@ -25,16 +25,15 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// GetRenameEdits generates workspace edits to rename a symbol across the
-// document. This builds on GetReferences to find all occurrences and create
-// text edits for each.
+// GetRenameEdits generates workspace edits to rename a symbol across the document. This
+// builds on GetReferences to find all occurrences and create text edits for each.
 //
 // Takes position (protocol.Position) which specifies the location of the symbol to
 // rename.
 // Takes newName (string) which provides the new name for the symbol.
 //
-// Returns map[protocol.DocumentURI][]protocol.TextEdit which contains the text
-// edits grouped by document URI.
+// Returns map[protocol.DocumentURI][]protocol.TextEdit which contains the text edits
+// grouped by document URI.
 // Returns error when finding references fails.
 func (d *document) GetRenameEdits(ctx context.Context, position protocol.Position, newName string) (map[protocol.DocumentURI][]protocol.TextEdit, error) {
 	locations, err := d.GetReferences(ctx, position)

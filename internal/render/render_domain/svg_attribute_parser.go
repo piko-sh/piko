@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// svgAttribute holds an SVG attribute name and value pair.
-// It is a smaller version of ast_domain.HTMLAttribute, saving 48 bytes per
-// attribute by not storing location or range data.
+// svgAttribute holds an SVG attribute name and value pair. It is a smaller version of
+// ast_domain.HTMLAttribute, saving 48 bytes per attribute by not storing location or
+// range data.
 type svgAttribute struct {
 	// Name is the attribute name.
 	Name string
@@ -35,34 +35,37 @@ type svgAttribute struct {
 	Value string
 }
 
-// svgAttrSliceInitialCap is the starting capacity for pooled attribute slices.
-// Most SVG elements have 3 to 8 attributes, so 8 is a sensible default.
-const svgAttrSliceInitialCap = 8
+const (
 
-// svgAttrSlicePool reuses svgAttribute slices to reduce allocation pressure
-// during SVG attribute parsing.
-var svgAttrSlicePool = sync.Pool{
-	New: func() any {
-		return new(make([]svgAttribute, 0, svgAttrSliceInitialCap))
-	},
-}
+	// svgAttrSliceInitialCap is the starting capacity for pooled attribute slices. Most SVG
+	// elements have 3 to 8 attributes, so 8 is a sensible default.
+	svgAttrSliceInitialCap = 8
+)
 
-// ParseSVGAttributes parses SVG tag attributes and converts them to HTML
-// attribute format.
+var (
+	// svgAttrSlicePool reuses svgAttribute slices to reduce allocation pressure during SVG
+	// attribute parsing.
+	svgAttrSlicePool = sync.Pool{
+		New: func() any {
+			return new(make([]svgAttribute, 0, svgAttrSliceInitialCap))
+		},
+	}
+)
+
+// ParseSVGAttributes parses SVG tag attributes and converts them to HTML attribute
+// format.
 //
-// This is the main function for parsing SVG tag attributes. It combines
-// parsing and conversion in a single call and handles pool management
-// internally.
+// This is the main function for parsing SVG tag attributes. It combines parsing and
+// conversion in a single call and handles pool management internally.
 //
-// This replaces html.NewTokenizer-based parsing with better performance:
-//   - 6x faster than html.NewTokenizer
-//   - 96% fewer allocations (26 to 1 per call)
-//   - Keeps attribute case correct (needed for SVG, unlike HTML tokeniser)
+// This replaces html.NewTokenizer-based parsing with a lighter custom parser that reduces
+// allocations on the hot path and keeps attribute case correct (needed for SVG, unlike
+// the HTML tokeniser).
 //
 // Takes tagContent (string) which contains the raw SVG tag content to parse.
 //
-// Returns []ast_domain.HTMLAttribute which contains the parsed attributes,
-// or nil for empty or whitespace-only input.
+// Returns []ast_domain.HTMLAttribute which contains the parsed attributes, or nil for
+// empty or whitespace-only input.
 func ParseSVGAttributes(tagContent string) []ast_domain.HTMLAttribute {
 	if len(tagContent) == 0 {
 		return nil
@@ -85,8 +88,8 @@ func ParseSVGAttributes(tagContent string) []ast_domain.HTMLAttribute {
 	return convertSVGToHTMLAttributes(attrs)
 }
 
-// getSVGAttrSlice retrieves a pooled attribute slice.
-// The caller must return the slice via putSVGAttrSlice when done.
+// getSVGAttrSlice retrieves a pooled attribute slice. The caller must return the slice
+// via putSVGAttrSlice when done.
 //
 // Returns *[]svgAttribute which is a slice ready for use.
 func getSVGAttrSlice() *[]svgAttribute {
@@ -110,17 +113,16 @@ func putSVGAttrSlice(s *[]svgAttribute) {
 
 // parseSVGTagAttributes extracts attributes from an SVG opening tag.
 //
-// This parser does not allocate memory. It works directly on the source string.
-// The returned slice comes from a pool. You must return it with putSVGAttrSlice
-// when finished.
+// This parser does not allocate memory. It works directly on the source string. The
+// returned slice comes from a pool. You must return it with putSVGAttrSlice when
+// finished.
 //
 // The parser is built for SVG content where:
 //   - Attribute names are case-sensitive (viewBox, strokeWidth, etc.)
 //   - Content is ASCII only (valid SVG/XML)
 //   - Speed matters (called for each SVG on cache miss)
 //
-// Takes tagContent (string) which is the SVG opening tag content without the
-// tag name.
+// Takes tagContent (string) which is the SVG opening tag content without the tag name.
 //
 // Returns *[]svgAttribute which holds the parsed attributes from the tag.
 func parseSVGTagAttributes(tagContent string) *[]svgAttribute {
@@ -147,8 +149,7 @@ func parseSVGTagAttributes(tagContent string) *[]svgAttribute {
 // Takes position (int) which specifies the starting position in the string.
 //
 // Returns name (string) which is the attribute name, or empty if none is found.
-// Returns value (string) which is the attribute value, or empty for boolean
-// attributes.
+// Returns value (string) which is the attribute value, or empty for boolean attributes.
 // Returns newPos (int) which is the position after this attribute is parsed.
 // Returns found (bool) which is true when parsing should continue.
 func parseSingleAttribute(s string, position int) (name, value string, newPos int, found bool) {
@@ -179,8 +180,8 @@ func parseSingleAttribute(s string, position int) (name, value string, newPos in
 	return name, value, position, true
 }
 
-// isWhitespaceASCII reports whether a byte is ASCII whitespace.
-// Faster than unicode.IsSpace for ASCII-only content like SVG tags.
+// isWhitespaceASCII reports whether a byte is ASCII whitespace. Faster than
+// unicode.IsSpace for ASCII-only content like SVG tags.
 //
 // Takes c (byte) which is the character to check.
 //
@@ -194,8 +195,8 @@ func isWhitespaceASCII(c byte) bool {
 // Takes s (string) which is the input string to scan.
 // Takes position (int) which is the starting position in the string.
 //
-// Returns int which is the position of the first non-whitespace character,
-// or the string length if only whitespace remains.
+// Returns int which is the position of the first non-whitespace character, or the string
+// length if only whitespace remains.
 func skipWhitespaceASCII(s string, position int) int {
 	for position < len(s) && isWhitespaceASCII(s[position]) {
 		position++
@@ -226,8 +227,8 @@ func parseAttrName(s string, position int) (string, int) {
 	return s[nameStart:position], position
 }
 
-// parseAttrValue extracts an attribute value starting at the given position.
-// It handles both quoted ("..." or '...') and unquoted values.
+// parseAttrValue extracts an attribute value starting at the given position. It handles
+// both quoted ("..." or '...') and unquoted values.
 //
 // Takes s (string) which is the input string to parse.
 // Takes position (int) which is the starting position in the string.
@@ -282,14 +283,13 @@ func parseUnquotedValue(s string, position int) (string, int) {
 	return s[valueStart:position], position
 }
 
-// convertSVGToHTMLAttributes converts svgAttribute values to HTMLAttribute
-// values. It only allocates the final slice; the svgAttribute parsing itself
-// uses no extra memory.
+// convertSVGToHTMLAttributes converts svgAttribute values to HTMLAttribute values. It
+// only allocates the final slice; the svgAttribute parsing itself uses no extra memory.
 //
 // Takes attrs (*[]svgAttribute) which contains the SVG attributes to convert.
 //
-// Returns []ast_domain.HTMLAttribute which contains the converted attributes,
-// or nil if attrs is nil or empty.
+// Returns []ast_domain.HTMLAttribute which contains the converted attributes, or nil if
+// attrs is nil or empty.
 func convertSVGToHTMLAttributes(attrs *[]svgAttribute) []ast_domain.HTMLAttribute {
 	if attrs == nil || len(*attrs) == 0 {
 		return nil

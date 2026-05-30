@@ -18,7 +18,9 @@
 
 package cache_test
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
 	CreatedAt time.Time

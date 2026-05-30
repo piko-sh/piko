@@ -40,12 +40,13 @@ type shadowDOMSelectors struct {
 	Shadow string
 }
 
-// scrollSettleDelay is the time to wait after scrolling for the page to settle.
-const scrollSettleDelay = 50 * time.Millisecond
+const (
+	// scrollSettleDelay is the time to wait after scrolling for the page to settle.
+	scrollSettleDelay = 50 * time.Millisecond
+)
 
-// shadowDOMActionFunc is a function that performs an action on a shadow DOM
-// element. It receives the context, the full selector for error messages, and
-// the parsed selectors.
+// shadowDOMActionFunc is a function that performs an action on a shadow DOM element. It
+// receives the context, the full selector for error messages, and the parsed selectors.
 type shadowDOMActionFunc func(ctx context.Context, selector string, selectors shadowDOMSelectors) error
 
 // elementPosition holds the centre coordinates of an element.
@@ -60,27 +61,25 @@ type elementPosition struct {
 	Found bool
 }
 
-// parseShadowDOMSelector splits a shadow DOM selector into host and shadow
-// parts.
+// parseShadowDOMSelector splits a shadow DOM selector into host and shadow parts.
 //
-// Takes selector (string) which contains the combined selector with a shadow
-// DOM separator.
+// Takes selector (string) which contains the combined selector with a shadow DOM
+// separator.
 //
 // Returns shadowDOMSelectors which holds the parsed host and shadow parts.
 func parseShadowDOMSelector(selector string) shadowDOMSelectors {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
+	host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 	return shadowDOMSelectors{
-		Host:   parts[0],
-		Shadow: parts[1],
+		Host:   host,
+		Shadow: shadow,
 	}
 }
 
-// scrollShadowDOMElementIntoView scrolls a shadow DOM element into view and
-// waits for it to settle.
+// scrollShadowDOMElementIntoView scrolls a shadow DOM element into view and waits for it
+// to settle.
 //
 // Takes selector (string) which identifies the element being scrolled.
-// Takes selectors (shadowDOMSelectors) which provides the host
-// and shadow selectors.
+// Takes selectors (shadowDOMSelectors) which provides the host and shadow selectors.
 //
 // Returns error when the element is not found or the scroll fails.
 func scrollShadowDOMElementIntoView(ctx context.Context, selector string, selectors shadowDOMSelectors) error {
@@ -100,16 +99,13 @@ func scrollShadowDOMElementIntoView(ctx context.Context, selector string, select
 	return nil
 }
 
-// withShadowDOMScroll scrolls a shadow DOM element into view and then
-// executes the given action. This pattern is common across many shadow DOM
-// operations.
+// withShadowDOMScroll scrolls a shadow DOM element into view and then executes the given
+// action. This pattern is common across many shadow DOM operations.
 //
 // Takes selector (string) which specifies the shadow DOM element path.
-// Takes action (shadowDOMActionFunc) which performs the operation after
-// scrolling.
+// Takes action (shadowDOMActionFunc) which performs the operation after scrolling.
 //
-// Returns error when the element cannot be scrolled into view or the action
-// fails.
+// Returns error when the element cannot be scrolled into view or the action fails.
 func withShadowDOMScroll(ctx context.Context, selector string, action shadowDOMActionFunc) error {
 	selectors := parseShadowDOMSelector(selector)
 
@@ -120,14 +116,14 @@ func withShadowDOMScroll(ctx context.Context, selector string, action shadowDOMA
 	return action(ctx, selector, selectors)
 }
 
-// simpleShadowDOMAction executes a JS template against a shadow DOM element
-// with scrolling, returning an error if the element is not found.
+// simpleShadowDOMAction executes a JS template against a shadow DOM element with
+// scrolling, returning an error if the element is not found.
 //
 // Takes selector (string) which identifies the shadow DOM element.
 // Takes templateName (string) which specifies the JS template to execute.
 // Takes actionVerb (string) which describes the action for error messages.
-// Takes notFoundFmt (string) which is the format string for the not-found
-// error, receiving the selector as its sole argument.
+// Takes notFoundFmt (string) which is the format string for the not-found error,
+// receiving the selector as its sole argument.
 //
 // Returns error when the element cannot be found or the action fails.
 func simpleShadowDOMAction(ctx context.Context, selector, templateName, actionVerb, notFoundFmt string) error {
@@ -149,8 +145,8 @@ func simpleShadowDOMAction(ctx context.Context, selector, templateName, actionVe
 	})
 }
 
-// hoverInShadowDOM triggers hover on an element inside shadow DOM.
-// Scrolls the element into view first to ensure accurate coordinates.
+// hoverInShadowDOM triggers hover on an element inside shadow DOM. Scrolls the element
+// into view first to ensure accurate coordinates.
 //
 // Takes selector (string) which identifies the element within the shadow DOM.
 //
@@ -159,9 +155,8 @@ func hoverInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_hover.js.tmpl", "hovering over", ErrFmtElementNotFoundShadow)
 }
 
-// rightClickInShadowDOM performs a right-click on an element inside shadow DOM.
-// It scrolls the element into view first and includes proper coordinates in the
-// event.
+// rightClickInShadowDOM performs a right-click on an element inside shadow DOM. It
+// scrolls the element into view first and includes proper coordinates in the event.
 //
 // Takes selector (string) which identifies the element within shadow DOM.
 //
@@ -170,8 +165,8 @@ func rightClickInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_right_click.js.tmpl", "right-clicking", ErrFmtElementNotFoundShadow)
 }
 
-// clearInShadowDOM clears an input element inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// clearInShadowDOM clears an input element inside shadow DOM. Scrolls the element into
+// view first to ensure proper interaction.
 //
 // Takes selector (string) which identifies the shadow DOM element to clear.
 //
@@ -180,8 +175,8 @@ func clearInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_clear_input.js.tmpl", "clearing", ErrFmtElementNotFoundShadow)
 }
 
-// checkInShadowDOM checks a checkbox inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// checkInShadowDOM checks a checkbox inside shadow DOM. Scrolls the element into view
+// first to ensure proper interaction.
 //
 // Takes selector (string) which identifies the checkbox element.
 //
@@ -191,21 +186,20 @@ func checkInShadowDOM(ctx context.Context, selector string) error {
 		"element is not a checkbox/radio or not found in shadow DOM: %s")
 }
 
-// uncheckInShadowDOM unchecks a checkbox inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// uncheckInShadowDOM unchecks a checkbox inside shadow DOM. Scrolls the element into view
+// first to ensure proper interaction.
 //
-// Takes selector (string) which identifies the checkbox element within the
-// shadow DOM.
+// Takes selector (string) which identifies the checkbox element within the shadow DOM.
 //
-// Returns error when the element cannot be unchecked, is not a checkbox, or
-// is not found in the shadow DOM.
+// Returns error when the element cannot be unchecked, is not a checkbox, or is not found
+// in the shadow DOM.
 func uncheckInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_uncheck_checkbox.js.tmpl", "unchecking",
 		"element is not a checkbox or not found in shadow DOM: %s")
 }
 
-// fillInShadowDOM fills an input element inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// fillInShadowDOM fills an input element inside shadow DOM. Scrolls the element into view
+// first to ensure proper interaction.
 //
 // Takes selector (string) which specifies the shadow DOM element path.
 // Takes value (string) which is the text to fill into the input element.
@@ -235,8 +229,8 @@ func fillInShadowDOM(ctx context.Context, selector, value string) error {
 	return nil
 }
 
-// focusInShadowDOM focuses an element inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// focusInShadowDOM focuses an element inside shadow DOM. Scrolls the element into view
+// first to ensure proper interaction.
 //
 // Takes selector (string) which specifies the element to focus.
 //
@@ -245,8 +239,8 @@ func focusInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_focus.js.tmpl", "focusing", ErrFmtElementNotFoundShadow)
 }
 
-// blurInShadowDOM blurs an element inside shadow DOM.
-// Scrolls the element into view first to ensure proper interaction.
+// blurInShadowDOM blurs an element inside shadow DOM. Scrolls the element into view first
+// to ensure proper interaction.
 //
 // Takes selector (string) which identifies the element to blur.
 //
@@ -255,12 +249,10 @@ func blurInShadowDOM(ctx context.Context, selector string) error {
 	return simpleShadowDOMAction(ctx, selector, "shadow_blur.js.tmpl", "blurring", ErrFmtElementNotFoundShadow)
 }
 
-// getShadowDOMElementPosition returns the centre coordinates of a shadow DOM
-// element.
+// getShadowDOMElementPosition returns the centre coordinates of a shadow DOM element.
 //
 // Takes selector (string) which identifies the element for error messages.
-// Takes selectors (shadowDOMSelectors) which specifies the host
-// and shadow selectors.
+// Takes selectors (shadowDOMSelectors) which specifies the host and shadow selectors.
 //
 // Returns elementPosition which contains the centre coordinates of the element.
 // Returns error when the element cannot be found or evaluation fails.
@@ -280,8 +272,7 @@ func getShadowDOMElementPosition(ctx context.Context, selector string, selectors
 	return result, nil
 }
 
-// dispatchMouseClick dispatches mouse down and up events at the specified
-// coordinates.
+// dispatchMouseClick dispatches mouse down and up events at the specified coordinates.
 //
 // Takes x (float64) which specifies the horizontal position.
 // Takes y (float64) which specifies the vertical position.
@@ -303,14 +294,14 @@ func dispatchMouseClick(ctx context.Context, x, y float64, clickCount int64) err
 	}))
 }
 
-// clickInShadowDOM clicks an element inside shadow DOM using proper mouse
-// event simulation. This means clicking on contenteditable elements
-// correctly positions the cursor.
+// clickInShadowDOM clicks an element inside shadow DOM using proper mouse event
+// simulation. This means clicking on contenteditable elements correctly positions the
+// cursor.
 //
 // Takes selector (string) which specifies the shadow DOM element path.
 //
-// Returns error when the element cannot be scrolled into view, its position
-// cannot be determined, or the click event fails to dispatch.
+// Returns error when the element cannot be scrolled into view, its position cannot be
+// determined, or the click event fails to dispatch.
 func clickInShadowDOM(ctx context.Context, selector string) error {
 	selectors := parseShadowDOMSelector(selector)
 
@@ -329,14 +320,14 @@ func clickInShadowDOM(ctx context.Context, selector string) error {
 	return nil
 }
 
-// doubleClickInShadowDOM double-clicks an element inside shadow DOM using
-// proper mouse event simulation. This means double-clicking on
-// contenteditable elements correctly positions the cursor.
+// doubleClickInShadowDOM double-clicks an element inside shadow DOM using proper mouse
+// event simulation. This means double-clicking on contenteditable elements correctly
+// positions the cursor.
 //
 // Takes selector (string) which specifies the shadow DOM element path.
 //
-// Returns error when the element cannot be scrolled into view, its position
-// cannot be determined, or the mouse click events fail to dispatch.
+// Returns error when the element cannot be scrolled into view, its position cannot be
+// determined, or the mouse click events fail to dispatch.
 func doubleClickInShadowDOM(ctx context.Context, selector string) error {
 	selectors := parseShadowDOMSelector(selector)
 
@@ -358,8 +349,8 @@ func doubleClickInShadowDOM(ctx context.Context, selector string) error {
 	return nil
 }
 
-// setFilesInShadowDOM sets files on a file input inside shadow DOM.
-// Uses CDP Runtime and DOM commands to properly set files on the element.
+// setFilesInShadowDOM sets files on a file input inside shadow DOM. Uses CDP Runtime and
+// DOM commands to properly set files on the element.
 //
 // Takes selector (string) which specifies the shadow DOM selector path.
 // Takes absolutePaths ([]string) which contains the file paths to set.
@@ -378,12 +369,11 @@ func setFilesInShadowDOM(ctx context.Context, selector string, absolutePaths []s
 // findShadowDOMFileInput locates a file input element within a shadow DOM.
 //
 // Takes selector (string) which identifies the file input element.
-// Takes selectors (shadowDOMSelectors) which provides the host
-// and shadow selectors.
+// Takes selectors (shadowDOMSelectors) which provides the host and shadow selectors.
 //
 // Returns cdp.BackendNodeID which is the backend node ID of the file input.
-// Returns error when the document cannot be retrieved, the host element is not
-// found, no shadow root exists, or the file input cannot be located.
+// Returns error when the document cannot be retrieved, the host element is not found, no
+// shadow root exists, or the file input cannot be located.
 func findShadowDOMFileInput(ctx context.Context, selector string, selectors shadowDOMSelectors) (cdp.BackendNodeID, error) {
 	document, err := dom.GetDocument().WithDepth(-1).WithPierce(true).Do(ctx)
 	if err != nil {
@@ -418,17 +408,15 @@ func findShadowDOMFileInput(ctx context.Context, selector string, selectors shad
 	return nodeInfo.BackendNodeID, nil
 }
 
-// setFilesCDPRuntime uses CDP Runtime.evaluate to get a reference and set
-// files.
+// setFilesCDPRuntime uses CDP Runtime.evaluate to get a reference and set files.
 //
 // Takes selector (string) which identifies the target file input element.
-// Takes selectors (shadowDOMSelectors) which specifies the shadow
-// DOM host and shadow selectors.
-// Takes absolutePaths ([]string) which contains the file paths to set on the
-// input.
+// Takes selectors (shadowDOMSelectors) which specifies the shadow DOM host and shadow
+// selectors.
+// Takes absolutePaths ([]string) which contains the file paths to set on the input.
 //
-// Returns error when the shadow DOM file input cannot be found or when setting
-// the files via CDP fails.
+// Returns error when the shadow DOM file input cannot be found or when setting the files
+// via CDP fails.
 func setFilesCDPRuntime(ctx context.Context, selector string, selectors shadowDOMSelectors, absolutePaths []string) error {
 	return chromedp.Run(ctx, chromedp.ActionFunc(func(ctx2 context.Context) error {
 		backendNodeID, err := findShadowDOMFileInput(ctx2, selector, selectors)

@@ -25,66 +25,65 @@ import (
 
 // FetchOptions contains options for fetching collection data.
 //
-// These options are parsed from the user's GetCollection() call arguments
-// and passed to providers during data fetching.
+// These options are parsed from the user's GetCollection() call arguments and passed to
+// providers during data fetching.
 //
 // Design Philosophy:
 //   - Declarative: User specifies what they want, provider decides how
 //   - Composable: Options can be combined
 //   - Type-safe: Validated at build time
 type FetchOptions struct {
-	// Cache specifies caching settings for this fetch. If nil, the provider's
-	// default caching behaviour is used.
+	// Cache specifies caching settings for this fetch. If nil, the provider's default
+	// caching behaviour is used.
 	Cache *CacheConfig
 
 	// Filters holds provider-specific filter values as key-value pairs.
 	//
-	// Providers may use these values for server-side filtering, sorting,
-	// or pagination. The supported keys depend on the provider.
+	// Providers may use these values for server-side filtering, sorting, or pagination. The
+	// supported keys depend on the provider.
 	Filters map[string]any
 
-	// FilterGroup holds structured filter conditions. It takes priority over
-	// the Filters map when both are set.
+	// FilterGroup holds structured filter conditions. It takes priority over the Filters map
+	// when both are set.
 	FilterGroup *FilterGroup
 
 	// Pagination specifies where to start and how many results to return.
 	Pagination *PaginationOptions
 
-	// Projection specifies which fields to include or exclude from responses.
-	// If nil, all fields are included.
+	// Projection specifies which fields to include or exclude from responses. If nil, all
+	// fields are included.
 	Projection *FieldProjection
 
-	// ProviderName specifies which provider to use; if empty, the default
-	// provider from config is used.
+	// ProviderName specifies which provider to use; if empty, the default provider from
+	// config is used.
 	ProviderName string
 
-	// Locale specifies a single locale to fetch; mutually exclusive with
-	// ExplicitLocales and AllLocales.
+	// Locale specifies a single locale to fetch; mutually exclusive with ExplicitLocales and
+	// AllLocales.
 	Locale string
 
-	// ExplicitLocales specifies a list of locales to fetch.
-	// Cannot be used with Locale or AllLocales.
+	// ExplicitLocales specifies a list of locales to fetch. Cannot be used with Locale or
+	// AllLocales.
 	ExplicitLocales []string
 
 	// Sort specifies sorting options.
 	//
-	// Multiple sort options are applied in order (first by
-	// field1, then by field2, etc).
+	// Multiple sort options are applied in order (first by field1, then by field2, etc).
 	Sort []SortOption
 
-	// AllLocales indicates whether to fetch all configured locales.
-	// Cannot be used with Locale or ExplicitLocales.
+	// AllLocales indicates whether to fetch all configured locales. Cannot be used with
+	// Locale or ExplicitLocales.
 	AllLocales bool
 }
 
-// FieldProjection specifies which fields to include/exclude from responses.
-// This reduces payload size by omitting fields the client doesn't need.
+// FieldProjection specifies which fields to include/exclude from responses. This reduces
+// payload size by omitting fields the client doesn't need.
 type FieldProjection struct {
 	// IncludeFields lists the metadata fields to include. Empty means all fields.
 	IncludeFields []string
 
-	// ExcludeFields lists metadata fields to exclude from projection results.
-	// Applied after IncludeFields.
+	// ExcludeFields lists metadata fields to exclude from projection results. Applied after
+	// IncludeFields.
 	ExcludeFields []string
 
 	// MaxArrayItems limits items in array fields (e.g., images). 0 means no limit.
@@ -93,18 +92,18 @@ type FieldProjection struct {
 
 // CacheConfig specifies caching behaviour for data fetching.
 type CacheConfig struct {
-	// Strategy specifies the caching approach used when fetching data.
-	// Supported values are "cache-first" (check cache before fetching),
-	// "network-first" (fetch first, cache as fallback), "stale-while-revalidate"
-	// (serve cached data, update in background), and "no-cache" (always fetch).
+	// Strategy specifies the caching approach used when fetching data. Supported values are
+	// "cache-first" (check cache before fetching), "network-first" (fetch first, cache as
+	// fallback), "stale-while-revalidate" (serve cached data, update in background), and
+	// "no-cache" (always fetch).
 	Strategy string
 
-	// Key is an optional custom cache key. If empty, a key is generated
-	// from the collection name, locale, and filters.
+	// Key is an optional custom cache key. If empty, a key is generated from the collection
+	// name, locale, and filters.
 	Key string
 
-	// Tags lists cache invalidation tags for clearing related cache entries.
-	// For example, tag entries with "blog" to clear all blog caches at once.
+	// Tags lists cache invalidation tags for clearing related cache entries. For example,
+	// tag entries with "blog" to clear all blog caches at once.
 	Tags []string
 
 	// TTL is the cache time-to-live in seconds.
@@ -115,16 +114,16 @@ type CacheConfig struct {
 
 // ShouldCache returns true if caching is enabled.
 //
-// Returns bool which is true when the config is non-nil, the strategy is not
-// "no-cache", and the TTL is positive.
+// Returns bool which is true when the config is non-nil, the strategy is not "no-cache",
+// and the TTL is positive.
 func (c *CacheConfig) ShouldCache() bool {
 	return c != nil && c.Strategy != "no-cache" && c.TTL > 0
 }
 
 // GetTTLDuration returns TTL as a time.Duration.
 //
-// Returns time.Duration which is the cache TTL in seconds, or zero if the
-// receiver is nil.
+// Returns time.Duration which is the cache TTL in seconds, or zero if the receiver is
+// nil.
 func (c *CacheConfig) GetTTLDuration() time.Duration {
 	if c == nil {
 		return 0
@@ -134,9 +133,8 @@ func (c *CacheConfig) GetTTLDuration() time.Duration {
 
 // GetTargetLocales returns the effective list of locales to fetch.
 //
-// This resolves the mutually exclusive locale options into a simple slice
-// by checking AllLocales, ExplicitLocales, Locale, and defaultLocale in
-// priority order.
+// This resolves the mutually exclusive locale options into a simple slice by checking
+// AllLocales, ExplicitLocales, Locale, and defaultLocale in priority order.
 //
 // Takes configuredLocales ([]string) which lists all locales in the project.
 // Takes defaultLocale (string) which specifies the fallback locale.
@@ -168,8 +166,8 @@ func (f *FetchOptions) HasFilters() bool {
 // GetFilterString retrieves a string filter value with a fallback.
 //
 // Takes key (string) which identifies the filter to retrieve.
-// Takes defaultValue (string) which is returned if the key is not found or
-// the value is not a string.
+// Takes defaultValue (string) which is returned if the key is not found or the value is
+// not a string.
 //
 // Returns string which is the filter value or the default if not found.
 func (f *FetchOptions) GetFilterString(key, defaultValue string) string {
@@ -187,8 +185,7 @@ func (f *FetchOptions) GetFilterString(key, defaultValue string) string {
 // GetFilterInt retrieves an integer filter value with a fallback.
 //
 // Takes key (string) which specifies the filter name to look up.
-// Takes defaultValue (int) which is returned when the key is missing or not a
-// number.
+// Takes defaultValue (int) which is returned when the key is missing or not a number.
 //
 // Returns int which is the filter value or the default if not found.
 func (f *FetchOptions) GetFilterInt(key string, defaultValue int) int {
@@ -211,8 +208,7 @@ func (f *FetchOptions) GetFilterInt(key string, defaultValue int) int {
 // GetFilterBool retrieves a boolean filter value with a fallback.
 //
 // Takes key (string) which identifies the filter to retrieve.
-// Takes defaultValue (bool) which is returned when the key is missing or not a
-// boolean.
+// Takes defaultValue (bool) which is returned when the key is missing or not a boolean.
 //
 // Returns bool which is the filter value or the default if not found.
 func (f *FetchOptions) GetFilterBool(key string, defaultValue bool) bool {
@@ -229,8 +225,7 @@ func (f *FetchOptions) GetFilterBool(key string, defaultValue bool) bool {
 
 // Clone creates a shallow copy of FetchOptions.
 //
-// Use it when a provider needs to modify options without affecting the
-// original.
+// Use it when a provider needs to modify options without affecting the original.
 //
 // Returns *FetchOptions which is the cloned options instance.
 func (f *FetchOptions) Clone() *FetchOptions {

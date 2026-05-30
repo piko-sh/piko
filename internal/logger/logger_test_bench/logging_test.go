@@ -37,11 +37,13 @@ import (
 	"piko.sh/piko/internal/logger/logger_test"
 )
 
-var preMadeAttrs = []slog.Attr{
-	slog.Int("user_id", 12345),
-	slog.String("request_id", "a-b-c-d-e-f-g"),
-	slog.Bool("is_admin", false),
-}
+var (
+	preMadeAttrs = []slog.Attr{
+		slog.Int("user_id", 12345),
+		slog.String("request_id", "a-b-c-d-e-f-g"),
+		slog.Bool("is_admin", false),
+	}
+)
 
 func noopTracerProvider() trace.TracerProvider {
 	return noop.NewTracerProvider()

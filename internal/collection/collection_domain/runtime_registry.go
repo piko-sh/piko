@@ -34,15 +34,17 @@ var (
 	runtimeProvidersMutex sync.RWMutex
 )
 
-// defaultRuntimeProviderRegistry implements RuntimeProviderRegistryPort using
-// the package-level global registry, enabling dependency injection while
-// sharing registered providers across the application.
+// defaultRuntimeProviderRegistry implements RuntimeProviderRegistryPort using the
+// package-level global registry, enabling dependency injection while sharing registered
+// providers across the application.
 type defaultRuntimeProviderRegistry struct{}
 
-var _ RuntimeProviderRegistryPort = (*defaultRuntimeProviderRegistry)(nil)
+var (
+	_ RuntimeProviderRegistryPort = (*defaultRuntimeProviderRegistry)(nil)
+)
 
-// Register adds a runtime provider to the registry.
-// Implements RuntimeProviderRegistryPort.
+// Register adds a runtime provider to the registry. Implements
+// RuntimeProviderRegistryPort.
 //
 // Takes provider (RuntimeProvider) which is the provider to register.
 //
@@ -51,8 +53,7 @@ func (*defaultRuntimeProviderRegistry) Register(provider RuntimeProvider) error 
 	return RegisterProvider(provider)
 }
 
-// Get retrieves a runtime provider by name. Implements
-// RuntimeProviderRegistryPort.
+// Get retrieves a runtime provider by name. Implements RuntimeProviderRegistryPort.
 //
 // Takes name (string) which specifies the provider to retrieve.
 //
@@ -74,8 +75,8 @@ func (*defaultRuntimeProviderRegistry) List() []string {
 	return listProviderNames()
 }
 
-// Has reports whether a provider with the given name is registered.
-// Implements RuntimeProviderRegistryPort.
+// Has reports whether a provider with the given name is registered. Implements
+// RuntimeProviderRegistryPort.
 //
 // Takes name (string) which is the provider name to look up.
 //
@@ -89,8 +90,8 @@ func (*defaultRuntimeProviderRegistry) Has(name string) bool {
 	return exists
 }
 
-// Fetch retrieves collection data from a provider into the target.
-// Implements RuntimeProviderRegistryPort.
+// Fetch retrieves collection data from a provider into the target. Implements
+// RuntimeProviderRegistryPort.
 //
 // Takes providerName (string) which identifies the runtime provider to use.
 // Takes collectionName (string) which specifies the collection to fetch from.
@@ -102,22 +103,22 @@ func (*defaultRuntimeProviderRegistry) Fetch(ctx context.Context, providerName, 
 	return FetchCollection(ctx, providerName, collectionName, options, target)
 }
 
-// NewDefaultRuntimeProviderRegistry creates a RuntimeProviderRegistryPort that
-// wraps the package-level global registry.
+// NewDefaultRuntimeProviderRegistry creates a RuntimeProviderRegistryPort that wraps the
+// package-level global registry.
 //
-// This is the standard way to obtain a RuntimeProviderRegistryPort for
-// production use. For testing, create a mock implementation instead.
+// This is the standard way to obtain a RuntimeProviderRegistryPort for production use.
+// For testing, create a mock implementation instead.
 //
-// Returns RuntimeProviderRegistryPort which provides access to the global
-// runtime provider registry.
+// Returns RuntimeProviderRegistryPort which provides access to the global runtime
+// provider registry.
 func NewDefaultRuntimeProviderRegistry() RuntimeProviderRegistryPort {
 	return &defaultRuntimeProviderRegistry{}
 }
 
 // RegisterProvider adds a runtime provider for fetching data at runtime.
 //
-// Call this during application setup (in main.go) to register providers
-// that can fetch data while the application runs.
+// Call this during application setup (in main.go) to register providers that can fetch
+// data while the application runs.
 //
 // Takes provider (RuntimeProvider) which is the runtime provider to add.
 //
@@ -160,17 +161,14 @@ func GetProvider(name string) (RuntimeProvider, error) {
 
 // FetchCollection is the runtime entry point for dynamic collections.
 //
-// Called by generated code when a component uses data.GetCollection() with
-// a dynamic provider.
+// Called by generated code when a component uses data.GetCollection() with a dynamic
+// provider.
 //
-// Takes providerName (string) which specifies the provider to use
-// (e.g., "headless-cms").
-// Takes collectionName (string) which specifies the collection to fetch
-// (e.g., "blog").
-// Takes options (*collection_dto.FetchOptions) which provides fetch options
-// such as locale, filters, and cache configuration.
-// Takes target (any) which is a pointer to a slice to populate
-// (e.g., *[]Post).
+// Takes providerName (string) which specifies the provider to use (e.g., "headless-cms").
+// Takes collectionName (string) which specifies the collection to fetch (e.g., "blog").
+// Takes options (*collection_dto.FetchOptions) which provides fetch options such as
+// locale, filters, and cache configuration.
+// Takes target (any) which is a pointer to a slice to populate (e.g., *[]Post).
 //
 // Returns error when the provider is not found or the fetch fails.
 func FetchCollection(
@@ -191,11 +189,10 @@ func FetchCollection(
 	return nil
 }
 
-// ResetRuntimeProviderRegistry clears the runtime provider registry for test
-// isolation.
+// ResetRuntimeProviderRegistry clears the runtime provider registry for test isolation.
 //
-// Should only be called from tests. Clears all registered runtime providers
-// so that tests start with a clean state.
+// Should only be called from tests. Clears all registered runtime providers so that tests
+// start with a clean state.
 //
 // Safe for concurrent use; protected by an internal mutex.
 func ResetRuntimeProviderRegistry() {

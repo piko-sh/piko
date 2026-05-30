@@ -31,7 +31,6 @@ import (
 	"testing"
 	"text/template"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -48,6 +47,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/resolver/resolver_domain"
@@ -58,14 +58,18 @@ func newTestCacheService() cache_domain.Service {
 	return cache_domain.NewService("")
 }
 
-var runBenchmarks = flag.Bool("run-bench", false, "Run the compiled benchmark suite")
+var (
+	runBenchmarks = flag.Bool("run-bench", false, "Run the compiled benchmark suite")
+)
 
 type TemplaterBenchSpec struct {
 	Description string `json:"description"`
 	TargetPage  string `json:"targetPage"`
 }
 
-var mainTestGoTemplate = template.Must(template.ParseFiles("main_test.go.tmpl"))
+var (
+	mainTestGoTemplate = template.Must(template.ParseFiles("main_test.go.tmpl"))
+)
 
 func runBenchmarkCase(b *testing.B, bc benchmarkCase) {
 

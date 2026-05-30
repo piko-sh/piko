@@ -269,7 +269,9 @@ func (m *mockTypeInspector) GetAllPackages() map[string]*inspector_dto.Package {
 	return nil
 }
 
-var _ TypeInspectorPort = (*mockTypeInspector)(nil)
+var (
+	_ TypeInspectorPort = (*mockTypeInspector)(nil)
+)
 
 func parseGoSource(t *testing.T, src string) *goast.File {
 	t.Helper()

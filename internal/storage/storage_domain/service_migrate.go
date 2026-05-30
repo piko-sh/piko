@@ -29,16 +29,14 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// validateMigrationParams validates migration parameters and returns the source
-// and destination providers.
+// validateMigrationParams validates migration parameters and returns the source and
+// destination providers.
 //
-// Takes params (*storage_dto.MigrateParams) which specifies the source and
-// destination providers, keys, and concurrency settings.
+// Takes params (*storage_dto.MigrateParams) which specifies the source and destination
+// providers, keys, and concurrency settings.
 //
-// Returns srcProvider (StorageProviderPort) which is the resolved source
-// provider.
-// Returns dstProvider (StorageProviderPort) which is the resolved destination
-// provider.
+// Returns srcProvider (StorageProviderPort) which is the resolved source provider.
+// Returns dstProvider (StorageProviderPort) which is the resolved destination provider.
 // Returns err (error) when providers are the same or cannot be resolved.
 func (s *service) validateMigrationParams(
 	ctx context.Context, params *storage_dto.MigrateParams,
@@ -72,20 +70,15 @@ func (s *service) validateMigrationParams(
 	return srcProvider, dstProvider, nil
 }
 
-// Migrate orchestrates the migration of objects between
-// providers, processing jobs simultaneously.
+// Migrate orchestrates the migration of objects between providers, spawning
+// params.Concurrency worker goroutines that process jobs in parallel via channels.
 //
-// Takes params (*storage_dto.MigrateParams) which specifies
-// the source and destination providers, keys, throughput,
-// and error handling behaviour.
+// Takes params (*storage_dto.MigrateParams) which specifies the source and destination
+// providers, keys, throughput, and error handling behaviour.
 //
-// Returns *storage_dto.BatchResult which contains counts and
-// details of successful and failed migrations.
-// Returns error when parameter validation fails or migration
-// errors occur.
-//
-// Concurrent worker goroutines are spawned based on params.Concurrency,
-// processing migration jobs in parallel via channels.
+// Returns *storage_dto.BatchResult which contains counts and details of successful and
+// failed migrations.
+// Returns error when parameter validation fails or migration errors occur.
 func (s *service) Migrate(ctx context.Context, params *storage_dto.MigrateParams) (*storage_dto.BatchResult, error) {
 	srcProvider, dstProvider, err := s.validateMigrationParams(ctx, params)
 	if err != nil {
@@ -109,8 +102,9 @@ func (s *service) Migrate(ctx context.Context, params *storage_dto.MigrateParams
 		results:     results,
 	}
 	for range params.Concurrency {
-		wg.Add(1)
-		go s.migrationWorker(ctx, &wg, workerCtx)
+		wg.Go(func() {
+			s.migrationWorker(ctx, workerCtx)
+		})
 	}
 
 	for _, key := range params.Keys {
@@ -150,14 +144,12 @@ type migrationWorkerContext struct {
 
 // migrationWorker processes migration jobs for individual files.
 //
-// Takes wg (*sync.WaitGroup) which tracks worker completion.
-// Takes workerCtx (*migrationWorkerContext) which provides the jobs channel,
-// results channel, and migration settings.
+// Takes workerCtx (*migrationWorkerContext) which provides the jobs channel, results
+// channel, and migration settings.
 func (s *service) migrationWorker(
-	ctx context.Context, wg *sync.WaitGroup,
+	ctx context.Context,
 	workerCtx *migrationWorkerContext,
 ) {
-	defer wg.Done()
 	for key := range workerCtx.jobs {
 		if ctx.Err() != nil {
 			return
@@ -180,16 +172,13 @@ func (s *service) migrationWorker(
 	}
 }
 
-// migrateObject handles the Get->Stat->Put->(optional)Remove sequence for
-// one object.
+// migrateObject handles the Get->Stat->Put->(optional)Remove sequence for one object.
 //
 // Takes key (string) which identifies the object to migrate.
-// Takes params (*storage_dto.MigrateParams) which specifies the migration
-// settings.
-// Takes srcProvider (StorageProviderPort) which provides access to the source
+// Takes params (*storage_dto.MigrateParams) which specifies the migration settings.
+// Takes srcProvider (StorageProviderPort) which provides access to the source storage.
+// Takes dstProvider (StorageProviderPort) which provides access to the destination
 // storage.
-// Takes dstProvider (StorageProviderPort) which provides access to the
-// destination storage.
 //
 // Returns error when stat, get, or put operations fail.
 func (*service) migrateObject(
@@ -246,17 +235,16 @@ func (*service) migrateObject(
 	return nil
 }
 
-// collectMigrationResults aggregates migration results from the results
-// channel.
+// collectMigrationResults aggregates migration results from the results channel.
 //
 // Takes keys ([]string) which lists all keys that were requested for migration.
-// Takes results (<-chan *storage_dto.BatchFailure) which yields failures from
-// the migration process.
+// Takes results (<-chan *storage_dto.BatchFailure) which yields failures from the
+// migration process.
 // Takes startTime (time.Time) which marks when the migration began.
 // Takes now (time.Time) which marks when the migration ended.
 //
-// Returns *storage_dto.BatchResult which contains the aggregated success and
-// failure counts along with the processing duration.
+// Returns *storage_dto.BatchResult which contains the aggregated success and failure
+// counts along with the processing duration.
 func collectMigrationResults(
 	keys []string, results <-chan *storage_dto.BatchFailure, startTime time.Time, now time.Time,
 ) *storage_dto.BatchResult {

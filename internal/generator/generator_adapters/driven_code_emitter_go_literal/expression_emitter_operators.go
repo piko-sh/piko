@@ -62,8 +62,7 @@ func (ee *expressionEmitter) tryEmitOperatorExpression(expression ast_domain.Exp
 
 // emitMemberExpr outputs Go code for member access expressions (e.g. user.name).
 //
-// Takes n (*ast_domain.MemberExpression) which is the member
-// expression to process.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to process.
 //
 // Returns goast.Expr which is the Go expression for the member access.
 // Returns []goast.Stmt which holds any statements needed for safe access.
@@ -122,11 +121,10 @@ func (*expressionEmitter) emitMapAccess(baseExpr goast.Expr, propName string) go
 	return &goast.IndexExpr{X: mapAssert, Index: &goast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("%q", propName)}}
 }
 
-// emitOptionalChaining converts optional chaining (a?.b) into an if statement
-// with a temporary variable.
+// emitOptionalChaining converts optional chaining (a?.b) into an if statement with a
+// temporary variable.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member
-// expression to convert.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to convert.
 // Takes baseGoExpr (goast.Expr) which is the base expression to check for nil.
 // Takes finalSelector (goast.Expr) which is the selector to use when not nil.
 // Takes baseStmts ([]goast.Stmt) which are existing statements to add to.
@@ -157,16 +155,13 @@ func (ee *expressionEmitter) emitOptionalChaining(
 
 // emitSafeMemberAccess emits runtime-safe member access with nil checking.
 //
-// Takes n (*ast_domain.MemberExpression) which specifies the member expression to
-// emit.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides generator
-// annotations for code generation.
+// Takes n (*ast_domain.MemberExpression) which specifies the member expression to emit.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides generator annotations for
+// code generation.
 //
 // Returns goast.Expr which is the IIFE expression for safe member access.
-// Returns []goast.Stmt which contains statements from emitting the base
-// expression.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from base
-// emission.
+// Returns []goast.Stmt which contains statements from emitting the base expression.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from base emission.
 //
 // Panics if the property is not an identifier.
 func (ee *expressionEmitter) emitSafeMemberAccess(
@@ -212,13 +207,12 @@ func (ee *expressionEmitter) buildSafeMemberAccessIIFE(
 	}
 }
 
-// buildNilAccessDiagnostic creates a diagnostic call for when code tries to
-// access a member on a nil value.
+// buildNilAccessDiagnostic creates a diagnostic call for when code tries to access a
+// member on a nil value.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression being
-// accessed.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the location and
-// context for the diagnostic.
+// Takes n (*ast_domain.MemberExpression) which is the member expression being accessed.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the location and context
+// for the diagnostic.
 //
 // Returns goast.Expr which is the diagnostic call expression.
 //
@@ -244,8 +238,7 @@ func (ee *expressionEmitter) buildNilAccessDiagnostic(
 	)
 }
 
-// buildDiagnosticCall generates the AST for a call to
-// generator_helpers.AppendDiagnostic.
+// buildDiagnosticCall generates the AST for a call to generator_helpers.AppendDiagnostic.
 //
 // Takes message (string) which is the diagnostic message text.
 // Takes code (string) which is the diagnostic code identifier (e.g. "R003").
@@ -286,11 +279,9 @@ func (ee *expressionEmitter) buildDiagnosticCall(
 	}
 }
 
-// emitIndexExpr emits code for index access expressions (e.g., arr[0],
-// map[key]).
+// emitIndexExpr emits code for index access expressions (e.g., arr[0], map[key]).
 //
-// Takes n (*ast_domain.IndexExpression) which specifies the index
-// expression to emit.
+// Takes n (*ast_domain.IndexExpression) which specifies the index expression to emit.
 //
 // Returns goast.Expr which is the generated Go expression for the index access.
 // Returns []goast.Stmt which contains any statements needed for safe access.
@@ -421,14 +412,14 @@ type indexCheckContext struct {
 // Takes n (*ast_domain.IndexExpression) which is the index expression to check.
 // Takes baseGoExpr (goast.Expr) which is the base expression being indexed.
 // Takes indexGoExpr (goast.Expr) which is the index value expression.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides type
-// information for the base expression.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides type information for
+// the base expression.
 // Takes zeroValue (goast.Expr) which is the zero value to return on failure.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides annotation
-// context for the operation.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides annotation context for the
+// operation.
 //
-// Returns []goast.Stmt which contains the nil check, optional bounds check,
-// and final return statement.
+// Returns []goast.Stmt which contains the nil check, optional bounds check, and final
+// return statement.
 func (ee *expressionEmitter) buildIndexAccessChecks(
 	n *ast_domain.IndexExpression,
 	baseGoExpr goast.Expr,
@@ -510,8 +501,8 @@ func (ee *expressionEmitter) emitCallExpr(n *ast_domain.CallExpression) (goast.E
 	return result, allStmts, allDiags
 }
 
-// emitCoercionCallExpr handles type coercion function calls such as string,
-// int, and float.
+// emitCoercionCallExpr handles type coercion function calls such as string, int, and
+// float.
 //
 // Takes n (*ast_domain.CallExpression) which is the coercion call expression.
 // Takes functionName (string) which is the name of the coercion function.
@@ -540,19 +531,17 @@ func (ee *expressionEmitter) emitCoercionCallExpr(n *ast_domain.CallExpression, 
 	return result, argStmts, argDiags
 }
 
-// emitRuntimeHelperCallExpr handles calls to Piko runtime helper
-// functions (e.g. F), emitting them as pikoruntime.FuncName(arguments...)
-// and adding the pikoruntime import automatically.
+// emitRuntimeHelperCallExpr handles calls to Piko runtime helper functions (e.g. F),
+// emitting them as pikoruntime.FuncName(arguments...) and adding the pikoruntime import
+// automatically.
 //
-// The annotator resolves these as returning *FormatBuilder, so the
-// stringability pipeline adds .String() in contexts that require a
-// string value.
+// The annotator resolves these as returning *FormatBuilder, so the stringability pipeline
+// adds .String() in contexts that require a string value.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to emit.
 // Takes functionName (string) which is the runtime helper function name.
 //
-// Returns goast.Expr which is the generated
-// pikoruntime.FuncName(arguments...) call.
+// Returns goast.Expr which is the generated pikoruntime.FuncName(arguments...) call.
 // Returns []goast.Stmt which holds any statements needed before the call.
 // Returns []*ast_domain.Diagnostic which holds any issues found.
 func (ee *expressionEmitter) emitRuntimeHelperCallExpr(n *ast_domain.CallExpression, functionName string) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
@@ -580,8 +569,7 @@ func (ee *expressionEmitter) emitRuntimeHelperCallExpr(n *ast_domain.CallExpress
 	return callExpr, allStmts, allDiags
 }
 
-// emitUnaryExpr emits code for unary expressions such as !value, -num, or
-// &ptr.
+// emitUnaryExpr emits code for unary expressions such as !value, -num, or &ptr.
 //
 // Takes n (*ast_domain.UnaryExpression) which is the unary expression to emit.
 //
@@ -607,8 +595,8 @@ func (ee *expressionEmitter) emitUnaryExpr(n *ast_domain.UnaryExpression) (goast
 	return &goast.UnaryExpr{Op: op, X: rightGoExpr}, rightStmts, rightDiags
 }
 
-// emitTernaryExpr outputs Go code for a ternary conditional expression
-// (e.g., `condition ? a : b`).
+// emitTernaryExpr outputs Go code for a ternary conditional expression (e.g., `condition
+// ? a : b`).
 //
 // Takes n (*ast_domain.TernaryExpression) which is the ternary expression to emit.
 //
@@ -649,10 +637,9 @@ func (ee *expressionEmitter) emitTernaryExpr(n *ast_domain.TernaryExpression) (g
 // Takes n (*ast_domain.Identifier) which is the identifier node to convert.
 //
 // Returns goast.Expr which is the Go expression for this identifier.
-// Returns []goast.Stmt which is nil because identifiers do not produce
-// statements.
-// Returns []*ast_domain.Diagnostic which contains an error when the identifier
-// has no resolved variable name or has a synthetic type.
+// Returns []goast.Stmt which is nil because identifiers do not produce statements.
+// Returns []*ast_domain.Diagnostic which contains an error when the identifier has no
+// resolved variable name or has a synthetic type.
 func (ee *expressionEmitter) emitIdentifier(n *ast_domain.Identifier) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
 	if isSyntheticAnnotation(n.GoAnnotations) {
 		sourcePath := ""
@@ -673,11 +660,10 @@ func (ee *expressionEmitter) emitIdentifier(n *ast_domain.Identifier) (goast.Exp
 	if n.GoAnnotations != nil && n.GoAnnotations.BaseCodeGenVarName != nil {
 		codeGenVar := *n.GoAnnotations.BaseCodeGenVarName
 
-		if strings.Contains(codeGenVar, ".") {
-			parts := strings.SplitN(codeGenVar, ".", 2)
+		if pkg, name, ok := strings.Cut(codeGenVar, "."); ok {
 			return &goast.SelectorExpr{
-				X:   cachedIdent(parts[0]),
-				Sel: cachedIdent(parts[1]),
+				X:   cachedIdent(pkg),
+				Sel: cachedIdent(name),
 			}, nil, nil
 		}
 
@@ -703,11 +689,11 @@ func (ee *expressionEmitter) emitIdentifier(n *ast_domain.Identifier) (goast.Exp
 	return cachedIdent(n.Name + "/*_UNRESOLVED_*/"), nil, []*ast_domain.Diagnostic{diagnostic}
 }
 
-// emitCrossPackageIdentifier creates a qualified identifier expression
-// (pkg.Name) for identifiers from other packages, adding the required import.
+// emitCrossPackageIdentifier creates a qualified identifier expression (pkg.Name) for
+// identifiers from other packages, adding the required import.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the package path
-// and alias for the external identifier.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the package path and alias
+// for the external identifier.
 // Takes name (string) which is the identifier name to qualify.
 //
 // Returns goast.Expr which is a SelectorExpr in the form pkgAlias.name.
@@ -727,8 +713,8 @@ func (ee *expressionEmitter) emitCrossPackageIdentifier(ann *ast_domain.GoGenera
 	}
 }
 
-// buildNilCheckIIFEBody creates the body of a function that is called at once
-// to check for nil before accessing a field.
+// buildNilCheckIIFEBody creates the body of a function that is called at once to check
+// for nil before accessing a field.
 //
 // Takes baseGoExpr (goast.Expr) which is the expression to check for nil.
 // Takes goFieldName (string) which is the name of the field to access.
@@ -759,11 +745,11 @@ func buildNilCheckIIFEBody(baseGoExpr goast.Expr, goFieldName string, diagnostic
 
 // buildNilCheckWithContext creates a nil check statement for index access.
 //
-// Takes ctx (*indexCheckContext) which provides the expression and emitter
-// context for building the nil check.
+// Takes ctx (*indexCheckContext) which provides the expression and emitter context for
+// building the nil check.
 //
-// Returns goast.Stmt which is an if statement that emits a warning and returns
-// a zero value when the indexed expression is nil.
+// Returns goast.Stmt which is an if statement that emits a warning and returns a zero
+// value when the indexed expression is nil.
 func buildNilCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 	nilCheckMessage := fmt.Sprintf("Cannot index a nil slice/map in expression '%s'", ctx.expression.String())
 	nilDiagnosticCall := ctx.emitter.buildDiagnosticCall(
@@ -788,14 +774,13 @@ func buildNilCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 	}
 }
 
-// buildBoundsCheckWithContext creates a bounds check statement for slice
-// access.
+// buildBoundsCheckWithContext creates a bounds check statement for slice access.
 //
-// Takes ctx (*indexCheckContext) which provides the expression and index
-// details for the bounds check.
+// Takes ctx (*indexCheckContext) which provides the expression and index details for the
+// bounds check.
 //
-// Returns goast.Stmt which is an if statement that reports a warning and
-// returns a zero value when the index is outside the slice bounds.
+// Returns goast.Stmt which is an if statement that reports a warning and returns a zero
+// value when the index is outside the slice bounds.
 func buildBoundsCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 	boundsCheckMessage := fmt.Sprintf("Index out of bounds while accessing '%s'", ctx.expression.String())
 	boundsDiagnosticCall := ctx.emitter.buildDiagnosticCall(
@@ -826,8 +811,7 @@ func buildBoundsCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 
 // unaryOpToToken converts a Piko unary operator to its Go token equivalent.
 //
-// Takes operator (ast_domain.UnaryOp) which specifies the unary operator to
-// convert.
+// Takes operator (ast_domain.UnaryOp) which specifies the unary operator to convert.
 //
 // Returns token.Token which is the matching Go token.
 // Returns bool which is true if the conversion succeeded.
@@ -842,21 +826,21 @@ func unaryOpToToken(operator ast_domain.UnaryOp) (token.Token, bool) {
 	}
 }
 
-// needsCrossPackageQualification checks whether an identifier needs a package
-// alias because it comes from a different package.
+// needsCrossPackageQualification checks whether an identifier needs a package alias
+// because it comes from a different package.
 //
-// This applies only to exported package-level symbols (functions, constants,
-// variables) defined in the component's script block. It does not apply to
-// locally-generated binding variables like props_xxx, which have the partial's
-// CanonicalPackagePath but are defined in the parent's generated code.
+// This applies only to exported package-level symbols (functions, constants, variables)
+// defined in the component's script block. It does not apply to locally-generated binding
+// variables like props_xxx, which have the partial's CanonicalPackagePath but are defined
+// in the parent's generated code.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved
-// type information for the identifier.
-// Takes currentCanonicalPath (string) which is the canonical Go import path of
-// the package being generated.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved type
+// information for the identifier.
+// Takes currentCanonicalPath (string) which is the canonical Go import path of the
+// package being generated.
 //
-// Returns bool which is true when the identifier is an exported package-level
-// symbol from a different package that needs a package alias.
+// Returns bool which is true when the identifier is an exported package-level symbol from
+// a different package that needs a package alias.
 func needsCrossPackageQualification(ann *ast_domain.GoGeneratorAnnotation, currentCanonicalPath string) bool {
 	if ann == nil || ann.ResolvedType == nil {
 		return false

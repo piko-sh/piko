@@ -37,19 +37,18 @@ const (
 
 // rateLimitConfig stores rate limiting settings for a scope.
 type rateLimitConfig struct {
-	// requestsPerMinute is the maximum allowed requests per minute; 0 disables
-	// request rate limiting.
+	// requestsPerMinute is the maximum allowed requests per minute; 0 disables request rate
+	// limiting.
 	requestsPerMinute int
 
-	// tokensPerMinute is the maximum number of tokens allowed per minute;
-	// 0 disables token rate limiting.
+	// tokensPerMinute is the maximum number of tokens allowed per minute; 0 disables token
+	// rate limiting.
 	tokensPerMinute int
 }
 
-// RateLimiter enforces request and token rate limits using the token bucket
-// algorithm. It delegates state management to a TokenBucketStorePort
-// implementation, which can be backed by in-memory storage (Otter) or
-// distributed storage (Redis).
+// RateLimiter enforces request and token rate limits using the token bucket algorithm. It
+// delegates state management to a TokenBucketStorePort implementation, which can be
+// backed by in-memory storage (Otter) or distributed storage (Redis).
 type RateLimiter struct {
 	// clock provides time functions for rate limiting; used for creating timers.
 	clock clock.Clock
@@ -69,8 +68,8 @@ type RateLimiterOption func(*RateLimiter)
 
 // NewRateLimiter creates a new RateLimiter with the given store.
 //
-// Takes store (ratelimiter_domain.TokenBucketStorePort) which provides token
-// bucket state storage.
+// Takes store (ratelimiter_domain.TokenBucketStorePort) which provides token bucket state
+// storage.
 // Takes opts (...RateLimiterOption) which are optional configuration functions.
 //
 // Returns *RateLimiter ready for configuration.
@@ -89,10 +88,8 @@ func NewRateLimiter(store ratelimiter_domain.TokenBucketStorePort, opts ...RateL
 // SetLimits configures rate limits for a scope.
 //
 // Takes scope (string) which identifies the rate limit scope.
-// Takes requestsPerMinute (int) which is the max requests per minute
-// (0 = unlimited).
-// Takes tokensPerMinute (int) which is the max tokens per minute
-// (0 = unlimited).
+// Takes requestsPerMinute (int) which is the max requests per minute (0 = unlimited).
+// Takes tokensPerMinute (int) which is the max tokens per minute (0 = unlimited).
 //
 // Safe for concurrent use.
 func (l *RateLimiter) SetLimits(scope string, requestsPerMinute, tokensPerMinute int) {
@@ -198,8 +195,8 @@ func (l *RateLimiter) Wait(ctx context.Context, scope string) error {
 	return l.WaitN(ctx, scope, 1, 0)
 }
 
-// WaitN blocks until the specified request and token count is allowed or the
-// context is cancelled.
+// WaitN blocks until the specified request and token count is allowed or the context is
+// cancelled.
 //
 // Takes scope (string) which identifies the rate limit scope.
 // Takes requests (int) which is the number of requests to wait for.
@@ -241,10 +238,10 @@ func (l *RateLimiter) HasLimits(scope string) bool {
 //
 // Takes scope (string) which identifies the rate limit scope.
 //
-// Returns requestsPerMinute (int) which is the requests per minute limit,
-// or 0 if not configured.
-// Returns tokensPerMinute (int) which is the tokens per minute limit,
-// or 0 if not configured.
+// Returns requestsPerMinute (int) which is the requests per minute limit, or 0 if not
+// configured.
+// Returns tokensPerMinute (int) which is the tokens per minute limit, or 0 if not
+// configured.
 //
 // Safe for concurrent use.
 func (l *RateLimiter) GetLimits(scope string) (requestsPerMinute, tokensPerMinute int) {
@@ -258,15 +255,15 @@ func (l *RateLimiter) GetLimits(scope string) (requestsPerMinute, tokensPerMinut
 	return config.requestsPerMinute, config.tokensPerMinute
 }
 
-// calculateWaitDuration calculates the maximum wait duration across all
-// buckets for a scope.
+// calculateWaitDuration calculates the maximum wait duration across all buckets for a
+// scope.
 //
 // Takes scope (string) which identifies the rate limit configuration to use.
 // Takes requests (int) which specifies the number of requests to check.
 // Takes tokens (int) which specifies the number of tokens to check.
 //
-// Returns time.Duration which is the longest wait needed across all buckets,
-// or zero if the scope has no configuration.
+// Returns time.Duration which is the longest wait needed across all buckets, or zero if
+// the scope has no configuration.
 //
 // Safe for concurrent use; acquires a read lock to access scope configuration.
 func (l *RateLimiter) calculateWaitDuration(ctx context.Context, scope string, requests, tokens int) time.Duration {
@@ -327,8 +324,8 @@ func (l *RateLimiter) tryAllowOrWait(ctx context.Context, scope string, requests
 	}
 }
 
-// WithRateLimiterClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithRateLimiterClock sets the clock used for time operations. If not set,
+// clock.RealClock() is used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -353,8 +350,8 @@ func buildBucketKey(scope string, bucketType BucketType) string {
 //
 // Takes config (*rateLimitConfig) which specifies the rate limit settings.
 //
-// Returns ratelimiter_dto.TokenBucketConfig which contains the computed rate
-// and burst values.
+// Returns ratelimiter_dto.TokenBucketConfig which contains the computed rate and burst
+// values.
 func requestBucketConfig(config *rateLimitConfig) ratelimiter_dto.TokenBucketConfig {
 	return ratelimiter_dto.TokenBucketConfig{
 		Rate:  float64(config.requestsPerMinute) / SecondsPerMinute,
@@ -366,8 +363,8 @@ func requestBucketConfig(config *rateLimitConfig) ratelimiter_dto.TokenBucketCon
 //
 // Takes config (*rateLimitConfig) which specifies the rate limit settings.
 //
-// Returns ratelimiter_dto.TokenBucketConfig which contains the calculated rate
-// and burst values.
+// Returns ratelimiter_dto.TokenBucketConfig which contains the calculated rate and burst
+// values.
 func tokenBucketConfig(config *rateLimitConfig) ratelimiter_dto.TokenBucketConfig {
 	return ratelimiter_dto.TokenBucketConfig{
 		Rate:  float64(config.tokensPerMinute) / SecondsPerMinute,

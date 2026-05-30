@@ -16,10 +16,10 @@ const historySize = 100
 
 // chatHub manages chat subscribers and message history.
 type chatHub struct {
-	mu          sync.RWMutex
-	subscribers map[uint64]chan Message
-	nextSubID   uint64
-	nextMessageID   uint64
+	mu            sync.RWMutex
+	subscribers   map[uint64]chan Message
+	nextSubID     uint64
+	nextMessageID uint64
 
 	// Ring buffer for message history.
 	history    [historySize]Message

@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// createRedisClusterCache creates a Redis Cluster cache for the given
-// namespace using type assertions.
+// createRedisClusterCache creates a Redis Cluster cache for the given namespace using
+// type assertions.
 //
 // Takes p (*RedisClusterProvider) which provides the Redis Cluster connection.
 // Takes namespace (string) which identifies the cache namespace.
@@ -64,18 +64,17 @@ func createRedisClusterCache(p *RedisClusterProvider, namespace string, optionsA
 	}
 }
 
-// createNamespaceGeneric is a helper that handles the type-specific Redis
-// Cluster cache creation.
+// createNamespaceGeneric is a helper that handles the type-specific Redis Cluster cache
+// creation.
 //
-// Takes p (*RedisClusterProvider) which supplies the Redis Cluster
-// client and configuration.
-// Takes namespace (string) which identifies the cache namespace to
-// create or reuse.
-// Takes options (cache.Options[K, V]) which configures the cache
-// behaviour including expiry and search schema.
+// Takes p (*RedisClusterProvider) which supplies the Redis Cluster client and
+// configuration.
+// Takes namespace (string) which identifies the cache namespace to create or reuse.
+// Takes options (cache.Options[K, V]) which configures the cache behaviour including
+// expiry and search schema.
 //
-// Returns the created or reused cache instance and an error when
-// the namespace already exists with incompatible types.
+// Returns the created or reused cache instance and an error when the namespace already
+// exists with incompatible types.
 //
 // Safe for concurrent use. Access is serialised by the provider mutex.
 func createNamespaceGeneric[K comparable, V any](p *RedisClusterProvider, namespace string, options cache.Options[K, V]) (cache.Cache[K, V], error) {

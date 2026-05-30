@@ -19,6 +19,7 @@
 package interp_domain
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -136,23 +137,23 @@ func TestPeepholeOptimise(t *testing.T) {
 			consts: []int64{1},
 			body: []instruction{
 				mk(opAddIntConst, 0, 0, 0),
-				mk(opJump, 0, lo, hi),
+				mk(opDrillTier1, uint8(subOpJump), lo, hi),
 			},
 			expect: []opcode{opAddIntJump, opExt},
 		},
 		{
 			name: "IncInt + LtInt + JumpIfTrue -> IncIntJumpLt",
 			body: []instruction{
-				mk(opIncInt, 0, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncInt), 0),
 				mk(opLtInt, 2, 0, 1),
 				mk(opJumpIfTrue, 2, lo, hi),
 			},
-			expect: []opcode{opIncIntJumpLt, opExt, opNop},
+			expect: []opcode{opDrillTier1, opExt, opNop},
 		},
 		{
 			name: "RuneToString + ConcatString -> ConcatRuneString",
 			body: []instruction{
-				mk(opRuneToString, 3, 1, 0),
+				mk(opDrillTier1, uint8(subOpRuneToString), 3, 1),
 				mk(opConcatString, 2, 0, 3),
 			},
 			expect: []opcode{opConcatRuneString, opNop},
@@ -163,7 +164,7 @@ func TestPeepholeOptimise(t *testing.T) {
 			body: []instruction{
 				mk(opLoadIntConst, 0, 0, 0),
 			},
-			expect: []opcode{opLoadIntConstSmall},
+			expect: []opcode{opDrillTier1},
 		},
 		{
 			name:   "LoadIntConst large value stays unchanged",
@@ -194,7 +195,7 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "LoadNil + EqGeneral + JumpIfTrue -> TestNilJumpTrue",
 			body: []instruction{
-				mk(opLoadNil, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 				mk(opEqGeneral, 4, 1, 3),
 				mk(opJumpIfTrue, 4, lo, hi),
 			},
@@ -203,7 +204,7 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "LoadNil + EqGeneral + JumpIfFalse -> TestNilJumpFalse",
 			body: []instruction{
-				mk(opLoadNil, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 				mk(opEqGeneral, 4, 1, 3),
 				mk(opJumpIfFalse, 4, lo, hi),
 			},
@@ -212,7 +213,7 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "LoadNil + NeGeneral + JumpIfTrue -> TestNilJumpFalse",
 			body: []instruction{
-				mk(opLoadNil, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 				mk(opNeGeneral, 4, 1, 3),
 				mk(opJumpIfTrue, 4, lo, hi),
 			},
@@ -221,7 +222,7 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "LoadNil + NeGeneral + JumpIfFalse -> TestNilJumpTrue",
 			body: []instruction{
-				mk(opLoadNil, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 				mk(opNeGeneral, 4, 1, 3),
 				mk(opJumpIfFalse, 4, lo, hi),
 			},
@@ -230,7 +231,7 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "LoadNil in B position + EqGeneral + JumpIfTrue -> TestNilJumpTrue",
 			body: []instruction{
-				mk(opLoadNil, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 				mk(opEqGeneral, 4, 3, 1),
 				mk(opJumpIfTrue, 4, lo, hi),
 			},
@@ -239,20 +240,20 @@ func TestPeepholeOptimise(t *testing.T) {
 		{
 			name: "fusion still fires when jump targets first of pair",
 			body: []instruction{
-				mk(opJump, 0, 0, 0),
-				mk(opRuneToString, 3, 1, 0),
+				mk(opDrillTier1, uint8(subOpJump), 0, 0),
+				mk(opDrillTier1, uint8(subOpRuneToString), 3, 1),
 				mk(opConcatString, 2, 0, 3),
 			},
-			expect: []opcode{opJump, opConcatRuneString, opNop},
+			expect: []opcode{opDrillTier1, opConcatRuneString, opNop},
 		},
 		{
 			name: "no fusion when jump targets second of pair",
 			body: []instruction{
-				mk(opJump, 0, 1, 0),
-				mk(opRuneToString, 3, 1, 0),
+				mk(opDrillTier1, uint8(subOpJump), 1, 0),
+				mk(opDrillTier1, uint8(subOpRuneToString), 3, 1),
 				mk(opConcatString, 2, 0, 3),
 			},
-			expect: []opcode{opJump, opRuneToString, opConcatString},
+			expect: []opcode{opDrillTier1, opDrillTier1, opConcatString},
 		},
 		{
 			name:   "no fusion when registers don't match",
@@ -261,13 +262,13 @@ func TestPeepholeOptimise(t *testing.T) {
 				mk(opLoadIntConst, 3, 0, 0),
 				mk(opAddInt, 1, 2, 5),
 			},
-			expect: []opcode{opLoadIntConstSmall, opAddInt},
+			expect: []opcode{opDrillTier1, opAddInt},
 		},
 		{
 			name: "StringIndex + UintToInt -> StringIndexToInt",
 			body: []instruction{
 				mk(opStringIndex, 3, 0, 1),
-				mk(opUintToInt, 2, 3, 0),
+				mk(opDrillTier1, uint8(subOpUintToInt), 2, 3),
 			},
 			expect: []opcode{opStringIndexToInt, opNop},
 		},
@@ -275,27 +276,27 @@ func TestPeepholeOptimise(t *testing.T) {
 			name: "no StringIndexToInt when registers don't match",
 			body: []instruction{
 				mk(opStringIndex, 3, 0, 1),
-				mk(opUintToInt, 2, 5, 0),
+				mk(opDrillTier1, uint8(subOpUintToInt), 2, 5),
 			},
-			expect: []opcode{opStringIndex, opUintToInt},
+			expect: []opcode{opStringIndex, opDrillTier1},
 		},
 		{
 			name: "LenString + LtInt + JumpIfFalse -> LenStringLtJumpFalse",
 			body: []instruction{
-				mk(opLenString, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpLenString), 3, 0),
 				mk(opLtInt, 4, 1, 3),
 				mk(opJumpIfFalse, 4, lo, hi),
 			},
-			expect: []opcode{opLenStringLtJumpFalse, opExt, opNop},
+			expect: []opcode{opDrillTier1, opExt, opNop},
 		},
 		{
 			name: "no LenStringLtJumpFalse when len reg doesn't match",
 			body: []instruction{
-				mk(opLenString, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpLenString), 3, 0),
 				mk(opLtInt, 4, 1, 5),
 				mk(opJumpIfFalse, 4, lo, hi),
 			},
-			expect: []opcode{opLenString, opLtInt, opJumpIfFalse},
+			expect: []opcode{opDrillTier1, opLtInt, opJumpIfFalse},
 		},
 	}
 
@@ -308,7 +309,7 @@ func TestPeepholeOptimise(t *testing.T) {
 				stringConstants: tt.strConst,
 			}
 			copy(cf.body, tt.body)
-			cf.optimise()
+			_ = cf.optimise(context.Background())
 
 			got := make([]opcode, len(cf.body))
 			for i, instr := range cf.body {
@@ -354,7 +355,7 @@ func TestPeepholePreservesSemantics(t *testing.T) {
 		{
 			name: "ConcatRuneString preserves operand registers",
 			body: []instruction{
-				mk(opRuneToString, 7, 3, 0),
+				mk(opDrillTier1, uint8(subOpRuneToString), 7, 3),
 				mk(opConcatString, 5, 2, 7),
 			},
 			checkA: 5,
@@ -365,7 +366,7 @@ func TestPeepholePreservesSemantics(t *testing.T) {
 			name: "StringIndexToInt preserves operand registers",
 			body: []instruction{
 				mk(opStringIndex, 7, 3, 2),
-				mk(opUintToInt, 5, 7, 0),
+				mk(opDrillTier1, uint8(subOpUintToInt), 5, 7),
 			},
 			checkA: 5,
 			checkB: 3,
@@ -381,7 +382,7 @@ func TestPeepholePreservesSemantics(t *testing.T) {
 				intConstants: tt.consts,
 			}
 			copy(cf.body, tt.body)
-			cf.optimise()
+			_ = cf.optimise(context.Background())
 
 			fused := cf.body[0]
 			assert.Equal(t, tt.checkA, fused.a, "A register")
@@ -414,21 +415,21 @@ func TestPeepholeJumpOffsetAdjustment(t *testing.T) {
 		{
 			name: "IncIntJumpLt adjusts offset by +1",
 			body: []instruction{
-				mk(opIncInt, 0, 0, 0),
+				mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncInt), 0),
 				mk(opLtInt, 2, 0, 1),
 				mk(opJumpIfTrue, 2, 252, 255),
 			},
-			fusedOp:      opIncIntJumpLt,
+			fusedOp:      opDrillTier1,
 			expectOffset: -3,
 		},
 		{
 			name: "LenStringLtJumpFalse adjusts offset by +1",
 			body: []instruction{
-				mk(opLenString, 3, 0, 0),
+				mk(opDrillTier1, uint8(subOpLenString), 3, 0),
 				mk(opLtInt, 4, 1, 3),
 				mk(opJumpIfFalse, 4, 5, 0),
 			},
-			fusedOp:      opLenStringLtJumpFalse,
+			fusedOp:      opDrillTier1,
 			expectOffset: 6,
 		},
 	}
@@ -441,7 +442,7 @@ func TestPeepholeJumpOffsetAdjustment(t *testing.T) {
 				intConstants: tt.consts,
 			}
 			copy(cf.body, tt.body)
-			cf.optimise()
+			_ = cf.optimise(context.Background())
 
 			assert.Equal(t, tt.fusedOp, cf.body[0].op)
 
@@ -457,12 +458,12 @@ func TestPeepholeNilJumpOffset(t *testing.T) {
 	t.Parallel()
 	cf := &CompiledFunction{
 		body: []instruction{
-			mk(opLoadNil, 3, 0, 0),
+			mk(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2LoadNil), 3),
 			mk(opEqGeneral, 4, 1, 3),
 			mk(opJumpIfTrue, 4, 5, 0),
 		},
 	}
-	cf.optimise()
+	_ = cf.optimise(context.Background())
 
 	assert.Equal(t, opTestNilJumpTrue, cf.body[0].op)
 	gotOffset := int16(uint16(cf.body[0].b) | uint16(cf.body[0].c)<<8)
@@ -482,7 +483,7 @@ func TestPeepholeRecursive(t *testing.T) {
 		functions: []*CompiledFunction{child},
 		body:      []instruction{mk(opNop, 0, 0, 0)},
 	}
-	parent.optimise()
+	_ = parent.optimise(context.Background())
 
 	assert.Equal(t, opAddIntConst, child.body[0].op)
 	assert.Equal(t, opNop, child.body[1].op)

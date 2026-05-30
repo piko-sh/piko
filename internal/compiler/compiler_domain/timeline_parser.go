@@ -30,58 +30,56 @@ import (
 )
 
 const (
-	// millisecondsPerSecond is the conversion factor from
-	// milliseconds to seconds.
+	// millisecondsPerSecond is the conversion factor from milliseconds to seconds.
 	millisecondsPerSecond = 1000
 
-	// attrRef is the HTML attribute name used to identify the
-	// target element by p-ref.
+	// attrRef is the HTML attribute name used to identify the target element by p-ref.
 	attrRef = "ref"
 
-	// pikoTagPrefix is the namespace prefix for all piko timeline
-	// action tags (e.g. piko:show, piko:type).
+	// pikoTagPrefix is the namespace prefix for all piko timeline action tags (e.g.
+	// piko:show, piko:type).
 	pikoTagPrefix = "piko:"
 
-	// errFormatOutsideAt is the error format string used when an
-	// action element appears outside a piko:at block.
+	// errFormatOutsideAt is the error format string used when an action element appears
+	// outside a piko:at block.
 	errFormatOutsideAt = "%s must be inside a piko:at element"
 )
 
 // timelineAction represents a single timed action in a piko:timeline block.
 type timelineAction struct {
-	// Action is the type of action: "show", "hide", "type", "typehtml",
-	// "addclass", "removeclass", "tooltip", or a custom user-defined name.
+	// Action is the type of action: "show", "hide", "type", "typehtml", "addclass",
+	// "removeclass", "tooltip", or a custom user-defined name.
 	Action string `json:"action"`
 
 	// Ref is the p-ref name of the target element.
 	Ref string `json:"ref"`
 
-	// Params holds additional attributes for custom (user-defined) actions.
-	// Omitted from JSON when empty.
+	// Params holds additional attributes for custom (user-defined) actions. Omitted from
+	// JSON when empty.
 	Params map[string]string `json:"params,omitempty"`
 
-	// Class is the CSS class name to add or remove (addclass/removeclass only).
-	// Omitted from JSON when empty.
+	// Class is the CSS class name to add or remove (addclass/removeclass only). Omitted from
+	// JSON when empty.
 	Class string `json:"class,omitempty"`
 
-	// Value is the tooltip text to set, where an empty value clears
-	// the tooltip (tooltip only, omitted from JSON when empty).
+	// Value is the tooltip text to set, where an empty value clears the tooltip (tooltip
+	// only, omitted from JSON when empty).
 	Value string `json:"value,omitempty"`
 
 	// Time is the absolute time in seconds when this action triggers.
 	Time float64 `json:"time"`
 
-	// Speed is the typing speed in milliseconds per character (type/typehtml only).
-	// Omitted from JSON when zero.
+	// Speed is the typing speed in milliseconds per character (type/typehtml only). Omitted
+	// from JSON when zero.
 	Speed float64 `json:"speed,omitempty"`
 }
 
-// ParseTimeline parses the content of a piko:timeline block into a
-// JSON string suitable for compiled JavaScript injection.
+// ParseTimeline parses the content of a piko:timeline block into a JSON string suitable
+// for compiled JavaScript injection.
 //
-// Takes content (string) which is the raw markup inside the
-// <piko:timeline> tag, containing <piko:at> elements with nested
-// action elements like <piko:show>, <piko:hide>, and <piko:type>.
+// Takes content (string) which is the raw markup inside the <piko:timeline> tag,
+// containing <piko:at> elements with nested action elements like <piko:show>,
+// <piko:hide>, and <piko:type>.
 //
 // Returns a JSON array string of timeline actions.
 // Returns an error when parsing fails or time values are invalid.
@@ -102,7 +100,7 @@ func ParseTimeline(content string) (string, error) {
 	for {
 		tt := lexer.Next()
 
-		switch tt {
+		switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case htmllexer.ErrorToken:
 			return serialiseActions(actions)
 
@@ -125,19 +123,16 @@ func ParseTimeline(content string) (string, error) {
 	}
 }
 
-// parseTimelineTag dispatches a start tag to the appropriate
-// handler based on the tag name.
+// parseTimelineTag dispatches a start tag to the appropriate handler based on the tag
+// name.
 //
 // Takes tagName (string) which is the lowercased HTML tag name.
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (*float64) which tracks the current timeline
-// position in seconds.
-// Takes insideAt (*bool) which tracks whether parsing is inside
-// a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (*float64) which tracks the current timeline position in seconds.
+// Takes insideAt (*bool) which tracks whether parsing is inside a piko:at block.
 //
-// Returns a timeline action if the tag produces one, or nil when
-// the tag only updates state.
+// Returns a timeline action if the tag produces one, or nil when the tag only updates
+// state.
 func parseTimelineTag(
 	tagName string,
 	attrs map[string]string,
@@ -163,20 +158,16 @@ func parseTimelineTag(
 	}
 }
 
-// parseGenericAction handles unknown piko:* elements by passing
-// through all attributes as key-value params, enabling user-defined
-// custom timeline actions.
+// parseGenericAction handles unknown piko:* elements by passing through all attributes as
+// key-value params, enabling user-defined custom timeline actions.
 //
 // Takes tagName (string) which is the lowercased HTML tag name.
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (float64) which is the current timeline
-// position in seconds.
-// Takes insideAt (bool) which indicates whether parsing is
-// inside a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is inside a piko:at block.
 //
-// Returns a timeline action with the action name derived from
-// the tag, an optional ref, and all other attributes in Params.
+// Returns a timeline action with the action name derived from the tag, an optional ref,
+// and all other attributes in Params.
 func parseGenericAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
 		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
@@ -192,13 +183,11 @@ func parseGenericAction(tagName string, attrs map[string]string, currentTime flo
 	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Params: params}, nil
 }
 
-// parseAtDirective handles a <piko:at time="..."> element by
-// updating the current time and entering a piko:at block.
+// parseAtDirective handles a <piko:at time="..."> element by updating the current time
+// and entering a piko:at block.
 //
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (*float64) which is updated to the parsed
-// time value.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (*float64) which is updated to the parsed time value.
 // Takes insideAt (*bool) which is set to true.
 //
 // Returns nil action on success since piko:at only updates state.
@@ -216,16 +205,13 @@ func parseAtDirective(attrs map[string]string, currentTime *float64, insideAt *b
 	return nil, nil
 }
 
-// parseRefAction handles <piko:show> and <piko:hide> elements
-// that require only a ref attribute.
+// parseRefAction handles <piko:show> and <piko:hide> elements that require only a ref
+// attribute.
 //
 // Takes tagName (string) which is the lowercased HTML tag name.
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (float64) which is the current timeline
-// position in seconds.
-// Takes insideAt (bool) which indicates whether parsing is
-// inside a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is inside a piko:at block.
 //
 // Returns a timeline action with the ref and action type set.
 func parseRefAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
@@ -240,19 +226,15 @@ func parseRefAction(tagName string, attrs map[string]string, currentTime float64
 	return &timelineAction{Time: currentTime, Action: action, Ref: ref}, nil
 }
 
-// parseTypingAction handles <piko:type> and <piko:typehtml>
-// elements that have a ref and an optional speed attribute.
+// parseTypingAction handles <piko:type> and <piko:typehtml> elements that have a ref and
+// an optional speed attribute.
 //
 // Takes tagName (string) which is the lowercased HTML tag name.
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (float64) which is the current timeline
-// position in seconds.
-// Takes insideAt (bool) which indicates whether parsing is
-// inside a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is inside a piko:at block.
 //
-// Returns a timeline action with the ref, action type, and
-// optional speed set.
+// Returns a timeline action with the ref, action type, and optional speed set.
 func parseTypingAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
 		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
@@ -273,19 +255,15 @@ func parseTypingAction(tagName string, attrs map[string]string, currentTime floa
 	return a, nil
 }
 
-// parseClassAction handles <piko:addclass> and <piko:removeclass>
-// elements that require both a ref and a class attribute.
+// parseClassAction handles <piko:addclass> and <piko:removeclass> elements that require
+// both a ref and a class attribute.
 //
 // Takes tagName (string) which is the lowercased HTML tag name.
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (float64) which is the current timeline
-// position in seconds.
-// Takes insideAt (bool) which indicates whether parsing is
-// inside a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is inside a piko:at block.
 //
-// Returns a timeline action with the ref, action type, and class
-// name set.
+// Returns a timeline action with the ref, action type, and class name set.
 func parseClassAction(tagName string, attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
 		return nil, fmt.Errorf(errFormatOutsideAt, tagName)
@@ -302,18 +280,14 @@ func parseClassAction(tagName string, attrs map[string]string, currentTime float
 	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Class: class}, nil
 }
 
-// parseTooltipAction handles <piko:tooltip> elements that require
-// a ref and have an optional value attribute.
+// parseTooltipAction handles <piko:tooltip> elements that require a ref and have an
+// optional value attribute.
 //
-// Takes attrs (map[string]string) which contains the tag's
-// attribute key-value pairs.
-// Takes currentTime (float64) which is the current timeline
-// position in seconds.
-// Takes insideAt (bool) which indicates whether parsing is
-// inside a piko:at block.
+// Takes attrs (map[string]string) which contains the tag's attribute key-value pairs.
+// Takes currentTime (float64) which is the current timeline position in seconds.
+// Takes insideAt (bool) which indicates whether parsing is inside a piko:at block.
 //
-// Returns a timeline action with the ref, tooltip action, and
-// optional value set.
+// Returns a timeline action with the ref, tooltip action, and optional value set.
 func parseTooltipAction(attrs map[string]string, currentTime float64, insideAt bool) (*timelineAction, error) {
 	if !insideAt {
 		return nil, fmt.Errorf(errFormatOutsideAt, "piko:tooltip")
@@ -325,11 +299,10 @@ func parseTooltipAction(attrs map[string]string, currentTime float64, insideAt b
 	return &timelineAction{Time: currentTime, Action: "tooltip", Ref: ref, Value: attrs["value"]}, nil
 }
 
-// parseTimeValue converts a time string to seconds, supporting
-// "s", "ms", or bare number formats.
+// parseTimeValue converts a time string to seconds, supporting "s", "ms", or bare number
+// formats.
 //
-// Takes s (string) which is the time value to parse (e.g.
-// "1.5s", "1500ms", "0.252434").
+// Takes s (string) which is the time value to parse (e.g. "1.5s", "1500ms", "0.252434").
 //
 // Returns the time in seconds.
 // Returns an error when the value cannot be parsed.
@@ -354,11 +327,10 @@ func parseTimeValue(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
-// readAttributes reads all attribute tokens from the lexer until
-// the start tag closes.
+// readAttributes reads all attribute tokens from the lexer until the start tag closes.
 //
-// Takes lexer (*htmllexer.Lexer) which is the HTML lexer positioned
-// after a start tag token.
+// Takes lexer (*htmllexer.Lexer) which is the HTML lexer positioned after a start tag
+// token.
 //
 // Returns a map of attribute name to value pairs.
 func readAttributes(lexer *htmllexer.Lexer) map[string]string {
@@ -377,11 +349,9 @@ func readAttributes(lexer *htmllexer.Lexer) map[string]string {
 	}
 }
 
-// serialiseActions converts a slice of timeline actions to a JSON
-// string.
+// serialiseActions converts a slice of timeline actions to a JSON string.
 //
-// Takes actions ([]timelineAction) which is the slice of actions
-// to serialise.
+// Takes actions ([]timelineAction) which is the slice of actions to serialise.
 //
 // Returns an empty array "[]" when actions is nil or empty.
 // Returns an error when JSON marshalling fails.

@@ -16,24 +16,22 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package goroutine provides panic recovery and safe-call
-// utilities for goroutine lifecycle management.
+// Package goroutine provides panic recovery and safe-call utilities for goroutine
+// lifecycle management.
 //
-// [RecoverPanic] and [RecoverPanicToChannel] are deferred helpers
-// that catch panics, log them with structured logging, and
-// increment an OTel counter. The [SafeCall] family of generic
-// functions wraps provider method calls, converting panics into
-// [PanicError] values and detecting provider-internal timeouts
-// as [ProviderTimeoutError]. All functions are safe for concurrent
-// use.
+// [RecoverPanic] and [RecoverPanicToChannel] are deferred helpers that catch panics, log
+// them with structured logging, and increment an OTel counter. The [SafeCall] family of
+// generic functions wraps provider method calls, converting panics into [PanicError]
+// values and detecting provider-internal timeouts as [ProviderTimeoutError]. All
+// functions are safe for concurrent use.
 //
 // # Design rationale
 //
-// Go's default behaviour terminates the entire process when a goroutine panics
-// without recovery. In a long-running server that calls into user-supplied or
-// third-party provider code, a single panic would bring down every connection.
-// Centralises recovery with observability (OTel counters, structured logging) so
-// panics are caught, reported, and the process continues. The SafeCall wrappers
-// also distinguish provider-internal timeouts from caller timeouts, which is
-// important for accurate error attribution in systems with multiple context scopes.
+// Go's default behaviour terminates the entire process when a goroutine panics without
+// recovery. In a long-running server that calls into user-supplied or third-party
+// provider code, a single panic would bring down every connection. Centralises recovery
+// with observability (OTel counters, structured logging) so panics are caught, reported,
+// and the process continues. The SafeCall wrappers also distinguish provider-internal
+// timeouts from caller timeouts, which is important for accurate error attribution in
+// systems with multiple context scopes.
 package goroutine

@@ -17,8 +17,7 @@
 // strip others of their rights and dignity.
 
 // Package db_engine_mysql implements the querier EnginePort for MySQL and
-// MySQL-compatible databases (MariaDB) using a hand-written recursive-descent
-// parser. The dialect hook system allows MariaDB-specific features (RETURNING
-// clauses, sequences, UUID/INET6 types) to be added as a flavour without
-// forking the parser.
+// MySQL-compatible databases (MariaDB) using a hand-written recursive-descent parser. The
+// dialect hook system allows MariaDB-specific features (RETURNING clauses, sequences,
+// UUID/INET6 types) to be added as a flavour without forking the parser.
 package db_engine_mysql

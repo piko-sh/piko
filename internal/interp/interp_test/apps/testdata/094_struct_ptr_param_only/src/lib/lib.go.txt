@@ -1,0 +1,9 @@
+package lib
+
+type Holder struct {
+	Name string
+}
+
+func F(p *Holder) string {
+	return p.Name
+}

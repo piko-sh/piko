@@ -18,9 +18,9 @@
 
 package inspector_domain
 
-// This file contains the core query engine for the querier. It operates on
-// pre-processed, cached type data and is responsible for resolving types,
-// fields, and methods from Go source code ASTs.
+// This file contains the core query engine for the querier. It operates on pre-processed,
+// cached type data and is responsible for resolving types, fields, and methods from Go
+// source code ASTs.
 
 import (
 	"context"
@@ -33,31 +33,32 @@ import (
 )
 
 const (
-	// maxAliasResolutionDepth is the maximum number of tries to resolve type
-	// aliases before stopping. This prevents endless loops when type aliases form
-	// a cycle or are nested too deeply.
+	// maxAliasResolutionDepth is the maximum number of tries to resolve type aliases before
+	// stopping. This prevents endless loops when type aliases form a cycle or are nested too
+	// deeply.
 	maxAliasResolutionDepth = 20
 
 	// logKeyImporterFile is the logger key for the importer file path.
 	logKeyImporterFile = "importer_file"
 )
 
-// aliasResolverPool reuses aliasResolver instances to reduce allocation pressure
-// during type alias resolution.
-var aliasResolverPool = sync.Pool{
-	New: func() any {
-		return &aliasResolver{}
-	},
-}
+var (
+	// aliasResolverPool reuses aliasResolver instances to reduce allocation pressure during
+	// type alias resolution.
+	aliasResolverPool = sync.Pool{
+		New: func() any {
+			return &aliasResolver{}
+		},
+	}
+)
 
-// namedTypeCacheKey identifies a type lookup within a specific file context.
-// It keeps memoisation file-scoped and avoids repeated lookups.
+// namedTypeCacheKey identifies a type lookup within a specific file context. It keeps
+// memoisation file-scoped and avoids repeated lookups.
 type namedTypeCacheKey struct {
 	// typeName is the simple name of the type, for example "User".
 	typeName string
 
-	// typePackageAlias is the package name as written in the source
-	// code (e.g. "models").
+	// typePackageAlias is the package name as written in the source code (e.g. "models").
 	typePackageAlias string
 
 	// importerFilePath is the path to the file that imports the type, such as
@@ -74,8 +75,8 @@ type namedTypeCacheValue struct {
 	PackageName string
 }
 
-// underlyingASTCacheKey identifies a type alias resolution query.
-// Used by ResolveToUnderlyingAST to store results and avoid repeated work.
+// underlyingASTCacheKey identifies a type alias resolution query. Used by
+// ResolveToUnderlyingAST to store results and avoid repeated work.
 type underlyingASTCacheKey struct {
 	// typeExprString is the text form of the input type expression.
 	typeExprString string
@@ -93,9 +94,8 @@ type underlyingASTCacheValue struct {
 	resolvedFilePath string
 }
 
-// TypeQuerier provides the main query engine for Go type information.
-// It implements fieldSegmentFinder and is safe for concurrent use after
-// creation.
+// TypeQuerier provides the main query engine for Go type information. It implements
+// fieldSegmentFinder and is safe for concurrent use after creation.
 type TypeQuerier struct {
 	// localPackageFiles maps file paths to their parsed AST files.
 	localPackageFiles map[string]*goast.File
@@ -103,8 +103,8 @@ type TypeQuerier struct {
 	// typeData holds package and type information for cross-reference lookups.
 	typeData *inspector_dto.TypeData
 
-	// implementationIndex maps interfaces to the types that implement them.
-	// It is built lazily when first accessed.
+	// implementationIndex maps interfaces to the types that implement them. It is built
+	// lazily when first accessed.
 	implementationIndex *ImplementationIndex
 
 	// typeHierarchyIndex maps types to their embedded types; built on first use.
@@ -134,10 +134,10 @@ type TypeQuerier struct {
 
 // NewTypeQuerier creates a new TypeQuerier for querying type information.
 //
-// Takes allScriptBlocksByFile (map[string]*goast.File) which provides the
-// parsed AST files for the local package.
-// Takes typeData (*inspector_dto.TypeData) which contains pre-computed type
-// information and reverse indexes.
+// Takes allScriptBlocksByFile (map[string]*goast.File) which provides the parsed AST
+// files for the local package.
+// Takes typeData (*inspector_dto.TypeData) which contains pre-computed type information
+// and reverse indexes.
 // Takes config (inspector_dto.Config) which specifies the inspector settings.
 //
 // Returns *TypeQuerier which is ready to query type information.
@@ -155,19 +155,15 @@ func NewTypeQuerier(
 	}
 }
 
-// ResolveExprToNamedType resolves an AST expression to a canonical type DTO.
-// This is the primary entry point for resolving a type expression from a given
-// context.
+// ResolveExprToNamedType resolves an AST expression to a canonical type DTO. This is the
+// primary entry point for resolving a type expression from a given context.
 //
-// Takes expression (goast.Expr) which is the AST expression to
-// resolve.
-// Takes importerPackagePath (string) which is the package path of
-// the importer.
-// Takes importerFilePath (string) which is the file path of the
-// importer.
+// Takes expression (goast.Expr) which is the AST expression to resolve.
+// Takes importerPackagePath (string) which is the package path of the importer.
+// Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns *inspector_dto.Type which is the resolved named type, or
-// nil if resolution fails.
+// Returns *inspector_dto.Type which is the resolved named type, or nil if resolution
+// fails.
 // Returns string which is the package alias for the resolved type.
 func (ti *TypeQuerier) ResolveExprToNamedType(expression goast.Expr, importerPackagePath, importerFilePath string) (*inspector_dto.Type, string) {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
@@ -200,24 +196,23 @@ func (ti *TypeQuerier) ResolveExprToNamedType(expression goast.Expr, importerPac
 	return ti.findNamedType(typeName, pkgAlias, importerPackagePath, importerFilePath)
 }
 
-// ResolveExprToNamedTypeWithMemoization wraps ResolveExprToNamedType with
-// thread-safe memoisation. This eliminates redundant type lookups during
-// semantic analysis.
+// ResolveExprToNamedTypeWithMemoization wraps ResolveExprToNamedType with thread-safe
+// memoisation. This eliminates redundant type lookups during semantic analysis.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes importerPackagePath (string) which is the package path of the importer.
 // Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns *inspector_dto.Type which is the resolved named type, or nil if
-// resolution fails.
+// Returns *inspector_dto.Type which is the resolved named type, or nil if resolution
+// fails.
 // Returns string which is the package name where the type is defined.
 //
-// The cache lives in TypeQuerier (not TypeResolver) because TypeQuerier is
-// reused across hot reloads when scripts do not change. TypeResolver is
-// recreated every pass, so caching there would provide zero benefit.
+// The cache lives in TypeQuerier (not TypeResolver) because TypeQuerier is reused across
+// hot reloads when scripts do not change. TypeResolver is recreated every pass, so
+// caching there would provide zero benefit.
 //
-// Cache key includes importerFilePath, preventing cross-file contamination.
-// Safe for concurrent use via sync.Map.
+// Cache key includes importerFilePath, preventing cross-file contamination. Safe for
+// concurrent use via sync.Map.
 func (ti *TypeQuerier) ResolveExprToNamedTypeWithMemoization(
 	ctx context.Context,
 	typeExpr goast.Expr,
@@ -243,8 +238,8 @@ func (ti *TypeQuerier) ResolveExprToNamedTypeWithMemoization(
 	return namedType, packageName
 }
 
-// aliasResolver manages the step-by-step process of resolving type aliases.
-// It tracks the current expression and file path as resolution progresses.
+// aliasResolver manages the step-by-step process of resolving type aliases. It tracks the
+// current expression and file path as resolution progresses.
 type aliasResolver struct {
 	// ti provides type resolution and lookup services.
 	ti *TypeQuerier
@@ -256,9 +251,9 @@ type aliasResolver struct {
 	currentFilePath string
 }
 
-// ResolveToUnderlyingAST recursively resolves a type expression through local
-// and cross-package type aliases until it reaches a non-alias type definition.
-// Acts as the public entry point, creating and running a new aliasResolver.
+// ResolveToUnderlyingAST recursively resolves a type expression through local and
+// cross-package type aliases until it reaches a non-alias type definition. Acts as the
+// public entry point, creating and running a new aliasResolver.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes currentFilePath (string) which is the file path for resolving imports.
@@ -269,14 +264,13 @@ func (ti *TypeQuerier) ResolveToUnderlyingAST(typeExpr goast.Expr, currentFilePa
 	return resolvedExpr
 }
 
-// ResolveToUnderlyingASTWithContext resolves a type expression through local
-// and cross-package type aliases until it reaches a non-alias type definition.
+// ResolveToUnderlyingASTWithContext resolves a type expression through local and
+// cross-package type aliases until it reaches a non-alias type definition.
 //
-// Unlike ResolveToUnderlyingAST, this also returns the final file path context
-// where the resolved type should be interpreted. This is critical for correctly
-// resolving package references in the returned expression (e.g., ensuring
-// "runtime.SearchResult" is interpreted relative to the alias definition
-// context, not the original caller context).
+// Unlike ResolveToUnderlyingAST, this also returns the final file path context where the
+// resolved type should be interpreted. This is critical for correctly resolving package
+// references in the returned expression (e.g., ensuring "runtime.SearchResult" is
+// interpreted relative to the alias definition context, not the original caller context).
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes currentFilePath (string) which is the file context for resolution.
@@ -284,8 +278,8 @@ func (ti *TypeQuerier) ResolveToUnderlyingAST(typeExpr goast.Expr, currentFilePa
 // Returns goast.Expr which is the resolved non-alias type expression.
 // Returns string which is the file path context for interpreting the result.
 //
-// Uses memoisation to cache results, as type alias resolution is expensive
-// (recursive with AST parsing) and called repeatedly with the same inputs.
+// Uses memoisation to cache results, as type alias resolution is expensive (recursive
+// with AST parsing) and called repeatedly with the same inputs.
 func (ti *TypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context, typeExpr goast.Expr, currentFilePath string) (goast.Expr, string) {
 	_, l := logger_domain.From(ctx, log)
 	if typeExpr == nil {
@@ -333,13 +327,13 @@ func (ti *TypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context, ty
 	return finalExpr, finalFilePath
 }
 
-// resolve expands type aliases until it reaches the final type.
-// It stops when no more aliases can be found or the maximum depth is reached.
+// resolve expands type aliases until it reaches the final type. It stops when no more
+// aliases can be found or the maximum depth is reached.
 //
 // Takes ctx (context.Context) which carries logging context for trace output.
 //
-// Returns goast.Expr which is the fully resolved type expression, or the
-// current expression if the maximum depth is reached.
+// Returns goast.Expr which is the fully resolved type expression, or the current
+// expression if the maximum depth is reached.
 func (r *aliasResolver) resolve(ctx context.Context) goast.Expr {
 	for range maxAliasResolutionDepth {
 		var changedInIteration bool
@@ -365,19 +359,18 @@ func (r *aliasResolver) resolve(ctx context.Context) goast.Expr {
 	return r.currentExpr
 }
 
-// updateFilePathFromOriginalBase updates the resolver's file path by looking
-// up the cached result of the original base type expression. This is called
-// after Phase 1 resolution with the base type that was extracted before the
-// resolution.
+// updateFilePathFromOriginalBase updates the resolver's file path by looking up the
+// cached result of the original base type expression. This is called after initial
+// resolution with the base type that was extracted before resolution began.
 //
-// This is needed because Phase 1 creates inner resolvers that work out and
-// cache the correct file paths, but those inner resolvers' state does not
-// pass back to the outer resolver. By looking up the cache for the original
-// base type (e.g. facade.SearchResult), we get the correct resolved file path
-// (e.g. runtime/types.go) that was worked out by the inner resolver.
+// This is needed because initial resolution creates inner resolvers that work out and
+// cache the correct file paths, but those inner resolvers' state does not pass back to
+// the outer resolver. By looking up the cache for the original base type (e.g.
+// facade.SearchResult), we get the correct resolved file path (e.g. runtime/types.go)
+// that was worked out by the inner resolver.
 //
-// Takes originalBaseType (goast.Expr) which is the base type expression
-// extracted before Phase 1 resolution.
+// Takes originalBaseType (goast.Expr) which is the base type expression extracted before
+// initial resolution.
 func (r *aliasResolver) updateFilePathFromOriginalBase(originalBaseType goast.Expr) {
 	if originalBaseType == nil {
 		return
@@ -421,11 +414,11 @@ func (r *aliasResolver) resolveNextAlias(ctx context.Context) bool {
 	return false
 }
 
-// tryResolveLocalAlias tries to resolve the current expression as an alias
-// defined in the same file.
+// tryResolveLocalAlias tries to resolve the current expression as an alias defined in the
+// same file.
 //
-// Returns bool which is true when the alias is found and the resolver state
-// is updated with the resolved expression.
+// Returns bool which is true when the alias is found and the resolver state is updated
+// with the resolved expression.
 func (r *aliasResolver) tryResolveLocalAlias() bool {
 	normalisedExpr := r.normaliseForLocalLookup(r.currentExpr)
 
@@ -439,9 +432,8 @@ func (r *aliasResolver) tryResolveLocalAlias() bool {
 	return true
 }
 
-// tryResolveDTOAlias tries to resolve the current expression as a
-// cross-package alias using the cached DTO. It updates the resolver's state
-// on success.
+// tryResolveDTOAlias tries to resolve the current expression as a cross-package alias
+// using the cached DTO. It updates the resolver's state on success.
 //
 // Takes ctx (context.Context) which carries logging context for trace output.
 //
@@ -466,15 +458,15 @@ func (r *aliasResolver) tryResolveDTOAlias(ctx context.Context) bool {
 	return true
 }
 
-// resolveGenericAliasTypeString resolves the type string for a generic alias
-// by replacing type parameters with their actual type arguments.
+// resolveGenericAliasTypeString resolves the type string for a generic alias by replacing
+// type parameters with their actual type arguments.
 //
-// Takes namedType (*inspector_dto.Type) which provides the generic type to
-// resolve.
+// Takes namedType (*inspector_dto.Type) which provides the generic type to resolve.
 //
-// Returns string which is the resolved type string with type parameters
-// replaced by actual arguments. Returns the original type string if the
-// number of arguments does not match the number of parameters.
+// Returns string which is the resolved type string with type parameters replaced by
+// actual arguments.
+// Returns the original type string if the number of arguments does not match the number
+// of parameters.
 func (r *aliasResolver) resolveGenericAliasTypeString(namedType *inspector_dto.Type) string {
 	if len(namedType.TypeParams) == 0 {
 		return namedType.TypeString
@@ -493,8 +485,8 @@ func (r *aliasResolver) resolveGenericAliasTypeString(namedType *inspector_dto.T
 	return goastutil.ASTToTypeString(substitutedAST)
 }
 
-// updateFilePathForResolvedAlias updates the file path to point to where the
-// resolved alias type is defined.
+// updateFilePathForResolvedAlias updates the file path to point to where the resolved
+// alias type is defined.
 //
 // Takes ctx (context.Context) which carries logging context for trace output.
 // Takes namedType (*inspector_dto.Type) which is the alias type to resolve.
@@ -521,8 +513,8 @@ func (r *aliasResolver) updateFilePathForResolvedAlias(ctx context.Context, name
 // Takes resolvedType (*inspector_dto.Type) which is the resolved target type.
 // Takes namedType (*inspector_dto.Type) which is the original named alias type.
 //
-// Returns string which is the file path from resolvedType if it is set,
-// otherwise from namedType, or empty if neither has a path.
+// Returns string which is the file path from resolvedType if it is set, otherwise from
+// namedType, or empty if neither has a path.
 func (*aliasResolver) determineResolvedFilePath(ctx context.Context, resolvedType, namedType *inspector_dto.Type) string {
 	_, l := logger_domain.From(ctx, log)
 	if resolvedType != nil && resolvedType.DefinedInFilePath != "" {
@@ -541,15 +533,13 @@ func (*aliasResolver) determineResolvedFilePath(ctx context.Context, resolvedTyp
 	return ""
 }
 
-// normaliseForLocalLookup simplifies a selector expression like pkg.Type to
-// just Type when the current file is in that package. This lets
-// resolveLocalAlias find the type.
+// normaliseForLocalLookup simplifies a selector expression like pkg.Type to just Type
+// when the current file is in that package. This lets resolveLocalAlias find the type.
 //
-// Takes expression (goast.Expr) which is the expression to
-// simplify.
+// Takes expression (goast.Expr) which is the expression to simplify.
 //
-// Returns goast.Expr which is the simplified expression, or the
-// original if no change is needed.
+// Returns goast.Expr which is the simplified expression, or the original if no change is
+// needed.
 func (r *aliasResolver) normaliseForLocalLookup(expression goast.Expr) goast.Expr {
 	selectorExpression, ok := expression.(*goast.SelectorExpr)
 	if !ok {
@@ -572,13 +562,13 @@ func (r *aliasResolver) normaliseForLocalLookup(expression goast.Expr) goast.Exp
 	return expression
 }
 
-// fullyQualifyCurrentExpression adds the full package path to an expression
-// to show which package it belongs to.
+// fullyQualifyCurrentExpression adds the full package path to an expression to show which
+// package it belongs to.
 //
 // Takes expression (goast.Expr) which is the expression to qualify.
 //
-// Returns goast.Expr which is the fully qualified expression, or
-// the original if it cannot be qualified.
+// Returns goast.Expr which is the fully qualified expression, or the original if it
+// cannot be qualified.
 func (r *aliasResolver) fullyQualifyCurrentExpression(expression goast.Expr) goast.Expr {
 	packagePath := r.ti.lookupPackagePathForFile(r.currentFilePath)
 	namedType, _ := r.ti.ResolveExprToNamedType(expression, packagePath, r.currentFilePath)
@@ -600,12 +590,11 @@ func (r *aliasResolver) fullyQualifyCurrentExpression(expression goast.Expr) goa
 	return goastutil.TypeStringToAST(qualifiedString)
 }
 
-// GetAllSymbols returns all symbols (types, functions, methods) from all
-// packages in the TypeData. This is used for workspace-wide symbol search in
-// the LSP.
+// GetAllSymbols returns all symbols (types, functions, methods) from all packages in the
+// TypeData. This is used for workspace-wide symbol search in the LSP.
 //
-// Returns []inspector_dto.WorkspaceSymbol which contains the collected symbols,
-// or an empty slice if no type data is available.
+// Returns []inspector_dto.WorkspaceSymbol which contains the collected symbols, or an
+// empty slice if no type data is available.
 func (ti *TypeQuerier) GetAllSymbols() []inspector_dto.WorkspaceSymbol {
 	if ti.typeData == nil || ti.typeData.Packages == nil {
 		return []inspector_dto.WorkspaceSymbol{}
@@ -624,8 +613,8 @@ func (ti *TypeQuerier) GetAllSymbols() []inspector_dto.WorkspaceSymbol {
 	return ti.cachedSymbols
 }
 
-// GetImplementationIndex returns the implementation index, building it lazily
-// if needed. The index maps interfaces to the types that implement them.
+// GetImplementationIndex returns the implementation index, building it lazily if needed.
+// The index maps interfaces to the types that implement them.
 //
 // Returns *ImplementationIndex which provides interface implementation lookups.
 func (ti *TypeQuerier) GetImplementationIndex() *ImplementationIndex {
@@ -635,8 +624,8 @@ func (ti *TypeQuerier) GetImplementationIndex() *ImplementationIndex {
 	return ti.implementationIndex
 }
 
-// GetTypeHierarchyIndex returns the type hierarchy index, building it lazily
-// if needed. The index tracks embedded type relationships for Go's composition.
+// GetTypeHierarchyIndex returns the type hierarchy index, building it lazily if needed.
+// The index tracks embedded type relationships for Go's composition.
 //
 // Returns *TypeHierarchyIndex which provides type embedding lookups.
 func (ti *TypeQuerier) GetTypeHierarchyIndex() *TypeHierarchyIndex {
@@ -694,13 +683,11 @@ func (ti *TypeQuerier) storeNamedTypeCache(ctx context.Context, key namedTypeCac
 		logger_domain.String("resolved_pkg", packageName))
 }
 
-// resolveCompositeInnerTypes routes a type expression to the correct helper
-// function based on its kind.
+// resolveCompositeInnerTypes routes a type expression to the correct helper function
+// based on its kind.
 //
-// Takes expression (goast.Expr) which is the type expression to
-// resolve.
-// Takes filePath (string) which identifies the source file for
-// context.
+// Takes expression (goast.Expr) which is the type expression to resolve.
+// Takes filePath (string) which identifies the source file for context.
 //
 // Returns goast.Expr which is the resolved type expression.
 // Returns bool which indicates whether the type was resolved.
@@ -741,10 +728,9 @@ func (ti *TypeQuerier) resolveCompositeInnerTypes(expression goast.Expr, filePat
 // Takes t (*goast.StarExpr) which is the pointer type expression to resolve.
 // Takes filePath (string) which identifies the source file for context.
 //
-// Returns goast.Expr which is the resolved expression, possibly with a new
-// underlying type.
-// Returns bool which is true if the inner expression was resolved to a
-// different type.
+// Returns goast.Expr which is the resolved expression, possibly with a new underlying
+// type.
+// Returns bool which is true if the inner expression was resolved to a different type.
 func (ti *TypeQuerier) resolveStarExprInner(t *goast.StarExpr, filePath string) (goast.Expr, bool) {
 	x := ti.ResolveToUnderlyingAST(t.X, filePath)
 	if x != t.X {
@@ -799,14 +785,12 @@ func (ti *TypeQuerier) resolveChanTypeInner(t *goast.ChanType, filePath string) 
 	return t, false
 }
 
-// resolveIndexExprInner resolves a generic type expression with one type
-// argument.
+// resolveIndexExprInner resolves a generic type expression with one type argument.
 //
 // Takes t (*goast.IndexExpr) which is the generic type expression to resolve.
 // Takes filePath (string) which is the path to the source file for context.
 //
-// Returns goast.Expr which is the resolved expression with type arguments
-// replaced.
+// Returns goast.Expr which is the resolved expression with type arguments replaced.
 // Returns bool which is true when the resolution changed the expression.
 func (ti *TypeQuerier) resolveIndexExprInner(t *goast.IndexExpr, filePath string) (goast.Expr, bool) {
 	x := ti.ResolveToUnderlyingAST(t.X, filePath)
@@ -825,11 +809,10 @@ func (ti *TypeQuerier) resolveIndexExprInner(t *goast.IndexExpr, filePath string
 	return t, false
 }
 
-// resolveIndexListExprInner resolves a generic type expression with multiple
-// type arguments to its underlying form.
+// resolveIndexListExprInner resolves a generic type expression with multiple type
+// arguments to its underlying form.
 //
-// Takes t (*goast.IndexListExpr) which is the generic type expression to
-// resolve.
+// Takes t (*goast.IndexListExpr) which is the generic type expression to resolve.
 // Takes filePath (string) which identifies the source file for context.
 //
 // Returns goast.Expr which is the resolved expression with substituted types.
@@ -892,8 +875,7 @@ func (ti *TypeQuerier) resolveFuncTypeInner(t *goast.FuncType, filePath string) 
 // resolveStructTypeInner resolves field types within a struct type.
 //
 // Takes t (*goast.StructType) which is the struct type to process.
-// Takes filePath (string) which identifies the source file for import
-// resolution.
+// Takes filePath (string) which identifies the source file for import resolution.
 //
 // Returns goast.Expr which is the processed struct type.
 // Returns bool which is true when any field types were changed.
@@ -932,16 +914,14 @@ func (ti *TypeQuerier) resolveInterfaceTypeInner(t *goast.InterfaceType, filePat
 	return t, changed
 }
 
-// resolveParenExprInner unwraps a parenthesised expression and resolves its
-// inner expression to its underlying type.
+// resolveParenExprInner unwraps a parenthesised expression and resolves its inner
+// expression to its underlying type.
 //
 // Takes t (*goast.ParenExpr) which is the parenthesised expression to resolve.
 // Takes filePath (string) which identifies the source file for type lookup.
 //
-// Returns goast.Expr which is the resolved expression, possibly with a new
-// inner type.
-// Returns bool which is true if the inner expression was resolved to a
-// different type.
+// Returns goast.Expr which is the resolved expression, possibly with a new inner type.
+// Returns bool which is true if the inner expression was resolved to a different type.
 func (ti *TypeQuerier) resolveParenExprInner(t *goast.ParenExpr, filePath string) (goast.Expr, bool) {
 	x := ti.ResolveToUnderlyingAST(t.X, filePath)
 	if x != t.X {
@@ -972,8 +952,8 @@ func (ti *TypeQuerier) resolveEllipsisInner(t *goast.Ellipsis, filePath string) 
 // Takes t (*goast.CallExpr) which is the call expression to resolve.
 // Takes filePath (string) which is the source file path for context.
 //
-// Returns goast.Expr which is a new call expression with the resolved function,
-// or the original expression if unchanged.
+// Returns goast.Expr which is a new call expression with the resolved function, or the
+// original expression if unchanged.
 // Returns bool which is true when the function was resolved.
 func (ti *TypeQuerier) resolveCallExprInner(t *goast.CallExpr, filePath string) (goast.Expr, bool) {
 	fun := ti.ResolveToUnderlyingAST(t.Fun, filePath)
@@ -983,16 +963,15 @@ func (ti *TypeQuerier) resolveCallExprInner(t *goast.CallExpr, filePath string) 
 	return t, false
 }
 
-// resolveTypeAssertExprInner resolves the asserted type in a type assertion
-// expression to its underlying AST form.
+// resolveTypeAssertExprInner resolves the asserted type in a type assertion expression to
+// its underlying AST form.
 //
 // Takes t (*goast.TypeAssertExpr) which is the type assertion to resolve.
 // Takes filePath (string) which identifies the file containing the expression.
 //
-// Returns goast.Expr which is a new expression with the resolved type, or the
-// original if no resolution occurred.
-// Returns bool which indicates whether the type was resolved to a different
-// form.
+// Returns goast.Expr which is a new expression with the resolved type, or the original if
+// no resolution occurred.
+// Returns bool which indicates whether the type was resolved to a different form.
 func (ti *TypeQuerier) resolveTypeAssertExprInner(t *goast.TypeAssertExpr, filePath string) (goast.Expr, bool) {
 	if t.Type != nil {
 		typ := ti.ResolveToUnderlyingAST(t.Type, filePath)
@@ -1006,10 +985,8 @@ func (ti *TypeQuerier) resolveTypeAssertExprInner(t *goast.TypeAssertExpr, fileP
 // getAliasResolver gets an aliasResolver from the pool and sets it up for use.
 //
 // Takes ti (*TypeQuerier) which provides type query methods.
-// Takes expression (goast.Expr) which is the expression to resolve
-// aliases for.
-// Takes filePath (string) which is the path to the file containing
-// the expression.
+// Takes expression (goast.Expr) which is the expression to resolve aliases for.
+// Takes filePath (string) which is the path to the file containing the expression.
 //
 // Returns *aliasResolver which is a pooled resolver ready for use.
 func getAliasResolver(ti *TypeQuerier, expression goast.Expr, filePath string) *aliasResolver {
@@ -1033,15 +1010,14 @@ func putAliasResolver(r *aliasResolver) {
 	aliasResolverPool.Put(r)
 }
 
-// extractBaseTypeExpr extracts the base type from a wrapped type expression.
-// For example, from `*pkg.Type[T]`, it extracts `pkg.Type`.
+// extractBaseTypeExpr extracts the base type from a wrapped type expression. For example,
+// from `*pkg.Type[T]`, it extracts `pkg.Type`.
 //
-// Takes expression (goast.Expr) which is the type expression to
-// unwrap.
+// Takes expression (goast.Expr) which is the type expression to unwrap.
 //
-// Returns goast.Expr which is the base type after removing pointer,
-// index, and array wrappers. Returns nil if the expression cannot
-// be reduced to a simple identifier or selector.
+// Returns goast.Expr which is the base type after removing pointer, index, and array
+// wrappers.
+// Returns nil if the expression cannot be reduced to a simple identifier or selector.
 func extractBaseTypeExpr(expression goast.Expr) goast.Expr {
 	for {
 		switch t := expression.(type) {
@@ -1061,11 +1037,11 @@ func extractBaseTypeExpr(expression goast.Expr) goast.Expr {
 	}
 }
 
-// estimateSymbolCount counts the approximate number of symbols across all
-// packages in the given type data.
+// estimateSymbolCount counts the approximate number of symbols across all packages in the
+// given type data.
 //
-// Takes typeData (*inspector_dto.TypeData) which holds the packages and their
-// types to count.
+// Takes typeData (*inspector_dto.TypeData) which holds the packages and their types to
+// count.
 //
 // Returns int which is the estimated total symbol count.
 func estimateSymbolCount(typeData *inspector_dto.TypeData) int {
@@ -1089,13 +1065,13 @@ func estimateSymbolCount(typeData *inspector_dto.TypeData) int {
 
 // collectPackageSymbols gathers all symbols from a single package.
 //
-// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add
-// new symbols to.
+// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add new symbols
+// to.
 // Takes pkg (*inspector_dto.Package) which holds the package data.
 // Takes packagePath (string) which is the import path of the package.
 //
-// Returns []inspector_dto.WorkspaceSymbol which has the input symbols plus all
-// type and function symbols found in the package.
+// Returns []inspector_dto.WorkspaceSymbol which has the input symbols plus all type and
+// function symbols found in the package.
 func collectPackageSymbols(symbols []inspector_dto.WorkspaceSymbol, pkg *inspector_dto.Package, packagePath string) []inspector_dto.WorkspaceSymbol {
 	symbols = collectTypeSymbols(symbols, pkg, packagePath)
 	symbols = collectFunctionSymbols(symbols, pkg, packagePath)
@@ -1104,14 +1080,13 @@ func collectPackageSymbols(symbols []inspector_dto.WorkspaceSymbol, pkg *inspect
 
 // collectTypeSymbols gathers type, method, and field symbols from a package.
 //
-// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add
-// new symbols to.
-// Takes pkg (*inspector_dto.Package) which provides the package to read types
-// from.
+// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add new symbols
+// to.
+// Takes pkg (*inspector_dto.Package) which provides the package to read types from.
 // Takes packagePath (string) which is the import path for the package.
 //
-// Returns []inspector_dto.WorkspaceSymbol which contains the input symbols
-// plus all type, method, and field symbols found in the package.
+// Returns []inspector_dto.WorkspaceSymbol which contains the input symbols plus all type,
+// method, and field symbols found in the package.
 func collectTypeSymbols(symbols []inspector_dto.WorkspaceSymbol, pkg *inspector_dto.Package, packagePath string) []inspector_dto.WorkspaceSymbol {
 	for typeName, typeInfo := range pkg.NamedTypes {
 		if typeInfo == nil {
@@ -1135,15 +1110,15 @@ func collectTypeSymbols(symbols []inspector_dto.WorkspaceSymbol, pkg *inspector_
 
 // collectMethodSymbols adds method symbols for a type to the given slice.
 //
-// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to append
-// method symbols to.
+// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to append method
+// symbols to.
 // Takes methods ([]*inspector_dto.Method) which contains the methods to add.
 // Takes typeName (string) which is the name of the type that owns the methods.
 // Takes packagePath (string) which is the import path of the package.
 // Takes packageName (string) which is the name of the package.
 //
-// Returns []inspector_dto.WorkspaceSymbol which contains the input symbols with
-// all method symbols added.
+// Returns []inspector_dto.WorkspaceSymbol which contains the input symbols with all
+// method symbols added.
 func collectMethodSymbols(symbols []inspector_dto.WorkspaceSymbol, methods []*inspector_dto.Method, typeName, packagePath, packageName string) []inspector_dto.WorkspaceSymbol {
 	for _, method := range methods {
 		if method == nil {
@@ -1165,15 +1140,14 @@ func collectMethodSymbols(symbols []inspector_dto.WorkspaceSymbol, methods []*in
 
 // collectFieldSymbols collects exported field symbols from a type's fields.
 //
-// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add
-// results to.
+// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add results to.
 // Takes fields ([]*inspector_dto.Field) which contains the fields to check.
 // Takes typeName (string) which is the name of the parent type.
 // Takes packagePath (string) which is the import path of the package.
 // Takes packageName (string) which is the short name of the package.
 //
-// Returns []inspector_dto.WorkspaceSymbol which contains the original symbols
-// plus any exported field symbols found.
+// Returns []inspector_dto.WorkspaceSymbol which contains the original symbols plus any
+// exported field symbols found.
 func collectFieldSymbols(symbols []inspector_dto.WorkspaceSymbol, fields []*inspector_dto.Field, typeName, packagePath, packageName string) []inspector_dto.WorkspaceSymbol {
 	for _, field := range fields {
 		if field == nil || field.Name == "" {
@@ -1198,13 +1172,12 @@ func collectFieldSymbols(symbols []inspector_dto.WorkspaceSymbol, fields []*insp
 
 // collectFunctionSymbols gathers all function symbols from a package.
 //
-// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add
-// symbols to.
+// Takes symbols ([]inspector_dto.WorkspaceSymbol) which is the slice to add symbols to.
 // Takes pkg (*inspector_dto.Package) which holds the package function data.
 // Takes packagePath (string) which is the import path for the package.
 //
-// Returns []inspector_dto.WorkspaceSymbol which holds the original symbols
-// plus any function symbols found in the package.
+// Returns []inspector_dto.WorkspaceSymbol which holds the original symbols plus any
+// function symbols found in the package.
 func collectFunctionSymbols(symbols []inspector_dto.WorkspaceSymbol, pkg *inspector_dto.Package, packagePath string) []inspector_dto.WorkspaceSymbol {
 	for functionName, funcInfo := range pkg.Funcs {
 		if funcInfo == nil {

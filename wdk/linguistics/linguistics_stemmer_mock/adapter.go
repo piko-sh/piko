@@ -25,9 +25,8 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// MockStemmer is a thread-safe, configurable mock implementation of
-// StemmerPort for testing. It supports call tracking, custom stem mappings,
-// and pass-through behaviour.
+// MockStemmer is a thread-safe, configurable mock implementation of StemmerPort for
+// testing. It supports call tracking, custom stem mappings, and pass-through behaviour.
 type MockStemmer struct {
 	// stemFunc allows custom stem behaviour when set.
 	stemFunc func(word string) string
@@ -48,7 +47,9 @@ type MockStemmer struct {
 	passThrough bool
 }
 
-var _ linguistics_domain.StemmerPort = (*MockStemmer)(nil)
+var (
+	_ linguistics_domain.StemmerPort = (*MockStemmer)(nil)
+)
 
 // NewWithMappings creates a mock stemmer with pre-configured stem mappings.
 //
@@ -128,11 +129,11 @@ func (m *MockStemmer) SetStemMappings(mappings map[string]string) {
 	maps.Copy(m.stemMappings, mappings)
 }
 
-// SetPassThrough configures whether words should pass through unchanged
-// when no mapping exists.
+// SetPassThrough configures whether words should pass through unchanged when no mapping
+// exists.
 //
-// Takes passThrough (bool) which when true causes Stem to return the
-// input word unchanged if no mapping exists.
+// Takes passThrough (bool) which when true causes Stem to return the input word unchanged
+// if no mapping exists.
 //
 // Safe for concurrent use.
 func (m *MockStemmer) SetPassThrough(passThrough bool) {
@@ -141,8 +142,7 @@ func (m *MockStemmer) SetPassThrough(passThrough bool) {
 	m.passThrough = passThrough
 }
 
-// SetStemFunc sets a custom function to be called by Stem when no mapping
-// exists.
+// SetStemFunc sets a custom function to be called by Stem when no mapping exists.
 //
 // Takes override (func(string) string) which processes words not in the mapping.
 //
@@ -203,8 +203,8 @@ func (m *MockStemmer) GetLastStemCall() (string, bool) {
 	return m.stemCalls[len(m.stemCalls)-1], true
 }
 
-// Reset clears all recorded calls and configured mappings, preparing the
-// mock for a new test case.
+// Reset clears all recorded calls and configured mappings, preparing the mock for a new
+// test case.
 //
 // Safe for concurrent use.
 func (m *MockStemmer) Reset() {

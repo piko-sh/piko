@@ -1,0 +1,4 @@
+{
+  "description": "Intra-package: function takes string (address-taken) and *struct, returns struct field. Reproduces gjson fillIndex shape within a single package.",
+  "expected": "world"
+}

@@ -27,16 +27,18 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// buildBatchMethod constructs a :batch query method that creates a pgx.Batch,
-// queues each set of parameters, calls SendBatch, and iterates the results.
+// buildBatchMethod constructs a :batch query method that creates a pgx.Batch, queues each
+// set of parameters, calls SendBatch, and iterates the results.
 //
 // The generated method signature is:
 //
 //	func (queries *Queries) MethodName(ctx context.Context, params []MethodNameParams) error
 //
+// The type-mapping table and import tracker parameters are accepted for interface
+// symmetry with the database/sql emitter but not used here: pgx exposes pgx.Batch
+// directly without import bookkeeping.
+//
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
-// Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
-// Takes tracker (*emitter_shared.ImportTracker) for import collection.
 //
 // Returns *ast.FuncDecl which is the batch method declaration.
 func buildBatchMethod(
@@ -75,7 +77,9 @@ func buildBatchMethod(
 	}
 }
 
-// buildBatchMethodBody constructs the body of a :batch method:
+// buildBatchMethodBody constructs the body of a :batch method.
+//
+// Emits:
 //
 //	batch := &pgx.Batch{}
 //	for _, item := range params { batch.Queue(sql, args...) }
@@ -84,8 +88,9 @@ func buildBatchMethod(
 //	for range params { if _, err := results.Exec(); err != nil { return err } }
 //	return nil
 //
-// Takes query (*querier_dto.AnalysedQuery) which defines the query.
-// Takes paramsTypeName (string) which is the params struct type name.
+// The query and params-type-name parameters are reserved for future per-query body
+// customisation but unused here.
+//
 // Takes queueArgs ([]ast.Expr) which are the arguments to batch.Queue.
 //
 // Returns []ast.Stmt which contains the batch method body statements.
@@ -101,6 +106,8 @@ func buildBatchMethodBody(_ *querier_dto.AnalysedQuery, _ string, queueArgs []as
 }
 
 // buildBatchInit constructs `batch := &pgx.Batch{}`.
+//
+// Returns ast.Stmt which is the batch initialisation statement.
 func buildBatchInit() ast.Stmt {
 	return goastutil.DefineStmt(emitter_shared.IdentBatch,
 		goastutil.AddressExpr(
@@ -109,8 +116,12 @@ func buildBatchInit() ast.Stmt {
 	)
 }
 
-// buildBatchQueueLoop constructs the range loop that queues each parameter set
-// into the batch.
+// buildBatchQueueLoop constructs the range loop that queues each parameter set into the
+// batch.
+//
+// Takes queueArgs ([]ast.Expr) which are the arguments to batch.Queue.
+//
+// Returns ast.Stmt which is the range loop statement.
 func buildBatchQueueLoop(queueArgs []ast.Expr) ast.Stmt {
 	return &ast.RangeStmt{
 		Key:   goastutil.CachedIdent(emitter_shared.IdentBlank),
@@ -127,6 +138,8 @@ func buildBatchQueueLoop(queueArgs []ast.Expr) ast.Stmt {
 }
 
 // buildSendBatch constructs `results := queries.db.SendBatch(ctx, batch)`.
+//
+// Returns ast.Stmt which is the SendBatch assignment statement.
 func buildSendBatch() ast.Stmt {
 	return goastutil.DefineStmt(emitter_shared.IdentResults,
 		goastutil.CallExpr(
@@ -141,6 +154,8 @@ func buildSendBatch() ast.Stmt {
 }
 
 // buildDeferResultsClose constructs `defer results.Close()`.
+//
+// Returns ast.Stmt which is the deferred Close call.
 func buildDeferResultsClose() ast.Stmt {
 	return &ast.DeferStmt{
 		Call: goastutil.CallExpr(
@@ -149,8 +164,10 @@ func buildDeferResultsClose() ast.Stmt {
 	}
 }
 
-// buildExecLoop constructs the range loop that calls results.Exec() for each
-// queued parameter set, returning early on the first error.
+// buildExecLoop constructs the range loop that calls results.Exec() for each queued
+// parameter set, returning early on the first error.
+//
+// Returns ast.Stmt which is the Exec range loop statement.
 func buildExecLoop() ast.Stmt {
 	return &ast.RangeStmt{
 		Key: goastutil.CachedIdent(emitter_shared.IdentBlank),

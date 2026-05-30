@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package emitter_shared provides shared utilities for Go code
-// emitter adapters. It contains naming conventions, AST formatting,
-// type resolution, struct builders, scan helpers, and other common
-// building blocks that are independent of any specific database
+// Package emitter_shared provides shared utilities for Go code emitter adapters. It
+// contains naming conventions, AST formatting, type resolution, struct builders, scan
+// helpers, and other common building blocks that are independent of any specific database
 // runtime (database/sql, pgx, etc.).
 //
-// Does not implement CodeEmitterPort. Individual emitter adapters compose these
-// exported functions with their own runtime-specific method builders.
+// Does not implement CodeEmitterPort. Individual emitter adapters compose these exported
+// functions with their own runtime-specific method builders.
 package emitter_shared

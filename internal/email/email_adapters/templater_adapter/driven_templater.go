@@ -29,25 +29,27 @@ import (
 )
 
 // Adapter implements email_domain.TemplaterAdapterPort by wrapping the
-// templater_domain.EmailTemplateService. This keeps the email and templater
-// domains separate while allowing integration through dependency injection.
+// templater_domain.EmailTemplateService. This keeps the email and templater domains
+// separate while allowing integration through dependency injection.
 type Adapter struct {
 	// implementation is the template service that does the actual rendering.
 	implementation templater_domain.EmailTemplateService
 }
 
-var _ email_domain.TemplaterAdapterPort = (*Adapter)(nil)
+var (
+	_ email_domain.TemplaterAdapterPort = (*Adapter)(nil)
+)
 
-// Render delegates template rendering to the underlying EmailTemplateService
-// and converts the result to the email domain's RenderedEmail type.
+// Render delegates template rendering to the underlying EmailTemplateService and converts
+// the result to the email domain's RenderedEmail type.
 //
 // Takes request (*http.Request) which provides the HTTP context for rendering.
 // Takes templatePath (string) which specifies the path to the email template.
 // Takes props (any) which contains the data to pass to the template.
 // Takes opts (*premailer.Options) which configures CSS inlining behaviour.
 //
-// Returns *email_domain.RenderedEmail which contains the rendered HTML and
-// plain text versions of the email.
+// Returns *email_domain.RenderedEmail which contains the rendered HTML and plain text
+// versions of the email.
 // Returns error when the underlying service fails to render the template.
 func (a *Adapter) Render(ctx context.Context, request *http.Request, templatePath string, props any, opts *premailer.Options) (*email_domain.RenderedEmail, error) {
 	rendered, err := a.implementation.Render(ctx, request, templatePath, props, opts, false)
@@ -63,8 +65,8 @@ func (a *Adapter) Render(ctx context.Context, request *http.Request, templatePat
 
 // New creates a templater adapter that wraps the given EmailTemplateService.
 //
-// Takes implementation (EmailTemplateService) which provides the
-// template service to wrap.
+// Takes implementation (EmailTemplateService) which provides the template service to
+// wrap.
 //
 // Returns *Adapter which wraps the service for use in the application.
 func New(implementation templater_domain.EmailTemplateService) *Adapter {

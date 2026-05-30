@@ -159,10 +159,12 @@ func TestE2EBrowser_Integration(t *testing.T) {
 	}
 }
 
-var subprocessSem = func() chan struct{} {
-	n := max(runtime.NumCPU()/4, 1)
-	return make(chan struct{}, n)
-}()
+var (
+	subprocessSem = func() chan struct{} {
+		n := max(runtime.NumCPU()/4, 1)
+		return make(chan struct{}, n)
+	}()
+)
 
 func runTestInSubprocess(t *testing.T, testName string) {
 	t.Helper()

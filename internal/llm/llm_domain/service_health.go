@@ -35,13 +35,11 @@ func (*service) Name() string {
 
 // Check performs a health check on the LLM service.
 //
-// For liveness: Checks that the service is running (always healthy if called).
-// For readiness: Reports healthy when no providers are
-// configured, degraded when a default provider is missing or
-// does not match a registered provider.
+// For liveness: Checks that the service is running (always healthy if called). For
+// readiness: Reports healthy when no providers are configured, degraded when a default
+// provider is missing or does not match a registered provider.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies liveness or
-// readiness.
+// Takes checkType (healthprobe_dto.CheckType) which specifies liveness or readiness.
 //
 // Returns healthprobe_dto.Status containing the health state and details.
 //

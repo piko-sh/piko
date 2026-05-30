@@ -36,12 +36,11 @@ import (
 )
 
 const (
-	// directoryPermission is the permission mode for directories created
-	// during bytecode emission.
+	// directoryPermission is the permission mode for directories created during bytecode
+	// emission.
 	directoryPermission = 0o750
 
-	// filePermission is the permission mode for files written during
-	// bytecode emission.
+	// filePermission is the permission mode for files written during bytecode emission.
 	filePermission = 0o600
 
 	// slogKeyError is the structured-logging key for error values.
@@ -54,19 +53,22 @@ const (
 	slogKeyDirectory = "directory"
 )
 
-// interpreterAdapter wraps *interp_domain.Service to implement
-// InterpreterPort and BatchInterpreterPort.
+// interpreterAdapter wraps *interp_domain.Service to implement InterpreterPort and
+// BatchInterpreterPort.
 type interpreterAdapter struct {
 	// service is the underlying bytecode interpreter service.
 	service *interp_domain.Service
 
-	// bytecodeEmissionDirectory is the root directory for emitting
-	// source and compiled bytecode to disk. Empty disables emission.
+	// bytecodeEmissionDirectory is the root directory for emitting source and compiled
+	// bytecode to disk. Empty disables emission.
 	bytecodeEmissionDirectory string
 }
 
-var _ templater_domain.InterpreterPort = (*interpreterAdapter)(nil)
-var _ templater_domain.BatchInterpreterPort = (*interpreterAdapter)(nil)
+var (
+	_ templater_domain.InterpreterPort = (*interpreterAdapter)(nil)
+
+	_ templater_domain.BatchInterpreterPort = (*interpreterAdapter)(nil)
+)
 
 // Eval evaluates Go source code and returns the result.
 //
@@ -79,23 +81,62 @@ func (a *interpreterAdapter) Eval(ctx context.Context, code string) (any, error)
 	return a.service.Eval(ctx, code)
 }
 
-// SetBuildContext is a no-op for the Piko bytecode interpreter.
-// Import resolution is handled through the SymbolRegistry and
-// CompileProgram, not through go/build.Context.
+// CompileProgram compiles a multi-package Go program and returns the compiled file set
+// without executing any entrypoint. Pair with ExecuteEntrypoint to invoke a named
+// function from any package in the program.
+//
+// This sits beside the existing CompileAndExecute (which compiles and runs init functions
+// only): it surfaces the intermediate CompiledFileSet so callers can run a specific
+// entrypoint, run it multiple times against different inputs, or skip init-only work.
+//
+// Takes ctx (context.Context) for cancellation and deadlines.
+// Takes modulePath (string) which identifies the synthetic module (e.g. "policy" so
+// packages resolve as "policy/auth", etc.).
+// Takes packages (map[string]map[string]string) keyed by relative package path then by
+// filename, mapping to Go source.
+//
+// Returns *interp_domain.CompiledFileSet which is the compiled program suitable for
+// ExecuteEntrypoint.
+// Returns error when parsing, type-checking, or compilation fails.
+func (a *interpreterAdapter) CompileProgram(ctx context.Context, modulePath string, packages map[string]map[string]string) (*interp_domain.CompiledFileSet, error) {
+	return a.service.CompileProgram(ctx, modulePath, packages)
+}
+
+// ExecuteEntrypoint runs the named entrypoint function in a previously compiled program.
+// Variable initialisers and init functions execute first (matching Go's package-init
+// semantics), then the entrypoint is invoked and its return value is returned as any.
+//
+// The entrypoint must be a function declared in one of the program's packages and known
+// to the compiled file set; entrypoint name resolution uses CompiledFileSet's entrypoint
+// table.
+//
+// Takes ctx (context.Context) for cancellation and deadlines.
+// Takes cfs (*interp_domain.CompiledFileSet) which is the program compiled via
+// CompileProgram.
+// Takes entrypoint (string) which is the function name to invoke (e.g. "run" for plain
+// script resources or "fingerprint" / "plan" / "apply" for resource_type handlers).
+//
+// Returns any which is the entrypoint's return value.
+// Returns error when the entrypoint cannot be resolved or execution fails.
+func (a *interpreterAdapter) ExecuteEntrypoint(ctx context.Context, cfs *interp_domain.CompiledFileSet, entrypoint string) (any, error) {
+	return a.service.ExecuteEntrypoint(ctx, cfs, entrypoint)
+}
+
+// SetBuildContext is a no-op for the Piko bytecode interpreter. Import resolution is
+// handled through the SymbolRegistry and CompileProgram, not through go/build.Context.
 //
 // Takes buildCtx (any) which is ignored.
 func (*interpreterAdapter) SetBuildContext(any) {}
 
-// SetSourcecodeFilesystem is a no-op for the Piko bytecode interpreter.
-// Source code is provided directly to CompileProgram rather than read
-// from a virtual filesystem.
+// SetSourcecodeFilesystem is a no-op for the Piko bytecode interpreter. Source code is
+// provided directly to CompileProgram rather than read from a virtual filesystem.
 //
 // Takes fs (any) which is ignored.
 func (*interpreterAdapter) SetSourcecodeFilesystem(any) {}
 
-// RegisterPackageAlias is a no-op for the Piko bytecode interpreter.
-// In the batch compilation model, all packages are compiled together
-// and import resolution is handled internally by CompileProgram.
+// RegisterPackageAlias is a no-op for the Piko bytecode interpreter. In the batch
+// compilation model, all packages are compiled together and import resolution is handled
+// internally by CompileProgram.
 //
 // Takes canonical (string) which is the full package path.
 // Takes alias (string) which is the short alias.
@@ -105,35 +146,32 @@ func (*interpreterAdapter) RegisterPackageAlias(string, string) error {
 	return nil
 }
 
-// Reset clears the interpreter state for reuse.
-// This should be called before returning the interpreter to a pool.
+// Reset clears the interpreter state for reuse. This should be called before returning
+// the interpreter to a pool.
 func (a *interpreterAdapter) Reset() {
 	a.service.Reset()
 }
 
-// Clone creates a copy of the interpreter with loaded symbols.
-// The cloned interpreter shares the symbol table but has independent
-// execution state.
+// Clone creates a copy of the interpreter with loaded symbols. The cloned interpreter
+// shares the symbol table but has independent execution state.
 //
-// Returns templater_domain.InterpreterPort which is the cloned
-// interpreter.
+// Returns templater_domain.InterpreterPort which is the cloned interpreter.
 func (a *interpreterAdapter) Clone() templater_domain.InterpreterPort {
 	return &interpreterAdapter{
 		service: a.service.Clone(),
 	}
 }
 
-// CompileAndExecute compiles all packages as a single program and
-// executes their init functions. This is the primary compilation path
-// for the Piko bytecode interpreter.
+// CompileAndExecute compiles all packages as a single program and executes their init
+// functions. This is the primary compilation path for the Piko bytecode interpreter.
 //
-// The init functions typically call templater_domain.RegisterASTFunc to
-// register template builders in the global FunctionRegistry.
+// The init functions typically call templater_domain.RegisterASTFunc to register template
+// builders in the global FunctionRegistry.
 //
 // Takes ctx (context.Context) for cancellation and deadlines.
 // Takes modulePath (string) which identifies the module.
-// Takes packages (map[string]map[string]string) which maps relative
-// package paths to filename-to-source maps.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// filename-to-source maps.
 //
 // Returns error when compilation or init execution fails.
 func (a *interpreterAdapter) CompileAndExecute(ctx context.Context, modulePath string, packages map[string]map[string]string) error {
@@ -156,24 +194,21 @@ func (a *interpreterAdapter) CompileAndExecute(ctx context.Context, modulePath s
 	return nil
 }
 
-// HasRegisteredPackage reports whether the given import path is
-// available in the symbol registry.
+// HasRegisteredPackage reports whether the given import path is available in the symbol
+// registry.
 //
-// Takes importPath (string) which is the full package import path
-// to look up.
+// Takes importPath (string) which is the full package import path to look up.
 //
 // Returns bool which is true when the package is registered.
 func (a *interpreterAdapter) HasRegisteredPackage(importPath string) bool {
 	return a.service.HasRegisteredPackage(importPath)
 }
 
-// emitSourceFiles writes source files to the emission directory for
-// debugging.
+// emitSourceFiles writes source files to the emission directory for debugging.
 //
-// Takes modulePath (string) which identifies the module being
-// compiled.
-// Takes packages (map[string]map[string]string) which maps
-// relative package paths to filename-to-source maps.
+// Takes modulePath (string) which identifies the module being compiled.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// filename-to-source maps.
 func (a *interpreterAdapter) emitSourceFiles(modulePath string, packages map[string]map[string]string) {
 	sandbox, err := safedisk.NewSandbox(a.bytecodeEmissionDirectory, safedisk.ModeReadWrite)
 	if err != nil {
@@ -198,13 +233,13 @@ func (a *interpreterAdapter) emitSourceFiles(modulePath string, packages map[str
 	}
 }
 
-// emitBytecode serialises the compiled file set to disk as a
-// FlatBuffer binary for post-mortem inspection.
+// emitBytecode serialises the compiled file set to disk as a FlatBuffer binary for
+// post-mortem inspection.
 //
-// Takes packages (map[string]map[string]string) which maps
-// relative package paths to filename-to-source maps.
-// Takes compiledFileSet (*interp_domain.CompiledFileSet) which
-// is the compiled bytecode to serialise.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// filename-to-source maps.
+// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the compiled bytecode
+// to serialise.
 func (a *interpreterAdapter) emitBytecode(packages map[string]map[string]string, compiledFileSet *interp_domain.CompiledFileSet) {
 	sandbox, err := safedisk.NewSandbox(a.bytecodeEmissionDirectory, safedisk.ModeReadWrite)
 	if err != nil {
@@ -244,14 +279,14 @@ func (a *interpreterAdapter) emitBytecode(packages map[string]map[string]string,
 	}
 }
 
-// bytecodeFileSuffix builds a filename suffix from the relative
-// package paths in a compilation batch.
+// bytecodeFileSuffix builds a filename suffix from the relative package paths in a
+// compilation batch.
 //
-// Takes packages (map[string]map[string]string) which maps
-// relative package paths to filename-to-source maps.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// filename-to-source maps.
 //
-// Returns string which is the sanitised path for single-package
-// batches or a short hash for multi-package batches.
+// Returns string which is the sanitised path for single-package batches or a short hash
+// for multi-package batches.
 // Returns []string which is the sorted list of sanitised paths.
 func bytecodeFileSuffix(packages map[string]map[string]string) (string, []string) {
 	paths := make([]string, 0, len(packages))
@@ -271,13 +306,12 @@ func bytecodeFileSuffix(packages map[string]map[string]string) (string, []string
 	return fmt.Sprintf("batch-%s-%dpkgs", hex.EncodeToString(hash[:8]), len(paths)), paths
 }
 
-// sanitisePath replaces path separators with underscores to produce
-// a safe filename component.
+// sanitisePath replaces path separators with underscores to produce a safe filename
+// component.
 //
 // Takes path (string) which is the filesystem path to sanitise.
 //
-// Returns string which is the sanitised path with separators
-// replaced by underscores.
+// Returns string which is the sanitised path with separators replaced by underscores.
 func sanitisePath(path string) string {
 	return strings.ReplaceAll(path, "/", "_")
 }

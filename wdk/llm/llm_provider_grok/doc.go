@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_grok provides an LLM provider adapter for
-// xAI's Grok API.
+// Package llm_provider_grok provides an LLM provider adapter for xAI's Grok API.
 //
-// Grok uses an OpenAI-compatible wire protocol, so the adapter delegates to
-// the OpenAI provider internally while adding Grok-specific model filtering,
-// error wrapping, and observability. Grok does not offer embedding models, so
-// only completions are supported.
+// Grok uses an OpenAI-compatible wire protocol, so the adapter delegates to the OpenAI
+// provider internally while adding Grok-specific model filtering, error wrapping, and
+// observability. Grok does not offer embedding models, so only completions are supported.
 //
 // # Thread safety
 //

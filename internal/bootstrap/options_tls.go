@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/tlscert"
 )
 
-// TLSOption configures TLS settings for the server. Each option mutates
-// the TLS config applied during bootstrap.
+// TLSOption configures TLS settings for the server. Each option mutates the TLS config
+// applied during bootstrap.
 type TLSOption func(*config.TLSConfig)
 
 // HealthTLSOption configures TLS settings for the health probe server.
@@ -59,8 +59,8 @@ func WithTLSKeyFile(path string) TLSOption {
 	}
 }
 
-// WithTLSClientCA sets the path to a PEM-encoded CA bundle for mTLS client
-// certificate verification.
+// WithTLSClientCA sets the path to a PEM-encoded CA bundle for mTLS client certificate
+// verification.
 //
 // Takes path (string) which specifies the client CA file path.
 //
@@ -71,9 +71,8 @@ func WithTLSClientCA(path string) TLSOption {
 	}
 }
 
-// WithTLSClientAuth sets the client certificate verification mode. Valid
-// values are "none", "request", "require", "verify", and
-// "require_and_verify".
+// WithTLSClientAuth sets the client certificate verification mode. Valid values are
+// "none", "request", "require", "verify", and "require_and_verify".
 //
 // Takes authType (string) which specifies the auth mode.
 //
@@ -84,8 +83,7 @@ func WithTLSClientAuth(authType string) TLSOption {
 	}
 }
 
-// WithTLSMinVersion sets the minimum TLS version. Valid values are "1.2"
-// and "1.3".
+// WithTLSMinVersion sets the minimum TLS version. Valid values are "1.2" and "1.3".
 //
 // Takes version (string) which specifies the minimum version.
 //
@@ -96,8 +94,8 @@ func WithTLSMinVersion(version string) TLSOption {
 	}
 }
 
-// WithTLSHotReload enables or disables automatic certificate reload when
-// certificate files change on disk.
+// WithTLSHotReload enables or disables automatic certificate reload when certificate
+// files change on disk.
 //
 // Takes enabled (bool) which controls hot-reload behaviour.
 //
@@ -108,9 +106,9 @@ func WithTLSHotReload(enabled bool) TLSOption {
 	}
 }
 
-// WithTLSRedirectHTTP starts a plain HTTP listener on the given port that
-// 301-redirects all requests to the HTTPS server. This is useful for
-// redirecting http://example.com to https://example.com.
+// WithTLSRedirectHTTP starts a plain HTTP listener on the given port that 301-redirects
+// all requests to the HTTPS server. This is useful for redirecting http://example.com to
+// https://example.com.
 //
 // Takes port (int) which specifies the port to listen on (e.g. 80 or 8081).
 //
@@ -121,16 +119,16 @@ func WithTLSRedirectHTTP(port int) TLSOption {
 	}
 }
 
-// WithTLS enables TLS/HTTPS for the server. Sub-options configure certificate
-// paths, mTLS, and hot-reload settings.
+// WithTLS enables TLS/HTTPS for the server. Sub-options configure certificate paths,
+// mTLS, and hot-reload settings.
 //
-// Takes opts (...TLSOption) which provides optional TLS configuration:
-//   - WithTLSCertFile("/path/to/cert.pem"): sets the certificate path.
-//   - WithTLSKeyFile("/path/to/key.pem"): sets the private key path.
-//   - WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA.
-//   - WithTLSClientAuth("require_and_verify"): sets client auth mode.
-//   - WithTLSMinVersion("1.3"): sets minimum TLS version.
-//   - WithTLSHotReload(true): enables certificate hot-reload.
+// Takes opts (...TLSOption) which provides optional TLS configuration: -
+// WithTLSCertFile("/path/to/cert.pem"): sets the certificate path. -
+// WithTLSKeyFile("/path/to/key.pem"): sets the private key path. -
+// WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA. -
+// WithTLSClientAuth("require_and_verify"): sets client auth mode. -
+// WithTLSMinVersion("1.3"): sets minimum TLS version. - WithTLSHotReload(true): enables
+// certificate hot-reload.
 //
 // Returns Option which configures the container with TLS settings.
 func WithTLS(opts ...TLSOption) Option {
@@ -165,8 +163,7 @@ func WithHealthTLSKeyFile(path string) HealthTLSOption {
 	}
 }
 
-// WithHealthTLSMinVersion sets the minimum TLS version for the health probe
-// server.
+// WithHealthTLSMinVersion sets the minimum TLS version for the health probe server.
 //
 // Takes version (string) which specifies the minimum version ("1.2" or "1.3").
 //
@@ -214,8 +211,7 @@ func WithMonitoringTLSKeyFile(path string) MonitoringTLSOption {
 	}
 }
 
-// WithMonitoringTLSClientCA sets the client CA file for mTLS on the monitoring
-// server.
+// WithMonitoringTLSClientCA sets the client CA file for mTLS on the monitoring server.
 //
 // Takes path (string) which specifies the client CA file path.
 //
@@ -226,9 +222,9 @@ func WithMonitoringTLSClientCA(path string) MonitoringTLSOption {
 	}
 }
 
-// WithMonitoringTLSClientAuth sets the client certificate verification mode for
-// the monitoring server. Valid values are "none", "request", "require",
-// "verify", and "require_and_verify".
+// WithMonitoringTLSClientAuth sets the client certificate verification mode for the
+// monitoring server. Valid values are "none", "request", "require", "verify", and
+// "require_and_verify".
 //
 // Takes authType (string) which specifies the auth mode.
 //
@@ -239,8 +235,8 @@ func WithMonitoringTLSClientAuth(authType string) MonitoringTLSOption {
 	}
 }
 
-// WithMonitoringTLSMinVersion sets the minimum TLS version for the monitoring
-// server. Valid values are "1.2" and "1.3".
+// WithMonitoringTLSMinVersion sets the minimum TLS version for the monitoring server.
+// Valid values are "1.2" and "1.3".
 //
 // Takes version (string) which specifies the minimum version.
 //
@@ -251,8 +247,8 @@ func WithMonitoringTLSMinVersion(version string) MonitoringTLSOption {
 	}
 }
 
-// WithMonitoringTLSHotReload enables or disables automatic certificate reload
-// for the monitoring server.
+// WithMonitoringTLSHotReload enables or disables automatic certificate reload for the
+// monitoring server.
 //
 // Takes enabled (bool) which controls hot-reload behaviour.
 //
@@ -263,8 +259,8 @@ func WithMonitoringTLSHotReload(enabled bool) MonitoringTLSOption {
 	}
 }
 
-// WithMonitoringTLS enables TLS for the monitoring gRPC server. Sub-options
-// configure certificate paths, mTLS, and hot-reload settings.
+// WithMonitoringTLS enables TLS for the monitoring gRPC server. Sub-options configure
+// certificate paths, mTLS, and hot-reload settings.
 //
 // Takes opts (...MonitoringTLSOption) which provides optional TLS settings.
 //

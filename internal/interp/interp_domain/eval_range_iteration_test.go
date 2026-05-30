@@ -187,9 +187,9 @@ func TestEvalRangeString(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 		skip   string
 	}{
 		{
@@ -314,10 +314,10 @@ func TestEvalRangeTypedSliceValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "range_string_slice_values",

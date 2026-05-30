@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-var _ render_domain.RenderService = (*mockRenderService)(nil)
+var (
+	_ render_domain.RenderService = (*mockRenderService)(nil)
+)
 
 type mockRenderService struct {
 	RenderASTToPlainTextFunc func(ctx context.Context, templateAST *ast_domain.TemplateAST) (string, error)

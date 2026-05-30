@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/security/security_domain"
 )
 
-// GetRateLimitService returns the rate limit service, initialised using the
-// centralised rate limiter.
+// GetRateLimitService returns the rate limit service, initialised using the centralised
+// rate limiter.
 //
 // Returns security_domain.RateLimitService which provides rate limiting.
 // Returns error when the service could not be initialised.
@@ -37,8 +37,8 @@ func (c *Container) GetRateLimitService() (security_domain.RateLimitService, err
 	return c.rateLimitService, c.rateLimitServiceErr
 }
 
-// createRateLimitService sets up the rate limit service using the centralised
-// rate limiter.
+// createRateLimitService sets up the rate limit service using the centralised rate
+// limiter.
 func (c *Container) createRateLimitService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 

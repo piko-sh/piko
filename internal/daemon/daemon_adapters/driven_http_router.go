@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -39,7 +40,6 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -48,13 +48,16 @@ import (
 	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// buildHeadersMaxParts is the maximum number of parts in a Link header (URL +
-// rel + as + type + crossorigin).
-const buildHeadersMaxParts = 5
+const (
+	// buildHeadersMaxParts is the maximum number of parts in a Link header (URL + rel + as +
+	// type + crossorigin).
+	buildHeadersMaxParts = 5
+)
 
 // contextKey is a custom type for context keys to avoid conflicts.
 type contextKey string
@@ -76,13 +79,12 @@ type RouteSettings struct {
 	// E2EMode enables end-to-end test routes in the server.
 	E2EMode bool
 
-	// CSRFSecFetchSiteEnforcement requires CSRF tokens on browser requests
-	// identified by the Sec-Fetch-Site header.
+	// CSRFSecFetchSiteEnforcement requires CSRF tokens on browser requests identified by the
+	// Sec-Fetch-Site header.
 	CSRFSecFetchSiteEnforcement bool
 }
 
-// MountRoutesConfig bundles configuration parameters for
-// MountRoutesFromManifest.
+// MountRoutesConfig bundles configuration parameters for MountRoutesFromManifest.
 type MountRoutesConfig struct {
 	// Router is the HTTP router where route handlers are registered.
 	Router chi.Router
@@ -96,8 +98,8 @@ type MountRoutesConfig struct {
 	// RateLimitService provides rate limit checking for per-action limits.
 	RateLimitService security_domain.RateLimitService
 
-	// ActionResponseCache stores cached action responses. Nil disables action
-	// response caching.
+	// ActionResponseCache stores cached action responses. Nil disables action response
+	// caching.
 	ActionResponseCache cache_domain.Cache[string, []byte]
 
 	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
@@ -109,8 +111,8 @@ type MountRoutesConfig struct {
 	// SiteSettings holds the website settings used by route handlers.
 	SiteSettings *config.WebsiteConfig
 
-	// AuthGuardConfig holds auth guard settings for page-level AuthPolicy
-	// enforcement. Nil when no auth guard is configured.
+	// AuthGuardConfig holds auth guard settings for page-level AuthPolicy enforcement. Nil
+	// when no auth guard is configured.
 	AuthGuardConfig *daemon_dto.AuthGuardConfig
 
 	// CacheMiddleware is the middleware function that controls HTTP caching.
@@ -146,12 +148,12 @@ type routeRegistrationDeps struct {
 	// cacheMiddleware adds HTTP caching headers to handlers.
 	cacheMiddleware func(next http.Handler) http.Handler
 
-	// authGuardConfig holds the auth guard config for page-level AuthPolicy
-	// enforcement. Nil when no auth guard is configured.
+	// authGuardConfig holds the auth guard config for page-level AuthPolicy enforcement. Nil
+	// when no auth guard is configured.
 	authGuardConfig *daemon_dto.AuthGuardConfig
 
-	// e2eModeEnabled indicates whether E2E test mode is active; when false,
-	// E2E-only pages and partials return a 404 error.
+	// e2eModeEnabled indicates whether E2E test mode is active; when false, E2E-only pages
+	// and partials return a 404 error.
 	e2eModeEnabled bool
 }
 
@@ -179,8 +181,8 @@ type renderRespondParams struct {
 	Span trace.Span
 }
 
-// pageErrorContext groups the shared dependencies needed when handling a page
-// error response.
+// pageErrorContext groups the shared dependencies needed when handling a page error
+// response.
 type pageErrorContext struct {
 	// Deps holds shared dependencies for templating and error page rendering.
 	Deps *daemon_domain.HTTPHandlerDependencies
@@ -198,14 +200,12 @@ type pageErrorContext struct {
 	Span trace.Span
 }
 
-// errorPageRequest groups the parameters that describe what error page to
-// render.
+// errorPageRequest groups the parameters that describe what error page to render.
 type errorPageRequest struct {
 	// Message is the user-visible error message.
 	Message string
 
-	// InternalMessage is the full internal error detail, shown only in
-	// development mode.
+	// InternalMessage is the full internal error detail, shown only in development mode.
 	InternalMessage string
 
 	// OriginalPath is the request path that triggered the error.
@@ -215,9 +215,9 @@ type errorPageRequest struct {
 	StatusCode int
 }
 
-// responseTracker wraps an http.ResponseWriter to track whether a response body
-// or status code has been written. Used to determine whether it is safe to render
-// an error page after a rendering failure.
+// responseTracker wraps an http.ResponseWriter to track whether a response body or status
+// code has been written. Used to determine whether it is safe to render an error page
+// after a rendering failure.
 type responseTracker struct {
 	http.ResponseWriter
 
@@ -225,8 +225,7 @@ type responseTracker struct {
 	started bool
 }
 
-// Write delegates to the underlying ResponseWriter and marks the response as
-// started.
+// Write delegates to the underlying ResponseWriter and marks the response as started.
 //
 // Takes b ([]byte) which is the data to write to the response body.
 //
@@ -237,8 +236,8 @@ func (rt *responseTracker) Write(b []byte) (int, error) {
 	return rt.ResponseWriter.Write(b)
 }
 
-// WriteHeader delegates to the underlying ResponseWriter and marks the
-// response as started.
+// WriteHeader delegates to the underlying ResponseWriter and marks the response as
+// started.
 //
 // Takes code (int) which is the HTTP status code to send.
 func (rt *responseTracker) WriteHeader(code int) {
@@ -246,28 +245,26 @@ func (rt *responseTracker) WriteHeader(code int) {
 	rt.ResponseWriter.WriteHeader(code)
 }
 
-// Flush delegates to the underlying ResponseWriter if it implements
-// http.Flusher.
+// Flush delegates to the underlying ResponseWriter if it implements http.Flusher.
 func (rt *responseTracker) Flush() {
 	if f, ok := rt.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
-// Unwrap returns the underlying ResponseWriter for middleware that needs to
-// inspect it.
+// Unwrap returns the underlying ResponseWriter for middleware that needs to inspect it.
 //
 // Returns http.ResponseWriter which is the wrapped response writer.
 func (rt *responseTracker) Unwrap() http.ResponseWriter {
 	return rt.ResponseWriter
 }
 
-// MountRoutesFromManifest registers all page and partial routes from the
-// manifest store onto the given Chi router. It applies caching and middleware
-// based on the provided settings.
+// MountRoutesFromManifest registers all page and partial routes from the manifest store
+// onto the given Chi router. It applies caching and middleware based on the provided
+// settings.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes mountConfig (*MountRoutesConfig) which provides the router, dependencies,
 // manifest store, and middleware settings.
 func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig) {
@@ -322,16 +319,14 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 	span.SetStatus(codes.Ok, "Routes successfully mounted")
 }
 
-// registerPageRoute registers routes for a page entry with all its locale
-// variants.
+// registerPageRoute registers routes for a page entry with all its locale variants.
 //
-// For each locale the route pattern is translated for chi (see
-// translateCatchAllForChi), wrapped in middleware, and registered for both
-// GET and POST.
+// For each locale the route pattern is translated for chi (see translateCatchAllForChi),
+// wrapped in middleware, and registered for both GET and POST.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes regDeps (*routeRegistrationDeps) which provides the router and
-// middleware dependencies.
+// Takes regDeps (*routeRegistrationDeps) which provides the router and middleware
+// dependencies.
 // Takes entry (templater_domain.PageEntryView) which is the page to register.
 func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entry templater_domain.PageEntryView) {
 	_, l := logger_domain.From(ctx, log)
@@ -348,18 +343,16 @@ func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entr
 	}
 }
 
-// registerPageRouteForLocale registers a single locale variant of a page
-// route.
+// registerPageRouteForLocale registers a single locale variant of a page route.
 //
-// The chi pattern is derived from routePattern by translating any trailing
-// named regex catch-all into chi's native wildcard form, with the original
-// parameter name aliased back at request time.
+// The chi pattern is derived from routePattern by translating any trailing named regex
+// catch-all into chi's native wildcard form, with the original parameter name aliased
+// back at request time.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes regDeps (*routeRegistrationDeps) which provides the router and
-// middleware dependencies.
-// Takes entry (templater_domain.PageEntryView) which is the page being
-// registered.
+// Takes regDeps (*routeRegistrationDeps) which provides the router and middleware
+// dependencies.
+// Takes entry (templater_domain.PageEntryView) which is the page being registered.
 // Takes locale (string) which is the locale variant being registered.
 // Takes routePattern (string) which is the pre-translation route pattern.
 // Takes i18nStrategy (string) which is the strategy name used for logging.
@@ -392,19 +385,17 @@ func registerPageRouteForLocale(
 
 // buildPageRouteHandler builds the base http.Handler for a page route.
 //
-// It captures the locale and route pattern on the request context and, when
-// the route had a named catch-all, copies chi's wildcard capture back under
-// the original parameter name so generated code can read it via r.PathParam.
+// It captures the locale and route pattern on the request context and, when the route had
+// a named catch-all, copies chi's wildcard capture back under the original parameter name
+// so generated code can read it via r.PathParam.
 //
-// Takes regDeps (*routeRegistrationDeps) which provides the dependencies the
-// page handler needs.
-// Takes entry (templater_domain.PageEntryView) which is the page being
-// served.
+// Takes regDeps (*routeRegistrationDeps) which provides the dependencies the page handler
+// needs.
+// Takes entry (templater_domain.PageEntryView) which is the page being served.
 // Takes locale (string) which is set on the request context.
-// Takes routePattern (string) which is set as the matched pattern on the
-// request context.
-// Takes aliasedParamName (string) which is the named parameter that should
-// receive the chi wildcard alias, or "" to skip aliasing.
+// Takes routePattern (string) which is set as the matched pattern on the request context.
+// Takes aliasedParamName (string) which is the named parameter that should receive the
+// chi wildcard alias, or "" to skip aliasing.
 //
 // Returns http.Handler which is the assembled base handler.
 func buildPageRouteHandler(
@@ -425,24 +416,22 @@ func buildPageRouteHandler(
 
 // aliasCatchAllParam copies chi's "*" URL param onto a named alias.
 //
-// Lets generated code read the catch-all value under its original parameter
-// name. When piko's mainRouter mounts the user router under its own "/*"
-// route both routers capture catch-all values into the same URLParams stack.
-// The parent's "*" (e.g. "docs/get-started/introduction") sits first and the
-// child's "*" (e.g. "get-started/introduction") sits second. We iterate
-// backwards so the alias reflects the most specific capture, which is the
-// user-router's value.
+// Lets generated code read the catch-all value under its original parameter name. When
+// piko's mainRouter mounts the user router under its own "/*" route both routers capture
+// catch-all values into the same URLParams stack. The parent's "*" (e.g.
+// "docs/get-started/introduction") sits first and the child's "*" (e.g.
+// "get-started/introduction") sits second. We iterate backwards so the alias reflects the
+// most specific capture, which is the user-router's value.
 //
 // Takes request (*http.Request) whose chi route context is mutated in place.
-// Takes aliasedParamName (string) which is the alias to receive the chi "*"
-// value.
+// Takes aliasedParamName (string) which is the alias to receive the chi "*" value.
 func aliasCatchAllParam(request *http.Request, aliasedParamName string) {
 	rctx := chi.RouteContext(request.Context())
 	if rctx == nil {
 		return
 	}
-	for i := len(rctx.URLParams.Keys) - 1; i >= 0; i-- {
-		if rctx.URLParams.Keys[i] == "*" {
+	for i, key := range slices.Backward(rctx.URLParams.Keys) {
+		if key == "*" {
 			rctx.URLParams.Keys = append(rctx.URLParams.Keys, aliasedParamName)
 			rctx.URLParams.Values = append(rctx.URLParams.Values, rctx.URLParams.Values[i])
 			return
@@ -452,16 +441,15 @@ func aliasCatchAllParam(request *http.Request, aliasedParamName string) {
 
 // translateCatchAllForChi rewrites a piko-style named regex catch-all pattern.
 //
-// Patterns such as `/docs/{slug:.+}`, `/docs/{slug:.*}`, or `/docs/{slug:.+?}`
-// become chi's native wildcard form (`/docs/*`); the original named parameter
-// is returned so the runtime can alias chi's `*` URL param back under that
-// name.
+// Patterns such as `/docs/{slug:.+}`, `/docs/{slug:.*}`, or `/docs/{slug:.+?}` become
+// chi's native wildcard form (`/docs/*`); the original named parameter is returned so the
+// runtime can alias chi's `*` URL param back under that name.
 //
-// Any trailing `{name:<regex>}` segment is treated as a catch-all because
-// chi's `{name:regex}` form is segment-bounded; if the user wrote a regex
-// they almost certainly want multi-segment matching, otherwise the bare
-// `{name}` form would have sufficed. Patterns without a trailing
-// `{name:<regex>}` segment are returned unchanged with an empty alias.
+// Any trailing `{name:<regex>}` segment is treated as a catch-all because chi's
+// `{name:regex}` form is segment-bounded; if the user wrote a regex they almost certainly
+// want multi-segment matching, otherwise the bare `{name}` form would have sufficed.
+// Patterns without a trailing `{name:<regex>}` segment are returned unchanged with an
+// empty alias.
 //
 // Takes pattern (string) which is the piko-style route pattern.
 //
@@ -478,10 +466,10 @@ func translateCatchAllForChi(pattern string) (chiPattern string, aliasedName str
 // registerPartialRoute registers a route for a partial page entry.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes regDeps (*routeRegistrationDeps) which provides the router and
-// middleware needed for route setup.
-// Takes entry (templater_domain.PageEntryView) which specifies the partial
-// page entry to register.
+// Takes regDeps (*routeRegistrationDeps) which provides the router and middleware needed
+// for route setup.
+// Takes entry (templater_domain.PageEntryView) which specifies the partial page entry to
+// register.
 func registerPartialRoute(ctx context.Context, regDeps *routeRegistrationDeps, entry templater_domain.PageEntryView) {
 	_, l := logger_domain.From(ctx, log)
 	routePattern := entry.GetRoutePattern()
@@ -513,10 +501,9 @@ func registerPartialRoute(ctx context.Context, regDeps *routeRegistrationDeps, e
 // applyMiddlewares wraps a handler with cache and page middlewares.
 //
 // Takes baseHandler (http.Handler) which is the handler to wrap.
-// Takes entry (templater_domain.PageEntryView) which holds the page middleware
-// settings.
-// Takes cacheMiddleware (func(...)) which adds caching to the handler. Pass nil
-// to skip caching.
+// Takes entry (templater_domain.PageEntryView) which holds the page middleware settings.
+// Takes cacheMiddleware (func(...)) which adds caching to the handler. Pass nil to skip
+// caching.
 //
 // Returns http.Handler which is the handler with all middlewares applied.
 func applyMiddlewares(
@@ -534,23 +521,23 @@ func applyMiddlewares(
 	}
 	if entry.GetHasMiddleware() {
 		middlewares := entry.GetMiddlewares()
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			finalHandler = middlewares[i](finalHandler)
+		for _, middleware := range slices.Backward(middlewares) {
+			finalHandler = middleware(finalHandler)
 		}
 	}
 	return finalHandler
 }
 
-// authPolicyMiddleware enforces page-level AuthPolicy requirements.
-// It checks whether the request's AuthContext satisfies the Required
-// and Roles constraints declared by the page's AuthPolicy() function.
+// authPolicyMiddleware enforces page-level AuthPolicy requirements. It checks whether the
+// request's AuthContext satisfies the Required and Roles constraints declared by the
+// page's AuthPolicy() function.
 //
-// Takes next (http.Handler) which is the downstream handler to invoke when
-// authorisation succeeds.
-// Takes entry (templater_domain.PageEntryView) which provides the page's
-// declared auth policy and role requirements.
-// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the
-// unauthenticated handler and login redirect settings.
+// Takes next (http.Handler) which is the downstream handler to invoke when authorisation
+// succeeds.
+// Takes entry (templater_domain.PageEntryView) which provides the page's declared auth
+// policy and role requirements.
+// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the unauthenticated
+// handler and login redirect settings.
 //
 // Returns http.Handler which wraps the downstream handler with auth checks.
 func authPolicyMiddleware(
@@ -584,14 +571,13 @@ func authPolicyMiddleware(
 	})
 }
 
-// resolveAuthContext extracts the AuthContext from the request's
-// PikoRequestCtx, returning nil when no authentication data is present.
+// resolveAuthContext extracts the AuthContext from the request's PikoRequestCtx,
+// returning nil when no authentication data is present.
 //
-// Takes request (*http.Request) which carries the PikoRequestCtx in its
-// context.
+// Takes request (*http.Request) which carries the PikoRequestCtx in its context.
 //
-// Returns daemon_dto.AuthContext which holds the caller's authentication
-// state, or nil if no auth data is available.
+// Returns daemon_dto.AuthContext which holds the caller's authentication state, or nil if
+// no auth data is available.
 func resolveAuthContext(request *http.Request) daemon_dto.AuthContext {
 	pctx := daemon_dto.PikoRequestCtxFromContext(request.Context())
 	if pctx == nil {
@@ -604,18 +590,16 @@ func resolveAuthContext(request *http.Request) daemon_dto.AuthContext {
 	return auth
 }
 
-// handleUnauthenticated responds to an unauthenticated request by
-// delegating to the guard's custom handler or falling back to a login
-// redirect.
+// handleUnauthenticated responds to an unauthenticated request by delegating to the
+// guard's custom handler or falling back to a login redirect.
 //
-// Takes writer (http.ResponseWriter) which receives the redirect or custom
-// response.
-// Takes request (*http.Request) which provides the original URI for the
-// redirect parameter.
-// Takes auth (daemon_dto.AuthContext) which is passed to the custom handler
-// if one is configured.
-// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the login
-// path, redirect parameter name, and optional custom handler.
+// Takes writer (http.ResponseWriter) which receives the redirect or custom response.
+// Takes request (*http.Request) which provides the original URI for the redirect
+// parameter.
+// Takes auth (daemon_dto.AuthContext) which is passed to the custom handler if one is
+// configured.
+// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the login path, redirect
+// parameter name, and optional custom handler.
 func handleUnauthenticated(
 	writer http.ResponseWriter,
 	request *http.Request,
@@ -644,11 +628,11 @@ func handleUnauthenticated(
 	http.Redirect(writer, request, parsed.String(), http.StatusSeeOther)
 }
 
-// authHasRequiredRole reports whether the given AuthContext holds at
-// least one of the required roles.
+// authHasRequiredRole reports whether the given AuthContext holds at least one of the
+// required roles.
 //
-// Takes auth (daemon_dto.AuthContext) which provides the user's roles via
-// the "roles" key.
+// Takes auth (daemon_dto.AuthContext) which provides the user's roles via the "roles"
+// key.
 // Takes requiredRoles ([]string) which lists the roles to check against.
 //
 // Returns bool which is true when the user holds at least one required role.
@@ -660,8 +644,7 @@ func authHasRequiredRole(auth daemon_dto.AuthContext, requiredRoles []string) bo
 	return hasAnyRole(userRoles, requiredRoles)
 }
 
-// hasAnyRole checks whether userRoles contains at least one of the
-// required roles.
+// hasAnyRole checks whether userRoles contains at least one of the required roles.
 //
 // Takes userRoles ([]string) which lists the roles the user holds.
 // Takes requiredRoles ([]string) which lists the roles to match against.
@@ -676,10 +659,9 @@ func hasAnyRole(userRoles, requiredRoles []string) bool {
 	return false
 }
 
-// e2eGuardMiddleware wraps a handler to return 404 Not Found. This middleware
-// is applied to E2E-only routes when E2E mode is disabled at runtime, providing
-// defence in depth - even if E2E pages are compiled into the binary, they won't
-// be accessible in production.
+// e2eGuardMiddleware wraps a handler to return 404 Not Found. This middleware is applied
+// to E2E-only routes when E2E mode is disabled at runtime, providing defence in depth -
+// even if E2E pages are compiled into the binary, they won't be accessible in production.
 //
 // Takes next (http.Handler) which is the handler to wrap.
 //
@@ -691,14 +673,13 @@ func e2eGuardMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// registerRoutesFromStore iterates through store entries and registers page
-// and partial routes.
+// registerRoutesFromStore iterates through store entries and registers page and partial
+// routes.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides dependencies for route
 // registration.
-// Takes store (ManifestStoreView) which contains the manifest entries to
-// process.
+// Takes store (ManifestStoreView) which contains the manifest entries to process.
 //
 // Returns pageCount (int) which is the number of page routes registered.
 // Returns partialCount (int) which is the number of partial routes registered.
@@ -733,14 +714,12 @@ func registerRoutesFromStore(
 
 // parseFragmentParam checks if the request is for a page fragment.
 //
-// Uses fast string matching to avoid creating a url.Values map when the
-// parameter value is clear (e.g. "_f=true" or "_f=1"). Falls back to full
-// query parsing for other values.
+// Uses fast string matching to avoid creating a url.Values map when the parameter value
+// is clear (e.g. "_f=true" or "_f=1"). Falls back to full query parsing for other values.
 //
 // Takes request (*http.Request) which provides the URL to check.
 //
-// Returns bool which is true when the _f query parameter indicates a fragment
-// request.
+// Returns bool which is true when the _f query parameter indicates a fragment request.
 func parseFragmentParam(request *http.Request) bool {
 	rawQuery := request.URL.RawQuery
 	if rawQuery == "" {
@@ -762,14 +741,13 @@ func parseFragmentParam(request *http.Request) bool {
 	return false
 }
 
-// getMatchedPattern returns the matched route pattern from the request
-// context. It first checks for a custom pattern stored in the context, then
-// falls back to Chi's route pattern if none is found.
+// getMatchedPattern returns the matched route pattern from the request context. It first
+// checks for a custom pattern stored in the context, then falls back to Chi's route
+// pattern if none is found.
 //
 // Takes request (*http.Request) which holds the context with route data.
 //
-// Returns string which is the matched route pattern, or empty if none is
-// found.
+// Returns string which is the matched route pattern, or empty if none is found.
 func getMatchedPattern(request *http.Request) string {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(request.Context()); pctx != nil && pctx.MatchedPattern != "" {
 		return pctx.MatchedPattern
@@ -780,16 +758,16 @@ func getMatchedPattern(request *http.Request) string {
 	return ""
 }
 
-// handlePageRenderError deals with errors from page rendering, treating
-// redirect errors as a special case and attempting to render a custom
-// error page when the response has not yet started.
+// handlePageRenderError deals with errors from page rendering, treating redirect errors
+// as a special case and attempting to render a custom error page when the response has
+// not yet started.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes request (*http.Request) which holds the original client request.
 // Takes err (error) which is the rendering error to handle.
-// Takes pageCtx (pageErrorContext) which provides the page entry, span, and
-// error page dependencies.
+// Takes pageCtx (pageErrorContext) which provides the page entry, span, and error page
+// dependencies.
 func handlePageRenderError(
 	ctx context.Context, w http.ResponseWriter, request *http.Request,
 	err error, pageCtx pageErrorContext, responseStarted bool,
@@ -855,13 +833,12 @@ func handlePageRenderError(
 //
 // Takes w (http.ResponseWriter) which receives the rendered page response.
 // Takes request (*http.Request) which contains the incoming HTTP request.
-// Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides shared
-// services for templating and other tasks.
-// Takes entry (templater_domain.PageEntryView) which specifies which page to
-// render.
+// Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides shared services for
+// templating and other tasks.
+// Takes entry (templater_domain.PageEntryView) which specifies which page to render.
 // Takes websiteConfig (*config.WebsiteConfig) which provides site settings.
-// Takes store (templater_domain.ManifestStoreView) which provides error page
-// lookup for rendering custom error pages.
+// Takes store (templater_domain.ManifestStoreView) which provides error page lookup for
+// rendering custom error pages.
 func handlePageRequest(
 	w http.ResponseWriter, request *http.Request, deps *daemon_domain.HTTPHandlerDependencies,
 	entry templater_domain.PageEntryView, websiteConfig *config.WebsiteConfig,
@@ -936,21 +913,20 @@ func acquirePageDef(originalPath, routePath string) *templater_dto.PageDefinitio
 
 // releasePageDef returns a PageDefinition to the pool after clearing it.
 //
-// Takes pageDef (*templater_dto.PageDefinition) which is the definition to
-// release.
+// Takes pageDef (*templater_dto.PageDefinition) which is the definition to release.
 func releasePageDef(pageDef *templater_dto.PageDefinition) {
 	*pageDef = templater_dto.PageDefinition{}
 	pageDefPool.Put(pageDef)
 }
 
-// renderAndRespond renders the page and writes the HTTP response, returning
-// the render duration in milliseconds.
+// renderAndRespond renders the page and writes the HTTP response, returning the render
+// duration in milliseconds.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the rendered output.
 // Takes request (*http.Request) which provides the original request.
-// Takes p (renderRespondParams) which groups the page definition, entry,
-// store, config, probe result, and span.
+// Takes p (renderRespondParams) which groups the page definition, entry, store, config,
+// probe result, and span.
 //
 // Returns int64 which is the render duration in milliseconds.
 func renderAndRespond(
@@ -1029,8 +1005,8 @@ func handlePageProbeError(
 	http.Error(w, errMessageInternalServer, statusCode)
 }
 
-// validateRedirectStatusCode checks that the status code is a valid HTTP
-// redirect code and returns 302 if it is not.
+// validateRedirectStatusCode checks that the status code is a valid HTTP redirect code
+// and returns 302 if it is not.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes statusCode (int) which is the HTTP status code to check.
@@ -1052,15 +1028,14 @@ func validateRedirectStatusCode(ctx context.Context, statusCode int) int {
 	return statusCode
 }
 
-// handleRedirect processes redirect metadata and sends an appropriate HTTP
-// redirect response.
+// handleRedirect processes redirect metadata and sends an appropriate HTTP redirect
+// response.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes w (http.ResponseWriter) which receives the redirect response.
-// Takes meta (*templater_dto.InternalMetadata) which contains the
-// redirect target URL and status code.
-// Takes span (trace.Span) which records tracing data for the
-// redirect.
+// Takes meta (*templater_dto.InternalMetadata) which contains the redirect target URL and
+// status code.
+// Takes span (trace.Span) which records tracing data for the redirect.
 func handleRedirect(
 	ctx context.Context, w http.ResponseWriter, _ *http.Request,
 	meta *templater_dto.InternalMetadata, span trace.Span,
@@ -1105,17 +1080,16 @@ func handleRedirect(
 	span.SetStatus(codes.Ok, "Redirect issued successfully")
 }
 
-// handlePartialRequest handles an HTTP request for a partial route by
-// probing and rendering the partial template with tracing and metrics.
+// handlePartialRequest handles an HTTP request for a partial route by probing and
+// rendering the partial template with tracing and metrics.
 //
 // Takes w (http.ResponseWriter) which receives the rendered response.
 // Takes request (*http.Request) which is the incoming HTTP request.
-// Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides
-// shared handler dependencies.
-// Takes entry (templater_domain.PageEntryView) which describes the
-// partial route being served.
-// Takes websiteConfig (*config.WebsiteConfig) which provides website
-// configuration.
+// Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides shared handler
+// dependencies.
+// Takes entry (templater_domain.PageEntryView) which describes the partial route being
+// served.
+// Takes websiteConfig (*config.WebsiteConfig) which provides website configuration.
 func handlePartialRequest(
 	w http.ResponseWriter, request *http.Request, deps *daemon_domain.HTTPHandlerDependencies,
 	_ templater_domain.ManifestStoreView, entry templater_domain.PageEntryView, websiteConfig *config.WebsiteConfig,
@@ -1174,14 +1148,14 @@ func handlePartialRequest(
 	span.SetStatus(codes.Ok, "Partial rendered successfully")
 }
 
-// acquirePartialDef gets a PageDefinition from the pool and initialises it for
-// the given partial route.
+// acquirePartialDef gets a PageDefinition from the pool and initialises it for the given
+// partial route.
 //
 // Takes originalPath (string) which is the raw request path.
 // Takes normalisedPath (string) which is the cleaned path for template lookup.
 //
-// Returns *templater_dto.PageDefinition which is the initialised definition
-// ready for partial rendering.
+// Returns *templater_dto.PageDefinition which is the initialised definition ready for
+// partial rendering.
 func acquirePartialDef(originalPath, normalisedPath string) *templater_dto.PageDefinition {
 	partialDef, ok := pageDefPool.Get().(*templater_dto.PageDefinition)
 	if !ok {
@@ -1195,21 +1169,21 @@ func acquirePartialDef(originalPath, normalisedPath string) *templater_dto.PageD
 
 // releasePartialDef resets the PageDefinition and returns it to the pool.
 //
-// Takes partialDef (*templater_dto.PageDefinition) which is the definition to
-// reset and return.
+// Takes partialDef (*templater_dto.PageDefinition) which is the definition to reset and
+// return.
 func releasePartialDef(partialDef *templater_dto.PageDefinition) {
 	*partialDef = templater_dto.PageDefinition{}
 	pageDefPool.Put(partialDef)
 }
 
-// writePartialResponseHeaders sets the content-type and response-support
-// headers, then either sends early hints or writes a 200 status immediately.
+// writePartialResponseHeaders sets the content-type and response-support headers, then
+// either sends early hints or writes a 200 status immediately.
 //
 // Takes w (http.ResponseWriter) which receives the response headers.
-// Takes request (*http.Request) which provides the protocol version for early
-// hints support detection.
-// Takes linkHeaders ([]render_dto.LinkHeader) which contains the link headers
-// to send as early hints when HTTP/2+ is available.
+// Takes request (*http.Request) which provides the protocol version for early hints
+// support detection.
+// Takes linkHeaders ([]render_dto.LinkHeader) which contains the link headers to send as
+// early hints when HTTP/2+ is available.
 func writePartialResponseHeaders(w http.ResponseWriter, request *http.Request, linkHeaders []render_dto.LinkHeader) {
 	h := w.Header()
 	h[headerContentType] = headerValContentTypeHTML
@@ -1219,15 +1193,14 @@ func writePartialResponseHeaders(w http.ResponseWriter, request *http.Request, l
 	}
 }
 
-// handlePartialProbeError handles errors that occur when probing a partial.
-// It logs the error, records it in the trace span, and sends an internal
-// server error response to the client.
+// handlePartialProbeError handles errors that occur when probing a partial. It logs the
+// error, records it in the trace span, and sends an internal server error response to the
+// client.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes err (error) which is the error to handle.
-// Takes entry (templater_domain.PageEntryView) which provides the path for
-// logging.
+// Takes entry (templater_domain.PageEntryView) which provides the path for logging.
 // Takes span (trace.Span) which records the error for tracing.
 func handlePartialProbeError(
 	ctx context.Context, w http.ResponseWriter, err error,
@@ -1247,8 +1220,7 @@ func handlePartialProbeError(
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes err (error) which is the error that occurred during rendering.
-// Takes entry (templater_domain.PageEntryView) which provides page context for
-// logging.
+// Takes entry (templater_domain.PageEntryView) which provides page context for logging.
 // Takes span (trace.Span) which records the error for tracing.
 func handlePartialRenderError(
 	ctx context.Context, err error, entry templater_domain.PageEntryView, span trace.Span,
@@ -1264,8 +1236,8 @@ func handlePartialRenderError(
 
 // mountActionRoutes mounts actions onto the router using ActionHandler.
 //
-// Takes cfg (*MountRoutesConfig) which provides the router, services, and
-// settings needed to register action routes.
+// Takes cfg (*MountRoutesConfig) which provides the router, services, and settings needed
+// to register action routes.
 func mountActionRoutes(cfg *MountRoutesConfig) {
 	_, span, l := log.Span(context.Background(), "mountActionRoutes",
 		logger_domain.Int(logFieldActionCount, len(cfg.Actions)),
@@ -1299,10 +1271,7 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 	}
 	handler.RegisterAll(cfg.Actions)
 
-	basePath := "/_piko/actions"
-	if cfg.RouteSettings.ActionServePath != "" {
-		basePath = cfg.RouteSettings.ActionServePath
-	}
+	basePath := cmp.Or(cfg.RouteSettings.ActionServePath, "/_piko/actions")
 
 	handler.Mount(cfg.Router, basePath)
 
@@ -1323,8 +1292,7 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 //
 // Takes request (*http.Request) which contains the headers with trace context.
 //
-// Returns context.Context which includes any trace and span data from the
-// request.
+// Returns context.Context which includes any trace and span data from the request.
 func extractOTelContext(request *http.Request) context.Context {
 	ctx := request.Context()
 	carrier := propagation.MapCarrier{}
@@ -1338,11 +1306,10 @@ func extractOTelContext(request *http.Request) context.Context {
 
 // buildHeaders builds an HTTP Link header value from link header data.
 //
-// Takes lh (render_dto.LinkHeader) which contains the link URL, relation type,
-// and optional attributes such as resource type and cross-origin settings.
+// Takes lh (render_dto.LinkHeader) which contains the link URL, relation type, and
+// optional attributes such as resource type and cross-origin settings.
 //
-// Returns string which is the formatted header value with parts joined by
-// semicolons.
+// Returns string which is the formatted header value with parts joined by semicolons.
 func buildHeaders(lh render_dto.LinkHeader) string {
 	parts := make([]string, 0, buildHeadersMaxParts)
 	parts = append(parts,
@@ -1364,12 +1331,12 @@ func buildHeaders(lh render_dto.LinkHeader) string {
 	return strings.Join(parts, "; ")
 }
 
-// sendSpecificEarlyHints sends HTTP 103 Early Hints with the specified link
-// headers to enable browser preloading.
+// sendSpecificEarlyHints sends HTTP 103 Early Hints with the specified link headers to
+// enable browser preloading.
 //
 // Takes w (http.ResponseWriter) which receives the early hints response.
-// Takes headersToSend ([]render_dto.LinkHeader) which specifies the link
-// headers to send as early hints.
+// Takes headersToSend ([]render_dto.LinkHeader) which specifies the link headers to send
+// as early hints.
 //
 // Returns bool which indicates whether the early hints were sent and flushed
 // successfully.
@@ -1398,13 +1365,13 @@ func sendSpecificEarlyHints(w http.ResponseWriter, r *http.Request, headersToSen
 	return true
 }
 
-// isDevelopmentModeFromContext reads the DevelopmentMode flag from the
-// PikoRequestCtx on the context.
+// isDevelopmentModeFromContext reads the DevelopmentMode flag from the PikoRequestCtx on
+// the context.
 //
 // Takes ctx (context.Context) which carries the request context.
 //
-// Returns bool which is true when the context carries a PikoRequestCtx
-// with DevelopmentMode enabled, or false if no carrier is present.
+// Returns bool which is true when the context carries a PikoRequestCtx with
+// DevelopmentMode enabled, or false if no carrier is present.
 func isDevelopmentModeFromContext(ctx context.Context) bool {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
 		return pctx.DevelopmentMode
@@ -1412,8 +1379,8 @@ func isDevelopmentModeFromContext(ctx context.Context) bool {
 	return false
 }
 
-// extractErrorStatusCode returns the HTTP status code from an error if it
-// implements the ActionError interface. Returns 500 for plain errors.
+// extractErrorStatusCode returns the HTTP status code from an error if it implements the
+// ActionError interface. Returns 500 for plain errors.
 //
 // Takes err (error) which is the error to inspect.
 //
@@ -1428,26 +1395,24 @@ func extractErrorStatusCode(err error) int {
 // extractErrorMessage returns a user-safe error message.
 //
 // Takes err (error) which is the error to inspect.
-// Takes developmentMode (bool) which controls whether internal details are
-// returned.
+// Takes developmentMode (bool) which controls whether internal details are returned.
 //
 // Returns string which is the user-facing error message.
 func extractErrorMessage(err error, developmentMode bool) string {
 	return safeerror.ExtractSafeMessage(err, developmentMode)
 }
 
-// writeDevErrorFallback writes a plain HTML error page in development mode
-// when no custom error page is available. In production mode it returns false
-// and the caller falls through to the standard http.Error or http.NotFound
-// response.
+// writeDevErrorFallback writes a plain HTML error page under the developer profile when
+// no custom error page is available. In production it returns false and the caller falls
+// through to the standard http.Error or http.NotFound response.
 //
-// Takes ctx (context.Context) which carries the development mode flag.
+// Takes ctx (context.Context) which carries the developer-profile flag.
 // Takes w (http.ResponseWriter) which receives the HTML response.
 // Takes statusCode (int) which is the HTTP status code.
 // Takes message (string) which is the error detail to display.
 //
-// Returns bool which is true if the response was written (dev mode), false
-// if the caller should use its own fallback (prod mode).
+// Returns bool which is true if the response was written (dev mode), false if the caller
+// should use its own fallback (prod mode).
 func writeDevErrorFallback(ctx context.Context, w http.ResponseWriter, statusCode int, message string) bool {
 	if !isDevelopmentModeFromContext(ctx) {
 		return false
@@ -1472,18 +1437,18 @@ func writeDevErrorFallback(ctx context.Context, w http.ResponseWriter, statusCod
 	return true
 }
 
-// renderErrorPage attempts to render a custom error page for the given status
-// code and request path. It looks up the error page in the manifest store and
-// renders it with the correct status code and error context.
+// renderErrorPage attempts to render a custom error page for the given status code and
+// request path. It looks up the error page in the manifest store and renders it with the
+// correct status code and error context.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the rendered error page.
 // Takes request (*http.Request) which holds the original client request.
-// Takes pageCtx (pageErrorContext) which provides the manifest store, templater,
-// and trace span.
+// Takes pageCtx (pageErrorContext) which provides the manifest store, templater, and
+// trace span.
 //
-// Returns true if an error page was rendered, false if no error page exists or
-// rendering failed.
+// Returns true if an error page was rendered, false if no error page exists or rendering
+// failed.
 func renderErrorPage(
 	ctx context.Context, w http.ResponseWriter, request *http.Request,
 	pageCtx pageErrorContext, errPageReq errorPageRequest,

@@ -29,14 +29,16 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-const testHTMLDownload = `<!DOCTYPE html>
-<html>
-<head><title>Download Test</title></head>
-<body>
-<a id="download-link" href="/download/test.txt" download="test.txt">Download</a>
-<button id="blob-download" onclick="const b=new Blob(['hello world'],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='blob.txt';a.click();">Blob Download</button>
-</body>
-</html>`
+const (
+	testHTMLDownload = `<!DOCTYPE html>
+	<html>
+	<head><title>Download Test</title></head>
+	<body>
+	<a id="download-link" href="/download/test.txt" download="test.txt">Download</a>
+	<button id="blob-download" onclick="const b=new Blob(['hello world'],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='blob.txt';a.click();">Blob Download</button>
+	</body>
+	</html>`
+)
 
 func newDownloadTestServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -20,9 +20,8 @@
 
 package vectormaths
 
-// euclidSqF32Kern computes the squared Euclidean distance between two
-// float32 slices. Pure Go fallback for architectures without
-// SIMD (neither amd64 nor arm64).
+// euclidSqF32Kern computes the squared Euclidean distance between two float32 slices.
+// Pure Go fallback for architectures without SIMD (neither amd64 nor arm64).
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.

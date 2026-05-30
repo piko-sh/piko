@@ -18,8 +18,8 @@
 
 package pdfwriter_domain
 
-// Manages ExtGState (extended graphics state) resources for PDF opacity.
-// Follows the same register-track-write lifecycle as FontEmbedder.
+// Manages ExtGState (extended graphics state) resources for PDF opacity. Follows the same
+// register-track-write lifecycle as FontEmbedder.
 
 import (
 	"fmt"
@@ -45,15 +45,14 @@ type extGStateEntry struct {
 	hasOpacity bool
 }
 
-// ExtGStateManager tracks graphics state parameter dictionaries needed
-// for opacity, blend modes, and other graphics state properties, and
-// writes them as PDF objects.
+// ExtGStateManager tracks graphics state parameter dictionaries needed for opacity, blend
+// modes, and other graphics state properties, and writes them as PDF objects.
 type ExtGStateManager struct {
 	// states maps resource names (GS1, GS2, ...) to their entries.
 	states map[string]extGStateEntry
 
-	// opacityToName deduplicates opacity-only registrations by mapping
-	// opacity values to their existing resource names.
+	// opacityToName deduplicates opacity-only registrations by mapping opacity values to
+	// their existing resource names.
 	opacityToName map[float64]string
 
 	// blendModeToName deduplicates blend-mode-only registrations.
@@ -74,8 +73,7 @@ func NewExtGStateManager() *ExtGStateManager {
 	}
 }
 
-// RegisterOpacity registers an opacity value and returns its resource
-// name (e.g. "GS1").
+// RegisterOpacity registers an opacity value and returns its resource name (e.g. "GS1").
 //
 // If the same opacity has already been registered, returns the existing name.
 //
@@ -94,12 +92,10 @@ func (m *ExtGStateManager) RegisterOpacity(opacity float64) string {
 	return name
 }
 
-// RegisterBlendMode registers a blend mode and returns its resource
-// name. Deduplicates: if the same blend mode has already been
-// registered, returns the existing name.
+// RegisterBlendMode registers a blend mode and returns its resource name. Deduplicates:
+// if the same blend mode has already been registered, returns the existing name.
 //
-// Takes blendMode (string) which is the PDF blend mode name (e.g.
-// "Multiply", "Screen").
+// Takes blendMode (string) which is the PDF blend mode name (e.g. "Multiply", "Screen").
 //
 // Returns string which is the resource name for use in SetExtGState.
 func (m *ExtGStateManager) RegisterBlendMode(blendMode string) string {
@@ -114,11 +110,11 @@ func (m *ExtGStateManager) RegisterBlendMode(blendMode string) string {
 	return name
 }
 
-// RegisterSoftMask registers a luminosity soft mask that references a
-// transparency group form XObject.
+// RegisterSoftMask registers a luminosity soft mask that references a transparency group
+// form XObject.
 //
-// Takes groupObjectNumber (int) which is the object number of the
-// transparency group form XObject to use as the mask.
+// Takes groupObjectNumber (int) which is the object number of the transparency group form
+// XObject to use as the mask.
 //
 // Returns string which is the resource name (e.g. "GS3").
 func (m *ExtGStateManager) RegisterSoftMask(groupObjectNumber int) string {
@@ -138,9 +134,8 @@ func (m *ExtGStateManager) HasStates() bool {
 	return len(m.states) > 0
 }
 
-// WriteObjects writes all registered ExtGState dictionaries as PDF
-// objects and returns the resource entries string for inclusion in
-// the page /Resources /ExtGState dictionary.
+// WriteObjects writes all registered ExtGState dictionaries as PDF objects and returns
+// the resource entries string for inclusion in the page /Resources /ExtGState dictionary.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 //

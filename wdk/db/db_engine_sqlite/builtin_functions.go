@@ -22,6 +22,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// buildFunctionCatalogue assembles every built-in SQLite function signature.
+//
+// Returns *querier_dto.FunctionCatalogue which contains every supported scalar,
+// aggregate, window, FTS5, and R-Tree function.
 func buildFunctionCatalogue() *querier_dto.FunctionCatalogue {
 	builder := &functionCatalogueBuilder{
 		catalogue: &querier_dto.FunctionCatalogue{
@@ -49,26 +53,45 @@ func buildFunctionCatalogue() *querier_dto.FunctionCatalogue {
 	return builder.catalogue
 }
 
+// functionCatalogueBuilder accumulates built-in function signatures while the catalogue
+// is being constructed.
 type functionCatalogueBuilder struct {
+	// catalogue accumulates registered function entries as the builder runs.
 	catalogue *querier_dto.FunctionCatalogue
 
+	// integer is the cached SQL integer type used by signatures.
 	integer querier_dto.SQLType
 
+	// text is the cached SQL text type used by signatures.
 	text querier_dto.SQLType
 
+	// real is the cached SQL real type used by signatures.
 	real querier_dto.SQLType
 
+	// blob is the cached SQL blob type used by signatures.
 	blob querier_dto.SQLType
 
+	// any is the cached SQL unknown type used by polymorphic signatures.
 	any querier_dto.SQLType
 }
 
+// add records one signature against the named function in the catalogue.
+//
+// Takes name (string) which is the function name being registered.
+// Takes signature (*querier_dto.FunctionSignature) which describes the arguments, return
+// type, and nullability behaviour.
 func (b *functionCatalogueBuilder) add(name string, signature *querier_dto.FunctionSignature) {
 	signature.Name = name
 	signature.DataAccess = querier_dto.DataAccessReadOnly
 	b.catalogue.Functions[name] = append(b.catalogue.Functions[name], signature)
 }
 
+// args builds an argument slice from alternating name and type pairs.
+//
+// Takes pairs (...any) which alternates string names with querier_dto.SQLType values.
+//
+// Returns []querier_dto.FunctionArgument which is the assembled argument list, skipping
+// any malformed pair.
 func (*functionCatalogueBuilder) args(pairs ...any) []querier_dto.FunctionArgument {
 	arguments := make([]querier_dto.FunctionArgument, 0, len(pairs)/2)
 	for i := 0; i+1 < len(pairs); i += 2 {
@@ -81,6 +104,11 @@ func (*functionCatalogueBuilder) args(pairs ...any) []querier_dto.FunctionArgume
 	return arguments
 }
 
+// nullOnNull registers a signature that returns NULL when any argument is NULL.
+//
+// Takes name (string) which is the function name being registered.
+// Takes arguments ([]querier_dto.FunctionArgument) which lists the parameters in order.
+// Takes returnType (querier_dto.SQLType) which is the function return type.
 func (b *functionCatalogueBuilder) nullOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -89,6 +117,11 @@ func (b *functionCatalogueBuilder) nullOnNull(name string, arguments []querier_d
 	})
 }
 
+// neverNull registers a signature that never returns NULL.
+//
+// Takes name (string) which is the function name being registered.
+// Takes arguments ([]querier_dto.FunctionArgument) which lists the parameters in order.
+// Takes returnType (querier_dto.SQLType) which is the function return type.
 func (b *functionCatalogueBuilder) neverNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -97,6 +130,11 @@ func (b *functionCatalogueBuilder) neverNull(name string, arguments []querier_dt
 	})
 }
 
+// calledOnNull registers a signature that runs even when any argument is NULL.
+//
+// Takes name (string) which is the function name being registered.
+// Takes arguments ([]querier_dto.FunctionArgument) which lists the parameters in order.
+// Takes returnType (querier_dto.SQLType) which is the function return type.
 func (b *functionCatalogueBuilder) calledOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -105,8 +143,8 @@ func (b *functionCatalogueBuilder) calledOnNull(name string, arguments []querier
 	})
 }
 
-// registerCoreFunctions registers core scalar functions present since early
-// SQLite versions.
+// registerCoreFunctions registers core scalar functions present since early SQLite
+// versions.
 func (b *functionCatalogueBuilder) registerCoreFunctions() {
 	b.nullOnNull("abs", b.args(paramNameX, b.any), b.any)
 	b.nullOnNull("length", b.args(paramNameX, b.any), b.integer)
@@ -197,8 +235,8 @@ func (b *functionCatalogueBuilder) registerDateTimeFunctions() {
 	b.calledOnNull("timediff", b.args("time1", b.text, "time2", b.text), b.text)
 }
 
-// registerStringFunctions registers additional string functions beyond the
-// core set (lower, upper, trim, etc. are in registerCoreFunctions).
+// registerStringFunctions registers additional string functions beyond the core set
+// (lower, upper, trim, etc. are in registerCoreFunctions).
 func (b *functionCatalogueBuilder) registerStringFunctions() {
 	b.nullOnNull("glob", b.args("pattern", b.text, "string", b.text), b.integer)
 	b.nullOnNull("like", b.args("pattern", b.text, "string", b.text), b.integer)
@@ -274,8 +312,8 @@ func (b *functionCatalogueBuilder) registerAggregateFunctions() {
 	})
 }
 
-// registerWindowRankingFunctions registers window ranking functions
-// (row_number, rank, dense_rank, etc.).
+// registerWindowRankingFunctions registers window ranking functions (row_number, rank,
+// dense_rank, etc.).
 func (b *functionCatalogueBuilder) registerWindowRankingFunctions() {
 	b.neverNull("row_number", nil, b.integer)
 	b.neverNull("rank", nil, b.integer)
@@ -285,8 +323,8 @@ func (b *functionCatalogueBuilder) registerWindowRankingFunctions() {
 	b.neverNull("percent_rank", nil, b.real)
 }
 
-// registerWindowValueFunctions registers window value-access functions
-// (lag, lead, first_value, last_value, nth_value).
+// registerWindowValueFunctions registers window value-access functions (lag, lead,
+// first_value, last_value, nth_value).
 func (b *functionCatalogueBuilder) registerWindowValueFunctions() {
 	windowValueArgs := b.args(paramNameExpression, b.any, "offset", b.integer, "default", b.any)
 

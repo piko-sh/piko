@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_webhook provides an analytics collector
-// that batches events and POSTs them as JSON to a configurable
-// webhook endpoint.
+// Package analytics_collector_webhook provides an analytics collector that batches events
+// and POSTs them as JSON to a configurable webhook endpoint.
 //
-// This collector is suitable for forwarding analytics events to
-// custom ingest endpoints, data warehouses, or third-party services
-// that accept JSON payloads.
+// This collector is suitable for forwarding analytics events to custom ingest endpoints,
+// data warehouses, or third-party services that accept JSON payloads.
 //
 // # Usage
 //

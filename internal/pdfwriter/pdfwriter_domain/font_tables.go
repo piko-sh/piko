@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// FontDescriptorInfo holds the metrics extracted from a TrueType font,
-// needed for the PDF FontDescriptor dictionary.
+// FontDescriptorInfo holds the metrics extracted from a TrueType font, needed for the PDF
+// FontDescriptor dictionary.
 type FontDescriptorInfo struct {
 	// PostScriptName holds the font's PostScript name from the name table.
 	PostScriptName string
@@ -76,8 +76,8 @@ func FontUnitsPerEm(rawFont []byte) int {
 	return int(binary.BigEndian.Uint16(headData[headUnitsPerEmOffset:headUnitsPerEmEnd]))
 }
 
-// GlyphAdvanceWidth returns the advance width in font design units for the
-// given glyph ID, reading directly from the hmtx table.
+// GlyphAdvanceWidth returns the advance width in font design units for the given glyph
+// ID, reading directly from the hmtx table.
 //
 // Takes rawFont ([]byte) which is the raw TTF file.
 // Takes glyphID (uint16) which is the glyph to query.
@@ -113,8 +113,8 @@ func GlyphAdvanceWidth(rawFont []byte, glyphID uint16) int {
 	return 0
 }
 
-// ExtractFontDescriptor reads a raw TrueType font and extracts the
-// metrics needed for a PDF FontDescriptor dictionary.
+// ExtractFontDescriptor reads a raw TrueType font and extracts the metrics needed for a
+// PDF FontDescriptor dictionary.
 //
 // Takes rawFont ([]byte) which is the raw TTF file bytes.
 //
@@ -151,8 +151,8 @@ func ExtractFontDescriptor(rawFont []byte) (*FontDescriptorInfo, error) {
 //
 // Takes headData ([]byte) which holds the raw head table bytes.
 //
-// Returns [fieldSize32]int which holds the bounding box values as
-// [xMin, yMin, xMax, yMax] in font design units.
+// Returns [fieldSize32]int which holds the bounding box values as [xMin, yMin, xMax,
+// yMax] in font design units.
 func readHeadBBox(headData []byte) [fieldSize32]int {
 	return [fieldSize32]int{
 		int(safeconv.Uint16ToInt16(binary.BigEndian.Uint16(headData[headBBoxOffset : headBBoxOffset+fieldSize16]))),
@@ -162,8 +162,8 @@ func readHeadBBox(headData []byte) [fieldSize32]int {
 	}
 }
 
-// populateOS2Metrics fills ascent, descent, cap height, stemV, and flags
-// from the OS/2 table (falling back to hhea if OS/2 is absent).
+// populateOS2Metrics fills ascent, descent, cap height, stemV, and flags from the OS/2
+// table (falling back to hhea if OS/2 is absent).
 //
 // Takes tables (map[string][]byte) which holds the parsed TTF tables.
 // Takes info (*FontDescriptorInfo) which holds the descriptor to populate.
@@ -242,8 +242,8 @@ func parseTTFTables(raw []byte) (map[string][]byte, error) {
 	return tables, nil
 }
 
-// extractPostScriptName reads the PostScript name (name ID 6) from the
-// name table, preferring Windows platform encoding.
+// extractPostScriptName reads the PostScript name (name ID 6) from the name table,
+// preferring Windows platform encoding.
 //
 // Takes tables (map[string][]byte) which holds the parsed TTF tables.
 //
@@ -333,8 +333,8 @@ func deriveFlags(os2Data []byte) int {
 	return flags
 }
 
-// HasFvarTable reports whether the raw TrueType font data contains an
-// fvar table, indicating it is a variable font.
+// HasFvarTable reports whether the raw TrueType font data contains an fvar table,
+// indicating it is a variable font.
 //
 // Takes rawFont ([]byte) which holds the raw TTF file bytes.
 //
@@ -389,13 +389,14 @@ func GenerateSubsetTag(glyphs map[uint16]rune) string {
 	return string(tag[:])
 }
 
-// BuildToUnicodeCMap generates a ToUnicode CMap stream mapping glyph IDs
-// to Unicode strings for text search and copy-paste support.
+// BuildToUnicodeCMap generates a ToUnicode CMap stream mapping glyph IDs to Unicode
+// strings for text search and copy-paste support.
 //
-// Each glyph maps to the full cluster string, so ligature glyphs (e.g. "fi")
-// produce multi-character entries that PDF viewers can extract correctly.
+// Each glyph maps to the full cluster string, so ligature glyphs (e.g. "fi") produce
+// multi-character entries that PDF viewers can extract correctly.
 //
-// Takes usedGlyphs (map[uint16]string) which maps glyph IDs to their display text strings.
+// Takes usedGlyphs (map[uint16]string) which maps glyph IDs to their display text
+// strings.
 //
 // Returns string which holds the complete CMap stream content.
 func BuildToUnicodeCMap(usedGlyphs map[uint16]string) string {
@@ -432,8 +433,8 @@ func hasBMPCodepoint(text string) bool {
 	return false
 }
 
-// collectBMPMappings filters usedGlyphs to those with at least one BMP
-// codepoint and returns the result sorted by glyph ID.
+// collectBMPMappings filters usedGlyphs to those with at least one BMP codepoint and
+// returns the result sorted by glyph ID.
 //
 // Takes usedGlyphs (map[uint16]string) which maps glyph IDs to their display text.
 //

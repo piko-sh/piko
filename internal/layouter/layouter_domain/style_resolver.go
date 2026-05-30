@@ -24,20 +24,17 @@ import (
 )
 
 const (
-	// defaultLineHeightMultiplier is the factor applied to font
-	// size when line-height is "normal", set to 1.4 to match
-	// the piko CSS reset.
+	// defaultLineHeightMultiplier is the factor applied to font size when line-height is
+	// "normal", set to 1.4 to match the piko CSS reset.
 	defaultLineHeightMultiplier = 1.4
 
-	// maxVarResolutionDepth is the recursion limit for
-	// resolving nested var() references.
+	// maxVarResolutionDepth is the recursion limit for resolving nested var() references.
 	maxVarResolutionDepth = 16
 
 	// viewportUnitDivisor converts viewport units to fractions.
 	viewportUnitDivisor = 100.0
 
-	// varPrefixLength is the character length of the "var("
-	// prefix.
+	// varPrefixLength is the character length of the "var(" prefix.
 	varPrefixLength = len("var(")
 
 	// cssKeywordTop is the CSS "top" keyword string.
@@ -55,36 +52,32 @@ const (
 
 // ResolutionContext provides the values needed to resolve relative CSS units.
 type ResolutionContext struct {
-	// ParentFontSize is the computed font size of the parent
-	// element in points.
+	// ParentFontSize is the computed font size of the parent element in points.
 	ParentFontSize float64
 
-	// RootFontSize is the computed font size of the root
-	// element in points, used for rem units.
+	// RootFontSize is the computed font size of the root element in points, used for rem
+	// units.
 	RootFontSize float64
 
-	// ContainingBlockWidth is the width of the containing
-	// block in points, used for percentage resolution.
+	// ContainingBlockWidth is the width of the containing block in points, used for
+	// percentage resolution.
 	ContainingBlockWidth float64
 
-	// ViewportWidth is the viewport width in points, used
-	// for vw and vmin/vmax units.
+	// ViewportWidth is the viewport width in points, used for vw and vmin/vmax units.
 	ViewportWidth float64
 
-	// ViewportHeight is the viewport height in points, used
-	// for vh and vmin/vmax units.
+	// ViewportHeight is the viewport height in points, used for vh and vmin/vmax units.
 	ViewportHeight float64
 }
 
-// ResolveStyle converts a flat CSS property map into a fully
-// resolved ComputedStyle with inheritance and unit conversion.
+// ResolveStyle converts a flat CSS property map into a fully resolved ComputedStyle with
+// inheritance and unit conversion.
 //
-// Takes properties (map[string]string) which is the CSS
-// property map to resolve.
-// Takes parentStyle (*ComputedStyle) which is the parent
-// element style for inheritance, or nil for the root.
-// Takes context (ResolutionContext) which provides the
-// values needed for relative unit resolution.
+// Takes properties (map[string]string) which is the CSS property map to resolve.
+// Takes parentStyle (*ComputedStyle) which is the parent element style for inheritance,
+// or nil for the root.
+// Takes context (ResolutionContext) which provides the values needed for relative unit
+// resolution.
 //
 // Returns the fully resolved ComputedStyle.
 func ResolveStyle(properties map[string]string, parentStyle *ComputedStyle, context ResolutionContext) ComputedStyle {
@@ -116,13 +109,13 @@ func ResolveStyle(properties map[string]string, parentStyle *ComputedStyle, cont
 	return style
 }
 
-// collectCustomProperties copies CSS custom properties (--*)
-// from the property map into the style.
+// collectCustomProperties copies CSS custom properties (--*) from the property map into
+// the style.
 //
-// Takes style (*ComputedStyle) which is the target style
-// to populate with custom properties.
-// Takes properties (map[string]string) which is the CSS
-// property map to scan for custom properties.
+// Takes style (*ComputedStyle) which is the target style to populate with custom
+// properties.
+// Takes properties (map[string]string) which is the CSS property map to scan for custom
+// properties.
 func collectCustomProperties(style *ComputedStyle, properties map[string]string) {
 	for property, value := range properties {
 		if strings.HasPrefix(property, "--") {
@@ -134,18 +127,15 @@ func collectCustomProperties(style *ComputedStyle, properties map[string]string)
 	}
 }
 
-// resolveVarReferences recursively replaces var() references
-// in a CSS value string with their resolved values.
+// resolveVarReferences recursively replaces var() references in a CSS value string with
+// their resolved values.
 //
-// Takes value (string) which is the CSS value that may
-// contain var() references.
-// Takes customProperties (map[string]string) which is
-// the map of custom property names to values.
-// Takes depth (int) which is the current recursion depth
-// to guard against infinite loops.
+// Takes value (string) which is the CSS value that may contain var() references.
+// Takes customProperties (map[string]string) which is the map of custom property names to
+// values.
+// Takes depth (int) which is the current recursion depth to guard against infinite loops.
 //
-// Returns string which is the value with all var()
-// references resolved.
+// Returns string which is the value with all var() references resolved.
 func resolveVarReferences(value string, customProperties map[string]string, depth int) string {
 	if depth > maxVarResolutionDepth || !strings.Contains(value, "var(") {
 		return value
@@ -169,15 +159,13 @@ func resolveVarReferences(value string, customProperties map[string]string, dept
 	return resolveVarReferences(result, customProperties, depth+1)
 }
 
-// findMatchingCloseParen returns the index of the closing
-// parenthesis that matches the open paren before start.
+// findMatchingCloseParen returns the index of the closing parenthesis that matches the
+// open paren before start.
 //
 // Takes value (string) which is the string to search.
-// Takes start (int) which is the index to begin
-// scanning from.
+// Takes start (int) which is the index to begin scanning from.
 //
-// Returns int which is the index of the matching close
-// paren, or -1 if not found.
+// Returns int which is the index of the matching close paren, or -1 if not found.
 func findMatchingCloseParen(value string, start int) int {
 	parenDepth := 0
 	for index := start; index < len(value); index++ {
@@ -194,18 +182,16 @@ func findMatchingCloseParen(value string, start int) int {
 	return -1
 }
 
-// resolveVarExpression resolves a single var() expression
-// body, handling fallback values when the variable is unset.
+// resolveVarExpression resolves a single var() expression body, handling fallback values
+// when the variable is unset.
 //
-// Takes inner (string) which is the content between the
-// var( and closing paren.
-// Takes customProperties (map[string]string) which is
-// the map of custom property names to values.
-// Takes depth (int) which is the current recursion
-// depth for nested resolution.
+// Takes inner (string) which is the content between the var( and closing paren.
+// Takes customProperties (map[string]string) which is the map of custom property names to
+// values.
+// Takes depth (int) which is the current recursion depth for nested resolution.
 //
-// Returns string which is the resolved value, or empty
-// string if the variable is unset with no fallback.
+// Returns string which is the resolved value, or empty string if the variable is unset
+// with no fallback.
 func resolveVarExpression(inner string, customProperties map[string]string, depth int) string {
 	inner = strings.TrimSpace(inner)
 	variableName, fallback, hasFallback := strings.Cut(inner, commaDelimiter)
@@ -220,13 +206,11 @@ func resolveVarExpression(inner string, customProperties map[string]string, dept
 	return ""
 }
 
-// inheritFromParent copies inheritable CSS property values
-// from the parent style into the child style.
+// inheritFromParent copies inheritable CSS property values from the parent style into the
+// child style.
 //
-// Takes style (*ComputedStyle) which is the child style
-// to receive inherited values.
-// Takes parent (*ComputedStyle) which is the parent
-// style to inherit from.
+// Takes style (*ComputedStyle) which is the child style to receive inherited values.
+// Takes parent (*ComputedStyle) which is the parent style to inherit from.
 func inheritFromParent(style *ComputedStyle, parent *ComputedStyle) {
 	style.Colour = parent.Colour
 	style.FontFamily = parent.FontFamily
@@ -256,17 +240,15 @@ func inheritFromParent(style *ComputedStyle, parent *ComputedStyle) {
 	}
 }
 
-// applyProperty sets a single CSS property on the style.
-// Global CSS keywords (inherit, initial, unset) are handled
-// before the main property dispatch.
+// applyProperty sets a single CSS property on the style. Global CSS keywords (inherit,
+// initial, unset) are handled before the main property dispatch.
 //
 // Takes style (*ComputedStyle) which is the style to modify.
 // Takes property (string) which is the CSS property name.
 // Takes value (string) which is the resolved CSS value.
-// Takes context (ResolutionContext) which provides unit
-// resolution values.
-// Takes parentStyle (*ComputedStyle) which is the parent
-// style for inherit resolution, or nil for root elements.
+// Takes context (ResolutionContext) which provides unit resolution values.
+// Takes parentStyle (*ComputedStyle) which is the parent style for inherit resolution, or
+// nil for root elements.
 //
 //nolint:revive // CSS property dispatch
 func applyProperty(style *ComputedStyle, property, value string, context ResolutionContext, parentStyle *ComputedStyle) {

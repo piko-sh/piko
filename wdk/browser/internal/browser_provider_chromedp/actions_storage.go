@@ -90,8 +90,7 @@ func RemoveLocalStorageItem(ctx *ActionContext, key string) error {
 
 // ClearLocalStorage clears all items from localStorage.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// operation.
+// Takes ctx (*ActionContext) which provides the browser context for the operation.
 //
 // Returns error when the localStorage cannot be cleared.
 func ClearLocalStorage(ctx *ActionContext) error {
@@ -213,8 +212,7 @@ func ClearSessionStorage(ctx *ActionContext) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 //
-// Returns map[string]string which contains all sessionStorage items as
-// key-value pairs.
+// Returns map[string]string which contains all sessionStorage items as key-value pairs.
 // Returns error when the sessionStorage cannot be retrieved.
 func GetAllSessionStorage(ctx *ActionContext) (map[string]string, error) {
 	js := scripts.MustGet("get_all_session_storage.js")

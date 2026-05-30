@@ -28,10 +28,14 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// hoursPerDay is the number of hours in a day, used for duration formatting.
-const hoursPerDay = 24
+const (
+	// hoursPerDay is the number of hours in a day, used for duration formatting.
+	hoursPerDay = 24
+)
 
-var _ provider_domain.ResourceDescriptor = (*service)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*service)(nil)
+)
 
 // ResourceType returns the CLI resource name for the email hexagon.
 //
@@ -40,11 +44,10 @@ func (*service) ResourceType() string {
 	return "email"
 }
 
-// ResourceListColumns returns column definitions for the email provider list
-// table.
+// ResourceListColumns returns column definitions for the email provider list table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAME, TYPE,
-// and REGISTERED columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAME, TYPE, and
+// REGISTERED columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAME", Key: "name"},
@@ -55,8 +58,7 @@ func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 
 // ResourceListProviders returns all registered email providers as list rows.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// provider.
+// Returns []provider_domain.ProviderListEntry which contains one entry per provider.
 func (s *service) ResourceListProviders(ctx context.Context) []provider_domain.ProviderListEntry {
 	providers := s.registry.ListProviders(ctx)
 	entries := make([]provider_domain.ProviderListEntry, len(providers))
@@ -76,13 +78,12 @@ func (s *service) ResourceListProviders(ctx context.Context) []provider_domain.P
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// email provider.
+// ResourceDescribeProvider returns detailed information for a single named email
+// provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
-// Returns *provider_domain.ProviderDetail which contains the structured
-// sections.
+// Returns *provider_domain.ProviderDetail which contains the structured sections.
 // Returns error when the named provider is not found.
 func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*provider_domain.ProviderDetail, error) {
 	provider, err := s.registry.GetProvider(ctx, name)
@@ -111,8 +112,8 @@ func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*p
 // Takes infos ([]provider_domain.ProviderInfo) which is the slice to search.
 // Takes name (string) which is the provider name to find.
 //
-// Returns provider_domain.ProviderInfo which is the matching provider, or a
-// new ProviderInfo with the given name if no match is found.
+// Returns provider_domain.ProviderInfo which is the matching provider, or a new
+// ProviderInfo with the given name if no match is found.
 func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provider_domain.ProviderInfo {
 	for _, info := range infos {
 		if info.Name == name {
@@ -124,11 +125,10 @@ func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provide
 
 // buildOverviewSection creates the overview section for a provider detail view.
 //
-// Takes info (provider_domain.ProviderInfo) which contains the provider data
-// to display.
+// Takes info (provider_domain.ProviderInfo) which contains the provider data to display.
 //
-// Returns provider_domain.InfoSection which contains the formatted overview
-// with name, type, default status, and registration age.
+// Returns provider_domain.InfoSection which contains the formatted overview with name,
+// type, default status, and registration age.
 func buildOverviewSection(info provider_domain.ProviderInfo) provider_domain.InfoSection {
 	isDefault := "false"
 	if info.IsDefault {
@@ -146,8 +146,8 @@ func buildOverviewSection(info provider_domain.ProviderInfo) provider_domain.Inf
 	}
 }
 
-// buildMetadataSection creates a configuration section from ProviderMetadata
-// if the provider implements it.
+// buildMetadataSection creates a configuration section from ProviderMetadata if the
+// provider implements it.
 //
 // Takes provider (any) which is checked for ProviderMetadata implementation.
 //
@@ -183,11 +183,10 @@ func buildMetadataSection(provider any) (provider_domain.InfoSection, bool) {
 
 // formatRegisteredAge returns a human-readable duration since registration.
 //
-// Takes registeredAt (time.Time) which is the timestamp when registration
-// occurred.
+// Takes registeredAt (time.Time) which is the timestamp when registration occurred.
 //
-// Returns string which is the formatted duration (e.g. "5m ago", "3d ago") or
-// "unknown" if the timestamp is zero.
+// Returns string which is the formatted duration (e.g. "5m ago", "3d ago") or "unknown"
+// if the timestamp is zero.
 func formatRegisteredAge(registeredAt time.Time) string {
 	if registeredAt.IsZero() {
 		return "unknown"

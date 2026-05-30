@@ -24,20 +24,30 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// PostgresDialect holds configuration for a PostgreSQL variant. Flavours such
-// as CockroachDB, YugabyteDB, or TimescaleDB override specific fields to
-// customise types, functions, and semantic rules without forking the parser.
+// PostgresDialect holds configuration for a PostgreSQL variant. Flavours such as
+// CockroachDB, YugabyteDB, or TimescaleDB override specific fields to customise types,
+// functions, and semantic rules without forking the parser.
 type PostgresDialect struct {
+	// ExtraTypes lists additional type definitions merged into the catalogue after the
+	// builtin PostgreSQL types.
 	ExtraTypes map[string]querier_dto.SQLType
 
+	// ExtraFunctions registers additional functions after the builtin PostgreSQL function
+	// catalogue is built.
 	ExtraFunctions func(*FunctionCatalogueBuilder)
 
+	// TypeNormaliserHook overrides default type-name normalisation when it returns a non-nil
+	// result.
 	TypeNormaliserHook func(name string, modifiers []int) *querier_dto.SQLType
 
+	// ImplicitCastHook overrides the default implicit cast rules when it returns a non-nil
+	// result.
 	ImplicitCastHook func(from, to querier_dto.SQLTypeCategory) *bool
 
+	// PromoteTypeHook overrides the default type promotion when it returns a non-nil result.
 	PromoteTypeHook func(left, right querier_dto.SQLType) *querier_dto.SQLType
 
+	// Name identifies the dialect flavour (e.g. "postgres", "cockroachdb").
 	Name string
 }
 
@@ -45,48 +55,71 @@ type PostgresDialect struct {
 type Option func(*PostgresDialect)
 
 // WithDialectName sets the dialect name (e.g. "cockroachdb").
+//
+// Takes name (string) which is the dialect identifier to record.
+//
+// Returns Option which applies the name to a PostgresDialect.
 func WithDialectName(name string) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.Name = name
 	}
 }
 
-// WithExtraTypes adds extra type definitions that are merged into the type
-// catalogue after the builtin PostgreSQL types.
+// WithExtraTypes adds extra type definitions merged into the type catalogue.
+//
+// Takes types (map[string]querier_dto.SQLType) which lists extra type definitions added
+// after the builtin PostgreSQL types.
+//
+// Returns Option which applies the extra types to a PostgresDialect.
 func WithExtraTypes(types map[string]querier_dto.SQLType) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.ExtraTypes = types
 	}
 }
 
-// WithExtraFunctions registers additional functions after the builtin
-// PostgreSQL function catalogue is built.
+// WithExtraFunctions registers additional functions after the builtin PostgreSQL function
+// catalogue is built.
+//
+// Takes register (func(*FunctionCatalogueBuilder)) which adds further signatures to the
+// builder once the builtin catalogue is constructed.
+//
+// Returns Option which applies the hook to a PostgresDialect.
 func WithExtraFunctions(register func(*FunctionCatalogueBuilder)) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.ExtraFunctions = register
 	}
 }
 
-// WithTypeNormaliserHook installs a hook that is called first in
-// NormaliseTypeName. If it returns non-nil, the result is used instead of the
-// default normalisation.
+// WithTypeNormaliserHook installs a NormaliseTypeName override.
+//
+// Takes hook (func(string, []int) *querier_dto.SQLType) which overrides default
+// normalisation when it returns a non-nil result.
+//
+// Returns Option which applies the hook to a PostgresDialect.
 func WithTypeNormaliserHook(hook func(string, []int) *querier_dto.SQLType) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.TypeNormaliserHook = hook
 	}
 }
 
-// WithImplicitCastHook installs a hook that is called first in
-// CanImplicitCast. If it returns non-nil, the result is used instead of the
-// default rules.
+// WithImplicitCastHook installs a CanImplicitCast override.
+//
+// Takes hook (func(from, to querier_dto.SQLTypeCategory) *bool) which overrides the
+// default rules when it returns a non-nil result.
+//
+// Returns Option which applies the hook to a PostgresDialect.
 func WithImplicitCastHook(hook func(from, to querier_dto.SQLTypeCategory) *bool) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.ImplicitCastHook = hook
 	}
 }
 
-// WithPromoteTypeHook installs a hook that is called first in PromoteType. If
-// it returns non-nil, the result is used instead of the default promotion.
+// WithPromoteTypeHook installs a PromoteType override.
+//
+// Takes hook (func(left, right querier_dto.SQLType) *querier_dto.SQLType) which overrides
+// default promotion when it returns a non-nil result.
+//
+// Returns Option which applies the hook to a PostgresDialect.
 func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto.SQLType) Option {
 	return func(dialect *PostgresDialect) {
 		dialect.PromoteTypeHook = hook
@@ -95,15 +128,23 @@ func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto
 
 // PostgresEngine implements the querier EnginePort for PostgreSQL.
 type PostgresEngine struct {
+	// functions holds the built-in PostgreSQL function catalogue plus any extra signatures
+	// supplied via the dialect options.
 	functions *querier_dto.FunctionCatalogue
 
+	// types holds the built-in PostgreSQL type catalogue plus any extra definitions supplied
+	// via the dialect options.
 	types *querier_dto.TypeCatalogue
 
+	// dialect stores the active dialect configuration and override hooks.
 	dialect PostgresDialect
 }
 
-// NewPostgresEngine creates a new PostgreSQL engine adapter with optional
-// dialect overrides.
+// NewPostgresEngine creates a PostgreSQL engine adapter with optional overrides.
+//
+// Takes options (...Option) which configure the dialect flavour and hooks.
+//
+// Returns *PostgresEngine which is the configured engine adapter.
 func NewPostgresEngine(options ...Option) *PostgresEngine {
 	dialect := PostgresDialect{
 		Name: "postgres",
@@ -119,7 +160,12 @@ func NewPostgresEngine(options ...Option) *PostgresEngine {
 	}
 }
 
-// ParseStatements tokenises and classifies SQL statements for the PostgreSQL dialect.
+// ParseStatements tokenises and classifies SQL statements for PostgreSQL.
+//
+// Takes sql (string) which is the raw SQL source to tokenise and split.
+//
+// Returns []querier_dto.ParsedStatement which lists each parsed statement.
+// Returns error when tokenisation fails.
 func (*PostgresEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
 	tokens, tokeniseError := tokenise(sql)
 	if tokeniseError != nil {
@@ -144,57 +190,68 @@ func (*PostgresEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatemen
 // ddlHandler is a function that parses a DDL statement into a catalogue mutation.
 type ddlHandler func(*parser, *PostgresEngine) (*querier_dto.CatalogueMutation, error)
 
-var ddlHandlers = [statementKindCount]ddlHandler{
-	statementKindCreateTable: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateTable(engine)
-	},
-	statementKindDropTable: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
-	statementKindAlterTable: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseAlterTable(engine)
-	},
-	statementKindCreateView: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
-	statementKindDropView:   func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
-	statementKindCreateIndex: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateIndex()
-	},
-	statementKindDropIndex: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
-	statementKindCreateTrigger: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateOrDropTrigger(statementKindCreateTrigger)
-	},
-	statementKindDropTrigger: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateOrDropTrigger(statementKindDropTrigger)
-	},
-	statementKindCreateType: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateType(engine)
-	},
-	statementKindAlterType: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseAlterType() },
-	statementKindDropType:  func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropType() },
-	statementKindCreateFunction: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateFunction(engine)
-	},
-	statementKindDropFunction: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseDropFunction()
-	},
-	statementKindCreateSchema: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateSchema()
-	},
-	statementKindDropSchema: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSchema() },
-	statementKindCreateExtension: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateExtension()
-	},
-	statementKindDropExtension: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseDropExtension()
-	},
-	statementKindCreateSequence: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateSequence()
-	},
-	statementKindDropSequence: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseDropSequence()
-	},
-	statementKindComment: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseComment() },
-}
+var (
+	// ddlHandlers dispatches each DDL statement kind to the parser routine that produces the
+	// corresponding catalogue mutation.
+	ddlHandlers = [statementKindCount]ddlHandler{
+		statementKindCreateTable: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateTable(engine)
+		},
+		statementKindDropTable: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
+		statementKindAlterTable: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseAlterTable(engine)
+		},
+		statementKindCreateView: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
+		statementKindDropView:   func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
+		statementKindCreateIndex: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateIndex()
+		},
+		statementKindDropIndex: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
+		statementKindCreateTrigger: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateOrDropTrigger(statementKindCreateTrigger)
+		},
+		statementKindDropTrigger: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateOrDropTrigger(statementKindDropTrigger)
+		},
+		statementKindCreateType: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateType(engine)
+		},
+		statementKindAlterType: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseAlterType() },
+		statementKindDropType:  func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropType() },
+		statementKindCreateFunction: func(p *parser, engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateFunction(engine)
+		},
+		statementKindDropFunction: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropFunction()
+		},
+		statementKindCreateSchema: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateSchema()
+		},
+		statementKindDropSchema: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSchema() },
+		statementKindCreateExtension: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateExtension()
+		},
+		statementKindDropExtension: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropExtension()
+		},
+		statementKindCreateSequence: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateSequence()
+		},
+		statementKindDropSequence: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropSequence()
+		},
+		statementKindComment: func(p *parser, _ *PostgresEngine) (*querier_dto.CatalogueMutation, error) { return p.parseComment() },
+	}
+)
 
 // ApplyDDL applies a DDL statement to the catalogue for the PostgreSQL dialect.
+//
+// Takes statement (querier_dto.ParsedStatement) which carries the parsed tokens and
+// statement kind.
+//
+// Returns *querier_dto.CatalogueMutation which describes the change, or nil when the
+// statement kind has no handler.
+// Returns error when the raw statement payload has an unexpected type or parsing fails.
 func (engine *PostgresEngine) ApplyDDL(
 	statement querier_dto.ParsedStatement,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -212,7 +269,14 @@ func (engine *PostgresEngine) ApplyDDL(
 	return nil, nil
 }
 
-// AnalyseQuery performs structural analysis of a DML statement for the PostgreSQL dialect.
+// AnalyseQuery performs structural analysis of a PostgreSQL DML statement.
+//
+// Takes _ (*querier_dto.Catalogue) which is unused at this stage.
+// Takes statement (querier_dto.ParsedStatement) which carries the parsed tokens and
+// statement kind.
+//
+// Returns *querier_dto.RawQueryAnalysis which captures the analysed shape.
+// Returns error when the raw statement payload has an unexpected type or parsing fails.
 func (*PostgresEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -241,26 +305,40 @@ func (*PostgresEngine) AnalyseQuery(
 }
 
 // BuiltinFunctions returns the PostgreSQL built-in function catalogue.
+//
+// Returns *querier_dto.FunctionCatalogue which lists every registered function signature.
 func (engine *PostgresEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
 	return engine.functions
 }
 
 // BuiltinTypes returns the PostgreSQL built-in type catalogue.
+//
+// Returns *querier_dto.TypeCatalogue which lists every registered type.
 func (engine *PostgresEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
 	return engine.types
 }
 
-// NormaliseTypeName resolves a raw type name to a structured SQLType for PostgreSQL.
+// NormaliseTypeName resolves a raw type name to a structured SQLType.
+//
+// Takes name (string) which is the raw type name from the SQL source.
+// Takes modifiers (...int) which carry optional precision or length values.
+//
+// Returns querier_dto.SQLType which describes the resolved type.
 func (engine *PostgresEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, modifiers...)
 }
 
 // ParameterStyle returns the dollar-sign parameter style used by PostgreSQL.
+//
+// Returns querier_dto.ParameterStyle which is the dollar-sign style.
 func (*PostgresEngine) ParameterStyle() querier_dto.ParameterStyle {
 	return querier_dto.ParameterStyleDollar
 }
 
-// SupportedDirectivePrefixes returns the parameter prefixes valid in PostgreSQL directives.
+// SupportedDirectivePrefixes returns the prefixes valid in PostgreSQL directives.
+//
+// Returns []querier_dto.DirectiveParameterPrefix which lists the dollar and colon
+// prefixes accepted by the directive parser.
 func (*PostgresEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParameterPrefix {
 	return []querier_dto.DirectiveParameterPrefix{
 		{Prefix: '$', IsNamed: false},
@@ -269,17 +347,26 @@ func (*PostgresEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParam
 }
 
 // SupportsReturning reports that PostgreSQL supports RETURNING clauses.
+//
+// Returns bool which is always true for PostgreSQL.
 func (*PostgresEngine) SupportsReturning() bool {
 	return true
 }
 
-// Dialect returns the dialect name for this engine instance. Defaults to
-// "postgres" but derivatives (e.g. CockroachDB) override via WithDialectName.
+// Dialect returns the dialect name for this engine instance.
+//
+// Defaults to "postgres" but derivatives such as CockroachDB override the value via
+// WithDialectName.
+//
+// Returns string which is the configured dialect name.
 func (engine *PostgresEngine) Dialect() string {
 	return engine.dialect.Name
 }
 
 // SupportedExpressions returns the expression features supported by PostgreSQL.
+//
+// Returns querier_dto.SQLExpressionFeature which is the bitset of supported expression
+// features.
 func (*PostgresEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 	return querier_dto.SQLFeaturesBase |
 		querier_dto.SQLFeatureScalarSubquery |
@@ -290,11 +377,18 @@ func (*PostgresEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 }
 
 // DefaultSchema returns "public", the default PostgreSQL schema.
+//
+// Returns string which is the default schema name.
 func (*PostgresEngine) DefaultSchema() string {
 	return "public"
 }
 
-// TableValuedFunctionColumns returns output columns for a known table-valued function.
+// TableValuedFunctionColumns returns output columns for a known function.
+//
+// Takes functionName (string) which is the table-valued function name.
+//
+// Returns []querier_dto.ScopedColumn which lists the output columns, or nil when the
+// function is not known.
 func (*PostgresEngine) TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn {
 	columns, exists := tableValuedFunctionColumns[functionName]
 	if !exists {
@@ -305,9 +399,17 @@ func (*PostgresEngine) TableValuedFunctionColumns(functionName string) []querier
 	return result
 }
 
-// TableValuedFunctionColumnsFromCatalogue resolves user-defined functions
-// returning composite or set-of types by looking up the function signature
-// and return type in the catalogue.
+// TableValuedFunctionColumnsFromCatalogue resolves columns for user functions.
+//
+// Looks up the signature and return type in the catalogue, yielding the composite columns
+// when a function yields a set of a composite type.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is searched for the function and its
+// return type.
+// Takes functionName (string) which is the function to resolve.
+//
+// Returns []querier_dto.ScopedColumn which lists the resolved columns, or nil when no
+// matching set-returning function is found.
 func (*PostgresEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
@@ -330,6 +432,17 @@ func (*PostgresEngine) TableValuedFunctionColumnsFromCatalogue(
 	return nil
 }
 
+// resolveCompositeColumns finds the columns of a composite return type.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is searched when the type lives in a
+// different schema than the declaring schema.
+// Takes declaringSchema (*querier_dto.Schema) which is searched first for the composite
+// type definition.
+// Takes returnType (querier_dto.SQLType) which carries the composite type name and
+// optional schema qualifier.
+//
+// Returns []querier_dto.ScopedColumn which lists the composite fields, or nil when no
+// matching composite type is found.
 func resolveCompositeColumns(
 	catalogue *querier_dto.Catalogue,
 	declaringSchema *querier_dto.Schema,
@@ -365,7 +478,13 @@ func resolveCompositeColumns(
 	return nil
 }
 
-// PromoteType returns the wider type within the same category for PostgreSQL.
+// PromoteType returns the wider type within the same category.
+//
+// Takes left (querier_dto.SQLType) which is the first candidate type.
+// Takes right (querier_dto.SQLType) which is the second candidate type.
+//
+// Returns querier_dto.SQLType which is the wider of the two when both share a numeric
+// category, otherwise left.
 func (engine *PostgresEngine) PromoteType(
 	left querier_dto.SQLType,
 	right querier_dto.SQLType,
@@ -396,8 +515,12 @@ func (engine *PostgresEngine) PromoteType(
 	}
 }
 
-// CanImplicitCast reports whether PostgreSQL allows implicit conversion
-// between type categories.
+// CanImplicitCast reports whether PostgreSQL allows an implicit conversion.
+//
+// Takes from (querier_dto.SQLTypeCategory) which is the source category.
+// Takes to (querier_dto.SQLTypeCategory) which is the destination category.
+//
+// Returns bool which is true when the conversion is permitted.
 func (engine *PostgresEngine) CanImplicitCast(
 	from querier_dto.SQLTypeCategory,
 	to querier_dto.SQLTypeCategory,
@@ -423,11 +546,24 @@ func (engine *PostgresEngine) CanImplicitCast(
 }
 
 // CommentStyle returns the standard SQL comment style.
+//
+// Returns querier_dto.CommentStyle which is the default SQL comment style.
 func (*PostgresEngine) CommentStyle() querier_dto.CommentStyle {
 	return querier_dto.DefaultSQLCommentStyle()
 }
 
 // ResolveFunctionCall resolves a function call using PostgreSQL overload rules.
+//
+// Takes catalogue (*querier_dto.Catalogue) which provides the registered functions to
+// overload resolve against.
+// Takes name (string) which is the function name to resolve.
+// Takes schema (string) which scopes the lookup, empty for any schema.
+// Takes argumentTypes ([]querier_dto.SQLType) which gives the actual argument types of
+// the call.
+//
+// Returns *querier_dto.FunctionResolution which describes the matched signature and
+// coercions.
+// Returns error when no matching signature can be resolved.
 func (*PostgresEngine) ResolveFunctionCall(
 	catalogue *querier_dto.Catalogue,
 	name string,
@@ -437,7 +573,12 @@ func (*PostgresEngine) ResolveFunctionCall(
 	return NewPostgresFunctionResolver().ResolveFunctionCall(catalogue, name, schema, argumentTypes)
 }
 
-// LoadExtensionFunctions returns function signatures for a named PostgreSQL extension.
+// LoadExtensionFunctions returns the signatures for a PostgreSQL extension.
+//
+// Takes name (string) which is the extension to look up.
+//
+// Returns []*querier_dto.FunctionSignature which lists the extension signatures, or nil
+// when the extension is unknown.
 func (*PostgresEngine) LoadExtensionFunctions(name string) []*querier_dto.FunctionSignature {
 	return lookupExtensionFunctions(name)
 }

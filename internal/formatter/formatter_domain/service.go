@@ -26,12 +26,12 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/ast/ast_domain"
 	es_ast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/css_parser"
 	"piko.sh/piko/internal/esbuild/css_printer"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/sfcparser"
 )
@@ -52,8 +52,8 @@ func (s *formatterServiceImpl) Format(ctx context.Context, source []byte) ([]byt
 	return s.FormatWithOptions(ctx, source, s.options)
 }
 
-// FormatWithOptions formats source with custom formatting options.
-// It supports both .pk (Single File Component) and plain .html files.
+// FormatWithOptions formats source with custom formatting options. It supports both .pk
+// (Single File Component) and plain .html files.
 //
 // Each block type formatting is extracted into focused helpers.
 //
@@ -79,13 +79,12 @@ func (s *formatterServiceImpl) FormatWithOptions(ctx context.Context, source []b
 	return s.formatPK(ctx, source, opts)
 }
 
-// FormatRange formats only a specific range within the source. Use it for
-// LSP range formatting and format-on-type features.
+// FormatRange formats only a specific range within the source. Use it for LSP range
+// formatting and format-on-type features.
 //
 // Takes source ([]byte) which contains the full document to format.
 // Takes formatRange (Range) which specifies the line range to format.
-// Takes opts (*FormatOptions) which provides formatting settings, or nil for
-// defaults.
+// Takes opts (*FormatOptions) which provides formatting settings, or nil for defaults.
 //
 // Returns []byte which contains the source with the specified range formatted.
 // Returns error when the range offsets are invalid or formatting fails.
@@ -126,9 +125,9 @@ func (s *formatterServiceImpl) FormatRange(ctx context.Context, source []byte, f
 	return result, nil
 }
 
-// detectFileFormat determines whether the source is PK or plain HTML format.
-// It uses the explicit format from opts if set, otherwise auto-detects based on
-// the presence of a <template> tag.
+// detectFileFormat determines whether the source is PK or plain HTML format. It uses the
+// explicit format from opts if set, otherwise auto-detects based on the presence of a
+// <template> tag.
 //
 // Takes source ([]byte) which is the content to analyse.
 // Takes opts (*FormatOptions) which may contain an explicit format setting.
@@ -153,8 +152,8 @@ func (*formatterServiceImpl) detectFileFormat(source []byte, opts *FormatOptions
 
 // formatPK formats a Piko Single File Component (.pk) file.
 //
-// A .pk file contains template, script, style, and i18n blocks. Parses the file,
-// formats each block, and reassembles them.
+// A .pk file contains template, script, style, and i18n blocks. Parses the file, formats
+// each block, and reassembles them.
 //
 // Takes source ([]byte) which contains the raw .pk file content.
 // Takes opts (*FormatOptions) which specifies formatting behaviour.
@@ -186,8 +185,8 @@ func (s *formatterServiceImpl) formatPK(ctx context.Context, source []byte, opts
 	return resultBytes, nil
 }
 
-// formatHTMLOnly formats plain HTML content without SFC block structure.
-// It parses the HTML with the AST parser and formats it.
+// formatHTMLOnly formats plain HTML content without SFC block structure. It parses the
+// HTML with the AST parser and formats it.
 //
 // Takes source ([]byte) which contains the raw HTML content.
 // Takes opts (*FormatOptions) which controls formatting behaviour.
@@ -262,15 +261,13 @@ func (*formatterServiceImpl) recordformatDuration(ctx context.Context, startTime
 	formatDuration.Record(ctx, float64(duration))
 }
 
-// formatTemplateBlock formats the template block, returning the original on
-// error.
+// formatTemplateBlock formats the template block, returning the original on error.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes template (string) which is the template content to format.
 // Takes opts (*FormatOptions) which specifies the formatting behaviour.
 //
-// Returns string which is the formatted template, or the original if
-// formatting fails.
+// Returns string which is the formatted template, or the original if formatting fails.
 func (s *formatterServiceImpl) formatTemplateBlock(ctx context.Context, template string, opts *FormatOptions) string {
 	ctx, l := logger_domain.From(ctx, log)
 	if template == "" {
@@ -289,11 +286,10 @@ func (s *formatterServiceImpl) formatTemplateBlock(ctx context.Context, template
 // formatScriptBlocks formats all script blocks in a slice.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes scripts ([]sfcparser.Script) which contains the script blocks to
-// format.
+// Takes scripts ([]sfcparser.Script) which contains the script blocks to format.
 //
-// Returns []sfcparser.Script which contains the formatted scripts. Go scripts
-// are formatted using go/format; other scripts are kept unchanged.
+// Returns []sfcparser.Script which contains the formatted scripts. Go scripts are
+// formatted using go/format; other scripts are kept unchanged.
 func (s *formatterServiceImpl) formatScriptBlocks(ctx context.Context, scripts []sfcparser.Script) []sfcparser.Script {
 	_, l := logger_domain.From(ctx, log)
 	formattedScripts := make([]sfcparser.Script, 0, len(scripts))
@@ -354,11 +350,10 @@ func (s *formatterServiceImpl) formatStyleBlocks(ctx context.Context, styles []s
 // formatI18nBlocks formats all i18n blocks (JSON format only).
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes i18nBlocks ([]sfcparser.I18nBlock) which contains the i18n blocks to
-// format.
+// Takes i18nBlocks ([]sfcparser.I18nBlock) which contains the i18n blocks to format.
 //
-// Returns []sfcparser.I18nBlock which contains the formatted blocks, with
-// original content preserved when formatting fails.
+// Returns []sfcparser.I18nBlock which contains the formatted blocks, with original
+// content preserved when formatting fails.
 func (s *formatterServiceImpl) formatI18nBlocks(ctx context.Context, i18nBlocks []sfcparser.I18nBlock) []sfcparser.I18nBlock {
 	_, l := logger_domain.From(ctx, log)
 	formattedI18nBlocks := make([]sfcparser.I18nBlock, 0, len(i18nBlocks))
@@ -479,14 +474,14 @@ func (*formatterServiceImpl) formatCSS(cssContent string, _ *FormatOptions) (str
 	return string(printed.CSS), nil
 }
 
-// formatI18nJSON formats JSON content within i18n blocks with consistent
-// 2-space indentation.
+// formatI18nJSON formats JSON content within i18n blocks with consistent 2-space
+// indentation.
 //
 // Takes content (string) which is the JSON text to format.
 //
 // Returns string which is the formatted JSON with 2-space indentation.
-// Returns error when the JSON is malformed; the caller should preserve the
-// original content.
+// Returns error when the JSON is malformed; the caller should preserve the original
+// content.
 func (*formatterServiceImpl) formatI18nJSON(content string) (string, error) {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
@@ -514,8 +509,8 @@ type rangeOffsets struct {
 	// sourceEnd is the byte offset where the target range ends in the source.
 	sourceEnd int
 
-	// formattedStart is the byte offset where the relevant section begins in the
-	// formatted output.
+	// formattedStart is the byte offset where the relevant section begins in the formatted
+	// output.
 	formattedStart int
 
 	// formattedEnd is the exclusive end position in the formatted output.
@@ -531,11 +526,10 @@ func NewFormatterService() FormatterService {
 	}
 }
 
-// NewFormatterServiceWithOptions creates a new formatter service with custom
-// options.
+// NewFormatterServiceWithOptions creates a new formatter service with custom options.
 //
-// Takes opts (*FormatOptions) which specifies the formatting settings. When
-// nil, default options are used.
+// Takes opts (*FormatOptions) which specifies the formatting settings. When nil, default
+// options are used.
 //
 // Returns FormatterService which is the configured formatter ready for use.
 func NewFormatterServiceWithOptions(opts *FormatOptions) FormatterService {
@@ -547,14 +541,14 @@ func NewFormatterServiceWithOptions(opts *FormatOptions) FormatterService {
 	}
 }
 
-// containsPKTemplateWithAttributes checks whether the source contains a
-// <template> tag with attributes that is NOT a declarative shadow DOM template.
-// Shadow root templates use shadowrootmode and should be treated as plain HTML.
+// containsPKTemplateWithAttributes checks whether the source contains a <template> tag
+// with attributes that is NOT a declarative shadow DOM template. Shadow root templates
+// use shadowrootmode and should be treated as plain HTML.
 //
 // Takes source (string) which is the template source text to scan.
 //
-// Returns bool which is true when the source contains at least one
-// <template> tag with attributes other than shadowrootmode.
+// Returns bool which is true when the source contains at least one <template> tag with
+// attributes other than shadowrootmode.
 func containsPKTemplateWithAttributes(source string) bool {
 	searchFrom := 0
 	for {
@@ -600,8 +594,8 @@ func getRangeOffsets(source []byte, formatRange Range) (startOffset, endOffset i
 	return startOffset, endOffset, nil
 }
 
-// getFormattedRangeOffsets finds the corresponding range in the formatted
-// document using a simple approach of formatting entire lines.
+// getFormattedRangeOffsets finds the corresponding range in the formatted document using
+// a simple approach of formatting entire lines.
 //
 // Takes formatted ([]byte) which is the formatted document content.
 // Takes formatRange (Range) which specifies the line range to locate.
@@ -622,13 +616,13 @@ func getFormattedRangeOffsets(formatted []byte, formatRange Range) (startOffset,
 	return formattedStartOffset, formattedEndOffset
 }
 
-// replaceRangeInSource creates a new byte slice with a given range replaced
-// by the matching range from a formatted document.
+// replaceRangeInSource creates a new byte slice with a given range replaced by the
+// matching range from a formatted document.
 //
 // Takes source ([]byte) which is the original byte slice.
 // Takes formatted ([]byte) which holds the replacement content.
-// Takes offsets (rangeOffsets) which gives the start and end positions in both
-// source and formatted slices.
+// Takes offsets (rangeOffsets) which gives the start and end positions in both source and
+// formatted slices.
 //
 // Returns []byte which is a new slice with the range replaced.
 func replaceRangeInSource(source, formatted []byte, offsets rangeOffsets) []byte {

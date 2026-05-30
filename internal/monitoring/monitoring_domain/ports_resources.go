@@ -18,7 +18,9 @@
 
 package monitoring_domain
 
-import "piko.sh/piko/internal/provider/provider_domain"
+import (
+	"piko.sh/piko/internal/provider/provider_domain"
+)
 
 // HealthProbeStatus holds the result of a health check probe.
 type HealthProbeStatus struct {
@@ -49,8 +51,7 @@ type ResourceData struct {
 	// Total is the count of all resources.
 	Total int32
 
-	// TimestampMs is the Unix timestamp in milliseconds when the data was
-	// collected.
+	// TimestampMs is the Unix timestamp in milliseconds when the data was collected.
 	TimestampMs int64
 }
 
@@ -74,8 +75,8 @@ type ResourceInfo struct {
 	// Target is the destination path or address the resource refers to.
 	Target string
 
-	// FirstSeenMs is the timestamp when the resource was first observed,
-	// in milliseconds since Unix epoch.
+	// FirstSeenMs is the timestamp when the resource was first observed, in milliseconds
+	// since Unix epoch.
 	FirstSeenMs int64
 
 	// AgeMs is the age of the resource in milliseconds.
@@ -85,11 +86,11 @@ type ResourceInfo struct {
 	FD int32
 }
 
-// ProviderListResult holds column definitions and provider rows for a resource
-// type's provider list table.
+// ProviderListResult holds column definitions and provider rows for a resource type's
+// provider list table.
 type ProviderListResult struct {
-	// SubResourceName is non-empty when this result represents sub-resources
-	// rather than providers (e.g. "namespaces", "repositories").
+	// SubResourceName is non-empty when this result represents sub-resources rather than
+	// providers (e.g. "namespaces", "repositories").
 	SubResourceName string
 
 	// Columns defines the table structure for the provider list.

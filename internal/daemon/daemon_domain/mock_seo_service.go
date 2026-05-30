@@ -25,30 +25,28 @@ import (
 	"piko.sh/piko/internal/seo/seo_dto"
 )
 
-// MockSEOService is a test double for SEOServicePort where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockSEOService is a test double for SEOServicePort where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockSEOService struct {
-	// GenerateArtefactsFunc is the function called by
-	// GenerateArtefacts.
+	// GenerateArtefactsFunc is the function called by GenerateArtefacts.
 	GenerateArtefactsFunc func(ctx context.Context, view *seo_dto.ProjectView) error
 
-	// GenerateArtefactsCallCount tracks how many times
-	// GenerateArtefacts was called.
-	GenerateArtefactsCallCount int64
+	// GenerateArtefactsCallCount tracks how many times GenerateArtefacts was called.
+	GenerateArtefactsCallCount atomic.Int64
 }
 
-var _ SEOServicePort = (*MockSEOService)(nil)
+var (
+	_ SEOServicePort = (*MockSEOService)(nil)
+)
 
 // GenerateArtefacts creates SEO artefacts for the given project view.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signals.
-// Takes view (*seo_dto.ProjectView) which is the project view
-// to generate artefacts for.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes view (*seo_dto.ProjectView) which is the project view to generate artefacts for.
 //
 // Returns error, or nil if GenerateArtefactsFunc is nil.
 func (m *MockSEOService) GenerateArtefacts(ctx context.Context, view *seo_dto.ProjectView) error {
-	atomic.AddInt64(&m.GenerateArtefactsCallCount, 1)
+	m.GenerateArtefactsCallCount.Add(1)
 	if m.GenerateArtefactsFunc != nil {
 		return m.GenerateArtefactsFunc(ctx, view)
 	}

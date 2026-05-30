@@ -1,0 +1,4 @@
+{
+  "description": "Churns make([]int, N) allocations in a loop where each slice goes out of scope, exercising the intBackingSlab GC path. The retained final slice verifies correctness across at least one MinorGC cycle.",
+  "expected": "sum=4950 last=99"
+}

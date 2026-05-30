@@ -36,8 +36,8 @@ const (
 	// defaultFromAddress is the email address used when no sender is given.
 	defaultFromAddress = "sender@example.com"
 
-	// maxBase64LineLength is the maximum line length for base64-encoded content
-	// per RFC 2045.
+	// maxBase64LineLength is the maximum line length for base64-encoded content per RFC
+	// 2045.
 	maxBase64LineLength = 76
 
 	// mimeContentType is the Content-Type MIME header name.
@@ -64,21 +64,19 @@ const (
 	// maxASCII is the highest code point in the ASCII character set.
 	maxASCII = 127
 
-	// controlCharUpperBound is the upper bound (exclusive) of the C0 control
-	// character range.
+	// controlCharUpperBound is the upper bound (exclusive) of the C0 control character
+	// range.
 	controlCharUpperBound = 32
 )
 
-// BuildMIMEMessage creates a complete MIME email message from the given
-// parameters.
+// BuildMIMEMessage creates a complete MIME email message from the given parameters.
 //
-// It sets the From, To, Cc, Bcc, and Subject headers. When both HTML and plain
-// text content are provided, it creates a multipart/alternative body. Regular
-// file attachments are added normally. Attachments with a non-empty ContentID
-// field are embedded as inline images using the Content-ID MIME header. This
-// allows HTML email bodies to reference them via src="cid:xxx" attributes, so
-// images display at once without needing external HTTP requests (which email
-// clients often block for security).
+// It sets the From, To, Cc, Bcc, and Subject headers. When both HTML and plain text
+// content are provided, it creates a multipart/alternative body. Regular file attachments
+// are added normally. Attachments with a non-empty ContentID field are embedded as inline
+// images using the Content-ID MIME header. This allows HTML email bodies to reference
+// them via src="cid:<id>" attributes, so images display at once without needing external
+// HTTP requests (which email clients often block for security).
 //
 // The MIME structure follows RFC 2046 nesting conventions:
 //
@@ -86,11 +84,10 @@ const (
 //   - multipart/related wraps HTML body + inline images (Content-ID)
 //   - multipart/alternative wraps plain text + HTML variants
 //
-// The returned bytes follow RFC 5322 and are ready for sending via SMTP or
-// saving as an .eml file.
+// The returned bytes follow RFC 5322 and are ready for sending via SMTP or saving as an
+// .eml file.
 //
-// Takes params (*email_dto.SendParams) which specifies the email content and
-// recipients.
+// Takes params (*email_dto.SendParams) which specifies the email content and recipients.
 //
 // Returns []byte which contains the complete MIME message.
 // Returns error when addresses are not valid or the message cannot be written.
@@ -138,14 +135,13 @@ func BuildMIMEMessage(params *email_dto.SendParams) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// splitAttachments separates attachments into regular (Content-Disposition:
-// attachment) and inline (Content-ID) groups.
+// splitAttachments separates attachments into regular (Content-Disposition: attachment)
+// and inline (Content-ID) groups.
 //
 // Takes attachments ([]email_dto.Attachment) which contains all attachments.
 //
 // Returns regular ([]email_dto.Attachment) which are standard file attachments.
-// Returns inline ([]email_dto.Attachment) which are CID-referenced inline
-// images.
+// Returns inline ([]email_dto.Attachment) which are CID-referenced inline images.
 func splitAttachments(attachments []email_dto.Attachment) (regular []email_dto.Attachment, inline []email_dto.Attachment) {
 	for _, attachment := range attachments {
 		if attachment.ContentID != "" {
@@ -157,13 +153,12 @@ func splitAttachments(attachments []email_dto.Attachment) (regular []email_dto.A
 	return regular, inline
 }
 
-// writeBodyWithoutAttachments writes the message body when there are no
-// attachments.
+// writeBodyWithoutAttachments writes the message body when there are no attachments.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes params (*email_dto.SendParams) which provides the body content.
-// Takes hasBothBodies (bool) which indicates whether both HTML and plain text
-// are present.
+// Takes hasBothBodies (bool) which indicates whether both HTML and plain text are
+// present.
 func writeBodyWithoutAttachments(buffer *bytes.Buffer, params *email_dto.SendParams, hasBothBodies bool) {
 	if hasBothBodies {
 		boundary := generateBoundary()
@@ -179,24 +174,22 @@ func writeBodyWithoutAttachments(buffer *bytes.Buffer, params *email_dto.SendPar
 	}
 }
 
-// writeBodyWithAttachments writes the message body wrapped in the correct MIME
-// multipart structure alongside attachment parts.
+// writeBodyWithAttachments writes the message body wrapped in the correct MIME multipart
+// structure alongside attachment parts.
 //
 // The structure follows RFC 2046 conventions:
 //
 //   - multipart/mixed contains the body and regular attachments
-//   - multipart/related wraps HTML and inline images when inline attachments
-//     are present
+//   - multipart/related wraps HTML and inline images when inline attachments are present
 //   - multipart/alternative wraps plain and HTML text when both are provided
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes params (*email_dto.SendParams) which provides the body content.
-// Takes hasBothBodies (bool) which indicates whether both HTML and plain text
-// are present.
-// Takes regularAttachments ([]email_dto.Attachment) which are standard file
-// attachments.
-// Takes inlineAttachments ([]email_dto.Attachment) which are CID-referenced
-// inline images.
+// Takes hasBothBodies (bool) which indicates whether both HTML and plain text are
+// present.
+// Takes regularAttachments ([]email_dto.Attachment) which are standard file attachments.
+// Takes inlineAttachments ([]email_dto.Attachment) which are CID-referenced inline
+// images.
 func writeBodyWithAttachments(
 	buffer *bytes.Buffer,
 	params *email_dto.SendParams,
@@ -228,15 +221,15 @@ func writeBodyWithAttachments(
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryClose, mixedBoundary)
 }
 
-// writeRelatedPart writes a multipart/related section containing the HTML body
-// and inline images. When both plain and HTML bodies are present, the HTML is
-// nested inside a multipart/alternative.
+// writeRelatedPart writes a multipart/related section containing the HTML body and inline
+// images. When both plain and HTML bodies are present, the HTML is nested inside a
+// multipart/alternative.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes params (*email_dto.SendParams) which provides the body content.
 // Takes hasBothBodies (bool) which indicates whether both body types exist.
-// Takes inlineAttachments ([]email_dto.Attachment) which are CID-referenced
-// inline images.
+// Takes inlineAttachments ([]email_dto.Attachment) which are CID-referenced inline
+// images.
 func writeRelatedPart(
 	buffer *bytes.Buffer,
 	params *email_dto.SendParams,
@@ -264,8 +257,8 @@ func writeRelatedPart(
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryClose, relatedBoundary)
 }
 
-// writeAlternativeBodyPart writes a multipart/alternative section containing
-// both plain text and HTML body parts.
+// writeAlternativeBodyPart writes a multipart/alternative section containing both plain
+// text and HTML body parts.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes plain (string) which is the plain text body.
@@ -279,8 +272,8 @@ func writeAlternativeBodyPart(buffer *bytes.Buffer, plain string, html string) {
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryClose, alternativeBoundary)
 }
 
-// validateAddress checks whether an email address is syntactically valid
-// according to RFC 5322.
+// validateAddress checks whether an email address is syntactically valid according to RFC
+// 5322.
 //
 // Takes address (string) which is the email address to validate.
 //
@@ -346,8 +339,8 @@ func generateMessageID() string {
 	return fmt.Sprintf("<%x@piko.localhost>", randomBytes)
 }
 
-// encodeSubject encodes a subject string using RFC 2047 Q-encoding when it
-// contains non-ASCII characters. Pure ASCII subjects are returned unchanged.
+// encodeSubject encodes a subject string using RFC 2047 Q-encoding when it contains
+// non-ASCII characters. Pure ASCII subjects are returned unchanged.
 //
 // Takes subject (string) which is the raw subject text.
 //
@@ -361,8 +354,8 @@ func encodeSubject(subject string) string {
 	return subject
 }
 
-// sanitiseFilename removes control characters and characters that could cause
-// MIME header injection or filesystem issues from a filename.
+// sanitiseFilename removes control characters and characters that could cause MIME header
+// injection or filesystem issues from a filename.
 //
 // Takes filename (string) which is the original filename.
 //
@@ -390,8 +383,8 @@ func writeHeader(buffer *bytes.Buffer, key string, value string) {
 	_, _ = fmt.Fprintf(buffer, "%s: %s\r\n", key, value)
 }
 
-// writeSingleBody writes a single-part body directly after the message
-// headers, including the Content-Type and Content-Transfer-Encoding headers.
+// writeSingleBody writes a single-part body directly after the message headers, including
+// the Content-Type and Content-Transfer-Encoding headers.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes contentType (string) which is the MIME content type.
@@ -403,8 +396,8 @@ func writeSingleBody(buffer *bytes.Buffer, contentType string, body string) {
 	writeQuotedPrintable(buffer, body)
 }
 
-// writeSingleBodyPart writes a single-part body as a MIME part (used inside a
-// multipart boundary, without the boundary delimiter itself).
+// writeSingleBodyPart writes a single-part body as a MIME part (used inside a multipart
+// boundary, without the boundary delimiter itself).
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes contentType (string) which is the MIME content type.
@@ -430,8 +423,8 @@ func writeTextPart(buffer *bytes.Buffer, boundary string, contentType string, bo
 	writeQuotedPrintable(buffer, body)
 }
 
-// writeQuotedPrintable encodes the given text using quoted-printable encoding
-// and writes it to the buffer.
+// writeQuotedPrintable encodes the given text using quoted-printable encoding and writes
+// it to the buffer.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes text (string) which is the content to encode.
@@ -486,8 +479,8 @@ func writeInlinePart(buffer *bytes.Buffer, attachment email_dto.Attachment) {
 	writeBase64Content(buffer, attachment.Content)
 }
 
-// writeBase64Content encodes binary data as base64 with 76-character line
-// wrapping per RFC 2045 and writes it to the buffer.
+// writeBase64Content encodes binary data as base64 with 76-character line wrapping per
+// RFC 2045 and writes it to the buffer.
 //
 // Takes buffer (*bytes.Buffer) which is the output buffer.
 // Takes data ([]byte) which is the binary content to encode.

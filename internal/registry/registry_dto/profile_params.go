@@ -26,9 +26,8 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// paramKey represents a known profile parameter key for fast array-based
-// lookup. New keys MUST be appended before paramKeyCount - never reorder or
-// remove existing keys.
+// paramKey represents a known profile parameter key for fast array-based lookup. New keys
+// MUST be appended before paramKeyCount - never reorder or remove existing keys.
 type paramKey uint8
 
 const (
@@ -85,8 +84,8 @@ const (
 )
 
 var (
-	// paramKeyNames maps paramKey to string name for encoding.
-	// Order MUST match the const block above.
+	// paramKeyNames maps paramKey to string name for encoding. Order MUST match the const
+	// block above.
 	paramKeyNames = [paramKeyCount]string{
 		ParamWidth:           "width",
 		ParamHeight:          "height",
@@ -116,9 +115,8 @@ var (
 	}()
 )
 
-// ProfileParams stores processing parameters with fast array lookup for known
-// keys and a map for custom parameters. It implements json.Marshaler and
-// json.Unmarshaler.
+// ProfileParams stores processing parameters with fast array lookup for known keys and a
+// map for custom parameters. It implements json.Marshaler and json.Unmarshaler.
 type ProfileParams struct {
 	// Custom holds extra parameters not in the predefined Known set.
 	Custom map[string]string
@@ -144,8 +142,8 @@ func (p *ProfileParams) Set(key paramKey, value string) {
 	p.Known[key] = value
 }
 
-// GetByName returns a parameter value by its name.
-// Checks known parameters first, then custom parameters.
+// GetByName returns a parameter value by its name. Checks known parameters first, then
+// custom parameters.
 //
 // Takes name (string) which specifies the parameter name to look up.
 //
@@ -163,8 +161,8 @@ func (p *ProfileParams) GetByName(name string) (string, bool) {
 	return "", false
 }
 
-// SetByName sets a parameter by string name. Known params go to the array,
-// unknown params go to the Custom map.
+// SetByName sets a parameter by string name. Known params go to the array, unknown params
+// go to the Custom map.
 //
 // Takes name (string) which identifies the parameter to set.
 // Takes value (string) which specifies the value to assign.
@@ -209,8 +207,7 @@ func (p *ProfileParams) IsEmpty() bool {
 
 // All returns an iterator over all non-empty parameters (known + custom).
 //
-// Returns iter.Seq2[string, string] which yields each parameter name and
-// value pair.
+// Returns iter.Seq2[string, string] which yields each parameter name and value pair.
 func (p *ProfileParams) All() iter.Seq2[string, string] {
 	return func(yield func(string, string) bool) {
 		for i := range paramKeyCount {
@@ -243,8 +240,8 @@ func (p *ProfileParams) Clone() ProfileParams {
 	return clone
 }
 
-// ToMap converts the ProfileParams to a map[string]string.
-// Useful for serialisation and tests.
+// ToMap converts the ProfileParams to a map[string]string. Useful for serialisation and
+// tests.
 //
 // Returns map[string]string which contains all known and custom parameters.
 func (p *ProfileParams) ToMap() map[string]string {
@@ -258,8 +255,7 @@ func (p *ProfileParams) ToMap() map[string]string {
 	return m
 }
 
-// MarshalJSON implements json.Marshaler and encodes as a flat map for API
-// compatibility.
+// MarshalJSON implements json.Marshaler and encodes as a flat map for API compatibility.
 //
 // Returns []byte which is the JSON-encoded representation.
 // Returns error when encoding fails.
@@ -267,8 +263,8 @@ func (p ProfileParams) MarshalJSON() ([]byte, error) { //nolint:gocritic // json
 	return json.Marshal(p.ToMap())
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-// Deserialises from a flat map, routing to Known or Custom as appropriate.
+// UnmarshalJSON implements json.Unmarshaler. Deserialises from a flat map, routing to
+// Known or Custom as appropriate.
 //
 // Takes data ([]byte) which contains the JSON-encoded map of parameters.
 //
@@ -284,11 +280,11 @@ func (p *ProfileParams) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ProfileParamsFromMap creates a ProfileParams struct from a map of strings.
-// Use it in tests and when moving from the old map-based format.
+// ProfileParamsFromMap creates a ProfileParams struct from a map of strings. Use it in
+// tests and when moving from the old map-based format.
 //
-// Takes m (map[string]string) which provides the key-value pairs to set the
-// struct fields.
+// Takes m (map[string]string) which provides the key-value pairs to set the struct
+// fields.
 //
 // Returns ProfileParams which contains the values from the map.
 func ProfileParamsFromMap(m map[string]string) ProfileParams {
@@ -311,8 +307,7 @@ func paramKeyName(key paramKey) string {
 	return ""
 }
 
-// lookupParamKey returns the paramKey for a given name if it is a known
-// parameter.
+// lookupParamKey returns the paramKey for a given name if it is a known parameter.
 //
 // Takes name (string) which is the parameter name to look up.
 //

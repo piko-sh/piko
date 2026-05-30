@@ -1,0 +1,4 @@
+{
+  "description": "Generic functions over narrow integer constraints (uint8/uint16/int8) declared in one file are instantiated for named narrow types declared in another file",
+  "expected": "byteWrap=0 byteOverflow=44 byteUnder=255 wordWrap=0 wordOverflow=4464 signedWrap=-128 signedUnder=127"
+}

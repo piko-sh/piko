@@ -16,21 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ratelimiter_domain handles centralised rate limiting with
-// pluggable algorithms and cache-backed storage.
+// Package ratelimiter_domain handles centralised rate limiting with pluggable algorithms
+// and cache-backed storage.
 //
-// It consolidates rate limiting functionality used across multiple
-// services (email, storage, LLM, security) into a single reusable
-// package. The [Limiter] service enforces limits via strategy-specific
-// methods, and adapters implement [TokenBucketStorePort] and
+// It consolidates rate limiting functionality used across multiple services (email,
+// storage, LLM, security) into a single reusable package. The [Limiter] service enforces
+// limits via strategy-specific methods, and adapters implement [TokenBucketStorePort] and
 // [CounterStorePort] for persistent state.
 //
 // # Algorithms
 //
 // Two rate limiting strategies are supported:
 //
-//   - Token bucket: allows sustained throughput with configurable
-//     burst capacity, suitable for provider-level API throttling
-//   - Fixed window: counts requests in discrete time windows,
-//     suitable for HTTP request rate limiting
+//   - Token bucket: allows sustained throughput with configurable burst capacity,
+//     suitable for provider-level API throttling
+//   - Fixed window: counts requests in discrete time windows, suitable for HTTP request
+//     rate limiting
 package ratelimiter_domain

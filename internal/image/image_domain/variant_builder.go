@@ -24,16 +24,16 @@ import (
 	"piko.sh/piko/internal/image/image_dto"
 )
 
-// VariantBuilder provides a fluent API for defining image variant specifications.
-// It creates reusable TransformationSpec objects that can be registered as
-// predefined variants or used directly for transformations.
+// VariantBuilder provides a fluent API for defining image variant specifications. It
+// creates reusable TransformationSpec objects that can be registered as predefined
+// variants or used directly for transformations.
 type VariantBuilder struct {
 	// spec holds the transformation settings being built.
 	spec image_dto.TransformationSpec
 }
 
-// Width sets the target width in pixels.
-// Set to 0 to preserve aspect ratio based on height.
+// Width sets the target width in pixels. Set to 0 to preserve aspect ratio based on
+// height.
 //
 // Takes px (int) which specifies the target width.
 //
@@ -43,8 +43,8 @@ func (b *VariantBuilder) Width(px int) *VariantBuilder {
 	return b
 }
 
-// Height sets the target height in pixels.
-// Set to 0 to preserve aspect ratio based on width.
+// Height sets the target height in pixels. Set to 0 to preserve aspect ratio based on
+// width.
 //
 // Takes px (int) which specifies the target height.
 //
@@ -54,9 +54,8 @@ func (b *VariantBuilder) Height(px int) *VariantBuilder {
 	return b
 }
 
-// Size sets both width and height in pixels.
-// If both are specified with a fit mode, the image will be resized
-// according to the fit mode's behaviour.
+// Size sets both width and height in pixels. If both are specified with a fit mode, the
+// image will be resized according to the fit mode's behaviour.
 //
 // Takes width (int) which specifies the target width.
 // Takes height (int) which specifies the target height.
@@ -68,8 +67,8 @@ func (b *VariantBuilder) Size(width, height int) *VariantBuilder {
 	return b
 }
 
-// MaxWidth sets the width while leaving height at 0 to preserve aspect ratio.
-// The image will be scaled to fit within the specified width.
+// MaxWidth sets the width while leaving height at 0 to preserve aspect ratio. The image
+// will be scaled to fit within the specified width.
 //
 // Takes px (int) which specifies the maximum width.
 //
@@ -80,8 +79,8 @@ func (b *VariantBuilder) MaxWidth(px int) *VariantBuilder {
 	return b
 }
 
-// MaxHeight sets the height while leaving width at 0 to preserve aspect ratio.
-// The image will be scaled to fit within the specified height.
+// MaxHeight sets the height while leaving width at 0 to preserve aspect ratio. The image
+// will be scaled to fit within the specified height.
 //
 // Takes px (int) which specifies the maximum height.
 //
@@ -92,8 +91,8 @@ func (b *VariantBuilder) MaxHeight(px int) *VariantBuilder {
 	return b
 }
 
-// Format sets the output format for the image.
-// Supported formats: "jpeg", "jpg", "png", "webp", "avif", "gif".
+// Format sets the output format for the image. Supported formats: "jpeg", "jpg", "png",
+// "webp", "avif", "gif".
 //
 // Takes format (string) which specifies the output format.
 //
@@ -103,9 +102,8 @@ func (b *VariantBuilder) Format(format string) *VariantBuilder {
 	return b
 }
 
-// Quality sets the compression quality (1-100). Higher values produce larger
-// files with better quality, and 80 is a good default for JPEG, WebP, and
-// AVIF formats.
+// Quality sets the compression quality (1-100). Higher values produce larger files with
+// better quality, and 80 is a good default for JPEG, WebP, and AVIF formats.
 //
 // Takes q (int) which specifies the quality value.
 //
@@ -115,8 +113,8 @@ func (b *VariantBuilder) Quality(q int) *VariantBuilder {
 	return b
 }
 
-// Fit sets the resize fitting mode.
-// Valid values: "cover", "contain", "fill", "inside", "outside".
+// Fit sets the resize fitting mode. Valid values: "cover", "contain", "fill", "inside",
+// "outside".
 //
 //   - "cover": Resize to fill dimensions, cropping excess
 //   - "contain": Resize to fit within dimensions, letterboxing if needed
@@ -132,8 +130,8 @@ func (b *VariantBuilder) Fit(fit image_dto.FitMode) *VariantBuilder {
 	return b
 }
 
-// Cover is a shorthand for Fit(image_dto.FitCover).
-// The image will be resized to fill the dimensions, cropping any excess.
+// Cover is a shorthand for Fit(image_dto.FitCover). The image will be resized to fill the
+// dimensions, cropping any excess.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) Cover() *VariantBuilder {
@@ -141,9 +139,8 @@ func (b *VariantBuilder) Cover() *VariantBuilder {
 	return b
 }
 
-// Contain is a shorthand for Fit(image_dto.FitContain).
-// The image will be resized to fit within the dimensions, with
-// letterboxing if the aspect ratio doesn't match.
+// Contain is a shorthand for Fit(image_dto.FitContain). The image will be resized to fit
+// within the dimensions, with letterboxing if the aspect ratio doesn't match.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) Contain() *VariantBuilder {
@@ -151,9 +148,8 @@ func (b *VariantBuilder) Contain() *VariantBuilder {
 	return b
 }
 
-// Fill is a shorthand for Fit(image_dto.FitFill).
-// The image will be stretched to exact dimensions, potentially distorting
-// the aspect ratio.
+// Fill is a shorthand for Fit(image_dto.FitFill). The image will be stretched to exact
+// dimensions, potentially distorting the aspect ratio.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) Fill() *VariantBuilder {
@@ -161,9 +157,8 @@ func (b *VariantBuilder) Fill() *VariantBuilder {
 	return b
 }
 
-// Inside is a shorthand for Fit(image_dto.FitInside).
-// The image will be resized to be at most the specified dimensions,
-// preserving aspect ratio.
+// Inside is a shorthand for Fit(image_dto.FitInside). The image will be resized to be at
+// most the specified dimensions, preserving aspect ratio.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) Inside() *VariantBuilder {
@@ -171,9 +166,8 @@ func (b *VariantBuilder) Inside() *VariantBuilder {
 	return b
 }
 
-// Outside is a shorthand for Fit(image_dto.FitOutside).
-// The image will be resized to be at least the specified dimensions,
-// preserving aspect ratio.
+// Outside is a shorthand for Fit(image_dto.FitOutside). The image will be resized to be
+// at least the specified dimensions, preserving aspect ratio.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) Outside() *VariantBuilder {
@@ -181,9 +175,8 @@ func (b *VariantBuilder) Outside() *VariantBuilder {
 	return b
 }
 
-// WithoutEnlargement prevents images from being scaled up beyond their
-// original size. When enabled, images smaller than the target size
-// keep their original dimensions.
+// WithoutEnlargement prevents images from being scaled up beyond their original size.
+// When enabled, images smaller than the target size keep their original dimensions.
 //
 // Returns *VariantBuilder which allows method chaining.
 func (b *VariantBuilder) WithoutEnlargement() *VariantBuilder {
@@ -191,8 +184,8 @@ func (b *VariantBuilder) WithoutEnlargement() *VariantBuilder {
 	return b
 }
 
-// Background sets the hex colour for letterboxing or transparency fill.
-// Format: "#RRGGBB" (e.g., "#FFFFFF" for white).
+// Background sets the hex colour for letterboxing or transparency fill. Format: "#RRGGBB"
+// (e.g., "#FFFFFF" for white).
 //
 // Takes hex (string) which specifies the background colour.
 //
@@ -202,9 +195,9 @@ func (b *VariantBuilder) Background(hex string) *VariantBuilder {
 	return b
 }
 
-// AspectRatio sets a specific aspect ratio for the variant, where one dimension
-// can be omitted and will be calculated automatically.
-// Format: "width:height" (e.g., "16:9", "4:3", "1:1").
+// AspectRatio sets a specific aspect ratio for the variant, where one dimension can be
+// omitted and will be calculated automatically. Format: "width:height" (e.g., "16:9",
+// "4:3", "1:1").
 //
 // Takes ratio (string) which specifies the aspect ratio.
 //
@@ -214,8 +207,8 @@ func (b *VariantBuilder) AspectRatio(ratio string) *VariantBuilder {
 	return b
 }
 
-// Provider sets the image processing provider to use.
-// If not set, the service's default provider will be used.
+// Provider sets the image processing provider to use. If not set, the service's default
+// provider will be used.
 //
 // Takes name (string) which identifies the provider (e.g., "vips", "imaging").
 //
@@ -225,8 +218,8 @@ func (b *VariantBuilder) Provider(name string) *VariantBuilder {
 	return b
 }
 
-// WithModifier adds a provider-specific modifier.
-// Modifiers are passed through to the underlying image library.
+// WithModifier adds a provider-specific modifier. Modifiers are passed through to the
+// underlying image library.
 //
 // Takes key (string) which identifies the modifier.
 // Takes value (string) which specifies the modifier value.
@@ -240,8 +233,8 @@ func (b *VariantBuilder) WithModifier(key, value string) *VariantBuilder {
 	return b
 }
 
-// Blur adds a blur modifier with the specified sigma value.
-// This is a convenience method for common blur operations.
+// Blur adds a blur modifier with the specified sigma value. This is a convenience method
+// for common blur operations.
 //
 // Takes sigma (float64) which specifies the blur intensity.
 //
@@ -265,8 +258,8 @@ func (b *VariantBuilder) Greyscale() *VariantBuilder {
 	return b
 }
 
-// FromSpec copies values from an existing TransformationSpec. Use it to extend
-// or modify an existing specification.
+// FromSpec copies values from an existing TransformationSpec. Use it to extend or modify
+// an existing specification.
 //
 // Takes spec (image_dto.TransformationSpec) which provides the base values.
 //
@@ -279,8 +272,8 @@ func (b *VariantBuilder) FromSpec(spec image_dto.TransformationSpec) *VariantBui
 	return b
 }
 
-// Build returns the configured TransformationSpec.
-// This is the terminal method that produces the final specification.
+// Build returns the configured TransformationSpec. This is the terminal method that
+// produces the final specification.
 //
 // Returns image_dto.TransformationSpec which contains the configured settings.
 func (b *VariantBuilder) Build() image_dto.TransformationSpec {
@@ -289,8 +282,8 @@ func (b *VariantBuilder) Build() image_dto.TransformationSpec {
 
 // Variant creates a new variant builder with default values.
 //
-// Returns *VariantBuilder which provides a fluent interface for building
-// a TransformationSpec.
+// Returns *VariantBuilder which provides a fluent interface for building a
+// TransformationSpec.
 func Variant() *VariantBuilder {
 	return &VariantBuilder{
 		spec: image_dto.DefaultTransformationSpec(),

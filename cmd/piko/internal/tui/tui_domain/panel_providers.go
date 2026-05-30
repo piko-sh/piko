@@ -39,8 +39,7 @@ const (
 	providersRefreshTimeout = 5 * time.Second
 )
 
-// providersRefreshMessage carries the result of a ListProviders fetch
-// back to the panel.
+// providersRefreshMessage carries the result of a ListProviders fetch back to the panel.
 type providersRefreshMessage struct {
 	// err is the RPC error, or nil on success.
 	err error
@@ -49,8 +48,8 @@ type providersRefreshMessage struct {
 	entries []ProviderEntry
 }
 
-// providersDescribeMessage carries a per-row describe result back to
-// the panel for detail rendering.
+// providersDescribeMessage carries a per-row describe result back to the panel for detail
+// rendering.
 type providersDescribeMessage struct {
 	// detail is the cached describe-provider response, or nil on error.
 	detail *ProviderDetail
@@ -64,8 +63,8 @@ type providersDescribeMessage struct {
 
 // ProvidersPanel surfaces the provider registry.
 //
-// It is the TUI counterpart of `piko get providers` / `piko describe
-// provider`. Implements Panel and the Detailer interface.
+// It is the TUI counterpart of `piko get providers` / `piko describe provider`.
+// Implements Panel and the Detailer interface.
 type ProvidersPanel struct {
 	// lastRefresh records when the panel last received a list payload.
 	lastRefresh time.Time
@@ -81,36 +80,33 @@ type ProvidersPanel struct {
 
 	*AssetViewer[ProviderEntry]
 
-	// detailCache caches DescribeProvider responses keyed by
-	// "type/name".
+	// detailCache caches DescribeProvider responses keyed by "type/name".
 	detailCache map[string]*ProviderDetail
 
-	// detailErrors records per-row describe errors, keyed by
-	// "type/name".
+	// detailErrors records per-row describe errors, keyed by "type/name".
 	detailErrors map[string]error
 
-	// subCursorByProvider records the sub-resource cursor for each
-	// provider whose sub-resource list has been navigated. Keyed by
-	// "type/name".
+	// subCursorByProvider records the sub-resource cursor for each provider whose
+	// sub-resource list has been navigated. Keyed by "type/name".
 	subCursorByProvider map[string]int
 
-	// pendingDetail tracks the "type/name" keys with an in-flight
-	// describe-provider RPC. Used to dedup overlapping fetches when
-	// the cursor moves rapidly or the periodic tick fires before a
-	// previous fetch has completed.
+	// pendingDetail tracks the "type/name" keys with an in-flight describe-provider RPC.
+	// Used to dedup overlapping fetches when the cursor moves rapidly or the periodic tick
+	// fires before a previous fetch has completed.
 	pendingDetail map[string]struct{}
 
-	// stateMutex guards err / detailCache / detailErrors /
-	// pendingDetail / subCursorByProvider for safe concurrent reads.
+	// stateMutex guards err / detailCache / detailErrors / pendingDetail /
+	// subCursorByProvider for safe concurrent reads.
 	stateMutex sync.RWMutex
 
-	// subMode reports whether keyboard navigation drives the
-	// sub-resource cursor (true) or the providers list (false). Tab
-	// toggles.
+	// subMode reports whether keyboard navigation drives the sub-resource cursor (true) or
+	// the providers list (false). Tab toggles.
 	subMode bool
 }
 
-var _ Panel = (*ProvidersPanel)(nil)
+var (
+	_ Panel = (*ProvidersPanel)(nil)
+)
 
 // providersRenderer renders ProviderEntry rows.
 type providersRenderer struct {
@@ -188,8 +184,8 @@ func (p *ProvidersPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// View renders the panel. Falls back to a "feature disabled" hint
-// when the server does not expose the provider inspector service.
+// View renders the panel. Falls back to a "feature disabled" hint when the server does
+// not expose the provider inspector service.
 //
 // Takes width (int) which is the rendering width in columns.
 // Takes height (int) which is the rendering height in rows.
@@ -259,8 +255,8 @@ func (*ProvidersPanel) renderEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered rows.
 // Takes displayItems ([]int) which is the indices of items to render.
-// Takes headerLines (int) which is the number of header lines already
-// consumed by renderHeader, used to size the scroll context.
+// Takes headerLines (int) which is the number of header lines already consumed by
+// renderHeader, used to size the scroll context.
 func (p *ProvidersPanel) renderItems(content *strings.Builder, displayItems []int, headerLines int) {
 	ctx := NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines)
 	items := p.Items()
@@ -314,8 +310,7 @@ func (p *ProvidersPanel) handleKey(msg tea.KeyPressMsg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// toggleSubMode flips between providers-list navigation and
-// sub-resource-list navigation.
+// toggleSubMode flips between providers-list navigation and sub-resource-list navigation.
 //
 // Concurrency: Safe for concurrent use; guarded by stateMutex.
 func (p *ProvidersPanel) toggleSubMode() {
@@ -324,8 +319,8 @@ func (p *ProvidersPanel) toggleSubMode() {
 	p.stateMutex.Unlock()
 }
 
-// handleSubResourceNavigation drives the sub-resource cursor for the
-// selected provider. Returns true when the key was consumed.
+// handleSubResourceNavigation drives the sub-resource cursor for the selected provider.
+// Returns true when the key was consumed.
 //
 // Takes msg (tea.KeyPressMsg) which is the key event.
 //
@@ -387,15 +382,15 @@ func (p *ProvidersPanel) handleList(msg providersRefreshMessage) {
 	}
 }
 
-// compareProviderEntries orders entries by resource type then name.
-// Used as the comparator for the ListProviders result so the panel
-// row order is stable and deterministic.
+// compareProviderEntries orders entries by resource type then name. Used as the
+// comparator for the ListProviders result so the panel row order is stable and
+// deterministic.
 //
 // Takes a (ProviderEntry) which is the first entry to compare.
 // Takes b (ProviderEntry) which is the second entry to compare.
 //
-// Returns int which is negative when a sorts first, positive when b
-// sorts first, and 0 when they are equal.
+// Returns int which is negative when a sorts first, positive when b sorts first, and 0
+// when they are equal.
 func compareProviderEntries(a, b ProviderEntry) int {
 	return cmp.Or(
 		cmp.Compare(a.ResourceType, b.ResourceType),
@@ -420,10 +415,9 @@ func (p *ProvidersPanel) handleDescribe(msg providersDescribeMessage) {
 	p.detailCache[msg.row] = msg.detail
 }
 
-// refreshSelectedDetailCmd issues a DescribeProvider RPC for the row
-// currently under the cursor when the cache lacks an entry and no
-// other fetch is already in flight for the same key. Returns nil when
-// no fetch is needed.
+// refreshSelectedDetailCmd issues a DescribeProvider RPC for the row currently under the
+// cursor when the cache lacks an entry and no other fetch is pending for the same key.
+// Returns nil when no fetch is needed.
 //
 // Returns tea.Cmd which is the describe-provider command, or nil.
 //
@@ -520,8 +514,8 @@ func (p *ProvidersPanel) overviewBody() inspector.DetailBody {
 	})
 }
 
-// providerEntryDetail renders the cache-miss detail body using the
-// row's own metadata while a describe RPC is in flight.
+// providerEntryDetail renders the cache-miss detail body using the row's own metadata
+// while a describe RPC is pending.
 //
 // Takes entry (ProviderEntry) which is the selected provider row.
 // Takes derr (error) which is the latest describe error, may be nil.
@@ -551,16 +545,15 @@ func providerEntryDetail(entry ProviderEntry, derr error) inspector.DetailBody {
 	}
 }
 
-// providerDetailBody renders the cached describe-provider sections
-// plus a navigable sub-resource list. When the panel is in sub-mode
-// and a sub-resource is selected, an additional "Selected
-// sub-resource" section displays its full key/value metadata.
+// providerDetailBody renders the cached describe-provider sections plus a navigable
+// sub-resource list. When the panel is in sub-mode and a sub-resource is selected, an
+// additional "Selected sub-resource" section displays its full key/value metadata.
 //
 // Takes e (ProviderEntry) which is the selected provider row.
 // Takes d (*ProviderDetail) which is the cached describe output.
 // Takes subCursor (int) which is the focused sub-resource index.
-// Takes subMode (bool) which is true when keyboard navigation drives
-// the sub-resource cursor.
+// Takes subMode (bool) which is true when keyboard navigation drives the sub-resource
+// cursor.
 //
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 func providerDetailBody(e ProviderEntry, d *ProviderDetail, subCursor int, subMode bool) inspector.DetailBody {
@@ -576,8 +569,8 @@ func providerDetailBody(e ProviderEntry, d *ProviderDetail, subCursor int, subMo
 	}
 }
 
-// providerSectionToDetail flattens a ProviderSection's entries into
-// a inspector.DetailSection.
+// providerSectionToDetail flattens a ProviderSection's entries into a
+// inspector.DetailSection.
 //
 // Takes s (ProviderSection) which is the source section.
 //
@@ -590,14 +583,13 @@ func providerSectionToDetail(s ProviderSection) inspector.DetailSection {
 	return inspector.DetailSection{Heading: s.Title, Rows: rows}
 }
 
-// providerSubResourceSections renders the navigable sub-resource
-// list and the optional focused-entry section. Returns an empty
-// slice when there are no sub-resources.
+// providerSubResourceSections renders the navigable sub-resource list and the optional
+// focused-entry section. Returns an empty slice when there are no sub-resources.
 //
 // Takes subs ([]ProviderSubResource) which is the sub-resource list.
 // Takes subCursor (int) which is the focused sub-resource index.
-// Takes subMode (bool) which is true when keyboard navigation drives
-// the sub-resource cursor.
+// Takes subMode (bool) which is true when keyboard navigation drives the sub-resource
+// cursor.
 //
 // Returns []inspector.DetailSection which is the rendered sections.
 func providerSubResourceSections(subs []ProviderSubResource, subCursor int, subMode bool) []inspector.DetailSection {
@@ -620,8 +612,8 @@ func providerSubResourceSections(subs []ProviderSubResource, subCursor int, subM
 	return out
 }
 
-// providerDetailSubtitle composes the detail-pane subtitle with a
-// hint about Tab when sub-resources exist.
+// providerDetailSubtitle composes the detail-pane subtitle with a hint about Tab when
+// sub-resources exist.
 //
 // Takes e (ProviderEntry) which is the selected provider.
 // Takes hasSubs (bool) which is true when sub-resources exist.
@@ -639,9 +631,9 @@ func providerDetailSubtitle(e ProviderEntry, hasSubs, subMode bool) string {
 	return subtitle + " · Tab to navigate sub-resources"
 }
 
-// providerSubResourceFocusSection renders the deep-dive section for
-// the focused sub-resource: every key/value field laid out one per
-// row instead of squashed into a single summary line.
+// providerSubResourceFocusSection renders the deep-dive section for the focused
+// sub-resource: every key/value field laid out one per row instead of squashed into a
+// single summary line.
 //
 // Takes r (ProviderSubResource) which is the focused sub-resource.
 //
@@ -659,8 +651,8 @@ func providerSubResourceFocusSection(r ProviderSubResource) inspector.DetailSect
 	return inspector.DetailSection{Heading: "Selected sub-resource", Rows: rows}
 }
 
-// subResourceSummary collapses a sub-resource's values into a single
-// space-delimited "k=v" line for compact list display.
+// subResourceSummary collapses a sub-resource's values into a single space-delimited
+// "k=v" line for compact list display.
 //
 // Takes values (map[string]string) which is the sub-resource's key/value pairs.
 //

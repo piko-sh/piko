@@ -99,8 +99,8 @@ LIMIT $1;`
 
 type GetDailyRevenueRow struct {
 	DayTimestamp int64
-	Revenue     float64
-	OrderCount  int64
+	Revenue      float64
+	OrderCount   int64
 }
 
 func (queries *Queries) GetDailyRevenue(ctx context.Context, p1 int32) ([]GetDailyRevenueRow, error) {

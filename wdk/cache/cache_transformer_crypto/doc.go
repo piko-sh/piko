@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_transformer_crypto provides encryption transformation
-// for cache values using the centralised crypto service.
+// Package cache_transformer_crypto provides encryption transformation for cache values
+// using the centralised crypto service.
 //
-// It delegates to the application's crypto service, so key management
-// and rotation are handled centrally rather than per-cache. The
-// encryption algorithm is determined by the crypto service provider
-// (typically AES-256-GCM).
+// It delegates to the application's crypto service, so key management and rotation are
+// handled centrally rather than per-cache. The encryption algorithm is determined by the
+// crypto service provider (typically AES-256-GCM).
 //
-// When combining with compression, compress first (lower priority
-// number) so encryption operates on the smaller payload.
+// When combining with compression, compress first (lower priority number) so encryption
+// operates on the smaller payload.
 //
-// All methods are safe for concurrent use, provided the underlying
-// crypto service is also safe for concurrent use.
+// All methods are safe for concurrent use, provided the underlying crypto service is also
+// safe for concurrent use.
 package cache_transformer_crypto

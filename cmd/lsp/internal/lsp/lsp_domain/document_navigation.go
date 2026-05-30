@@ -30,8 +30,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// GetDefinition finds the definition location for the symbol at the given
-// position. It uses both the AnalysisMap and the GoGeneratorAnnotation.
+// GetDefinition finds the definition location for the symbol at the given position. It
+// uses both the AnalysisMap and the GoGeneratorAnnotation.
 //
 // It handles multiple types of definitions:
 //   - PK-specific: event handlers, partials, refs (via GetPKDefinition)
@@ -39,8 +39,7 @@ import (
 //   - Partial component invocations (via PartialInvocationInfo and VirtualModule)
 //   - Go type definitions (via TypeInspector.FindTypeByName)
 //
-// Takes position (protocol.Position) which specifies the cursor
-// position to look up.
+// Takes position (protocol.Position) which specifies the cursor position to look up.
 //
 // Returns []protocol.Location which contains the definition locations found.
 // Returns error when the lookup fails.
@@ -106,12 +105,11 @@ func (d *document) GetDefinition(ctx context.Context, position protocol.Position
 
 // tryStateDefinition handles the special "state" identifier case.
 //
-// Takes targetExpr (ast_domain.Expression) which is the expression to check
-// for the state identifier.
+// Takes targetExpr (ast_domain.Expression) which is the expression to check for the state
+// identifier.
 //
-// Returns []protocol.Location which contains the state type definition
-// location, or nil if the expression is not a state identifier or the type
-// cannot be found.
+// Returns []protocol.Location which contains the state type definition location, or nil
+// if the expression is not a state identifier or the type cannot be found.
 func (d *document) tryStateDefinition(ctx context.Context, targetExpr ast_domain.Expression) []protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -129,13 +127,13 @@ func (d *document) tryStateDefinition(ctx context.Context, targetExpr ast_domain
 	return nil
 }
 
-// tryLocalFunctionDefinition tries to find a function definition in the
-// local script block for identifier expressions.
+// tryLocalFunctionDefinition tries to find a function definition in the local script
+// block for identifier expressions.
 //
 // Takes targetExpr (ast_domain.Expression) which is the expression to check.
 //
-// Returns []protocol.Location which contains the function definition location,
-// or nil if the expression is not an identifier or the function is not found.
+// Returns []protocol.Location which contains the function definition location, or nil if
+// the expression is not an identifier or the function is not found.
 func (d *document) tryLocalFunctionDefinition(ctx context.Context, targetExpr ast_domain.Expression) []protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -159,13 +157,12 @@ func (d *document) tryLocalFunctionDefinition(ctx context.Context, targetExpr as
 //
 // Takes targetExpr (ast_domain.Expression) which is the expression to check.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type context.
-// Takes position (protocol.Position) which is the cursor position
-// for context lookup.
+// Takes position (protocol.Position) which is the cursor position for context lookup.
 // Takes memberContext (*ast_domain.MemberExpression) which provides the containing
 // MemberExpr when the cursor is on a method property identifier.
 //
-// Returns []protocol.Location which contains the function/method definition
-// location, or nil if not found.
+// Returns []protocol.Location which contains the function/method definition location, or
+// nil if not found.
 func (d *document) tryExternalFunctionDefinition(
 	ctx context.Context,
 	targetExpr ast_domain.Expression,
@@ -204,11 +201,10 @@ func (d *document) tryExternalFunctionDefinition(
 // tryMethodDefinition attempts to find a method definition for a MemberExpr.
 //
 // Takes memberExpr (*ast_domain.MemberExpression) which is the member expression.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides package
-// context.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides package context.
 //
-// Returns []protocol.Location which contains the method definition location,
-// or nil if not found.
+// Returns []protocol.Location which contains the method definition location, or nil if
+// not found.
 func (d *document) tryMethodDefinition(
 	ctx context.Context,
 	memberExpr *ast_domain.MemberExpression,
@@ -254,16 +250,14 @@ func (d *document) tryMethodDefinition(
 	}
 }
 
-// tryPackageFunctionDefinition tries to find a function definition at the
-// package level.
+// tryPackageFunctionDefinition tries to find a function definition at the package level.
 //
 // Takes targetExpr (ast_domain.Expression) which is the expression to check.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides package context.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides caller
-// context.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides caller context.
 //
-// Returns []protocol.Location which contains the function definition location,
-// or nil if not found.
+// Returns []protocol.Location which contains the function definition location, or nil if
+// not found.
 func (d *document) tryPackageFunctionDefinition(
 	ctx context.Context,
 	targetExpr ast_domain.Expression,
@@ -311,14 +305,13 @@ func (d *document) tryPackageFunctionDefinition(
 	}
 }
 
-// tryPartialDefinition tries to find the source location of a partial
-// component.
+// tryPartialDefinition tries to find the source location of a partial component.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the partial
-// details to look up.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the partial details to look
+// up.
 //
-// Returns []protocol.Location which holds the source location of the partial
-// component, or nil if not found.
+// Returns []protocol.Location which holds the source location of the partial component,
+// or nil if not found.
 func (d *document) tryPartialDefinition(ctx context.Context, ann *ast_domain.GoGeneratorAnnotation) []protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -339,13 +332,13 @@ func (d *document) tryPartialDefinition(ctx context.Context, ann *ast_domain.GoG
 
 // trySymbolDefinition tries to find where a symbol or variable is defined.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the symbol and
-// source path details to look up.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the symbol and source path
+// details to look up.
 //
-// Returns []protocol.Location which holds the definition location if found, or
-// nil if the symbol cannot be found. Returns nil for fields on external types
-// (where DeclarationLocation is synthetic) so that GetTypeDefinition can handle
-// navigation to the external type instead.
+// Returns []protocol.Location which holds the definition location if found, or nil if the
+// symbol cannot be found.
+// Returns nil for fields on external types (where DeclarationLocation is synthetic) so
+// that GetTypeDefinition can handle navigation to the external type instead.
 func (d *document) trySymbolDefinition(ctx context.Context, ann *ast_domain.GoGeneratorAnnotation) []protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -388,8 +381,8 @@ func (d *document) trySymbolDefinition(ctx context.Context, ann *ast_domain.GoGe
 //
 // Takes symbolName (string) which specifies the symbol to find.
 //
-// Returns []protocol.Location which holds the symbol's location if found,
-// or nil if not found.
+// Returns []protocol.Location which holds the symbol's location if found, or nil if not
+// found.
 func (d *document) tryLocalSymbolDefinition(ctx context.Context, symbolName string) []protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -405,8 +398,7 @@ func (d *document) tryLocalSymbolDefinition(ctx context.Context, symbolName stri
 	return nil
 }
 
-// buildSymbolLocation creates a protocol.Location for a symbol at the given
-// position.
+// buildSymbolLocation creates a protocol.Location for a symbol at the given position.
 //
 // Takes path (string) which specifies the file path for the location URI.
 // Takes line (int) which is the one-based line number of the symbol.
@@ -430,11 +422,11 @@ func (*document) buildSymbolLocation(path string, line, column int, symbolName s
 	}
 }
 
-// logFallbackToType logs why the function fell back to using the type
-// definition instead of the symbol location.
+// logFallbackToType logs why the function fell back to using the type definition instead
+// of the symbol location.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// whose symbol location triggered the fallback.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation whose
+// symbol location triggered the fallback.
 func (*document) logFallbackToType(ctx context.Context, ann *ast_domain.GoGeneratorAnnotation) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -448,9 +440,9 @@ func (*document) logFallbackToType(ctx context.Context, ann *ast_domain.GoGenera
 	}
 }
 
-// GetTypeDefinition finds the type definition for the symbol at the given
-// position. This lets you navigate from a variable to its type declaration
-// (for example, from `user` to `type User struct`).
+// GetTypeDefinition finds the type definition for the symbol at the given position. This
+// lets you navigate from a variable to its type declaration (for example, from `user` to
+// `type User struct`).
 //
 // Takes position (protocol.Position) which specifies the cursor location to query.
 //
@@ -471,15 +463,15 @@ func (d *document) GetTypeDefinition(ctx context.Context, position protocol.Posi
 	return d.buildTypeDefinitionLocation(ctx, typeInfo, analysisCtx)
 }
 
-// resolveTypeInfoAtPosition resolves the type information for the expression
-// at the given position.
+// resolveTypeInfoAtPosition resolves the type information for the expression at the given
+// position.
 //
 // Takes position (protocol.Position) which specifies the position to inspect.
 //
-// Returns *inspector_dto.Type which contains the resolved type definition, or
-// nil if the type cannot be resolved.
-// Returns *annotator_domain.AnalysisContext which provides the analysis
-// context at the position, or nil if unavailable.
+// Returns *inspector_dto.Type which contains the resolved type definition, or nil if the
+// type cannot be resolved.
+// Returns *annotator_domain.AnalysisContext which provides the analysis context at the
+// position, or nil if unavailable.
 func (d *document) resolveTypeInfoAtPosition(ctx context.Context, position protocol.Position) (*inspector_dto.Type, *annotator_domain.AnalysisContext) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -532,8 +524,8 @@ func (d *document) resolveTypeInfoAtPosition(ctx context.Context, position proto
 //
 // Takes position (protocol.Position) which specifies the position to look up.
 //
-// Returns *annotator_domain.AnalysisContext which contains the analysis data
-// for the node at the given position, or nil if no node or context exists.
+// Returns *annotator_domain.AnalysisContext which contains the analysis data for the node
+// at the given position, or nil if no node or context exists.
 func (d *document) getAnalysisContextAtPosition(ctx context.Context, position protocol.Position) *annotator_domain.AnalysisContext {
 	_, l := logger_domain.From(ctx, log)
 
@@ -554,11 +546,11 @@ func (d *document) getAnalysisContextAtPosition(ctx context.Context, position pr
 
 // buildTypeDefinitionLocation constructs the location for a type definition.
 //
-// Takes typeInfo (*inspector_dto.Type) which provides the type's name,
-// file path, and position data.
+// Takes typeInfo (*inspector_dto.Type) which provides the type's name, file path, and
+// position data.
 //
-// Returns []protocol.Location which contains the type definition
-// location, preferring local .pk script definitions when available.
+// Returns []protocol.Location which contains the type definition location, preferring
+// local .pk script definitions when available.
 // Returns error which is always nil.
 func (d *document) buildTypeDefinitionLocation(ctx context.Context, typeInfo *inspector_dto.Type, _ *annotator_domain.AnalysisContext) ([]protocol.Location, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -595,9 +587,9 @@ func (d *document) buildTypeDefinitionLocation(ctx context.Context, typeInfo *in
 
 // GetReferences finds all references to the symbol at the given position.
 //
-// This is a single-file implementation. For workspace-wide references, this
-// would need to be coordinated through the workspace to scan all documents.
-// It also handles PK-specific references for handlers, partials, and refs.
+// This is a single-file implementation. For workspace-wide references, this would need to
+// be coordinated through the workspace to scan all documents. It also handles PK-specific
+// references for handlers, partials, and refs.
 //
 // Takes position (protocol.Position) which specifies the position in the document.
 //
@@ -653,11 +645,9 @@ type referenceCollector struct {
 	targetDefinitionLocation ast_domain.Location
 }
 
-// checkExpression examines an expression to see if it
-// refers to the target symbol.
+// checkExpression examines an expression to see if it refers to the target symbol.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to check.
+// Takes expression (ast_domain.Expression) which is the expression to check.
 func (rc *referenceCollector) checkExpression(expression ast_domain.Expression) {
 	if expression == nil {
 		return
@@ -690,10 +680,8 @@ func (rc *referenceCollector) checkExpression(expression ast_domain.Expression) 
 
 // matchesTarget checks if a definition location matches the target symbol.
 //
-// Takes defLocation (ast_domain.Location) which is the
-// definition location to check.
-// Takes sourcePath (*string) which is the source file path
-// for the definition.
+// Takes defLocation (ast_domain.Location) which is the definition location to check.
+// Takes sourcePath (*string) which is the source file path for the definition.
 //
 // Returns bool which is true when the location and path match the target.
 func (rc *referenceCollector) matchesTarget(defLocation ast_domain.Location, sourcePath *string) bool {
@@ -709,17 +697,16 @@ func (rc *referenceCollector) matchesTarget(defLocation ast_domain.Location, sou
 	return actualPath == rc.targetSourcePath
 }
 
-// findReferencesToSymbol searches the document for all references to a symbol
-// identified by its definition location and source path. Used by both single-file
-// reference search and workspace-wide reference search.
+// findReferencesToSymbol searches the document for all references to a symbol identified
+// by its definition location and source path. Used by both single-file reference search
+// and workspace-wide reference search.
 //
-// Takes targetDefinitionLocation (ast_domain.Location) which
-// identifies the symbol's definition location.
-// Takes targetSourcePath (string) which specifies the source file path of the
-// symbol.
+// Takes targetDefinitionLocation (ast_domain.Location) which identifies the symbol's
+// definition location.
+// Takes targetSourcePath (string) which specifies the source file path of the symbol.
 //
-// Returns []protocol.Location which contains all found references, or an empty
-// slice if the document has no annotation result.
+// Returns []protocol.Location which contains all found references, or an empty slice if
+// the document has no annotation result.
 func (d *document) findReferencesToSymbol(targetDefinitionLocation ast_domain.Location, targetSourcePath string) []protocol.Location {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
 		return []protocol.Location{}
@@ -741,17 +728,16 @@ func (d *document) findReferencesToSymbol(targetDefinitionLocation ast_domain.Lo
 	return collector.locations
 }
 
-// unmapVirtualPosition converts a virtual Go file position back to the
-// original .pk file position.
+// unmapVirtualPosition converts a virtual Go file position back to the original .pk file
+// position.
 //
-// This is necessary because the type inspector analyses extracted script
-// blocks that use virtual file paths, but the LSP needs to return positions
-// in the actual .pk source files.
+// This is necessary because the type inspector analyses extracted script blocks that use
+// virtual file paths, but the LSP needs to return positions in the actual .pk source
+// files.
 //
-// For regular .go files, it returns the input unchanged. For virtual Go files
-// from .pk components, it finds the corresponding VirtualComponent,
-// retrieves the original .pk SourcePath, and adjusts the line number by
-// adding the ScriptStartLocation offset.
+// For regular .go files, it returns the input unchanged. For virtual Go files from .pk
+// components, it finds the corresponding VirtualComponent, retrieves the original .pk
+// SourcePath, and adjusts the line number by adding the ScriptStartLocation offset.
 //
 // Takes virtualPath (string) which is the file path to convert.
 // Takes line (int) which is the line number in the virtual file.
@@ -804,13 +790,12 @@ func (d *document) unmapVirtualPosition(ctx context.Context, virtualPath string,
 	return realPath, realLine, realColumn
 }
 
-// extractMemberName extracts the string name from a member expression's
-// Property field.
+// extractMemberName extracts the string name from a member expression's Property field.
 //
 // Takes property (ast_domain.Expression) which is the property expression.
 //
-// Returns string which is the member name, or an empty string if the property
-// is not an identifier.
+// Returns string which is the member name, or an empty string if the property is not an
+// identifier.
 func extractMemberName(property ast_domain.Expression) string {
 	if identifier, ok := property.(*ast_domain.Identifier); ok {
 		return identifier.Name

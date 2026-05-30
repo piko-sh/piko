@@ -119,7 +119,7 @@ func TestGCExecutor_Hints_EmptyBatch(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, 0, result["deleted_count"])
-	assert.Equal(t, int64(1), orcService.ScheduleCallCount)
+	assert.Equal(t, int64(1), orcService.ScheduleCallCount.Load())
 }
 
 func TestGCExecutor_Hints_FullBatch_ReschedulesImmediately(t *testing.T) {

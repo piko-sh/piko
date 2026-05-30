@@ -24,7 +24,9 @@ import (
 	"testing"
 )
 
-var errSentinel = errors.New("sentinel")
+var (
+	errSentinel = errors.New("sentinel")
+)
 
 func TestNewError(t *testing.T) {
 	t.Parallel()
@@ -146,4 +148,6 @@ func TestExtractSafeMessage_ProductionWithWrappedSafeError(t *testing.T) {
 	}
 }
 
-var _ Error = (*safeError)(nil)
+var (
+	_ Error = (*safeError)(nil)
+)

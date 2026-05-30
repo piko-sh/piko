@@ -27,22 +27,18 @@ import (
 	"piko.sh/piko/internal/crypto/crypto_dto"
 )
 
-// createSecureBytesCache is the factory function for creating typed SecureBytes
-// caches. It type-asserts the options and delegates to the Otter provider
-// factory.
+// createSecureBytesCache is the factory function for creating typed SecureBytes caches.
+// It type-asserts the options and delegates to the Otter provider factory.
 //
-// This pattern enables: 1. Full type safety - Cache[string, *SecureBytes] with
-// no runtime assertions 2. Resource sharing - Uses namespace pattern on the
-// shared provider 3. Zero circular dependencies - Crypto adapters import
-// cache_domain, not vice versa 4. Proper cleanup - OnDeletion callbacks ensure
-// SecureBytes.Close() is called on eviction
+// This pattern enables: 1. Full type safety - Cache[string, *SecureBytes] with no runtime
+// assertions 2. Resource sharing - Uses namespace pattern on the shared provider 3. Zero
+// circular dependencies - Crypto adapters import cache_domain, not vice versa 4. Proper
+// cleanup - OnDeletion callbacks ensure SecureBytes.Close() is called on eviction
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *crypto_dto.SecureBytes].
+// Takes options (any) which must be cache_dto.Options[string, *crypto_dto.SecureBytes].
 //
 // Returns any which is the created typed cache instance.
-// Returns error when the options type is incorrect or cache creation
-// fails.
+// Returns error when the options type is incorrect or cache creation fails.
 func createSecureBytesCache(
 	_ cache_domain.Service,
 	_ string,

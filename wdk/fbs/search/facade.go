@@ -18,7 +18,9 @@
 
 package search
 
-import "piko.sh/piko/internal/search/search_schema"
+import (
+	"piko.sh/piko/internal/search/search_schema"
+)
 
 var (
 	// SchemaHash is the SHA-256 hash of search_index.fbs.

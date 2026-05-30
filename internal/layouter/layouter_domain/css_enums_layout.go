@@ -138,8 +138,7 @@ const (
 	AlignContentSpaceAround
 )
 
-// JustifyItemsType represents the CSS justify-items property
-// for grid containers.
+// JustifyItemsType represents the CSS justify-items property for grid containers.
 type JustifyItemsType int
 
 const (
@@ -156,8 +155,7 @@ const (
 	JustifyItemsCentre
 )
 
-// JustifySelfType represents the CSS justify-self property
-// for grid items.
+// JustifySelfType represents the CSS justify-self property for grid items.
 type JustifySelfType int
 
 const (
@@ -194,17 +192,17 @@ const (
 	GridAutoFlowColumnDense
 )
 
-// GridAutoRepeatType distinguishes between auto-fill and auto-fit
-// repetition in CSS grid track lists.
+// GridAutoRepeatType distinguishes between auto-fill and auto-fit repetition in CSS grid
+// track lists.
 type GridAutoRepeatType int
 
 const (
-	// GridAutoRepeatFill creates as many tracks as fit in the
-	// container, leaving empty tracks at their resolved size.
+	// GridAutoRepeatFill creates as many tracks as fit in the container, leaving empty
+	// tracks at their resolved size.
 	GridAutoRepeatFill GridAutoRepeatType = iota
 
-	// GridAutoRepeatFit creates tracks like auto-fill but
-	// collapses empty tracks to zero width.
+	// GridAutoRepeatFit creates tracks like auto-fill but collapses empty tracks to zero
+	// width.
 	GridAutoRepeatFit
 )
 
@@ -275,8 +273,7 @@ const (
 	ListStylePositionInside
 )
 
-// VerticalAlignType represents the CSS vertical-align property for table
-// cells.
+// VerticalAlignType represents the CSS vertical-align property for table cells.
 type VerticalAlignType int
 
 const (
@@ -369,163 +366,166 @@ const (
 	ColumnFillAuto
 )
 
-// flexDirectionTypeNames maps FlexDirectionType values to their CSS keyword strings.
-var flexDirectionTypeNames = [...]string{
-	FlexDirectionRow:           "row",
-	FlexDirectionRowReverse:    "row-reverse",
-	FlexDirectionColumn:        "column",
-	FlexDirectionColumnReverse: "column-reverse",
-}
+var (
+	// flexDirectionTypeNames maps FlexDirectionType values to their CSS keyword strings.
+	flexDirectionTypeNames = [...]string{
+		FlexDirectionRow:           "row",
+		FlexDirectionRowReverse:    "row-reverse",
+		FlexDirectionColumn:        "column",
+		FlexDirectionColumnReverse: "column-reverse",
+	}
 
-// flexWrapTypeNames maps FlexWrapType values to their CSS keyword strings.
-var flexWrapTypeNames = [...]string{
-	FlexWrapNowrap:      "nowrap",
-	FlexWrapWrap:        "wrap",
-	FlexWrapWrapReverse: "wrap-reverse",
-}
+	// flexWrapTypeNames maps FlexWrapType values to their CSS keyword strings.
+	flexWrapTypeNames = [...]string{
+		FlexWrapNowrap:      "nowrap",
+		FlexWrapWrap:        "wrap",
+		FlexWrapWrapReverse: "wrap-reverse",
+	}
 
-// justifyContentTypeNames maps JustifyContentType values to their CSS keyword strings.
-var justifyContentTypeNames = [...]string{
-	JustifyFlexStart:    cssKeywordFlexStart,
-	JustifyFlexEnd:      cssKeywordFlexEnd,
-	JustifyCentre:       cssKeywordCentre,
-	JustifySpaceBetween: "space-between",
-	JustifySpaceAround:  "space-around",
-	JustifySpaceEvenly:  "space-evenly",
-}
+	// justifyContentTypeNames maps JustifyContentType values to their CSS keyword strings.
+	justifyContentTypeNames = [...]string{
+		JustifyFlexStart:    cssKeywordFlexStart,
+		JustifyFlexEnd:      cssKeywordFlexEnd,
+		JustifyCentre:       cssKeywordCentre,
+		JustifySpaceBetween: "space-between",
+		JustifySpaceAround:  "space-around",
+		JustifySpaceEvenly:  "space-evenly",
+	}
 
-// alignItemsTypeNames maps AlignItemsType values to their CSS keyword strings.
-var alignItemsTypeNames = [...]string{
-	AlignItemsStretch:   "stretch",
-	AlignItemsFlexStart: cssKeywordFlexStart,
-	AlignItemsFlexEnd:   cssKeywordFlexEnd,
-	AlignItemsCentre:    cssKeywordCentre,
-	AlignItemsBaseline:  "baseline",
-}
+	// alignItemsTypeNames maps AlignItemsType values to their CSS keyword strings.
+	alignItemsTypeNames = [...]string{
+		AlignItemsStretch:   "stretch",
+		AlignItemsFlexStart: cssKeywordFlexStart,
+		AlignItemsFlexEnd:   cssKeywordFlexEnd,
+		AlignItemsCentre:    cssKeywordCentre,
+		AlignItemsBaseline:  "baseline",
+	}
 
-// alignSelfTypeNames maps AlignSelfType values to their CSS keyword strings.
-var alignSelfTypeNames = [...]string{
-	AlignSelfAuto:      cssKeywordAuto,
-	AlignSelfFlexStart: cssKeywordFlexStart,
-	AlignSelfFlexEnd:   cssKeywordFlexEnd,
-	AlignSelfCentre:    cssKeywordCentre,
-	AlignSelfBaseline:  "baseline",
-	AlignSelfStretch:   "stretch",
-}
+	// alignSelfTypeNames maps AlignSelfType values to their CSS keyword strings.
+	alignSelfTypeNames = [...]string{
+		AlignSelfAuto:      cssKeywordAuto,
+		AlignSelfFlexStart: cssKeywordFlexStart,
+		AlignSelfFlexEnd:   cssKeywordFlexEnd,
+		AlignSelfCentre:    cssKeywordCentre,
+		AlignSelfBaseline:  "baseline",
+		AlignSelfStretch:   "stretch",
+	}
 
-// alignContentTypeNames maps AlignContentType values to their CSS keyword strings.
-var alignContentTypeNames = [...]string{
-	AlignContentStretch:      "stretch",
-	AlignContentFlexStart:    cssKeywordFlexStart,
-	AlignContentFlexEnd:      cssKeywordFlexEnd,
-	AlignContentCentre:       cssKeywordCentre,
-	AlignContentSpaceBetween: "space-between",
-	AlignContentSpaceAround:  "space-around",
-}
+	// alignContentTypeNames maps AlignContentType values to their CSS keyword strings.
+	alignContentTypeNames = [...]string{
+		AlignContentStretch:      "stretch",
+		AlignContentFlexStart:    cssKeywordFlexStart,
+		AlignContentFlexEnd:      cssKeywordFlexEnd,
+		AlignContentCentre:       cssKeywordCentre,
+		AlignContentSpaceBetween: "space-between",
+		AlignContentSpaceAround:  "space-around",
+	}
 
-// justifyItemsTypeNames maps JustifyItemsType values to their CSS keyword strings.
-var justifyItemsTypeNames = [...]string{
-	JustifyItemsStretch: "stretch",
-	JustifyItemsStart:   "start",
-	JustifyItemsEnd:     "end",
-	JustifyItemsCentre:  cssKeywordCentre,
-}
+	// justifyItemsTypeNames maps JustifyItemsType values to their CSS keyword strings.
+	justifyItemsTypeNames = [...]string{
+		JustifyItemsStretch: "stretch",
+		JustifyItemsStart:   "start",
+		JustifyItemsEnd:     "end",
+		JustifyItemsCentre:  cssKeywordCentre,
+	}
 
-// justifySelfTypeNames maps JustifySelfType values to their CSS keyword strings.
-var justifySelfTypeNames = [...]string{
-	JustifySelfAuto:    cssKeywordAuto,
-	JustifySelfStretch: "stretch",
-	JustifySelfStart:   "start",
-	JustifySelfEnd:     "end",
-	JustifySelfCentre:  cssKeywordCentre,
-}
+	// justifySelfTypeNames maps JustifySelfType values to their CSS keyword strings.
+	justifySelfTypeNames = [...]string{
+		JustifySelfAuto:    cssKeywordAuto,
+		JustifySelfStretch: "stretch",
+		JustifySelfStart:   "start",
+		JustifySelfEnd:     "end",
+		JustifySelfCentre:  cssKeywordCentre,
+	}
 
-// gridAutoFlowTypeNames maps GridAutoFlowType values to their CSS keyword strings.
-var gridAutoFlowTypeNames = [...]string{
-	GridAutoFlowRow:         "row",
-	GridAutoFlowColumn:      "column",
-	GridAutoFlowRowDense:    "row dense",
-	GridAutoFlowColumnDense: "column dense",
-}
+	// gridAutoFlowTypeNames maps GridAutoFlowType values to their CSS keyword strings.
+	gridAutoFlowTypeNames = [...]string{
+		GridAutoFlowRow:         "row",
+		GridAutoFlowColumn:      "column",
+		GridAutoFlowRowDense:    "row dense",
+		GridAutoFlowColumnDense: "column dense",
+	}
 
-// pageBreakTypeNames maps PageBreakType values to their CSS keyword strings.
-var pageBreakTypeNames = [...]string{
-	PageBreakAuto:   cssKeywordAuto,
-	PageBreakAlways: "always",
-	PageBreakAvoid:  "avoid",
-	PageBreakLeft:   cssKeywordLeft,
-	PageBreakRight:  cssKeywordRight,
-}
+	// pageBreakTypeNames maps PageBreakType values to their CSS keyword strings.
+	pageBreakTypeNames = [...]string{
+		PageBreakAuto:   cssKeywordAuto,
+		PageBreakAlways: "always",
+		PageBreakAvoid:  "avoid",
+		PageBreakLeft:   cssKeywordLeft,
+		PageBreakRight:  cssKeywordRight,
+	}
 
-// writingModeTypeNames maps WritingModeType values to their CSS keyword strings.
-var writingModeTypeNames = [...]string{
-	WritingModeHorizontalTB: "horizontal-tb",
-	WritingModeVerticalRL:   "vertical-rl",
-	WritingModeVerticalLR:   "vertical-lr",
-}
+	// writingModeTypeNames maps WritingModeType values to their CSS keyword strings.
+	writingModeTypeNames = [...]string{
+		WritingModeHorizontalTB: "horizontal-tb",
+		WritingModeVerticalRL:   "vertical-rl",
+		WritingModeVerticalLR:   "vertical-lr",
+	}
 
-// columnSpanTypeNames maps ColumnSpanType values to their CSS keyword strings.
-var columnSpanTypeNames = [...]string{
-	ColumnSpanNone: "none",
-	ColumnSpanAll:  "all",
-}
+	// columnSpanTypeNames maps ColumnSpanType values to their CSS keyword strings.
+	columnSpanTypeNames = [...]string{
+		ColumnSpanNone: "none",
+		ColumnSpanAll:  "all",
+	}
 
-// captionSideTypeNames maps CaptionSideType values to their CSS keyword strings.
-var captionSideTypeNames = [...]string{
-	CaptionSideTop:    "top",
-	CaptionSideBottom: "bottom",
-}
+	// captionSideTypeNames maps CaptionSideType values to their CSS keyword strings.
+	captionSideTypeNames = [...]string{
+		CaptionSideTop:    "top",
+		CaptionSideBottom: "bottom",
+	}
 
-// listStylePositionTypeNames maps ListStylePositionType values to their CSS keyword strings.
-var listStylePositionTypeNames = [...]string{
-	ListStylePositionOutside: "outside",
-	ListStylePositionInside:  "inside",
-}
+	// listStylePositionTypeNames maps ListStylePositionType values to their CSS keyword
+	// strings.
+	listStylePositionTypeNames = [...]string{
+		ListStylePositionOutside: "outside",
+		ListStylePositionInside:  "inside",
+	}
 
-// verticalAlignTypeNames maps VerticalAlignType values to their CSS keyword strings.
-var verticalAlignTypeNames = [...]string{
-	VerticalAlignBaseline:   "baseline",
-	VerticalAlignTop:        "top",
-	VerticalAlignMiddle:     "middle",
-	VerticalAlignBottom:     "bottom",
-	VerticalAlignSuper:      "super",
-	VerticalAlignSub:        "sub",
-	VerticalAlignTextTop:    "text-top",
-	VerticalAlignTextBottom: "text-bottom",
-}
+	// verticalAlignTypeNames maps VerticalAlignType values to their CSS keyword strings.
+	verticalAlignTypeNames = [...]string{
+		VerticalAlignBaseline:   "baseline",
+		VerticalAlignTop:        "top",
+		VerticalAlignMiddle:     "middle",
+		VerticalAlignBottom:     "bottom",
+		VerticalAlignSuper:      "super",
+		VerticalAlignSub:        "sub",
+		VerticalAlignTextTop:    "text-top",
+		VerticalAlignTextBottom: "text-bottom",
+	}
 
-// tableLayoutTypeNames maps TableLayoutType values to their CSS keyword strings.
-var tableLayoutTypeNames = [...]string{
-	TableLayoutAuto:  cssKeywordAuto,
-	TableLayoutFixed: "fixed",
-}
+	// tableLayoutTypeNames maps TableLayoutType values to their CSS keyword strings.
+	tableLayoutTypeNames = [...]string{
+		TableLayoutAuto:  cssKeywordAuto,
+		TableLayoutFixed: "fixed",
+	}
 
-// borderCollapseTypeNames maps BorderCollapseType values to their CSS keyword strings.
-var borderCollapseTypeNames = [...]string{
-	BorderCollapseSeparate: "separate",
-	BorderCollapseCollapse: "collapse",
-}
+	// borderCollapseTypeNames maps BorderCollapseType values to their CSS keyword strings.
+	borderCollapseTypeNames = [...]string{
+		BorderCollapseSeparate: "separate",
+		BorderCollapseCollapse: "collapse",
+	}
 
-// listStyleTypeNames maps ListStyleType values to their CSS keyword strings.
-var listStyleTypeNames = [...]string{
-	ListStyleTypeDisc:    "disc",
-	ListStyleTypeCircle:  "circle",
-	ListStyleTypeSquare:  "square",
-	ListStyleTypeDecimal: "decimal",
-	ListStyleTypeNone:    cssKeywordNone,
-}
+	// listStyleTypeNames maps ListStyleType values to their CSS keyword strings.
+	listStyleTypeNames = [...]string{
+		ListStyleTypeDisc:    "disc",
+		ListStyleTypeCircle:  "circle",
+		ListStyleTypeSquare:  "square",
+		ListStyleTypeDecimal: "decimal",
+		ListStyleTypeNone:    cssKeywordNone,
+	}
 
-// textOverflowTypeNames maps TextOverflowType values to their CSS keyword strings.
-var textOverflowTypeNames = [...]string{
-	TextOverflowClip:     "clip",
-	TextOverflowEllipsis: "ellipsis",
-}
+	// textOverflowTypeNames maps TextOverflowType values to their CSS keyword strings.
+	textOverflowTypeNames = [...]string{
+		TextOverflowClip:     "clip",
+		TextOverflowEllipsis: "ellipsis",
+	}
 
-// columnFillTypeNames maps ColumnFillType values to their CSS keyword strings.
-var columnFillTypeNames = [...]string{
-	ColumnFillBalance: "balance",
-	ColumnFillAuto:    "auto",
-}
+	// columnFillTypeNames maps ColumnFillType values to their CSS keyword strings.
+	columnFillTypeNames = [...]string{
+		ColumnFillBalance: "balance",
+		ColumnFillAuto:    "auto",
+	}
+)
 
 // String returns the CSS keyword for this flex-direction type.
 //

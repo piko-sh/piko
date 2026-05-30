@@ -25,23 +25,26 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this bigram analyser.
-const Language = "norwegian"
+const (
+	// Language is the language code for this bigram analyser.
+	Language = "norwegian"
 
-// minFieldLength is the minimum letter count for bigram analysis.
-const minFieldLength = 4
+	// minFieldLength is the minimum letter count for bigram analysis.
+	minFieldLength = 4
 
-// maxAnalyseLength is the maximum text byte length processed during analysis.
-const maxAnalyseLength = 4096
+	// maxAnalyseLength is the maximum text byte length processed during analysis.
+	maxAnalyseLength = 4096
+)
 
-var _ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+var (
+	_ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+)
 
-// BigramAnalyser provides Norwegian character bigram frequency analysis
-// for detecting gibberish or random text.
+// BigramAnalyser provides Norwegian character bigram frequency analysis for detecting
+// gibberish or random text.
 type BigramAnalyser struct{}
 
-// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-// to total bigrams.
+// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams.
 //
 // Takes text (string) which is the text to analyse.
 //
@@ -100,41 +103,43 @@ func init() {
 	linguistics_domain.RegisterBigramAnalyserFactory(Language, Factory)
 }
 
-// norwegianBigrams contains the most frequent Norwegian letter bigrams.
-var norwegianBigrams = map[string]struct{}{
-	"er": {}, "en": {}, "de": {}, "et": {}, "te": {},
-	"re": {}, "an": {}, "or": {}, "ne": {}, "se": {},
-	"st": {}, "in": {}, "le": {}, "on": {}, "at": {},
-	"me": {}, "el": {}, "ta": {}, "is": {}, "ke": {},
-	"ra": {}, "ti": {}, "be": {}, "il": {}, "ar": {},
-	"ri": {}, "al": {}, "li": {}, "sk": {}, "la": {},
-	"es": {}, "ko": {}, "he": {}, "ve": {}, "nd": {},
-	"nn": {}, "tt": {}, "ll": {}, "ss": {}, "ig": {},
-	"lt": {}, "rs": {}, "rt": {}, "rn": {}, "ns": {},
-	"ng": {}, "kk": {}, "pp": {}, "mm": {}, "ff": {},
-	"bb": {}, "dd": {}, "gg": {}, "tr": {}, "pr": {},
-	"br": {}, "dr": {}, "gr": {}, "kr": {}, "fr": {},
-	"sp": {}, "sv": {}, "sn": {}, "sl": {}, "sm": {},
-	"tv": {}, "kl": {}, "pl": {}, "bl": {}, "fl": {},
-	"gl": {}, "kv": {}, "kn": {}, "fj": {}, "mj": {},
-	"tj": {}, "av": {}, "om": {}, "og": {}, "ha": {},
-	"fo": {}, "si": {}, "hv": {}, "vi": {}, "mi": {},
-	"di": {}, "kj": {}, "sj": {}, "hj": {}, "by": {},
-	"ny": {}, "py": {}, "sy": {}, "ty": {}, "ly": {},
-	"my": {}, "fy": {}, "ry": {}, "dy": {}, "ky": {},
-	"gy": {}, "hy": {}, "ær": {}, "ør": {}, "år": {},
-	"øn": {}, "ød": {}, "øy": {}, "øk": {}, "øl": {},
-	"øm": {}, "øp": {}, "øs": {}, "øt": {}, "åp": {},
-	"ås": {}, "åt": {}, "åv": {}, "åk": {}, "ål": {},
-	"åm": {}, "ån": {}, "åd": {}, "bø": {}, "dø": {},
-	"fø": {}, "gø": {}, "hø": {}, "kø": {}, "lø": {},
-	"mø": {}, "nø": {}, "pø": {}, "rø": {}, "sø": {},
-	"tø": {}, "vø": {}, "bå": {}, "då": {}, "få": {},
-	"gå": {}, "hå": {}, "kå": {}, "lå": {}, "må": {},
-	"nå": {}, "på": {}, "rå": {}, "så": {}, "tå": {},
-	"vå": {}, "ub": {}, "un": {}, "up": {}, "ur": {},
-	"us": {}, "ut": {}, "um": {}, "ud": {}, "ug": {},
-	"uk": {}, "ul": {}, "ov": {}, "od": {}, "ol": {},
-	"op": {}, "os": {}, "ot": {}, "ob": {}, "of": {},
-	"ok": {},
-}
+var (
+	// norwegianBigrams contains the most frequent Norwegian letter bigrams.
+	norwegianBigrams = map[string]struct{}{
+		"er": {}, "en": {}, "de": {}, "et": {}, "te": {},
+		"re": {}, "an": {}, "or": {}, "ne": {}, "se": {},
+		"st": {}, "in": {}, "le": {}, "on": {}, "at": {},
+		"me": {}, "el": {}, "ta": {}, "is": {}, "ke": {},
+		"ra": {}, "ti": {}, "be": {}, "il": {}, "ar": {},
+		"ri": {}, "al": {}, "li": {}, "sk": {}, "la": {},
+		"es": {}, "ko": {}, "he": {}, "ve": {}, "nd": {},
+		"nn": {}, "tt": {}, "ll": {}, "ss": {}, "ig": {},
+		"lt": {}, "rs": {}, "rt": {}, "rn": {}, "ns": {},
+		"ng": {}, "kk": {}, "pp": {}, "mm": {}, "ff": {},
+		"bb": {}, "dd": {}, "gg": {}, "tr": {}, "pr": {},
+		"br": {}, "dr": {}, "gr": {}, "kr": {}, "fr": {},
+		"sp": {}, "sv": {}, "sn": {}, "sl": {}, "sm": {},
+		"tv": {}, "kl": {}, "pl": {}, "bl": {}, "fl": {},
+		"gl": {}, "kv": {}, "kn": {}, "fj": {}, "mj": {},
+		"tj": {}, "av": {}, "om": {}, "og": {}, "ha": {},
+		"fo": {}, "si": {}, "hv": {}, "vi": {}, "mi": {},
+		"di": {}, "kj": {}, "sj": {}, "hj": {}, "by": {},
+		"ny": {}, "py": {}, "sy": {}, "ty": {}, "ly": {},
+		"my": {}, "fy": {}, "ry": {}, "dy": {}, "ky": {},
+		"gy": {}, "hy": {}, "ær": {}, "ør": {}, "år": {},
+		"øn": {}, "ød": {}, "øy": {}, "øk": {}, "øl": {},
+		"øm": {}, "øp": {}, "øs": {}, "øt": {}, "åp": {},
+		"ås": {}, "åt": {}, "åv": {}, "åk": {}, "ål": {},
+		"åm": {}, "ån": {}, "åd": {}, "bø": {}, "dø": {},
+		"fø": {}, "gø": {}, "hø": {}, "kø": {}, "lø": {},
+		"mø": {}, "nø": {}, "pø": {}, "rø": {}, "sø": {},
+		"tø": {}, "vø": {}, "bå": {}, "då": {}, "få": {},
+		"gå": {}, "hå": {}, "kå": {}, "lå": {}, "må": {},
+		"nå": {}, "på": {}, "rå": {}, "så": {}, "tå": {},
+		"vå": {}, "ub": {}, "un": {}, "up": {}, "ur": {},
+		"us": {}, "ut": {}, "um": {}, "ud": {}, "ug": {},
+		"uk": {}, "ul": {}, "ov": {}, "od": {}, "ol": {},
+		"op": {}, "os": {}, "ot": {}, "ob": {}, "of": {},
+		"ok": {},
+	}
+)

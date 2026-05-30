@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lsp_adapters implements the driving and driven adapters for the
-// Language Server Protocol (LSP) module.
+// Package lsp_adapters implements the driving and driven adapters for the Language Server
+// Protocol (LSP) module.
 //
-// Driving adapters (stdioAdapter, tcpAdapter) receive external requests
-// via JSON-RPC and drive lsp_domain.Server. Driven adapters
-// (lspFSReader, memoryTypeDataProvider, NoopRenderRegistry) fulfil
-// ports required by other domain packages.
+// Driving adapters (stdioAdapter, tcpAdapter) receive external requests via JSON-RPC and
+// drive lsp_domain.Server. Driven adapters (lspFSReader, memoryTypeDataProvider,
+// NoopRenderRegistry) fulfil ports required by other domain packages.
 //
 // # Thread safety
 //
-// All adapters are safe for concurrent use. The memoryTypeDataProvider
-// uses RWMutex to allow concurrent reads whilst serialising writes.
-// The TCP adapter spawns a new goroutine per connection.
+// All adapters are safe for concurrent use. The memoryTypeDataProvider uses RWMutex to
+// allow concurrent reads whilst serialising writes. The TCP adapter spawns a new
+// goroutine per connection.
 package lsp_adapters

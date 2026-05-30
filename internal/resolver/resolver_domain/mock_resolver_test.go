@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +38,7 @@ func TestMockResolver_DetectLocalModule(t *testing.T) {
 		err := m.DetectLocalModule(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DetectLocalModuleCallCount))
+		assert.Equal(t, int64(1), m.DetectLocalModuleCallCount.Load())
 	})
 
 	t.Run("delegates to DetectLocalModuleFunc", func(t *testing.T) {
@@ -58,7 +57,7 @@ func TestMockResolver_DetectLocalModule(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, ctx, calledWith)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DetectLocalModuleCallCount))
+		assert.Equal(t, int64(1), m.DetectLocalModuleCallCount.Load())
 	})
 
 	t.Run("propagates error from DetectLocalModuleFunc", func(t *testing.T) {
@@ -74,7 +73,7 @@ func TestMockResolver_DetectLocalModule(t *testing.T) {
 		err := m.DetectLocalModule(context.Background())
 
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DetectLocalModuleCallCount))
+		assert.Equal(t, int64(1), m.DetectLocalModuleCallCount.Load())
 	})
 }
 
@@ -88,7 +87,7 @@ func TestMockResolver_GetModuleName(t *testing.T) {
 		result := m.GetModuleName()
 
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleNameCallCount))
+		assert.Equal(t, int64(1), m.GetModuleNameCallCount.Load())
 	})
 
 	t.Run("delegates to GetModuleNameFunc", func(t *testing.T) {
@@ -106,7 +105,7 @@ func TestMockResolver_GetModuleName(t *testing.T) {
 
 		assert.True(t, called)
 		assert.Equal(t, "piko.sh/piko", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleNameCallCount))
+		assert.Equal(t, int64(1), m.GetModuleNameCallCount.Load())
 	})
 }
 
@@ -120,7 +119,7 @@ func TestMockResolver_GetBaseDir(t *testing.T) {
 		result := m.GetBaseDir()
 
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetBaseDirCallCount))
+		assert.Equal(t, int64(1), m.GetBaseDirCallCount.Load())
 	})
 
 	t.Run("delegates to GetBaseDirFunc", func(t *testing.T) {
@@ -138,7 +137,7 @@ func TestMockResolver_GetBaseDir(t *testing.T) {
 
 		assert.True(t, called)
 		assert.Equal(t, "/home/user/project", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetBaseDirCallCount))
+		assert.Equal(t, int64(1), m.GetBaseDirCallCount.Load())
 	})
 }
 
@@ -153,7 +152,7 @@ func TestMockResolver_ResolvePKPath(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolvePKPathCallCount))
+		assert.Equal(t, int64(1), m.ResolvePKPathCallCount.Load())
 	})
 
 	t.Run("delegates to ResolvePKPathFunc", func(t *testing.T) {
@@ -179,7 +178,7 @@ func TestMockResolver_ResolvePKPath(t *testing.T) {
 		assert.Equal(t, "@/partials/card.pk", gotImport)
 		assert.Equal(t, "/src/pages/index.pk", gotContaining)
 		assert.Equal(t, "/resolved/partials/card.pk", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolvePKPathCallCount))
+		assert.Equal(t, int64(1), m.ResolvePKPathCallCount.Load())
 	})
 
 	t.Run("propagates error from ResolvePKPathFunc", func(t *testing.T) {
@@ -196,7 +195,7 @@ func TestMockResolver_ResolvePKPath(t *testing.T) {
 
 		assert.ErrorIs(t, err, expectedErr)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolvePKPathCallCount))
+		assert.Equal(t, int64(1), m.ResolvePKPathCallCount.Load())
 	})
 }
 
@@ -211,7 +210,7 @@ func TestMockResolver_ResolveCSSPath(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveCSSPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveCSSPathCallCount.Load())
 	})
 
 	t.Run("delegates to ResolveCSSPathFunc", func(t *testing.T) {
@@ -237,7 +236,7 @@ func TestMockResolver_ResolveCSSPath(t *testing.T) {
 		assert.Equal(t, "@/styles/theme.css", gotImport)
 		assert.Equal(t, "/src/pages", gotDir)
 		assert.Equal(t, "/resolved/styles/theme.css", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveCSSPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveCSSPathCallCount.Load())
 	})
 
 	t.Run("propagates error from ResolveCSSPathFunc", func(t *testing.T) {
@@ -254,7 +253,7 @@ func TestMockResolver_ResolveCSSPath(t *testing.T) {
 
 		assert.ErrorIs(t, err, expectedErr)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveCSSPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveCSSPathCallCount.Load())
 	})
 }
 
@@ -269,7 +268,7 @@ func TestMockResolver_ResolveAssetPath(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveAssetPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveAssetPathCallCount.Load())
 	})
 
 	t.Run("delegates to ResolveAssetPathFunc", func(t *testing.T) {
@@ -295,7 +294,7 @@ func TestMockResolver_ResolveAssetPath(t *testing.T) {
 		assert.Equal(t, "@/icons/arrow.svg", gotImport)
 		assert.Equal(t, "/src/components/nav.pk", gotContaining)
 		assert.Equal(t, "/resolved/icons/arrow.svg", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveAssetPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveAssetPathCallCount.Load())
 	})
 
 	t.Run("propagates error from ResolveAssetPathFunc", func(t *testing.T) {
@@ -312,7 +311,7 @@ func TestMockResolver_ResolveAssetPath(t *testing.T) {
 
 		assert.ErrorIs(t, err, expectedErr)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveAssetPathCallCount))
+		assert.Equal(t, int64(1), m.ResolveAssetPathCallCount.Load())
 	})
 }
 
@@ -326,7 +325,7 @@ func TestMockResolver_ConvertEntryPointPathToManifestKey(t *testing.T) {
 		result := m.ConvertEntryPointPathToManifestKey("piko.sh/piko/pages/index.pk")
 
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ConvertEntryPointPathToManifestKeyCallCount))
+		assert.Equal(t, int64(1), m.ConvertEntryPointPathToManifestKeyCallCount.Load())
 	})
 
 	t.Run("delegates to ConvertEntryPointPathToManifestKeyFunc", func(t *testing.T) {
@@ -344,7 +343,7 @@ func TestMockResolver_ConvertEntryPointPathToManifestKey(t *testing.T) {
 
 		assert.Equal(t, "piko.sh/piko/pages/index.pk", gotPath)
 		assert.Equal(t, "pages/index.pk", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ConvertEntryPointPathToManifestKeyCallCount))
+		assert.Equal(t, int64(1), m.ConvertEntryPointPathToManifestKeyCallCount.Load())
 	})
 }
 
@@ -359,7 +358,7 @@ func TestMockResolver_GetModuleDir(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleDirCallCount))
+		assert.Equal(t, int64(1), m.GetModuleDirCallCount.Load())
 	})
 
 	t.Run("delegates to GetModuleDirFunc", func(t *testing.T) {
@@ -383,7 +382,7 @@ func TestMockResolver_GetModuleDir(t *testing.T) {
 		assert.Equal(t, ctx, gotCtx)
 		assert.Equal(t, "piko.sh/piko", gotModule)
 		assert.Equal(t, "/go/pkg/mod/piko.sh/piko@v1.0.0", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleDirCallCount))
+		assert.Equal(t, int64(1), m.GetModuleDirCallCount.Load())
 	})
 
 	t.Run("propagates error from GetModuleDirFunc", func(t *testing.T) {
@@ -400,7 +399,7 @@ func TestMockResolver_GetModuleDir(t *testing.T) {
 
 		assert.ErrorIs(t, err, expectedErr)
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleDirCallCount))
+		assert.Equal(t, int64(1), m.GetModuleDirCallCount.Load())
 	})
 }
 
@@ -416,7 +415,7 @@ func TestMockResolver_FindModuleBoundary(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "", modPath)
 		assert.Equal(t, "", subpath)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindModuleBoundaryCallCount))
+		assert.Equal(t, int64(1), m.FindModuleBoundaryCallCount.Load())
 	})
 
 	t.Run("delegates to FindModuleBoundaryFunc", func(t *testing.T) {
@@ -441,7 +440,7 @@ func TestMockResolver_FindModuleBoundary(t *testing.T) {
 		assert.Equal(t, "piko.sh/piko/docs", gotImport)
 		assert.Equal(t, "piko.sh/piko", modPath)
 		assert.Equal(t, "docs", subpath)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindModuleBoundaryCallCount))
+		assert.Equal(t, int64(1), m.FindModuleBoundaryCallCount.Load())
 	})
 
 	t.Run("propagates error from FindModuleBoundaryFunc", func(t *testing.T) {
@@ -459,7 +458,7 @@ func TestMockResolver_FindModuleBoundary(t *testing.T) {
 		assert.ErrorIs(t, err, expectedErr)
 		assert.Equal(t, "", modPath)
 		assert.Equal(t, "", subpath)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindModuleBoundaryCallCount))
+		assert.Equal(t, int64(1), m.FindModuleBoundaryCallCount.Load())
 	})
 }
 
@@ -502,15 +501,15 @@ func TestMockResolver_ZeroValueIsUsable(t *testing.T) {
 	assert.Equal(t, "", modPath)
 	assert.Equal(t, "", subpath)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.DetectLocalModuleCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleNameCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetBaseDirCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolvePKPathCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveCSSPathCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveAssetPathCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ConvertEntryPointPathToManifestKeyCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetModuleDirCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindModuleBoundaryCallCount))
+	assert.Equal(t, int64(1), m.DetectLocalModuleCallCount.Load())
+	assert.Equal(t, int64(1), m.GetModuleNameCallCount.Load())
+	assert.Equal(t, int64(1), m.GetBaseDirCallCount.Load())
+	assert.Equal(t, int64(1), m.ResolvePKPathCallCount.Load())
+	assert.Equal(t, int64(1), m.ResolveCSSPathCallCount.Load())
+	assert.Equal(t, int64(1), m.ResolveAssetPathCallCount.Load())
+	assert.Equal(t, int64(1), m.ConvertEntryPointPathToManifestKeyCallCount.Load())
+	assert.Equal(t, int64(1), m.GetModuleDirCallCount.Load())
+	assert.Equal(t, int64(1), m.FindModuleBoundaryCallCount.Load())
 }
 
 func TestMockResolver_ConcurrentAccess(t *testing.T) {
@@ -541,13 +540,13 @@ func TestMockResolver_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DetectLocalModuleCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetModuleNameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetBaseDirCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ResolvePKPathCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ResolveCSSPathCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ResolveAssetPathCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ConvertEntryPointPathToManifestKeyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetModuleDirCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.FindModuleBoundaryCallCount))
+	assert.Equal(t, int64(goroutines), m.DetectLocalModuleCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetModuleNameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetBaseDirCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ResolvePKPathCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ResolveCSSPathCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ResolveAssetPathCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ConvertEntryPointPathToManifestKeyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetModuleDirCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.FindModuleBoundaryCallCount.Load())
 }

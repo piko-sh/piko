@@ -29,25 +29,22 @@ import (
 )
 
 const (
-	// pagesDirPrefix is the standard prefix for page source files without a
-	// leading slash.
+	// pagesDirPrefix is the standard prefix for page source files without a leading slash.
 	pagesDirPrefix = "pages/"
 
 	// pagesDirPrefixLength is the number of characters in "pages/" for slicing.
 	pagesDirPrefixLength = 6
 
-	// pagesDirPrefixWithSlash is the standard prefix for page source files
-	// with a leading slash.
+	// pagesDirPrefixWithSlash is the standard prefix for page source files with a leading
+	// slash.
 	pagesDirPrefixWithSlash = "/pages/"
 
-	// pagesDirPrefixWithSlashLength is the length of "/pages/" for substring
-	// operations.
+	// pagesDirPrefixWithSlashLength is the length of "/pages/" for substring operations.
 	pagesDirPrefixWithSlashLength = 7
 )
 
-// ProjectViewTranslator converts annotator domain objects into SEO domain
-// objects. It acts as an anti-corruption layer between the SEO and annotator
-// hexagons.
+// ProjectViewTranslator converts annotator domain objects into SEO domain objects. It
+// acts as an anti-corruption layer between the SEO and annotator hexagons.
 type ProjectViewTranslator struct{}
 
 // NewProjectViewTranslator creates a new translator for project data.
@@ -57,12 +54,11 @@ func NewProjectViewTranslator() *ProjectViewTranslator {
 	return &ProjectViewTranslator{}
 }
 
-// Translate converts a ProjectAnnotationResult into a ProjectView for the SEO
-// hexagon. This translation process extracts only the information relevant to
-// SEO generation.
+// Translate converts a ProjectAnnotationResult into a ProjectView for the SEO hexagon.
+// This translation process extracts only the information relevant to SEO generation.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
-// annotated project data to convert.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotated
+// project data to convert.
 //
 // Returns *seo_dto.ProjectView which contains the SEO-relevant project data.
 func (t *ProjectViewTranslator) Translate(result *annotator_dto.ProjectAnnotationResult) *seo_dto.ProjectView {
@@ -116,9 +112,8 @@ func (t *ProjectViewTranslator) Translate(result *annotator_dto.ProjectAnnotatio
 	}
 }
 
-// deriveRouteFromPath converts a source file path to a URL route.
-// For example, "pages/about.pk" becomes "/about" and
-// "pages/blog/post.pk" becomes "/blog/post".
+// deriveRouteFromPath converts a source file path to a URL route. For example,
+// "pages/about.pk" becomes "/about" and "pages/blog/post.pk" becomes "/blog/post".
 //
 // Takes sourcePath (string) which is the path to a template file.
 //
@@ -151,11 +146,11 @@ func (*ProjectViewTranslator) deriveRouteFromPath(sourcePath string) string {
 
 // extractSupportedLocales extracts locale codes from the i18n translations map.
 //
-// Takes translations (map[string]map[string]string) which contains the i18n
-// translations keyed by locale code.
+// Takes translations (map[string]map[string]string) which contains the i18n translations
+// keyed by locale code.
 //
-// Returns []string which contains the locale codes found in the translations
-// map, or an empty slice if the map is empty.
+// Returns []string which contains the locale codes found in the translations map, or an
+// empty slice if the map is empty.
 func extractSupportedLocales(translations map[string]map[string]string) []string {
 	if len(translations) == 0 {
 		return []string{}

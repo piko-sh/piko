@@ -74,16 +74,14 @@ func buildPropsAST(
 	return buildPropsObject(properties), nil
 }
 
-// collectDirectiveProps gathers directive properties from a template node.
-// It extracts _s, _class, _style, and _ref directives and adds them to the
-// properties map.
+// collectDirectiveProps gathers directive properties from a template node. It extracts
+// _s, _class, _style, and _ref directives and adds them to the properties map.
 //
-// Takes n (*ast_domain.TemplateNode) which is the template node to extract
-// directive properties from.
-// Takes properties (map[string]js_ast.Expr) which receives the collected
-// directive expressions.
-// Takes registry (*RegistryContext) which provides the context for AST
-// transformation.
+// Takes n (*ast_domain.TemplateNode) which is the template node to extract directive
+// properties from.
+// Takes properties (map[string]js_ast.Expr) which receives the collected directive
+// expressions.
+// Takes registry (*RegistryContext) which provides the context for AST transformation.
 func collectDirectiveProps(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, registry *RegistryContext) {
 	if n.DirShow != nil {
 		jsExpr, _ := transformOurASTtoJSAST(n.DirShow.Expression, registry)
@@ -111,10 +109,10 @@ func collectDirectiveProps(n *ast_domain.TemplateNode, properties map[string]js_
 
 // collectStaticAttrs gathers static HTML attributes from a template node.
 //
-// Takes n (*ast_domain.TemplateNode) which provides the template node
-// containing the attributes to collect.
-// Takes properties (map[string]js_ast.Expr) which receives the collected
-// attributes as string literal expressions.
+// Takes n (*ast_domain.TemplateNode) which provides the template node containing the
+// attributes to collect.
+// Takes properties (map[string]js_ast.Expr) which receives the collected attributes as
+// string literal expressions.
 func collectStaticAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr) {
 	for attributeIndex := range n.Attributes {
 		attr := &n.Attributes[attributeIndex]
@@ -122,20 +120,20 @@ func collectStaticAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast
 	}
 }
 
-// collectDynamicAttrs gathers dynamic attributes from a template node and adds
-// them to the properties map.
+// collectDynamicAttrs gathers dynamic attributes from a template node and adds them to
+// the properties map.
 //
-// Takes n (*ast_domain.TemplateNode) which is the template node to get dynamic
-// attributes from.
-// Takes properties (map[string]js_ast.Expr) which is the map to fill with the
-// collected attributes.
+// Takes n (*ast_domain.TemplateNode) which is the template node to get dynamic attributes
+// from.
+// Takes properties (map[string]js_ast.Expr) which is the map to fill with the collected
+// attributes.
 // Takes isLink (bool) which shows whether the node is a link element.
-// Takes booleanProps ([]string) which lists property names that should be
-// handled as boolean bindings.
+// Takes booleanProps ([]string) which lists property names that should be handled as
+// boolean bindings.
 // Takes registry (*RegistryContext) which provides the compilation context.
 //
-// Returns js_ast.Expr which is the href expression if the node is a link, or
-// an empty expression otherwise.
+// Returns js_ast.Expr which is the href expression if the node is a link, or an empty
+// expression otherwise.
 func collectDynamicAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, isLink bool, booleanProps []string, registry *RegistryContext) js_ast.Expr {
 	var linkHrefExpr js_ast.Expr
 
@@ -162,22 +160,19 @@ func collectDynamicAttrs(n *ast_domain.TemplateNode, properties map[string]js_as
 	return linkHrefExpr
 }
 
-// collectBindProps gathers p-bind properties from a template node and adds
-// them to a properties map, turning bound expressions into JavaScript AST
-// nodes.
+// collectBindProps gathers p-bind properties from a template node and adds them to a
+// properties map, turning bound expressions into JavaScript AST nodes.
 //
-// Takes n (*ast_domain.TemplateNode) which is the template node with bind
-// directives.
-// Takes properties (map[string]js_ast.Expr) which stores the collected
-// property expressions.
+// Takes n (*ast_domain.TemplateNode) which is the template node with bind directives.
+// Takes properties (map[string]js_ast.Expr) which stores the collected property
+// expressions.
 // Takes isLink (bool) which shows whether the node is a link element.
 // Takes booleanProps ([]string) which lists property names that are boolean.
-// Takes linkHrefExpr (js_ast.Expr) which is the current href expression for
-// links.
+// Takes linkHrefExpr (js_ast.Expr) which is the current href expression for links.
 // Takes registry (*RegistryContext) which provides the compilation context.
 //
-// Returns js_ast.Expr which is the updated link href expression, or the
-// original if unchanged.
+// Returns js_ast.Expr which is the updated link href expression, or the original if
+// unchanged.
 func collectBindProps(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, isLink bool, booleanProps []string, linkHrefExpr js_ast.Expr, registry *RegistryContext) js_ast.Expr {
 	if n.Binds == nil {
 		return linkHrefExpr
@@ -205,14 +200,14 @@ func collectBindProps(n *ast_domain.TemplateNode, properties map[string]js_ast.E
 	return linkHrefExpr
 }
 
-// collectEventHandlers gathers event handlers from a template node and adds
-// them to the multi-value props map.
+// collectEventHandlers gathers event handlers from a template node and adds them to the
+// multi-value props map.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to process.
 // Takes events (*eventBindingCollection) which stores collected event bindings.
 // Takes loopVars (map[string]bool) which tracks loop variable names.
-// Takes multiValueProps (map[string][]js_ast.Expr) which collects handler
-// expressions grouped by property key.
+// Takes multiValueProps (map[string][]js_ast.Expr) which collects handler expressions
+// grouped by property key.
 //
 // Returns bool which is true when a click event handler was found.
 func collectEventHandlers(
@@ -262,10 +257,10 @@ func collectEventHandlers(
 
 // mergeMultiValueProps combines multi-value props into a single properties map.
 //
-// Takes properties (map[string]js_ast.Expr) which is the target map that will
-// receive the merged values.
-// Takes multiValueProps (map[string][]js_ast.Expr) which holds props that have
-// more than one value to merge.
+// Takes properties (map[string]js_ast.Expr) which is the target map that will receive the
+// merged values.
+// Takes multiValueProps (map[string][]js_ast.Expr) which holds props that have more than
+// one value to merge.
 func mergeMultiValueProps(properties map[string]js_ast.Expr, multiValueProps map[string][]js_ast.Expr) {
 	keys := slices.Sorted(maps.Keys(multiValueProps))
 
@@ -283,14 +278,13 @@ func mergeMultiValueProps(properties map[string]js_ast.Expr, multiValueProps map
 	}
 }
 
-// buildPropsObject builds a JavaScript object expression from a map of
-// properties.
+// buildPropsObject builds a JavaScript object expression from a map of properties.
 //
-// Takes properties (map[string]js_ast.Expr) which contains the key-value pairs
-// to include in the object.
+// Takes properties (map[string]js_ast.Expr) which contains the key-value pairs to include
+// in the object.
 //
-// Returns js_ast.Expr which is the object expression with keys sorted in
-// alphabetical order.
+// Returns js_ast.Expr which is the object expression with keys sorted in alphabetical
+// order.
 func buildPropsObject(properties map[string]js_ast.Expr) js_ast.Expr {
 	propKeys := slices.Sorted(maps.Keys(properties))
 
@@ -313,8 +307,8 @@ func buildPropsObject(properties map[string]js_ast.Expr) js_ast.Expr {
 // Takes expression (ast_domain.Expression) which is the expression to check.
 // Takes booleanProps ([]string) which lists known boolean property names.
 //
-// Returns bool which is true if the base identifier of the expression matches
-// a boolean property name.
+// Returns bool which is true if the base identifier of the expression matches a boolean
+// property name.
 func isBooleanBound(expression ast_domain.Expression, booleanProps []string) bool {
 	if expression == nil {
 		return false
@@ -332,8 +326,8 @@ func isBooleanBound(expression ast_domain.Expression, booleanProps []string) boo
 //
 // Takes expression (ast_domain.Expression) which is the AST node to examine.
 //
-// Returns string which is the base identifier name, or an empty string if no
-// identifier can be found.
+// Returns string which is the base identifier name, or an empty string if no identifier
+// can be found.
 func extractBaseIdentifier(expression ast_domain.Expression) string {
 	current := expression
 	for {
@@ -359,15 +353,14 @@ func extractBaseIdentifier(expression ast_domain.Expression) string {
 
 // handleModelDirective sets up two-way data binding for the p-model directive.
 //
-// For checkbox inputs, it binds to the "checked" property and listens for the
-// "change" event. For other inputs, it binds to "value" and listens for the
-// "input" event.
+// For checkbox inputs, it binds to the "checked" property and listens for the "change"
+// event. For other inputs, it binds to "value" and listens for the "input" event.
 //
-// Takes n (*ast_domain.TemplateNode) which is the template node containing the
-// model directive.
+// Takes n (*ast_domain.TemplateNode) which is the template node containing the model
+// directive.
 // Takes properties (map[string]js_ast.Expr) which receives the bound property.
-// Takes multiValueProps (map[string][]js_ast.Expr) which receives the event
-// handler binding.
+// Takes multiValueProps (map[string][]js_ast.Expr) which receives the event handler
+// binding.
 // Takes events (*eventBindingCollection) which manages event bindings.
 // Takes loopVars (map[string]bool) which tracks loop variable names.
 func handleModelDirective(
@@ -417,8 +410,7 @@ func handleModelDirective(
 	multiValueProps[propKey] = append(multiValueProps[propKey], jsPropVal)
 }
 
-// isCheckboxInput reports whether the node is an input element with
-// type="checkbox".
+// isCheckboxInput reports whether the node is an input element with type="checkbox".
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to check.
 //
@@ -436,17 +428,16 @@ func isCheckboxInput(n *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// parseModelHandlerBlockForExpr parses the model update handler with the
-// given model expression.
+// parseModelHandlerBlockForExpr parses the model update handler with the given model
+// expression.
 //
 // The modelExprString should already include the this.$$ctx prefix from PrintExpr.
 //
 // Takes modelExprString (string) which specifies the model expression to update.
-// Takes isCheckbox (bool) which indicates whether to use .checked instead of
-// .value.
+// Takes isCheckbox (bool) which indicates whether to use .checked instead of .value.
 //
-// Returns *js_ast.SBlock which contains the parsed handler block, or nil when
-// parsing fails.
+// Returns *js_ast.SBlock which contains the parsed handler block, or nil when parsing
+// fails.
 func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) *js_ast.SBlock {
 	targetProperty := "value"
 	if isCheckbox {
@@ -466,10 +457,9 @@ func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) *js_
 
 // handleLinkProps sets up properties for piko:a elements.
 //
-// Takes properties (map[string]js_ast.Expr) which stores the element
-// properties.
-// Takes multiValueProps (map[string][]js_ast.Expr) which stores properties
-// with more than one value.
+// Takes properties (map[string]js_ast.Expr) which stores the element properties.
+// Takes multiValueProps (map[string][]js_ast.Expr) which stores properties with more than
+// one value.
 // Takes linkHrefLit (js_ast.Expr) which is the literal href value.
 // Takes linkHrefExpr (js_ast.Expr) which is the expression href value.
 // Takes userClicked (bool) which shows if the user gave a click handler.
@@ -506,8 +496,8 @@ func handleLinkProps(
 
 // addNavigateClickHandler adds a click handler for navigation.
 //
-// Takes multiValueProps (map[string][]js_ast.Expr) which stores the property
-// values where the handler will be added.
+// Takes multiValueProps (map[string][]js_ast.Expr) which stores the property values where
+// the handler will be added.
 // Takes navigationArg (js_ast.Expr) which specifies where to navigate.
 // Takes events (*eventBindingCollection) which creates and stores the binding.
 func addNavigateClickHandler(
@@ -554,8 +544,7 @@ func addNavigateClickHandler(
 
 // buildEventHandlerExpr builds a JavaScript expression for an event handler.
 //
-// Takes d (ast_domain.Directive) which contains the handler directive to
-// process.
+// Takes d (ast_domain.Directive) which contains the handler directive to process.
 // Takes evtName (string) which specifies the event name for the handler.
 // Takes events (*eventBindingCollection) which stores the generated bindings.
 // Takes loopVars (map[string]bool) which tracks loop variable names in scope.
@@ -594,13 +583,13 @@ func buildEventHandlerExpr(
 
 // buildActionHandler builds a handler block for a server action call.
 //
-// For v2 action calls (action.namespace.Name()), the annotator transforms the
-// directive expression into a CallExpr with the callee set to an Identifier
-// containing just the action name. Extracts the callee name (not the full
-// expression string which would incorrectly include arguments).
+// For v2 action calls (action.namespace.Name()), the annotator transforms the directive
+// expression into a CallExpr with the callee set to an Identifier containing just the
+// action name. Extracts the callee name (not the full expression string which would
+// incorrectly include arguments).
 //
-// Takes d (ast_domain.Directive) which contains the directive expression with
-// the action call.
+// Takes d (ast_domain.Directive) which contains the directive expression with the action
+// call.
 //
 // Returns *js_ast.SBlock which contains the statement block for the handler.
 // Returns string which is the internal handler name.
@@ -617,11 +606,9 @@ func buildActionHandler(d ast_domain.Directive) (*js_ast.SBlock, string) {
 	return &js_ast.SBlock{Stmts: []js_ast.Stmt{statement}}, "__internal_action_handler"
 }
 
-// extractActionNameFromExpr extracts the action name from a
-// directive expression.
+// extractActionNameFromExpr extracts the action name from a directive expression.
 //
-// Takes expression (ast_domain.Expression) which is the directive
-// expression.
+// Takes expression (ast_domain.Expression) which is the directive expression.
 //
 // Returns string which is the extracted action name.
 func extractActionNameFromExpr(expression ast_domain.Expression) string {
@@ -633,8 +620,7 @@ func extractActionNameFromExpr(expression ast_domain.Expression) string {
 
 // buildHelperHandler builds a handler block for a helper action.
 //
-// Takes d (ast_domain.Directive) which contains the directive expression to
-// run.
+// Takes d (ast_domain.Directive) which contains the directive expression to run.
 //
 // Returns *js_ast.SBlock which contains the parsed handler statements.
 // Returns string which is the internal handler name.
@@ -650,8 +636,7 @@ func buildHelperHandler(d ast_domain.Directive) (*js_ast.SBlock, string) {
 	return &js_ast.SBlock{Stmts: []js_ast.Stmt{statement}}, "__internal_helper_handler"
 }
 
-// transformUserArgs converts user argument strings into JavaScript AST
-// expressions.
+// transformUserArgs converts user argument strings into JavaScript AST expressions.
 //
 // Takes userArgs ([]string) which contains the argument strings to convert.
 // Takes registry (*RegistryContext) which provides the compilation context.
@@ -674,15 +659,13 @@ func transformUserArgs(ctx context.Context, userArgs []string, registry *Registr
 	return transformedUserArgsExprs
 }
 
-// parseOnCallToParts splits an event handler expression into a
-// function name and its arguments.
+// parseOnCallToParts splits an event handler expression into a function name and its
+// arguments.
 //
-// Takes expression (string) which contains the event handler
-// expression to parse.
+// Takes expression (string) which contains the event handler expression to parse.
 //
 // Returns string which is the function name.
-// Returns []string which contains the parsed arguments, or nil
-// if there are none.
+// Returns []string which contains the parsed arguments, or nil if there are none.
 func parseOnCallToParts(expression string) (string, []string) {
 	index := strings.IndexRune(expression, '(')
 	if index < 0 {
@@ -696,8 +679,8 @@ func parseOnCallToParts(expression string) (string, []string) {
 	return functionName, splitArgs(argumentsString)
 }
 
-// splitArgs splits a comma-separated argument string into separate parts.
-// It respects bracket nesting, so commas inside brackets do not cause a split.
+// splitArgs splits a comma-separated argument string into separate parts. It respects
+// bracket nesting, so commas inside brackets do not cause a split.
 //
 // Takes s (string) which is the comma-separated argument string to split.
 //
@@ -735,15 +718,11 @@ func splitArgs(s string) []string {
 	return arguments
 }
 
-// dirTextDynamicExpr builds a dynamic text expression from the
-// given input.
+// dirTextDynamicExpr builds a dynamic text expression from the given input.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to build.
-// Takes keyBaseExpr (js_ast.Expr) which is the base expression
-// for keys.
-// Takes registry (*RegistryContext) which provides the
-// compilation context.
+// Takes expression (ast_domain.Expression) which is the expression to build.
+// Takes keyBaseExpr (js_ast.Expr) which is the base expression for keys.
+// Takes registry (*RegistryContext) which provides the compilation context.
 //
 // Returns js_ast.Expr which is the built dynamic text expression.
 // Returns error when the expression cannot be built.
@@ -751,15 +730,11 @@ func dirTextDynamicExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Exp
 	return buildDynamicContentExpr(expression, keyBaseExpr, registry, "txt")
 }
 
-// dirHTMLDynamicExpr builds a JavaScript expression for dynamic
-// HTML content.
+// dirHTMLDynamicExpr builds a JavaScript expression for dynamic HTML content.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to build.
-// Takes keyBaseExpr (js_ast.Expr) which is the base key
-// expression.
-// Takes registry (*RegistryContext) which holds the registry
-// context.
+// Takes expression (ast_domain.Expression) which is the expression to build.
+// Takes keyBaseExpr (js_ast.Expr) which is the base key expression.
+// Takes registry (*RegistryContext) which holds the registry context.
 //
 // Returns js_ast.Expr which is the built JavaScript expression.
 // Returns error when the expression cannot be built.
@@ -767,20 +742,15 @@ func dirHTMLDynamicExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Exp
 	return buildDynamicContentExpr(expression, keyBaseExpr, registry, "html")
 }
 
-// buildDynamicContentExpr builds a dynamic content expression for
-// text or HTML rendering in the virtual DOM.
+// buildDynamicContentExpr builds a dynamic content expression for text or HTML rendering
+// in the virtual DOM.
 //
-// Takes expression (ast_domain.Expression) which is the source
-// expression to change.
-// Takes keyBaseExpr (js_ast.Expr) which is the base key for node
-// identity.
-// Takes registry (*RegistryContext) which provides the build
-// context.
-// Takes contentType (string) which sets the content type (text
-// or HTML).
+// Takes expression (ast_domain.Expression) which is the source expression to change.
+// Takes keyBaseExpr (js_ast.Expr) which is the base key for node identity.
+// Takes registry (*RegistryContext) which provides the build context.
+// Takes contentType (string) which sets the content type (text or HTML).
 //
-// Returns js_ast.Expr which is an array holding the DOM call
-// expression.
+// Returns js_ast.Expr which is an array holding the DOM call expression.
 // Returns error when the expression change fails.
 func buildDynamicContentExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Expr, registry *RegistryContext, contentType string) (js_ast.Expr, error) {
 	jsExpr, err := transformOurASTtoJSAST(expression, registry)

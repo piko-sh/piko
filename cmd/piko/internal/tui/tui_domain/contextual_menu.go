@@ -23,18 +23,18 @@ import (
 	"strings"
 )
 
-// MenuMarker is the cursor glyph rendered next to the active menu item.
-//
-// Centralised so future tweaks (e.g. a Nerd Font glyph) land in one
-// place.
-const MenuMarker = "▸"
+const (
+	// MenuMarker is the cursor glyph rendered next to the active menu item.
+	//
+	// Centralised so future tweaks (e.g. a Nerd Font glyph) land in one place.
+	MenuMarker = "▸"
+)
 
 // ContextualMenu renders the left-column item list for the active group.
 //
-// It owns a cursor (highlighted-but-not-active position) and an active
-// item id (the item whose centre/detail is currently displayed). The
-// two can differ: pressing j/k moves the cursor without committing;
-// pressing Enter commits the highlighted item as active.
+// It owns a cursor (highlighted-but-not-active position) and an active item id (the item
+// whose centre/detail is currently displayed). The two can differ: pressing j/k moves the
+// cursor without committing; pressing Enter commits the highlighted item as active.
 type ContextualMenu struct {
 	// theme provides the styles for label / cursor / hotkey / badge.
 	theme *Theme
@@ -54,10 +54,9 @@ func NewContextualMenu(theme *Theme) *ContextualMenu {
 // Takes theme (*Theme) which is the new theme; never nil.
 func (m *ContextualMenu) SetTheme(theme *Theme) { m.theme = theme }
 
-// Render produces the menu body sized to (width, height). Items beyond
-// height are clipped; future work introduces scrolling for very tall
-// groups (none of the four built-in groups exceeds eight items so this
-// is deferred).
+// Render produces the menu body sized to (width, height). Items beyond height are
+// clipped; none of the four built-in groups exceeds eight items so no scrolling is
+// required.
 //
 // Takes items ([]MenuItem) which is the group's ordered item list.
 // Takes activeID (ItemID) which is the currently-active item.
@@ -134,8 +133,8 @@ func (m *ContextualMenu) renderItem(item MenuItem, index int, activeID ItemID, c
 //
 // Takes badge (Badge) which is the badge to render.
 //
-// Returns string which is the styled badge, or empty when the badge
-// has no glyph and no count.
+// Returns string which is the styled badge, or empty when the badge has no glyph and no
+// count.
 func (m *ContextualMenu) renderBadge(badge Badge) string {
 	if badge.Glyph != "" {
 		return m.severityStyle(badge.Severity).Render(badge.Glyph)
@@ -150,8 +149,7 @@ func (m *ContextualMenu) renderBadge(badge Badge) string {
 //
 // Takes s (Severity) which is the severity to look up.
 //
-// Returns interface{ Render(...string) string } which is the matching
-// theme style.
+// Returns interface{ Render(...string) string } which is the matching theme style.
 func (m *ContextualMenu) severityStyle(s Severity) interface{ Render(...string) string } {
 	if m.theme == nil {
 		return navItemStyle
@@ -159,8 +157,8 @@ func (m *ContextualMenu) severityStyle(s Severity) interface{ Render(...string) 
 	return m.theme.SeverityFor(s)
 }
 
-// styleHotkey applies the theme's hotkey style to text, falling back to
-// the legacy global style when no theme is configured.
+// styleHotkey applies the theme's hotkey style to text, falling back to the legacy global
+// style when no theme is configured.
 //
 // Takes text (string) which is the row text to style.
 //
@@ -172,8 +170,8 @@ func (m *ContextualMenu) styleHotkey(text string) string {
 	return m.theme.TabHotkey.Render(text)
 }
 
-// styleActive applies the theme's "selected" style to text, falling
-// back to the legacy global style when no theme is configured.
+// styleActive applies the theme's "selected" style to text, falling back to the legacy
+// global style when no theme is configured.
 //
 // Takes text (string) which is the row text to style.
 //
@@ -185,8 +183,8 @@ func (m *ContextualMenu) styleActive(text string) string {
 	return m.theme.Selected.Render(text)
 }
 
-// styleCursor applies the theme's cursor style to text, falling back to
-// the legacy global style when no theme is configured.
+// styleCursor applies the theme's cursor style to text, falling back to the legacy global
+// style when no theme is configured.
 //
 // Takes text (string) which is the row text to style.
 //
@@ -198,8 +196,8 @@ func (m *ContextualMenu) styleCursor(text string) string {
 	return m.theme.Cursor.Render(text)
 }
 
-// styleIdle applies the theme's subtle (idle) style to text, falling
-// back to the legacy global style when no theme is configured.
+// styleIdle applies the theme's subtle (idle) style to text, falling back to the legacy
+// global style when no theme is configured.
 //
 // Takes text (string) which is the row text to style.
 //
@@ -211,10 +209,10 @@ func (m *ContextualMenu) styleIdle(text string) string {
 	return m.theme.Subtle.Render(text)
 }
 
-// displayHotkey converts a MenuItem.Hotkey accelerator string to its
-// short menu-row form. Single-character hotkeys ("1"-"9", "0") render
-// verbatim; "shift+N" collapses to "^N"; other modifiers fall back to
-// the raw string so they remain searchable in the help overlay.
+// displayHotkey converts a MenuItem.Hotkey accelerator string to its short menu-row form.
+// Single-character hotkeys ("1"-"9", "0") render verbatim; "shift+N" collapses to "^N";
+// other modifiers fall back to the raw string so they remain searchable in the help
+// overlay.
 //
 // Takes hotkey (string) which is the accelerator definition.
 //

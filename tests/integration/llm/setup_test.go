@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -122,8 +123,8 @@ func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 	}
 
 	env.cleanup = func() {
-		for i := len(cleanups) - 1; i >= 0; i-- {
-			cleanups[i]()
+		for _, cleanup := range slices.Backward(cleanups) {
+			cleanup()
 		}
 	}
 

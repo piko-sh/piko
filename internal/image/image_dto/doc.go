@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package image_dto contains configuration and result types for image
-// transformations, covering resizing, format conversion, responsive
-// variant generation, and placeholder (LQIP) creation.
+// Package image_dto contains configuration and result types for image transformations,
+// covering resizing, format conversion, responsive variant generation, and low-quality
+// preview (LQIP) creation.
 package image_dto

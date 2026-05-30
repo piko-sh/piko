@@ -23,9 +23,9 @@ import (
 	"time"
 )
 
-// DispatcherInspector provides read-only access to dispatcher state and dead
-// letter queues. It abstracts over the email and notification dispatchers to
-// provide a unified monitoring interface.
+// DispatcherInspector provides read-only access to dispatcher state and dead letter
+// queues. It abstracts over the email and notification dispatchers to provide a unified
+// monitoring interface.
 type DispatcherInspector interface {
 	// GetDispatcherSummaries returns statistics for all configured dispatchers.
 	//
@@ -35,8 +35,8 @@ type DispatcherInspector interface {
 
 	// GetDLQEntries returns dead letter queue entries for a specific dispatcher.
 	//
-	// Takes dispatcherType (string) which identifies the dispatcher, either
-	// "email" or "notification".
+	// Takes dispatcherType (string) which identifies the dispatcher, either "email" or
+	// "notification".
 	// Takes limit (int) which caps the number of entries returned.
 	//
 	// Returns []DLQEntry which contains the dead letter entries.

@@ -18,42 +18,41 @@
 
 package monitoring_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockTelemetryProvider is a test double for TelemetryProvider where nil
-// function fields return zero values and call counts are tracked atomically.
+// MockTelemetryProvider is a test double for TelemetryProvider where nil function fields
+// return zero values and call counts are tracked atomically.
 type MockTelemetryProvider struct {
-	// GetMetricsFunc is the function called by
-	// GetMetrics.
+	// GetMetricsFunc is the function called by GetMetrics.
 	GetMetricsFunc func() []MetricData
 
 	// GetSpansFunc is the function called by GetSpans.
 	GetSpansFunc func(limit int, errorsOnly bool) []SpanData
 
-	// GetSpanByTraceIDFunc is the function called by
-	// GetSpanByTraceID.
+	// GetSpanByTraceIDFunc is the function called by GetSpanByTraceID.
 	GetSpanByTraceIDFunc func(traceID string) []SpanData
 
-	// GetMetricsCallCount tracks how many times
-	// GetMetrics was called.
-	GetMetricsCallCount int64
+	// GetMetricsCallCount tracks how many times GetMetrics was called.
+	GetMetricsCallCount atomic.Int64
 
-	// GetSpansCallCount tracks how many times GetSpans
-	// was called.
-	GetSpansCallCount int64
+	// GetSpansCallCount tracks how many times GetSpans was called.
+	GetSpansCallCount atomic.Int64
 
-	// GetSpanByTraceIDCallCount tracks how many times
-	// GetSpanByTraceID was called.
-	GetSpanByTraceIDCallCount int64
+	// GetSpanByTraceIDCallCount tracks how many times GetSpanByTraceID was called.
+	GetSpanByTraceIDCallCount atomic.Int64
 }
 
-var _ TelemetryProvider = (*MockTelemetryProvider)(nil)
+var (
+	_ TelemetryProvider = (*MockTelemetryProvider)(nil)
+)
 
 // GetMetrics delegates to GetMetricsFunc if set.
 //
 // Returns nil if GetMetricsFunc is nil.
 func (m *MockTelemetryProvider) GetMetrics() []MetricData {
-	atomic.AddInt64(&m.GetMetricsCallCount, 1)
+	m.GetMetricsCallCount.Add(1)
 	if m.GetMetricsFunc != nil {
 		return m.GetMetricsFunc()
 	}
@@ -67,7 +66,7 @@ func (m *MockTelemetryProvider) GetMetrics() []MetricData {
 //
 // Returns nil if GetSpansFunc is nil.
 func (m *MockTelemetryProvider) GetSpans(limit int, errorsOnly bool) []SpanData {
-	atomic.AddInt64(&m.GetSpansCallCount, 1)
+	m.GetSpansCallCount.Add(1)
 	if m.GetSpansFunc != nil {
 		return m.GetSpansFunc(limit, errorsOnly)
 	}
@@ -80,7 +79,7 @@ func (m *MockTelemetryProvider) GetSpans(limit int, errorsOnly bool) []SpanData 
 //
 // Returns nil if GetSpanByTraceIDFunc is nil.
 func (m *MockTelemetryProvider) GetSpanByTraceID(traceID string) []SpanData {
-	atomic.AddInt64(&m.GetSpanByTraceIDCallCount, 1)
+	m.GetSpanByTraceIDCallCount.Add(1)
 	if m.GetSpanByTraceIDFunc != nil {
 		return m.GetSpanByTraceIDFunc(traceID)
 	}

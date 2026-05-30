@@ -16,15 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package component_adapters implements [component_domain.ComponentRegistry]
-// with an in-memory, thread-safe store.
+// Package component_adapters implements [component_domain.ComponentRegistry] with an
+// in-memory, thread-safe store.
 //
-// Components are registered at application startup from local
-// auto-discovery or external library registration, and looked up by
-// tag name during template compilation and rendering.
+// Components are registered at application startup from local auto-discovery or external
+// library registration, and looked up by tag name during template compilation and
+// rendering.
 //
 // # Thread safety
 //
-// All methods on the in-memory registry are safe for concurrent use.
-// Reads acquire a shared lock; writes acquire an exclusive lock.
+// All methods on the in-memory registry are safe for concurrent use. Reads acquire a
+// shared lock; writes acquire an exclusive lock.
 package component_adapters

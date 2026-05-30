@@ -23,36 +23,33 @@ import (
 	"strings"
 )
 
-// ReportingEndpoint defines a reporting endpoint for the
-// Reporting-Endpoints HTTP header, used by CSP report-to directives
-// and other reporting APIs.
+// ReportingEndpoint defines a reporting endpoint for the Reporting-Endpoints HTTP header,
+// used by CSP report-to directives and other reporting APIs.
 type ReportingEndpoint struct {
 	// Name is the endpoint group name used by report-to directives.
 	Name string `json:"name" yaml:"name"`
 
-	// URL is the destination URL for violation reports.
-	// Must be HTTPS for browsers to accept it.
+	// URL is the destination URL for violation reports. Must be HTTPS for browsers to accept
+	// it.
 	URL string `json:"url" yaml:"url"`
 }
 
-// ReportingConfig configures the HTTP Reporting-Endpoints header. This is
-// separate from CSP as it is used by multiple web platform features: CSP
-// report-to directive, Network Error Logging, Deprecation Reports, and Crash
-// Reports.
+// ReportingConfig configures the HTTP Reporting-Endpoints header. This is separate from
+// CSP as it is used by multiple web platform features: CSP report-to directive, Network
+// Error Logging, Deprecation Reports, and Crash Reports.
 type ReportingConfig struct {
-	// Enabled controls whether the Reporting-Endpoints header is set.
-	// Default: false.
+	// Enabled controls whether the Reporting-Endpoints header is set. Default: false.
 	Enabled *bool `json:"enabled" yaml:"enabled" default:"false" env:"PIKO_REPORTING_ENABLED" flag:"reportingEnabled" usage:"Enable Reporting-Endpoints header."`
 
-	// Endpoints lists the named reporting endpoints.
-	// Each endpoint can be used by its name in CSP report-to directives.
+	// Endpoints lists the named reporting endpoints. Each endpoint can be used by its name
+	// in CSP report-to directives.
 	Endpoints []ReportingEndpoint `json:"endpoints" yaml:"endpoints"`
 }
 
 // BuildHeader generates the Reporting-Endpoints header value.
 //
-// Returns string which is the formatted header value, or empty if the config
-// is disabled or has no endpoints.
+// Returns string which is the formatted header value, or empty if the config is disabled
+// or has no endpoints.
 //
 // The output format follows RFC 8941 (Structured Field Values):
 //

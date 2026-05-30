@@ -27,10 +27,10 @@ import (
 	"strings"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/pml/pml_adapters"
 	"piko.sh/piko/internal/pml/pml_components"
 	"piko.sh/piko/internal/pml/pml_domain"
@@ -54,7 +54,9 @@ type testCase struct {
 	EntryFile string
 }
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 func runTestCase(t *testing.T, tc testCase) {
 	testSpecPath := filepath.Join(tc.Path, "testspec.json")

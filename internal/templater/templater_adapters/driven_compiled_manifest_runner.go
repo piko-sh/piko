@@ -33,45 +33,42 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// CompiledManifestRunner is a stateless adapter that handles requests in
-// production mode. It implements ManifestRunnerPort by querying a pre-loaded,
-// in-memory ManifestStore.
+// CompiledManifestRunner is a stateless adapter that handles requests in production mode.
+// It implements ManifestRunnerPort by querying a pre-loaded, in-memory ManifestStore.
 type CompiledManifestRunner struct {
 	// store provides read access to manifest entries for page lookup.
 	store templater_domain.ManifestStoreView
 
-	// i18nService provides translation stores for request data; nil disables
-	// translations.
+	// i18nService provides translation stores for request data; nil disables translations.
 	i18nService i18n_domain.Service
 
-	// defaultLocale is the fallback locale for request parsing when none is
-	// specified.
+	// defaultLocale is the fallback locale for request parsing when none is specified.
 	defaultLocale string
 }
 
-var _ templater_domain.ManifestRunnerPort = (*CompiledManifestRunner)(nil)
+var (
+	_ templater_domain.ManifestRunnerPort = (*CompiledManifestRunner)(nil)
+)
 
 const (
-	// maxServerRedirectHops is the maximum number of server redirect hops allowed
-	// before returning an error to prevent infinite loops.
+	// maxServerRedirectHops is the maximum number of server redirect hops allowed before
+	// returning an error to prevent infinite loops.
 	maxServerRedirectHops = 3
 )
 
 // RunPage handles a request for a page in production.
 //
-// It looks up the component, prepares the request context, and executes the
-// component's compiled BuildAST function. It delegates to
-// runPageWithRedirectLoop to handle ServerRedirect logic.
+// It looks up the component, prepares the request context, and executes the component's
+// compiled BuildAST function. It delegates to runPageWithRedirectLoop to handle
+// ServerRedirect logic.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the incoming HTTP request data.
 //
 // Returns *ast_domain.TemplateAST which is the rendered template structure.
 // Returns templater_dto.InternalMetadata which contains internal page metadata.
 // Returns string which is the final resolved page path.
-// Returns error when the page cannot be rendered or a redirect loop is
-// detected.
+// Returns error when the page cannot be rendered or a redirect loop is detected.
 func (r *CompiledManifestRunner) RunPage(
 	ctx context.Context,
 	pageDef templater_dto.PageDefinition,
@@ -80,11 +77,11 @@ func (r *CompiledManifestRunner) RunPage(
 	return r.runPageWithRedirectLoop(ctx, pageDef, request, 0)
 }
 
-// RunPartial handles a request for a partial component. In the compiled
-// runner, the lookup and execution logic is the same as for a page.
+// RunPartial handles a request for a partial component. In the compiled runner, the
+// lookup and execution logic is the same as for a page.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the partial
-// component to render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the partial component to
+// render.
 // Takes request (*http.Request) which provides the HTTP request context.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template structure.
@@ -103,11 +100,9 @@ func (r *CompiledManifestRunner) RunPartial(
 	return r.RunPage(ctx, pageDef, request)
 }
 
-// RunPartialWithProps runs a partial and passes props to the compiled
-// BuildAST function.
+// RunPartialWithProps runs a partial and passes props to the compiled BuildAST function.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes props (any) which contains the properties to pass to the template.
 //
@@ -166,8 +161,7 @@ func (r *CompiledManifestRunner) RunPartialWithProps(
 	return astRoot, internalMetadata, pageEntry.GetStyling(), nil
 }
 
-// GetPageEntry retrieves a view of a single component's metadata from the
-// store.
+// GetPageEntry retrieves a view of a single component's metadata from the store.
 //
 // Takes manifestKey (string) which identifies the component to retrieve.
 //
@@ -194,8 +188,8 @@ func (r *CompiledManifestRunner) GetPageEntry(ctx context.Context, manifestKey s
 	return pageEntry, nil
 }
 
-// runPageWithRedirectLoop runs a page and follows server-side redirects.
-// It calls itself again for each redirect, up to maxServerRedirectHops times.
+// runPageWithRedirectLoop runs a page and follows server-side redirects. It calls itself
+// again for each redirect, up to maxServerRedirectHops times.
 //
 // Takes pageDef (templater_dto.PageDefinition) which specifies the page to run.
 // Takes request (*http.Request) which provides the HTTP request data.
@@ -245,8 +239,7 @@ func (r *CompiledManifestRunner) runPageWithRedirectLoop(
 	return astRoot, internalMetadata, pageEntry.GetStyling(), nil
 }
 
-// handleRedirectLoopError returns an error when the maximum redirect hops are
-// exceeded.
+// handleRedirectLoopError returns an error when the maximum redirect hops are exceeded.
 //
 // Takes originalPath (string) which is the path that caused the loop.
 //
@@ -310,15 +303,14 @@ func (r *CompiledManifestRunner) preparePageExecution(
 	return pageEntry, reqData, nil
 }
 
-// handleServerRedirect handles a server-side redirect by fetching the target
-// page.
+// handleServerRedirect handles a server-side redirect by fetching the target page.
 //
 // Takes redirectURL (string) which is the target URL to redirect to.
 // Takes request (*http.Request) which provides the original request context.
 // Takes hopCount (int) which tracks the current redirect depth.
 //
-// Returns *ast_domain.TemplateAST which contains the parsed template from the
-// redirected page.
+// Returns *ast_domain.TemplateAST which contains the parsed template from the redirected
+// page.
 // Returns templater_dto.InternalMetadata which holds metadata from processing.
 // Returns string which provides the final resolved path.
 // Returns error when the redirect fails or exceeds the maximum hop count.
@@ -344,19 +336,18 @@ func (r *CompiledManifestRunner) handleServerRedirect(
 	return r.runPageWithRedirectLoop(ctx, newPageDef, request, hopCount+1)
 }
 
-// NewCompiledManifestRunner creates a new production runner. Its sole
-// dependency is the ManifestStoreView, which has already loaded and linked all
-// components.
+// NewCompiledManifestRunner creates a new production runner. Its sole dependency is the
+// ManifestStoreView, which has already loaded and linked all components.
 //
-// Takes store (templater_domain.ManifestStoreView) which provides
-// read access to compiled manifest entries.
-// Takes i18nService (i18n_domain.Service) which provides translation
-// stores for request data; nil disables translations.
-// Takes defaultLocale (string) which is the fallback locale for
-// request parsing when none is specified.
+// Takes store (templater_domain.ManifestStoreView) which provides read access to compiled
+// manifest entries.
+// Takes i18nService (i18n_domain.Service) which provides translation stores for request
+// data; nil disables translations.
+// Takes defaultLocale (string) which is the fallback locale for request parsing when none
+// is specified.
 //
-// Returns templater_domain.ManifestRunnerPort which is the configured
-// runner ready for handling production requests.
+// Returns templater_domain.ManifestRunnerPort which is the configured runner ready for
+// handling production requests.
 func NewCompiledManifestRunner(store templater_domain.ManifestStoreView, i18nService i18n_domain.Service, defaultLocale string) templater_domain.ManifestRunnerPort {
 	return &CompiledManifestRunner{
 		store:         store,
@@ -365,15 +356,12 @@ func NewCompiledManifestRunner(store templater_domain.ManifestStoreView, i18nSer
 	}
 }
 
-// normaliseServerRedirectPath converts a URL path to a manifest key by
-// removing the leading slash and adding the pages folder prefix with the .pk
-// file extension.
+// normaliseServerRedirectPath converts a URL path to a manifest key by removing the
+// leading slash and adding the pages folder prefix with the .pk file extension.
 //
-// Takes urlPath (string) which is the URL path to convert (e.g. "/about" or
-// "/").
+// Takes urlPath (string) which is the URL path to convert (e.g. "/about" or "/").
 //
-// Returns string which is the manifest key (e.g. "pages/about.pk" or
-// "pages/index.pk").
+// Returns string which is the manifest key (e.g. "pages/about.pk" or "pages/index.pk").
 func normaliseServerRedirectPath(urlPath string) string {
 	path := cmp.Or(strings.TrimPrefix(urlPath, "/"), "index")
 

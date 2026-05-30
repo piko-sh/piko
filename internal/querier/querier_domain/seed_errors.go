@@ -18,10 +18,12 @@
 
 package querier_domain
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// SeedExecutionError wraps an error from executing a seed's SQL content,
-// carrying the seed identity for diagnostics.
+// SeedExecutionError wraps an error from executing a seed's SQL content, carrying the
+// seed identity for diagnostics.
 type SeedExecutionError struct {
 	// Cause holds the underlying error from seed execution.
 	Cause error

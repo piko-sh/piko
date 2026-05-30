@@ -32,8 +32,8 @@ const (
 	// scoreWordExactMatch is the score given when a word matches exactly.
 	scoreWordExactMatch = 0.85
 
-	// scoreWordPrefixMatch is the score given when a pattern word matches the
-	// beginning of a text word.
+	// scoreWordPrefixMatch is the score given when a pattern word matches the beginning of a
+	// text word.
 	scoreWordPrefixMatch = 0.75
 
 	// scoreWordContainsMatch is the score for a word substring match.
@@ -42,15 +42,14 @@ const (
 
 // FuzzyMatch performs fuzzy string matching using a hybrid algorithm.
 //
-// The function tries multiple strategies in order of speed and accuracy,
-// returning as soon as a match is found above threshold.
+// The function tries multiple strategies in order of speed and accuracy, returning as
+// soon as a match is found above threshold.
 //
 // Strategy progression:
 //  1. Exact match (instant, score 1.0)
 //  2. Substring/prefix match (fast, score 0.5-1.0)
 //  3. Word-level match (moderate, score 0.65-0.85)
-//  4. Levenshtein distance (slow, score based on edit
-//     distance)
+//  4. Levenshtein distance (slow, score based on edit distance)
 //
 // When pattern is empty, returns true with score 1.0.
 //
@@ -58,10 +57,8 @@ const (
 //
 // Takes text (string) which is the text to search in.
 // Takes pattern (string) which is the search query.
-// Takes threshold (float64) which is the minimum score to consider a match
-// (0.0 to 1.0).
-// Takes caseSensitive (bool) which controls whether to perform case-sensitive
-// matching.
+// Takes threshold (float64) which is the minimum score to consider a match (0.0 to 1.0).
+// Takes caseSensitive (bool) which controls whether to perform case-sensitive matching.
 //
 // Returns matched (bool) which is true if score meets or exceeds threshold.
 // Returns score (float64) which is the relevance score from 0.0 to 1.0.
@@ -158,9 +155,8 @@ func tryWordLevelMatch(text, pattern string) (float64, bool) {
 // Takes textWords ([]string) which contains the words to search within.
 // Takes patternWords ([]string) which contains the words to find.
 //
-// Returns float64 which is the highest match score found. An exact match
-// returns straight away with the best score. Prefix matches and substring
-// matches score lower.
+// Returns float64 which is the highest match score found. An exact match returns straight
+// away with the best score. Prefix matches and substring matches score lower.
 func scoreWordMatches(textWords, patternWords []string) float64 {
 	maxScore := 0.0
 
@@ -200,9 +196,8 @@ func calculateLevenshteinScore(text, pattern string) float64 {
 	return 1.0 - (float64(distance) / float64(maxLen))
 }
 
-// levenshteinDistance calculates a weighted edit distance
-// between two strings using the Wagner-Fischer algorithm with
-// a substitution cost of 2 (insert and delete cost 1).
+// levenshteinDistance calculates a weighted edit distance between two strings using the
+// Wagner-Fischer algorithm with a substitution cost of 2 (insert and delete cost 1).
 //
 // Takes s1 (string) which is the first string to compare.
 // Takes s2 (string) which is the second string to compare.

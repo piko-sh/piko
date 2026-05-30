@@ -27,10 +27,10 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"go.opentelemetry.io/otel/codes"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -39,13 +39,13 @@ const (
 	// cacheDirPermissions is the file mode for cache directories (rwxr-x---).
 	cacheDirPermissions = 0750
 
-	// cacheFilePermissions defines the file mode for cache files as 0600, which
-	// grants read and write access to the owner only.
+	// cacheFilePermissions defines the file mode for cache files as 0600, which grants read
+	// and write access to the owner only.
 	cacheFilePermissions = 0600
 )
 
-// cacheEntry stores a file hash and its last modified time.
-// Saved as JSON when stored on disk.
+// cacheEntry stores a file hash and its last modified time. Saved as JSON when stored on
+// disk.
 type cacheEntry struct {
 	// ModTime is when the file was last changed at the time it was hashed.
 	ModTime time.Time `json:"mod_time"`
@@ -54,19 +54,19 @@ type cacheEntry struct {
 	Hash string `json:"hash"`
 }
 
-// diskFileHashCache provides a file hash cache that stores data on disk.
-// It implements FileHashCachePort, using an in-memory map for fast lookups
-// whilst saving to a JSON file so data persists across restarts.
+// diskFileHashCache provides a file hash cache that stores data on disk. It implements
+// FileHashCachePort, using an in-memory map for fast lookups whilst saving to a JSON file
+// so data persists across restarts.
 type diskFileHashCache struct {
-	// cache maps absolute file paths to their cache entries. Paths are cleaned
-	// with filepath.Clean before use as keys.
+	// cache maps absolute file paths to their cache entries. Paths are cleaned with
+	// filepath.Clean before use as keys.
 	cache map[string]cacheEntry
 
 	// sandbox provides file system access for reading and writing cache files.
 	sandbox safedisk.Sandbox
 
-	// factory creates sandboxes with validated paths. When set and sandbox is
-	// nil, the factory is used before falling back to NewNoOpSandbox.
+	// factory creates sandboxes with validated paths. When set and sandbox is nil, the
+	// factory is used before falling back to NewNoOpSandbox.
 	factory safedisk.Factory
 
 	// cacheFileName is the path to the cache file within the sandbox.
@@ -76,14 +76,16 @@ type diskFileHashCache struct {
 	mu sync.RWMutex
 }
 
-var _ coordinator_domain.FileHashCachePort = (*diskFileHashCache)(nil)
+var (
+	_ coordinator_domain.FileHashCachePort = (*diskFileHashCache)(nil)
+)
 
 // DiskFileHashCacheOption configures a DiskFileHashCache during construction.
 type DiskFileHashCacheOption func(*diskFileHashCache)
 
-// Get retrieves the cached hash for a file if its modification time matches.
-// This uses the "stat-then-read" pattern by letting the caller check the cache
-// using only the file's metadata (ModTime from os.Stat).
+// Get retrieves the cached hash for a file if its modification time matches. This uses
+// the "stat-then-read" pattern by letting the caller check the cache using only the
+// file's metadata (ModTime from os.Stat).
 //
 // Takes path (string) which is the file path to look up in the cache.
 // Takes modTime (time.Time) which is the current modification time to compare.
@@ -94,8 +96,8 @@ func (d *diskFileHashCache) Get(ctx context.Context, path string, modTime time.T
 	return getFromFileHashCache(ctx, &d.mu, d.cache, "DiskFileHashCache.Get", path, modTime)
 }
 
-// Set stores or updates the hash for a file with its change time.
-// Call this after computing a new hash from the file's contents.
+// Set stores or updates the hash for a file with its change time. Call this after
+// computing a new hash from the file's contents.
 //
 // Takes path (string) which is the file path to store the hash for.
 // Takes modTime (time.Time) which is the file's last change time.
@@ -104,12 +106,12 @@ func (d *diskFileHashCache) Set(ctx context.Context, path string, modTime time.T
 	setInFileHashCache(ctx, &d.mu, d.cache, "DiskFileHashCache.Set", path, modTime, hash)
 }
 
-// Load reads the cache from its stored JSON file into memory. Call this when
-// setting up the coordinator.
+// Load reads the cache from its stored JSON file into memory. Call this when setting up
+// the coordinator.
 //
-// When the cache file does not exist (for example, on first run), this is not
-// an error. The cache starts empty. When the file exists but cannot be read or
-// contains invalid JSON, an error is returned.
+// When the cache file does not exist (for example, on first run), this is not an error.
+// The cache starts empty. When the file exists but cannot be read or contains invalid
+// JSON, an error is returned.
 //
 // Returns error when the cache file cannot be read or contains invalid JSON.
 //
@@ -175,10 +177,9 @@ func (d *diskFileHashCache) Load(ctx context.Context) error {
 //
 // Returns error when the cache cannot be serialised or written to disk.
 //
-// Safe for concurrent use. Takes a read lock to copy the cache, then releases
-// it before writing to disk. The file is written to a temporary location
-// first, then renamed to the target path. This stops corruption if the process
-// is killed during the write.
+// Safe for concurrent use. Takes a read lock to copy the cache, then releases it before
+// writing to disk. The file is written to a temporary location first, then renamed to the
+// target path. This stops corruption if the process is killed during the write.
 func (d *diskFileHashCache) Persist(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DiskFileHashCache.Persist",
@@ -221,13 +222,12 @@ func (d *diskFileHashCache) Persist(ctx context.Context) error {
 	return nil
 }
 
-// writeCacheFile atomically writes the cache data to disk. It writes to a
-// temporary file first, then renames it to the target path.
+// writeCacheFile atomically writes the cache data to disk. It writes to a temporary file
+// first, then renames it to the target path.
 //
 // Takes data ([]byte) which contains the cache content to write.
 //
-// Returns error when creating the directory, writing the temp file, or
-// renaming fails.
+// Returns error when creating the directory, writing the temp file, or renaming fails.
 func (d *diskFileHashCache) writeCacheFile(ctx context.Context, data []byte) error {
 	ctx, l := logger_domain.From(ctx, log)
 	if d.sandbox == nil {
@@ -263,28 +263,25 @@ func (d *diskFileHashCache) writeCacheFile(ctx context.Context, data []byte) err
 	return nil
 }
 
-// WithCacheSandbox sets a custom sandbox for the file hash cache. Inject a
-// mock sandbox to test filesystem operations.
+// WithCacheSandbox sets a custom sandbox for the file hash cache. Inject a mock sandbox
+// to test filesystem operations.
 //
 // If not provided, a real sandbox is created using safedisk.NewNoOpSandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access within
-// the cache directory.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access within the cache
+// directory.
 //
-// Returns DiskFileHashCacheOption which configures the cache with the given
-// sandbox.
+// Returns DiskFileHashCacheOption which configures the cache with the given sandbox.
 func WithCacheSandbox(sandbox safedisk.Sandbox) DiskFileHashCacheOption {
 	return func(d *diskFileHashCache) {
 		d.sandbox = sandbox
 	}
 }
 
-// WithCacheFactory sets the sandbox factory for fallback sandbox creation.
-// When no sandbox is injected, the factory is tried before falling back to
-// NewNoOpSandbox.
+// WithCacheFactory sets the sandbox factory for fallback sandbox creation. When no
+// sandbox is injected, the factory is tried before falling back to NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
 // Returns DiskFileHashCacheOption which configures the cache with the factory.
 func WithCacheFactory(factory safedisk.Factory) DiskFileHashCacheOption {
@@ -293,19 +290,18 @@ func WithCacheFactory(factory safedisk.Factory) DiskFileHashCacheOption {
 	}
 }
 
-// NewDiskFileHashCache creates a disk-backed file hash cache that stores
-// hashes to avoid computing them again on later runs.
+// NewDiskFileHashCache creates a disk-backed file hash cache that stores hashes to avoid
+// computing them again on later runs.
 //
-// The cacheFilePath must be an absolute path. The parent folder will be
-// created when Load() or Persist() is called, if it does not exist.
+// The cacheFilePath must be an absolute path. The parent folder will be created when
+// Load() or Persist() is called, if it does not exist.
 //
-// Takes cacheFilePath (string) which specifies the absolute path to the cache
-// file.
-// Takes opts (...DiskFileHashCacheOption) which provides optional configuration
-// such as WithCacheSandbox for testing.
+// Takes cacheFilePath (string) which specifies the absolute path to the cache file.
+// Takes opts (...DiskFileHashCacheOption) which provides optional configuration such as
+// WithCacheSandbox for testing.
 //
-// Returns coordinator_domain.FileHashCachePort which provides the file hash
-// caching interface.
+// Returns coordinator_domain.FileHashCachePort which provides the file hash caching
+// interface.
 func NewDiskFileHashCache(cacheFilePath string, opts ...DiskFileHashCacheOption) coordinator_domain.FileHashCachePort {
 	cacheDir := filepath.Dir(cacheFilePath)
 	cacheFileName := filepath.Base(cacheFilePath)

@@ -33,16 +33,13 @@ const (
 	// defaultViewportHeight is the default browser viewport height in pixels.
 	defaultViewportHeight = 1080
 
-	// defaultScrollStepDelayMs is the default pause between scroll steps in
-	// milliseconds.
+	// defaultScrollStepDelayMs is the default pause between scroll steps in milliseconds.
 	defaultScrollStepDelayMs = 500
 
-	// defaultNetworkIdleTimeoutSec is the default network idle timeout in
-	// seconds.
+	// defaultNetworkIdleTimeoutSec is the default network idle timeout in seconds.
 	defaultNetworkIdleTimeoutSec = 10
 
-	// defaultMaxScrollPasses is the default number of top-to-bottom scroll
-	// passes.
+	// defaultMaxScrollPasses is the default number of top-to-bottom scroll passes.
 	defaultMaxScrollPasses = 3
 
 	// defaultNavigationTimeoutSec is the default navigation timeout in seconds.
@@ -51,8 +48,8 @@ const (
 	// defaultScreenshotQuality is the default JPEG/WebP quality (0-100).
 	defaultScreenshotQuality = 90
 
-	// screenshotQualityLossless is the quality threshold at or above which PNG
-	// format is used without lossy compression.
+	// screenshotQualityLossless is the quality threshold at or above which PNG format is
+	// used without lossy compression.
 	screenshotQualityLossless = 100
 )
 
@@ -67,40 +64,38 @@ type CaptureResult struct {
 	// HTML is the complete page HTML source.
 	HTML string
 
-	// Screenshot is the full-page screenshot data, populated when
-	// ChunkScreenshots is false and nil when chunked.
+	// Screenshot is the full-page screenshot data, populated when ChunkScreenshots is false
+	// and nil when chunked.
 	Screenshot []byte
 
-	// Screenshots holds viewport-sized image chunks, populated when
-	// ChunkScreenshots is true and nil when not chunked.
+	// Screenshots holds viewport-sized image chunks, populated when ChunkScreenshots is true
+	// and nil when not chunked.
 	Screenshots []ScreenshotChunk
 }
 
 // CaptureOptions configures how page capture behaves.
 type CaptureOptions struct {
-	// ScreenshotFormat specifies the image format: "png", "jpeg", or "webp".
-	// Default: "jpeg".
+	// ScreenshotFormat specifies the image format: "png", "jpeg", or "webp". Default:
+	// "jpeg".
 	ScreenshotFormat string
 
-	// ScrollStepDelay is the pause between scroll steps, giving lazy-loaded
-	// images time to swap from blurry placeholders to sharp versions.
-	// Default: 500ms.
+	// ScrollStepDelay is the pause between scroll steps, giving lazy-loaded images time to
+	// swap from blurry placeholders to sharp versions. Default: 500ms.
 	ScrollStepDelay time.Duration
 
-	// NetworkIdleDuration is how long the network must be quiet before
-	// considering it idle. Default: 2s.
+	// NetworkIdleDuration is how long the network must be quiet before considering it idle.
+	// Default: 2s.
 	NetworkIdleDuration time.Duration
 
-	// NetworkIdleTimeout is the maximum time to wait for network idle after
-	// scrolling. Default: 10s.
+	// NetworkIdleTimeout is the maximum time to wait for network idle after scrolling.
+	// Default: 10s.
 	NetworkIdleTimeout time.Duration
 
 	// NavigationTimeout is how long to wait for a page to load. Default: 30s.
 	NavigationTimeout time.Duration
 
-	// ScreenshotScale is the output scale factor for screenshots, where
-	// 1.0 is original resolution and 0.5 is half size.
-	// Default: 1.0.
+	// ScreenshotScale is the output scale factor for screenshots, where 1.0 is original
+	// resolution and 0.5 is half size. Default: 1.0.
 	ScreenshotScale float64
 
 	// ViewportWidth sets the browser viewport width in pixels. Default: 1920.
@@ -109,30 +104,26 @@ type CaptureOptions struct {
 	// ViewportHeight sets the browser viewport height in pixels. Default: 1080.
 	ViewportHeight int64
 
-	// MaxScrollPasses is the maximum number of top-to-bottom scroll passes.
-	// Default: 3.
+	// MaxScrollPasses is the maximum number of top-to-bottom scroll passes. Default: 3.
 	MaxScrollPasses int
 
-	// ScreenshotQuality is the image quality for JPEG/WebP (0-100).
-	// Default: 90.
+	// ScreenshotQuality is the image quality for JPEG/WebP (0-100). Default: 90.
 	ScreenshotQuality int
 
-	// Headless controls whether Chrome runs without a visible window.
-	// Default: true.
+	// Headless controls whether Chrome runs without a visible window. Default: true.
 	Headless bool
 
-	// ChunkScreenshots splits the full page into viewport-sized tiles instead
-	// of capturing one large image.
+	// ChunkScreenshots splits the full page into viewport-sized tiles instead of capturing
+	// one large image.
 	ChunkScreenshots bool
 
-	// IncludeShadowDOM serialises shadow DOM content in the captured HTML
-	// using getHTML({serializableShadowRoots: true}).
+	// IncludeShadowDOM serialises shadow DOM content in the captured HTML using
+	// getHTML({serializableShadowRoots: true}).
 	IncludeShadowDOM bool
 }
 
-// Capturer drives a headless browser to capture page screenshots and HTML.
-// It manages a single browser instance and creates isolated pages for each
-// URL capture.
+// Capturer drives a headless browser to capture page screenshots and HTML. It manages a
+// single browser instance and creates isolated pages for each URL capture.
 type Capturer struct {
 	// browser is the headless Chrome instance used for captures.
 	browser *browser_provider_chromedp.Browser
@@ -157,8 +148,8 @@ func NewCapturer(opts CaptureOptions) (*Capturer, error) {
 	return &Capturer{browser: br, opts: opts}, nil
 }
 
-// CaptureURL navigates to a URL, scrolls slowly to trigger lazy-loaded
-// content, then captures a full-page screenshot and the complete HTML source.
+// CaptureURL navigates to a URL, scrolls slowly to trigger lazy-loaded content, then
+// captures a full-page screenshot and the complete HTML source.
 //
 // Takes url (string) which is the absolute URL to capture.
 //
@@ -195,11 +186,11 @@ func (c *Capturer) Close() {
 	}
 }
 
-// preparePage sets up the viewport, injects overrides, navigates,
-// and scrolls the page to trigger lazy-loaded content.
+// preparePage sets up the viewport, injects overrides, navigates, and scrolls the page to
+// trigger lazy-loaded content.
 //
-// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the
-// browser page to prepare.
+// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the browser page to
+// prepare.
 // Takes url (string) which is the absolute URL to navigate to.
 //
 // Returns error when any preparation step fails.
@@ -243,13 +234,11 @@ func (c *Capturer) preparePage(
 	return nil
 }
 
-// captureScreenshot takes a screenshot (chunked or whole) and
-// stores it in the result.
+// captureScreenshot takes a screenshot (chunked or whole) and stores it in the result.
 //
-// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the
-// browser page to screenshot.
-// Takes result (*CaptureResult) which receives the screenshot
-// data.
+// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the browser page to
+// screenshot.
+// Takes result (*CaptureResult) which receives the screenshot data.
 //
 // Returns error when the screenshot cannot be captured.
 func (c *Capturer) captureScreenshot(
@@ -297,11 +286,10 @@ func (c *Capturer) captureScreenshot(
 	return nil
 }
 
-// captureHTML retrieves the page HTML and stores it in the
-// result.
+// captureHTML retrieves the page HTML and stores it in the result.
 //
-// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the
-// browser page to capture HTML from.
+// Takes pg (*browser_provider_chromedp.IncognitoPage) which is the browser page to
+// capture HTML from.
 // Takes result (*CaptureResult) which receives the HTML source.
 //
 // Returns error when the HTML cannot be captured.
@@ -323,8 +311,8 @@ func (c *Capturer) captureHTML(
 
 // DefaultCaptureOptions returns sensible defaults for page capture.
 //
-// Returns CaptureOptions which is configured with 1920x1080 viewport, 500ms
-// scroll delay, 30s navigation timeout, and headless mode enabled.
+// Returns CaptureOptions which is configured with 1920x1080 viewport, 500ms scroll delay,
+// 30s navigation timeout, and headless mode enabled.
 func DefaultCaptureOptions() CaptureOptions {
 	return CaptureOptions{
 		ViewportWidth:       defaultViewportWidth,
@@ -343,12 +331,11 @@ func DefaultCaptureOptions() CaptureOptions {
 
 // parseScreenshotFormat converts a format string to the internal format type.
 //
-// Takes format (string) which is the image format name such as "jpeg", "jpg",
-// "webp", or "png".
+// Takes format (string) which is the image format name such as "jpeg", "jpg", "webp", or
+// "png".
 //
-// Returns browser_provider_chromedp.ScreenshotFormat which is the
-// corresponding internal format constant, defaulting to PNG for unrecognised
-// values.
+// Returns browser_provider_chromedp.ScreenshotFormat which is the corresponding internal
+// format constant, defaulting to PNG for unrecognised values.
 func parseScreenshotFormat(format string) browser_provider_chromedp.ScreenshotFormat {
 	switch format {
 	case "jpeg", "jpg":

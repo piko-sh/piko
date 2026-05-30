@@ -18,14 +18,13 @@
 
 package querier_dto
 
-// Expression is the typed representation of a SQL expression that flows
-// between engine adapters and the domain type resolver. Each concrete type
-// corresponds to a distinct SQL expression form (column reference, function
-// call, binary operation, etc.).
+// Expression is the typed representation of a SQL expression that flows between engine
+// adapters and the domain type resolver. Each concrete type corresponds to a distinct SQL
+// expression form (column reference, function call, binary operation, etc.).
 //
-// Engine adapters construct concrete Expression values during query analysis.
-// The domain type resolver dispatches on the concrete type via a type switch
-// to perform bottom-up type inference.
+// Engine adapters construct concrete Expression values during query analysis. The domain
+// type resolver dispatches on the concrete type via a type switch to perform bottom-up
+// type inference.
 //
 // A nil Expression represents SQL NULL, resolved as TypeCategoryUnknown with
 // nullable=true.
@@ -43,8 +42,7 @@ type ColumnRefExpression struct {
 	ColumnName string
 }
 
-// expressionKind identifies this expression as a column
-// reference.
+// expressionKind identifies this expression as a column reference.
 //
 // Returns string which holds the expression kind tag.
 func (*ColumnRefExpression) expressionKind() string { return "column_ref" }
@@ -64,21 +62,19 @@ type FunctionCallExpression struct {
 	Arguments []Expression
 }
 
-// expressionKind identifies this expression as a
-// function call.
+// expressionKind identifies this expression as a function call.
 //
 // Returns string which holds the expression kind tag.
 func (*FunctionCallExpression) expressionKind() string { return "function_call" }
 
-// CoalesceExpression represents a COALESCE(...) call with special
-// nullability semantics (not-null if any argument is not-null).
+// CoalesceExpression represents a COALESCE(...) call with special nullability semantics
+// (not-null if any argument is not-null).
 type CoalesceExpression struct {
 	// Arguments holds the list of expressions passed to COALESCE.
 	Arguments []Expression
 }
 
-// expressionKind identifies this expression as a
-// coalesce call.
+// expressionKind identifies this expression as a coalesce call.
 //
 // Returns string which holds the expression kind tag.
 func (*CoalesceExpression) expressionKind() string { return "coalesce" }
@@ -108,8 +104,8 @@ type LiteralExpression struct {
 // Returns string which holds the expression kind tag.
 func (*LiteralExpression) expressionKind() string { return "literal" }
 
-// BinaryOpExpression represents an arithmetic or string concatenation
-// operator: +, -, *, /, %, ||.
+// BinaryOpExpression represents an arithmetic or string concatenation operator: +, -, *,
+// /, %, ||.
 type BinaryOpExpression struct {
 	// Left holds the left-hand operand of the binary operation.
 	Left Expression
@@ -121,14 +117,13 @@ type BinaryOpExpression struct {
 	Operator string
 }
 
-// expressionKind identifies this expression as a binary
-// operation.
+// expressionKind identifies this expression as a binary operation.
 //
 // Returns string which holds the expression kind tag.
 func (*BinaryOpExpression) expressionKind() string { return "binary_op" }
 
-// ComparisonExpression represents a comparison operator that produces a
-// boolean result: =, <>, !=, <, >, <=, >=, LIKE, GLOB, REGEXP, MATCH.
+// ComparisonExpression represents a comparison operator that produces a boolean result:
+// =, <>, !=, <, >, <=, >=, LIKE, GLOB, REGEXP, MATCH.
 type ComparisonExpression struct {
 	// Left holds the left-hand operand of the comparison.
 	Left Expression
@@ -140,8 +135,7 @@ type ComparisonExpression struct {
 	Operator string
 }
 
-// expressionKind identifies this expression as a
-// comparison.
+// expressionKind identifies this expression as a comparison.
 //
 // Returns string which holds the expression kind tag.
 func (*ComparisonExpression) expressionKind() string { return "comparison" }
@@ -155,8 +149,7 @@ type IsNullExpression struct {
 	Negated bool
 }
 
-// expressionKind identifies this expression as an IS
-// NULL test.
+// expressionKind identifies this expression as an IS NULL test.
 //
 // Returns string which holds the expression kind tag.
 func (*IsNullExpression) expressionKind() string { return "is_null" }
@@ -170,8 +163,7 @@ type InListExpression struct {
 	Values []Expression
 }
 
-// expressionKind identifies this expression as an IN
-// list test.
+// expressionKind identifies this expression as an IN list test.
 //
 // Returns string which holds the expression kind tag.
 func (*InListExpression) expressionKind() string { return "in_list" }
@@ -188,8 +180,7 @@ type BetweenExpression struct {
 	High Expression
 }
 
-// expressionKind identifies this expression as a BETWEEN
-// range test.
+// expressionKind identifies this expression as a BETWEEN range test.
 //
 // Returns string which holds the expression kind tag.
 func (*BetweenExpression) expressionKind() string { return "between" }
@@ -203,8 +194,7 @@ type LogicalOpExpression struct {
 	Operands []Expression
 }
 
-// expressionKind identifies this expression as a logical
-// operation.
+// expressionKind identifies this expression as a logical operation.
 //
 // Returns string which holds the expression kind tag.
 func (*LogicalOpExpression) expressionKind() string { return "logical_op" }
@@ -218,14 +208,12 @@ type UnaryOpExpression struct {
 	Operator string
 }
 
-// expressionKind identifies this expression as a unary
-// operation.
+// expressionKind identifies this expression as a unary operation.
 //
 // Returns string which holds the expression kind tag.
 func (*UnaryOpExpression) expressionKind() string { return "unary_op" }
 
-// CaseWhenExpression represents a CASE WHEN conditional
-// expression.
+// CaseWhenExpression represents a CASE WHEN conditional expression.
 type CaseWhenExpression struct {
 	// ElseResult holds the optional ELSE branch expression, or nil if absent.
 	ElseResult Expression
@@ -234,8 +222,7 @@ type CaseWhenExpression struct {
 	Branches []CaseWhenBranch
 }
 
-// expressionKind identifies this expression as a CASE
-// WHEN.
+// expressionKind identifies this expression as a CASE WHEN.
 //
 // Returns string which holds the expression kind tag.
 func (*CaseWhenExpression) expressionKind() string { return "case_when" }
@@ -255,8 +242,7 @@ type ExistsExpression struct {
 	InnerQuery *RawQueryAnalysis
 }
 
-// expressionKind identifies this expression as an EXISTS
-// test.
+// expressionKind identifies this expression as an EXISTS test.
 //
 // Returns string which holds the expression kind tag.
 func (*ExistsExpression) expressionKind() string { return "exists" }
@@ -267,14 +253,13 @@ type WindowFunctionExpression struct {
 	Function *FunctionCallExpression
 }
 
-// expressionKind identifies this expression as a window
-// function.
+// expressionKind identifies this expression as a window function.
 //
 // Returns string which holds the expression kind tag.
 func (*WindowFunctionExpression) expressionKind() string { return "window_function" }
 
-// ScalarSubqueryExpression represents a scalar subquery in expression position,
-// e.g. (SELECT max(x) FROM t).
+// ScalarSubqueryExpression represents a scalar subquery in expression position, e.g.
+// (SELECT max(x) FROM t).
 //
 // The result is always nullable because the subquery might return zero rows.
 type ScalarSubqueryExpression struct {
@@ -282,14 +267,13 @@ type ScalarSubqueryExpression struct {
 	InnerQuery *RawQueryAnalysis
 }
 
-// expressionKind identifies this expression as a scalar
-// subquery.
+// expressionKind identifies this expression as a scalar subquery.
 //
 // Returns string which holds the expression kind tag.
 func (*ScalarSubqueryExpression) expressionKind() string { return "scalar_subquery" }
 
-// ArraySubscriptExpression represents an array element access: arr[n].
-// Resolved as the element type of the array, always nullable.
+// ArraySubscriptExpression represents an array element access: arr[n]. Resolved as the
+// element type of the array, always nullable.
 type ArraySubscriptExpression struct {
 	// Array holds the expression producing the array value.
 	Array Expression
@@ -298,14 +282,13 @@ type ArraySubscriptExpression struct {
 	Index Expression
 }
 
-// expressionKind identifies this expression as an array
-// subscript.
+// expressionKind identifies this expression as an array subscript.
 //
 // Returns string which holds the expression kind tag.
 func (*ArraySubscriptExpression) expressionKind() string { return "array_subscript" }
 
-// LambdaExpression represents a DuckDB lambda expression used as a
-// function argument (e.g. x -> x + 1).
+// LambdaExpression represents a DuckDB lambda expression used as a function argument
+// (e.g. x -> x + 1).
 //
 // The type of the lambda is the type of its body expression.
 type LambdaExpression struct {
@@ -321,8 +304,8 @@ type LambdaExpression struct {
 // Returns string which holds the expression kind tag.
 func (*LambdaExpression) expressionKind() string { return "lambda" }
 
-// StructFieldAccessExpression represents accessing a named field on a STRUCT
-// expression (e.g. s.field_name in DuckDB).
+// StructFieldAccessExpression represents accessing a named field on a STRUCT expression
+// (e.g. s.field_name in DuckDB).
 type StructFieldAccessExpression struct {
 	// Struct holds the expression producing the struct value.
 	Struct Expression
@@ -331,15 +314,13 @@ type StructFieldAccessExpression struct {
 	FieldName string
 }
 
-// expressionKind identifies this expression as a struct
-// field access.
+// expressionKind identifies this expression as a struct field access.
 //
 // Returns string which holds the expression kind tag.
 func (*StructFieldAccessExpression) expressionKind() string { return "struct_field_access" }
 
-// UnknownExpression is the fallback for expression forms that the engine
-// adapter cannot structurally represent. Resolved as TypeCategoryUnknown
-// with nullable=true.
+// UnknownExpression is the fallback for expression forms that the engine adapter cannot
+// structurally represent. Resolved as TypeCategoryUnknown with nullable=true.
 type UnknownExpression struct{}
 
 // expressionKind identifies this expression as unknown.

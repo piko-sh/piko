@@ -25,9 +25,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
-// MockRuntimeProviderRegistry is a test double for
-// RuntimeProviderRegistryPort that returns zero values from nil function
-// fields and tracks call counts atomically.
+// MockRuntimeProviderRegistry is a test double for RuntimeProviderRegistryPort that
+// returns zero values from nil function fields and tracks call counts atomically.
 type MockRuntimeProviderRegistry struct {
 	// RegisterFunc is the function called by Register.
 	RegisterFunc func(provider RuntimeProvider) error
@@ -44,26 +43,25 @@ type MockRuntimeProviderRegistry struct {
 	// FetchFunc is the function called by Fetch.
 	FetchFunc func(ctx context.Context, providerName, collectionName string, options *collection_dto.FetchOptions, target any) error
 
-	// RegisterCallCount tracks how many times Register
-	// was called.
-	RegisterCallCount int64
+	// RegisterCallCount tracks how many times Register was called.
+	RegisterCallCount atomic.Int64
 
 	// GetCallCount tracks how many times Get was called.
-	GetCallCount int64
+	GetCallCount atomic.Int64
 
-	// ListCallCount tracks how many times List was
-	// called.
-	ListCallCount int64
+	// ListCallCount tracks how many times List was called.
+	ListCallCount atomic.Int64
 
 	// HasCallCount tracks how many times Has was called.
-	HasCallCount int64
+	HasCallCount atomic.Int64
 
-	// FetchCallCount tracks how many times Fetch was
-	// called.
-	FetchCallCount int64
+	// FetchCallCount tracks how many times Fetch was called.
+	FetchCallCount atomic.Int64
 }
 
-var _ RuntimeProviderRegistryPort = (*MockRuntimeProviderRegistry)(nil)
+var (
+	_ RuntimeProviderRegistryPort = (*MockRuntimeProviderRegistry)(nil)
+)
 
 // Register delegates to RegisterFunc if set.
 //
@@ -71,7 +69,7 @@ var _ RuntimeProviderRegistryPort = (*MockRuntimeProviderRegistry)(nil)
 //
 // Returns nil if RegisterFunc is nil.
 func (m *MockRuntimeProviderRegistry) Register(provider RuntimeProvider) error {
-	atomic.AddInt64(&m.RegisterCallCount, 1)
+	m.RegisterCallCount.Add(1)
 	if m.RegisterFunc != nil {
 		return m.RegisterFunc(provider)
 	}
@@ -84,7 +82,7 @@ func (m *MockRuntimeProviderRegistry) Register(provider RuntimeProvider) error {
 //
 // Returns (nil, nil) if GetFunc is nil.
 func (m *MockRuntimeProviderRegistry) Get(name string) (RuntimeProvider, error) {
-	atomic.AddInt64(&m.GetCallCount, 1)
+	m.GetCallCount.Add(1)
 	if m.GetFunc != nil {
 		return m.GetFunc(name)
 	}
@@ -95,7 +93,7 @@ func (m *MockRuntimeProviderRegistry) Get(name string) (RuntimeProvider, error) 
 //
 // Returns nil if ListFunc is nil.
 func (m *MockRuntimeProviderRegistry) List() []string {
-	atomic.AddInt64(&m.ListCallCount, 1)
+	m.ListCallCount.Add(1)
 	if m.ListFunc != nil {
 		return m.ListFunc()
 	}
@@ -108,7 +106,7 @@ func (m *MockRuntimeProviderRegistry) List() []string {
 //
 // Returns false if HasFunc is nil.
 func (m *MockRuntimeProviderRegistry) Has(name string) bool {
-	atomic.AddInt64(&m.HasCallCount, 1)
+	m.HasCallCount.Add(1)
 	if m.HasFunc != nil {
 		return m.HasFunc(name)
 	}
@@ -117,17 +115,16 @@ func (m *MockRuntimeProviderRegistry) Has(name string) bool {
 
 // Fetch delegates to FetchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
-// Takes options (*collection_dto.FetchOptions) which provides fetch
-// configuration options.
+// Takes options (*collection_dto.FetchOptions) which provides fetch configuration
+// options.
 // Takes target (any) which is the destination to decode collection data into.
 //
 // Returns nil if FetchFunc is nil.
 func (m *MockRuntimeProviderRegistry) Fetch(ctx context.Context, providerName, collectionName string, options *collection_dto.FetchOptions, target any) error {
-	atomic.AddInt64(&m.FetchCallCount, 1)
+	m.FetchCallCount.Add(1)
 	if m.FetchFunc != nil {
 		return m.FetchFunc(ctx, providerName, collectionName, options, target)
 	}

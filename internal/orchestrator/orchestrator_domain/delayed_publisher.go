@@ -30,12 +30,12 @@ import (
 	clockpkg "piko.sh/piko/wdk/clock"
 )
 
-// TaskDispatchFunc is called when a delayed task is ready to run.
-// It allows testing without needing the full task dispatcher.
+// TaskDispatchFunc is called when a delayed task is ready to run. It allows testing
+// without needing the full task dispatcher.
 type TaskDispatchFunc func(ctx context.Context, task *Task) error
 
-// DelayedTaskPublisher handles scheduled task execution using a min-heap.
-// Tasks are sorted by their scheduled execution time.
+// DelayedTaskPublisher handles scheduled task execution using a min-heap. Tasks are
+// sorted by their scheduled execution time.
 type DelayedTaskPublisher struct {
 	// ctx controls the publisher lifecycle; cancelled when Stop is called.
 	ctx context.Context
@@ -59,19 +59,17 @@ type DelayedTaskPublisher struct {
 	mu sync.Mutex
 }
 
-var _ DelayedPublisher = (*DelayedTaskPublisher)(nil)
+var (
+	_ DelayedPublisher = (*DelayedTaskPublisher)(nil)
+)
 
-// NewDelayedTaskPublisherForTesting creates a delayed task publisher with
-// injected dependencies. Use this for unit testing the delayed publisher in
-// isolation.
+// NewDelayedTaskPublisherForTesting creates a delayed task publisher with injected
+// dependencies. Use this for unit testing the delayed publisher in isolation.
 //
-// Takes clock (Clock) which provides controllable time functions for
-// testing.
-// Takes dispatchFunc (TaskDispatchFunc) which is called when a task is
-// due to run.
+// Takes clock (Clock) which provides controllable time functions for testing.
+// Takes dispatchFunc (TaskDispatchFunc) which is called when a task is due to run.
 //
-// Returns *DelayedTaskPublisher which is the configured publisher for
-// testing.
+// Returns *DelayedTaskPublisher which is the configured publisher for testing.
 func NewDelayedTaskPublisherForTesting(clock clockpkg.Clock, dispatchFunc TaskDispatchFunc) *DelayedTaskPublisher {
 	return &DelayedTaskPublisher{
 		ctx:          nil,
@@ -104,8 +102,8 @@ func (p *DelayedTaskPublisher) Stop() {
 	}
 }
 
-// PendingCount returns the number of tasks waiting to be dispatched.
-// Used for idle detection - the dispatcher is not idle while tasks are pending.
+// PendingCount returns the number of tasks waiting to be dispatched. Used for idle
+// detection - the dispatcher is not idle while tasks are pending.
 //
 // Returns int which is the count of tasks currently in the pending queue.
 //
@@ -118,13 +116,12 @@ func (p *DelayedTaskPublisher) PendingCount() int {
 
 // Schedule adds a task to be dispatched at the specified time.
 //
-// Takes task (*Task) which specifies the task to schedule with its execution
-// time.
+// Takes task (*Task) which specifies the task to schedule with its execution time.
 //
 // Returns error when the task has a zero ScheduledExecuteAt time.
 //
-// Safe for concurrent use. Wakes the background dispatch loop to recalculate
-// the next sleep duration.
+// Safe for concurrent use. Wakes the background dispatch loop to recalculate the next
+// sleep duration.
 func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DelayedTaskPublisher.Schedule",
@@ -156,8 +153,8 @@ func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
 
 // loop is the main event loop that sleeps until tasks are due.
 //
-// Concurrent goroutine runs this loop, started by Start. Exits when the
-// publisher's context is cancelled.
+// Concurrent goroutine runs this loop, started by Start. Exits when the publisher's
+// context is cancelled.
 func (p *DelayedTaskPublisher) loop() {
 	defer goroutine.RecoverPanic(p.ctx, "orchestrator.delayedPublisherLoop")
 	ctx, ll := logger_domain.From(p.ctx, log)
@@ -260,11 +257,10 @@ func (p *DelayedTaskPublisher) dispatchDueTask() {
 	span.SetStatus(codes.Ok, "Delayed task dispatched")
 }
 
-// NewDelayedTaskPublisher creates a delayed task publisher with the given
-// clock and dispatch function.
+// NewDelayedTaskPublisher creates a delayed task publisher with the given clock and
+// dispatch function.
 //
-// Takes dispatcherDispatch (TaskDispatchFunc) which is called when a task is
-// due to run.
+// Takes dispatcherDispatch (TaskDispatchFunc) which is called when a task is due to run.
 // Takes clock (Clock) which provides time functions for scheduling.
 //
 // Returns DelayedPublisher which is ready to schedule tasks for later dispatch.

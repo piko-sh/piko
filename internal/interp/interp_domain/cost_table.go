@@ -18,35 +18,45 @@
 
 package interp_domain
 
-// CostTable holds the per-opcode cost weights used by the runtime cost
-// metering system. Callers can provide a custom table via
-// WithCostTable to adjust weights for their environment.
-type CostTable [opCount]int64
+// CostTable holds the per-opcode cost weights used by the runtime cost metering system.
+// Callers can provide a custom table via WithCostTable to adjust weights for their
+// environment.
+type CostTable [opcodeCount]int64
 
 const (
 	// costFree represents zero cost for register moves, constant loads, and extensions.
 	costFree int64 = 0
 
-	// costCheap represents low cost for arithmetic, comparisons, jumps, and type conversions.
+	// costCheap represents low cost for arithmetic, comparisons, jumps, and type
+	// conversions.
 	costCheap int64 = 1
 
 	// costMedium represents medium cost for string ops, field access, and math intrinsics.
 	costMedium int64 = 3
 
-	// costModerate represents moderate cost for index/map
-	// access, closures, channels, and defer/panic.
+	// costModerate represents moderate cost for index/map access, closures, channels, and
+	// defer/panic.
 	costModerate int64 = 5
 
-	// costExpensive represents high cost for function calls,
-	// goroutine spawn, append, and select.
+	// costExpensive represents high cost for function calls, goroutine spawn, append, and
+	// select.
 	costExpensive int64 = 10
 
 	// costVeryHeavy represents very high cost for allocations (make slice/map/chan).
 	costVeryHeavy int64 = 20
 )
 
-// DefaultCostTable returns the default cost table with weights
-// reflecting approximate real-world computation expense.
+var (
+	// defaultCostTable is the package-level default used when no custom table is provided.
+	defaultCostTable CostTable
+)
+
+func init() {
+	initDefaultCostTable(&defaultCostTable)
+}
+
+// DefaultCostTable returns the default cost table with weights reflecting approximate
+// real-world computation expense.
 //
 //	0  - free: register moves, constant loads, extensions
 //	1  - cheap: arithmetic, comparisons, jumps, type conversions
@@ -60,14 +70,6 @@ func DefaultCostTable() CostTable {
 	var table CostTable
 	initDefaultCostTable(&table)
 	return table
-}
-
-// defaultCostTable is the package-level default used when no custom
-// table is provided.
-var defaultCostTable CostTable
-
-func init() {
-	initDefaultCostTable(&defaultCostTable)
 }
 
 // initDefaultCostTable populates a CostTable with the default per-opcode cost weights.
@@ -89,14 +91,11 @@ func initDefaultCostTable(table *CostTable) {
 // Takes table (*CostTable) which is the cost table to modify.
 func assignFreeOps(table *CostTable) {
 	free := []opcode{
-		opNop, opExt,
-		opMoveInt, opMoveFloat, opMoveString, opMoveGeneral,
-		opMoveBool, opMoveUint, opMoveComplex,
-		opLoadIntConst, opLoadFloatConst, opLoadBool,
-		opLoadIntConstSmall, opLoadStringConst, opLoadGeneralConst,
+		opExt,
+		opMoveGeneral,
+		opLoadIntConst, opLoadFloatConst,
+		opLoadStringConst, opLoadGeneralConst,
 		opLoadBoolConst, opLoadUintConst, opLoadComplexConst,
-		opLoadNil, opLoadZero,
-		opReturn, opReturnVoid,
 	}
 	for _, op := range free {
 		table[op] = costFree
@@ -108,18 +107,13 @@ func assignFreeOps(table *CostTable) {
 // Takes table (*CostTable) which is the cost table to modify.
 func assignMediumOps(table *CostTable) {
 	medium := []opcode{
-		opConcatString, opSliceString, opRuneToString,
-		opConcatRuneString, opStringIndexToInt,
-		opLenStringLtJumpFalse,
+		opConcatString, opSliceString, opConcatRuneString, opStringIndexToInt,
 		opEqString, opNeString, opLtString, opLeString,
 		opGtString, opGeString,
-		opConvert, opStringToBytes, opBytesToString,
-		opGetField, opSetField, opSetFieldInt, opGetFieldInt,
+		opConvert, opGetField, opSetField, opSetFieldInt, opGetFieldInt,
 		opAddr, opDeref,
-		opMathSqrt, opMathAbs, opMathFloor, opMathCeil,
-		opMathTrunc, opMathRound, opMathPow, opMathExp,
-		opMathSin, opMathCos, opMathTan, opMathMod,
-		opStrconvItoa, opStrconvFormatBool, opStrconvFormatInt,
+		opMathPow,
+		opDrillTier1,
 		opEqGeneral, opNeGeneral, opLtGeneral, opLeGeneral,
 		opGtGeneral, opGeGeneral,
 		opAdd, opSub, opMul, opDiv, opRem,
@@ -135,42 +129,42 @@ func assignMediumOps(table *CostTable) {
 func assignModerateOps(table *CostTable) {
 	moderate := []opcode{
 		opIndex, opIndexSet, opSliceOp,
-		opMapIndex, opMapSet, opMapIndexOk, opMapDelete,
+		opMapIndex, opMapSet, opMapIndexOk,
 		opMapGetIntInt, opMapSetIntInt,
+		opMapGetStringInt, opMapSetStringInt,
+		opMapGetStringString, opMapSetStringString,
+		opMapGetIntString, opMapSetIntString,
+		opMapIndexOkIntInt, opMapIndexOkStringInt,
+		opMapIndexOkStringString, opMapIndexOkIntString,
+		opMapGetIntGeneral, opMapIndexOkIntGeneral,
+		opMapIndexOkJumpIfFalseIntInt, opMapIndexOkJumpIfFalseStringInt,
+		opMapIndexOkJumpIfFalseStringString, opMapIndexOkJumpIfFalseIntString,
+		opMapIndexOkJumpIfFalseIntGeneral, opMapIndexOkJumpIfFalseStringGeneral,
 		opSliceGetInt, opSliceSetInt,
 		opSliceGetFloat, opSliceSetFloat,
 		opSliceGetString, opSliceSetString,
 		opSliceGetBool, opSliceSetBool,
 		opSliceGetUint, opSliceSetUint,
-		opDefer, opPanic, opRecover,
-		opMakeClosure,
-		opChanSend, opChanRecv, opChanClose,
-		opLen, opCap, opCopy,
+		opDefer, opMakeClosure,
+		opChannelSend, opCopy,
 		opTypeAssert,
 		opAllocIndirect,
-		opSetZero,
 		opGetGlobal, opSetGlobal,
 		opGetGlobalWide, opSetGlobalWide,
-		opSpill, opReload,
-		opGetMethod, opBindMethod, opMakeMethodExpr,
+		opBindMethod,
 		opStrContains, opStrContainsRune,
 		opStrHasPrefix, opStrHasSuffix, opStrEqualFold,
 		opStrIndex, opStrCount,
-		opStrToUpper, opStrToLower, opStrTrimSpace,
 		opStrTrimPrefix, opStrTrimSuffix, opStrTrim,
 		opStrIndexRune, opStrRepeat, opStrLastIndex,
 		opStrJoin, opStrSplit, opStrReplaceAll,
 		opRangeInit, opRangeNext,
 		opGetUpvalue, opSetUpvalue,
 		opSyncClosureUpvalues, opResetSharedCell, opWriteSharedCell,
-		opPackInterface, opUnpackInterface,
-		opMoveIntToGeneral, opMoveGeneralToInt,
-		opMoveFloatToGeneral, opMoveGeneralToFloat,
-		opMoveStringToGeneral, opMoveGeneralToString,
+		opPackInterface, opPackTyped, opUnpackInterface,
 		opTestNilJumpTrue, opTestNilJumpFalse,
 		opEqStringConstJumpFalse,
-		opUnsafeString, opUnsafeStringData,
-		opUnsafeSlice, opUnsafeSliceData, opUnsafeAdd,
+		opUnsafeString, opUnsafeSlice, opUnsafeAdd,
 	}
 	for _, op := range moderate {
 		table[op] = costModerate
@@ -182,11 +176,10 @@ func assignModerateOps(table *CostTable) {
 // Takes table (*CostTable) which is the cost table to modify.
 func assignExpensiveOps(table *CostTable) {
 	expensive := []opcode{
-		opCall, opCallNative, opCallMethod, opCallIIFE,
+		opCall, opCallNative, opCallMethod, opCallMethodInlineable, opCallIIFE,
 		opCallBuiltin, opTailCall,
 		opGo, opSelect,
-		opAppend, opAppendInt, opAppendString,
-		opAppendFloat, opAppendBool,
+		opAppend, opAppendSpread,
 	}
 	for _, op := range expensive {
 		table[op] = costExpensive
@@ -198,7 +191,7 @@ func assignExpensiveOps(table *CostTable) {
 // Takes table (*CostTable) which is the cost table to modify.
 func assignVeryHeavyOps(table *CostTable) {
 	veryHeavy := []opcode{
-		opMakeSlice, opMakeMap, opMakeChan,
+		opMakeSlice,
 	}
 	for _, op := range veryHeavy {
 		table[op] = costVeryHeavy

@@ -55,23 +55,21 @@ func (o Operation) IsValid() bool {
 	return o >= OpSet && o <= OpClear
 }
 
-// Entry represents a single WAL entry for recovery.
-// Generic over key (K) and value (V) types.
+// Entry represents a single WAL entry for recovery. Generic over key (K) and value (V)
+// types.
 type Entry[K comparable, V any] struct {
-	// Key is the cache key for this entry.
-	// For OpClear, this is the zero value.
+	// Key is the cache key for this entry. For OpClear, this is the zero value.
 	Key K
 
-	// Value is the cache value for this entry.
-	// Only meaningful for OpSet; zero value for OpDelete and OpClear.
+	// Value is the cache value for this entry. Only meaningful for OpSet; zero value for
+	// OpDelete and OpClear.
 	Value V
 
-	// Tags are the cache tags associated with this entry.
-	// Only meaningful for OpSet.
+	// Tags are the cache tags associated with this entry. Only meaningful for OpSet.
 	Tags []string
 
-	// ExpiresAt is the Unix nanosecond timestamp when this entry expires.
-	// Zero means no expiration.
+	// ExpiresAt is the Unix nanosecond timestamp when this entry expires. Zero means no
+	// expiration.
 	ExpiresAt int64
 
 	// Timestamp is the Unix nanosecond timestamp when this operation occurred.
@@ -81,14 +79,13 @@ type Entry[K comparable, V any] struct {
 	Operation Operation
 }
 
-// IsExpired returns true if the entry has expired relative to the given
-// Unix nanosecond timestamp.
-//
-// Takes nowNano (int64) which is the current time as a Unix nanosecond
+// IsExpired returns true if the entry has expired relative to the given Unix nanosecond
 // timestamp.
 //
-// Returns bool which is true when the entry has an expiration time set and
-// that time has passed.
+// Takes nowNano (int64) which is the current time as a Unix nanosecond timestamp.
+//
+// Returns bool which is true when the entry has an expiration time set and that time has
+// passed.
 func (e Entry[K, V]) IsExpired(nowNano int64) bool {
 	return e.ExpiresAt > 0 && e.ExpiresAt < nowNano
 }

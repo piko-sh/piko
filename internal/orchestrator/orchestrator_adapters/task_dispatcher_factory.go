@@ -27,16 +27,16 @@ import (
 
 // CreateTaskDispatcher creates a TaskDispatcher for distributed task processing.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes config (DispatcherConfig) which specifies the dispatcher settings
-// including handler counts per priority level.
-// Takes eventBus (EventBus) which provides pub/sub for task distribution
-// via Watermill topics.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes config (DispatcherConfig) which specifies the dispatcher settings including
+// handler counts per priority level.
+// Takes eventBus (EventBus) which provides pub/sub for task distribution via Watermill
+// topics.
 // Takes taskStore (TaskStore) which provides persistence and crash recovery.
 //
-// Returns TaskDispatcher which is ready to have executors registered and be
-// started, or nil if eventBus is nil.
+// Returns TaskDispatcher which is ready to have executors registered and be started, or
+// nil if eventBus is nil.
 func CreateTaskDispatcher(
 	ctx context.Context,
 	config orchestrator_domain.DispatcherConfig,

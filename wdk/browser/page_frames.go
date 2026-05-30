@@ -51,8 +51,7 @@ func (p *Page) CountFrames() int {
 // ClickInFrame clicks an element within an iframe.
 //
 // Takes frameSelector (string) which identifies the iframe to target.
-// Takes elementSelector (string) which identifies the element to click within
-// the iframe.
+// Takes elementSelector (string) which identifies the element to click within the iframe.
 //
 // Returns *Page which allows method chaining for fluent test composition.
 func (p *Page) ClickInFrame(frameSelector, elementSelector string) *Page {
@@ -70,8 +69,7 @@ func (p *Page) ClickInFrame(frameSelector, elementSelector string) *Page {
 // FillInFrame fills an input element within an iframe.
 //
 // Takes frameSelector (string) which identifies the iframe to target.
-// Takes elementSelector (string) which identifies the input element within the
-// iframe.
+// Takes elementSelector (string) which identifies the input element within the iframe.
 // Takes value (string) which specifies the text to enter into the element.
 //
 // Returns *Page which allows method chaining for fluent test assertions.
@@ -183,12 +181,10 @@ func (p *Page) SetDownloadPath(path string) *Page {
 // WaitForDownload waits for a download after triggering an action.
 //
 // Takes downloadDir (string) which specifies where the download is saved.
-// Takes trigger (func(...)) which initiates the download (e.g. clicking a
-// download link).
+// Takes trigger (func(...)) which initiates the download (e.g. clicking a download link).
 //
-// Returns *browser_provider_chromedp.DownloadInfo which contains details about
-// the downloaded
-// file.
+// Returns *browser_provider_chromedp.DownloadInfo which contains details about the
+// downloaded file.
 func (p *Page) WaitForDownload(downloadDir string, trigger func()) *browser_provider_chromedp.DownloadInfo {
 	p.beforeAction("WaitForDownload", downloadDir)
 	start := time.Now()
@@ -205,10 +201,8 @@ func (p *Page) WaitForDownload(downloadDir string, trigger func()) *browser_prov
 
 // GetDownloadedFile reads the contents of a downloaded file using a sandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides access to the download
-// directory.
-// Takes filename (string) which is the name of the downloaded file, not a full
-// path.
+// Takes sandbox (safedisk.Sandbox) which provides access to the download directory.
+// Takes filename (string) which is the name of the downloaded file, not a full path.
 //
 // Returns []byte which contains the file contents.
 func (p *Page) GetDownloadedFile(sandbox safedisk.Sandbox, filename string) []byte {

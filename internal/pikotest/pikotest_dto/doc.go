@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pikotest_dto defines pure data structures used by the pikotest
-// testing framework. These types are shared across package boundaries and
-// contain no business logic.
+// Package pikotest_dto defines pure data structures used by the pikotest testing
+// framework. These types are shared across package boundaries and contain no business
+// logic.
 //
 // Key types:
 //
-//   - [BuildASTFunc]: The function signature that compiled components expose
-//     for testing
+//   - [BuildASTFunc]: The function signature that compiled components expose for testing
 //   - [ComponentOption]: Functional option type for configuring ComponentTester
 //   - [ComponentConfig]: Configuration data for ComponentTester setup
 //   - [ActionResult]: Data container for server action invocation results

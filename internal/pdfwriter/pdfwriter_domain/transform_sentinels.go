@@ -18,53 +18,54 @@
 
 package pdfwriter_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
-	// errTransformerNil is returned when a nil transformer is provided during
-	// registration.
+	// errTransformerNil is returned when a nil transformer is provided during registration.
 	errTransformerNil = errors.New("transformer cannot be nil")
 
-	// errTransformerNameEmpty is returned when a transformer is registered
-	// with an empty name.
+	// errTransformerNameEmpty is returned when a transformer is registered with an empty
+	// name.
 	errTransformerNameEmpty = errors.New("transformer name cannot be empty")
 
 	// errRegistryNil is returned when a nil transformer registry is supplied.
 	errRegistryNil = errors.New("transformer registry cannot be nil")
 
-	// ErrTooManyEncryptors is returned when more than one encryption
-	// transformer is present in a chain.
+	// ErrTooManyEncryptors is returned when more than one encryption transformer is present
+	// in a chain.
 	ErrTooManyEncryptors = errors.New("at most one encryption transformer is allowed per chain")
 
-	// ErrTooManySigners is returned when more than one signing transformer
-	// is present in a chain.
+	// ErrTooManySigners is returned when more than one signing transformer is present in a
+	// chain.
 	ErrTooManySigners = errors.New("at most one signing transformer is allowed per chain")
 
-	// ErrTooManyPdfALevels is returned when more than one PDF/A conversion
-	// transformer is present in a chain.
+	// ErrTooManyPdfALevels is returned when more than one PDF/A conversion transformer is
+	// present in a chain.
 	ErrTooManyPdfALevels = errors.New("at most one PDF/A transformer is allowed per chain")
 
-	// ErrSigningBeforeEncryption is returned when a signing transformer has
-	// a lower priority than an encryption transformer.
+	// ErrSigningBeforeEncryption is returned when a signing transformer has a lower priority
+	// than an encryption transformer.
 	ErrSigningBeforeEncryption = errors.New("signing transformer must have higher priority than encryption transformer")
 
-	// ErrLinearisationWithPdfA1 is returned when linearisation and PDF/A-1b
-	// are both present, since PDF/A-1 forbids linearisation hints.
+	// ErrLinearisationWithPdfA1 is returned when linearisation and PDF/A-1b are both
+	// present, since PDF/A-1 forbids linearisation hints.
 	ErrLinearisationWithPdfA1 = errors.New("linearisation is not compatible with PDF/A-1b")
 
-	// ErrTransformerAlreadyRegistered is returned when a transformer with
-	// the same name has already been added to the registry.
+	// ErrTransformerAlreadyRegistered is returned when a transformer with the same name has
+	// already been added to the registry.
 	ErrTransformerAlreadyRegistered = errors.New("transformer already registered")
 
-	// ErrTransformerNotFound is returned when no transformer with the
-	// requested name exists in the registry.
+	// ErrTransformerNotFound is returned when no transformer with the requested name exists
+	// in the registry.
 	ErrTransformerNotFound = errors.New("transformer not found")
 
-	// ErrInvalidRootBox is returned when the layout result's RootBox is
-	// not the expected *LayoutBox type.
+	// ErrInvalidRootBox is returned when the layout result's RootBox is not the expected
+	// *LayoutBox type.
 	ErrInvalidRootBox = errors.New("RootBox is not *LayoutBox")
 
-	// ErrTemplatePath is returned when the builder's template path has
-	// not been set before calling Do().
+	// ErrTemplatePath is returned when the builder's template path has not been set before
+	// calling Do().
 	ErrTemplatePath = errors.New("template path is required; call Template() before Do()")
 )

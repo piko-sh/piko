@@ -37,17 +37,16 @@ type TemplateRunnerAdapter struct {
 
 // NewTemplateRunnerAdapter creates a new template runner adapter.
 //
-// Takes runner (templater_domain.ManifestRunnerPort) which provides
-// access to the compiled template manifest.
+// Takes runner (templater_domain.ManifestRunnerPort) which provides access to the
+// compiled template manifest.
 //
-// Returns *TemplateRunnerAdapter which implements
-// pdfwriter_domain.TemplateRunnerPort.
+// Returns *TemplateRunnerAdapter which implements pdfwriter_domain.TemplateRunnerPort.
 func NewTemplateRunnerAdapter(runner templater_domain.ManifestRunnerPort) *TemplateRunnerAdapter {
 	return &TemplateRunnerAdapter{runner: runner}
 }
 
-// RunPdfWithProps executes a PDF template with the given props and
-// returns the AST and styling.
+// RunPdfWithProps executes a PDF template with the given props and returns the AST and
+// styling.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes templatePath (string) which is the path to the PDF template.

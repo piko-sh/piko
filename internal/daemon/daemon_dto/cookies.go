@@ -65,16 +65,14 @@ func SessionCookie(name, value string, expires time.Time) *http.Cookie {
 //
 // Use this only for local development where HTTPS is not available.
 //
-// WARNING: Do not use in production - cookies will be transmitted in plain
-// text.
+// WARNING: Do not use in production - cookies will be transmitted in plain text.
 func SessionCookieInsecure(name, value string, expires time.Time) *http.Cookie {
-	cookie := SessionCookie(name, value, expires)
+	cookie := SessionCookie(name, value, expires) //nolint:gosec // intentional: opt-in dev-mode insecure cookie helper
 	cookie.Secure = false
 	return cookie
 }
 
-// ClearCookie creates a cookie that instructs the browser to delete an
-// existing cookie.
+// ClearCookie creates a cookie that instructs the browser to delete an existing cookie.
 //
 // Takes name (string) which specifies the cookie name to clear.
 //
@@ -91,22 +89,20 @@ func ClearCookie(name string) *http.Cookie {
 	}
 }
 
-// ClearCookieInsecure creates a cookie that tells the browser to delete a
-// cookie over plain HTTP. Use this only for local development when HTTPS is
-// not available.
+// ClearCookieInsecure creates a cookie that tells the browser to delete a cookie over
+// plain HTTP. Use this only for local development when HTTPS is not available.
 //
 // Takes name (string) which specifies the cookie to clear.
 //
-// Returns *http.Cookie which is ready to delete the named cookie without the
-// Secure flag.
+// Returns *http.Cookie which is ready to delete the named cookie without the Secure flag.
 func ClearCookieInsecure(name string) *http.Cookie {
-	cookie := ClearCookie(name)
+	cookie := ClearCookie(name) //nolint:gosec // intentional: opt-in dev-mode insecure cookie helper
 	cookie.Secure = false
 	return cookie
 }
 
-// Cookie creates a fully customisable cookie.
-// Use this when you need more control than SessionCookie provides.
+// Cookie creates a fully customisable cookie. Use this when you need more control than
+// SessionCookie provides.
 //
 // Takes name (string) which specifies the cookie name.
 // Takes value (string) which specifies the cookie value.
@@ -139,7 +135,7 @@ func Cookie(name, value string, maxAge time.Duration, opts ...CookieOption) *htt
 //
 // Returns CookieOption which applies the path setting to a cookie.
 func WithPath(path string) CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // option modifies an existing cookie whose secure attributes are set by its constructor
 		c.Path = path
 	}
 }
@@ -150,83 +146,80 @@ func WithPath(path string) CookieOption {
 //
 // Returns CookieOption which sets the domain on a cookie.
 func WithDomain(domain string) CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // option modifies an existing cookie whose secure attributes are set by its constructor
 		c.Domain = domain
 	}
 }
 
-// WithInsecure sets the cookie to allow sending over plain HTTP.
-// WARNING: Only use for local development.
+// WithInsecure sets the cookie to allow sending over plain HTTP. WARNING: Only use for
+// local development.
 //
 // Returns CookieOption which sets the cookie to use insecure transport.
 func WithInsecure() CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // intentional: opt-in dev-mode override
 		c.Secure = false
 	}
 }
 
-// WithJavaScriptAccess allows JavaScript to access the cookie.
-// WARNING: Only use if the cookie does not contain sensitive data.
+// WithJavaScriptAccess allows JavaScript to access the cookie. WARNING: Only use if the
+// cookie does not contain sensitive data.
 //
 // Returns CookieOption which disables the HttpOnly flag on the cookie.
 func WithJavaScriptAccess() CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // intentional: opt-in JavaScript access override
 		c.HttpOnly = false
 	}
 }
 
-// WithSameSiteStrict sets the cookie to SameSite=Strict mode.
-// This gives the strongest protection against cross-site request forgery but
-// may stop some valid actions from working, such as links from other sites.
+// WithSameSiteStrict sets the cookie to SameSite=Strict mode. This gives the strongest
+// protection against cross-site request forgery but may stop some valid actions from
+// working, such as links from other sites.
 //
 // Returns CookieOption which applies the SameSite=Strict setting to a cookie.
 func WithSameSiteStrict() CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // option modifies an existing cookie whose secure attributes are set by its constructor
 		c.SameSite = http.SameSiteStrictMode
 	}
 }
 
-// WithSameSiteNone sets the cookie to SameSite=None mode, permitting
-// cross-site requests but requiring Secure=true.
+// WithSameSiteNone sets the cookie to SameSite=None mode, permitting cross-site requests
+// but requiring Secure=true.
 //
 // Returns CookieOption which configures a cookie for cross-site use.
 func WithSameSiteNone() CookieOption {
-	return func(c *http.Cookie) {
+	return func(c *http.Cookie) { //nolint:gosec // option modifies an existing cookie whose secure attributes are set by its constructor
 		c.SameSite = http.SameSiteNoneMode
 		c.Secure = true
 	}
 }
 
-// SmartSessionCookie creates a session cookie that automatically sets
-// the Secure flag based on the DevelopmentMode flag in the request
-// context. In production Secure is true; in development Secure is
-// false.
+// SmartSessionCookie creates a session cookie that automatically sets the Secure flag
+// based on the DevelopmentMode flag in the request context. In production Secure is true;
+// in development Secure is false.
 //
-// Takes ctx (context.Context) which provides the request context for
-// mode detection.
+// Takes ctx (context.Context) which provides the request context for mode detection.
 // Takes name (string) which specifies the cookie name.
 // Takes value (string) which specifies the cookie value.
 // Takes expires (time.Time) which sets when the cookie expires.
 //
 // Returns *http.Cookie which is configured for the current environment.
 func SmartSessionCookie(ctx context.Context, name, value string, expires time.Time) *http.Cookie {
-	cookie := SessionCookie(name, value, expires)
+	cookie := SessionCookie(name, value, expires) //nolint:gosec // wrapper toggles Secure based on dev-mode context flag
 	if pctx := PikoRequestCtxFromContext(ctx); pctx != nil && pctx.DevelopmentMode {
 		cookie.Secure = false
 	}
 	return cookie
 }
 
-// SmartClearCookie creates a clear-cookie that automatically adapts
-// the Secure flag to match the runtime environment.
+// SmartClearCookie creates a clear-cookie that automatically adapts the Secure flag to
+// match the runtime environment.
 //
-// Takes ctx (context.Context) which provides the request context for
-// mode detection.
+// Takes ctx (context.Context) which provides the request context for mode detection.
 // Takes name (string) which specifies the cookie name to clear.
 //
 // Returns *http.Cookie which instructs the browser to delete the cookie.
 func SmartClearCookie(ctx context.Context, name string) *http.Cookie {
-	cookie := ClearCookie(name)
+	cookie := ClearCookie(name) //nolint:gosec // wrapper toggles Secure based on dev-mode context flag
 	if pctx := PikoRequestCtxFromContext(ctx); pctx != nil && pctx.DevelopmentMode {
 		cookie.Secure = false
 	}

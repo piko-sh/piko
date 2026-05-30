@@ -18,7 +18,9 @@
 
 package crypto_dto
 
-import "time"
+import (
+	"time"
+)
 
 // KeyStatus represents the current state of an encryption key in its lifecycle.
 type KeyStatus string
@@ -33,22 +35,22 @@ const (
 	// defaultRetainOldKeys is the number of old keys to keep after rotation.
 	defaultRetainOldKeys = 5
 
-	// defaultGracePeriodDays is the default grace period in days before marking
-	// old keys as disabled.
+	// defaultGracePeriodDays is the default grace period in days before marking old keys as
+	// disabled.
 	defaultGracePeriodDays = 7
 
 	// KeyStatusActive indicates the key is in use for new encryptions.
 	KeyStatusActive KeyStatus = "active"
 
-	// KeyStatusDeprecated marks a key as no longer used for new encryptions but
-	// still able to decrypt existing data.
+	// KeyStatusDeprecated marks a key as no longer used for new encryptions but still able
+	// to decrypt existing data.
 	KeyStatusDeprecated KeyStatus = "deprecated"
 
 	// KeyStatusDisabled indicates the key cannot be used for any operations.
 	KeyStatusDisabled KeyStatus = "disabled"
 
-	// KeyStatusDestroyed indicates the key has been permanently deleted and cannot
-	// be recovered.
+	// KeyStatusDestroyed indicates the key has been permanently deleted and cannot be
+	// recovered.
 	KeyStatusDestroyed KeyStatus = "destroyed"
 )
 
@@ -70,8 +72,7 @@ type KeyInfo struct {
 	// ExpirationDate is when the key will expire; nil means it does not expire.
 	ExpirationDate *time.Time
 
-	// DeletionDate is when the key is scheduled for deletion; nil if not
-	// scheduled.
+	// DeletionDate is when the key is scheduled for deletion; nil if not scheduled.
 	DeletionDate *time.Time
 
 	// Metadata contains extra key details specific to the provider.
@@ -89,12 +90,10 @@ type KeyInfo struct {
 	// Status is the current lifecycle state of the key.
 	Status KeyStatus
 
-	// Description provides a short, readable explanation of what the key is used
-	// for.
+	// Description provides a short, readable explanation of what the key is used for.
 	Description string
 
-	// Origin indicates where the key was created (e.g. "AWS_KMS", "LOCAL",
-	// "HSM").
+	// Origin indicates where the key was created (e.g. "AWS_KMS", "LOCAL", "HSM").
 	Origin string
 }
 
@@ -124,26 +123,26 @@ type KeyRotationPolicy struct {
 	// RotationInterval specifies how often keys are rotated (e.g. 90 days).
 	RotationInterval time.Duration
 
-	// RetainOldKeys specifies how many deprecated keys to keep. Set to 0 to keep
-	// all old keys indefinitely.
+	// RetainOldKeys specifies how many deprecated keys to keep. Set to 0 to keep all old
+	// keys indefinitely.
 	RetainOldKeys int
 
-	// GracePeriod specifies how long to wait before marking old keys as disabled,
-	// giving old data time to be re-encrypted without disruption.
+	// GracePeriod specifies how long to wait before marking old keys as disabled, giving old
+	// data time to be re-encrypted without disruption.
 	GracePeriod time.Duration
 
 	// Enabled indicates whether key rotation is active.
 	Enabled bool
 
-	// AutoRotate indicates whether rotation happens automatically. If false,
-	// rotation must be triggered manually.
+	// AutoRotate indicates whether rotation happens automatically. If false, rotation must
+	// be triggered manually.
 	AutoRotate bool
 }
 
 // DefaultKeyRotationPolicy returns a rotation policy with sensible defaults.
 //
-// Returns *KeyRotationPolicy which has rotation disabled, no auto-rotation,
-// and standard retention and grace period settings.
+// Returns *KeyRotationPolicy which has rotation disabled, no auto-rotation, and standard
+// retention and grace period settings.
 func DefaultKeyRotationPolicy() *KeyRotationPolicy {
 	return &KeyRotationPolicy{
 		Enabled:          false,

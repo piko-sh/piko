@@ -1,0 +1,4 @@
+{
+  "description": "Anonymous struct shapes declared in two files should be the same reflect.Type so cross-file assignment works",
+  "expected": "match=true name=Bob age=30"
+}

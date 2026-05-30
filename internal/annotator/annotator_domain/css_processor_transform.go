@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Transforms CSS selectors by applying component-specific scoping rules to ensure style isolation.
-// Handles special pseudo-classes like :global and :deep, and validates selectors against component root elements.
+// Transforms CSS selectors by applying component-specific scoping rules to ensure style
+// isolation. Handles special pseudo-classes like :global and :deep, and validates
+// selectors against component root elements.
 
 import (
 	"strings"
@@ -30,10 +31,12 @@ import (
 	es_logger "piko.sh/piko/internal/esbuild/logger"
 )
 
-// maxCSSRuleDepth caps the recursive at-rule descent so a pathological
-// stylesheet (deeply nested @media/@layer/@keyframes) cannot overflow the Go
-// stack. Real stylesheets rarely nest beyond a few levels, so 256 is generous.
-const maxCSSRuleDepth = 256
+const (
+	// maxCSSRuleDepth caps the recursive at-rule descent so a pathological stylesheet
+	// (deeply nested @media/@layer/@keyframes) cannot overflow the Go stack. Real
+	// stylesheets rarely nest beyond a few levels, so 256 is generous.
+	maxCSSRuleDepth = 256
+)
 
 // cssScopeTransformer holds the state for a single CSS scoping job.
 type cssScopeTransformer struct {
@@ -52,18 +55,18 @@ type cssScopeTransformer struct {
 	// keyframesDepth tracks how deep we are inside @keyframes rules.
 	keyframesDepth int
 
-	// ruleDepth tracks the active recursive depth of transform/transformRule
-	// pairs. It is checked against maxCSSRuleDepth to abort a pathological
-	// nested stylesheet before the Go stack overflows.
+	// ruleDepth tracks the active recursive depth of transform/transformRule pairs. It is
+	// checked against maxCSSRuleDepth to abort a pathological nested stylesheet before the
+	// Go stack overflows.
 	ruleDepth int
 
 	// sourceIndex is the position of the source file used to find symbols.
 	sourceIndex uint32
 }
 
-// transform applies scope changes to each rule in the given slice. It bails
-// out cleanly when the recursive depth exceeds maxCSSRuleDepth so a
-// pathological stylesheet cannot overflow the Go stack.
+// transform applies scope changes to each rule in the given slice. It bails out cleanly
+// when the recursive depth exceeds maxCSSRuleDepth so a pathological stylesheet cannot
+// overflow the Go stack.
 //
 // Takes rules ([]css_ast.Rule) which is the list of CSS rules to update.
 func (t *cssScopeTransformer) transform(rules []css_ast.Rule) {
@@ -118,18 +121,13 @@ func (t *cssScopeTransformer) transformSelectorRule(r *css_ast.Rule, data *css_a
 	}
 }
 
-// transformSingleSelector processes a single CSS selector and
-// applies scoping.
+// transformSingleSelector processes a single CSS selector and applies scoping.
 //
-// Takes scoped ([]css_ast.ComplexSelector) which collects the
-// processed selectors.
-// Takes selector (css_ast.ComplexSelector) which is the selector
-// to transform.
-// Takes loc (es_logger.Loc) which is the source location for
-// error reporting.
+// Takes scoped ([]css_ast.ComplexSelector) which collects the processed selectors.
+// Takes selector (css_ast.ComplexSelector) which is the selector to transform.
+// Takes loc (es_logger.Loc) which is the source location for error reporting.
 //
-// Returns []css_ast.ComplexSelector which contains the updated
-// list of scoped selectors.
+// Returns []css_ast.ComplexSelector which contains the updated list of scoped selectors.
 func (t *cssScopeTransformer) transformSingleSelector(scoped []css_ast.ComplexSelector, selector css_ast.ComplexSelector, loc es_logger.Loc) []css_ast.ComplexSelector {
 	globalMarker, hasGlobalMarker := hasMarkerClass(selector, "__piko_global__", t.fileSyms)
 	if hasGlobalMarker {
@@ -150,19 +148,16 @@ func (t *cssScopeTransformer) transformSingleSelector(scoped []css_ast.ComplexSe
 
 // handleGlobalMarker processes a selector with a :global marker.
 //
-// The :global() pseudo-class makes the entire selector unscoped, meaning no
-// scope attribute is added to any element in the selector. This is used for
-// styles that need to target elements outside the partial boundary.
+// The :global() pseudo-class makes the entire selector unscoped, meaning no scope
+// attribute is added to any element in the selector. This is used for styles that need to
+// target elements outside the partial boundary.
 //
-// Takes scoped ([]css_ast.ComplexSelector) which holds the selectors built so
-// far.
-// Takes selector (css_ast.ComplexSelector) which is the selector containing the
-// marker.
-// Takes marker (*markerLocation) which identifies where the global marker
-// appears.
+// Takes scoped ([]css_ast.ComplexSelector) which holds the selectors built so far.
+// Takes selector (css_ast.ComplexSelector) which is the selector containing the marker.
+// Takes marker (*markerLocation) which identifies where the global marker appears.
 //
-// Returns []css_ast.ComplexSelector which is the updated list with the cleaned
-// selector added without scoping.
+// Returns []css_ast.ComplexSelector which is the updated list with the cleaned selector
+// added without scoping.
 func (*cssScopeTransformer) handleGlobalMarker(scoped []css_ast.ComplexSelector, selector css_ast.ComplexSelector, marker *markerLocation, _ es_logger.Loc) []css_ast.ComplexSelector {
 	cleaned := removeMarkerClass(selector, marker)
 	return append(scoped, cleaned)
@@ -170,21 +165,18 @@ func (*cssScopeTransformer) handleGlobalMarker(scoped []css_ast.ComplexSelector,
 
 // handleDeepMarker processes a selector containing a deep marker.
 //
-// This implements Vue.js-style :deep() behaviour where the scope attribute is
-// attached to the element immediately BEFORE :deep(), not at the beginning
-// of the entire selector chain.
+// This implements Vue.js-style :deep() behaviour where the scope attribute is attached to
+// the element immediately BEFORE :deep(), not at the beginning of the entire selector
+// chain.
 //
-// Takes scoped ([]css_ast.ComplexSelector) which holds selectors
-// processed so far.
-// Takes selector (css_ast.ComplexSelector) which is the selector
-// containing the deep marker.
-// Takes marker (*markerLocation) which identifies the marker
-// position to remove.
-// Takes loc (es_logger.Loc) which provides the source location
-// for diagnostics.
+// Takes scoped ([]css_ast.ComplexSelector) which holds selectors processed so far.
+// Takes selector (css_ast.ComplexSelector) which is the selector containing the deep
+// marker.
+// Takes marker (*markerLocation) which identifies the marker position to remove.
+// Takes loc (es_logger.Loc) which provides the source location for diagnostics.
 //
-// Returns []css_ast.ComplexSelector which contains the scoped
-// selectors with the cleaned selector appended.
+// Returns []css_ast.ComplexSelector which contains the scoped selectors with the cleaned
+// selector appended.
 func (t *cssScopeTransformer) handleDeepMarker(scoped []css_ast.ComplexSelector, selector css_ast.ComplexSelector, marker *markerLocation, loc es_logger.Loc) []css_ast.ComplexSelector {
 	if marker.compoundIndex == 0 {
 		cleaned := removeMarkerClass(selector, marker)
@@ -205,9 +197,9 @@ func (t *cssScopeTransformer) handleDeepMarker(scoped []css_ast.ComplexSelector,
 
 // scopeSelectorWithRootCheck adds a direct-scoped version of a selector.
 //
-// All elements in a partial now have the `partial` attribute, so direct matching
-// (.class[partial~=xxx]) is sufficient for proper scoping. Descendant matching
-// ([partial~=xxx] .class) is only used with :deep() for intentional child styling.
+// All elements in a partial now have the `partial` attribute, so direct matching (such as
+// .class[partial~=id]) is sufficient for proper scoping. Descendant matching (such as
+// [partial~=id] .class) is only used with :deep() for intentional child styling.
 //
 // Takes scoped ([]css_ast.ComplexSelector) which holds the accumulated results.
 // Takes selector (css_ast.ComplexSelector) which is the selector to scope.
@@ -217,8 +209,8 @@ func (t *cssScopeTransformer) scopeSelectorWithRootCheck(scoped []css_ast.Comple
 	return append(scoped, scopeDirect(selector, t.scopeID))
 }
 
-// transformKnownAtRule processes a known at-rule. It tracks keyframes depth
-// and transforms any nested rules.
+// transformKnownAtRule processes a known at-rule. It tracks keyframes depth and
+// transforms any nested rules.
 //
 // Takes data (*css_ast.RKnownAt) which is the at-rule to transform.
 func (t *cssScopeTransformer) transformKnownAtRule(data *css_ast.RKnownAt) {
@@ -231,11 +223,10 @@ func (t *cssScopeTransformer) transformKnownAtRule(data *css_ast.RKnownAt) {
 	}
 }
 
-// transformKeyframesRule processes a keyframes at-rule by transforming its
-// nested rule blocks.
+// transformKeyframesRule processes a keyframes at-rule by transforming its nested rule
+// blocks.
 //
-// Takes data (*css_ast.RAtKeyframes) which contains the keyframes rule to
-// transform.
+// Takes data (*css_ast.RAtKeyframes) which contains the keyframes rule to transform.
 func (t *cssScopeTransformer) transformKeyframesRule(data *css_ast.RAtKeyframes) {
 	t.keyframesDepth++
 	defer func() { t.keyframesDepth-- }()
@@ -261,14 +252,13 @@ type rootDescriptor struct {
 	hasDynamicClasses bool
 }
 
-// markerLocation holds the position of a marker class within a compound
-// declaration. It tracks both the compound index and the subclass index.
+// markerLocation holds the position of a marker class within a compound declaration. It
+// tracks both the compound index and the subclass index.
 type markerLocation struct {
 	// compoundIndex is the index of the compound selector within the complex selector.
 	compoundIndex int
 
-	// subclassIndex is the index of the subclass selector within
-	// the compound selector.
+	// subclassIndex is the index of the subclass selector within the compound selector.
 	subclassIndex int
 }
 
@@ -393,15 +383,14 @@ func shouldSkipScoping(selector css_ast.ComplexSelector) bool {
 	return false
 }
 
-// hasMarkerClass checks if a CSS selector contains a given marker class and
-// returns its position.
+// hasMarkerClass checks if a CSS selector contains a given marker class and returns its
+// position.
 //
 // Takes selector (css_ast.ComplexSelector) which is the CSS selector to search.
 // Takes markerName (string) which is the marker class name to find.
 // Takes symbols ([]es_ast.Symbol) which is the symbol table for name lookup.
 //
-// Returns *markerLocation which is the position of the marker class, or nil
-// if not found.
+// Returns *markerLocation which is the position of the marker class, or nil if not found.
 // Returns bool which is true if the marker class was found.
 func hasMarkerClass(selector css_ast.ComplexSelector, markerName string, symbols []es_ast.Symbol) (*markerLocation, bool) {
 	for i, comp := range selector.Selectors {
@@ -419,17 +408,14 @@ func hasMarkerClass(selector css_ast.ComplexSelector, markerName string, symbols
 	return nil, false
 }
 
-// removeMarkerClass removes the marker class at the given position
-// from a selector.
+// removeMarkerClass removes the marker class at the given position from a selector.
 //
-// Takes selector (css_ast.ComplexSelector) which is the selector
-// to modify.
-// Takes loc (*markerLocation) which shows where the marker class
-// is.
+// Takes selector (css_ast.ComplexSelector) which is the selector to modify.
+// Takes loc (*markerLocation) which shows where the marker class is.
 //
-// Returns css_ast.ComplexSelector which is a copy with the marker
-// removed. When loc is nil or points to a position that does not
-// exist, returns the original selector or a simple copy.
+// Returns css_ast.ComplexSelector which is a copy with the marker removed. When loc is
+// nil or points to a position that does not exist, returns the original selector or a
+// simple copy.
 func removeMarkerClass(selector css_ast.ComplexSelector, loc *markerLocation) css_ast.ComplexSelector {
 	if loc == nil {
 		return selector

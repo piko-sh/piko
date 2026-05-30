@@ -30,26 +30,24 @@ import (
 )
 
 const (
-	// defaultProviderName is the key used for the default provider in the
-	// providers map.
+	// defaultProviderName is the key used for the default provider in the providers map.
 	defaultProviderName = notification_dto.NotificationNameDefault
 )
 
 var (
-	// errProviderNameEmpty is returned when a notification provider is
-	// registered with an empty name.
+	// errProviderNameEmpty is returned when a notification provider is registered with an
+	// empty name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
-	// errProviderNil is returned when a nil notification provider is supplied
-	// during registration.
+	// errProviderNil is returned when a nil notification provider is supplied during
+	// registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 
-// service provides notification sending through configurable providers.
-// It implements notification.Service and io.Closer.
+// service provides notification sending through configurable providers. It implements
+// notification.Service and io.Closer.
 type service struct {
-	// dispatcher queues notifications for async delivery; nil means send
-	// immediately.
+	// dispatcher queues notifications for async delivery; nil means send immediately.
 	dispatcher NotificationDispatcherPort
 
 	// providers maps provider names to their notification provider instances.
@@ -62,12 +60,14 @@ type service struct {
 	mu sync.RWMutex
 }
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
 // NewNotification creates a builder for composing and sending notifications.
 //
-// Returns *NotificationBuilder which provides a fluent interface for
-// building notifications.
+// Returns *NotificationBuilder which provides a fluent interface for building
+// notifications.
 func (s *service) NewNotification() *NotificationBuilder {
 	return &NotificationBuilder{
 		service: s,
@@ -77,21 +77,19 @@ func (s *service) NewNotification() *NotificationBuilder {
 
 // SendBulk sends multiple notifications in a single batch operation.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notification details to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+// details to send.
 //
 // Returns error when any notification fails to send.
 func (s *service) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
 	return s.SendBulkWithProvider(ctx, "", notifications)
 }
 
-// SendBulkWithProvider sends multiple notifications using the specified
-// provider.
+// SendBulkWithProvider sends multiple notifications using the specified provider.
 //
-// Takes providerName (string) which identifies which notification provider to
-// use.
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes providerName (string) which identifies which notification provider to use.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+// to send.
 //
 // Returns error when sending fails or the provider is not found.
 func (s *service) SendBulkWithProvider(ctx context.Context, providerName string, notifications []*notification_dto.SendParams) error {
@@ -122,15 +120,13 @@ func (s *service) SendBulkWithProvider(ctx context.Context, providerName string,
 	return nil
 }
 
-// SendToProviders sends a single notification to multiple providers
-// simultaneously (multi-cast).
+// SendToProviders sends a single notification to multiple providers simultaneously
+// (multi-cast).
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// details.
+// Takes params (*notification_dto.SendParams) which contains the notification details.
 // Takes providers ([]string) which specifies the provider names to send to.
 //
-// Returns error when sending fails. Partial failures are reported via
-// MultiError.
+// Returns error when sending fails. Partial failures are reported via MultiError.
 func (s *service) SendToProviders(ctx context.Context, params *notification_dto.SendParams, providers []string) error {
 	if len(providers) == 0 {
 		return nil
@@ -175,13 +171,12 @@ func (s *service) SendToProviders(ctx context.Context, params *notification_dto.
 // RegisterProvider adds a notification provider to the registry.
 //
 // Takes name (string) which identifies the provider.
-// Takes provider (NotificationProviderPort) which handles notification
-// delivery.
+// Takes provider (NotificationProviderPort) which handles notification delivery.
 //
 // Returns error when registration fails.
 //
-// Safe for concurrent use. If this is the first provider registered, it becomes
-// the default.
+// Safe for concurrent use. If this is the first provider registered, it becomes the
+// default.
 func (s *service) RegisterProvider(name string, provider NotificationProviderPort) error {
 	if name == "" {
 		return errProviderNameEmpty
@@ -252,11 +247,9 @@ func (s *service) HasProvider(name string) bool {
 	return exists
 }
 
-// RegisterDispatcher sets the notification dispatcher for sending
-// notifications.
+// RegisterDispatcher sets the notification dispatcher for sending notifications.
 //
-// Takes dispatcher (NotificationDispatcherPort) which handles notification
-// delivery.
+// Takes dispatcher (NotificationDispatcherPort) which handles notification delivery.
 //
 // Returns error when the dispatcher is nil or cannot be started.
 //
@@ -300,8 +293,8 @@ func (s *service) FlushDispatcher(ctx context.Context) error {
 //
 // Returns error when the service cannot shut down cleanly.
 //
-// Safe for concurrent use. Uses a mutex to ensure only one caller closes the
-// service at a time.
+// Safe for concurrent use. Uses a mutex to ensure only one caller closes the service at a
+// time.
 func (s *service) Close(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -327,8 +320,8 @@ func (s *service) Close(ctx context.Context) error {
 	return nil
 }
 
-// getProvider returns a notification provider by name. If the name is empty,
-// it returns the default provider.
+// getProvider returns a notification provider by name. If the name is empty, it returns
+// the default provider.
 //
 // Takes name (string) which specifies the provider to retrieve.
 //
@@ -366,11 +359,9 @@ func NewService() Service {
 	}
 }
 
-// NewServiceWithProvider creates a new notification service with a single
-// provider.
+// NewServiceWithProvider creates a new notification service with a single provider.
 //
-// Takes provider (NotificationProviderPort) which is the notification provider
-// to use.
+// Takes provider (NotificationProviderPort) which is the notification provider to use.
 //
 // Returns Service which is the configured notification service ready for use.
 func NewServiceWithProvider(provider NotificationProviderPort) Service {
@@ -382,11 +373,10 @@ func NewServiceWithProvider(provider NotificationProviderPort) Service {
 	return s
 }
 
-// NewServiceWithDispatcher creates a new notification service with a
-// dispatcher.
+// NewServiceWithDispatcher creates a new notification service with a dispatcher.
 //
-// Takes dispatcher (NotificationDispatcherPort) which manages async
-// notification delivery.
+// Takes dispatcher (NotificationDispatcherPort) which manages async notification
+// delivery.
 //
 // Returns Service which is the configured notification service ready for use.
 func NewServiceWithDispatcher(dispatcher NotificationDispatcherPort) Service {

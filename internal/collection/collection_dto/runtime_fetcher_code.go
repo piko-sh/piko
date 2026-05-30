@@ -27,53 +27,50 @@ const (
 	// defaultRetryMaxAttempts is the default number of times to retry a request.
 	defaultRetryMaxAttempts = 3
 
-	// defaultRetryInitialDelayMs is the starting delay between retries in
-	// milliseconds.
+	// defaultRetryInitialDelayMs is the starting delay between retries in milliseconds.
 	defaultRetryInitialDelayMs = 100
 
 	// defaultRetryMaxDelaySeconds is the longest wait in seconds between retries.
 	defaultRetryMaxDelaySeconds = 5
 
-	// defaultRetryBackoffMultiplier is the multiplier applied to the delay after
-	// each retry.
+	// defaultRetryBackoffMultiplier is the multiplier applied to the delay after each retry.
 	defaultRetryBackoffMultiplier = 2.0
 )
 
 // RuntimeFetcherCode represents generated Go code for runtime data fetching.
 //
-// Acts as the output of a dynamic provider's GenerateRuntimeFetcher method.
-// Contains the complete specification for code that will be injected into the
-// compiled component to fetch data at runtime.
+// Acts as the output of a dynamic provider's GenerateRuntimeFetcher method. Contains the
+// complete specification for code that will be injected into the compiled component to
+// fetch data at runtime.
 //
 // Design Philosophy:
 //   - AST-based: Uses Go's ast package for type-safe code generation
-//   - Self-contained: Includes all dependencies (imports, cache config,
-//     error handling)
+//   - Self-contained: Includes all dependencies (imports, cache config, error handling)
 //   - Flexible: Provider controls exact runtime behaviour
 type RuntimeFetcherCode struct {
 	// FetcherFunc is the Go AST for the function that fetches data at runtime.
 	//
 	// The function signature should be:
-	//   func(ctx context.Context, opts FetchOptions) ([]TargetType, error)
 	//
-	// The generator injects the AST into the component's code and calls it
-	// from the Render function.
+	// 	func(ctx context.Context, opts FetchOptions) ([]TargetType, error)
+	//
+	// The generator injects the AST into the component's code and calls it from the Render
+	// function.
 	FetcherFunc *ast.FuncDecl
 
 	// RequiredImports specifies the Go packages needed by the fetcher function.
 	//
-	// Key: import path (e.g., "piko.sh/piko/wdk/runtime") Value: import alias
-	// (empty string means no alias)
+	// Key: import path (e.g., "piko.sh/piko/wdk/runtime") Value: import alias (empty string
+	// means no alias)
 	RequiredImports map[string]string
 
-	// RetryConfig holds the retry settings for failed fetches; nil means no
-	// retries.
+	// RetryConfig holds the retry settings for failed fetches; nil means no retries.
 	RetryConfig *RetryConfig
 
 	// FallbackFunc is an optional function to call if the fetch fails.
 	//
-	// Providers use it to specify graceful degradation logic.
-	// For example, serving a static snapshot if the CMS is unavailable.
+	// Providers use it to specify graceful degradation logic. For example, serving a static
+	// snapshot if the CMS is unavailable.
 	FallbackFunc *ast.FuncDecl
 
 	// CacheStrategy sets how the fetcher stores data for later use.
@@ -87,8 +84,8 @@ type RuntimeFetcherCode struct {
 
 	// CacheTTL is how long cached data stays valid.
 	//
-	// After this time, the cache entry is seen as stale and will be
-	// refreshed on the next request.
+	// After this time, the cache entry is seen as stale and will be refreshed on the next
+	// request.
 	CacheTTL time.Duration
 }
 
@@ -96,28 +93,25 @@ type RuntimeFetcherCode struct {
 type RetryConfig struct {
 	// RetryableErrors is a list of error types that should trigger a retry.
 	//
-	// If empty, all errors trigger retries.
-	// Use this to avoid retrying on permanent failures (e.g., 404, auth errors).
+	// If empty, all errors trigger retries. Use this to avoid retrying on permanent failures
+	// (e.g., 404, auth errors).
 	RetryableErrors []string
 
 	// InitialDelay is the wait time before the first retry attempt.
 	InitialDelay time.Duration
 
-	// MaxDelay is the upper limit for delay between retries.
-	// Used with exponential backoff to prevent the delay from growing too large.
+	// MaxDelay is the upper limit for delay between retries. Used with exponential backoff
+	// to prevent the delay from growing too large.
 	MaxDelay time.Duration
 
 	// BackoffMultiplier is the factor by which the delay grows after each retry.
 	//
-	// For example, with BackoffMultiplier=2:
-	// Retry 1: InitialDelay
-	// Retry 2: InitialDelay * 2
-	// Retry 3: InitialDelay * 4
-	// and so on.
+	// For example, with BackoffMultiplier=2: Retry 1: InitialDelay Retry 2: InitialDelay * 2
+	// Retry 3: InitialDelay * 4 and so on.
 	BackoffMultiplier float64
 
-	// MaxAttempts is the maximum number of fetch attempts.
-	// Set to 0 to disable retries and fail on the first error.
+	// MaxAttempts is the maximum number of fetch attempts. Set to 0 to disable retries and
+	// fail on the first error.
 	MaxAttempts int
 }
 

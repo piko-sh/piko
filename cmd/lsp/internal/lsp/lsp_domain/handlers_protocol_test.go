@@ -58,7 +58,9 @@ func (m *mockFormatterService) FormatRange(ctx context.Context, source []byte, f
 	return source, nil
 }
 
-var _ formatter_domain.FormatterService = (*mockFormatterService)(nil)
+var (
+	_ formatter_domain.FormatterService = (*mockFormatterService)(nil)
+)
 
 type mockJSONRPCConn struct {
 	NotifyFunc func(ctx context.Context, method string, params any) error
@@ -86,7 +88,9 @@ func (m *mockJSONRPCConn) Done() <-chan struct{} {
 
 func (m *mockJSONRPCConn) Err() error { return nil }
 
-var _ jsonrpc2.Conn = (*mockJSONRPCConn)(nil)
+var (
+	_ jsonrpc2.Conn = (*mockJSONRPCConn)(nil)
+)
 
 func TestWillSaveWaitUntil_EnabledWithDocInCache_ReturnsEdits(t *testing.T) {
 	docCache := NewDocumentCache()

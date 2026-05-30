@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package capabilities_domain defines the port interface and service
-// for pluggable content transformation capabilities.
+// Package capabilities_domain defines the port interface and service for pluggable
+// content transformation capabilities.
 //
-// Capabilities are named functions that process streaming data, enabling
-// features such as compression, minification, or image optimisation.
-// The [CapabilityService] port defines the registry contract; the
-// accompanying service implementation manages registration and execution.
+// Capabilities are named functions that process streaming data, enabling features such as
+// compression, minification, or image optimisation. The [CapabilityService] port defines
+// the registry contract; the accompanying service implementation manages registration and
+// execution.
 //
 // # Usage
 //
@@ -38,7 +38,6 @@
 //
 // # Thread safety
 //
-// All methods on [CapabilityService] are safe for concurrent use. The service
-// uses a read-write mutex to allow concurrent execution whilst serialising
-// registration.
+// All methods on [CapabilityService] are safe for concurrent use. The service uses a
+// read-write mutex to allow concurrent execution whilst serialising registration.
 package capabilities_domain

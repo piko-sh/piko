@@ -30,12 +30,12 @@ import (
 //
 // Takes data ([]byte) which contains the serialised FlatBuffer data.
 //
-// Returns *registry_dto.ArtefactMeta which is the parsed artefact metadata,
-// or nil when data is empty.
+// Returns *registry_dto.ArtefactMeta which is the parsed artefact metadata, or nil when
+// data is empty.
 //
-// SAFETY: The returned DTO contains strings that reference 'data' directly
-// via mem.String. Go's GC keeps 'data' alive through these string references.
-// The caller must not modify 'data' while the DTO is in use.
+// SAFETY: The returned DTO contains strings that reference 'data' directly via
+// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
+// not modify 'data' while the DTO is in use.
 func ParseArtefactMeta(data []byte) *registry_dto.ArtefactMeta {
 	if len(data) == 0 {
 		return nil
@@ -47,11 +47,10 @@ func ParseArtefactMeta(data []byte) *registry_dto.ArtefactMeta {
 
 // convertArtefactMetaFB converts a FlatBuffers artefact meta to a domain DTO.
 //
-// Takes fb (*fbs.ArtefactMetaFB) which is the FlatBuffers representation to
-// convert.
+// Takes fb (*fbs.ArtefactMetaFB) which is the FlatBuffers representation to convert.
 //
-// Returns *registry_dto.ArtefactMeta which contains the converted artefact
-// metadata with variants, profiles, and computed status.
+// Returns *registry_dto.ArtefactMeta which contains the converted artefact metadata with
+// variants, profiles, and computed status.
 func convertArtefactMetaFB(fb *fbs.ArtefactMetaFB) *registry_dto.ArtefactMeta {
 	art := &registry_dto.ArtefactMeta{
 		ID:         mem.String(fb.Id()),
@@ -90,8 +89,8 @@ func convertArtefactMetaFB(fb *fbs.ArtefactMetaFB) *registry_dto.ArtefactMeta {
 //
 // Takes fb (*fbs.VariantFB) which is the FlatBuffers variant to convert.
 //
-// Returns registry_dto.Variant which is the converted variant with all fields,
-// metadata tags, and chunks populated.
+// Returns registry_dto.Variant which is the converted variant with all fields, metadata
+// tags, and chunks populated.
 func convertVariantFB(fb *fbs.VariantFB) registry_dto.Variant {
 	v := registry_dto.Variant{
 		VariantID:        mem.String(fb.VariantId()),
@@ -130,8 +129,7 @@ func convertVariantFB(fb *fbs.VariantFB) registry_dto.Variant {
 
 // convertVariantChunkFB converts a FlatBuffers variant chunk to a DTO.
 //
-// Takes fb (*fbs.VariantChunkFB) which is the FlatBuffers representation to
-// convert.
+// Takes fb (*fbs.VariantChunkFB) which is the FlatBuffers representation to convert.
 //
 // Returns registry_dto.VariantChunk which contains the converted chunk data.
 func convertVariantChunkFB(fb *fbs.VariantChunkFB) registry_dto.VariantChunk {
@@ -153,14 +151,12 @@ func convertVariantChunkFB(fb *fbs.VariantChunkFB) registry_dto.VariantChunk {
 	return c
 }
 
-// convertDesiredProfileFB converts a FlatBuffers DesiredProfileFB to a
-// NamedProfile DTO.
+// convertDesiredProfileFB converts a FlatBuffers DesiredProfileFB to a NamedProfile DTO.
 //
-// Takes fb (*fbs.DesiredProfileFB) which is the FlatBuffers representation to
-// convert.
+// Takes fb (*fbs.DesiredProfileFB) which is the FlatBuffers representation to convert.
 //
-// Returns registry_dto.NamedProfile which contains the converted profile data
-// including params, resulting tags, and dependencies.
+// Returns registry_dto.NamedProfile which contains the converted profile data including
+// params, resulting tags, and dependencies.
 func convertDesiredProfileFB(fb *fbs.DesiredProfileFB) registry_dto.NamedProfile {
 	np := registry_dto.NamedProfile{
 		Name: mem.String(fb.Name()),

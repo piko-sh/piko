@@ -27,11 +27,21 @@ import (
 	"piko.sh/piko/wdk/db"
 )
 
-const initialDiagnosticsCapacity = 3
+const (
+	// initialDiagnosticsCapacity sizes the diagnostics slice for the three SQLite-specific
+	// health checks.
+	initialDiagnosticsCapacity = 3
+)
 
-// CheckHealth returns SQLite-specific diagnostics: database file size,
-// freelist page count, and journal mode. Each query handles its own errors
-// independently so a single failing diagnostic does not prevent others.
+// CheckHealth returns SQLite-specific diagnostics.
+//
+// Reports database file size, freelist page count, and journal mode. Each query handles
+// its own errors independently so a single failing diagnostic does not prevent others.
+//
+// Takes ctx (context.Context) which bounds the lifetime of each diagnostic query.
+// Takes database (*sql.DB) which is the SQLite connection pool.
+//
+// Returns []db.DatabaseHealthDiagnostic which holds one entry per diagnostic.
 func (*SQLiteEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	diagnostics := make([]db.DatabaseHealthDiagnostic, 0, initialDiagnosticsCapacity)
 	diagnostics = append(diagnostics, checkSQLiteDatabaseSize(ctx, database)...)
@@ -40,6 +50,13 @@ func (*SQLiteEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.Dat
 	return diagnostics
 }
 
+// checkSQLiteDatabaseSize reports the on-disk size of the SQLite database.
+//
+// Takes ctx (context.Context) which bounds the lifetime of the query.
+// Takes database (*sql.DB) which is the SQLite connection pool.
+//
+// Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the
+// database size or the failure to obtain it.
 func checkSQLiteDatabaseSize(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var pageCount, pageSize int64
 	if err := database.QueryRowContext(ctx, "SELECT page_count, page_size FROM pragma_page_count(), pragma_page_size()").Scan(&pageCount, &pageSize); err != nil {
@@ -52,6 +69,13 @@ func checkSQLiteDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 	}}
 }
 
+// checkSQLiteFreelistPages reports the number of free pages held by the SQLite database.
+//
+// Takes ctx (context.Context) which bounds the lifetime of the query.
+// Takes database (*sql.DB) which is the SQLite connection pool.
+//
+// Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the
+// freelist size or the failure to obtain it.
 func checkSQLiteFreelistPages(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var freelistCount int64
 	if err := database.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&freelistCount); err != nil {
@@ -64,6 +88,13 @@ func checkSQLiteFreelistPages(ctx context.Context, database *sql.DB) []db.Databa
 	}}
 }
 
+// checkSQLiteJournalMode reports the active SQLite journal mode.
+//
+// Takes ctx (context.Context) which bounds the lifetime of the query.
+// Takes database (*sql.DB) which is the SQLite connection pool.
+//
+// Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the journal
+// mode or the failure to obtain it.
 func checkSQLiteJournalMode(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var journalMode string
 	if err := database.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journalMode); err != nil {
@@ -76,6 +107,11 @@ func checkSQLiteJournalMode(ctx context.Context, database *sql.DB) []db.Database
 	}}
 }
 
+// formatBytes renders a byte count using binary IEC units (B, KiB, MiB, and so on).
+//
+// Takes bytes (int64) which is the byte count to format.
+//
+// Returns string which is the formatted human-readable size.
 func formatBytes(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {

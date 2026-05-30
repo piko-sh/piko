@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 )
 
-// builtinDetector pairs a built-in detector instance with its registered
-// name for the registration loop.
+// builtinDetector pairs a built-in detector instance with its registered name for the
+// registration loop.
 type builtinDetector struct {
 	// detector is the Detector instance to register.
 	detector spamdetect_domain.Detector
@@ -35,12 +35,10 @@ type builtinDetector struct {
 	name string
 }
 
-// RegisterDefaults creates and registers all six built-in detectors with
-// the service.
+// RegisterDefaults creates and registers all six built-in detectors with the service.
 //
 // Takes ctx (context.Context) which is the caller context.
-// Takes service (spamdetect_domain.SpamDetectServicePort) which receives
-// the detectors.
+// Takes service (spamdetect_domain.SpamDetectServicePort) which receives the detectors.
 // Takes config (Config) which configures the built-in detectors.
 //
 // Returns error when a detector fails to create or register.

@@ -30,13 +30,15 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// log is the package-level logger for the markdown_provider_goldmark package.
-var log = logger_domain.GetLogger("piko/wdk/markdown/markdown_provider_goldmark")
+var (
+	// log is the package-level logger for the markdown_provider_goldmark package.
+	log = logger_domain.GetLogger("piko/wdk/markdown/markdown_provider_goldmark")
+)
 
 // HTMLConverterOptions holds configuration for HTML conversion.
 type HTMLConverterOptions struct {
-	// Unsafe enables rendering of raw HTML embedded in markdown.
-	// When false (default), raw HTML is stripped for security.
+	// Unsafe enables rendering of raw HTML embedded in markdown. When false (default), raw
+	// HTML is stripped for security.
 	Unsafe bool
 }
 
@@ -44,12 +46,12 @@ type HTMLConverterOptions struct {
 type HTMLConverterOption func(*HTMLConverterOptions)
 
 var (
-	// getSafeConverter returns the lazily initialised safe Goldmark converter
-	// with GFM and footnote extensions enabled but raw HTML stripped.
+	// getSafeConverter returns the lazily initialised safe Goldmark converter with GFM and
+	// footnote extensions enabled but raw HTML stripped.
 	getSafeConverter = newSafeConverterOnce()
 
-	// getUnsafeConverter returns the lazily initialised unsafe Goldmark converter
-	// with raw HTML rendering enabled.
+	// getUnsafeConverter returns the lazily initialised unsafe Goldmark converter with raw
+	// HTML rendering enabled.
 	getUnsafeConverter = newUnsafeConverterOnce()
 )
 
@@ -57,8 +59,8 @@ var (
 //
 // Returns HTMLConverterOption which configures the converter to allow raw HTML.
 //
-// WARNING: Only use with fully trusted content. Enabling this with
-// user-generated content exposes your application to XSS attacks.
+// WARNING: Only use with fully trusted content. Enabling this with user-generated content
+// exposes your application to XSS attacks.
 func WithUnsafe() HTMLConverterOption {
 	return func(opts *HTMLConverterOptions) {
 		opts.Unsafe = true
@@ -67,8 +69,8 @@ func WithUnsafe() HTMLConverterOption {
 
 // ToHTML converts a Markdown string to an HTML string.
 //
-// By default, raw HTML in the Markdown is removed for security. Use
-// WithUnsafe() to allow raw HTML rendering for trusted content only.
+// By default, raw HTML in the Markdown is removed for security. Use WithUnsafe() to allow
+// raw HTML rendering for trusted content only.
 //
 // Takes ctx (context.Context) which carries logger and tracing data.
 // Takes markdown (string) which is the Markdown content to convert.
@@ -83,8 +85,8 @@ func ToHTML(ctx context.Context, markdown string, opts ...HTMLConverterOption) s
 //
 // This variant avoids string conversion overhead when working with byte slices.
 //
-// By default, raw HTML embedded in the markdown is stripped for security.
-// Use WithUnsafe() to enable raw HTML rendering for trusted content only.
+// By default, raw HTML embedded in the markdown is stripped for security. Use
+// WithUnsafe() to enable raw HTML rendering for trusted content only.
 //
 // Takes ctx (context.Context) which carries logger and tracing data.
 // Takes markdown ([]byte) which is the markdown content to convert.
@@ -116,8 +118,8 @@ func ToHTMLBytes(ctx context.Context, markdown []byte, opts ...HTMLConverterOpti
 	return buffer.Bytes()
 }
 
-// ResetConverters resets the singleton converters to their initial state.
-// This is only intended for testing purposes.
+// ResetConverters resets the singleton converters to their initial state. This is only
+// intended for testing purposes.
 func ResetConverters() {
 	getSafeConverter = newSafeConverterOnce()
 	getUnsafeConverter = newUnsafeConverterOnce()
@@ -125,8 +127,8 @@ func ResetConverters() {
 
 // newSafeConverterOnce creates a fresh sync.OnceValue for the safe converter.
 //
-// Returns func() goldmark.Markdown which lazily initialises the safe
-// Goldmark instance on first call.
+// Returns func() goldmark.Markdown which lazily initialises the safe Goldmark instance on
+// first call.
 func newSafeConverterOnce() func() goldmark.Markdown {
 	return sync.OnceValue(func() goldmark.Markdown {
 		return goldmark.New(
@@ -142,11 +144,10 @@ func newSafeConverterOnce() func() goldmark.Markdown {
 	})
 }
 
-// newUnsafeConverterOnce creates a fresh sync.OnceValue for the unsafe
-// converter.
+// newUnsafeConverterOnce creates a fresh sync.OnceValue for the unsafe converter.
 //
-// Returns func() goldmark.Markdown which lazily initialises the unsafe
-// Goldmark instance with raw HTML rendering on first call.
+// Returns func() goldmark.Markdown which lazily initialises the unsafe Goldmark instance
+// with raw HTML rendering on first call.
 func newUnsafeConverterOnce() func() goldmark.Markdown {
 	return sync.OnceValue(func() goldmark.Markdown {
 		return goldmark.New(

@@ -18,42 +18,41 @@
 
 package i18n_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockService is a test double for Service where nil function fields
-// return zero values and call counts are tracked atomically.
+// MockService is a test double for Service where nil function fields return zero values
+// and call counts are tracked atomically.
 type MockService struct {
 	// GetStoreFunc is the function called by GetStore.
 	GetStoreFunc func() *Store
 
-	// GetStrBufPoolFunc is the function called by
-	// GetStrBufPool.
+	// GetStrBufPoolFunc is the function called by GetStrBufPool.
 	GetStrBufPoolFunc func() *StrBufPool
 
-	// DefaultLocaleFunc is the function called by
-	// DefaultLocale.
+	// DefaultLocaleFunc is the function called by DefaultLocale.
 	DefaultLocaleFunc func() string
 
-	// GetStoreCallCount tracks how many times GetStore
-	// was called.
-	GetStoreCallCount int64
+	// GetStoreCallCount tracks how many times GetStore was called.
+	GetStoreCallCount atomic.Int64
 
-	// GetStrBufPoolCallCount tracks how many times
-	// GetStrBufPool was called.
-	GetStrBufPoolCallCount int64
+	// GetStrBufPoolCallCount tracks how many times GetStrBufPool was called.
+	GetStrBufPoolCallCount atomic.Int64
 
-	// DefaultLocaleCallCount tracks how many times
-	// DefaultLocale was called.
-	DefaultLocaleCallCount int64
+	// DefaultLocaleCallCount tracks how many times DefaultLocale was called.
+	DefaultLocaleCallCount atomic.Int64
 }
 
-var _ Service = (*MockService)(nil)
+var (
+	_ Service = (*MockService)(nil)
+)
 
 // GetStore returns the translation Store for zero-allocation lookups.
 //
 // Returns *Store, or nil if GetStoreFunc is nil.
 func (m *MockService) GetStore() *Store {
-	atomic.AddInt64(&m.GetStoreCallCount, 1)
+	m.GetStoreCallCount.Add(1)
 	if m.GetStoreFunc != nil {
 		return m.GetStoreFunc()
 	}
@@ -64,7 +63,7 @@ func (m *MockService) GetStore() *Store {
 //
 // Returns *StrBufPool, or nil if GetStrBufPoolFunc is nil.
 func (m *MockService) GetStrBufPool() *StrBufPool {
-	atomic.AddInt64(&m.GetStrBufPoolCallCount, 1)
+	m.GetStrBufPoolCallCount.Add(1)
 	if m.GetStrBufPoolFunc != nil {
 		return m.GetStrBufPoolFunc()
 	}
@@ -75,7 +74,7 @@ func (m *MockService) GetStrBufPool() *StrBufPool {
 //
 // Returns string, or "" if DefaultLocaleFunc is nil.
 func (m *MockService) DefaultLocale() string {
-	atomic.AddInt64(&m.DefaultLocaleCallCount, 1)
+	m.DefaultLocaleCallCount.Add(1)
 	if m.DefaultLocaleFunc != nil {
 		return m.DefaultLocaleFunc()
 	}

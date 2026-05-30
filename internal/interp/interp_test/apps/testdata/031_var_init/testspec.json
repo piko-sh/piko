@@ -1,0 +1,4 @@
+{
+  "description": "Package-level var initialised by call to func declared in another file (Go uses dependency-based init order)",
+  "expected": "result=42 doubled=84"
+}

@@ -24,63 +24,61 @@ import (
 	"time"
 )
 
-// Clock provides time operations that can be replaced for testing.
-// It implements clock.Clock, cache.Clock, and cache_dto.Clock interfaces.
+// Clock provides time operations that can be replaced for testing. It implements
+// clock.Clock, cache.Clock, and cache_dto.Clock interfaces.
 type Clock interface {
 	// Now returns the current time.
 	//
-	// Returns time.Time which is the current time. In production this uses
-	// time.Now(), whilst in tests it can return a fixed value.
+	// Returns time.Time which is the current time. In production this uses time.Now(),
+	// whilst in tests it can return a fixed value.
 	Now() time.Time
 
-	// AfterFunc waits for the duration to elapse and then calls f in its own
-	// goroutine.
+	// AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
 	//
 	// Takes d (time.Duration) which specifies how long to wait before calling f.
 	// Takes f (func()) which is the function to call after the duration elapses.
 	//
 	// Returns Timer which can be used to cancel the call using its Stop method.
 	//
-	// In production, this delegates to time.AfterFunc. In tests, the timer fires
-	// when the mock clock is advanced past the deadline.
+	// In production, this delegates to time.AfterFunc. In tests, the timer fires when the
+	// mock clock is advanced past the deadline.
 	AfterFunc(d time.Duration, f func()) Timer
 
-	// NewTimer creates a new Timer that will send the current time on its
-	// channel after at least the specified duration.
+	// NewTimer creates a new Timer that will send the current time on its channel after at
+	// least the specified duration.
 	//
 	// Takes d (time.Duration) which specifies the delay before the timer fires.
 	//
 	// Returns ChannelTimer which provides access to the timer's channel.
 	//
-	// In production, this delegates to time.NewTimer. In tests, the timer fires
-	// when the mock clock is advanced past the deadline.
+	// In production, this delegates to time.NewTimer. In tests, the timer fires when the
+	// mock clock is advanced past the deadline.
 	NewTimer(d time.Duration) ChannelTimer
 
-	// NewTicker returns a new Ticker containing a channel that sends the current
-	// time after each tick.
+	// NewTicker returns a new Ticker containing a channel that sends the current time after
+	// each tick.
 	//
 	// Takes d (time.Duration) which specifies the period between ticks.
 	//
 	// Returns Ticker which provides a channel for receiving tick events.
 	//
-	// In production, this delegates to time.NewTicker. In tests, the ticker fires
-	// when the mock clock is advanced past each tick period.
+	// In production, this delegates to time.NewTicker. In tests, the ticker fires when the
+	// mock clock is advanced past each tick period.
 	NewTicker(d time.Duration) Ticker
 }
 
-// Timer provides a wrapper around time.Timer for testing purposes. It
-// implements clock.Timer with the methods needed to control the timer
-// lifecycle.
+// Timer provides a wrapper around time.Timer for testing purposes. It implements
+// clock.Timer with the methods needed to control the timer lifecycle.
 type Timer interface {
 	// Stop prevents the timer from firing.
 	//
-	// Returns bool which is true if this call stops the timer, or false if the
-	// timer has already fired or been stopped.
+	// Returns bool which is true if this call stops the timer, or false if the timer has
+	// already fired or been stopped.
 	Stop() bool
 }
 
-// ChannelTimer provides a timer that sends its expiry time on a channel.
-// It extends Timer with Reset for reuse and C for receiving the fire event.
+// ChannelTimer provides a timer that sends its expiry time on a channel. It extends Timer
+// with Reset for reuse and C for receiving the fire event.
 type ChannelTimer interface {
 	Timer
 
@@ -91,13 +89,13 @@ type ChannelTimer interface {
 	//
 	// Takes d (time.Duration) which specifies when the timer should expire.
 	//
-	// Returns bool which is true if the timer was active, or false if it had
-	// already expired or been stopped.
+	// Returns bool which is true if the timer was active, or false if it had already expired
+	// or been stopped.
 	Reset(d time.Duration) bool
 }
 
-// Ticker provides a channel that sends time values at regular intervals.
-// It implements the clock.Ticker interface.
+// Ticker provides a channel that sends time values at regular intervals. It implements
+// the clock.Ticker interface.
 type Ticker interface {
 	// C returns the channel that receives tick events.
 	C() <-chan time.Time
@@ -106,8 +104,8 @@ type Ticker interface {
 	Stop()
 }
 
-// realClock provides the production implementation of the Clock interface
-// using the system clock.
+// realClock provides the production implementation of the Clock interface using the
+// system clock.
 type realClock struct{}
 
 // Now returns the current system time.
@@ -173,8 +171,7 @@ func (t *realChannelTimer) Stop() bool {
 
 // C returns the channel on which the time is delivered.
 //
-// Returns <-chan time.Time which receives the current time when the timer
-// fires.
+// Returns <-chan time.Time which receives the current time when the timer fires.
 func (t *realChannelTimer) C() <-chan time.Time {
 	return t.timer.C
 }
@@ -206,14 +203,14 @@ func (t *realTicker) Stop() {
 	t.ticker.Stop()
 }
 
-// MockClock implements Clock for testing, allowing controlled time advancement.
-// It is thread-safe; advancing time causes scheduled timers and tickers to fire.
+// MockClock implements Clock for testing, allowing controlled time advancement. It is
+// thread-safe; advancing time causes scheduled timers and tickers to fire.
 type MockClock struct {
 	// currentTime holds the simulated time returned by Now.
 	currentTime time.Time
 
-	// timerSetupSignal is closed and replaced on each timer setup event,
-	// acting as a broadcast wakeup for AwaitTimerSetup callers.
+	// timerSetupSignal is closed and replaced on each timer setup event, acting as a
+	// broadcast wakeup for AwaitTimerSetup callers.
 	timerSetupSignal chan struct{}
 
 	// timers holds callback timers set up via AfterFunc.
@@ -225,21 +222,21 @@ type MockClock struct {
 	// tickers holds all tickers created by this mock clock.
 	tickers []*mockTicker
 
-	// timerSetupCount is incremented each time a timer, channel timer, or
-	// ticker is created or reset. Tests use this to synchronise with
-	// goroutines that set up timers after an Advance fires their previous one.
+	// timerSetupCount is incremented each time a timer, channel timer, or ticker is created
+	// or reset. Tests use this to synchronise with goroutines that set up timers after an
+	// Advance fires their previous one.
 	timerSetupCount atomic.Int64
 
 	// mu protects the mock clock's mutable state from concurrent access.
 	mu sync.RWMutex
 
-	// signalMu protects replacement of timerSetupSignal. Separate from mu
-	// to avoid deadlock (notifyTimerSetup is called after mu is released).
+	// signalMu protects replacement of timerSetupSignal. Separate from mu to avoid deadlock
+	// (notifyTimerSetup is called after mu is released).
 	signalMu sync.Mutex
 }
 
-// NewMockClock creates a new mock clock starting at the specified time.
-// If zero time is provided, defaults to Unix epoch.
+// NewMockClock creates a new mock clock starting at the specified time. If zero time is
+// provided, defaults to Unix epoch.
 //
 // Takes startTime (time.Time) which specifies the initial time for the clock.
 //
@@ -259,8 +256,7 @@ func NewMockClock(startTime time.Time) *MockClock {
 
 // Now returns the current mocked time.
 //
-// Returns time.Time which is the current time set on this mock
-// clock.
+// Returns time.Time which is the current time set on this mock clock.
 //
 // Safe for concurrent use; protected by a read lock.
 func (m *MockClock) Now() time.Time {
@@ -269,14 +265,11 @@ func (m *MockClock) Now() time.Time {
 	return m.currentTime
 }
 
-// AfterFunc schedules a function to be called after the
-// specified duration. The function will be called when Advance
-// moves the clock past the scheduled time.
+// AfterFunc schedules a function to be called after the specified duration. The function
+// will be called when Advance moves the clock past the scheduled time.
 //
-// Takes d (time.Duration) which specifies how long to wait
-// before calling f.
-// Takes f (func()) which is the function to call when the timer
-// fires.
+// Takes d (time.Duration) which specifies how long to wait before calling f.
+// Takes f (func()) which is the function to call when the timer fires.
 //
 // Returns Timer which can be used to cancel the scheduled call.
 //
@@ -296,14 +289,11 @@ func (m *MockClock) AfterFunc(d time.Duration, f func()) Timer {
 	return timer
 }
 
-// NewTimer creates a new channel-based Timer that fires when
-// the clock advances.
+// NewTimer creates a new channel-based Timer that fires when the clock advances.
 //
-// Takes d (time.Duration) which specifies when the timer should
-// fire.
+// Takes d (time.Duration) which specifies when the timer should fire.
 //
-// Returns ChannelTimer which can be used to receive the fire
-// event or stop the timer.
+// Returns ChannelTimer which can be used to receive the fire event or stop the timer.
 //
 // Safe for concurrent use; protected by a mutex.
 func (m *MockClock) NewTimer(d time.Duration) ChannelTimer {
@@ -321,14 +311,11 @@ func (m *MockClock) NewTimer(d time.Duration) ChannelTimer {
 	return timer
 }
 
-// NewTicker creates a new Ticker that fires periodically when
-// the clock advances.
+// NewTicker creates a new Ticker that fires periodically when the clock advances.
 //
-// Takes d (time.Duration) which specifies the interval between
-// tick events.
+// Takes d (time.Duration) which specifies the interval between tick events.
 //
-// Returns Ticker which can be used to receive tick events on
-// its channel.
+// Returns Ticker which can be used to receive tick events on its channel.
 //
 // Safe for concurrent use; protected by a mutex.
 func (m *MockClock) NewTicker(d time.Duration) Ticker {
@@ -347,8 +334,8 @@ func (m *MockClock) NewTicker(d time.Duration) Ticker {
 	return ticker
 }
 
-// Set changes the current time to the specified value.
-// Use it to test specific time points.
+// Set changes the current time to the specified value. Use it to test specific time
+// points.
 //
 // Takes t (time.Time) which specifies the new current time.
 //
@@ -370,8 +357,8 @@ type tickerFireEvent struct {
 
 // Advance moves the current time forward by the specified duration.
 //
-// Any timers scheduled to fire during this window will be executed. This is
-// useful for testing time progression and expiration.
+// Any timers scheduled to fire during this window will be executed. This is useful for
+// testing time progression and expiration.
 //
 // Takes d (time.Duration) which specifies how far to advance the clock.
 func (m *MockClock) Advance(d time.Duration) {
@@ -382,8 +369,8 @@ func (m *MockClock) Advance(d time.Duration) {
 	m.fireTickerEvents(tickersToFire)
 }
 
-// Rewind moves the current time backward by the specified duration.
-// Use it to test time-sensitive edge cases.
+// Rewind moves the current time backward by the specified duration. Use it to test
+// time-sensitive edge cases.
 //
 // Takes d (time.Duration) which specifies how far back to move the clock.
 //
@@ -394,8 +381,8 @@ func (m *MockClock) Rewind(d time.Duration) {
 	m.currentTime = m.currentTime.Add(-d)
 }
 
-// Freeze captures the current time and returns it. Use it in tests where you
-// need to ensure time does not progress during a test operation.
+// Freeze captures the current time and returns it. Use it in tests where you need to
+// ensure time does not progress during a test operation.
 //
 // Returns time.Time which is the current frozen time.
 //
@@ -406,24 +393,24 @@ func (m *MockClock) Freeze() time.Time {
 	return m.currentTime
 }
 
-// TimerCount returns the number of timer setup events (NewTimer, AfterFunc,
-// NewTicker, and Reset calls) that have occurred on this clock. Use the
-// returned value as the baseline argument to AwaitTimerSetup.
+// TimerCount returns the number of timer setup events (NewTimer, AfterFunc, NewTicker,
+// and Reset calls) that have occurred on this clock. Use the returned value as the
+// baseline argument to AwaitTimerSetup.
 //
 // Returns int64 which is the current monotonic counter value.
 func (m *MockClock) TimerCount() int64 {
 	return m.timerSetupCount.Load()
 }
 
-// AwaitTimerSetup blocks until at least one timer setup event has occurred
-// after the given baseline count, or the timeout elapses.
+// AwaitTimerSetup blocks until at least one timer setup event has occurred after the
+// given baseline count, or the timeout elapses.
 //
-// Takes baseline (int64) which is the TimerCount snapshot taken before the
-// operation that should trigger a new timer setup.
+// Takes baseline (int64) which is the TimerCount snapshot taken before the operation that
+// should trigger a new timer setup.
 // Takes timeout (time.Duration) which is the maximum real-world time to wait.
 //
-// Returns bool which is true if a new timer setup was observed, or false if
-// the timeout was reached.
+// Returns bool which is true if a new timer setup was observed, or false if the timeout
+// was reached.
 //
 // Safe for concurrent use.
 func (m *MockClock) AwaitTimerSetup(baseline int64, timeout time.Duration) bool {
@@ -443,8 +430,8 @@ func (m *MockClock) AwaitTimerSetup(baseline int64, timeout time.Duration) bool 
 	}
 }
 
-// notifyTimerSetup increments the timer setup counter and broadcasts to any
-// goroutine waiting in AwaitTimerSetup. Must be called after mu is released.
+// notifyTimerSetup increments the timer setup counter and broadcasts to any goroutine
+// waiting in AwaitTimerSetup. Must be called after mu is released.
 func (m *MockClock) notifyTimerSetup() {
 	m.timerSetupCount.Add(1)
 
@@ -456,9 +443,9 @@ func (m *MockClock) notifyTimerSetup() {
 	close(old)
 }
 
-// advanceAndCollect advances the clock and collects all ready timers, channel
-// timers, and ticker events under the mutex. Caller fires callbacks outside
-// the lock to prevent deadlocks.
+// advanceAndCollect advances the clock and collects all ready timers, channel timers, and
+// ticker events under the mutex. Caller fires callbacks outside the lock to prevent
+// deadlocks.
 //
 // Takes d (time.Duration) which specifies how far to advance the clock.
 //
@@ -481,8 +468,8 @@ func (m *MockClock) advanceAndCollect(d time.Duration) (time.Time, []*mockTimer,
 		m.collectReadyTickerEvents(currentTime)
 }
 
-// collectReadyTimers returns all callback timers ready to fire and marks them
-// stopped. Caller must hold mu.
+// collectReadyTimers returns all callback timers ready to fire and marks them stopped.
+// Caller must hold mu.
 //
 // Takes currentTime (time.Time) which specifies the time to check against.
 //
@@ -498,8 +485,8 @@ func (m *MockClock) collectReadyTimers(currentTime time.Time) []*mockTimer {
 	return toFire
 }
 
-// collectReadyChannelTimers returns all channel timers ready to fire and marks
-// them stopped.
+// collectReadyChannelTimers returns all channel timers ready to fire and marks them
+// stopped.
 //
 // Takes currentTime (time.Time) which specifies the time to compare against.
 //
@@ -517,8 +504,8 @@ func (m *MockClock) collectReadyChannelTimers(currentTime time.Time) []*mockChan
 	return toFire
 }
 
-// collectReadyTickerEvents returns all ticker events ready to fire and
-// advances their nextTick.
+// collectReadyTickerEvents returns all ticker events ready to fire and advances their
+// nextTick.
 //
 // Caller must hold mu.
 //
@@ -563,8 +550,7 @@ func (*MockClock) fireChannelTimers(timers []*mockChannelTimer, currentTime time
 
 // fireTickerEvents sends fire times to all ready ticker channels.
 //
-// Takes events ([]tickerFireEvent) which specifies the tickers and times to
-// fire.
+// Takes events ([]tickerFireEvent) which specifies the tickers and times to fire.
 func (*MockClock) fireTickerEvents(events []tickerFireEvent) {
 	for _, tf := range events {
 		select {
@@ -591,8 +577,8 @@ type mockTimer struct {
 
 // Stop prevents the timer from firing.
 //
-// Returns bool which is true if the timer was stopped before it
-// fired, or false if it had already stopped or fired.
+// Returns bool which is true if the timer was stopped before it fired, or false if it had
+// already stopped or fired.
 //
 // Safe for concurrent use; protected by the parent clock's mutex.
 func (t *mockTimer) Stop() bool {
@@ -623,8 +609,7 @@ type mockChannelTimer struct {
 
 // Stop prevents the timer from firing.
 //
-// Returns bool which is true if the timer was stopped before
-// firing, false otherwise.
+// Returns bool which is true if the timer was stopped before firing, false otherwise.
 //
 // Safe for concurrent use; protected by the parent clock's mutex.
 func (t *mockChannelTimer) Stop() bool {
@@ -647,11 +632,10 @@ func (t *mockChannelTimer) C() <-chan time.Time {
 
 // Reset changes the timer to expire after duration d.
 //
-// Takes d (time.Duration) which specifies the new expiry
-// duration.
+// Takes d (time.Duration) which specifies the new expiry duration.
 //
-// Returns bool which is true if the timer was active, false if
-// it had expired or been stopped.
+// Returns bool which is true if the timer was active, false if it had expired or been
+// stopped.
 //
 // Safe for concurrent use; protected by the parent clock's mutex.
 func (t *mockChannelTimer) Reset(d time.Duration) bool {
@@ -701,8 +685,7 @@ func (t *mockTicker) Stop() {
 
 // RealClock returns a Clock that uses the real system time.
 //
-// Returns Clock which provides access to the current time for use in
-// production code.
+// Returns Clock which provides access to the current time for use in production code.
 func RealClock() Clock {
 	return realClock{}
 }

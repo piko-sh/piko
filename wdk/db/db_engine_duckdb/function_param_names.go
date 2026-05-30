@@ -19,69 +19,102 @@
 package db_engine_duckdb
 
 const (
+	// paramNameX is the canonical parameter name "x".
 	paramNameX = "x"
 
+	// paramNameY is the canonical parameter name "y".
 	paramNameY = "y"
 
+	// paramNameA is the canonical parameter name "a".
 	paramNameA = "a"
 
+	// paramNameB is the canonical parameter name "b".
 	paramNameB = "b"
 
+	// paramNameN is the canonical parameter name "n".
 	paramNameN = "n"
 
+	// paramNameValue is the canonical parameter name "value".
 	paramNameValue = "value"
 
+	// paramNameLength is the canonical parameter name "length".
 	paramNameLength = "length"
 
+	// paramNameString is the canonical parameter name "string".
 	paramNameString = "string"
 
+	// paramNameStart is the canonical parameter name "start".
 	paramNameStart = "start"
 
+	// paramNameFormat is the canonical parameter name "format".
 	paramNameFormat = "format"
 
+	// paramNameTarget is the canonical parameter name "target".
 	paramNameTarget = "target"
 
+	// paramNamePath is the canonical parameter name "path".
 	paramNamePath = "path"
 
+	// paramNameCount is the canonical parameter name "count".
 	paramNameCount = "count"
 
+	// paramNameExpression is the canonical parameter name "expression".
 	paramNameExpression = "expression"
 
+	// paramNameJSON is the canonical parameter name "json".
 	paramNameJSON = "json"
 
+	// paramNameTimestamp is the canonical parameter name "timestamp".
 	paramNameTimestamp = "timestamp"
 
+	// paramNameSubstring is the canonical parameter name "substring".
 	paramNameSubstring = "substring"
 
+	// paramNameYear is the canonical parameter name "year".
 	paramNameYear = "year"
 
+	// paramNameMonth is the canonical parameter name "month".
 	paramNameMonth = "month"
 
+	// paramNameDay is the canonical parameter name "day".
 	paramNameDay = "day"
 
+	// paramNameHour is the canonical parameter name "hour".
 	paramNameHour = "hour"
 
+	// paramNameMin is the canonical parameter name "min".
 	paramNameMin = "min"
 
+	// paramNameSec is the canonical parameter name "sec".
 	paramNameSec = "sec"
 
+	// paramNameField is the canonical parameter name "field".
 	paramNameField = "field"
 
+	// paramNameSource is the canonical parameter name "source".
 	paramNameSource = "source"
 
+	// paramNameArray is the canonical parameter name "array".
 	paramNameArray = "array"
 
+	// paramNameElement is the canonical parameter name "element".
 	paramNameElement = "element"
 
+	// paramNameDelimiter is the canonical parameter name "delimiter".
 	paramNameDelimiter = "delimiter"
 
+	// paramNameText is the canonical parameter name "text".
 	paramNameText = "text"
 
+	// paramNameList is the canonical parameter name "list".
 	paramNameList = "list"
 
+	// paramNameStop is the canonical parameter name "stop".
 	paramNameStop = "stop"
 
+	// paramNameStep is the canonical parameter name "step".
 	paramNameStep = "step"
 
+	// funcNameToChar is the canonical function name "to_char".
 	funcNameToChar = "to_char"
 )

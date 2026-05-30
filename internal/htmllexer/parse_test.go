@@ -18,7 +18,9 @@
 
 package htmllexer
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestAttributes(t *testing.T) {
 	testCases := []struct {

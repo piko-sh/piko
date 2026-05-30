@@ -16,15 +16,13 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_engine_postgres implements the querier EnginePort
-// for PostgreSQL and PostgreSQL-compatible databases.
+// Package db_engine_postgres implements the querier EnginePort for PostgreSQL and
+// PostgreSQL-compatible databases.
 //
-// It uses a hand-written recursive-descent parser to convert
-// DDL into catalogue mutations and analyse DML queries for
-// type resolution. The PostgresDialect option pattern allows
-// variants such as CockroachDB, YugabyteDB, and TimescaleDB
-// to customise types, functions, and semantic rules without
-// forking the parser. The package also provides health
-// diagnostics covering database size, active connections,
-// recovery state, and replication lag.
+// It uses a hand-written recursive-descent parser to convert DDL into catalogue mutations
+// and analyse DML queries for type resolution. The PostgresDialect option pattern allows
+// variants such as CockroachDB, YugabyteDB, and TimescaleDB to customise types,
+// functions, and semantic rules without forking the parser. The package also provides
+// health diagnostics covering database size, active connections, recovery state, and
+// replication lag.
 package db_engine_postgres

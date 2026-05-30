@@ -38,8 +38,8 @@ type Detector = spamdetect_domain.Detector
 // FeedbackStore is the driven port for persisting spam/ham feedback.
 type FeedbackStore = spamdetect_domain.FeedbackStore
 
-// FeedbackAwareDetector is optionally implemented by detectors that
-// support receiving spam/ham feedback.
+// FeedbackAwareDetector is optionally implemented by detectors that support receiving
+// spam/ham feedback.
 type FeedbackAwareDetector = spamdetect_domain.FeedbackAwareDetector
 
 // Signal identifies a category of spam detection.
@@ -81,15 +81,15 @@ type FieldEntry = spamdetect_dto.FieldEntry
 // SchemaEntry is implemented by anything that can configure a schema.
 type SchemaEntry = spamdetect_dto.SchemaEntry
 
-// SpamDetectError wraps a spam detection error with operation and
-// detector attribution. Use errors.As to extract.
+// SpamDetectError wraps a spam detection error with operation and detector attribution.
+// Use errors.As to extract.
 type SpamDetectError = spamdetect_dto.SpamDetectError
 
 // AsyncResultHandler is called when async detectors complete.
 type AsyncResultHandler = spamdetect_dto.AsyncResultHandler
 
-// SubmissionRecord bundles a submission with its analysis result for
-// feedback persistence.
+// SubmissionRecord bundles a submission with its analysis result for feedback
+// persistence.
 type SubmissionRecord = spamdetect_dto.SubmissionRecord
 
 // ServiceOption configures the spam detection service.
@@ -211,8 +211,8 @@ var (
 	// NewSpamDetectService constructs a spam detection service.
 	NewSpamDetectService = spamdetect_domain.NewSpamDetectService
 
-	// NewDisabledSpamDetectService constructs a noop service for
-	// deployments without spam detection.
+	// NewDisabledSpamDetectService constructs a noop service for deployments without spam
+	// detection.
 	NewDisabledSpamDetectService = spamdetect_domain.NewDisabledSpamDetectService
 
 	// WithScoreThreshold sets the composite score threshold option.
@@ -268,10 +268,9 @@ func GetDefaultService() (ServicePort, error) {
 	return bootstrap.GetSpamDetectService()
 }
 
-// Analyse runs spam detection using the globally configured service.
-// Errors are wrapped with safeerror so callers can render a user-safe
-// message in production whilst preserving the technical detail for
-// developer logs.
+// Analyse runs spam detection using the globally configured service. Errors are wrapped
+// with safeerror so callers can render a user-safe message in production whilst
+// preserving the technical detail for developer logs.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes submission (*Submission) which contains the form data.
@@ -308,8 +307,8 @@ func Analyse(ctx context.Context, submission *Submission, schema *Schema) (*Anal
 	return result, nil
 }
 
-// wrapAnalyseErrorForUser maps service errors to user-safe messages
-// while preserving the wrapped chain for developer logs.
+// wrapAnalyseErrorForUser maps service errors to user-safe messages while preserving the
+// wrapped chain for developer logs.
 //
 // Takes err (error) which is the service-level error.
 //

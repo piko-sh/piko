@@ -16,15 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_linguistics bridges the linguistics text analysis module with
-// the cache search system. It provides [TextAnalyseFunc] implementations that
-// enable linguistic processing (stemming, normalisation, stop words, phonetic
-// encoding) for cache TEXT fields.
+// Package cache_linguistics bridges the linguistics text analysis module with the cache
+// search system. It provides [TextAnalyseFunc] implementations that enable linguistic
+// processing (stemming, normalisation, stop words, phonetic encoding) for cache TEXT
+// fields.
 //
 // # Quick start
 //
-// Use [NewEnglishTextAnalyser] for English or [NewTextAnalyserForLanguage] for
-// other languages:
+// Use [NewEnglishTextAnalyser] for English or [NewTextAnalyserForLanguage] for other
+// languages:
 //
 //	import (
 //	    "piko.sh/piko/wdk/cache"
@@ -48,6 +48,6 @@
 //
 // # Thread safety
 //
-// All returned [TextAnalyseFunc] values are safe for concurrent use. They use
-// an internal analyser pool to minimise allocations under contention.
+// All returned [TextAnalyseFunc] values are safe for concurrent use. They use an internal
+// analyser pool to minimise allocations under contention.
 package cache_linguistics

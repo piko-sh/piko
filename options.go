@@ -44,6 +44,8 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/security/security_domain"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
+	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/internal/video/video_domain"
@@ -203,10 +205,9 @@ var (
 
 	// CSPRequestToken is a placeholder for dynamic per-request tokens.
 	//
-	// When used, the security middleware generates a unique cryptographic token
-	// for each request and replaces this placeholder in the CSP header. Use
-	// CSPTokenAttr in templates to add the token attribute to inline scripts
-	// and styles.
+	// When used, the security middleware generates a unique cryptographic token for
+	// each request and replaces this placeholder in the CSP header. Use CSPTokenAttr in
+	// templates to add the token attribute to inline scripts and styles.
 	CSPRequestToken = security_domain.RequestTokenPlaceholder
 
 	// CSPHost creates a source from a host specification such as
@@ -601,8 +602,8 @@ func WithCSSTreeShakingSafelist(classes ...string) Option {
 // theme CSS.
 //
 // Takes opts (...CSSResetOption) which provides optional settings:
-//   - WithCSSResetComplete(): selects the comprehensive legacy reset.
-//   - WithCSSResetPKOverride(css): overrides with custom CSS content.
+// - WithCSSResetComplete(): selects the comprehensive legacy reset.
+// - WithCSSResetPKOverride(css): overrides with custom CSS content.
 //
 // Returns Option which configures the server's CSS reset behaviour.
 //
@@ -906,10 +907,8 @@ func WithEventsProvider(provider events_domain.Provider) Option {
 //
 // )
 //
-// Takes module (FrontendModule) which specifies the frontend module to
-// enable.
-// Takes moduleConfig (...any) which provides optional configuration for the
-// module.
+// Takes module (FrontendModule) which specifies the frontend module to enable.
+// Takes moduleConfig (...any) which provides optional configuration for the module.
 //
 // Returns Option which configures the server to load the specified module.
 func WithFrontendModule(module FrontendModule, moduleConfig ...any) Option {
@@ -942,8 +941,8 @@ func WithFrontendModule(module FrontendModule, moduleConfig ...any) Option {
 //
 // Takes name (string) which identifies the module in the URL and config lookup.
 // Takes content ([]byte) which contains the JavaScript module source code.
-// Takes moduleConfig (...map[string]any) which provides optional key-value
-// settings accessible to the module at runtime.
+// Takes moduleConfig (...map[string]any) which provides optional key-value settings
+// accessible to the module at runtime.
 //
 // Returns Option which configures the server to serve this custom module.
 func WithCustomFrontendModule(name string, content []byte, moduleConfig ...map[string]any) Option {
@@ -1197,8 +1196,8 @@ func WithImageService(service image_domain.Service) Option {
 // without responsive image features.
 //
 // Takes name (string) which identifies this provider.
-// Takes provider (image_domain.TransformerPort) which provides image
-// transformation capabilities.
+// Takes provider (image_domain.TransformerPort) which provides image transformation
+// capabilities.
 //
 // Returns Option which configures the container with the provider.
 //
@@ -1303,8 +1302,8 @@ func WithVideoService(service video_domain.Service) Option {
 // without transcoding features.
 //
 // Takes name (string) which identifies the provider for later reference.
-// Takes provider (video_domain.TranscoderPort) which provides the video
-// transcoding implementation.
+// Takes provider (video_domain.TranscoderPort) which provides the video transcoding
+// implementation.
 //
 // Returns Option which configures the container with the video provider.
 //
@@ -1423,12 +1422,12 @@ func WithMonitoringAutoNextPort(enabled bool) MonitoringOption {
 // configure certificate paths, mTLS, and hot-reload settings.
 //
 // Takes opts (...MonitoringTLSOption) which provides optional TLS settings:
-//   - WithMonitoringTLSCertFile("/path/to/cert.pem"): sets the certificate.
-//   - WithMonitoringTLSKeyFile("/path/to/key.pem"): sets the private key.
-//   - WithMonitoringTLSClientCA("/path/to/ca.pem"): enables mTLS.
-//   - WithMonitoringTLSClientAuth("require_and_verify"): sets client auth mode.
-//   - WithMonitoringTLSMinVersion("1.3"): sets minimum TLS version.
-//   - WithMonitoringTLSHotReload(true): enables certificate hot-reload.
+// - WithMonitoringTLSCertFile("/path/to/cert.pem"): sets the certificate.
+// - WithMonitoringTLSKeyFile("/path/to/key.pem"): sets the private key.
+// - WithMonitoringTLSClientCA("/path/to/ca.pem"): enables mTLS.
+// - WithMonitoringTLSClientAuth("require_and_verify"): sets client auth mode.
+// - WithMonitoringTLSMinVersion("1.3"): sets minimum TLS version.
+// - WithMonitoringTLSHotReload(true): enables certificate hot-reload.
 //
 // Returns MonitoringOption which configures TLS on the monitoring service.
 func WithMonitoringTLS(opts ...MonitoringTLSOption) MonitoringOption {
@@ -1751,8 +1750,8 @@ func WithWatchdogDeltaProfiling() WatchdogOption {
 // profile.
 //
 // Useful when investigating goroutine leaks where you need to know the exact
-// call site or closure-captured arguments (e.g. which channel a publisher is
-// blocked on). Disabled by default because the sidecar can be tens of
+// call site or closure-captured arguments (e.g. which channel a publisher
+// blocks on). Disabled by default because the sidecar can be tens of
 // megabytes per dump for processes with many thousand goroutines.
 //
 // Takes enabled (bool) which toggles the feature.
@@ -2036,14 +2035,14 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 // shutdown.
 //
 // Takes opts (...ProfilingOption) which provides optional settings:
-//   - WithProfilingPort(6060): sets the HTTP listen port.
-//   - WithProfilingBindAddress("localhost"): sets the bind address.
-//   - WithProfilingBlockRate(1000): sets the block profile rate.
-//   - WithProfilingMutexFraction(10): sets the mutex profile fraction.
-//   - WithProfilingMemProfileRate(0): sets the memory profile sample rate.
-//   - WithProfilingRollingTrace(): enables bounded rolling trace capture.
-//   - WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age.
-//   - WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
+// - WithProfilingPort(6060): sets the HTTP listen port.
+// - WithProfilingBindAddress("localhost"): sets the bind address.
+// - WithProfilingBlockRate(1000): sets the block profile rate.
+// - WithProfilingMutexFraction(10): sets the mutex profile fraction.
+// - WithProfilingMemProfileRate(0): sets the memory profile sample rate.
+// - WithProfilingRollingTrace(): enables bounded rolling trace capture.
+// - WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age.
+// - WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
 //
 // Returns Option which configures the container with profiling settings.
 //
@@ -2113,9 +2112,9 @@ func WithGeneratorProfilingMemProfileRate(rate int) GeneratorProfilingOption {
 // written when the build completes.
 //
 // Takes opts (...GeneratorProfilingOption) which provides optional settings:
-//   - WithGeneratorProfilingOutputDir("./profiles"): sets the output directory.
-//   - WithGeneratorProfilingBlockRate(1): sets the block profile rate.
-//   - WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction.
+// - WithGeneratorProfilingOutputDir("./profiles"): sets the output directory.
+// - WithGeneratorProfilingBlockRate(1): sets the block profile rate.
+// - WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction.
 //
 // Returns Option which configures the container with generator profiling
 // settings.
@@ -2195,11 +2194,11 @@ func WithMetricsExporter(exporter MetricsExporter) Option {
 //	    }),
 //	)
 //
-// Takes name (string) which identifies the database (db.DatabaseNameRegistry
-// or db.DatabaseNameOrchestrator for framework subsystems, or any custom name
-// for application databases).
-// Takes registration (*bootstrap.DatabaseRegistration) which provides the
-// connection and migration configuration.
+// Takes name (string) which identifies the database (db.DatabaseNameRegistry or
+// db.DatabaseNameOrchestrator for framework subsystems, or any custom name for
+// application databases).
+// Takes registration (*bootstrap.DatabaseRegistration) which provides the connection
+// and migration configuration.
 //
 // Returns Option which registers the database with the application.
 func WithDatabase(name string, registration *bootstrap.DatabaseRegistration) Option {
@@ -2538,10 +2537,10 @@ func WithReportingEndpoints(endpoints ...ReportingEndpoint) Option {
 // server.
 //
 // Takes policy (string) which specifies the CORP policy. Use one of:
-//   - CORPSameOrigin (default): Only same-origin requests can load resources
-//   - CORPSameSite: Same-site requests can load resources
-//   - CORPCrossOrigin: Any origin can load resources (required for headless
-//     CMS)
+// - CORPSameOrigin (default): Only same-origin requests can load resources
+// - CORPSameSite: Same-site requests can load resources
+// - CORPCrossOrigin: Any origin can load resources (required for headless
+// CMS)
 //
 // Returns Option which configures the CORP header on the container.
 //
@@ -2850,13 +2849,13 @@ func WithPort(port int) Option {
 // certificate paths, mTLS, and hot-reload settings.
 //
 // Takes opts (...TLSOption) which provides optional TLS configuration:
-//   - WithTLSCertFile("/path/to/cert.pem"): sets the certificate path.
-//   - WithTLSKeyFile("/path/to/key.pem"): sets the private key path.
-//   - WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA.
-//   - WithTLSClientAuth("require_and_verify"): sets client auth mode.
-//   - WithTLSMinVersion("1.3"): sets minimum TLS version.
-//   - WithTLSHotReload(true): enables certificate hot-reload.
-//   - WithTLSRedirectHTTP("80"): starts an HTTP-to-HTTPS redirect listener.
+// - WithTLSCertFile("/path/to/cert.pem"): sets the certificate path.
+// - WithTLSKeyFile("/path/to/key.pem"): sets the private key path.
+// - WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA.
+// - WithTLSClientAuth("require_and_verify"): sets client auth mode.
+// - WithTLSMinVersion("1.3"): sets minimum TLS version.
+// - WithTLSHotReload(true): enables certificate hot-reload.
+// - WithTLSRedirectHTTP("80"): starts an HTTP-to-HTTPS redirect listener.
 //
 // Returns Option which configures the container with TLS settings.
 func WithTLS(opts ...TLSOption) Option {
@@ -3751,4 +3750,94 @@ func WithExperimentalCommentStripping(enabled bool) Option {
 // Returns Option which the bootstrap consumes when applied.
 func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 	return bootstrap.WithExperimentalDwarfLineDirectives(enabled)
+}
+
+const (
+	// SpamSignalGibberish tags a field for gibberish detection.
+	SpamSignalGibberish = spamdetect_dto.SignalGibberish
+
+	// SpamSignalLinkDensity tags a field for link density analysis.
+	SpamSignalLinkDensity = spamdetect_dto.SignalLinkDensity
+
+	// SpamSignalBlocklist tags a field for blocklist matching.
+	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
+)
+
+var (
+	// NewSpamSchema creates a spam detection schema from entries.
+	NewSpamSchema = spamdetect_dto.NewSchema
+
+	// SpamTextField creates a schema entry for a text form field.
+	SpamTextField = spamdetect_dto.TextField
+
+	// SpamHoneypot declares the honeypot field key in a schema.
+	SpamHoneypot = spamdetect_dto.Honeypot
+
+	// SpamTiming declares the timing timestamp field key in a schema.
+	SpamTiming = spamdetect_dto.Timing
+
+	// SpamThreshold sets the score threshold for a schema.
+	SpamThreshold = spamdetect_dto.Threshold
+
+	// SpamFieldGroup composes multiple field entries for reuse.
+	SpamFieldGroup = spamdetect_dto.FieldGroup
+
+	// SpamEmailField creates a schema entry for an email field.
+	SpamEmailField = spamdetect_dto.EmailField
+
+	// SpamPhoneField creates a schema entry for a phone field.
+	SpamPhoneField = spamdetect_dto.PhoneField
+
+	// SpamNameField creates a schema entry for a name field.
+	SpamNameField = spamdetect_dto.NameField
+
+	// SpamURLField creates a schema entry for a URL field.
+	SpamURLField = spamdetect_dto.URLField
+
+	// SpamTypedField creates a schema entry with a custom field type.
+	SpamTypedField = spamdetect_dto.TypedField
+
+	// SpamDetectorWeight sets the scoring weight for a detector.
+	SpamDetectorWeight = spamdetect_dto.DetectorWeight
+
+	// SpamDetectorConfig sets per-schema config for a detector.
+	SpamDetectorConfig = spamdetect_dto.DetectorConfig
+
+	// SpamLanguage sets the expected content language.
+	SpamLanguage = spamdetect_dto.Language
+
+	// SpamMeta declares a static metadata key-value pair.
+	SpamMeta = spamdetect_dto.Meta
+
+	// SpamCaptureHeader declares an HTTP header to capture.
+	SpamCaptureHeader = spamdetect_dto.CaptureHeader
+)
+
+// WithSpamDetector registers a named spam detection detector with the
+// service.
+//
+// Takes name (string) which identifies the detector.
+// Takes detector (spamdetect_domain.Detector) which handles spam analysis.
+//
+// Returns Option which registers the detector.
+func WithSpamDetector(name string, detector spamdetect_domain.Detector) Option {
+	return func(c *bootstrap.Container) {
+		if name == "" || detector == nil {
+			return
+		}
+		c.AddSpamDetector(name, detector)
+	}
+}
+
+// WithSpamFeedbackStore configures the feedback persistence backend for
+// spam detection.
+//
+// Takes store (spamdetect_domain.FeedbackStore) which persists spam/ham
+// feedback.
+//
+// Returns Option which configures the feedback store.
+func WithSpamFeedbackStore(store spamdetect_domain.FeedbackStore) Option {
+	return func(c *bootstrap.Container) {
+		c.SetSpamDetectFeedbackStore(store)
+	}
 }

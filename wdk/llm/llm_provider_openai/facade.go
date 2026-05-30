@@ -18,13 +18,13 @@
 
 package llm_provider_openai
 
-import "piko.sh/piko/wdk/llm"
+import (
+	"piko.sh/piko/wdk/llm"
+)
 
-// NewOpenAIProvider creates a new OpenAI LLM provider with the given
-// configuration.
+// NewOpenAIProvider creates a new OpenAI LLM provider with the given configuration.
 //
-// Takes config (Config) which contains the provider configuration including API
-// key.
+// Takes config (Config) which contains the provider configuration including API key.
 //
 // Returns llm.ProviderPort which can be registered with the LLM service.
 // Returns error when the configuration is invalid.

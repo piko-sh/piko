@@ -33,11 +33,12 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// filePermissions defines the permissions for the output file.
-const filePermissions = 0640
+const (
+	// filePermissions defines the permissions for the output file.
+	filePermissions = 0640
+)
 
-// main generates standard library type data and writes it to a FlatBuffers
-// binary file.
+// main generates standard library type data and writes it to a FlatBuffers binary file.
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -47,8 +48,8 @@ func main() {
 
 // run parses command-line flags and generates stdlib type data.
 //
-// Returns error when flag parsing fails, type generation fails, or the output
-// file cannot be written.
+// Returns error when flag parsing fails, type generation fails, or the output file cannot
+// be written.
 func run() error {
 	outputPath := flag.String("output", "internal/wasm/wasm_data/stdlib.bin", "Output path for stdlib FBS binary")
 	customPackages := flag.String("packages", "", "Comma-separated list of additional packages to include")

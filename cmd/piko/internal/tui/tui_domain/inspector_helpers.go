@@ -26,15 +26,16 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// ErrServiceUnavailable is the sentinel error panels detect via
-// errors.Is when the server does not expose the requested gRPC
-// service. The adapter wraps the gRPC codes.Unimplemented error in
-// this sentinel so callers can react with a "feature disabled on
-// the server" hint instead of a raw RPC error.
-var ErrServiceUnavailable = errors.New("service not available on this server")
+var (
+	// ErrServiceUnavailable is the sentinel error panels detect via errors.Is when the
+	// server does not expose the requested gRPC service. The adapter wraps the gRPC
+	// codes.Unimplemented error in this sentinel so callers can react with a "feature
+	// disabled on the server" hint instead of a raw RPC error.
+	ErrServiceUnavailable = errors.New("service not available on this server")
+)
 
-// IsServiceUnavailable reports whether err signals that the server
-// does not expose the requested gRPC service.
+// IsServiceUnavailable reports whether err signals that the server does not expose the
+// requested gRPC service.
 //
 // Takes err (error) which is the inspector's most recent error.
 //
@@ -43,14 +44,13 @@ func IsServiceUnavailable(err error) bool {
 	return errors.Is(err, ErrServiceUnavailable)
 }
 
-// ServiceUnavailableHint returns a human-friendly explanation rendered
-// in the panel body when a feature is disabled on the server. The
-// hint mentions which command-line flag controls it so the user can
-// recover.
+// ServiceUnavailableHint returns a human-friendly explanation rendered in the panel body
+// when a feature is disabled on the server. The hint mentions which command-line flag
+// controls it so the user can recover.
 //
 // Takes feature (string) which names the feature ("DLQ", "Profiling").
-// Takes flagHint (string) which describes how to enable the feature
-// on the server (e.g. "start piko with --enable-profiling").
+// Takes flagHint (string) which describes how to enable the feature on the server (e.g.
+// "start piko with --enable-profiling").
 //
 // Returns string containing the rendered hint.
 func ServiceUnavailableHint(feature, flagHint string) string {
@@ -60,15 +60,13 @@ func ServiceUnavailableHint(feature, flagHint string) string {
 	return feature + " is not exposed by this server. " + flagHint
 }
 
-// inspectorOverviewArgs bundles the inputs to inspectorOverviewBody so
-// new fields can be added without churning every call site.
+// inspectorOverviewArgs bundles the inputs to inspectorOverviewBody so new fields can be
+// added without churning every call site.
 type inspectorOverviewArgs struct {
-	// lastRefresh is when the panel last received a refresh; the row
-	// is omitted when zero.
+	// lastRefresh is when the panel last received a refresh; the row is omitted when zero.
 	lastRefresh time.Time
 
-	// err is the most recent refresh error; the row is omitted when
-	// nil.
+	// err is the most recent refresh error; the row is omitted when nil.
 	err error
 
 	// title is the heading shown at the top of the detail body.
@@ -81,13 +79,12 @@ type inspectorOverviewArgs struct {
 	itemCount int
 }
 
-// inspectorOverviewBody builds the standard "no row selected"
-// inspector.DetailBody used by the inspector-style panels (Providers, DLQ, ...).
-// It surfaces the row count, last-refresh timestamp, and any error
-// under a single "Status" section.
+// inspectorOverviewBody builds the standard "no row selected" inspector.DetailBody used
+// by the inspector-style panels (Providers, DLQ, ...). It surfaces the row count,
+// last-refresh timestamp, and any error under a single "Status" section.
 //
-// Takes args (inspectorOverviewArgs) which provides the title and
-// counters; see the field comments for details.
+// Takes args (inspectorOverviewArgs) which provides the title and counters; see the field
+// comments for details.
 //
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 func inspectorOverviewBody(args inspectorOverviewArgs) inspector.DetailBody {
@@ -106,11 +103,10 @@ func inspectorOverviewBody(args inspectorOverviewArgs) inspector.DetailBody {
 	}
 }
 
-// handleOverviewControlMessage handles the two messages every overview
-// panel responds to in the same way: the 'r' key triggers a refresh,
-// and DataUpdatedMessage / TickMessage triggers a refresh too.
-// Keeping the boilerplate in one place lets each panel's Update body
-// focus on the panel-specific payload type.
+// handleOverviewControlMessage handles the two messages every overview panel responds to
+// in the same way: the 'r' key triggers a refresh, and DataUpdatedMessage / TickMessage
+// triggers a refresh too. Keeping the boilerplate in one place lets each panel's Update
+// body focus on the panel-specific payload type.
 //
 // Takes msg (tea.Msg) which is the bubbletea message to inspect.
 // Takes refresh (func() tea.Cmd) which produces a fresh fetch command.
@@ -131,10 +127,9 @@ func handleOverviewControlMessage(msg tea.Msg, refresh func() tea.Cmd) (tea.Cmd,
 	return nil, false
 }
 
-// forwardSearchUpdate routes msg to the AssetViewer's search input
-// when one is active. Lets inspector-style panels delegate the
-// "search active swallows keys" prologue to a shared helper instead
-// of repeating the if/IsActive/Update dance verbatim in every
+// forwardSearchUpdate routes msg to the AssetViewer's search input when one is active.
+// Lets inspector-style panels delegate the "search active swallows keys" prologue to a
+// shared helper instead of repeating the if/IsActive/Update dance verbatim in every
 // Update method.
 //
 // Generic parameter T is the AssetViewer item type.

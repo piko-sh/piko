@@ -22,72 +22,142 @@ import (
 	"context"
 )
 
-// emitBoxToGeneral emits instructions to box a typed register value
-// into a general (reflect.Value) register.
+// emitBoxToGeneral emits the instruction that boxes source into the general
+// (reflect.Value) register destinationGeneralRegister, picking the dedicated
+// MoveToGeneral sub-op for int, float, and string banks and the generic opPackInterface
+// for others.
 //
-// Takes destGenReg (uint8) which is the destination general register.
-// Takes source (varLocation) which is the source varLocation to box.
-func (c *compiler) emitBoxToGeneral(_ context.Context, destGenReg uint8, source varLocation) {
+// Takes destinationGeneralRegister (uint8) which is the destination general register.
+// Takes source (varLocation) which is the value being boxed.
+func (c *compiler) emitBoxToGeneral(_ context.Context, destinationGeneralRegister uint8, source varLocation) {
 	switch source.kind {
 	case registerInt:
-		c.function.emit(opMoveIntToGeneral, destGenReg, source.register, 0)
+		c.function.emit(opDrillTier1, uint8(subOpMoveIntToGeneral), destinationGeneralRegister, source.register)
 	case registerFloat:
-		c.function.emit(opMoveFloatToGeneral, destGenReg, source.register, 0)
+		c.function.emit(opDrillTier1, uint8(subOpMoveFloatToGeneral), destinationGeneralRegister, source.register)
 	case registerString:
-		c.function.emit(opMoveStringToGeneral, destGenReg, source.register, 0)
+		c.function.emit(opDrillTier1, uint8(subOpMoveStringToGeneral), destinationGeneralRegister, source.register)
 	default:
-		c.function.emit(opPackInterface, destGenReg, source.register, uint8(source.kind))
+		c.function.emit(opPackInterface, destinationGeneralRegister, source.register, uint8(source.kind))
 	}
 }
 
-// boxToGeneral boxes a typed varLocation into a general register
-// using a persistent register allocation. No-op if already general.
+// emitTypedBox emits opPackTyped to box source into the general bank.
 //
-// Takes location (*varLocation) which is the varLocation to box,
-// updated in place.
+// Preserves source's exact source-level reflect.Type. When source carries no recorded
+// type or when the type-table is exhausted the helper emits nothing and returns false,
+// leaving the caller to fall back to the generic opPackInterface / move-to-general path.
+//
+// Takes destinationGeneralRegister (uint8) which receives the box.
+// Takes source (varLocation) whose sourceType drives the boxing type.
+//
+// Returns bool which is true when opPackTyped (plus its opExt type-index word) was
+// emitted.
+func (c *compiler) emitTypedBox(destinationGeneralRegister uint8, source varLocation) bool {
+	if source.sourceType == nil {
+		return false
+	}
+	typeIndex, err := c.function.addTypeRef(source.sourceType)
+	if err != nil {
+		return false
+	}
+	c.function.emit(opPackTyped, destinationGeneralRegister, source.register, uint8(source.kind))
+	c.function.emitExtension(typeIndex, 0)
+	return true
+}
+
+// boxToGeneral boxes location into a freshly allocated persistent general register and
+// updates location in place. No-op when location is already in the general bank.
+//
+// Takes location (*varLocation) which names the value to box and is rewritten in place to
+// its new general-bank slot.
 func (c *compiler) boxToGeneral(ctx context.Context, location *varLocation) {
 	if location.kind == registerGeneral {
 		return
 	}
-	genReg := c.scopes.alloc.alloc(registerGeneral)
-	c.emitBoxToGeneral(ctx, genReg, *location)
-	*location = varLocation{register: genReg, kind: registerGeneral}
+	generalRegister := c.scopes.alloc.alloc(registerGeneral)
+	c.emitBoxToGeneral(ctx, generalRegister, *location)
+	*location = varLocation{register: generalRegister, kind: registerGeneral}
 }
 
-// boxToGeneralTemp boxes a typed varLocation into a general register
-// using a temporary register allocation. No-op if already general.
+// boxToGeneralTemp boxes location into a freshly allocated temporary general register and
+// updates location in place. No-op when location is already in the general bank.
 //
-// Takes location (*varLocation) which is the varLocation to box,
-// updated in place.
+// Takes location (*varLocation) which names the value to box and is rewritten in place to
+// its new general-bank temporary slot.
 func (c *compiler) boxToGeneralTemp(ctx context.Context, location *varLocation) {
 	if location.kind == registerGeneral {
 		return
 	}
-	genReg := c.scopes.alloc.allocTemp(registerGeneral)
-	c.emitBoxToGeneral(ctx, genReg, *location)
-	*location = varLocation{register: genReg, kind: registerGeneral}
+	generalRegister := c.scopes.alloc.allocTemp(registerGeneral)
+	c.emitBoxToGeneral(ctx, generalRegister, *location)
+	*location = varLocation{register: generalRegister, kind: registerGeneral}
 }
 
-// emitUnboxFromGeneral emits instructions to unbox a general register
-// value into a typed register.
+// coerceToKind returns a varLocation in destinationKind, emitting the box or unbox
+// instruction that bridges location.kind to destinationKind. Returns location unchanged
+// when the banks already match.
 //
-// Takes srcGenReg (uint8) which is the source general register to
-// unbox.
-// Takes destKind (registerKind) which is the target registerKind for
-// the unboxed value.
+// Takes location (varLocation) which is the value being coerced.
+// Takes destinationKind (registerKind) which is the target bank.
 //
-// Returns varLocation of the unboxed value and any error.
-func (c *compiler) emitUnboxFromGeneral(_ context.Context, srcGenReg uint8, destKind registerKind) (varLocation, error) {
-	dest := c.scopes.alloc.alloc(destKind)
-	switch destKind {
-	case registerInt:
-		c.function.emit(opMoveGeneralToInt, dest, srcGenReg, 0)
-	case registerFloat:
-		c.function.emit(opMoveGeneralToFloat, dest, srcGenReg, 0)
-	case registerString:
-		c.function.emit(opMoveGeneralToString, dest, srcGenReg, 0)
-	default:
-		c.function.emit(opUnpackInterface, dest, srcGenReg, uint8(destKind))
+// Returns the coerced varLocation; equals location when the kinds already match.
+func (c *compiler) coerceToKind(ctx context.Context, location varLocation, destinationKind registerKind) varLocation {
+	if location.kind == destinationKind {
+		return location
 	}
-	return varLocation{register: dest, kind: destKind}, nil
+	if destinationKind == registerGeneral {
+		destination := c.scopes.alloc.allocTemp(registerGeneral)
+		c.emitBoxToGeneral(ctx, destination, location)
+		return varLocation{register: destination, kind: registerGeneral}
+	}
+	if location.kind == registerGeneral {
+		destination := c.scopes.alloc.allocTemp(destinationKind)
+		switch destinationKind {
+		case registerInt:
+			c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToInt), destination, location.register)
+		case registerFloat:
+			c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToFloat), destination, location.register)
+		case registerString:
+			c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToString), destination, location.register)
+		default:
+			c.function.emit(opUnpackInterface, destination, location.register, uint8(destinationKind))
+		}
+		return varLocation{register: destination, kind: destinationKind}
+	}
+	if location.kind == registerInt && destinationKind == registerBool {
+		destination := c.scopes.alloc.allocTemp(registerBool)
+		c.function.emit(opDrillTier1, uint8(subOpIntToBool), destination, location.register)
+		return varLocation{register: destination, kind: registerBool}
+	}
+	if location.kind == registerBool && destinationKind == registerInt {
+		destination := c.scopes.alloc.allocTemp(registerInt)
+		c.function.emit(opDrillTier1, uint8(subOpBoolToInt), destination, location.register)
+		return varLocation{register: destination, kind: registerInt}
+	}
+	return location
+}
+
+// emitUnboxFromGeneral emits the instruction that unboxes the value in general register
+// sourceGeneralRegister into a freshly allocated register of destinationKind. The
+// returned error is always nil; the signature accommodates callers that need to propagate
+// compilation errors.
+//
+// Takes sourceGeneralRegister (uint8) which is the source general register.
+// Takes destinationKind (registerKind) which is the destination bank.
+//
+// Returns the freshly allocated destination location and a nil error.
+func (c *compiler) emitUnboxFromGeneral(_ context.Context, sourceGeneralRegister uint8, destinationKind registerKind) (varLocation, error) {
+	destination := c.scopes.alloc.alloc(destinationKind)
+	switch destinationKind {
+	case registerInt:
+		c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToInt), destination, sourceGeneralRegister)
+	case registerFloat:
+		c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToFloat), destination, sourceGeneralRegister)
+	case registerString:
+		c.function.emit(opDrillTier1, uint8(subOpMoveGeneralToString), destination, sourceGeneralRegister)
+	default:
+		c.function.emit(opUnpackInterface, destination, sourceGeneralRegister, uint8(destinationKind))
+	}
+	return varLocation{register: destination, kind: destinationKind}, nil
 }

@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_mailchimp_transactional implements the email
-// provider port using the Mailchimp Transactional (formerly Mandrill)
-// API.
+// Package email_provider_mailchimp_transactional implements the email provider port using
+// the Mailchimp Transactional (formerly Mandrill) API.
 //
-// The adapter integrates with the Mailchimp Transactional email API,
-// supporting single and bulk sending, attachments, inline images, and
-// configurable rate limiting. OpenTelemetry metrics are emitted for
-// send attempts and durations.
+// The adapter integrates with the Mailchimp Transactional email API, supporting single
+// and bulk sending, attachments, inline images, and configurable rate limiting.
+// OpenTelemetry metrics are emitted for send attempts and durations.
 //
 // # Thread safety
 //

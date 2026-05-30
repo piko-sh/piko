@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package events_domain defines the [Provider] port interface and
-// configuration types for the Watermill-based message bus
-// infrastructure. Concrete providers (GoChannel, NATS) implement the
-// port; OpenTelemetry metrics are collected for provider operations.
+// Package events_domain defines the [Provider] port interface and configuration types for
+// the Watermill-based message bus infrastructure. Concrete providers (GoChannel, NATS)
+// implement the port; OpenTelemetry metrics are collected for provider operations.
 //
 // # Provider lifecycle
 //

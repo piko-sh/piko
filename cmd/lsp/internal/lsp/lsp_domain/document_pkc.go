@@ -31,17 +31,19 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-// pkcFileExtension is the file extension for Piko Component files.
-const pkcFileExtension = ".pkc"
+const (
+	// pkcFileExtension is the file extension for Piko Component files.
+	pkcFileExtension = ".pkc"
+)
 
-// pkcStateProperty holds type and location information for a single state
-// property in a PKC component's script block.
+// pkcStateProperty holds type and location information for a single state property in a
+// PKC component's script block.
 type pkcStateProperty struct {
 	// Name is the property name as it appears in the source code.
 	Name string
 
-	// JSType is the JavaScript type: "string", "number", "boolean", "array",
-	// "object", or "any".
+	// JSType is the JavaScript type: "string", "number", "boolean", "array", "object", or
+	// "any".
 	JSType string
 
 	// ElementType specifies the type of elements for array properties.
@@ -53,8 +55,7 @@ type pkcStateProperty struct {
 	// ValueType is the value type for maps; for Map<K, V> this holds V.
 	ValueType string
 
-	// InitialValue holds the JavaScript expression as a string for use as the
-	// default value.
+	// InitialValue holds the JavaScript expression as a string for use as the default value.
 	InitialValue string
 
 	// Line is the 0-based line number of the property in the document.
@@ -63,13 +64,11 @@ type pkcStateProperty struct {
 	// Column is the 0-based column of the property name in the document.
 	Column int
 
-	// IsNullable indicates whether this is a union type containing null or
-	// undefined.
+	// IsNullable indicates whether this is a union type containing null or undefined.
 	IsNullable bool
 }
 
-// pkcFunction holds information about a top-level function in a PKC script
-// block.
+// pkcFunction holds information about a top-level function in a PKC script block.
 type pkcFunction struct {
 	// Name is the function name.
 	Name string
@@ -87,8 +86,7 @@ type pkcFunction struct {
 	Exported bool
 }
 
-// pkcImport holds information about a JavaScript import statement in a PKC
-// script block.
+// pkcImport holds information about a JavaScript import statement in a PKC script block.
 type pkcImport struct {
 	// Path is the import path as written (e.g. "@/utils.js" or "./helpers.js").
 	Path string
@@ -103,8 +101,8 @@ type pkcImport struct {
 	Column int
 }
 
-// pkcMetadata holds all introspection data extracted from a PKC file. This is
-// cached on the document and lazily initialised on first access.
+// pkcMetadata holds all introspection data extracted from a PKC file. This is cached on
+// the document and lazily initialised on first access.
 type pkcMetadata struct {
 	// StateProperties maps property names to their type metadata.
 	StateProperties map[string]*pkcStateProperty
@@ -175,12 +173,12 @@ func extractPKCMetadata(filename string, sfc *sfcparser.ParseResult) *pkcMetadat
 	return meta
 }
 
-// extractPKCScriptMetadata extracts state properties, functions, imports, and
-// lifecycle hooks from the PKC script block.
+// extractPKCScriptMetadata extracts state properties, functions, imports, and lifecycle
+// hooks from the PKC script block.
 //
 // Takes filename (string) which identifies the source file being processed.
-// Takes sfc (*sfcparser.ParseResult) which contains the parsed single-file
-// component data.
+// Takes sfc (*sfcparser.ParseResult) which contains the parsed single-file component
+// data.
 // Takes meta (*pkcMetadata) which receives the extracted metadata.
 func extractPKCScriptMetadata(filename string, sfc *sfcparser.ParseResult, meta *pkcMetadata) {
 	clientScript, found := sfc.ClientScript()
@@ -224,12 +222,12 @@ func extractPKCScriptMetadata(filename string, sfc *sfcparser.ParseResult, meta 
 	extractPKCLifecycleHooks(&tree, meta)
 }
 
-// extractPKCStateFromAST walks the AST to find the state object and extract
-// property metadata with document-absolute locations.
+// extractPKCStateFromAST walks the AST to find the state object and extract property
+// metadata with document-absolute locations.
 //
 // Takes tree (*js_ast.AST) which is the parsed JavaScript AST to search.
-// Takes typeAssertions (map[string]compiler_domain.TypeAssertion) which maps
-// property names to their type assertions.
+// Takes typeAssertions (map[string]compiler_domain.TypeAssertion) which maps property
+// names to their type assertions.
 // Takes source (string) which is the original source code for location data.
 // Takes baseLineOffset (int) which is the line offset to add to positions.
 // Takes baseColOffset (int) which is the column offset to add to positions.
@@ -276,14 +274,13 @@ func isStateBindingInAST(binding js_ast.Binding, symbols []ast.Symbol) bool {
 	return symbols[identifier.Ref.InnerIndex].OriginalName == "state"
 }
 
-// extractPKCStateProperties extracts each property from the state object
-// with its type and location.
+// extractPKCStateProperties extracts each property from the state object with its type
+// and location.
 //
-// Takes declaration (js_ast.Decl) which is the declaration
-// containing the state object.
+// Takes declaration (js_ast.Decl) which is the declaration containing the state object.
 // Takes tree (*js_ast.AST) which provides symbol information for name resolution.
-// Takes typeAssertions (map[string]compiler_domain.TypeAssertion) which holds
-// explicit type annotations for properties.
+// Takes typeAssertions (map[string]compiler_domain.TypeAssertion) which holds explicit
+// type annotations for properties.
 // Takes source (string) which is the source code for position calculation.
 // Takes baseLineOffset (int) which is the line offset for absolute positioning.
 // Takes baseColOffset (int) which is the column offset for absolute positioning.
@@ -340,16 +337,13 @@ func extractPKCStateProperties(
 	}
 }
 
-// getPropertyNameFromExpr extracts the name string from a property key
-// expression.
+// getPropertyNameFromExpr extracts the name string from a property key expression.
 //
-// Takes key (js_ast.Expr) which is the property key expression to extract
-// from.
-// Takes symbols ([]ast.Symbol) which provides symbol lookup for identifier
-// references.
+// Takes key (js_ast.Expr) which is the property key expression to extract from.
+// Takes symbols ([]ast.Symbol) which provides symbol lookup for identifier references.
 //
-// Returns string which is the extracted property name, or empty string if the
-// key type is not supported or the symbol index is out of bounds.
+// Returns string which is the extracted property name, or empty string if the key type is
+// not supported or the symbol index is out of bounds.
 func getPropertyNameFromExpr(key js_ast.Expr, symbols []ast.Symbol) string {
 	switch k := key.Data.(type) {
 	case *js_ast.EString:
@@ -377,8 +371,7 @@ func stringFromUTF16(value []uint16) string {
 
 // inferPKCPropertyType infers the JavaScript type from a literal expression.
 //
-// Takes expression (js_ast.Expr) which is the expression to analyse
-// for type info.
+// Takes expression (js_ast.Expr) which is the expression to analyse for type info.
 // Takes prop (*pkcStateProperty) which receives the inferred type.
 func inferPKCPropertyType(expression js_ast.Expr, prop *pkcStateProperty) {
 	if expression.Data == nil {
@@ -403,11 +396,10 @@ func inferPKCPropertyType(expression js_ast.Expr, prop *pkcStateProperty) {
 
 // expressionToInitialValue converts an expression to a string representation.
 //
-// Takes expression (js_ast.Expr) which is the AST expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the AST expression to convert.
 //
-// Returns string which is the string form of the expression, or
-// empty if the expression cannot be represented.
+// Returns string which is the string form of the expression, or empty if the expression
+// cannot be represented.
 func expressionToInitialValue(expression js_ast.Expr) string {
 	if expression.Data == nil {
 		return ""
@@ -474,8 +466,8 @@ func extractPKCFunctionsFromAST(
 	}
 }
 
-// extractPKCRegularFunction extracts a named function declaration
-// (e.g. `function foo() {}`).
+// extractPKCRegularFunction extracts a named function declaration (e.g. `function foo()
+// {}`).
 //
 // Takes funcDecl (*js_ast.SFunction) which is the function declaration node.
 // Takes tree (*js_ast.AST) which provides access to the symbol table.
@@ -517,8 +509,8 @@ func extractPKCRegularFunction(
 	}
 }
 
-// extractPKCLocalFunctions extracts functions from local declarations such as
-// `const foo = () => {}` or `const foo = function() {}`.
+// extractPKCLocalFunctions extracts functions from local declarations such as `const foo
+// = () => {}` or `const foo = function() {}`.
 //
 // Takes local (*js_ast.SLocal) which contains the local variable declarations.
 // Takes tree (*js_ast.AST) which provides the AST symbols for name resolution.
@@ -576,14 +568,13 @@ func extractPKCLocalFunctions(
 	}
 }
 
-// extractPKCDefaultExportFunction extracts a named function from a default
-// export statement (e.g. `export default function foo() {}`).
+// extractPKCDefaultExportFunction extracts a named function from a default export
+// statement (e.g. `export default function foo() {}`).
 //
-// Takes exportDefault (*js_ast.SExportDefault) which is the default export
-// statement to extract from.
+// Takes exportDefault (*js_ast.SExportDefault) which is the default export statement to
+// extract from.
 // Takes tree (*js_ast.AST) which provides the AST containing symbol information.
-// Takes source (string) which is the original source code for position
-// calculation.
+// Takes source (string) which is the original source code for position calculation.
 // Takes baseLineOffset (int) which is the line offset for absolute positioning.
 // Takes baseColOffset (int) which is the column offset for absolute positioning.
 // Takes meta (*pkcMetadata) which stores the extracted function metadata.
@@ -663,20 +654,15 @@ func extractPKCImportsFromAST(
 	}
 }
 
-// extractSinglePKCImport attempts to convert a single JS statement
-// into a pkcImport. It returns the import and true when the
-// statement is a valid import declaration, or a zero value and
-// false otherwise.
+// extractSinglePKCImport attempts to convert a single JS statement into a pkcImport. It
+// returns the import and true when the statement is a valid import declaration, or a zero
+// value and false otherwise.
 //
-// Takes tree (*js_ast.AST) which provides the import records
-// and symbol table.
+// Takes tree (*js_ast.AST) which provides the import records and symbol table.
 // Takes statement (js_ast.Stmt) which is the statement to inspect.
-// Takes source (string) which is the source text for position
-// mapping.
-// Takes baseLineOffset (int) which is the line offset to add
-// to positions.
-// Takes baseColOffset (int) which is the column offset to add
-// to positions.
+// Takes source (string) which is the source text for position mapping.
+// Takes baseLineOffset (int) which is the line offset to add to positions.
+// Takes baseColOffset (int) which is the column offset to add to positions.
 //
 // Returns pkcImport which holds the extracted import data.
 // Returns bool which is true if the statement was an import.
@@ -712,17 +698,13 @@ func extractSinglePKCImport(
 	}, true
 }
 
-// resolveImportAlias determines the local alias name for an
-// import statement by checking the default name or the first
-// named import item.
+// resolveImportAlias determines the local alias name for an import statement by checking
+// the default name or the first named import item.
 //
-// Takes importStmt (*js_ast.SImport) which is the import
-// statement to inspect.
-// Takes symbols ([]ast.Symbol) which provides the symbol table
-// for name lookup.
+// Takes importStmt (*js_ast.SImport) which is the import statement to inspect.
+// Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 //
-// Returns string which is the local alias, or empty if none
-// is found.
+// Returns string which is the local alias, or empty if none is found.
 func resolveImportAlias(importStmt *js_ast.SImport, symbols []ast.Symbol) string {
 	if importStmt.DefaultName != nil {
 		if int(importStmt.DefaultName.Ref.InnerIndex) < len(symbols) {
@@ -734,8 +716,8 @@ func resolveImportAlias(importStmt *js_ast.SImport, symbols []ast.Symbol) string
 	return ""
 }
 
-// extractPKCLifecycleHooks detects lifecycle hook assignments in the AST.
-// Looks for patterns like `this.onConnected = ...`.
+// extractPKCLifecycleHooks detects lifecycle hook assignments in the AST. Looks for
+// patterns like `this.onConnected = ...`.
 //
 // Takes tree (*js_ast.AST) which is the parsed JavaScript syntax tree to scan.
 // Takes meta (*pkcMetadata) which receives the detected lifecycle hook names.
@@ -757,17 +739,15 @@ func extractPKCLifecycleHooks(tree *js_ast.AST, meta *pkcMetadata) {
 	}
 }
 
-// extractThisAssignmentName returns the property name when a
-// statement is an assignment of the form `this.<name> = ...`,
-// along with true. It returns an empty string and false for
-// all other statement shapes.
+// extractThisAssignmentName returns the property name when a statement is an assignment
+// of the form `this.<name> = ...`, along with true. It returns an empty string and false
+// for all other statement shapes.
 //
 // Takes statement (js_ast.Stmt) which is the statement to inspect.
 //
-// Returns string which is the property name, or empty if
-// the statement is not a this-assignment.
-// Returns bool which is true when the statement matches
-// the this-assignment pattern.
+// Returns string which is the property name, or empty if the statement is not a
+// this-assignment.
+// Returns bool which is true when the statement matches the this-assignment pattern.
 func extractThisAssignmentName(statement js_ast.Stmt) (string, bool) {
 	expressionStatement, ok := statement.Data.(*js_ast.SExpr)
 	if !ok {
@@ -837,8 +817,8 @@ func extractPKCTemplateMetadata(sfc *sfcparser.ParseResult, meta *pkcMetadata) {
 	}
 }
 
-// byteOffsetToLineColumn converts a 0-based byte offset in source text to a
-// 0-based line and column.
+// byteOffsetToLineColumn converts a 0-based byte offset in source text to a 0-based line
+// and column.
 //
 // Takes source (string) which is the text to scan.
 // Takes offset (int) which is the byte offset to convert.
@@ -846,7 +826,7 @@ func extractPKCTemplateMetadata(sfc *sfcparser.ParseResult, meta *pkcMetadata) {
 // Returns int which is the 0-based line number.
 // Returns int which is the 0-based column number.
 func byteOffsetToLineColumn(source string, offset int) (line int, column int) {
-	for i := 0; i < offset && i < len(source); i++ {
+	for i := range min(offset, len(source)) {
 		if source[i] == '\n' {
 			line++
 			column = 0
@@ -858,15 +838,15 @@ func byteOffsetToLineColumn(source string, offset int) (line int, column int) {
 	return line, column
 }
 
-// adjustToDocumentPosition adds the script block's content offset to a
-// relative position to produce a document-absolute position.
+// adjustToDocumentPosition adds the script block's content offset to a relative position
+// to produce a document-absolute position.
 //
 // Takes relLine (int) which is the 0-based line within the script content.
 // Takes relCol (int) which is the 0-based column within the script content.
-// Takes baseLineOffset (int) which is the 0-based start line of the script
-// content in the document.
-// Takes baseColOffset (int) which is the 0-based start column of the script
-// content in the document.
+// Takes baseLineOffset (int) which is the 0-based start line of the script content in the
+// document.
+// Takes baseColOffset (int) which is the 0-based start column of the script content in
+// the document.
 //
 // Returns int which is the 0-based line in the document.
 // Returns int which is the 0-based column in the document.

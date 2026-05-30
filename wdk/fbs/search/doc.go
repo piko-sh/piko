@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package search provides public access to the search FlatBuffer
-// schema for inspecting compiled search index .bin files.
+// Package search provides public access to the search FlatBuffer schema for inspecting
+// compiled search index .bin files.
 //
-// It exposes the schema hash, an [Unpack] function to strip the
-// version header, and [ConvertSearchIndex] to decode the raw
-// FlatBuffer payload into a JSON-serialisable [SearchIndex] struct.
-// The index contains BM25 parameters, an inverted term postings
+// It exposes the schema hash, an [Unpack] function to strip the version header, and
+// [ConvertSearchIndex] to decode the raw FlatBuffer payload into a JSON-serialisable
+// [SearchIndex] struct. The index contains BM25 parameters, an inverted term postings
 // list, and per-document metadata for scoring.
 package search

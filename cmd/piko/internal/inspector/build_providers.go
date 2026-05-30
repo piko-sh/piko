@@ -22,19 +22,17 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// BuildProviderDetailSections converts a DescribeProvider gRPC response
-// into the shared section/row shape consumed by the CLI Printer and the
-// TUI detail panel renderer.
+// BuildProviderDetailSections converts a DescribeProvider gRPC response into the shared
+// section/row shape consumed by the CLI Printer and the TUI detail panel renderer.
 //
-// The protobuf already carries titled sections containing key/value entries;
-// this builder re-shapes them as DetailSection values without altering field
-// order or labels.
+// The protobuf already carries titled sections containing key/value entries; this builder
+// re-shapes them as DetailSection values without altering field order or labels.
 //
-// Takes response (*pb.DescribeProviderResponse) which contains the
-// provider detail payload returned by the monitoring API.
+// Takes response (*pb.DescribeProviderResponse) which contains the provider detail
+// payload returned by the monitoring API.
 //
-// Returns []DetailSection which contains one DetailSection per
-// protobuf section, with rows mirroring the entry order on the wire.
+// Returns []DetailSection which contains one DetailSection per protobuf section, with
+// rows mirroring the entry order on the wire.
 func BuildProviderDetailSections(response *pb.DescribeProviderResponse) []DetailSection {
 	pbSections := response.GetSections()
 	sections := make([]DetailSection, 0, len(pbSections))

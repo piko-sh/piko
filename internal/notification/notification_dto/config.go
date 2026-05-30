@@ -18,7 +18,9 @@
 
 package notification_dto
 
-import "time"
+import (
+	"time"
+)
 
 // DispatcherConfig holds settings for the notification dispatcher.
 type DispatcherConfig struct {
@@ -28,12 +30,11 @@ type DispatcherConfig struct {
 	// BatchSize specifies the number of notifications to process in a batch.
 	BatchSize int `yaml:"batch_size" json:"batch_size"`
 
-	// FlushInterval specifies how often to send queued notifications; zero or
-	// negative values use the default interval.
+	// FlushInterval specifies how often to send queued notifications; zero or negative
+	// values use the default interval.
 	FlushInterval time.Duration `yaml:"flush_interval" json:"flush_interval"`
 
-	// MaxRetries specifies the maximum number of retry attempts for
-	// failed notifications.
+	// MaxRetries specifies the maximum number of retry attempts for failed notifications.
 	MaxRetries int `yaml:"max_retries" json:"max_retries"`
 
 	// InitialDelay is the wait time before the first retry attempt.
@@ -42,20 +43,19 @@ type DispatcherConfig struct {
 	// MaxDelay is the upper limit for delay between retry attempts.
 	MaxDelay time.Duration `yaml:"max_delay" json:"max_delay"`
 
-	// BackoffFactor is the multiplier applied to the delay after each retry;
-	// defaults to a standard value when zero or negative.
+	// BackoffFactor is the multiplier applied to the delay after each retry; defaults to a
+	// standard value when zero or negative.
 	BackoffFactor float64 `yaml:"backoff_factor" json:"backoff_factor"`
 
-	// CircuitBreakerThreshold is the number of consecutive failures
-	// before opening the circuit breaker.
+	// CircuitBreakerThreshold is the number of consecutive failures before opening the
+	// circuit breaker.
 	CircuitBreakerThreshold int `yaml:"circuit_breaker_threshold" json:"circuit_breaker_threshold"`
 
-	// CircuitBreakerTimeout is how long the circuit breaker stays open before
-	// attempting to close. A value of 0 or less uses the default timeout.
+	// CircuitBreakerTimeout is how long the circuit breaker stays open before attempting to
+	// close. A value of 0 or less uses the default timeout.
 	CircuitBreakerTimeout time.Duration `yaml:"circuit_breaker_timeout" json:"circuit_breaker_timeout"`
 
-	// CircuitBreakerInterval is the period for which circuit breaker
-	// stats are tracked.
+	// CircuitBreakerInterval is the period for which circuit breaker stats are tracked.
 	CircuitBreakerInterval time.Duration `yaml:"circuit_breaker_interval" json:"circuit_breaker_interval"`
 
 	// Enabled controls whether the dispatcher is active.
@@ -64,8 +64,8 @@ type DispatcherConfig struct {
 
 // ServiceConfig holds settings for the notification service.
 type ServiceConfig struct {
-	// MaxNotificationsPerSecond limits how many notifications are sent per second.
-	// 0 means unlimited.
+	// MaxNotificationsPerSecond limits how many notifications are sent per second. 0 means
+	// unlimited.
 	MaxNotificationsPerSecond int `yaml:"max_notifications_per_second" json:"max_notifications_per_second"`
 
 	// DefaultTimeout is the time limit for sending a single notification.

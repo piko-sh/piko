@@ -37,24 +37,24 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// devWidgetTag is the custom element tag name for the dev tools overlay widget.
-const devWidgetTag = "piko-dev-widget"
+const (
+	// devWidgetTag is the custom element tag name for the dev tools overlay widget.
+	devWidgetTag = "piko-dev-widget"
+)
 
 const (
-	// svgSymbolOverhead is the fixed character count for SVG symbol tags.
-	// Format: <symbol id="ID" viewBox="VALUE">INNERHTML</symbol>
-	// Breakdown: 13 (<symbol id=") + 1 (") + 11 ( viewBox=") + 1 (") + 1 (>) +
-	// 9 (</symbol>) = 36 characters.
+	// svgSymbolOverhead is the fixed character count for SVG symbol tags. Format: <symbol
+	// id="ID" viewBox="VALUE">INNERHTML</symbol> Breakdown: 13 (<symbol id=") + 1 (") + 11 (
+	// viewBox=") + 1 (") + 1 (>) + 9 (</symbol>) = 36 characters.
 	svgSymbolOverhead = 36
 
-	// defaultSVGIDSliceCapacity is the starting capacity for SVG ID slices.
-	// Set to 32 elements, which is enough for most pages.
+	// defaultSVGIDSliceCapacity is the starting capacity for SVG ID slices. Set to 32
+	// elements, which is enough for most pages.
 	defaultSVGIDSliceCapacity = 32
 )
 
-// ParsedSvgData contains the parsed content and attributes of an SVG asset.
-// CachedSymbol is pre-computed at load time to avoid per-request allocation
-// overhead.
+// ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol
+// is pre-computed at load time to avoid per-request allocation overhead.
 type ParsedSvgData struct {
 	// InnerHTML is the content between the opening and closing SVG tags.
 	InnerHTML string
@@ -66,13 +66,13 @@ type ParsedSvgData struct {
 	Attributes []ast_domain.HTMLAttribute
 }
 
-// appendDevWidgetTag returns customTags with the dev widget tag appended when
-// the dev widget is enabled.
+// appendDevWidgetTag returns customTags with the dev widget tag appended when the dev
+// widget is enabled.
 //
 // Takes tags ([]string) which holds the existing custom tags.
 //
-// Returns []string which contains the original tags plus the dev widget tag,
-// or the original slice unmodified when the widget is disabled.
+// Returns []string which contains the original tags plus the dev widget tag, or the
+// original slice unmodified when the widget is disabled.
 func appendDevWidgetTag(tags []string) []string {
 	if getDevWidgetHTML() == "" {
 		return tags
@@ -84,8 +84,8 @@ func appendDevWidgetTag(tags []string) []string {
 }
 
 var (
-	// svgIDSlicePool reuses string slices to reduce allocation pressure during
-	// SVG sprite-sheet key computation.
+	// svgIDSlicePool reuses string slices to reduce allocation pressure during SVG
+	// sprite-sheet key computation.
 	svgIDSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, defaultSVGIDSliceCapacity))
@@ -102,9 +102,8 @@ var (
 	})
 )
 
-// addLinkHeaderIfUnique adds a link header to the collection if it is not
-// already present. Uses O(1) map-based deduplication instead of O(n) linear
-// search.
+// addLinkHeaderIfUnique adds a link header to the collection if it is not already
+// present. Uses O(1) map-based deduplication instead of O(n) linear search.
 //
 // Takes lh (render_dto.LinkHeader) which is the link header to add.
 //
@@ -127,20 +126,20 @@ func (rctx *renderContext) addLinkHeaderIfUnique(lh render_dto.LinkHeader) {
 	rctx.collectedLinkHeaders = append(rctx.collectedLinkHeaders, lh)
 }
 
-// CollectMetadata gathers and generates Link headers for preloading assets.
-// It preloads component JavaScript modules, SVG assets, fonts, and generates
-// appropriate preconnect headers for external resources.
+// CollectMetadata gathers and generates Link headers for preloading assets. It preloads
+// component JavaScript modules, SVG assets, fonts, and generates appropriate preconnect
+// headers for external resources.
 //
 // Takes request (*http.Request) which provides request context for asset paths.
-// Takes metadata (*templater_dto.InternalMetadata) which contains asset refs
-// and custom tags to process.
-// Takes siteConfig (*config.WebsiteConfig) which provides font configurations;
-// may be nil.
+// Takes metadata (*templater_dto.InternalMetadata) which contains asset refs and custom
+// tags to process.
+// Takes siteConfig (*config.WebsiteConfig) which provides font configurations; may be
+// nil.
 //
-// Returns []render_dto.LinkHeader which contains the collected Link
-// headers for preloading.
-// Returns *ProbeData which contains component probe metadata, or nil
-// when no component metadata is present.
+// Returns []render_dto.LinkHeader which contains the collected Link headers for
+// preloading.
+// Returns *ProbeData which contains component probe metadata, or nil when no component
+// metadata is present.
 // Returns error when metadata collection fails.
 func (ro *RenderOrchestrator) CollectMetadata(
 	ctx context.Context,
@@ -183,12 +182,12 @@ func (ro *RenderOrchestrator) CollectMetadata(
 	return headers, probeData, nil
 }
 
-// resolveCaptchaScriptPaths resolves the registry serve paths for all
-// client-side captcha provider init scripts. Called once during the probe phase
-// so the render phase can emit correct URLs without repeating registry lookups.
+// resolveCaptchaScriptPaths resolves the registry serve paths for all client-side captcha
+// provider init scripts. Called once during the probe phase so the render phase can emit
+// correct URLs without repeating registry lookups.
 //
-// Returns map[string]*render_dto.CaptchaScriptProbeData mapping provider names
-// to their resolved paths, or nil when no client-side providers are registered.
+// Returns map[string]*render_dto.CaptchaScriptProbeData mapping provider names to their
+// resolved paths, or nil when no client-side providers are registered.
 func (ro *RenderOrchestrator) resolveCaptchaScriptPaths(
 	ctx context.Context,
 ) map[string]*render_dto.CaptchaScriptProbeData {
@@ -240,12 +239,11 @@ func (ro *RenderOrchestrator) resolveCaptchaScriptPaths(
 	return result
 }
 
-// preloadAssetsAndComponentsForTags fetches component metadata in bulk and
-// adds modulepreload link headers for each component with a JS path.
+// preloadAssetsAndComponentsForTags fetches component metadata in bulk and adds
+// modulepreload link headers for each component with a JS path.
 //
 // Takes customTags ([]string) which lists the component tags to preload.
-// Takes rctx (*renderContext) which provides the registry and collects
-// link headers.
+// Takes rctx (*renderContext) which provides the registry and collects link headers.
 func (ro *RenderOrchestrator) preloadAssetsAndComponentsForTags(
 	ctx context.Context,
 	customTags []string,
@@ -279,10 +277,9 @@ func (ro *RenderOrchestrator) preloadAssetsAndComponentsForTags(
 	}
 }
 
-// ensureComponentMetadata populates rctx.componentMetadata if it has not
-// already been set. This is needed because CollectMetadata and RenderAST
-// use separate render contexts, so the bulk fetch from
-// preloadAssetsAndComponentsForTags does not carry over.
+// ensureComponentMetadata populates rctx.componentMetadata if it has not already been
+// set. This is needed because CollectMetadata and RenderAST use separate render contexts,
+// so the bulk fetch from preloadAssetsAndComponentsForTags does not carry over.
 //
 // Takes ctx (context.Context) which provides the request context.
 // Takes customTags ([]string) which lists the component tags to fetch.
@@ -301,14 +298,13 @@ func (ro *RenderOrchestrator) ensureComponentMetadata(ctx context.Context, custo
 	rctx.componentMetadata = results
 }
 
-// buildPreloadLogic generates HTML for preloading component scripts,
-// reading from rctx.componentMetadata which must be populated by
-// ensureComponentMetadata before this call.
+// buildPreloadLogic generates HTML for preloading component scripts, reading from
+// rctx.componentMetadata which must be populated by ensureComponentMetadata before this
+// call.
 //
 // Takes componentTypes ([]string) which lists the component tags to process.
 // Takes noPreloadsGlobally (bool) which disables all preloading when true.
-// Takes rctx (*renderContext) which provides pooled buffers for HTML
-// generation.
+// Takes rctx (*renderContext) which provides pooled buffers for HTML generation.
 //
 // Returns preloadHTML (string) which contains link rel="modulepreload" tags.
 // Returns scriptHTML (string) which contains script tags for eager loading.
@@ -346,13 +342,13 @@ func (*RenderOrchestrator) buildPreloadLogic(
 	return preloadHTML, scriptHTML
 }
 
-// buildSvgSpriteSheet generates an SVG sprite sheet from required symbols.
-// Results are cached by the hash of sorted symbol IDs for efficient reuse.
+// buildSvgSpriteSheet generates an SVG sprite sheet from required symbols. Results are
+// cached by the hash of sorted symbol IDs for efficient reuse.
 //
 // Takes rctx (*renderContext) which provides the symbols to include.
 //
-// Returns string which is the assembled sprite sheet markup, or empty if no
-// symbols are required.
+// Returns string which is the assembled sprite sheet markup, or empty if no symbols are
+// required.
 // Returns error when sprite sheet generation fails.
 func (*RenderOrchestrator) buildSvgSpriteSheet(rctx *renderContext) (string, error) {
 	BuildSvgSpriteSheetCount.Add(rctx.originalCtx, 1)
@@ -387,27 +383,26 @@ func (*RenderOrchestrator) buildSvgSpriteSheet(rctx *renderContext) (string, err
 	return result, nil
 }
 
-// ShutdownSpriteSheetCache stops the sprite sheet cache's background
-// goroutines. Call during application shutdown or test cleanup.
+// ShutdownSpriteSheetCache stops the sprite sheet cache's background goroutines. Call
+// during application shutdown or test cleanup.
 func ShutdownSpriteSheetCache() {
 	getSpriteSheetCache().StopAllGoroutines()
 }
 
-// ClearSpriteSheetCacheForTesting clears the sprite sheet cache.
-// Only for use in tests.
+// ClearSpriteSheetCacheForTesting clears the sprite sheet cache. Only for use in tests.
 func ClearSpriteSheetCacheForTesting() {
 	getSpriteSheetCache().InvalidateAll()
 }
 
-// ComputeSymbolString builds an SVG symbol string from parsed SVG data.
-// This is called once when the SVG loads and is cached in
-// ParsedSvgData.CachedSymbol to avoid repeated memory use per request.
+// ComputeSymbolString builds an SVG symbol string from parsed SVG data. This is called
+// once when the SVG loads and is cached in ParsedSvgData.CachedSymbol to avoid repeated
+// memory use per request.
 //
 // Takes id (string) which specifies the symbol identifier.
 // Takes parsedData (*ParsedSvgData) which provides the parsed SVG content.
 //
-// Returns string which contains the formatted symbol element, or an empty
-// string if parsedData is nil.
+// Returns string which contains the formatted symbol element, or an empty string if
+// parsedData is nil.
 //
 // Output format: <symbol id="escaped-id" viewBox="value">innerHTML</symbol>
 func ComputeSymbolString(id string, parsedData *ParsedSvgData) string {
@@ -447,8 +442,8 @@ func ComputeSymbolString(id string, parsedData *ParsedSvgData) string {
 	return result
 }
 
-// formatComponentNotFoundError creates an error message for when a component
-// cannot be found.
+// formatComponentNotFoundError creates an error message for when a component cannot be
+// found.
 //
 // Takes componentTag (string) which is the name of the missing component.
 //
@@ -465,8 +460,8 @@ func formatComponentNotFoundError(componentTag string) string {
 	)
 }
 
-// addStandardLinkHeaders adds the standard framework preload headers to the
-// render context. These headers tell the browser to fetch key assets early.
+// addStandardLinkHeaders adds the standard framework preload headers to the render
+// context. These headers tell the browser to fetch key assets early.
 //
 // Takes rctx (*renderContext) which receives the link headers.
 func addStandardLinkHeaders(rctx *renderContext) {
@@ -486,12 +481,12 @@ func addStandardLinkHeaders(rctx *renderContext) {
 	})
 }
 
-// addComponentsExtensionLinkHeader adds a modulepreload link header for the
-// components extension when the page contains PKC components. This allows HTTP
-// 103 Early Hints to fetch the component runtime before the HTML body arrives.
+// addComponentsExtensionLinkHeader adds a modulepreload link header for the components
+// extension when the page contains PKC components. This allows HTTP 103 Early Hints to
+// fetch the component runtime before the HTML body arrives.
 //
-// Takes rctx (*renderContext) which provides the component metadata and
-// receives the link header.
+// Takes rctx (*renderContext) which provides the component metadata and receives the link
+// header.
 func addComponentsExtensionLinkHeader(rctx *renderContext) {
 	if rctx.componentMetadata == nil {
 		return
@@ -505,12 +500,11 @@ func addComponentsExtensionLinkHeader(rctx *renderContext) {
 	})
 }
 
-// addJSLinkHeaders adds modulepreload link headers for client-side JavaScript
-// needed by the page. This includes the page's own script and scripts from
-// embedded partials, allowing HTTP 103 Early Hints for parallel downloads.
+// addJSLinkHeaders adds modulepreload link headers for client-side JavaScript needed by
+// the page. This includes the page's own script and scripts from embedded partials,
+// allowing HTTP 103 Early Hints for parallel downloads.
 //
-// Takes jsMetas ([]templater_dto.JSScriptMeta) which contains the script
-// metadata.
+// Takes jsMetas ([]templater_dto.JSScriptMeta) which contains the script metadata.
 // Takes rctx (*renderContext) which receives the link headers.
 func addJSLinkHeaders(jsMetas []templater_dto.JSScriptMeta, rctx *renderContext) {
 	for _, meta := range jsMetas {
@@ -524,11 +518,10 @@ func addJSLinkHeaders(jsMetas []templater_dto.JSScriptMeta, rctx *renderContext)
 	}
 }
 
-// processFontConfigurations adds link headers for font preloading and
-// preconnect to Google Fonts servers.
+// processFontConfigurations adds link headers for font preloading and preconnect to
+// Google Fonts servers.
 //
-// Takes fonts ([]config.FontDefinition) which contains the font definitions to
-// process.
+// Takes fonts ([]config.FontDefinition) which contains the font definitions to process.
 // Takes rctx (*renderContext) which receives the link headers that are added.
 func processFontConfigurations(fonts []config.FontDefinition, rctx *renderContext) {
 	for _, font := range fonts {
@@ -560,8 +553,7 @@ func processFontConfigurations(fonts []config.FontDefinition, rctx *renderContex
 	}
 }
 
-// isGoogleFontsURL checks whether the given URL points to a Google Fonts
-// domain.
+// isGoogleFontsURL checks whether the given URL points to a Google Fonts domain.
 //
 // Takes url (string) which is the URL to check.
 //
@@ -577,10 +569,9 @@ func isGoogleFontsURL(url string) bool {
 //
 // Takes url (string) which is the font URL to check.
 //
-// Returns asType (string) which is "font" for woff2 files or "style" for
-// other files.
-// Returns fontType (string) which is the MIME type for woff2 files or empty
-// for other files.
+// Returns asType (string) which is "font" for woff2 files or "style" for other files.
+// Returns fontType (string) which is the MIME type for woff2 files or empty for other
+// files.
 func determineFontAssetType(url string) (asType, fontType string) {
 	if strings.HasSuffix(url, ".woff2") {
 		return "font", "font/woff2"
@@ -588,16 +579,16 @@ func determineFontAssetType(url string) (asType, fontType string) {
 	return "style", ""
 }
 
-// appendPreloadTags appends modulepreload and script tags for a JavaScript
-// file to byte buffers, with optional SRI integrity attributes.
+// appendPreloadTags appends modulepreload and script tags for a JavaScript file to byte
+// buffers, with optional SRI integrity attributes.
 //
 // Takes preload (*[]byte) which receives the modulepreload link tag.
 // Takes script (*[]byte) which receives the script module tag.
 // Takes jsFile (string) which is the path to the JavaScript file.
 // Takes sriHash (string) which is the SRI integrity hash, or empty to omit.
 //
-// Uses escapeIfNeeded to avoid memory use when the path has no special
-// characters. Uses the []byte append pattern for zero-copy freeze support.
+// Uses escapeIfNeeded to avoid memory use when the path has no special characters. Uses
+// the []byte append pattern for zero-copy freeze support.
 func appendPreloadTags(preload, script *[]byte, jsFile, sriHash string) {
 	escaped := escapeIfNeeded(jsFile)
 
@@ -622,8 +613,8 @@ func appendPreloadTags(preload, script *[]byte, jsFile, sriHash string) {
 	*script = append(*script, `></script>`...)
 }
 
-// escapeIfNeeded returns the HTML-escaped version of s only if s contains
-// characters that need escaping.
+// escapeIfNeeded returns the HTML-escaped version of s only if s contains characters that
+// need escaping.
 //
 // For clean paths (no &, <, >, ", ') this avoids the memory allocation from
 // html.EscapeString.
@@ -638,9 +629,8 @@ func escapeIfNeeded(s string) string {
 	return s
 }
 
-// needsHTMLEscape checks if a string contains characters that need HTML
-// escaping. It looks for the five characters that html.EscapeString handles:
-// &, <, >, ", and '.
+// needsHTMLEscape checks if a string contains characters that need HTML escaping. It
+// looks for the five characters that html.EscapeString handles: &, <, >, ", and '.
 //
 // Takes s (string) which is the text to check.
 //
@@ -657,8 +647,8 @@ func needsHTMLEscape(s string) bool {
 
 // getSvgIDSlice retrieves a string slice from the pool.
 //
-// Returns *[]string which is a slice ready for use, either from the pool or
-// newly allocated.
+// Returns *[]string which is a slice ready for use, either from the pool or newly
+// allocated.
 func getSvgIDSlice() *[]string {
 	s, ok := svgIDSlicePool.Get().(*[]string)
 	if !ok {
@@ -675,8 +665,8 @@ func putSvgIDSlice(s *[]string) {
 	svgIDSlicePool.Put(s)
 }
 
-// computeSpriteSheetKey creates a stable hash of sorted symbol IDs.
-// The IDs must be pre-sorted to ensure consistent keys.
+// computeSpriteSheetKey creates a stable hash of sorted symbol IDs. The IDs must be
+// pre-sorted to ensure consistent keys.
 //
 // Takes svgIDs ([]string) which is the sorted list of SVG identifiers.
 //
@@ -703,8 +693,8 @@ func extractSVGIDs(entries []svgSymbolEntry, result *[]string) {
 	}
 }
 
-// collectAndSortSVGIDs extracts SVG IDs from symbol entries and returns them
-// sorted for consistent output ordering.
+// collectAndSortSVGIDs extracts SVG IDs from symbol entries and returns them sorted for
+// consistent output ordering.
 //
 // Takes entries ([]svgSymbolEntry) which holds the SVG entries to collect from.
 //
@@ -720,8 +710,8 @@ func collectAndSortSVGIDs(entries []svgSymbolEntry) []string {
 
 // assembleSpriteSheet builds the final SVG sprite sheet from processed symbols.
 //
-// Uses request-level buffer pooling with zero-copy string conversion. The
-// buffer is kept alive until the request ends, making the conversion safe.
+// Uses request-level buffer pooling with zero-copy string conversion. The buffer is kept
+// alive until the request ends, making the conversion safe.
 //
 // Takes symbols ([]string) which contains the processed SVG symbol elements.
 // Takes rctx (*renderContext) which provides the pooled buffer and conversion.

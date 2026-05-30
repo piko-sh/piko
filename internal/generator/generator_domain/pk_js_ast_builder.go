@@ -24,8 +24,8 @@ import (
 	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
-// jsASTBuilder provides methods for building JavaScript AST nodes using the
-// tdewolff parsejs library.
+// jsASTBuilder provides methods for building JavaScript AST nodes using the tdewolff
+// parsejs library.
 type jsASTBuilder struct{}
 
 // newVar creates a variable reference.
@@ -75,8 +75,7 @@ func (*jsASTBuilder) newCall(target parsejs.IExpr, arguments ...parsejs.IExpr) *
 // newCallWithSpread creates a function call with a spread argument at the end.
 //
 // Takes target (parsejs.IExpr) which is the function or method to call.
-// Takes arguments ([]parsejs.IExpr) which are the regular arguments before the
-// spread.
+// Takes arguments ([]parsejs.IExpr) which are the regular arguments before the spread.
 // Takes spreadArg (parsejs.IExpr) which is spread as the final argument.
 //
 // Returns *parsejs.CallExpr which is the complete call expression.
@@ -109,8 +108,7 @@ func (b *jsASTBuilder) newDot(target parsejs.IExpr, member string) *parsejs.DotE
 //
 // Takes target (parsejs.IExpr) which is the object to call the method on.
 // Takes method (string) which is the name of the method to invoke.
-// Takes arguments (...parsejs.IExpr) which are the arguments to
-// pass to the method.
+// Takes arguments (...parsejs.IExpr) which are the arguments to pass to the method.
 //
 // Returns *parsejs.CallExpr which represents the constructed method call.
 func (b *jsASTBuilder) newMethodCall(target parsejs.IExpr, method string, arguments ...parsejs.IExpr) *parsejs.CallExpr {
@@ -191,8 +189,7 @@ func (*jsASTBuilder) newAwait(x parsejs.IExpr) *parsejs.UnaryExpr {
 
 // newObject creates an object literal.
 //
-// Takes properties (...parsejs.Property) which are the key-value pairs for the
-// object.
+// Takes properties (...parsejs.Property) which are the key-value pairs for the object.
 //
 // Returns *parsejs.ObjectExpr which is the constructed object expression.
 func (*jsASTBuilder) newObject(properties ...parsejs.Property) *parsejs.ObjectExpr {
@@ -203,8 +200,7 @@ func (*jsASTBuilder) newObject(properties ...parsejs.Property) *parsejs.ObjectEx
 //
 // Takes name (string) which specifies the property and variable name.
 //
-// Returns parsejs.Property which is the shorthand property with matching name
-// and value.
+// Returns parsejs.Property which is the shorthand property with matching name and value.
 func (b *jsASTBuilder) newShorthandProperty(name string) parsejs.Property {
 	v := b.newVar(name)
 	return parsejs.Property{
@@ -264,8 +260,7 @@ func (b *jsASTBuilder) newFunc(name string, async bool, params []string, body []
 // Takes restParam (string) which specifies the rest parameter name.
 // Takes body ([]parsejs.IStmt) which contains the function body statements.
 //
-// Returns *parsejs.FuncDecl which is the function declaration with a rest
-// parameter set.
+// Returns *parsejs.FuncDecl which is the function declaration with a rest parameter set.
 func (b *jsASTBuilder) newFuncWithRest(name string, async bool, params []string, restParam string, body []parsejs.IStmt) *parsejs.FuncDecl {
 	jsFunction := b.newFunc(name, async, params, body)
 	jsFunction.Params.Rest = b.newVar(restParam)

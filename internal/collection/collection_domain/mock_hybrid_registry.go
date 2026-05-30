@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
-// MockHybridRegistry is a test double for HybridRegistryPort that returns
-// zero values from nil function fields and tracks call counts atomically.
+// MockHybridRegistry is a test double for HybridRegistryPort that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockHybridRegistry struct {
 	// RegisterFunc is the function called by Register.
 	RegisterFunc func(ctx context.Context, providerName, collectionName string, blob []byte, etag string, config collection_dto.HybridConfig)
@@ -43,50 +43,45 @@ type MockHybridRegistry struct {
 	// ListFunc is the function called by List.
 	ListFunc func() []string
 
-	// TriggerRevalidationFunc is the function called by
-	// TriggerRevalidation.
+	// TriggerRevalidationFunc is the function called by TriggerRevalidation.
 	TriggerRevalidationFunc func(ctx context.Context, providerName, collectionName string)
 
-	// RegisterCallCount tracks how many times Register
-	// was called.
-	RegisterCallCount int64
+	// RegisterCallCount tracks how many times Register was called.
+	RegisterCallCount atomic.Int64
 
-	// GetBlobCallCount tracks how many times GetBlob was
-	// called.
-	GetBlobCallCount int64
+	// GetBlobCallCount tracks how many times GetBlob was called.
+	GetBlobCallCount atomic.Int64
 
-	// GetETagCallCount tracks how many times GetETag was
-	// called.
-	GetETagCallCount int64
+	// GetETagCallCount tracks how many times GetETag was called.
+	GetETagCallCount atomic.Int64
 
 	// HasCallCount tracks how many times Has was called.
-	HasCallCount int64
+	HasCallCount atomic.Int64
 
-	// ListCallCount tracks how many times List was
-	// called.
-	ListCallCount int64
+	// ListCallCount tracks how many times List was called.
+	ListCallCount atomic.Int64
 
-	// TriggerRevalidationCallCount tracks how many times
-	// TriggerRevalidation was called.
-	TriggerRevalidationCallCount int64
+	// TriggerRevalidationCallCount tracks how many times TriggerRevalidation was called.
+	TriggerRevalidationCallCount atomic.Int64
 }
 
-var _ HybridRegistryPort = (*MockHybridRegistry)(nil)
+var (
+	_ HybridRegistryPort = (*MockHybridRegistry)(nil)
+)
 
 // Register delegates to RegisterFunc if set.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes blob ([]byte) which is the collection data blob.
 // Takes etag (string) which is the ETag for cache validation.
-// Takes config (collection_dto.HybridConfig) which provides the
-// hybrid configuration.
+// Takes config (collection_dto.HybridConfig) which provides the hybrid configuration.
 //
 // Does nothing if RegisterFunc is nil.
 func (m *MockHybridRegistry) Register(ctx context.Context, providerName, collectionName string, blob []byte, etag string, config collection_dto.HybridConfig) {
-	atomic.AddInt64(&m.RegisterCallCount, 1)
+	m.RegisterCallCount.Add(1)
 	if m.RegisterFunc != nil {
 		m.RegisterFunc(ctx, providerName, collectionName, blob, etag, config)
 	}
@@ -94,14 +89,14 @@ func (m *MockHybridRegistry) Register(ctx context.Context, providerName, collect
 
 // GetBlob delegates to GetBlobFunc if set.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 //
 // Returns (nil, false) if GetBlobFunc is nil.
 func (m *MockHybridRegistry) GetBlob(ctx context.Context, providerName, collectionName string) ([]byte, bool) {
-	atomic.AddInt64(&m.GetBlobCallCount, 1)
+	m.GetBlobCallCount.Add(1)
 	if m.GetBlobFunc != nil {
 		return m.GetBlobFunc(ctx, providerName, collectionName)
 	}
@@ -115,7 +110,7 @@ func (m *MockHybridRegistry) GetBlob(ctx context.Context, providerName, collecti
 //
 // Returns "" if GetETagFunc is nil.
 func (m *MockHybridRegistry) GetETag(providerName, collectionName string) string {
-	atomic.AddInt64(&m.GetETagCallCount, 1)
+	m.GetETagCallCount.Add(1)
 	if m.GetETagFunc != nil {
 		return m.GetETagFunc(providerName, collectionName)
 	}
@@ -129,7 +124,7 @@ func (m *MockHybridRegistry) GetETag(providerName, collectionName string) string
 //
 // Returns false if HasFunc is nil.
 func (m *MockHybridRegistry) Has(providerName, collectionName string) bool {
-	atomic.AddInt64(&m.HasCallCount, 1)
+	m.HasCallCount.Add(1)
 	if m.HasFunc != nil {
 		return m.HasFunc(providerName, collectionName)
 	}
@@ -140,7 +135,7 @@ func (m *MockHybridRegistry) Has(providerName, collectionName string) bool {
 //
 // Returns nil if ListFunc is nil.
 func (m *MockHybridRegistry) List() []string {
-	atomic.AddInt64(&m.ListCallCount, 1)
+	m.ListCallCount.Add(1)
 	if m.ListFunc != nil {
 		return m.ListFunc()
 	}
@@ -149,14 +144,13 @@ func (m *MockHybridRegistry) List() []string {
 
 // TriggerRevalidation delegates to TriggerRevalidationFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 //
 // Does nothing if TriggerRevalidationFunc is nil.
 func (m *MockHybridRegistry) TriggerRevalidation(ctx context.Context, providerName, collectionName string) {
-	atomic.AddInt64(&m.TriggerRevalidationCallCount, 1)
+	m.TriggerRevalidationCallCount.Add(1)
 	if m.TriggerRevalidationFunc != nil {
 		m.TriggerRevalidationFunc(ctx, providerName, collectionName)
 	}

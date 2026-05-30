@@ -26,30 +26,29 @@ import (
 	"piko.sh/piko/internal/pml/pml_dto"
 )
 
-// StyleManager provides style lookup for components during transformation.
-// It merges styles from all sources by precedence and gives access to the
-// final computed values.
+// StyleManager provides style lookup for components during transformation. It merges
+// styles from all sources by precedence and gives access to the final computed values.
 type StyleManager struct {
 	// styles holds the computed attribute values keyed by name.
 	styles map[string]string
 
-	// sources tracks which source last set each attribute, allowing
-	// components to distinguish user-provided values from defaults.
+	// sources tracks which source last set each attribute, allowing components to
+	// distinguish user-provided values from defaults.
 	sources map[string]AttributeSource
 }
 
-// NewStyleManager creates a StyleManager by merging styles from various sources
-// based on the component's precedence rules.
+// NewStyleManager creates a StyleManager by merging styles from various sources based on
+// the component's precedence rules.
 //
-// If comp is nil, returns an empty StyleManager (used when creating a context
-// for future children).
+// If comp is nil, returns an empty StyleManager (used when creating a context for future
+// children).
 //
 // Precedence System:
 //   - The component defines the order of sources via GetAttributePrecedence()
 //   - Later sources in the array override earlier ones
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// extract styles from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to extract
+// styles from.
 // Takes comp (Component) which defines the style precedence rules.
 // Takes config (*pml_dto.Config) which provides configuration settings.
 //
@@ -83,10 +82,10 @@ func (sm *StyleManager) Get(name string) (string, bool) {
 	return value, ok
 }
 
-// IsExplicit returns true when the attribute was set by the user (via inline
-// attributes or the style attribute) rather than coming from the component's
-// built-in defaults. This allows components to omit default values and let
-// CSS cascade handle inheritance from parent elements.
+// IsExplicit returns true when the attribute was set by the user (via inline attributes
+// or the style attribute) rather than coming from the component's built-in defaults. This
+// allows components to omit default values and let CSS cascade handle inheritance from
+// parent elements.
 //
 // Takes name (string) which specifies the attribute to check.
 //
@@ -103,8 +102,8 @@ func (sm *StyleManager) all() map[string]string {
 	return sm.styles
 }
 
-// TransformationContext holds the state and settings available to a component
-// during the PML transformation process.
+// TransformationContext holds the state and settings available to a component during the
+// PML transformation process.
 type TransformationContext struct {
 	// Registry provides access to registered components for tag lookup.
 	Registry ComponentRegistry
@@ -115,8 +114,7 @@ type TransformationContext struct {
 	// MSOConditionalCollector gathers conditional styles for Microsoft Outlook.
 	MSOConditionalCollector MSOConditionalCollector
 
-	// ParentComponent is the outer component in the
-	// transformation hierarchy.
+	// ParentComponent is the outer component in the transformation hierarchy.
 	ParentComponent Component
 
 	// EmailAssetRegistry collects asset requests for CID embedding in emails.
@@ -131,12 +129,12 @@ type TransformationContext struct {
 	// Config holds the PML settings used when creating style managers.
 	Config *pml_dto.Config
 
-	// InheritedTextAlign holds the explicit text-align value from a parent
-	// row for propagation to child columns.
+	// InheritedTextAlign holds the explicit text-align value from a parent row for
+	// propagation to child columns.
 	InheritedTextAlign string
 
-	// SourceFilePath is the path of the source .pk file being transformed.
-	// Used to resolve module-relative (@/) asset paths in pml-img.
+	// SourceFilePath is the path of the source .pk file being transformed. Used to resolve
+	// module-relative (@/) asset paths in pml-img.
 	SourceFilePath string
 
 	// AssetServePath is the URL path prefix for serving assets in preview mode.
@@ -160,25 +158,23 @@ type TransformationContext struct {
 	// IsEmailContext indicates whether the output is for an email template.
 	IsEmailContext bool
 
-	// IsPreviewMode indicates browser preview mode. When true, local image
-	// paths are resolved to served asset URLs instead of CID references.
+	// IsPreviewMode indicates browser preview mode. When true, local image paths are
+	// resolved to served asset URLs instead of CID references.
 	IsPreviewMode bool
 }
 
-// CloneForChild creates a new context for a child node, inheriting parent
-// information.
+// CloneForChild creates a new context for a child node, inheriting parent information.
 //
-// Takes childNode (*ast_domain.TemplateNode) which is the child node to create
-// a context for.
-// Takes childComponent (Component) which is the component associated with the
-// child node.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent node in the
-// template tree.
-// Takes parentComponent (Component) which is the component associated with the
-// parent node.
+// Takes childNode (*ast_domain.TemplateNode) which is the child node to create a context
+// for.
+// Takes childComponent (Component) which is the component associated with the child node.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent node in the template
+// tree.
+// Takes parentComponent (Component) which is the component associated with the parent
+// node.
 //
-// Returns *TransformationContext which is a new context with inherited settings
-// and a fresh diagnostics collection.
+// Returns *TransformationContext which is a new context with inherited settings and a
+// fresh diagnostics collection.
 func (c *TransformationContext) CloneForChild(childNode *ast_domain.TemplateNode, childComponent Component, parentNode *ast_domain.TemplateNode, parentComponent Component) *TransformationContext {
 	newPath := make([]string, len(c.ComponentPath)+1)
 	copy(newPath, c.ComponentPath)
@@ -233,13 +229,13 @@ func (c *TransformationContext) Diagnostics() []*Error {
 // extractSourceStyles gets styles from a given source type.
 //
 // Takes source (AttributeSource) which specifies where to get styles from.
-// Takes node (*ast_domain.TemplateNode) which provides the template node for
-// inline style extraction.
+// Takes node (*ast_domain.TemplateNode) which provides the template node for inline style
+// extraction.
 // Takes comp (Component) which provides the component for default styles.
 // Takes config (*pml_dto.Config) which specifies the configuration settings.
 //
-// Returns map[string]string which contains the extracted style key-value pairs,
-// or nil when the source type is not recognised.
+// Returns map[string]string which contains the extracted style key-value pairs, or nil
+// when the source type is not recognised.
 func extractSourceStyles(source AttributeSource, node *ast_domain.TemplateNode, comp Component, config *pml_dto.Config) map[string]string {
 	switch source {
 	case SourceDefault:
@@ -253,16 +249,15 @@ func extractSourceStyles(source AttributeSource, node *ast_domain.TemplateNode, 
 
 // extractDefaultStyles builds a map of default styles for a component.
 //
-// It starts with the component's built-in defaults, then applies any
-// overrides from the config. If the config clears defaults, only overrides
-// are used.
+// It starts with the component's built-in defaults, then applies any overrides from the
+// config. If the config clears defaults, only overrides are used.
 //
 // Takes comp (Component) which provides the default attributes for the element.
-// Takes config (*pml_dto.Config) which specifies attribute overrides and
-// whether to clear defaults.
+// Takes config (*pml_dto.Config) which specifies attribute overrides and whether to clear
+// defaults.
 //
-// Returns map[string]string which contains the merged default styles, or nil
-// if no defaults apply.
+// Returns map[string]string which contains the merged default styles, or nil if no
+// defaults apply.
 func extractDefaultStyles(comp Component, config *pml_dto.Config) map[string]string {
 	var sourceStyles map[string]string
 
@@ -282,8 +277,8 @@ func extractDefaultStyles(comp Component, config *pml_dto.Config) map[string]str
 
 // extractInlineStyles gathers inline attributes and style values from a node.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// read styles from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to read styles
+// from.
 //
 // Returns map[string]string which contains the style key-value pairs found.
 func extractInlineStyles(node *ast_domain.TemplateNode) map[string]string {
@@ -320,16 +315,14 @@ func mergeStyles(target map[string]string, source map[string]string) {
 	maps.Copy(target, source)
 }
 
-// mergeStylesWithSource copies styles into the target map and records which
-// source provided each value. Later sources overwrite earlier ones, matching
-// the precedence behaviour of mergeStyles.
+// mergeStylesWithSource copies styles into the target map and records which source
+// provided each value. Later sources overwrite earlier ones, matching the precedence
+// behaviour of mergeStyles.
 //
 // Takes targetStyles (map[string]string) which receives the copied styles.
-// Takes targetSources (map[string]AttributeSource) which records the source
-// for each key.
+// Takes targetSources (map[string]AttributeSource) which records the source for each key.
 // Takes source (map[string]string) which provides the styles to copy.
-// Takes sourceType (AttributeSource) which identifies where these styles
-// came from.
+// Takes sourceType (AttributeSource) which identifies where these styles came from.
 func mergeStylesWithSource(targetStyles map[string]string, targetSources map[string]AttributeSource, source map[string]string, sourceType AttributeSource) {
 	for k, v := range source {
 		targetStyles[k] = v
@@ -363,16 +356,15 @@ func newRootTransformationContext(config *pml_dto.Config, initialWidth float64, 
 	}
 }
 
-// newRootTransformationContextForEmail creates a root context specifically for
-// email rendering. It initialises the EmailAssetRegistry to collect asset
-// embedding requests.
+// newRootTransformationContextForEmail creates a root context specifically for email
+// rendering. It initialises the EmailAssetRegistry to collect asset embedding requests.
 //
 // Takes config (*pml_dto.Config) which provides the PML configuration settings.
 // Takes initialWidth (float64) which sets the initial container width.
 // Takes registry (ComponentRegistry) which provides component lookup.
 //
-// Returns *TransformationContext which is configured for email rendering with
-// asset collection enabled.
+// Returns *TransformationContext which is configured for email rendering with asset
+// collection enabled.
 func newRootTransformationContextForEmail(config *pml_dto.Config, initialWidth float64, registry ComponentRegistry) *TransformationContext {
 	return &TransformationContext{
 		Config:                  config,
@@ -396,8 +388,8 @@ func newRootTransformationContextForEmail(config *pml_dto.Config, initialWidth f
 
 // parseInlineStyle parses a CSS style attribute string into a map.
 //
-// Takes styleAttr (string) which contains CSS property pairs split by
-// semicolons, such as "color: red; font-size: 12px".
+// Takes styleAttr (string) which contains CSS property pairs split by semicolons, such as
+// "color: red; font-size: 12px".
 //
 // Returns map[string]string which maps each CSS property name to its value.
 func parseInlineStyle(styleAttr string) map[string]string {

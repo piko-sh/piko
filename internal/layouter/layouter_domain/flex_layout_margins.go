@@ -18,12 +18,12 @@
 
 package layouter_domain
 
-// resolveFlexAutoMargins distributes free space on the main
-// axis to items with auto margins.
+// resolveFlexAutoMargins distributes free space on the main axis to items with auto
+// margins.
 //
 // Takes line (*flexLine) which is the flex line to process.
-// Takes context (*flexPositionContext) which provides the
-// container dimensions and direction.
+// Takes context (*flexPositionContext) which provides the container dimensions and
+// direction.
 //
 // Returns bool which is true if any auto margins were found.
 func resolveFlexAutoMargins(line *flexLine, context *flexPositionContext) bool {
@@ -42,13 +42,11 @@ func resolveFlexAutoMargins(line *flexLine, context *flexPositionContext) bool {
 	return true
 }
 
-// countAutoMainMargins counts the number of auto margins
-// on the main axis across all items and computes the total
-// used space (item main sizes plus gaps).
+// countAutoMainMargins counts the number of auto margins on the main axis across all
+// items and computes the total used space (item main sizes plus gaps).
 //
 // Takes line (*flexLine) which is the flex line.
-// Takes isRowDirection (bool) which selects horizontal or
-// vertical margins.
+// Takes isRowDirection (bool) which selects horizontal or vertical margins.
 // Takes mainGap (float64) which is the gap between items.
 //
 // Returns the auto margin count and total used space.
@@ -62,9 +60,8 @@ func countAutoMainMargins(line *flexLine, isRowDirection bool, mainGap float64) 
 	return autoCount, usedSpace
 }
 
-// countItemAutoMainMargins returns the number of auto
-// margins on the main axis for a single flex item (0, 1,
-// or 2).
+// countItemAutoMainMargins returns the number of auto margins on the main axis for a
+// single flex item (0, 1, or 2).
 //
 // Takes item (*flexItem) which is the flex item to inspect.
 //
@@ -89,8 +86,7 @@ func countItemAutoMainMargins(item *flexItem, isRowDirection bool) int {
 	return count
 }
 
-// applyAutoMainMargins assigns the per-margin value to
-// each auto margin on the main axis.
+// applyAutoMainMargins assigns the per-margin value to each auto margin on the main axis.
 //
 // Takes line (*flexLine) which is the flex line to modify.
 // Takes isRowDirection (bool) which selects horizontal or vertical margins.
@@ -115,9 +111,8 @@ func applyAutoMainMargins(line *flexLine, isRowDirection bool, perMargin float64
 	}
 }
 
-// itemAutoMainMargins returns the resolved auto margin
-// values for the start and end of the main axis. Items
-// without auto margins return (0, 0).
+// itemAutoMainMargins returns the resolved auto margin values for the start and end of
+// the main axis. Items without auto margins return (0, 0).
 //
 // Takes item (*flexItem) which is the flex item to query.
 //

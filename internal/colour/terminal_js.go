@@ -20,8 +20,8 @@
 
 package colour
 
-// isTerminal always returns false in a JavaScript/WASM environment since there
-// is no terminal. Use FORCE_COLOUR to enable colour output.
+// isTerminal always returns false in a JavaScript/WASM environment since there is no
+// terminal. Use FORCE_COLOUR to enable colour output.
 //
 // Returns bool which is always false.
 func isTerminal(_ uintptr) bool { return false }

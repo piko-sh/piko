@@ -873,8 +873,8 @@ func TestResolveAsset(t *testing.T) {
 		assert.Equal(t, "image/png", attachment.MIMEType)
 		assert.Equal(t, expectedContent, attachment.Content)
 		assert.Equal(t, "logo_abc123", attachment.ContentID)
-		assert.Equal(t, int64(1), mock.GetArtefactCallCount)
-		assert.Equal(t, int64(1), mock.GetVariantDataCallCount)
+		assert.Equal(t, int64(1), mock.GetArtefactCallCount.Load())
+		assert.Equal(t, int64(1), mock.GetVariantDataCallCount.Load())
 	})
 
 	t.Run("returns error when artefact fetch fails", func(t *testing.T) {

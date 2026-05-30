@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package coordinator_adapters implements the coordinator domain ports
-// for caching and diagnostic output.
+// Package coordinator_adapters implements the coordinator domain ports for caching and
+// diagnostic output.
 //
-// It covers caches for build results, file hashes, and type
-// introspection data, as well as diagnostic output rendering for CLI
-// and LSP contexts.
+// It covers caches for build results, file hashes, and type introspection data, as well
+// as diagnostic output rendering for CLI and LSP contexts.
 //
 // # Thread safety
 //
-// All cache implementations are safe for concurrent use, backed by the cache
-// hexagon's thread-safe infrastructure.
+// All cache implementations are safe for concurrent use, backed by the cache hexagon's
+// thread-safe infrastructure.
 package coordinator_adapters

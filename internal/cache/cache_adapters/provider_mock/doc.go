@@ -18,13 +18,11 @@
 
 // Package provider_mock supplies in-memory mock cache adapters for testing.
 //
-// The generic mock implementation of the cache provider and adapter
-// interfaces supports call recording, error injection, and state
-// simulation, allowing tests to exercise cache-dependent code without
-// real cache backends.
+// The generic mock implementation of the cache provider and adapter interfaces supports
+// call recording, error injection, and state simulation, allowing tests to exercise
+// cache-dependent code without real cache backends.
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. Internal state is guarded
-// by a sync.RWMutex.
+// All methods are safe for concurrent use. Internal state is guarded by a sync.RWMutex.
 package provider_mock

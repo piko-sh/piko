@@ -18,45 +18,44 @@
 
 package crypto_dto
 
-// EncryptRequest represents a request to encrypt plaintext data.
-// It is used by encryption adapters including local AES-GCM and cloud KMS.
+// EncryptRequest represents a request to encrypt plaintext data. It is used by encryption
+// adapters including local AES-GCM and cloud KMS.
 type EncryptRequest struct {
-	// Context provides additional authenticated data (AAD) for encryption.
-	// This data is authenticated but not encrypted and must be provided
-	// during decryption; optional, used for extra security context.
+	// Context provides additional authenticated data (AAD) for encryption. This data is
+	// authenticated but not encrypted and must be provided during decryption; optional, used
+	// for extra security context.
 	Context map[string]string
 
 	// Plaintext is the data to encrypt; must not be empty.
 	Plaintext string
 
-	// KeyID optionally specifies which key to use for encryption; if empty, the
-	// service's active key is used.
+	// KeyID optionally specifies which key to use for encryption; if empty, the service's
+	// active key is used.
 	KeyID string
 }
 
 // DecryptRequest represents a request to decrypt ciphertext.
 type DecryptRequest struct {
-	// Context provides optional extra data that was used during encryption.
-	// Must match the value given when encrypting; leave empty if none was used.
+	// Context provides optional extra data that was used during encryption. Must match the
+	// value given when encrypting; leave empty if none was used.
 	Context map[string]string
 
 	// Ciphertext is the encrypted data to decrypt, encoded as base64.
 	Ciphertext string
 
-	// KeyID optionally hints which key was used for encryption; if empty, the
-	// service extracts the key ID from the ciphertext envelope.
+	// KeyID optionally hints which key was used for encryption; if empty, the service
+	// extracts the key ID from the ciphertext envelope.
 	KeyID string
 }
 
-// GenerateDataKeyRequest specifies parameters for generating a new data
-// encryption key. Used for envelope encryption patterns where a master key
-// encrypts many data keys.
+// GenerateDataKeyRequest specifies parameters for generating a new data encryption key.
+// Used for envelope encryption patterns where a master key encrypts many data keys.
 type GenerateDataKeyRequest struct {
-	// KeyID specifies the master key to use for encrypting the data key. If empty,
-	// the provider's default key is used.
+	// KeyID specifies the master key to use for encrypting the data key. If empty, the
+	// provider's default key is used.
 	KeyID string
 
-	// KeySpec specifies the type of data key to generate.
-	// Common values: "AES_256" (default), "AES_128".
+	// KeySpec specifies the type of data key to generate. Common values: "AES_256"
+	// (default), "AES_128".
 	KeySpec string
 }

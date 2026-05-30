@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package emitter_go_sql implements CodeEmitterPort for the
-// database/sql runtime target. It generates Go source code that
-// uses the standard database/sql interfaces (ExecContext,
-// QueryContext, QueryRowContext) and includes a PreparedDBTX
-// wrapper for eager and lazy statement caching.
+// Package emitter_go_sql implements CodeEmitterPort for the database/sql runtime target.
+// It generates Go source code that uses the standard database/sql interfaces
+// (ExecContext, QueryContext, QueryRowContext) and includes a PreparedDBTX wrapper for
+// eager and lazy statement caching.
 //
-// This is the built-in default emitter. For pgx-native code
-// generation, use the wdk/db/db_emitter_pgx package instead.
+// This is the built-in default emitter. For pgx-native code generation, use the
+// wdk/db/db_emitter_pgx package instead.
 package emitter_go_sql

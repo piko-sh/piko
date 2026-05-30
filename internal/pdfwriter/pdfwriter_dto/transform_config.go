@@ -18,10 +18,11 @@
 
 package pdfwriter_dto
 
-import "crypto"
+import (
+	"crypto"
+)
 
-// CompressAlgorithm identifies a compression algorithm for the compress
-// transformer.
+// CompressAlgorithm identifies a compression algorithm for the compress transformer.
 type CompressAlgorithm string
 
 const (
@@ -29,22 +30,21 @@ const (
 	CompressZstd CompressAlgorithm = "zstd"
 )
 
-// TransformConfig specifies which PDF transformers to apply and their
-// per-transformer options. Transformers are applied in ascending priority
-// order regardless of the order in EnabledTransformers.
+// TransformConfig specifies which PDF transformers to apply and their per-transformer
+// options. Transformers are applied in ascending priority order regardless of the order
+// in EnabledTransformers.
 type TransformConfig struct {
-	// TransformerOptions maps transformer names to their specific settings.
-	// Each transformer casts its options to the expected concrete type.
+	// TransformerOptions maps transformer names to their specific settings. Each transformer
+	// casts its options to the expected concrete type.
 	TransformerOptions map[string]any
 
-	// EnabledTransformers lists the names of transformers to apply. The
-	// chain sorts them by priority; this list is a declaration of intent,
-	// not an ordering directive.
+	// EnabledTransformers lists the names of transformers to apply. The chain sorts them by
+	// priority; this list is a declaration of intent, not an ordering directive.
 	EnabledTransformers []string
 }
 
-// DefaultTransformConfig returns an empty transform configuration with no
-// transformers enabled.
+// DefaultTransformConfig returns an empty transform configuration with no transformers
+// enabled.
 //
 // Returns TransformConfig which is ready for use with empty transformer lists.
 func DefaultTransformConfig() TransformConfig {
@@ -59,12 +59,10 @@ type WatermarkOptions struct {
 	// Text is the watermark text to render. Empty when using image-only.
 	Text string
 
-	// ImageData holds raw image bytes for an image watermark. Nil for
-	// text-only watermarks.
+	// ImageData holds raw image bytes for an image watermark. Nil for text-only watermarks.
 	ImageData []byte
 
-	// Pages restricts the watermark to specific page indices. Empty means
-	// all pages.
+	// Pages restricts the watermark to specific page indices. Empty means all pages.
 	Pages []int
 
 	// FontSize is the font size in points for text watermarks.
@@ -88,8 +86,7 @@ type WatermarkOptions struct {
 
 // EncryptionOptions configures the PDF encryption transformer.
 type EncryptionOptions struct {
-	// Algorithm specifies the encryption algorithm: "aes-256", "aes-128",
-	// or "rc4-128".
+	// Algorithm specifies the encryption algorithm: "aes-256", "aes-128", or "rc4-128".
 	Algorithm string
 
 	// OwnerPassword is the owner (permissions) password.
@@ -107,12 +104,10 @@ type PadesSignOptions struct {
 	// PrivateKey is the signing key. Must implement crypto.Signer.
 	PrivateKey crypto.Signer
 
-	// Level specifies the PAdES conformance level: "b-b", "b-t", "b-lt",
-	// or "b-lta".
+	// Level specifies the PAdES conformance level: "b-b", "b-t", "b-lt", or "b-lta".
 	Level string
 
-	// TimestampURL is the Time Stamping Authority URL, required for B-T
-	// and above.
+	// TimestampURL is the Time Stamping Authority URL, required for B-T and above.
 	TimestampURL string
 
 	// Reason is the stated reason for signing.
@@ -124,21 +119,20 @@ type PadesSignOptions struct {
 	// ContactInfo is contact information for the signer.
 	ContactInfo string
 
-	// CertificateChain is the signing certificate chain in DER encoding,
-	// ordered from end-entity to root.
+	// CertificateChain is the signing certificate chain in DER encoding, ordered from
+	// end-entity to root.
 	CertificateChain [][]byte
 
-	// OCSPResponses holds pre-fetched OCSP responses for long-term
-	// validation (B-LT and above).
+	// OCSPResponses holds pre-fetched OCSP responses for long-term validation (B-LT and
+	// above).
 	OCSPResponses [][]byte
 
-	// CRLs holds pre-fetched CRLs for long-term validation (B-LT and
-	// above).
+	// CRLs holds pre-fetched CRLs for long-term validation (B-LT and above).
 	CRLs [][]byte
 }
 
-// PdfUAOptions configures the PDF/UA enhancement transformer. PDF/UA
-// enhancement does not currently require any configuration.
+// PdfUAOptions configures the PDF/UA enhancement transformer. PDF/UA enhancement does not
+// currently require any configuration.
 type PdfUAOptions struct{}
 
 // PdfAOptions configures the PDF/A conversion transformer.
@@ -147,12 +141,12 @@ type PdfAOptions struct {
 	Level string
 }
 
-// LineariseOptions configures the linearisation transformer. Linearisation
-// does not require any configuration.
+// LineariseOptions configures the linearisation transformer. Linearisation does not
+// require any configuration.
 type LineariseOptions struct{}
 
-// ObjStmOptions configures the object stream compression transformer.
-// Object stream compression does not require any configuration.
+// ObjStmOptions configures the object stream compression transformer. Object stream
+// compression does not require any configuration.
 type ObjStmOptions struct{}
 
 // FlattenOptions configures the flattening transformer.
@@ -181,8 +175,7 @@ type RedactionOptions struct {
 
 // CompressOptions configures the compression transformer.
 type CompressOptions struct {
-	// Algorithm selects the compression algorithm. Defaults to
-	// CompressZstd when empty.
+	// Algorithm selects the compression algorithm. Defaults to CompressZstd when empty.
 	Algorithm CompressAlgorithm
 }
 

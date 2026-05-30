@@ -56,18 +56,16 @@ type imgElementParams struct {
 	// FallbackFormat is the image format used for the fallback img src attribute.
 	FallbackFormat string
 
-	// HasProfiles indicates whether image profiles are
-	// registered for srcset generation.
+	// HasProfiles indicates whether image profiles are registered for srcset generation.
 	HasProfiles bool
 }
 
-// renderPikoPicture renders a <piko:picture> component as a <picture> element
-// with per-format <source> elements and a fallback <img>.
+// renderPikoPicture renders a <piko:picture> component as a <picture> element with
+// per-format <source> elements and a fallback <img>.
 //
-// Takes ro (*RenderOrchestrator) which provides asset registration and
-// element directive rendering.
-// Takes node (*ast_domain.TemplateNode) which is the piko:picture element to
-// render.
+// Takes ro (*RenderOrchestrator) which provides asset registration and element directive
+// rendering.
+// Takes node (*ast_domain.TemplateNode) which is the piko:picture element to render.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
 //
@@ -92,12 +90,11 @@ func renderPikoPicture(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw
 	return renderStaticPicture(ro, node, qw, rctx, attrs)
 }
 
-// renderStaticPicture renders a piko:picture with a static asset source,
-// handling format negotiation, profile registration, and source element
-// generation.
+// renderStaticPicture renders a piko:picture with a static asset source, handling format
+// negotiation, profile registration, and source element generation.
 //
-// Takes ro (*RenderOrchestrator) which provides asset registration and
-// element directive rendering.
+// Takes ro (*RenderOrchestrator) which provides asset registration and element directive
+// rendering.
 // Takes node (*ast_domain.TemplateNode) which is the piko:picture element.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state.
@@ -139,9 +136,8 @@ func renderStaticPicture(ro *RenderOrchestrator, node *ast_domain.TemplateNode, 
 	return nil
 }
 
-// registerPictureProfile creates and registers the asset profile for a static
-// picture element. Returns nil when no profile is configured or no registry is
-// available.
+// registerPictureProfile creates and registers the asset profile for a static picture
+// element. Returns nil when no profile is configured or no registry is available.
 //
 // Takes ro (*RenderOrchestrator) which provides asset registration.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
@@ -188,15 +184,15 @@ func writePictureClose(qw *qt.Writer) {
 	qw.N().Z(closeBracket)
 }
 
-// writeImgElement writes the fallback <img> element with appropriate src,
-// srcset, sizes, and directive attributes.
+// writeImgElement writes the fallback <img> element with appropriate src, srcset, sizes,
+// and directive attributes.
 //
 // Takes ro (*RenderOrchestrator) which provides directive writing.
 // Takes node (*ast_domain.TemplateNode) which holds the element attributes.
 // Takes qw (*qt.Writer) which receives the output.
 // Takes rctx (*renderContext) which provides rendering state.
-// Takes p (imgElementParams) which groups the artefact, transformed source,
-// fallback format, image attributes, and profile flag.
+// Takes p (imgElementParams) which groups the artefact, transformed source, fallback
+// format, image attributes, and profile flag.
 func writeImgElement(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw *qt.Writer, rctx *renderContext, p imgElementParams) {
 	qw.N().Z(openBracket)
 	qw.N().S("img")
@@ -218,8 +214,7 @@ func writeImgElement(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw *
 	qw.N().Z(selfClose)
 }
 
-// writePictureTagWithoutSrc writes a picture element when the src attribute is
-// missing.
+// writePictureTagWithoutSrc writes a picture element when the src attribute is missing.
 //
 // Takes ro (*RenderOrchestrator) which provides the rendering setup.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
@@ -244,8 +239,7 @@ func writePictureTagWithoutSrc(ro *RenderOrchestrator, node *ast_domain.Template
 // renderCMSMediaPicture renders a piko:picture with a CMS media source.
 //
 // Takes ro (*RenderOrchestrator) which provides element directive rendering.
-// Takes node (*ast_domain.TemplateNode) which is the piko:picture element to
-// render.
+// Takes node (*ast_domain.TemplateNode) which is the piko:picture element to render.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
 // Takes attrs (*pikoImgAttrs) which contains the extracted attributes.
@@ -303,8 +297,8 @@ func renderCMSMediaPicture(ro *RenderOrchestrator, node *ast_domain.TemplateNode
 	return nil
 }
 
-// writePictureSourceElement writes a <source> element with type, srcset,
-// and sizes attributes for a specific image format.
+// writePictureSourceElement writes a <source> element with type, srcset, and sizes
+// attributes for a specific image format.
 //
 // Takes qw (*qt.Writer) which receives the rendered output.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides the image profiles.
@@ -342,8 +336,8 @@ func writePictureSourceElement(qw *qt.Writer, artefact *registry_dto.ArtefactMet
 	qw.N().Z(selfClose)
 }
 
-// writeSrcsetAttributeForFormat writes the srcset attribute filtered to a
-// specific image format.
+// writeSrcsetAttributeForFormat writes the srcset attribute filtered to a specific image
+// format.
 //
 // Takes qw (*qt.Writer) which receives the rendered attribute output.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides the image profiles.
@@ -367,9 +361,9 @@ func writeSrcsetAttributeForFormat(qw *qt.Writer, artefact *registry_dto.Artefac
 	qw.N().Z(quote)
 }
 
-// writeFallbackImgSrc writes the src attribute for the fallback <img> element.
-// Uses the largest width variant for the fallback format, or the base URL if
-// no matching profile is found.
+// writeFallbackImgSrc writes the src attribute for the fallback <img> element. Uses the
+// largest width variant for the fallback format, or the base URL if no matching profile
+// is found.
 //
 // Takes qw (*qt.Writer) which receives the rendered attribute output.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides the image profiles.
@@ -391,9 +385,8 @@ func writeFallbackImgSrc(qw *qt.Writer, artefact *registry_dto.ArtefactMeta, bas
 	}
 }
 
-// selectLargestProfileForFormat finds the profile with the largest width for
-// the given image format. Returns the profile key, or empty string if none
-// matches.
+// selectLargestProfileForFormat finds the profile with the largest width for the given
+// image format. Returns the profile key, or empty string if none matches.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which provides the image profiles.
 // Takes format (string) which is the image format to filter by.
@@ -429,8 +422,8 @@ func selectLargestProfileForFormat(artefact *registry_dto.ArtefactMeta, format s
 	return bestKey
 }
 
-// parseDecimalDigits extracts a non-negative integer from a string by reading
-// consecutive ASCII digit characters.
+// parseDecimalDigits extracts a non-negative integer from a string by reading consecutive
+// ASCII digit characters.
 //
 // Takes s (string) which contains the digits to parse.
 //
@@ -445,8 +438,8 @@ func parseDecimalDigits(s string) int {
 	return n
 }
 
-// appendSrcsetForFormat builds a srcset string filtered to a specific image
-// format. Only profiles whose name ends with "_{format}" are included.
+// appendSrcsetForFormat builds a srcset string filtered to a specific image format. Only
+// profiles whose name ends with "_{format}" are included.
 //
 // Takes buffer ([]byte) which is the buffer to append to.
 // Takes profiles ([]registry_dto.NamedProfile) which contains the image profiles.
@@ -491,8 +484,8 @@ func appendSrcsetForFormat(buffer []byte, profiles []registry_dto.NamedProfile, 
 	return buffer
 }
 
-// ensureFallbackFormat returns a new formats slice that includes the fallback
-// format if not already present. The fallback is appended at the end.
+// ensureFallbackFormat returns a new formats slice that includes the fallback format if
+// not already present. The fallback is appended at the end.
 //
 // Takes formats ([]string) which is the list of requested formats.
 // Takes fallback (string) which is the fallback format to ensure is present.
@@ -536,9 +529,9 @@ func formatToMIMEType(format string) string {
 	}
 }
 
-// inferFallbackFormat determines the appropriate fallback image format based on
-// the source file extension. Transparent formats (.png, .gif, .webp) fall back
-// to png; all others fall back to jpg.
+// inferFallbackFormat determines the appropriate fallback image format based on the
+// source file extension. Transparent formats (.png, .gif, .webp) fall back to png; all
+// others fall back to jpg.
 //
 // Takes src (string) which is the source image path.
 //

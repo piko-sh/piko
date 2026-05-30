@@ -1,0 +1,4 @@
+{
+  "description": "Type defined in fileA, methods on it in fileB, alias to it in fileC, alias used in main",
+  "expected": "len=3 first=10 sum=60"
+}

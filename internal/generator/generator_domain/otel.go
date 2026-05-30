@@ -37,20 +37,17 @@ var (
 	// generateDuration measures the duration of single-file generate operations.
 	generateDuration metric.Float64Histogram
 
-	// generateErrorCount tracks the number of errors during single-file generate
-	// operations.
+	// generateErrorCount tracks the number of errors during single-file generate operations.
 	generateErrorCount metric.Int64Counter
 
-	// generateProjectCount tracks the number of full project generation
-	// operations.
+	// generateProjectCount tracks the number of full project generation operations.
 	generateProjectCount metric.Int64Counter
 
-	// generateProjectDuration measures the duration of full project generation
-	// operations.
+	// generateProjectDuration measures the duration of full project generation operations.
 	generateProjectDuration metric.Float64Histogram
 
-	// generateProjectErrorCount tracks the number of errors during full project
-	// generation operations.
+	// generateProjectErrorCount tracks the number of errors during full project generation
+	// operations.
 	generateProjectErrorCount metric.Int64Counter
 )
 

@@ -18,26 +18,27 @@
 
 package daemon_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockBuildCacheInvalidator is a test double for BuildCacheInvalidator
-// where nil function fields are no-ops and call counts are tracked
-// atomically.
+// MockBuildCacheInvalidator is a test double for BuildCacheInvalidator where nil function
+// fields are no-ops and call counts are tracked atomically.
 type MockBuildCacheInvalidator struct {
-	// InvalidateBuildCacheFunc is the function called by
-	// InvalidateBuildCache.
+	// InvalidateBuildCacheFunc is the function called by InvalidateBuildCache.
 	InvalidateBuildCacheFunc func()
 
-	// InvalidateBuildCacheCallCount tracks how many times
-	// InvalidateBuildCache was called.
-	InvalidateBuildCacheCallCount int64
+	// InvalidateBuildCacheCallCount tracks how many times InvalidateBuildCache was called.
+	InvalidateBuildCacheCallCount atomic.Int64
 }
 
-var _ BuildCacheInvalidator = (*MockBuildCacheInvalidator)(nil)
+var (
+	_ BuildCacheInvalidator = (*MockBuildCacheInvalidator)(nil)
+)
 
 // InvalidateBuildCache clears any stored build results.
 func (m *MockBuildCacheInvalidator) InvalidateBuildCache() {
-	atomic.AddInt64(&m.InvalidateBuildCacheCallCount, 1)
+	m.InvalidateBuildCacheCallCount.Add(1)
 	if m.InvalidateBuildCacheFunc != nil {
 		m.InvalidateBuildCacheFunc()
 	}

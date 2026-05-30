@@ -26,7 +26,9 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
-var _ monitoring_domain.HealthProbeService = (*HealthProbeAdapter)(nil)
+var (
+	_ monitoring_domain.HealthProbeService = (*HealthProbeAdapter)(nil)
+)
 
 // HealthProbeAdapter adapts healthprobe_domain.Service to
 // monitoring_domain.HealthProbeService.
@@ -37,11 +39,10 @@ type HealthProbeAdapter struct {
 
 // NewHealthProbeAdapter creates a new HealthProbeAdapter.
 //
-// Takes service (healthprobe_domain.Service) which is the underlying health
-// probe service.
+// Takes service (healthprobe_domain.Service) which is the underlying health probe
+// service.
 //
-// Returns *HealthProbeAdapter which implements
-// monitoring_domain.HealthProbeService.
+// Returns *HealthProbeAdapter which implements monitoring_domain.HealthProbeService.
 func NewHealthProbeAdapter(service healthprobe_domain.Service) *HealthProbeAdapter {
 	return &HealthProbeAdapter{
 		service: service,
@@ -50,8 +51,8 @@ func NewHealthProbeAdapter(service healthprobe_domain.Service) *HealthProbeAdapt
 
 // CheckLiveness runs all liveness health probes.
 //
-// Returns monitoring_domain.HealthProbeStatus which indicates the current
-// liveness state of the service.
+// Returns monitoring_domain.HealthProbeStatus which indicates the current liveness state
+// of the service.
 func (a *HealthProbeAdapter) CheckLiveness(ctx context.Context) monitoring_domain.HealthProbeStatus {
 	status := a.service.CheckLiveness(ctx)
 	return convertDTOStatus(status)
@@ -59,8 +60,8 @@ func (a *HealthProbeAdapter) CheckLiveness(ctx context.Context) monitoring_domai
 
 // CheckReadiness runs all readiness health probes.
 //
-// Returns monitoring_domain.HealthProbeStatus which indicates the readiness
-// state of all probes.
+// Returns monitoring_domain.HealthProbeStatus which indicates the readiness state of all
+// probes.
 func (a *HealthProbeAdapter) CheckReadiness(ctx context.Context) monitoring_domain.HealthProbeStatus {
 	status := a.service.CheckReadiness(ctx)
 	return convertDTOStatus(status)
@@ -71,8 +72,7 @@ func (a *HealthProbeAdapter) CheckReadiness(ctx context.Context) monitoring_doma
 //
 // Takes status (healthprobe_dto.Status) which is the DTO to convert.
 //
-// Returns monitoring_domain.HealthProbeStatus which is the domain model
-// representation.
+// Returns monitoring_domain.HealthProbeStatus which is the domain model representation.
 func convertDTOStatus(status healthprobe_dto.Status) monitoring_domain.HealthProbeStatus {
 	deps := make([]monitoring_domain.HealthProbeStatus, len(status.Dependencies))
 	for i, dependency := range status.Dependencies {

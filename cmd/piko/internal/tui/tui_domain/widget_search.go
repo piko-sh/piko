@@ -25,8 +25,7 @@ import (
 )
 
 const (
-	// searchBoxCharLimit is the maximum number of characters allowed in the
-	// search box.
+	// searchBoxCharLimit is the maximum number of characters allowed in the search box.
 	searchBoxCharLimit = 128
 
 	// searchBoxDefaultWidth is the default character width for search input fields.
@@ -39,11 +38,11 @@ const (
 	searchBoxMinInputWidth = 20
 )
 
-// SearchBox provides a text input field for search queries in a k9s-style
-// interface. It implements io.Closer.
+// SearchBox provides a text input field for search queries in a k9s-style interface. It
+// implements io.Closer.
 type SearchBox struct {
-	// onClose is called when the search box closes with the search text and
-	// whether the user confirmed or cancelled.
+	// onClose is called when the search box closes with the search text and whether the user
+	// confirmed or cancelled.
 	onClose func(query string, confirmed bool)
 
 	// input is the text input widget for entering search queries.
@@ -97,9 +96,8 @@ func (s *SearchBox) SetWidth(w int) {
 
 // SetOnClose sets the callback for when search is closed.
 //
-// Takes callback (func(query string, confirmed bool)) which
-// receives the final query text and whether the user confirmed
-// or cancelled the search.
+// Takes callback (func(query string, confirmed bool)) which receives the final query text
+// and whether the user confirmed or cancelled the search.
 func (s *SearchBox) SetOnClose(callback func(query string, confirmed bool)) {
 	s.onClose = callback
 }
@@ -179,8 +177,8 @@ func (s *SearchBox) Update(message tea.Msg) (*SearchBox, tea.Cmd) {
 
 // View renders the search box as a styled string.
 //
-// Returns string which holds the rendered view, or an empty string if the
-// search box is not active.
+// Returns string which holds the rendered view, or an empty string if the search box is
+// not active.
 func (s *SearchBox) View() string {
 	if !s.active {
 		return ""

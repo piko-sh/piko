@@ -25,43 +25,45 @@ import (
 	"unicode/utf8"
 )
 
-// pathSeparator is the forward slash used to join URL path segments.
-const pathSeparator = "/"
+const (
+	// pathSeparator is the forward slash used to join URL path segments.
+	pathSeparator = "/"
 
-// asciiControlMaxExclusive is the upper bound (exclusive) of the ASCII C0
-// control range. Runes below this are non-printable.
-const asciiControlMaxExclusive = 0x20
+	// asciiControlMaxExclusive is the upper bound (exclusive) of the ASCII C0 control range.
+	// Runes below this are non-printable.
+	asciiControlMaxExclusive = 0x20
 
-// asciiDelete is the ASCII DEL character, the only control point above the
-// printable range that must also be stripped from slugs.
-const asciiDelete = 0x7F
+	// asciiDelete is the ASCII DEL character, the only control point above the printable
+	// range that must also be stripped from slugs.
+	asciiDelete = 0x7F
 
-// parentDirSegment matches the path-traversal segment that path_analyser must
-// strip from any path component before it becomes part of a slug.
-const parentDirSegment = ".."
+	// parentDirSegment matches the path-traversal segment that path_analyser must strip from
+	// any path component before it becomes part of a slug.
+	parentDirSegment = ".."
 
-// indexBasename is the conventional basename for a directory's landing page.
-//
-// When a file is named "index.md", the slug stored for the item drops the
-// trailing /index segment so the item is reachable at the bare directory URL
-// (e.g. "tutorials/index.md" stores slug "tutorials" served at /docs/tutorials).
-const indexBasename = "index"
+	// indexBasename is the conventional basename for a directory's landing page.
+	//
+	// When a file is named "index.md", the slug stored for the item drops the trailing
+	// /index segment so the item is reachable at the bare directory URL (e.g.
+	// "tutorials/index.md" stores slug "tutorials" served at /docs/tutorials).
+	indexBasename = "index"
 
-// rootIndexSlug is the lookup key used for an index file at the collection
-// root. The slug cannot be empty (validateSlugs rejects empty strings) and
-// must not collide with any user-authored slug.
-const rootIndexSlug = "index"
+	// rootIndexSlug is the lookup key used for an index file at the collection root. The
+	// slug cannot be empty (validateSlugs rejects empty strings) and must not collide with
+	// any user-authored slug.
+	rootIndexSlug = "index"
 
-// maxSlugBytes caps the length of a generated slug. Slugs become FlatBuffer
-// keys, log fields and URL captures, so the cap acts as defence-in-depth
-// against pathological filenames.
-const maxSlugBytes = 1024
+	// maxSlugBytes caps the length of a generated slug. Slugs become FlatBuffer keys, log
+	// fields and URL captures, so the cap acts as defence-in-depth against pathological
+	// filenames.
+	maxSlugBytes = 1024
 
-// maxSlugDepth caps the number of path segments in a generated slug.
-const maxSlugDepth = 32
+	// maxSlugDepth caps the number of path segments in a generated slug.
+	maxSlugDepth = 32
+)
 
-// pathAnalyser extracts structured data from markdown file paths.
-// It finds locale and content type from path patterns.
+// pathAnalyser extracts structured data from markdown file paths. It finds locale and
+// content type from path patterns.
 type pathAnalyser struct {
 	// defaultLocale is the fallback locale used when none can be found in the path.
 	defaultLocale string
@@ -77,33 +79,32 @@ type pathInfo struct {
 
 	// slug is the URL-friendly identifier for the item.
 	//
-	// For flat files such as "my-blog-post.md" the slug is "my-blog-post";
-	// for nested files such as "get-started/introduction.md" the slug joins
-	// the in-collection directory parts with the basename, producing
-	// "get-started/introduction". The runtime lookup keys on this slug.
+	// For flat files such as "my-blog-post.md" the slug is "my-blog-post"; for nested files
+	// such as "get-started/introduction.md" the slug joins the in-collection directory parts
+	// with the basename, producing "get-started/introduction". The runtime lookup keys on
+	// this slug.
 	slug string
 
-	// translationKey is a locale-independent identifier for linking translations.
-	// For example, "blog/my-post" links "en/blog/my-post.md" and "fr/blog/my-post.md".
+	// translationKey is a locale-independent identifier for linking translations. For
+	// example, "blog/my-post" links "en/blog/my-post.md" and "fr/blog/my-post.md".
 	translationKey string
 
 	// url is the final URL path for this content, such as "/blog/my-post".
 	url string
 
-	// pathSegments contains the directory parts between the collection root and
-	// the filename. For example, "blog/2024/post.md" gives ["blog", "2024"].
+	// pathSegments contains the directory parts between the collection root and the
+	// filename. For example, "blog/2024/post.md" gives ["blog", "2024"].
 	pathSegments []string
 }
 
 // Analyse extracts structured information from a relative file path.
 //
-// Takes relativePath (string) which is the path relative to collection root
-// (e.g., "en/blog/post.md").
-// Takes collectionName (string) which is the name of the collection
-// (e.g., "blog").
+// Takes relativePath (string) which is the path relative to collection root (e.g.,
+// "en/blog/post.md").
+// Takes collectionName (string) which is the name of the collection (e.g., "blog").
 //
-// Returns *pathInfo which contains the analysed path components including
-// locale, slug, segments, translation key, and URL.
+// Returns *pathInfo which contains the analysed path components including locale, slug,
+// segments, translation key, and URL.
 func (pa *pathAnalyser) Analyse(relativePath, collectionName string) *pathInfo {
 	relativePath = sanitiseRelativePath(filepath.ToSlash(relativePath))
 
@@ -141,20 +142,20 @@ func (pa *pathAnalyser) Analyse(relativePath, collectionName string) *pathInfo {
 	}
 }
 
-// sanitiseRelativePath strips path-traversal segments, NUL bytes and ASCII
-// control characters from a slash-separated relative path. Backslashes are
-// also normalised to forward slashes so a Windows-style segment like "..\\x"
-// does not survive as a single token.
+// sanitiseRelativePath strips path-traversal segments, NUL bytes and ASCII control
+// characters from a slash-separated relative path. Backslashes are also normalised to
+// forward slashes so a Windows-style segment like "..\\x" does not survive as a single
+// token.
 //
-// The scanner already operates inside a safedisk sandbox so these segments
-// cannot escape the filesystem, but they must not survive into the slug since
-// the slug becomes a URL key and the FlatBuffer lookup token.
+// The scanner already operates inside a safedisk sandbox so these segments cannot escape
+// the filesystem, but they must not survive into the slug since the slug becomes a URL
+// key and the FlatBuffer lookup token.
 //
-// Takes relativePath (string) which is a slash-separated path relative to a
-// collection root.
+// Takes relativePath (string) which is a slash-separated path relative to a collection
+// root.
 //
-// Returns string which is the path with "..", "." segments, NUL bytes,
-// backslashes and control characters removed.
+// Returns string which is the path with "..", "." segments, NUL bytes, backslashes and
+// control characters removed.
 func sanitiseRelativePath(relativePath string) string {
 	if relativePath == "" {
 		return ""
@@ -173,9 +174,9 @@ func sanitiseRelativePath(relativePath string) string {
 	return strings.Join(cleaned, "/")
 }
 
-// stripControlChars removes ASCII control characters (C0 range and DEL) from
-// a string. These characters have no business in a slug and would corrupt log
-// output and URL parsing if they reached either.
+// stripControlChars removes ASCII control characters (C0 range and DEL) from a string.
+// These characters have no business in a slug and would corrupt log output and URL
+// parsing if they reached either.
 //
 // Takes value (string) which is the source string.
 //
@@ -206,19 +207,19 @@ func isControlChar(r rune) bool {
 
 // buildItemSlug forms the canonical slug for a content item.
 //
-// Joins the in-collection directory parts with the basename. When the
-// basename is "index", the slug drops the trailing /index so an index file
-// is reachable at its parent directory's URL (e.g. "tutorials/index.md"
-// stores slug "tutorials"). For an index file at the collection root,
-// rootIndexSlug is used so lookups keyed on an empty path normalise to it.
+// Joins the in-collection directory parts with the basename. When the basename is
+// "index", the slug drops the trailing /index so an index file is reachable at its parent
+// directory's URL (e.g. "tutorials/index.md" stores slug "tutorials"). For an index file
+// at the collection root, rootIndexSlug is used so lookups keyed on an empty path
+// normalise to it.
 //
-// Takes cleanDirParts ([]string) which are the in-collection directory parts
-// after locale stripping.
-// Takes basename (string) which is the lowercased filename without
-// extension or locale suffix.
+// Takes cleanDirParts ([]string) which are the in-collection directory parts after locale
+// stripping.
+// Takes basename (string) which is the lowercased filename without extension or locale
+// suffix.
 //
-// Returns string which is the canonical slug, capped at maxSlugDepth
-// segments and maxSlugBytes bytes.
+// Returns string which is the canonical slug, capped at maxSlugDepth segments and
+// maxSlugBytes bytes.
 func buildItemSlug(cleanDirParts []string, basename string) string {
 	if len(cleanDirParts) > maxSlugDepth {
 		cleanDirParts = cleanDirParts[:maxSlugDepth]
@@ -238,8 +239,8 @@ func buildItemSlug(cleanDirParts []string, basename string) string {
 	return capSlugBytes(strings.Join(parts, pathSeparator))
 }
 
-// capSlugBytes truncates a slug at the last rune boundary that fits within
-// maxSlugBytes so the result remains valid UTF-8.
+// capSlugBytes truncates a slug at the last rune boundary that fits within maxSlugBytes
+// so the result remains valid UTF-8.
 //
 // Takes slug (string) which is the source slug.
 //
@@ -373,10 +374,8 @@ func (*pathAnalyser) generateTranslationKey(segments []string, slug string) stri
 // generateURL creates the final public URL for the content.
 //
 // Takes locale (string) which specifies the content language.
-// Takes segments ([]string) which contains the path segments between locale
-// and slug.
-// Takes slug (string) which is the final path component or "index" for
-// directory URLs.
+// Takes segments ([]string) which contains the path segments between locale and slug.
+// Takes slug (string) which is the final path component or "index" for directory URLs.
 //
 // Returns string which is the formatted URL path.
 //
@@ -409,11 +408,10 @@ func (pa *pathAnalyser) generateURL(locale string, segments []string, slug strin
 
 // defaultPathInfo returns a fallback pathInfo when analysis fails.
 //
-// Takes relativePath (string) which is the file path to derive a basic
-// slug from.
+// Takes relativePath (string) which is the file path to derive a basic slug from.
 //
-// Returns *pathInfo which contains default values using the default locale
-// and a slug derived from the filename.
+// Returns *pathInfo which contains default values using the default locale and a slug
+// derived from the filename.
 func (pa *pathAnalyser) defaultPathInfo(relativePath, _ string) *pathInfo {
 	filename := filepath.Base(relativePath)
 	slug := strings.TrimSuffix(filename, ".md")
@@ -430,8 +428,7 @@ func (pa *pathAnalyser) defaultPathInfo(relativePath, _ string) *pathInfo {
 
 // newPathAnalyser creates a new path analyser.
 //
-// Takes locales ([]string) which lists the supported locales (e.g. "en", "fr",
-// "de").
+// Takes locales ([]string) which lists the supported locales (e.g. "en", "fr", "de").
 // Takes defaultLocale (string) which sets the locale to use when none is found.
 //
 // Returns *pathAnalyser which is the configured path analyser ready for use.

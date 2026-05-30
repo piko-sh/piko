@@ -647,8 +647,8 @@ func TestService_MetricsTimingWithMockClock(t *testing.T) {
 	require.NoError(t, err)
 
 	stats := service.GetStats(ctx)
-	assert.Equal(t, int64(1), stats.TotalOperations)
-	assert.Equal(t, int64(1), stats.SuccessfulOperations)
+	assert.Equal(t, int64(1), stats.TotalOperations.Load())
+	assert.Equal(t, int64(1), stats.SuccessfulOperations.Load())
 }
 
 func TestService_GeneratePresignedDownloadURL(t *testing.T) {

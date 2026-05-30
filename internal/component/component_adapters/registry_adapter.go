@@ -40,14 +40,13 @@ type inMemoryRegistry struct {
 
 // Register adds a component definition to the registry.
 //
-// Takes definition (ComponentDefinition) which specifies the
-// component to register.
+// Takes definition (ComponentDefinition) which specifies the component to register.
 //
-// Returns error when the tag name fails validation or a different source
-// path is already registered for the same tag name.
+// Returns error when the tag name fails validation or a different source path is already
+// registered for the same tag name.
 //
-// Registration is idempotent: re-registering the same tag name with the same
-// source path silently succeeds.
+// Registration is idempotent: re-registering the same tag name with the same source path
+// silently succeeds.
 //
 // Safe for concurrent use. Uses a mutex to protect the component map.
 func (r *inMemoryRegistry) Register(definition component_dto.ComponentDefinition) error {
@@ -78,16 +77,16 @@ func (r *inMemoryRegistry) Register(definition component_dto.ComponentDefinition
 
 // RegisterBatch registers multiple components atomically.
 //
-// If any registration would fail (validation error or duplicate), no
-// components are registered and the first error is returned.
+// If any registration would fail (validation error or duplicate), no components are
+// registered and the first error is returned.
 //
-// Takes definitions ([]component_dto.ComponentDefinition) which specifies the
-// components to register.
+// Takes definitions ([]component_dto.ComponentDefinition) which specifies the components
+// to register.
 //
 // Returns error when validation fails or a duplicate component is detected.
 //
-// Safe for concurrent use. Acquires a mutex lock after validation to ensure
-// atomic registration.
+// Safe for concurrent use. Acquires a mutex lock after validation to ensure atomic
+// registration.
 func (r *inMemoryRegistry) RegisterBatch(definitions []component_dto.ComponentDefinition) error {
 	if len(definitions) == 0 {
 		return nil
@@ -135,8 +134,8 @@ func (r *inMemoryRegistry) RegisterBatch(definitions []component_dto.ComponentDe
 	return nil
 }
 
-// IsRegistered checks if a tag name is a known registered component.
-// The lookup is case-insensitive.
+// IsRegistered checks if a tag name is a known registered component. The lookup is
+// case-insensitive.
 //
 // Takes tagName (string) which is the component tag name to look up.
 //
@@ -151,8 +150,7 @@ func (r *inMemoryRegistry) IsRegistered(tagName string) bool {
 	return exists
 }
 
-// Get retrieves a component definition by tag name. The lookup is
-// case-insensitive.
+// Get retrieves a component definition by tag name. The lookup is case-insensitive.
 //
 // Takes tagName (string) which specifies the tag name to look up.
 //
@@ -172,11 +170,11 @@ func (r *inMemoryRegistry) Get(tagName string) (*component_dto.ComponentDefiniti
 	return new(*definition), true
 }
 
-// All returns all registered component definitions.
-// The returned slice is a copy and safe to modify.
+// All returns all registered component definitions. The returned slice is a copy and safe
+// to modify.
 //
-// Returns []component_dto.ComponentDefinition which contains all registered
-// definitions sorted by tag name.
+// Returns []component_dto.ComponentDefinition which contains all registered definitions
+// sorted by tag name.
 //
 // Safe for concurrent use.
 func (r *inMemoryRegistry) All() []component_dto.ComponentDefinition {
@@ -227,11 +225,11 @@ func (r *inMemoryRegistry) TagNames() []string {
 
 // NewInMemoryRegistry creates a new in-memory component registry.
 //
-// The registry is initially empty. Use Register or RegisterBatch to add
-// component definitions.
+// The registry is initially empty. Use Register or RegisterBatch to add component
+// definitions.
 //
-// Returns component_domain.ComponentRegistry which provides an empty registry
-// ready for use.
+// Returns component_domain.ComponentRegistry which provides an empty registry ready for
+// use.
 func NewInMemoryRegistry() component_domain.ComponentRegistry {
 	return &inMemoryRegistry{
 		components: make(map[string]*component_dto.ComponentDefinition),

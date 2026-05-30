@@ -24,58 +24,90 @@ import (
 	"unicode"
 )
 
+// tokenKind classifies a lexed SQL token.
 type tokenKind uint8
 
 const (
+	// tokenIdentifier marks bare or quoted identifiers and unreserved words.
 	tokenIdentifier tokenKind = iota
 
+	// tokenNumber marks integer, decimal, hex, or exponent numeric literals.
 	tokenNumber
 
+	// tokenString marks a single-quoted string literal.
 	tokenString
 
+	// tokenBlobLiteral marks an x'...' hexadecimal blob literal.
 	tokenBlobLiteral
 
+	// tokenOperator marks an arithmetic, comparison, or bitwise operator.
 	tokenOperator
 
+	// tokenLeftParen marks the '(' punctuation.
 	tokenLeftParen
 
+	// tokenRightParen marks the ')' punctuation.
 	tokenRightParen
 
+	// tokenComma marks the ',' punctuation.
 	tokenComma
 
+	// tokenSemicolon marks the ';' statement terminator.
 	tokenSemicolon
 
+	// tokenDot marks the '.' qualifier between schema, table, and column.
 	tokenDot
 
+	// tokenStar marks the '*' wildcard or multiplication operator.
 	tokenStar
 
+	// tokenQuestionMark marks an anonymous '?' positional parameter.
 	tokenQuestionMark
 
+	// tokenNumberedParam marks a numbered '?N' positional parameter.
 	tokenNumberedParam
 
+	// tokenNamedParam marks a named ':', '@', or '$' parameter.
 	tokenNamedParam
 
+	// tokenArrow marks the '->' JSON path operator.
 	tokenArrow
 
+	// tokenDoubleArrow marks the '->>' JSON value operator.
 	tokenDoubleArrow
 
+	// tokenEOF marks the end of the token stream.
 	tokenEOF
 )
 
+// token holds a single lexed SQL token together with its source position.
 type token struct {
+	// value holds the raw text of the token as it appeared in the input.
 	value string
 
+	// position records the byte offset of the token's first character.
 	position int
 
+	// kind classifies what the token represents.
 	kind tokenKind
 }
 
+// tokeniser tracks scan progress through a SQL input string.
 type tokeniser struct {
+	// input is the SQL source being scanned.
 	input string
 
+	// position is the current byte offset within input.
 	position int
 }
 
+// tokenise scans a SQL string into a flat sequence of tokens.
+//
+// Takes input (string) which is the SQL source text to lex.
+//
+// Returns []token which is the lexed sequence terminated by tokenEOF.
+// Returns error when the input contains an unterminated literal or an unexpected
+// character.
 func tokenise(input string) ([]token, error) {
 	lexer := &tokeniser{input: input}
 	var tokens []token
@@ -94,6 +126,10 @@ func tokenise(input string) ([]token, error) {
 	return tokens, nil
 }
 
+// next returns the next token from the input stream.
+//
+// Returns token which is the lexed token, or tokenEOF when input is exhausted.
+// Returns error when an unterminated literal or unexpected character is encountered.
 func (t *tokeniser) next() (token, error) {
 	t.skipWhitespaceAndComments()
 
@@ -110,7 +146,11 @@ func (t *tokeniser) next() (token, error) {
 	return t.readMultiCharToken(character)
 }
 
-var singleCharTokens = [256]tokenKind{}
+var (
+	// singleCharTokens maps ASCII byte values to their tokenKind plus one, so that a zero
+	// entry signals "not a single-character token".
+	singleCharTokens = [256]tokenKind{}
+)
 
 func init() {
 	singleCharTokens['('] = tokenLeftParen + 1
@@ -121,6 +161,13 @@ func init() {
 	singleCharTokens['*'] = tokenStar + 1
 }
 
+// readSingleCharToken consumes one byte if it maps to a single-character punctuation
+// token.
+//
+// Takes character (byte) which is the current byte at the scan position.
+//
+// Returns token which is the produced token when matched, else the zero value.
+// Returns bool which is true when a single-character token was consumed.
 func (t *tokeniser) readSingleCharToken(character byte) (token, bool) {
 	mapped := singleCharTokens[character]
 	if mapped == 0 {
@@ -131,6 +178,13 @@ func (t *tokeniser) readSingleCharToken(character byte) (token, bool) {
 	return token{kind: mapped - 1, value: string(character), position: startPosition}, true
 }
 
+// readMultiCharToken dispatches to the appropriate scanner for tokens longer than one
+// byte.
+//
+// Takes character (byte) which is the current byte at the scan position.
+//
+// Returns token which is the lexed multi-character token.
+// Returns error when the underlying scanner reports a malformed literal.
 func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 	switch {
 	case character == '?':
@@ -156,6 +210,8 @@ func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 	}
 }
 
+// skipWhitespaceAndComments advances past spaces, tabs, newlines, line comments, and
+// block comments.
 func (t *tokeniser) skipWhitespaceAndComments() {
 	for t.position < len(t.input) {
 		character := t.input[t.position]
@@ -177,6 +233,9 @@ func (t *tokeniser) skipWhitespaceAndComments() {
 	}
 }
 
+// skipLineComment consumes a `-- ...` SQL line comment up to the next newline.
+//
+// Returns bool which is true when a line comment was consumed.
 func (t *tokeniser) skipLineComment() bool {
 	if t.position+1 >= len(t.input) || t.input[t.position] != '-' || t.input[t.position+1] != '-' {
 		return false
@@ -188,6 +247,9 @@ func (t *tokeniser) skipLineComment() bool {
 	return true
 }
 
+// skipBlockComment consumes a `/* ... */` SQL block comment.
+//
+// Returns bool which is true when a block comment was consumed.
 func (t *tokeniser) skipBlockComment() bool {
 	if t.position+1 >= len(t.input) || t.input[t.position] != '/' || t.input[t.position+1] != '*' {
 		return false
@@ -203,6 +265,10 @@ func (t *tokeniser) skipBlockComment() bool {
 	return true
 }
 
+// readString lexes a single-quoted SQL string literal with doubled-quote escaping.
+//
+// Returns token which is the lexed string token without surrounding quotes.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readString() (token, error) {
 	startPosition := t.position
 	t.position++
@@ -226,6 +292,13 @@ func (t *tokeniser) readString() (token, error) {
 	return token{}, fmt.Errorf("unterminated string literal at position %d", startPosition)
 }
 
+// readQuotedIdentifier lexes a double-quote or backtick identifier with doubled-quote
+// escaping.
+//
+// Takes quote (byte) which is the opening and closing quote character.
+//
+// Returns token which is the lexed identifier without surrounding quotes.
+// Returns error when the identifier is unterminated.
 func (t *tokeniser) readQuotedIdentifier(quote byte) (token, error) {
 	startPosition := t.position
 	t.position++
@@ -249,6 +322,10 @@ func (t *tokeniser) readQuotedIdentifier(quote byte) (token, error) {
 	return token{}, fmt.Errorf("unterminated quoted identifier at position %d", startPosition)
 }
 
+// readBracketIdentifier lexes a `[name]` bracketed identifier.
+//
+// Returns token which is the lexed identifier without surrounding brackets.
+// Returns error when the identifier is unterminated.
 func (t *tokeniser) readBracketIdentifier() (token, error) {
 	startPosition := t.position
 	t.position++
@@ -267,6 +344,10 @@ func (t *tokeniser) readBracketIdentifier() (token, error) {
 	return token{}, fmt.Errorf("unterminated bracket identifier at position %d", startPosition)
 }
 
+// readNumber lexes an integer, hexadecimal, decimal, or exponent numeric literal.
+//
+// Returns token which is the lexed numeric token.
+// Returns error which is currently always nil.
 func (t *tokeniser) readNumber() (token, error) {
 	startPosition := t.position
 
@@ -282,6 +363,9 @@ func (t *tokeniser) readNumber() (token, error) {
 	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
 
+// readHexPrefix consumes a `0x` or `0X` hexadecimal prefix.
+//
+// Returns bool which is true when the prefix was consumed.
 func (t *tokeniser) readHexPrefix() bool {
 	if t.input[t.position] != '0' || t.position+1 >= len(t.input) {
 		return false
@@ -294,6 +378,7 @@ func (t *tokeniser) readHexPrefix() bool {
 	return true
 }
 
+// readFractionalPart consumes the `.digits` portion of a numeric literal when present.
 func (t *tokeniser) readFractionalPart() {
 	if t.position >= len(t.input) || t.input[t.position] != '.' {
 		return
@@ -302,6 +387,8 @@ func (t *tokeniser) readFractionalPart() {
 	t.consumeWhile(isDigit)
 }
 
+// readExponentPart consumes the `e[+-]?digits` exponent of a numeric literal when
+// present.
 func (t *tokeniser) readExponentPart() {
 	if t.position >= len(t.input) {
 		return
@@ -317,12 +404,20 @@ func (t *tokeniser) readExponentPart() {
 	t.consumeWhile(isDigit)
 }
 
+// consumeWhile advances the scan position while predicate matches the current byte.
+//
+// Takes predicate (func(byte) bool) which decides whether a byte is part of the current
+// token.
 func (t *tokeniser) consumeWhile(predicate func(byte) bool) {
 	for t.position < len(t.input) && predicate(t.input[t.position]) {
 		t.position++
 	}
 }
 
+// readIdentifier lexes an unquoted identifier.
+//
+// Returns token which is the lexed identifier token.
+// Returns error which is currently always nil.
 func (t *tokeniser) readIdentifier() (token, error) {
 	startPosition := t.position
 	for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
@@ -331,6 +426,10 @@ func (t *tokeniser) readIdentifier() (token, error) {
 	return token{kind: tokenIdentifier, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
 
+// readQuestionParam lexes an anonymous `?` or numbered `?N` parameter.
+//
+// Returns token which is the lexed parameter token.
+// Returns error which is currently always nil.
 func (t *tokeniser) readQuestionParam() (token, error) {
 	startPosition := t.position
 	t.position++
@@ -345,6 +444,10 @@ func (t *tokeniser) readQuestionParam() (token, error) {
 	return token{kind: tokenQuestionMark, value: "?", position: startPosition}, nil
 }
 
+// readNamedParam lexes a named `:`, `@`, or `$` parameter including its identifier body.
+//
+// Returns token which is the lexed parameter token.
+// Returns error which is currently always nil.
 func (t *tokeniser) readNamedParam() (token, error) {
 	startPosition := t.position
 	t.position++
@@ -354,6 +457,10 @@ func (t *tokeniser) readNamedParam() (token, error) {
 	return token{kind: tokenNamedParam, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
 
+// readBlobLiteral lexes an `x'...'` hexadecimal blob literal.
+//
+// Returns token which is the lexed blob token without surrounding quotes.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readBlobLiteral() (token, error) {
 	startPosition := t.position
 	t.position += 2
@@ -372,6 +479,10 @@ func (t *tokeniser) readBlobLiteral() (token, error) {
 	return token{}, fmt.Errorf("unterminated blob literal at position %d", startPosition)
 }
 
+// readOperator lexes a one- or two-character operator including the JSON arrow operators.
+//
+// Returns token which is the lexed operator token.
+// Returns error when the current byte is not a recognised operator.
 func (t *tokeniser) readOperator() (token, error) {
 	startPosition := t.position
 	character := t.input[t.position]
@@ -407,16 +518,32 @@ func (t *tokeniser) readOperator() (token, error) {
 	return token{}, fmt.Errorf("unexpected character %q at position %d", string(character), startPosition)
 }
 
+// isDigit reports whether character is an ASCII decimal digit.
+//
+// Takes character (byte) which is the byte to test.
+//
+// Returns bool which is true when character is '0' through '9'.
 func isDigit(character byte) bool {
 	return character >= '0' && character <= '9'
 }
 
+// isHexDigit reports whether character is a hexadecimal digit.
+//
+// Takes character (byte) which is the byte to test.
+//
+// Returns bool which is true for '0'-'9', 'a'-'f', or 'A'-'F'.
 func isHexDigit(character byte) bool {
 	return isDigit(character) ||
 		(character >= 'a' && character <= 'f') ||
 		(character >= 'A' && character <= 'F')
 }
 
+// isIdentStart reports whether character may start an unquoted identifier.
+//
+// Takes character (byte) which is the byte to test.
+//
+// Returns bool which is true for letters, underscore, or any non-ASCII Unicode letter
+// byte.
 func isIdentStart(character byte) bool {
 	return (character >= 'a' && character <= 'z') ||
 		(character >= 'A' && character <= 'Z') ||
@@ -424,6 +551,11 @@ func isIdentStart(character byte) bool {
 		character > maxASCIICodePoint && unicode.IsLetter(rune(character))
 }
 
+// isIdentPart reports whether character may continue an unquoted identifier.
+//
+// Takes character (byte) which is the byte to test.
+//
+// Returns bool which is true for identifier starts and decimal digits.
 func isIdentPart(character byte) bool {
 	return isIdentStart(character) || isDigit(character)
 }

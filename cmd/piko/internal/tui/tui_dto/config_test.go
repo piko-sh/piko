@@ -18,7 +18,9 @@
 
 package tui_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestConfig_GetClock_NilDefault(t *testing.T) {
 	c := &Config{}

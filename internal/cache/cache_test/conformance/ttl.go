@@ -138,8 +138,8 @@ func testSetWithTTLExpiryLazy(t *testing.T, config StringConfig) {
 	}
 }
 
-// testSetWithTTLBeforeExpiry verifies that a value set with a TTL can be
-// retrieved before it expires.
+// testSetWithTTLBeforeExpiry verifies that a value set with a TTL can be retrieved before
+// it expires.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and test settings.
@@ -168,8 +168,8 @@ func testSetWithTTLBeforeExpiry(t *testing.T, config StringConfig) {
 	}
 }
 
-// testSetExpiresAfter verifies that SetExpiresAfter causes a key to expire
-// after the specified duration.
+// testSetExpiresAfter verifies that SetExpiresAfter causes a key to expire after the
+// specified duration.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache configuration for testing.
@@ -207,8 +207,8 @@ func testSetExpiresAfter(t *testing.T, config StringConfig) {
 	}
 }
 
-// testSetExpiresAfterLazy verifies that SetExpiresAfter correctly expires a
-// key after the specified duration when using lazy expiration.
+// testSetExpiresAfterLazy verifies that SetExpiresAfter correctly expires a key after the
+// specified duration when using lazy expiration.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache configuration to test.
@@ -246,8 +246,8 @@ func testSetExpiresAfterLazy(t *testing.T, config StringConfig) {
 	}
 }
 
-// testSetRefreshableAfter verifies that SetRefreshableAfter updates the
-// refresh time for an existing key without affecting its value.
+// testSetRefreshableAfter verifies that SetRefreshableAfter updates the refresh time for
+// an existing key without affecting its value.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.

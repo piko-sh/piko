@@ -26,9 +26,8 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// MockTypeInspectorBuilder is a test double for
-// TypeInspectorBuilderPort where nil function fields return zero
-// values and call counts are tracked atomically.
+// MockTypeInspectorBuilder is a test double for TypeInspectorBuilderPort where nil
+// function fields return zero values and call counts are tracked atomically.
 type MockTypeInspectorBuilder struct {
 	// SetConfigFunc is the function called by SetConfig.
 	SetConfigFunc func(config inspector_dto.Config)
@@ -36,33 +35,30 @@ type MockTypeInspectorBuilder struct {
 	// BuildFunc is the function called by Build.
 	BuildFunc func(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) error
 
-	// GetQuerierFunc is the function called by
-	// GetQuerier.
+	// GetQuerierFunc is the function called by GetQuerier.
 	GetQuerierFunc func() (TypeInspectorPort, bool)
 
-	// SetConfigCallCount tracks how many times SetConfig
-	// was called.
-	SetConfigCallCount int64
+	// SetConfigCallCount tracks how many times SetConfig was called.
+	SetConfigCallCount atomic.Int64
 
-	// BuildCallCount tracks how many times Build was
-	// called.
-	BuildCallCount int64
+	// BuildCallCount tracks how many times Build was called.
+	BuildCallCount atomic.Int64
 
-	// GetQuerierCallCount tracks how many times
-	// GetQuerier was called.
-	GetQuerierCallCount int64
+	// GetQuerierCallCount tracks how many times GetQuerier was called.
+	GetQuerierCallCount atomic.Int64
 }
 
-var _ TypeInspectorBuilderPort = (*MockTypeInspectorBuilder)(nil)
+var (
+	_ TypeInspectorBuilderPort = (*MockTypeInspectorBuilder)(nil)
+)
 
 // SetConfig delegates to SetConfigFunc if set.
 //
-// Takes config (inspector_dto.Config) which provides the inspector
-// configuration.
+// Takes config (inspector_dto.Config) which provides the inspector configuration.
 //
 // Does nothing if SetConfigFunc is nil.
 func (m *MockTypeInspectorBuilder) SetConfig(config inspector_dto.Config) {
-	atomic.AddInt64(&m.SetConfigCallCount, 1)
+	m.SetConfigCallCount.Add(1)
 	if m.SetConfigFunc != nil {
 		m.SetConfigFunc(config)
 	}
@@ -70,16 +66,14 @@ func (m *MockTypeInspectorBuilder) SetConfig(config inspector_dto.Config) {
 
 // Build delegates to BuildFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
-// Takes sourceOverlay (map[string][]byte) which maps file paths to
-// their overlay source content.
-// Takes scriptHashes (map[string]string) which maps file paths to
-// their content hashes.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes sourceOverlay (map[string][]byte) which maps file paths to their overlay source
+// content.
+// Takes scriptHashes (map[string]string) which maps file paths to their content hashes.
 //
 // Returns nil if BuildFunc is nil.
 func (m *MockTypeInspectorBuilder) Build(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) error {
-	atomic.AddInt64(&m.BuildCallCount, 1)
+	m.BuildCallCount.Add(1)
 	if m.BuildFunc != nil {
 		return m.BuildFunc(ctx, sourceOverlay, scriptHashes)
 	}
@@ -88,10 +82,9 @@ func (m *MockTypeInspectorBuilder) Build(ctx context.Context, sourceOverlay map[
 
 // GetQuerier delegates to GetQuerierFunc if set.
 //
-// Returns (&inspector_domain.MockTypeQuerier{}, true) if
-// GetQuerierFunc is nil.
+// Returns (&inspector_domain.MockTypeQuerier{}, true) if GetQuerierFunc is nil.
 func (m *MockTypeInspectorBuilder) GetQuerier() (TypeInspectorPort, bool) {
-	atomic.AddInt64(&m.GetQuerierCallCount, 1)
+	m.GetQuerierCallCount.Add(1)
 	if m.GetQuerierFunc != nil {
 		return m.GetQuerierFunc()
 	}

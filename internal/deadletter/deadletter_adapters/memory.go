@@ -49,7 +49,9 @@ type MemoryDeadLetterQueue[T any] struct {
 	mu sync.RWMutex
 }
 
-var _ deadletter_domain.DeadLetterPort[any] = (*MemoryDeadLetterQueue[any])(nil)
+var (
+	_ deadletter_domain.DeadLetterPort[any] = (*MemoryDeadLetterQueue[any])(nil)
+)
 
 // Add stores an item in the dead letter queue.
 //
@@ -81,8 +83,8 @@ func (m *MemoryDeadLetterQueue[T]) Add(ctx context.Context, entry T) error {
 
 // Get retrieves items from the dead letter queue.
 //
-// Takes limit (int) which caps the number of entries returned; zero or
-// negative returns all entries.
+// Takes limit (int) which caps the number of entries returned; zero or negative returns
+// all entries.
 //
 // Returns []T which contains up to limit entries from the queue.
 // Returns error which is always nil for the in-memory implementation.
@@ -113,14 +115,13 @@ func (m *MemoryDeadLetterQueue[T]) Get(_ context.Context, limit int) ([]T, error
 //
 // Takes entries ([]T) which specifies the entries to remove.
 //
-// Returns error when removal fails, though current implementation always
-// returns nil.
+// Returns error when removal fails, though current implementation always returns nil.
 //
 // Safe for concurrent use; protected by a mutex.
 //
-// Note: This requires entries to match by value, which may not work for all
-// types. For better removal, services should track entry IDs. Current
-// implementation logs a warning and does not perform actual removal.
+// Note: This requires entries to match by value, which may not work for all types. For
+// better removal, services should track entry IDs. Current implementation logs a warning
+// and does not perform actual removal.
 func (m *MemoryDeadLetterQueue[T]) Remove(ctx context.Context, entries []T) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -168,8 +169,7 @@ func (m *MemoryDeadLetterQueue[T]) Clear(ctx context.Context) error {
 
 // GetOlderThan retrieves entries older than the specified duration.
 //
-// Takes duration (time.Duration) which sets the age threshold for
-// entries to retrieve.
+// Takes duration (time.Duration) which sets the age threshold for entries to retrieve.
 //
 // Returns []T which contains entries older than the cutoff time.
 // Returns error which is always nil for the in-memory implementation.

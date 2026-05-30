@@ -27,12 +27,11 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// DecodeRawEntries decodes a complete WAL file into raw entries without
-// requiring typed key/value codecs. This is intended for inspection and
-// debugging tools.
+// DecodeRawEntries decodes a complete WAL file into raw entries without requiring typed
+// key/value codecs. This is intended for inspection and debugging tools.
 //
 // The WAL wire format is a sequence of entries, each prefixed with:
-// [Length:4][CRC32:4][Payload]
+// [Length:4][CRC32:4]Payload
 //
 // Takes data ([]byte) which is the raw WAL file contents.
 //
@@ -85,8 +84,8 @@ func DecodeRawEntries(data []byte) ([]wal_domain.RawEntry, error) {
 	return entries, nil
 }
 
-// DecodeRawEntry decodes a single [CRC32:4][Payload] buffer into a RawEntry.
-// Key and value are returned as raw byte slices referencing the input data.
+// DecodeRawEntry decodes a single [CRC32:4]Payload buffer into a RawEntry. Key and value
+// are returned as raw byte slices referencing the input data.
 //
 // Takes crcAndPayload ([]byte) which is the CRC followed by the entry payload.
 //

@@ -41,8 +41,8 @@ func IntToUint64(n int) uint64 {
 	return uint64(n)
 }
 
-// IntToUint32 converts an int to uint32, keeping the value within bounds.
-// Negative values become 0, values above MaxUint32 become MaxUint32.
+// IntToUint32 converts an int to uint32, keeping the value within bounds. Negative values
+// become 0, values above MaxUint32 become MaxUint32.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -57,8 +57,8 @@ func IntToUint32(n int) uint32 {
 	return uint32(n)
 }
 
-// IntToUint16 converts an int to uint16, clamping to valid range.
-// Negative values return 0, values > MaxUint16 return MaxUint16.
+// IntToUint16 converts an int to uint16, clamping to valid range. Negative values return
+// 0, values > MaxUint16 return MaxUint16.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -73,8 +73,8 @@ func IntToUint16(n int) uint16 {
 	return uint16(n)
 }
 
-// IntToUint8 converts an int to a uint8, clamping to the valid range.
-// Negative values return 0, values above 255 return 255.
+// IntToUint8 converts an int to a uint8, clamping to the valid range. Negative values
+// return 0, values above 255 return 255.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -89,8 +89,8 @@ func IntToUint8(n int) uint8 {
 	return uint8(n)
 }
 
-// IntToInt32 converts an int to int32, clamping to valid range.
-// Values outside [MinInt32, MaxInt32] are clamped to the respective bound.
+// IntToInt32 converts an int to int32, clamping to valid range. Values outside [MinInt32,
+// MaxInt32] are clamped to the respective bound.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -105,8 +105,8 @@ func IntToInt32(n int) int32 {
 	return int32(n)
 }
 
-// IntToInt16 converts an int to int16, clamping to the valid range.
-// Values outside the int16 range are clamped to the nearest bound.
+// IntToInt16 converts an int to int16, clamping to the valid range. Values outside the
+// int16 range are clamped to the nearest bound.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -121,8 +121,8 @@ func IntToInt16(n int) int16 {
 	return int16(n)
 }
 
-// Int64ToInt16 converts an int64 to int16, clamping to the valid range.
-// Values outside [MinInt16, MaxInt16] are clamped to the nearest bound.
+// Int64ToInt16 converts an int64 to int16, clamping to the valid range. Values outside
+// [MinInt16, MaxInt16] are clamped to the nearest bound.
 //
 // Takes n (int64) which is the value to convert.
 //
@@ -137,8 +137,8 @@ func Int64ToInt16(n int64) int16 {
 	return int16(n)
 }
 
-// IntToInt8 converts an int to int8, clamping values to fit within bounds.
-// Values below -128 become -128, and values above 127 become 127.
+// IntToInt8 converts an int to int8, clamping values to fit within bounds. Values below
+// -128 become -128, and values above 127 become 127.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -153,8 +153,8 @@ func IntToInt8(n int) int8 {
 	return int8(n)
 }
 
-// Int64ToUint32 converts an int64 to uint32, clamping to valid bounds.
-// Negative values become 0, and values above MaxUint32 become MaxUint32.
+// Int64ToUint32 converts an int64 to uint32, clamping to valid bounds. Negative values
+// become 0, and values above MaxUint32 become MaxUint32.
 //
 // Takes n (int64) which is the value to convert.
 //
@@ -169,9 +169,8 @@ func Int64ToUint32(n int64) uint32 {
 	return uint32(n)
 }
 
-// Int64ToInt32 converts an int64 to an int32, clamping values to the valid
-// range. Values below MinInt32 become MinInt32, and values above MaxInt32
-// become MaxInt32.
+// Int64ToInt32 converts an int64 to an int32, clamping values to the valid range. Values
+// below MinInt32 become MinInt32, and values above MaxInt32 become MaxInt32.
 //
 // Takes n (int64) which is the value to convert.
 //
@@ -203,13 +202,13 @@ func Int64ToUint16(n int64) uint16 {
 	return uint16(n)
 }
 
-// Uint64ToUint32 converts a uint64 to uint32, clamping to MaxUint32 if the
-// value is too large.
+// Uint64ToUint32 converts a uint64 to uint32, clamping to MaxUint32 if the value is too
+// large.
 //
 // Takes n (uint64) which is the value to convert.
 //
-// Returns uint32 which is the converted value, clamped to math.MaxUint32 if
-// the input is larger.
+// Returns uint32 which is the converted value, clamped to math.MaxUint32 if the input is
+// larger.
 func Uint64ToUint32(n uint64) uint32 {
 	if n > math.MaxUint32 {
 		return math.MaxUint32
@@ -217,13 +216,13 @@ func Uint64ToUint32(n uint64) uint32 {
 	return uint32(n)
 }
 
-// Uint64ToUint16 converts a uint64 to uint16, limiting the result to MaxUint16
-// if the value is too large.
+// Uint64ToUint16 converts a uint64 to uint16, limiting the result to MaxUint16 if the
+// value is too large.
 //
 // Takes n (uint64) which is the value to convert.
 //
-// Returns uint16 which is the converted value, limited to MaxUint16 if n is
-// greater than the largest uint16.
+// Returns uint16 which is the converted value, limited to MaxUint16 if n is greater than
+// the largest uint16.
 func Uint64ToUint16(n uint64) uint16 {
 	if n > math.MaxUint16 {
 		return math.MaxUint16
@@ -231,13 +230,13 @@ func Uint64ToUint16(n uint64) uint16 {
 	return uint16(n)
 }
 
-// Uint64ToUint8 converts a uint64 to uint8, clamping at math.MaxUint8 if the
-// value exceeds the maximum uint8 range.
+// Uint64ToUint8 converts a uint64 to uint8, clamping at math.MaxUint8 if the value
+// exceeds the maximum uint8 range.
 //
 // Takes n (uint64) which is the value to convert.
 //
-// Returns uint8 which is the converted value, limited to MaxUint8 if n is
-// greater than the largest uint8.
+// Returns uint8 which is the converted value, limited to MaxUint8 if n is greater than
+// the largest uint8.
 func Uint64ToUint8(n uint64) uint8 {
 	if n > math.MaxUint8 {
 		return math.MaxUint8
@@ -245,13 +244,13 @@ func Uint64ToUint8(n uint64) uint8 {
 	return uint8(n)
 }
 
-// Uint64ToInt64 converts a uint64 to int64, capping at math.MaxInt64 if the
-// value exceeds the maximum int64 range.
+// Uint64ToInt64 converts a uint64 to int64, capping at math.MaxInt64 if the value exceeds
+// the maximum int64 range.
 //
 // Takes n (uint64) which is the value to convert.
 //
-// Returns int64 which is the converted value, capped at math.MaxInt64 if n
-// is larger than int64 can hold.
+// Returns int64 which is the converted value, capped at math.MaxInt64 if n is larger than
+// int64 can hold.
 func Uint64ToInt64(n uint64) int64 {
 	if n > math.MaxInt64 {
 		return math.MaxInt64
@@ -273,9 +272,8 @@ func Int64ToUint64(n int64) uint64 {
 	return uint64(n)
 }
 
-// Int64ToInt converts an int64 to an int, clamping to the valid int range.
-// On 64-bit systems this is a simple conversion; on 32-bit systems values are
-// clamped to fit.
+// Int64ToInt converts an int64 to an int, clamping to the valid int range. On 64-bit
+// systems this is a simple conversion; on 32-bit systems values are clamped to fit.
 //
 // Takes n (int64) which is the value to convert.
 //
@@ -290,13 +288,12 @@ func Int64ToInt(n int64) int {
 	return int(n)
 }
 
-// Uint64ToInt converts a uint64 to an int, clamping to MaxInt if the value is
-// too large.
+// Uint64ToInt converts a uint64 to an int, clamping to MaxInt if the value is too large.
 //
 // Takes n (uint64) which is the value to convert.
 //
-// Returns int which is the converted value, clamped to math.MaxInt if n is
-// greater than the maximum int value.
+// Returns int which is the converted value, clamped to math.MaxInt if n is greater than
+// the maximum int value.
 func Uint64ToInt(n uint64) int {
 	if n > math.MaxInt {
 		return math.MaxInt
@@ -316,9 +313,8 @@ func IntToUintptr(n int) uintptr {
 	return uintptr(n)
 }
 
-// MustIntToUint8 converts an int to uint8, panicking if the value is
-// outside [0, 255]. Use this when the value must fit and overflow
-// would be a programming error.
+// MustIntToUint8 converts an int to uint8, panicking if the value is outside [0, 255].
+// Use this when the value must fit and overflow would be a programming error.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -332,9 +328,8 @@ func MustIntToUint8(n int) uint8 {
 	return uint8(n) //nolint:gosec // bounds checked above
 }
 
-// MustIntToUint16 converts an int to uint16, panicking if the value
-// is outside [0, 65535]. Use this when the value must fit and
-// overflow would be a programming error.
+// MustIntToUint16 converts an int to uint16, panicking if the value is outside [0,
+// 65535]. Use this when the value must fit and overflow would be a programming error.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -348,9 +343,8 @@ func MustIntToUint16(n int) uint16 {
 	return uint16(n) //nolint:gosec // bounds checked above
 }
 
-// MustIntToInt16 converts an int to int16, panicking if the value is
-// outside [-32768, 32767]. Use this when the value must fit and
-// overflow would be a programming error.
+// MustIntToInt16 converts an int to int16, panicking if the value is outside [-32768,
+// 32767]. Use this when the value must fit and overflow would be a programming error.
 //
 // Takes n (int) which is the value to convert.
 //
@@ -364,9 +358,8 @@ func MustIntToInt16(n int) int16 {
 	return int16(n) //nolint:gosec // bounds checked above
 }
 
-// MustUintToUint8 converts a uint to uint8, panicking if the value
-// exceeds 255. Use this when the value must fit and overflow would
-// be a programming error.
+// MustUintToUint8 converts a uint to uint8, panicking if the value exceeds 255. Use this
+// when the value must fit and overflow would be a programming error.
 //
 // Takes n (uint) which is the value to convert.
 //
@@ -380,9 +373,8 @@ func MustUintToUint8(n uint) uint8 {
 	return uint8(n) //nolint:gosec // bounds checked above
 }
 
-// MustUint8ToInt8 converts a uint8 to int8, panicking if the value
-// exceeds 127. Use this when the value must fit and overflow would
-// be a programming error.
+// MustUint8ToInt8 converts a uint8 to int8, panicking if the value exceeds 127. Use this
+// when the value must fit and overflow would be a programming error.
 //
 // Takes n (uint8) which is the value to convert.
 //
@@ -396,9 +388,8 @@ func MustUint8ToInt8(n uint8) int8 {
 	return int8(n) //nolint:gosec // bounds checked above
 }
 
-// MustInt8ToUint8 converts an int8 to uint8, panicking if the value
-// is negative. Use this when the value must be non-negative and a
-// negative value would be a programming error.
+// MustInt8ToUint8 converts an int8 to uint8, panicking if the value is negative. Use this
+// when the value must be non-negative and a negative value would be a programming error.
 //
 // Takes n (int8) which is the value to convert.
 //
@@ -414,9 +405,8 @@ func MustInt8ToUint8(n int8) uint8 {
 
 // ToUint64 converts any integer type to uint64, clamping negative values to 0.
 //
-// Use it in cross-platform code where a value may be signed on one platform
-// and unsigned on another. For example, syscall.Statfs_t.Bsize is
-// int64 on Linux but uint32 on macOS.
+// Use it in cross-platform code where a value may be signed on one platform and unsigned
+// on another. For example, syscall.Statfs_t.Bsize is int64 on Linux but uint32 on macOS.
 //
 // Takes n (T) which is the integer value to convert.
 //
@@ -428,9 +418,8 @@ func ToUint64[T integer](n T) uint64 {
 	return uint64(n)
 }
 
-// Uint16ToInt16 reinterprets a uint16 as int16 via two's complement. Use this
-// for binary formats (TrueType, OpenType) that store signed values in
-// unsigned fields.
+// Uint16ToInt16 reinterprets a uint16 as int16 via two's complement. Use this for binary
+// formats (TrueType, OpenType) that store signed values in unsigned fields.
 //
 // Takes n (uint16) which is the unsigned value to reinterpret.
 //
@@ -439,8 +428,8 @@ func Uint16ToInt16(n uint16) int16 {
 	return int16(n) //nolint:gosec // intentional reinterpretation
 }
 
-// Int16ToUint16 reinterprets an int16 as uint16 via two's complement. Use this
-// for serialising signed TrueType fields into unsigned binary encodings.
+// Int16ToUint16 reinterprets an int16 as uint16 via two's complement. Use this for
+// serialising signed TrueType fields into unsigned binary encodings.
 //
 // Takes n (int16) which is the signed value to reinterpret.
 //
@@ -461,9 +450,9 @@ func Int32ToUint32(n int32) uint32 {
 	return uint32(n) //nolint:gosec // bounds checked above
 }
 
-// Int32ToInt64 widens an int32 to int64. The conversion is always safe
-// because int64 can represent every int32 value, but the helper exists
-// so call sites read consistently with the rest of the safeconv usage.
+// Int32ToInt64 widens an int32 to int64. The conversion is always safe because int64 can
+// represent every int32 value, but the helper exists so call sites read consistently with
+// the rest of the safeconv usage.
 //
 // Takes n (int32) which is the value to widen.
 //
@@ -472,8 +461,8 @@ func Int32ToInt64(n int32) int64 {
 	return int64(n)
 }
 
-// Int32ToInt widens an int32 to int. The conversion is always safe on
-// every platform Go supports because int is at least 32 bits.
+// Int32ToInt widens an int32 to int. The conversion is always safe on every platform Go
+// supports because int is at least 32 bits.
 //
 // Takes n (int32) which is the value to widen.
 //
@@ -482,8 +471,8 @@ func Int32ToInt(n int32) int {
 	return int(n)
 }
 
-// Uint32ToInt64 widens a uint32 to int64. The conversion is always
-// safe because int64 covers the full uint32 range.
+// Uint32ToInt64 widens a uint32 to int64. The conversion is always safe because int64
+// covers the full uint32 range.
 //
 // Takes n (uint32) which is the value to widen.
 //
@@ -492,8 +481,8 @@ func Uint32ToInt64(n uint32) int64 {
 	return int64(n)
 }
 
-// Int16ToByte converts an int16 to a byte, clamping to [0, 255].
-// Values below 0 become 0, values above 255 become 255.
+// Int16ToByte converts an int16 to a byte, clamping to [0, 255]. Values below 0 become 0,
+// values above 255 become 255.
 //
 // Takes n (int16) which is the value to convert.
 //
@@ -520,8 +509,8 @@ func Uint32ToByte(n uint32) byte {
 	return byte(n) //nolint:gosec // bounds checked above
 }
 
-// RuneToUint16 converts a rune to uint16, clamping to [0, 65535].
-// Negative runes become 0, runes above MaxUint16 become MaxUint16.
+// RuneToUint16 converts a rune to uint16, clamping to [0, 65535]. Negative runes become
+// 0, runes above MaxUint16 become MaxUint16.
 //
 // Takes r (rune) which is the value to convert.
 //
@@ -551,9 +540,9 @@ func RuneToByte(r rune) byte {
 	return byte(r) //nolint:gosec // bounds checked above
 }
 
-// Uint32ToInt16 extracts the integer portion of a value stored as uint32,
-// clamping to [MinInt16, MaxInt16]. Useful for fixed-point values where
-// the uint32 holds a 16.16 representation.
+// Uint32ToInt16 extracts the integer portion of a value stored as uint32, clamping to
+// [MinInt16, MaxInt16]. Useful for fixed-point values where the uint32 holds a 16.16
+// representation.
 //
 // Takes n (uint32) which is the value to convert.
 //
@@ -564,4 +553,135 @@ func Uint32ToInt16(n uint32) int16 {
 		return math.MaxInt16
 	}
 	return int16(v) //nolint:gosec // bounds checked above
+}
+
+// Int64ToUint8 converts an int64 to uint8, clamping to [0, 255]. Negative values become
+// 0, values above 255 become 255.
+//
+// Takes n (int64) which is the value to convert.
+//
+// Returns uint8 which is the clamped value.
+func Int64ToUint8(n int64) uint8 {
+	if n < 0 {
+		return 0
+	}
+	if n > math.MaxUint8 {
+		return math.MaxUint8
+	}
+	return uint8(n) //nolint:gosec // bounds checked above
+}
+
+// Int64ToInt8 converts an int64 to int8, clamping to the valid range. Values outside
+// [MinInt8, MaxInt8] are clamped to the nearest bound.
+//
+// Takes n (int64) which is the value to convert.
+//
+// Returns int8 which is the clamped value.
+func Int64ToInt8(n int64) int8 {
+	if n > math.MaxInt8 {
+		return math.MaxInt8
+	}
+	if n < math.MinInt8 {
+		return math.MinInt8
+	}
+	return int8(n) //nolint:gosec // bounds checked above
+}
+
+// Uint16ToUint8 converts a uint16 to uint8, clamping at math.MaxUint8 if the value
+// exceeds the uint8 range.
+//
+// Takes n (uint16) which is the value to convert.
+//
+// Returns uint8 which is the clamped value.
+func Uint16ToUint8(n uint16) uint8 {
+	if n > math.MaxUint8 {
+		return math.MaxUint8
+	}
+	return uint8(n) //nolint:gosec // bounds checked above
+}
+
+// UintToUint8 converts a uint to uint8, clamping at math.MaxUint8 if the value exceeds
+// the uint8 range.
+//
+// Takes n (uint) which is the value to convert.
+//
+// Returns uint8 which is the clamped value.
+func UintToUint8(n uint) uint8 {
+	if n > math.MaxUint8 {
+		return math.MaxUint8
+	}
+	return uint8(n) //nolint:gosec // bounds checked above
+}
+
+// UintptrToInt converts a uintptr to int, clamping at math.MaxInt if the value exceeds
+// the int range.
+//
+// Takes n (uintptr) which is the value to convert.
+//
+// Returns int which is the converted value, clamped to math.MaxInt if n is greater than
+// the maximum int value.
+func UintptrToInt(n uintptr) int {
+	if uint64(n) > uint64(math.MaxInt) {
+		return math.MaxInt
+	}
+	return int(n) //nolint:gosec // bounds checked above
+}
+
+// UintptrToInt64 converts a uintptr to int64, clamping at math.MaxInt64 if the value
+// exceeds the int64 range.
+//
+// Takes n (uintptr) which is the value to convert.
+//
+// Returns int64 which is the converted value, clamped to math.MaxInt64 if n is greater
+// than the maximum int64 value.
+func UintptrToInt64(n uintptr) int64 {
+	if uint64(n) > uint64(math.MaxInt64) {
+		return math.MaxInt64
+	}
+	return int64(n) //nolint:gosec // bounds checked above
+}
+
+// Int64ToUint64Reinterpret reinterprets an int64 as uint64 via two's complement. Use this
+// for hash keys and binary protocols where the bit pattern must be preserved across the
+// conversion.
+//
+// Takes n (int64) which is the signed value to reinterpret.
+//
+// Returns uint64 which is the two's complement bit pattern.
+func Int64ToUint64Reinterpret(n int64) uint64 {
+	return uint64(n) //nolint:gosec // intentional bit-pattern reinterpretation
+}
+
+// Uint64ToInt64Reinterpret reinterprets a uint64 as int64 via two's complement. Use this
+// for hash keys and binary protocols where the bit pattern must be preserved across the
+// conversion.
+//
+// Takes n (uint64) which is the unsigned value to reinterpret.
+//
+// Returns int64 which is the two's complement interpretation.
+func Uint64ToInt64Reinterpret(n uint64) int64 {
+	return int64(n) //nolint:gosec // intentional bit-pattern reinterpretation
+}
+
+// Uint64ToByteTruncate narrows a uint64 to byte via modular truncation.
+//
+// Keeps only the low 8 bits. Use for VM register storage where the high bits carry no
+// semantics, e.g. append-byte on a uint-bank slot.
+//
+// Takes n (uint64) which is the value to truncate.
+//
+// Returns byte which is the low 8 bits of n.
+func Uint64ToByteTruncate(n uint64) byte {
+	return byte(n) //nolint:gosec // modular narrowing is intentional
+}
+
+// IntToUint32Truncate narrows an int to uint32 using modular truncation on the underlying
+// bit pattern. Use this for bytecode offsets where the caller has already validated the
+// value fits.
+//
+// Takes n (int) which is the signed value to truncate.
+//
+// Returns uint32 which is the low 32 bits of n.
+func IntToUint32Truncate(n int) uint32 {
+	return uint32(n) //nolint:gosec // modular narrowing is intentional
 }

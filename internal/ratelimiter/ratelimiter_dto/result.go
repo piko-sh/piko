@@ -18,11 +18,13 @@
 
 package ratelimiter_dto
 
-import "time"
+import (
+	"time"
+)
 
-// CounterResult holds the outcome of a counter store increment operation.
-// It provides both the updated count and the window start time so that
-// callers can compute accurate ResetAt and RetryAfter values.
+// CounterResult holds the outcome of a counter store increment operation. It provides
+// both the updated count and the window start time so that callers can compute accurate
+// ResetAt and RetryAfter values.
 type CounterResult struct {
 	// WindowStart is when the current fixed window began.
 	WindowStart time.Time
@@ -31,9 +33,9 @@ type CounterResult struct {
 	Count int64
 }
 
-// Result holds the outcome of a rate limit check.
-// It provides all the data needed for setting rate limit headers in HTTP
-// responses and for callers to make informed retry decisions.
+// Result holds the outcome of a rate limit check. It provides all the data needed for
+// setting rate limit headers in HTTP responses and for callers to make informed retry
+// decisions.
 type Result struct {
 	// ResetAt is when the current rate limit window resets.
 	ResetAt time.Time
@@ -44,8 +46,8 @@ type Result struct {
 	// Remaining is the number of operations remaining in the current window.
 	Remaining int
 
-	// RetryAfter is how long to wait before the next request is allowed.
-	// Only meaningful when Allowed is false.
+	// RetryAfter is how long to wait before the next request is allowed. Only meaningful
+	// when Allowed is false.
 	RetryAfter time.Duration
 
 	// Allowed indicates whether the request is permitted under the rate limit.

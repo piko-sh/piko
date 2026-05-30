@@ -32,7 +32,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"golang.org/x/tools/imports"
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -47,38 +46,37 @@ const (
 	// defaultPrinterTabwidth is the tab width for formatting generated code.
 	defaultPrinterTabwidth = 4
 
-	// defaultFilePermissions is the file mode used when writing generated files.
-	// Uses 0640: owner rw, group r, others none.
+	// defaultFilePermissions is the file mode used when writing generated files. Uses 0640:
+	// owner rw, group r, others none.
 	defaultFilePermissions = 0640
 
-	// defaultBufferCapacity is the initial capacity for pooled buffers.
-	// 32KB provides headroom for larger generated files, avoiding repeated
-	// slice growth during formatting while maintaining reasonable memory use.
+	// defaultBufferCapacity is the initial capacity for pooled buffers. 32KB provides
+	// headroom for larger generated files, avoiding repeated slice growth during formatting
+	// while maintaining reasonable memory use.
 	defaultBufferCapacity = 32 * 1024
 )
 
-// formatterBufferPool provides reusable buffers for go/printer output,
-// significantly reducing GC pressure during code generation.
-var formatterBufferPool = sync.Pool{
-	New: func() any {
-		return bytes.NewBuffer(make([]byte, 0, defaultBufferCapacity))
-	},
-}
+var (
+	// formatterBufferPool provides reusable buffers for go/printer output, significantly
+	// reducing GC pressure during code generation.
+	formatterBufferPool = sync.Pool{
+		New: func() any {
+			return bytes.NewBuffer(make([]byte, 0, defaultBufferCapacity))
+		},
+	}
+)
 
-// Emitter provides a way to produce Go code from annotated source files.
-// It implements CodeEmitterPort for use by the generator and coordinator.
+// Emitter provides a way to produce Go code from annotated source files. It implements
+// CodeEmitterPort for use by the generator and coordinator.
 type Emitter interface {
-	// EmitCode generates output code from the given annotation
-	// result.
+	// EmitCode generates output code from the given annotation result.
 	//
-	// Takes annotationResult (*annotator_dto.AnnotationResult)
-	// which contains the parsed annotations to process.
-	// Takes request (generator_dto.GenerateRequest) which
-	// specifies generation options.
+	// Takes annotationResult (*annotator_dto.AnnotationResult) which contains the parsed
+	// annotations to process.
+	// Takes request (generator_dto.GenerateRequest) which specifies generation options.
 	//
 	// Returns []byte which contains the generated code.
-	// Returns []*ast_domain.Diagnostic which contains any
-	// warnings or issues found.
+	// Returns []*ast_domain.Diagnostic which contains any warnings or issues found.
 	// Returns error when code generation fails.
 	EmitCode(
 		ctx context.Context,
@@ -87,9 +85,9 @@ type Emitter interface {
 	) ([]byte, []*ast_domain.Diagnostic, error)
 }
 
-// emitter holds the state for a single EmitCode operation. It implements
-// CodeEmitterPort and manages temporary variable counters while delegating
-// AST construction to specialised sub-emitters.
+// emitter holds the state for a single EmitCode operation. It implements CodeEmitterPort
+// and manages temporary variable counters while delegating AST construction to
+// specialised sub-emitters.
 type emitter struct {
 	// AnnotationResult holds the parsed annotation data used for code generation.
 	AnnotationResult *annotator_dto.AnnotationResult
@@ -103,28 +101,28 @@ type emitter struct {
 	// staticEmitter builds variable and init declarations for hoisted static nodes.
 	staticEmitter *staticEmitter
 
-	// prerenderer renders static nodes to HTML bytes at generation time.
-	// May be nil, in which case prerendering is disabled.
+	// prerenderer renders static nodes to HTML bytes at generation time. May be nil, in
+	// which case prerendering is disabled.
 	prerenderer generator_domain.StaticPrerenderer
 
 	// config holds the code generation settings.
 	config EmitterConfig
 }
 
-// EmitCode generates a Go source file from an annotation result. It is the
-// main entry point for the emitter and orchestrates the entire code generation
-// process, collecting any internal diagnostics along the way.
+// EmitCode generates a Go source file from an annotation result. It is the main entry
+// point for the emitter and orchestrates the entire code generation process, collecting
+// any internal diagnostics along the way.
 //
-// Takes result (*annotator_dto.AnnotationResult) which contains the parsed
-// annotations and metadata for code generation.
-// Takes request (generator_dto.GenerateRequest) which specifies the generation
-// settings including paths, package name, and virtual instances.
+// Takes result (*annotator_dto.AnnotationResult) which contains the parsed annotations
+// and metadata for code generation.
+// Takes request (generator_dto.GenerateRequest) which specifies the generation settings
+// including paths, package name, and virtual instances.
 //
 // Returns []byte which contains the formatted Go source code.
-// Returns []*ast_domain.Diagnostic which contains any warnings or issues found
-// during generation.
-// Returns error when the main component validation fails, AST building fails,
-// or code formatting fails.
+// Returns []*ast_domain.Diagnostic which contains any warnings or issues found during
+// generation.
+// Returns error when the main component validation fails, AST building fails, or code
+// formatting fails.
 func (em *emitter) EmitCode(
 	ctx context.Context,
 	result *annotator_dto.AnnotationResult,
@@ -187,8 +185,8 @@ func (em *emitter) EmitCode(
 // validateMainComponent checks that the main component exists in the result.
 //
 // Takes hashedName (string) which identifies the component to find.
-// Takes result (*annotator_dto.AnnotationResult) which contains the virtual
-// module with component mappings.
+// Takes result (*annotator_dto.AnnotationResult) which contains the virtual module with
+// component mappings.
 //
 // Returns *annotator_dto.VirtualComponent which is the found component.
 // Returns error when no component matches the given hash.
@@ -210,8 +208,7 @@ func (*emitter) validateMainComponent(
 	return mainComponent, nil
 }
 
-// diagnosticError wraps a diagnostic as an error, implementing the error
-// interface.
+// diagnosticError wraps a diagnostic as an error, implementing the error interface.
 type diagnosticError struct {
 	// diagnostic holds the diagnostic details for this error.
 	diagnostic *ast_domain.Diagnostic
@@ -226,12 +223,12 @@ func (e *diagnosticError) Error() string {
 
 // buildFileAST builds the complete Go file AST.
 //
-// Takes request (generator_dto.GenerateRequest) which provides the generation
-// settings including the package name.
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotated
-// components and custom tags.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which is the root
-// component for code generation.
+// Takes request (generator_dto.GenerateRequest) which provides the generation settings
+// including the package name.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotated components
+// and custom tags.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which is the root component for
+// code generation.
 //
 // Returns *goast.File which is the built AST ready for rendering.
 // Returns []*ast_domain.Diagnostic which contains any warnings or issues found.
@@ -272,28 +269,25 @@ func (em *emitter) buildFileAST(
 	return fileAST, allDiags, nil
 }
 
-// addBoilerplateAndUserCode adds standard acknowledgements and user script
-// code to the file.
+// addBoilerplateAndUserCode adds standard acknowledgements and user script code to the
+// file.
 //
 // Takes fileAST (*goast.File) which is the target file to modify.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// user code to copy.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the user code to
+// copy.
 func (em *emitter) addBoilerplateAndUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent) {
 	fileAST.Decls = append(fileAST.Decls, buildBoilerplateVarAcks()...)
 	copyUserCode(fileAST, mainComponent, em)
 }
 
-// generateBuildASTFunction creates the BuildAST function when an annotated AST
-// exists.
+// generateBuildASTFunction creates the BuildAST function when an annotated AST exists.
 //
-// Takes request (generator_dto.GenerateRequest) which specifies the generation
-// settings.
-// Takes result (*annotator_dto.AnnotationResult) which contains the annotated
-// AST data.
+// Takes request (generator_dto.GenerateRequest) which specifies the generation settings.
+// Takes result (*annotator_dto.AnnotationResult) which contains the annotated AST data.
 // Takes fileAST (*goast.File) which is the file to add the function to.
 //
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// generation, or nil if AnnotatedAST is nil.
+// Returns []*ast_domain.Diagnostic which contains any issues found during generation, or
+// nil if AnnotatedAST is nil.
 func (em *emitter) generateBuildASTFunction(
 	ctx context.Context,
 	request generator_dto.GenerateRequest,
@@ -309,8 +303,7 @@ func (em *emitter) generateBuildASTFunction(
 	return funcDiags
 }
 
-// addFetcherDeclarations adds the dynamic collection fetcher functions to the
-// file.
+// addFetcherDeclarations adds the dynamic collection fetcher functions to the file.
 //
 // Takes fileAST (*goast.File) which receives the fetcher declarations.
 func (em *emitter) addFetcherDeclarations(fileAST *goast.File) {
@@ -319,10 +312,9 @@ func (em *emitter) addFetcherDeclarations(fileAST *goast.File) {
 
 // addImportBlock builds the import block and adds it to the start of the file.
 //
-// Takes result (*annotator_dto.AnnotationResult) which holds the annotation
-// data.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which is the main
-// component being processed.
+// Takes result (*annotator_dto.AnnotationResult) which holds the annotation data.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which is the main component being
+// processed.
 // Takes fileAST (*goast.File) which is the AST to add the import block to.
 func (em *emitter) addImportBlock(
 	result *annotator_dto.AnnotationResult,
@@ -335,11 +327,11 @@ func (em *emitter) addImportBlock(
 	}
 }
 
-// addStaticAndInitFunctions adds static declarations and a registration init
-// function to the file AST.
+// addStaticAndInitFunctions adds static declarations and a registration init function to
+// the file AST.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotation
-// data for building the registration function.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotation data for
+// building the registration function.
 // Takes fileAST (*goast.File) which is the target file to add declarations to.
 //
 // Returns error when the registration init function cannot be built.
@@ -354,9 +346,9 @@ func (em *emitter) addStaticAndInitFunctions(result *annotator_dto.AnnotationRes
 	return nil
 }
 
-// addImport registers an import and handles alias conflicts.
-// If the requested alias is already used by a different package, a unique alias
-// is created (e.g., "dto_1", "dto_2") to prevent Go build errors.
+// addImport registers an import and handles alias conflicts. If the requested alias is
+// already used by a different package, a unique alias is created (e.g., "dto_1", "dto_2")
+// to prevent Go build errors.
 //
 // Takes canonicalPath (string) which specifies the full import path to register.
 // Takes alias (string) which specifies the preferred short name for the import.
@@ -393,9 +385,8 @@ func (em *emitter) addImport(canonicalPath, alias string) {
 	}
 }
 
-// getImportAlias returns the alias for a given package path.
-// This means type expressions use the correct alias when import name
-// conflicts have been resolved.
+// getImportAlias returns the alias for a given package path. This means type expressions
+// use the correct alias when import name conflicts have been resolved.
 //
 // Takes canonicalPath (string) which is the import path to look up.
 //
@@ -406,8 +397,8 @@ func (em *emitter) getImportAlias(canonicalPath string) string {
 
 // nextFetcherName generates a unique name for a collection fetcher function.
 //
-// This guarantees that multiple GetCollection calls in the same component
-// produce uniquely named fetcher functions.
+// This guarantees that multiple GetCollection calls in the same component produce
+// uniquely named fetcher functions.
 //
 // Returns string which is a unique function name (e.g. "fetchCollection1").
 func (em *emitter) nextFetcherName() string {
@@ -415,8 +406,8 @@ func (em *emitter) nextFetcherName() string {
 	return fmt.Sprintf("fetchCollection%d", em.ctx.fetcherCtr)
 }
 
-// addFetcherDeclaration adds a fetcher function to the file's declarations.
-// These functions are placed at file level, alongside the BuildAST function.
+// addFetcherDeclaration adds a fetcher function to the file's declarations. These
+// functions are placed at file level, alongside the BuildAST function.
 //
 // Takes declaration (goast.Decl) which is the function declaration to add.
 func (em *emitter) addFetcherDeclaration(declaration goast.Decl) {
@@ -436,8 +427,8 @@ func (em *emitter) cleanup() {
 	}
 }
 
-// appendStaticDeclarations adds the var() and init() blocks for hoisted static
-// nodes to the file AST.
+// appendStaticDeclarations adds the var() and init() blocks for hoisted static nodes to
+// the file AST.
 //
 // Takes fileAST (*goast.File) which receives the generated declarations.
 func (em *emitter) appendStaticDeclarations(fileAST *goast.File) {
@@ -449,8 +440,8 @@ func (em *emitter) appendStaticDeclarations(fileAST *goast.File) {
 	}
 }
 
-// formatAndVerify prints the AST to a byte slice, formats it with gofmt-style
-// rules, and can check that the result is valid Go syntax.
+// formatAndVerify prints the AST to a byte slice, formats it with gofmt-style rules, and
+// can check that the result is valid Go syntax.
 //
 // Takes request (generator_dto.GenerateRequest) which provides the source path and
 // settings for checking the output.
@@ -460,8 +451,8 @@ func (em *emitter) appendStaticDeclarations(fileAST *goast.File) {
 // Returns []byte which contains the formatted Go source code.
 // Returns error when formatting fails or the syntax check finds a problem.
 //
-// Uses a pooled buffer to reduce memory use. Set request.VerifyGeneratedCode to
-// false to skip syntax checking for faster builds.
+// Uses a pooled buffer to reduce memory use. Set request.VerifyGeneratedCode to false to
+// skip syntax checking for faster builds.
 func (em *emitter) formatAndVerify(request generator_dto.GenerateRequest, fset *token.FileSet, fileAST *goast.File) ([]byte, error) {
 	buffer, ok := formatterBufferPool.Get().(*bytes.Buffer)
 	if !ok {
@@ -499,7 +490,7 @@ func (em *emitter) formatAndVerify(request generator_dto.GenerateRequest, fset *
 //
 // Returns string which is the generated name.
 func (em *emitter) nextTempName() string {
-	c := atomic.AddInt64(&em.ctx.tempVarCtr, 1)
+	c := em.ctx.tempVarCtr.Add(1)
 	return "tempVar" + strconv.FormatInt(c, 10)
 }
 
@@ -507,38 +498,37 @@ func (em *emitter) nextTempName() string {
 //
 // Returns string which is the generated variable name.
 func (em *emitter) nextStaticVarName() string {
-	c := atomic.AddInt64(&em.ctx.staticVarCtr, 1)
+	c := em.ctx.staticVarCtr.Add(1)
 	return "staticNode_" + strconv.FormatInt(c, 10)
 }
 
-// nextStaticAttrVarName returns a unique name for a static attribute slice
-// variable.
+// nextStaticAttrVarName returns a unique name for a static attribute slice variable.
 //
 // Returns string which is the generated variable name.
 func (em *emitter) nextStaticAttrVarName() string {
-	c := atomic.AddInt64(&em.ctx.staticAttrVarCtr, 1)
+	c := em.ctx.staticAttrVarCtr.Add(1)
 	return "staticAttrs_" + strconv.FormatInt(c, 10)
 }
 
-// nextLoopIterName returns a unique name for a loop variable. These names are
-// used to store p-for collection values, which allows correct slice capacity
-// calculation and prevents expressions from being evaluated twice.
+// nextLoopIterName returns a unique name for a loop variable. These names are used to
+// store p-for collection values, which allows correct slice capacity calculation and
+// prevents expressions from being evaluated twice.
 //
 // Returns string which is the generated loop variable name.
 func (em *emitter) nextLoopIterName() string {
-	c := atomic.AddInt64(&em.ctx.loopIterCtr, 1)
+	c := em.ctx.loopIterCtr.Add(1)
 	return "loopIter_" + strconv.FormatInt(c, 10)
 }
 
 // buildImportBlock builds an import declaration block for the generated output.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotated
-// components to gather imports from.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which supplies the
-// hashed name used to find partial imports.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotated components
+// to gather imports from.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which supplies the hashed name
+// used to find partial imports.
 //
-// Returns *goast.GenDecl which contains the merged import declaration, or nil
-// if no imports are needed.
+// Returns *goast.GenDecl which contains the merged import declaration, or nil if no
+// imports are needed.
 func (em *emitter) buildImportBlock(result *annotator_dto.AnnotationResult, mainComponent *annotator_dto.VirtualComponent) *goast.GenDecl {
 	importSet := make(map[string]goast.Spec)
 
@@ -564,12 +554,11 @@ func (em *emitter) buildImportBlock(result *annotator_dto.AnnotationResult, main
 	return buildImportDecl(importSet)
 }
 
-// buildRegistrationInitFunction generates the init() function responsible for
-// calling the central registry to make this component's functions discoverable
-// at runtime.
+// buildRegistrationInitFunction generates the init() function responsible for calling the
+// central registry to make this component's functions discoverable at runtime.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotation
-// data containing component metadata and script configuration.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotation data
+// containing component metadata and script configuration.
 //
 // Returns goast.Decl which is the generated init() function declaration.
 // Returns error when the main component cannot be found in the result.
@@ -624,23 +613,21 @@ func (*emitter) buildRegistrationInitFunction(result *annotator_dto.AnnotationRe
 
 // NewEmitter creates a new emitter for Go code literals.
 //
-// Takes ctx (context.Context) which provides the base context for logging in
-// pool initialisation paths.
+// Takes ctx (context.Context) which provides the base context for logging in pool
+// initialisation paths.
 //
 // Returns Emitter which is ready to output Go code literals.
 func NewEmitter(_ context.Context) Emitter {
 	return &emitter{}
 }
 
-// NewEmitterWithPrerenderer creates a new emitter with a prerenderer
-// for static HTML generation.
+// NewEmitterWithPrerenderer creates a new emitter with a prerenderer for static HTML
+// generation.
 //
-// Takes prerenderer (generator_domain.StaticPrerenderer) which
-// renders static nodes to HTML bytes at generation time. May be
-// nil to disable prerendering.
+// Takes prerenderer (generator_domain.StaticPrerenderer) which renders static nodes to
+// HTML bytes at generation time. May be nil to disable prerendering.
 //
-// Returns Emitter which is ready to output Go code literals with
-// prerendering.
+// Returns Emitter which is ready to output Go code literals with prerendering.
 func NewEmitterWithPrerenderer(_ context.Context, prerenderer generator_domain.StaticPrerenderer) Emitter {
 	return &emitter{
 		prerenderer: prerenderer,
@@ -649,8 +636,7 @@ func NewEmitterWithPrerenderer(_ context.Context, prerenderer generator_domain.S
 
 // addStdImports adds the standard library imports needed by generated code.
 //
-// Takes importSet (map[string]goast.Spec) which receives the import
-// entries to add.
+// Takes importSet (map[string]goast.Spec) which receives the import entries to add.
 func addStdImports(importSet map[string]goast.Spec) {
 	stdImports := map[string]string{
 		"cmp":                       "",
@@ -673,8 +659,8 @@ func addStdImports(importSet map[string]goast.Spec) {
 // addUserScriptImports adds imports from the user's script block to the set.
 //
 // Takes importSet (map[string]goast.Spec) which collects the import specs.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// rewritten script AST to extract imports from.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the rewritten
+// script AST to extract imports from.
 func addUserScriptImports(importSet map[string]goast.Spec, mainComponent *annotator_dto.VirtualComponent) {
 	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
 		return
@@ -691,15 +677,14 @@ func addUserScriptImports(importSet map[string]goast.Spec, mainComponent *annota
 	}
 }
 
-// addPartialImports adds an import statement for each unique partial used in
-// the template.
+// addPartialImports adds an import statement for each unique partial used in the
+// template.
 //
-// Takes importSet (map[string]goast.Spec) which collects the import specs to
-// add.
-// Takes result (*annotator_dto.AnnotationResult) which provides the partial
-// calls and virtual module data.
-// Takes currentComponentHash (string) which identifies the current component
-// to skip self-imports.
+// Takes importSet (map[string]goast.Spec) which collects the import specs to add.
+// Takes result (*annotator_dto.AnnotationResult) which provides the partial calls and
+// virtual module data.
+// Takes currentComponentHash (string) which identifies the current component to skip
+// self-imports.
 func addPartialImports(importSet map[string]goast.Spec, result *annotator_dto.AnnotationResult, currentComponentHash string) {
 	for _, invocation := range result.UniqueInvocations {
 		if invocation.PartialHashedName == currentComponentHash {
@@ -719,15 +704,15 @@ func addPartialImports(importSet map[string]goast.Spec, result *annotator_dto.An
 	}
 }
 
-// addPartialScriptImports adds Go imports from embedded partials' script blocks.
-// This means when partial template code is inlined into a parent,
-// any Go package imports used in the partial's template expressions are available.
+// addPartialScriptImports adds Go imports from embedded partials' script blocks. This
+// means when partial template code is inlined into a parent, any Go package imports used
+// in the partial's template expressions are available.
 //
 // Takes importSet (map[string]goast.Spec) which collects the import specs to add.
-// Takes result (*annotator_dto.AnnotationResult) which provides the partial calls
-// and virtual module data.
-// Takes currentComponentHash (string) which identifies the current component to
-// skip self-imports.
+// Takes result (*annotator_dto.AnnotationResult) which provides the partial calls and
+// virtual module data.
+// Takes currentComponentHash (string) which identifies the current component to skip
+// self-imports.
 func addPartialScriptImports(importSet map[string]goast.Spec, result *annotator_dto.AnnotationResult, currentComponentHash string) {
 	for _, invocation := range result.UniqueInvocations {
 		if invocation.PartialHashedName == currentComponentHash {
@@ -743,8 +728,8 @@ func addPartialScriptImports(importSet map[string]goast.Spec, result *annotator_
 	}
 }
 
-// extractImportsFromAST collects import specs from a Go AST file and adds
-// them to the import set.
+// extractImportsFromAST collects import specs from a Go AST file and adds them to the
+// import set.
 //
 // Takes importSet (map[string]goast.Spec) which collects the import specs.
 // Takes file (*goast.File) which is the parsed Go file to extract imports from.
@@ -759,8 +744,7 @@ func extractImportsFromAST(importSet map[string]goast.Spec, file *goast.File) {
 	}
 }
 
-// addImportSpecsToSet adds import specs to a set, skipping any that already
-// exist.
+// addImportSpecsToSet adds import specs to a set, skipping any that already exist.
 //
 // Takes importSet (map[string]goast.Spec) which collects the import specs.
 // Takes specs ([]goast.Spec) which contains the import specs to add.
@@ -782,8 +766,7 @@ func addImportSpecsToSet(importSet map[string]goast.Spec, specs []goast.Spec) {
 
 // buildImportDecl creates an import declaration from a set of import specs.
 //
-// Takes importSet (map[string]goast.Spec) which maps import paths to their
-// spec values.
+// Takes importSet (map[string]goast.Spec) which maps import paths to their spec values.
 //
 // Returns *goast.GenDecl which holds the import specs sorted by path.
 func buildImportDecl(importSet map[string]goast.Spec) *goast.GenDecl {
@@ -805,30 +788,30 @@ func buildImportDecl(importSet map[string]goast.Spec) *goast.GenDecl {
 	}
 }
 
-// userCodeLineDirective holds a pending //line directive to be injected before
-// a user declaration during post-processing.
+// userCodeLineDirective holds a pending //line directive to be injected before a user
+// declaration during post-processing.
 type userCodeLineDirective struct {
-	// declSignature is a unique prefix of the declaration line (e.g. "func Render(")
-	// used to locate the declaration in the formatted output.
+	// declSignature is a unique prefix of the declaration line (e.g. "func Render(") used to
+	// locate the declaration in the formatted output.
 	declSignature string
 
 	// directive is the full //line directive text (e.g. "//line pages/main.pk:37").
 	directive string
 }
 
-// copyUserCode moves all declarations except imports from the user's script
-// into the target AST. When source location data is available, it records
-// //line directive metadata for post-processing by injectUserCodeLineDirectives.
+// copyUserCode moves all declarations except imports from the user's script into the
+// target AST. When source location data is available, it records //line directive
+// metadata for post-processing by injectUserCodeLineDirectives.
 //
 // The line mapping uses the ORIGINAL script AST (Source.Script.AST) rather than
-// RewrittenScriptAST because the rewriter's deepCopyASTFile discards the
-// FileSet used for re-parsing, making RewrittenScriptAST positions unresolvable.
-// Auto-generated declarations (default Render, CachePolicy) have Pos()=0 in the
-// original AST and are correctly excluded from //line emission.
+// RewrittenScriptAST because the rewriter's deepCopyASTFile discards the FileSet used for
+// re-parsing, making RewrittenScriptAST positions unresolvable. Auto-generated
+// declarations (default Render, CachePolicy) have Pos()=0 in the original AST and are
+// correctly excluded from //line emission.
 //
 // Takes fileAST (*goast.File) which is the target AST to add declarations to.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// rewritten script with its declarations to copy.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the rewritten
+// script with its declarations to copy.
 // Takes em (*emitter) which provides path computation for //line directives.
 func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent, em *emitter) {
 	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
@@ -857,21 +840,19 @@ func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualCompo
 	}
 }
 
-// buildUserDeclLineMap builds a map from user-defined declaration
-// names to their absolute line numbers in the .pk file.
+// buildUserDeclLineMap builds a map from user-defined declaration names to their absolute
+// line numbers in the .pk file.
 //
-// It uses the ORIGINAL script AST (Source.Script.AST) with its
-// FileSet, since RewrittenScriptAST positions come from a
-// discarded FileSet created during deep copy. Auto-generated
-// declarations (Pos()=0) are excluded.
+// It uses the ORIGINAL script AST (Source.Script.AST) with its FileSet, since
+// RewrittenScriptAST positions come from a discarded FileSet created during deep copy.
+// Auto-generated declarations (Pos()=0) are excluded.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which provides
-// the script AST and source location data.
-// Takes em (*emitter) which supplies path computation for line
-// directives.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the script AST and source
+// location data.
+// Takes em (*emitter) which supplies path computation for line directives.
 //
-// Returns map[string]int which maps declaration names to their
-// line numbers, or nil when source location data is unavailable.
+// Returns map[string]int which maps declaration names to their line numbers, or nil when
+// source location data is unavailable.
 func buildUserDeclLineMap(comp *annotator_dto.VirtualComponent, em *emitter) map[string]int {
 	if em == nil || comp.Source == nil || comp.Source.Script == nil {
 		return nil
@@ -904,18 +885,18 @@ func buildUserDeclLineMap(comp *annotator_dto.VirtualComponent, em *emitter) map
 	return result
 }
 
-// declNameAndSignature extracts the name and a unique line
-// prefix signature from a Go declaration.
+// declNameAndSignature extracts the name and a unique line prefix signature from a Go
+// declaration.
 //
-// The signature is used to locate the declaration line in
-// formatted output for //line directive injection.
+// The signature is used to locate the declaration line in formatted output for //line
+// directive injection.
 //
-// Takes decl (goast.Decl) which is the declaration to extract
-// the name and signature from.
+// Takes decl (goast.Decl) which is the declaration to extract the name and signature
+// from.
 //
 // Returns name (string) which is the declaration's identifier.
-// Returns sig (string) which is a unique prefix of the
-// declaration line, or empty if not extractable.
+// Returns sig (string) which is a unique prefix of the declaration line, or empty if not
+// extractable.
 func declNameAndSignature(decl goast.Decl) (name string, sig string) {
 	switch d := decl.(type) {
 	case *goast.FuncDecl:
@@ -936,15 +917,15 @@ func declNameAndSignature(decl goast.Decl) (name string, sig string) {
 	return "", ""
 }
 
-// injectUserCodeLineDirectives inserts //line directives before
-// user-authored declarations in the formatted output.
+// injectUserCodeLineDirectives inserts //line directives before user-authored
+// declarations in the formatted output.
 //
-// Each directive is placed on its own line immediately before the
-// line containing the declaration signature.
+// Each directive is placed on its own line immediately before the line containing the
+// declaration signature.
 //
 // Takes src ([]byte) which is the formatted Go source code.
-// Takes directives ([]userCodeLineDirective) which lists the
-// directives to inject before their matching declarations.
+// Takes directives ([]userCodeLineDirective) which lists the directives to inject before
+// their matching declarations.
 //
 // Returns []byte which is the source with directives inserted.
 func injectUserCodeLineDirectives(src []byte, directives []userCodeLineDirective) []byte {
@@ -967,9 +948,9 @@ func injectUserCodeLineDirectives(src []byte, directives []userCodeLineDirective
 		}
 
 		trimmed := bytes.TrimSpace(line)
-		for i := len(directives) - 1; i >= 0; i-- {
-			if bytes.HasPrefix(trimmed, []byte(directives[i].declSignature)) {
-				result = append(result, directives[i].directive...)
+		for i, directive := range slices.Backward(directives) {
+			if bytes.HasPrefix(trimmed, []byte(directive.declSignature)) {
+				result = append(result, directive.directive...)
 				result = append(result, '\n')
 				directives = append(directives[:i], directives[i+1:]...)
 			}
@@ -983,10 +964,10 @@ func injectUserCodeLineDirectives(src []byte, directives []userCodeLineDirective
 
 // dedentLineDirectives strips leading whitespace from //line directive lines.
 //
-// The Go compiler only recognises //line directives that start at column 1.
-// go/printer indents statements inside function bodies, so directives emitted
-// as AST statements end up with leading tabs and are silently ignored. This
-// post-processing step moves them back to column 1 so they appear in DWARF.
+// The Go compiler only recognises //line directives that start at column 1. go/printer
+// indents statements inside function bodies, so directives emitted as AST statements end
+// up with leading tabs and are silently ignored. This post-processing step moves them
+// back to column 1 so they appear in DWARF.
 //
 // Takes src ([]byte) which is the formatted Go source.
 //
@@ -1074,13 +1055,12 @@ func buildBoilerplateVarAcks() []goast.Decl {
 
 // verifyGeneratedCode checks that the output bytes are valid Go code.
 //
-// Takes request (generator_dto.GenerateRequest) which provides the source path
-// and generation settings.
-// Takes generatedBytes ([]byte) which contains the generated Go code to
-// check.
+// Takes request (generator_dto.GenerateRequest) which provides the source path and
+// generation settings.
+// Takes generatedBytes ([]byte) which contains the generated Go code to check.
 //
-// Returns error when the generated code is not valid Go. The broken code is
-// saved to a temporary file to help with debugging.
+// Returns error when the generated code is not valid Go. The broken code is saved to a
+// temporary file to help with debugging.
 func verifyGeneratedCode(request generator_dto.GenerateRequest, generatedBytes []byte) error {
 	fset := token.NewFileSet()
 	_, err := parser.ParseFile(fset, request.SourcePath, generatedBytes, parser.AllErrors)
@@ -1102,17 +1082,16 @@ func verifyGeneratedCode(request generator_dto.GenerateRequest, generatedBytes [
 	return nil
 }
 
-// buildCachePolicyRegisterCall generates the AST for registering a cache
-// policy function with a wrapper that adapts the user's no-argument function
-// to the CachePolicyFunc signature (which receives *RequestData).
+// buildCachePolicyRegisterCall generates the AST for registering a cache policy function
+// with a wrapper that adapts the user's no-argument function to the CachePolicyFunc
+// signature (which receives *RequestData).
 //
-// The user defines CachePolicy as func() piko.CachePolicy, but the registry
-// expects func(*RequestData) CachePolicy. This wrapper bridges the two.
+// The user defines CachePolicy as func() piko.CachePolicy, but the registry expects
+// func(*RequestData) CachePolicy. This wrapper bridges the two.
 //
-// Takes pkgPathLit (goast.Expr) which is the string literal for the package
-// path.
-// Takes cachePolicyFuncName (string) which is the name of the user's cache
-// policy function.
+// Takes pkgPathLit (goast.Expr) which is the string literal for the package path.
+// Takes cachePolicyFuncName (string) which is the name of the user's cache policy
+// function.
 //
 // Returns goast.Stmt which is the registration call statement.
 func buildCachePolicyRegisterCall(pkgPathLit goast.Expr, cachePolicyFuncName string) goast.Stmt {
@@ -1163,16 +1142,15 @@ func buildCachePolicyRegisterCall(pkgPathLit goast.Expr, cachePolicyFuncName str
 	}
 }
 
-// buildSourcePathClientScriptMap creates a map from source file paths to
-// whether those files have client scripts, ensuring proper event handler output
-// for nodes that come from embedded partials, which may have their own client
-// scripts even when the parent page does not.
+// buildSourcePathClientScriptMap creates a map from source file paths to whether those
+// files have client scripts, ensuring proper event handler output for nodes that come
+// from embedded partials, which may have their own client scripts even when the parent
+// page does not.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides access to all
-// components and their source paths.
+// Takes result (*annotator_dto.AnnotationResult) which provides access to all components
+// and their source paths.
 //
-// Returns map[string]bool which maps source paths to their client script
-// status.
+// Returns map[string]bool which maps source paths to their client script status.
 func buildSourcePathClientScriptMap(result *annotator_dto.AnnotationResult) map[string]bool {
 	if result == nil || result.VirtualModule == nil {
 		return nil

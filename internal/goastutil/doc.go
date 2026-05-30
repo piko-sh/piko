@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package goastutil provides Go AST construction, type-string
-// parsing, and type classification utilities.
+// Package goastutil provides Go AST construction, type-string parsing, and type
+// classification utilities.
 //
-// It offers AST node builders for programmatic code generation, type
-// string parsing and formatting with package qualification support,
-// and helpers for determining whether types are primitives, built-ins,
-// or standard library types. It also checks Go internal package
-// accessibility.
+// It offers AST node builders for programmatic code generation, type string parsing and
+// formatting with package qualification support, and helpers for determining whether
+// types are primitives, built-ins, or standard library types. It also checks Go internal
+// package accessibility.
 //
 // # Usage
 //
@@ -42,15 +41,14 @@
 //
 // # Thread safety
 //
-// The identifier and literal caches (CachedIdent, StrLit) use sync.Map
-// and are safe for concurrent use. The static identifier cache is
-// populated at init time and is read-only thereafter. RegisterIdent
-// must only be called during package initialisation.
+// The identifier and literal caches (CachedIdent, StrLit) use sync.Map and are safe for
+// concurrent use. The static identifier cache is populated at init time and is read-only
+// thereafter. RegisterIdent must only be called during package initialisation.
 //
 // # Performance
 //
-// The package caches pre-parsed AST expressions for primitive types
-// and reuses a shared token.FileSet to minimise allocations in hot
-// paths. The two-tier identifier cache (static map + sync.Map) avoids
-// repeated heap allocations for commonly occurring identifiers.
+// The package caches pre-parsed AST expressions for primitive types and reuses a shared
+// token.FileSet to minimise allocations in hot paths. The two-tier identifier cache
+// (static map + sync.Map) avoids repeated heap allocations for commonly occurring
+// identifiers.
 package goastutil

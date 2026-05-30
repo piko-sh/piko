@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_valkey_cluster provides a distributed cache
-// provider backed by Valkey Cluster.
+// Package cache_provider_valkey_cluster provides a distributed cache provider backed by
+// Valkey Cluster.
 //
-// It behaves like the single-node Valkey provider but routes commands
-// across cluster nodes automatically via the valkey-go client. Multi-key
-// operations may require multiple round-trips when keys hash to
-// different slots; tag operations use hash tags to keep related keys
-// co-located.
+// It behaves like the single-node Valkey provider but routes commands across cluster
+// nodes automatically via the valkey-go client. Multi-key operations may require multiple
+// round-trips when keys hash to different slots; tag operations use hash tags to keep
+// related keys co-located.
 //
-// Structured queries (TAG and NUMERIC fields) are supported when Valkey
-// Search is available. Full-text search and GEO fields are not yet
-// supported by Valkey Search.
+// Structured queries (TAG and NUMERIC fields) are supported when Valkey Search is
+// available.
 //
-// All methods are safe for concurrent use. The adapter uses
-// singleflight to deduplicate concurrent loads for the same key.
+// All methods are safe for concurrent use. The adapter uses singleflight to deduplicate
+// concurrent loads for the same key.
 package cache_provider_valkey_cluster

@@ -34,8 +34,8 @@ import (
 )
 
 // BlobStoreAdapter implements registry_domain.BlobStore by wrapping a
-// StorageProviderPort. It binds the provider to a specific repository and
-// provides a simpler interface.
+// StorageProviderPort. It binds the provider to a specific repository and provides a
+// simpler interface.
 type BlobStoreAdapter struct {
 	// provider stores and retrieves blobs through Put, Get, Remove, and Rename.
 	provider storage_domain.StorageProviderPort
@@ -44,8 +44,11 @@ type BlobStoreAdapter struct {
 	repository string
 }
 
-var _ registry_domain.BlobStore = (*BlobStoreAdapter)(nil)
-var _ provider_domain.ProviderMetadata = (*BlobStoreAdapter)(nil)
+var (
+	_ registry_domain.BlobStore = (*BlobStoreAdapter)(nil)
+
+	_ provider_domain.ProviderMetadata = (*BlobStoreAdapter)(nil)
+)
 
 // Config holds settings for creating a BlobStoreAdapter.
 type Config struct {
@@ -75,8 +78,8 @@ func NewBlobStoreAdapter(config Config) (*BlobStoreAdapter, error) {
 
 // GetProviderType returns the type of the underlying storage provider.
 //
-// Returns string which is the provider type, or "unknown" if the provider
-// does not implement ProviderMetadata.
+// Returns string which is the provider type, or "unknown" if the provider does not
+// implement ProviderMetadata.
 func (a *BlobStoreAdapter) GetProviderType() string {
 	if meta, ok := a.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderType()
@@ -84,8 +87,8 @@ func (a *BlobStoreAdapter) GetProviderType() string {
 	return "unknown"
 }
 
-// GetProviderMetadata returns metadata about this blob store adapter,
-// including the repository name and any metadata from the underlying provider.
+// GetProviderMetadata returns metadata about this blob store adapter, including the
+// repository name and any metadata from the underlying provider.
 //
 // Returns map[string]any which describes the adapter configuration.
 func (a *BlobStoreAdapter) GetProviderMetadata() map[string]any {
@@ -156,8 +159,8 @@ func (a *BlobStoreAdapter) Get(ctx context.Context, key string) (io.ReadCloser, 
 // Takes length (int64) which specifies the number of bytes to read.
 //
 // Returns io.ReadCloser which provides access to the requested byte range.
-// Returns error when offset is negative, length is not positive, or the blob
-// is not found.
+// Returns error when offset is negative, length is not positive, or the blob is not
+// found.
 func (a *BlobStoreAdapter) RangeGet(ctx context.Context, key string, offset int64, length int64) (io.ReadCloser, error) {
 	if offset < 0 || length <= 0 {
 		return nil, registry_domain.ErrRangeNotSatisfiable
@@ -236,19 +239,18 @@ func (a *BlobStoreAdapter) Exists(ctx context.Context, key string) (bool, error)
 	return exists, nil
 }
 
-// keyLister is an optional interface that storage providers can implement to
-// support key enumeration for garbage collection.
+// keyLister is an optional interface that storage providers can implement to support key
+// enumeration for garbage collection.
 type keyLister interface {
 	// ListKeys returns all storage keys in the given repository.
 	ListKeys(ctx context.Context, repository string) ([]string, error)
 }
 
-// ListKeys returns all storage keys present in this blob store by delegating
-// to the underlying provider if it supports key listing.
+// ListKeys returns all storage keys present in this blob store by delegating to the
+// underlying provider if it supports key listing.
 //
 // Returns []string which contains all keys in the store.
-// Returns error when the provider does not support listing or the operation
-// fails.
+// Returns error when the provider does not support listing or the operation fails.
 func (a *BlobStoreAdapter) ListKeys(ctx context.Context) ([]string, error) {
 	lister, ok := a.provider.(keyLister)
 	if !ok {
@@ -257,9 +259,8 @@ func (a *BlobStoreAdapter) ListKeys(ctx context.Context) ([]string, error) {
 	return lister.ListKeys(ctx, a.repository)
 }
 
-// isNotFoundError checks if an error shows that the object was not found.
-// It handles the different "not found" error patterns from various storage
-// providers.
+// isNotFoundError checks if an error shows that the object was not found. It handles the
+// different "not found" error patterns from various storage providers.
 //
 // Takes err (error) which is the error to check.
 //

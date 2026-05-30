@@ -16,19 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_transformer_crypto provides a storage stream
-// transformer that encrypts and decrypts data using the centralised
-// crypto service.
+// Package storage_transformer_crypto provides a storage stream transformer that encrypts
+// and decrypts data using the centralised crypto service.
 //
-// This transformer applies chunked AES-256-GCM encryption with
-// envelope encryption support for cloud KMS providers. It operates
-// with constant memory usage (~64KB) regardless of file size, so
-// it handles multi-GB files efficiently.
+// This transformer applies chunked AES-256-GCM encryption with envelope encryption
+// support for cloud KMS providers. It operates with constant memory usage (~64KB)
+// regardless of file size, so it handles multi-GB files efficiently.
 //
 // # Usage
 //
-// Create a crypto transformer and register it with the storage
-// service:
+// Create a crypto transformer and register it with the storage service:
 //
 //	transformer := storage_transformer_crypto.New(
 //		cryptoService, "crypto-service", 250,
@@ -37,13 +34,12 @@
 //		storage.WithStreamTransformer(transformer),
 //	)
 //
-// The transformer automatically encrypts data during uploads and
-// decrypts during downloads. Set the priority to 250 (default) to
-// ensure encryption runs after compression transformers (priority
-// 100).
+// The transformer automatically encrypts data during uploads and decrypts during
+// downloads. Set the priority to 250 (default) to ensure encryption runs after
+// compression transformers (priority 100).
 //
 // # Thread safety
 //
-// The transformer is safe for concurrent use. Each call to
-// Transform or Reverse creates independent streaming pipelines.
+// The transformer is safe for concurrent use. Each call to Transform or Reverse creates
+// independent streaming pipelines.
 package storage_transformer_crypto

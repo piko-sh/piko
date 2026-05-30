@@ -18,27 +18,26 @@
 
 package ast_domain
 
-// Sanitises AST structures by removing transient data and normalising paths for serialisation and caching.
-// Strips diagnostics, converts absolute paths to relative paths, and prepares ASTs for storage or transmission.
+// Sanitises AST structures by removing transient data and normalising paths for
+// serialisation and caching. Strips diagnostics, converts absolute paths to relative
+// paths, and prepares ASTs for storage or transmission.
 
 import (
 	"path/filepath"
 	"reflect"
 )
 
-// SanitiseForEncoding creates a deep clone of the AST and prepares it for
-// stable, portable serialisation. Acts as the primary entry point for the
-// sanitisation feature.
+// SanitiseForEncoding creates a deep clone of the AST and prepares it for stable,
+// portable serialisation. Acts as the primary entry point for the sanitisation feature.
 //
 // The sanitisation process includes:
-//   - Removing all diagnostics, which are transient and not part of the
-//     core tree structure.
-//   - Converting all absolute OriginalSourcePath fields in every annotation
-//     to be relative to the provided basePath. This makes the serialised
-//     output independent of the machine it was generated on.
-//   - Converting all absolute GeneratedSourcePath fields in every annotation
-//     to be relative to the provided basePath. This keeps LSP-related
-//     paths are also portable.
+//   - Removing all diagnostics, which are transient and not part of the core tree
+//     structure.
+//   - Converting all absolute OriginalSourcePath fields in every annotation to be
+//     relative to the provided basePath. This makes the serialised output independent of
+//     the machine it was generated on.
+//   - Converting all absolute GeneratedSourcePath fields in every annotation to be
+//     relative to the provided basePath. This keeps LSP-related paths are also portable.
 //
 // Takes tree (*TemplateAST) which is the AST to sanitise.
 // Takes basePath (string) which is the base path for making paths relative.
@@ -73,8 +72,8 @@ func SanitiseForEncoding(tree *TemplateAST, basePath string) *TemplateAST {
 //
 // Takes i (any) which is the value to check.
 //
-// Returns bool which is true if i is nil or holds a nil pointer, map, slice,
-// interface, or function.
+// Returns bool which is true if i is nil or holds a nil pointer, map, slice, interface,
+// or function.
 func isNil(i any) bool {
 	if i == nil {
 		return true
@@ -103,8 +102,8 @@ func sanitiseItem(item any, basePath string) {
 	sanitiseFields(item, basePath)
 }
 
-// sanitiseAnnotations clears diagnostic data and makes file paths relative
-// for annotations in different item types.
+// sanitiseAnnotations clears diagnostic data and makes file paths relative for
+// annotations in different item types.
 //
 // Takes item (any) which is the element that holds annotations to clean.
 // Takes basePath (string) which is the path prefix to remove from file paths.
@@ -128,12 +127,11 @@ func sanitiseAnnotations(item any, basePath string) {
 	}
 }
 
-// sanitiseGoAnnotationPath changes absolute paths in a Go generator
-// annotation to relative paths with forward slashes.
+// sanitiseGoAnnotationPath changes absolute paths in a Go generator annotation to
+// relative paths with forward slashes.
 //
 // Takes v (*GoGeneratorAnnotation) which is the annotation to change in place.
-// Takes basePath (string) which is the base folder for working out relative
-// paths.
+// Takes basePath (string) which is the base folder for working out relative paths.
 func sanitiseGoAnnotationPath(v *GoGeneratorAnnotation, basePath string) {
 	if v.OriginalSourcePath != nil {
 		absPath := *v.OriginalSourcePath
@@ -158,12 +156,11 @@ func sanitiseGoAnnotationPath(v *GoGeneratorAnnotation, basePath string) {
 
 // sanitiseFields processes path-related fields within the given item.
 //
-// It handles different AST node types by calling the correct type-specific
-// sanitise function. Types that are not supported are ignored.
+// It handles different AST node types by calling the correct type-specific sanitise
+// function. Types that are not supported are ignored.
 //
 // Takes item (any) which is the AST node or value to sanitise.
-// Takes basePath (string) which is the base path used to resolve relative
-// paths.
+// Takes basePath (string) which is the base path used to resolve relative paths.
 func sanitiseFields(item any, basePath string) {
 	switch v := item.(type) {
 	case *TemplateNode:
@@ -185,8 +182,8 @@ func sanitiseFields(item any, basePath string) {
 	}
 }
 
-// sanitiseTemplateNode cleans a template node by processing its key,
-// directives, and collections.
+// sanitiseTemplateNode cleans a template node by processing its key, directives, and
+// collections.
 //
 // Takes v (*TemplateNode) which is the node to clean.
 // Takes basePath (string) which is the base path for resolving references.
@@ -218,8 +215,8 @@ func sanitiseNodeDirectives(v *TemplateNode, basePath string) {
 	sanitiseItem(v.DirScaffold, basePath)
 }
 
-// sanitiseNodeCollections cleans paths in all collections within a template
-// node, including dynamic attributes, rich text, events, and binds.
+// sanitiseNodeCollections cleans paths in all collections within a template node,
+// including dynamic attributes, rich text, events, and binds.
 //
 // Takes v (*TemplateNode) which is the node whose collections will be cleaned.
 // Takes basePath (string) which is the base path used for cleaning.
@@ -245,8 +242,7 @@ func sanitiseNodeCollections(v *TemplateNode, basePath string) {
 	}
 }
 
-// sanitiseDirective updates the paths in a directive to be relative to the
-// base path.
+// sanitiseDirective updates the paths in a directive to be relative to the base path.
 //
 // Takes v (*Directive) which is the directive to update.
 // Takes basePath (string) which is the base path for making paths relative.
@@ -255,8 +251,7 @@ func sanitiseDirective(v *Directive, basePath string) {
 	sanitiseItem(v.ChainKey, basePath)
 }
 
-// sanitisePartialInfo removes base path prefixes from a partial invocation
-// info.
+// sanitisePartialInfo removes base path prefixes from a partial invocation info.
 //
 // Takes v (*PartialInvocationInfo) which holds the data to clean.
 // Takes basePath (string) which is the prefix to remove from values.
@@ -269,8 +264,8 @@ func sanitisePartialInfo(v *PartialInvocationInfo, basePath string) {
 	}
 }
 
-// sanitiseExpression walks an expression tree and applies the base path to all
-// file positions within nested items.
+// sanitiseExpression walks an expression tree and applies the base path to all file
+// positions within nested items.
 //
 // Takes v (Expression) which is the expression node to process.
 // Takes basePath (string) which is the base path to apply to file positions.

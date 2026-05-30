@@ -30,18 +30,16 @@ const (
 	// pikoPathPrefix is the path prefix for Piko internal packages.
 	pikoPathPrefix = "piko/"
 
-	// pikoPathPrefixLength is the length of pikoPathPrefix, used for
-	// substring checks.
+	// pikoPathPrefixLength is the length of pikoPathPrefix, used for substring checks.
 	pikoPathPrefixLength = len(pikoPathPrefix)
 
-	// maxSymbolProviders is the maximum number of symbol providers
-	// (system, piko, extras).
+	// maxSymbolProviders is the maximum number of symbol providers (system, piko, extras).
 	maxSymbolProviders = 3
 )
 
-// SymbolProvider implements templater_domain.SymbolProviderPort by
-// composing the internal interpreter's system and Piko symbol providers
-// with any additional user-supplied symbols.
+// SymbolProvider implements templater_domain.SymbolProviderPort by composing the internal
+// interpreter's system and Piko symbol providers with any additional user-supplied
+// symbols.
 type SymbolProvider struct {
 	// systemProvider provides vendored stdlib symbols.
 	systemProvider interp_domain.SymbolProviderPort
@@ -53,12 +51,13 @@ type SymbolProvider struct {
 	extras templater_domain.SymbolExports
 }
 
-var _ templater_domain.SymbolProviderPort = (*SymbolProvider)(nil)
+var (
+	_ templater_domain.SymbolProviderPort = (*SymbolProvider)(nil)
+)
 
-// Use applies the provider's symbols to the given interpreter. For the
-// Piko bytecode interpreter, this configures the underlying Service with
-// the composed symbol providers and registers package aliases for Piko
-// packages following the "path/pkg/pkg" pattern.
+// Use applies the provider's symbols to the given interpreter. For the Piko bytecode
+// interpreter, this configures the underlying Service with the composed symbol providers
+// and registers package aliases for Piko packages following the "path/pkg/pkg" pattern.
 //
 // Takes i (InterpreterPort) which receives the symbol registrations.
 //
@@ -73,12 +72,11 @@ func (sp *SymbolProvider) Use(i templater_domain.InterpreterPort) error {
 	return nil
 }
 
-// applyToService loads all symbols into an interpreter service and
-// registers package aliases for Piko packages with duplicated path
-// segments.
+// applyToService loads all symbols into an interpreter service and registers package
+// aliases for Piko packages with duplicated path segments.
 //
-// Takes service (*interp_domain.Service) which receives the symbol
-// registrations and alias mappings.
+// Takes service (*interp_domain.Service) which receives the symbol registrations and
+// alias mappings.
 func (sp *SymbolProvider) applyToService(service *interp_domain.Service) {
 	providers := make([]interp_domain.SymbolProviderPort, 0, maxSymbolProviders)
 	providers = append(providers, sp.systemProvider, sp.pikoProvider)
@@ -91,13 +89,11 @@ func (sp *SymbolProvider) applyToService(service *interp_domain.Service) {
 	sp.registerAliases(service)
 }
 
-// registerAliases creates short aliases for Piko packages where the
-// last two path segments are identical (e.g.
-// "piko/internal/ast/domain/domain" is aliased as
+// registerAliases creates short aliases for Piko packages where the last two path
+// segments are identical (e.g. "piko/internal/ast/domain/domain" is aliased as
 // "piko/internal/ast/domain").
 //
-// Takes service (*interp_domain.Service) which receives the alias
-// registrations.
+// Takes service (*interp_domain.Service) which receives the alias registrations.
 func (sp *SymbolProvider) registerAliases(service *interp_domain.Service) {
 	allExports := sp.mergedExports()
 
@@ -108,11 +104,10 @@ func (sp *SymbolProvider) registerAliases(service *interp_domain.Service) {
 	}
 }
 
-// mergedExports returns all symbol exports from every provider
-// plus extras.
+// mergedExports returns all symbol exports from every provider plus extras.
 //
-// Returns templater_domain.SymbolExports which contains the merged
-// symbol exports from system, Piko, and extra providers.
+// Returns templater_domain.SymbolExports which contains the merged symbol exports from
+// system, Piko, and extra providers.
 func (sp *SymbolProvider) mergedExports() templater_domain.SymbolExports {
 	merged := make(templater_domain.SymbolExports)
 	maps.Copy(merged, sp.systemProvider.Exports())
@@ -129,19 +124,17 @@ type extrasProvider struct {
 
 // Exports returns the wrapped symbol exports.
 //
-// Returns interp_domain.SymbolExports which contains the extra
-// symbol exports.
+// Returns interp_domain.SymbolExports which contains the extra symbol exports.
 func (p *extrasProvider) Exports() interp_domain.SymbolExports {
 	return p.exports
 }
 
-// createAliasIfNeeded creates an alias path for Piko packages that have
-// repeated names in their import path.
+// createAliasIfNeeded creates an alias path for Piko packages that have repeated names in
+// their import path.
 //
 // Takes path (string) which is the import path to check.
 //
-// Returns string which is the alias path, or an empty string if no alias
-// is needed.
+// Returns string which is the alias path, or an empty string if no alias is needed.
 func createAliasIfNeeded(path string) string {
 	if !isPikoPackage(path) {
 		return ""
@@ -155,13 +148,11 @@ func createAliasIfNeeded(path string) string {
 	return strings.Join(parts[:len(parts)-1], "/")
 }
 
-// isPikoPackage checks whether the given path is a Piko internal
-// package.
+// isPikoPackage checks whether the given path is a Piko internal package.
 //
 // Takes path (string) which is the import path to check.
 //
-// Returns bool which is true if the path starts with the Piko
-// prefix.
+// Returns bool which is true if the path starts with the Piko prefix.
 func isPikoPackage(path string) bool {
 	return len(path) > pikoPathPrefixLength && path[:pikoPathPrefixLength] == pikoPathPrefix
 }

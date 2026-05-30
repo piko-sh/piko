@@ -28,8 +28,8 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// RegistryInspectorService implements the gRPC service for inspecting registry
-// artefacts and variants.
+// RegistryInspectorService implements the gRPC service for inspecting registry artefacts
+// and variants.
 type RegistryInspectorService struct {
 	pb.UnimplementedRegistryInspectorServiceServer
 
@@ -39,8 +39,7 @@ type RegistryInspectorService struct {
 
 // NewRegistryInspectorService creates a new RegistryInspectorService.
 //
-// Takes inspector (RegistryInspector) which provides registry inspection
-// capabilities.
+// Takes inspector (RegistryInspector) which provides registry inspection capabilities.
 //
 // Returns *RegistryInspectorService which is ready for use as a gRPC service.
 func NewRegistryInspectorService(inspector registry_domain.RegistryInspector) *RegistryInspectorService {
@@ -121,8 +120,8 @@ func (s *RegistryInspectorService) ListRecentArtefacts(ctx context.Context, requ
 // WatchArtefacts streams artefact updates at the requested interval.
 //
 // Takes request (*pb.WatchArtefactsRequest) which specifies the polling interval.
-// Takes stream (pb.RegistryInspectorService_WatchArtefactsServer) which
-// receives the artefact updates.
+// Takes stream (pb.RegistryInspectorService_WatchArtefactsServer) which receives the
+// artefact updates.
 //
 // Returns error when the stream context is cancelled or sending fails.
 func (s *RegistryInspectorService) WatchArtefacts(request *pb.WatchArtefactsRequest, stream pb.RegistryInspectorService_WatchArtefactsServer) error {
@@ -131,11 +130,10 @@ func (s *RegistryInspectorService) WatchArtefacts(request *pb.WatchArtefactsRequ
 	}, "artefact", nil)
 }
 
-// sendArtefactsUpdate fetches and sends a single artefact update to the
-// stream.
+// sendArtefactsUpdate fetches and sends a single artefact update to the stream.
 //
-// Takes stream (pb.RegistryInspectorService_WatchArtefactsServer) which
-// receives the artefact update.
+// Takes stream (pb.RegistryInspectorService_WatchArtefactsServer) which receives the
+// artefact update.
 //
 // Returns error when sending the update to the stream fails.
 //
@@ -161,11 +159,10 @@ func (s *RegistryInspectorService) sendArtefactsUpdate(ctx context.Context, stre
 	})
 }
 
-// convertArtefactSummariesToPB converts domain artefact summaries to protobuf
-// format.
+// convertArtefactSummariesToPB converts domain artefact summaries to protobuf format.
 //
-// Takes summaries ([]registry_domain.ArtefactSummary) which contains the domain
-// artefact summaries to convert.
+// Takes summaries ([]registry_domain.ArtefactSummary) which contains the domain artefact
+// summaries to convert.
 //
 // Returns []*pb.ArtefactSummary which contains the converted protobuf summaries.
 func convertArtefactSummariesToPB(summaries []registry_domain.ArtefactSummary) []*pb.ArtefactSummary {
@@ -181,8 +178,8 @@ func convertArtefactSummariesToPB(summaries []registry_domain.ArtefactSummary) [
 
 // convertArtefactsToPB converts domain artefacts to protobuf format.
 //
-// Takes artefacts ([]registry_domain.ArtefactListItem) which contains the
-// domain artefacts to convert.
+// Takes artefacts ([]registry_domain.ArtefactListItem) which contains the domain
+// artefacts to convert.
 //
 // Returns []*pb.ArtefactListItem which contains the converted protobuf items.
 func convertArtefactsToPB(artefacts []registry_domain.ArtefactListItem) []*pb.ArtefactListItem {

@@ -18,19 +18,17 @@
 
 // Package safeconv provides safe integer type conversions with bounds checking.
 //
-// These functions convert between integer types by clamping values to the
-// target type's valid range rather than allowing overflow. This prevents gosec
-// G115 (integer overflow) issues and provides predictable behaviour when
-// narrowing integer types.
+// These functions convert between integer types by clamping values to the target type's
+// valid range rather than allowing overflow. This prevents gosec G115 (integer overflow)
+// issues and provides predictable behaviour when narrowing integer types.
 //
 // # Design rationale
 //
-// Clamping (saturating at the target type's minimum or maximum) was chosen
-// over truncation or panicking. Truncation silently discards high bits,
-// which can turn a large positive value into a small or even negative one
-// with no indication that anything went wrong. Panicking would crash at
-// runtime, which is disproportionate for application code where overflow
-// typically indicates unexpected input rather than a logic error. Clamping
+// Clamping (saturating at the target type's minimum or maximum) was chosen over
+// truncation or panicking. Truncation silently discards high bits, which can turn a large
+// positive value into a small or even negative one with no indication that anything went
+// wrong. Panicking would crash at runtime, which is disproportionate for application code
+// where overflow typically indicates unexpected input rather than a logic error. Clamping
 // preserves the closest representable value and keeps the program running.
 //
 // # Conversion behaviour
@@ -39,8 +37,7 @@
 //
 //   - Negative values are clamped to 0 for unsigned targets
 //   - Values exceeding the target's maximum are clamped to that maximum
-//   - Values below the target's minimum (for signed types) are clamped to
-//     that minimum
+//   - Values below the target's minimum (for signed types) are clamped to that minimum
 //
 // # Usage
 //

@@ -22,25 +22,25 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 )
 
-// partialJSDependencyResolver computes the transitive set of partial JavaScript
-// artefacts required by a page component. It uses PikoImports from each
-// component's ParsedComponent to traverse the dependency graph.
+// partialJSDependencyResolver computes the transitive set of partial JavaScript artefacts
+// required by a page component. It uses PikoImports from each component's ParsedComponent
+// to traverse the dependency graph.
 type partialJSDependencyResolver struct {
-	// artefactsByHashedName maps hashed component names to their generated
-	// artefacts. Used to find dependencies and look up JSArtefactID values.
+	// artefactsByHashedName maps hashed component names to their generated artefacts. Used
+	// to find dependencies and look up JSArtefactID values.
 	artefactsByHashedName map[string]*generator_dto.GeneratedArtefact
 
-	// partialJSLookup maps hashed partial names to their JS artefact IDs.
-	// Only partials that have JS are included.
+	// partialJSLookup maps hashed partial names to their JS artefact IDs. Only partials that
+	// have JS are included.
 	partialJSLookup map[string]string
 
 	// importPathToHashedName maps a module import path to its artefact's hashed name.
 	importPathToHashedName map[string]string
 }
 
-// ResolveForPage computes all partial JS artefact IDs needed by a page.
-// It performs a DFS traversal of PikoImports to find all embedded partials
-// that have client-side JavaScript.
+// ResolveForPage computes all partial JS artefact IDs needed by a page. It performs a DFS
+// traversal of PikoImports to find all embedded partials that have client-side
+// JavaScript.
 //
 // Takes pageHashedName (string) which identifies the page component.
 //
@@ -59,16 +59,14 @@ func (r *partialJSDependencyResolver) ResolveForPage(pageHashedName string) []st
 	return artefactIDs
 }
 
-// collectDependencies performs DFS to find all partial dependencies.
-// It traverses PikoImports recursively, collecting JS artefact IDs along the
-// way.
+// collectDependencies performs DFS to find all partial dependencies. It traverses
+// PikoImports recursively, collecting JS artefact IDs along the way.
 //
 // Takes hashedName (string) which identifies the starting artefact.
 // Takes visited (map[string]bool) which tracks visited nodes to avoid cycles.
-// Takes artefactIDs (*[]string) which accumulates the collected JS artefact
-// IDs.
-// Takes seen (map[string]bool) which tracks already-added artefact IDs to
-// avoid duplicates.
+// Takes artefactIDs (*[]string) which accumulates the collected JS artefact IDs.
+// Takes seen (map[string]bool) which tracks already-added artefact IDs to avoid
+// duplicates.
 func (r *partialJSDependencyResolver) collectDependencies(
 	hashedName string,
 	visited map[string]bool,
@@ -104,11 +102,11 @@ func (r *partialJSDependencyResolver) collectDependencies(
 	}
 }
 
-// newPartialJSDependencyResolver creates a resolver from the given artefacts.
-// It builds internal lookup maps for efficient dependency resolution.
+// newPartialJSDependencyResolver creates a resolver from the given artefacts. It builds
+// internal lookup maps for efficient dependency resolution.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all
-// generated artefacts for the project.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all generated
+// artefacts for the project.
 //
 // Returns *partialJSDependencyResolver which is ready to resolve dependencies.
 func newPartialJSDependencyResolver(artefacts []*generator_dto.GeneratedArtefact) *partialJSDependencyResolver {

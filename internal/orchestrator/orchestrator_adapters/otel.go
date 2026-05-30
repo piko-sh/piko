@@ -31,40 +31,39 @@ var (
 	// meter is the OpenTelemetry meter for the orchestrator adapters package.
 	meter = otel.Meter("piko/internal/orchestrator/orchestrator_adapters")
 
-	// WatermillEventBusPublishDuration records the time taken to publish events
-	// through the Watermill EventBus.
+	// WatermillEventBusPublishDuration records the time taken to publish events through the
+	// Watermill EventBus.
 	WatermillEventBusPublishDuration metric.Float64Histogram
 
-	// WatermillEventBusSubscribeDuration records the time taken to subscribe to
-	// a Watermill event bus topic.
+	// WatermillEventBusSubscribeDuration records the time taken to subscribe to a Watermill
+	// event bus topic.
 	WatermillEventBusSubscribeDuration metric.Float64Histogram
 
-	// WatermillEventBusCloseDuration records how long it takes to close the event
-	// bus.
+	// WatermillEventBusCloseDuration records how long it takes to close the event bus.
 	WatermillEventBusCloseDuration metric.Float64Histogram
 
-	// WatermillEventBusPublishErrorCount tracks the number of failed event
-	// publish attempts through the Watermill event bus.
+	// WatermillEventBusPublishErrorCount tracks the number of failed event publish attempts
+	// through the Watermill event bus.
 	WatermillEventBusPublishErrorCount metric.Int64Counter
 
-	// WatermillEventBusSubscribeErrorCount tracks the number of subscription errors
-	// from the Watermill event bus.
+	// WatermillEventBusSubscribeErrorCount tracks the number of subscription errors from the
+	// Watermill event bus.
 	WatermillEventBusSubscribeErrorCount metric.Int64Counter
 
-	// WatermillEventBusCloseErrorCount tracks the number of errors that occur
-	// when closing a Watermill event bus.
+	// WatermillEventBusCloseErrorCount tracks the number of errors that occur when closing a
+	// Watermill event bus.
 	WatermillEventBusCloseErrorCount metric.Int64Counter
 
-	// WatermillEventBusMessageUnmarshalErrorCount tracks the number of message
-	// unmarshalling failures in the Watermill event bus.
+	// WatermillEventBusMessageUnmarshalErrorCount tracks the number of message unmarshalling
+	// failures in the Watermill event bus.
 	WatermillEventBusMessageUnmarshalErrorCount metric.Int64Counter
 
-	// WatermillEventBusPublishedEvents counts the total number of events
-	// published through the Watermill event bus.
+	// WatermillEventBusPublishedEvents counts the total number of events published through
+	// the Watermill event bus.
 	WatermillEventBusPublishedEvents metric.Int64Counter
 
-	// WatermillEventBusReceivedEvents counts the total events received by the
-	// Watermill event bus.
+	// WatermillEventBusReceivedEvents counts the total events received by the Watermill
+	// event bus.
 	WatermillEventBusReceivedEvents metric.Int64Counter
 
 	// WatermillEventBusDroppedEvents counts events dropped by the Watermill bus.
@@ -73,86 +72,86 @@ var (
 	// WatermillEventBusSubscriberCount tracks the number of active subscribers.
 	WatermillEventBusSubscriberCount metric.Int64UpDownCounter
 
-	// SQLiteTaskStoreCreateTaskDuration records the time taken to create a task in
-	// the SQLite task store.
+	// SQLiteTaskStoreCreateTaskDuration records the time taken to create a task in the
+	// SQLite task store.
 	SQLiteTaskStoreCreateTaskDuration metric.Float64Histogram
 
-	// SQLiteTaskStoreUpdateTaskDuration records the duration of task update
-	// operations in the SQLite task store.
+	// SQLiteTaskStoreUpdateTaskDuration records the duration of task update operations in
+	// the SQLite task store.
 	SQLiteTaskStoreUpdateTaskDuration metric.Float64Histogram
 
-	// SQLiteTaskStoreFetchDueTasksDuration records the time taken to fetch due
-	// tasks from the SQLite task store.
+	// SQLiteTaskStoreFetchDueTasksDuration records the time taken to fetch due tasks from
+	// the SQLite task store.
 	SQLiteTaskStoreFetchDueTasksDuration metric.Float64Histogram
 
-	// SQLiteTaskStoreGetWorkflowStatusDuration records the duration in seconds
-	// of GetWorkflowStatus operations on the SQLite task store.
+	// SQLiteTaskStoreGetWorkflowStatusDuration records the duration in seconds of
+	// GetWorkflowStatus operations on the SQLite task store.
 	SQLiteTaskStoreGetWorkflowStatusDuration metric.Float64Histogram
 
-	// SQLiteTaskStorePromoteTasksDuration records the duration of task promotion
-	// operations in the SQLite task store.
+	// SQLiteTaskStorePromoteTasksDuration records the duration of task promotion operations
+	// in the SQLite task store.
 	SQLiteTaskStorePromoteTasksDuration metric.Float64Histogram
 
-	// SQLiteTaskStoreCreateTaskErrorCount tracks the number of errors when
-	// creating tasks in the SQLite task store.
+	// SQLiteTaskStoreCreateTaskErrorCount tracks the number of errors when creating tasks in
+	// the SQLite task store.
 	SQLiteTaskStoreCreateTaskErrorCount metric.Int64Counter
 
-	// SQLiteTaskStoreUpdateTaskErrorCount counts errors during task updates in the
-	// SQLite task store.
+	// SQLiteTaskStoreUpdateTaskErrorCount counts errors during task updates in the SQLite
+	// task store.
 	SQLiteTaskStoreUpdateTaskErrorCount metric.Int64Counter
 
-	// SQLiteTaskStoreFetchDueTasksErrorCount tracks the number of errors that
-	// occur when fetching due tasks from the SQLite task store.
+	// SQLiteTaskStoreFetchDueTasksErrorCount tracks the number of errors that occur when
+	// fetching due tasks from the SQLite task store.
 	SQLiteTaskStoreFetchDueTasksErrorCount metric.Int64Counter
 
-	// SQLiteTaskStoreGetWorkflowErrorCount tracks the number of errors when
-	// retrieving workflow data from the SQLite task store.
+	// SQLiteTaskStoreGetWorkflowErrorCount tracks the number of errors when retrieving
+	// workflow data from the SQLite task store.
 	SQLiteTaskStoreGetWorkflowErrorCount metric.Int64Counter
 
 	// SQLiteTaskStorePromoteTasksErrorCount counts errors when promoting tasks.
 	SQLiteTaskStorePromoteTasksErrorCount metric.Int64Counter
 
-	// SQLiteTaskStoreTasksCreatedCount tracks the number of tasks created in the
-	// SQLite task store.
+	// SQLiteTaskStoreTasksCreatedCount tracks the number of tasks created in the SQLite task
+	// store.
 	SQLiteTaskStoreTasksCreatedCount metric.Int64Counter
 
-	// SQLiteTaskStoreTasksUpdatedCount counts the number of tasks updated in the
-	// SQLite task store.
+	// SQLiteTaskStoreTasksUpdatedCount counts the number of tasks updated in the SQLite task
+	// store.
 	SQLiteTaskStoreTasksUpdatedCount metric.Int64Counter
 
-	// SQLiteTaskStoreTasksFetchedCount records the number of tasks fetched from
-	// the SQLite task store.
+	// SQLiteTaskStoreTasksFetchedCount records the number of tasks fetched from the SQLite
+	// task store.
 	SQLiteTaskStoreTasksFetchedCount metric.Int64Counter
 
-	// SQLiteTaskStoreTasksPromotedCount tracks the number of tasks promoted in the
-	// SQLite task store.
+	// SQLiteTaskStoreTasksPromotedCount tracks the number of tasks promoted in the SQLite
+	// task store.
 	SQLiteTaskStoreTasksPromotedCount metric.Int64Counter
 
 	// BridgeEventHandlingDuration records the time taken to handle events in the
 	// ArtefactWorkflowBridge.
 	BridgeEventHandlingDuration metric.Float64Histogram
 
-	// BridgeEventHandlingErrorCount tracks the number of errors that occur when
-	// handling bridge events.
+	// BridgeEventHandlingErrorCount tracks the number of errors that occur when handling
+	// bridge events.
 	BridgeEventHandlingErrorCount metric.Int64Counter
 
-	// BridgeArtefactFetchDuration records the time taken to fetch artefacts from
-	// the bridge service.
+	// BridgeArtefactFetchDuration records the time taken to fetch artefacts from the bridge
+	// service.
 	BridgeArtefactFetchDuration metric.Float64Histogram
 
-	// BridgeArtefactFetchErrorCount tracks the number of failed artefact fetch
-	// operations from the bridge service.
+	// BridgeArtefactFetchErrorCount tracks the number of failed artefact fetch operations
+	// from the bridge service.
 	BridgeArtefactFetchErrorCount metric.Int64Counter
 
 	// BridgeTaskDispatchDuration records the time taken to dispatch bridge tasks.
 	BridgeTaskDispatchDuration metric.Float64Histogram
 
-	// BridgeTaskDispatchErrorCount tracks the number of errors that occur when
-	// sending bridge tasks.
+	// BridgeTaskDispatchErrorCount tracks the number of errors that occur when sending
+	// bridge tasks.
 	BridgeTaskDispatchErrorCount metric.Int64Counter
 
-	// BridgeEventsProcessedCount tracks the total number of bridge events that
-	// have been processed.
+	// BridgeEventsProcessedCount tracks the total number of bridge events that have been
+	// processed.
 	BridgeEventsProcessedCount metric.Int64Counter
 
 	// BridgeTasksDispatchedCount tracks the number of tasks dispatched by the bridge.
@@ -161,8 +160,8 @@ var (
 	// ExecutorCompilationDuration records the time spent compiling expressions.
 	ExecutorCompilationDuration metric.Float64Histogram
 
-	// ExecutorCompilationErrorCount is a metric that counts compilation errors
-	// in the executor.
+	// ExecutorCompilationErrorCount is a metric that counts compilation errors in the
+	// executor.
 	ExecutorCompilationErrorCount metric.Int64Counter
 
 	// ExecutorArtefactFetchDuration records the time taken to fetch artefacts.
@@ -171,26 +170,25 @@ var (
 	// ExecutorArtefactFetchErrorCount counts errors when fetching executor artefacts.
 	ExecutorArtefactFetchErrorCount metric.Int64Counter
 
-	// ExecutorCapabilityExecutionDuration records the time taken to execute
-	// capabilities in seconds.
+	// ExecutorCapabilityExecutionDuration records the time taken to execute capabilities in
+	// seconds.
 	ExecutorCapabilityExecutionDuration metric.Float64Histogram
 
 	// ExecutorCapabilityExecutionErrorCount counts errors during capability execution.
 	ExecutorCapabilityExecutionErrorCount metric.Int64Counter
 
-	// ExecutorVariantCreationDuration records the time taken to create executor
-	// variants.
+	// ExecutorVariantCreationDuration records the time taken to create executor variants.
 	ExecutorVariantCreationDuration metric.Float64Histogram
 
-	// ExecutorVariantCreationErrorCount tracks the number of errors that occur
-	// when creating executor variants.
+	// ExecutorVariantCreationErrorCount tracks the number of errors that occur when creating
+	// executor variants.
 	ExecutorVariantCreationErrorCount metric.Int64Counter
 
 	// ExecutorPayloadParsingDuration records the time spent parsing payloads.
 	ExecutorPayloadParsingDuration metric.Float64Histogram
 
-	// ExecutorPayloadParsingErrorCount tracks how many times the executor fails to
-	// parse a payload.
+	// ExecutorPayloadParsingErrorCount tracks how many times the executor fails to parse a
+	// payload.
 	ExecutorPayloadParsingErrorCount metric.Int64Counter
 )
 

@@ -25,22 +25,20 @@ import (
 	"sync"
 )
 
-// ActionMetadata is embedded in action structs to provide access to request
-// metadata and response building capabilities.
+// ActionMetadata is embedded in action structs to provide access to request metadata and
+// response building capabilities.
 //
 // Embed in an action struct to gain access to:
 //   - HTTP request metadata via Request()
 //   - Response building via Response()
 //
-// The framework injects values before calling the action's Call method.
-// Request context is passed as the first parameter to Call.
+// The framework injects values before calling the action's Call method. Request context
+// is passed as the first parameter to Call.
 type ActionMetadata struct {
-	// request holds the HTTP request metadata; nil until initialised by the
-	// framework.
+	// request holds the HTTP request metadata; nil until initialised by the framework.
 	request *RequestMetadata
 
-	// response holds the HTTP response writer; nil until initialised by the
-	// framework.
+	// response holds the HTTP response writer; nil until initialised by the framework.
 	response *ResponseWriter
 }
 
@@ -64,8 +62,8 @@ func (m *ActionMetadata) Response() *ResponseWriter {
 //
 // Takes request (*RequestMetadata) which provides the request context.
 //
-// Called by the framework to inject request metadata. Intentionally unexported
-// in the public API to prevent user modification.
+// Called by the framework to inject request metadata. Intentionally unexported in the
+// public API to prevent user modification.
 func (m *ActionMetadata) SetRequest(request *RequestMetadata) {
 	m.request = request
 }
@@ -79,8 +77,8 @@ func (m *ActionMetadata) SetResponse(response *ResponseWriter) {
 	m.response = response
 }
 
-// InheritMetadata copies request and response metadata from another action,
-// typically when one action calls another internally.
+// InheritMetadata copies request and response metadata from another action, typically
+// when one action calls another internally.
 //
 // Takes from (*ActionMetadata) which provides the metadata to copy.
 func (m *ActionMetadata) InheritMetadata(from *ActionMetadata) {
@@ -90,8 +88,8 @@ func (m *ActionMetadata) InheritMetadata(from *ActionMetadata) {
 
 // Ctx returns the request context for this action.
 //
-// Returns context.Context which is the request context, or
-// context.Background if the action has not been initialised.
+// Returns context.Context which is the request context, or context.Background if the
+// action has not been initialised.
 func (m *ActionMetadata) Ctx() context.Context {
 	if m.request != nil && m.request.RawRequest != nil {
 		return m.request.RawRequest.Context()
@@ -99,9 +97,9 @@ func (m *ActionMetadata) Ctx() context.Context {
 	return context.Background()
 }
 
-// ClientIP returns the real client IP address resolved by the trusted
-// proxy chain. Returns empty string if the action has not been
-// initialised or the RealIP middleware has not run.
+// ClientIP returns the real client IP address resolved by the trusted proxy chain.
+// Returns empty string if the action has not been initialised or the RealIP middleware
+// has not run.
 //
 // Returns string which is the resolved client IP address.
 func (m *ActionMetadata) ClientIP() string {
@@ -111,8 +109,8 @@ func (m *ActionMetadata) ClientIP() string {
 	return ""
 }
 
-// RequestID returns the unique request identifier for this action's
-// request. Returns empty string if the action has not been initialised.
+// RequestID returns the unique request identifier for this action's request. Returns
+// empty string if the action has not been initialised.
 //
 // Returns string which is the formatted or forwarded request ID.
 func (m *ActionMetadata) RequestID() string {
@@ -122,9 +120,8 @@ func (m *ActionMetadata) RequestID() string {
 	return ""
 }
 
-// Auth returns the authentication context for this action's request,
-// or nil if no auth provider is configured or the request is
-// unauthenticated.
+// Auth returns the authentication context for this action's request, or nil if no auth
+// provider is configured or the request is unauthenticated.
 //
 // Returns AuthContext which provides access to authentication state.
 func (m *ActionMetadata) Auth() AuthContext {
@@ -147,26 +144,24 @@ type RequestMetadata struct {
 	// Session contains session data if available.
 	Session *Session
 
-	// RawRequest provides access to the underlying http.Request.
-	// Use this as an escape hatch when you need features not exposed
-	// by the higher-level API.
+	// RawRequest provides access to the underlying http.Request. Use this as an escape hatch
+	// when you need features not exposed by the higher-level API.
 	RawRequest *http.Request
 
 	// CSRFToken is the ephemeral CSRF token if provided.
 	CSRFToken *string
 
-	// CaptchaScore is the normalised captcha confidence score, where 0.0 means
-	// likely bot and 1.0 means likely human. Nil when captcha is not configured
-	// or the provider does not support scoring.
+	// CaptchaScore is the normalised captcha confidence score, where 0.0 means likely bot
+	// and 1.0 means likely human. Nil when captcha is not configured or the provider does
+	// not support scoring.
 	CaptchaScore *float64
 
-	// SpamScore is the composite spam score (0.0 = clean, 1.0 = definite
-	// spam). Nil when spam detection is not configured or the action does
-	// not implement SpamProtected.
+	// SpamScore is the composite spam score (0.0 = clean, 1.0 = definite spam). Nil when
+	// spam detection is not configured or the action does not implement SpamProtected.
 	SpamScore *float64
 
-	// SpamFieldScores maps form field keys to their individual spam scores.
-	// Nil when spam detection is not configured or all fields scored zero.
+	// SpamFieldScores maps form field keys to their individual spam scores. Nil when spam
+	// detection is not configured or all fields scored zero.
 	SpamFieldScores map[string]float64
 
 	// Method is the HTTP method (GET, POST, etc.).
@@ -178,9 +173,8 @@ type RequestMetadata struct {
 	// RemoteAddr is the client's remote address.
 	RemoteAddr string
 
-	// SpamReasons lists human-readable reasons from detectors that flagged
-	// the submission. Nil when spam detection is not configured or no
-	// reasons were generated.
+	// SpamReasons lists human-readable reasons from detectors that flagged the submission.
+	// Nil when spam detection is not configured or no reasons were generated.
 	SpamReasons []string
 }
 
@@ -196,8 +190,8 @@ type Session struct {
 	UserID string
 }
 
-// ResponseWriter allows actions to set response metadata like cookies,
-// headers, and client-side helper calls.
+// ResponseWriter allows actions to set response metadata like cookies, headers, and
+// client-side helper calls.
 type ResponseWriter struct {
 	// headers stores HTTP response headers to be sent with the response.
 	headers http.Header
@@ -232,8 +226,7 @@ func (w *ResponseWriter) SetCookie(cookie *http.Cookie) {
 	w.cookies = append(w.cookies, cookie)
 }
 
-// AddHeader adds a header to the response.
-// Multiple values can be added for the same key.
+// AddHeader adds a header to the response. Multiple values can be added for the same key.
 //
 // Takes key (string) which specifies the header name.
 // Takes value (string) which specifies the header value.
@@ -257,8 +250,8 @@ func (w *ResponseWriter) SetHeader(key, value string) {
 	w.headers.Set(key, value)
 }
 
-// AddHelper queues a client-side helper call to be executed after the action.
-// Helpers are functions registered on the client that can perform UI updates.
+// AddHelper queues a client-side helper call to be executed after the action. Helpers are
+// functions registered on the client that can perform UI updates.
 //
 // Takes name (string) which is the name of the helper function to call.
 // Takes arguments (...any) which are the arguments to pass to the helper.
@@ -323,8 +316,8 @@ type HelperCall struct {
 	Args []any `json:"args,omitempty"`
 }
 
-// ActionFullResponse is the wire format returned by actions. It wraps the
-// action's return data with optional helpers for client-side execution.
+// ActionFullResponse is the wire format returned by actions. It wraps the action's return
+// data with optional helpers for client-side execution.
 type ActionFullResponse struct {
 	// Data is the action's return value.
 	Data any `json:"data,omitempty"`

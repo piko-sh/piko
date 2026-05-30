@@ -26,31 +26,28 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_dto"
 )
 
-// MarkdownService defines the contract for processing markdown files into
-// structured build artefacts.
+// MarkdownService defines the contract for processing markdown files into structured
+// build artefacts.
 type MarkdownService interface {
 	// Process transforms raw markdown content into a structured representation.
 	//
 	// Takes content ([]byte) which is the raw markdown to process.
-	// Takes sourcePath (string) which identifies the source file for error
-	// reporting.
+	// Takes sourcePath (string) which identifies the source file for error reporting.
 	//
 	// Returns *markdown_dto.ProcessedMarkdown which contains the parsed result.
 	// Returns error when the markdown content cannot be processed.
 	Process(ctx context.Context, content []byte, sourcePath string) (*markdown_dto.ProcessedMarkdown, error)
 }
 
-// MarkdownParserPort defines the adapter contract for parsing raw markdown
-// content into a piko-native AST.
+// MarkdownParserPort defines the adapter contract for parsing raw markdown content into a
+// piko-native AST.
 type MarkdownParserPort interface {
 	// Parse processes the content and extracts the AST and frontmatter.
 	//
 	// Takes content ([]byte) which is the raw input to parse.
 	//
-	// Returns doc (*markdown_ast.Document) which is the root of the parsed
-	// syntax tree.
-	// Returns frontmatter (map[string]any) which contains metadata from the
-	// content.
+	// Returns doc (*markdown_ast.Document) which is the root of the parsed syntax tree.
+	// Returns frontmatter (map[string]any) which contains metadata from the content.
 	// Returns error when parsing fails.
 	Parse(ctx context.Context, content []byte) (doc *markdown_ast.Document, frontmatter map[string]any, err error)
 }

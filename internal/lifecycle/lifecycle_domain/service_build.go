@@ -18,8 +18,8 @@
 
 package lifecycle_domain
 
-// This file contains build notification handling, interpreted-mode runner
-// management, and route reloading for the lifecycle service.
+// This file contains build notification handling, interpreted-mode runner management, and
+// route reloading for the lifecycle service.
 
 import (
 	"context"
@@ -34,8 +34,8 @@ import (
 
 // handleBuildNotifications listens for build events from the coordinator.
 //
-// Takes notifications (<-chan coordinator_domain.BuildNotification) which
-// provides the stream of build events to process.
+// Takes notifications (<-chan coordinator_domain.BuildNotification) which provides the
+// stream of build events to process.
 func (ls *lifecycleService) handleBuildNotifications(ctx context.Context, notifications <-chan coordinator_domain.BuildNotification) {
 	defer goroutine.RecoverPanic(ctx, "lifecycle.handleBuildNotifications")
 	ctx, l := logger_domain.From(ctx, log)
@@ -61,8 +61,8 @@ func (ls *lifecycleService) handleBuildNotifications(ctx context.Context, notifi
 
 // processBuildNotification handles a single build notification.
 //
-// Takes notification (coordinator_domain.BuildNotification) which holds the
-// build result to process.
+// Takes notification (coordinator_domain.BuildNotification) which holds the build result
+// to process.
 func (ls *lifecycleService) processBuildNotification(ctx context.Context, notification coordinator_domain.BuildNotification) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -82,11 +82,11 @@ func (ls *lifecycleService) processBuildNotification(ctx context.Context, notifi
 	ls.updateWatchedFilesFromBuild(ctx, notification.Result)
 }
 
-// updateWatchedFilesFromBuild updates the file watcher with asset paths from
-// the build result. This means new assets are watched for hot-reload.
+// updateWatchedFilesFromBuild updates the file watcher with asset paths from the build
+// result. This means new assets are watched for hot-reload.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// asset manifest from which to extract file paths.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the asset manifest
+// from which to extract file paths.
 func (ls *lifecycleService) updateWatchedFilesFromBuild(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
 	if ls.watcherAdapter == nil || result.FinalAssetManifest == nil {
 		return
@@ -100,11 +100,10 @@ func (ls *lifecycleService) updateWatchedFilesFromBuild(ctx context.Context, res
 	}
 }
 
-// extractAssetPathsFromManifest converts asset manifest entries to absolute
-// file paths.
+// extractAssetPathsFromManifest converts asset manifest entries to absolute file paths.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// asset manifest entries to convert.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the asset manifest
+// entries to convert.
 //
 // Returns []string which contains the absolute file paths for each asset.
 func (ls *lifecycleService) extractAssetPathsFromManifest(result *annotator_dto.ProjectAnnotationResult) []string {
@@ -129,8 +128,8 @@ func (ls *lifecycleService) extractAssetPathsFromManifest(result *annotator_dto.
 
 // processAssetManifest processes the asset manifest from a build result.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// asset manifest to process.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the asset manifest
+// to process.
 func (ls *lifecycleService) processAssetManifest(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
 	if ls.assetPipeline == nil || len(result.FinalAssetManifest) == 0 {
 		return
@@ -143,11 +142,10 @@ func (ls *lifecycleService) processAssetManifest(ctx context.Context, result *an
 	}
 }
 
-// handleInterpretedBuild processes build results when running in interpreted
-// mode.
+// handleInterpretedBuild processes build results when running in interpreted mode.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// annotation results to process.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
+// results to process.
 func (ls *lifecycleService) handleInterpretedBuild(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
 	if ls.interpretedOrchestrator == nil || ls.templaterService == nil {
 		return
@@ -163,8 +161,8 @@ func (ls *lifecycleService) handleInterpretedBuild(ctx context.Context, result *
 
 // handleInitialBuild creates the initial interpreted runner.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the
-// annotation data used to build the runner.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the annotation data
+// used to build the runner.
 func (ls *lifecycleService) handleInitialBuild(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -185,11 +183,11 @@ func (ls *lifecycleService) handleInitialBuild(ctx context.Context, result *anno
 	}
 }
 
-// handleIncrementalBuild marks components dirty and proactively JIT-compiles
-// them rather than waiting for an HTTP request.
+// handleIncrementalBuild marks components dirty and proactively JIT-compiles them rather
+// than waiting for an HTTP request.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// components to mark as dirty.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the components to
+// mark as dirty.
 func (ls *lifecycleService) handleIncrementalBuild(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -214,8 +212,8 @@ func (ls *lifecycleService) handleIncrementalBuild(ctx context.Context, result *
 // reloadRoutesIfNeeded reloads routes if a router manager is set.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes newRunner (templater_domain.ManifestRunnerPort) which provides the
-// manifest data for route creation.
+// Takes newRunner (templater_domain.ManifestRunnerPort) which provides the manifest data
+// for route creation.
 func (ls *lifecycleService) reloadRoutesIfNeeded(ctx context.Context, newRunner templater_domain.ManifestRunnerPort) {
 	if ls.routerManager == nil {
 		return
@@ -232,8 +230,8 @@ func (ls *lifecycleService) reloadRoutesIfNeeded(ctx context.Context, newRunner 
 	l.Internal("Routes successfully loaded")
 }
 
-// interpretedRunnerView defines the interface for an interpreted runner that
-// provides page entry information for route registration.
+// interpretedRunnerView defines the interface for an interpreted runner that provides
+// page entry information for route registration.
 type interpretedRunnerView interface {
 	// GetKeys returns all keys stored in the collection.
 	//
@@ -249,11 +247,10 @@ type interpretedRunnerView interface {
 	GetPageEntryByPath(path string) (templater_domain.PageEntryView, bool)
 }
 
-// interpretedManifestStoreViewAdapter implements ManifestStoreView by
-// wrapping an interpretedRunnerView for router registration.
+// interpretedManifestStoreViewAdapter implements ManifestStoreView by wrapping an
+// interpretedRunnerView for router registration.
 type interpretedManifestStoreViewAdapter struct {
-	// runner provides access to page keys and entries from the interpreted
-	// manifest.
+	// runner provides access to page keys and entries from the interpreted manifest.
 	runner interpretedRunnerView
 }
 
@@ -274,9 +271,8 @@ func (a *interpretedManifestStoreViewAdapter) GetPageEntry(path string) (templat
 	return a.runner.GetPageEntryByPath(path)
 }
 
-// FindErrorPage is not supported in interpreted mode, where error
-// pages require the compiled manifest store, and always returns
-// (nil, false).
+// FindErrorPage is not supported in interpreted mode, where error pages require the
+// compiled manifest store, and always returns (nil, false).
 //
 // Takes statusCode (int) which is the HTTP status code (unused).
 // Takes requestPath (string) which is the request path (unused).
@@ -286,22 +282,19 @@ func (*interpretedManifestStoreViewAdapter) FindErrorPage(_ int, _ string) (temp
 	return nil, false
 }
 
-// ListPreviewEntries is not supported in this adapter. The interpreted mode
-// preview support is provided by the InterpretedManifestStoreView instead.
+// ListPreviewEntries is not supported in this adapter. The interpreted mode preview
+// support is provided by the InterpretedManifestStoreView instead.
 //
 // Returns nil always.
 func (*interpretedManifestStoreViewAdapter) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
 	return nil
 }
 
-// newInterpretedManifestStoreView creates a store view adapter for an
-// interpreted runner.
+// newInterpretedManifestStoreView creates a store view adapter for an interpreted runner.
 //
-// Takes runner (templater_domain.ManifestRunnerPort) which provides the runner
-// to wrap.
+// Takes runner (templater_domain.ManifestRunnerPort) which provides the runner to wrap.
 //
-// Returns templater_domain.ManifestStoreView which wraps the runner for store
-// access.
+// Returns templater_domain.ManifestStoreView which wraps the runner for store access.
 //
 // Panics if the runner does not implement interpretedRunnerView.
 func newInterpretedManifestStoreView(runner templater_domain.ManifestRunnerPort) templater_domain.ManifestStoreView {

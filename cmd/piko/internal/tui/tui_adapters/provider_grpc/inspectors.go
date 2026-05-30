@@ -37,65 +37,60 @@ import (
 )
 
 const (
-	// captureDeadlineSlack is the extra time added to the user-supplied
-	// capture duration before the gRPC context expires. The server
-	// performs a sampling pass plus encode after the window closes, so
-	// a hard deadline equal to duration would race the response.
+	// captureDeadlineSlack is the extra time added to the user-supplied capture duration
+	// before the gRPC context expires. The server performs a sampling pass plus encode after
+	// the window closes, so a hard deadline equal to duration would race the response.
 	captureDeadlineSlack = 5 * time.Second
 
-	// providersInitialCap is the initial capacity for the aggregated
-	// providers slice. Sized for typical hexagons; grows as needed.
+	// providersInitialCap is the initial capacity for the aggregated providers slice. Sized
+	// for typical hexagons; grows as needed.
 	providersInitialCap = 32
 
-	// captureMaxBytes caps the concatenated profile bytes returned by
-	// a CaptureProfile stream. Profiles larger than this abort with
-	// ErrCaptureTooLarge so a hostile or runaway server cannot OOM
-	// the TUI.
+	// captureMaxBytes caps the concatenated profile bytes returned by a CaptureProfile
+	// stream. Profiles larger than this abort with ErrCaptureTooLarge so a hostile or
+	// runaway server cannot OOM the TUI.
 	captureMaxBytes = 256 * 1024 * 1024
 
-	// captureChunkMaxBytes caps any single chunk returned by the
-	// stream. Defensive against a malformed server.
+	// captureChunkMaxBytes caps any single chunk returned by the stream. Defensive against a
+	// malformed server.
 	captureChunkMaxBytes = 32 * 1024 * 1024
 
-	// captureMaxDurationSeconds caps the requested sampling window so
-	// the int32 wire field cannot overflow.
+	// captureMaxDurationSeconds caps the requested sampling window so the int32 wire field
+	// cannot overflow.
 	captureMaxDurationSeconds = 600
 
-	// dlqLimitMax caps the requested DLQ entry count so the int32
-	// wire field cannot overflow and so the TUI never asks for an
-	// unbounded slice.
+	// dlqLimitMax caps the requested DLQ entry count so the int32 wire field cannot overflow
+	// and so the TUI never asks for an unbounded slice.
 	dlqLimitMax = 10_000
 
-	// listProvidersMaxConcurrency caps fan-out across resource types
-	// when listing providers.
+	// listProvidersMaxConcurrency caps fan-out across resource types when listing providers.
 	listProvidersMaxConcurrency = 8
 
-	// listProvidersPerCallTimeout bounds each per-resource-type
-	// ListProviders RPC so a slow type cannot stall the whole list.
+	// listProvidersPerCallTimeout bounds each per-resource-type ListProviders RPC so a slow
+	// type cannot stall the whole list.
 	listProvidersPerCallTimeout = 3 * time.Second
 )
 
 var (
-	// ErrServiceUnavailable is the alias for tui_domain.ErrServiceUnavailable
-	// kept here so adapter callers can errors.Is against it without
-	// importing the domain package.
+	// ErrServiceUnavailable is the alias for tui_domain.ErrServiceUnavailable kept here so
+	// adapter callers can errors.Is against it without importing the domain package.
 	ErrServiceUnavailable = tui_domain.ErrServiceUnavailable
 
-	// ErrCaptureTooLarge is returned by Capture when the streamed
-	// profile bytes exceed captureMaxBytes.
+	// ErrCaptureTooLarge is returned by Capture when the streamed profile bytes exceed
+	// captureMaxBytes.
 	ErrCaptureTooLarge = errors.New("profile capture exceeded byte budget")
 
-	// ErrCaptureChunkTooLarge is returned by Capture when a single
-	// stream chunk exceeds captureChunkMaxBytes.
+	// ErrCaptureChunkTooLarge is returned by Capture when a single stream chunk exceeds
+	// captureChunkMaxBytes.
 	ErrCaptureChunkTooLarge = errors.New("profile capture chunk exceeded byte budget")
 
-	// ErrCaptureDurationOutOfRange is returned by Capture when the
-	// caller-requested duration cannot fit into the int32 wire field.
+	// ErrCaptureDurationOutOfRange is returned by Capture when the caller-requested duration
+	// cannot fit into the int32 wire field.
 	ErrCaptureDurationOutOfRange = errors.New("profile capture duration out of range")
 )
 
-// Compile-time assertions that each adapter satisfies its port. Kept
-// here so decorder's strict const,var,func ordering rule passes.
+// Compile-time assertions that each adapter satisfies its port. Kept here so decorder's
+// strict const,var,func ordering rule passes.
 var (
 	_ tui_domain.ProvidersInspector = (*ProvidersInspector)(nil)
 
@@ -108,17 +103,16 @@ var (
 
 // translateRPCError maps codes.Unimplemented to ErrServiceUnavailable.
 //
-// codes.Unimplemented is returned by gRPC when the requested service or
-// method is not registered. Mapping to ErrServiceUnavailable lets callers
-// detect "feature disabled" via errors.Is. The original gRPC error is
-// preserved alongside the sentinel via a multi-target %w so callers can
-// also inspect the underlying gRPC status. Other errors pass through
-// unchanged.
+// codes.Unimplemented is returned by gRPC when the requested service or method is not
+// registered. Mapping to ErrServiceUnavailable lets callers detect "feature disabled" via
+// errors.Is. The original gRPC error is preserved alongside the sentinel via a
+// multi-target %w so callers can also inspect the underlying gRPC status. Other errors
+// pass through unchanged.
 //
 // Takes err (error) which is the raw gRPC error.
 //
-// Returns error which wraps both ErrServiceUnavailable and the original
-// gRPC error for unimplemented services, or the original err otherwise.
+// Returns error which wraps both ErrServiceUnavailable and the original gRPC error for
+// unimplemented services, or the original err otherwise.
 func translateRPCError(err error) error {
 	if err == nil {
 		return nil
@@ -168,13 +162,12 @@ func (p *ProvidersInspector) Health(ctx context.Context) error {
 // Returns error which is always nil.
 func (*ProvidersInspector) Close() error { return nil }
 
-// ListProviders fans out across known resource types and aggregates
-// the responses into a single flat list.
+// ListProviders fans out across known resource types and aggregates the responses into a
+// single flat list.
 //
-// Concurrency is bounded at listProvidersMaxConcurrency; per-call
-// deadlines stop a slow type from stalling the whole list. Per-type
-// errors are joined and returned alongside the partial list so callers
-// can both render what succeeded and surface what did not.
+// Concurrency is bounded at listProvidersMaxConcurrency; per-call deadlines stop a slow
+// type from stalling the whole list. Per-type errors are joined and returned alongside
+// the partial list so callers can both render what succeeded and surface what did not.
 //
 // Takes ctx (context.Context) which controls the fan-out lifetime.
 //
@@ -214,9 +207,8 @@ func (p *ProvidersInspector) ListProviders(ctx context.Context) ([]tui_domain.Pr
 	return out, errors.Join(errs...)
 }
 
-// listProvidersResult captures the per-resource-type fan-out result so
-// the parent goroutine can join the partial entries and any error
-// after wg.Wait() returns.
+// listProvidersResult captures the per-resource-type fan-out result so the parent
+// goroutine can join the partial entries and any error after wg.Wait() returns.
 type listProvidersResult struct {
 	// err is the per-type RPC error, or nil on success.
 	err error
@@ -281,13 +273,11 @@ func (p *ProvidersInspector) DescribeProvider(ctx context.Context, resourceType,
 	}, nil
 }
 
-// listOneType issues ListProviders for a single resource type with
-// per-call timeout and panic recovery so a misbehaving server cannot
-// take down the parent fan-out goroutine.
+// listOneType issues ListProviders for a single resource type with per-call timeout and
+// panic recovery so a misbehaving server cannot take down the parent fan-out goroutine.
 //
-// Takes ctx (context.Context) which is the caller's context; a child
-// context is derived per call so individual slow types cannot stall
-// the whole list.
+// Takes ctx (context.Context) which is the caller's context; a child context is derived
+// per call so individual slow types cannot stall the whole list.
 // Takes rt (string) which is the resource type to query.
 //
 // Returns listProvidersResult with either entries or err populated.
@@ -319,8 +309,8 @@ func (p *ProvidersInspector) listOneType(ctx context.Context, rt string) (result
 	return listProvidersResult{entries: entries}
 }
 
-// DLQInspector adapts the gRPC DispatcherInspector service to the
-// tui_domain.DLQInspector port.
+// DLQInspector adapts the gRPC DispatcherInspector service to the tui_domain.DLQInspector
+// port.
 type DLQInspector struct {
 	// conn is the shared gRPC connection used for all RPCs.
 	conn *Connection
@@ -384,10 +374,9 @@ func (p *DLQInspector) DispatcherSummaries(ctx context.Context) ([]tui_domain.Di
 	return out, nil
 }
 
-// ListDLQEntries returns a bounded slice of dead-lettered items. The
-// limit is clamped to dlqLimitMax both to defend against the int32
-// wire field overflowing and to bound the returned slice when the
-// server returns more rows than requested.
+// ListDLQEntries returns a bounded slice of dead-lettered items. The limit is clamped to
+// dlqLimitMax both to defend against the int32 wire field overflowing and to bound the
+// returned slice when the server returns more rows than requested.
 //
 // Takes ctx (context.Context) which controls the call lifetime.
 // Takes dispatcherType (string) which selects the dispatcher.
@@ -427,15 +416,14 @@ func (p *DLQInspector) ListDLQEntries(ctx context.Context, dispatcherType string
 	return out, nil
 }
 
-// RateLimiterInspector adapts the gRPC RateLimiterInspector service to
-// the tui_domain.RateLimiterInspector port.
+// RateLimiterInspector adapts the gRPC RateLimiterInspector service to the
+// tui_domain.RateLimiterInspector port.
 type RateLimiterInspector struct {
 	// conn is the shared gRPC connection used for all RPCs.
 	conn *Connection
 }
 
-// NewRateLimiterInspector constructs a RateLimiterInspector backed by
-// conn.
+// NewRateLimiterInspector constructs a RateLimiterInspector backed by conn.
 //
 // Takes conn (*Connection) which is the shared gRPC connection.
 //
@@ -549,10 +537,9 @@ func (p *ProfilingInspector) Status(ctx context.Context) (*tui_domain.ProfilingS
 	}, nil
 }
 
-// Enable turns on the server's on-demand profiling for a fixed
-// window. The window is intentionally short (the panel can re-enable
-// as the user navigates around) so a stuck-on profile never silently
-// consumes resources on the server.
+// Enable turns on the server's on-demand profiling for a fixed window. The window is
+// intentionally short (the panel can re-enable as the user navigates around) so a
+// stuck-on profile never silently consumes resources on the server.
 //
 // Returns error when the RPC fails.
 func (p *ProfilingInspector) Enable(ctx context.Context) error {
@@ -576,13 +563,11 @@ func (p *ProfilingInspector) Disable(ctx context.Context) error {
 	return nil
 }
 
-// Capture streams the chunks for a one-shot profile and returns the
-// concatenated bytes.
+// Capture streams the chunks for a one-shot profile and returns the concatenated bytes.
 //
-// The context deadline always covers the full sampling window plus
-// encoding overhead. Total bytes are capped at captureMaxBytes to
-// defend against runaway servers; per-chunk bytes are capped at
-// captureChunkMaxBytes for the same reason.
+// The context deadline always covers the full sampling window plus encoding overhead.
+// Total bytes are capped at captureMaxBytes to defend against runaway servers; per-chunk
+// bytes are capped at captureChunkMaxBytes for the same reason.
 //
 // Takes profile (string) which names the profile kind.
 // Takes duration (time.Duration) which is the sampling window.
@@ -610,16 +595,14 @@ func (p *ProfilingInspector) Capture(ctx context.Context, profile string, durati
 	return drainCaptureStream(stream, profile)
 }
 
-// drainCaptureStream consumes the chunks streamed by CaptureProfile,
-// concatenating them into a single buffer bounded by captureMaxBytes.
-// The server may attach the last chunk to the same Recv() that
-// returns its terminating error; that case is handled by appending
-// the trailing chunk before propagating the error.
+// drainCaptureStream consumes the chunks streamed by CaptureProfile, concatenating them
+// into a single buffer bounded by captureMaxBytes. The server may attach the last chunk
+// to the same Recv() that returns its terminating error; that case is handled by
+// appending the trailing chunk before propagating the error.
 //
-// Takes stream (pb.ProfilingService_CaptureProfileClient) which is
-// the open server stream.
-// Takes profile (string) which names the profile kind for error
-// messages.
+// Takes stream (pb.ProfilingService_CaptureProfileClient) which is the open server
+// stream.
+// Takes profile (string) which names the profile kind for error messages.
 //
 // Returns []byte which is the assembled pprof payload.
 // Returns error when the stream fails or the cap is exceeded.
@@ -644,19 +627,18 @@ func drainCaptureStream(stream pb.ProfilingService_CaptureProfileClient, profile
 	}
 }
 
-// handleCaptureRecvError handles the recvErr returned by Recv. When
-// the server attached the last chunk to the same response that
-// terminated the stream, appendCaptureChunk is given a final chance
-// to fold it in before the error is propagated.
+// handleCaptureRecvError handles the recvErr returned by Recv. When the server attached
+// the last chunk to the same response that terminated the stream, appendCaptureChunk is
+// given a final chance to fold it in before the error is propagated.
 //
 // Takes buf ([]byte) which is the accumulator so far.
-// Takes chunk (*pb.CaptureProfileChunk) which may be nil; when
-// present its IsLast flag indicates a server-side trailer.
+// Takes chunk (*pb.CaptureProfileChunk) which may be nil; when present its IsLast flag
+// indicates a server-side trailer.
 // Takes profile (string) which names the profile for error messages.
 // Takes recvErr (error) which is the error Recv returned.
 //
-// Returns ([]byte, error) the final buffer (when the trailer was
-// folded in cleanly) or a wrapped error.
+// Returns ([]byte, error) the final buffer (when the trailer was folded in cleanly) or a
+// wrapped error.
 func handleCaptureRecvError(buf []byte, chunk *pb.CaptureProfileChunk, profile string, recvErr error) ([]byte, error) {
 	if chunk == nil || !chunk.GetIsLast() {
 		return nil, fmt.Errorf("read %s profile chunk: %w", profile, recvErr)
@@ -668,17 +650,14 @@ func handleCaptureRecvError(buf []byte, chunk *pb.CaptureProfileChunk, profile s
 	return appended, nil
 }
 
-// captureDurationToSeconds validates a Capture duration argument and
-// converts it to int32 seconds for the wire format. A duration of 0
-// or larger than captureMaxDurationSeconds is rejected so the wire
-// field cannot overflow.
+// captureDurationToSeconds validates a Capture duration argument and converts it to int32
+// seconds for the wire format. A duration of 0 or larger than captureMaxDurationSeconds
+// is rejected so the wire field cannot overflow.
 //
-// Takes duration (time.Duration) which is the caller-requested
-// sampling window.
+// Takes duration (time.Duration) which is the caller-requested sampling window.
 //
 // Returns int32 with the seconds value clamped to [1, max].
-// Returns error wrapping ErrCaptureDurationOutOfRange when the
-// argument is out of range.
+// Returns error wrapping ErrCaptureDurationOutOfRange when the argument is out of range.
 func captureDurationToSeconds(duration time.Duration) (int32, error) {
 	if duration <= 0 {
 		return 0, fmt.Errorf("%w: must be positive, got %s", ErrCaptureDurationOutOfRange, duration)
@@ -693,10 +672,9 @@ func captureDurationToSeconds(duration time.Duration) (int32, error) {
 	return safeconv.Int64ToInt32(seconds), nil
 }
 
-// appendCaptureChunk validates a single stream chunk against the
-// per-chunk and total caps then appends it to buf. Returns a wrapped
-// ErrCaptureTooLarge / ErrCaptureChunkTooLarge when either cap is
-// exceeded so callers can surface the specific reason.
+// appendCaptureChunk validates a single stream chunk against the per-chunk and total caps
+// then appends it to buf. Returns a wrapped ErrCaptureTooLarge / ErrCaptureChunkTooLarge
+// when either cap is exceeded so callers can surface the specific reason.
 //
 // Takes buf ([]byte) which is the accumulator so far.
 // Takes data ([]byte) which is the chunk payload.
@@ -716,14 +694,12 @@ func appendCaptureChunk(buf, data []byte, profile string) ([]byte, error) {
 	return append(buf, data...), nil
 }
 
-// msToTime converts an int64 millisecond timestamp into a time.Time;
-// zero milliseconds map to the zero time so callers can detect "no
-// value" without a sentinel.
+// msToTime converts an int64 millisecond timestamp into a time.Time; zero milliseconds
+// map to the zero time so callers can detect "no value" without a sentinel.
 //
 // Takes ms (int64) which is the millisecond timestamp.
 //
-// Returns time.Time which is the converted time, or the zero value
-// when ms is zero.
+// Returns time.Time which is the converted time, or the zero value when ms is zero.
 func msToTime(ms int64) time.Time {
 	if ms == 0 {
 		return time.Time{}

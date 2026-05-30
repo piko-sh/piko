@@ -24,10 +24,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tdewolff/parse/v2"
-	parsejs "github.com/tdewolff/parse/v2/js"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tdewolff/parse/v2"
+	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
 func mustParseTdewolff(t *testing.T, src string) *parsejs.AST {

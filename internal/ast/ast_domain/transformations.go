@@ -18,16 +18,16 @@
 
 package ast_domain
 
-// Provides AST transformation utilities including tidying, validation, and
-// parallel processing for template trees. Implements ParseAndTransform for
-// parsing HTML with automatic validation and cleanup, supporting both
-// sequential and parallel execution.
+// Provides AST transformation utilities including tidying, validation, and parallel
+// processing for template trees. Implements ParseAndTransform for parsing HTML with
+// automatic validation and cleanup, supporting both sequential and parallel execution.
 
 import (
 	"context"
 	"fmt"
 	gohtml "html"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -35,25 +35,25 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// parallelWalkThresholdBytes is the file size in bytes above which parallel
-// processing is used instead of sequential processing.
-const parallelWalkThresholdBytes = 32 * 1024
+const (
+	// parallelWalkThresholdBytes is the file size in bytes above which parallel processing
+	// is used instead of sequential processing.
+	parallelWalkThresholdBytes = 32 * 1024
+)
 
 var (
-	// expressionParserPool reuses ExpressionParser instances to reduce allocation
-	// pressure during template parsing. Wrapped in atomic.Pointer so
-	// ResetExpressionParserPool can swap the underlying pool without racing
-	// concurrent Get/Put callers.
+	// expressionParserPool reuses ExpressionParser instances to reduce allocation pressure
+	// during template parsing. Wrapped in atomic.Pointer so ResetExpressionParserPool can
+	// swap the underlying pool without racing concurrent Get/Put callers.
 	expressionParserPool atomic.Pointer[sync.Pool]
 
-	// forceSequentialProcessing overrides parallel processing when set, forcing
-	// all AST transformations to run sequentially.
+	// forceSequentialProcessing overrides parallel processing when set, forcing all AST
+	// transformations to run sequentially.
 	forceSequentialProcessing atomic.Bool
 
-	// rawStringDirectives defines directives whose values are raw strings, not
-	// expressions. These directives skip expression parsing and keep RawExpression
-	// as-is.
-	rawStringDirectives = map[DirectiveType]bool{
+	// rawStringDirectives defines directives whose values are raw strings, not expressions.
+	// These directives skip expression parsing and keep RawExpression as-is.
+	rawStringDirectives = map[DirectiveType]bool{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		DirectiveRef:      true,
 		DirectiveSlot:     true,
 		DirectiveTimeline: true,
@@ -75,8 +75,8 @@ type keyAssigner struct {
 	defaultParts []TemplateLiteralPart
 }
 
-// assignKeysAndProcessDirectives performs a tree walk that assigns keys
-// to all nodes in a single pass.
+// assignKeysAndProcessDirectives performs a tree walk that assigns keys to all nodes in a
+// single pass.
 //
 // Takes sourcePath (string) which is the file path for error reporting.
 // Takes tree (*TemplateAST) which is the template tree to process.
@@ -92,17 +92,13 @@ func (ka *keyAssigner) assignKeysAndProcessDirectives(sourcePath string, tree *T
 		index := ka.contextKeys[key]
 		ka.contextKeys[key]++
 
-		basePath := make([]TemplateLiteralPart, len(currentContextParts), len(currentContextParts)+1)
-		copy(basePath, currentContextParts)
-		basePath = append(basePath, TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(".%d", index), IsLiteral: true, RelativeLocation: Location{}})
+		basePath := append(slices.Clone(currentContextParts), TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(".%d", index), IsLiteral: true, RelativeLocation: Location{}})
 		userKeyExpr := ka.getUserKeyExpression(root)
 
 		if userKeyExpr != nil && root.DirFor == nil {
 			root.Key = userKeyExpr
 		} else if userKeyExpr != nil {
-			pathWithKey := make([]TemplateLiteralPart, len(basePath), len(basePath)+1)
-			copy(pathWithKey, basePath)
-			pathWithKey = append(pathWithKey, TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
+			pathWithKey := append(slices.Clone(basePath), TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
 			pathWithKey = append(pathWithKey, ka.getKeyParts(userKeyExpr)...)
 			root.Key = buildExpressionFromParts(pathWithKey, root.Location)
 		} else {
@@ -113,11 +109,9 @@ func (ka *keyAssigner) assignKeysAndProcessDirectives(sourcePath string, tree *T
 	}
 }
 
-// assignChildKeysAndProcessDirectives assigns keys to children in a
-// recursive walk.
+// assignChildKeysAndProcessDirectives assigns keys to children in a recursive walk.
 //
-// Takes parent (*TemplateNode) which is the node whose children need
-// processing.
+// Takes parent (*TemplateNode) which is the node whose children need processing.
 // Takes sourcePath (string) which is the file path for error reporting.
 // Takes tree (*TemplateAST) which is the template tree for diagnostics.
 func (ka *keyAssigner) assignChildKeysAndProcessDirectives(parent *TemplateNode, sourcePath string, tree *TemplateAST) {
@@ -130,15 +124,11 @@ func (ka *keyAssigner) assignChildKeysAndProcessDirectives(parent *TemplateNode,
 		if child.DirContext != nil && child.DirContext.Expression != nil {
 			childBasePath = ka.getKeyParts(child.DirContext.Expression)
 		} else {
-			childBasePath = make([]TemplateLiteralPart, len(parentPathParts), len(parentPathParts)+1)
-			copy(childBasePath, parentPathParts)
-			childBasePath = append(childBasePath, TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(":%d", i), IsLiteral: true, RelativeLocation: Location{}})
+			childBasePath = append(slices.Clone(parentPathParts), TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(":%d", i), IsLiteral: true, RelativeLocation: Location{}})
 		}
 
 		if userKeyExpr != nil {
-			pathWithKey := make([]TemplateLiteralPart, len(childBasePath), len(childBasePath)+1)
-			copy(pathWithKey, childBasePath)
-			pathWithKey = append(pathWithKey, TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
+			pathWithKey := append(slices.Clone(childBasePath), TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
 			pathWithKey = append(pathWithKey, ka.getKeyParts(userKeyExpr)...)
 			child.Key = buildExpressionFromParts(pathWithKey, child.Location)
 		} else {
@@ -149,8 +139,8 @@ func (ka *keyAssigner) assignChildKeysAndProcessDirectives(parent *TemplateNode,
 	}
 }
 
-// getPathPartsFromKey converts a key Expression into a slice of path parts
-// for use in recursion.
+// getPathPartsFromKey converts a key Expression into a slice of path parts for use in
+// recursion.
 //
 // Takes keyExpr (Expression) which is the key to convert into path parts.
 //
@@ -194,22 +184,19 @@ func (*keyAssigner) getUserKeyExpression(node *TemplateNode) Expression {
 
 // getKeyParts extracts the template literal parts from the given expression.
 //
-// Takes expression (Expression) which is the expression to extract
-// parts from.
+// Takes expression (Expression) which is the expression to extract parts from.
 //
-// Returns []TemplateLiteralPart which contains the path parts from
-// the key.
+// Returns []TemplateLiteralPart which contains the path parts from the key.
 func (ka *keyAssigner) getKeyParts(expression Expression) []TemplateLiteralPart {
 	return ka.getPathPartsFromKey(expression)
 }
 
 // getContextKey returns the context key for the given template parts.
 //
-// Takes parts ([]TemplateLiteralPart) which contains the parsed template
-// segments.
+// Takes parts ([]TemplateLiteralPart) which contains the parsed template segments.
 //
-// Returns string which is the literal value if parts contains a single
-// literal, otherwise returns "dctx" as a default key.
+// Returns string which is the literal value if parts contains a single literal, otherwise
+// returns "dctx" as a default key.
 func (*keyAssigner) getContextKey(parts []TemplateLiteralPart) string {
 	if len(parts) == 1 && parts[0].IsLiteral {
 		return parts[0].Literal
@@ -217,15 +204,14 @@ func (*keyAssigner) getContextKey(parts []TemplateLiteralPart) string {
 	return "dctx"
 }
 
-// ResetExpressionParserPool atomically swaps in a fresh expression parser
-// pool for test isolation. Safe to call concurrently with Get/Put.
+// ResetExpressionParserPool atomically swaps in a fresh expression parser pool for test
+// isolation. Safe to call concurrently with Get/Put.
 func ResetExpressionParserPool() {
 	expressionParserPool.Store(newExpressionParserPool())
 }
 
-// newExpressionParserPool builds a fresh sync.Pool whose New func returns
-// a freshly constructed ExpressionParser. Used by init and
-// ResetExpressionParserPool.
+// newExpressionParserPool builds a fresh sync.Pool whose New func returns a freshly
+// constructed ExpressionParser. Used by init and ResetExpressionParserPool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newExpressionParserPool() *sync.Pool {
@@ -240,14 +226,12 @@ func init() {
 	expressionParserPool.Store(newExpressionParserPool())
 }
 
-// TidyAST runs a second phase of changes on the AST that makes the tree
-// simpler for later stages like code generation. It assigns keys to nodes
-// and links if-else chains.
+// TidyAST runs a second phase of changes on the AST that makes the tree simpler for later
+// stages like code generation. It assigns keys to nodes and links if-else chains.
 //
 // When tree is nil, returns at once.
 //
-// When tree.Tidied is already true, logs a warning and returns without making
-// changes.
+// When tree.Tidied is already true, logs a warning and returns without making changes.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes tree (*TemplateAST) which is the parsed template tree to transform.
@@ -279,21 +263,20 @@ func TidyAST(ctx context.Context, tree *TemplateAST) {
 
 // setSequentialProcessing enables or disables forced sequential processing.
 //
-// When enabled, expression parsing always uses the sequential path regardless
-// of file size. Use it to ensure deterministic test runs.
+// When enabled, expression parsing always uses the sequential path regardless of file
+// size. Use it to ensure deterministic test runs.
 //
 // Takes enabled (bool) which controls whether sequential processing is forced.
 func setSequentialProcessing(enabled bool) {
 	forceSequentialProcessing.Store(enabled)
 }
 
-// applyTemplateTransformations runs the first stage of changes on a parsed
-// template. It turns raw expression strings into structured Expression objects
-// and moves directives from the raw Directives slice into their typed fields
-// (such as DirIf and OnEvents).
+// applyTemplateTransformations runs the first stage of changes on a parsed template. It
+// turns raw expression strings into structured Expression objects and moves directives
+// from the raw Directives slice into their typed fields (such as DirIf and OnEvents).
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes tree (*TemplateAST) which is the parsed template to transform.
 func applyTemplateTransformations(ctx context.Context, tree *TemplateAST) {
 	if tree == nil {
@@ -310,12 +293,12 @@ func applyTemplateTransformations(ctx context.Context, tree *TemplateAST) {
 
 // parseAllExpressions walks the AST to parse all raw expression strings.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes tree (*TemplateAST) which is the AST to process.
 //
-// Concurrent processing uses multiple goroutines when the tree size exceeds
-// the parallel walk threshold. A mutex protects diagnostic collection.
+// Concurrent processing uses multiple goroutines when the tree size exceeds the parallel
+// walk threshold. A mutex protects diagnostic collection.
 func parseAllExpressions(ctx context.Context, tree *TemplateAST) {
 	sourcePath := ""
 	if tree.SourcePath != nil {
@@ -352,10 +335,10 @@ func parseAllExpressions(ctx context.Context, tree *TemplateAST) {
 
 // parseExpressionsForNode parses all expressions within a single template node.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes node (*TemplateNode) which contains directives, dynamic attributes,
-// and rich text to parse.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes node (*TemplateNode) which contains directives, dynamic attributes, and rich text
+// to parse.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
 //
 // Returns []*Diagnostic which contains any parsing errors found in the node.
@@ -386,11 +369,11 @@ func parseExpressionsForNode(ctx context.Context, node *TemplateNode, sourcePath
 	return allNodeDiags
 }
 
-// parseAndSetExpression parses a raw expression string and sets it on a target
-// using the given callback.
+// parseAndSetExpression parses a raw expression string and sets it on a target using the
+// given callback.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes rawExpr (string) which is the expression text to parse.
 // Takes location (Location) which specifies where the expression appears.
 // Takes sourcePath (string) which identifies the source file.
@@ -428,12 +411,12 @@ func parseAndSetExpression(ctx context.Context, rawExpr string, location Locatio
 
 // parseExpressionForDirective parses and sets the expression for a directive.
 //
-// When the directive is an else type with no raw expression, returns nil.
-// When the directive is a raw string directive (such as p-ref), checks the raw
-// value instead of parsing it as an expression.
+// When the directive is an else type with no raw expression, returns nil. When the
+// directive is a raw string directive (such as p-ref), checks the raw value instead of
+// parsing it as an expression.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes d (*Directive) which is the directive to parse.
 // Takes sourcePath (string) which is the path to the source file.
 //
@@ -450,12 +433,11 @@ func parseExpressionForDirective(ctx context.Context, d *Directive, sourcePath s
 	})
 }
 
-// validateRawStringDirective checks directives that use raw string values
-// instead of expressions (e.g. p-ref).
+// validateRawStringDirective checks directives that use raw string values instead of
+// expressions (e.g. p-ref).
 //
 // Takes d (*Directive) which is the directive to check.
-// Takes sourcePath (string) which is the path to the source file for error
-// reporting.
+// Takes sourcePath (string) which is the path to the source file for error reporting.
 //
 // Returns []*Diagnostic which contains any errors found during checking.
 func validateRawStringDirective(d *Directive, sourcePath string) []*Diagnostic {
@@ -471,13 +453,12 @@ func validateRawStringDirective(d *Directive, sourcePath string) []*Diagnostic {
 
 // validateRefDirective validates and normalises a p-ref directive value.
 //
-// The value must be a valid JavaScript identifier. Whitespace is trimmed
-// and the normalised value is stored back in RawExpression so consumers
-// do not need to trim repeatedly.
+// The value must be a valid JavaScript identifier. Whitespace is trimmed and the
+// normalised value is stored back in RawExpression so consumers do not need to trim
+// repeatedly.
 //
 // Takes d (*Directive) which is the directive to validate and normalise.
-// Takes sourcePath (string) which is the path to the source file for
-// diagnostics.
+// Takes sourcePath (string) which is the path to the source file for diagnostics.
 //
 // Returns []*Diagnostic which contains any validation errors found.
 func validateRefDirective(d *Directive, sourcePath string) []*Diagnostic {
@@ -502,13 +483,11 @@ func validateRefDirective(d *Directive, sourcePath string) []*Diagnostic {
 	return nil
 }
 
-// validateSlotDirective validates and normalises a p-slot directive value.
-// Whitespace is trimmed and the normalised value is stored back in
-// RawExpression.
+// validateSlotDirective validates and normalises a p-slot directive value. Whitespace is
+// trimmed and the normalised value is stored back in RawExpression.
 //
 // Takes d (*Directive) which is the directive to validate and normalise.
-// Takes sourcePath (string) which is the path to the source file for
-// diagnostics.
+// Takes sourcePath (string) which is the path to the source file for diagnostics.
 //
 // Returns []*Diagnostic which contains any validation errors found.
 func validateSlotDirective(d *Directive, sourcePath string) []*Diagnostic {
@@ -523,14 +502,13 @@ func validateSlotDirective(d *Directive, sourcePath string) []*Diagnostic {
 	return nil
 }
 
-// parseExpressionForDynamicAttribute parses the raw expression of a dynamic
-// attribute and stores the parsed result.
+// parseExpressionForDynamicAttribute parses the raw expression of a dynamic attribute and
+// stores the parsed result.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes da (*DynamicAttribute) which holds the raw expression to parse.
-// Takes sourcePath (string) which is the path to the source file for error
-// messages.
+// Takes sourcePath (string) which is the path to the source file for error messages.
 //
 // Returns []*Diagnostic which contains any parsing errors found.
 func parseExpressionForDynamicAttribute(ctx context.Context, da *DynamicAttribute, sourcePath string) []*Diagnostic {
@@ -539,14 +517,13 @@ func parseExpressionForDynamicAttribute(ctx context.Context, da *DynamicAttribut
 	})
 }
 
-// parseExpressionForTextPart parses the raw expression in a text part and
-// stores the result.
+// parseExpressionForTextPart parses the raw expression in a text part and stores the
+// result.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes part (*TextPart) which contains the raw expression to parse.
-// Takes sourcePath (string) which gives the source file path for error
-// messages.
+// Takes sourcePath (string) which gives the source file path for error messages.
 //
 // Returns []*Diagnostic which contains any parsing errors found.
 func parseExpressionForTextPart(ctx context.Context, part *TextPart, sourcePath string) []*Diagnostic {
@@ -555,12 +532,11 @@ func parseExpressionForTextPart(ctx context.Context, part *TextPart, sourcePath 
 	})
 }
 
-// adjustDiagnosticLocations updates diagnostic positions from value-relative
-// to document-relative coordinates.
+// adjustDiagnosticLocations updates diagnostic positions from value-relative to
+// document-relative coordinates.
 //
 // Takes diagnostics ([]*Diagnostic) which contains the diagnostics to update.
-// Takes baseLocation (Location) which specifies the starting position in the
-// document.
+// Takes baseLocation (Location) which specifies the starting position in the document.
 // Takes rawValue (string) which provides the raw text for counting lines.
 func adjustDiagnosticLocations(diagnostics []*Diagnostic, baseLocation Location, rawValue string) {
 	for _, diagnostic := range diagnostics {
@@ -597,14 +573,12 @@ func newKeyAssigner(tree *TemplateAST, sourcePath string) *keyAssigner {
 
 // buildExpressionFromParts builds an Expression from template literal parts.
 //
-// Takes parts ([]TemplateLiteralPart) which contains the template segments to
-// combine.
-// Takes baseLocation (Location) which specifies the source position for the
-// result.
+// Takes parts ([]TemplateLiteralPart) which contains the template segments to combine.
+// Takes baseLocation (Location) which specifies the source position for the result.
 //
-// Returns Expression which is a StringLiteral when all parts are plain text,
-// the single expression when only one dynamic part exists, or a TemplateLiteral
-// when there is a mix of both types.
+// Returns Expression which is a StringLiteral when all parts are plain text, the single
+// expression when only one dynamic part exists, or a TemplateLiteral when there is a mix
+// of both types.
 func buildExpressionFromParts(parts []TemplateLiteralPart, baseLocation Location) Expression {
 	var cleanedParts []TemplateLiteralPart
 	var hasDynamicPart bool
@@ -649,11 +623,10 @@ func buildExpressionFromParts(parts []TemplateLiteralPart, baseLocation Location
 	return &TemplateLiteral{GoAnnotations: nil, Parts: cleanedParts, RelativeLocation: baseLocation, SourceLength: 0}
 }
 
-// linkIfElseChains walks a list of sibling nodes and links `p-else-if` and
-// `p-else` directives to their preceding `p-if` node using the `ChainKey`.
+// linkIfElseChains walks a list of sibling nodes and links `p-else-if` and `p-else`
+// directives to their preceding `p-if` node using the `ChainKey`.
 //
-// Takes siblings ([]*TemplateNode) which is the list of sibling
-// nodes to link.
+// Takes siblings ([]*TemplateNode) which is the list of sibling nodes to link.
 func linkIfElseChains(siblings []*TemplateNode, _ *TemplateAST) {
 	var currentIfNode *TemplateNode
 
@@ -667,11 +640,10 @@ func linkIfElseChains(siblings []*TemplateNode, _ *TemplateAST) {
 	}
 }
 
-// linkIfElseChainsRecursive links if-else-elseif directive chains throughout
-// the tree by walking siblings and their children.
+// linkIfElseChainsRecursive links if-else-elseif directive chains throughout the tree by
+// walking siblings and their children.
 //
-// Takes siblings ([]*TemplateNode) which is the list of sibling nodes to
-// process.
+// Takes siblings ([]*TemplateNode) which is the list of sibling nodes to process.
 // Takes tree (*TemplateAST) which is the template tree for context.
 func linkIfElseChainsRecursive(siblings []*TemplateNode, tree *TemplateAST) {
 	linkIfElseChains(siblings, tree)
@@ -685,8 +657,8 @@ func linkIfElseChainsRecursive(siblings []*TemplateNode, tree *TemplateAST) {
 
 // breaksIfElseChain checks whether a node breaks an if-else chain.
 //
-// A node breaks the chain if it is an element without any conditional
-// directives, or if it is neither a comment nor whitespace-only text.
+// A node breaks the chain if it is an element without any conditional directives, or if
+// it is neither a comment nor whitespace-only text.
 //
 // Takes node (*TemplateNode) which is the node to check.
 //
@@ -698,14 +670,14 @@ func breaksIfElseChain(node *TemplateNode) bool {
 	return node.NodeType != NodeComment && !isWhitespaceOnlyText(node)
 }
 
-// processIfElseNode handles a single node in an if-else chain and returns the
-// updated chain head.
+// processIfElseNode handles a single node in an if-else chain and returns the updated
+// chain head.
 //
 // Takes node (*TemplateNode) which is the node to check and link.
 // Takes currentIfNode (*TemplateNode) which is the current head of the chain.
 //
-// Returns *TemplateNode which is the new chain head, or nil when an else node
-// ends the chain.
+// Returns *TemplateNode which is the new chain head, or nil when an else node ends the
+// chain.
 func processIfElseNode(node *TemplateNode, currentIfNode *TemplateNode) *TemplateNode {
 	if node.DirIf != nil {
 		return node
@@ -726,11 +698,9 @@ func processIfElseNode(node *TemplateNode, currentIfNode *TemplateNode) *Templat
 // linkElseIfToChain connects an else-if node to an existing if-else chain.
 //
 // Takes node (*TemplateNode) which is the else-if node to add to the chain.
-// Takes currentIfNode (*TemplateNode) which is the if node that starts the
-// chain.
+// Takes currentIfNode (*TemplateNode) which is the if node that starts the chain.
 //
-// Returns *TemplateNode which is the linked node, or nil if currentIfNode is
-// nil.
+// Returns *TemplateNode which is the linked node, or nil if currentIfNode is nil.
 func linkElseIfToChain(node *TemplateNode, currentIfNode *TemplateNode) *TemplateNode {
 	if currentIfNode == nil {
 		return nil
@@ -763,8 +733,8 @@ func linkElseToChain(node *TemplateNode, currentIfNode *TemplateNode) {
 //
 // Takes node (*TemplateNode) which is the node to get the chain key from.
 //
-// Returns Expression which is the chain key, or nil if the node has no DirIf
-// or DirElseIf directive.
+// Returns Expression which is the chain key, or nil if the node has no DirIf or DirElseIf
+// directive.
 func getChainKey(node *TemplateNode) Expression {
 	if node.DirIf != nil {
 		return node.Key

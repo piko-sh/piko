@@ -33,14 +33,6 @@ func compileExpression(t *testing.T, code string) *CompiledFunction {
 	return compiledFunction
 }
 
-func compileStatements(t *testing.T, code string) *CompiledFunction {
-	t.Helper()
-	service := NewService()
-	compiledFunction, err := service.Compile(context.Background(), code)
-	require.NoError(t, err)
-	return compiledFunction
-}
-
 func compileFileSource(t *testing.T, source string) *CompiledFileSet {
 	t.Helper()
 	service := NewService()

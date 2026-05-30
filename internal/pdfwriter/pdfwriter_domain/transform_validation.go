@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_dto"
 )
 
-// chainStats holds counts and flags gathered during a single pass over the
-// transformer list, used by ValidateChain to check constraints.
+// chainStats holds counts and flags gathered during a single pass over the transformer
+// list, used by ValidateChain to check constraints.
 type chainStats struct {
 	// encryptorCount holds the number of encryption transformers found.
 	encryptorCount int
@@ -49,9 +49,9 @@ type chainStats struct {
 	hasPdfA1 bool
 }
 
-// ValidateChain checks that the transformer combination is valid. It enforces
-// ordering and mutual exclusion constraints that must hold for the chain to
-// produce correct output.
+// ValidateChain checks that the transformer combination is valid. It enforces ordering
+// and mutual exclusion constraints that must hold for the chain to produce correct
+// output.
 //
 // Rules enforced:
 //   - At most one encryption transformer per chain.
@@ -60,18 +60,18 @@ type chainStats struct {
 //   - Signing priority must be >= encryption priority if both are present.
 //   - Linearisation must not coexist with PDF/A-1b.
 //
-// Takes transformers ([]PdfTransformerPort) which is the sorted transformer
-// list to validate.
+// Takes transformers ([]PdfTransformerPort) which is the sorted transformer list to
+// validate.
 //
-// Returns error describing the first constraint violation found, or nil if
-// the chain is valid.
+// Returns error describing the first constraint violation found, or nil if the chain is
+// valid.
 func ValidateChain(transformers []PdfTransformerPort) error {
 	stats := gatherChainStats(transformers)
 	return checkChainConstraints(stats)
 }
 
-// gatherChainStats iterates over all transformers and collects counts
-// and flags into a chainStats value for constraint checking.
+// gatherChainStats iterates over all transformers and collects counts and flags into a
+// chainStats value for constraint checking.
 //
 // Takes transformers ([]PdfTransformerPort) which is the list to analyse.
 //
@@ -89,8 +89,8 @@ func gatherChainStats(transformers []PdfTransformerPort) chainStats {
 	return stats
 }
 
-// classifySecurityTransformer updates stats with encryptor or signer
-// counts if the transformer has a security type.
+// classifySecurityTransformer updates stats with encryptor or signer counts if the
+// transformer has a security type.
 //
 // Takes t (PdfTransformerPort) which is the transformer to classify.
 // Takes name (string) which is the transformer name.
@@ -109,8 +109,8 @@ func classifySecurityTransformer(t PdfTransformerPort, name string, stats *chain
 	}
 }
 
-// classifyComplianceTransformer updates stats with PDF/A counts if the
-// transformer name indicates a compliance transformer.
+// classifyComplianceTransformer updates stats with PDF/A counts if the transformer name
+// indicates a compliance transformer.
 //
 // Takes name (string) which is the transformer name.
 // Takes stats (*chainStats) which accumulates the classification results.
@@ -124,8 +124,8 @@ func classifyComplianceTransformer(name string, stats *chainStats) {
 	}
 }
 
-// checkChainConstraints validates the gathered stats against all
-// transformer chain rules and returns the first violation found.
+// checkChainConstraints validates the gathered stats against all transformer chain rules
+// and returns the first violation found.
 //
 // Takes stats (chainStats) which holds the aggregated counts and flags.
 //
@@ -149,8 +149,7 @@ func checkChainConstraints(stats chainStats) error {
 	return nil
 }
 
-// isEncryptor reports whether the transformer name identifies an
-// encryption transformer.
+// isEncryptor reports whether the transformer name identifies an encryption transformer.
 //
 // Takes name (string) which is the transformer name.
 //
@@ -159,8 +158,7 @@ func isEncryptor(name string) bool {
 	return strings.HasPrefix(name, "pdf-encrypt")
 }
 
-// isSigner reports whether the transformer name identifies a signing
-// transformer.
+// isSigner reports whether the transformer name identifies a signing transformer.
 //
 // Takes name (string) which is the transformer name.
 //
@@ -169,8 +167,7 @@ func isSigner(name string) bool {
 	return strings.HasPrefix(name, "pades-")
 }
 
-// isPdfA reports whether the transformer name identifies a PDF/A
-// compliance transformer.
+// isPdfA reports whether the transformer name identifies a PDF/A compliance transformer.
 //
 // Takes name (string) which is the transformer name.
 //
@@ -179,8 +176,8 @@ func isPdfA(name string) bool {
 	return strings.HasPrefix(name, "pdfa-")
 }
 
-// isPdfA1 reports whether the transformer name identifies the PDF/A-1b
-// compliance level specifically.
+// isPdfA1 reports whether the transformer name identifies the PDF/A-1b compliance level
+// specifically.
 //
 // Takes name (string) which is the transformer name.
 //
@@ -189,8 +186,8 @@ func isPdfA1(name string) bool {
 	return name == "pdfa-1b"
 }
 
-// isLineariser reports whether the transformer name identifies a
-// linearisation transformer.
+// isLineariser reports whether the transformer name identifies a linearisation
+// transformer.
 //
 // Takes name (string) which is the transformer name.
 //

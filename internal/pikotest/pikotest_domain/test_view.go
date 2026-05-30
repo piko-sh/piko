@@ -47,8 +47,8 @@ const (
 	snapshotFilePermissions = 0o600
 )
 
-// TestView wraps the result of a component render and provides methods to
-// check state, metadata, and DOM structure.
+// TestView wraps the result of a component render and provides methods to check state,
+// metadata, and DOM structure.
 type TestView struct {
 	// tb is the test context for reporting errors and marking test helpers.
 	tb testing.TB
@@ -56,8 +56,7 @@ type TestView struct {
 	// state holds the current view state for test assertions.
 	state any
 
-	// renderer provides HTML rendering for test assertions; nil when not
-	// available.
+	// renderer provides HTML rendering for test assertions; nil when not available.
 	renderer render_domain.RenderService
 
 	// ast holds the parsed template structure for queries and rendering.
@@ -79,8 +78,8 @@ type TestView struct {
 	rendered bool
 }
 
-// State returns the raw state object from the component's Render function.
-// Use a type assertion to access the fields of your component's response.
+// State returns the raw state object from the component's Render function. Use a type
+// assertion to access the fields of your component's response.
 //
 // Returns any which is the component's state, requiring type assertion.
 func (v *TestView) State() any {
@@ -89,17 +88,15 @@ func (v *TestView) State() any {
 
 // AssertState provides a callback-based way to assert against the state.
 //
-// Takes callback (func(state any)) which receives the current
-// state for assertions.
+// Takes callback (func(state any)) which receives the current state for assertions.
 func (v *TestView) AssertState(callback func(state any)) {
 	callback(v.state)
 }
 
-// Metadata returns the internal metadata (SEO, caching, assets) returned by
-// the component.
+// Metadata returns the internal metadata (SEO, caching, assets) returned by the
+// component.
 //
-// Returns templater_dto.InternalMetadata which contains the component's
-// metadata.
+// Returns templater_dto.InternalMetadata which contains the component's metadata.
 func (v *TestView) Metadata() templater_dto.InternalMetadata {
 	return v.metadata
 }
@@ -113,14 +110,12 @@ func (v *TestView) AST() *ast_domain.TemplateAST {
 	return v.ast
 }
 
-// QueryAST searches the template AST for nodes matching the CSS selector.
-// This is a direct way to assert against DOM structure without rendering
-// HTML.
+// QueryAST searches the template AST for nodes matching the CSS selector. This is a
+// direct way to assert against DOM structure without rendering HTML.
 //
 // Takes selector (string) which specifies the CSS selector to match nodes.
 //
-// Returns *ASTQueryResult which contains the matched nodes ready for
-// assertions.
+// Returns *ASTQueryResult which contains the matched nodes ready for assertions.
 func (v *TestView) QueryAST(selector string) *ASTQueryResult {
 	nodes, diagnostics := ast_domain.QueryAll(v.ast, selector, "test_view.go")
 
@@ -140,8 +135,8 @@ func (v *TestView) QueryAST(selector string) *ASTQueryResult {
 
 // HTML returns the rendered HTML content of the test view.
 //
-// This triggers a full render if not already rendered. For most tests,
-// prefer QueryAST which is faster and does not require rendering.
+// This triggers a full render if not already rendered. For most tests, prefer QueryAST
+// which is faster and does not require rendering.
 //
 // Returns []byte which contains the rendered HTML output.
 func (v *TestView) HTML() []byte {
@@ -166,15 +161,13 @@ func (v *TestView) AssertTitle(expected string) {
 	assert.Equal(v.tb, expected, v.metadata.Title, "Page title mismatch")
 }
 
-// AssertStatusCode checks that the HTTP status code matches the expected
-// value.
+// AssertStatusCode checks that the HTTP status code matches the expected value.
 //
-// When a component does not explicitly set a status code, the metadata
-// contains 0. Use AssertDefaultStatusCode to assert that no custom status was
-// set, which the HTTP layer will interpret as 200 OK.
+// When a component does not explicitly set a status code, the metadata contains 0. Use
+// AssertDefaultStatusCode to assert that no custom status was set, which the HTTP layer
+// will interpret as 200 OK.
 //
-// Takes expected (int) which specifies the HTTP status code to compare
-// against.
+// Takes expected (int) which specifies the HTTP status code to compare against.
 func (v *TestView) AssertStatusCode(expected int) {
 	v.tb.Helper()
 	actual := v.metadata.Status
@@ -184,8 +177,8 @@ func (v *TestView) AssertStatusCode(expected int) {
 	assert.Equal(v.tb, expected, actual, "HTTP status code mismatch")
 }
 
-// AssertDefaultStatusCode checks that no custom status code was set.
-// This means the HTTP layer will use the default 200 OK response.
+// AssertDefaultStatusCode checks that no custom status code was set. This means the HTTP
+// layer will use the default 200 OK response.
 func (v *TestView) AssertDefaultStatusCode() {
 	v.tb.Helper()
 	if v.metadata.Status != 0 {
@@ -193,8 +186,7 @@ func (v *TestView) AssertDefaultStatusCode() {
 	}
 }
 
-// AssertDescription checks that the meta description matches the expected
-// value.
+// AssertDescription checks that the meta description matches the expected value.
 //
 // Takes expected (string) which is the description to compare against.
 func (v *TestView) AssertDescription(expected string) {
@@ -202,8 +194,7 @@ func (v *TestView) AssertDescription(expected string) {
 	assert.Equal(v.tb, expected, v.metadata.Description, "Meta description mismatch")
 }
 
-// AssertHasMetaTag checks that a meta tag with the given name and content
-// exists.
+// AssertHasMetaTag checks that a meta tag with the given name and content exists.
 //
 // Takes name (string) which specifies the meta tag name attribute.
 // Takes content (string) which specifies the expected content value.
@@ -219,8 +210,8 @@ func (v *TestView) AssertHasMetaTag(name, content string) {
 	v.tb.Errorf("Expected meta tag %s=%q not found", name, content)
 }
 
-// AssertHasOGTag checks that an Open Graph tag with the given property and
-// content exists.
+// AssertHasOGTag checks that an Open Graph tag with the given property and content
+// exists.
 //
 // Takes property (string) which specifies the OG tag property name to match.
 // Takes content (string) which specifies the expected content value.
@@ -236,8 +227,8 @@ func (v *TestView) AssertHasOGTag(property, content string) {
 	v.tb.Errorf("Expected OG tag %s=%q not found", property, content)
 }
 
-// AssertClientRedirect checks that the component requested a client-side
-// redirect to the given URL.
+// AssertClientRedirect checks that the component requested a client-side redirect to the
+// given URL.
 //
 // Takes expectedURL (string) which specifies the URL to match against.
 func (v *TestView) AssertClientRedirect(expectedURL string) {
@@ -245,8 +236,8 @@ func (v *TestView) AssertClientRedirect(expectedURL string) {
 	assert.Equal(v.tb, expectedURL, v.metadata.ClientRedirect, "Client redirect URL mismatch")
 }
 
-// AssertServerRedirect checks that the component requested a server-side
-// redirect to the given URL.
+// AssertServerRedirect checks that the component requested a server-side redirect to the
+// given URL.
 //
 // Takes expectedURL (string) which is the URL the redirect should point to.
 func (v *TestView) AssertServerRedirect(expectedURL string) {
@@ -270,8 +261,8 @@ func (v *TestView) AssertCanonicalURL(expected string) {
 	assert.Equal(v.tb, expected, v.metadata.CanonicalURL, "Canonical URL mismatch")
 }
 
-// AssertJSScriptURLs checks that the page's client-side JavaScript URLs match
-// the expected values.
+// AssertJSScriptURLs checks that the page's client-side JavaScript URLs match the
+// expected values.
 //
 // Takes expected ([]string) which is the anticipated JavaScript URLs to match.
 func (v *TestView) AssertJSScriptURLs(expected []string) {
@@ -283,8 +274,7 @@ func (v *TestView) AssertJSScriptURLs(expected []string) {
 	assert.Equal(v.tb, expected, actual, "JS script URLs mismatch")
 }
 
-// AssertHasJSScript checks that the page has at least one JavaScript script
-// URL.
+// AssertHasJSScript checks that the page has at least one JavaScript script URL.
 func (v *TestView) AssertHasJSScript() {
 	v.tb.Helper()
 	if len(v.metadata.JSScriptMetas) == 0 {
@@ -292,8 +282,7 @@ func (v *TestView) AssertHasJSScript() {
 	}
 }
 
-// AssertNoJSScript checks that the page does not have any client-side
-// JavaScript scripts.
+// AssertNoJSScript checks that the page does not have any client-side JavaScript scripts.
 func (v *TestView) AssertNoJSScript() {
 	v.tb.Helper()
 	if len(v.metadata.JSScriptMetas) > 0 {
@@ -305,8 +294,8 @@ func (v *TestView) AssertNoJSScript() {
 	}
 }
 
-// AssertJSScriptURLContains checks that at least one JavaScript script URL
-// contains the given substring.
+// AssertJSScriptURLContains checks that at least one JavaScript script URL contains the
+// given substring.
 //
 // Takes substring (string) which is the text to look for in a script URL.
 func (v *TestView) AssertJSScriptURLContains(substring string) {
@@ -329,9 +318,9 @@ func (v *TestView) AssertJSScriptURLContains(substring string) {
 
 // MatchSnapshot compares the rendered HTML against a golden file.
 //
-// If the PIKO_UPDATE_SNAPSHOTS or UPDATE_SNAPSHOTS environment variable is
-// set to "1", it updates the golden file instead of comparing. Snapshot files
-// are stored in __snapshots__/<test-directory>/<name>.golden.html.
+// If the PIKO_UPDATE_SNAPSHOTS or UPDATE_SNAPSHOTS environment variable is set to "1", it
+// updates the golden file instead of comparing. Snapshot files are stored in
+// __snapshots__/<test-directory>/<name>.golden.html.
 //
 // Takes name (string) which identifies the snapshot file without extension.
 func (v *TestView) MatchSnapshot(name string) {
@@ -366,8 +355,8 @@ func (v *TestView) MatchSnapshot(name string) {
 		"Snapshot mismatch for %s\nRun with PIKO_UPDATE_SNAPSHOTS=1 to update", name)
 }
 
-// WriteTo writes the rendered HTML to the given writer. Use it to debug
-// or save test outputs.
+// WriteTo writes the rendered HTML to the given writer. Use it to debug or save test
+// outputs.
 //
 // Takes w (io.Writer) which receives the rendered HTML output.
 //

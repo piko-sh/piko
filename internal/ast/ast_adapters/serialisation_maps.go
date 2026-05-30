@@ -23,19 +23,19 @@ import (
 	"maps"
 	"slices"
 
-	"piko.sh/piko/internal/json"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
+	"piko.sh/piko/internal/json"
 )
 
 // buildOnEventsMap serialises an event handlers map to FlatBuffers format.
 //
-// Takes m (map[string][]ast_domain.Directive) which maps event names to their
-// handler directives.
+// Takes m (map[string][]ast_domain.Directive) which maps event names to their handler
+// directives.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the serialised vector,
-// or zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised vector, or zero if
+// the map is empty.
 // Returns error when serialising any directive fails.
 //
 //nolint:dupl // type-specific FlatBuffer serialisation
@@ -61,14 +61,14 @@ func (s *encoder) buildOnEventsMap(m map[string][]ast_domain.Directive) (flatbuf
 	return createVector(s, offsets), nil
 }
 
-// buildCustomEventsMap serialises a map of custom event directives into a
-// FlatBuffers vector.
+// buildCustomEventsMap serialises a map of custom event directives into a FlatBuffers
+// vector.
 //
-// Takes m (map[string][]ast_domain.Directive) which maps event names to their
-// handler directives.
+// Takes m (map[string][]ast_domain.Directive) which maps event names to their handler
+// directives.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the serialised vector,
-// or zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised vector, or zero if
+// the map is empty.
 // Returns error when directive serialisation fails.
 //
 //nolint:dupl // type-specific FlatBuffer serialisation
@@ -96,8 +96,8 @@ func (s *encoder) buildCustomEventsMap(m map[string][]ast_domain.Directive) (fla
 
 // buildBindsMap converts a map of bind directives to a FlatBuffer vector.
 //
-// Takes m (map[string]*ast_domain.Directive) which contains the bind entries
-// keyed by attribute name.
+// Takes m (map[string]*ast_domain.Directive) which contains the bind entries keyed by
+// attribute name.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised vector.
 // Returns error when a directive fails to build.
@@ -125,13 +125,13 @@ func (s *encoder) buildBindsMap(m map[string]*ast_domain.Directive) (flatbuffers
 	return createVector(s, offsets), nil
 }
 
-// buildDynamicAttributeOriginsMap converts a string map into a FlatBuffers
-// vector of key-value entries.
+// buildDynamicAttributeOriginsMap converts a string map into a FlatBuffers vector of
+// key-value entries.
 //
 // Takes m (map[string]string) which contains the attribute origin mappings.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if the
+// map is empty.
 // Returns error when vector creation fails.
 func (s *encoder) buildDynamicAttributeOriginsMap(m map[string]string) (flatbuffers.UOffsetT, error) {
 	if len(m) == 0 {
@@ -154,11 +154,11 @@ func (s *encoder) buildDynamicAttributeOriginsMap(m map[string]string) (flatbuff
 
 // buildPropValueMap serialises a map of property values to a FlatBuffer vector.
 //
-// Takes m (map[string]ast_domain.PropValue) which contains the property values
-// to serialise, keyed by property name.
+// Takes m (map[string]ast_domain.PropValue) which contains the property values to
+// serialise, keyed by property name.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if the
+// map is empty.
 // Returns error when a property value fails to serialise.
 func (s *encoder) buildPropValueMap(m map[string]ast_domain.PropValue) (flatbuffers.UOffsetT, error) {
 	if len(m) == 0 {
@@ -182,14 +182,14 @@ func (s *encoder) buildPropValueMap(m map[string]ast_domain.PropValue) (flatbuff
 	return createVector(s, offsets), nil
 }
 
-// buildObjectLiteralPairs serialises a map of expressions into a FlatBuffer
-// vector of key-value pairs.
+// buildObjectLiteralPairs serialises a map of expressions into a FlatBuffer vector of
+// key-value pairs.
 //
-// Takes m (map[string]ast_domain.Expression) which contains the key-value
-// pairs to serialise.
+// Takes m (map[string]ast_domain.Expression) which contains the key-value pairs to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the serialised vector,
-// or zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised vector, or zero if
+// the map is empty.
 // Returns error when serialising any expression value fails.
 //
 //nolint:dupl // type-specific FlatBuffer serialisation
@@ -215,13 +215,13 @@ func (s *encoder) buildObjectLiteralPairs(m map[string]ast_domain.Expression) (f
 	return createVector(s, offsets), nil
 }
 
-// buildDiagnosticDataMap converts a map of diagnostic data into a FlatBuffers
-// vector of key-value entries.
+// buildDiagnosticDataMap converts a map of diagnostic data into a FlatBuffers vector of
+// key-value entries.
 //
 // Takes m (map[string]any) which contains the diagnostic data to serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if the
+// map is empty.
 // Returns error when a map value cannot be marshalled to JSON.
 func (s *encoder) buildDiagnosticDataMap(m map[string]any) (flatbuffers.UOffsetT, error) {
 	if len(m) == 0 {
@@ -249,11 +249,10 @@ func (s *encoder) buildDiagnosticDataMap(m map[string]any) (flatbuffers.UOffsetT
 
 // unpackOnEventsMap extracts the on-events map from a template node buffer.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to
-// unpack.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to unpack.
 //
-// Returns map[string][]ast_domain.Directive which maps event names to their
-// handler directives.
+// Returns map[string][]ast_domain.Directive which maps event names to their handler
+// directives.
 // Returns error when handler unpacking fails.
 //
 //nolint:dupl // type-specific FlatBuffer serialisation
@@ -280,11 +279,11 @@ func (d *decoder) unpackOnEventsMap(fb *ast_schema_gen.TemplateNodeFB) (map[stri
 
 // unpackCustomEventsMap extracts custom event handlers from a template node.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to
-// extract custom events from.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to extract
+// custom events from.
 //
-// Returns map[string][]ast_domain.Directive which maps event names to their
-// handler directives, or nil if no custom events exist.
+// Returns map[string][]ast_domain.Directive which maps event names to their handler
+// directives, or nil if no custom events exist.
 // Returns error when unpacking any event's handlers fails.
 //
 //nolint:dupl // type-specific FlatBuffer serialisation
@@ -309,11 +308,11 @@ func (d *decoder) unpackCustomEventsMap(fb *ast_schema_gen.TemplateNodeFB) (map[
 	return result, nil
 }
 
-// unpackBindsMap extracts bind entries from a FlatBuffer template node into a
-// map of directives keyed by attribute name.
+// unpackBindsMap extracts bind entries from a FlatBuffer template node into a map of
+// directives keyed by attribute name.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node
-// containing bind entries.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node containing bind
+// entries.
 //
 // Returns map[string]*ast_domain.Directive which maps attribute names to their
 // directives, or nil if there are no binds.
@@ -339,14 +338,14 @@ func (d *decoder) unpackBindsMap(fb *ast_schema_gen.TemplateNodeFB) (map[string]
 	return result, nil
 }
 
-// unpackDynamicAttributeOriginsMap extracts the dynamic attribute origins from
-// a FlatBuffer annotation into a map.
+// unpackDynamicAttributeOriginsMap extracts the dynamic attribute origins from a
+// FlatBuffer annotation into a map.
 //
-// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which contains the
-// serialised annotation data.
+// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which contains the serialised
+// annotation data.
 //
-// Returns map[string]string which maps attribute keys to their origin values,
-// or nil if no entries exist.
+// Returns map[string]string which maps attribute keys to their origin values, or nil if
+// no entries exist.
 // Returns error when deserialisation fails.
 func (*decoder) unpackDynamicAttributeOriginsMap(fb *ast_schema_gen.GoGeneratorAnnotationFB) (map[string]string, error) {
 	length := fb.DynamicAttributeOriginsLength()
@@ -371,8 +370,8 @@ func (*decoder) unpackDynamicAttributeOriginsMap(fb *ast_schema_gen.GoGeneratorA
 // Takes length (int) which specifies the number of entries to unpack.
 // Takes getter (func(...)) which retrieves each FlatBuffer entry by index.
 //
-// Returns map[string]ast_domain.PropValue which contains the unpacked
-// property values keyed by name, or nil if length is zero.
+// Returns map[string]ast_domain.PropValue which contains the unpacked property values
+// keyed by name, or nil if length is zero.
 // Returns error when a property value fails to unpack.
 func (d *decoder) unpackPropValueMap(length int, getter func(entry *ast_schema_gen.PropValueEntryFB, j int) bool) (map[string]ast_domain.PropValue, error) {
 	if length == 0 {
@@ -396,8 +395,8 @@ func (d *decoder) unpackPropValueMap(length int, getter func(entry *ast_schema_g
 
 // unpackObjectLiteralPairs extracts key-value pairs from an object literal.
 //
-// Takes fb (*ast_schema_gen.ObjectLiteralFB) which contains the serialised
-// object literal pairs.
+// Takes fb (*ast_schema_gen.ObjectLiteralFB) which contains the serialised object literal
+// pairs.
 //
 // Returns map[string]ast_domain.Expression which maps keys to their values.
 // Returns error when a value expression cannot be unpacked.
@@ -424,8 +423,8 @@ func (d *decoder) unpackObjectLiteralPairs(fb *ast_schema_gen.ObjectLiteralFB) (
 
 // unpackDiagnosticDataMap extracts the data map from a diagnostic flatbuffer.
 //
-// Takes fb (*ast_schema_gen.DiagnosticFB) which contains the serialised
-// diagnostic data entries.
+// Takes fb (*ast_schema_gen.DiagnosticFB) which contains the serialised diagnostic data
+// entries.
 //
 // Returns map[string]any which contains the deserialised key-value pairs.
 // Returns error when JSON unmarshalling fails for any data value.

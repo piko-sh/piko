@@ -43,8 +43,8 @@ func (b *DecryptBuilder) Data(ciphertext string) *DecryptBuilder {
 
 // Do executes the decryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns string which is the decrypted plaintext.
 // Returns error when decryption fails.

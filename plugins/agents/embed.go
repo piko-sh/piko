@@ -18,10 +18,14 @@
 
 package agents
 
-import "embed"
+import (
+	"embed"
+)
 
-// FS contains all agent integration files. The all: prefix includes dotfiles
-// (.claude-plugin/, .lsp.json) which a plain glob would skip.
-//
-//go:embed all:*
-var FS embed.FS
+var (
+	// FS contains all agent integration files. The all: prefix includes dotfiles
+	// (.claude-plugin/, .lsp.json) which a plain glob would skip.
+	//
+	//go:embed all:*
+	FS embed.FS
+)

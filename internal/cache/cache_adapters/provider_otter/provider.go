@@ -31,9 +31,9 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// OtterProvider implements the cache.Provider interface for Otter in-memory
-// caches. Unlike connection-pooled providers, Otter creates an independent
-// cache instance per namespace since there are no shared resources.
+// OtterProvider implements the cache.Provider interface for Otter in-memory caches.
+// Unlike connection-pooled providers, Otter creates an independent cache instance per
+// namespace since there are no shared resources.
 type OtterProvider struct {
 	// namespaces stores all created cache instances, keyed by namespace name.
 	namespaces map[string]any
@@ -42,11 +42,14 @@ type OtterProvider struct {
 	mu sync.RWMutex
 }
 
-var _ cache_domain.Provider = (*OtterProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*OtterProvider)(nil)
+var (
+	_ cache_domain.Provider = (*OtterProvider)(nil)
 
-// NewOtterProvider creates a new Otter cache provider.
-// Otter is an in-memory cache and needs no global settings.
+	_ provider_domain.ProviderMetadata = (*OtterProvider)(nil)
+)
+
+// NewOtterProvider creates a new Otter cache provider. Otter is an in-memory cache and
+// needs no global settings.
 //
 // Returns *OtterProvider which is ready for use with namespace registration.
 func NewOtterProvider() *OtterProvider {
@@ -79,15 +82,14 @@ func (p *OtterProvider) GetProviderMetadata() map[string]any {
 	}
 }
 
-// CreateNamespaceTyped creates a new Otter cache instance for the given
-// namespace, or returns an existing one if already created.
+// CreateNamespaceTyped creates a new Otter cache instance for the given namespace, or
+// returns an existing one if already created.
 //
-// Each namespace gets its own independent Otter cache with no shared resources.
-// This is a non-generic method that uses type erasure; call via
-// CreateNamespace[K,V]() for type safety.
+// Each namespace gets its own independent Otter cache with no shared resources. This is a
+// non-generic method that uses type erasure; call via CreateNamespace[K,V]() for type
+// safety.
 //
-// Takes namespace (string) which identifies the cache; defaults to "default"
-// if empty.
+// Takes namespace (string) which identifies the cache; defaults to "default" if empty.
 // Takes options (any) which configures the cache behaviour.
 //
 // Returns any which is the cache instance for the namespace.
@@ -119,8 +121,8 @@ func (p *OtterProvider) CreateNamespaceTyped(namespace string, options any) (any
 	return cache, nil
 }
 
-// ListNamespaces returns a snapshot of the namespaces map. The values are
-// type-erased cache instances that may implement EstimatedSize() int.
+// ListNamespaces returns a snapshot of the namespaces map. The values are type-erased
+// cache instances that may implement EstimatedSize() int.
 //
 // Returns map[string]any which maps namespace names to cache instances.
 //
@@ -135,8 +137,8 @@ func (p *OtterProvider) ListNamespaces() map[string]any {
 	return result
 }
 
-// Close releases all resources managed by this provider.
-// For Otter, this closes all cache instances.
+// Close releases all resources managed by this provider. For Otter, this closes all cache
+// instances.
 //
 // Returns error when closing fails, though currently always returns nil.
 //
@@ -167,14 +169,14 @@ func (*OtterProvider) Name() string {
 	return "otter"
 }
 
-// Check implements the healthprobe_domain.Probe interface, returning the
-// health status for the specified check type.
+// Check implements the healthprobe_domain.Probe interface, returning the health status
+// for the specified check type.
 //
-// When checkType is liveness, returns healthy since Otter is in-memory.
-// When checkType is readiness, verifies the namespaces map is accessible.
+// When checkType is liveness, returns healthy since Otter is in-memory. When checkType is
+// readiness, verifies the namespaces map is accessible.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
 // Returns healthprobe_dto.Status which contains the health state and details.
 //

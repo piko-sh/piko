@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_domain defines the text analysis pipeline for
-// Piko's search system, covering tokenisation, normalisation, stemming,
-// phonetic encoding, stop words, and fuzzy matching with multi-language
-// support and typo tolerance. Port interfaces ([AnalyserPort],
-// [TokeniserPort], [NormaliserPort], [StemmerPort],
-// [PhoneticEncoderPort], [StopWordsProviderPort]) allow pluggable
-// language-specific adapters registered via factory registries.
+// Package linguistics_domain defines the text analysis pipeline for Piko's search system,
+// covering tokenisation, normalisation, stemming, phonetic encoding, stop words, and
+// fuzzy matching with multi-language support and typo tolerance. Port interfaces
+// ([AnalyserPort], [TokeniserPort], [NormaliserPort], [StemmerPort],
+// [PhoneticEncoderPort], [StopWordsProviderPort]) allow pluggable language-specific
+// adapters registered via factory registries.
 //
 // # Components
 //
@@ -38,8 +37,8 @@
 //
 // # Adapter registry pattern
 //
-// Stemmers, phonetic encoders, and stop words providers use a factory registry
-// pattern. Import the desired adapters to register them:
+// Stemmers, phonetic encoders, and stop words providers use a factory registry pattern.
+// Import the desired adapters to register them:
 //
 //	import (
 //	    _ "piko.sh/piko/internal/linguistics/linguistics_adapters/driven_stemmer_snowball"
@@ -80,9 +79,9 @@
 //
 // # Supported languages
 //
-// The package supports nine languages: English, Spanish, French, German, Dutch,
-// Russian, Swedish, Norwegian, and Hungarian. Each language has its own stemmer,
-// phonetic rules, and stop words available via the respective adapters.
+// The package supports nine languages: English, Spanish, French, German, Dutch, Russian,
+// Swedish, Norwegian, and Hungarian. Each language has its own stemmer, phonetic rules,
+// and stop words available via the respective adapters.
 //
 // # Multi-language applications
 //
@@ -102,9 +101,9 @@
 // # Dependency injection
 //
 // All major components define port interfaces ([AnalyserPort], [TokeniserPort],
-// [NormaliserPort], [StemmerPort], [PhoneticEncoderPort], [StopWordsProviderPort])
-// for dependency injection and test mocking. Use the functional options
-// in production and the mock adapters in tests:
+// [NormaliserPort], [StemmerPort], [PhoneticEncoderPort], [StopWordsProviderPort]) for
+// dependency injection and test mocking. Use the functional options in production and the
+// mock adapters in tests:
 //
 //	analyser := linguistics.NewAnalyser(config,
 //	    linguistics.WithStemmer(mockStemmer),
@@ -114,8 +113,8 @@
 //
 // # Thread safety
 //
-// [Normaliser] is safe for concurrent use. [Analyser], [Tokeniser], [Stemmer],
-// and [PhoneticEncoder] instances should not be shared between goroutines.
-// For concurrent text processing across multiple goroutines, create separate
-// analyser instances per goroutine or use appropriate synchronisation.
+// [Normaliser] is safe for concurrent use. [Analyser], [Tokeniser], [Stemmer], and
+// [PhoneticEncoder] instances should not be shared between goroutines. For concurrent
+// text processing across multiple goroutines, create separate analyser instances per
+// goroutine or use appropriate synchronisation.
 package linguistics_domain

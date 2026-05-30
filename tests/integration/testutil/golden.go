@@ -26,8 +26,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/wdk/json"
 )
 
 const (
@@ -80,8 +80,7 @@ func AssertGoldenFile(t *testing.T, goldenPath string, actual []byte, msgAndArgs
 //
 // Takes t (*testing.T) which is the test context for assertions and logging.
 // Takes goldenPath (string) which is the path to the golden file.
-// Takes actual ([]byte) which is the JSON bytes to compare against the golden
-// file.
+// Takes actual ([]byte) which is the JSON bytes to compare against the golden file.
 // Takes msgAndArgs (...any) which provides optional message and arguments for
 // assertion failures.
 func AssertGoldenJSON(t *testing.T, goldenPath string, actual []byte, msgAndArgs ...any) {

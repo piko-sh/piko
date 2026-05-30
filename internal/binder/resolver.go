@@ -37,17 +37,13 @@ type nestedMapAccessInfo struct {
 
 // isNestedMapAccess checks if the node contains a nested map access pattern.
 //
-// Takes currentVal (reflect.Value) which is the current struct value being
-// checked.
-// Takes node (*ast_domain.MemberExpression) which is the member
-// expression to check.
-// Takes maxPathDepth (int) which limits recursion depth for cache
-// lookups to avoid repeated atomic loads.
+// Takes currentVal (reflect.Value) which is the current struct value being checked.
+// Takes node (*ast_domain.MemberExpression) which is the member expression to check.
+// Takes maxPathDepth (int) which limits recursion depth for cache lookups to avoid
+// repeated atomic loads.
 //
-// Returns nestedMapAccessInfo which contains the typed AST nodes if the
-// pattern matches.
-// Returns bool which is true if the node is a nested map access, false
-// otherwise.
+// Returns nestedMapAccessInfo which contains the typed AST nodes if the pattern matches.
+// Returns bool which is true if the node is a nested map access, false otherwise.
 func (b *ASTBinder) isNestedMapAccess(currentVal reflect.Value, node *ast_domain.MemberExpression, maxPathDepth int) (nestedMapAccessInfo, bool) {
 	baseMember, ok := node.Base.(*ast_domain.MemberExpression)
 	if !ok {
@@ -83,26 +79,20 @@ func (b *ASTBinder) isNestedMapAccess(currentVal reflect.Value, node *ast_domain
 	return nestedMapAccessInfo{baseMember: baseMember, indexExpr: indexExpr}, true
 }
 
-// findTargetByAST dispatches navigation to a field using AST expression types
-// with depth tracking.
+// findTargetByAST dispatches navigation to a field using AST expression types with depth
+// tracking.
 //
-// It separates the strategy (dispatching) from the implementation (handling
-// each type). The limits are passed through to avoid repeated atomic loads in
-// recursive calls.
+// It separates the strategy (dispatching) from the implementation (handling each type).
+// The limits are passed through to avoid repeated atomic loads in recursive calls.
 //
-// Takes currentVal (reflect.Value) which is the value to navigate
-// from.
-// Takes expression (ast_domain.Expression) which is the AST node to
-// evaluate.
-// Takes fullPath (string) which is the complete path for error
-// messages.
+// Takes currentVal (reflect.Value) which is the value to navigate from.
+// Takes expression (ast_domain.Expression) which is the AST node to evaluate.
+// Takes fullPath (string) which is the complete path for error messages.
 // Takes depth (int) which tracks recursion depth.
-// Takes limits (binderOptions) which provides recursion and path
-// constraints.
+// Takes limits (binderOptions) which provides recursion and path constraints.
 //
 // Returns reflect.Value which is the target field value.
-// Returns error when the depth limit is exceeded or the path is
-// invalid.
+// Returns error when the depth limit is exceeded or the path is invalid.
 func (b *ASTBinder) findTargetByAST(currentVal reflect.Value, expression ast_domain.Expression, fullPath string, depth int, limits binderOptions) (reflect.Value, error) {
 	if err := checkDepthLimit(fullPath, depth, limits.maxPathDepth); err != nil {
 		return reflect.Value{}, err
@@ -129,13 +119,12 @@ func (b *ASTBinder) findTargetByAST(currentVal reflect.Value, expression ast_dom
 	}
 }
 
-// resolveMemberExpression resolves a member expression by recursively
-// processing base and property. The limits are passed through to avoid
-// repeated atomic loads in recursive calls.
+// resolveMemberExpression resolves a member expression by recursively processing base and
+// property. The limits are passed through to avoid repeated atomic loads in recursive
+// calls.
 //
 // Takes currentVal (reflect.Value) which is the current value being bound.
-// Takes node (*ast_domain.MemberExpression) which is the member
-// expression to resolve.
+// Takes node (*ast_domain.MemberExpression) which is the member expression to resolve.
 // Takes fullPath (string) which is the full path for error reporting.
 // Takes depth (int) which tracks recursion depth.
 // Takes limits (binderOptions) which provides binding constraints.
@@ -150,18 +139,17 @@ func (b *ASTBinder) resolveMemberExpression(currentVal reflect.Value, node *ast_
 	return b.findTargetByAST(baseVal, node.Property, fullPath, depth+1, limits)
 }
 
-// resolveIndexExpression handles index access for slices, arrays, and maps.
-// It recursively resolves the base expression to support nested paths like
-// "parent.child[0]", then dispatches to the appropriate handler based on the
-// resolved value's kind.
+// resolveIndexExpression handles index access for slices, arrays, and maps. It
+// recursively resolves the base expression to support nested paths like
+// "parent.child[0]", then dispatches to the appropriate handler based on the resolved
+// value's kind.
 //
 // Takes currentVal (reflect.Value) which is the starting value to resolve from.
-// Takes node (*ast_domain.IndexExpression) which is the AST node for
-// the index access.
+// Takes node (*ast_domain.IndexExpression) which is the AST node for the index access.
 // Takes fullPath (string) which is the dot-separated path for error messages.
 // Takes depth (int) which tracks recursion depth during resolution.
-// Takes limits (binderOptions) which provides bounds to avoid repeated atomic
-// loads in recursive calls.
+// Takes limits (binderOptions) which provides bounds to avoid repeated atomic loads in
+// recursive calls.
 //
 // Returns reflect.Value which is the value at the indexed position.
 // Returns error when the base cannot be resolved or the field is not indexable.
@@ -188,11 +176,9 @@ func (b *ASTBinder) resolveIndexExpression(currentVal reflect.Value, node *ast_d
 
 // isDirectMapAccess checks if the node represents a direct map access pattern.
 //
-// Takes node (*ast_domain.MemberExpression) which is the member
-// expression to check.
+// Takes node (*ast_domain.MemberExpression) which is the member expression to check.
 //
-// Returns *ast_domain.IndexExpression which is the index expression
-// if found, or nil.
+// Returns *ast_domain.IndexExpression which is the index expression if found, or nil.
 // Returns bool which is true when the node is a direct map access.
 func isDirectMapAccess(node *ast_domain.MemberExpression) (*ast_domain.IndexExpression, bool) {
 	indexExpr, ok := node.Base.(*ast_domain.IndexExpression)
@@ -206,8 +192,8 @@ func isDirectMapAccess(node *ast_domain.MemberExpression) (*ast_domain.IndexExpr
 // Takes fullPath (string) which provides context for error messages.
 //
 // Returns reflect.Value which holds the converted map key.
-// Returns error when the index is not an integer or string literal, or when
-// the key conversion fails.
+// Returns error when the index is not an integer or string literal, or when the key
+// conversion fails.
 func convertIndexToMapKey(indexExpr *ast_domain.IndexExpression, keyType reflect.Type, fullPath string) (reflect.Value, error) {
 	var keyString string
 	switch indexNode := indexExpr.Index.(type) {
@@ -232,8 +218,8 @@ func convertIndexToMapKey(indexExpr *ast_domain.IndexExpression, keyType reflect
 // Takes mapKey (reflect.Value) which is the key for the element.
 // Takes elemType (reflect.Type) which is the type of the map elements.
 //
-// Returns reflect.Value which is a copy of the element that can be written to,
-// or a new zero value if the element does not exist.
+// Returns reflect.Value which is a copy of the element that can be written to, or a new
+// zero value if the element does not exist.
 func getMapElementWorkingCopy(mapVal reflect.Value, mapKey reflect.Value, elemType reflect.Type) reflect.Value {
 	element := mapVal.MapIndex(mapKey)
 
@@ -258,14 +244,14 @@ func getMapElementWorkingCopy(mapVal reflect.Value, mapKey reflect.Value, elemTy
 	return workingCopy
 }
 
-// getTargetValueForMapElement returns the value to use when setting map
-// elements in a nested structure.
+// getTargetValueForMapElement returns the value to use when setting map elements in a
+// nested structure.
 //
 // Takes workingCopy (reflect.Value) which holds the current element value.
 // Takes elemType (reflect.Type) which specifies the element's type.
 //
-// Returns reflect.Value which is the inner value if elemType is a pointer,
-// or the original workingCopy otherwise.
+// Returns reflect.Value which is the inner value if elemType is a pointer, or the
+// original workingCopy otherwise.
 func getTargetValueForMapElement(workingCopy reflect.Value, elemType reflect.Type) reflect.Value {
 	if elemType.Kind() == reflect.Pointer {
 		return workingCopy.Elem()
@@ -322,8 +308,8 @@ func findFieldByName(currentVal reflect.Value, name, fullPath string) (reflect.V
 // Takes maxSliceSize (int) which limits slice growth to prevent memory issues.
 //
 // Returns reflect.Value which is the element at the given index.
-// Returns error when the index is not an integer literal, is negative, or
-// exceeds the maximum slice size.
+// Returns error when the index is not an integer literal, is negative, or exceeds the
+// maximum slice size.
 func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression, fullPath string, fieldName string, maxSliceSize int) (reflect.Value, error) {
 	indexLit, ok := node.Index.(*ast_domain.IntegerLiteral)
 	if !ok {
@@ -342,8 +328,8 @@ func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression,
 	return sliceVal.Index(index), nil
 }
 
-// resolveMapIndex finds or creates a map element at the given index.
-// It creates the map if nil and sets up missing elements as needed.
+// resolveMapIndex finds or creates a map element at the given index. It creates the map
+// if nil and sets up missing elements as needed.
 //
 // Takes mapVal (reflect.Value) which is the map to index into.
 // Takes node (*ast_domain.IndexExpression) which contains the index expression.
@@ -385,18 +371,16 @@ func resolveMapIndex(mapVal reflect.Value, node *ast_domain.IndexExpression, ful
 	return element, nil
 }
 
-// resolveStructFieldByStringIndex handles bracket-notation access on a struct
-// value where flattened JSON form data produces paths like
-// shippingAddress['street'] and the bracket index corresponds to a struct
-// field name or json tag.
+// resolveStructFieldByStringIndex handles bracket-notation access on a struct value where
+// flattened JSON form data produces paths like shippingAddress['street'] and the bracket
+// index corresponds to a struct field name or json tag.
 //
 // Takes structVal (reflect.Value) which is the struct to access.
 // Takes node (*ast_domain.IndexExpression) which contains the string index.
 // Takes fullPath (string) which is the path for error reporting.
 //
 // Returns reflect.Value which is the resolved struct field.
-// Returns error when the index is not a string literal or the field is not
-// found.
+// Returns error when the index is not a string literal or the field is not found.
 func resolveStructFieldByStringIndex(structVal reflect.Value, node *ast_domain.IndexExpression, fullPath string) (reflect.Value, error) {
 	strIndex, ok := node.Index.(*ast_domain.StringLiteral)
 	if !ok {
@@ -410,8 +394,8 @@ func resolveStructFieldByStringIndex(structVal reflect.Value, node *ast_domain.I
 
 // createMapElement creates a new zero-value element for a map.
 //
-// When elemType is a pointer kind, returns a new pointer to the element type.
-// Otherwise, returns the element value directly.
+// When elemType is a pointer kind, returns a new pointer to the element type. Otherwise,
+// returns the element value directly.
 //
 // Takes elemType (reflect.Type) which specifies the type of element to create.
 //

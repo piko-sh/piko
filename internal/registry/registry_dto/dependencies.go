@@ -25,12 +25,12 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// Dependencies stores profile dependencies with inline storage for the common
-// case. It implements json.Marshaler and json.Unmarshaler.
+// Dependencies stores profile dependencies with inline storage for the common case. It
+// implements json.Marshaler and json.Unmarshaler.
 //
-// Most profiles have zero to two dependencies (usually "source" or another
-// profile name). This avoids slice allocation for the common case. For more
-// than two dependencies, overflow storage is used.
+// Most profiles have zero to two dependencies (usually "source" or another profile name).
+// This avoids slice allocation for the common case. For more than two dependencies,
+// overflow storage is used.
 type Dependencies struct {
 	// inline holds the first two dependencies for fast access without heap allocation.
 	inline [2]string
@@ -51,8 +51,7 @@ func (d *Dependencies) Len() int {
 
 // IsEmpty reports whether there are no dependencies.
 //
-// Returns bool which is true when both the count is zero and no extra
-// dependencies exist.
+// Returns bool which is true when both the count is zero and no extra dependencies exist.
 func (d *Dependencies) IsEmpty() bool {
 	return d.count == 0 && len(d.extra) == 0
 }
@@ -114,8 +113,7 @@ func (d *Dependencies) All() iter.Seq[string] {
 
 // ToSlice returns all dependencies as a slice.
 //
-// Returns []string which contains all dependencies, or nil if empty to avoid
-// allocation.
+// Returns []string which contains all dependencies, or nil if empty to avoid allocation.
 func (d *Dependencies) ToSlice() []string {
 	total := d.Len()
 	if total == 0 {
@@ -144,8 +142,8 @@ func (d *Dependencies) Clone() Dependencies {
 	return clone
 }
 
-// MarshalJSON implements json.Marshaler.
-// Serialises as a JSON array for API compatibility.
+// MarshalJSON implements json.Marshaler. Serialises as a JSON array for API
+// compatibility.
 //
 // Returns []byte which contains the JSON-encoded array.
 // Returns error when serialisation fails.
@@ -153,8 +151,7 @@ func (d Dependencies) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.ToSlice())
 }
 
-// UnmarshalJSON implements json.Unmarshaler by deserialising from a JSON
-// array.
+// UnmarshalJSON implements json.Unmarshaler by deserialising from a JSON array.
 //
 // Takes data ([]byte) which contains the JSON array of dependency strings.
 //
@@ -170,8 +167,8 @@ func (d *Dependencies) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// DependenciesFromSlice creates a Dependencies from a slice of strings.
-// Use it in tests and when moving from the old slice-based format.
+// DependenciesFromSlice creates a Dependencies from a slice of strings. Use it in tests
+// and when moving from the old slice-based format.
 //
 // Takes dependencies ([]string) which contains the dependency strings to add.
 //

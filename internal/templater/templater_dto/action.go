@@ -27,25 +27,22 @@ import (
 // ActionArgument represents a single argument passed to a client-side action. It
 // encapsulates the value and its type for proper serialisation.
 //
-// Type values:
-//   - "s": Static literal value (string, number, boolean)
-//   - "v": Variable expression evaluated at render time
-//   - "e": Event placeholder ($event) - Value is nil, browser event injected at
-//     runtime
-//   - "f": Form placeholder ($form) - Value is nil, form data injected at
-//     runtime
+// Type values: - "s": Static literal value (string, number, boolean) - "v": Variable
+// expression evaluated at render time - "e": Event placeholder ($event) - Value is nil,
+// browser event injected at runtime - "f": Form placeholder ($form) - Value is nil, form
+// data injected at runtime
 type ActionArgument struct {
-	// Value holds the argument's data in its native type.
-	// For type "e" (event) or "f" (form) placeholders, this is nil.
+	// Value holds the argument's data in its native type. For type "e" (event) or "f" (form)
+	// placeholders, this is nil.
 	Value any `json:"v,omitempty"`
 
-	// Type specifies the argument type identifier: "s" (static), "v" (variable),
-	// "e" (event), or "f" (form).
+	// Type specifies the argument type identifier: "s" (static), "v" (variable), "e"
+	// (event), or "f" (form).
 	Type string `json:"t"`
 }
 
-// ActionPayload represents a request to run a function on the client side.
-// It holds the function name and the arguments to pass to it.
+// ActionPayload represents a request to run a function on the client side. It holds the
+// function name and the arguments to pass to it.
 type ActionPayload struct {
 	// Function is the full name of the function where the action happened.
 	Function string `json:"f"`

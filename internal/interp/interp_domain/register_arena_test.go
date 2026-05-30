@@ -21,8 +21,10 @@ package interp_domain
 import (
 	"context"
 	"reflect"
+	"strconv"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 )
@@ -305,7 +307,7 @@ func TestArenaFactoryWithExecute(t *testing.T) {
 	b.emit(opLoadIntConst, 1, 0, 0)
 	b.emit(opLoadIntConst, 2, 1, 0)
 	b.emit(opAddInt, 0, 1, 2)
-	b.emit(opReturn, 1, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 
 	result, err := service.Execute(context.Background(), b.build())
 	require.NoError(t, err)
@@ -439,7 +441,9 @@ func TestShrinkOvergrownSlabs(t *testing.T) {
 	a.upvalueReferenceSlab = make([]upvalue, initialUpvalueRefSlabs*maxArenaMultiplier+1)
 	a.byteSlab = make([]byte, initialByteSlabSize*maxArenaMultiplier+1)
 
-	a.Reset()
+	for range backingSlabIdleResetsBeforeShrink {
+		a.Reset()
+	}
 
 	require.Equal(t, initialIntSlabs, len(a.intSlab))
 	require.Equal(t, initialFloatSlabs, len(a.floatSlab))
@@ -792,4 +796,640 @@ func main() {}
 	result, err := service.EvalFile(context.Background(), source, "run")
 	require.NoError(t, err)
 	require.Equal(t, int64(19900), result)
+}
+
+var (
+	arenaItoaFormatIntParityCases = []int64{
+		0, 1, -1, 7, -7, 10, -10, 99, -99, 100, -100,
+		12345, -12345, 1 << 31, -(1 << 31),
+		(1 << 62), -(1 << 62),
+		9223372036854775807,
+		-9223372036854775808,
+	}
+)
+
+func TestArenaItoaStringParityWithStrconv(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	for _, x := range arenaItoaFormatIntParityCases {
+		got := arenaItoaString(arena, x)
+		want := strconv.FormatInt(x, 10)
+		require.Equal(t, want, got, "arenaItoaString(%d) parity mismatch", x)
+	}
+}
+
+func TestArenaFormatIntStringParityWithStrconv(t *testing.T) {
+	t.Parallel()
+
+	bases := []int{2, 8, 10, 16, 36}
+	arena := newRegisterArena()
+	for _, x := range arenaItoaFormatIntParityCases {
+		for _, base := range bases {
+			got := arenaFormatIntString(arena, x, base)
+			want := strconv.FormatInt(x, base)
+			require.Equal(t, want, got, "arenaFormatIntString(%d, base=%d) parity mismatch", x, base)
+		}
+	}
+}
+
+func TestArenaItoaStringRewindsByteIndex(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arena byteIndex bump pointer is not exposed")
+	}
+	t.Parallel()
+
+	arena := newRegisterArena()
+	startIndex := arena.byteIndex
+
+	_ = arenaItoaString(arena, 42)
+	require.Equal(t, startIndex+2, arena.byteIndex, "byteIndex should advance by len(\"42\")")
+
+	_ = arenaItoaString(arena, 7)
+	require.Equal(t, startIndex+3, arena.byteIndex, "byteIndex should advance by len(\"7\")")
+
+	_ = arenaItoaString(arena, -100)
+	require.Equal(t, startIndex+7, arena.byteIndex, "byteIndex should advance by len(\"-100\")")
+}
+
+func TestArenaItoaStringNoAllocSteadyState(t *testing.T) {
+
+	arena := newRegisterArena()
+
+	for _, x := range arenaItoaFormatIntParityCases {
+		_ = arenaItoaString(arena, x)
+	}
+
+	allocs := testing.AllocsPerRun(100, func() {
+		_ = arenaItoaString(arena, 12345)
+	})
+	if allocs != 0 {
+		t.Logf("note: arenaItoaString reported %v allocs/op (expected 0 in unsafe build); "+
+			"if running with -tags=safe, this is expected.", allocs)
+	}
+}
+
+func TestArenaAllocIntBackingShape(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	s := arena.AllocIntBacking(5)
+	require.Equal(t, 5, len(s), "AllocIntBacking len")
+	require.Equal(t, 5, cap(s), "AllocIntBacking cap (three-index form)")
+
+	t2 := arena.AllocIntBacking(3)
+	require.Equal(t, 3, cap(t2))
+
+	for i := range s {
+		s[i] = int64(i + 100)
+	}
+	for i := range t2 {
+		t2[i] = int64(i + 200)
+	}
+	for i, v := range s {
+		require.Equal(t, int64(i+100), v)
+	}
+	for i, v := range t2 {
+		require.Equal(t, int64(i+200), v)
+	}
+}
+
+func TestArenaAllocIntBackingZero(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	for _, n := range []int{0, -1, -100} {
+		require.Nil(t, arena.AllocIntBacking(n), "n=%d should return nil", n)
+		require.Nil(t, arena.AllocFloatBacking(n), "n=%d should return nil", n)
+		require.Nil(t, arena.AllocStringBacking(n), "n=%d should return nil", n)
+		require.Nil(t, arena.AllocBoolBacking(n), "n=%d should return nil", n)
+		require.Nil(t, arena.AllocUintBacking(n), "n=%d should return nil", n)
+	}
+}
+
+func TestArenaAllocIntBackingGrow(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	initialCap := len(arena.intBackingSlab)
+
+	drained := arena.AllocIntBacking(initialCap)
+	for i := range drained {
+		drained[i] = int64(i)
+	}
+
+	require.Empty(t, arena.oldIntBackings, "no old slabs before grow")
+	grown := arena.AllocIntBacking(10)
+	require.Equal(t, 10, len(grown))
+	require.Len(t, arena.oldIntBackings, 1, "exactly one old slab retained")
+	require.Equal(t, initialCap, len(arena.oldIntBackings[0]),
+		"retained slab is the previous one at initial capacity")
+
+	for i, v := range drained {
+		require.Equal(t, int64(i), v, "post-grow read of pre-grow slice")
+	}
+
+	require.GreaterOrEqual(t, len(arena.intBackingSlab), 2*initialCap,
+		"new slab is at least 2x previous")
+}
+
+func TestArenaAppendIntInCapNoAlloc(t *testing.T) {
+
+	arena := newRegisterArena()
+	s := arena.AllocIntBacking(100)[:0:100]
+
+	allocs := testing.AllocsPerRun(50, func() {
+		s = arenaAppendInt(arena, s[:0], 42)
+	})
+	require.Equal(t, float64(0), allocs, "append in-cap must not allocate")
+}
+
+func TestArenaAppendIntGrowFromHeapSlice(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arenaAppendInt does not route through intBackingSlab")
+	}
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	s := []int64{1, 2, 3}
+	require.Equal(t, len(s), cap(s))
+
+	out := arenaAppendInt(arena, s, 4)
+	require.Equal(t, []int64{1, 2, 3, 4}, out)
+	require.GreaterOrEqual(t, cap(out), 4, "grown cap is at least len(out)")
+
+	backingStart := &arena.intBackingSlab[0]
+	outStart := &out[0]
+	require.Equal(t, backingStart, outStart,
+		"grown slice's backing should be the arena's intBackingSlab head")
+}
+
+func TestArenaAppendStringPreservesUnderlyingType(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	s := arenaAppendString(arena, []string{"a", "b"}, "c")
+	require.Equal(t, []string{"a", "b", "c"}, s)
+}
+
+func TestArenaResetClearsBackingIndices(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	_ = arena.AllocIntBacking(50)
+	_ = arena.AllocFloatBacking(50)
+	_ = arena.AllocStringBacking(50)
+	_ = arena.AllocBoolBacking(50)
+	_ = arena.AllocUintBacking(50)
+
+	require.NotZero(t, arena.intBackingIndex)
+	require.NotZero(t, arena.floatBackingIndex)
+	require.NotZero(t, arena.stringBackingIndex)
+	require.NotZero(t, arena.boolBackingIndex)
+	require.NotZero(t, arena.uintBackingIndex)
+
+	arena.Reset()
+
+	require.Zero(t, arena.intBackingIndex)
+	require.Zero(t, arena.floatBackingIndex)
+	require.Zero(t, arena.stringBackingIndex)
+	require.Zero(t, arena.boolBackingIndex)
+	require.Zero(t, arena.uintBackingIndex)
+	require.Empty(t, arena.oldIntBackings)
+	require.Empty(t, arena.oldFloatBackings)
+	require.Empty(t, arena.oldStringBackings)
+	require.Empty(t, arena.oldBoolBackings)
+	require.Empty(t, arena.oldUintBackings)
+}
+
+func TestArenaEnsureCapacityRespectsByteHint(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	startSize := len(arena.byteSlab)
+
+	arena.EnsureCapacity(typedSlabCounts{bytes: startSize * 4})
+
+	require.GreaterOrEqual(t, len(arena.byteSlab), startSize*4,
+		"EnsureCapacity should grow byteSlab to at least the hinted size")
+}
+
+func TestArenaEnsureCapacityRespectsBackingHints(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	hint := 4096
+	arena.EnsureCapacity(typedSlabCounts{
+		intBacking:    hint,
+		floatBacking:  hint,
+		stringBacking: hint,
+		boolBacking:   hint,
+		uintBacking:   hint,
+	})
+
+	require.GreaterOrEqual(t, len(arena.intBackingSlab), hint, "intBackingSlab")
+	require.GreaterOrEqual(t, len(arena.floatBackingSlab), hint, "floatBackingSlab")
+	require.GreaterOrEqual(t, len(arena.stringBackingSlab), hint, "stringBackingSlab")
+	require.GreaterOrEqual(t, len(arena.boolBackingSlab), hint, "boolBackingSlab")
+	require.GreaterOrEqual(t, len(arena.uintBackingSlab), hint, "uintBackingSlab")
+}
+
+func TestArenaEnsureCapacityDoesNotShrink(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	arena.EnsureCapacity(typedSlabCounts{bytes: initialByteSlabSize * 8})
+	bigSize := len(arena.byteSlab)
+	require.Greater(t, bigSize, initialByteSlabSize)
+
+	arena.EnsureCapacity(typedSlabCounts{bytes: 64})
+	require.Equal(t, bigSize, len(arena.byteSlab),
+		"EnsureCapacity must not shrink an already-grown slab")
+}
+
+func TestAccumulateArenaBytecodeHints(t *testing.T) {
+	t.Parallel()
+
+	body := []instruction{
+		{op: opConcatString},
+		{op: opConcatString},
+		{op: opConcatRuneString},
+		{op: opDrillTier1, a: uint8(subOpBytesToString)},
+		{op: opDrillTier1, a: uint8(subOpStrconvItoa)},
+		{op: opDrillTier1, a: uint8(subOpStrconvFormatInt)},
+		{op: opDrillTier1, a: uint8(subOpRuneToString)},
+		{op: opDrillTier1, a: uint8(subOpMakeSliceInt)},
+		{op: opDrillTier1, a: uint8(subOpMakeSliceFloat)},
+		{op: opDrillTier1, a: uint8(subOpMakeSliceString)},
+		{op: opDrillTier1, a: uint8(subOpMakeSliceBool)},
+		{op: opDrillTier1, a: uint8(subOpMakeSliceUint)},
+
+		{op: opDrillTier1, a: uint8(subOpMathSin)},
+		{op: opDrillTier1, a: uint8(subOpCap)},
+	}
+
+	var hints arenaBytecodeHints
+	accumulateArenaBytecodeHints(&hints, body, nil)
+
+	expectedBytes := 2*arenaConcatStringAvgBytes +
+		arenaConcatRuneStringAvgBytes +
+		arenaBytesToStringAvgBytes +
+		arenaItoaMaxBytes +
+		arenaFormatIntMaxBytes +
+		arenaRuneToStringMaxBytes
+	require.Equal(t, expectedBytes, hints.bytes, "byte hint sum")
+
+	require.Equal(t, 1, hints.makeSliceInt)
+	require.Equal(t, 1, hints.makeSliceFloat)
+	require.Equal(t, 1, hints.makeSliceString)
+	require.Equal(t, 1, hints.makeSliceBool)
+	require.Equal(t, 1, hints.makeSliceUint)
+}
+
+func TestSizeArenaFromFunctionsPresizesByteSlab(t *testing.T) {
+	t.Parallel()
+
+	service := NewService()
+	source := `package main
+
+func run() int {
+	out := ""
+	for i := 0; i < 100; i++ {
+		out += "abcdefghij"
+	}
+	return len(out)
+}
+
+func main() {}
+`
+	result, err := service.EvalFile(context.Background(), source, "run")
+	require.NoError(t, err)
+	require.Equal(t, int64(1000), result)
+}
+
+func TestArenaAllocByteBackingShape(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+
+	s := arena.AllocByteBacking(5)
+	require.Equal(t, 5, len(s))
+	require.Equal(t, 5, cap(s))
+
+	t2 := arena.AllocByteBacking(3)
+	require.Equal(t, 3, cap(t2))
+
+	for i := range s {
+		s[i] = byte(i + 100)
+	}
+	for i := range t2 {
+		t2[i] = byte(i + 200)
+	}
+	for i, v := range s {
+		require.Equal(t, byte(i+100), v)
+	}
+	for i, v := range t2 {
+		require.Equal(t, byte(i+200), v)
+	}
+}
+
+func TestArenaAllocByteBackingZero(t *testing.T) {
+	t.Parallel()
+
+	arena := newRegisterArena()
+	for _, n := range []int{0, -1, -100} {
+		require.Nil(t, arena.AllocByteBacking(n), "n=%d should return nil", n)
+	}
+}
+
+func TestArenaAppendByteGrowFromHeapSlice(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arenaAppendByte does not route through byteBackingSlab")
+	}
+	t.Parallel()
+
+	arena := newRegisterArena()
+	s := []byte{1, 2, 3}
+	require.Equal(t, len(s), cap(s))
+
+	out := arenaAppendByte(arena, s, 4)
+	require.Equal(t, []byte{1, 2, 3, 4}, out)
+	require.GreaterOrEqual(t, cap(out), 4)
+
+	require.Equal(t, &arena.byteSlab[0], &out[0])
+}
+
+func TestArenaMakeSliceEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	service := NewService()
+	source := `package main
+
+func run() int {
+	ints := make([]int, 0, 10)
+	for i := 0; i < 10; i++ {
+		ints = append(ints, i*i)
+	}
+	sum := 0
+	for _, v := range ints {
+		sum += v
+	}
+	return sum
+}
+
+func main() {}
+`
+	result, err := service.EvalFile(context.Background(), source, "run")
+	require.NoError(t, err)
+	require.Equal(t, int64(285), result, "sum of i*i for i in 0..10")
+}
+
+func TestOwnsBytePointer(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arena byte slabs are not exposed")
+	}
+	t.Parallel()
+	arena := newRegisterArena()
+
+	p1 := arena.AllocBytes(16, 8)
+	require.True(t, arena.ownsBytePointer(p1),
+		"freshly allocated arena byte pointer must be owned")
+
+	initialBacking := arena.genericBytesSlab
+	for range 64 {
+
+		arena.AllocBytes(4096, 8)
+	}
+	require.NotEqual(t,
+		uintptr(unsafe.Pointer(&initialBacking[0])),
+		uintptr(unsafe.Pointer(&arena.genericBytesSlab[0])),
+		"slab must have been re-allocated by growth")
+	require.GreaterOrEqual(t, len(arena.oldGenericByteSlabs), 1,
+		"retired slabs must be tracked in oldGenericByteSlabs")
+
+	require.True(t, arena.ownsBytePointer(p1),
+		"retired-slab pointer must still report owned after growth")
+
+	p2 := arena.AllocBytes(8, 8)
+	require.True(t, arena.ownsBytePointer(p2),
+		"new-slab pointer must be owned")
+
+	heapValue := new(int64)
+	require.False(t, arena.ownsBytePointer(unsafe.Pointer(heapValue)),
+		"heap pointer must not be reported as arena-owned")
+
+	require.False(t, arena.ownsBytePointer(nil),
+		"nil pointer must return false")
+
+	require.False(t, arena.ownsBytePointer(zeroSizeAllocPtr),
+		"zero-size sentinel must not be reported as arena-owned")
+}
+
+func TestOwnsSliceHeaderPointer(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arena slice-header slabs are not exposed")
+	}
+	t.Parallel()
+	arena := newRegisterArena()
+
+	hdr1 := arena.AllocSliceHeader()
+	require.True(t, arena.ownsSliceHeaderPointer(unsafe.Pointer(hdr1)),
+		"freshly allocated arena slice header must be owned")
+
+	initialBacking := arena.sliceHeaderSlab
+	for range initialSliceHeaderCapacity * 2 {
+		_ = arena.AllocSliceHeader()
+	}
+	require.NotEqual(t,
+		uintptr(unsafe.Pointer(&initialBacking[0])),
+		uintptr(unsafe.Pointer(&arena.sliceHeaderSlab[0])),
+		"slice-header slab must have been re-allocated by growth")
+	require.GreaterOrEqual(t, len(arena.oldSliceHeaderSlabs), 1,
+		"retired slice-header slabs must be tracked")
+
+	require.True(t, arena.ownsSliceHeaderPointer(unsafe.Pointer(hdr1)),
+		"retired slice-header pointer must still report owned")
+
+	hdr2 := arena.AllocSliceHeader()
+	require.True(t, arena.ownsSliceHeaderPointer(unsafe.Pointer(hdr2)),
+		"new-slab slice header must be owned")
+
+	heapHeader := &arenaSliceHeader{}
+	require.False(t, arena.ownsSliceHeaderPointer(unsafe.Pointer(heapHeader)),
+		"heap slice-header must not be reported as arena-owned")
+
+	require.False(t, arena.ownsSliceHeaderPointer(nil),
+		"nil pointer must return false")
+}
+
+func TestMaterialiseArenaValue(t *testing.T) {
+	if !arenaUsesUnsafeSlabs {
+		t.Skip("safe build: arena slab-ownership semantics are not exposed")
+	}
+	t.Parallel()
+
+	type smallStruct struct {
+		A int64
+		B int64
+	}
+
+	t.Run("nil_arena_passes_through", func(t *testing.T) {
+		t.Parallel()
+		v := reflect.ValueOf(smallStruct{A: 1, B: 2})
+		out := materialiseArenaValue(nil, v)
+		require.Equal(t, v.Interface(), out.Interface())
+	})
+
+	t.Run("invalid_value_passes_through", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		out := materialiseArenaValue(arena, reflect.Value{})
+		require.False(t, out.IsValid())
+	})
+
+	t.Run("heap_struct_passes_through", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		original := reflect.New(reflect.TypeFor[smallStruct]()).Elem()
+		original.Set(reflect.ValueOf(smallStruct{A: 7, B: 8}))
+		out := materialiseArenaValue(arena, original)
+
+		require.Equal(t,
+			reflectValuePtr(original),
+			reflectValuePtr(out),
+			"heap struct must not be re-copied")
+	})
+
+	t.Run("arena_struct_is_copied_to_heap", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		arena.isLeaf = true
+		t1 := reflect.TypeFor[smallStruct]()
+
+		ptr := arena.AllocBytes(t1.Size(), uintptr(t1.Align()))
+		require.True(t, arena.ownsBytePointer(ptr))
+		arenaValue := unsafeNewAt(reflectValueABIType(t1), ptr, reflect.Struct)
+		arenaValue.Set(reflect.ValueOf(smallStruct{A: 11, B: 22}))
+
+		out := materialiseArenaValue(arena, arenaValue)
+		require.NotEqual(t,
+			reflectValuePtr(arenaValue),
+			reflectValuePtr(out),
+			"arena struct's storage must be re-anchored to heap")
+		require.False(t, arena.ownsBytePointer(reflectValuePtr(out)),
+			"materialised value's storage must NOT be in arena")
+		require.Equal(t, smallStruct{A: 11, B: 22}, out.Interface().(smallStruct))
+
+		arenaValue.Set(reflect.ValueOf(smallStruct{A: 99, B: 99}))
+		require.Equal(t, smallStruct{A: 11, B: 22}, out.Interface().(smallStruct),
+			"materialised copy must be independent of arena slot")
+	})
+
+	t.Run("arena_struct_survives_slab_growth", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		arena.isLeaf = true
+		t1 := reflect.TypeFor[smallStruct]()
+		ptr := arena.AllocBytes(t1.Size(), uintptr(t1.Align()))
+		arenaValue := unsafeNewAt(reflectValueABIType(t1), ptr, reflect.Struct)
+		arenaValue.Set(reflect.ValueOf(smallStruct{A: 33, B: 44}))
+
+		for range 64 {
+			arena.AllocBytes(4096, 8)
+		}
+		require.GreaterOrEqual(t, len(arena.oldGenericByteSlabs), 1)
+
+		require.True(t, arena.ownsBytePointer(reflectValuePtr(arenaValue)))
+		out := materialiseArenaValue(arena, arenaValue)
+		require.False(t, arena.ownsBytePointer(reflectValuePtr(out)))
+		require.Equal(t, smallStruct{A: 33, B: 44}, out.Interface().(smallStruct))
+	})
+
+	t.Run("scalar_kinds_pass_through", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		for _, v := range []reflect.Value{
+			reflect.ValueOf(int64(42)),
+			reflect.ValueOf(uint64(42)),
+			reflect.ValueOf(float64(3.14)),
+			reflect.ValueOf(true),
+			reflect.ValueOf("hello"),
+		} {
+			out := materialiseArenaValue(arena, v)
+			require.Equal(t, v.Interface(), out.Interface())
+		}
+	})
+
+	t.Run("pointer_map_chan_func_pass_through", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		x := 7
+		ptr := reflect.ValueOf(&x)
+		require.Equal(t, &x, materialiseArenaValue(arena, ptr).Interface())
+
+		m := map[string]int{"a": 1}
+		mv := reflect.ValueOf(m)
+
+		require.True(t, reflect.DeepEqual(m, materialiseArenaValue(arena, mv).Interface()))
+
+		ch := make(chan int, 1)
+		cv := reflect.ValueOf(ch)
+		require.Equal(t,
+			reflect.ValueOf(ch).Pointer(),
+			materialiseArenaValue(arena, cv).Pointer())
+
+		fv := reflect.ValueOf(func() int { return 1 })
+		require.Equal(t, fv.Pointer(), materialiseArenaValue(arena, fv).Pointer())
+	})
+
+	t.Run("heap_slice_passes_through", func(t *testing.T) {
+		t.Parallel()
+		arena := newRegisterArena()
+		heap := reflect.ValueOf([]int{1, 2, 3})
+		out := materialiseArenaValue(arena, heap)
+
+		require.Equal(t, []int{1, 2, 3}, out.Interface().([]int))
+	})
+}
+
+func BenchmarkArenaSaveInto(b *testing.B) {
+	arena := newRegisterArena()
+	arena.intIndex = 17
+	arena.floatIndex = 23
+	arena.stringIndex = 11
+	arena.generalIndex = 41
+	arena.boolIndex = 7
+	arena.uintIndex = 13
+	arena.complexIndex = 5
+	arena.slicesIntIndex = 3
+	arena.slicesFloatIndex = 4
+	arena.slicesStringIndex = 6
+	arena.slicesBoolIndex = 8
+	arena.slicesUintIndex = 9
+	arena.slicesByteIndex = 10
+	arena.upvalueCellIndex = 1
+	arena.upvalueReferenceIndex = 2
+	var savePoint ArenaSavePoint
+	b.ReportAllocs()
+	b.ResetTimer()
+	for index := 0; index < b.N; index++ {
+		arena.SaveInto(&savePoint)
+	}
+}
+
+func BenchmarkArenaSaveRestoreRoundTrip(b *testing.B) {
+	arena := newRegisterArena()
+	var savePoint ArenaSavePoint
+	arena.SaveInto(&savePoint)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for index := 0; index < b.N; index++ {
+		arena.SaveInto(&savePoint)
+		arena.Restore(savePoint)
+	}
 }

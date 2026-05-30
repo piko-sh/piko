@@ -18,10 +18,10 @@
 
 package ast_domain
 
-// Provides lexical analysis for CSS selector parsing by tokenizing selector
-// strings into identifiers, operators, and punctuation. Implements pooled
-// QueryLexer instances with efficient token recognition for classes, IDs,
-// attributes, pseudo-classes, and combinators.
+// Provides lexical analysis for CSS selector parsing by tokenizing selector strings into
+// identifiers, operators, and punctuation. Implements pooled QueryLexer instances with
+// efficient token recognition for classes, IDs, attributes, pseudo-classes, and
+// combinators.
 
 import (
 	"sync"
@@ -109,15 +109,13 @@ var (
 
 	// simpleTokens maps ASCII characters to their token info.
 	//
-	// A zero value means the character is not a simple token. Using an array
-	// instead of a map avoids allocation and is faster for ASCII lookups. The
-	// size is defined by singleCharTokenTableSize in
-	// expression_lexer.go.
+	// A zero value means the character is not a simple token. Using an array instead of a
+	// map avoids allocation and is faster for ASCII lookups. The size is defined by
+	// singleCharTokenTableSize in expression_lexer.go.
 	simpleTokens [singleCharTokenTableSize]simpleTokenInfo
 )
 
-// simpleTokenInfo holds pre-allocated token type and literal for single-char
-// tokens.
+// simpleTokenInfo holds pre-allocated token type and literal for single-char tokens.
 type simpleTokenInfo struct {
 	// literal is the string value of the token.
 	literal string
@@ -141,8 +139,7 @@ type QueryToken struct {
 	Type QueryTokenType
 }
 
-// QueryLexer holds the state of the lexer for turning query strings into
-// tokens.
+// QueryLexer holds the state of the lexer for turning query strings into tokens.
 type QueryLexer struct {
 	// input holds the raw query string being tokenised.
 	input string
@@ -163,8 +160,8 @@ type QueryLexer struct {
 	column int
 }
 
-// NewQueryLexer creates a new lexer for the given input string.
-// The returned lexer should be released with Release when done.
+// NewQueryLexer creates a new lexer for the given input string. The returned lexer should
+// be released with Release when done.
 //
 // Takes input (string) which is the query text to tokenise.
 //
@@ -192,8 +189,8 @@ func (l *QueryLexer) Release() {
 
 // NextToken reads the input and returns the next token.
 //
-// Returns QueryToken which holds the parsed token with its type, literal
-// value, and position in the source.
+// Returns QueryToken which holds the parsed token with its type, literal value, and
+// position in the source.
 func (l *QueryLexer) NextToken() QueryToken {
 	location := Location{Line: l.line, Column: l.column, Offset: 0}
 
@@ -215,8 +212,8 @@ func (l *QueryLexer) NextToken() QueryToken {
 
 // isWhitespace checks if the current character is whitespace.
 //
-// Returns bool which is true when the current character is a space, tab,
-// newline, or carriage return.
+// Returns bool which is true when the current character is a space, tab, newline, or
+// carriage return.
 func (l *QueryLexer) isWhitespace() bool {
 	return l.character == ' ' || l.character == '\t' || l.character == '\n' || l.character == '\r'
 }
@@ -256,11 +253,9 @@ func (l *QueryLexer) lexComplexToken(location Location) QueryToken {
 // lexTwoCharToken handles tokens that may be one or two characters.
 //
 // Takes secondChar (rune) which is the second character to check for.
-// Takes twoCharType (QueryTokenType) which is the token type for two-char
-// match.
+// Takes twoCharType (QueryTokenType) which is the token type for two-char match.
 // Takes twoCharLiteral (string) which is the literal for two-char match.
-// Takes oneCharType (QueryTokenType) which is the token type for one-char
-// match.
+// Takes oneCharType (QueryTokenType) which is the token type for one-char match.
 // Takes oneCharLiteral (string) which is the literal for one-char match.
 // Takes location (Location) which is the source location of the token.
 //
@@ -300,9 +295,9 @@ func (l *QueryLexer) readChar() {
 	l.readPosition++
 }
 
-// readIdentifier reads a sequence of valid identifier characters.
-// Handles the special case of the "piko:" namespace prefix, treating
-// "piko:elementname" as a single identifier for Piko framework elements.
+// readIdentifier reads a sequence of valid identifier characters. Handles the special
+// case of the "piko:" namespace prefix, treating "piko:elementname" as a single
+// identifier for Piko framework elements.
 //
 // Returns string which is the identifier text from the input.
 func (l *QueryLexer) readIdentifier() string {
@@ -324,11 +319,11 @@ func (l *QueryLexer) readIdentifier() string {
 
 // readString reads a quoted string literal.
 //
-// Takes quote (rune) which is the quote character that marks the start and end
-// of the string.
+// Takes quote (rune) which is the quote character that marks the start and end of the
+// string.
 //
-// Returns string which is the content between the quotes. Escaped quotes are
-// kept as they are.
+// Returns string which is the content between the quotes. Escaped quotes are kept as they
+// are.
 func (l *QueryLexer) readString(quote rune) string {
 	l.readChar()
 	start := l.position
@@ -369,8 +364,7 @@ func (l *QueryLexer) peekChar() rune {
 //
 // Takes character (rune) which is the character to check.
 //
-// Returns bool which is true if the rune is a letter, digit, hyphen, or
-// underscore.
+// Returns bool which is true if the rune is a letter, digit, hyphen, or underscore.
 func isQueryIdentChar(character rune) bool {
 	return unicode.IsLetter(character) || unicode.IsDigit(character) || character == '-' || character == '_'
 }

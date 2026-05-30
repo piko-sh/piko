@@ -26,14 +26,16 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// Column implements the pml_domain.Component interface for the <pml-col> tag.
-// It is the main content container within a section, handling responsive
-// stacking and padding for child content.
+// Column implements the pml_domain.Component interface for the <pml-col> tag. It is the
+// main content container within a section, handling responsive stacking and padding for
+// child content.
 type Column struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*Column)(nil)
+var (
+	_ pml_domain.Component = (*Column)(nil)
+)
 
 const (
 	// defaultColumnAlign is the default text alignment for column content.
@@ -49,8 +51,8 @@ const (
 	defaultColumnPadding = "0"
 )
 
-// NewColumn creates a new Column component instance. A Column is the main
-// content container within a row and handles responsive stacking.
+// NewColumn creates a new Column component instance. A Column is the main content
+// container within a row and handles responsive stacking.
 //
 // Returns *Column which is ready to be configured and added to a row.
 func NewColumn() *Column {
@@ -66,8 +68,7 @@ func (*Column) TagName() string {
 	return "pml-col"
 }
 
-// AllowedParents returns the list of valid parent components for this
-// component.
+// AllowedParents returns the list of valid parent components for this component.
 //
 // Returns []string which contains the allowed parent component names.
 func (*Column) AllowedParents() []string {
@@ -76,8 +77,8 @@ func (*Column) AllowedParents() []string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute names and their type definitions.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute names
+// and their type definitions.
 func (*Column) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		CSSBackgroundColor:       NewAttributeDefinition(pml_domain.TypeColor),
@@ -96,16 +97,15 @@ func (*Column) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 
 // DefaultAttributes returns the default attribute values for this component.
 //
-// Returns map[string]string which is an empty map as columns have no default
-// attributes.
+// Returns map[string]string which is an empty map as columns have no default attributes.
 func (*Column) DefaultAttributes() map[string]string {
 	return map[string]string{}
 }
 
 // GetStyleTargets returns the list of style targets for this component.
 //
-// Returns []pml_domain.StyleTarget which contains the supported style
-// properties and their target elements.
+// Returns []pml_domain.StyleTarget which contains the supported style properties and
+// their target elements.
 func (*Column) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: CSSBackgroundColor, Target: TargetContainer},
@@ -117,16 +117,16 @@ func (*Column) GetStyleTargets() []pml_domain.StyleTarget {
 	}
 }
 
-// Transform renders a column as a modern div wrapper with responsive styles.
-// The parent pml-row handles the Outlook conditional td structure that this
-// div will be placed inside.
+// Transform renders a column as a modern div wrapper with responsive styles. The parent
+// pml-row handles the Outlook conditional td structure that this div will be placed
+// inside.
 //
 // Takes node (*ast_domain.TemplateNode) which is the column node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides style and media
-// query context.
+// Takes ctx (*pml_domain.TransformationContext) which provides style and media query
+// context.
 //
-// Returns *ast_domain.TemplateNode which is the rendered div element with
-// responsive width styles.
+// Returns *ast_domain.TemplateNode which is the rendered div element with responsive
+// width styles.
 // Returns []*pml_domain.Error which contains any diagnostics from the context.
 func (c *Column) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
@@ -170,16 +170,14 @@ func (c *Column) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Transf
 	return modernDiv, ctx.Diagnostics()
 }
 
-// renderGutter creates the outer table structure for column-level padding
-// ("gutter").
+// renderGutter creates the outer table structure for column-level padding ("gutter").
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style settings.
 // Takes children ([]*ast_domain.TemplateNode) which contains the child nodes.
-// Takes ctx (*pml_domain.TransformationContext) which provides transformation
-// context.
+// Takes ctx (*pml_domain.TransformationContext) which provides transformation context.
 //
-// Returns *ast_domain.TemplateNode which is the table element with gutter
-// styling applied.
+// Returns *ast_domain.TemplateNode which is the table element with gutter styling
+// applied.
 func (c *Column) renderGutter(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) *ast_domain.TemplateNode {
 	gutterTDStyles := map[string]string{}
 	copyStyle(styles, gutterTDStyles, CSSBackgroundColor)
@@ -205,17 +203,16 @@ func (c *Column) renderGutter(styles *pml_domain.StyleManager, children []*ast_d
 	}, []*ast_domain.TemplateNode{tbodyNode})
 }
 
-// renderColumn creates the inner table that holds the column's children,
-// stacking them vertically.
+// renderColumn creates the inner table that holds the column's children, stacking them
+// vertically.
 //
 // Takes styles (*pml_domain.StyleManager) which provides style configuration.
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes
-// to render.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation context.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes to render.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation
+// context.
 //
-// Returns *ast_domain.TemplateNode which is the table element containing the
-// stacked children.
+// Returns *ast_domain.TemplateNode which is the table element containing the stacked
+// children.
 func (c *Column) renderColumn(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) *ast_domain.TemplateNode {
 	tableStyles := map[string]string{
 		CSSVerticalAlign: ValueTop,
@@ -263,13 +260,13 @@ func (c *Column) renderColumn(styles *pml_domain.StyleManager, children []*ast_d
 	}, []*ast_domain.TemplateNode{tbodyNode})
 }
 
-// processFragmentChildren processes all children of a fragment node and
-// returns their rows.
+// processFragmentChildren processes all children of a fragment node and returns their
+// rows.
 //
-// Takes fragment (*ast_domain.TemplateNode) which is the fragment node whose
-// children will be processed.
-// Takes ctx (*pml_domain.TransformationContext) which provides the current
-// transformation state.
+// Takes fragment (*ast_domain.TemplateNode) which is the fragment node whose children
+// will be processed.
+// Takes ctx (*pml_domain.TransformationContext) which provides the current transformation
+// state.
 //
 // Returns []*ast_domain.TemplateNode which contains the processed child rows.
 func (c *Column) processFragmentChildren(fragment *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) []*ast_domain.TemplateNode {
@@ -304,15 +301,13 @@ func (c *Column) processFragmentChildren(fragment *ast_domain.TemplateNode, ctx 
 	return rows
 }
 
-// createChildRow creates a <tr><td> wrapper for a single child element
-// with proper padding and alignment, reading PML attributes from
-// data-pml-* attributes that were preserved during the child's
-// transformation.
+// createChildRow creates a <tr><td> wrapper for a single child element with proper
+// padding and alignment, reading PML attributes from data-pml-* attributes that were
+// preserved during the child's transformation.
 //
 // Takes child (*ast_domain.TemplateNode) which is the element to wrap.
 //
-// Returns *ast_domain.TemplateNode which is the tr/td wrapper containing
-// the child.
+// Returns *ast_domain.TemplateNode which is the tr/td wrapper containing the child.
 func (c *Column) createChildRow(child *ast_domain.TemplateNode, _ *pml_domain.TransformationContext) *ast_domain.TemplateNode {
 	childPadding := c.getDataAttr(child, "data-pml-padding")
 	childAlign := c.getDataAttr(child, "data-pml-align")
@@ -366,8 +361,7 @@ func (c *Column) createChildRow(child *ast_domain.TemplateNode, _ *pml_domain.Tr
 
 // getDataAttr retrieves a data-* attribute value from a node.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the attributes to
-// search.
+// Takes node (*ast_domain.TemplateNode) which contains the attributes to search.
 // Takes attributeName (string) which specifies the attribute name to find.
 //
 // Returns string which is the attribute value, or empty if not found.
@@ -380,9 +374,8 @@ func (*Column) getDataAttr(node *ast_domain.TemplateNode, attributeName string) 
 	return ""
 }
 
-// removeDataPMLAttributes removes all data-pml-* attributes from a node after
-// they have been read. This means the final HTML does not contain internal
-// metadata.
+// removeDataPMLAttributes removes all data-pml-* attributes from a node after they have
+// been read. This means the final HTML does not contain internal metadata.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to clean.
 func (*Column) removeDataPMLAttributes(node *ast_domain.TemplateNode) {
@@ -397,10 +390,9 @@ func (*Column) removeDataPMLAttributes(node *ast_domain.TemplateNode) {
 
 // calculateWidth computes the width values for a column element.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to style
-// attributes.
-// Takes ctx (*pml_domain.TransformationContext) which contains the parent
-// container width and sibling count.
+// Takes styles (*pml_domain.StyleManager) which provides access to style attributes.
+// Takes ctx (*pml_domain.TransformationContext) which contains the parent container width
+// and sibling count.
 //
 // Returns widthPercent (float64) which is the column width as a percentage.
 // Returns widthPixels (float64) which is the column width in pixels.
@@ -428,8 +420,7 @@ func (*Column) calculateWidth(styles *pml_domain.StyleManager, ctx *pml_domain.T
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
 //
-// Returns map[string]string which contains the CSS property-value pairs
-// for the div.
+// Returns map[string]string which contains the CSS property-value pairs for the div.
 func (c *Column) getDivStyles(styles *pml_domain.StyleManager, ctx *pml_domain.TransformationContext) map[string]string {
 	textAlign := defaultColumnAlign
 	if ctx.InheritedTextAlign != "" {
@@ -464,8 +455,8 @@ func (*Column) hasGutter(styles *pml_domain.StyleManager) bool {
 	return false
 }
 
-// calculateWidthPercentage determines the width percentage based on attribute
-// value and context.
+// calculateWidthPercentage determines the width percentage based on attribute value and
+// context.
 //
 // Takes widthAttr (string) which specifies the width as percentage or pixels.
 // Takes hasWidth (bool) which indicates if a width attribute was provided.
@@ -499,8 +490,8 @@ func calculateWidthPercentage(widthAttr string, hasWidth bool, parentWidth float
 //
 // Takes siblingCount (int) which specifies the number of sibling elements.
 //
-// Returns float64 which is the width percentage, dividing the full width
-// equally among siblings.
+// Returns float64 which is the width percentage, dividing the full width equally among
+// siblings.
 func calculateDefaultWidth(siblingCount int) float64 {
 	if siblingCount > 0 {
 		return PercentFull / float64(siblingCount)
@@ -512,8 +503,7 @@ func calculateDefaultWidth(siblingCount int) float64 {
 //
 // Takes values (...string) which are the candidate strings to check.
 //
-// Returns string which is the first non-empty value, or an empty string if
-// none is found.
+// Returns string which is the first non-empty value, or an empty string if none is found.
 func coalesce(values ...string) string {
 	for _, v := range values {
 		if v != "" {

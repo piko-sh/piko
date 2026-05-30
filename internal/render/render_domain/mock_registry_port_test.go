@@ -24,7 +24,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +44,7 @@ func TestMockRegistryPort_GetComponentMetadata(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetComponentMetadataCallCount))
+		assert.Equal(t, int64(1), m.GetComponentMetadataCallCount.Load())
 	})
 
 	t.Run("delegates to GetComponentMetadataFunc", func(t *testing.T) {
@@ -62,7 +61,7 @@ func TestMockRegistryPort_GetComponentMetadata(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetComponentMetadataCallCount))
+		assert.Equal(t, int64(1), m.GetComponentMetadataCallCount.Load())
 	})
 
 	t.Run("propagates error from GetComponentMetadataFunc", func(t *testing.T) {
@@ -92,7 +91,7 @@ func TestMockRegistryPort_BulkGetComponentMetadata(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetComponentMetadataCallCount))
+		assert.Equal(t, int64(1), m.BulkGetComponentMetadataCallCount.Load())
 	})
 
 	t.Run("delegates to BulkGetComponentMetadataFunc", func(t *testing.T) {
@@ -111,7 +110,7 @@ func TestMockRegistryPort_BulkGetComponentMetadata(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetComponentMetadataCallCount))
+		assert.Equal(t, int64(1), m.BulkGetComponentMetadataCallCount.Load())
 	})
 
 	t.Run("propagates error from BulkGetComponentMetadataFunc", func(t *testing.T) {
@@ -141,7 +140,7 @@ func TestMockRegistryPort_GetAssetRawSVG(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAssetRawSVGCallCount))
+		assert.Equal(t, int64(1), m.GetAssetRawSVGCallCount.Load())
 	})
 
 	t.Run("delegates to GetAssetRawSVGFunc", func(t *testing.T) {
@@ -158,7 +157,7 @@ func TestMockRegistryPort_GetAssetRawSVG(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAssetRawSVGCallCount))
+		assert.Equal(t, int64(1), m.GetAssetRawSVGCallCount.Load())
 	})
 
 	t.Run("propagates error from GetAssetRawSVGFunc", func(t *testing.T) {
@@ -188,7 +187,7 @@ func TestMockRegistryPort_BulkGetAssetRawSVG(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetAssetRawSVGCallCount))
+		assert.Equal(t, int64(1), m.BulkGetAssetRawSVGCallCount.Load())
 	})
 
 	t.Run("delegates to BulkGetAssetRawSVGFunc", func(t *testing.T) {
@@ -207,7 +206,7 @@ func TestMockRegistryPort_BulkGetAssetRawSVG(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetAssetRawSVGCallCount))
+		assert.Equal(t, int64(1), m.BulkGetAssetRawSVGCallCount.Load())
 	})
 
 	t.Run("propagates error from BulkGetAssetRawSVGFunc", func(t *testing.T) {
@@ -236,7 +235,7 @@ func TestMockRegistryPort_GetStats(t *testing.T) {
 		got := m.GetStats()
 
 		assert.Equal(t, RegistryAdapterStats{}, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStatsCallCount))
+		assert.Equal(t, int64(1), m.GetStatsCallCount.Load())
 	})
 
 	t.Run("delegates to GetStatsFunc", func(t *testing.T) {
@@ -251,7 +250,7 @@ func TestMockRegistryPort_GetStats(t *testing.T) {
 		got := m.GetStats()
 
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStatsCallCount))
+		assert.Equal(t, int64(1), m.GetStatsCallCount.Load())
 	})
 }
 
@@ -264,7 +263,7 @@ func TestMockRegistryPort_ClearComponentCache(t *testing.T) {
 
 		m.ClearComponentCache(context.Background(), "card")
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearComponentCacheCallCount))
+		assert.Equal(t, int64(1), m.ClearComponentCacheCallCount.Load())
 	})
 
 	t.Run("delegates to ClearComponentCacheFunc", func(t *testing.T) {
@@ -279,7 +278,7 @@ func TestMockRegistryPort_ClearComponentCache(t *testing.T) {
 		m.ClearComponentCache(context.Background(), "navbar")
 
 		assert.Equal(t, "navbar", calledWith)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearComponentCacheCallCount))
+		assert.Equal(t, int64(1), m.ClearComponentCacheCallCount.Load())
 	})
 }
 
@@ -292,7 +291,7 @@ func TestMockRegistryPort_ClearSvgCache(t *testing.T) {
 
 		m.ClearSvgCache(context.Background(), "icon-star")
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearSvgCacheCallCount))
+		assert.Equal(t, int64(1), m.ClearSvgCacheCallCount.Load())
 	})
 
 	t.Run("delegates to ClearSvgCacheFunc", func(t *testing.T) {
@@ -307,7 +306,7 @@ func TestMockRegistryPort_ClearSvgCache(t *testing.T) {
 		m.ClearSvgCache(context.Background(), "icon-star")
 
 		assert.Equal(t, "icon-star", calledWith)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearSvgCacheCallCount))
+		assert.Equal(t, int64(1), m.ClearSvgCacheCallCount.Load())
 	})
 }
 
@@ -322,7 +321,7 @@ func TestMockRegistryPort_UpsertArtefact(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+		assert.Equal(t, int64(1), m.UpsertArtefactCallCount.Load())
 	})
 
 	t.Run("delegates to UpsertArtefactFunc", func(t *testing.T) {
@@ -343,7 +342,7 @@ func TestMockRegistryPort_UpsertArtefact(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+		assert.Equal(t, int64(1), m.UpsertArtefactCallCount.Load())
 	})
 
 	t.Run("propagates error from UpsertArtefactFunc", func(t *testing.T) {
@@ -394,14 +393,14 @@ func TestMockRegistryPort_ZeroValueIsUsable(t *testing.T) {
 	assert.Nil(t, got5)
 	assert.NoError(t, err5)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetComponentMetadataCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetComponentMetadataCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAssetRawSVGCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.BulkGetAssetRawSVGCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStatsCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearComponentCacheCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClearSvgCacheCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+	assert.Equal(t, int64(1), m.GetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(1), m.BulkGetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(1), m.GetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(1), m.BulkGetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(1), m.GetStatsCallCount.Load())
+	assert.Equal(t, int64(1), m.ClearComponentCacheCallCount.Load())
+	assert.Equal(t, int64(1), m.ClearSvgCacheCallCount.Load())
+	assert.Equal(t, int64(1), m.UpsertArtefactCallCount.Load())
 }
 
 func TestMockRegistryPort_ConcurrentAccess(t *testing.T) {
@@ -452,12 +451,12 @@ func TestMockRegistryPort_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetComponentMetadataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.BulkGetComponentMetadataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetAssetRawSVGCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.BulkGetAssetRawSVGCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetStatsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ClearComponentCacheCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ClearSvgCacheCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+	assert.Equal(t, int64(goroutines), m.GetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.BulkGetComponentMetadataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.BulkGetAssetRawSVGCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetStatsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ClearComponentCacheCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ClearSvgCacheCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.UpsertArtefactCallCount.Load())
 }

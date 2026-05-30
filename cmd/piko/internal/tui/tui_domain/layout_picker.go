@@ -18,10 +18,9 @@
 
 package tui_domain
 
-// LayoutPicker chooses the active Layout based on the current terminal
-// dimensions and a configured set of breakpoints. A single LayoutPicker is
-// owned by the model; Reflow is called when the terminal resizes and Active
-// returns the cached layout for rendering.
+// LayoutPicker chooses the active Layout based on the current terminal dimensions and a
+// configured set of breakpoints. A single LayoutPicker is owned by the model; Reflow is
+// called when the terminal resizes and Active returns the cached layout for rendering.
 type LayoutPicker struct {
 	// breakpoints lists the configured responsive thresholds.
 	breakpoints []Breakpoint
@@ -39,22 +38,21 @@ type LayoutPicker struct {
 	currentBP Breakpoint
 }
 
-// NewLayoutPicker creates a picker seeded with the default layouts and
-// breakpoints. The picker's active layout is the smallest variant until
-// Reflow is called with real dimensions.
+// NewLayoutPicker creates a picker seeded with the default layouts and breakpoints. The
+// picker's active layout is the smallest variant until Reflow is called with real
+// dimensions.
 //
 // Returns *LayoutPicker which is ready to render the single-pane fallback.
 func NewLayoutPicker() *LayoutPicker {
 	return NewLayoutPickerWith(DefaultBreakpoints, defaultLayouts())
 }
 
-// NewLayoutPickerWith creates a picker with custom breakpoints and layouts.
-// Used by tests and by callers wanting to substitute layouts for their own
-// implementations.
+// NewLayoutPickerWith creates a picker with custom breakpoints and layouts. Used by tests
+// and by callers wanting to substitute layouts for their own implementations.
 //
 // Takes breakpoints ([]Breakpoint) which configures responsive thresholds.
-// Takes layouts (map[string]Layout) which is the registry of available
-// layouts indexed by Name.
+// Takes layouts (map[string]Layout) which is the registry of available layouts indexed by
+// Name.
 //
 // Returns *LayoutPicker which is configured but not yet sized.
 func NewLayoutPickerWith(breakpoints []Breakpoint, layouts map[string]Layout) *LayoutPicker {
@@ -74,9 +72,9 @@ func NewLayoutPickerWith(breakpoints []Breakpoint, layouts map[string]Layout) *L
 	return picker
 }
 
-// Reflow updates the picker's active layout based on the current terminal
-// dimensions. The selected breakpoint and resolved Layout are cached so
-// Active can return them without recomputing.
+// Reflow updates the picker's active layout based on the current terminal dimensions. The
+// selected breakpoint and resolved Layout are cached so Active can return them without
+// recomputing.
 //
 // Takes width (int) which is the terminal width.
 // Takes height (int) which is the terminal height.
@@ -100,8 +98,7 @@ func (p *LayoutPicker) Reflow(width, height int) Layout {
 
 // Active returns the currently-selected Layout.
 //
-// Returns Layout which is the layout to render with; never nil after
-// construction.
+// Returns Layout which is the layout to render with; never nil after construction.
 func (p *LayoutPicker) Active() Layout {
 	return p.active
 }
@@ -113,17 +110,16 @@ func (p *LayoutPicker) Breakpoint() Breakpoint {
 	return p.currentBP
 }
 
-// Override forces the picker to return a specific layout regardless of
-// terminal dimensions. Pass "" to clear the override and resume responsive
-// selection.
+// Override forces the picker to return a specific layout regardless of terminal
+// dimensions. Pass "" to clear the override and resume responsive selection.
 //
 // Takes name (string) which is the layout name to force, or "" to clear.
 func (p *LayoutPicker) Override(name string) {
 	p.overrideTo = name
 }
 
-// layoutByName resolves a layout from the registry, returning nil when the
-// name is unknown.
+// layoutByName resolves a layout from the registry, returning nil when the name is
+// unknown.
 //
 // Takes name (string) which is the registered layout identifier.
 //
@@ -132,8 +128,8 @@ func (p *LayoutPicker) layoutByName(name string) Layout {
 	return p.layouts[name]
 }
 
-// defaultLayouts returns the canonical Layout registry used by the picker
-// when no custom set is supplied.
+// defaultLayouts returns the canonical Layout registry used by the picker when no custom
+// set is supplied.
 //
 // Returns map[string]Layout indexed by Layout.Name().
 func defaultLayouts() map[string]Layout {

@@ -36,9 +36,8 @@ const (
 	// defaultPriority is the execution order for the object stream transformer.
 	defaultPriority = 300
 
-	// defaultMaxDecompressedStreamSize is the default upper bound for
-	// decompressed stream data, guarding against zip-bomb or corrupt
-	// streams (256 MiB).
+	// defaultMaxDecompressedStreamSize is the default upper bound for decompressed stream
+	// data, guarding against zip-bomb or corrupt streams (256 MiB).
 	defaultMaxDecompressedStreamSize int64 = 256 << 20
 
 	// transformerName is the identifier for this transformer.
@@ -53,23 +52,25 @@ const (
 	// filterLZW is the PDF name for LZW compression.
 	filterLZW = "LZWDecode"
 
-	// lzwLitWidth is the literal code width for LZW decompression as used
-	// by PDF (always 8 bits).
+	// lzwLitWidth is the literal code width for LZW decompression as used by PDF (always 8
+	// bits).
 	lzwLitWidth = 8
 )
 
-// ErrDecompressedStreamTooLarge is returned when an LZW-decoded stream
-// exceeds maxDecompressedStreamSize, indicating a likely zip-bomb or
-// corrupt stream rather than silently truncating the data.
-var ErrDecompressedStreamTooLarge = errors.New("decompressed stream exceeds maximum allowed size")
+var (
+	// ErrDecompressedStreamTooLarge is returned when an LZW-decoded stream exceeds
+	// maxDecompressedStreamSize, indicating a likely zip-bomb or corrupt stream rather than
+	// silently truncating the data.
+	ErrDecompressedStreamTooLarge = errors.New("decompressed stream exceeds maximum allowed size")
+)
 
-// ObjStmTransformer re-encodes PDF stream objects to ensure efficient
-// FlateDecode compression.
+// ObjStmTransformer re-encodes PDF stream objects to ensure efficient FlateDecode
+// compression.
 //
-// It decodes any LZW-compressed streams and removes the filter so the writer
-// can re-compress them with FlateDecode. Streams that are already
-// FlateDecode-compressed or use other filters are left unchanged.
-// Uncompressed streams are automatically compressed by the writer.
+// It decodes any LZW-compressed streams and removes the filter so the writer can
+// re-compress them with FlateDecode. Streams that are already FlateDecode-compressed or
+// use other filters are left unchanged. Uncompressed streams are automatically compressed
+// by the writer.
 type ObjStmTransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -77,17 +78,16 @@ type ObjStmTransformer struct {
 	// priority is the execution order.
 	priority int
 
-	// maxDecompressedStreamSize caps the size of any single LZW-decoded
-	// stream so a zip-bomb cannot exhaust memory.
+	// maxDecompressedStreamSize caps the size of any single LZW-decoded stream so a zip-bomb
+	// cannot exhaust memory.
 	maxDecompressedStreamSize int64
 }
 
-// Option configures an [ObjStmTransformer] at construction time.
+// Option configures an ObjStmTransformer at construction time.
 type Option func(*ObjStmTransformer)
 
-// WithMaxDecompressedStreamSize overrides the cap on the size of a
-// single LZW-decoded stream. Values less than or equal to zero are
-// ignored, leaving the default in place.
+// WithMaxDecompressedStreamSize overrides the cap on the size of a single LZW-decoded
+// stream. Values less than or equal to zero are ignored, leaving the default in place.
 //
 // Takes limit (int64) which is the new cap in bytes.
 //
@@ -100,11 +100,13 @@ func WithMaxDecompressedStreamSize(limit int64) Option {
 	}
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*ObjStmTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*ObjStmTransformer)(nil)
+)
 
-// New creates a new object stream compression transformer with default
-// name, priority and decompression cap. Optional functional options
-// override the cap on decompressed stream size.
+// New creates a new object stream compression transformer with default name, priority and
+// decompression cap. Optional functional options override the cap on decompressed stream
+// size.
 //
 // Takes opts (...Option) which override the defaults.
 //
@@ -130,8 +132,7 @@ func (t *ObjStmTransformer) Name() string { return t.name }
 
 // Type returns TransformerDelivery.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a delivery
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a delivery transformer.
 func (*ObjStmTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerDelivery
 }
@@ -141,12 +142,11 @@ func (*ObjStmTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *ObjStmTransformer) Priority() int { return t.priority }
 
-// Transform re-encodes stream objects in the PDF to use FlateDecode
-// compression.
+// Transform re-encodes stream objects in the PDF to use FlateDecode compression.
 //
-// LZW-compressed streams are decoded and re-compressed; uncompressed streams
-// are compressed by the writer automatically. Options must be ObjStmOptions
-// or *ObjStmOptions.
+// LZW-compressed streams are decoded and re-compressed; uncompressed streams are
+// compressed by the writer automatically. Options must be ObjStmOptions or
+// *ObjStmOptions.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
@@ -188,20 +188,18 @@ func (t *ObjStmTransformer) Transform(ctx context.Context, pdf []byte, options a
 	return output, nil
 }
 
-// recompressObject attempts to re-encode a single object's content stream
-// within the supplied size limit.
+// recompressObject attempts to re-encode a single object's content stream within the
+// supplied size limit.
 //
-// Failures and non-stream objects are silently skipped (with a warning logged
-// for failures); the writer is left untouched in those cases.
+// Failures and non-stream objects are silently skipped (with a warning logged for
+// failures); the writer is left untouched in those cases.
 //
-// Takes doc (*pdfparse.Document) which is the parsed PDF document the object
-// is read from.
-// Takes writer (*pdfparse.Writer) which receives the re-encoded object when a
-// rewrite occurs.
-// Takes objNum (int) which is the object number to inspect and potentially
-// re-encode.
-// Takes limit (int64) which caps the decompressed payload size during LZW
-// decoding.
+// Takes doc (*pdfparse.Document) which is the parsed PDF document the object is read
+// from.
+// Takes writer (*pdfparse.Writer) which receives the re-encoded object when a rewrite
+// occurs.
+// Takes objNum (int) which is the object number to inspect and potentially re-encode.
+// Takes limit (int64) which caps the decompressed payload size during LZW decoding.
 func (*ObjStmTransformer) recompressObject(doc *pdfparse.Document, writer *pdfparse.Writer, objNum int, limit int64) {
 	obj, err := doc.GetObject(objNum)
 	if err != nil {
@@ -244,9 +242,9 @@ func castOptions(options any) (pdfwriter_dto.ObjStmOptions, error) {
 	}
 }
 
-// reencodeStream inspects a stream object's filter and, if it uses LZW
-// compression, decodes the data and removes the filter so the writer will
-// re-compress with FlateDecode.
+// reencodeStream inspects a stream object's filter and, if it uses LZW compression,
+// decodes the data and removes the filter so the writer will re-compress with
+// FlateDecode.
 //
 // Takes obj (pdfparse.Object) which is the stream object to inspect.
 // Takes limit (int64) which is the cap on the decompressed payload size.
@@ -276,8 +274,8 @@ func reencodeStream(obj pdfparse.Object, limit int64) (pdfparse.Object, bool, er
 	return pdfparse.StreamObj(dict, decoded), true, nil
 }
 
-// decodeLZW decompresses LZW-encoded data as specified by the PDF
-// standard. PDF uses MSB (most significant bit first) byte ordering.
+// decodeLZW decompresses LZW-encoded data as specified by the PDF standard. PDF uses MSB
+// (most significant bit first) byte ordering.
 //
 // Takes data ([]byte) which is the LZW-compressed stream bytes.
 // Takes limit (int64) which is the cap on the output size.

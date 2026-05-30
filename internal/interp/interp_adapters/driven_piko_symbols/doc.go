@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package driven_piko_symbols provides vendored piko runtime
-// symbol tables for the bytecode interpreter.
+// Package driven_piko_symbols provides vendored piko runtime symbol tables for the
+// bytecode interpreter.
 //
-// Each gen_*.go file registers its package's exported symbols
-// via an init function. A separate WASM build variant avoids
-// pulling in heavy server-side transitive dependencies by
-// importing lighter internal packages directly.
+// Each gen_*.go file registers its package's exported symbols via an init function. A
+// separate WASM build variant avoids pulling in heavy server-side transitive dependencies
+// by importing lighter internal packages directly.
 package driven_piko_symbols

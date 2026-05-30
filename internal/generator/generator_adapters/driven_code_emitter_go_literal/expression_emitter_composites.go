@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// tryEmitCompositeExpression handles composite expressions such as identifiers,
-// object literals, template literals, and array literals.
+// tryEmitCompositeExpression handles composite expressions such as identifiers, object
+// literals, template literals, and array literals.
 //
 // Takes expression (ast_domain.Expression) which is the expression to emit.
 //
@@ -56,14 +56,13 @@ func (ee *expressionEmitter) tryEmitCompositeExpression(expression ast_domain.Ex
 
 // emitTemplateLiteral builds code for template literals (e.g. `Hello ${name}!`).
 //
-// Takes n (*ast_domain.TemplateLiteral) which is the template literal node to
-// process.
+// Takes n (*ast_domain.TemplateLiteral) which is the template literal node to process.
 //
 // Returns goast.Expr which is the joined string expression.
-// Returns []goast.Stmt which holds any statements needed before the main
-// expression from embedded parts.
-// Returns []*ast_domain.Diagnostic which holds any problems found while
-// processing the template parts.
+// Returns []goast.Stmt which holds any statements needed before the main expression from
+// embedded parts.
+// Returns []*ast_domain.Diagnostic which holds any problems found while processing the
+// template parts.
 func (ee *expressionEmitter) emitTemplateLiteral(n *ast_domain.TemplateLiteral) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
 	if len(n.Parts) == 0 {
 		return strLit(""), nil, nil
@@ -97,13 +96,12 @@ func (ee *expressionEmitter) emitTemplateLiteral(n *ast_domain.TemplateLiteral) 
 	return finalGoExpr, allStmts, allDiags
 }
 
-// emitTemplateLiteralParts extracts each part of a template literal as a
-// separate Go expression, without concatenating them. This is used for
-// generating variadic calls like BuildClassBytesV(part1, part2, ...) that
-// avoid intermediate string allocation from the + operator.
+// emitTemplateLiteralParts extracts each part of a template literal as a separate Go
+// expression, without concatenating them. This is used for generating variadic calls like
+// BuildClassBytesV(part1, part2, ...) that avoid intermediate string allocation from the
+// + operator.
 //
-// Takes n (*ast_domain.TemplateLiteral) which is the template literal to
-// process.
+// Takes n (*ast_domain.TemplateLiteral) which is the template literal to process.
 //
 // Returns []goast.Expr which contains one Go expression per template part.
 // Returns []goast.Stmt which contains any prerequisite statements.
@@ -166,17 +164,14 @@ func (ee *expressionEmitter) emitObjectLiteral(n *ast_domain.ObjectLiteral) (goa
 	return mapLit, allStmts, allDiags
 }
 
-// emitArrayLiteral converts an array literal node (e.g., `[1, 2, 3]`) into Go
-// code.
+// emitArrayLiteral converts an array literal node (e.g., `[1, 2, 3]`) into Go code.
 //
-// Takes n (*ast_domain.ArrayLiteral) which is the array literal node to
-// convert.
+// Takes n (*ast_domain.ArrayLiteral) which is the array literal node to convert.
 //
 // Returns goast.Expr which is the Go composite literal expression.
-// Returns []goast.Stmt which contains any statements needed by the element
-// expressions.
-// Returns []*ast_domain.Diagnostic which contains any issues found while
-// processing the elements.
+// Returns []goast.Stmt which contains any statements needed by the element expressions.
+// Returns []*ast_domain.Diagnostic which contains any issues found while processing the
+// elements.
 func (ee *expressionEmitter) emitArrayLiteral(n *ast_domain.ArrayLiteral) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
 	var allStmts []goast.Stmt
 	var allDiags []*ast_domain.Diagnostic

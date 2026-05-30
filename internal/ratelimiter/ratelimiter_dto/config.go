@@ -18,53 +18,51 @@
 
 package ratelimiter_dto
 
-import "time"
+import (
+	"time"
+)
 
 // FailPolicy determines behaviour when the backing store is unavailable.
 type FailPolicy uint8
 
 const (
-	// FailOpen allows the request when the store is unreachable.
-	// This is the recommended default for most use cases, ensuring
-	// availability is not degraded by rate limiter infrastructure failures.
+	// FailOpen allows the request when the store is unreachable. This is the recommended
+	// default for most use cases, ensuring availability is not degraded by rate limiter
+	// infrastructure failures.
 	FailOpen FailPolicy = iota
 
-	// FailClosed denies the request when the store is unreachable.
-	// Use this when security is more important than availability.
+	// FailClosed denies the request when the store is unreachable. Use this when security is
+	// more important than availability.
 	FailClosed
 )
 
 // TokenBucketConfig configures a token bucket rate limiter.
 //
-// The token bucket allows a sustained rate of operations per second with
-// short bursts up to the Burst capacity. Tokens are continuously refilled
-// at the Rate per second.
+// The token bucket allows a sustained rate of operations per second with short bursts up
+// to the Burst capacity. Tokens are continuously refilled at the Rate per second.
 type TokenBucketConfig struct {
-	// Rate is the number of operations allowed per second.
-	// Must be greater than zero.
+	// Rate is the number of operations allowed per second. Must be greater than zero.
 	Rate float64
 
-	// Burst is the maximum number of tokens the bucket can hold, allowing
-	// short bursts above the steady-state rate. If zero, defaults to Rate.
+	// Burst is the maximum number of tokens the bucket can hold, allowing short bursts above
+	// the steady-state rate. If zero, defaults to Rate.
 	Burst int
 }
 
 // FixedWindowConfig configures a fixed window rate limiter.
 //
-// The fixed window divides time into discrete windows of the specified
-// duration and allows up to Limit operations per window.
+// The fixed window divides time into discrete windows of the specified duration and
+// allows up to Limit operations per window.
 type FixedWindowConfig struct {
-	// Limit is the maximum number of operations per window.
-	// Must be greater than zero.
+	// Limit is the maximum number of operations per window. Must be greater than zero.
 	Limit int
 
-	// Window is the duration of each rate limit window.
-	// Must be greater than zero.
+	// Window is the duration of each rate limit window. Must be greater than zero.
 	Window time.Duration
 }
 
-// MaxTokens returns the effective maximum token count for the bucket.
-// If Burst is zero, it defaults to Rate.
+// MaxTokens returns the effective maximum token count for the bucket. If Burst is zero,
+// it defaults to Rate.
 //
 // Returns float64 which is the maximum number of tokens the bucket can hold.
 func (c TokenBucketConfig) MaxTokens() float64 {

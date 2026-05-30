@@ -16,10 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package route_pattern parses the trailing `{name[:regex]}` segment of a
-// piko route pattern.
+// Package route_pattern parses the trailing `{name[:regex]}` segment of a piko route
+// pattern.
 //
-// Shared by the manifest builder (which widens bare `{name}` to `{name:.+}`
-// for collection pages) and the HTTP router (which translates `{name:regex}`
-// into chi's native `*` form), so both sides agree on the grammar.
+// Shared by the manifest builder (which widens bare `{name}` to `{name:.+}` for
+// collection pages) and the HTTP router (which translates `{name:regex}` into chi's
+// native `*` form), so both sides agree on the grammar.
 package route_pattern

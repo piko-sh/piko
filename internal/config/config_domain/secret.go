@@ -32,36 +32,35 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-// logKeyFieldPath is the log key for the secret field path.
-const logKeyFieldPath = "field_path"
+const (
+	// logKeyFieldPath is the log key for the secret field path.
+	logKeyFieldPath = "field_path"
+)
 
 var (
 	// secretLog holds the logger instance for the secret subsystem.
 	secretLog = logger_domain.GetLogger("piko/internal/config/config_domain/secret")
 
-	// ErrSecretNotSet is returned when trying to acquire a secret that was never
-	// populated.
+	// ErrSecretNotSet is returned when trying to acquire a secret that was never populated.
 	ErrSecretNotSet = errors.New("secret value not set")
 
 	// ErrSecretClosed is returned when trying to acquire a closed secret.
 	ErrSecretClosed = errors.New("secret has been closed")
 
-	// ErrSecretResolutionFailed is returned when the resolver fails to resolve the
-	// secret.
+	// ErrSecretResolutionFailed is returned when the resolver fails to resolve the secret.
 	ErrSecretResolutionFailed = errors.New("secret resolution failed")
 
-	// ErrSecretHandleClosed is returned when trying to use a handle that has
-	// already been released.
+	// ErrSecretHandleClosed is returned when trying to use a handle that has already been
+	// released.
 	ErrSecretHandleClosed = errors.New("secret handle has been closed")
 
-	// ErrNoResolver is returned when no resolver is registered for a secret's
-	// prefix.
+	// ErrNoResolver is returned when no resolver is registered for a secret's prefix.
 	ErrNoResolver = errors.New("no resolver registered for secret prefix")
 )
 
-// Secret provides lazy-loaded, secure handling for configuration values.
-// It implements io.Closer and stores a resolver reference, resolving on-demand
-// when Acquire is called rather than at startup.
+// Secret provides lazy-loaded, secure handling for configuration values. It implements
+// io.Closer and stores a resolver reference, resolving on-demand when Acquire is called
+// rather than at startup.
 //
 // Type parameter T should be:
 //   - string: For text secrets (memory zeroing is best-effort)
@@ -80,12 +79,9 @@ var (
 //	    APIKey Secret[string] `config:"api_key"`
 //	}
 //
-// // Later, when you need the secret:
-// handle, err := config.APIKey.Acquire(ctx)
-// if err != nil { return err }
-// defer handle.Release()
-// apiKey, err := handle.Value()
-// if err != nil { return err }
+// // Later, when you need the secret: handle, err := config.APIKey.Acquire(ctx) if err !=
+// nil { return err } defer handle.Release() apiKey, err := handle.Value() if err != nil {
+// return err }
 type Secret[T any] struct {
 	// cachedValue holds the resolved and parsed value; only used for string type.
 	cachedValue *T
@@ -121,8 +117,8 @@ type Secret[T any] struct {
 	closed atomic.Bool
 }
 
-// String implements fmt.Stringer to prevent accidental secret leakage
-// via fmt.Sprintf, log output, or any other string formatting.
+// String implements fmt.Stringer to prevent accidental secret leakage via fmt.Sprintf,
+// log output, or any other string formatting.
 //
 // Returns string which is always "[REDACTED]".
 func (*Secret[T]) String() string { return "[REDACTED]" }
@@ -132,22 +128,22 @@ func (*Secret[T]) String() string { return "[REDACTED]" }
 // Returns string which is always "Secret[REDACTED]".
 func (*Secret[T]) GoString() string { return "Secret[REDACTED]" }
 
-// MarshalJSON implements json.Marshaler to prevent accidental secret
-// leakage via JSON serialisation.
+// MarshalJSON implements json.Marshaler to prevent accidental secret leakage via JSON
+// serialisation.
 //
 // Returns []byte which contains the JSON string "[REDACTED]".
 // Returns error which is always nil.
 func (*Secret[T]) MarshalJSON() ([]byte, error) { return []byte(`"[REDACTED]"`), nil }
 
-// MarshalText implements encoding.TextMarshaler to prevent accidental
-// secret leakage via text serialisation.
+// MarshalText implements encoding.TextMarshaler to prevent accidental secret leakage via
+// text serialisation.
 //
 // Returns []byte which contains the text "[REDACTED]".
 // Returns error which is always nil.
 func (*Secret[T]) MarshalText() ([]byte, error) { return []byte("[REDACTED]"), nil }
 
-// UnmarshalText implements encoding.TextUnmarshaler for config loading.
-// It stores the resolver reference without actually resolving the secret.
+// UnmarshalText implements encoding.TextUnmarshaler for config loading. It stores the
+// resolver reference without actually resolving the secret.
 //
 // Takes text ([]byte) which contains the raw secret reference to parse.
 //
@@ -172,8 +168,8 @@ func (s *Secret[T]) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// SetFieldPath sets the config field path for this secret.
-// This is called by the config walker after field population.
+// SetFieldPath sets the config field path for this secret. This is called by the config
+// walker after field population.
 //
 // Takes path (string) which specifies the config field path.
 func (s *Secret[T]) SetFieldPath(path string) {
@@ -194,14 +190,13 @@ func (s *Secret[T]) FieldPath() string {
 	return s.fieldPath
 }
 
-// Acquire resolves the secret (if not already cached) and returns a handle. The
-// handle provides access to the secret value and must be released when done.
+// Acquire resolves the secret (if not already cached) and returns a handle. The handle
+// provides access to the secret value and must be released when done.
 //
-// For []byte secrets, the value is stored in secure memory (mmap+mlock). For
-// string secrets, the value is cached in regular memory.
+// For []byte secrets, the value is stored in secure memory (mmap+mlock). For string
+// secrets, the value is cached in regular memory.
 //
-// Returns *SecretHandle[T] which provides scoped access to the resolved
-// secret value.
+// Returns *SecretHandle[T] which provides scoped access to the resolved secret value.
 // Returns error when the secret is closed, not set, or resolution fails.
 func (s *Secret[T]) Acquire(ctx context.Context) (*SecretHandle[T], error) {
 	if s.closed.Load() {
@@ -239,11 +234,10 @@ func (s *Secret[T]) Acquire(ctx context.Context) (*SecretHandle[T], error) {
 
 // resolve fetches the secret value using the registered resolver.
 //
-// Returns error when no resolver is registered, resolution fails, or storage
-// fails.
+// Returns error when no resolver is registered, resolution fails, or storage fails.
 //
-// Safe for concurrent use. Acquires the mutex and uses double-checked locking
-// to ensure the secret is resolved only once.
+// Safe for concurrent use. Acquires the mutex and uses double-checked locking to ensure
+// the secret is resolved only once.
 func (s *Secret[T]) resolve(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -318,8 +312,8 @@ func (s *Secret[T]) storeValue(resolvedValue string) error {
 	return nil
 }
 
-// Refresh clears the cached value, forcing re-resolution on next Acquire.
-// Use it when secrets may have been rotated.
+// Refresh clears the cached value, forcing re-resolution on next Acquire. Use it when
+// secrets may have been rotated.
 //
 // When active handles exist, the refresh is skipped and a warning is logged.
 //
@@ -353,13 +347,13 @@ func (s *Secret[T]) isResolved() bool {
 	return s.resolved.Load()
 }
 
-// Close releases all resources held by this secret.
-// After Close, Acquire returns ErrSecretClosed.
+// Close releases all resources held by this secret. After Close, Acquire returns
+// ErrSecretClosed.
 //
 // Returns error when the underlying secure bytes cannot be closed.
 //
-// Safe for concurrent use; uses an atomic compare-and-swap for the closed flag
-// and a mutex for resource cleanup.
+// Safe for concurrent use; uses an atomic compare-and-swap for the closed flag and a
+// mutex for resource cleanup.
 func (s *Secret[T]) Close() error {
 	if !s.closed.CompareAndSwap(false, true) {
 		return nil
@@ -386,8 +380,8 @@ func (s *Secret[T]) Close() error {
 	return nil
 }
 
-// getValue returns the current value for use by SecretHandle.
-// The caller must hold an active reference.
+// getValue returns the current value for use by SecretHandle. The caller must hold an
+// active reference.
 //
 // Returns T which is a copy of the secret value.
 // Returns error when the secret is closed or not set.
@@ -439,8 +433,8 @@ func (s *Secret[T]) release() {
 		logger_domain.Int64("ref_count", newCount))
 }
 
-// secretCloser defines a type that can release its resources when closed.
-// It is used by SecretManager to track and close registered secrets.
+// secretCloser defines a type that can release its resources when closed. It is used by
+// SecretManager to track and close registered secrets.
 type secretCloser interface {
 	// Close releases any resources held by the iterator.
 	//
@@ -451,26 +445,23 @@ type secretCloser interface {
 	isResolved() bool
 }
 
-// SecretHandle provides scoped access to a secret value.
-// It must be released when no longer needed to allow the secret to be refreshed
-// or cleaned up during shutdown.
+// SecretHandle provides scoped access to a secret value. It must be released when no
+// longer needed to allow the secret to be refreshed or cleaned up during shutdown.
 //
 // SecretHandle implements io.Closer for use with defer.
 type SecretHandle[T any] struct {
 	// secret stores the underlying secret value.
 	secret *Secret[T]
 
-	// released indicates whether the secret has been released and is no longer
-	// valid.
+	// released indicates whether the secret has been released and is no longer valid.
 	released atomic.Bool
 
 	// cleanup releases resources when the handle is no longer reachable.
 	cleanup runtime.Cleanup
 }
 
-// secretHandleCleanupData holds the data needed for runtime.AddCleanup.
-// It is passed to the cleanup function when the SecretHandle becomes
-// unreachable.
+// secretHandleCleanupData holds the data needed for runtime.AddCleanup. It is passed to
+// the cleanup function when the SecretHandle becomes unreachable.
 type secretHandleCleanupData[T any] struct {
 	// secret is the secret being tracked for cleanup.
 	secret *Secret[T]
@@ -482,10 +473,9 @@ type secretHandleCleanupData[T any] struct {
 // Value returns the secret value.
 //
 // Returns T which is the decrypted secret value.
-// Returns error which wraps the underlying retrieval error in a
-// safeerror.Error so the HTTP edge can sanitise the response. The returned
-// error is non-nil when the handle has been released or the underlying secret
-// cannot be read.
+// Returns error which wraps the underlying retrieval error in a safeerror.Error so the
+// HTTP edge can sanitise the response. The returned error is non-nil when the handle has
+// been released or the underlying secret cannot be read.
 func (h *SecretHandle[T]) Value() (T, error) {
 	var zero T
 	if h.released.Load() {
@@ -499,8 +489,8 @@ func (h *SecretHandle[T]) Value() (T, error) {
 	return value, nil
 }
 
-// TryValue returns the secret value and any error.
-// This is a non-panicking alternative to Value.
+// TryValue returns the secret value and any error. This is a non-panicking alternative to
+// Value.
 //
 // Returns T which is the secret value.
 // Returns error when the handle has been released or retrieval fails.
@@ -512,8 +502,8 @@ func (h *SecretHandle[T]) TryValue() (T, error) {
 	return h.secret.getValue()
 }
 
-// Release frees the handle and lowers the secret's reference count.
-// Idempotent; calling more than once is safe.
+// Release frees the handle and lowers the secret's reference count. Idempotent; calling
+// more than once is safe.
 func (h *SecretHandle[T]) Release() {
 	if !h.released.CompareAndSwap(false, true) {
 		return
@@ -523,8 +513,7 @@ func (h *SecretHandle[T]) Release() {
 	h.cleanup.Stop()
 }
 
-// Close implements io.Closer by calling Release, so SecretHandle can be
-// used with defer.
+// Close implements io.Closer by calling Release, so SecretHandle can be used with defer.
 //
 // Returns error which is always nil.
 func (h *SecretHandle[T]) Close() error {
@@ -532,12 +521,12 @@ func (h *SecretHandle[T]) Close() error {
 	return nil
 }
 
-// secretHandleCleanup is called by the runtime when a SecretHandle becomes
-// unreachable without having Release() called. This acts as a safety net to
-// ensure the secret is still released.
+// secretHandleCleanup is called by the runtime when a SecretHandle becomes unreachable
+// without having Release() called. This acts as a safety net to ensure the secret is
+// still released.
 //
-// Takes argument (*secretHandleCleanupData[T]) which contains the data needed to
-// clean up the secret handle.
+// Takes argument (*secretHandleCleanupData[T]) which contains the data needed to clean up
+// the secret handle.
 func secretHandleCleanup[T any](argument *secretHandleCleanupData[T]) {
 	secretLog.Warn("SecretHandle finaliser called - Release() was not called explicitly",
 		logger_domain.String("field_path", argument.fieldPath))

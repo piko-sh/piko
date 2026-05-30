@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_zoltai provides a fake LLM provider that
-// returns random predefined fortunes. It is a drop-in replacement
-// for real providers when developing locally without calling
-// external APIs or running a local model server.
+// Package llm_provider_zoltai provides a fake LLM provider that returns random predefined
+// fortunes. It is a drop-in replacement for real providers when developing locally
+// without calling external APIs or running a local model server.
 //
-// Zoltai implements both completions and embeddings, so it can be
-// used anywhere a real provider would be wired in. It ignores all
-// request parameters and always returns a single fortune.
-// Embeddings are not semantically meaningful but are deterministic
-// -- the same input text always produces the same vector.
+// Zoltai implements both completions and embeddings, so it can be used anywhere a real
+// provider would be wired in. It ignores all request parameters and always returns a
+// single fortune. Embeddings are not semantically meaningful but are deterministic -- the
+// same input text always produces the same vector.
 //
 // # Thread safety
 //

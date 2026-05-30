@@ -40,8 +40,8 @@ const (
 	// WatchdogDiagnosticPanelTitle is the display title.
 	WatchdogDiagnosticPanelTitle = "Watchdog Diagnostic"
 
-	// diagnosticDefaultWindow is used when the watchdog status has not
-	// supplied an explicit ContentionDiagnosticWindow.
+	// diagnosticDefaultWindow is used when the watchdog status has not supplied an explicit
+	// ContentionDiagnosticWindow.
 	diagnosticDefaultWindow = 60 * time.Second
 )
 
@@ -62,9 +62,8 @@ const (
 	diagnosticFailed
 )
 
-// diagnosticSnapshotMsg refreshes the current status (used to read
-// cooldown and the last-run timestamp). Err carries any RPC error for
-// surfacing in the UI.
+// diagnosticSnapshotMsg refreshes the current status (used to read cooldown and the
+// last-run timestamp). Err carries any RPC error for surfacing in the UI.
 type diagnosticSnapshotMsg struct {
 	// Status is the latest watchdog status snapshot, or nil on error.
 	Status *WatchdogStatus
@@ -73,8 +72,7 @@ type diagnosticSnapshotMsg struct {
 	Err error
 }
 
-// diagnosticRunDoneMsg notifies the panel that the contention
-// diagnostic RPC completed.
+// diagnosticRunDoneMsg notifies the panel that the contention diagnostic RPC completed.
 type diagnosticRunDoneMsg struct {
 	// Err is the RPC error from the diagnostic run, or nil on success.
 	Err error
@@ -83,9 +81,8 @@ type diagnosticRunDoneMsg struct {
 	StartAt time.Time
 }
 
-// WatchdogDiagnosticPanel offers a hero "Run contention diagnostic"
-// button alongside cooldown information and the most recent run
-// outcome.
+// WatchdogDiagnosticPanel offers a hero "Run contention diagnostic" button alongside
+// cooldown information and the most recent run outcome.
 type WatchdogDiagnosticPanel struct {
 	// startAt is the local time when the current run was launched.
 	startAt time.Time
@@ -221,8 +218,7 @@ func (p *WatchdogDiagnosticPanel) View(width, height int) string {
 	return p.RenderFrame(p.composeBody(cw, ch))
 }
 
-// composeBody arranges the hero button, status block, and outcome
-// summary.
+// composeBody arranges the hero button, status block, and outcome summary.
 //
 // Takes width (int) which is the body width in columns.
 // Takes height (int) which is the body height in rows.
@@ -333,8 +329,8 @@ func (p *WatchdogDiagnosticPanel) renderOutcomeBlock(width int) []string {
 	return rows
 }
 
-// cooldownRemaining returns the remaining time until a new diagnostic
-// can be triggered, accounting for the configured cooldown.
+// cooldownRemaining returns the remaining time until a new diagnostic can be triggered,
+// accounting for the configured cooldown.
 //
 // Takes status (*WatchdogStatus) which is the current watchdog status.
 // Takes now (time.Time) which is the current time reference.
@@ -395,8 +391,7 @@ func (p *WatchdogDiagnosticPanel) fetchCmd() tea.Cmd {
 // runCmd issues the contention diagnostic RPC; the result arrives as
 // diagnosticRunDoneMsg.
 //
-// Returns tea.Cmd which is the run command, or nil if no provider or
-// already running.
+// Returns tea.Cmd which is the run command, or nil if no provider or already running.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogDiagnosticPanel) runCmd() tea.Cmd {

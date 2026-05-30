@@ -1,0 +1,4 @@
+{
+  "description": "Range-over-func iterators (Go 1.23) defined in one file consumed by for-range loops in another file; covers single-value, two-value, and break paths",
+  "expected": "sum=20 labels=[0:a 1:b 2:c] earlyExit=6"
+}

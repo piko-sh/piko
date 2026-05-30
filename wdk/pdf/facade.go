@@ -31,12 +31,11 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_dto"
 )
 
-// Service orchestrates the PDF render pipeline from template execution to
-// PDF output.
+// Service orchestrates the PDF render pipeline from template execution to PDF output.
 type Service = pdfwriter_domain.PdfWriterService
 
-// RenderBuilder configures and executes a single PDF render operation using
-// a fluent interface.
+// RenderBuilder configures and executes a single PDF render operation using a fluent
+// interface.
 type RenderBuilder = pdfwriter_domain.RenderBuilder
 
 // Result contains the rendered PDF bytes and metadata.
@@ -84,11 +83,10 @@ type SVGDataPort = pdfwriter_domain.SVGDataPort
 // TransformerRegistry holds available PDF post-processing transformers.
 type TransformerRegistry = pdfwriter_domain.PdfTransformerRegistry
 
-// TransformerPort is the interface implemented by PDF post-processing
-// transformers.
+// TransformerPort is the interface implemented by PDF post-processing transformers.
 type TransformerPort = pdfwriter_domain.PdfTransformerPort
 
-// TransformerType categorises a transformer by its role in the pipeline.
+// TransformerType categorises a transformer by its role within the rendering chain.
 type TransformerType = pdfwriter_dto.TransformerType
 
 // TransformConfig specifies which post-processing transformers to apply.
@@ -188,8 +186,8 @@ var (
 	PageLetter = layouter_dto.PageLetter
 )
 
-// GetDefaultService returns the PDF writer service initialised by the
-// framework during bootstrap.
+// GetDefaultService returns the PDF writer service initialised by the framework during
+// bootstrap.
 //
 // Returns Service which is the service instance ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -201,13 +199,11 @@ func GetDefaultService() (Service, error) {
 	return service, nil
 }
 
-// NewRenderBuilder creates a new render builder for composing a PDF render
-// operation.
+// NewRenderBuilder creates a new render builder for composing a PDF render operation.
 //
 // Takes service (Service) which is the PDF service to use for rendering.
 //
-// Returns *RenderBuilder which provides a fluent interface for building
-// the render.
+// Returns *RenderBuilder which provides a fluent interface for building the render.
 // Returns error when service is nil.
 func NewRenderBuilder(service Service) (*RenderBuilder, error) {
 	if service == nil {
@@ -216,8 +212,8 @@ func NewRenderBuilder(service Service) (*RenderBuilder, error) {
 	return service.NewRender(), nil
 }
 
-// NewRenderBuilderFromDefault creates a new render builder using the
-// framework's bootstrapped service.
+// NewRenderBuilderFromDefault creates a new render builder using the framework's
+// bootstrapped service.
 //
 // Returns *RenderBuilder which is the configured builder ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -229,11 +225,10 @@ func NewRenderBuilderFromDefault() (*RenderBuilder, error) {
 	return NewRenderBuilder(service)
 }
 
-// NewTransformerRegistry creates a new empty transformer registry for
-// registering PDF post-processing transformers.
+// NewTransformerRegistry creates a new empty transformer registry for registering PDF
+// post-processing transformers.
 //
-// Returns *TransformerRegistry which is ready to accept transformer
-// registrations.
+// Returns *TransformerRegistry which is ready to accept transformer registrations.
 func NewTransformerRegistry() *TransformerRegistry {
 	return pdfwriter_domain.NewPdfTransformerRegistry()
 }
@@ -241,8 +236,8 @@ func NewTransformerRegistry() *TransformerRegistry {
 // EncryptOption configures the encrypt transformer at construction time.
 type EncryptOption = driven_transform_encrypt.Option
 
-// WithEncryptRandomSource overrides the cryptographic randomness source used
-// during encryption.
+// WithEncryptRandomSource overrides the cryptographic randomness source used during
+// encryption.
 //
 // Takes r (io.Reader) which supplies random bytes for IVs, salts, and keys.
 //
@@ -251,19 +246,19 @@ func WithEncryptRandomSource(r io.Reader) EncryptOption {
 	return driven_transform_encrypt.WithRandomSource(r)
 }
 
-// NewEncryptTransformer creates an AES-256 PDF encryption transformer.
-// Configure it via EncryptionOptions when building the TransformConfig.
+// NewEncryptTransformer creates an AES-256 PDF encryption transformer. Configure it via
+// EncryptionOptions when building the TransformConfig.
 //
-// Takes opts (...EncryptOption) which override defaults; production callers
-// can omit them.
+// Takes opts (...EncryptOption) which override defaults; production callers can omit
+// them.
 //
 // Returns TransformerPort which can be registered with a TransformerRegistry.
 func NewEncryptTransformer(opts ...EncryptOption) TransformerPort {
 	return driven_transform_encrypt.New(opts...)
 }
 
-// NewPadesSignTransformer creates a PAdES digital signature transformer.
-// Configure it via PadesSignOptions when building the TransformConfig.
+// NewPadesSignTransformer creates a PAdES digital signature transformer. Configure it via
+// PadesSignOptions when building the TransformConfig.
 //
 // Returns TransformerPort which can be registered with a TransformerRegistry.
 func NewPadesSignTransformer() TransformerPort {

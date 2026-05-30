@@ -30,9 +30,9 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
-	"github.com/klauspost/compress/gzip"
 	"github.com/cespare/xxhash/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/klauspost/compress/gzip"
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
@@ -50,23 +50,22 @@ import (
 )
 
 const (
-	// htmlBufferPoolSize is the size in bytes to pre-allocate for HTML page
-	// buffers.
+	// htmlBufferPoolSize is the size in bytes to pre-allocate for HTML page buffers.
 	htmlBufferPoolSize = 8192
 
 	// mapCarrierPoolSize is the initial size for MapCarrier maps in the pool.
 	mapCarrierPoolSize = 16
 
-	// cacheKeyLen is the total length of a cache key: "page:" (5) plus 16 hex
-	// digits equals 21.
+	// cacheKeyLen is the total length of a cache key: "page:" (5) plus 16 hex digits equals
+	// 21.
 	cacheKeyLen = 21
 
-	// jitETagLen is the total length of a JIT ETag.
-	// Format: quote + "jit-" (5) + 16 hex digits + quote = 22.
+	// jitETagLen is the total length of a JIT ETag. Format: quote + "jit-" (5) + 16 hex
+	// digits + quote = 22.
 	jitETagLen = 22
 
-	// hexDigitCount is the number of hex digits for hash representation
-	// (64-bit / 4 bits per digit).
+	// hexDigitCount is the number of hex digits for hash representation (64-bit / 4 bits per
+	// digit).
 	hexDigitCount = 16
 
 	// prefixLen is the byte count before the hex digits in key formats.
@@ -78,30 +77,29 @@ const (
 	// hexNibbleShift is the number of bits to shift to get the next hex digit.
 	hexNibbleShift = 4
 
-	// pipeResponseWriterHeaderSize is the default number of headers to set aside
-	// space for in a pipe response writer.
+	// pipeResponseWriterHeaderSize is the default number of headers to set aside space for
+	// in a pipe response writer.
 	pipeResponseWriterHeaderSize = 8
 
-	// htmlBufferMaxRetainedCapacity caps the pooled HTML buffer
-	// capacity; buffers larger than this are dropped on release.
+	// htmlBufferMaxRetainedCapacity caps the pooled HTML buffer capacity; buffers larger
+	// than this are dropped on release.
 	htmlBufferMaxRetainedCapacity = 1 << 20
 
-	// pipeResponseWriterMaxRetainedHeaders caps the number of header
-	// keys a pooled pipeResponseWriter may retain.
+	// pipeResponseWriterMaxRetainedHeaders caps the number of header keys a pooled
+	// pipeResponseWriter may retain.
 	pipeResponseWriterMaxRetainedHeaders = 64
 )
 
 var (
-	// errEmptyBody is returned when a handler returns an empty body with a 200 OK
-	// status.
+	// errEmptyBody is returned when a handler returns an empty body with a 200 OK status.
 	errEmptyBody = errors.New("handler returned empty body on 200 OK")
 
-	// errHandlerNonSuccess is returned when the upstream handler returns a non-200
-	// status code.
+	// errHandlerNonSuccess is returned when the upstream handler returns a non-200 status
+	// code.
 	errHandlerNonSuccess = errors.New("upstream handler returned non-200 status code")
 
-	// brotliWriterPool is a pool of brotli writers for reuse across compress
-	// operations. It uses quality level 4 and window size 20.
+	// brotliWriterPool is a pool of brotli writers for reuse across compress operations. It
+	// uses quality level 4 and window size 20.
 	brotliWriterPool = sync.Pool{
 		New: func() any {
 			opts := brotli.WriterOptions{
@@ -129,9 +127,8 @@ var (
 		},
 	}
 
-	// cacheControlHeaders provides pre-computed Cache-Control header
-	// values for common max-age durations. Avoids fmt.Sprintf allocation
-	// on every cache hit response.
+	// cacheControlHeaders provides pre-computed Cache-Control header values for common
+	// max-age durations. Avoids fmt.Sprintf allocation on every cache hit response.
 	cacheControlHeaders = func() map[int]string {
 		commonAges := []int{0, 60, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400, 604800}
 		m := make(map[int]string, len(commonAges))
@@ -141,32 +138,32 @@ var (
 		return m
 	}()
 
-	// mapCarrierPool provides reusable MapCarrier maps for OTel context
-	// propagation. Pre-sized for typical HTTP header count.
+	// mapCarrierPool provides reusable MapCarrier maps for OTel context propagation.
+	// Pre-sized for typical HTTP header count.
 	mapCarrierPool = sync.Pool{
 		New: func() any {
 			return make(propagation.MapCarrier, mapCarrierPoolSize)
 		},
 	}
 
-	// xxhashDigestPool provides reusable xxhash Digest instances for cache key
-	// generation. It avoids intermediate string allocations from concatenation
-	// in generateCacheArtefactID.
+	// xxhashDigestPool provides reusable xxhash Digest instances for cache key generation.
+	// It avoids intermediate string allocations from concatenation in
+	// generateCacheArtefactID.
 	xxhashDigestPool = sync.Pool{
 		New: func() any {
 			return xxhash.New()
 		},
 	}
 
-	// nullSeparator is a pre-allocated byte slice for cache key component
-	// separation. Avoids allocation per-separator in generateCacheArtefactID.
+	// nullSeparator is a pre-allocated byte slice for cache key component separation. Avoids
+	// allocation per-separator in generateCacheArtefactID.
 	nullSeparator = []byte{0}
 
 	// hexTable holds the lowercase hexadecimal digit lookup table for cache key encoding.
 	hexTable = []byte("0123456789abcdef")
 
-	// pageCacheProfiles is pre-built at init time to avoid per-request allocations.
-	// Used for background artefact persistence with "local_disk_cache" storage.
+	// pageCacheProfiles is pre-built at init time to avoid per-request allocations. Used for
+	// background artefact persistence with "local_disk_cache" storage.
 	pageCacheProfiles = func() []registry_dto.NamedProfile {
 		var brotliDeps registry_dto.Dependencies
 		brotliDeps.Add("minified_html")
@@ -206,8 +203,7 @@ var (
 		}
 	}()
 
-	// compressedResponseWriterPool provides reusable compressedResponseWriter
-	// structs.
+	// compressedResponseWriterPool provides reusable compressedResponseWriter structs.
 	compressedResponseWriterPool = sync.Pool{
 		New: func() any {
 			return &compressedResponseWriter{}
@@ -226,19 +222,18 @@ var (
 
 // CacheMiddlewareConfig configures the cache middleware behaviour.
 type CacheMiddlewareConfig struct {
-	// StreamCompressionLevel sets the compression level for streamed responses.
-	// A value of 0 uses the default level.
+	// StreamCompressionLevel sets the compression level for streamed responses. A value of 0
+	// uses the default level.
 	StreamCompressionLevel int
 
-	// CacheWriteConcurrency limits the number of cache writes that can run at
-	// once; defaults to defaultCacheWriteConcurrency if <= 0.
+	// CacheWriteConcurrency limits the number of cache writes that can run at once; defaults
+	// to defaultCacheWriteConcurrency if <= 0.
 	CacheWriteConcurrency int
 }
 
 // jitResult holds the output of a just-in-time response generation.
 type jitResult struct {
-	// Encoding specifies the content encoding for the response, such as gzip or
-	// br.
+	// Encoding specifies the content encoding for the response, such as gzip or br.
 	Encoding string
 
 	// ETag is the entity tag used for cache validation with If-None-Match headers.
@@ -254,8 +249,8 @@ type jitResult struct {
 	StatusCode int
 }
 
-// CacheMiddleware provides HTTP response caching for page and partial requests.
-// It uses singleflight to coalesce concurrent requests for the same cache key.
+// CacheMiddleware provides HTTP response caching for page and partial requests. It uses
+// singleflight to coalesce concurrent requests for the same cache key.
 type CacheMiddleware struct {
 	// registryService stores and fetches cached artefacts and their variants.
 	registryService registry_domain.RegistryService
@@ -283,8 +278,8 @@ type CacheMiddleware struct {
 // configuration.
 //
 // Takes config (CacheMiddlewareConfig) which specifies cache behaviour settings.
-// Takes manifest (templater_domain.ManifestStoreView) which provides access to
-// page manifest entries.
+// Takes manifest (templater_domain.ManifestStoreView) which provides access to page
+// manifest entries.
 // Takes registryService (registry_domain.RegistryService) which handles registry
 // operations.
 // Takes capabilityService (capabilities_domain.CapabilityService) which provides
@@ -336,13 +331,12 @@ func NewCacheMiddleware(
 
 // Handle wraps the given handler with caching logic.
 //
-// It serves cached responses when available and caches new responses based on
-// the page's cache policy.
+// It serves cached responses when available and caches new responses based on the page's
+// cache policy.
 //
 // Takes next (http.Handler) which is the handler to wrap with caching.
 //
-// Returns http.Handler which serves cached responses or passes requests to
-// next.
+// Returns http.Handler which serves cached responses or passes requests to next.
 func (m *CacheMiddleware) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, contextChanged := extractOTelContextFromRequest(r)
@@ -471,8 +465,8 @@ func (m *CacheMiddleware) tryCacheHit(
 	return false
 }
 
-// generateAndServeResponse creates a new response using singleflight
-// protection and sends it to the client.
+// generateAndServeResponse creates a new response using singleflight protection and sends
+// it to the client.
 //
 // Takes w (http.ResponseWriter) which receives the generated response.
 // Takes r (*http.Request) which provides the incoming request details.
@@ -512,11 +506,10 @@ func (m *CacheMiddleware) generateAndServeResponse(
 //
 // Takes stream (io.Reader) which provides the content to read.
 // Takes encoding (string) which specifies the compression encoding to apply.
-// Takes capability (capabilities_dto.Capability) which identifies the
-// compression capability to use.
+// Takes capability (capabilities_dto.Capability) which identifies the compression
+// capability to use.
 //
-// Returns []byte which contains the read content, compressed if encoding was
-// specified.
+// Returns []byte which contains the read content, compressed if encoding was specified.
 // Returns error when reading fails or compression cannot be applied.
 func (m *CacheMiddleware) readAndCompressStream(
 	ctx context.Context,
@@ -546,21 +539,18 @@ func (m *CacheMiddleware) readAndCompressStream(
 	return content, nil
 }
 
-// generateAndCacheResponse generates a response by calling the next handler
-// and caches the result for future requests.
+// generateAndCacheResponse generates a response by calling the next handler and caches
+// the result for future requests.
 //
 // Takes r (*http.Request) which provides the incoming request context.
-// Takes next (http.Handler) which is the upstream handler to generate the
-// response.
+// Takes next (http.Handler) which is the upstream handler to generate the response.
 // Takes artefactID (string) which identifies the cache entry for storage.
 //
-// Returns *jitResult which contains the compressed response ready for the
-// client.
-// Returns error when the upstream handler returns a non-200 status or an empty
-// body.
+// Returns *jitResult which contains the compressed response ready for the client.
+// Returns error when the upstream handler returns a non-200 status or an empty body.
 //
-// Spawns goroutines to capture the upstream response and to persist the
-// artefact in the background.
+// Spawns goroutines to capture the upstream response and to persist the artefact in the
+// background.
 func (m *CacheMiddleware) generateAndCacheResponse(
 	r *http.Request, next http.Handler, artefactID string,
 ) (*jitResult, error) {
@@ -617,15 +607,14 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 
 // persistArtefactInBackground saves rendered HTML to the cache.
 //
-// Takes parentCtx (context.Context) which provides tracing values from the
-// original request. Cancellation is detached so persistence completes
-// independently.
+// Takes parentCtx (context.Context) which provides tracing values from the original
+// request. Cancellation is detached so persistence completes independently.
 // Takes artefactID (string) which identifies the cache entry.
 // Takes sourcePath (string) which is the original request path.
 // Takes rawHTML (*bytes.Buffer) which contains the rendered HTML to cache.
 //
-// The buffer is returned to the pool after use. Uses a write limiter to
-// control disk writes.
+// The buffer is returned to the pool after use. Uses a write limiter to control disk
+// writes.
 func (m *CacheMiddleware) persistArtefactInBackground(parentCtx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
 	defer releaseHTMLBuffer(rawHTML)
 	defer goroutine.RecoverPanic(context.WithoutCancel(parentCtx), "daemon.persistArtefactInBackground")
@@ -651,8 +640,7 @@ func (m *CacheMiddleware) persistArtefactInBackground(parentCtx context.Context,
 	}
 }
 
-// variantSelectionResult holds the result of choosing the best variant for a
-// request.
+// variantSelectionResult holds the result of choosing the best variant for a request.
 type variantSelectionResult struct {
 	// variant is the chosen variant, or nil if no suitable variant was found.
 	variant *registry_dto.Variant
@@ -711,10 +699,9 @@ func (m *CacheMiddleware) serveCachedVariant(
 // serveFromCache writes the cached artefact response to the client.
 //
 // Takes w (http.ResponseWriter) which receives the cached response.
-// Takes r (*http.Request) which provides headers for selecting the best
-// variant.
-// Takes artefact (*registry_dto.ArtefactMeta) which holds the cached artefact
-// and its variants.
+// Takes r (*http.Request) which provides headers for selecting the best variant.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the cached artefact and its
+// variants.
 // Takes maxAge (int) which sets the cache duration in seconds.
 func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request, artefact *registry_dto.ArtefactMeta, maxAge int) {
 	ctx := r.Context()
@@ -745,9 +732,8 @@ func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request,
 	m.serveCachedVariant(ctx, w, result.variant, maxAge)
 }
 
-// serveJITResult writes a just-in-time compiled result to the response.
-// It checks if the client's ETag matches and returns 304 Not Modified when
-// the content has not changed.
+// serveJITResult writes a just-in-time compiled result to the response. It checks if the
+// client's ETag matches and returns 304 Not Modified when the content has not changed.
 //
 // Takes w (http.ResponseWriter) which receives the response.
 // Takes r (*http.Request) which provides headers for ETag matching.
@@ -785,8 +771,8 @@ func (*CacheMiddleware) serveJITResult(w http.ResponseWriter, r *http.Request, r
 	}
 }
 
-// compressedResponseWriter wraps an http.ResponseWriter with compression.
-// It implements io.Writer.
+// compressedResponseWriter wraps an http.ResponseWriter with compression. It implements
+// io.Writer.
 type compressedResponseWriter struct {
 	http.ResponseWriter
 
@@ -804,9 +790,8 @@ func (w *compressedResponseWriter) Write(p []byte) (int, error) {
 	return w.compressor.Write(p)
 }
 
-// Flush sends any buffered compressed data to the client. Required for
-// HTTP/2 features such as 103 Early Hints that need to flush intermediate
-// responses before the main body.
+// Flush sends any buffered compressed data to the client. Required for HTTP/2 features
+// such as 103 Early Hints that need to flush intermediate responses before the main body.
 func (w *compressedResponseWriter) Flush() {
 	if flusher, ok := w.compressor.(interface{ Flush() error }); ok {
 		_ = flusher.Flush()
@@ -851,8 +836,7 @@ func (w *pipeResponseWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 }
 
-// Flush sends any buffered data to the client if the underlying writer
-// supports flushing.
+// Flush sends any buffered data to the client if the underlying writer supports flushing.
 func (w *pipeResponseWriter) Flush() {
 	if flusher, ok := w.Writer.(http.Flusher); ok {
 		flusher.Flush()
@@ -872,8 +856,8 @@ func getHTMLBuffer() *bytes.Buffer {
 	return buffer
 }
 
-// releaseHTMLBuffer returns a buffer to the HTML buffer pool, dropping
-// buffers whose capacity exceeds [htmlBufferMaxRetainedCapacity].
+// releaseHTMLBuffer returns a buffer to the HTML buffer pool, dropping buffers whose
+// capacity exceeds htmlBufferMaxRetainedCapacity.
 //
 // Takes buffer (*bytes.Buffer) which is the buffer to reset and return.
 func releaseHTMLBuffer(buffer *bytes.Buffer) {
@@ -884,9 +868,8 @@ func releaseHTMLBuffer(buffer *bytes.Buffer) {
 	htmlBufferPool.Put(buffer)
 }
 
-// getCacheControlHeader returns a Cache-Control header value for the given
-// maximum age. It uses stored values for common ages and falls back to
-// fmt.Sprintf for other values.
+// getCacheControlHeader returns a Cache-Control header value for the given maximum age.
+// It uses stored values for common ages and falls back to fmt.Sprintf for other values.
 //
 // Takes maxAge (int) which specifies the cache length in seconds.
 //
@@ -898,8 +881,8 @@ func getCacheControlHeader(maxAge int) string {
 	return fmt.Sprintf("public, max-age=%d", maxAge)
 }
 
-// formatCacheKey formats a hash as "page:" followed by 16 hex digits.
-// Uses direct hex encoding instead of fmt.Sprintf for zero allocations.
+// formatCacheKey formats a hash as "page:" followed by 16 hex digits. Uses direct hex
+// encoding instead of fmt.Sprintf for zero allocations.
 //
 // Takes hash (uint64) which is the value to encode as hexadecimal.
 //
@@ -914,14 +897,12 @@ func formatCacheKey(hash uint64) string {
 	return string(buffer)
 }
 
-// formatJITETag formats a hash as a quoted ETag string: "jit-" followed by
-// 16 hex digits. Uses direct hex encoding instead of fmt.Sprintf for zero
-// memory allocations.
+// formatJITETag formats a hash as a quoted ETag string: "jit-" followed by 16 hex digits.
+// Uses direct hex encoding instead of fmt.Sprintf for zero memory allocations.
 //
 // Takes hash (uint64) which is the value to encode as hex digits.
 //
-// Returns string which is the formatted ETag in the form
-// "jit-XXXXXXXXXXXXXXXX".
+// Returns string which is the formatted ETag in the form "jit-XXXXXXXXXXXXXXXX".
 func formatJITETag(hash uint64) string {
 	buffer := make([]byte, jitETagLen)
 	copy(buffer, `"jit-`)
@@ -933,19 +914,17 @@ func formatJITETag(hash uint64) string {
 	return string(buffer)
 }
 
-// extractOTelContextFromRequest extracts OpenTelemetry context from request
-// headers.
+// extractOTelContextFromRequest extracts OpenTelemetry context from request headers.
 //
-// Uses a pooled MapCarrier to avoid per-request map allocation. If context was
-// already extracted by earlier middleware (e.g., createTracingHandler), returns
-// immediately without re-parsing headers.
+// Uses a pooled MapCarrier to avoid per-request map allocation. If context was already
+// extracted by earlier middleware (e.g., createTracingHandler), returns immediately
+// without re-parsing headers.
 //
 // Takes r (*http.Request) which provides the incoming request with headers.
 //
-// Returns context.Context which contains the extracted OpenTelemetry trace
-// context.
-// Returns bool which is true if extraction was performed (context changed),
-// false if context was already extracted and unchanged.
+// Returns context.Context which contains the extracted OpenTelemetry trace context.
+// Returns bool which is true if extraction was performed (context changed), false if
+// context was already extracted and unchanged.
 func extractOTelContextFromRequest(r *http.Request) (context.Context, bool) {
 	ctx := r.Context()
 
@@ -974,14 +953,11 @@ func extractOTelContextFromRequest(r *http.Request) (context.Context, bool) {
 	return result, true
 }
 
-// generateCacheArtefactID creates a cache key from the request URL, locale,
-// and policy key. Uses a pooled xxhash hasher to avoid extra memory use from
-// string joining.
+// generateCacheArtefactID creates a cache key from the request URL, locale, and policy
+// key. Uses a pooled xxhash hasher to avoid extra memory use from string joining.
 //
-// Takes r (*http.Request) which provides the URL and context for building the
-// cache key.
-// Takes policy (CachePolicy) which provides an optional key to include in the
-// hash.
+// Takes r (*http.Request) which provides the URL and context for building the cache key.
+// Takes policy (CachePolicy) which provides an optional key to include in the hash.
 //
 // Returns string which is the formatted cache key based on the hash.
 func generateCacheArtefactID(r *http.Request, policy templater_dto.CachePolicy) string {
@@ -1013,13 +989,12 @@ func generateCacheArtefactID(r *http.Request, policy templater_dto.CachePolicy) 
 // determineCompression determines the encoding and capability based on the
 // Accept-Encoding header.
 //
-// Takes acceptEncoding (string) which is the value of the Accept-Encoding
-// header from the HTTP request.
+// Takes acceptEncoding (string) which is the value of the Accept-Encoding header from the
+// HTTP request.
 //
-// Returns string which is the encoding name (e.g. "br", "gzip") or empty if
-// no supported encoding is found.
-// Returns capabilities_dto.Capability which indicates the compression
-// capability to use.
+// Returns string which is the encoding name (e.g. "br", "gzip") or empty if no supported
+// encoding is found.
+// Returns capabilities_dto.Capability which indicates the compression capability to use.
 func determineCompression(acceptEncoding string) (string, capabilities_dto.Capability) {
 	if strings.Contains(acceptEncoding, encodingBrotli) {
 		return "br", capabilities_dto.CapabilityCompressBrotli
@@ -1030,15 +1005,15 @@ func determineCompression(acceptEncoding string) (string, capabilities_dto.Capab
 	return "", ""
 }
 
-// selectBestVariantForRequest picks the best variant based on Accept-Encoding.
-// Priority order: brotli, gzip, minified-html, source.
+// selectBestVariantForRequest picks the best variant based on Accept-Encoding. Priority
+// order: brotli, gzip, minified-html, source.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which holds the available
-// variants to choose from.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the available variants to
+// choose from.
 // Takes acceptEncoding (string) which lists the encodings the client accepts.
 //
-// Returns variantSelectionResult which holds the chosen variant and its name,
-// or an empty result if no suitable variant is found.
+// Returns variantSelectionResult which holds the chosen variant and its name, or an empty
+// result if no suitable variant is found.
 func selectBestVariantForRequest(
 	artefact *registry_dto.ArtefactMeta,
 	acceptEncoding string,
@@ -1071,8 +1046,8 @@ func selectBestVariantForRequest(
 // Takes w (http.ResponseWriter) which is the underlying response writer.
 // Takes compressor (io.WriteCloser) which compresses the response data.
 //
-// Returns *compressedResponseWriter which wraps the response writer with
-// compression support.
+// Returns *compressedResponseWriter which wraps the response writer with compression
+// support.
 func getCompressedResponseWriter(w http.ResponseWriter, compressor io.WriteCloser) *compressedResponseWriter {
 	crw, ok := compressedResponseWriterPool.Get().(*compressedResponseWriter)
 	if !ok {
@@ -1083,8 +1058,8 @@ func getCompressedResponseWriter(w http.ResponseWriter, compressor io.WriteClose
 	return crw
 }
 
-// releaseCompressedResponseWriter returns a compressedResponseWriter to the
-// pool for reuse.
+// releaseCompressedResponseWriter returns a compressedResponseWriter to the pool for
+// reuse.
 //
 // Takes crw (*compressedResponseWriter) which is the writer to release.
 func releaseCompressedResponseWriter(crw *compressedResponseWriter) {
@@ -1093,15 +1068,14 @@ func releaseCompressedResponseWriter(crw *compressedResponseWriter) {
 	compressedResponseWriterPool.Put(crw)
 }
 
-// setupBrotliCompressor gets a brotli writer from the pool and sets the
-// response headers for brotli compression.
+// setupBrotliCompressor gets a brotli writer from the pool and sets the response headers
+// for brotli compression.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
-// Returns io.WriteCloser which wraps the response writer with brotli
-// compression.
+// Returns io.WriteCloser which wraps the response writer with brotli compression.
 // Returns bool which shows whether the compressor was set up with success.
 func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) (io.WriteCloser, bool) {
 	w.Header()[headerContentEncoding] = headerValEncodingBrotli
@@ -1115,11 +1089,11 @@ func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) (io.Write
 	return bw, true
 }
 
-// setupGzipCompressor gets a gzip writer from a pool and sets the response
-// headers for gzip encoding.
+// setupGzipCompressor gets a gzip writer from a pool and sets the response headers for
+// gzip encoding.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
 // Returns io.WriteCloser which wraps the response with gzip compression.
@@ -1139,8 +1113,7 @@ func setupGzipCompressor(ctx context.Context, w http.ResponseWriter) (io.WriteCl
 // releaseCompressor returns a compressor to its pool for reuse.
 //
 // Takes compressor (io.WriteCloser) which is the compressor to return.
-// Takes isBrotli (bool) which indicates whether this is a Brotli or gzip
-// compressor.
+// Takes isBrotli (bool) which indicates whether this is a Brotli or gzip compressor.
 func releaseCompressor(compressor io.WriteCloser, isBrotli bool) {
 	_ = compressor.Close()
 	if isBrotli {
@@ -1154,9 +1127,8 @@ func releaseCompressor(compressor io.WriteCloser, isBrotli bool) {
 
 // handleNonCacheableStream serves a response with streaming compression.
 //
-// When the client accepts Brotli or Gzip encoding, the response is compressed
-// on the fly. When no compression is requested, the response is served
-// uncompressed.
+// When the client accepts Brotli or Gzip encoding, the response is compressed on the fly.
+// When no compression is requested, the response is served uncompressed.
 //
 // Takes w (http.ResponseWriter) which receives the compressed response.
 // Takes r (*http.Request) which provides the incoming request and headers.
@@ -1192,13 +1164,12 @@ func handleNonCacheableStream(w http.ResponseWriter, r *http.Request, next http.
 
 // findVariantByTag searches for a variant with a given metadata tag value.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which holds the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the variants to search.
 // Takes key (string) which is the metadata tag name to match.
 // Takes value (string) which is the tag value to find.
 //
-// Returns *registry_dto.Variant which is the matching variant, or nil if no
-// variant has the given tag value.
+// Returns *registry_dto.Variant which is the matching variant, or nil if no variant has
+// the given tag value.
 func findVariantByTag(artefact *registry_dto.ArtefactMeta, key, value string) *registry_dto.Variant {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
@@ -1227,13 +1198,11 @@ func getPipeResponseWriter(pw *io.PipeWriter) *pipeResponseWriter {
 	return prw
 }
 
-// newPipeResponseWriter creates a new pipeResponseWriter for test
-// compatibility.
+// newPipeResponseWriter creates a new pipeResponseWriter for test compatibility.
 //
 // Takes pw (*io.PipeWriter) which receives the response body data.
 //
-// Returns *pipeResponseWriter which wraps the pipe writer with HTTP response
-// handling.
+// Returns *pipeResponseWriter which wraps the pipe writer with HTTP response handling.
 func newPipeResponseWriter(pw *io.PipeWriter) *pipeResponseWriter {
 	return &pipeResponseWriter{
 		Writer:     pw,
@@ -1242,9 +1211,9 @@ func newPipeResponseWriter(pw *io.PipeWriter) *pipeResponseWriter {
 	}
 }
 
-// releasePipeResponseWriter returns a pipeResponseWriter to the pool,
-// clearing the header map in place. Drops the writer when the header
-// map exceeds [pipeResponseWriterMaxRetainedHeaders].
+// releasePipeResponseWriter returns a pipeResponseWriter to the pool, clearing the header
+// map in place. Drops the writer when the header map exceeds
+// pipeResponseWriterMaxRetainedHeaders.
 //
 // Takes prw (*pipeResponseWriter) which is the writer to release.
 func releasePipeResponseWriter(prw *pipeResponseWriter) {

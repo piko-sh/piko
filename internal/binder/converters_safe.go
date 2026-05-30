@@ -24,9 +24,9 @@ import (
 	"reflect"
 )
 
-// convertAndSetDirect sets a field value using reflection in safe mode.
-// This delegates to convertAndSet without unsafe pointer operations,
-// which is slower but works correctly under all conditions.
+// convertAndSetDirect sets a field value using reflection in safe mode. This delegates to
+// convertAndSet without unsafe pointer operations, which is slower but works correctly
+// under all conditions.
 //
 // Takes structVal (reflect.Value) which is the struct to modify.
 // Takes value (string) which is the value to convert and set.

@@ -29,15 +29,14 @@ import (
 
 // wrapError wraps an Anthropic SDK error as a *llm_domain.ProviderError.
 //
-// Preserves the HTTP status code for retry classification. When the
-// upstream response carries a Retry-After header, its parsed value is
-// propagated so the retry executor can honour the server hint. Non-API
-// errors are returned unchanged.
+// Preserves the HTTP status code for retry classification. When the upstream response
+// carries a Retry-After header, its parsed value is propagated so the retry executor can
+// honour the server hint. Non-API errors are returned unchanged.
 //
 // Takes err (error) which is the error to wrap.
 //
-// Returns error which is a *llm_domain.ProviderError if the underlying error
-// is an *anthropic.Error, or the original error otherwise.
+// Returns error which is a *llm_domain.ProviderError if the underlying error is an
+// *anthropic.Error, or the original error otherwise.
 func wrapError(err error) error {
 	if apiErr, ok := errors.AsType[*anthropic.Error](err); ok {
 		providerErr := &llm_domain.ProviderError{

@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/internal/video/video_dto"
 )
 
-// service provides video transcoding by implementing the video Service and
-// health Probe interfaces.
+// service provides video transcoding by implementing the video Service and health Probe
+// interfaces.
 type service struct {
 	// transcoders maps provider names to their transcoder implementations.
 	transcoders map[string]TranscoderPort
@@ -47,37 +47,35 @@ type service struct {
 	config ServiceConfig
 }
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
 // ServiceConfig holds settings for creating a new video service.
 type ServiceConfig struct {
-	// MaxVideoPixels is the maximum allowed total pixel count
-	// (width * height), preventing memory exhaustion from
-	// extremely large videos (default: 8,294,400 or roughly 4K).
+	// MaxVideoPixels is the maximum allowed total pixel count (width * height), preventing
+	// memory exhaustion from extremely large videos (default: 8,294,400 or roughly 4K).
 	MaxVideoPixels int64
 
-	// MaxFileSizeBytes is the maximum allowed input file size in bytes.
-	// Default: 500 MB.
+	// MaxFileSizeBytes is the maximum allowed input file size in bytes. Default: 500 MB.
 	MaxFileSizeBytes int64
 
-	// TranscodeTimeout is the maximum time allowed for a single transcode
-	// operation. Default is 5 minutes.
+	// TranscodeTimeout is the maximum time allowed for a single transcode operation. Default
+	// is 5 minutes.
 	TranscodeTimeout time.Duration
 
-	// MaxVideoWidth is the maximum allowed width for a video in pixels.
-	// Default: 3840 (4K).
+	// MaxVideoWidth is the maximum allowed width for a video in pixels. Default: 3840 (4K).
 	MaxVideoWidth int
 
-	// MaxVideoHeight is the maximum allowed height for a video in pixels.
-	// Defaults to 2160 (4K) if not set or if set to zero or below.
+	// MaxVideoHeight is the maximum allowed height for a video in pixels. Defaults to 2160
+	// (4K) if not set or if set to zero or below.
 	MaxVideoHeight int
 
-	// MaxBitrate is the maximum allowed bitrate in bits per second.
-	// Values less than or equal to zero use the default of 20000000 (20 Mbps).
+	// MaxBitrate is the maximum allowed bitrate in bits per second. Values less than or
+	// equal to zero use the default of 20000000 (20 Mbps).
 	MaxBitrate int
 
-	// MaxFramerate is the maximum allowed framerate for transcoding.
-	// Default: 60.
+	// MaxFramerate is the maximum allowed framerate for transcoding. Default: 60.
 	MaxFramerate float64
 }
 
@@ -87,8 +85,7 @@ type ServiceConfig struct {
 // Takes params (map[string]string) which specifies the transcode settings.
 //
 // Returns io.ReadCloser which provides the transcoded video stream.
-// Returns error when parameters are invalid, spec validation fails, or
-// transcoding fails.
+// Returns error when parameters are invalid, spec validation fails, or transcoding fails.
 func (s *service) Transcode(ctx context.Context, input io.Reader, params map[string]string) (io.ReadCloser, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -241,22 +238,22 @@ func (s *service) ExtractThumbnail(ctx context.Context, input io.Reader, spec vi
 	return result, nil
 }
 
-// Name returns the service identifier and implements the
-// healthprobe_domain.Probe interface.
+// Name returns the service identifier and implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the service name "VideoService".
 func (*service) Name() string {
 	return "VideoService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies the video transcoding pipeline is functional.
+// Check implements the healthprobe_domain.Probe interface. It verifies the video
+// transcoding pipeline is functional.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type
-// of health check to perform.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
 //
-// Returns healthprobe_dto.Status which contains the health check result
-// including transcoder count and HLS support status.
+// Returns healthprobe_dto.Status which contains the health check result including
+// transcoder count and HLS support status.
 func (s *service) Check(context.Context, healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -285,8 +282,8 @@ func (s *service) Check(context.Context, healthprobe_dto.CheckType) healthprobe_
 	}
 }
 
-// selectTranscoder resolves the transcoder to use. Currently uses the default
-// provider; future enhancement could support provider selection.
+// selectTranscoder resolves the transcoder to use. Uses the default provider; provider
+// selection is configured by replacing this implementation.
 //
 // Returns TranscoderPort which is the resolved transcoder instance.
 // Returns string which is the name of the selected provider.
@@ -301,11 +298,10 @@ func (s *service) selectTranscoder() (TranscoderPort, string, error) {
 
 // validateSpec checks a transcode spec against the service limits.
 //
-// Takes spec (video_dto.TranscodeSpec) which contains the video parameters to
-// validate.
+// Takes spec (video_dto.TranscodeSpec) which contains the video parameters to validate.
 //
-// Returns error when any dimension, bitrate, or framerate exceeds the
-// configured maximum limits.
+// Returns error when any dimension, bitrate, or framerate exceeds the configured maximum
+// limits.
 func (s *service) validateSpec(spec video_dto.TranscodeSpec) error {
 	if spec.Width > s.config.MaxVideoWidth {
 		return fmt.Errorf("width %d exceeds maximum %d", spec.Width, s.config.MaxVideoWidth)
@@ -332,11 +328,10 @@ func (s *service) validateSpec(spec video_dto.TranscodeSpec) error {
 	return nil
 }
 
-// DefaultServiceConfig returns a ServiceConfig with sensible production
-// defaults.
+// DefaultServiceConfig returns a ServiceConfig with sensible production defaults.
 //
-// Returns ServiceConfig which contains default values for video processing
-// limits, including dimensions, file size, timeout, bitrate, and frame rate.
+// Returns ServiceConfig which contains default values for video processing limits,
+// including dimensions, file size, timeout, bitrate, and frame rate.
 func DefaultServiceConfig() ServiceConfig {
 	return ServiceConfig{
 		MaxVideoWidth:    defaultMaxVideoWidth,
@@ -351,15 +346,12 @@ func DefaultServiceConfig() ServiceConfig {
 
 // NewService creates a new video service.
 //
-// It requires a registry of transcoders for video processing and a default
-// provider.
+// It requires a registry of transcoders for video processing and a default provider.
 //
-// Takes transcoders (map[string]TranscoderPort) which provides the registry
-// of available transcoders for video processing.
-// Takes defaultProvider (string) which specifies the default transcoder to
-// use.
-// Takes config (ServiceConfig) which specifies the service configuration
-// settings.
+// Takes transcoders (map[string]TranscoderPort) which provides the registry of available
+// transcoders for video processing.
+// Takes defaultProvider (string) which specifies the default transcoder to use.
+// Takes config (ServiceConfig) which specifies the service configuration settings.
 //
 // Returns Service which is the configured video service ready for use.
 // Returns error when the transcoders or default provider are invalid.
@@ -387,13 +379,12 @@ func NewService(transcoders map[string]TranscoderPort, defaultProvider string, c
 
 // validateServiceInputs checks that the required service inputs are valid.
 //
-// Takes transcoders (map[string]TranscoderPort) which provides the available
-// video transcoders keyed by provider name.
-// Takes defaultProvider (string) which specifies the provider to use by
-// default.
+// Takes transcoders (map[string]TranscoderPort) which provides the available video
+// transcoders keyed by provider name.
+// Takes defaultProvider (string) which specifies the provider to use by default.
 //
-// Returns error when no transcoders are provided, the default provider is
-// empty, or the default provider is not found in the transcoders map.
+// Returns error when no transcoders are provided, the default provider is empty, or the
+// default provider is not found in the transcoders map.
 func validateServiceInputs(transcoders map[string]TranscoderPort, defaultProvider string) error {
 	if len(transcoders) == 0 {
 		return errNoTranscoders
@@ -472,8 +463,8 @@ func recordTranscodeDuration(ctx context.Context, provider string, spec video_dt
 	)
 }
 
-// recordTranscodeError records a transcode error metric with provider and error
-// type attributes.
+// recordTranscodeError records a transcode error metric with provider and error type
+// attributes.
 //
 // Takes provider (string) which identifies the transcoding provider.
 // Takes errorType (string) which specifies the type of error that occurred.

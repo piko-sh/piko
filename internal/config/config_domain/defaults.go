@@ -39,11 +39,11 @@ func (l *Loader) applyDefaults(ptr any, ctx *LoadContext) error {
 	return l.walk(reflect.ValueOf(ptr), state)
 }
 
-// processDefaults sets a struct field's value from its "default" struct
-// tag, expanding any environment variables in the tag value.
+// processDefaults sets a struct field's value from its "default" struct tag, expanding
+// any environment variables in the tag value.
 //
-// Takes field (*reflect.StructField) which provides the struct tag to
-// read the default value from.
+// Takes field (*reflect.StructField) which provides the struct tag to read the default
+// value from.
 // Takes value (reflect.Value) which is the field to set.
 //
 // Returns error when setting the field value fails.

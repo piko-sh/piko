@@ -29,24 +29,22 @@ import (
 )
 
 const (
-	// highWaterResetNumerator is the numerator of the fraction of the initial
-	// heap threshold below which heap usage must drop before the high-water
-	// mark is reset (4/5 = 80%).
+	// highWaterResetNumerator is the numerator of the fraction of the initial heap threshold
+	// below which heap usage must drop before the high-water mark is reset (4/5 = 80%).
 	highWaterResetNumerator = 4
 
-	// highWaterResetDenominator is the denominator of the high-water reset
-	// fraction (4/5 = 80%).
+	// highWaterResetDenominator is the denominator of the high-water reset fraction (4/5 =
+	// 80%).
 	highWaterResetDenominator = 5
 )
 
-// evaluateHeap checks whether the current heap allocation exceeds the
-// high-water mark and triggers a heap profile capture when it does.
-// It also handles escalation of the high-water mark and periodic reset
-// back to the initial threshold when heap usage drops.
+// evaluateHeap checks whether the current heap allocation exceeds the high-water mark and
+// triggers a heap profile capture when it does. It also handles escalation of the
+// high-water mark and periodic reset back to the initial threshold when heap usage drops.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the current system metrics
-// including heap allocation.
+// Takes stats (*SystemStats) which contains the current system metrics including heap
+// allocation.
 //
 // Safe for concurrent use; acquires the watchdog's mutex for state updates.
 func (w *Watchdog) evaluateHeap(ctx context.Context, now time.Time, stats *SystemStats) {
@@ -105,11 +103,11 @@ func (w *Watchdog) evaluateHeap(ctx context.Context, now time.Time, stats *Syste
 	})
 }
 
-// recordHeapHighWaterReset logs and meters the high-water reset event so
-// operators can correlate the gauge drop with the watchdog's decision.
+// recordHeapHighWaterReset logs and meters the high-water reset event so operators can
+// correlate the gauge drop with the watchdog's decision.
 //
-// Takes heapAlloc (uint64) which is the current heap allocation logged
-// alongside the reset, in bytes.
+// Takes heapAlloc (uint64) which is the current heap allocation logged alongside the
+// reset, in bytes.
 func (w *Watchdog) recordHeapHighWaterReset(ctx context.Context, heapAlloc uint64) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Reset heap high-water mark to initial threshold",
@@ -119,15 +117,15 @@ func (w *Watchdog) recordHeapHighWaterReset(ctx context.Context, heapAlloc uint6
 	watchdogHeapHighWaterBytes.Record(ctx, safeconv.Uint64ToInt64(w.initialHeapThreshold))
 }
 
-// tryResetHeapHighWater resets the high-water mark to the initial threshold
-// when heap usage has been below 80% of the initial threshold for longer than
-// the configured reset cooldown. The caller must hold w.mu.
+// tryResetHeapHighWater resets the high-water mark to the initial threshold when heap
+// usage has been below 80% of the initial threshold for longer than the configured reset
+// cooldown. The caller must hold w.mu.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 // Takes heapAlloc (uint64) which is the current heap allocation in bytes.
 //
-// Returns bool which is true if the high-water mark was reset and the caller
-// should skip further evaluation.
+// Returns bool which is true if the high-water mark was reset and the caller should skip
+// further evaluation.
 func (w *Watchdog) tryResetHeapHighWater(now time.Time, heapAlloc uint64) bool {
 	if w.heapHighWater <= w.initialHeapThreshold ||
 		now.Sub(w.heapHighWaterSetAt) <= w.config.HighWaterResetCooldown ||
@@ -140,14 +138,14 @@ func (w *Watchdog) tryResetHeapHighWater(now time.Time, heapAlloc uint64) bool {
 	return true
 }
 
-// evaluateGoroutines checks whether the current goroutine count exceeds the
-// configured threshold and triggers a goroutine profile capture when it does.
-// Captures are suppressed if the count exceeds the safety ceiling, as the
-// system may be too unstable for profiling.
+// evaluateGoroutines checks whether the current goroutine count exceeds the configured
+// threshold and triggers a goroutine profile capture when it does. Captures are
+// suppressed if the count exceeds the safety ceiling, as the system may be too unstable
+// for profiling.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the current system metrics
-// including goroutine count.
+// Takes stats (*SystemStats) which contains the current system metrics including
+// goroutine count.
 func (w *Watchdog) evaluateGoroutines(ctx context.Context, now time.Time, stats *SystemStats) {
 	ctx, l := logger_domain.From(ctx, log)
 	goroutineCount := int(stats.NumGoroutines)
@@ -196,14 +194,13 @@ func (w *Watchdog) evaluateGoroutines(ctx context.Context, now time.Time, stats 
 	})
 }
 
-// evaluateGCPressure checks whether the GC CPU fraction exceeds the configured
-// threshold and emits a warning log when it does. No profile capture is
-// triggered because high GC pressure is best investigated with existing heap
-// profiles.
+// evaluateGCPressure checks whether the GC CPU fraction exceeds the configured threshold
+// and emits a warning log when it does. No profile capture is triggered because high GC
+// pressure is best investigated with existing heap profiles.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the current system metrics
-// including GC CPU fraction.
+// Takes stats (*SystemStats) which contains the current system metrics including GC CPU
+// fraction.
 func (w *Watchdog) evaluateGCPressure(ctx context.Context, now time.Time, stats *SystemStats) {
 	ctx, l := logger_domain.From(ctx, log)
 	gcCPUFraction := stats.GC.GCCPUFraction
@@ -226,14 +223,14 @@ func (w *Watchdog) evaluateGCPressure(ctx context.Context, now time.Time, stats 
 	w.sendNotification(ctx, NewGCPressureEvent(gcCPUFraction, w.config.GCPressureThreshold))
 }
 
-// evaluateRSS checks whether the process RSS approaches the cgroup memory
-// limit. This catches the failure mode where Go's heap metrics appear normal
-// but the actual RSS (goroutine stacks, C allocations, fragmentation) is
-// approaching the OOM killer threshold.
+// evaluateRSS checks whether the process RSS approaches the cgroup memory limit. This
+// catches the failure mode where Go's heap metrics appear normal but the actual RSS
+// (goroutine stacks, C allocations, fragmentation) is approaching the OOM killer
+// threshold.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the current system metrics
-// including RSS and cgroup memory limit.
+// Takes stats (*SystemStats) which contains the current system metrics including RSS and
+// cgroup memory limit.
 func (w *Watchdog) evaluateRSS(ctx context.Context, now time.Time, stats *SystemStats) {
 	if w.heapProfilingDisabled {
 		return
@@ -286,9 +283,9 @@ func (w *Watchdog) evaluateRSS(ctx context.Context, now time.Time, stats *System
 	})
 }
 
-// evaluateGoroutineLeaks checks the Go 1.26 goroutine leak profile for
-// unreachable blocked goroutines. This runs on a slower cadence than other
-// evaluators because it piggybacks on the GC reachability walk.
+// evaluateGoroutineLeaks checks the Go 1.26 goroutine leak profile for unreachable
+// blocked goroutines. This runs on a slower cadence than other evaluators because it
+// piggybacks on the GC reachability walk.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
@@ -346,18 +343,17 @@ func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
 	})
 }
 
-// tryAdmitCapture atomically checks the per-type cooldown and the global
-// capture window, then records the capture if both pass. Combining check
-// + record under one lock removes the TOCTOU window where two concurrent
-// rule evaluators could each see budget available, both fire captures,
-// and over-spend the configured MaxCapturesPerWindow.
+// tryAdmitCapture atomically checks the per-type cooldown and the global capture window,
+// then records the capture if both pass. Combining check + record under one lock removes
+// the TOCTOU window where two concurrent rule evaluators could each see budget available,
+// both fire captures, and over-spend the configured MaxCapturesPerWindow.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes profileType (string) which identifies the profile type being
-// considered for capture.
+// Takes profileType (string) which identifies the profile type being considered for
+// capture.
 //
-// Returns bool which is true when the capture is admitted (and now
-// recorded), false when cooldown or the global window denied it.
+// Returns bool which is true when the capture is admitted (and now recorded), false when
+// cooldown or the global window denied it.
 //
 // Safe for concurrent use; acquires the watchdog's mutex.
 func (w *Watchdog) tryAdmitCapture(now time.Time, profileType string) bool {
@@ -367,17 +363,15 @@ func (w *Watchdog) tryAdmitCapture(now time.Time, profileType string) bool {
 		w.lastCaptureTime, profileType, &w.captureTimestamps)
 }
 
-// tryAdmitWarning atomically checks the per-rule warning cooldown and the
-// global warning-window budget, then records the warning if both pass.
-// Mirror of tryAdmitCapture for warning-only rules (GC pressure, FD
-// pressure, scheduler latency, heap trend).
+// tryAdmitWarning atomically checks the per-rule warning cooldown and the global
+// warning-window budget, then records the warning if both pass. Mirror of tryAdmitCapture
+// for warning-only rules (GC pressure, FD pressure, scheduler latency, heap trend).
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes ruleType (string) which identifies the warning rule being
-// considered.
+// Takes ruleType (string) which identifies the warning rule being considered.
 //
-// Returns bool which is true when the warning is admitted (and now
-// recorded), false when cooldown or the warning window denied it.
+// Returns bool which is true when the warning is admitted (and now recorded), false when
+// cooldown or the warning window denied it.
 //
 // Safe for concurrent use; acquires the watchdog's mutex.
 func (w *Watchdog) tryAdmitWarning(now time.Time, ruleType string) bool {
@@ -387,24 +381,22 @@ func (w *Watchdog) tryAdmitWarning(now time.Time, ruleType string) bool {
 		w.lastWarningTime, ruleType, &w.warningTimestamps)
 }
 
-// admitInWindow is the shared check-and-record kernel used by
-// tryAdmitCapture and tryAdmitWarning. Callers must hold the watchdog
-// mutex; the helper inspects the per-key last-time map and the supplied
-// sliding-window timestamp slice, prunes expired entries, and records a
-// new entry only when both cooldown and window budget allow it.
+// admitInWindow is the shared check-and-record kernel used by tryAdmitCapture and
+// tryAdmitWarning. Callers must hold the watchdog mutex; the helper inspects the per-key
+// last-time map and the supplied sliding-window timestamp slice, prunes expired entries,
+// and records a new entry only when both cooldown and window budget allow it.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 // Takes cooldown (time.Duration) which is the per-key cooldown.
 // Takes window (time.Duration) which is the rolling window for budgeting.
 // Takes maxPerWindow (int) which is the budget cap.
-// Takes lastByKey (map[string]time.Time) which records the per-key last
-// admission time.
+// Takes lastByKey (map[string]time.Time) which records the per-key last admission time.
 // Takes key (string) which identifies the per-key cooldown bucket.
-// Takes timestamps (*[]time.Time) which is the sliding window slice; this
-// helper prunes it in place.
+// Takes timestamps (*[]time.Time) which is the sliding window slice; this helper prunes
+// it in place.
 //
-// Returns bool which is true when the admission was recorded, false when
-// the cooldown or window budget denied it.
+// Returns bool which is true when the admission was recorded, false when the cooldown or
+// window budget denied it.
 func admitInWindow(
 	now time.Time,
 	cooldown time.Duration,
@@ -436,14 +428,14 @@ func admitInWindow(
 	return true
 }
 
-// checkCooldown checks whether enough time has elapsed since the last capture
-// of the given profile type. It returns true if a new capture is permitted.
+// checkCooldown checks whether enough time has elapsed since the last capture of the
+// given profile type. It returns true if a new capture is permitted.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 // Takes profileType (string) which identifies the profile type to check.
 //
-// Returns bool which is true when the cooldown period has elapsed and a new
-// capture is allowed.
+// Returns bool which is true when the cooldown period has elapsed and a new capture is
+// allowed.
 //
 // Safe for concurrent use; acquires the watchdog's mutex.
 func (w *Watchdog) checkCooldown(now time.Time, profileType string) bool {
@@ -458,14 +450,13 @@ func (w *Watchdog) checkCooldown(now time.Time, profileType string) bool {
 	return now.Sub(lastCapture) >= w.config.Cooldown
 }
 
-// checkGlobalRateLimit prunes expired timestamps from the sliding capture
-// window and checks whether the number of recent captures is below the
-// configured maximum.
+// checkGlobalRateLimit prunes expired timestamps from the sliding capture window and
+// checks whether the number of recent captures is below the configured maximum.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 //
-// Returns bool which is true when the number of captures in the current
-// window is below MaxCapturesPerWindow.
+// Returns bool which is true when the number of captures in the current window is below
+// MaxCapturesPerWindow.
 //
 // Safe for concurrent use; acquires the watchdog's mutex.
 func (w *Watchdog) checkGlobalRateLimit(now time.Time) bool {
@@ -485,8 +476,8 @@ func (w *Watchdog) checkGlobalRateLimit(now time.Time) bool {
 	return len(w.captureTimestamps) < w.config.MaxCapturesPerWindow
 }
 
-// recordCapture records a capture event for the given profile type and adds
-// a timestamp to the global sliding window.
+// recordCapture records a capture event for the given profile type and adds a timestamp
+// to the global sliding window.
 //
 // Takes now (time.Time) which is the capture timestamp to record.
 // Takes profileType (string) which identifies the profile type being captured.
@@ -500,10 +491,9 @@ func (w *Watchdog) recordCapture(now time.Time, profileType string) {
 	w.captureTimestamps = append(w.captureTimestamps, now)
 }
 
-// evaluateFDPressure emits a warning when the open file descriptor count
-// approaches the soft RLIMIT_NOFILE. The watchdog does not capture any
-// profile because there is nothing useful to capture for FD exhaustion;
-// alerting is the action.
+// evaluateFDPressure emits a warning when the open file descriptor count approaches the
+// soft RLIMIT_NOFILE. The watchdog does not capture any profile because there is nothing
+// useful to capture for FD exhaustion; alerting is the action.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 // Takes stats (*SystemStats) which contains the current FD count and limit.
@@ -543,19 +533,17 @@ func (w *Watchdog) evaluateFDPressure(ctx context.Context, now time.Time, stats 
 	w.sendNotification(ctx, NewFDPressureEvent(fdCount, fdLimit, w.config.FDPressureThresholdPercent))
 }
 
-// evaluateSchedulerLatency emits a warning when the runtime/metrics
-// scheduler latency p99 exceeds the configured threshold. High scheduler
-// latency indicates that runnable goroutines are waiting too long for CPU
-// -- symptoms include GC interference, lock contention, CPU starvation, or
-// goroutine pile-ups.
+// evaluateSchedulerLatency emits a warning when the runtime/metrics scheduler latency p99
+// exceeds the configured threshold. High scheduler latency indicates that runnable
+// goroutines are waiting too long for CPU -- symptoms include GC interference, lock
+// contention, CPU starvation, or goroutine pile-ups.
 //
-// The rule also records each event timestamp in a small ring so the
-// contention diagnostic (Phase 8) can detect repeated triggers and decide
-// whether to escalate to mutex/block profiling.
+// The rule also records each event timestamp in a small ring so the contention diagnostic
+// can detect repeated triggers and decide whether to escalate to mutex/block profiling.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
-// Takes stats (*SystemStats) which contains the runtime/metrics-derived
-// scheduler latency percentiles.
+// Takes stats (*SystemStats) which contains the runtime/metrics-derived scheduler latency
+// percentiles.
 func (w *Watchdog) evaluateSchedulerLatency(ctx context.Context, now time.Time, stats *SystemStats) {
 	ctx, l := logger_domain.From(ctx, log)
 	threshold := w.config.SchedulerLatencyP99Threshold
@@ -595,9 +583,9 @@ func (w *Watchdog) evaluateSchedulerLatency(ctx context.Context, now time.Time, 
 	}
 }
 
-// recordSchedulerLatencyEvent appends a scheduler-latency event to the
-// internal ring and returns the count of events within the last 15 minutes.
-// Used by the contention diagnostic auto-fire path.
+// recordSchedulerLatencyEvent appends a scheduler-latency event to the internal ring and
+// returns the count of events within the last 15 minutes. Used by the contention
+// diagnostic auto-fire path.
 //
 // Takes now (time.Time) which is the event timestamp to record.
 //

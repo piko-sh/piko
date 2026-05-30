@@ -18,8 +18,11 @@
 
 package apitest
 
-import "flag"
+import (
+	"flag"
+)
 
-// update is the global flag for updating golden files, registered
-// once for all tests.
-var update = flag.Bool("update", false, "update golden files with current API surface")
+var (
+	// update is the global flag for updating golden files, registered once for all tests.
+	update = flag.Bool("update", false, "update golden files with current API surface")
+)

@@ -16,18 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ast_schema manages versioned serialisation for the template AST
-// FlatBuffer representation.
+// Package ast_schema manages versioned serialisation for the template AST FlatBuffer
+// representation.
 //
-// It embeds the template_ast.fbs schema file and computes a SHA-256
-// hash at init time. This hash prefixes every serialised AST blob so
-// that the cache is automatically invalidated whenever the schema
-// evolves. The sub-package ast_flatbuffer contains the generated
-// FlatBuffer types that mirror the Go AST domain structs.
+// It embeds the template_ast.fbs schema file and computes a SHA-256 hash at init time.
+// This hash prefixes every serialised AST blob so that the cache is automatically
+// invalidated whenever the schema evolves. The sub-package ast_flatbuffer contains the
+// generated FlatBuffer types that mirror the Go AST domain structs.
 //
 // # Integration
 //
-// The ast_adapters serialisation layer calls [Pack] and [Unpack] to
-// wrap and unwrap cached AST blobs. The underlying binary format is
-// defined by the [piko.sh/piko/internal/fbs] package.
+// The ast_adapters serialisation layer calls [Pack] and [Unpack] to wrap and unwrap
+// cached AST blobs. The underlying binary format is defined by the
+// [piko.sh/piko/internal/fbs] package.
 package ast_schema

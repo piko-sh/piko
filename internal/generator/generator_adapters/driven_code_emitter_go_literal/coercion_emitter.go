@@ -18,9 +18,9 @@
 
 package driven_code_emitter_go_literal
 
-// Provides code emission for coercion built-in functions (string, int, float,
-// etc.). Generates optimised Go code based on source type, falling back to
-// runtime helpers for any/interface{}.
+// Provides code emission for coercion built-in functions (string, int, float, etc.).
+// Generates optimised Go code based on source type, falling back to runtime helpers for
+// any/interface{}.
 
 import (
 	goast "go/ast"
@@ -44,8 +44,8 @@ type CoercionEmitter struct {
 //
 // Takes functionName (string) which is the coercion function name.
 // Takes argExpr (goast.Expr) which is the already-emitted argument expression.
-// Takes argAnn (*ast_domain.GoGeneratorAnnotation) which provides type info for
-// the argument.
+// Takes argAnn (*ast_domain.GoGeneratorAnnotation) which provides type info for the
+// argument.
 //
 // Returns goast.Expr which is the generated Go expression for the coercion.
 func (ce *CoercionEmitter) emitCoercionCall(
@@ -84,11 +84,11 @@ func (ce *CoercionEmitter) emitCoercionCall(
 
 // getSourceType extracts the type name from an annotation.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// to extract the type from.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation to extract
+// the type from.
 //
-// Returns string which is the extracted type name, or "any" if the annotation
-// is nil or has no type information.
+// Returns string which is the extracted type name, or "any" if the annotation is nil or
+// has no type information.
 func (*CoercionEmitter) getSourceType(ann *ast_domain.GoGeneratorAnnotation) string {
 	if ann == nil || ann.ResolvedType == nil || ann.ResolvedType.TypeExpression == nil {
 		return "any"
@@ -428,8 +428,7 @@ func (ce *CoercionEmitter) strconvFormatIntCall(argExpr goast.Expr) *goast.CallE
 
 // strconvFormatUintCall generates strconv.FormatUint(x, 10).
 //
-// Takes argExpr (goast.Expr) which is the unsigned integer expression to
-// format.
+// Takes argExpr (goast.Expr) which is the unsigned integer expression to format.
 //
 // Returns *goast.CallExpr which is the generated function call.
 func (ce *CoercionEmitter) strconvFormatUintCall(argExpr goast.Expr) *goast.CallExpr {
@@ -448,8 +447,7 @@ func (ce *CoercionEmitter) strconvFormatFloat64Call(argExpr goast.Expr) *goast.C
 		intLit(bitSize64))
 }
 
-// strconvFormatFloat32Call generates strconv.FormatFloat(float64(x), 'f', -1,
-// 32).
+// strconvFormatFloat32Call generates strconv.FormatFloat(float64(x), 'f', -1, 32).
 //
 // Takes argExpr (goast.Expr) which is the expression to format as a float32.
 //
@@ -501,8 +499,8 @@ func (*CoercionEmitter) mathsConstructorCall(functionName string, argExpr goast.
 	}
 }
 
-// emitBoolToIntIIFE generates an IIFE for bool to int conversion.
-// Generates: func() T { if b { return 1 } return 0 }().
+// emitBoolToIntIIFE generates an IIFE for bool to int conversion. Generates: func() T {
+// if b { return 1 } return 0 }().
 //
 // Takes argExpr (goast.Expr) which is the boolean expression to convert.
 // Takes targetType (string) which specifies the target integer type name.
@@ -530,8 +528,7 @@ func (*CoercionEmitter) emitBoolToIntIIFE(argExpr goast.Expr, targetType string)
 // Takes argExpr (goast.Expr) which is the boolean expression to convert.
 // Takes targetType (string) which specifies the target float type name.
 //
-// Returns goast.Expr which is the IIFE that returns 1.0 for true or 0.0 for
-// false.
+// Returns goast.Expr which is the IIFE that returns 1.0 for true or 0.0 for false.
 func (*CoercionEmitter) emitBoolToFloatIIFE(argExpr goast.Expr, targetType string) goast.Expr {
 	return &goast.CallExpr{
 		Fun: &goast.FuncLit{
@@ -549,15 +546,15 @@ func (*CoercionEmitter) emitBoolToFloatIIFE(argExpr goast.Expr, targetType strin
 	}
 }
 
-// emitStringParseIIFE generates an immediately invoked function expression that
-// parses a string to an integer type.
+// emitStringParseIIFE generates an immediately invoked function expression that parses a
+// string to an integer type.
 //
 // Takes argExpr (goast.Expr) which is the string expression to parse.
 // Takes targetType (string) which specifies the target integer type name.
 // Takes bitSize (int) which specifies the bit size for strconv.ParseInt.
 //
-// Returns goast.Expr which represents an IIFE in the form:
-// func() T { v, _ := strconv.ParseInt(s, 10, bitSize); return T(v) }().
+// Returns goast.Expr which represents an IIFE in the form: func() T { v, _ :=
+// strconv.ParseInt(s, 10, bitSize); return T(v) }().
 func (ce *CoercionEmitter) emitStringParseIIFE(argExpr goast.Expr, targetType string, bitSize int) goast.Expr {
 	ce.ee.emitter.addImport(pkgStrconv, "")
 
@@ -577,9 +574,8 @@ func (ce *CoercionEmitter) emitStringParseIIFE(argExpr goast.Expr, targetType st
 	}
 }
 
-// emitStringParseToFloatIIFE generates an IIFE for string parsing to float
-// types. Generates: func() T { v, _ := strconv.ParseFloat(s, bitSize);
-// return T(v) }().
+// emitStringParseToFloatIIFE generates an IIFE for string parsing to float types.
+// Generates: func() T { v, _ := strconv.ParseFloat(s, bitSize); return T(v) }().
 //
 // Takes argExpr (goast.Expr) which is the string expression to parse.
 // Takes targetType (string) which specifies the target float type name.

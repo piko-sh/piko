@@ -70,8 +70,7 @@ func (b *robotsBuilder) Build(ctx context.Context, sitemapURL string) ([]byte, e
 	return []byte(textContent), nil
 }
 
-// generateBaseRules creates the default rules that allow all bots to access
-// all paths.
+// generateBaseRules creates the default rules that allow all bots to access all paths.
 //
 // Returns seo_dto.RobotGroup which permits all user agents to access all paths.
 func (*robotsBuilder) generateBaseRules() seo_dto.RobotGroup {
@@ -93,8 +92,7 @@ func (*robotsBuilder) generateAIBotRules() seo_dto.RobotGroup {
 	}
 }
 
-// generateNonSEOBotRules creates blocking rules for known web scrapers and
-// non-SEO bots.
+// generateNonSEOBotRules creates blocking rules for known web scrapers and non-SEO bots.
 //
 // Returns a RobotGroup that disallows all paths for non-SEO bot user agents.
 func (*robotsBuilder) generateNonSEOBotRules() seo_dto.RobotGroup {
@@ -107,8 +105,7 @@ func (*robotsBuilder) generateNonSEOBotRules() seo_dto.RobotGroup {
 
 // newRobotsBuilder creates a new robotsBuilder with the given settings.
 //
-// Takes robotsConfig (config.RobotsConfig) which specifies the
-// robots.txt settings.
+// Takes robotsConfig (config.RobotsConfig) which specifies the robots.txt settings.
 //
 // Returns *robotsBuilder which is ready for use.
 func newRobotsBuilder(robotsConfig config.RobotsConfig) *robotsBuilder {

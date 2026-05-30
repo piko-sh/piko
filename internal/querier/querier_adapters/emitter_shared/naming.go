@@ -23,42 +23,44 @@ import (
 	"unicode"
 )
 
-// commonInitialisms maps lowercase initialisations to their canonical
-// upper-case forms per Go naming conventions.
-var commonInitialisms = map[string]string{
-	"id":    "ID",
-	"ids":   "IDs",
-	"url":   "URL",
-	"uri":   "URI",
-	"api":   "API",
-	"sql":   "SQL",
-	"http":  "HTTP",
-	"https": "HTTPS",
-	"ip":    "IP",
-	"css":   "CSS",
-	"html":  "HTML",
-	"json":  "JSON",
-	"xml":   "XML",
-	"ssh":   "SSH",
-	"tls":   "TLS",
-	"tcp":   "TCP",
-	"udp":   "UDP",
-	"cpu":   "CPU",
-	"gpu":   "GPU",
-	"ram":   "RAM",
-	"uuid":  "UUID",
-	"uid":   "UID",
-	"ascii": "ASCII",
-	"utf8":  "UTF8",
-	"eof":   "EOF",
-	"ttl":   "TTL",
-	"acl":   "ACL",
-	"pk":    "PK",
-	"fk":    "FK",
-}
+var (
+	// commonInitialisms maps lowercase initialisations to their canonical upper-case forms
+	// per Go naming conventions.
+	commonInitialisms = map[string]string{
+		"id":    "ID",
+		"ids":   "IDs",
+		"url":   "URL",
+		"uri":   "URI",
+		"api":   "API",
+		"sql":   "SQL",
+		"http":  "HTTP",
+		"https": "HTTPS",
+		"ip":    "IP",
+		"css":   "CSS",
+		"html":  "HTML",
+		"json":  "JSON",
+		"xml":   "XML",
+		"ssh":   "SSH",
+		"tls":   "TLS",
+		"tcp":   "TCP",
+		"udp":   "UDP",
+		"cpu":   "CPU",
+		"gpu":   "GPU",
+		"ram":   "RAM",
+		"uuid":  "UUID",
+		"uid":   "UID",
+		"ascii": "ASCII",
+		"utf8":  "UTF8",
+		"eof":   "EOF",
+		"ttl":   "TTL",
+		"acl":   "ACL",
+		"pk":    "PK",
+		"fk":    "FK",
+	}
+)
 
-// SnakeToPascalCase converts a snake_case SQL identifier to PascalCase Go
-// identifier, applying Go initialism conventions.
+// SnakeToPascalCase converts a snake_case SQL identifier to PascalCase Go identifier,
+// applying Go initialism conventions.
 //
 // Takes name (string) which is the snake_case identifier to convert.
 //
@@ -87,8 +89,8 @@ func SnakeToPascalCase(name string) string {
 	return builder.String()
 }
 
-// SnakeToCamelCase converts a snake_case SQL identifier to camelCase Go
-// identifier, applying Go initialism conventions for non-leading segments.
+// SnakeToCamelCase converts a snake_case SQL identifier to camelCase Go identifier,
+// applying Go initialism conventions for non-leading segments.
 //
 // Takes name (string) which is the snake_case identifier to convert.
 //

@@ -27,23 +27,23 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// pretouchMaxInlineDepth is the maximum depth for sonic's JIT compiler to
-// inline nested struct encoders and decoders.
-const pretouchMaxInlineDepth = 8
+const (
+	// pretouchMaxInlineDepth is the maximum depth for sonic's JIT compiler to inline nested
+	// struct encoders and decoders.
+	pretouchMaxInlineDepth = 8
+)
 
 // sonicProvider implements json.Provider using bytedance/sonic.
 type sonicProvider struct{}
 
 // New creates a sonic JSON provider.
 //
-// Returns json.Provider which replaces stdlib JSON with sonic when
-// activated.
+// Returns json.Provider which replaces stdlib JSON with sonic when activated.
 func New() json.Provider {
 	return sonicProvider{}
 }
 
-// Activate replaces all package-level JSON function variables with sonic
-// implementations.
+// Activate replaces all package-level JSON function variables with sonic implementations.
 func (sonicProvider) Activate() {
 	json.Marshal = sonic.Marshal
 	json.Unmarshal = sonic.Unmarshal
@@ -63,8 +63,7 @@ func (sonicProvider) Activate() {
 	}
 }
 
-// sonicNewEncoder creates a streaming JSON encoder using
-// sonic's default config.
+// sonicNewEncoder creates a streaming JSON encoder using sonic's default config.
 //
 // Takes w (io.Writer) which is the output destination.
 //
@@ -73,8 +72,7 @@ func sonicNewEncoder(w io.Writer) json.Encoder {
 	return sonic.ConfigDefault.NewEncoder(w)
 }
 
-// sonicNewDecoder creates a streaming JSON decoder using
-// sonic's default config.
+// sonicNewDecoder creates a streaming JSON decoder using sonic's default config.
 //
 // Takes r (io.Reader) which is the input source.
 //
@@ -83,8 +81,7 @@ func sonicNewDecoder(r io.Reader) json.Decoder {
 	return sonic.ConfigDefault.NewDecoder(r)
 }
 
-// sonicPretouch pre-compiles sonic JIT codecs for the
-// given type.
+// sonicPretouch pre-compiles sonic JIT codecs for the given type.
 //
 // Takes t (reflect.Type) which is the type to precompile.
 //

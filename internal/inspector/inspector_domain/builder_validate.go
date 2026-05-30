@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file is dedicated to validating the structural integrity and consistency
-// of the encoded TypeData artefact before it is cached or used.
+// This file is dedicated to validating the structural integrity and consistency of the
+// encoded TypeData artefact before it is cached or used.
 
 import (
 	"errors"
@@ -32,12 +32,14 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// mapPrefixLen is the length of the "map[" prefix in Go type strings.
-const mapPrefixLen = len("map[")
+const (
+	// mapPrefixLen is the length of the "map[" prefix in Go type strings.
+	mapPrefixLen = len("map[")
+)
 
 // packagePathInput holds the subset of field/part data needed by
-// validatePackagePathConsistency. Using this avoids allocating a full
-// inspector_dto.Field struct just for validation.
+// validatePackagePathConsistency. Using this avoids allocating a full inspector_dto.Field
+// struct just for validation.
 type packagePathInput struct {
 	// PackagePath is the import path of the type's package.
 	PackagePath string
@@ -61,9 +63,9 @@ type packagePathInput struct {
 	IsAlias bool
 }
 
-// validationContext is a value type that holds the components of a validation
-// context string. It defers fmt.Sprintf until String() is called, avoiding
-// allocations on the happy path when no errors are found.
+// validationContext is a value type that holds the components of a validation context
+// string. It defers fmt.Sprintf until String() is called, avoiding allocations on the
+// happy path when no errors are found.
 type validationContext struct {
 	// name is the name of the symbol being validated.
 	name string
@@ -152,8 +154,8 @@ func (ec *errorCollector) add(ctx validationContext, format string, arguments ..
 //
 // Takes td (*inspector_dto.TypeData) which is the type data artefact to check.
 //
-// Returns error when the artefact is nil, has a nil Packages map, or any
-// package fails validation.
+// Returns error when the artefact is nil, has a nil Packages map, or any package fails
+// validation.
 func validate(td *inspector_dto.TypeData) error {
 	if td == nil {
 		return errors.New("validation failed: TypeData artefact is nil")
@@ -180,8 +182,7 @@ func validate(td *inspector_dto.TypeData) error {
 // validatePackage checks that a package has complete and consistent data.
 //
 // Takes pkg (*inspector_dto.Package) which is the package data to check.
-// Takes expectedPath (string) which is the expected import path for the
-// package.
+// Takes expectedPath (string) which is the expected import path for the package.
 // Takes collector (*errorCollector) which gathers any validation errors found.
 func validatePackage(pkg *inspector_dto.Package, expectedPath string, collector *errorCollector) {
 	ctx := validationContext{kind: vctxPackage, name: expectedPath}
@@ -195,8 +196,8 @@ func validatePackage(pkg *inspector_dto.Package, expectedPath string, collector 
 	validatePackageFuncs(pkg, collector)
 }
 
-// validatePackageBasicFields checks that a package has the required basic
-// fields set correctly.
+// validatePackageBasicFields checks that a package has the required basic fields set
+// correctly.
 //
 // Takes pkg (*inspector_dto.Package) which is the package to check.
 // Takes expectedPath (string) which is the path the package should have.
@@ -220,8 +221,7 @@ func validatePackageBasicFields(pkg *inspector_dto.Package, expectedPath string,
 	}
 }
 
-// validatePackageTypes checks all named types in a package for documentation
-// problems.
+// validatePackageTypes checks all named types in a package for documentation problems.
 //
 // Takes pkg (*inspector_dto.Package) which contains the types to check.
 // Takes collector (*errorCollector) which gathers any problems found.
@@ -247,12 +247,11 @@ func validatePackageFuncs(pkg *inspector_dto.Package, collector *errorCollector)
 	}
 }
 
-// validateType checks that a type definition has all required fields and
-// validates its fields and methods.
+// validateType checks that a type definition has all required fields and validates its
+// fields and methods.
 //
 // Takes typ (*inspector_dto.Type) which is the type definition to check.
-// Takes ownerPackagePath (string) which is the package
-// path that contains the type.
+// Takes ownerPackagePath (string) which is the package path that contains the type.
 // Takes expectedName (string) which is the name the type should have.
 // Takes collector (*errorCollector) which gathers any validation errors.
 func validateType(typ *inspector_dto.Type, ownerPackagePath, expectedName string, collector *errorCollector) {
@@ -283,8 +282,7 @@ func validateType(typ *inspector_dto.Type, ownerPackagePath, expectedName string
 	}
 }
 
-// validateField checks a single field DTO by running a series of smaller
-// checks.
+// validateField checks a single field DTO by running a series of smaller checks.
 //
 // Takes field (*inspector_dto.Field) which is the field to check.
 // Takes ownerPackagePath (string) which is the package path of the owning type.
@@ -314,12 +312,10 @@ func validateField(field *inspector_dto.Field, ownerPackagePath, ownerTypeName s
 	validateFieldCompositeParts(field, ownerPackagePath, ownerTypeName, ctx, collector)
 }
 
-// validateFieldBasicProperties checks that a field has required basic
-// properties set.
+// validateFieldBasicProperties checks that a field has required basic properties set.
 //
 // Takes field (*inspector_dto.Field) which is the field to validate.
-// Takes ctx (validationContext) which identifies the field
-// location for error messages.
+// Takes ctx (validationContext) which identifies the field location for error messages.
 // Takes collector (*errorCollector) which gathers any validation errors.
 func validateFieldBasicProperties(field *inspector_dto.Field, ctx validationContext, collector *errorCollector) {
 	if field.Name == "" {
@@ -333,14 +329,12 @@ func validateFieldBasicProperties(field *inspector_dto.Field, ctx validationCont
 	}
 }
 
-// validateUnderlyingTypeConsistency checks that primitive type flags are set
-// correctly together.
+// validateUnderlyingTypeConsistency checks that primitive type flags are set correctly
+// together.
 //
 // Takes isUnderlyingPrimitive (bool) which indicates if the type is primitive.
-// Takes isUnderlyingInternalType (bool) which indicates if the
-// type is internal.
-// Takes ctx (validationContext) which provides the context path
-// for error messages.
+// Takes isUnderlyingInternalType (bool) which indicates if the type is internal.
+// Takes ctx (validationContext) which provides the context path for error messages.
 // Takes collector (*errorCollector) which gathers validation errors.
 func validateUnderlyingTypeConsistency(isUnderlyingPrimitive, isUnderlyingInternalType bool, ctx validationContext, collector *errorCollector) {
 	if isUnderlyingPrimitive && !isUnderlyingInternalType {
@@ -348,8 +342,8 @@ func validateUnderlyingTypeConsistency(isUnderlyingPrimitive, isUnderlyingIntern
 	}
 }
 
-// validateFieldDeclaringInfo checks that a field's declaring package and type
-// match the expected owner values.
+// validateFieldDeclaringInfo checks that a field's declaring package and type match the
+// expected owner values.
 //
 // Takes field (*inspector_dto.Field) which is the field to check.
 // Takes ownerPackage (string) which is the expected package path.
@@ -370,8 +364,8 @@ func validateFieldDeclaringInfo(field *inspector_dto.Field, ownerPackage, ownerT
 	}
 }
 
-// validateFieldCompositeParts checks that a field's composite parts match its
-// composite type.
+// validateFieldCompositeParts checks that a field's composite parts match its composite
+// type.
 //
 // Takes field (*inspector_dto.Field) which is the field to check.
 // Takes ownerPackage (string) which is the package containing the field's owner.
@@ -396,16 +390,12 @@ func validateFieldCompositeParts(field *inspector_dto.Field, ownerPackage, owner
 // validateCompositePart checks a single composite part for required fields and
 // consistency.
 //
-// Takes part (*inspector_dto.CompositePart) which is the composite part to
-// check.
-// Takes fieldName (string) which is the name of the field that contains this
-// part.
-// Takes ownerPackage (string) which is the package path of the type that owns the
-// field.
+// Takes part (*inspector_dto.CompositePart) which is the composite part to check.
+// Takes fieldName (string) which is the name of the field that contains this part.
+// Takes ownerPackage (string) which is the package path of the type that owns the field.
 // Takes ownerType (string) which is the name of the type that owns the field.
 // Takes index (int) which is the position of this part within the composite.
-// Takes collector (*errorCollector) which gathers any errors found during
-// the check.
+// Takes collector (*errorCollector) which gathers any errors found during the check.
 func validateCompositePart(part *inspector_dto.CompositePart, fieldName, ownerPackage, ownerType string, index int, collector *errorCollector) {
 	if part == nil {
 		collector.add(validationContext{kind: vctxFieldShort, name: fieldName, ownerPkg: ownerPackage, ownerType: ownerType}, "contains a nil composite part at index %d", index)
@@ -437,8 +427,8 @@ func validateCompositePart(part *inspector_dto.CompositePart, fieldName, ownerPa
 	validateNestedCompositeParts(part, fieldName, ownerPackage, ownerType, ctx, collector)
 }
 
-// validateNestedCompositeParts checks the nested parts within a composite part.
-// Kept separate to reduce control flow nesting in validateCompositePart.
+// validateNestedCompositeParts checks the nested parts within a composite part. Kept
+// separate to reduce control flow nesting in validateCompositePart.
 //
 // Takes part (*CompositePart) which is the composite part to check.
 // Takes fieldName (string) which is the name of the field being checked.
@@ -463,12 +453,12 @@ func validateNestedCompositeParts(part *inspector_dto.CompositePart, fieldName, 
 	}
 }
 
-// validatePackagePathConsistency checks that a PackagePath is set only when the
-// type belongs to a package. Named types must have a PackagePath, but primitive
-// and built-in types must not.
+// validatePackagePathConsistency checks that a PackagePath is set only when the type
+// belongs to a package. Named types must have a PackagePath, but primitive and built-in
+// types must not.
 //
-// Takes input (packagePathInput) which holds the subset of field data needed
-// for validation.
+// Takes input (packagePathInput) which holds the subset of field data needed for
+// validation.
 // Takes ctx (validationContext) which provides context for error messages.
 // Takes collector (*errorCollector) which gathers validation errors.
 func validatePackagePathConsistency(
@@ -493,15 +483,14 @@ func validatePackagePathConsistency(
 	}
 }
 
-// validateGenericPlaceholderPackagePath checks that a generic placeholder has
-// an empty PackagePath.
+// validateGenericPlaceholderPackagePath checks that a generic type parameter has an empty
+// PackagePath.
 //
 // Takes input (packagePathInput) which holds the field data to check.
 // Takes ctx (validationContext) which gives context for error messages.
 // Takes collector (*errorCollector) which gathers any errors found.
 //
-// Returns bool which is true if the input is a generic placeholder, false if
-// not.
+// Returns bool which is true if the input is a generic type parameter, false if not.
 func validateGenericPlaceholderPackagePath(input packagePathInput, ctx validationContext, collector *errorCollector) bool {
 	if !input.IsGenericPlaceholder {
 		return false
@@ -512,15 +501,15 @@ func validateGenericPlaceholderPackagePath(input packagePathInput, ctx validatio
 	return true
 }
 
-// validateCompositeWithGenericsPackagePath checks that PackagePath is empty for
-// composite types that contain generic placeholders.
+// validateCompositeWithGenericsPackagePath checks that PackagePath is empty for composite
+// types that contain generic placeholders.
 //
 // Takes input (packagePathInput) which holds the field data to check.
 // Takes ctx (validationContext) which gives context for error messages.
 // Takes collector (*errorCollector) which gathers any validation errors.
 //
-// Returns bool which is true if the input is a composite type with generic
-// placeholders, meaning validation is complete.
+// Returns bool which is true if the input is a composite type with generic placeholders,
+// meaning validation is complete.
 func validateCompositeWithGenericsPackagePath(input packagePathInput, ctx validationContext, collector *errorCollector) bool {
 	if strings.Contains(input.TypeString, ".") {
 		return false
@@ -545,8 +534,7 @@ func validateNamedTypePackagePath(input packagePathInput, ctx validationContext,
 	}
 }
 
-// validatePrimitiveTypePackagePath checks that primitive types have no package
-// path.
+// validatePrimitiveTypePackagePath checks that primitive types have no package path.
 //
 // Takes input (packagePathInput) which holds the field data to check.
 // Takes ctx (validationContext) which provides context for error messages.
@@ -567,9 +555,8 @@ func validatePrimitiveTypePackagePath(input packagePathInput, ctx validationCont
 	}
 }
 
-// isCompositeTypeWithNamedComponents checks if a type string is a composite
-// type (map, slice, or func) that contains named types rather than only
-// basic types.
+// isCompositeTypeWithNamedComponents checks if a type string is a composite type (map,
+// slice, or func) that contains named types rather than only basic types.
 //
 // Takes typeString (string) which is the type to check.
 //
@@ -598,13 +585,12 @@ func isCompositeTypeWithNamedComponents(typeString string) bool {
 	return false
 }
 
-// containsNamedType checks if a type string contains a named type in
-// package.Type format.
+// containsNamedType checks if a type string contains a named type in package.Type format.
 //
 // Takes typeString (string) which is the type to check.
 //
-// Returns bool which is true if the type string contains a dot and is not a
-// primitive or built-in type.
+// Returns bool which is true if the type string contains a dot and is not a primitive or
+// built-in type.
 func containsNamedType(typeString string) bool {
 	if strings.Contains(typeString, ".") {
 		return !goastutil.IsPrimitiveOrBuiltin(typeString)
@@ -616,8 +602,7 @@ func containsNamedType(typeString string) bool {
 //
 // Takes method (*inspector_dto.Method) which is the method to check.
 // Takes ownerPackagePath (string) which is the package path of the owning type.
-// Takes ownerTypeName (string) which is the name of the type that owns this
-// method.
+// Takes ownerTypeName (string) which is the name of the owning type.
 // Takes collector (*errorCollector) which gathers any errors found.
 func validateMethod(method *inspector_dto.Method, ownerPackagePath, ownerTypeName string, collector *errorCollector) {
 	if method == nil {
@@ -640,10 +625,8 @@ func validateMethod(method *inspector_dto.Method, ownerPackagePath, ownerTypeNam
 
 // validateFunc checks that a function has the correct metadata and signature.
 //
-// Takes inspectedFunction (*inspector_dto.Function) which is the
-// function data to check.
-// Takes ownerPackagePath (string) which is the package path that contains the
-// function.
+// Takes inspectedFunction (*inspector_dto.Function) which is the function data to check.
+// Takes ownerPackagePath (string) which is the package path that contains the function.
 // Takes expectedName (string) which is the name the function should have.
 // Takes collector (*errorCollector) which gathers any errors found.
 func validateFunc(inspectedFunction *inspector_dto.Function, ownerPackagePath, expectedName string, collector *errorCollector) {
@@ -671,10 +654,9 @@ func validateSignature(sig *inspector_dto.FunctionSignature, context validationC
 	}
 }
 
-// extractBaseTypeNameFromString extracts the base type name from
-// a type string without parsing it into an AST. It strips
-// composite type wrappers (*, [], [N], map[, chan, <-chan, func()
-// to find the innermost type name, equivalent to
+// extractBaseTypeNameFromString extracts the base type name from a type string without
+// parsing it into an AST. It strips composite type wrappers (*, [], [N], map[, chan,
+// <-chan, func() to find the innermost type name, equivalent to
 // DeconstructTypeExpr(TypeStringToAST(s)) but allocation-free.
 //
 // Takes typeString (string) which is the type string to extract from.
@@ -715,13 +697,13 @@ func extractBaseTypeNameFromString(typeString string) string {
 	return ""
 }
 
-// stripWrapperFromBaseType extracts the base type name from a possibly
-// package-qualified, possibly generic type string.
+// stripWrapperFromBaseType extracts the base type name from a possibly package-qualified,
+// possibly generic type string.
 //
 // Takes s (string) which is the type string with wrappers already stripped.
 //
-// Returns string which is the bare type name without package qualifier or
-// generic arguments.
+// Returns string which is the bare type name without package qualifier or generic
+// arguments.
 func stripWrapperFromBaseType(s string) string {
 	if dot := strings.LastIndexByte(s, '.'); dot >= 0 {
 		name := s[dot+1:]
@@ -732,16 +714,15 @@ func stripWrapperFromBaseType(s string) string {
 	return before
 }
 
-// compositePartsContainGenericPlaceholder checks if any part in a slice
-// contains a generic type parameter. It searches through nested parts using
-// the IsGenericPlaceholder flag set by the serialiser when it finds a
-// *types.TypeParam.
+// compositePartsContainGenericPlaceholder checks if any part in a slice contains a
+// generic type parameter. It searches through nested parts using the IsGenericPlaceholder
+// flag set by the serialiser when it finds a *types.TypeParam.
 //
-// Takes parts ([]*inspector_dto.CompositePart) which is the slice of composite
-// parts to check.
+// Takes parts ([]*inspector_dto.CompositePart) which is the slice of composite parts to
+// check.
 //
-// Returns bool which is true if any part or nested part contains a generic
-// type parameter.
+// Returns bool which is true if any part or nested part contains a generic type
+// parameter.
 func compositePartsContainGenericPlaceholder(parts []*inspector_dto.CompositePart) bool {
 	for _, part := range parts {
 		if part == nil {

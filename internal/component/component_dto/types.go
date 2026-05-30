@@ -20,41 +20,36 @@ package component_dto
 
 // ComponentDefinition represents a registered PKC component.
 //
-// Components are registered either automatically from the local components
-// folder or explicitly via WithComponents() for external libraries.
+// Components are registered either automatically from the local components folder or
+// explicitly via WithComponents() for external libraries.
 type ComponentDefinition struct {
-	// TagName is the HTML custom element tag name.
-	// Must contain a hyphen per the Web Components specification
-	// (e.g., "my-button", "uikit-card").
+	// TagName is the HTML custom element tag name. Must contain a hyphen per the Web
+	// Components specification (e.g., "my-button", "uikit-card").
 	TagName string
 
-	// SourcePath is the path to the .pkc source file, expressed as a
-	// relative path from the project root for local components or as a
-	// module-relative path (possibly empty) for external components
-	// registered via WithComponents().
+	// SourcePath is the path to the .pkc source file, expressed as a relative path from the
+	// project root for local components or as a module-relative path (possibly empty) for
+	// external components registered via WithComponents().
 	SourcePath string
 
-	// ModulePath is the Go module path that provides this component. Empty for
-	// local components; for external components contains a fully qualified
-	// module path (for example, a GitHub-hosted module).
+	// ModulePath is the Go module path that provides this component. Empty for local
+	// components; for external components contains a fully qualified module path (for
+	// example, a GitHub-hosted module).
 	ModulePath string
 
-	// AssetPaths lists directories (relative to the module root) whose files
-	// should be seeded into the registry alongside the PKC source files,
-	// where the module root is derived from ModulePath by stripping the
-	// package subpath.
+	// AssetPaths lists directories (relative to the module root) whose files should be
+	// seeded into the registry alongside the PKC source files, where the module root is
+	// derived from ModulePath by stripping the package subpath.
 	//
-	// For example, if ModulePath is "piko.sh/piko/components" and
-	// AssetPaths contains "lib/icons", the seeder walks
-	// <module-root>/lib/icons/ and registers each file under the artefact ID
-	// "piko.sh/piko/lib/icons/<filename>".
+	// For example, if ModulePath is "piko.sh/piko/components" and AssetPaths contains
+	// "lib/icons", the seeder walks <module-root>/lib/icons/ and registers each file under
+	// the artefact ID "piko.sh/piko/lib/icons/<filename>".
 	//
-	// Duplicate paths across definitions sharing the same ModulePath are
-	// deduplicated automatically.
+	// Duplicate paths across definitions sharing the same ModulePath are deduplicated
+	// automatically.
 	AssetPaths []string
 
-	// IsExternal indicates whether this component was registered via
-	// WithComponents() rather than auto-discovered from the local
-	// components folder.
+	// IsExternal indicates whether this component was registered via WithComponents() rather
+	// than auto-discovered from the local components folder.
 	IsExternal bool
 }

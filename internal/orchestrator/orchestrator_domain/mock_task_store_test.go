@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -146,26 +145,26 @@ func TestMockTaskStore_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CreateTaskCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CreateTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.UpdateTaskCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.FetchAndMarkDueTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetWorkflowStatusCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PromoteScheduledTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PendingTaskCountCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CreateTaskWithDedupCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RecoverStaleTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetStaleProcessingTaskCountCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.UpdateTaskHeartbeatCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ClaimStaleTasksForRecoveryCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RecoverClaimedTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ReleaseRecoveryLeasesCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CreateWorkflowReceiptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ResolveWorkflowReceiptsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetPendingReceiptsByNodeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CleanupOldResolvedReceiptsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.TimeoutStaleReceiptsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ListFailedTasksCallCount))
+	assert.Equal(t, int64(goroutines), m.CreateTaskCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CreateTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.UpdateTaskCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.FetchAndMarkDueTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetWorkflowStatusCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PromoteScheduledTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PendingTaskCountCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CreateTaskWithDedupCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RecoverStaleTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetStaleProcessingTaskCountCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.UpdateTaskHeartbeatCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ClaimStaleTasksForRecoveryCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RecoverClaimedTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ReleaseRecoveryLeasesCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CreateWorkflowReceiptCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ResolveWorkflowReceiptsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetPendingReceiptsByNodeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CleanupOldResolvedReceiptsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.TimeoutStaleReceiptsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ListFailedTasksCallCount.Load())
 }
 
 func TestMockTaskStore_CreateTask(t *testing.T) {
@@ -178,7 +177,7 @@ func TestMockTaskStore_CreateTask(t *testing.T) {
 		err := m.CreateTask(context.Background(), &Task{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CreateTaskCallCount))
+		assert.Equal(t, int64(1), m.CreateTaskCallCount.Load())
 	})
 
 	t.Run("delegates to CreateTaskFunc", func(t *testing.T) {
@@ -224,7 +223,7 @@ func TestMockTaskStore_CreateTasks(t *testing.T) {
 		err := m.CreateTasks(context.Background(), []*Task{{ID: "b1"}})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CreateTasksCallCount))
+		assert.Equal(t, int64(1), m.CreateTasksCallCount.Load())
 	})
 
 	t.Run("delegates to CreateTasksFunc", func(t *testing.T) {
@@ -270,7 +269,7 @@ func TestMockTaskStore_UpdateTask(t *testing.T) {
 		err := m.UpdateTask(context.Background(), &Task{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateTaskCallCount))
+		assert.Equal(t, int64(1), m.UpdateTaskCallCount.Load())
 	})
 
 	t.Run("delegates to UpdateTaskFunc", func(t *testing.T) {
@@ -317,7 +316,7 @@ func TestMockTaskStore_FetchAndMarkDueTasks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, tasks)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FetchAndMarkDueTasksCallCount))
+		assert.Equal(t, int64(1), m.FetchAndMarkDueTasksCallCount.Load())
 	})
 
 	t.Run("delegates to FetchAndMarkDueTasksFunc", func(t *testing.T) {
@@ -368,7 +367,7 @@ func TestMockTaskStore_GetWorkflowStatus(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.False(t, ok)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetWorkflowStatusCallCount))
+		assert.Equal(t, int64(1), m.GetWorkflowStatusCallCount.Load())
 	})
 
 	t.Run("delegates to GetWorkflowStatusFunc", func(t *testing.T) {
@@ -415,7 +414,7 @@ func TestMockTaskStore_PromoteScheduledTasks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PromoteScheduledTasksCallCount))
+		assert.Equal(t, int64(1), m.PromoteScheduledTasksCallCount.Load())
 	})
 
 	t.Run("delegates to PromoteScheduledTasksFunc", func(t *testing.T) {
@@ -459,7 +458,7 @@ func TestMockTaskStore_PendingTaskCount(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PendingTaskCountCallCount))
+		assert.Equal(t, int64(1), m.PendingTaskCountCallCount.Load())
 	})
 
 	t.Run("delegates to PendingTaskCountFunc", func(t *testing.T) {
@@ -502,7 +501,7 @@ func TestMockTaskStore_CreateTaskWithDedup(t *testing.T) {
 		err := m.CreateTaskWithDedup(context.Background(), &Task{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CreateTaskWithDedupCallCount))
+		assert.Equal(t, int64(1), m.CreateTaskWithDedupCallCount.Load())
 	})
 
 	t.Run("delegates to CreateTaskWithDedupFunc", func(t *testing.T) {
@@ -549,7 +548,7 @@ func TestMockTaskStore_RecoverStaleTasks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RecoverStaleTasksCallCount))
+		assert.Equal(t, int64(1), m.RecoverStaleTasksCallCount.Load())
 	})
 
 	t.Run("delegates to RecoverStaleTasksFunc", func(t *testing.T) {
@@ -602,7 +601,7 @@ func TestMockTaskStore_GetStaleProcessingTaskCount(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStaleProcessingTaskCountCallCount))
+		assert.Equal(t, int64(1), m.GetStaleProcessingTaskCountCallCount.Load())
 	})
 
 	t.Run("delegates to GetStaleProcessingTaskCountFunc", func(t *testing.T) {
@@ -648,7 +647,7 @@ func TestMockTaskStore_UpdateTaskHeartbeat(t *testing.T) {
 		err := m.UpdateTaskHeartbeat(context.Background(), "task-1")
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateTaskHeartbeatCallCount))
+		assert.Equal(t, int64(1), m.UpdateTaskHeartbeatCallCount.Load())
 	})
 
 	t.Run("delegates to UpdateTaskHeartbeatFunc", func(t *testing.T) {
@@ -694,7 +693,7 @@ func TestMockTaskStore_ClaimStaleTasksForRecovery(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, claimed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ClaimStaleTasksForRecoveryCallCount))
+		assert.Equal(t, int64(1), m.ClaimStaleTasksForRecoveryCallCount.Load())
 	})
 
 	t.Run("delegates to ClaimStaleTasksForRecoveryFunc", func(t *testing.T) {
@@ -751,7 +750,7 @@ func TestMockTaskStore_RecoverClaimedTasks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RecoverClaimedTasksCallCount))
+		assert.Equal(t, int64(1), m.RecoverClaimedTasksCallCount.Load())
 	})
 
 	t.Run("delegates to RecoverClaimedTasksFunc", func(t *testing.T) {
@@ -804,7 +803,7 @@ func TestMockTaskStore_ReleaseRecoveryLeases(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ReleaseRecoveryLeasesCallCount))
+		assert.Equal(t, int64(1), m.ReleaseRecoveryLeasesCallCount.Load())
 	})
 
 	t.Run("delegates to ReleaseRecoveryLeasesFunc", func(t *testing.T) {
@@ -850,7 +849,7 @@ func TestMockTaskStore_CreateWorkflowReceipt(t *testing.T) {
 		err := m.CreateWorkflowReceipt(context.Background(), "id", "wf", "node")
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CreateWorkflowReceiptCallCount))
+		assert.Equal(t, int64(1), m.CreateWorkflowReceiptCallCount.Load())
 	})
 
 	t.Run("delegates to CreateWorkflowReceiptFunc", func(t *testing.T) {
@@ -900,7 +899,7 @@ func TestMockTaskStore_ResolveWorkflowReceipts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ResolveWorkflowReceiptsCallCount))
+		assert.Equal(t, int64(1), m.ResolveWorkflowReceiptsCallCount.Load())
 	})
 
 	t.Run("delegates to ResolveWorkflowReceiptsFunc", func(t *testing.T) {
@@ -949,7 +948,7 @@ func TestMockTaskStore_GetPendingReceiptsByNode(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, receipts)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPendingReceiptsByNodeCallCount))
+		assert.Equal(t, int64(1), m.GetPendingReceiptsByNodeCallCount.Load())
 	})
 
 	t.Run("delegates to GetPendingReceiptsByNodeFunc", func(t *testing.T) {
@@ -997,7 +996,7 @@ func TestMockTaskStore_CleanupOldResolvedReceipts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CleanupOldResolvedReceiptsCallCount))
+		assert.Equal(t, int64(1), m.CleanupOldResolvedReceiptsCallCount.Load())
 	})
 
 	t.Run("delegates to CleanupOldResolvedReceiptsFunc", func(t *testing.T) {
@@ -1045,7 +1044,7 @@ func TestMockTaskStore_TimeoutStaleReceipts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 0, n)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.TimeoutStaleReceiptsCallCount))
+		assert.Equal(t, int64(1), m.TimeoutStaleReceiptsCallCount.Load())
 	})
 
 	t.Run("delegates to TimeoutStaleReceiptsFunc", func(t *testing.T) {
@@ -1093,7 +1092,7 @@ func TestMockTaskStore_ListFailedTasks(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, tasks)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ListFailedTasksCallCount))
+		assert.Equal(t, int64(1), m.ListFailedTasksCallCount.Load())
 	})
 
 	t.Run("delegates to ListFailedTasksFunc", func(t *testing.T) {

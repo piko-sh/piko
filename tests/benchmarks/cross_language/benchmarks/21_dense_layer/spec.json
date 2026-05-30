@@ -1,0 +1,14 @@
+{
+  "name": "21_dense_layer",
+  "description": "Dense layer forward pass: output[i] = relu(sum_j(W[i][j] * input[j]) + bias[i]) over a deterministic 256x256 weight matrix and 256-element input. Inner dot-product loop matches the piko SIMD recogniser; CPython runs scalarly so the four-runner contrast highlights the recogniser's impact.",
+  "args": [],
+  "expected_stdout_sha256": "fcadb741f08fa34f09fffb1c412667368f5c9cfe7e912465a6d429dbe634b37a",
+  "k_inner": 5,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "1600c5b9a3ab6274d8fa908da53ed67c6c9f23102e18ff53a4e0a44ed3eff9ff",
+    "py/cpython.py": "233bd1922e31bd7133cc8b59e1494889d1aad4c69d146a7c9d5a97e6021a3ad3",
+    "py/pypy.py": "233bd1922e31bd7133cc8b59e1494889d1aad4c69d146a7c9d5a97e6021a3ad3"
+  }
+}

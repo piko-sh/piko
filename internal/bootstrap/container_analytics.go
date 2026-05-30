@@ -37,11 +37,10 @@ var (
 
 // AddAnalyticsCollector registers a backend analytics collector.
 //
-// If the collector implements a shutdown interface (Close, Shutdown,
-// or Stop), it will be automatically registered for graceful shutdown.
+// If the collector implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
-// Takes collector (analytics_domain.Collector) which handles event
-// delivery.
+// Takes collector (analytics_domain.Collector) which handles event delivery.
 func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) {
 	if collector == nil {
 		_, l := logger_domain.From(c.GetAppContext(), log)
@@ -52,12 +51,13 @@ func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) 
 	registerCloseableForShutdown(c.GetAppContext(), "AnalyticsCollector-"+collector.Name(), collector)
 }
 
-// GetAnalyticsService returns the analytics service, creating it
-// lazily on first call. Returns nil when no collectors are registered,
-// which causes the analytics middleware to not be installed.
+// GetAnalyticsService returns the analytics service, creating it lazily on first call.
 //
-// Returns *analytics_domain.Service which distributes events to
-// collectors, or nil when analytics is not enabled.
+// When no collectors are registered, the service is not created and the analytics
+// middleware is not installed.
+//
+// Returns *analytics_domain.Service which distributes events to collectors, or nil
+// when analytics is not enabled.
 func (c *Container) GetAnalyticsService() *analytics_domain.Service {
 	analyticsServiceOnce.Do(func() {
 		if len(c.analyticsCollectors) == 0 {
@@ -79,9 +79,9 @@ func (c *Container) GetAnalyticsService() *analytics_domain.Service {
 	return analyticsService
 }
 
-// GetGlobalAnalyticsService returns the analytics service singleton
-// without requiring a Container reference. Returns nil when no
-// collectors are registered or the service has not been initialised.
+// GetGlobalAnalyticsService returns the analytics service singleton without requiring a
+// Container reference. Returns nil when no collectors are registered or the service has
+// not been initialised.
 //
 // Returns *analytics_domain.Service which distributes events, or nil.
 func GetGlobalAnalyticsService() *analytics_domain.Service {

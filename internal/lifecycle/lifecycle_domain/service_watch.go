@@ -18,8 +18,8 @@
 
 package lifecycle_domain
 
-// This file contains file-watching, event handling, entry-point bookkeeping,
-// and asset change processing for the lifecycle service.
+// This file contains file-watching, event handling, entry-point bookkeeping, and asset
+// change processing for the lifecycle service.
 
 import (
 	"context"
@@ -36,11 +36,11 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 )
 
-// watchLoop processes file change events from the watcher channel until
-// the context is cancelled or the stop signal is received.
+// watchLoop processes file change events from the watcher channel until the context is
+// cancelled or the stop signal is received.
 //
-// Takes events (<-chan lifecycle_dto.FileEvent) which provides file change
-// events from the file watcher.
+// Takes events (<-chan lifecycle_dto.FileEvent) which provides file change events from
+// the file watcher.
 func (ls *lifecycleService) watchLoop(ctx context.Context, events <-chan lifecycle_dto.FileEvent) {
 	ctx, span, l := log.Span(ctx, "watchLoop")
 	defer span.End()
@@ -86,8 +86,7 @@ type fileEventContext struct {
 // handleFileEvent processes a file change event.
 //
 // Takes event (lifecycle_dto.FileEvent) which describes the file system event.
-// Takes initialSeed (bool) which indicates whether this is part of the initial
-// scan.
+// Takes initialSeed (bool) which indicates whether this is part of the initial scan.
 func (ls *lifecycleService) handleFileEvent(ctx context.Context, event lifecycle_dto.FileEvent, initialSeed bool) {
 	ctx, span, _ := log.Span(ctx, "handleFileEvent",
 		logger_domain.String(fieldPath, event.Path),
@@ -143,18 +142,15 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 
 // handleCoreSourceChange processes changes to core source files (.pk, etc.).
 //
-// In interpreted mode with an initialised orchestrator, this triggers a
-// targeted rebuild that only re-annotates and regenerates the changed
-// component and its transitive dependents. Otherwise it falls back to a full
-// coordinator rebuild.
+// In interpreted mode with an initialised orchestrator, this triggers a targeted rebuild
+// that only re-annotates and regenerates the changed component and its transitive
+// dependents. Otherwise it falls back to a full coordinator rebuild.
 //
-// Takes fec (fileEventContext) which provides the file event details and
-// logging context.
-// Takes initialSeed (bool) which indicates whether this is the initial file
-// discovery phase.
+// Takes fec (fileEventContext) which provides the file event details and logging context.
+// Takes initialSeed (bool) which indicates whether this is the initial file discovery
+// phase.
 //
-// Safe for concurrent use. Targeted rebuilds are spawned in a separate
-// goroutine.
+// Safe for concurrent use. Targeted rebuilds are spawned in a separate goroutine.
 func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initialSeed bool) {
 	ctx, l := logger_domain.From(fec.ctx, log)
 
@@ -191,8 +187,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 
 // handleAssetChange processes changes to asset files.
 //
-// Takes fec (fileEventContext) which provides the file event details and
-// logging context.
+// Takes fec (fileEventContext) which provides the file event details and logging context.
 func (ls *lifecycleService) handleAssetChange(fec fileEventContext) {
 	_, l := logger_domain.From(fec.ctx, log)
 
@@ -224,8 +219,8 @@ func (ls *lifecycleService) clearSvgCacheIfNeeded(fec fileEventContext) {
 	}
 }
 
-// clearComponentCacheIfNeeded clears the component cache for PKC files. The
-// component tag name is taken from the file name without the extension.
+// clearComponentCacheIfNeeded clears the component cache for PKC files. The component tag
+// name is taken from the file name without the extension.
 //
 // Takes fec (fileEventContext) which provides the file event and relative path.
 func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
@@ -245,8 +240,8 @@ func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
 
 // upsertAssetArtefact creates or updates an asset artefact in the registry.
 //
-// Takes fec (fileEventContext) which provides the file event details and
-// context for the operation.
+// Takes fec (fileEventContext) which provides the file event details and context for the
+// operation.
 func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	ctx, l := logger_domain.From(fec.ctx, log)
 
@@ -278,8 +273,8 @@ func (ls *lifecycleService) deleteAssetArtefact(fec fileEventContext) {
 	}
 }
 
-// componentType represents the kind of component file, such as page, partial,
-// or email template.
+// componentType represents the kind of component file, such as page, partial, or email
+// template.
 type componentType struct {
 	// isPage indicates whether the component is a page template.
 	isPage bool
@@ -293,10 +288,10 @@ type componentType struct {
 
 // updateBuildContext adds or removes entry points based on file events.
 //
-// Takes event (lifecycle_dto.FileEvent) which specifies the file system event
-// that happened.
-// Takes relPath (string) which is the path to the affected file, relative to
-// the project root.
+// Takes event (lifecycle_dto.FileEvent) which specifies the file system event that
+// happened.
+// Takes relPath (string) which is the path to the affected file, relative to the project
+// root.
 //
 // Safe for concurrent use; protects build context updates with a mutex.
 func (ls *lifecycleService) updateBuildContext(ctx context.Context, event lifecycle_dto.FileEvent, relPath string) {
@@ -330,11 +325,11 @@ func (ls *lifecycleService) updateBuildContext(ctx context.Context, event lifecy
 
 // determineComponentType determines the type of component based on its path.
 //
-// Takes relPath (string) which is the relative path to check against configured
-// source directories.
+// Takes relPath (string) which is the relative path to check against configured source
+// directories.
 //
-// Returns componentType which indicates whether the path matches a page,
-// partial, or email source directory.
+// Returns componentType which indicates whether the path matches a page, partial, or
+// email source directory.
 func (ls *lifecycleService) determineComponentType(relPath string) componentType {
 	paths := &ls.pathsConfig
 	var ct componentType
@@ -377,8 +372,7 @@ func (ls *lifecycleService) addEntryPointIfNotExists(ctx context.Context, entryP
 
 // removeEntryPoint removes an entry point by its path.
 //
-// Takes entryPointPath (string) which specifies the path of the entry point
-// to remove.
+// Takes entryPointPath (string) which specifies the path of the entry point to remove.
 //
 // Must be called with ls.mu held.
 func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
@@ -391,24 +385,24 @@ func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 	ls.entryPoints = newEntryPoints
 }
 
-// executeTargetedRebuild performs an incremental rebuild for a single changed
-// file by only re-annotating and regenerating the changed component and its
-// transitive dependents.
+// executeTargetedRebuild performs an incremental rebuild for a single changed file by
+// only re-annotating and regenerating the changed component and its transitive
+// dependents.
 //
-// It queries the orchestrator's reverse dependency map to find affected
-// components, filters the entry point list to only those components, runs a
-// synchronous coordinator build with the targeted subset, then merges the
-// result and proactively JIT-compiles all dirty components.
+// It queries the orchestrator's reverse dependency map to find affected components,
+// filters the entry point list to only those components, runs a synchronous coordinator
+// build with the targeted subset, then merges the result and proactively JIT-compiles all
+// dirty components.
 //
 // Falls back to a full coordinator rebuild if the targeted build fails.
 //
-// Takes relPath (string) which is the project-relative path of the changed
-// file (e.g. "pages/login.pk").
+// Takes relPath (string) which is the project-relative path of the changed file (e.g.
+// "pages/login.pk").
 //
 // Designed to run in a goroutine so the watch loop is not blocked.
 //
-// The caller must Add(1) on rebuildWG before launching this goroutine; this
-// function Done()s the WaitGroup on exit.
+// The caller must Add(1) on rebuildWG before launching this goroutine, and the rebuild
+// calls Done() on the WaitGroup on exit.
 func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string) {
 	defer ls.rebuildWG.Done()
 	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuild")
@@ -462,12 +456,12 @@ func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath 
 		logger_domain.String("changed", relPath))
 }
 
-// filterEntryPointsByPaths returns the subset of the lifecycle service's entry
-// points whose paths match any of the given relative paths. The relative paths
-// are prefixed with the module name before comparison.
+// filterEntryPointsByPaths returns the subset of the lifecycle service's entry points
+// whose paths match any of the given relative paths. The relative paths are prefixed with
+// the module name before comparison.
 //
-// Takes relPaths ([]string) which contains project-relative paths to match
-// (e.g. "pages/login.pk").
+// Takes relPaths ([]string) which contains project-relative paths to match (e.g.
+// "pages/login.pk").
 //
 // Returns []annotator_dto.EntryPoint which contains the matching entry points.
 //

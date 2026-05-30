@@ -18,6 +18,6 @@
 
 // Package formatter exposes the Piko template formatter for .pk files.
 //
-// Re-exports the core formatting types from the internal formatter
-// domain, following the same facade pattern as [piko.sh/piko/wdk/logger].
+// Re-exports the core formatting types from the internal formatter domain, following the
+// same facade pattern as [piko.sh/piko/wdk/logger].
 package formatter

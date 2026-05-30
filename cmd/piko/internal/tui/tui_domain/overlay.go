@@ -24,46 +24,41 @@ import (
 
 // Overlay is a transient view rendered on top of the main layout.
 //
-// Includes help screens, confirmation dialogues, and detail popups. Overlays
-// are stacked in an OverlayManager; the topmost overlay receives input until
-// it is dismissed.
+// Includes help screens, confirmation dialogues, and detail popups. Overlays are stacked
+// in an OverlayManager; the topmost overlay receives input until it is dismissed.
 type Overlay interface {
-	// ID identifies the overlay for diagnostic purposes and to allow
-	// callers to query the stack for a specific kind.
+	// ID identifies the overlay for diagnostic purposes and to allow callers to query the
+	// stack for a specific kind.
 	ID() string
 
 	// Render returns the framed overlay body.
 	//
-	// The OverlayManager is responsible for compositing this body over the
-	// background; the Overlay itself just produces the inner content. The
-	// supplied dimensions are the overlay's own width and height, not the
-	// screen.
+	// The OverlayManager is responsible for compositing this body over the background; the
+	// Overlay itself just produces the inner content. The supplied dimensions are the
+	// overlay's own width and height, not the screen.
 	Render(width, height int) string
 
-	// Update processes a message and returns the (possibly updated)
-	// Overlay plus any commands. Returning a different value from the
-	// receiver allows immutable update patterns; returning the receiver
-	// is the conventional in-place form.
+	// Update processes a message and returns the (possibly updated) Overlay plus any
+	// commands. Returning a different value from the receiver allows immutable update
+	// patterns; returning the receiver is the conventional in-place form.
 	Update(msg tea.Msg) (Overlay, tea.Cmd)
 
-	// KeyMap returns key bindings the overlay accepts; surfaced in the
-	// help screen and the status bar hint area.
+	// KeyMap returns key bindings the overlay accepts; surfaced in the help screen and the
+	// status bar hint area.
 	KeyMap() []KeyBinding
 
-	// Dismiss reports whether the overlay should be popped after the most
-	// recent Update. Implementations typically set an internal flag on
-	// Esc/Enter and return it here.
+	// Dismiss reports whether the overlay should be popped after the most recent Update.
+	// Implementations typically set an internal flag on Esc/Enter and return it here.
 	Dismiss() bool
 
-	// MinSize suggests the smallest dimensions at which the overlay
-	// remains usable. The OverlayManager grows the overlay to fit its
-	// content but will not shrink it below this minimum.
+	// MinSize suggests the smallest dimensions at which the overlay remains usable. The
+	// OverlayManager grows the overlay to fit its content but will not shrink it below this
+	// minimum.
 	MinSize() (width, height int)
 }
 
-// OverlayManager maintains a stack of overlays. The top of the stack
-// receives input; underlying overlays remain visible (composited) but
-// inactive.
+// OverlayManager maintains a stack of overlays. The top of the stack receives input;
+// underlying overlays remain visible (composited) but inactive.
 type OverlayManager struct {
 	// theme drives the overlay frame and dim styles for compositing.
 	theme *Theme
@@ -74,24 +69,23 @@ type OverlayManager struct {
 
 // NewOverlayManager creates an empty manager bound to the supplied theme.
 //
-// Takes theme (*Theme) which provides border and dim styles for
-// composition.
+// Takes theme (*Theme) which provides border and dim styles for composition.
 //
 // Returns *OverlayManager which has no overlays pushed.
 func NewOverlayManager(theme *Theme) *OverlayManager {
 	return &OverlayManager{theme: theme}
 }
 
-// SetTheme updates the theme used for compositing. Called when the user
-// switches themes via the command bar.
+// SetTheme updates the theme used for compositing. Called when the user switches themes
+// via the command bar.
 //
 // Takes theme (*Theme) which becomes the new theme.
 func (m *OverlayManager) SetTheme(theme *Theme) {
 	m.theme = theme
 }
 
-// Push adds an overlay to the top of the stack. Subsequent input is routed
-// to it until Pop or Dismiss is called.
+// Push adds an overlay to the top of the stack. Subsequent input is routed to it until
+// Pop or Dismiss is called.
 //
 // Takes overlay (Overlay) which is the overlay to show.
 func (m *OverlayManager) Push(overlay Overlay) {
@@ -101,8 +95,7 @@ func (m *OverlayManager) Push(overlay Overlay) {
 	m.stack = append(m.stack, overlay)
 }
 
-// Pop removes the topmost overlay and returns it. Returns nil when the
-// stack is empty.
+// Pop removes the topmost overlay and returns it. Returns nil when the stack is empty.
 //
 // Returns Overlay which was at the top of the stack, or nil.
 func (m *OverlayManager) Pop() Overlay {
@@ -114,8 +107,7 @@ func (m *OverlayManager) Pop() Overlay {
 	return top
 }
 
-// Top returns the overlay currently receiving input, or nil when the stack
-// is empty.
+// Top returns the overlay currently receiving input, or nil when the stack is empty.
 //
 // Returns Overlay which is the active overlay.
 func (m *OverlayManager) Top() Overlay {
@@ -132,15 +124,14 @@ func (m *OverlayManager) Empty() bool {
 	return len(m.stack) == 0
 }
 
-// Update routes a message to the topmost overlay. Returns any command the
-// overlay produced, plus a flag indicating whether the message was
-// consumed; consumed messages are not forwarded to the underlying panels.
+// Update routes a message to the topmost overlay. Returns any command the overlay
+// produced, plus a flag indicating whether the message was consumed; consumed messages
+// are not forwarded to the underlying panels.
 //
 // Takes msg (tea.Msg) which is the message to dispatch.
 //
 // Returns tea.Cmd which is the resulting command from the active overlay.
-// Returns bool which is true when an overlay was active and consumed the
-// message.
+// Returns bool which is true when an overlay was active and consumed the message.
 func (m *OverlayManager) Update(msg tea.Msg) (tea.Cmd, bool) {
 	if len(m.stack) == 0 {
 		return nil, false
@@ -161,8 +152,8 @@ func (m *OverlayManager) Update(msg tea.Msg) (tea.Cmd, bool) {
 
 // Render composites every pushed overlay over the supplied background.
 //
-// The returned string is the same shape as the background. When the stack is
-// empty the background is returned unchanged.
+// The returned string is the same shape as the background. When the stack is empty the
+// background is returned unchanged.
 //
 // Takes background (string) which is the rendered layout body.
 // Takes screenWidth (int) which is the terminal width.
@@ -183,9 +174,8 @@ func (m *OverlayManager) Render(background string, screenWidth, screenHeight int
 	return current
 }
 
-// overlaySize chooses dimensions for an overlay given its minimum and the
-// available screen. Caps at 80% of the screen so the underlying layout is
-// always partly visible.
+// overlaySize chooses dimensions for an overlay given its minimum and the available
+// screen. Caps at 80% of the screen so the underlying layout is always partly visible.
 //
 // Takes overlay (Overlay) which provides its preferred minimum size.
 // Takes screenWidth (int) which is the available width.

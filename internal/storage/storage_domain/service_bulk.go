@@ -21,7 +21,6 @@ package storage_domain
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -49,14 +48,14 @@ const (
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes params (*storage_dto.PutManyParams) which contains the objects to upload.
 //
-// Returns error when validation fails, the provider is not found, or the batch
-// operation fails.
+// Returns error when validation fails, the provider is not found, or the batch operation
+// fails.
 func (s *service) PutObjects(ctx context.Context, providerName string, params *storage_dto.PutManyParams) error {
 	startTime := s.clock.Now()
-	atomic.AddInt64(&s.stats.TotalOperations, 1)
+	s.stats.TotalOperations.Add(1)
 
 	if len(params.Objects) == 0 {
-		atomic.AddInt64(&s.stats.SuccessfulOperations, 1)
+		s.stats.SuccessfulOperations.Add(1)
 		duration := s.clock.Now().Sub(startTime).Milliseconds()
 		operationDuration.Record(ctx, float64(duration), metric.WithAttributes(attribute.String(LogFieldOperation, OperationPutObjects)))
 		batchOperationsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(LogFieldOperation, OperationPutObjects)))
@@ -64,14 +63,14 @@ func (s *service) PutObjects(ctx context.Context, providerName string, params *s
 	}
 
 	if err := validatePutManyParams(params, &s.config); err != nil {
-		atomic.AddInt64(&s.stats.FailedOperations, 1)
+		s.stats.FailedOperations.Add(1)
 		operationErrorsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(LogFieldOperation, OperationPutObjects)))
 		return fmt.Errorf("validating batch put params: %w", err)
 	}
 
 	provider, err := s.getProvider(ctx, providerName)
 	if err != nil {
-		atomic.AddInt64(&s.stats.FailedOperations, 1)
+		s.stats.FailedOperations.Add(1)
 		operationErrorsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(LogFieldOperation, OperationPutObjects)))
 		return fmt.Errorf("resolving provider %q for batch put: %w", providerName, err)
 	}
@@ -94,8 +93,8 @@ func (s *service) PutObjects(ctx context.Context, providerName string, params *s
 	return batchErr
 }
 
-// executeNativeBatchPut uploads multiple objects using the provider's native
-// batch operation.
+// executeNativeBatchPut uploads multiple objects using the provider's native batch
+// operation.
 //
 // Takes provider (StorageProviderPort) which runs the batch upload.
 // Takes providerName (string) which names the provider for logging.
@@ -108,12 +107,12 @@ func (s *service) executeNativeBatchPut(ctx context.Context, provider StoragePro
 
 	result, err := goroutine.SafeCall1(ctx, "storage.PutMany", func() (*storage_dto.BatchResult, error) { return provider.PutMany(ctx, params) })
 	if err != nil {
-		atomic.AddInt64(&s.stats.FailedOperations, 1)
+		s.stats.FailedOperations.Add(1)
 		return fmt.Errorf("executing native batch put on provider %q: %w", providerName, err)
 	}
 
-	atomic.AddInt64(&s.stats.SuccessfulOperations, int64(result.TotalSuccessful))
-	atomic.AddInt64(&s.stats.FailedOperations, int64(result.TotalFailed))
+	s.stats.SuccessfulOperations.Add(int64(result.TotalSuccessful))
+	s.stats.FailedOperations.Add(int64(result.TotalFailed))
 
 	logBatchResult(ctx, "upload", result)
 
@@ -123,8 +122,8 @@ func (s *service) executeNativeBatchPut(ctx context.Context, provider StoragePro
 	return nil
 }
 
-// executeSequentialPut uploads multiple objects one at a time for providers
-// that do not support batch operations.
+// executeSequentialPut uploads multiple objects one at a time for providers that do not
+// support batch operations.
 //
 // Takes providerName (string) which identifies the storage provider.
 // Takes params (*storage_dto.PutManyParams) which contains the objects to upload.
@@ -172,8 +171,7 @@ func (s *service) executeSequentialPut(ctx context.Context, providerName string,
 // RemoveObjects deletes several objects at once.
 //
 // Takes providerName (string) which names the storage provider to use.
-// Takes params (storage_dto.RemoveManyParams) which lists the objects to
-// remove.
+// Takes params (storage_dto.RemoveManyParams) which lists the objects to remove.
 //
 // Returns error when validation fails or the provider cannot be found.
 func (s *service) RemoveObjects(ctx context.Context, providerName string, params storage_dto.RemoveManyParams) error {
@@ -213,8 +211,8 @@ func (s *service) RemoveObjects(ctx context.Context, providerName string, params
 	return batchErr
 }
 
-// executeNativeBatchRemove performs a batch delete using the provider's native
-// batch removal capability.
+// executeNativeBatchRemove performs a batch delete using the provider's native batch
+// removal capability.
 //
 // Takes provider (StorageProviderPort) which executes the batch removal.
 // Takes providerName (string) which identifies the provider for logging.
@@ -238,12 +236,12 @@ func (*service) executeNativeBatchRemove(ctx context.Context, provider StoragePr
 	return nil
 }
 
-// executeSequentialRemove removes multiple objects one at a time when the
-// storage provider does not support batch operations.
+// executeSequentialRemove removes multiple objects one at a time when the storage
+// provider does not support batch operations.
 //
 // Takes provider (StorageProviderPort) which performs the actual removals.
-// Takes params (storage_dto.RemoveManyParams) which specifies the repository
-// and keys to remove.
+// Takes params (storage_dto.RemoveManyParams) which specifies the repository and keys to
+// remove.
 //
 // Returns error when one or more removals fail, wrapped in a MultiError.
 func (*service) executeSequentialRemove(ctx context.Context, provider StorageProviderPort, params storage_dto.RemoveManyParams) error {
@@ -275,8 +273,8 @@ func (*service) executeSequentialRemove(ctx context.Context, provider StoragePro
 
 // logBatchResult logs the result of a batch operation at the right level.
 //
-// When the result is a partial success, logs a warning with counts. When the
-// result has errors, logs an error. Otherwise, logs a trace message.
+// When the result is a partial success, logs a warning with counts. When the result has
+// errors, logs an error. Otherwise, logs a trace message.
 //
 // Takes operation (string) which names the batch operation for the message.
 // Takes result (*storage_dto.BatchResult) which contains the batch result.

@@ -61,8 +61,7 @@ type SystemStatsProvider = monitoring_domain.SystemStatsProvider
 // ResourceProvider is an alias for monitoring_domain.ResourceProvider.
 type ResourceProvider = monitoring_domain.ResourceProvider
 
-// RenderCacheStatsProvider is an alias for
-// monitoring_domain.RenderCacheStatsProvider.
+// RenderCacheStatsProvider is an alias for monitoring_domain.RenderCacheStatsProvider.
 type RenderCacheStatsProvider = monitoring_domain.RenderCacheStatsProvider
 
 // NewMetricsService creates a new MetricsService.
@@ -70,8 +69,8 @@ type RenderCacheStatsProvider = monitoring_domain.RenderCacheStatsProvider
 // Takes telemetry (TelemetryProvider) which provides telemetry data access.
 // Takes system (SystemStatsProvider) which provides system statistics.
 // Takes fds (ResourceProvider) which provides file descriptor metrics.
-// Takes cacheStats (RenderCacheStatsProvider) which provides render cache
-// statistics; may be nil.
+// Takes cacheStats (RenderCacheStatsProvider) which provides render cache statistics; may
+// be nil.
 //
 // Returns *MetricsService which is the configured service ready for use.
 func NewMetricsService(telemetry TelemetryProvider, system SystemStatsProvider, fds ResourceProvider, cacheStats RenderCacheStatsProvider, opts ...MetricsServiceOption) *MetricsService {
@@ -91,8 +90,7 @@ func NewMetricsService(telemetry TelemetryProvider, system SystemStatsProvider, 
 
 // GetMetrics returns all current metrics.
 //
-// Returns *pb.GetMetricsResponse which contains the collected metrics with a
-// timestamp.
+// Returns *pb.GetMetricsResponse which contains the collected metrics with a timestamp.
 // Returns error when the metrics cannot be retrieved.
 func (s *MetricsService) GetMetrics(_ context.Context, _ *pb.GetMetricsRequest) (*pb.GetMetricsResponse, error) {
 	if s.telemetry == nil {
@@ -132,11 +130,10 @@ func (s *MetricsService) GetMetrics(_ context.Context, _ *pb.GetMetricsRequest) 
 
 // GetTraces returns recent trace spans.
 //
-// Takes request (*pb.GetTracesRequest) which specifies the query parameters
-// including optional trace ID, limit, and error filtering.
+// Takes request (*pb.GetTracesRequest) which specifies the query parameters including
+// optional trace ID, limit, and error filtering.
 //
-// Returns *pb.GetTracesResponse which contains the matching spans with
-// metadata.
+// Returns *pb.GetTracesResponse which contains the matching spans with metadata.
 // Returns error when the request cannot be processed.
 func (s *MetricsService) GetTraces(_ context.Context, request *pb.GetTracesRequest) (*pb.GetTracesResponse, error) {
 	if s.telemetry == nil {
@@ -196,8 +193,8 @@ func (s *MetricsService) GetTraces(_ context.Context, request *pb.GetTracesReque
 
 // GetSystemStats returns system and runtime statistics.
 //
-// Returns *pb.GetSystemStatsResponse which contains the current system stats,
-// or an empty response if the system collector is not available.
+// Returns *pb.GetSystemStatsResponse which contains the current system stats, or an empty
+// response if the system collector is not available.
 // Returns error when the stats cannot be retrieved.
 func (s *MetricsService) GetSystemStats(_ context.Context, _ *pb.GetSystemStatsRequest) (*pb.GetSystemStatsResponse, error) {
 	if s.system == nil {
@@ -217,8 +214,8 @@ func (s *MetricsService) GetSystemStats(_ context.Context, _ *pb.GetSystemStatsR
 
 // GetFileDescriptors returns open file descriptor information.
 //
-// Returns *pb.GetFileDescriptorsResponse which contains categorised file
-// descriptor data with counts and timestamps.
+// Returns *pb.GetFileDescriptorsResponse which contains categorised file descriptor data
+// with counts and timestamps.
 // Returns error when the request cannot be processed.
 func (s *MetricsService) GetFileDescriptors(_ context.Context, _ *pb.GetFileDescriptorsRequest) (*pb.GetFileDescriptorsResponse, error) {
 	if s.fds == nil {
@@ -260,8 +257,7 @@ func (s *MetricsService) GetFileDescriptors(_ context.Context, _ *pb.GetFileDesc
 // WatchMetrics streams metric updates at the requested interval.
 //
 // Takes request (*pb.WatchMetricsRequest) which specifies the update interval.
-// Takes stream (pb.MetricsService_WatchMetricsServer) which receives metric
-// updates.
+// Takes stream (pb.MetricsService_WatchMetricsServer) which receives metric updates.
 //
 // Returns error when the stream context is cancelled or sending fails.
 func (s *MetricsService) WatchMetrics(request *pb.WatchMetricsRequest, stream pb.MetricsService_WatchMetricsServer) error {
@@ -314,8 +310,8 @@ func (s *MetricsService) WatchMetrics(request *pb.WatchMetricsRequest, stream pb
 	}
 }
 
-// WithMetricsServiceClock sets the clock used for timestamp generation. If not
-// provided, the real system clock is used.
+// WithMetricsServiceClock sets the clock used for timestamp generation. If not provided,
+// the real system clock is used.
 //
 // Takes clk (clock.Clock) which provides time operations.
 //
@@ -328,13 +324,13 @@ func WithMetricsServiceClock(clk clock.Clock) MetricsServiceOption {
 	}
 }
 
-// emptySystemStatsResponse returns a response with only a timestamp when stats
-// are unavailable.
+// emptySystemStatsResponse returns a response with only a timestamp when stats are
+// unavailable.
 //
 // Takes now (time.Time) which provides the current time for the timestamp.
 //
-// Returns *pb.GetSystemStatsResponse which contains only the given timestamp
-// with all other fields set to nil or zero values.
+// Returns *pb.GetSystemStatsResponse which contains only the given timestamp with all
+// other fields set to nil or zero values.
 func emptySystemStatsResponse(now time.Time) *pb.GetSystemStatsResponse {
 	return &pb.GetSystemStatsResponse{
 		Build:         nil,
@@ -354,8 +350,8 @@ func emptySystemStatsResponse(now time.Time) *pb.GetSystemStatsResponse {
 
 // convertSystemStatsToPB converts domain SystemStats to protobuf format.
 //
-// Takes stats (*monitoring_domain.SystemStats) which contains the system
-// statistics to convert.
+// Takes stats (*monitoring_domain.SystemStats) which contains the system statistics to
+// convert.
 //
 // Returns *pb.GetSystemStatsResponse which contains the converted statistics.
 func convertSystemStatsToPB(stats *monitoring_domain.SystemStats) *pb.GetSystemStatsResponse {
@@ -404,8 +400,7 @@ func convertBuildInfoToPB(build monitoring_domain.BuildInfo) *pb.BuildInfo {
 //
 // Takes rt (monitoring_domain.RuntimeInfo) which holds Go runtime settings.
 //
-// Returns *pb.RuntimeInfo which contains the GOGC, GOMEMLIMIT, and Compiler
-// values.
+// Returns *pb.RuntimeInfo which contains the GOGC, GOMEMLIMIT, and Compiler values.
 func convertRuntimeInfoToPB(rt monitoring_domain.RuntimeInfo) *pb.RuntimeInfo {
 	return &pb.RuntimeInfo{
 		Gogc:       rt.GOGC,
@@ -438,11 +433,10 @@ func convertGCInfoToPB(gc monitoring_domain.GCInfo) *pb.GCInfo {
 // convertMemoryInfoToPB converts a domain memory info struct to its protobuf
 // representation.
 //
-// Takes mem (monitoring_domain.MemoryInfo) which contains the memory statistics
-// to convert.
+// Takes mem (monitoring_domain.MemoryInfo) which contains the memory statistics to
+// convert.
 //
-// Returns *pb.MemoryInfo which is the protobuf message with all memory fields
-// mapped.
+// Returns *pb.MemoryInfo which is the protobuf message with all memory fields mapped.
 func convertMemoryInfoToPB(mem monitoring_domain.MemoryInfo) *pb.MemoryInfo {
 	return &pb.MemoryInfo{
 		Alloc:             mem.Alloc,
@@ -479,11 +473,10 @@ func convertMemoryInfoToPB(mem monitoring_domain.MemoryInfo) *pb.MemoryInfo {
 // convertSchedulerInfoToPB converts a domain SchedulerInfo to its protobuf
 // representation.
 //
-// Takes sched (monitoring_domain.SchedulerInfo) which contains scheduler
-// latency percentiles, goroutine count, and GOMAXPROCS.
+// Takes sched (monitoring_domain.SchedulerInfo) which contains scheduler latency
+// percentiles, goroutine count, and GOMAXPROCS.
 //
-// Returns *pb.SchedulerInfo which is the protobuf message for the scheduler
-// information.
+// Returns *pb.SchedulerInfo which is the protobuf message for the scheduler information.
 func convertSchedulerInfoToPB(sched monitoring_domain.SchedulerInfo) *pb.SchedulerInfo {
 	return &pb.SchedulerInfo{
 		LatencyP50Ns:   sched.LatencyP50.Nanoseconds(),
@@ -493,11 +486,10 @@ func convertSchedulerInfoToPB(sched monitoring_domain.SchedulerInfo) *pb.Schedul
 	}
 }
 
-// convertSyncInfoToPB converts a domain SyncInfo to its protobuf
-// representation.
+// convertSyncInfoToPB converts a domain SyncInfo to its protobuf representation.
 //
-// Takes sync (monitoring_domain.SyncInfo) which contains synchronisation
-// contention metrics.
+// Takes sync (monitoring_domain.SyncInfo) which contains synchronisation contention
+// metrics.
 //
 // Returns *pb.SyncInfo which is the protobuf message for the sync information.
 func convertSyncInfoToPB(sync monitoring_domain.SyncInfo) *pb.SyncInfo {
@@ -508,8 +500,7 @@ func convertSyncInfoToPB(sync monitoring_domain.SyncInfo) *pb.SyncInfo {
 
 // convertProcessInfoToPB converts a domain process info to its protobuf form.
 //
-// Takes proc (monitoring_domain.ProcessInfo) which is the domain model to
-// convert.
+// Takes proc (monitoring_domain.ProcessInfo) which is the domain model to convert.
 //
 // Returns *pb.ProcessInfo which contains the converted process information.
 func convertProcessInfoToPB(proc monitoring_domain.ProcessInfo) *pb.ProcessInfo {

@@ -18,25 +18,39 @@
 
 package db_engine_sqlite
 
-import "piko.sh/piko/internal/querier/querier_dto"
+import (
+	"piko.sh/piko/internal/querier/querier_dto"
+)
 
-var jsonTableColumns = []querier_dto.ScopedColumn{
-	{Name: "key", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-	{Name: "value", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-	{Name: "type", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-	{Name: "atom", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-	{Name: "id", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: true},
-	{Name: "parent", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: true},
-	{Name: "fullkey", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-	{Name: "path", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
-}
+var (
+	// jsonTableColumns describes the output schema shared by SQLite's json_each and
+	// json_tree table-valued functions.
+	jsonTableColumns = []querier_dto.ScopedColumn{
+		{Name: "key", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+		{Name: "value", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+		{Name: "type", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+		{Name: "atom", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+		{Name: "id", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: true},
+		{Name: "parent", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: true},
+		{Name: "fullkey", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+		{Name: "path", SQLType: tvfSQLType("text", querier_dto.TypeCategoryText), Nullable: true},
+	}
 
-var tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
-	"json_each":       jsonTableColumns,
-	"json_tree":       jsonTableColumns,
-	"generate_series": {{Name: "value", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: false}},
-}
+	// tableValuedFunctionColumns maps SQLite table-valued function names to their output
+	// column schemas.
+	tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
+		"json_each":       jsonTableColumns,
+		"json_tree":       jsonTableColumns,
+		"generate_series": {{Name: "value", SQLType: tvfSQLType("integer", querier_dto.TypeCategoryInteger), Nullable: false}},
+	}
+)
 
+// tvfSQLType constructs a SQLType for a table-valued function column.
+//
+// Takes engineName (string) which is the SQLite affinity name.
+// Takes category (querier_dto.SQLTypeCategory) which is the categorised type.
+//
+// Returns querier_dto.SQLType which packages the two values together.
 func tvfSQLType(engineName string, category querier_dto.SQLTypeCategory) querier_dto.SQLType {
 	return querier_dto.SQLType{EngineName: engineName, Category: category}
 }

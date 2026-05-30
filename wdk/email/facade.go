@@ -33,8 +33,8 @@ type Service = email_domain.Service
 // ServiceOption configures the email service.
 type ServiceOption = email_domain.ServiceOption
 
-// ProviderPort represents the interface that all email providers must
-// implement. Implement it to create custom or mock providers.
+// ProviderPort represents the interface that all email providers must implement.
+// Implement it to create custom or mock providers.
 type ProviderPort = email_domain.EmailProviderPort
 
 // SendParams holds all the data needed to send a single email.
@@ -43,16 +43,15 @@ type SendParams = email_dto.SendParams
 // Attachment represents a file attached to an email.
 type Attachment = email_dto.Attachment
 
-// MultiError is an error type that collects multiple failures from a bulk send
-// operation, allowing for partial success.
+// MultiError is an error type that collects multiple failures from a bulk send operation,
+// allowing for partial success.
 type MultiError = email_domain.MultiError
 
-// DispatcherConfig holds the settings for the background email dispatcher.
-// It controls batching, retries, and dead-lettering.
+// DispatcherConfig holds the settings for the background email dispatcher. It controls
+// batching, retries, and dead-lettering.
 type DispatcherConfig = email_dto.DispatcherConfig
 
-// DispatcherStats provides runtime statistics for monitoring the email
-// dispatcher.
+// DispatcherStats provides runtime statistics for monitoring the email dispatcher.
 type DispatcherStats = email_domain.DispatcherStats
 
 // DeadLetterEntry represents an email that has failed delivery for good.
@@ -61,8 +60,7 @@ type DeadLetterEntry = email_dto.DeadLetterEntry
 // EmailBuilder provides a fluent interface for constructing email messages.
 type EmailBuilder = email_domain.EmailBuilder
 
-// TemplatedEmailBuilder provides a fluent interface for constructing templated
-// emails.
+// TemplatedEmailBuilder provides a fluent interface for constructing templated emails.
 type TemplatedEmailBuilder[PropsT any] = email_domain.TemplatedEmailBuilder[PropsT]
 
 const (
@@ -72,8 +70,8 @@ const (
 
 // NewService creates a new email service instance.
 //
-// Takes defaultProviderName (string) which specifies the provider to use when
-// none is specified.
+// Takes defaultProviderName (string) which specifies the provider to use when none is
+// specified.
 // Takes opts (...ServiceOption) which configures service limits and behaviour.
 //
 // Returns Service which is the configured email service ready for use.
@@ -99,8 +97,7 @@ func GetDefaultService() (Service, error) {
 	return service, nil
 }
 
-// NewEmailBuilder creates a new email builder for composing HTML or plain text
-// emails.
+// NewEmailBuilder creates a new email builder for composing HTML or plain text emails.
 //
 // Takes service (Service) which is the email service to use for sending.
 //
@@ -139,11 +136,10 @@ func NewEmailBuilderFromDefault() (*EmailBuilder, error) {
 //
 // Takes service (Service) which is the email service to use for sending.
 //
-// The generic type parameter PropsT represents the Props type of your email
-// template.
+// The generic type parameter PropsT represents the Props type of your email template.
 //
-// Returns *TemplatedEmailBuilder[PropsT] which provides a fluent interface for
-// building templated emails.
+// Returns *TemplatedEmailBuilder[PropsT] which provides a fluent interface for building
+// templated emails.
 // Returns error when service is nil.
 //
 // Example:
@@ -173,11 +169,10 @@ func NewTemplatedEmailBuilder[PropsT any](service Service) (*TemplatedEmailBuild
 	return builder, nil
 }
 
-// NewTemplatedEmailBuilderFromDefault creates a new templated email builder
-// using the framework's bootstrapped service.
+// NewTemplatedEmailBuilderFromDefault creates a new templated email builder using the
+// framework's bootstrapped service.
 //
-// The generic type parameter PropsT represents the Props type of your email
-// template.
+// The generic type parameter PropsT represents the Props type of your email template.
 //
 // Returns *TemplatedEmailBuilder[PropsT] which is the configured builder.
 // Returns error when the framework has not been bootstrapped.

@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 )
 
-// rateLimitService implements RateLimitService by delegating to the
-// centralised rate limiter's fixed window algorithm.
+// rateLimitService implements RateLimitService by delegating to the centralised rate
+// limiter's fixed window algorithm.
 type rateLimitService struct {
 	// limiter provides the centralised rate limiting algorithms.
 	limiter *ratelimiter_domain.Limiter
@@ -35,14 +35,14 @@ type rateLimitService struct {
 
 // CheckLimit checks whether a rate limit has been exceeded for the given key.
 //
-// Takes ctx (context.Context) which propagates cancellation and tracing into
-// the underlying counter store call.
+// Takes ctx (context.Context) which propagates cancellation and tracing into the
+// underlying counter store call.
 // Takes key (string) which identifies the resource being rate limited.
 // Takes limit (int) which sets the maximum number of requests allowed.
 // Takes window (time.Duration) which sets the time period for the limit.
 //
-// Returns ratelimiter_dto.Result which contains allowed status, remaining
-// count, and reset time.
+// Returns ratelimiter_dto.Result which contains allowed status, remaining count, and
+// reset time.
 // Returns error when the storage operation fails or the context is cancelled.
 func (s *rateLimitService) CheckLimit(ctx context.Context, key string, limit int, window time.Duration) (ratelimiter_dto.Result, error) {
 	config := ratelimiter_dto.FixedWindowConfig{
@@ -53,11 +53,11 @@ func (s *rateLimitService) CheckLimit(ctx context.Context, key string, limit int
 	return s.limiter.CheckFixedWindow(ctx, key, config)
 }
 
-// NewRateLimitService creates a new rate limit service backed by the
-// centralised rate limiter.
+// NewRateLimitService creates a new rate limit service backed by the centralised rate
+// limiter.
 //
-// Takes limiter (*ratelimiter_domain.Limiter) which provides the rate limiting
-// algorithms and storage.
+// Takes limiter (*ratelimiter_domain.Limiter) which provides the rate limiting algorithms
+// and storage.
 //
 // Returns RateLimitService which is ready for use.
 func NewRateLimitService(limiter *ratelimiter_domain.Limiter) RateLimitService {

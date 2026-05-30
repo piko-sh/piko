@@ -24,11 +24,13 @@ import (
 	"piko.sh/piko/internal/security/security_domain"
 )
 
-// noOpBinderAdapter implements RequestContextBinderAdapter with no action.
-// It returns a fixed identifier, useful when CSRF protection is disabled.
+// noOpBinderAdapter implements RequestContextBinderAdapter with no action. It returns a
+// fixed identifier, useful when CSRF protection is disabled.
 type noOpBinderAdapter struct{}
 
-var _ security_domain.RequestContextBinderAdapter = (*noOpBinderAdapter)(nil)
+var (
+	_ security_domain.RequestContextBinderAdapter = (*noOpBinderAdapter)(nil)
+)
 
 // GetBindingIdentifier returns a constant identifier for all requests.
 //
@@ -39,8 +41,8 @@ func (*noOpBinderAdapter) GetBindingIdentifier(_ *http.Request) string {
 
 // NewNoOpBinderAdapter creates a new no-operation binder adapter.
 //
-// Returns security_domain.RequestContextBinderAdapter which performs no
-// binding operations.
+// Returns security_domain.RequestContextBinderAdapter which performs no binding
+// operations.
 func NewNoOpBinderAdapter() security_domain.RequestContextBinderAdapter {
 	return &noOpBinderAdapter{}
 }

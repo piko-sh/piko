@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/binder"
 )
 
-// ConverterFunc defines a function that converts a string value into a custom
-// type during form binding.
+// ConverterFunc defines a function that converts a string value into a custom type during
+// form binding.
 //
 // Example:
 //
@@ -36,8 +36,8 @@ import (
 //	})
 type ConverterFunc = binder.ConverterFunc
 
-// Option is a functional option for setting up a Bind operation.
-// Options can change global settings for a single Bind call.
+// Option is a functional option for setting up a Bind operation. Options can change
+// global settings for a single Bind call.
 type Option = binder.Option
 
 // Bind populates the fields of the destination struct from the source data.
@@ -59,9 +59,9 @@ func Bind(ctx context.Context, destination any, source map[string][]string, opts
 	return binder.GetBinder().Bind(ctx, destination, source, opts...)
 }
 
-// BindMap populates the fields of the destination struct from a map[string]any,
-// typically produced by JSON decoding. It flattens the nested map into
-// bracket-notation form data and delegates to the standard Bind pipeline.
+// BindMap populates the fields of the destination struct from a map[string]any, typically
+// produced by JSON decoding. It flattens the nested map into bracket-notation form data
+// and delegates to the standard Bind pipeline.
 //
 // Takes destination (any) which is the destination struct to populate.
 // Takes source (map[string]any) which contains the source data to bind from.
@@ -80,8 +80,8 @@ func BindMap(ctx context.Context, destination any, source map[string]any, opts .
 	return binder.GetBinder().BindMap(ctx, destination, source, opts...)
 }
 
-// BindJSON populates the fields of the destination struct from raw JSON bytes.
-// It decodes the JSON into a map, then delegates to BindMap.
+// BindJSON populates the fields of the destination struct from raw JSON bytes. It decodes
+// the JSON into a map, then delegates to BindMap.
 //
 // Takes destination (any) which is the destination struct to populate.
 // Takes source ([]byte) which contains the raw JSON bytes to decode.
@@ -100,13 +100,12 @@ func BindJSON(ctx context.Context, destination any, source []byte, opts ...Optio
 	return binder.GetBinder().BindJSON(ctx, destination, source, opts...)
 }
 
-// IgnoreUnknownKeys returns an Option that controls how unknown form fields
-// are handled during binding.
+// IgnoreUnknownKeys returns an Option that controls how unknown form fields are handled
+// during binding.
 //
-// When set to true, the binder silently ignores fields in the source data that
-// do not map to a field in the destination struct. When set to false, it
-// returns an error for each unknown key. This overrides the global setting for
-// a single Bind call.
+// When set to true, the binder silently ignores fields in the source data that do not map
+// to a field in the destination struct. When set to false, it returns an error for each
+// unknown key. This overrides the global setting for a single Bind call.
 //
 // Takes ignore (bool) which specifies whether to ignore unknown keys.
 //
@@ -115,8 +114,8 @@ func IgnoreUnknownKeys(ignore bool) Option {
 	return binder.IgnoreUnknownKeys(ignore)
 }
 
-// WithMaxSliceSize returns an Option to set a per-call limit for slice growth.
-// This overrides the global limit for this specific Bind call.
+// WithMaxSliceSize returns an Option to set a per-call limit for slice growth. This
+// overrides the global limit for this specific Bind call.
 //
 // Takes size (int) which specifies the maximum number of elements allowed.
 //
@@ -125,8 +124,8 @@ func WithMaxSliceSize(size int) Option {
 	return binder.WithMaxSliceSize(size)
 }
 
-// WithMaxPathDepth returns an Option to set a per-call limit for path depth.
-// This overrides the global limit for this specific Bind call.
+// WithMaxPathDepth returns an Option to set a per-call limit for path depth. This
+// overrides the global limit for this specific Bind call.
 //
 // Takes depth (int) which specifies the maximum path depth allowed.
 //
@@ -135,8 +134,8 @@ func WithMaxPathDepth(depth int) Option {
 	return binder.WithMaxPathDepth(depth)
 }
 
-// WithMaxPathLength returns an Option to set a per-call limit for path length.
-// This overrides the global limit for this specific Bind call.
+// WithMaxPathLength returns an Option to set a per-call limit for path length. This
+// overrides the global limit for this specific Bind call.
 //
 // Takes length (int) which specifies the maximum path length allowed.
 //
@@ -145,8 +144,8 @@ func WithMaxPathLength(length int) Option {
 	return binder.WithMaxPathLength(length)
 }
 
-// WithMaxFieldCount returns an Option to set a per-call limit for field count.
-// This overrides the global limit for this specific Bind call.
+// WithMaxFieldCount returns an Option to set a per-call limit for field count. This
+// overrides the global limit for this specific Bind call.
 //
 // Takes count (int) which specifies the maximum number of fields allowed.
 //
@@ -155,8 +154,8 @@ func WithMaxFieldCount(count int) Option {
 	return binder.WithMaxFieldCount(count)
 }
 
-// WithMaxValueLength returns an Option to set a per-call limit for value
-// length. This overrides the global limit for this specific Bind call.
+// WithMaxValueLength returns an Option to set a per-call limit for value length. This
+// overrides the global limit for this specific Bind call.
 //
 // Takes length (int) which specifies the maximum allowed value length.
 //
@@ -165,9 +164,9 @@ func WithMaxValueLength(length int) Option {
 	return binder.WithMaxValueLength(length)
 }
 
-// RegisterConverter registers a custom function to convert a string form value
-// into a specific type. This is used for handling custom data types in form
-// submissions that are not natively supported by the binder.
+// RegisterConverter registers a custom function to convert a string form value into a
+// specific type. This is used for handling custom data types in form submissions that are
+// not natively supported by the binder.
 //
 // Takes typ (any) which is a zero value of the target type (e.g., MyType{}).
 // Takes converter (ConverterFunc) which performs the string-to-type conversion.
@@ -175,20 +174,20 @@ func RegisterConverter(typ any, converter ConverterFunc) {
 	binder.GetBinder().RegisterConverter(reflect.TypeOf(typ), converter)
 }
 
-// SetMaxFormFields sets the maximum number of fields allowed in a form
-// submission. This is a security measure to prevent hash-flooding DoS attacks.
+// SetMaxFormFields sets the maximum number of fields allowed in a form submission. This
+// is a security measure to prevent hash-flooding DoS attacks.
 //
-// Takes count (int) which specifies the maximum number of form fields.
-// A value of 0 means no limit. The default is 1000.
+// Takes count (int) which specifies the maximum number of form fields. A value of 0 means
+// no limit. The default is 1000.
 func SetMaxFormFields(count int) {
 	binder.GetBinder().SetMaxFieldCount(count)
 }
 
-// SetMaxFormPathLength sets the maximum length in characters for a single form
-// field name.
+// SetMaxFormPathLength sets the maximum length in characters for a single form field
+// name.
 //
-// This prevents CPU and memory exhaustion from parsing overly long path
-// strings. The default is 4096. A value of 0 means no limit.
+// This prevents CPU and memory exhaustion from parsing overly long path strings. The
+// default is 4096. A value of 0 means no limit.
 //
 // Takes length (int) which specifies the maximum path length in characters.
 func SetMaxFormPathLength(length int) {
@@ -199,18 +198,17 @@ func SetMaxFormPathLength(length int) {
 //
 // Takes length (int) which specifies the maximum characters allowed.
 //
-// This prevents memory exhaustion from malicious TextUnmarshaler
-// implementations or huge inputs. The default is 65536 (64KB). A value
-// of 0 means no limit.
+// This prevents memory exhaustion from malicious TextUnmarshaler implementations or huge
+// inputs. The default is 65536 (64KB). A value of 0 means no limit.
 func SetMaxFormValueLength(length int) {
 	binder.GetBinder().SetMaxValueLength(length)
 }
 
 // SetMaxFormPathDepth sets the maximum nesting depth for form paths.
 //
-// Form paths use dot notation such as "a.b.c.d". This limit is a security
-// measure to prevent stack overflow from deeply nested paths. The default
-// is 32. A value of 0 means no limit.
+// Form paths use dot notation such as "a.b.c.d". This limit is a security measure to
+// prevent stack overflow from deeply nested paths. The default is 32. A value of 0 means
+// no limit.
 //
 // Takes depth (int) which specifies the maximum allowed path depth.
 func SetMaxFormPathDepth(depth int) {
@@ -219,22 +217,20 @@ func SetMaxFormPathDepth(depth int) {
 
 // SetMaxSliceSize sets the maximum allowed index for slices in form binding.
 //
-// This is a security measure to prevent memory exhaustion attacks from inputs
-// like "items[9999999]". The default is 1000. A value of 0 means no limit.
+// This is a security measure to prevent memory exhaustion attacks from inputs like
+// "items[9999999]". The default is 1000. A value of 0 means no limit.
 //
 // Takes size (int) which specifies the maximum slice index allowed.
 func SetMaxSliceSize(size int) {
 	binder.GetBinder().SetMaxSliceSize(size)
 }
 
-// SetIgnoreUnknownKeys sets the global default for ignoring unknown form
-// fields.
+// SetIgnoreUnknownKeys sets the global default for ignoring unknown form fields.
 //
-// Takes ignore (bool) which when true causes the binder to silently ignore
-// fields in the source data that do not map to a field in the destination
-// struct. When false (the default), the binder returns an error for each
-// unknown key. This setting can be overridden on a per-call basis using the
-// IgnoreUnknownKeys option.
+// Takes ignore (bool) which when true causes the binder to silently ignore fields in the
+// source data that do not map to a field in the destination struct. When false (the
+// default), the binder returns an error for each unknown key. This setting can be
+// overridden on a per-call basis using the IgnoreUnknownKeys option.
 func SetIgnoreUnknownKeys(ignore bool) {
 	binder.GetBinder().SetIgnoreUnknownKeys(ignore)
 }

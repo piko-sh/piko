@@ -24,9 +24,8 @@ import (
 	"strings"
 )
 
-// copyPropertyFromStyle copies a single named CSS property
-// from src to dst, used to implement inherit, initial, and
-// unset keywords.
+// copyPropertyFromStyle copies a single named CSS property from src to dst, used to
+// implement inherit, initial, and unset keywords.
 //
 // Takes dst (*ComputedStyle) which is the target style.
 // Takes property (string) which is the CSS property name.
@@ -359,12 +358,12 @@ func copyPropertyFromStyle(dst *ComputedStyle, property string, src *ComputedSty
 	}
 }
 
-// parseTabStops parses a custom tab-stops CSS property value into a
-// slice of TabStop structs.
+// parseTabStops parses a custom tab-stops CSS property value into a slice of TabStop
+// structs.
 //
-// The syntax is semicolon-separated entries, each containing a position
-// (CSS length), an optional alignment keyword (left, right, centre), and
-// an optional quoted leader character:
+// The syntax is semicolon-separated entries, each containing a position (CSS length), an
+// optional alignment keyword (left, right, centre), and an optional quoted leader
+// character:
 //
 //	tab-stops: 200pt right '.'; 400pt right
 //
@@ -390,15 +389,13 @@ func parseTabStops(value string, context ResolutionContext) []TabStop {
 	return stops
 }
 
-// parseSingleTabStop parses one semicolon-delimited tab stop definition
-// into a TabStop.
+// parseSingleTabStop parses one semicolon-delimited tab stop definition into a TabStop.
 //
 // Takes part (string) which is the single tab stop definition text.
 // Takes context (ResolutionContext) which provides unit resolution values.
 //
 // Returns TabStop which is the parsed tab stop.
-// Returns bool which is false when the definition is empty or has an
-// invalid position.
+// Returns bool which is false when the definition is empty or has an invalid position.
 func parseSingleTabStop(part string, context ResolutionContext) (TabStop, bool) {
 	if part == "" {
 		return TabStop{}, false
@@ -421,8 +418,8 @@ func parseSingleTabStop(part string, context ResolutionContext) (TabStop, bool) 
 	return stop, true
 }
 
-// applyTabStopToken applies a single token (alignment keyword or quoted
-// leader character) to a tab stop.
+// applyTabStopToken applies a single token (alignment keyword or quoted leader character)
+// to a tab stop.
 //
 // Takes stop (*TabStop) which is the tab stop to modify.
 // Takes token (string) which is the token to apply.
@@ -443,8 +440,8 @@ func applyTabStopToken(stop *TabStop, token string) {
 	}
 }
 
-// tokeniseTabStop splits a single tab stop definition into tokens,
-// respecting quoted strings as single tokens.
+// tokeniseTabStop splits a single tab stop definition into tokens, respecting quoted
+// strings as single tokens.
 //
 // Takes s (string) which is the tab stop definition string.
 //
@@ -460,8 +457,8 @@ func tokeniseTabStop(s string) []string {
 	return ts.tokens
 }
 
-// tabStopTokeniser accumulates tokens from a tab stop definition string,
-// keeping track of whether we are inside a quoted region.
+// tabStopTokeniser accumulates tokens from a tab stop definition string, keeping track of
+// whether we are inside a quoted region.
 type tabStopTokeniser struct {
 	// tokens holds the accumulated tokens.
 	tokens []string
@@ -476,8 +473,8 @@ type tabStopTokeniser struct {
 	quoteCh byte
 }
 
-// processByte handles a single character, delegating to the appropriate
-// handler based on the current quote state.
+// processByte handles a single character, delegating to the appropriate handler based on
+// the current quote state.
 //
 // Takes ch (byte) which is the character to process.
 func (t *tabStopTokeniser) processByte(ch byte) {
@@ -488,8 +485,8 @@ func (t *tabStopTokeniser) processByte(ch byte) {
 	t.processUnquotedByte(ch)
 }
 
-// processQuotedByte handles a character inside a quoted region. If the
-// character closes the quote, the accumulated token is emitted.
+// processQuotedByte handles a character inside a quoted region. If the character closes
+// the quote, the accumulated token is emitted.
 //
 // Takes ch (byte) which is the character to process.
 func (t *tabStopTokeniser) processQuotedByte(ch byte) {
@@ -516,8 +513,8 @@ func (t *tabStopTokeniser) processUnquotedByte(ch byte) {
 	}
 }
 
-// emit appends the current builder content as a token (if non-empty)
-// and resets the builder.
+// emit appends the current builder content as a token (if non-empty) and resets the
+// builder.
 func (t *tabStopTokeniser) emit() {
 	if t.current.Len() > 0 {
 		t.tokens = append(t.tokens, t.current.String())
@@ -530,16 +527,12 @@ func (t *tabStopTokeniser) flush() {
 	t.emit()
 }
 
-// resolveLength converts a CSS length string with units into
-// a resolved point value.
+// resolveLength converts a CSS length string with units into a resolved point value.
 //
-// Takes value (string) which is the CSS length string
-// to resolve.
-// Takes context (ResolutionContext) which provides the
-// values needed for unit resolution.
+// Takes value (string) which is the CSS length string to resolve.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
-// Returns float64 which is the resolved length in
-// points.
+// Returns float64 which is the resolved length in points.
 func resolveLength(value string, context ResolutionContext) float64 {
 	value = strings.TrimSpace(value)
 	if value == "0" {
@@ -589,11 +582,9 @@ func resolveLength(value string, context ResolutionContext) float64 {
 	return number
 }
 
-// splitShorthandValues splits a CSS shorthand value into
-// whitespace-separated tokens, but preserves function calls
-// like calc() as single tokens. For example,
-// "calc(10px + 5px) 20px" splits into
-// ["calc(10px + 5px)", "20px"].
+// splitShorthandValues splits a CSS shorthand value into whitespace-separated tokens, but
+// preserves function calls like calc() as single tokens. For example, "calc(10px + 5px)
+// 20px" splits into ["calc(10px + 5px)", "20px"].
 //
 // Takes value (string) which is the CSS shorthand value.
 //
@@ -613,8 +604,8 @@ func splitShorthandValues(value string) []string {
 	return parts
 }
 
-// classifyShorthandChar processes a single character during shorthand
-// value splitting, updating the token start position and paren depth.
+// classifyShorthandChar processes a single character during shorthand value splitting,
+// updating the token start position and paren depth.
 //
 // Takes ch (byte) which is the character to classify.
 // Takes i (int) which is the current index in the value string.

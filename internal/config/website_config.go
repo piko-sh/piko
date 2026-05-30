@@ -23,8 +23,8 @@ type I18nConfig struct {
 	// DefaultLocale is the locale used when no locale is specified.
 	DefaultLocale string `json:"defaultLocale" yaml:"defaultLocale"`
 
-	// Strategy specifies how locale is determined in URLs. Valid values are
-	// "query-only", "prefix", or "prefix_except_default".
+	// Strategy specifies how locale is determined in URLs. Valid values are "query-only",
+	// "prefix", or "prefix_except_default".
 	Strategy string `json:"strategy" yaml:"strategy"`
 
 	// Locales lists the locale codes that the site supports.
@@ -36,14 +36,12 @@ type FaviconDefinition struct {
 	// Rel is the link relation type (e.g. "icon", "apple-touch-icon").
 	Rel string `json:"rel" yaml:"rel"`
 
-	// Href is the URL path to the favicon file used in the generated link
-	// element. When Src is also set, the resolved Src value overwrites Href
-	// during bootstrap.
+	// Href is the URL path to the favicon file used in the generated link element. When Src
+	// is also set, the resolved Src value overwrites Href during bootstrap.
 	Href string `json:"href,omitempty" yaml:"href,omitempty"`
 
-	// Src is a local asset path resolved through the asset
-	// pipeline to a hashed URL during bootstrap, supporting the
-	// @/ module alias (e.g. "@/assets/favicon.ico") and taking
+	// Src is a local asset path resolved through the asset pipeline to a hashed URL during
+	// bootstrap, supporting the @/ module alias (e.g. "@/assets/favicon.ico") and taking
 	// precedence over Href when set.
 	Src string `json:"src,omitempty" yaml:"src,omitempty"`
 
@@ -66,9 +64,8 @@ type FontDefinition struct {
 	Instant bool `json:"instant" yaml:"instant"`
 }
 
-// WebsiteConfig defines the user-facing properties of the website being
-// served. It is typically loaded from a config.json file in the website's
-// root directory.
+// WebsiteConfig defines the user-facing properties of the website being served. It is
+// typically loaded from a config.json file in the website's root directory.
 type WebsiteConfig struct {
 	// Theme maps CSS variable names to their values for site styling.
 	Theme map[string]string `json:"theme" yaml:"theme"`

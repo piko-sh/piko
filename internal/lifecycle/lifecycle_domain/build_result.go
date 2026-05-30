@@ -18,12 +18,13 @@
 
 package lifecycle_domain
 
-import "time"
+import (
+	"time"
+)
 
-// BuildResult holds the outcome of a full build run, where
-// infrastructure errors (context cancelled, flush timeout) are reported
-// via the error return of RunBuild and task-level failures are captured
-// here so callers can inspect and format a summary report.
+// BuildResult holds the outcome of a full build run, where infrastructure errors (context
+// cancelled, flush timeout) are reported via the error return of RunBuild and task-level
+// failures are captured here so callers can inspect and format a summary report.
 type BuildResult struct {
 	// Failures lists the details of each failed task.
 	Failures []BuildFailure
@@ -37,8 +38,7 @@ type BuildResult struct {
 	// TotalFailed is the number of tasks that ended in the FAILED state.
 	TotalFailed int64
 
-	// TotalFatalFailed is the subset of TotalFailed caused by fatal
-	// (non-retryable) errors.
+	// TotalFatalFailed is the subset of TotalFailed caused by fatal (non-retryable) errors.
 	TotalFatalFailed int64
 
 	// TotalRetried is the number of tasks that were retried after failure.
@@ -47,13 +47,12 @@ type BuildResult struct {
 	// Duration is the wall-clock time from build start to completion.
 	Duration time.Duration
 
-	// TimedOut is true when the build was terminated by a timeout rather than
-	// completing naturally.
+	// TimedOut is true when the build was terminated by a timeout rather than completing
+	// naturally.
 	TimedOut bool
 }
 
-// BuildFailure holds the details of a single failed task for user-facing
-// reporting.
+// BuildFailure holds the details of a single failed task for user-facing reporting.
 type BuildFailure struct {
 	// ArtefactID identifies the artefact the task was processing.
 	ArtefactID string

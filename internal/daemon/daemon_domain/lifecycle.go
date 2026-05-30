@@ -60,25 +60,24 @@ const (
 	// keyBindAddress is the logging key for network bind addresses.
 	keyBindAddress = "bind_address"
 
-	// http2MaxConcurrentStream is the most streams that can run at the same time
-	// on one HTTP/2 connection.
+	// http2MaxConcurrentStream is the most streams that can run at the same time on one
+	// HTTP/2 connection.
 	http2MaxConcurrentStream = 250
 
 	// http2IdleTimeoutSecs is the idle timeout for HTTP/2 connections.
 	http2IdleTimeoutSecs = 90
 
-	// http2ReadIdleTimeoutSecs is the duration of inactivity before sending a PING
-	// frame to verify the client connection is still alive. This is particularly
-	// useful when running behind load balancers or reverse proxies.
+	// http2ReadIdleTimeoutSecs is the duration of inactivity before sending a PING frame to
+	// verify the client connection is still alive. This is particularly useful when running
+	// behind load balancers or reverse proxies.
 	http2ReadIdleTimeoutSecs = 30
 
-	// http2PingTimeoutSecs is the duration to wait for a PING response before
-	// closing the connection. Only applies when http2ReadIdleTimeoutSecs > 0.
+	// http2PingTimeoutSecs is the duration to wait for a PING response before closing the
+	// connection. Only applies when http2ReadIdleTimeoutSecs > 0.
 	http2PingTimeoutSecs = 15
 )
 
-// serverKind identifies the type of server for differentiated logging and
-// telemetry.
+// serverKind identifies the type of server for differentiated logging and telemetry.
 type serverKind uint8
 
 const (
@@ -93,8 +92,7 @@ const (
 )
 
 var (
-	// serverKindLabels maps each server kind to its display text for logs and
-	// errors.
+	// serverKindLabels maps each server kind to its display text for logs and errors.
 	serverKindLabels = [3]struct {
 		name         string
 		shutdownOK   string
@@ -110,21 +108,20 @@ var (
 		},
 	}
 
-	// mapCarrierPool provides reusable MapCarrier instances to avoid per-request
-	// map allocation during trace context extraction.
+	// mapCarrierPool provides reusable MapCarrier instances to avoid per-request map
+	// allocation during trace context extraction.
 	mapCarrierPool = sync.Pool{
 		New: func() any {
 			return make(propagation.MapCarrier, mapCarrierPoolSize)
 		},
 	}
 
-	// errContinueRetry is a sentinel error indicating the port loop should
-	// continue.
+	// errContinueRetry is a sentinel error indicating the port loop should continue.
 	errContinueRetry = errors.New("continue retry")
 )
 
-// runDaemonMain is the main loop for the daemon. It starts the HTTP servers
-// and waits for a shutdown signal.
+// runDaemonMain is the main loop for the daemon. It starts the HTTP servers and waits for
+// a shutdown signal.
 //
 // Returns error when the server fails or shutdown stops early.
 func (ds *daemonService) runDaemonMain(ctx context.Context) error {
@@ -140,11 +137,11 @@ func (ds *daemonService) runDaemonMain(ctx context.Context) error {
 
 // startHTTPServers launches the main and health servers.
 //
-// Returns chan error which receives any server startup errors,
-// and is closed when all servers have stopped.
+// Returns chan error which receives any server startup errors, and is closed when all
+// servers have stopped.
 //
-// Concurrent goroutines are spawned via an errgroup that runs each
-// server in its own goroutine.
+// Concurrent goroutines are spawned via an errgroup that runs each server in its own
+// goroutine.
 func (ds *daemonService) startHTTPServers(ctx context.Context) chan error {
 	serverErrChan := make(chan error, 1)
 
@@ -179,8 +176,8 @@ func (ds *daemonService) startHTTPServers(ctx context.Context) chan error {
 
 // startMainServer sets up and starts the main HTTP server.
 //
-// When TLS is enabled, native HTTP/2 negotiation happens via ALPN so the
-// h2c cleartext wrapper is not needed.
+// When TLS is enabled, native HTTP/2 negotiation happens via ALPN so the h2c cleartext
+// wrapper is not needed.
 //
 // Returns error when the server fails to start.
 func (ds *daemonService) startMainServer(ctx context.Context) error {
@@ -206,14 +203,14 @@ func (ds *daemonService) startMainServer(ctx context.Context) error {
 	return ds.startServer(ctx, h2cHandler)
 }
 
-// createTracingHandler wraps the final router to extract distributed trace
-// context from incoming request headers and initialise the per-request
-// PikoRequestCtx carrier. The carrier is acquired from a pool here and
-// released after ServeHTTP returns, so every downstream handler can mutate
-// it via the context pointer without additional context.WithValue calls.
+// createTracingHandler wraps the final router to extract distributed trace context from
+// incoming request headers and initialise the per-request PikoRequestCtx carrier. The
+// carrier is acquired from a pool here and released after ServeHTTP returns, so every
+// downstream handler can mutate it via the context pointer without additional
+// context.WithValue calls.
 //
-// Returns http.Handler which extracts trace context from request headers,
-// allowing trace propagation from upstream services.
+// Returns http.Handler which extracts trace context from request headers, allowing trace
+// propagation from upstream services.
 func (ds *daemonService) createTracingHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pctx := daemon_dto.AcquirePikoRequestCtx()
@@ -231,8 +228,8 @@ func (ds *daemonService) createTracingHandler() http.Handler {
 
 // shouldStartHealthServer checks if the health server should be started.
 //
-// Returns bool which is true when the health server and router are configured
-// and health probes are enabled.
+// Returns bool which is true when the health server and router are configured and health
+// probes are enabled.
 func (ds *daemonService) shouldStartHealthServer() bool {
 	return ds.healthServer != nil &&
 		ds.healthRouter != nil &&
@@ -286,9 +283,8 @@ func (*daemonService) handleServerError(ctx context.Context, span trace.Span, er
 	return fmt.Errorf("HTTP server stopped unexpectedly: %w", err)
 }
 
-// startServer starts the HTTP server on the configured port.
-// If the port is in use and AutoNextPort is enabled, it tries the next
-// available port.
+// startServer starts the HTTP server on the configured port. If the port is in use and
+// AutoNextPort is enabled, it tries the next available port.
 //
 // Takes handler (http.Handler) which handles incoming HTTP requests.
 //
@@ -313,8 +309,7 @@ func (ds *daemonService) startServer(ctx context.Context, handler http.Handler) 
 // logServerStartupConfig logs the server startup settings.
 //
 // Takes initialPort (int) which is the port to bind to first.
-// Takes autoNextPort (bool) which enables trying the next port if the first
-// is in use.
+// Takes autoNextPort (bool) which enables trying the next port if the first is in use.
 func (*daemonService) logServerStartupConfig(ctx context.Context, initialPort int, autoNextPort bool) {
 	ctx, l := logger_domain.From(ctx, log)
 	if autoNextPort {
@@ -326,8 +321,8 @@ func (*daemonService) logServerStartupConfig(ctx context.Context, initialPort in
 	}
 }
 
-// tryStartOnPort attempts to start the server on the specified port, retrying
-// on different ports if configured.
+// tryStartOnPort attempts to start the server on the specified port, retrying on
+// different ports if configured.
 //
 // Takes span (trace.Span) which records tracing information.
 // Takes handler (http.Handler) which serves incoming HTTP requests.
@@ -362,9 +357,8 @@ func (ds *daemonService) tryStartOnPort(ctx context.Context, span trace.Span, ha
 	return ds.reportNoPortAvailable(ctx, span, initialPort)
 }
 
-// handleServerListenResult checks the result of a server listen attempt and
-// takes the correct action. It uses serverKind to set the right log messages
-// and span attributes.
+// handleServerListenResult checks the result of a server listen attempt and takes the
+// correct action. It uses serverKind to set the right log messages and span attributes.
 //
 // Takes span (trace.Span) which records the operation status and errors.
 // Takes listenErr (error) which is the error from the listen attempt.
@@ -442,9 +436,9 @@ func (*daemonService) reportNoPortAvailable(ctx context.Context, span trace.Span
 	return finalErr
 }
 
-// startHealthServer starts the health check HTTP server on the configured port
-// and bind address. If AutoNextPort is enabled, it tries the next ports when
-// the configured port is already in use.
+// startHealthServer starts the health check HTTP server on the configured port and bind
+// address. If AutoNextPort is enabled, it tries the next ports when the configured port
+// is already in use.
 //
 // Returns error when the port setting is invalid or the server cannot start.
 func (ds *daemonService) startHealthServer(ctx context.Context) error {
@@ -470,8 +464,8 @@ func (ds *daemonService) startHealthServer(ctx context.Context) error {
 //
 // Takes bindAddr (string) which specifies the network address to bind to.
 // Takes initialPort (int) which specifies the starting port number.
-// Takes autoNextPort (bool) which enables automatic port selection if the
-// first port is already in use.
+// Takes autoNextPort (bool) which enables automatic port selection if the first port is
+// already in use.
 func (*daemonService) logHealthServerStartupConfig(ctx context.Context, bindAddr string, initialPort int, autoNextPort bool) {
 	ctx, l := logger_domain.From(ctx, log)
 	if autoNextPort {
@@ -486,8 +480,8 @@ func (*daemonService) logHealthServerStartupConfig(ctx context.Context, bindAddr
 	}
 }
 
-// tryStartHealthServerOnPort tries to start the health server on the given
-// port, moving to the next port if needed.
+// tryStartHealthServerOnPort tries to start the health server on the given port,
+// advancing to the next port if needed.
 //
 // Takes span (trace.Span) which records tracing data.
 // Takes bindAddr (string) which is the address to bind to.
@@ -528,8 +522,8 @@ func (ds *daemonService) tryStartHealthServerOnPort(ctx context.Context, span tr
 	return ds.reportNoHealthPortAvailable(ctx, span, initialPort)
 }
 
-// reportNoHealthPortAvailable reports that no port is available for the health
-// server after trying all allowed ports.
+// reportNoHealthPortAvailable reports that no port is available for the health server
+// after trying all allowed ports.
 //
 // Takes span (trace.Span) which records the error for tracing.
 // Takes initialPort (int) which is the first port that was tried.
@@ -544,8 +538,7 @@ func (*daemonService) reportNoHealthPortAvailable(ctx context.Context, span trac
 	return finalErr
 }
 
-// shutdown stops the daemon servers in the correct order for graceful
-// rolling deploys.
+// shutdown stops the daemon servers in the correct order for graceful rolling deploys.
 //
 // Returns error when the main or health server fails to shut down cleanly.
 func (ds *daemonService) shutdown(ctx context.Context) error {
@@ -575,8 +568,8 @@ func (ds *daemonService) shutdown(ctx context.Context) error {
 	return nil
 }
 
-// signalDrain marks the health probe service as draining so that readiness
-// checks return unhealthy before any server is stopped.
+// signalDrain marks the health probe service as draining so that readiness checks return
+// unhealthy before any server is stopped.
 func (ds *daemonService) signalDrain(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	if ds.drainSignaller != nil {
@@ -585,8 +578,8 @@ func (ds *daemonService) signalDrain(ctx context.Context) {
 	}
 }
 
-// waitDrainDelay pauses for the configured drain delay, giving load
-// balancers time to deregister the instance.
+// waitDrainDelay pauses for the configured drain delay, giving load balancers time to
+// deregister the instance.
 //
 // Takes span (trace.Span) which records drain delay tracing events.
 func (ds *daemonService) waitDrainDelay(ctx context.Context, span trace.Span) {
@@ -654,11 +647,11 @@ func (ds *daemonService) shouldStartTLSRedirect() bool {
 	return ds.tlsRedirectServer != nil && ds.daemonConfig.TLSRedirectHTTPPort != ""
 }
 
-// startTLSRedirectServer starts a plain HTTP listener that 301-redirects all
-// requests to the HTTPS server.
+// startTLSRedirectServer starts a plain HTTP listener that 301-redirects all requests to
+// the HTTPS server.
 //
-// Returns error when the redirect server fails to start or encounters a fatal
-// listen error.
+// Returns error when the redirect server fails to start or encounters a fatal listen
+// error.
 func (ds *daemonService) startTLSRedirectServer(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "startTLSRedirectServer")
 	defer span.End()
@@ -683,7 +676,7 @@ func (ds *daemonService) startTLSRedirectServer(ctx context.Context) error {
 			host = net.JoinHostPort(host, httpsPort)
 		}
 		target := "https://" + host + r.URL.RequestURI()
-		http.Redirect(w, r, target, http.StatusMovedPermanently)
+		http.Redirect(w, r, target, http.StatusMovedPermanently) //nolint:gosec // target host derived from r.Host which the server validates upstream
 	})
 
 	listenErr := ds.tlsRedirectServer.ListenAndServe(addr, handler)
@@ -710,12 +703,10 @@ func (ds *daemonService) shutdownTLSRedirectServer(ctx context.Context, span tra
 
 // extractTraceContext gets trace context from incoming request headers.
 //
-// Uses a pooled MapCarrier to avoid creating new objects for each
-// request. The OTel-extracted marker is set on PikoRequestCtx by the
-// caller, not here.
+// Uses a pooled MapCarrier to avoid creating new objects for each request. The
+// OTel-extracted marker is set on PikoRequestCtx by the caller, not here.
 //
-// Takes r (*http.Request) which provides the headers containing trace
-// data.
+// Takes r (*http.Request) which provides the headers containing trace data.
 //
 // Returns context.Context which holds the extracted trace information.
 func extractTraceContext(r *http.Request) context.Context {

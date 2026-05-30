@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-var _ deadletter_domain.DeadLetterPort[testEntry] = (*DiskDeadLetterQueue[testEntry])(nil)
+var (
+	_ deadletter_domain.DeadLetterPort[testEntry] = (*DiskDeadLetterQueue[testEntry])(nil)
+)
 
 func TestDiskDeadLetterQueue_NewWithSandbox(t *testing.T) {
 	t.Parallel()

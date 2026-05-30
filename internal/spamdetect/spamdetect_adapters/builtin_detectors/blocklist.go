@@ -26,8 +26,7 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// BlocklistDetector matches text fields against configurable regex
-// patterns.
+// BlocklistDetector matches text fields against configurable regex patterns.
 type BlocklistDetector struct {
 	// compiledPatterns holds the compiled blocklist regex patterns.
 	compiledPatterns []*regexp.Regexp
@@ -35,9 +34,9 @@ type BlocklistDetector struct {
 
 // NewBlocklistDetector creates a blocklist detector.
 //
-// Takes patterns ([]string) which are the regex patterns to match
-// against. Each pattern is capped at maxBlocklistPatternLength bytes;
-// the total pattern count is capped at maxBlocklistPatterns.
+// Takes patterns ([]string) which are the regex patterns to match against. Each pattern
+// is capped at maxBlocklistPatternLength bytes; the total pattern count is capped at
+// maxBlocklistPatterns.
 //
 // Returns *BlocklistDetector which is the configured detector.
 // Returns error when a pattern violates a cap or fails to compile.
@@ -90,8 +89,7 @@ func (*BlocklistDetector) Mode() spamdetect_dto.DetectorMode {
 	return spamdetect_dto.DetectorModeSync
 }
 
-// Analyse matches all fields tagged with SignalBlocklist against the
-// configured patterns.
+// Analyse matches all fields tagged with SignalBlocklist against the configured patterns.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
@@ -139,14 +137,12 @@ func (d *BlocklistDetector) Analyse(ctx context.Context, submission *spamdetect_
 	}, nil
 }
 
-// HealthCheck always succeeds because the detector has no external
-// dependencies.
+// HealthCheck always succeeds because the detector has no external dependencies.
 //
 // Returns error which is always nil.
 func (*BlocklistDetector) HealthCheck(_ context.Context) error { return nil }
 
-// matchField checks a single field value against all compiled
-// patterns.
+// matchField checks a single field value against all compiled patterns.
 //
 // Takes key (string) which is the field key.
 // Takes value (string) which is the field value.

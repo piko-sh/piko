@@ -31,17 +31,19 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// llmStreamEventBufferSize bounds the producer/consumer queue for
-// stream events so a slow consumer cannot lockstep the upstream.
-const llmStreamEventBufferSize = 16
+const (
+	// llmStreamEventBufferSize bounds the producer/consumer queue for stream events so a
+	// slow consumer cannot lockstep the upstream.
+	llmStreamEventBufferSize = 16
+)
 
 // streamState holds data gathered during stream processing.
 type streamState struct {
 	// finalUsage stores the accumulated token usage after the stream completes.
 	finalUsage *llm_dto.Usage
 
-	// lastFinishReason is the most recent reason why generation stopped;
-	// nil until the first chunk completes.
+	// lastFinishReason is the most recent reason why generation stopped; nil until the first
+	// chunk completes.
 	lastFinishReason *llm_dto.FinishReason
 
 	// lastID is the most recent stream entry ID that was processed.
@@ -56,15 +58,15 @@ type streamState struct {
 
 // Stream sends a streaming completion request to OpenAI.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model and messages.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model and messages.
 //
-// Returns <-chan llm_dto.StreamEvent which yields streaming events as they
-// arrive from the OpenAI API.
+// Returns <-chan llm_dto.StreamEvent which yields streaming events as they arrive from
+// the OpenAI API.
 // Returns error when the stream cannot be started.
 //
-// Spawns a goroutine to process incoming stream events. The channel is closed
-// when the stream completes or encounters an error.
+// Spawns a goroutine to process incoming stream events. The channel is closed when the
+// stream completes or encounters an error.
 func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Stream")
 
@@ -100,8 +102,8 @@ func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	return events, nil
 }
 
-// streamContext returns a context that is cancelled when either the caller's
-// context is cancelled or the provider is closed.
+// streamContext returns a context that is cancelled when either the caller's context is
+// cancelled or the provider is closed.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
@@ -195,12 +197,12 @@ func (p *openaiProvider) processChunkChoices(ctx context.Context, events chan<- 
 
 // buildDelta constructs a MessageDelta from a streaming response choice.
 //
-// Takes choice (*openai.ChatCompletionChunkChoice) which contains the streamed
-// content fragment.
+// Takes choice (*openai.ChatCompletionChunkChoice) which contains the streamed content
+// fragment.
 // Takes state (*streamState) which tracks tool call assembly across chunks.
 //
-// Returns *llm_dto.MessageDelta which contains the extracted role, content,
-// and tool calls from the chunk.
+// Returns *llm_dto.MessageDelta which contains the extracted role, content, and tool
+// calls from the chunk.
 func (p *openaiProvider) buildDelta(choice *openai.ChatCompletionChunkChoice, state *streamState) *llm_dto.MessageDelta {
 	delta := &llm_dto.MessageDelta{}
 
@@ -221,12 +223,12 @@ func (p *openaiProvider) buildDelta(choice *openai.ChatCompletionChunkChoice, st
 
 // buildToolCallDeltas converts OpenAI tool calls to DTO tool call deltas.
 //
-// Takes toolCalls ([]openai.ChatCompletionChunkChoiceDeltaToolCall) which
-// contains the raw tool call data from the OpenAI streaming response.
+// Takes toolCalls ([]openai.ChatCompletionChunkChoiceDeltaToolCall) which contains the
+// raw tool call data from the OpenAI streaming response.
 // Takes state (*streamState) which tracks the current streaming state.
 //
-// Returns []llm_dto.ToolCallDelta which contains the converted tool call
-// deltas ready for use by the LLM DTO layer.
+// Returns []llm_dto.ToolCallDelta which contains the converted tool call deltas ready for
+// use by the LLM DTO layer.
 func (p *openaiProvider) buildToolCallDeltas(toolCalls []openai.ChatCompletionChunkChoiceDeltaToolCall, state *streamState) []llm_dto.ToolCallDelta {
 	deltas := make([]llm_dto.ToolCallDelta, len(toolCalls))
 	for i := range toolCalls {
@@ -237,8 +239,8 @@ func (p *openaiProvider) buildToolCallDeltas(toolCalls []openai.ChatCompletionCh
 
 // buildSingleToolCallDelta converts a single OpenAI tool call to a DTO delta.
 //
-// Takes tc (*openai.ChatCompletionChunkChoiceDeltaToolCall) which is the OpenAI
-// tool call chunk to convert.
+// Takes tc (*openai.ChatCompletionChunkChoiceDeltaToolCall) which is the OpenAI tool call
+// chunk to convert.
 // Takes state (*streamState) which holds accumulated tool calls for the stream.
 //
 // Returns llm_dto.ToolCallDelta which is the converted tool call delta.
@@ -261,12 +263,11 @@ func (p *openaiProvider) buildSingleToolCallDelta(tc *openai.ChatCompletionChunk
 
 // buildFunctionCallDelta builds a FunctionCallDelta from an OpenAI function.
 //
-// Takes functionCall
-// (*openai.ChatCompletionChunkChoiceDeltaToolCallFunction) which
+// Takes functionCall (*openai.ChatCompletionChunkChoiceDeltaToolCallFunction) which
 // provides the OpenAI function call data to convert.
 //
-// Returns *llm_dto.FunctionCallDelta which contains the converted function
-// call delta with name and arguments set when present.
+// Returns *llm_dto.FunctionCallDelta which contains the converted function call delta
+// with name and arguments set when present.
 func (*openaiProvider) buildFunctionCallDelta(functionCall *openai.ChatCompletionChunkChoiceDeltaToolCallFunction) *llm_dto.FunctionCallDelta {
 	fcd := &llm_dto.FunctionCallDelta{}
 	if functionCall.Name != "" {
@@ -280,12 +281,12 @@ func (*openaiProvider) buildFunctionCallDelta(functionCall *openai.ChatCompletio
 
 // extractFinishReason extracts the finish reason from a choice if present.
 //
-// Takes choice (*openai.ChatCompletionChunkChoice) which contains the streamed
-// response data.
+// Takes choice (*openai.ChatCompletionChunkChoice) which contains the streamed response
+// data.
 // Takes state (*streamState) which tracks the streaming session state.
 //
-// Returns *llm_dto.FinishReason which is the converted finish reason, or nil
-// if no finish reason is present in the choice.
+// Returns *llm_dto.FinishReason which is the converted finish reason, or nil if no finish
+// reason is present in the choice.
 func (p *openaiProvider) extractFinishReason(choice *openai.ChatCompletionChunkChoice, state *streamState) *llm_dto.FinishReason {
 	if choice.FinishReason == "" {
 		return nil
@@ -298,10 +299,9 @@ func (p *openaiProvider) extractFinishReason(choice *openai.ChatCompletionChunkC
 
 // extractUsage extracts usage information from a chunk if present.
 //
-// Takes chunk (*openai.ChatCompletionChunk) which contains the streaming
-// response data to extract usage from.
-// Takes streamChunk (*llm_dto.StreamChunk) which receives the extracted usage
-// data.
+// Takes chunk (*openai.ChatCompletionChunk) which contains the streaming response data to
+// extract usage from.
+// Takes streamChunk (*llm_dto.StreamChunk) which receives the extracted usage data.
 // Takes state (*streamState) which stores the final usage for later reference.
 func (*openaiProvider) extractUsage(chunk *openai.ChatCompletionChunk, streamChunk *llm_dto.StreamChunk, state *streamState) {
 	if chunk.Usage.TotalTokens == 0 {
@@ -336,8 +336,7 @@ func (*openaiProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Stre
 	}
 }
 
-// buildFinalResponse constructs the final completion response from
-// accumulated state.
+// buildFinalResponse constructs the final completion response from accumulated state.
 //
 // Takes state (*streamState) which holds the accumulated stream data.
 //

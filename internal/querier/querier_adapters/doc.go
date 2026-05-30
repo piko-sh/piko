@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package querier_adapters provides infrastructure implementations for the
-// querier domain's port interfaces.
+// Package querier_adapters provides infrastructure implementations for the querier
+// domain's port interfaces.
 //
-// Inbound engine adapters parse dialect-specific SQL into the domain's neutral
-// IR. Each adapter wraps an engine-native parser and converts the
-// engine-specific AST into the querier's structured types. Engine adapters are
-// available in sub-packages, each implementing [querier_domain.EnginePort] and
-// handling all dialect-specific concerns: parsing, DDL catalogue mutations,
-// built-in type and function catalogues, and parameter placeholder styles.
+// Inbound engine adapters parse dialect-specific SQL into the domain's neutral IR. Each
+// adapter wraps an engine-native parser and converts the engine-specific AST into the
+// querier's structured types. Engine adapters are available in sub-packages, each
+// implementing [querier_domain.EnginePort] and handling all dialect-specific concerns:
+// parsing, DDL catalogue mutations, built-in type and function catalogues, and parameter
+// marker styles.
 //
-// Outbound code emitter adapters generate Go source code from analysed
-// queries, producing typed structs, query methods, enum definitions, and
-// transaction helpers.
+// Outbound code emitter adapters generate Go source code from analysed queries, producing
+// typed structs, query methods, enum definitions, and transaction helpers.
 package querier_adapters

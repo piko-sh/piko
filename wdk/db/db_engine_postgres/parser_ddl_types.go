@@ -24,6 +24,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCreateType parses a CREATE TYPE statement and dispatches by kind.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns *querier_dto.CatalogueMutation which describes the type mutation, or nil when
+// the body is not a recognised form.
+// Returns error when the type name fails to parse.
 func (p *parser) parseCreateType(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword(keywordTYPE)
@@ -48,6 +55,13 @@ func (p *parser) parseCreateType(engine *PostgresEngine) (*querier_dto.Catalogue
 	return nil, nil
 }
 
+// parseCreateEnum parses the value list of a CREATE TYPE ... AS ENUM.
+//
+// Takes schema (string) which is the schema name of the new enum.
+// Takes typeName (string) which is the enum type name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the enum creation.
+// Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	values := p.parseEnumValues()
 	return &querier_dto.CatalogueMutation{
@@ -58,6 +72,9 @@ func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.Catalogu
 	}, nil
 }
 
+// parseEnumValues collects string literals from a parenthesised enum list.
+//
+// Returns []string which holds the enum value labels in declaration order.
 func (p *parser) parseEnumValues() []string {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -77,6 +94,14 @@ func (p *parser) parseEnumValues() []string {
 	return values
 }
 
+// parseCreateCompositeType parses a CREATE TYPE ... AS (field type, ...) body.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes schema (string) which is the schema name of the new type.
+// Takes typeName (string) which is the composite type name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the type creation.
+// Returns error when a field name fails to parse.
 func (p *parser) parseCreateCompositeType(
 	engine *PostgresEngine,
 	schema, typeName string,
@@ -114,6 +139,11 @@ func (p *parser) parseCreateCompositeType(
 	}, nil
 }
 
+// parseAlterType parses an ALTER TYPE statement and dispatches by action.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when no
+// recognised action follows.
+// Returns error when the type name fails to parse.
 func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword("ALTER")
 	p.mustKeyword(keywordTYPE)
@@ -133,6 +163,14 @@ func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
 	return nil, nil
 }
 
+// parseAlterTypeAddValue parses an ALTER TYPE ... ADD VALUE action.
+//
+// Takes schema (string) which is the schema name of the target type.
+// Takes typeName (string) which is the target enum type name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when the
+// action is not recognisable.
+// Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	if !p.matchKeyword("VALUE") {
 		return nil, nil
@@ -159,6 +197,14 @@ func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.C
 	}, nil
 }
 
+// parseAlterTypeRenameValue parses an ALTER TYPE ... RENAME VALUE action.
+//
+// Takes schema (string) which is the schema name of the target type.
+// Takes typeName (string) which is the target enum type name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when the
+// action is not recognisable.
+// Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	if !p.matchKeyword("VALUE") {
 		return nil, nil
@@ -184,6 +230,10 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 	}, nil
 }
 
+// parseDropType parses a DROP TYPE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the type name fails to parse.
 func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordTYPE)
@@ -205,6 +255,12 @@ func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateFunction parses a CREATE FUNCTION or CREATE PROCEDURE statement.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns *querier_dto.CatalogueMutation which describes the function mutation.
+// Returns error when a name, argument, or clause fails to parse.
 func (p *parser) parseCreateFunction(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.skipOrReplace()
@@ -237,6 +293,12 @@ func (p *parser) parseCreateFunction(engine *PostgresEngine) (*querier_dto.Catal
 	}, nil
 }
 
+// parseFunctionArgumentList parses the parenthesised function argument list.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns []querier_dto.FunctionArgument which holds the parsed arguments.
+// Returns error when an argument fails to parse.
 func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dto.FunctionArgument, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil
@@ -262,6 +324,11 @@ func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dt
 	return arguments, nil
 }
 
+// parseFunctionBody walks the function body clauses populating signature.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes signature (*querier_dto.FunctionSignature) which is populated as clauses are
+// recognised.
 func (p *parser) parseFunctionBody(engine *PostgresEngine, signature *querier_dto.FunctionSignature) {
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
 		if !p.parseFunctionBodyClause(engine, signature) {
@@ -270,6 +337,13 @@ func (p *parser) parseFunctionBody(engine *PostgresEngine, signature *querier_dt
 	}
 }
 
+// parseFunctionBodyClause parses one CREATE FUNCTION body clause.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes signature (*querier_dto.FunctionSignature) which is populated when a clause is
+// recognised.
+//
+// Returns bool which is true when a clause was consumed.
 func (p *parser) parseFunctionBodyClause(
 	engine *PostgresEngine,
 	signature *querier_dto.FunctionSignature,
@@ -296,6 +370,13 @@ func (p *parser) parseFunctionBodyClause(
 	return false
 }
 
+// parseFunctionReturnsOrStrict parses RETURNS or RETURNS NULL ON NULL INPUT.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes signature (*querier_dto.FunctionSignature) which receives the parsed return
+// information.
+//
+// Returns bool which is always true; signals the clause was consumed.
 func (p *parser) parseFunctionReturnsOrStrict(
 	engine *PostgresEngine,
 	signature *querier_dto.FunctionSignature,
@@ -311,6 +392,12 @@ func (p *parser) parseFunctionReturnsOrStrict(
 	return true
 }
 
+// parseFunctionVolatilityAttribute parses IMMUTABLE, STABLE, or VOLATILE.
+//
+// Takes signature (*querier_dto.FunctionSignature) which receives the data access
+// classification.
+//
+// Returns bool which is true when an attribute was consumed.
 func (p *parser) parseFunctionVolatilityAttribute(signature *querier_dto.FunctionSignature) bool {
 	if p.matchKeyword("IMMUTABLE") {
 		signature.DataAccess = querier_dto.DataAccessReadOnly
@@ -327,6 +414,12 @@ func (p *parser) parseFunctionVolatilityAttribute(signature *querier_dto.Functio
 	return false
 }
 
+// parseFunctionNullInputAttribute parses STRICT or CALLED ON NULL INPUT.
+//
+// Takes signature (*querier_dto.FunctionSignature) which receives the strict
+// classification.
+//
+// Returns bool which is true when an attribute was consumed.
 func (p *parser) parseFunctionNullInputAttribute(signature *querier_dto.FunctionSignature) bool {
 	if p.matchKeyword("STRICT") {
 		signature.IsStrict = true
@@ -341,6 +434,11 @@ func (p *parser) parseFunctionNullInputAttribute(signature *querier_dto.Function
 	return false
 }
 
+// parseFunctionReturns parses the RETURNS clause body.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes signature (*querier_dto.FunctionSignature) which receives the return type and set
+// flag.
 func (p *parser) parseFunctionReturns(engine *PostgresEngine, signature *querier_dto.FunctionSignature) {
 	if p.matchKeyword(keywordTABLE) {
 		signature.ReturnsSet = true
@@ -356,6 +454,12 @@ func (p *parser) parseFunctionReturns(engine *PostgresEngine, signature *querier
 	signature.ReturnType = returnType
 }
 
+// parseFunctionArgument parses a single function argument declaration.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns querier_dto.FunctionArgument which describes the parsed argument.
+// Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.FunctionArgument, error) {
 	p.matchKeyword("IN")
 	p.matchKeyword("OUT")
@@ -398,6 +502,7 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 	return argument, nil
 }
 
+// skipFunctionDefault advances past a DEFAULT expression value.
 func (p *parser) skipFunctionDefault() {
 	depth := 0
 	for !p.atEnd() {
@@ -421,6 +526,10 @@ func (p *parser) skipFunctionDefault() {
 	}
 }
 
+// parseDropFunction parses a DROP FUNCTION or DROP PROCEDURE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the function name fails to parse.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("FUNCTION", "PROCEDURE")
@@ -449,6 +558,10 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateSchema parses a CREATE SCHEMA statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the schema creation.
+// Returns error when the schema or role name fails to parse.
 func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword(keywordSCHEMA)
@@ -477,6 +590,10 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropSchema parses a DROP SCHEMA statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the schema name fails to parse.
 func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordSCHEMA)
@@ -497,6 +614,10 @@ func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateExtension parses a CREATE EXTENSION statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the extension creation.
+// Returns error when the extension name fails to parse.
 func (p *parser) parseCreateExtension() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword("EXTENSION")
@@ -524,6 +645,11 @@ func (p *parser) parseCreateExtension() (*querier_dto.CatalogueMutation, error) 
 	}, nil
 }
 
+// parseDropExtension parses a DROP EXTENSION statement.
+//
+// Returns *querier_dto.CatalogueMutation which is always nil; the engine ignores
+// extension drops.
+// Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseDropExtension() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("EXTENSION")

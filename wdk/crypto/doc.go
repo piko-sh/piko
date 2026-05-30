@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crypto provides the public API for encryption and key
-// management in Piko.
+// Package crypto provides the public API for encryption and key management in Piko.
 //
-// This is a facade that re-exports types from internal packages,
-// providing a stable import path for application developers.
+// This is a facade that re-exports types from internal packages, providing a stable
+// import path for application developers.
 //
 // # Usage
 //
@@ -29,15 +28,14 @@
 //
 // # Providers
 //
-// A local AES-GCM provider is included by default. Cloud KMS
-// providers are available in the crypto_provider_* sub-packages.
+// A local AES-GCM provider is included by default. Cloud KMS providers are available in
+// the crypto_provider_* sub-packages.
 //
 // # Design rationale
 //
-// The service supports envelope encryption for batch operations,
-// graceful key rotation with zero downtime, and automatic
-// re-encryption of deprecated keys. Ciphertext envelopes are
-// self-describing, carrying the metadata needed for decryption.
+// The service supports envelope encryption for batch operations, graceful key rotation
+// with zero downtime, and automatic re-encryption of deprecated keys. Ciphertext
+// envelopes are self-describing, carrying the metadata needed for decryption.
 //
 // # Batch operations
 //
@@ -77,7 +75,7 @@
 //
 // # Thread safety
 //
-// The crypto service and its methods are safe for concurrent use.
-// Streaming readers and writers are NOT safe for concurrent use;
-// each stream should be used from a single goroutine.
+// The crypto service and its methods are safe for concurrent use. Streaming readers and
+// writers are NOT safe for concurrent use; each stream should be used from a single
+// goroutine.
 package crypto

@@ -18,25 +18,24 @@
 
 package captcha_dto
 
-// ProviderType identifies which captcha provider to use and implements
-// fmt.Stringer.
+// ProviderType identifies which captcha provider to use and implements fmt.Stringer.
 type ProviderType string
 
 const (
-	// ProviderTypeHMACChallenge uses a built-in HMAC-based challenge for
-	// testing and development. Not suitable for production use.
+	// ProviderTypeHMACChallenge uses a built-in HMAC-based challenge for testing and
+	// development. Not suitable for production use.
 	ProviderTypeHMACChallenge ProviderType = "hmac_challenge"
 
-	// ProviderTypeTurnstile uses Cloudflare Turnstile for bot detection.
-	// Privacy-friendly, free, and suitable for production.
+	// ProviderTypeTurnstile uses Cloudflare Turnstile for bot detection. Privacy-friendly,
+	// free, and suitable for production.
 	ProviderTypeTurnstile ProviderType = "turnstile"
 
-	// ProviderTypeRecaptchaV3 uses Google reCAPTCHA v3 for score-based bot
-	// detection. Returns a risk score between 0.0 and 1.0.
+	// ProviderTypeRecaptchaV3 uses Google reCAPTCHA v3 for score-based bot detection.
+	// Returns a risk score between 0.0 and 1.0.
 	ProviderTypeRecaptchaV3 ProviderType = "recaptcha_v3"
 
-	// ProviderTypeHCaptcha uses hCaptcha for bot detection. Privacy-focused
-	// alternative to reCAPTCHA with optional challenge support.
+	// ProviderTypeHCaptcha uses hCaptcha for bot detection. Privacy-focused alternative to
+	// reCAPTCHA with optional challenge support.
 	ProviderTypeHCaptcha ProviderType = "hcaptcha"
 )
 

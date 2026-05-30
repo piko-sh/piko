@@ -18,7 +18,9 @@
 
 package registry_domain
 
-import "context"
+import (
+	"context"
+)
 
 // ArtefactSummary holds the number of artefacts for each status on dashboards.
 type ArtefactSummary struct {
@@ -62,12 +64,11 @@ type ArtefactListItem struct {
 	UpdatedAt int64
 }
 
-// RegistryInspector provides read-only access to registry state.
-// The monitoring service uses RegistryInspector to show artefact and variant
-// data in the TUI without needing direct database access.
+// RegistryInspector provides read-only access to registry state. The monitoring service
+// uses RegistryInspector to show artefact and variant data in the TUI without needing
+// direct database access.
 type RegistryInspector interface {
-	// ListArtefactSummary returns artefact counts grouped by
-	// artefact status.
+	// ListArtefactSummary returns artefact counts grouped by artefact status.
 	//
 	// Returns []ArtefactSummary which contains the count for each status.
 	// Returns error when the query fails.

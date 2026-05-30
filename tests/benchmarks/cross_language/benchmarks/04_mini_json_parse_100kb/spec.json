@@ -1,0 +1,17 @@
+{
+  "name": "04_mini_json_parse_100kb",
+  "description": "TENGO_SKIPPED: recursion depth (~2000+ frames during JSON write) exceeds tengo's ~2048 frame limit. Generate a 100 KiB JSON-like document from a deterministic LCG, parse it with a hand-rolled recursive-descent parser, return the count of object keys observed. Forbids encoding/json and Python's json module.",
+  "args": [],
+  "expected_stdout_sha256": "5df138ee3cf04d8f3a90c1b594f3dc8767763d8a5f21804e25a1f138329f5eaa",
+  "k_inner": 5,
+  "timeout_seconds": 180,
+  "skip_runners": [
+    "tengo"
+  ],
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "aaff84a57ab4d3f3b79485e777debaa726bc6edf0b3fb157ba4ba9bb557de32a",
+    "py/cpython.py": "7998068cf471424fa5c8d274f97afb566407a32c043914cf67f04aae14da572c",
+    "py/pypy.py": "115f40bf55e1821a5a7e00030b8a646f9e59a0a8c775b57f4dd87cb6662933ee"
+  }
+}

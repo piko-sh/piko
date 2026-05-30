@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// ToastKind classifies the styling and TTL of a transient message shown in
-// the status bar.
+// ToastKind classifies the styling and TTL of a transient message shown in the status
+// bar.
 type ToastKind int
 
 const (
@@ -36,8 +36,8 @@ const (
 	// ToastSuccess marks an action that completed successfully.
 	ToastSuccess
 
-	// ToastWarn raises a warning the user should notice but does not need
-	// to act on immediately.
+	// ToastWarn raises a warning the user should notice but does not need to act on
+	// immediately.
 	ToastWarn
 
 	// ToastError signals a failure that requires attention.
@@ -45,20 +45,18 @@ const (
 )
 
 const (
-	// defaultToastTTLInfo is the default TTL applied to ToastInfo
-	// messages.
+	// defaultToastTTLInfo is the default TTL applied to ToastInfo messages.
 	defaultToastTTLInfo = 4 * time.Second
 
-	// defaultToastTTLSuccess is the default TTL applied to ToastSuccess
-	// messages.
+	// defaultToastTTLSuccess is the default TTL applied to ToastSuccess messages.
 	defaultToastTTLSuccess = 4 * time.Second
 
-	// defaultToastTTLWarn is the default TTL applied to ToastWarn
-	// messages, kept longer so warnings linger on the bar.
+	// defaultToastTTLWarn is the default TTL applied to ToastWarn messages, kept longer so
+	// warnings linger on the bar.
 	defaultToastTTLWarn = 8 * time.Second
 
-	// defaultToastTTLError is the default TTL applied to ToastError
-	// messages, matching the warning TTL so errors remain visible.
+	// defaultToastTTLError is the default TTL applied to ToastError messages, matching the
+	// warning TTL so errors remain visible.
 	defaultToastTTLError = 8 * time.Second
 )
 
@@ -70,14 +68,13 @@ type Toast struct {
 	// Body is the text to render in the status bar.
 	Body string
 
-	// Kind selects the toast's styling and is consulted by the status bar
-	// to colour the message.
+	// Kind selects the toast's styling and is consulted by the status bar to colour the
+	// message.
 	Kind ToastKind
 }
 
-// ToastQueue is a thread-safe FIFO of toasts with TTL-based eviction. The
-// status bar reads the front of the queue each render; expired entries are
-// pruned lazily.
+// ToastQueue is a thread-safe FIFO of toasts with TTL-based eviction. The status bar
+// reads the front of the queue each render; expired entries are pruned lazily.
 type ToastQueue struct {
 	// clock supplies the current time for TTL bookkeeping.
 	clock clock.Clock
@@ -96,11 +93,11 @@ func NewToastQueue() *ToastQueue {
 	return &ToastQueue{clock: clock.RealClock()}
 }
 
-// NewToastQueueWithClock creates a queue using an injected clock so tests
-// can advance time deterministically.
+// NewToastQueueWithClock creates a queue using an injected clock so tests can advance
+// time deterministically.
 //
-// Takes clk (clock.Clock) which yields the current time. A nil clk falls
-// back to the real system clock.
+// Takes clk (clock.Clock) which yields the current time. A nil clk falls back to the real
+// system clock.
 //
 // Returns *ToastQueue using clk for TTL bookkeeping.
 func NewToastQueueWithClock(clk clock.Clock) *ToastQueue {
@@ -122,8 +119,8 @@ func (q *ToastQueue) Push(kind ToastKind, body string) {
 //
 // Takes kind (ToastKind) which selects styling.
 // Takes body (string) which is the message to display.
-// Takes ttl (time.Duration) which is the time-to-live; non-positive values
-// fall back to the kind's default TTL.
+// Takes ttl (time.Duration) which is the time-to-live; non-positive values fall back to
+// the kind's default TTL.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (q *ToastQueue) PushTTL(kind ToastKind, body string, ttl time.Duration) {
@@ -139,8 +136,7 @@ func (q *ToastQueue) PushTTL(kind ToastKind, body string, ttl time.Duration) {
 	})
 }
 
-// Current returns the oldest non-expired toast, evicting expired entries
-// in the process.
+// Current returns the oldest non-expired toast, evicting expired entries in the process.
 //
 // Returns Toast which is the front of the queue (zero value when empty).
 // Returns bool which is true when a toast is available.
@@ -157,9 +153,8 @@ func (q *ToastQueue) Current() (Toast, bool) {
 	return q.toasts[0], true
 }
 
-// Tick evicts expired toasts. The status bar is repainted on a 1Hz clock
-// tick, so calling Tick at that cadence keeps memory bounded even when no
-// further toasts are pushed.
+// Tick evicts expired toasts. The status bar is repainted on a 1Hz clock tick, so calling
+// Tick at that cadence keeps memory bounded even when no further toasts are pushed.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (q *ToastQueue) Tick() {
@@ -169,8 +164,8 @@ func (q *ToastQueue) Tick() {
 	q.evictExpired(now)
 }
 
-// Len returns the number of toasts currently buffered (including some that
-// may have expired but not yet been evicted).
+// Len returns the number of toasts currently buffered (including some that may have
+// expired but not yet been evicted).
 //
 // Returns int which is the buffered toast count.
 //
@@ -181,8 +176,8 @@ func (q *ToastQueue) Len() int {
 	return len(q.toasts)
 }
 
-// evictExpired removes expired toasts from the front of the queue. Caller
-// must hold the write lock.
+// evictExpired removes expired toasts from the front of the queue. Caller must hold the
+// write lock.
 //
 // Takes now (time.Time) which is the reference time.
 func (q *ToastQueue) evictExpired(now time.Time) {

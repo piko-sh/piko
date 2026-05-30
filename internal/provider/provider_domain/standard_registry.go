@@ -30,18 +30,18 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// errProviderNameEmpty is returned when a provider is registered with an
-// empty name.
-var errProviderNameEmpty = errors.New("provider name cannot be empty")
+var (
+	// errProviderNameEmpty is returned when a provider is registered with an empty name.
+	errProviderNameEmpty = errors.New("provider name cannot be empty")
+)
 
-// StandardRegistry is the production implementation of ProviderRegistry.
-// Thread-safe with auto-cleanup on shutdown.
+// StandardRegistry is the production implementation of ProviderRegistry. Thread-safe with
+// auto-cleanup on shutdown.
 //
-// Generic type T is the provider interface (EmailProviderPort,
-// StorageProviderPort, etc.)
+// Generic type T is the provider interface (EmailProviderPort, StorageProviderPort, etc.)
 //
-// Features: - Thread-safe concurrent access (read-write mutex) - Graceful
-// shutdown with provider cleanup - Provider discovery with metadata
+// Features: - Thread-safe concurrent access (read-write mutex) - Graceful shutdown with
+// provider cleanup - Provider discovery with metadata
 type StandardRegistry[T any] struct {
 	// providers maps provider names to their registration info.
 	providers map[string]*registrationInfo[T]
@@ -49,8 +49,7 @@ type StandardRegistry[T any] struct {
 	// defaultName is the fallback name used when no name is provided.
 	defaultName string
 
-	// serviceName identifies the service for logging purposes (e.g., "email",
-	// "storage").
+	// serviceName identifies the service for logging purposes (e.g., "email", "storage").
 	serviceName string
 
 	// mu guards concurrent access to the registry.
@@ -66,16 +65,15 @@ type registrationInfo[T any] struct {
 	registeredAt time.Time
 }
 
-// RegisterProvider registers a new provider under the given name. It
-// implements ProviderRegistry.RegisterProvider.
+// RegisterProvider registers a new provider under the given name. It implements
+// ProviderRegistry.RegisterProvider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which is the unique identifier for the provider.
 // Takes provider (T) which is the provider instance to register.
 //
-// Returns error when the name is empty or a provider with that name already
-// exists.
+// Returns error when the name is empty or a provider with that name already exists.
 //
 // Safe for concurrent use; protected by a mutex.
 func (r *StandardRegistry[T]) RegisterProvider(ctx context.Context, name string, provider T) error {
@@ -103,11 +101,11 @@ func (r *StandardRegistry[T]) RegisterProvider(ctx context.Context, name string,
 	return nil
 }
 
-// SetDefaultProvider sets the named provider as the default for this registry.
-// Implements ProviderRegistry.SetDefaultProvider.
+// SetDefaultProvider sets the named provider as the default for this registry. Implements
+// ProviderRegistry.SetDefaultProvider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which identifies the provider to set as default.
 //
 // Returns error when the named provider is not found in the registry.
@@ -134,8 +132,7 @@ func (r *StandardRegistry[T]) SetDefaultProvider(ctx context.Context, name strin
 // GetDefaultProvider returns the name of the default provider. Implements
 // ProviderRegistry.GetDefaultProvider.
 //
-// Returns string which is the name of the default provider, or empty if none
-// is set.
+// Returns string which is the name of the default provider, or empty if none is set.
 //
 // Safe for concurrent use.
 func (r *StandardRegistry[T]) GetDefaultProvider() string {
@@ -166,8 +163,8 @@ func (r *StandardRegistry[T]) GetProvider(_ context.Context, name string) (T, er
 	return info.provider, nil
 }
 
-// HasProvider reports whether a provider with the given name is registered.
-// Implements ProviderRegistry.HasProvider.
+// HasProvider reports whether a provider with the given name is registered. Implements
+// ProviderRegistry.HasProvider.
 //
 // Takes name (string) which is the provider name to check.
 //
@@ -181,8 +178,8 @@ func (r *StandardRegistry[T]) HasProvider(name string) bool {
 	return exists
 }
 
-// ListProviders returns information about all registered providers.
-// Implements ProviderRegistry.ListProviders.
+// ListProviders returns information about all registered providers. Implements
+// ProviderRegistry.ListProviders.
 //
 // Returns []ProviderInfo which contains metadata for each registered provider.
 //
@@ -217,13 +214,13 @@ func (r *StandardRegistry[T]) ListProviders(_ context.Context) []ProviderInfo {
 	return result
 }
 
-// CloseAll closes all registered providers that implement a Close method.
-// Implements ProviderRegistry.CloseAll.
+// CloseAll closes all registered providers that implement a Close method. Implements
+// ProviderRegistry.CloseAll.
 //
 // Returns error when one or more providers fail to close.
 //
-// Safe for concurrent use. Takes a read lock while copying the provider list,
-// then releases it before closing providers.
+// Safe for concurrent use. Takes a read lock while copying the provider list, then
+// releases it before closing providers.
 func (r *StandardRegistry[T]) CloseAll(ctx context.Context) error {
 	r.mu.RLock()
 	providers := make([]T, 0, len(r.providers))
@@ -249,11 +246,11 @@ func (r *StandardRegistry[T]) CloseAll(ctx context.Context) error {
 
 // NewStandardRegistry creates a new provider registry for a service.
 //
-// Takes serviceName (string) which identifies the service for logging and
-// error messages (e.g., "email", "storage").
+// Takes serviceName (string) which identifies the service for logging and error messages
+// (e.g., "email", "storage").
 //
-// Returns *StandardRegistry[T] which is the initialised registry ready
-// for provider registration.
+// Returns *StandardRegistry[T] which is the initialised registry ready for provider
+// registration.
 func NewStandardRegistry[T any](serviceName string) *StandardRegistry[T] {
 	return &StandardRegistry[T]{
 		mu:          sync.RWMutex{},

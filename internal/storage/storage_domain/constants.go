@@ -18,7 +18,9 @@
 
 package storage_domain
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// OperationPut is the operation type for put requests to object storage.
@@ -42,8 +44,7 @@ const (
 	// OperationPresign is the operation name for generating presigned upload URLs.
 	OperationPresign = "presign"
 
-	// OperationPresignDownload is the operation name for generating presigned
-	// download URLs.
+	// OperationPresignDownload is the operation name for generating presigned download URLs.
 	OperationPresignDownload = "presign_download"
 
 	// OperationPutObjects is the metric label for batch object upload operations.
@@ -76,30 +77,29 @@ const (
 	// DefaultBackoffFactor is the default multiplier for exponential backoff.
 	DefaultBackoffFactor = 2.0
 
-	// DefaultMaxConsecutiveFailures is the default number of failures before the
-	// circuit opens.
+	// DefaultMaxConsecutiveFailures is the default number of failures before the circuit
+	// opens.
 	DefaultMaxConsecutiveFailures = 5
 
 	// DefaultCircuitBreakerTimeout is the default time the circuit stays open.
 	DefaultCircuitBreakerTimeout = 60 * time.Second
 
-	// DefaultCircuitBreakerInterval is the default interval for resetting the
-	// failure counter.
+	// DefaultCircuitBreakerInterval is the default interval for resetting the failure
+	// counter.
 	DefaultCircuitBreakerInterval = 10 * time.Second
 
 	// DefaultMaxUploadSize is the default maximum file upload size (100 MB).
 	DefaultMaxUploadSize = 104857600
 
-	// DefaultMaxBatchSize is the default maximum number of objects in a batch
-	// operation.
+	// DefaultMaxBatchSize is the default maximum number of objects in a batch operation.
 	DefaultMaxBatchSize = 1000
 
-	// DefaultSingleflightMemoryThreshold is the default size limit for
-	// singleflight buffering (10 MB).
+	// DefaultSingleflightMemoryThreshold is the default size limit for singleflight
+	// buffering (10 MB).
 	DefaultSingleflightMemoryThreshold = 10485760
 
-	// DefaultMultipartThreshold is the file size above which multipart uploads are
-	// enabled (100 MB).
+	// DefaultMultipartThreshold is the file size above which multipart uploads are enabled
+	// (100 MB).
 	DefaultMultipartThreshold = 100 * 1024 * 1024
 
 	// MaxKeyLength is the maximum allowed length for object keys.
@@ -108,31 +108,28 @@ const (
 	// MaxRetries is the upper limit for retry attempts in multipart uploads.
 	MaxRetries = 10
 
-	// DefaultMigrationBatchSize is the number of items to process at once during
-	// migration when no value is given.
+	// DefaultMigrationBatchSize is the number of items to process at once during migration
+	// when no value is given.
 	DefaultMigrationBatchSize = 10
 
 	// MaxConcurrency is the maximum allowed concurrency for batch operations.
 	MaxConcurrency = 100
 
-	// SHA256HexLength is the length of a SHA-256 hash in hexadecimal format (32
-	// bytes = 64 hex chars).
+	// SHA256HexLength is the length of a SHA-256 hash in hexadecimal format (32 bytes = 64
+	// hex chars).
 	SHA256HexLength = 64
 
-	// MD5HexLength is the length of an MD5 hash in hexadecimal format (16 bytes =
-	// 32 hex chars).
+	// MD5HexLength is the length of an MD5 hash in hexadecimal format (16 bytes = 32 hex
+	// chars).
 	MD5HexLength = 32
 
-	// MaxMultipartConcurrency is the maximum allowed concurrency for multipart
-	// uploads.
+	// MaxMultipartConcurrency is the maximum allowed concurrency for multipart uploads.
 	MaxMultipartConcurrency = 100
 
-	// MetadataKeyCacheControl is the metadata key for HTTP Cache-Control
-	// directives.
+	// MetadataKeyCacheControl is the metadata key for HTTP Cache-Control directives.
 	MetadataKeyCacheControl = "Cache-Control"
 
-	// MetadataKeyContentDisposition is the metadata key for content disposition
-	// preference, controlling how content is presented. Valid values are "inline"
-	// or "attachment".
+	// MetadataKeyContentDisposition is the metadata key for content disposition preference,
+	// controlling how content is presented. Valid values are "inline" or "attachment".
 	MetadataKeyContentDisposition = "Content-Disposition"
 )

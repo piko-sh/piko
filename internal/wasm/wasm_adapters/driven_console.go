@@ -24,14 +24,19 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 
-// formatArgs is the format string for printing extra arguments in log output.
-const formatArgs = " %v"
+const (
+	// formatArgs is the format string for printing extra arguments in log output.
+	formatArgs = " %v"
+)
 
-var _ wasm_domain.ConsolePort = (*noOpConsole)(nil)
-var _ wasm_domain.ConsolePort = (*stdoutConsole)(nil)
+var (
+	_ wasm_domain.ConsolePort = (*noOpConsole)(nil)
 
-// noOpConsole is a console that discards all output.
-// It implements ConsolePort and Logger for testing or when output is not needed.
+	_ wasm_domain.ConsolePort = (*stdoutConsole)(nil)
+)
+
+// noOpConsole is a console that discards all output. It implements ConsolePort and Logger
+// for testing or when output is not needed.
 type noOpConsole struct{}
 
 // Debug discards the message and arguments without output.
@@ -58,8 +63,8 @@ func (*noOpConsole) Warn(_ string, _ ...any) {}
 // Takes arguments (...any) which are the format arguments to discard.
 func (*noOpConsole) Error(_ string, _ ...any) {}
 
-// stdoutConsole writes to standard output and implements the ConsolePort and
-// Logger interfaces. Use it for testing outside of WASM.
+// stdoutConsole writes to standard output and implements the ConsolePort and Logger
+// interfaces. Use it for testing outside of WASM.
 type stdoutConsole struct{}
 
 // Debug logs a debug message to stdout.
@@ -112,8 +117,7 @@ func (*stdoutConsole) Error(message string, arguments ...any) {
 
 // newNoOpConsole creates a console that discards all output.
 //
-// Returns *noOpConsole which provides a silent console for use when output
-// is not needed.
+// Returns *noOpConsole which provides a silent console for use when output is not needed.
 func newNoOpConsole() *noOpConsole {
 	return &noOpConsole{}
 }

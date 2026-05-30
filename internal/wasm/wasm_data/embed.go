@@ -31,16 +31,15 @@ import (
 var (
 	// StdlibFBS contains pre-generated stdlib TypeData in FlatBuffers binary format.
 	//
-	// This file is generated at build time by the stdlib generator tool. If the
-	// file does not exist, the embed will fail at compile time.
+	// This file is generated at build time by the stdlib generator tool. If the file does
+	// not exist, the embed will fail at compile time.
 	//
 	// FlatBuffers format is used for:
 	//   - Zero-copy access to data without full deserialisation
 	//   - Faster startup times compared to JSON parsing
 	//   - Smaller binary size
 	//
-	// To generate:
-	// go run ./cmd/stdlib-generator -output internal/wasm/wasm_data/stdlib.bin
+	// To generate: go run ./cmd/stdlib-generator -output internal/wasm/wasm_data/stdlib.bin
 	//go:embed stdlib.bin
 	StdlibFBS []byte
 
@@ -81,11 +80,10 @@ var (
 		"math/rand/v2",
 	}
 
-	// GetStdlibTypeData returns the pre-generated stdlib TypeData.
-	// The data is cached after the first call.
+	// GetStdlibTypeData returns the pre-generated stdlib TypeData. The data is cached after
+	// the first call.
 	//
-	// Returns *inspector_dto.TypeData which contains the standard library type
-	// information.
+	// Returns *inspector_dto.TypeData which contains the standard library type information.
 	// Returns error when decoding the embedded stdlib data fails.
 	GetStdlibTypeData = sync.OnceValues(func() (*inspector_dto.TypeData, error) {
 		return decodeStdlib(StdlibFBS)

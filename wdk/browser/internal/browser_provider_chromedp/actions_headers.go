@@ -28,15 +28,13 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 )
 
-// SetExtraHTTPHeaders sets additional HTTP headers that will be sent with all
-// requests. These headers are added to all subsequent requests until cleared
-// or changed.
+// SetExtraHTTPHeaders sets additional HTTP headers that will be sent with all requests.
+// These headers are added to all subsequent requests until cleared or changed.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
 // Takes headers (map[string]string) which contains header name to value pairs.
 //
-// Returns error when the network domain cannot be enabled or headers cannot
-// be set.
+// Returns error when the network domain cannot be enabled or headers cannot be set.
 func SetExtraHTTPHeaders(ctx *ActionContext, headers map[string]string) error {
 	networkHeaders := make(network.Headers, len(headers))
 	for k, v := range headers {
@@ -55,8 +53,8 @@ func SetExtraHTTPHeaders(ctx *ActionContext, headers map[string]string) error {
 	return nil
 }
 
-// SetAuthorizationHeader sets an Authorization header for all requests.
-// This is a convenience function for Bearer token authentication.
+// SetAuthorizationHeader sets an Authorization header for all requests. This is a
+// convenience function for Bearer token authentication.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes token (string) which is the Bearer token value.
@@ -68,8 +66,8 @@ func SetAuthorizationHeader(ctx *ActionContext, token string) error {
 	})
 }
 
-// SetBasicAuthHeader sets a Basic Authorization header for all requests.
-// The credentials should be in "username:password" format.
+// SetBasicAuthHeader sets a Basic Authorization header for all requests. The credentials
+// should be in "username:password" format.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes credentials (string) which specifies the username:password value.
@@ -81,8 +79,8 @@ func SetBasicAuthHeader(ctx *ActionContext, credentials string) error {
 	})
 }
 
-// SetUserAgent sets the User-Agent header for all requests.
-// For full device emulation, use the EmulateDevice functions instead.
+// SetUserAgent sets the User-Agent header for all requests. For full device emulation,
+// use the EmulateDevice functions instead.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes userAgent (string) which specifies the User-Agent header value.
@@ -107,8 +105,8 @@ func ClearExtraHTTPHeaders(ctx *ActionContext) error {
 	return SetExtraHTTPHeaders(ctx, map[string]string{})
 }
 
-// SetAcceptLanguageHeader sets the Accept-Language header for all requests.
-// Use it to test localisation.
+// SetAcceptLanguageHeader sets the Accept-Language header for all requests. Use it to
+// test localisation.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes language (string) which specifies the language code to use.
@@ -120,8 +118,7 @@ func SetAcceptLanguageHeader(ctx *ActionContext, language string) error {
 	})
 }
 
-// SetCustomHeader sets a single custom header.
-// Use it when only one header is needed.
+// SetCustomHeader sets a single custom header. Use it when only one header is needed.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes name (string) which specifies the header name.
@@ -134,13 +131,12 @@ func SetCustomHeader(ctx *ActionContext, name, value string) error {
 	})
 }
 
-// GetResponseHeaders returns the response headers from the most recent
-// navigation. This requires the network domain to be enabled first.
+// GetResponseHeaders returns the response headers from the most recent navigation. This
+// requires the network domain to be enabled first.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 //
-// Returns map[string]string which contains the response headers as key-value
-// pairs.
+// Returns map[string]string which contains the response headers as key-value pairs.
 // Returns error when the JavaScript evaluation fails.
 func GetResponseHeaders(ctx *ActionContext) (map[string]string, error) {
 	js := scripts.MustGet("get_response_headers.js")

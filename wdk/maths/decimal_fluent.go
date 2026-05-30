@@ -26,8 +26,8 @@ import (
 
 // Abs returns the absolute value of the decimal.
 //
-// Returns Decimal which is the absolute value, or the original value if the
-// decimal has an error.
+// Returns Decimal which is the absolute value, or the original value if the decimal has
+// an error.
 func (d Decimal) Abs() Decimal {
 	if d.err != nil {
 		return d
@@ -39,8 +39,7 @@ func (d Decimal) Abs() Decimal {
 
 // Negate returns the negated value of the decimal (-d).
 //
-// Returns Decimal which is the negated value, or the original if it has an
-// error.
+// Returns Decimal which is the negated value, or the original if it has an error.
 func (d Decimal) Negate() Decimal {
 	if d.err != nil {
 		return d
@@ -50,18 +49,16 @@ func (d Decimal) Negate() Decimal {
 	return NewDecimalFromApd(result)
 }
 
-// Round returns the decimal value rounded to a given number of decimal places
-// using banker's rounding.
+// Round returns the decimal value rounded to a given number of decimal places using
+// banker's rounding.
 //
-// A positive places value rounds to the right of the decimal point. A negative
-// places value rounds to the left of the decimal point. For example, Round(-2)
-// rounds to the nearest hundred.
+// A positive places value rounds to the right of the decimal point. A negative places
+// value rounds to the left of the decimal point. For example, Round(-2) rounds to the
+// nearest hundred.
 //
-// Takes places (int32) which specifies the number of decimal places to round
-// to.
+// Takes places (int32) which specifies the number of decimal places to round to.
 //
-// Returns Decimal which contains the rounded value, or an error if the
-// rounding fails.
+// Returns Decimal which contains the rounded value, or an error if the rounding fails.
 func (d Decimal) Round(places int32) Decimal {
 	if d.err != nil {
 		return d
@@ -76,8 +73,7 @@ func (d Decimal) Round(places int32) Decimal {
 
 // Ceil returns the smallest integer that is greater than or equal to d.
 //
-// Returns Decimal which is the ceiling value, or an error Decimal if the
-// operation fails.
+// Returns Decimal which is the ceiling value, or an error Decimal if the operation fails.
 func (d Decimal) Ceil() Decimal {
 	if d.err != nil {
 		return d
@@ -93,8 +89,7 @@ func (d Decimal) Ceil() Decimal {
 
 // Floor returns the largest whole number less than or equal to d.
 //
-// Returns Decimal which contains the floor value, or an error if the
-// operation fails.
+// Returns Decimal which contains the floor value, or an error if the operation fails.
 func (d Decimal) Floor() Decimal {
 	if d.err != nil {
 		return d
@@ -108,8 +103,8 @@ func (d Decimal) Floor() Decimal {
 	return NewDecimalFromApd(resultApd)
 }
 
-// Truncate returns the integer part of d, removing any decimal places.
-// The value is rounded towards zero.
+// Truncate returns the integer part of d, removing any decimal places. The value is
+// rounded towards zero.
 //
 // Returns Decimal which is the truncated integer value.
 func (d Decimal) Truncate() Decimal {
@@ -307,14 +302,14 @@ func (d Decimal) AsPercentOfFloat(i float64) Decimal {
 	return d.AsPercentOf(NewDecimalFromFloat(i))
 }
 
-// When applies the function callback if the given condition is true, enabling
-// conditional logic within a fluent chain.
+// When applies the function callback if the given condition is true, enabling conditional
+// logic within a fluent chain.
 //
 // Takes condition (bool) which determines whether callback is applied.
 // Takes callback (func(Decimal) Decimal) which transforms the decimal value.
 //
-// Returns Decimal which is the result of callback if condition is true, or the
-// original value otherwise.
+// Returns Decimal which is the result of callback if condition is true, or the original
+// value otherwise.
 func (d Decimal) When(condition bool, callback func(Decimal) Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -325,8 +320,7 @@ func (d Decimal) When(condition bool, callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenZero applies the function callback if the decimal is valid and its value is
-// zero.
+// WhenZero applies the function callback if the decimal is valid and its value is zero.
 //
 // Takes callback (func(Decimal) Decimal) which transforms the zero value.
 //
@@ -338,8 +332,8 @@ func (d Decimal) WhenZero(callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenPositive applies the function callback if the decimal is valid and its value
-// is positive.
+// WhenPositive applies the function callback if the decimal is valid and its value is
+// positive.
 //
 // Takes callback (func(Decimal) Decimal) which transforms the decimal value.
 //
@@ -351,13 +345,13 @@ func (d Decimal) WhenPositive(callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenNegative applies the function callback if the decimal is valid and its
-// value is negative.
+// WhenNegative applies the function callback if the decimal is valid and its value is
+// negative.
 //
 // Takes callback (func(Decimal) Decimal) which transforms the negative value.
 //
-// Returns Decimal which is the transformed value if negative, or the
-// original value otherwise.
+// Returns Decimal which is the transformed value if negative, or the original value
+// otherwise.
 func (d Decimal) WhenNegative(callback func(Decimal) Decimal) Decimal {
 	if d.CheckIsNegative() {
 		return callback(d)
@@ -365,13 +359,12 @@ func (d Decimal) WhenNegative(callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenInteger applies the function callback if the decimal is
-// valid and an integer.
+// WhenInteger applies the function callback if the decimal is valid and an integer.
 //
 // Takes callback (func(Decimal) Decimal) which transforms the decimal value.
 //
-// Returns Decimal which is the result of callback if the decimal is an integer,
-// or the original decimal otherwise.
+// Returns Decimal which is the result of callback if the decimal is an integer, or the
+// original decimal otherwise.
 func (d Decimal) WhenInteger(callback func(Decimal) Decimal) Decimal {
 	if d.CheckIsInteger() {
 		return callback(d)
@@ -379,16 +372,14 @@ func (d Decimal) WhenInteger(callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenBetween applies the function callback if the decimal is valid and between
-// minVal and maxVal (inclusive).
+// WhenBetween applies the function callback if the decimal is valid and between minVal
+// and maxVal (inclusive).
 //
 // Takes minVal (Decimal) which specifies the lower bound of the range.
 // Takes maxVal (Decimal) which specifies the upper bound of the range.
-// Takes callback (func(Decimal) Decimal) which transforms the
-// decimal when in range.
+// Takes callback (func(Decimal) Decimal) which transforms the decimal when in range.
 //
-// Returns Decimal which is the result of callback if in range, or
-// the original value.
+// Returns Decimal which is the result of callback if in range, or the original value.
 func (d Decimal) WhenBetween(minVal, maxVal Decimal, callback func(Decimal) Decimal) Decimal {
 	if d.CheckIsBetween(minVal, maxVal) {
 		return callback(d)
@@ -396,15 +387,15 @@ func (d Decimal) WhenBetween(minVal, maxVal Decimal, callback func(Decimal) Deci
 	return d
 }
 
-// WhenCloseTo applies the function callback if the decimal is valid and close to
-// the target value within the given tolerance.
+// WhenCloseTo applies the function callback if the decimal is valid and close to the
+// target value within the given tolerance.
 //
 // Takes target (Decimal) which specifies the value to compare against.
 // Takes tolerance (Decimal) which defines the acceptable difference range.
 // Takes callback (func(...)) which transforms the decimal when within tolerance.
 //
-// Returns Decimal which is either the transformed value or the original
-// decimal if not within tolerance.
+// Returns Decimal which is either the transformed value or the original decimal if not
+// within tolerance.
 func (d Decimal) WhenCloseTo(target, tolerance Decimal, callback func(Decimal) Decimal) Decimal {
 	if d.CheckIsCloseTo(target, tolerance) {
 		return callback(d)
@@ -436,15 +427,15 @@ func (d Decimal) WhenOdd(callback func(Decimal) Decimal) Decimal {
 	return d
 }
 
-// WhenMultipleOf applies the function callback if the decimal is a valid multiple
-// of the other decimal.
+// WhenMultipleOf applies the function callback if the decimal is a valid multiple of the
+// other decimal.
 //
 // Takes other (Decimal) which specifies the divisor to check against.
-// Takes callback (func(Decimal) Decimal) which transforms the decimal if it is a
-// valid multiple.
+// Takes callback (func(Decimal) Decimal) which transforms the decimal if it is a valid
+// multiple.
 //
-// Returns Decimal which is the transformed value if d is a multiple of other,
-// or the original value otherwise.
+// Returns Decimal which is the transformed value if d is a multiple of other, or the
+// original value otherwise.
 func (d Decimal) WhenMultipleOf(other Decimal, callback func(Decimal) Decimal) Decimal {
 	if d.CheckIsMultipleOf(other) {
 		return callback(d)

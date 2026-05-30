@@ -16,18 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driver_providers implements notification delivery adapters for
-// third-party messaging services and generic endpoints.
+// Package driver_providers implements notification delivery adapters for third-party
+// messaging services and generic endpoints.
 //
-// Each provider implements [notification_domain.NotificationProviderPort],
-// translating the unified SendParams DTO into the target platform's wire
-// format (Slack Block Kit, Discord embeds, Teams MessageCard, PagerDuty
-// Events API v2, etc.) and delivering it via HTTP webhooks or APIs.
+// Each provider implements [notification_domain.NotificationProviderPort], translating
+// the unified SendParams DTO into the target platform's wire format (Slack Block Kit,
+// Discord embeds, Teams MessageCard, PagerDuty Events API v2, etc.) and delivering it via
+// HTTP webhooks or APIs.
 //
 // # Integration
 //
-// Providers are registered with the notification domain service via
-// RegisterProvider. Each constructor (e.g. NewSlackProvider) accepts a
-// webhook URL (or routing key) and an optional *http.Client, returning
-// a ready-to-use NotificationProviderPort.
+// Providers are registered with the notification domain service via RegisterProvider.
+// Each constructor (e.g. NewSlackProvider) accepts a webhook URL (or routing key) and an
+// optional *http.Client, returning a ready-to-use NotificationProviderPort.
 package driver_providers

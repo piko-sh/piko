@@ -1,0 +1,4 @@
+# Shared go build cache populated when the cross-language suite runs
+# `go run` against per-benchmark `go/` directories. Cached intentionally so
+# warmup runs absorb cold-build cost across the suite.
+.gocache/

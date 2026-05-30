@@ -41,8 +41,8 @@ const (
 	httpTimeout = 10 * time.Second
 
 	// maxResponseBodySize is the maximum number of bytes read from the reCAPTCHA
-	// verification response. Prevents unbounded memory allocation from a
-	// misbehaving upstream.
+	// verification response. Prevents unbounded memory allocation from a misbehaving
+	// upstream.
 	maxResponseBodySize = 64 * 1024
 )
 
@@ -77,15 +77,17 @@ type provider struct {
 	config Config
 }
 
-var _ captcha_domain.CaptchaProvider = (*provider)(nil)
+var (
+	_ captcha_domain.CaptchaProvider = (*provider)(nil)
+)
 
 // NewProvider creates a new Google reCAPTCHA v3 captcha provider.
 //
-// Takes config (Config) which specifies the reCAPTCHA v3 site key and secret
-// key from the Google reCAPTCHA admin console.
+// Takes config (Config) which specifies the reCAPTCHA v3 site key and secret key from the
+// Google reCAPTCHA admin console.
 //
-// Returns captcha_domain.CaptchaProvider which provides reCAPTCHA v3
-// score-based captcha verification.
+// Returns captcha_domain.CaptchaProvider which provides reCAPTCHA v3 score-based captcha
+// verification.
 // Returns error when the configuration is invalid.
 func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 	if err := config.validate(); err != nil {
@@ -102,8 +104,7 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 
 // Type returns the provider type identifier.
 //
-// Returns captcha_dto.ProviderType which identifies this as a reCAPTCHA v3
-// provider.
+// Returns captcha_dto.ProviderType which identifies this as a reCAPTCHA v3 provider.
 func (*provider) Type() captcha_dto.ProviderType {
 	return captcha_dto.ProviderTypeRecaptchaV3
 }
@@ -115,27 +116,25 @@ func (p *provider) SiteKey() string {
 	return p.config.SiteKey
 }
 
-// ScriptURL returns the Google reCAPTCHA v3 JavaScript SDK URL with the site
-// key appended as the render parameter.
+// ScriptURL returns the Google reCAPTCHA v3 JavaScript SDK URL with the site key appended
+// as the render parameter.
 //
 // Returns string which is the reCAPTCHA v3 script URL.
 func (p *provider) ScriptURL() string {
 	return "https://www.google.com/recaptcha/api.js?render=" + p.config.SiteKey
 }
 
-// Verify verifies a reCAPTCHA v3 token by calling the Google siteverify
-// endpoint.
+// Verify verifies a reCAPTCHA v3 token by calling the Google siteverify endpoint.
 //
-// The method POSTs the token, secret key, and client IP to the reCAPTCHA
-// verification endpoint and parses the JSON response. The response includes
-// a risk score between 0.0 (likely bot) and 1.0 (likely human) which is
-// populated in VerifyResponse.Score.
+// The method POSTs the token, secret key, and client IP to the reCAPTCHA verification
+// endpoint and parses the JSON response. The response includes a risk score between 0.0
+// (likely bot) and 1.0 (likely human) which is populated in VerifyResponse.Score.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the captcha token,
-// client IP, and action name.
+// Takes request (*captcha_dto.VerifyRequest) which contains the captcha token, client IP,
+// and action name.
 //
-// Returns *captcha_dto.VerifyResponse which contains the verification result
-// including the risk score.
+// Returns *captcha_dto.VerifyResponse which contains the verification result including
+// the risk score.
 // Returns error when the HTTP request fails or the response cannot be parsed.
 func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error) {
 	ctx, span := tracer.Start(ctx, "captcha_provider_recaptcha_v3.Verify")
@@ -200,8 +199,8 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	return buildVerifyResponse(recaptchaResult), nil
 }
 
-// buildVerifyResponse converts the provider-specific response into the
-// standard VerifyResponse.
+// buildVerifyResponse converts the provider-specific response into the standard
+// VerifyResponse.
 //
 // Takes result (recaptchaVerifyResult) which is the raw reCAPTCHA API response.
 //
@@ -225,10 +224,9 @@ func buildVerifyResponse(result recaptchaVerifyResult) *captcha_dto.VerifyRespon
 	return response
 }
 
-// normaliseScore ensures the score follows the convention where 0.0 = bot and
-// 1.0 = human, returning 1.0 when verification succeeded but the score is
-// zero (which happens with Google's test keys) since a successful verification
-// cannot be a confirmed bot.
+// normaliseScore ensures the score follows the convention where 0.0 = bot and 1.0 =
+// human, returning 1.0 when verification succeeded but the score is zero (which happens
+// with Google's test keys) since a successful verification cannot be a confirmed bot.
 //
 // Takes success (bool) which indicates whether the verification passed.
 // Takes score (float64) which is the raw reCAPTCHA risk score.
@@ -241,12 +239,12 @@ func normaliseScore(success bool, score float64) float64 {
 	return max(0.0, min(1.0, score))
 }
 
-// RenderRequirements returns the frontend rendering configuration for the
-// Google reCAPTCHA v3 widget. The widget is invisible and runs in the
-// background without a visible container.
+// RenderRequirements returns the frontend rendering configuration for the Google
+// reCAPTCHA v3 widget. The widget is invisible and runs in the background without a
+// visible container.
 //
-// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP
-// domains, and init script needed to render the invisible widget.
+// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP domains,
+// and init script needed to render the invisible widget.
 func (p *provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	return &captcha_dto.RenderRequirements{
 		InitScript:        scripts.InitScript,
@@ -259,9 +257,8 @@ func (p *provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	}
 }
 
-// HealthCheck returns nil because Google reCAPTCHA does not provide a
-// dedicated health check endpoint. Connectivity is verified implicitly
-// during token verification.
+// HealthCheck returns nil because Google reCAPTCHA does not provide a dedicated health
+// check endpoint. Connectivity is verified implicitly during token verification.
 //
 // Returns error which is always nil for this provider.
 func (*provider) HealthCheck(_ context.Context) error {

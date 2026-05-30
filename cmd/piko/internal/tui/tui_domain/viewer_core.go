@@ -26,8 +26,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// AssetViewer provides standardised list viewing functionality for any item type.
-// It handles navigation, expansion, search/filtering, and scroll-aware rendering.
+// AssetViewer provides standardised list viewing functionality for any item type. It
+// handles navigation, expansion, search/filtering, and scroll-aware rendering.
 //
 // Generic parameter T is the item type (e.g., Resource, Span, metricDisplay).
 type AssetViewer[T any] struct {
@@ -51,8 +51,8 @@ type AssetViewer[T any] struct {
 	// navMode specifies the current navigation mode for the viewer.
 	navMode NavigationMode
 
-	// lastHeaderLines records how many rows the most recent View call
-	// reserved for the panel header (search box, error banners).
+	// lastHeaderLines records how many rows the most recent View call reserved for the panel
+	// header (search box, error banners).
 	lastHeaderLines int
 }
 
@@ -82,14 +82,14 @@ type AssetViewerConfig[T any] struct {
 
 // SetRenderer sets the item renderer for this panel.
 //
-// Takes renderer (ItemRenderer[T]) which renders items. Use this when the
-// renderer needs a reference back to the panel to access panel state.
+// Takes renderer (ItemRenderer[T]) which renders items. Use this when the renderer needs
+// a reference back to the panel to access panel state.
 func (v *AssetViewer[T]) SetRenderer(renderer ItemRenderer[T]) {
 	v.renderer = renderer
 }
 
-// SetItems replaces the current items with the given slice.
-// This does not clear expansion state.
+// SetItems replaces the current items with the given slice. This does not clear expansion
+// state.
 //
 // Takes items ([]T) which is the new slice of items to display.
 //
@@ -131,8 +131,8 @@ func (v *AssetViewer[T]) ItemCount() int {
 
 // GetDisplayItems returns the indices of items to display.
 //
-// Returns []int which contains the filtered indices if a search is active,
-// or all indices if no search is set.
+// Returns []int which contains the filtered indices if a search is active, or all indices
+// if no search is set.
 func (v *AssetViewer[T]) GetDisplayItems() []int {
 	if v.search != nil {
 		return v.search.GetDisplayIndices(len(v.items))
@@ -181,8 +181,8 @@ func (v *AssetViewer[T]) CollapseAll() {
 	v.expanded = make(map[string]bool)
 }
 
-// ExpandedMap returns the expansion state map.
-// Use this for preserving expansion state across refreshes.
+// ExpandedMap returns the expansion state map. Use this for preserving expansion state
+// across refreshes.
 //
 // Returns map[string]bool which maps item identifiers to their expanded state.
 func (v *AssetViewer[T]) ExpandedMap() map[string]bool {
@@ -191,24 +191,22 @@ func (v *AssetViewer[T]) ExpandedMap() map[string]bool {
 
 // SetExpandedMap sets the expansion state map directly.
 //
-// Takes expanded (map[string]bool) which maps asset identifiers to their
-// expanded state.
+// Takes expanded (map[string]bool) which maps asset identifiers to their expanded state.
 func (v *AssetViewer[T]) SetExpandedMap(expanded map[string]bool) {
 	v.expanded = expanded
 }
 
 // Search returns the search mixin for the asset viewer.
 //
-// Returns *SearchMixin which provides search functionality, or nil if search
-// is not enabled.
+// Returns *SearchMixin which provides search functionality, or nil if search is not
+// enabled.
 func (v *AssetViewer[T]) Search() *SearchMixin {
 	return v.search
 }
 
 // Mutex returns the read-write mutex, or nil if not using mutex protection.
 //
-// Returns *sync.RWMutex which is the underlying lock for manual
-// synchronisation.
+// Returns *sync.RWMutex which is the underlying lock for manual synchronisation.
 func (v *AssetViewer[T]) Mutex() *sync.RWMutex {
 	return v.mu
 }
@@ -232,8 +230,7 @@ func (v *AssetViewer[T]) updateFilter() {
 	}
 }
 
-// CalculateLineCount returns the total number of lines including expanded
-// content.
+// CalculateLineCount returns the total number of lines including expanded content.
 //
 // Returns int which is the line count for all display items.
 func (v *AssetViewer[T]) CalculateLineCount() int {
@@ -264,8 +261,7 @@ func (v *AssetViewer[T]) CalculateLineCount() int {
 	)
 }
 
-// NavigablePositions returns the line positions of all items that can be
-// navigated to.
+// NavigablePositions returns the line positions of all items that can be navigated to.
 //
 // Returns []int which contains the line numbers where navigation can stop.
 func (v *AssetViewer[T]) NavigablePositions() []int {
@@ -299,8 +295,8 @@ func (v *AssetViewer[T]) NavigablePositions() []int {
 
 // GetItemAtCursor returns the item at the current cursor position.
 //
-// Returns *T which is the item at the cursor, or nil if the cursor is out of
-// bounds or points to a position that is not valid.
+// Returns *T which is the item at the cursor, or nil if the cursor is out of bounds or
+// points to a position that is not valid.
 func (v *AssetViewer[T]) GetItemAtCursor() *T {
 	displayItems := v.GetDisplayItems()
 	positions := v.NavigablePositions()
@@ -474,8 +470,8 @@ func (v *AssetViewer[T]) RenderHeader(content *strings.Builder) int {
 // RenderItems writes all items to the output, handling scroll position.
 //
 // Takes content (*strings.Builder) which receives the rendered output.
-// Takes headerLines (int) which specifies how many header lines to exclude
-// from the content height calculation.
+// Takes headerLines (int) which specifies how many header lines to exclude from the
+// content height calculation.
 func (v *AssetViewer[T]) RenderItems(content *strings.Builder, headerLines int) {
 	displayItems := v.GetDisplayItems()
 	if len(displayItems) == 0 {
@@ -511,8 +507,8 @@ func (v *AssetViewer[T]) RenderItems(content *strings.Builder, headerLines int) 
 	}
 }
 
-// ViewCallbacks holds the per-panel render functions for the RenderViewWith
-// template method.
+// ViewCallbacks holds the per-panel render functions for the RenderViewWith template
+// method.
 type ViewCallbacks struct {
 	// RenderHeader writes the panel header and returns the number of lines used.
 	RenderHeader func(w *strings.Builder) int
@@ -523,20 +519,19 @@ type ViewCallbacks struct {
 	// RenderItems writes the item list.
 	RenderItems func(w *strings.Builder, displayItems []int, usedLines int)
 
-	// TrimTrailingNewline controls whether a trailing newline is stripped
-	// before framing. Set to true for panels whose item renderers emit a
-	// trailing newline that would otherwise produce a blank bottom row.
+	// TrimTrailingNewline controls whether a trailing newline is stripped before framing.
+	// Set to true for panels whose item renderers emit a trailing newline that would
+	// otherwise produce a blank bottom row.
 	TrimTrailingNewline bool
 }
 
-// RenderViewWith is a template method that encapsulates the common View()
-// pattern shared by all panels. It handles size setup, search-mixin width,
-// mutex locking, header/empty/item rendering, and framing.
+// RenderViewWith is a template method that encapsulates the common View() pattern shared
+// by all panels. It handles size setup, search-mixin width, mutex locking,
+// header/empty/item rendering, and framing.
 //
 // Takes width (int) which specifies the panel width in characters.
 // Takes height (int) which specifies the panel height in lines.
-// Takes callbacks (ViewCallbacks) which provides the
-// panel-specific render functions.
+// Takes callbacks (ViewCallbacks) which provides the panel-specific render functions.
 //
 // Returns string which contains the rendered panel content.
 //
@@ -574,12 +569,12 @@ func (v *AssetViewer[T]) RenderViewWith(width, height int, callbacks ViewCallbac
 	return v.RenderFrame(result)
 }
 
-// updateScrollSuffix sets the panel title's suffix to a compact scroll
-// position label when the rendered content overflows the visible area.
-// Cleared when there is no overflow.
+// updateScrollSuffix sets the panel title's suffix to a compact scroll position label
+// when the rendered content overflows the visible area. Cleared when there is no
+// overflow.
 //
-// Takes headerLines (int) which is the height already consumed by the
-// panel header so the visible item area is computed correctly.
+// Takes headerLines (int) which is the height already consumed by the panel header so the
+// visible item area is computed correctly.
 func (v *AssetViewer[T]) updateScrollSuffix(headerLines int) {
 	totalLines := v.CalculateLineCount()
 	visibleHeight := v.ContentHeight() - headerLines
@@ -592,8 +587,7 @@ func (v *AssetViewer[T]) updateScrollSuffix(headerLines int) {
 	v.SetTitleSuffix(fmt.Sprintf("· %d-%d / %d", first, last, totalLines))
 }
 
-// View renders the full panel view.
-// Override this in panels that need custom rendering.
+// View renders the full panel view. Override this in panels that need custom rendering.
 //
 // Takes width (int) which specifies the panel width in characters.
 // Takes height (int) which specifies the panel height in lines.
@@ -639,12 +633,10 @@ func (*AssetViewer[T]) Init() tea.Cmd {
 
 // NewAssetViewer creates a new asset viewer with the given configuration.
 //
-// Takes config (AssetViewerConfig[T]) which provides the viewer
-// settings including ID, title, renderer, navigation mode, and
-// optional search and mutex support.
+// Takes config (AssetViewerConfig[T]) which provides the viewer settings including ID,
+// title, renderer, navigation mode, and optional search and mutex support.
 //
-// Returns *AssetViewer[T] which is the configured viewer ready
-// for use.
+// Returns *AssetViewer[T] which is the configured viewer ready for use.
 func NewAssetViewer[T any](config AssetViewerConfig[T]) *AssetViewer[T] {
 	v := &AssetViewer[T]{
 		BasePanel: NewBasePanel(config.ID, config.Title),

@@ -21,6 +21,7 @@ package browser_provider_chromedp
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/chromedp/cdproto/input"
@@ -97,8 +98,8 @@ type modifierInfo struct {
 	Modifier input.Modifier
 }
 
-// Press presses one or more keys in sequence, supporting modifiers.
-// Key format: "Enter", "Tab", "Shift+Enter", "Control+b", "Meta+k".
+// Press presses one or more keys in sequence, supporting modifiers. Key format: "Enter",
+// "Tab", "Shift+Enter", "Control+b", "Meta+k".
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes keys (...string) which specifies the key codes to press in order.
@@ -113,11 +114,9 @@ func Press(ctx *ActionContext, keys ...string) error {
 	return nil
 }
 
-// Type types text character by character, dispatching keyboard events for
-// each character.
+// Type types text character by character, dispatching keyboard events for each character.
 //
-// Takes ctx (*ActionContext) which provides the browser context for keyboard
-// events.
+// Takes ctx (*ActionContext) which provides the browser context for keyboard events.
 // Takes text (string) which is the text to type character by character.
 //
 // Returns error when a keyboard event fails to dispatch.
@@ -176,8 +175,7 @@ func pressKeySpec(ctx context.Context, keySpec string) error {
 
 // calculateModifiers calculates the combined modifier flags from modifier names.
 //
-// Takes modifierNames ([]string) which contains the names of modifiers to
-// combine.
+// Takes modifierNames ([]string) which contains the names of modifiers to combine.
 //
 // Returns input.Modifier which is the bitwise OR of all specified modifiers.
 // Returns error when an unknown modifier name is provided.
@@ -241,8 +239,7 @@ func pressMainKey(ctx context.Context, keyName string, modifiers input.Modifier)
 //
 // Returns keyInfo which contains the resolved key data.
 // Returns bool which is true if the key is a special key from keyMap.
-// Returns error when the key name is unknown (not in keyMap and not a single
-// character).
+// Returns error when the key name is unknown (not in keyMap and not a single character).
 func resolveMainKey(keyName string) (keyInfo, bool, error) {
 	if key, ok := keyMap[keyName]; ok {
 		return key, true, nil
@@ -350,8 +347,8 @@ func characterKeyInfo(keyName string) (key, code string, keyCode int64) {
 //
 // Takes modifierNames ([]string) which lists the modifier keys to release.
 func releaseModifiers(ctx context.Context, modifierNames []string) {
-	for i := len(modifierNames) - 1; i >= 0; i-- {
-		mod := modifierMap[modifierNames[i]]
+	for _, modifierName := range slices.Backward(modifierNames) {
+		mod := modifierMap[modifierName]
 		_ = chromedp.Run(ctx,
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				return input.DispatchKeyEvent(input.KeyUp).

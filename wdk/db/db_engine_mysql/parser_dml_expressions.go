@@ -25,10 +25,16 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseExpression parses a top-level SQL expression.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
 	return p.parseOrExpression()
 }
 
+// parseOrExpression parses left-associative OR or `||` chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseOrExpression() querier_dto.Expression {
 	left := p.parseAndExpression()
 	for p.matchKeyword("OR") || (p.current().kind == tokenOperator && p.current().value == "||") {
@@ -44,6 +50,9 @@ func (p *parser) parseOrExpression() querier_dto.Expression {
 	return left
 }
 
+// parseAndExpression parses left-associative AND chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseAndExpression() querier_dto.Expression {
 	left := p.parseNotExpression()
 	for p.matchKeyword(keywordAND) {
@@ -56,6 +65,9 @@ func (p *parser) parseAndExpression() querier_dto.Expression {
 	return left
 }
 
+// parseNotExpression parses a unary NOT or `!` prefix.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseNotExpression() querier_dto.Expression {
 	if p.matchKeyword(keywordNOT) {
 		operand := p.parseComparisonExpression()
@@ -75,6 +87,9 @@ func (p *parser) parseNotExpression() querier_dto.Expression {
 	return p.parseComparisonExpression()
 }
 
+// parseComparisonExpression parses comparisons and postfix predicates.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseComparisonExpression() querier_dto.Expression {
 	left := p.parseBitwiseExpression()
 
@@ -100,6 +115,12 @@ func (p *parser) parseComparisonExpression() querier_dto.Expression {
 	return left
 }
 
+// parsePostfixComparisonSuffix matches postfix comparison predicates.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed predicate, or nil when no postfix
+// predicate keyword follows.
 func (p *parser) parsePostfixComparisonSuffix(left querier_dto.Expression) querier_dto.Expression {
 	if p.isKeyword("IN") {
 		return p.parseInListSuffix(left)
@@ -119,6 +140,12 @@ func (p *parser) parsePostfixComparisonSuffix(left querier_dto.Expression) queri
 	return nil
 }
 
+// maybeNegate wraps expression in a NOT when negated is true.
+//
+// Takes negated (bool) which indicates whether to negate.
+// Takes expression (querier_dto.Expression) which is the inner expression.
+//
+// Returns querier_dto.Expression which is the negated or original expression.
 func (*parser) maybeNegate(negated bool, expression querier_dto.Expression) querier_dto.Expression {
 	if negated {
 		return &querier_dto.UnaryOpExpression{Operator: keywordNOT, Operand: expression}
@@ -126,6 +153,11 @@ func (*parser) maybeNegate(negated bool, expression querier_dto.Expression) quer
 	return expression
 }
 
+// parseLikeSuffix parses a LIKE predicate with an optional ESCAPE clause.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed comparison.
 func (p *parser) parseLikeSuffix(left querier_dto.Expression) querier_dto.Expression {
 	keyword := strings.ToUpper(p.advance().value)
 	right := p.parseBitwiseExpression()
@@ -135,12 +167,22 @@ func (p *parser) parseLikeSuffix(left querier_dto.Expression) querier_dto.Expres
 	return &querier_dto.ComparisonExpression{Operator: keyword, Left: left, Right: right}
 }
 
+// parseRegexpSuffix parses a REGEXP or RLIKE predicate.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed comparison.
 func (p *parser) parseRegexpSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 	right := p.parseBitwiseExpression()
 	return &querier_dto.ComparisonExpression{Operator: "REGEXP", Left: left, Right: right}
 }
 
+// parseSoundsLikeSuffix parses a SOUNDS LIKE predicate.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed comparison.
 func (p *parser) parseSoundsLikeSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 	p.matchKeyword("LIKE")
@@ -148,6 +190,11 @@ func (p *parser) parseSoundsLikeSuffix(left querier_dto.Expression) querier_dto.
 	return &querier_dto.ComparisonExpression{Operator: "SOUNDS LIKE", Left: left, Right: right}
 }
 
+// parseComparisonOperator parses a comparison with optional ANY/ALL/SOME.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the comparison.
+//
+// Returns querier_dto.Expression which is the parsed comparison.
 func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dto.Expression {
 	operator := p.advance().value
 	if p.matchKeyword("ANY") || p.matchKeyword(keywordALL) || p.matchKeyword("SOME") {
@@ -160,6 +207,9 @@ func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dt
 	return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: right}
 }
 
+// parseBitwiseExpression parses bitwise &, |, ^, <<, and >> chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseBitwiseExpression() querier_dto.Expression {
 	left := p.parseJSONExpression()
 
@@ -174,6 +224,9 @@ func (p *parser) parseBitwiseExpression() querier_dto.Expression {
 	return left
 }
 
+// parseJSONExpression parses JSON `->` and `->>` operator chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseJSONExpression() querier_dto.Expression {
 	left := p.parseAddExpression()
 
@@ -186,6 +239,9 @@ func (p *parser) parseJSONExpression() querier_dto.Expression {
 	return left
 }
 
+// parseAddExpression parses additive `+` and `-` chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseAddExpression() querier_dto.Expression {
 	left := p.parseMulExpression()
 
@@ -199,6 +255,9 @@ func (p *parser) parseAddExpression() querier_dto.Expression {
 	return left
 }
 
+// parseMulExpression parses multiplicative *, /, %, DIV, and MOD chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseMulExpression() querier_dto.Expression {
 	left := p.parseUnaryExpression()
 
@@ -217,6 +276,9 @@ func (p *parser) parseMulExpression() querier_dto.Expression {
 	return left
 }
 
+// isMulOperator reports whether the current token is a `*` family operator.
+//
+// Returns bool which is true for *, /, %, DIV, or MOD.
 func (p *parser) isMulOperator() bool {
 	if p.current().kind == tokenStar {
 		return true
@@ -225,6 +287,9 @@ func (p *parser) isMulOperator() bool {
 		(p.current().value == "/" || p.current().value == "%" || p.current().value == "DIV" || p.current().value == "MOD")
 }
 
+// parseUnaryExpression parses unary -, +, ~, NOT, or BINARY prefixes.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseUnaryExpression() querier_dto.Expression {
 	if p.current().kind == tokenOperator &&
 		(p.current().value == "-" || p.current().value == "+" || p.current().value == "~") {
@@ -246,6 +311,9 @@ func (p *parser) parseUnaryExpression() querier_dto.Expression {
 	return p.parseCollateExpression()
 }
 
+// parseCollateExpression parses an optional COLLATE suffix.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseCollateExpression() querier_dto.Expression {
 	left := p.parseSubscriptExpression()
 
@@ -258,6 +326,9 @@ func (p *parser) parseCollateExpression() querier_dto.Expression {
 	return left
 }
 
+// parseSubscriptExpression parses `[index]` array subscript chains.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseSubscriptExpression() querier_dto.Expression {
 	left := p.parsePrimaryExpression()
 
@@ -273,6 +344,9 @@ func (p *parser) parseSubscriptExpression() querier_dto.Expression {
 	return left
 }
 
+// parsePrimaryExpression parses a primary expression atom.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parsePrimaryExpression() querier_dto.Expression {
 	tok := p.current()
 
@@ -300,6 +374,11 @@ func (p *parser) parsePrimaryExpression() querier_dto.Expression {
 	}
 }
 
+// parseNumberLiteral classifies a numeric literal as int or double.
+//
+// Takes tok (token) which is the number token being consumed.
+//
+// Returns querier_dto.Expression which is the typed literal expression.
 func (p *parser) parseNumberLiteral(tok token) querier_dto.Expression {
 	p.advance()
 	if strings.Contains(tok.value, ".") || strings.Contains(tok.value, "e") || strings.Contains(tok.value, "E") {
@@ -308,6 +387,9 @@ func (p *parser) parseNumberLiteral(tok token) querier_dto.Expression {
 	return &querier_dto.LiteralExpression{TypeName: "int"}
 }
 
+// parseParameterExpression registers a bare parameter token.
+//
+// Returns querier_dto.Expression which is an UnknownExpression placeholder.
 func (p *parser) parseParameterExpression() querier_dto.Expression {
 	parameterToken := p.current()
 	p.advance()
@@ -315,6 +397,9 @@ func (p *parser) parseParameterExpression() querier_dto.Expression {
 	return &querier_dto.UnknownExpression{}
 }
 
+// parseParenthesisedExpression parses a `(expr)` or scalar subquery.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseParenthesisedExpression() querier_dto.Expression {
 	if p.isSubqueryStart() {
 		return p.parseScalarSubquery()
@@ -327,12 +412,19 @@ func (p *parser) parseParenthesisedExpression() querier_dto.Expression {
 	return inner
 }
 
-var implicitFunctionIdentifiers = map[string]struct{}{
-	"CURRENT_TIMESTAMP": {}, "CURRENT_DATE": {}, "CURRENT_TIME": {},
-	"CURRENT_USER": {}, "LOCALTIME": {}, "LOCALTIMESTAMP": {},
-	"UTC_TIMESTAMP": {}, "UTC_DATE": {}, "UTC_TIME": {},
-}
+var (
+	// implicitFunctionIdentifiers lists identifiers that name a function even when written
+	// without a trailing parenthesis pair.
+	implicitFunctionIdentifiers = map[string]struct{}{
+		"CURRENT_TIMESTAMP": {}, "CURRENT_DATE": {}, "CURRENT_TIME": {},
+		"CURRENT_USER": {}, "LOCALTIME": {}, "LOCALTIMESTAMP": {},
+		"UTC_TIMESTAMP": {}, "UTC_DATE": {}, "UTC_TIME": {},
+	}
+)
 
+// parseIdentifierExpression dispatches an identifier to its handler.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 	upper := strings.ToUpper(p.current().value)
 
@@ -354,6 +446,12 @@ func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 	return p.parseColumnOrFunctionReference()
 }
 
+// identifierExpressionHandler returns the parser for a special keyword.
+//
+// Takes upper (string) which is the upper-cased identifier value.
+//
+// Returns func() querier_dto.Expression which is the matched parser, or nil when the
+// identifier has no special handling.
 func (p *parser) identifierExpressionHandler(upper string) func() querier_dto.Expression {
 	switch upper {
 	case keywordNULL:
@@ -386,27 +484,40 @@ func (p *parser) identifierExpressionHandler(upper string) func() querier_dto.Ex
 	}
 }
 
+// parseNullLiteral consumes a NULL token.
+//
+// Returns querier_dto.Expression which is nil to represent SQL NULL.
 func (p *parser) parseNullLiteral() querier_dto.Expression {
 	p.advance()
 	return nil
 }
 
+// parseBooleanLiteral consumes TRUE or FALSE as a tinyint literal.
+//
+// Returns querier_dto.Expression which is the typed literal expression.
 func (p *parser) parseBooleanLiteral() querier_dto.Expression {
 	p.advance()
 	return &querier_dto.LiteralExpression{TypeName: "tinyint"}
 }
 
-var intervalFieldKeywords = map[string]struct{}{
-	"YEAR": {}, "MONTH": {}, "DAY": {},
-	"HOUR": {}, "MINUTE": {}, "SECOND": {},
-	"MICROSECOND": {}, "WEEK": {}, "QUARTER": {},
-	"YEAR_MONTH": {}, "DAY_HOUR": {}, "DAY_MINUTE": {},
-	"DAY_SECOND": {}, "DAY_MICROSECOND": {},
-	"HOUR_MINUTE": {}, "HOUR_SECOND": {}, "HOUR_MICROSECOND": {},
-	"MINUTE_SECOND": {}, "MINUTE_MICROSECOND": {},
-	"SECOND_MICROSECOND": {},
-}
+var (
+	// intervalFieldKeywords lists the unit identifiers accepted after the value expression
+	// in a MySQL INTERVAL literal.
+	intervalFieldKeywords = map[string]struct{}{
+		"YEAR": {}, "MONTH": {}, "DAY": {},
+		"HOUR": {}, "MINUTE": {}, "SECOND": {},
+		"MICROSECOND": {}, "WEEK": {}, "QUARTER": {},
+		"YEAR_MONTH": {}, "DAY_HOUR": {}, "DAY_MINUTE": {},
+		"DAY_SECOND": {}, "DAY_MICROSECOND": {},
+		"HOUR_MINUTE": {}, "HOUR_SECOND": {}, "HOUR_MICROSECOND": {},
+		"MINUTE_SECOND": {}, "MINUTE_MICROSECOND": {},
+		"SECOND_MICROSECOND": {},
+	}
+)
 
+// parseIntervalLiteral parses an INTERVAL value unit expression.
+//
+// Returns querier_dto.Expression which is the typed literal expression.
 func (p *parser) parseIntervalLiteral() querier_dto.Expression {
 	p.advance()
 	p.parseExpression()
@@ -418,12 +529,18 @@ func (p *parser) parseIntervalLiteral() querier_dto.Expression {
 	return &querier_dto.LiteralExpression{TypeName: "interval"}
 }
 
+// parseRowConstructorExpression skips a ROW(...) constructor.
+//
+// Returns querier_dto.Expression which is an UnknownExpression placeholder.
 func (p *parser) parseRowConstructorExpression() querier_dto.Expression {
 	p.advance()
 	p.skipRowConstructor()
 	return &querier_dto.UnknownExpression{}
 }
 
+// parseIfExpression parses IF(cond, then, else) as a function call.
+//
+// Returns querier_dto.Expression which is the parsed function call.
 func (p *parser) parseIfExpression() querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenLeftParen {
@@ -432,6 +549,9 @@ func (p *parser) parseIfExpression() querier_dto.Expression {
 	return p.parseFunctionCall("if", "")
 }
 
+// parseColumnOrFunctionReference parses an unqualified column or call.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseColumnOrFunctionReference() querier_dto.Expression {
 	name := p.advance().value
 
@@ -449,6 +569,7 @@ func (p *parser) parseColumnOrFunctionReference() querier_dto.Expression {
 	}
 }
 
+// skipRowConstructor consumes a parenthesised ROW value list.
 func (p *parser) skipRowConstructor() {
 	if p.current().kind != tokenLeftParen {
 		return
@@ -466,6 +587,11 @@ func (p *parser) skipRowConstructor() {
 	}
 }
 
+// parseDotQualifiedIdentifier parses `<alias>.<column>` or related forms.
+//
+// Takes name (string) which is the identifier preceding the dot.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseDotQualifiedIdentifier(name string) querier_dto.Expression {
 	p.advance()
 	if p.current().kind == tokenStar {
@@ -486,6 +612,12 @@ func (p *parser) parseDotQualifiedIdentifier(name string) querier_dto.Expression
 	return &querier_dto.ColumnRefExpression{TableAlias: name, ColumnName: second}
 }
 
+// parseSchemaQualifiedRef parses `<schema>.<table>.<column>` references.
+//
+// Takes schema (string) which is the leading schema identifier.
+// Takes table (string) which is the middle table identifier.
+//
+// Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseSchemaQualifiedRef(schema string, table string) querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenIdentifier {
@@ -498,6 +630,11 @@ func (p *parser) parseSchemaQualifiedRef(schema string, table string) querier_dt
 	return &querier_dto.ColumnRefExpression{TableAlias: table, ColumnName: third}
 }
 
+// parseIsSuffix parses an IS NULL, IS TRUE, or related predicate.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed IS predicate.
 func (p *parser) parseIsSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 	negated := p.matchKeyword(keywordNOT)
@@ -513,6 +650,14 @@ func (p *parser) parseIsSuffix(left querier_dto.Expression) querier_dto.Expressi
 	return &querier_dto.IsNullExpression{Inner: left, Negated: negated}
 }
 
+// parseInListSuffix parses an IN(...) predicate, value list or subquery.
+//
+// Tags any parameters parsed inside the IN list with the LHS column when the LHS is a
+// bare column reference.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed IN expression.
 func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 
@@ -557,6 +702,14 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 	return &querier_dto.InListExpression{Inner: left, Values: values}
 }
 
+// parseBetweenSuffix parses a BETWEEN low AND high predicate.
+//
+// Tags any parameters parsed inside the range with the LHS column when the LHS is a bare
+// column reference.
+//
+// Takes left (querier_dto.Expression) which is the LHS of the predicate.
+//
+// Returns querier_dto.Expression which is the parsed BETWEEN expression.
 func (p *parser) parseBetweenSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 
@@ -584,6 +737,10 @@ func (p *parser) parseBetweenSuffix(left querier_dto.Expression) querier_dto.Exp
 	return &querier_dto.BetweenExpression{Inner: left, Low: low, High: high}
 }
 
+// parseParenthesisedExpressionList parses a `(expr, expr, ...)` tuple.
+//
+// Returns []querier_dto.Expression which is the parsed expression list, or nil when no
+// opening parenthesis is present.
 func (p *parser) parseParenthesisedExpressionList() []querier_dto.Expression {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -605,6 +762,10 @@ func (p *parser) parseParenthesisedExpressionList() []querier_dto.Expression {
 	return values
 }
 
+// handleParameterInExpression registers a parameter found mid-expression.
+//
+// Inspects surrounding tokens to infer the parameter's context, column reference, and any
+// cast type, then advances past the token.
 func (p *parser) handleParameterInExpression() {
 	paramPosition := p.position
 	parameterToken := p.current()
@@ -616,6 +777,18 @@ func (p *parser) handleParameterInExpression() {
 	p.registerParameterFromToken(parameterToken, context, columnRef, castType)
 }
 
+// resolveParameterContext infers the context for a parameter token.
+//
+// Tries comparison/arithmetic operator detection first, then LIKE pattern resolution,
+// then a wider context scan.
+//
+// Takes paramPosition (int) which is the parameter's token index.
+//
+// Returns querier_dto.ParameterContext which is the inferred context.
+// Returns *querier_dto.ColumnReference which is the inferred LHS column when one was
+// identified.
+// Returns *querier_dto.SQLType which is the cast target type when the parameter sits
+// inside a CAST.
 func (p *parser) resolveParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType) {
 	context, columnRef := p.resolveContextFromPrecedingOperator(paramPosition)
 	if context != querier_dto.ParameterContextUnknown {
@@ -627,20 +800,19 @@ func (p *parser) resolveParameterContext(paramPosition int) (querier_dto.Paramet
 	return p.detectParameterContext(paramPosition)
 }
 
-// resolveLikeContext walks back from a parameter position through balanced
-// parens (stopping at boolean or clause boundaries) to find an enclosing
-// LIKE, REGEXP, or RLIKE pattern operator and returns its LHS column
-// reference, falling through to a wider scan of the LHS expression when
-// the immediate-left token is not itself a column. MATCH (...) AGAINST
-// (...) full-text syntax is not detected here.
+// resolveLikeContext infers the column behind a LIKE-family pattern.
+//
+// Walks back from the parameter position through balanced parens to find an enclosing
+// LIKE, REGEXP, or RLIKE operator, stopping at boolean or clause boundaries. Falls
+// through to a wider LHS scan when the immediate-left token is not itself a column. MATCH
+// (...) AGAINST (...) full-text syntax is not detected here.
 //
 // Takes paramPosition (int) which is the parameter's token index.
 //
-// Returns querier_dto.ParameterContext which is ParameterContextLike when
-// the parameter sits inside a pattern operator's right-hand side, else
-// ParameterContextUnknown.
-// Returns *querier_dto.ColumnReference which holds the LHS column when
-// one can be identified, else nil.
+// Returns querier_dto.ParameterContext which is ParameterContextLike when the parameter
+// sits inside a pattern operator's right-hand side, else ParameterContextUnknown.
+// Returns *querier_dto.ColumnReference which holds the LHS column when one can be
+// identified, else nil.
 func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference) {
 	likePosition, found := p.findEnclosingLikeOperator(paramPosition)
 	if !found {
@@ -649,9 +821,9 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 	return querier_dto.ParameterContextLike, p.resolveLikeOperatorColumn(likePosition)
 }
 
-// findEnclosingLikeOperator walks back from paramPosition through
-// balanced parens looking for a pattern operator at depth 0, returning
-// its token index when found. Boolean and clause keywords end the walk.
+// findEnclosingLikeOperator walks back from paramPosition through balanced parens looking
+// for a pattern operator at depth 0, returning its token index when found. Boolean and
+// clause keywords end the walk.
 //
 // Takes paramPosition (int) which is the parameter's token index.
 //
@@ -661,7 +833,7 @@ func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
 	parenDepth := 0
 	for i := paramPosition - 1; i >= 0; i-- {
 		tok := p.tokens[i]
-		switch tok.kind {
+		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenRightParen:
 			parenDepth++
 			continue
@@ -683,16 +855,15 @@ func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
 	return 0, false
 }
 
-// resolveLikeOperatorColumn picks the column reference associated with a
-// LIKE operator's left-hand side, first inspecting the immediately
-// preceding token (skipping a single NOT) and falling back to a scan of
-// the wider LHS expression for shapes like `(a || b) LIKE ?`.
+// resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
+// left-hand side, first inspecting the immediately preceding token (skipping a single
+// NOT) and falling back to a scan of the wider LHS expression for shapes like `(a || b)
+// LIKE ?`.
 //
-// Takes likePosition (int) which is the LIKE-style operator's token
-// index.
+// Takes likePosition (int) which is the LIKE-style operator's token index.
 //
-// Returns *querier_dto.ColumnReference which is the inferred LHS column
-// or nil when none can be identified.
+// Returns *querier_dto.ColumnReference which is the inferred LHS column or nil when none
+// can be identified.
 func (p *parser) resolveLikeOperatorColumn(likePosition int) *querier_dto.ColumnReference {
 	columnPosition := likePosition - 1
 	if columnPosition >= 0 && p.tokens[columnPosition].kind == tokenIdentifier &&
@@ -705,14 +876,12 @@ func (p *parser) resolveLikeOperatorColumn(likePosition int) *querier_dto.Column
 	return p.findColumnInExpressionRange(p.findLikeExpressionStart(likePosition), likePosition-1)
 }
 
-// isKeywordColumnReference reports whether a column reference's bare
-// column name is actually a SQL keyword (LIKE, AND, etc.) rather than a
-// column. Edge case for malformed input like "LIKE ?" at position 0
-// where the backward walk would otherwise treat the keyword itself as
-// the LHS column.
+// isKeywordColumnReference reports whether a column reference's bare column name is
+// actually a SQL keyword (LIKE, AND, etc.) rather than a column. Edge case for malformed
+// input like "LIKE ?" at position 0 where the backward walk would otherwise treat the
+// keyword itself as the LHS column.
 //
-// Takes columnRef (*querier_dto.ColumnReference) which is the candidate
-// column reference.
+// Takes columnRef (*querier_dto.ColumnReference) which is the candidate column reference.
 //
 // Returns bool which is true when the bare column name is a keyword.
 func isKeywordColumnReference(columnRef *querier_dto.ColumnReference) bool {
@@ -723,19 +892,19 @@ func isKeywordColumnReference(columnRef *querier_dto.ColumnReference) bool {
 	return isLikePatternKeyword(upper) || isLikeBoundaryKeyword(upper) || isReservedNonColumnKeyword(upper)
 }
 
-// findLikeExpressionStart locates the first token of the LHS expression
-// preceding a LIKE-style operator by walking back to the previous
-// predicate boundary or the start of the token stream.
+// findLikeExpressionStart locates the first token of the LHS expression preceding a
+// LIKE-style operator by walking back to the previous predicate boundary or the start of
+// the token stream.
 //
 // Takes likePosition (int) which is the LIKE keyword's token index.
 //
-// Returns int which is the token index where the LHS starts (0 when no
-// boundary precedes it).
+// Returns int which is the token index where the LHS starts (0 when no boundary precedes
+// it).
 func (p *parser) findLikeExpressionStart(likePosition int) int {
 	parenDepth := 0
 	for i := likePosition - 1; i >= 0; i-- {
 		tok := p.tokens[i]
-		switch tok.kind {
+		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenRightParen:
 			parenDepth++
 			continue
@@ -756,16 +925,15 @@ func (p *parser) findLikeExpressionStart(likePosition int) int {
 	return 0
 }
 
-// findColumnInExpressionRange scans [start, end] forward for the first
-// identifier that looks like a column, skipping function names, SQL
-// types, aliases, and reserved keywords so complex LHS expressions still
-// resolve to a meaningful column.
+// findColumnInExpressionRange scans [start, end] forward for the first identifier that
+// looks like a column, skipping function names, SQL types, aliases, and reserved keywords
+// so complex LHS expressions still resolve to a meaningful column.
 //
 // Takes start (int) which is the inclusive start of the range.
 // Takes end (int) which is the inclusive end of the range.
 //
-// Returns *querier_dto.ColumnReference which is the first column found,
-// or nil when none is plausible.
+// Returns *querier_dto.ColumnReference which is the first column found, or nil when none
+// is plausible.
 func (p *parser) findColumnInExpressionRange(start, end int) *querier_dto.ColumnReference {
 	if end < start || end >= len(p.tokens) {
 		return nil
@@ -785,9 +953,9 @@ func (p *parser) findColumnInExpressionRange(start, end int) *querier_dto.Column
 	return nil
 }
 
-// isLikelyColumnIdentifier checks whether the identifier at position
-// looks like a column rather than a function, type, alias, or reserved
-// keyword by inspecting neighbouring tokens.
+// isLikelyColumnIdentifier checks whether the identifier at position looks like a column
+// rather than a function, type, alias, or reserved keyword by inspecting neighbouring
+// tokens.
 //
 // Takes tokens ([]token) which is the parser's token slice.
 // Takes position (int) which is the candidate identifier's index.
@@ -821,9 +989,8 @@ func isLikelyColumnIdentifier(tokens []token, position int) bool {
 	return true
 }
 
-// isQualifiedColumnTail reports whether the identifier at position is the
-// column half of a qualified `<alias>.<column>` reference, so the
-// leftmost-column scan does not skip it.
+// isQualifiedColumnTail reports whether the identifier at position is the column half of
+// a qualified `<alias>.<column>` reference, so the leftmost-column scan does not skip it.
 //
 // Takes tokens ([]token) which is the parser's token slice.
 // Takes position (int) which is the candidate identifier's index.
@@ -845,9 +1012,9 @@ func isQualifiedColumnTail(tokens []token, position int) bool {
 	return true
 }
 
-// isReservedNonColumnKeyword lists identifier values that must not be
-// treated as column references when scanning a LIKE LHS: casts, type
-// names, literals, and modifier keywords that lex as identifiers.
+// isReservedNonColumnKeyword lists identifier values that must not be treated as column
+// references when scanning a LIKE LHS: casts, type names, literals, and modifier keywords
+// that lex as identifiers.
 //
 // Takes keyword (string) which is the upper-case identifier value.
 //
@@ -867,10 +1034,11 @@ func isReservedNonColumnKeyword(keyword string) bool {
 	return false
 }
 
-// isLikePatternKeyword reports whether a keyword introduces a MySQL
-// string pattern match (LIKE, REGEXP, or RLIKE). MySQL has no ILIKE or
-// GLOB; case-insensitivity is collation-driven. MATCH is part of MATCH
-// (...) AGAINST (...) full-text syntax and is not detected here.
+// isLikePatternKeyword reports whether a keyword introduces a pattern match.
+//
+// Matches MySQL's LIKE, REGEXP, and RLIKE. MySQL has no ILIKE or GLOB; case-insensitivity
+// is collation-driven. MATCH is part of MATCH (...) AGAINST (...) full-text syntax and is
+// not detected here.
 //
 // Takes keyword (string) which is the upper-case identifier value.
 //
@@ -883,8 +1051,8 @@ func isLikePatternKeyword(keyword string) bool {
 	return false
 }
 
-// isLikeBoundaryKeyword reports whether a keyword ends the predicate that
-// could contain a LIKE pattern, so the backward walk should stop.
+// isLikeBoundaryKeyword reports whether a keyword ends the predicate that could contain a
+// LIKE pattern, so the backward walk should stop.
 //
 // Takes keyword (string) which is the upper-case identifier value.
 //
@@ -901,6 +1069,14 @@ func isLikeBoundaryKeyword(keyword string) bool {
 	return false
 }
 
+// resolveContextFromPrecedingOperator infers context from the preceding comparison or
+// arithmetic operator and its left operand.
+//
+// Takes paramPosition (int) which is the parameter's token index.
+//
+// Returns querier_dto.ParameterContext which is the inferred context.
+// Returns *querier_dto.ColumnReference which is the inferred LHS column when one was
+// identified.
 func (p *parser) resolveContextFromPrecedingOperator(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference) {
 	if paramPosition < 2 {
 		return querier_dto.ParameterContextUnknown, nil
@@ -926,6 +1102,13 @@ func (p *parser) resolveContextFromPrecedingOperator(paramPosition int) (querier
 	return querier_dto.ParameterContextUnknown, nil
 }
 
+// extractColumnReferenceOrParenthesised returns the column at position or scans inside a
+// `(...)` group when position closes a paren.
+//
+// Takes position (int) which is the token index to inspect.
+//
+// Returns *querier_dto.ColumnReference which is the resolved column or nil when none is
+// identified.
 func (p *parser) extractColumnReferenceOrParenthesised(position int) *querier_dto.ColumnReference {
 	columnRef := p.extractColumnReference(position)
 	if columnRef != nil {
@@ -937,6 +1120,18 @@ func (p *parser) extractColumnReferenceOrParenthesised(position int) *querier_dt
 	return nil
 }
 
+// detectParameterContext infers context from the enclosing parenthesis.
+//
+// Recognises IN lists, CAST expressions, and function argument lists by inspecting the
+// identifier immediately before the opening paren.
+//
+// Takes paramPosition (int) which is the parameter's token index.
+//
+// Returns querier_dto.ParameterContext which is the inferred context.
+// Returns *querier_dto.ColumnReference which is the inferred column for IN lists, or nil
+// otherwise.
+// Returns *querier_dto.SQLType which is the cast target type for CAST contexts, or nil
+// otherwise.
 func (p *parser) detectParameterContext(paramPosition int) (querier_dto.ParameterContext, *querier_dto.ColumnReference, *querier_dto.SQLType) {
 	enclosingParen := p.findEnclosingParen(paramPosition)
 	if enclosingParen < 0 {
@@ -970,10 +1165,15 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 	return querier_dto.ParameterContextUnknown, nil, nil
 }
 
+// findEnclosingParen returns the index of the enclosing `(` at depth zero.
+//
+// Takes position (int) which is the inner token index to start from.
+//
+// Returns int which is the index of the enclosing `(`, or -1 when none.
 func (p *parser) findEnclosingParen(position int) int {
 	depth := 0
 	for i := position - 1; i >= 0; i-- {
-		switch p.tokens[i].kind {
+		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenRightParen:
 			depth++
 		case tokenLeftParen:
@@ -986,6 +1186,11 @@ func (p *parser) findEnclosingParen(position int) int {
 	return -1
 }
 
+// extractColumnReferenceBeforeIN returns the column before an IN keyword.
+//
+// Takes inPosition (int) which is the IN keyword's token index.
+//
+// Returns *querier_dto.ColumnReference which is the LHS column or nil.
 func (p *parser) extractColumnReferenceBeforeIN(inPosition int) *querier_dto.ColumnReference {
 	if inPosition < 1 {
 		return nil
@@ -993,6 +1198,12 @@ func (p *parser) extractColumnReferenceBeforeIN(inPosition int) *querier_dto.Col
 	return p.extractColumnReference(inPosition - 1)
 }
 
+// extractCastType reads the AS-prefixed type name following a parameter.
+//
+// Takes paramPosition (int) which is the parameter's token index.
+//
+// Returns *querier_dto.SQLType which is the normalised cast target type, or nil when no
+// AS clause follows the parameter.
 func (p *parser) extractCastType(paramPosition int) *querier_dto.SQLType {
 	asPosition := p.findASKeywordAfter(paramPosition)
 	if asPosition < 0 {
@@ -1006,6 +1217,13 @@ func (p *parser) extractCastType(paramPosition int) *querier_dto.SQLType {
 	return new(normaliseTypeName(typeName, nil))
 }
 
+// findASKeywordAfter locates an AS keyword following paramPosition.
+//
+// Stops when the closing paren of the enclosing call is reached.
+//
+// Takes paramPosition (int) which is the starting token index.
+//
+// Returns int which is the AS keyword's index, or -1 when not found.
 func (p *parser) findASKeywordAfter(paramPosition int) int {
 	for i := paramPosition + 1; i < len(p.tokens); i++ {
 		if p.tokens[i].kind == tokenIdentifier && strings.EqualFold(p.tokens[i].value, keywordAS) {
@@ -1018,6 +1236,13 @@ func (p *parser) findASKeywordAfter(paramPosition int) int {
 	return -1
 }
 
+// collectCastTypeTokens joins consecutive identifier tokens for a type.
+//
+// Stops at a closing paren or any clause keyword that ends the type.
+//
+// Takes startPosition (int) which is the first identifier's index.
+//
+// Returns string which is the space-joined type name.
 func (p *parser) collectCastTypeTokens(startPosition int) string {
 	var builder strings.Builder
 	builder.WriteString(p.tokens[startPosition].value)
@@ -1035,6 +1260,12 @@ func (p *parser) collectCastTypeTokens(startPosition int) string {
 	return builder.String()
 }
 
+// isKeywordAt reports whether the token at position matches a keyword.
+//
+// Takes position (int) which is the token index to check.
+// Takes keywords (...string) which are the candidate upper-case keywords.
+//
+// Returns bool which is true when the token matches any keyword.
 func (p *parser) isKeywordAt(position int, keywords ...string) bool {
 	if position >= len(p.tokens) || p.tokens[position].kind != tokenIdentifier {
 		return false
@@ -1042,6 +1273,12 @@ func (p *parser) isKeywordAt(position int, keywords ...string) bool {
 	return slices.Contains(keywords, strings.ToUpper(p.tokens[position].value))
 }
 
+// extractColumnReference reads a bare or qualified column at position.
+//
+// Takes position (int) which is the identifier's token index.
+//
+// Returns *querier_dto.ColumnReference which is the resolved column or nil when position
+// does not name an identifier.
 func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReference {
 	if position < 0 || position >= len(p.tokens) {
 		return nil
@@ -1064,6 +1301,11 @@ func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReferen
 	}
 }
 
+// isComparisonOperator reports whether operator is a SQL comparison.
+//
+// Takes operator (string) which is the operator text to test.
+//
+// Returns bool which is true for =, <>, !=, <, >, <=, >=, or <=>.
 func isComparisonOperator(operator string) bool {
 	switch operator {
 	case "=", "<>", "!=", "<", ">", "<=", ">=", "<=>":
@@ -1072,6 +1314,11 @@ func isComparisonOperator(operator string) bool {
 	return false
 }
 
+// isArithmeticOperator reports whether operator is a SQL arithmetic op.
+//
+// Takes operator (string) which is the operator text to test.
+//
+// Returns bool which is true for +, -, /, or %.
 func isArithmeticOperator(operator string) bool {
 	switch operator {
 	case "+", "-", "/", "%":
@@ -1080,6 +1327,12 @@ func isArithmeticOperator(operator string) bool {
 	return false
 }
 
+// extractColumnReferenceFromParenthesised scans inside `(...)` for a column.
+//
+// Takes rightParenPosition (int) which is the closing paren's index.
+//
+// Returns *querier_dto.ColumnReference which is the first column found inside the group,
+// or nil when none is present.
 func (p *parser) extractColumnReferenceFromParenthesised(rightParenPosition int) *querier_dto.ColumnReference {
 	leftParenPosition := p.findMatchingLeftParen(rightParenPosition)
 	if leftParenPosition < 0 {
@@ -1088,10 +1341,15 @@ func (p *parser) extractColumnReferenceFromParenthesised(rightParenPosition int)
 	return p.scanForColumnReference(leftParenPosition+1, rightParenPosition)
 }
 
+// findMatchingLeftParen pairs a `)` with its matching `(`.
+//
+// Takes rightParenPosition (int) which is the closing paren's index.
+//
+// Returns int which is the matching `(` index, or -1 when unmatched.
 func (p *parser) findMatchingLeftParen(rightParenPosition int) int {
 	depth := 0
 	for i := rightParenPosition; i >= 0; i-- {
-		switch p.tokens[i].kind {
+		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenRightParen:
 			depth++
 		case tokenLeftParen:
@@ -1104,6 +1362,13 @@ func (p *parser) findMatchingLeftParen(rightParenPosition int) int {
 	return -1
 }
 
+// scanForColumnReference returns the first column found in a token range.
+//
+// Takes startPosition (int) which is the inclusive start index.
+// Takes endPosition (int) which is the exclusive end index.
+//
+// Returns *querier_dto.ColumnReference which is the first column found, or nil when the
+// range contains none.
 func (p *parser) scanForColumnReference(startPosition int, endPosition int) *querier_dto.ColumnReference {
 	for j := startPosition; j < endPosition; j++ {
 		reference := p.extractColumnReference(j)
@@ -1114,6 +1379,12 @@ func (p *parser) scanForColumnReference(startPosition int, endPosition int) *que
 	return nil
 }
 
+// parseCastTypeName parses the target type of a CAST or CONVERT.
+//
+// Handles schema-qualified names and multi-word type keywords such as CHARACTER VARYING
+// and DOUBLE PRECISION.
+//
+// Returns string which is the assembled type name.
 func (p *parser) parseCastTypeName() string {
 	if p.current().kind != tokenIdentifier {
 		return ""
@@ -1132,6 +1403,9 @@ func (p *parser) parseCastTypeName() string {
 	return builder.String()
 }
 
+// appendSchemaQualifier appends `.identifier` when a dot follows.
+//
+// Takes builder (*strings.Builder) which receives the appended text.
 func (p *parser) appendSchemaQualifier(builder *strings.Builder) {
 	if p.current().kind == tokenDot && p.peek().kind == tokenIdentifier {
 		p.advance()
@@ -1140,6 +1414,9 @@ func (p *parser) appendSchemaQualifier(builder *strings.Builder) {
 	}
 }
 
+// appendMultiWordTypeKeywords appends trailing words of a compound type.
+//
+// Takes builder (*strings.Builder) which receives the appended text.
 func (p *parser) appendMultiWordTypeKeywords(builder *strings.Builder) {
 	for p.current().kind == tokenIdentifier {
 		if !isMultiWordTypeKeyword(strings.ToUpper(p.current().value)) {
@@ -1150,6 +1427,11 @@ func (p *parser) appendMultiWordTypeKeywords(builder *strings.Builder) {
 	}
 }
 
+// isMultiWordTypeKeyword reports whether upper is a type continuation word.
+//
+// Takes upper (string) which is the upper-cased candidate keyword.
+//
+// Returns bool which is true when upper extends a compound type name.
 func isMultiWordTypeKeyword(upper string) bool {
 	switch upper {
 	case "PRECISION", keywordUNSIGNED, "VARYING", "CHARACTER", "DOUBLE":
@@ -1158,6 +1440,9 @@ func isMultiWordTypeKeyword(upper string) bool {
 	return false
 }
 
+// parseExistsSubquery parses the `(SELECT ...)` of an EXISTS predicate.
+//
+// Returns querier_dto.Expression which is the parsed EXISTS expression.
 func (p *parser) parseExistsSubquery() querier_dto.Expression {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
@@ -1176,6 +1461,9 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 	return &querier_dto.ExistsExpression{InnerQuery: innerAnalysis}
 }
 
+// parseScalarSubquery parses a parenthesised scalar SELECT subquery.
+//
+// Returns querier_dto.Expression which is the parsed scalar subquery.
 func (p *parser) parseScalarSubquery() querier_dto.Expression {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {

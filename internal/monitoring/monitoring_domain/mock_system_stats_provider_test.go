@@ -20,7 +20,6 @@ package monitoring_domain
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +36,7 @@ func TestMockSystemStatsProvider_GetStats(t *testing.T) {
 		result := mock.GetStats()
 
 		assert.Equal(t, SystemStats{}, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStatsCallCount))
+		assert.Equal(t, int64(1), mock.GetStatsCallCount.Load())
 	})
 
 	t.Run("delegates to GetStatsFunc", func(t *testing.T) {
@@ -82,7 +81,7 @@ func TestMockSystemStatsProvider_GetStats(t *testing.T) {
 		assert.Equal(t, int32(42), result.NumGoroutines)
 		assert.Equal(t, "go1.23.0", result.Build.GoVersion)
 		assert.Equal(t, int32(12345), result.Process.PID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStatsCallCount))
+		assert.Equal(t, int64(1), mock.GetStatsCallCount.Load())
 	})
 }
 
@@ -98,7 +97,7 @@ func TestMockSystemStatsProvider_ZeroValueIsUsable(t *testing.T) {
 	assert.Equal(t, int32(0), result.NumCPU)
 	assert.Equal(t, int32(0), result.NumGoroutines)
 	assert.Equal(t, "", result.MonitoringListenAddr)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStatsCallCount))
+	assert.Equal(t, int64(1), mock.GetStatsCallCount.Load())
 }
 
 func TestMockSystemStatsProvider_ConcurrentAccess(t *testing.T) {
@@ -129,7 +128,7 @@ func TestMockSystemStatsProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetStatsCallCount))
+	assert.Equal(t, int64(goroutines), mock.GetStatsCallCount.Load())
 }
 
 func TestMockSystemStatsProvider_ImplementsInterface(t *testing.T) {

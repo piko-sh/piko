@@ -45,20 +45,17 @@ const (
 )
 
 var (
-	// ErrTSAHTTPFailure indicates the TSA server returned a non-200
-	// HTTP status code.
+	// ErrTSAHTTPFailure indicates the TSA server returned a non-200 HTTP status code.
 	ErrTSAHTTPFailure = errors.New("TSA returned non-200 HTTP status")
 
-	// ErrTSAErrorStatus indicates the TSA response contained an error
-	// status.
+	// ErrTSAErrorStatus indicates the TSA response contained an error status.
 	ErrTSAErrorStatus = errors.New("TSA returned error status in response")
 
-	// ErrTSAEmptyToken indicates the TSA response did not contain a
-	// timestamp token.
+	// ErrTSAEmptyToken indicates the TSA response did not contain a timestamp token.
 	ErrTSAEmptyToken = errors.New("TSA response contains no timestamp token")
 
-	// ErrTSAResponseTooLarge indicates the TSA response body exceeded
-	// tsaMaxResponseSize and was rejected rather than silently truncated.
+	// ErrTSAResponseTooLarge indicates the TSA response body exceeded tsaMaxResponseSize and
+	// was rejected rather than silently truncated.
 	ErrTSAResponseTooLarge = errors.New("TSA response exceeds maximum allowed size")
 )
 
@@ -74,13 +71,12 @@ type timeStampReq struct {
 	// MessageImprint holds the hash algorithm and hashed message.
 	MessageImprint messageImprint
 
-	// CertReq specifies whether the TSA should include its certificate
-	// in the response.
+	// CertReq specifies whether the TSA should include its certificate in the response.
 	CertReq bool `asn1:"optional"`
 }
 
-// messageImprint is the hash algorithm and hash value of the datum to
-// be timestamped (RFC 3161 section 2.4.1).
+// messageImprint is the hash algorithm and hash value of the datum to be timestamped (RFC
+// 3161 section 2.4.1).
 type messageImprint struct {
 	// HashAlgorithm holds the algorithm used to hash the message.
 	HashAlgorithm algorithmIdentifier
@@ -112,10 +108,9 @@ type pkiStatusInfo struct {
 	Status int
 }
 
-// requestTimestamp sends an RFC 3161 timestamp request to the TSA and
-// returns the DER-encoded TimeStampToken (a CMS ContentInfo). The
-// token proves that the given signature existed at the time of
-// timestamping.
+// requestTimestamp sends an RFC 3161 timestamp request to the TSA and returns the
+// DER-encoded TimeStampToken (a CMS ContentInfo). The token proves that the given
+// signature existed at the time of timestamping.
 //
 // Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes tsaURL (string) which is the TSA endpoint URL.
@@ -140,10 +135,11 @@ func requestTimestamp(ctx context.Context, tsaURL string, signature []byte) ([]b
 	return parseTimestampResponse(body)
 }
 
-// encodeTimestampRequest builds and DER-encodes a TimeStampReq for the supplied signature.
+// encodeTimestampRequest builds and DER-encodes a TimeStampReq for the supplied
+// signature.
 //
-// Takes signature ([]byte) which is the signature value to be hashed and
-// included as the message imprint.
+// Takes signature ([]byte) which is the signature value to be hashed and included as the
+// message imprint.
 //
 // Returns []byte which is the DER-encoded TimeStampReq ready for transmission.
 // Returns error when ASN.1 marshalling of the request structure fails.
@@ -164,20 +160,20 @@ func encodeTimestampRequest(signature []byte) ([]byte, error) {
 	return reqDER, nil
 }
 
-// postTimestampRequest sends the encoded request to the TSA endpoint and
-// returns the response body.
+// postTimestampRequest sends the encoded request to the TSA endpoint and returns the
+// response body.
 //
-// The response body is capped at tsaMaxResponseSize, drained, and closed
-// before returning.
+// The response body is capped at tsaMaxResponseSize, drained, and closed before
+// returning.
 //
-// Takes ctx (context.Context) which carries cancellation and timeout for the
-// HTTP request.
+// Takes ctx (context.Context) which carries cancellation and timeout for the HTTP
+// request.
 // Takes tsaURL (string) which is the TSA endpoint URL to POST to.
 // Takes reqDER ([]byte) which is the DER-encoded TimeStampReq body.
 //
 // Returns []byte which is the response body up to tsaMaxResponseSize.
-// Returns error when the HTTP request fails, the status is not 200, or the
-// response exceeds the size cap.
+// Returns error when the HTTP request fails, the status is not 200, or the response
+// exceeds the size cap.
 func postTimestampRequest(ctx context.Context, tsaURL string, reqDER []byte) ([]byte, error) {
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, tsaURL, bytes.NewReader(reqDER))
 	if err != nil {
@@ -210,13 +206,14 @@ func postTimestampRequest(ctx context.Context, tsaURL string, reqDER []byte) ([]
 	return body, nil
 }
 
-// parseTimestampResponse decodes the DER-encoded TimeStampResp bytes and extracts the token.
+// parseTimestampResponse decodes the DER-encoded TimeStampResp bytes and extracts the
+// token.
 //
 // Takes body ([]byte) which is the DER-encoded TimeStampResp from the TSA.
 //
 // Returns []byte which is the contained DER-encoded TimeStampToken.
-// Returns error when ASN.1 decoding fails, trailing bytes remain, the TSA
-// status indicates failure, or the token is empty.
+// Returns error when ASN.1 decoding fails, trailing bytes remain, the TSA status
+// indicates failure, or the token is empty.
 func parseTimestampResponse(body []byte) ([]byte, error) {
 	var tsResp timeStampResp
 	rest, err := asn1.Unmarshal(body, &tsResp)

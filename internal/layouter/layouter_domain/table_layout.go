@@ -23,8 +23,7 @@ import (
 	"math"
 )
 
-// tableCellPlacement tracks the grid position and span of a
-// placed table cell.
+// tableCellPlacement tracks the grid position and span of a placed table cell.
 type tableCellPlacement struct {
 	// cell holds the layout box for the table cell element.
 	cell *LayoutBox
@@ -45,12 +44,12 @@ type tableCellPlacement struct {
 	rowspan int
 }
 
-// layoutTableContainer performs CSS table layout on a table box,
-// returning a Fragment with parent-relative child offsets.
+// layoutTableContainer performs CSS table layout on a table box, returning a Fragment
+// with parent-relative child offsets.
 //
 // Takes box (*LayoutBox) which is the table container to lay out.
-// Takes input (layoutInput) which carries the available
-// width and font metrics from the parent context.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
 // Returns formattingContextResult which holds the table layout output.
 func layoutTableContainer(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
@@ -110,9 +109,9 @@ func layoutTableContainer(ctx context.Context, box *LayoutBox, input layoutInput
 	return result
 }
 
-// sizeCellsAndComputeRowHeights lays out each table cell and
-// determines the height of each row from the tallest single-span
-// cell, then distributes extra height for rowspan cells.
+// sizeCellsAndComputeRowHeights lays out each table cell and determines the height of
+// each row from the tallest single-span cell, then distributes extra height for rowspan
+// cells.
 //
 // Takes placements ([]tableCellPlacement) which are the grid placements.
 // Takes columnWidths ([]float64) which holds the resolved column widths.
@@ -145,9 +144,8 @@ func sizeCellsAndComputeRowHeights(
 	return rowHeights
 }
 
-// tableChildInput groups the parameters for building table
-// child fragments, reducing the argument count of
-// buildTableChildFragments.
+// tableChildInput groups the parameters for building table child fragments, reducing the
+// argument count of buildTableChildFragments.
 type tableChildInput struct {
 	// placements holds the grid placements for all table cells.
 	placements []tableCellPlacement
@@ -171,11 +169,10 @@ type tableChildInput struct {
 	tableWidth float64
 }
 
-// buildTableChildFragments positions all cell and row fragments
-// within the table grid.
+// buildTableChildFragments positions all cell and row fragments within the table grid.
 //
-// Takes input (tableChildInput) which holds the placements, widths,
-// heights, and spacing needed for positioning.
+// Takes input (tableChildInput) which holds the placements, widths, heights, and spacing
+// needed for positioning.
 //
 // Returns []*Fragment which holds the positioned cell and row fragments.
 func buildTableChildFragments(input tableChildInput) []*Fragment {
@@ -188,8 +185,8 @@ func buildTableChildFragments(input tableChildInput) []*Fragment {
 	return childFragments
 }
 
-// computeTableTotalHeight sums row heights and inter-row spacing
-// to produce the overall table content height.
+// computeTableTotalHeight sums row heights and inter-row spacing to produce the overall
+// table content height.
 //
 // Takes rowHeights ([]float64) which holds the height of each row.
 // Takes rowCount (int) which is the number of rows.
@@ -204,8 +201,8 @@ func computeTableTotalHeight(rowHeights []float64, rowCount int, spacing float64
 	return totalHeight
 }
 
-// layoutTableCells positions each cell fragment within the table
-// grid using column X offsets and row Y offsets.
+// layoutTableCells positions each cell fragment within the table grid using column X
+// offsets and row Y offsets.
 //
 // Takes placements ([]tableCellPlacement) which are the grid placements.
 // Takes rowHeights ([]float64) which holds the row heights.
@@ -239,9 +236,8 @@ func layoutTableCells(
 	}
 }
 
-// appendTableRowFragments constructs row fragments for table rows
-// that have an associated row box and appends them to the output
-// slice.
+// appendTableRowFragments constructs row fragments for table rows that have an associated
+// row box and appends them to the output slice.
 //
 // Takes rows ([]tableRow) which are the collected table rows.
 // Takes rowCount (int) which is the number of grid rows.
@@ -273,9 +269,8 @@ func appendTableRowFragments(
 	}
 }
 
-// buildTableGrid places cells into a 2D grid, respecting
-// colspan and rowspan attributes. Returns the cell placements,
-// total row count, and total column count.
+// buildTableGrid places cells into a 2D grid, respecting colspan and rowspan attributes.
+// Returns the cell placements, total row count, and total column count.
 //
 // Takes rows ([]tableRow) which are the collected table rows.
 //
@@ -307,8 +302,8 @@ func buildTableGrid(rows []tableRow) (cells []tableCellPlacement, columnCount, r
 	return placements, len(rows), maxColumn
 }
 
-// placeSingleCell creates a placement for one cell at the given grid
-// position and marks the occupied cells in the grid map.
+// placeSingleCell creates a placement for one cell at the given grid position and marks
+// the occupied cells in the grid map.
 //
 // Takes cell (*LayoutBox) which is the cell to place.
 // Takes rowIndex (int) which is the grid row for the cell.
@@ -341,18 +336,14 @@ func placeSingleCell(
 	return placement, columnCursor + colspan
 }
 
-// adjustColumnWidthsForColspan ensures that spanning cells'
-// content widths are satisfied by growing spanned columns when
-// their combined width falls short.
+// adjustColumnWidthsForColspan ensures that spanning cells' content widths are satisfied
+// by growing spanned columns when their combined width falls short.
 //
-// Takes placements ([]tableCellPlacement) which are the grid
-// placements.
-// Takes columnWidths ([]float64) which are the column widths
-// to adjust.
+// Takes placements ([]tableCellPlacement) which are the grid placements.
+// Takes columnWidths ([]float64) which are the column widths to adjust.
 // Takes columnCount (int) which is the number of columns.
 // Takes spacing (float64) which is the border-spacing value.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 func adjustColumnWidthsForColspan(
 	placements []tableCellPlacement,
 	columnWidths []float64,
@@ -379,9 +370,9 @@ func adjustColumnWidthsForColspan(
 	}
 }
 
-// colspanCellBorderBoxWidth computes the border-box width needed for
-// a colspan cell. It takes the larger of the measured content width
-// and any explicit CSS width, both including padding and border.
+// colspanCellBorderBoxWidth computes the border-box width needed for a colspan cell. It
+// takes the larger of the measured content width and any explicit CSS width, both
+// including padding and border.
 //
 // Takes placement (tableCellPlacement) which is the cell placement.
 // Takes fontMetrics (FontMetricsPort) which provides text measurement.
@@ -404,9 +395,8 @@ func colspanCellBorderBoxWidth(placement tableCellPlacement, fontMetrics FontMet
 	return cellContentWidth
 }
 
-// resolveExplicitBorderBox resolves the explicit CSS width of a cell
-// to a border-box value, adding padding and border widths when the
-// box-sizing model is content-box.
+// resolveExplicitBorderBox resolves the explicit CSS width of a cell to a border-box
+// value, adding padding and border widths when the box-sizing model is content-box.
 //
 // Takes style (*ComputedStyle) which is the cell's computed style.
 //
@@ -420,8 +410,8 @@ func resolveExplicitBorderBox(style *ComputedStyle) float64 {
 		style.BorderLeftWidth + style.BorderRightWidth
 }
 
-// spanWidth returns the total width allocated to a span of
-// columns including intermediate spacing.
+// spanWidth returns the total width allocated to a span of columns including intermediate
+// spacing.
 //
 // Takes columnWidths ([]float64) which holds column widths.
 // Takes startColumn (int) which is the first column index.
@@ -441,8 +431,8 @@ func spanWidth(columnWidths []float64, startColumn, colspan int, spacing float64
 	return total
 }
 
-// spanHeight returns the total height allocated to a span of
-// rows including intermediate spacing.
+// spanHeight returns the total height allocated to a span of rows including intermediate
+// spacing.
 //
 // Takes rowHeights ([]float64) which holds row heights.
 // Takes startRow (int) which is the first row index.
@@ -462,13 +452,11 @@ func spanHeight(rowHeights []float64, startRow, rowspan int, spacing float64) fl
 	return total
 }
 
-// distributeRowspanHeights distributes extra height needed by
-// rowspan cells across the spanned rows.
+// distributeRowspanHeights distributes extra height needed by rowspan cells across the
+// spanned rows.
 //
-// Takes placements ([]tableCellPlacement) which are the grid
-// placements.
-// Takes rowHeights ([]float64) which are the row heights to
-// adjust.
+// Takes placements ([]tableCellPlacement) which are the grid placements.
+// Takes rowHeights ([]float64) which are the row heights to adjust.
 // Takes spacing (float64) which is the border-spacing value.
 func distributeRowspanHeights(placements []tableCellPlacement, rowHeights []float64, spacing float64) {
 	for _, placement := range placements {
@@ -495,8 +483,7 @@ func distributeRowspanHeights(placements []tableCellPlacement, rowHeights []floa
 // computeColumnXOffsets computes the X origin for each column.
 //
 // Takes columnWidths ([]float64) which holds column widths.
-// Takes contentStartX (float64) which is the table content
-// origin X.
+// Takes contentStartX (float64) which is the table content origin X.
 // Takes spacing (float64) which is the border-spacing value.
 //
 // Returns []float64 which holds the X offset per column.
@@ -527,18 +514,18 @@ func computeRowYOffsets(rowHeights []float64, startY, spacing float64) []float64
 	return offsets
 }
 
-// applyTableCellVerticalAlignFragment adjusts a cell
-// fragment's Y offset based on the vertical-align property.
+// applyTableCellVerticalAlignFragment adjusts a cell fragment's Y offset based on the
+// vertical-align property.
 //
-// Takes fragment (*Fragment) which is the cell fragment to
-// align.
-// Takes availableHeight (float64) which is the total height
-// available to the cell.
+// Takes fragment (*Fragment) which is the cell fragment to align.
+// Takes availableHeight (float64) which is the total height available to the cell.
 func applyTableCellVerticalAlignFragment(fragment *Fragment, availableHeight float64) {
 	cellHeight := fragment.BorderBoxHeight()
 
 	switch fragment.Box.Style.VerticalAlign {
-	case VerticalAlignBaseline, VerticalAlignTop:
+	case VerticalAlignBaseline, VerticalAlignTop,
+		VerticalAlignSub, VerticalAlignSuper,
+		VerticalAlignTextTop, VerticalAlignTextBottom:
 		return
 	case VerticalAlignMiddle:
 		fragment.OffsetY += (availableHeight - cellHeight) / 2
@@ -547,18 +534,17 @@ func applyTableCellVerticalAlignFragment(fragment *Fragment, availableHeight flo
 	}
 }
 
-// sizeTableCell resolves edges, sizes, and lays out a single table
-// cell's content, returning a Fragment with children positioned
-// relative to the cell and the cell's border-box height.
+// sizeTableCell resolves edges, sizes, and lays out a single table cell's content,
+// returning a Fragment with children positioned relative to the cell and the cell's
+// border-box height.
 //
 // Takes cell (*LayoutBox) which is the cell to size.
 // Takes columnWidth (float64) which is the allocated column width.
-// Takes input (layoutInput) which carries the available width,
-// font metrics, and cache from the parent context.
+// Takes input (layoutInput) which carries the available width, font metrics, and cache
+// from the parent context.
 //
 // Returns *Fragment which holds the cell's layout results.
-// Returns float64 which is the total cell height including padding
-// and borders.
+// Returns float64 which is the total cell height including padding and borders.
 func sizeTableCell(ctx context.Context, cell *LayoutBox, columnWidth float64, input layoutInput) (*Fragment, float64) {
 	edges := resolveEdgesFromStyle(&cell.Style, columnWidth)
 
@@ -591,16 +577,16 @@ func sizeTableCell(ctx context.Context, cell *LayoutBox, columnWidth float64, in
 
 // tableRow groups a row box with its child cell boxes.
 type tableRow struct {
-	// box is the LayoutBox for the row element, or nil when the
-	// row is synthesised from a bare cell.
+	// box is the LayoutBox for the row element, or nil when the row is synthesised from a
+	// bare cell.
 	box *LayoutBox
 
 	// cells holds the cell boxes belonging to this row.
 	cells []*LayoutBox
 }
 
-// collectTableRows gathers all rows from a table box, handling
-// direct row children, row groups, and bare cells.
+// collectTableRows gathers all rows from a table box, handling direct row children, row
+// groups, and bare cells.
 //
 // Takes table (*LayoutBox) which is the table container to scan.
 //
@@ -611,7 +597,7 @@ func collectTableRows(table *LayoutBox) ([]tableRow, int) {
 	maxColumns := 0
 
 	for _, child := range table.Children {
-		switch child.Type {
+		switch child.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case BoxTableRow:
 			row := collectCellsFromRow(child)
 			rows = append(rows, row)
@@ -631,8 +617,8 @@ func collectTableRows(table *LayoutBox) ([]tableRow, int) {
 	return rows, maxColumns
 }
 
-// countRowColumns returns the total number of grid columns
-// consumed by the cells in a row, accounting for colspan.
+// countRowColumns returns the total number of grid columns consumed by the cells in a
+// row, accounting for colspan.
 //
 // Takes row (tableRow) which is the row to count.
 //
@@ -645,8 +631,8 @@ func countRowColumns(row tableRow) int {
 	return total
 }
 
-// collectRowsFromGroup extracts table rows from a row group
-// element such as thead, tbody, or tfoot.
+// collectRowsFromGroup extracts table rows from a row group element such as thead, tbody,
+// or tfoot.
 //
 // Takes group (*LayoutBox) which is the row group to scan.
 //
@@ -674,8 +660,7 @@ func maxColumnCount(current, candidate int) int {
 	return current
 }
 
-// collectCellsFromRow builds a tableRow by collecting all cell
-// children from a row box.
+// collectCellsFromRow builds a tableRow by collecting all cell children from a row box.
 //
 // Takes rowBox (*LayoutBox) which is the row to extract cells from.
 //
@@ -690,17 +675,15 @@ func collectCellsFromRow(rowBox *LayoutBox) tableRow {
 	return row
 }
 
-// computeColumnWidths selects the fixed or auto column width
-// algorithm based on the table-layout property.
+// computeColumnWidths selects the fixed or auto column width algorithm based on the
+// table-layout property.
 //
 // Takes table (*LayoutBox) which provides the table-layout style.
-// Takes rows ([]tableRow) which are the table rows for auto
-// sizing.
+// Takes rows ([]tableRow) which are the table rows for auto sizing.
 // Takes columnCount (int) which is the number of columns.
 // Takes tableWidth (float64) which is the available table width.
 // Takes spacing (float64) which is the border-spacing value.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for auto sizing.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for auto sizing.
 //
 // Returns []float64 which holds the computed width for each column.
 func computeColumnWidths(
@@ -722,8 +705,8 @@ func computeColumnWidths(
 	return computeAutoColumnWidths(rows, placements, columnCount, tableWidth, spacing, fontMetrics)
 }
 
-// computeFixedColumnWidths divides the available width equally
-// among all columns for fixed table layout.
+// computeFixedColumnWidths divides the available width equally among all columns for
+// fixed table layout.
 //
 // Takes columnCount (int) which is the number of columns.
 // Takes tableWidth (float64) which is the total table width.
@@ -744,15 +727,14 @@ func computeFixedColumnWidths(columnCount int, tableWidth, spacing float64) []fl
 	return widths
 }
 
-// computeAutoColumnWidths measures cell content and distributes
-// available width proportionally for auto table layout.
+// computeAutoColumnWidths measures cell content and distributes available width
+// proportionally for auto table layout.
 //
 // Takes rows ([]tableRow) which are the table rows to measure.
 // Takes columnCount (int) which is the number of columns.
 // Takes tableWidth (float64) which is the total table width.
 // Takes spacing (float64) which is the border-spacing value.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 //
 // Returns []float64 which holds the computed width for each column.
 func computeAutoColumnWidths(
@@ -774,17 +756,16 @@ func computeAutoColumnWidths(
 	return distributeColumnWidths(minWidths, preferredWidths, columnCount, availableWidth)
 }
 
-// measureColumnWidths computes the minimum content width and
-// preferred width for each column across all rows.
+// measureColumnWidths computes the minimum content width and preferred width for each
+// column across all rows.
 //
-// The minimum width is the border-box width needed to fit the
-// cell's content (text + padding + border). The preferred width
-// is the maximum of the minimum and any explicit CSS width.
+// The minimum width is the border-box width needed to fit the cell's content (text +
+// padding + border). The preferred width is the maximum of the minimum and any explicit
+// CSS width.
 //
 // Takes rows ([]tableRow) which are the rows to measure.
 // Takes columnCount (int) which is the number of columns.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 //
 // Returns []float64 holding the minimum content width per column.
 // Returns []float64 holding the preferred width per column.
@@ -800,9 +781,9 @@ func measureColumnWidths(rows []tableRow, columnCount int, fontMetrics FontMetri
 	return minWidths, preferredWidths
 }
 
-// measureRowCellWidths walks the cells of a single row, marks their
-// grid positions as occupied, and measures single-column-span cells
-// to update the minimum and preferred width arrays.
+// measureRowCellWidths walks the cells of a single row, marks their grid positions as
+// occupied, and measures single-column-span cells to update the minimum and preferred
+// width arrays.
 //
 // Takes row (tableRow) which is the row to measure.
 // Takes rowIndex (int) which is the row's grid index.
@@ -838,8 +819,8 @@ func measureRowCellWidths(
 	}
 }
 
-// markTableOccupied marks all grid cells covered by a cell's
-// rowspan and colspan as occupied in the grid map.
+// markTableOccupied marks all grid cells covered by a cell's rowspan and colspan as
+// occupied in the grid map.
 //
 // Takes occupied (map[[2]int]bool) which is the grid occupancy map.
 // Takes rowIndex (int) which is the cell's starting row.
@@ -854,8 +835,8 @@ func markTableOccupied(occupied map[[2]int]bool, rowIndex, columnCursor, rowspan
 	}
 }
 
-// measureSingleColumnCell measures the content and preferred widths
-// of a single-column-span cell and updates the column width arrays.
+// measureSingleColumnCell measures the content and preferred widths of a
+// single-column-span cell and updates the column width arrays.
 //
 // Takes cell (*LayoutBox) which is the cell to measure.
 // Takes column (int) which is the column index for the cell.
@@ -894,17 +875,14 @@ func measureSingleColumnCell(
 	}
 }
 
-// distributeColumnWidths allocates available width to columns
-// using a two-phase approach matching browser behaviour.
+// distributeColumnWidths allocates available width to columns using a two-phase approach
+// matching browser behaviour.
 //
-// First, minimum content widths are allocated. Then remaining
-// space is distributed proportionally to the gap between each
-// column's preferred and minimum width.
+// First, minimum content widths are allocated. Then remaining space is distributed
+// proportionally to the gap between each column's preferred and minimum width.
 //
-// Takes minWidths ([]float64) holding the minimum content width
-// per column.
-// Takes preferredWidths ([]float64) holding the preferred width
-// per column.
+// Takes minWidths ([]float64) holding the minimum content width per column.
+// Takes preferredWidths ([]float64) holding the preferred width per column.
 // Takes columnCount (int) which is the number of columns.
 // Takes availableWidth (float64) which is the space to distribute.
 //
@@ -953,13 +931,11 @@ func distributeColumnWidths(minWidths, preferredWidths []float64, columnCount in
 	return widths
 }
 
-// measureCellContentWidth measures the intrinsic content width
-// of a table cell by examining all children, including text
-// runs, nested tables, and block-level elements.
+// measureCellContentWidth measures the intrinsic content width of a table cell by
+// examining all children, including text runs, nested tables, and block-level elements.
 //
 // Takes cell (*LayoutBox) which is the cell to measure.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 //
 // Returns float64 which is the intrinsic content width.
 func measureCellContentWidth(cell *LayoutBox, fontMetrics FontMetricsPort) float64 {
@@ -991,13 +967,12 @@ func measureCellContentWidth(cell *LayoutBox, fontMetrics FontMetricsPort) float
 	return maxWidth
 }
 
-// halveTableCellBorders halves all border widths on each
-// cell's computed style for collapsed border model. In the
-// collapsed model, adjacent cells share a single border so
+// halveTableCellBorders halves all border widths on each cell's computed style for
+// collapsed border model. In the collapsed model, adjacent cells share a single border so
 // each cell owns half.
 //
-// Takes placements ([]tableCellPlacement) which are the
-// grid placements whose cell styles will be modified.
+// Takes placements ([]tableCellPlacement) which are the grid placements whose cell styles
+// will be modified.
 func halveTableCellBorders(placements []tableCellPlacement) {
 	for _, placement := range placements {
 		placement.cell.Style.BorderTopWidth /= 2
@@ -1007,19 +982,15 @@ func halveTableCellBorders(placements []tableCellPlacement) {
 	}
 }
 
-// collapsedTableOuterBorder computes the table's outer
-// border for the collapsed border model. The outer border
-// on each edge is the maximum of the table's own border
-// and the halved borders of the outermost cells on that
-// edge.
+// collapsedTableOuterBorder computes the table's outer border for the collapsed border
+// model. The outer border on each edge is the maximum of the table's own border and the
+// halved borders of the outermost cells on that edge.
 //
-// Takes box (*LayoutBox) which is the table box providing
-// the table's own border widths.
-// Takes placements ([]tableCellPlacement) which are the
-// grid placements (with already-halved cell borders).
+// Takes box (*LayoutBox) which is the table box providing the table's own border widths.
+// Takes placements ([]tableCellPlacement) which are the grid placements (with
+// already-halved cell borders).
 // Takes rowCount (int) which is the total number of rows.
-// Takes columnCount (int) which is the total number of
-// columns.
+// Takes columnCount (int) which is the total number of columns.
 //
 // Returns BoxEdges with the collapsed outer border widths.
 func collapsedTableOuterBorder(

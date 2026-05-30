@@ -29,48 +29,62 @@ func TestUnsafeOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"unsafe_string_data_nonempty", `
-import "unsafe"
+		{name: "unsafe_string_data_nonempty", code: `
+import (
+	"unsafe"
+)
 s := "hello"
 p := unsafe.StringData(s)
-p != nil`, true},
-		{"unsafe_string_data_empty", `
-import "unsafe"
+p != nil`, expect: true},
+		{name: "unsafe_string_data_empty", code: `
+import (
+	"unsafe"
+)
 s := ""
 p := unsafe.StringData(s)
-p == nil`, true},
-		{"unsafe_string_roundtrip", `
-import "unsafe"
+p == nil`, expect: true},
+		{name: "unsafe_string_roundtrip", code: `
+import (
+	"unsafe"
+)
 s := "hi"
 p := unsafe.StringData(s)
 result := unsafe.String(p, 2)
-result`, "hi"},
-		{"unsafe_slice_from_array", `
-import "unsafe"
+result`, expect: "hi"},
+		{name: "unsafe_slice_from_array", code: `
+import (
+	"unsafe"
+)
 arr := [3]int{10, 20, 30}
 s := unsafe.Slice(&arr[0], 3)
-s[0] + s[1] + s[2]`, int64(60)},
-		{"unsafe_slice_data", `
-import "unsafe"
+s[0] + s[1] + s[2]`, expect: int64(60)},
+		{name: "unsafe_slice_data", code: `
+import (
+	"unsafe"
+)
 s := []int{1, 2, 3}
 p := unsafe.SliceData(s)
-p != nil`, true},
-		{"unsafe_slice_data_empty", `
-import "unsafe"
+p != nil`, expect: true},
+		{name: "unsafe_slice_data_empty", code: `
+import (
+	"unsafe"
+)
 s := make([]int, 0)
 p := unsafe.SliceData(s)
-p == nil`, true},
-		{"unsafe_add_pointer", `
-import "unsafe"
+p == nil`, expect: true},
+		{name: "unsafe_add_pointer", code: `
+import (
+	"unsafe"
+)
 arr := [3]int{10, 20, 30}
 p := unsafe.Pointer(&arr[0])
 p2 := unsafe.Add(p, 8)
 result := *(*int)(p2)
-result`, int64(20)},
+result`, expect: int64(20)},
 	}
 
 	for _, tt := range tests {
@@ -88,33 +102,41 @@ func TestUnsafeOperationsGoDispatch(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"unsafe_string_roundtrip", `
-import "unsafe"
+		{name: "unsafe_string_roundtrip", code: `
+import (
+	"unsafe"
+)
 s := "hi"
 p := unsafe.StringData(s)
 result := unsafe.String(p, 2)
-result`, "hi"},
-		{"unsafe_slice", `
-import "unsafe"
+result`, expect: "hi"},
+		{name: "unsafe_slice", code: `
+import (
+	"unsafe"
+)
 arr := [3]int{10, 20, 30}
 s := unsafe.Slice(&arr[0], 3)
-s[2]`, int64(30)},
-		{"unsafe_slice_data", `
-import "unsafe"
+s[2]`, expect: int64(30)},
+		{name: "unsafe_slice_data", code: `
+import (
+	"unsafe"
+)
 s := []int{1, 2, 3}
 p := unsafe.SliceData(s)
-p != nil`, true},
-		{"unsafe_add", `
-import "unsafe"
+p != nil`, expect: true},
+		{name: "unsafe_add", code: `
+import (
+	"unsafe"
+)
 arr := [3]int{10, 20, 30}
 p := unsafe.Pointer(&arr[0])
 p2 := unsafe.Add(p, 16)
 result := *(*int)(p2)
-result`, int64(30)},
+result`, expect: int64(30)},
 	}
 
 	for _, tt := range tests {

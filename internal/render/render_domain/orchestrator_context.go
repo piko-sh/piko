@@ -30,23 +30,23 @@ import (
 )
 
 const (
-	// byteBufferMaxRetainedCapacity caps the pool-retained capacity of
-	// frozen byte buffers; oversize buffers are dropped on release.
+	// byteBufferMaxRetainedCapacity caps the pool-retained capacity of frozen byte buffers;
+	// oversize buffers are dropped on release.
 	byteBufferMaxRetainedCapacity = 64 * 1024
 
-	// csrfBufMaxRetainedCapacity caps the pool-retained capacity of
-	// CSRF buffers; oversize buffers are dropped on release.
+	// csrfBufMaxRetainedCapacity caps the pool-retained capacity of CSRF buffers; oversize
+	// buffers are dropped on release.
 	csrfBufMaxRetainedCapacity = 4 * 1024
 
-	// renderContextDiagSliceCap caps the pool-retained length of the
-	// renderContext diagnostic and link-header slices.
+	// renderContextDiagSliceCap caps the pool-retained length of the renderContext
+	// diagnostic and link-header slices.
 	renderContextDiagSliceCap = 256
 )
 
 // populateLocaleFromRequest extracts the locale from the request context.
 //
-// Takes request (*http.Request) which provides the request context containing the
-// locale value. If request is nil, returns without changing state.
+// Takes request (*http.Request) which provides the request context containing the locale
+// value. If request is nil, returns without changing state.
 func (rctx *renderContext) populateLocaleFromRequest(request *http.Request) {
 	if request == nil {
 		return
@@ -58,11 +58,11 @@ func (rctx *renderContext) populateLocaleFromRequest(request *http.Request) {
 	}
 }
 
-// populateI18nFromConfig sets the i18n strategy and default locale from the
-// site settings.
+// populateI18nFromConfig sets the i18n strategy and default locale from the site
+// settings.
 //
-// Takes siteConfig (*config.WebsiteConfig) which provides the i18n settings to
-// use. When nil, the strategy and locale are cleared.
+// Takes siteConfig (*config.WebsiteConfig) which provides the i18n settings to use. When
+// nil, the strategy and locale are cleared.
 func (rctx *renderContext) populateI18nFromConfig(siteConfig *config.WebsiteConfig) {
 	if siteConfig != nil {
 		rctx.i18nStrategy = siteConfig.I18n.Strategy
@@ -100,8 +100,8 @@ func (rctx *renderContext) clearCaches() {
 	}
 }
 
-// resetDiagnosticsAndCSRF clears all warnings, errors, and CSRF state to
-// prepare for a new request.
+// resetDiagnosticsAndCSRF clears all warnings, errors, and CSRF state to prepare for a
+// new request.
 func (rctx *renderContext) resetDiagnosticsAndCSRF() {
 	rctx.diagnostics.Warnings = rctx.diagnostics.Warnings[:0]
 	rctx.diagnostics.Errors = rctx.diagnostics.Errors[:0]
@@ -110,8 +110,7 @@ func (rctx *renderContext) resetDiagnosticsAndCSRF() {
 	rctx.csrfError = nil
 }
 
-// putRenderContext returns a render context to the pool after clearing its
-// fields.
+// putRenderContext returns a render context to the pool after clearing its fields.
 //
 // Takes rctx (*renderContext) which is the context to clear and return.
 func (*RenderOrchestrator) putRenderContext(rctx *renderContext) {
@@ -166,9 +165,8 @@ func (*RenderOrchestrator) putRenderContext(rctx *renderContext) {
 	renderContextPool.Put(rctx)
 }
 
-// getBuffer retrieves a reusable byte buffer from the pool.
-// The buffer should be returned via freezeToString for safe zero-copy
-// conversion.
+// getBuffer retrieves a reusable byte buffer from the pool. The buffer should be returned
+// via freezeToString for safe zero-copy conversion.
 //
 // Returns *[]byte which is a buffer from the pool ready for use.
 func (rctx *renderContext) getBuffer() *[]byte {
@@ -180,19 +178,18 @@ func (rctx *renderContext) getBuffer() *[]byte {
 	return new(make([]byte, 0, byteBufferInitialCapacity))
 }
 
-// freezeToString converts a buffer to a string without copying using
-// mem.String.
+// freezeToString converts a buffer to a string without copying using mem.String.
 //
-// The buffer is not returned to the pool until the request ends via
-// putRenderContext. This makes the zero-copy conversion safe because the
-// buffer lifetime exceeds the string lifetime.
+// The buffer is not returned to the pool until the request ends via putRenderContext.
+// This makes the zero-copy conversion safe because the buffer lifetime exceeds the string
+// lifetime.
 //
 // Takes buffer (*[]byte) which is the buffer to freeze.
 //
 // Returns string which is the zero-copy string view of the buffer contents.
 //
-// SAFETY: The buffer must be obtained from getBuffer and must not be modified
-// after this call.
+// SAFETY: The buffer must be obtained from getBuffer and must not be modified after this
+// call.
 func (rctx *renderContext) freezeToString(buffer *[]byte) string {
 	rctx.frozenBuffers = append(rctx.frozenBuffers, buffer)
 	return mem.String(*buffer)

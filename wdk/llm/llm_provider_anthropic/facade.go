@@ -18,10 +18,12 @@
 
 package llm_provider_anthropic
 
-import "piko.sh/piko/wdk/llm"
+import (
+	"piko.sh/piko/wdk/llm"
+)
 
-// NewAnthropicProvider creates a new Anthropic Claude LLM provider with the
-// given settings.
+// NewAnthropicProvider creates a new Anthropic Claude LLM provider with the given
+// settings.
 //
 // Takes config (Config) which contains the provider settings including API key.
 //

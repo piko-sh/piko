@@ -29,20 +29,21 @@ import (
 	"piko.sh/piko/internal/pml/pml_dto"
 )
 
-var _ Transformer = (*engine)(nil)
+var (
+	_ Transformer = (*engine)(nil)
+)
 
 const (
 	// defaultContainerWidth is the default width in pixels for email containers.
 	defaultContainerWidth = 600.0
 
-	// maxLogPreviewLength is the maximum length of text content shown in debug
-	// logs.
+	// maxLogPreviewLength is the maximum length of text content shown in debug logs.
 	maxLogPreviewLength = 50
 )
 
-// engine implements the Transformer interface.
-// It orchestrates a two-pass transformation: autowrap to ensure structural
-// validity, then transform to convert PML components into email-safe HTML.
+// engine implements the Transformer interface. It orchestrates a two-pass transformation:
+// autowrap to ensure structural validity, then transform to convert PML components into
+// email-safe HTML.
 type engine struct {
 	// registry stores PML components by tag name for lookup during transformation.
 	registry ComponentRegistry
@@ -50,13 +51,13 @@ type engine struct {
 	// mediaQueryCollector gathers CSS media queries during transformation.
 	mediaQueryCollector MediaQueryCollector
 
-	// msoConditionalCollector gathers MSO conditional comments for Outlook
-	// email compatibility.
+	// msoConditionalCollector gathers MSO conditional comments for Outlook email
+	// compatibility.
 	msoConditionalCollector MSOConditionalCollector
 }
 
-// Transform applies PML changes to a template using a two-pass method.
-// It implements the Transformer interface.
+// Transform applies PML changes to a template using a two-pass method. It implements the
+// Transformer interface.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the template to transform.
 // Takes config (*pml_dto.Config) which sets how the transformation behaves.
@@ -99,21 +100,20 @@ func (e *engine) Transform(
 
 // TransformForEmail transforms a template AST for email rendering contexts.
 //
-// It initialises an email-specific transformation context with asset registry
-// support and returns the collected asset requests alongside the transformed
-// AST. Use when rendering email templates to enable automatic CID (Content-ID)
-// embedding of local assets referenced in <pml-img> tags.
+// It initialises an email-specific transformation context with asset registry support and
+// returns the collected asset requests alongside the transformed AST. Use when rendering
+// email templates to enable automatic CID (Content-ID) embedding of local assets
+// referenced in <pml-img> tags.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the template to transform.
 // Takes config (*pml_dto.Config) which specifies rendering options.
 //
 // Returns *ast_domain.TemplateAST which is the transformed template AST.
-// Returns string which contains the generated CSS including media queries
-// and MSO conditionals.
-// Returns []*email_dto.EmailAssetRequest which lists assets that need to be
-// fetched and embedded.
-// Returns []*Error which contains warnings and errors encountered during
-// transformation.
+// Returns string which contains the generated CSS including media queries and MSO
+// conditionals.
+// Returns []*email_dto.EmailAssetRequest which lists assets that need to be fetched and
+// embedded.
+// Returns []*Error which contains warnings and errors encountered during transformation.
 func (e *engine) TransformForEmail(
 	ctx context.Context,
 	ast *ast_domain.TemplateAST,
@@ -151,8 +151,7 @@ func (e *engine) TransformForEmail(
 	return transformedAST, finalCSS, assetRequests, allDiagnostics
 }
 
-// setupTransformationContext creates and sets up the root transformation
-// context.
+// setupTransformationContext creates and sets up the root transformation context.
 //
 // Takes config (*pml_dto.Config) which specifies the transformation settings.
 //
@@ -169,8 +168,8 @@ func (e *engine) setupTransformationContext(config *pml_dto.Config) *Transformat
 //
 // Takes config (*pml_dto.Config) which provides the email configuration.
 //
-// Returns *TransformationContext which is the configured context ready for
-// email transformation.
+// Returns *TransformationContext which is the configured context ready for email
+// transformation.
 func (e *engine) setupEmailTransformationContext(config *pml_dto.Config) *TransformationContext {
 	rootCtx := newRootTransformationContextForEmail(config, defaultContainerWidth, e.registry)
 	rootCtx.MediaQueryCollector = e.mediaQueryCollector
@@ -180,14 +179,12 @@ func (e *engine) setupEmailTransformationContext(config *pml_dto.Config) *Transf
 
 // transformRootNodes transforms all root nodes and collects diagnostics.
 //
-// Takes rootNodes ([]*ast_domain.TemplateNode) which are the root template
-// nodes to transform.
-// Takes rootCtx (*TransformationContext) which provides the transformation
-// context.
+// Takes rootNodes ([]*ast_domain.TemplateNode) which are the root template nodes to
+// transform.
+// Takes rootCtx (*TransformationContext) which provides the transformation context.
 //
 // Returns []*ast_domain.TemplateNode which contains the transformed nodes.
-// Returns []*Error which contains any diagnostics collected during
-// transformation.
+// Returns []*Error which contains any diagnostics collected during transformation.
 func (e *engine) transformRootNodes(
 	ctx context.Context,
 	rootNodes []*ast_domain.TemplateNode,
@@ -196,17 +193,15 @@ func (e *engine) transformRootNodes(
 	return e.doTransformRootNodes(ctx, rootNodes, rootCtx, "PML Pass 2: Running component transformation.")
 }
 
-// transformRootNodesForEmail transforms all root nodes for email rendering
-// and collects diagnostics.
+// transformRootNodesForEmail transforms all root nodes for email rendering and collects
+// diagnostics.
 //
-// Takes rootNodes ([]*ast_domain.TemplateNode) which contains the template
-// nodes to transform.
-// Takes rootCtx (*TransformationContext) which provides the transformation
-// context.
+// Takes rootNodes ([]*ast_domain.TemplateNode) which contains the template nodes to
+// transform.
+// Takes rootCtx (*TransformationContext) which provides the transformation context.
 //
 // Returns []*ast_domain.TemplateNode which contains the transformed nodes.
-// Returns []*Error which contains any diagnostics collected during
-// transformation.
+// Returns []*Error which contains any diagnostics collected during transformation.
 func (e *engine) transformRootNodesForEmail(
 	ctx context.Context,
 	rootNodes []*ast_domain.TemplateNode,
@@ -215,19 +210,17 @@ func (e *engine) transformRootNodesForEmail(
 	return e.doTransformRootNodes(ctx, rootNodes, rootCtx, "PML Pass 2: Running email component transformation.")
 }
 
-// doTransformRootNodes iterates over root nodes, transforms each one, and
-// collects diagnostics. It is the shared implementation for both standard
-// and email transformation passes.
+// doTransformRootNodes iterates over root nodes, transforms each one, and collects
+// diagnostics. It is the shared implementation for both standard and email transformation
+// passes.
 //
-// Takes rootNodes ([]*ast_domain.TemplateNode) which are the root template
-// nodes to transform.
-// Takes rootCtx (*TransformationContext) which provides the transformation
-// context.
+// Takes rootNodes ([]*ast_domain.TemplateNode) which are the root template nodes to
+// transform.
+// Takes rootCtx (*TransformationContext) which provides the transformation context.
 // Takes logMessage (string) which is the message to log before processing.
 //
 // Returns []*ast_domain.TemplateNode which contains the transformed nodes.
-// Returns []*Error which contains any diagnostics collected during
-// transformation.
+// Returns []*Error which contains any diagnostics collected during transformation.
 func (e *engine) doTransformRootNodes(
 	ctx context.Context,
 	rootNodes []*ast_domain.TemplateNode,
@@ -250,16 +243,16 @@ func (e *engine) doTransformRootNodes(
 	return transformedRootNodes, allDiagnostics
 }
 
-// buildTransformedAST constructs a transformed AST by combining the original
-// AST metadata with new root nodes.
+// buildTransformedAST constructs a transformed AST by combining the original AST metadata
+// with new root nodes.
 //
-// Takes originalAST (*ast_domain.TemplateAST) which provides the source
-// metadata and diagnostics to preserve.
-// Takes transformedRootNodes ([]*ast_domain.TemplateNode) which contains the
-// new root nodes for the transformed tree.
+// Takes originalAST (*ast_domain.TemplateAST) which provides the source metadata and
+// diagnostics to preserve.
+// Takes transformedRootNodes ([]*ast_domain.TemplateNode) which contains the new root
+// nodes for the transformed tree.
 //
-// Returns *ast_domain.TemplateAST which is the new AST with transformed nodes
-// and preserved metadata from the original.
+// Returns *ast_domain.TemplateAST which is the new AST with transformed nodes and
+// preserved metadata from the original.
 func (*engine) buildTransformedAST(
 	originalAST *ast_domain.TemplateAST,
 	transformedRootNodes []*ast_domain.TemplateNode,
@@ -275,8 +268,8 @@ func (*engine) buildTransformedAST(
 	}
 }
 
-// generateFinalCSS generates the final CSS output from collected media queries
-// and MSO conditionals.
+// generateFinalCSS generates the final CSS output from collected media queries and MSO
+// conditionals.
 //
 // Takes breakpoint (string) which specifies the target breakpoint for CSS.
 //
@@ -299,14 +292,13 @@ func (e *engine) generateFinalCSS(breakpoint string) string {
 	return finalCSSBuilder.String()
 }
 
-// extractAssetRequests collects all asset requests from the transformation
-// context.
+// extractAssetRequests collects all asset requests from the transformation context.
 //
-// Takes rootCtx (*TransformationContext) which provides the context containing
-// the email asset registry.
+// Takes rootCtx (*TransformationContext) which provides the context containing the email
+// asset registry.
 //
-// Returns []*email_dto.EmailAssetRequest which contains the collected asset
-// requests, or nil if no registry exists.
+// Returns []*email_dto.EmailAssetRequest which contains the collected asset requests, or
+// nil if no registry exists.
 func (*engine) extractAssetRequests(rootCtx *TransformationContext) []*email_dto.EmailAssetRequest {
 	var assetRequests []*email_dto.EmailAssetRequest
 	if rootCtx.EmailAssetRegistry != nil {
@@ -315,23 +307,21 @@ func (*engine) extractAssetRequests(rootCtx *TransformationContext) []*email_dto
 	return assetRequests
 }
 
-// autowrapTree starts the post-order autowrapping traversal for the entire
-// AST.
+// autowrapTree starts the post-order autowrapping traversal for the entire AST.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes ast (*ast_domain.TemplateAST) which provides the tree to traverse.
 func (e *engine) autowrapTree(ctx context.Context, ast *ast_domain.TemplateAST) {
 	e.autowrapPostOrderRecursive(ctx, ast.RootNodes, nil)
 }
 
-// autowrapPostOrderRecursive performs a post-order walk that processes
-// all of a node's children first and then applies autowrapping to that
-// node's direct children, using a bottom-up approach to prevent
-// infinite loops.
+// autowrapPostOrderRecursive performs a post-order walk that processes all of a node's
+// children first and then applies autowrapping to that node's direct children, using a
+// bottom-up approach to prevent infinite loops.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to process.
 func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_domain.TemplateNode, _ /* parent */ *ast_domain.TemplateNode) {
 	if nodes == nil {
@@ -350,11 +340,11 @@ func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_do
 	}
 }
 
-// checkAndLogEndingTag checks if a node is an ending-tag PML component and
-// logs debug information.
+// checkAndLogEndingTag checks if a node is an ending-tag PML component and logs debug
+// information.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
 // Returns bool which is true when the node is an ending-tag component.
@@ -382,11 +372,11 @@ func (e *engine) checkAndLogEndingTag(ctx context.Context, node *ast_domain.Temp
 	return true
 }
 
-// logFirstChildDetails logs details about the first child of a node for
-// debugging purposes.
+// logFirstChildDetails logs details about the first child of a node for debugging
+// purposes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes node (*ast_domain.TemplateNode) which is the parent node to inspect.
 func (*engine) logFirstChildDetails(ctx context.Context, node *ast_domain.TemplateNode) {
 	if len(node.Children) == 0 {
@@ -406,21 +396,16 @@ func (*engine) logFirstChildDetails(ctx context.Context, node *ast_domain.Templa
 		logger_domain.String("textContent", textPreview))
 }
 
-// transformNode recursively transforms a single node and its children
-// as the core of the second pass, assuming a structurally valid AST
-// and performing no autowrapping.
+// transformNode recursively transforms a single node and its children as the core of the
+// second pass, assuming a structurally valid AST and performing no autowrapping.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to transform.
-// Takes ctx (*TransformationContext) which provides the transformation
-// state.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent
-// template node.
-// Takes parentComponent (Component) which is the parent component
-// instance.
+// Takes ctx (*TransformationContext) which provides the transformation state.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent template node.
+// Takes parentComponent (Component) which is the parent component instance.
 //
 // Returns *ast_domain.TemplateNode which is the transformed node.
-// Returns []*Error which contains any diagnostics from the
-// transformation.
+// Returns []*Error which contains any diagnostics from the transformation.
 func (e *engine) transformNode(
 	node *ast_domain.TemplateNode,
 	ctx *TransformationContext,
@@ -440,11 +425,9 @@ func (e *engine) transformNode(
 
 // transformPMLComponent handles the transformation of a PML component node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the component node to
-// transform.
+// Takes node (*ast_domain.TemplateNode) which is the component node to transform.
 // Takes ctx (*TransformationContext) which provides the transformation state.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent template
-// node.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent template node.
 // Takes parentComponent (Component) which is the parent component instance.
 //
 // Returns *ast_domain.TemplateNode which is the transformed node.
@@ -484,14 +467,13 @@ func (e *engine) transformPMLComponent(
 	return transformedNode, allDiagnostics
 }
 
-// transformNonPMLNode handles the transformation of non-PML nodes by recursing
-// on their children.
+// transformNonPMLNode handles the transformation of non-PML nodes by recursing on their
+// children.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to transform.
 // Takes ctx (*TransformationContext) which provides the transformation state.
 //
-// Returns *ast_domain.TemplateNode which is a deep clone with transformed
-// children.
+// Returns *ast_domain.TemplateNode which is a deep clone with transformed children.
 // Returns []*Error which contains any diagnostics from child transformations.
 func (e *engine) transformNonPMLNode(
 	node *ast_domain.TemplateNode,
@@ -508,10 +490,8 @@ func (e *engine) transformNonPMLNode(
 //
 // Takes children ([]*ast_domain.TemplateNode) which are the nodes to transform.
 // Takes ctx (*TransformationContext) which provides the transformation context.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent of the
-// children.
-// Takes parentComponent (Component) which is the component containing the
-// nodes.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent of the children.
+// Takes parentComponent (Component) which is the component containing the nodes.
 //
 // Returns []*ast_domain.TemplateNode which are the transformed child nodes.
 // Returns []*Error which contains any errors from the transformation.
@@ -537,17 +517,14 @@ func (e *engine) transformChildren(
 
 // createChildContext creates a transformation context for a child component.
 //
-// Takes ctx (*TransformationContext) which provides the current context to
-// clone.
-// Takes node (*ast_domain.TemplateNode) which is the child node being
-// processed.
+// Takes ctx (*TransformationContext) which provides the current context to clone.
+// Takes node (*ast_domain.TemplateNode) which is the child node being processed.
 // Takes comp (Component) which is the child component.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent template
-// node.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent template node.
 // Takes parentComponent (Component) which is the parent component.
 //
-// Returns *TransformationContext which is the new context for the child with
-// sibling count and group state set based on the parent.
+// Returns *TransformationContext which is the new context for the child with sibling
+// count and group state set based on the parent.
 func (e *engine) createChildContext(
 	ctx *TransformationContext,
 	node *ast_domain.TemplateNode,
@@ -568,11 +545,9 @@ func (e *engine) createChildContext(
 	return childCtx
 }
 
-// countPMLSiblings counts the number of PML component siblings in a parent
-// node.
+// countPMLSiblings counts the number of PML component siblings in a parent node.
 //
-// Takes parentNode (*ast_domain.TemplateNode) which contains the children to
-// count.
+// Takes parentNode (*ast_domain.TemplateNode) which contains the children to count.
 //
 // Returns int which is the count of child elements with a "pml-" tag prefix.
 func (*engine) countPMLSiblings(parentNode *ast_domain.TemplateNode) int {
@@ -587,13 +562,13 @@ func (*engine) countPMLSiblings(parentNode *ast_domain.TemplateNode) int {
 
 // NewTransformer creates and returns a new PML transformation engine.
 //
-// The collectors are injected as dependencies to avoid circular dependencies
-// with adapters.
+// The collectors are injected as dependencies to avoid circular dependencies with
+// adapters.
 //
 // Takes registry (ComponentRegistry) which provides access to PML components.
 // Takes mediaQueryCollector (MediaQueryCollector) which gathers media queries.
-// Takes msoConditionalCollector (MSOConditionalCollector) which gathers MSO
-// conditional comments.
+// Takes msoConditionalCollector (MSOConditionalCollector) which gathers MSO conditional
+// comments.
 //
 // Returns Transformer which is the configured transformation engine.
 func NewTransformer(

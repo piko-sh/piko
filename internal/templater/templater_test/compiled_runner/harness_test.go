@@ -36,7 +36,6 @@ import (
 	"text/template"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
@@ -48,6 +47,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"

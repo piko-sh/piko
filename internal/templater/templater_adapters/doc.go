@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package templater_adapters implements the templater port interfaces for
-// manifest loading, template execution, and rendering.
+// Package templater_adapters implements the templater port interfaces for manifest
+// loading, template execution, and rendering.
 //
-// It implements ManifestRunnerPort for three execution modes: compiled
-// (production), interpreted (development with JIT compilation), and
-// caching (decorator for performance). It also includes renderer
-// adapters, a manifest store view for development mode, and a virtual
-// filesystem for the Go interpreter.
+// It implements ManifestRunnerPort for three execution modes: compiled (production),
+// interpreted (development with JIT compilation), and caching (decorator for
+// performance). It also includes renderer adapters, a manifest store view for development
+// mode, and a virtual filesystem for the Go interpreter.
 //
 // # Execution modes
 //
-// The package supports three execution modes through different runner
-// implementations:
+// The package supports three execution modes through different runner implementations:
 //
 // Compiled Mode (Production):
 //
@@ -46,8 +44,7 @@
 // # Thread safety
 //
 // All manifest runner implementations are safe for concurrent use.
-// InterpretedManifestRunner uses internal locking for cache access.
-// ManifestStore is read-only after construction and safe for concurrent
-// reads. RegistryVFSAdapter uses a read-write mutex to guard its path
-// map and fresh artefacts cache.
+// InterpretedManifestRunner uses internal locking for cache access. ManifestStore is
+// read-only after construction and safe for concurrent reads. RegistryVFSAdapter uses a
+// read-write mutex to guard its path map and fresh artefacts cache.
 package templater_adapters

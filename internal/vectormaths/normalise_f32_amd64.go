@@ -20,24 +20,24 @@
 
 package vectormaths
 
-// normaliseF32SSE normalises a float32 vector in place using SSE
-// (4 float32s per iteration). Guaranteed on all amd64 CPUs.
+// normaliseF32SSE normalises a float32 vector in place using SSE (4 float32s per
+// iteration). Guaranteed on all amd64 CPUs.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 //
 //go:noescape
 func normaliseF32SSE(v []float32)
 
-// normaliseF32AVX2 normalises a float32 vector in place using AVX2
-// (8 float32s per iteration). Requires AVX2 support.
+// normaliseF32AVX2 normalises a float32 vector in place using AVX2 (8 float32s per
+// iteration). Requires AVX2 support.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 //
 //go:noescape
 func normaliseF32AVX2(v []float32)
 
-// normaliseF32 normalises a float32 vector in place using SIMD.
-// Dispatches to AVX2 or SSE based on runtime CPU detection.
+// normaliseF32 normalises a float32 vector in place using SIMD. Dispatches to AVX2 or SSE
+// based on runtime CPU detection.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 func normaliseF32(v []float32) {

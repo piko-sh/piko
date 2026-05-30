@@ -379,16 +379,18 @@ func TestClosurePassedToNativeWithInnerCall(t *testing.T) {
 	})
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "sort.Slice with closure calling inner function",
 			source: `package main
 
-import "sort"
+import (
+	"sort"
+)
 
 func compare(a, b int) bool {
 	return a < b
@@ -411,7 +413,9 @@ func main() {}
 			name: "sort.Slice with direct closure no inner call",
 			source: `package main
 
-import "sort"
+import (
+	"sort"
+)
 
 func run() int {
 	s := []int{5, 2, 8}

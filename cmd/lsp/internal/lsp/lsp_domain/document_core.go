@@ -30,32 +30,32 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// document represents a single, fully analysed .pk file.
-// It is an immutable snapshot of a file at a specific version, containing
-// the full semantic analysis results including the AST and analysis context map.
+// document represents a single, fully analysed .pk file. It is an immutable snapshot of a
+// file at a specific version, containing the full semantic analysis results including the
+// AST and analysis context map.
 type document struct {
-	// Resolver provides path resolution for finding partial components and asset
-	// files in the document; nil turns off path resolution.
+	// Resolver provides path resolution for finding partial components and asset files in
+	// the document; nil turns off path resolution.
 	Resolver resolver_domain.ResolverPort
 
-	// TypeInspector provides access to type information for LSP features such as
-	// member access completions, signature help, and go-to-definition.
+	// TypeInspector provides access to type information for LSP features such as member
+	// access completions, signature help, and go-to-definition.
 	TypeInspector TypeInspectorPort
 
-	// AnalysisMap links each TemplateNode to its AnalysisContext, which holds
-	// the symbol table. This map enables code intelligence features such as
-	// completions and identifier resolution.
+	// AnalysisMap links each TemplateNode to its AnalysisContext, which holds the symbol
+	// table. This map enables code intelligence features such as completions and identifier
+	// resolution.
 	AnalysisMap map[*ast_domain.TemplateNode]*annotator_domain.AnalysisContext
 
-	// ProjectResult holds the full project analysis from the coordinator; nil when
-	// analysis has not yet finished.
+	// ProjectResult holds the full project analysis from the coordinator; nil while analysis
+	// is in progress.
 	ProjectResult *annotator_dto.ProjectAnnotationResult
 
 	// AnnotationResult holds the parsed AST and style blocks for this document.
 	AnnotationResult *annotator_dto.AnnotationResult
 
-	// SFCResult caches the parsed SFC structure (template, scripts, styles, i18n
-	// blocks). This avoids re-parsing the file for each LSP operation.
+	// SFCResult caches the parsed SFC structure (template, scripts, styles, i18n blocks).
+	// This avoids re-parsing the file for each LSP operation.
 	SFCResult *sfcparser.ParseResult
 
 	// pkcMeta caches the extracted PKC metadata for this document snapshot.
@@ -67,8 +67,8 @@ type document struct {
 	// Content holds the raw document text as bytes.
 	Content []byte
 
-	// sfcOnce guards single execution of getSFCResult, even when called
-	// from multiple goroutines at the same time.
+	// sfcOnce guards single execution of getSFCResult, even when called from multiple
+	// goroutines at the same time.
 	sfcOnce sync.Once
 
 	// pkcOnce guards single execution of getPKCMetadata.
@@ -93,8 +93,8 @@ func (d *document) getSFCResult() *sfcparser.ParseResult {
 	return d.SFCResult
 }
 
-// isPositionInClientScript checks if the given position is inside a client-side
-// script block (JavaScript or TypeScript).
+// isPositionInClientScript checks if the given position is inside a client-side script
+// block (JavaScript or TypeScript).
 //
 // Takes position (protocol.Position) which is the cursor position to check.
 //
@@ -113,8 +113,8 @@ func (d *document) isPositionInClientScript(position protocol.Position) bool {
 	return false
 }
 
-// isPositionInScriptContent checks if a position falls within the content of a
-// script block.
+// isPositionInScriptContent checks if a position falls within the content of a script
+// block.
 //
 // Takes script (*sfcparser.Script) which is the script block to check.
 // Takes position (protocol.Position) which is the cursor position to test.

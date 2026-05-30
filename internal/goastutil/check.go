@@ -25,13 +25,13 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// IsGoInternalType checks if a type is a built-in primitive, a pre-declared
-// identifier, or part of the standard library (including 'unsafe'). This check
-// runs during serialisation when full type information is available.
+// IsGoInternalType checks if a type is a built-in primitive, a pre-declared identifier,
+// or part of the standard library (including 'unsafe'). This check runs during
+// serialisation when full type information is available.
 //
 // Takes typ (types.Type) which is the type to check.
-// Takes allPackages (map[string]*packages.Package) which provides the set of
-// known packages for checking if a type belongs to the standard library.
+// Takes allPackages (map[string]*packages.Package) which provides the set of known
+// packages for checking if a type belongs to the standard library.
 //
 // Returns bool which is true if the type is internal to Go.
 func IsGoInternalType(typ types.Type, allPackages map[string]*packages.Package) bool {
@@ -50,8 +50,8 @@ func IsGoInternalType(typ types.Type, allPackages map[string]*packages.Package) 
 	return checkCompositeTypeInternal(typ, allPackages)
 }
 
-// IsPrimitive checks whether a type is a primitive, handling named types and
-// aliases correctly.
+// IsPrimitive checks whether a type is a primitive, handling named types and aliases
+// correctly.
 //
 // Takes typ (types.Type) which is the type to check.
 //
@@ -60,13 +60,11 @@ func IsPrimitive(typ types.Type) bool {
 	return IsPrimitiveRecursive(typ, make(map[types.Type]bool))
 }
 
-// IsPrimitiveRecursive checks if a type should be considered
-// primitive for PackagePath determination, with cycle detection
-// to handle recursive types safely.
+// IsPrimitiveRecursive checks if a type should be considered primitive for PackagePath
+// determination, with cycle detection to handle recursive types safely.
 //
 // Takes typ (types.Type) which is the type to check.
-// Takes seen (map[types.Type]bool) which tracks visited types for cycle
-// detection.
+// Takes seen (map[types.Type]bool) which tracks visited types for cycle detection.
 //
 // Returns bool which is true if the type is effectively primitive.
 func IsPrimitiveRecursive(typ types.Type, seen map[types.Type]bool) bool {
@@ -90,15 +88,15 @@ func IsPrimitiveRecursive(typ types.Type, seen map[types.Type]bool) bool {
 	return checkUnderlyingPrimitive(typ.Underlying(), seen)
 }
 
-// checkNamedTypeInternal checks if a named type is part of Go's internal
-// standard library.
+// checkNamedTypeInternal checks if a named type is part of Go's internal standard
+// library.
 //
 // Takes typ (types.Type) which is the type to check.
-// Takes allPackages (map[string]*packages.Package) which provides package data
-// for lookup.
+// Takes allPackages (map[string]*packages.Package) which provides package data for
+// lookup.
 //
-// Returns isInternal (bool) which is true when the type belongs to Go's
-// internal packages.
+// Returns isInternal (bool) which is true when the type belongs to Go's internal
+// packages.
 // Returns wasHandled (bool) which is false when typ is not a named type.
 func checkNamedTypeInternal(typ types.Type, allPackages map[string]*packages.Package) (isInternal bool, wasHandled bool) {
 	underlying := types.Unalias(typ)
@@ -127,9 +125,8 @@ func checkNamedTypeInternal(typ types.Type, allPackages map[string]*packages.Pac
 	return false, false
 }
 
-// isStandardLibraryPath checks if a package path belongs to the standard
-// library. Standard library packages do not contain a dot in the first
-// segment of their path.
+// isStandardLibraryPath checks if a package path belongs to the standard library.
+// Standard library packages do not contain a dot in the first segment of their path.
 //
 // Takes path (string) which is the package path to check.
 //
@@ -142,15 +139,14 @@ func isStandardLibraryPath(path string) bool {
 	return !strings.Contains(firstSegment, ".") || path == "unsafe"
 }
 
-// checkCompositeTypeInternal recursively checks if a composite type's
-// elements are internal Go types.
+// checkCompositeTypeInternal recursively checks if a composite type's elements are
+// internal Go types.
 //
 // Takes typ (types.Type) which is the composite type to check.
-// Takes allPackages (map[string]*packages.Package) which provides the set of
-// known packages for type resolution.
+// Takes allPackages (map[string]*packages.Package) which provides the set of known
+// packages for type resolution.
 //
-// Returns bool which is true if all elements of the composite type are
-// internal Go types.
+// Returns bool which is true if all elements of the composite type are internal Go types.
 func checkCompositeTypeInternal(typ types.Type, allPackages map[string]*packages.Package) bool {
 	switch t := typ.Underlying().(type) {
 	case *types.Signature:
@@ -170,12 +166,11 @@ func checkCompositeTypeInternal(typ types.Type, allPackages map[string]*packages
 	}
 }
 
-// checkNamedOrAliasType checks if a type is a named or alias type that would
-// make it non-primitive.
+// checkNamedOrAliasType checks if a type is a named or alias type that would make it
+// non-primitive.
 //
 // Takes typ (types.Type) which is the type to check.
-// Takes seen (map[types.Type]bool) which tracks visited types to prevent
-// infinite loops.
+// Takes seen (map[types.Type]bool) which tracks visited types to prevent infinite loops.
 //
 // Returns bool which is true if the type is not primitive.
 func checkNamedOrAliasType(typ types.Type, seen map[types.Type]bool) bool {
@@ -230,8 +225,8 @@ func checkUnderlyingPrimitive(underlying types.Type, seen map[types.Type]bool) b
 // containsFunction checks if a type is or contains a function type.
 //
 // Takes typ (types.Type) which is the type to inspect.
-// Takes seen (map[types.Type]bool) which tracks visited types to prevent
-// infinite recursion.
+// Takes seen (map[types.Type]bool) which tracks visited types to prevent infinite
+// recursion.
 //
 // Returns bool which is true if the type contains a function signature.
 func containsFunction(typ types.Type, seen map[types.Type]bool) bool {

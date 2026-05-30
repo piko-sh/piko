@@ -25,24 +25,22 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// TextWidth returns the visible-cell width of s, ignoring ANSI escape
-// sequences and accounting for wide characters such as East-Asian glyphs and
-// emoji. Callers must use this rather than len() when measuring a string for
-// terminal display.
+// TextWidth returns the visible-cell width of s, ignoring ANSI escape sequences and
+// accounting for wide characters such as East-Asian glyphs and emoji. Callers must use
+// this rather than len() when measuring a string for terminal display.
 //
 // Takes s (string) which is the text to measure.
 //
-// Returns int which is the number of terminal cells s would occupy when
-// rendered.
+// Returns int which is the number of terminal cells s would occupy when rendered.
 func TextWidth(s string) int {
 	return lipgloss.Width(s)
 }
 
-// PadRightANSI returns s padded on the right with spaces until its visible
-// width equals width.
+// PadRightANSI returns s padded on the right with spaces until its visible width equals
+// width.
 //
-// If s is wider than width, it is truncated to fit without an ellipsis. ANSI
-// escape sequences embedded in s are preserved.
+// If s is wider than width, it is truncated to fit without an ellipsis. ANSI escape
+// sequences embedded in s are preserved.
 //
 // Takes s (string) which is the input string.
 // Takes width (int) which is the target visible width in terminal cells.
@@ -61,15 +59,15 @@ func PadRightANSI(s string, width int) string {
 
 // TruncateANSI shortens s so its visible width is at most maxWidth.
 //
-// Appends an ellipsis when the input was cut. ANSI escape sequences are
-// preserved and wide characters are accounted for. When maxWidth is small
-// enough that the ellipsis would not fit, the input is cut to fit without one.
+// Appends an ellipsis when the input was cut. ANSI escape sequences are preserved and
+// wide characters are accounted for. When maxWidth is small enough that the ellipsis
+// would not fit, the input is cut to fit without one.
 //
 // Takes s (string) which is the input string.
 // Takes maxWidth (int) which is the maximum permitted visible width in cells.
 //
-// Returns string which is the input shortened to fit within maxWidth, with
-// an ellipsis appended when content was lost.
+// Returns string which is the input shortened to fit within maxWidth, with an ellipsis
+// appended when content was lost.
 func TruncateANSI(s string, maxWidth int) string {
 	if maxWidth <= 0 {
 		return ""

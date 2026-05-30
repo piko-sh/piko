@@ -28,9 +28,9 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// artefactMetadataCache stores artefact metadata to reduce registry database
-// lookups for assets that are accessed often. Backed by the cache hexagon with
-// automatic TTL expiry and size-limited eviction.
+// artefactMetadataCache stores artefact metadata to reduce registry database lookups for
+// assets that are accessed often. Backed by the cache hexagon with automatic TTL expiry
+// and size-limited eviction.
 type artefactMetadataCache struct {
 	// cache stores artefact metadata entries, keyed by artefact ID.
 	cache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
@@ -43,8 +43,8 @@ type artefactMetadataCache struct {
 //
 // Takes artefactID (string) which identifies the artefact to look up.
 //
-// Returns *registry_dto.ArtefactMeta which contains the cached metadata, or
-// nil if not found.
+// Returns *registry_dto.ArtefactMeta which contains the cached metadata, or nil if not
+// found.
 // Returns bool which is true when the artefact was found in the cache.
 func (c *artefactMetadataCache) Get(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, bool) {
 	if c.cache == nil {
@@ -80,8 +80,8 @@ func (c *artefactMetadataCache) GetOrLoad(ctx context.Context, artefactID string
 	return c.cache.Get(ctx, artefactID, loader)
 }
 
-// Invalidate removes artefact metadata from cache.
-// Called after variant generation to force refresh on next access.
+// Invalidate removes artefact metadata from cache. Called after variant generation to
+// force refresh on next access.
 //
 // Takes artefactID (string) which identifies the artefact to remove.
 func (c *artefactMetadataCache) Invalidate(ctx context.Context, artefactID string) {
@@ -107,8 +107,8 @@ func (c *artefactMetadataCache) Stats() cache_dto.Stats {
 // newArtefactMetadataCache creates a new metadata cache.
 //
 // Takes cache (cache_domain.Cache) which provides the underlying storage.
-// Takes registryService (RegistryService) which provides access to the artefact
-// registry for cache-miss loading.
+// Takes registryService (RegistryService) which provides access to the artefact registry
+// for cache-miss loading.
 //
 // Returns *artefactMetadataCache which is ready for use.
 func newArtefactMetadataCache(

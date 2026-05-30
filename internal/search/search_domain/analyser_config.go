@@ -23,27 +23,27 @@ import (
 	search_fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
-// createAnalyserConfigFromSearchConfig creates a linguistics.AnalyserConfig
-// from search build parameters.
+// createAnalyserConfigFromSearchConfig creates a linguistics.AnalyserConfig from search
+// build parameters.
 //
-// This is the single source of truth for creating analyser configurations.
-// Used by IndexBuilder during index construction.
+// This is the single source of truth for creating analyser configurations. Used by
+// IndexBuilder during index construction.
 //
 // Ensures that the same analysis pipeline is used consistently across:
 //   - Index building (build time)
 //   - Query processing (runtime)
 //
-// Takes mode (search_fb.SearchMode) which specifies the search mode to map to
-// an analysis mode; defaults to Fast mode for invalid or unrecognised modes.
-// Takes language (string) which specifies the language for stop words and
-// validation; will be normalised if invalid.
+// Takes mode (search_fb.SearchMode) which specifies the search mode to map to an analysis
+// mode; defaults to Fast mode for invalid or unrecognised modes.
+// Takes language (string) which specifies the language for stop words and validation;
+// will be normalised if invalid.
 // Takes minTokenLength (int) which sets the minimum token length to keep.
 // Takes maxTokenLength (int) which sets the maximum token length to keep.
-// Takes stopWordsEnabled (bool) which controls whether language-specific stop
-// words are loaded.
+// Takes stopWordsEnabled (bool) which controls whether language-specific stop words are
+// loaded.
 //
-// Returns linguistics_domain.AnalyserConfig which is the configured analyser
-// ready for use in indexing or query processing.
+// Returns linguistics_domain.AnalyserConfig which is the configured analyser ready for
+// use in indexing or query processing.
 func createAnalyserConfigFromSearchConfig(
 	mode search_fb.SearchMode,
 	language string,
@@ -80,15 +80,14 @@ func createAnalyserConfigFromSearchConfig(
 // createAnalyserConfigFromIndex creates a linguistics.AnalyserConfig by reading
 // parameters from a search index.
 //
-// This means runtime query analysis uses the exact same configuration as
-// build-time indexing, guaranteeing consistency. Used by QueryProcessor to
-// configure the analyser for query processing.
+// This means runtime query analysis uses the exact same configuration as build-time
+// indexing, guaranteeing consistency. Used by QueryProcessor to configure the analyser
+// for query processing.
 //
 // Takes mode (search_fb.SearchMode) which specifies the search mode.
 // Takes language (string) which specifies the language for analysis.
 //
-// Returns linguistics_domain.AnalyserConfig which is ready for query
-// processing.
+// Returns linguistics_domain.AnalyserConfig which is ready for query processing.
 func createAnalyserConfigFromIndex(mode search_fb.SearchMode, language string) linguistics_domain.AnalyserConfig {
 	const defaultMinTokenLength = 2
 	const defaultMaxTokenLength = 50
@@ -102,11 +101,11 @@ func createAnalyserConfigFromIndex(mode search_fb.SearchMode, language string) l
 	)
 }
 
-// createAnalyserConfigFromIndexParams creates a linguistics.AnalyserConfig
-// from index parameters stored in the FlatBuffer.
+// createAnalyserConfigFromIndexParams creates a linguistics.AnalyserConfig from index
+// parameters stored in the FlatBuffer.
 //
-// This provides perfect consistency by reading all parameters from the index.
-// Use this when IndexParams are fully populated and accessible.
+// This provides perfect consistency by reading all parameters from the index. Use this
+// when IndexParams are fully populated and accessible.
 //
 // Takes mode (search_fb.SearchMode) which specifies the search mode to use.
 // Takes language (string) which specifies the language for text analysis.
@@ -114,8 +113,7 @@ func createAnalyserConfigFromIndex(mode search_fb.SearchMode, language string) l
 // Takes maxTokenLength (int) which sets the maximum token length to index.
 // Takes stopWordsEnabled (bool) which controls whether stop words are filtered.
 //
-// Returns linguistics_domain.AnalyserConfig which is configured for the given
-// params.
+// Returns linguistics_domain.AnalyserConfig which is configured for the given params.
 func createAnalyserConfigFromIndexParams(
 	mode search_fb.SearchMode,
 	language string,

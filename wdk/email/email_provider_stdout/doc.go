@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_stdout provides an email provider that
-// writes messages to standard output.
+// Package email_provider_stdout provides an email provider that writes messages to
+// standard output.
 //
-// This provider is intended for development and debugging
-// workflows where you want to see email content printed directly
-// to the console without requiring any external services or
-// filesystem access.
+// This provider is intended for development and debugging workflows where you want to see
+// email content printed directly to the console without requiring any external services
+// or filesystem access.
 package email_provider_stdout

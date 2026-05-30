@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// ComponentTester orchestrates the testing of a compiled Piko component.
-// It handles calling the BuildAST function, managing the render service for
-// HTML output, and providing a clean API for assertions.
+// ComponentTester orchestrates the testing of a compiled Piko component. It handles
+// calling the BuildAST function, managing the render service for HTML output, and
+// providing a clean API for assertions.
 type ComponentTester struct {
 	// tb is the testing context for reporting errors and marking test helpers.
 	tb testing.TB
@@ -50,8 +50,8 @@ type ComponentTester struct {
 	pageID string
 }
 
-// NewComponentTester creates a new ComponentTester for the given component's
-// BuildAST function.
+// NewComponentTester creates a new ComponentTester for the given component's BuildAST
+// function.
 //
 // Takes tb (testing.TB) which provides the test context for assertions.
 // Takes buildAST (BuildASTFunc) which builds the component's AST for testing.
@@ -78,12 +78,11 @@ func NewComponentTester(tb testing.TB, buildAST pikotest_dto.BuildASTFunc, opts 
 //
 // This is the main entry point for testing a component.
 //
-// Takes request (*templater_dto.RequestData) which contains the request data for
-// the component.
+// Takes request (*templater_dto.RequestData) which contains the request data for the
+// component.
 // Takes props (any) which provides the component properties.
 //
-// Returns *TestView which provides assertion methods for checking the rendered
-// output.
+// Returns *TestView which provides assertion methods for checking the rendered output.
 func (ct *ComponentTester) Render(request *templater_dto.RequestData, props any) *TestView {
 	ct.tb.Helper()
 
@@ -121,8 +120,8 @@ func (ct *ComponentTester) Render(request *templater_dto.RequestData, props any)
 	)
 }
 
-// Benchmark runs a benchmark of the component render operation.
-// This measures the time to execute BuildAST, excluding initial setup.
+// Benchmark runs a benchmark of the component render operation. This measures the time to
+// execute BuildAST, excluding initial setup.
 //
 // Takes request (*templater_dto.RequestData) which provides the request context.
 // Takes props (any) which supplies the component properties.
@@ -139,14 +138,13 @@ func (ct *ComponentTester) Benchmark(request *templater_dto.RequestData, props a
 	}
 }
 
-// makeHTTPRequest creates an http.Request from RequestData for use with
-// RenderService.
+// makeHTTPRequest creates an http.Request from RequestData for use with RenderService.
 //
-// The RenderService expects an *http.Request, so this builds one from the
-// test RequestData.
+// The RenderService expects an *http.Request, so this builds one from the test
+// RequestData.
 //
-// Takes reqData (*templater_dto.RequestData) which provides the request
-// details to convert.
+// Takes reqData (*templater_dto.RequestData) which provides the request details to
+// convert.
 //
 // Returns *http.Request which is the built request ready for rendering.
 func (*ComponentTester) makeHTTPRequest(reqData *templater_dto.RequestData) *http.Request {

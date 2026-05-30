@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 )
 
-// RenderPort defines the HTML rendering capability needed by TestView.
-// This is a narrow interface extracted from render_domain.RenderService,
-// keeping only what the testing framework requires.
+// RenderPort defines the HTML rendering capability needed by TestView. This is a narrow
+// interface extracted from render_domain.RenderService, keeping only what the testing
+// framework requires.
 type RenderPort interface {
 	// RenderAST renders an abstract syntax tree to the provided writer.
 	//

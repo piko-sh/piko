@@ -59,8 +59,8 @@ func (b BigInt) Float64() (float64, error) {
 // Int64 returns the value as an int64.
 //
 // Returns int64 which is the numeric value.
-// Returns error when the BigInt is in an error state or the value is too large
-// to fit in an int64.
+// Returns error when the BigInt is in an error state or the value is too large to fit in
+// an int64.
 func (b BigInt) Int64() (int64, error) {
 	if b.err != nil {
 		return 0, b.err
@@ -112,8 +112,8 @@ func (b BigInt) MustInt64() int64 {
 	return i
 }
 
-// MarshalJSON implements the json.Marshaler interface.
-// It marshals the bigint as a JSON string to preserve full precision.
+// MarshalJSON implements the json.Marshaler interface. It marshals the bigint as a JSON
+// string to preserve full precision.
 //
 // Returns []byte which contains the JSON-encoded string representation.
 // Returns error when the BigInt holds an error or string conversion fails.
@@ -128,13 +128,12 @@ func (b BigInt) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// It can unmarshal from a JSON string or a JSON number.
+// UnmarshalJSON implements the json.Unmarshaler interface. It can unmarshal from a JSON
+// string or a JSON number.
 //
 // Takes data ([]byte) which contains the JSON-encoded value to parse.
 //
-// Returns error when the receiver is nil or the data is not a valid string
-// or number.
+// Returns error when the receiver is nil or the data is not a valid string or number.
 func (b *BigInt) UnmarshalJSON(data []byte) error {
 	if b == nil {
 		return errors.New("maths: UnmarshalJSON on nil BigInt pointer")
@@ -155,9 +154,8 @@ func (b *BigInt) UnmarshalJSON(data []byte) error {
 	return errors.New("maths: bigint must be a JSON string or a whole number")
 }
 
-// Value implements the driver.Valuer interface for database serialisation.
-// It returns the bigint as a string for storage in a high-precision database
-// column.
+// Value implements the driver.Valuer interface for database serialisation. It returns the
+// bigint as a string for storage in a high-precision database column.
 //
 // Returns driver.Value which contains the string representation.
 // Returns error when the BigInt holds a previous error.
@@ -170,8 +168,8 @@ func (b BigInt) Value() (driver.Value, error) {
 
 // Scan implements the sql.Scanner interface for database deserialisation.
 //
-// Takes source (interface{}) which provides the database value to scan. Accepts
-// string, []byte, int64, or nil types.
+// Takes source (any) which provides the database value to scan. Accepts string, []byte,
+// int64, or nil types.
 //
 // Returns error when b is nil or source is an unsupported type.
 func (b *BigInt) Scan(source any) error {

@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file implements the AST type extractor for the lite builder.
-// It walks parsed Go AST files and extracts type definitions into DTOs.
+// This file implements the AST type extractor for the lite builder. It walks parsed Go
+// AST files and extracts type definitions into DTOs.
 
 import (
 	"context"
@@ -51,11 +51,11 @@ type liteTypeExtractor struct {
 
 // ExtractFromFiles extracts types from all parsed files, grouped by package.
 //
-// Takes files (map[string]*ast.File) which contains the parsed Go files keyed
-// by their file paths.
+// Takes files (map[string]*ast.File) which contains the parsed Go files keyed by their
+// file paths.
 //
-// Returns map[string]*inspector_dto.Package which contains the extracted type
-// information grouped by package path.
+// Returns map[string]*inspector_dto.Package which contains the extracted type information
+// grouped by package path.
 // Returns error when extraction fails for any package.
 func (e *liteTypeExtractor) ExtractFromFiles(ctx context.Context, files map[string]*ast.File) (map[string]*inspector_dto.Package, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -116,11 +116,11 @@ func (e *liteTypeExtractor) derivePackagePath(filePath string) string {
 // extractPackage extracts all types from a single package's files.
 //
 // Takes packagePath (string) which specifies the import path for the package.
-// Takes files (map[string]*ast.File) which provides the parsed AST files to
-// extract types from.
+// Takes files (map[string]*ast.File) which provides the parsed AST files to extract types
+// from.
 //
-// Returns *inspector_dto.Package which contains the extracted types, functions,
-// and methods from the package.
+// Returns *inspector_dto.Package which contains the extracted types, functions, and
+// methods from the package.
 // Returns error when extraction fails or the context is cancelled.
 func (e *liteTypeExtractor) extractPackage(ctx context.Context, packagePath string, files map[string]*ast.File) (*inspector_dto.Package, error) {
 	var packageName string
@@ -171,11 +171,10 @@ func (e *liteTypeExtractor) extractPackage(ctx context.Context, packagePath stri
 
 // buildImportMap creates a map from import names or aliases to package paths.
 //
-// Takes file (*ast.File) which is the parsed Go source file to read imports
-// from.
+// Takes file (*ast.File) which is the parsed Go source file to read imports from.
 //
-// Returns map[string]string which maps each import name or alias to its full
-// package path. Blank imports (using "_") are not included in the map.
+// Returns map[string]string which maps each import name or alias to its full package
+// path. Blank imports (using "_") are not included in the map.
 func (*liteTypeExtractor) buildImportMap(file *ast.File) map[string]string {
 	imports := make(map[string]string)
 
@@ -236,8 +235,8 @@ func (e *liteTypeExtractor) extractTypesFromGenDecl(ctx context.Context, genDecl
 	}
 }
 
-// extractAndAddType extracts a single type specification and adds it to the
-// package if successful.
+// extractAndAddType extracts a single type specification and adds it to the package if
+// successful.
 //
 // Takes ctx (context.Context) which carries logging context for trace/request ID
 // propagation.
@@ -269,8 +268,7 @@ func (e *liteTypeExtractor) extractAndAddType(ctx context.Context, typeSpec *ast
 // Takes packagePath (string) which is the import path of the package.
 //
 // Returns *inspector_dto.Type which contains the extracted type information.
-// Returns error when the type uses generics, which are not supported in lite
-// mode.
+// Returns error when the type uses generics, which are not supported in lite mode.
 func (e *liteTypeExtractor) extractType(ctx context.Context, spec *ast.TypeSpec, filePath, packagePath string) (*inspector_dto.Type, error) {
 	position := e.fset.Position(spec.Pos())
 	if spec.TypeParams != nil && spec.TypeParams.NumFields() > 0 {
@@ -315,8 +313,8 @@ func (*liteTypeExtractor) newTypeDTO(spec *ast.TypeSpec, filePath, packagePath s
 // Takes typ (*inspector_dto.Type) which is the DTO to fill in.
 // Takes spec (*ast.TypeSpec) which holds the type alias declaration.
 //
-// Returns *inspector_dto.Type which is the filled DTO with the underlying type
-// string set.
+// Returns *inspector_dto.Type which is the filled DTO with the underlying type string
+// set.
 // Returns error when the alias type cannot be converted to a string.
 func (e *liteTypeExtractor) extractAliasType(typ *inspector_dto.Type, spec *ast.TypeSpec) (*inspector_dto.Type, error) {
 	typeString, err := e.resolver.TypeExprToString(spec.Type)
@@ -388,14 +386,13 @@ func (e *liteTypeExtractor) extractInterfaceTypeDTO(typ *inspector_dto.Type, ifa
 	return typ
 }
 
-// extractSimpleTypeDTO extracts a simple type definition such as a named type
-// or channel.
+// extractSimpleTypeDTO extracts a simple type definition such as a named type or channel.
 //
 // Takes typ (*inspector_dto.Type) which is the type DTO to fill in.
 // Takes typeExpr (ast.Expr) which is the AST expression to extract from.
 //
-// Returns *inspector_dto.Type which is the filled type with its underlying
-// type string set.
+// Returns *inspector_dto.Type which is the filled type with its underlying type string
+// set.
 // Returns error when the type expression cannot be converted to a string.
 func (e *liteTypeExtractor) extractSimpleTypeDTO(typ *inspector_dto.Type, typeExpr ast.Expr) (*inspector_dto.Type, error) {
 	typeString, err := e.resolver.TypeExprToString(typeExpr)
@@ -450,8 +447,8 @@ func (e *liteTypeExtractor) extractStructField(ctx context.Context, field *ast.F
 	return e.extractNamedFields(field, filePath)
 }
 
-// tryExtractEmbeddedField tries to extract an embedded field from an AST node.
-// It logs a warning if extraction fails.
+// tryExtractEmbeddedField tries to extract an embedded field from an AST node. It logs a
+// warning if extraction fails.
 //
 // Takes ctx (context.Context) which carries logging context for trace/request ID
 // propagation.
@@ -459,9 +456,8 @@ func (e *liteTypeExtractor) extractStructField(ctx context.Context, field *ast.F
 // Takes filePath (string) which is the path to the source file.
 // Takes typeName (string) which is the name of the containing type.
 //
-// Returns []*inspector_dto.Field which holds the extracted field if it is
-// exported and extraction succeeds, or nil if there is an error or the field
-// is not exported.
+// Returns []*inspector_dto.Field which holds the extracted field if it is exported and
+// extraction succeeds, or nil if there is an error or the field is not exported.
 func (e *liteTypeExtractor) tryExtractEmbeddedField(ctx context.Context, field *ast.Field, filePath, typeName string) []*inspector_dto.Field {
 	embeddedField, err := e.extractEmbeddedField(field, filePath)
 	if err != nil {
@@ -479,8 +475,7 @@ func (e *liteTypeExtractor) tryExtractEmbeddedField(ctx context.Context, field *
 	return []*inspector_dto.Field{embeddedField}
 }
 
-// extractNamedFields extracts all exported named fields from a field
-// declaration.
+// extractNamedFields extracts all exported named fields from a field declaration.
 //
 // Takes field (*ast.Field) which contains the field declaration to process.
 // Takes filePath (string) which identifies the source file for error messages.
@@ -502,15 +497,15 @@ func (e *liteTypeExtractor) extractNamedFields(field *ast.Field, filePath string
 	return fields, nil
 }
 
-// extractEmbeddedField extracts an embedded (anonymous) field.
-// The field name is derived from the type name.
+// extractEmbeddedField extracts an embedded (anonymous) field. The field name is derived
+// from the type name.
 //
 // Takes field (*ast.Field) which is the AST field node to extract.
 // Takes filePath (string) which is the source file path for position data.
 //
 // Returns *inspector_dto.Field which holds the extracted field metadata.
-// Returns error when the embedded type cannot be resolved or the field name
-// cannot be found.
+// Returns error when the embedded type cannot be resolved or the field name cannot be
+// found.
 func (e *liteTypeExtractor) extractEmbeddedField(field *ast.Field, filePath string) (*inspector_dto.Field, error) {
 	position := e.fset.Position(field.Pos())
 
@@ -553,14 +548,13 @@ func (e *liteTypeExtractor) extractEmbeddedField(field *ast.Field, filePath stri
 	return f, nil
 }
 
-// embeddedFieldName extracts the field name for an embedded field.
-// The name is the type name without the package prefix or pointer.
+// embeddedFieldName extracts the field name for an embedded field. The name is the type
+// name without the package prefix or pointer.
 //
-// Takes expression (ast.Expr) which is the embedded field type
-// expression.
+// Takes expression (ast.Expr) which is the embedded field type expression.
 //
-// Returns string which is the extracted field name, or empty if the
-// expression type is not recognised.
+// Returns string which is the extracted field name, or empty if the expression type is
+// not recognised.
 func (e *liteTypeExtractor) embeddedFieldName(expression ast.Expr) string {
 	switch t := expression.(type) {
 	case *ast.Ident:
@@ -673,8 +667,7 @@ func (e *liteTypeExtractor) funcTypeString(ft *ast.FuncType) string {
 	return builder.String()
 }
 
-// writeFieldListTypes writes type strings from a field list, separated by
-// commas.
+// writeFieldListTypes writes type strings from a field list, separated by commas.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes fields (*ast.FieldList) which contains the fields to format.
@@ -714,8 +707,8 @@ func (e *liteTypeExtractor) writeResultTypes(builder *strings.Builder, results *
 //
 // Takes ft (*ast.FuncType) which is the AST function type to extract from.
 //
-// Returns inspector_dto.FunctionSignature which contains the parameter and
-// result type strings.
+// Returns inspector_dto.FunctionSignature which contains the parameter and result type
+// strings.
 func (e *liteTypeExtractor) extractSignature(ft *ast.FuncType) inspector_dto.FunctionSignature {
 	return inspector_dto.FunctionSignature{
 		Params:     e.extractFieldListTypeStrings(ft.Params),
@@ -724,12 +717,10 @@ func (e *liteTypeExtractor) extractSignature(ft *ast.FuncType) inspector_dto.Fun
 	}
 }
 
-// extractFieldListTypeStrings gathers type strings from a field list.
-// When multiple names share the same type, it creates a separate entry for
-// each name.
+// extractFieldListTypeStrings gathers type strings from a field list. When multiple names
+// share the same type, it creates a separate entry for each name.
 //
-// Takes fields (*ast.FieldList) which contains the fields to extract types
-// from.
+// Takes fields (*ast.FieldList) which contains the fields to extract types from.
 //
 // Returns []string which contains the type strings, with one entry per name.
 func (e *liteTypeExtractor) extractFieldListTypeStrings(fields *ast.FieldList) []string {
@@ -747,15 +738,12 @@ func (e *liteTypeExtractor) extractFieldListTypeStrings(fields *ast.FieldList) [
 	return types
 }
 
-// extractMethodsFromFile scans a file for method declarations and adds them to
-// their named types. This runs in a second pass after all types have been
-// found.
+// extractMethodsFromFile scans a file for method declarations and adds them to their
+// named types. This runs in a second pass after all types have been found.
 //
 // Takes file (*ast.File) which is the parsed AST to scan for methods.
-// Takes filePath (string) which is the path used for recording where methods
-// are defined.
-// Takes pkg (*inspector_dto.Package) which receives the methods on its named
-// types.
+// Takes filePath (string) which is the path used for recording where methods are defined.
+// Takes pkg (*inspector_dto.Package) which receives the methods on its named types.
 func (e *liteTypeExtractor) extractMethodsFromFile(file *ast.File, filePath string, pkg *inspector_dto.Package) {
 	for _, declaration := range file.Decls {
 		funcDecl, ok := declaration.(*ast.FuncDecl)
@@ -820,11 +808,9 @@ func (e *liteTypeExtractor) extractReceiverTypeName(recv *ast.FieldList) (string
 
 // receiverTypeName extracts the type name from a receiver expression.
 //
-// Takes expression (ast.Expr) which is the receiver expression to
-// check.
+// Takes expression (ast.Expr) which is the receiver expression to check.
 //
-// Returns string which is the extracted type name, or empty if not
-// found.
+// Returns string which is the extracted type name, or empty if not found.
 // Returns bool which is true if the receiver is a pointer type.
 func (*liteTypeExtractor) receiverTypeName(expression ast.Expr) (string, bool) {
 	switch t := expression.(type) {
@@ -902,9 +888,9 @@ func newLiteTypeExtractor(fset *token.FileSet, registry *typeRegistry, config in
 	}
 }
 
-// extractFieldListNames gathers parameter names from a field list,
-// creating a separate entry for each name when multiple names share
-// the same type and using an empty string for unnamed parameters.
+// extractFieldListNames gathers parameter names from a field list, creating a separate
+// entry for each name when multiple names share the same type and using an empty string
+// for unnamed parameters.
 //
 // Takes fields (*ast.FieldList) which contains the fields to extract names from.
 //

@@ -28,7 +28,9 @@ import (
 	"piko.sh/piko/internal/deadletter/deadletter_domain"
 )
 
-var _ deadletter_domain.DeadLetterPort[testEntry] = (*MemoryDeadLetterQueue[testEntry])(nil)
+var (
+	_ deadletter_domain.DeadLetterPort[testEntry] = (*MemoryDeadLetterQueue[testEntry])(nil)
+)
 
 func TestMemoryDeadLetterQueue_NewCreatesEmptyQueue(t *testing.T) {
 	t.Parallel()

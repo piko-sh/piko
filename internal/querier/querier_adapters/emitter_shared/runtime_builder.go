@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// BuildRuntimeBuilderDeclarations constructs all AST declarations for a
-// runtime query builder, including the allowed-columns variable, builder
-// struct, entry point, chainable methods, and terminal query methods.
+// BuildRuntimeBuilderDeclarations constructs all AST declarations for a runtime query
+// builder, including the allowed-columns variable, builder struct, entry point, chainable
+// methods, and terminal query methods.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
@@ -65,8 +65,8 @@ func BuildRuntimeBuilderDeclarations(
 	}
 }
 
-// BuildAllowedOperatorsVar constructs a package-level var declaration mapping
-// allowed SQL operators to true for runtime validation.
+// BuildAllowedOperatorsVar constructs a package-level var declaration mapping allowed SQL
+// operators to true for runtime validation.
 //
 // Returns ast.Decl which is the variable declaration.
 func BuildAllowedOperatorsVar() ast.Decl {
@@ -102,8 +102,8 @@ func BuildAllowedOperatorsVar() ast.Decl {
 	}
 }
 
-// BuildAllowedDirectionsVar constructs a package-level var declaration mapping
-// allowed ORDER BY directions to true for runtime validation.
+// BuildAllowedDirectionsVar constructs a package-level var declaration mapping allowed
+// ORDER BY directions to true for runtime validation.
 //
 // Returns ast.Decl which is the variable declaration.
 func BuildAllowedDirectionsVar() ast.Decl {
@@ -136,8 +136,8 @@ func BuildAllowedDirectionsVar() ast.Decl {
 	}
 }
 
-// buildAllowedColumnsVar constructs a package-level var declaration mapping
-// allowed column names to true for runtime validation.
+// buildAllowedColumnsVar constructs a package-level var declaration mapping allowed
+// column names to true for runtime validation.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the allowed columns.
 //
@@ -191,8 +191,8 @@ func buildBuilderStruct(builderTypeName string) ast.Decl {
 	))
 }
 
-// buildBuilderEntryPoint constructs the Queries method that creates and
-// returns a new builder instance.
+// buildBuilderEntryPoint constructs the Queries method that creates and returns a new
+// builder instance.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
@@ -233,11 +233,10 @@ func buildBuilderEntryPoint(
 	}
 }
 
-// buildEntryPointComposite constructs the composite literal elements for the
-// builder struct initialisation.
+// buildEntryPointComposite constructs the composite literal elements for the builder
+// struct initialisation.
 //
-// Takes query (*querier_dto.AnalysedQuery) which provides the parameter
-// definitions.
+// Takes query (*querier_dto.AnalysedQuery) which provides the parameter definitions.
 //
 // Returns []ast.Expr which contains the composite literal key-value pairs.
 func buildEntryPointComposite(query *querier_dto.AnalysedQuery) []ast.Expr {
@@ -300,8 +299,7 @@ func builderField(fieldName string) ast.Expr {
 	return goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentBuilder), fieldName)
 }
 
-// buildBuilderWhereMethod constructs the Where(column, operator, value)
-// chainable method.
+// buildBuilderWhereMethod constructs the Where(column, operator, value) chainable method.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the allowed columns.
 // Takes builderTypeName (string) which is the name of the builder struct.
@@ -327,11 +325,9 @@ func buildBuilderWhereMethod(query *querier_dto.AnalysedQuery, builderTypeName s
 	}
 }
 
-// buildBuilderWhereBody constructs the statement list for the Where method
-// body.
+// buildBuilderWhereBody constructs the statement list for the Where method body.
 //
-// Takes allowedColumnsVar (string) which is the name of the allowed columns
-// map variable.
+// Takes allowedColumnsVar (string) which is the name of the allowed columns map variable.
 //
 // Returns []ast.Stmt which contains the Where method body statements.
 func buildBuilderWhereBody(allowedColumnsVar string) []ast.Stmt {
@@ -359,11 +355,9 @@ func buildBuilderWhereBody(allowedColumnsVar string) []ast.Stmt {
 	}
 }
 
-// buildColumnValidationGuard constructs a panic guard that validates the
-// column name.
+// buildColumnValidationGuard constructs a panic guard that validates the column name.
 //
-// Takes allowedColumnsVar (string) which is the name of the allowed columns
-// map variable.
+// Takes allowedColumnsVar (string) which is the name of the allowed columns map variable.
 //
 // Returns *ast.IfStmt which is the validation guard statement.
 func buildColumnValidationGuard(allowedColumnsVar string) *ast.IfStmt {
@@ -388,8 +382,7 @@ func buildColumnValidationGuard(allowedColumnsVar string) *ast.IfStmt {
 	}
 }
 
-// buildOperatorValidationGuard constructs a panic guard that validates the
-// operator.
+// buildOperatorValidationGuard constructs a panic guard that validates the operator.
 //
 // Returns *ast.IfStmt which is the validation guard statement.
 func buildOperatorValidationGuard() *ast.IfStmt {
@@ -414,8 +407,8 @@ func buildOperatorValidationGuard() *ast.IfStmt {
 	}
 }
 
-// buildDirectionValidationGuard constructs a panic guard that validates the
-// ORDER BY direction.
+// buildDirectionValidationGuard constructs a panic guard that validates the ORDER BY
+// direction.
 //
 // Returns *ast.IfStmt which is the validation guard statement.
 func buildDirectionValidationGuard() *ast.IfStmt {
@@ -440,8 +433,8 @@ func buildDirectionValidationGuard() *ast.IfStmt {
 	}
 }
 
-// buildWhereClauseAppend constructs the statement that appends a formatted
-// WHERE clause fragment.
+// buildWhereClauseAppend constructs the statement that appends a formatted WHERE clause
+// fragment.
 //
 // Returns *ast.AssignStmt which is the append statement.
 func buildWhereClauseAppend() *ast.AssignStmt {
@@ -477,8 +470,8 @@ func buildWhereClauseAppend() *ast.AssignStmt {
 	}
 }
 
-// buildBuilderOrderByMethod constructs the OrderBy(column, direction)
-// chainable method with validation guards for both column and direction.
+// buildBuilderOrderByMethod constructs the OrderBy(column, direction) chainable method
+// with validation guards for both column and direction.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the allowed columns.
 // Takes builderTypeName (string) which is the name of the builder struct.
@@ -540,8 +533,8 @@ func buildBuilderOffsetMethod(builderTypeName string) *ast.FuncDecl {
 	return buildBuilderIntSetterMethod(builderTypeName, "Offset", "offsetValue")
 }
 
-// buildBuilderIntSetterMethod constructs a generic chainable method that sets
-// an integer field on the builder.
+// buildBuilderIntSetterMethod constructs a generic chainable method that sets an integer
+// field on the builder.
 //
 // Takes builderTypeName (string) which is the name of the builder struct.
 // Takes methodName (string) which is the generated method name.
@@ -571,8 +564,8 @@ func buildBuilderIntSetterMethod(builderTypeName string, methodName string, fiel
 	}
 }
 
-// buildBuilderBuildQueryMethod constructs the buildQuery() method that
-// assembles the final SQL string.
+// buildBuilderBuildQueryMethod constructs the buildQuery() method that assembles the
+// final SQL string.
 //
 // Takes builderTypeName (string) which is the name of the builder struct.
 //
@@ -599,8 +592,7 @@ func buildBuilderBuildQueryMethod(builderTypeName string) *ast.FuncDecl {
 	}
 }
 
-// buildWhereClauseBlock constructs the if-block that appends joined WHERE
-// clauses.
+// buildWhereClauseBlock constructs the if-block that appends joined WHERE clauses.
 //
 // Returns *ast.IfStmt which is the WHERE clause if-block.
 func buildWhereClauseBlock() *ast.IfStmt {
@@ -633,8 +625,7 @@ func buildWhereClauseBlock() *ast.IfStmt {
 	}
 }
 
-// buildOrderByClauseBlock constructs the if-block that appends the ORDER BY
-// clause.
+// buildOrderByClauseBlock constructs the if-block that appends the ORDER BY clause.
 //
 // Returns *ast.IfStmt which is the ORDER BY clause if-block.
 func buildOrderByClauseBlock() *ast.IfStmt {
@@ -660,11 +651,11 @@ func buildOrderByClauseBlock() *ast.IfStmt {
 	}
 }
 
-// buildQueryParameterAppendBlock constructs the if-block that appends a LIMIT
-// or OFFSET clause with a numbered parameter placeholder.
+// buildQueryParameterAppendBlock constructs the if-block that appends a LIMIT or OFFSET
+// clause with a numbered parameter placeholder.
 //
-// Takes fieldName (string) which is the builder field holding the value.
-// Takes sqlClause (string) which is the SQL fragment prefix (e.g. " LIMIT $").
+// Takes fieldName (string) which is the builder field holding the value. Takes sqlClause
+// (string) which is the SQL fragment prefix (e.g. " LIMIT $").
 //
 // Returns *ast.IfStmt which is the parameter append if-block.
 func buildQueryParameterAppendBlock(fieldName string, sqlClause string) *ast.IfStmt {
@@ -770,8 +761,8 @@ func buildBuilderAllBody(rowTypeName string, scanArguments []ast.Expr, strategy 
 	}
 }
 
-// buildBuilderScanLoop constructs the for-loop that iterates over rows, scans
-// each into a row struct, and appends to the items slice.
+// buildBuilderScanLoop constructs the for-loop that iterates over rows, scans each into a
+// row struct, and appends to the items slice.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes scanArguments ([]ast.Expr) which are the Scan call arguments.

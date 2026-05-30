@@ -20,18 +20,21 @@ package lsp_domain
 
 import (
 	"slices"
+	"strings"
 
 	"go.lsp.dev/protocol"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/typegen/typegen_domain"
 )
 
-// isAttrPrefixLen is the length of the `is="` prefix used when parsing partial
-// alias attributes.
-const isAttrPrefixLen = 4
+const (
+	// isAttrPrefixLen is the length of the `is="` prefix used when parsing partial alias
+	// attributes.
+	isAttrPrefixLen = 4
+)
 
-// completionContext holds state about what kind of completion the user is
-// asking for at a given cursor position.
+// completionContext holds state about what kind of completion the user is asking for at a
+// given cursor position.
 type completionContext struct {
 	// BaseExpression is the text before the dot when completing member access.
 	BaseExpression string
@@ -62,8 +65,8 @@ const (
 	// triggerScope shows that completion was triggered at the start of a scope.
 	triggerScope completionTriggerKind = iota
 
-	// triggerMemberAccess indicates a dot-triggered completion for accessing a
-	// struct field or method.
+	// triggerMemberAccess indicates a dot-triggered completion for accessing a struct field
+	// or method.
 	triggerMemberAccess
 
 	// triggerPartialAlias indicates completion triggered within a partial alias.
@@ -84,8 +87,8 @@ const (
 	// triggerRefAccess indicates a completion triggered by accessing a reference.
 	triggerRefAccess
 
-	// triggerStateAccessJS indicates a completion trigger for state field access
-	// in JavaScript expressions.
+	// triggerStateAccessJS indicates a completion trigger for state field access in
+	// JavaScript expressions.
 	triggerStateAccessJS
 
 	// triggerPropsAccessJS indicates completion triggered by props access in JS.
@@ -104,14 +107,14 @@ const (
 	triggerCSSClassValue
 )
 
-// analyseCompletionContext checks the document text near the cursor to work
-// out what type of completion to offer.
+// analyseCompletionContext checks the document text near the cursor to work out what type
+// of completion to offer.
 //
 // Takes d (*document) which gives access to content and SFC parsing.
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns completionContext which describes the detected completion type and
-// any prefix or context information found.
+// Returns completionContext which describes the detected completion type and any prefix
+// or context information found.
 func analyseCompletionContext(d *document, position protocol.Position) completionContext {
 	ctx := completionContext{
 		TriggerKind: triggerScope,
@@ -169,17 +172,14 @@ func analyseCompletionContext(d *document, position protocol.Position) completio
 	return ctx
 }
 
-// tryMemberAccessContext checks for member access (contains a dot).
-// Handles both "state." (cursor right after dot) and "state.us" (partial name
-// after dot).
+// tryMemberAccessContext checks for member access (contains a dot). Handles both "state."
+// (cursor right after dot) and "state.us" (partial name after dot).
 //
-// Takes ctx (*completionContext) which receives the trigger kind, base
-// expression, and prefix when member access is detected.
-// Takes textBeforeCursor ([]byte) which is the text to check for member
-// access.
+// Takes ctx (*completionContext) which receives the trigger kind, base expression, and
+// prefix when member access is detected.
+// Takes textBeforeCursor ([]byte) which is the text to check for member access.
 //
-// Returns bool which is true when member access was detected and the context
-// was updated.
+// Returns bool which is true when member access was detected and the context was updated.
 func tryMemberAccessContext(ctx *completionContext, textBeforeCursor []byte) bool {
 	if len(textBeforeCursor) == 0 {
 		return false
@@ -214,21 +214,21 @@ func tryMemberAccessContext(ctx *completionContext, textBeforeCursor []byte) boo
 //
 // Returns int which is the index of the last dot, or -1 if not found.
 func findLastDotIndex(text []byte) int {
-	for i := len(text) - 1; i >= 0; i-- {
-		if text[i] == '.' {
+	for i, char := range slices.Backward(text) {
+		if char == '.' {
 			return i
 		}
 	}
 	return -1
 }
 
-// isValidIdentifierPrefix checks whether all bytes in the given text are valid
-// identifier characters.
+// isValidIdentifierPrefix checks whether all bytes in the given text are valid identifier
+// characters.
 //
 // Takes text ([]byte) which is the byte slice to check.
 //
-// Returns bool which is true if every byte is a valid identifier character,
-// or false otherwise.
+// Returns bool which is true if every byte is a valid identifier character, or false
+// otherwise.
 func isValidIdentifierPrefix(text []byte) bool {
 	for _, b := range text {
 		if !isIdentChar(b) {
@@ -238,17 +238,15 @@ func isValidIdentifierPrefix(text []byte) bool {
 	return true
 }
 
-// tryDirectiveContext checks for directive completion patterns like "p-".
-// Handles both "p-" (cursor right after the dash) and "p-sh" (partial
-// directive name).
+// tryDirectiveContext checks for directive completion patterns like "p-". Handles both
+// "p-" (cursor right after the dash) and "p-sh" (partial directive name).
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix
-// if a directive pattern is found.
-// Takes textBeforeCursor ([]byte) which contains the text to check for a
-// directive prefix.
+// Takes ctx (*completionContext) which receives the trigger kind and prefix if a
+// directive pattern is found.
+// Takes textBeforeCursor ([]byte) which contains the text to check for a directive
+// prefix.
 //
-// Returns bool which is true if a directive context was found and ctx was
-// updated.
+// Returns bool which is true if a directive context was found and ctx was updated.
 func tryDirectiveContext(ctx *completionContext, textBeforeCursor []byte) bool {
 	if len(textBeforeCursor) < 2 {
 		return false
@@ -288,19 +286,17 @@ func findLastPDash(text []byte) int {
 	return -1
 }
 
-// isAttrBoundary reports whether a byte marks a valid boundary before an
-// attribute name.
+// isAttrBoundary reports whether a byte marks a valid boundary before an attribute name.
 //
 // Takes b (byte) which is the character to check.
 //
-// Returns bool which is true if b is whitespace, a newline, or a tag start
-// character.
+// Returns bool which is true if b is whitespace, a newline, or a tag start character.
 func isAttrBoundary(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '<'
 }
 
-// isValidDirectivePrefix checks if all bytes are valid directive name
-// characters. Directive names can contain letters, numbers, and hyphens.
+// isValidDirectivePrefix checks if all bytes are valid directive name characters.
+// Directive names can contain letters, numbers, and hyphens.
 //
 // Takes text ([]byte) which is the bytes to check.
 //
@@ -323,11 +319,11 @@ func isDirectiveNameChar(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '-'
 }
 
-// tryDirectiveValueContext checks if the cursor is inside a directive attribute
-// value (e.g., p-if="<cursor>", p-show="sta<cursor>").
+// tryDirectiveValueContext checks if the cursor is inside a directive attribute value
+// (e.g., p-if="<cursor>", p-show="sta<cursor>").
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix
-// when inside a directive value.
+// Takes ctx (*completionContext) which receives the trigger kind and prefix when inside a
+// directive value.
 // Takes textBeforeCursor ([]byte) which contains the text to check.
 //
 // Returns bool which is true when the cursor is inside a directive value.
@@ -349,8 +345,8 @@ func tryDirectiveValueContext(ctx *completionContext, textBeforeCursor []byte) b
 	return true
 }
 
-// findDirectiveValueStart finds the start position after the opening quote of
-// a directive attribute value such as p-if=" or p-show=".
+// findDirectiveValueStart finds the start position after the opening quote of a directive
+// attribute value such as p-if=" or p-show=".
 //
 // Takes text ([]byte) which is the text to search backwards through.
 //
@@ -366,8 +362,8 @@ func findDirectiveValueStart(text []byte) int {
 	return -1
 }
 
-// isDirectiveAttribute checks if the text ends with a directive attribute name
-// such as "p-if", "p-show", "p-for", or "p-bind:class".
+// isDirectiveAttribute checks if the text ends with a directive attribute name such as
+// "p-if", "p-show", "p-for", or "p-bind:class".
 //
 // Takes text ([]byte) which is the byte slice to check.
 //
@@ -404,14 +400,14 @@ func isDirectiveAttribute(text []byte) bool {
 	return true
 }
 
-// extractDirectiveValuePrefix extracts the text typed so far inside a
-// directive value, stopping at any closing quote.
+// extractDirectiveValuePrefix extracts the text typed so far inside a directive value,
+// stopping at any closing quote.
 //
 // Takes text ([]byte) which is the text after the opening quote.
 //
 // Returns string which is the prefix to use for completion.
-// Returns bool which is true if the cursor is inside the quotes, meaning no
-// closing quote was found.
+// Returns bool which is true if the cursor is inside the quotes, meaning no closing quote
+// was found.
 func extractDirectiveValuePrefix(text []byte) (string, bool) {
 	if slices.Contains(text, '"') {
 		return "", false
@@ -419,17 +415,17 @@ func extractDirectiveValuePrefix(text []byte) (string, bool) {
 	return string(text), true
 }
 
-// tryPartialAliasContext checks if the cursor is inside an is="..." attribute
-// and sets up the completion context for partial alias matching.
+// tryPartialAliasContext checks if the cursor is inside an is="..." attribute and sets up
+// the completion context for partial alias matching.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix
-// when a partial alias is found.
+// Takes ctx (*completionContext) which receives the trigger kind and prefix when a
+// partial alias is found.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when the cursor is inside an is="..." attribute.
 func tryPartialAliasContext(ctx *completionContext, lineString string, cursorPosition int) bool {
-	index := findLastOccurrence(lineString[:cursorPosition], `is="`)
+	index := strings.LastIndex(lineString[:cursorPosition], `is="`)
 	if index == -1 {
 		return false
 	}
@@ -442,8 +438,8 @@ func tryPartialAliasContext(ctx *completionContext, lineString string, cursorPos
 	return true
 }
 
-// tryEventHandlercompletionContext checks if the current line matches an event
-// handler pattern and updates the completion context if found.
+// tryEventHandlercompletionContext checks if the current line matches an event handler
+// pattern and updates the completion context if found.
 //
 // Takes ctx (*completionContext) which receives updates when a match is found.
 // Takes lineString (string) which contains the current line of code.
@@ -460,8 +456,8 @@ func tryEventHandlercompletionContext(ctx *completionContext, lineString string,
 	return true
 }
 
-// tryPartialNamecompletionContext checks if there is a partial name at the
-// cursor that can be completed.
+// tryPartialNamecompletionContext checks if there is a partial name at the cursor that
+// can be completed.
 //
 // Takes ctx (*completionContext) which stores the completion trigger details.
 // Takes lineString (string) which contains the current line of text.
@@ -480,8 +476,8 @@ func tryPartialNamecompletionContext(ctx *completionContext, lineString string, 
 
 // tryRefsAccesscompletionContext checks if a line contains refs access context.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix
-// when refs access context is found.
+// Takes ctx (*completionContext) which receives the trigger kind and prefix when refs
+// access context is found.
 // Takes lineString (string) which contains the line of text to check.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
@@ -496,20 +492,17 @@ func tryRefsAccesscompletionContext(ctx *completionContext, lineString string, c
 	return true
 }
 
-// tryStateAccesscompletionContext checks for state access in a JavaScript
-// script block.
+// tryStateAccesscompletionContext checks for state access in a JavaScript script block.
 //
-// Takes ctx (*completionContext) which receives the completion context to
-// populate if a state access is found.
-// Takes d (*document) which provides access to SFC parsing for script
-// detection.
-// Takes position (protocol.Position) which specifies the cursor position in the
-// document.
+// Takes ctx (*completionContext) which receives the completion context to populate if a
+// state access is found.
+// Takes d (*document) which provides access to SFC parsing for script detection.
+// Takes position (protocol.Position) which specifies the cursor position in the document.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which indicates the cursor position within the line.
 //
-// Returns bool which is true when a state access context was found and the
-// context was populated.
+// Returns bool which is true when a state access context was found and the context was
+// populated.
 func tryStateAccesscompletionContext(ctx *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
 	index, prefix := findStateAccessContext(lineString, cursorPosition)
 	if index == -1 {
@@ -523,18 +516,16 @@ func tryStateAccesscompletionContext(ctx *completionContext, d *document, positi
 	return true
 }
 
-// tryPropsAccesscompletionContext checks for props access in a JavaScript
-// script block.
+// tryPropsAccesscompletionContext checks for props access in a JavaScript script block.
 //
-// Takes ctx (*completionContext) which receives the completion context to
-// update if props access is found.
+// Takes ctx (*completionContext) which receives the completion context to update if props
+// access is found.
 // Takes d (*document) which provides access to SFC parsing to find the script.
 // Takes position (protocol.Position) which specifies the cursor position.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which indicates the cursor offset within the line.
 //
-// Returns bool which is true if props access context was found and ctx was
-// updated.
+// Returns bool which is true if props access context was found and ctx was updated.
 func tryPropsAccesscompletionContext(ctx *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
 	index, prefix := findPropsAccessContext(lineString, cursorPosition)
 	if index == -1 {
@@ -572,14 +563,14 @@ func splitLines(content []byte) [][]byte {
 	return lines
 }
 
-// getLineAtPosition returns the line at the given zero-based line number as a
-// sub-slice of the original content. This is zero-copy and does not allocate.
+// getLineAtPosition returns the line at the given zero-based line number as a sub-slice
+// of the original content. This is zero-copy and does not allocate.
 //
 // Takes content ([]byte) which is the raw document bytes.
 // Takes lineNumber (uint32) which is the zero-based line index.
 //
-// Returns ([]byte, bool) where the byte slice is the line content without
-// newline characters, and the bool indicates whether the line was found.
+// Returns ([]byte, bool) where the byte slice is the line content without newline
+// characters, and the bool indicates whether the line was found.
 func getLineAtPosition(content []byte, lineNumber uint32) ([]byte, bool) {
 	currentLine := uint32(0)
 	lineStart := 0
@@ -608,9 +599,9 @@ func getLineAtPosition(content []byte, lineNumber uint32) ([]byte, bool) {
 	return nil, false
 }
 
-// extractBaseExpression walks backwards from a position to find the base
-// expression before a dot. It handles nested member access, array or slice
-// indexing, and function calls.
+// extractBaseExpression walks backwards from a position to find the base expression
+// before a dot. It handles nested member access, array or slice indexing, and function
+// calls.
 //
 // Takes text ([]byte) which contains the source text to extract from.
 //
@@ -627,8 +618,8 @@ func extractBaseExpression(text []byte) string {
 	return ""
 }
 
-// findExpressionStart walks backwards through text to find where an expression
-// begins. It tracks nesting depth to handle brackets and parentheses.
+// findExpressionStart walks backwards through text to find where an expression begins. It
+// tracks nesting depth to handle brackets and parentheses.
 //
 // Takes text ([]byte) which contains the source text to scan backwards.
 //
@@ -672,30 +663,12 @@ func isIdentChar(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
 
-// findLastOccurrence finds the last position of a substring within a string.
-//
-// Takes s (string) which is the string to search within.
-// Takes substr (string) which is the substring to find.
-//
-// Returns int which is the index of the last match, or -1 if not found.
-func findLastOccurrence(s, substr string) int {
-	index := -1
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			index = i
-		}
-	}
-	return index
-}
-
-// findEventHandlerContext checks if the cursor is inside a p-on:*="" attribute
-// value.
+// findEventHandlerContext checks if the cursor is inside a p-on:*="" attribute value.
 //
 // Takes line (string) which contains the text to search.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
-// Returns int which is the start index of the handler value, or -1 if not
-// found.
+// Returns int which is the start index of the handler value, or -1 if not found.
 // Returns string which is the text after the pattern up to the cursor.
 func findEventHandlerContext(line string, cursorPosition int) (int, string) {
 	patterns := []string{
@@ -705,7 +678,7 @@ func findEventHandlerContext(line string, cursorPosition int) (int, string) {
 	}
 
 	for _, pattern := range patterns {
-		index := findLastOccurrence(line[:cursorPosition], pattern)
+		index := strings.LastIndex(line[:cursorPosition], pattern)
 		if index == -1 {
 			continue
 		}
@@ -735,8 +708,8 @@ func hasClosingQuote(text string) bool {
 	return false
 }
 
-// findPartialNameContext checks if the cursor is inside a reloadPartial or
-// reloadGroup call and extracts the partial name being typed.
+// findPartialNameContext checks if the cursor is inside a reloadPartial or reloadGroup
+// call and extracts the partial name being typed.
 //
 // Takes line (string) which is the text line to search within.
 // Takes cursorPosition (int) which is the cursor position within the line.
@@ -747,7 +720,7 @@ func findPartialNameContext(line string, cursorPosition int) (int, string) {
 	patterns := []string{`reloadPartial('`, `reloadPartial("`, `reloadGroup('`, `reloadGroup("`}
 
 	for _, pattern := range patterns {
-		index := findLastOccurrence(line[:cursorPosition], pattern)
+		index := strings.LastIndex(line[:cursorPosition], pattern)
 		if index == -1 {
 			continue
 		}
@@ -771,8 +744,7 @@ func findPartialNameContext(line string, cursorPosition int) (int, string) {
 	return -1, ""
 }
 
-// findRefsAccessContext checks if the cursor is after "refs." in a JavaScript
-// context.
+// findRefsAccessContext checks if the cursor is after "refs." in a JavaScript context.
 //
 // Takes line (string) which contains the text to search.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
@@ -781,7 +753,7 @@ func findPartialNameContext(line string, cursorPosition int) (int, string) {
 // Returns string which is the prefix after "refs.", or empty if not found.
 func findRefsAccessContext(line string, cursorPosition int) (int, string) {
 	pattern := "refs."
-	index := findLastOccurrence(line[:cursorPosition], pattern)
+	index := strings.LastIndex(line[:cursorPosition], pattern)
 	if index == -1 {
 		return -1, ""
 	}
@@ -802,15 +774,15 @@ func findRefsAccessContext(line string, cursorPosition int) (int, string) {
 	return prefixStart, prefix
 }
 
-// buildExpressionRangeMap creates a map of all expressions in the AST to their
-// absolute LSP ranges. DocumentHighlight and References use this map to get
-// correct absolute positions.
+// buildExpressionRangeMap creates a map of all expressions in the AST to their absolute
+// LSP ranges. DocumentHighlight and References use this map to get correct absolute
+// positions.
 //
 // Takes tree (*ast_domain.TemplateAST) which contains the parsed template.
 // Takes docPath (string) which specifies the document path to filter by.
 //
-// Returns map[ast_domain.Expression]protocol.Range which maps each expression
-// to its absolute LSP range.
+// Returns map[ast_domain.Expression]protocol.Range which maps each expression to its
+// absolute LSP range.
 func buildExpressionRangeMap(tree *ast_domain.TemplateAST, docPath string) map[ast_domain.Expression]protocol.Range {
 	rangeMap := make(map[ast_domain.Expression]protocol.Range)
 
@@ -829,25 +801,24 @@ func buildExpressionRangeMap(tree *ast_domain.TemplateAST, docPath string) map[a
 	return rangeMap
 }
 
-// processExpressionsInNode finds all expressions in a template node and
-// records their positions in the document.
+// processExpressionsInNode finds all expressions in a template node and records their
+// positions in the document.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which stores the
-// position range for each expression found.
+// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which stores the position
+// range for each expression found.
 func processExpressionsInNode(node *ast_domain.TemplateNode, rangeMap map[ast_domain.Expression]protocol.Range) {
 	processNodeDynamicAttrs(node, rangeMap)
 	processNodeDirectives(node, rangeMap)
 	processNodeRichText(node, rangeMap)
 }
 
-// processNodeDynamicAttrs adds all dynamic attribute expressions from a node
-// to the range map.
+// processNodeDynamicAttrs adds all dynamic attribute expressions from a node to the range
+// map.
 //
-// Takes node (*ast_domain.TemplateNode) which holds the dynamic attributes to
-// process.
-// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps
-// expressions to their source ranges.
+// Takes node (*ast_domain.TemplateNode) which holds the dynamic attributes to process.
+// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps expressions to
+// their source ranges.
 func processNodeDynamicAttrs(node *ast_domain.TemplateNode, rangeMap map[ast_domain.Expression]protocol.Range) {
 	for i := range node.DynamicAttributes {
 		attr := &node.DynamicAttributes[i]
@@ -855,12 +826,12 @@ func processNodeDynamicAttrs(node *ast_domain.TemplateNode, rangeMap map[ast_dom
 	}
 }
 
-// processNodeDirectives adds all directive expressions from a template node
-// to the range map.
+// processNodeDirectives adds all directive expressions from a template node to the range
+// map.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps each
-// expression to its position in the source file.
+// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps each expression to
+// its position in the source file.
 func processNodeDirectives(node *ast_domain.TemplateNode, rangeMap map[ast_domain.Expression]protocol.Range) {
 	for _, directive := range [...]*ast_domain.Directive{
 		node.DirIf, node.DirElseIf, node.DirFor, node.DirShow, node.DirModel,
@@ -888,11 +859,11 @@ func processNodeDirectives(node *ast_domain.TemplateNode, rangeMap map[ast_domai
 
 // collectNodeDirectives gathers all directives from a template node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to collect
-// directives from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to collect directives
+// from.
 //
-// Returns []*ast_domain.Directive which contains all directives found on the
-// node. This includes conditional, loop, binding, and event directives.
+// Returns []*ast_domain.Directive which contains all directives found on the node. This
+// includes conditional, loop, binding, and event directives.
 func collectNodeDirectives(node *ast_domain.TemplateNode) []*ast_domain.Directive {
 	directives := []*ast_domain.Directive{
 		node.DirIf, node.DirElseIf, node.DirFor, node.DirShow, node.DirModel,
@@ -915,10 +886,9 @@ func collectNodeDirectives(node *ast_domain.TemplateNode) []*ast_domain.Directiv
 
 // processNodeRichText adds all rich text expressions to the range map.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the rich text parts to
-// process.
-// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps
-// expressions to their source ranges.
+// Takes node (*ast_domain.TemplateNode) which contains the rich text parts to process.
+// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which maps expressions to
+// their source ranges.
 func processNodeRichText(node *ast_domain.TemplateNode, rangeMap map[ast_domain.Expression]protocol.Range) {
 	for i := range node.RichText {
 		part := &node.RichText[i]
@@ -928,23 +898,21 @@ func processNodeRichText(node *ast_domain.TemplateNode, rangeMap map[ast_domain.
 	}
 }
 
-// addExpressionTreeToRangeMap adds an expression and all its
-// child nodes to the range map.
+// addExpressionTreeToRangeMap adds an expression and all its child nodes to the range
+// map.
 //
-// Takes expression (ast_domain.Expression) which is the root
-// expression to process.
-// Takes baseLocation (ast_domain.Location) which provides
-// the base position for working out ranges.
-// Takes rangeMap (map[ast_domain.Expression]protocol.Range)
-// which stores the worked out range for each expression.
+// Takes expression (ast_domain.Expression) which is the root expression to process.
+// Takes baseLocation (ast_domain.Location) which provides the base position for working
+// out ranges.
+// Takes rangeMap (map[ast_domain.Expression]protocol.Range) which stores the worked out
+// range for each expression.
 func addExpressionTreeToRangeMap(expression ast_domain.Expression, baseLocation ast_domain.Location, rangeMap map[ast_domain.Expression]protocol.Range) {
 	visitExpressionTree(expression, func(e ast_domain.Expression) {
 		rangeMap[e] = calculateExpressionRange(e, baseLocation)
 	})
 }
 
-// findStateAccessContext checks if the cursor is after "state." in a
-// JavaScript context.
+// findStateAccessContext checks if the cursor is after "state." in a JavaScript context.
 //
 // Takes line (string) which contains the text to search within.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
@@ -953,7 +921,7 @@ func addExpressionTreeToRangeMap(expression ast_domain.Expression, baseLocation 
 // Returns string which is the prefix after "state.", or empty if not found.
 func findStateAccessContext(line string, cursorPosition int) (int, string) {
 	pattern := "state."
-	index := findLastOccurrence(line[:cursorPosition], pattern)
+	index := strings.LastIndex(line[:cursorPosition], pattern)
 	if index == -1 {
 		return -1, ""
 	}
@@ -974,8 +942,7 @@ func findStateAccessContext(line string, cursorPosition int) (int, string) {
 	return prefixStart, prefix
 }
 
-// findPropsAccessContext checks if the cursor is after "props." in a
-// JavaScript context.
+// findPropsAccessContext checks if the cursor is after "props." in a JavaScript context.
 //
 // Takes line (string) which contains the source line to search.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
@@ -984,7 +951,7 @@ func findStateAccessContext(line string, cursorPosition int) (int, string) {
 // Returns string which is the prefix after "props.", or empty if not found.
 func findPropsAccessContext(line string, cursorPosition int) (int, string) {
 	pattern := "props."
-	index := findLastOccurrence(line[:cursorPosition], pattern)
+	index := strings.LastIndex(line[:cursorPosition], pattern)
 	if index == -1 {
 		return -1, ""
 	}
@@ -1005,8 +972,8 @@ func findPropsAccessContext(line string, cursorPosition int) (int, string) {
 	return prefixStart, prefix
 }
 
-// tryPikoNamespaceContext checks for piko namespace completion contexts.
-// Handles "piko.", "piko.na", "piko.nav.", and "piko.nav.na" patterns.
+// tryPikoNamespaceContext checks for piko namespace completion contexts. Handles "piko.",
+// "piko.na", "piko.nav.", and "piko.nav.na" patterns.
 //
 // Takes ctx (*completionContext) which receives the trigger kind and namespace.
 // Takes textBeforeCursor ([]byte) which is the text before the cursor.
@@ -1039,8 +1006,8 @@ func tryPikoNamespaceContext(ctx *completionContext, textBeforeCursor []byte) bo
 	return false
 }
 
-// tryActionNamespaceContext checks for action namespace completion contexts.
-// It handles patterns like "action." and "action.cus".
+// tryActionNamespaceContext checks for action namespace completion contexts. It handles
+// patterns like "action." and "action.cus".
 //
 // Takes ctx (*completionContext) which receives the trigger kind and prefix.
 // Takes textBeforeCursor ([]byte) which is the text before the cursor.
@@ -1060,9 +1027,9 @@ func tryActionNamespaceContext(ctx *completionContext, textBeforeCursor []byte) 
 	return false
 }
 
-// findPatternEnd searches for a pattern in text and returns the position just
-// after the match. The search works backwards from the end of the text and
-// checks that the pattern starts at a word boundary.
+// findPatternEnd searches for a pattern in text and returns the position just after the
+// match. The search works backwards from the end of the text and checks that the pattern
+// starts at a word boundary.
 //
 // Takes text ([]byte) which is the text to search through.
 // Takes pattern (string) which is the pattern to find.
@@ -1088,8 +1055,8 @@ func findPatternEnd(text []byte, pattern string) int {
 	return -1
 }
 
-// isValidActionPrefix checks whether all bytes are valid for an action name
-// prefix. Action names may contain letters, numbers, underscores, and dots.
+// isValidActionPrefix checks whether all bytes are valid for an action name prefix.
+// Action names may contain letters, numbers, underscores, and dots.
 //
 // Takes text ([]byte) which is the bytes to check.
 //

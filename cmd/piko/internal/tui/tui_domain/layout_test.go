@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSinglePaneLayoutAllocate(t *testing.T) {
 	layout := NewSinglePaneLayout()

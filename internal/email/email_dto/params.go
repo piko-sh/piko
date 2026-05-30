@@ -32,16 +32,16 @@ type Attachment struct {
 	// MIMEType is the content type of the attachment (e.g. "image/png").
 	MIMEType string
 
-	// ContentID is an optional identifier for inline or embedded images.
-	// For example, "logo" allows HTML to reference the image via cid:logo.
+	// ContentID is an optional identifier for inline or embedded images. For example, "logo"
+	// allows HTML to reference the image via cid:logo.
 	ContentID string
 
 	// Content holds the raw binary data of the attachment.
 	Content []byte
 }
 
-// SendParams holds the data needed to send an email, including recipients,
-// subject, body content, and attachments.
+// SendParams holds the data needed to send an email, including recipients, subject, body
+// content, and attachments.
 type SendParams struct {
 	// From is the sender email address; nil uses the default sender.
 	From *string
@@ -71,23 +71,23 @@ type SendParams struct {
 	Attachments []Attachment
 }
 
-// DispatcherConfig holds configuration for the email dispatcher, controlling
-// batching, retries, and circuit breaker behaviour.
+// DispatcherConfig holds configuration for the email dispatcher, controlling batching,
+// retries, and circuit breaker behaviour.
 type DispatcherConfig struct {
 	// Clock provides time operations for testing determinism; nil uses RealClock().
 	Clock clock.Clock
 
-	// JitterFunc adds randomness to retry delays by receiving the calculated
-	// delay and returning additional jitter. If nil, uses default flat jitter
-	// (0-1000ms); set to return 0 in tests for deterministic timing.
+	// JitterFunc adds randomness to retry delays by receiving the calculated delay and
+	// returning additional jitter. If nil, uses default flat jitter (0-1000ms); set to
+	// return 0 in tests for deterministic timing.
 	JitterFunc func(time.Duration) time.Duration
 
-	// BatchSize specifies how many emails to group together for batch processing.
-	// Defaults to a preset value if zero or negative.
+	// BatchSize specifies how many emails to group together for batch processing. Defaults
+	// to a preset value if zero or negative.
 	BatchSize int
 
-	// FlushInterval specifies how often to flush pending emails. Zero or negative
-	// values use the default interval.
+	// FlushInterval specifies how often to flush pending emails. Zero or negative values use
+	// the default interval.
 	FlushInterval time.Duration
 
 	// QueueSize is the maximum number of pending emails in the queue.
@@ -99,8 +99,8 @@ type DispatcherConfig struct {
 	// MaxRetries is the maximum number of retry attempts per email.
 	MaxRetries int
 
-	// RetryWorkerCount is the number of workers that process retries at the same
-	// time. If zero or negative, defaults to the number of CPU cores.
+	// RetryWorkerCount is the number of workers that process retries at the same time. If
+	// zero or negative, defaults to the number of CPU cores.
 	RetryWorkerCount int
 
 	// InitialDelay is the time to wait before the first retry attempt.
@@ -115,20 +115,20 @@ type DispatcherConfig struct {
 	// DeadLetterQueue enables storing emails that fail permanently for later review.
 	DeadLetterQueue bool
 
-	// MaxRetryHeapSize is the maximum number of emails in the retry heap.
-	// Set to 0 for unlimited; a positive value protects against memory exhaustion.
+	// MaxRetryHeapSize is the maximum number of emails in the retry heap. Set to 0 for
+	// unlimited; a positive value protects against memory exhaustion.
 	MaxRetryHeapSize int
 
-	// MaxConsecutiveFailures is the number of consecutive failures before the
-	// circuit breaker opens. Set to 0 to disable the circuit breaker.
+	// MaxConsecutiveFailures is the number of consecutive failures before the circuit
+	// breaker opens. Set to 0 to disable the circuit breaker.
 	MaxConsecutiveFailures int
 
-	// CircuitBreakerTimeout is how long the circuit breaker stays open before
-	// trying to recover. Zero or negative uses the default timeout.
+	// CircuitBreakerTimeout is how long the circuit breaker stays open before trying to
+	// recover. Zero or negative uses the default timeout.
 	CircuitBreakerTimeout time.Duration
 
-	// CircuitBreakerInterval is the time period after which the failure count
-	// resets when the circuit is closed. A value of 0 or less uses the default.
+	// CircuitBreakerInterval is the time period after which the failure count resets when
+	// the circuit is closed. A value of 0 or less uses the default.
 	CircuitBreakerInterval time.Duration
 }
 
@@ -196,8 +196,8 @@ const (
 
 // DefaultDispatcherConfig returns a sensible default dispatcher configuration.
 //
-// Returns DispatcherConfig which contains sensible defaults for batch
-// processing, retry behaviour, and circuit breaker settings.
+// Returns DispatcherConfig which contains sensible defaults for batch processing, retry
+// behaviour, and circuit breaker settings.
 func DefaultDispatcherConfig() DispatcherConfig {
 	return DispatcherConfig{
 		BatchSize:              defaultBatchSize,

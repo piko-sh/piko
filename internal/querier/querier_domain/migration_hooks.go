@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// MigrationHookContext provides information about an individual migration
-// being processed.
+// MigrationHookContext provides information about an individual migration being
+// processed.
 type MigrationHookContext struct {
 	// Name holds the migration file name.
 	Name string
@@ -33,47 +33,42 @@ type MigrationHookContext struct {
 	// Version holds the numeric version extracted from the migration filename.
 	Version int64
 
-	// Direction holds whether this migration is being applied up or rolled
-	// back down.
+	// Direction holds whether this migration is being applied up or rolled back down.
 	Direction querier_dto.MigrationDirection
 }
 
-// MigrationRunHookContext provides information about an entire migration run
-// before it begins.
+// MigrationRunHookContext provides information about an entire migration run before it
+// begins.
 type MigrationRunHookContext struct {
-	// PendingVersions holds the ordered list of migration versions that will
-	// be applied during this run.
+	// PendingVersions holds the ordered list of migration versions that will be applied
+	// during this run.
 	PendingVersions []int64
 
 	// PendingCount holds the number of migrations pending in this run.
 	PendingCount int
 
-	// Direction holds whether this run applies migrations up or rolls them
-	// back down.
+	// Direction holds whether this run applies migrations up or rolls them back down.
 	Direction querier_dto.MigrationDirection
 }
 
-// BeforeMigrationHook is called before each individual migration executes.
-// Returning an error cancels the migration run.
+// BeforeMigrationHook is called before each individual migration executes. Returning an
+// error cancels the migration run.
 type BeforeMigrationHook func(ctx context.Context, hook MigrationHookContext) error
 
-// AfterMigrationHook is called after each individual migration executes
-// successfully.
+// AfterMigrationHook is called after each individual migration executes successfully.
 type AfterMigrationHook func(ctx context.Context, hook MigrationHookContext) error
 
-// BeforeRunHook is called before the migration run begins, after lock
-// acquisition and pending migration computation. Returning an error cancels
-// the run.
+// BeforeRunHook is called before the migration run begins, after lock acquisition and
+// pending migration computation. Returning an error cancels the run.
 type BeforeRunHook func(ctx context.Context, hook MigrationRunHookContext) error
 
 // AfterRunHook is called after the migration run completes successfully.
 type AfterRunHook func(ctx context.Context, hook MigrationRunHookContext, applied int) error
 
-// WithBeforeMigration registers a hook that runs before each individual
-// migration.
+// WithBeforeMigration registers a hook that runs before each individual migration.
 //
-// Takes hook (BeforeMigrationHook) which is the callback to invoke before
-// each migration executes.
+// Takes hook (BeforeMigrationHook) which is the callback to invoke before each migration
+// executes.
 //
 // Returns MigrationServiceOption which configures the migration service.
 func WithBeforeMigration(hook BeforeMigrationHook) MigrationServiceOption {
@@ -82,11 +77,10 @@ func WithBeforeMigration(hook BeforeMigrationHook) MigrationServiceOption {
 	}
 }
 
-// WithAfterMigration registers a hook that runs after each individual
-// migration succeeds.
+// WithAfterMigration registers a hook that runs after each individual migration succeeds.
 //
-// Takes hook (AfterMigrationHook) which is the callback to invoke after
-// each migration executes successfully.
+// Takes hook (AfterMigrationHook) which is the callback to invoke after each migration
+// executes successfully.
 //
 // Returns MigrationServiceOption which configures the migration service.
 func WithAfterMigration(hook AfterMigrationHook) MigrationServiceOption {
@@ -97,8 +91,8 @@ func WithAfterMigration(hook AfterMigrationHook) MigrationServiceOption {
 
 // WithBeforeRun registers a hook that runs before the migration run begins.
 //
-// Takes hook (BeforeRunHook) which is the callback to invoke before the
-// migration run starts.
+// Takes hook (BeforeRunHook) which is the callback to invoke before the migration run
+// starts.
 //
 // Returns MigrationServiceOption which configures the migration service.
 func WithBeforeRun(hook BeforeRunHook) MigrationServiceOption {
@@ -109,8 +103,8 @@ func WithBeforeRun(hook BeforeRunHook) MigrationServiceOption {
 
 // WithAfterRun registers a hook that runs after the migration run completes.
 //
-// Takes hook (AfterRunHook) which is the callback to invoke after the
-// migration run completes successfully.
+// Takes hook (AfterRunHook) which is the callback to invoke after the migration run
+// completes successfully.
 //
 // Returns MigrationServiceOption which configures the migration service.
 func WithAfterRun(hook AfterRunHook) MigrationServiceOption {

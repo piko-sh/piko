@@ -81,44 +81,44 @@ func TestIntrinsicStringFunctions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"ContainsRune_found", "import \"strings\"\nstrings.ContainsRune(\"hello\", 'e')", true},
-		{"ContainsRune_not_found", "import \"strings\"\nstrings.ContainsRune(\"hello\", 'z')", false},
-		{"ContainsRune_empty", "import \"strings\"\nstrings.ContainsRune(\"\", 'a')", false},
+		{name: "ContainsRune_found", code: "import \"strings\"\nstrings.ContainsRune(\"hello\", 'e')", expect: true},
+		{name: "ContainsRune_not_found", code: "import \"strings\"\nstrings.ContainsRune(\"hello\", 'z')", expect: false},
+		{name: "ContainsRune_empty", code: "import \"strings\"\nstrings.ContainsRune(\"\", 'a')", expect: false},
 
-		{"EqualFold_true", "import \"strings\"\nstrings.EqualFold(\"Go\", \"go\")", true},
-		{"EqualFold_false", "import \"strings\"\nstrings.EqualFold(\"Go\", \"py\")", false},
-		{"EqualFold_empty", "import \"strings\"\nstrings.EqualFold(\"\", \"\")", true},
+		{name: "EqualFold_true", code: "import \"strings\"\nstrings.EqualFold(\"Go\", \"go\")", expect: true},
+		{name: "EqualFold_false", code: "import \"strings\"\nstrings.EqualFold(\"Go\", \"py\")", expect: false},
+		{name: "EqualFold_empty", code: "import \"strings\"\nstrings.EqualFold(\"\", \"\")", expect: true},
 
-		{"Trim_spaces", "import \"strings\"\nstrings.Trim(\"  hello  \", \" \")", "hello"},
-		{"Trim_chars", "import \"strings\"\nstrings.Trim(\"!!hello!!\", \"!\")", "hello"},
-		{"Trim_noop", "import \"strings\"\nstrings.Trim(\"hello\", \"!\")", "hello"},
+		{name: "Trim_spaces", code: "import \"strings\"\nstrings.Trim(\"  hello  \", \" \")", expect: "hello"},
+		{name: "Trim_chars", code: "import \"strings\"\nstrings.Trim(\"!!hello!!\", \"!\")", expect: "hello"},
+		{name: "Trim_noop", code: "import \"strings\"\nstrings.Trim(\"hello\", \"!\")", expect: "hello"},
 
-		{"IndexRune_found", "import \"strings\"\nstrings.IndexRune(\"hello\", 'l')", int64(2)},
-		{"IndexRune_not_found", "import \"strings\"\nstrings.IndexRune(\"hello\", 'z')", int64(-1)},
-		{"IndexRune_first", "import \"strings\"\nstrings.IndexRune(\"hello\", 'h')", int64(0)},
+		{name: "IndexRune_found", code: "import \"strings\"\nstrings.IndexRune(\"hello\", 'l')", expect: int64(2)},
+		{name: "IndexRune_not_found", code: "import \"strings\"\nstrings.IndexRune(\"hello\", 'z')", expect: int64(-1)},
+		{name: "IndexRune_first", code: "import \"strings\"\nstrings.IndexRune(\"hello\", 'h')", expect: int64(0)},
 
-		{"LastIndex_found", "import \"strings\"\nstrings.LastIndex(\"go gopher\", \"go\")", int64(3)},
-		{"LastIndex_not_found", "import \"strings\"\nstrings.LastIndex(\"hello\", \"xyz\")", int64(-1)},
-		{"LastIndex_single", "import \"strings\"\nstrings.LastIndex(\"abcabc\", \"c\")", int64(5)},
+		{name: "LastIndex_found", code: "import \"strings\"\nstrings.LastIndex(\"go gopher\", \"go\")", expect: int64(3)},
+		{name: "LastIndex_not_found", code: "import \"strings\"\nstrings.LastIndex(\"hello\", \"xyz\")", expect: int64(-1)},
+		{name: "LastIndex_single", code: "import \"strings\"\nstrings.LastIndex(\"abcabc\", \"c\")", expect: int64(5)},
 
-		{"Join_comma", "import \"strings\"\nstrings.Join([]string{\"a\", \"b\", \"c\"}, \",\")", "a,b,c"},
-		{"Join_empty_sep", "import \"strings\"\nstrings.Join([]string{\"a\", \"b\"}, \"\")", "ab"},
-		{"Join_single", "import \"strings\"\nstrings.Join([]string{\"only\"}, \",\")", "only"},
+		{name: "Join_comma", code: "import \"strings\"\nstrings.Join([]string{\"a\", \"b\", \"c\"}, \",\")", expect: "a,b,c"},
+		{name: "Join_empty_sep", code: "import \"strings\"\nstrings.Join([]string{\"a\", \"b\"}, \"\")", expect: "ab"},
+		{name: "Join_single", code: "import \"strings\"\nstrings.Join([]string{\"only\"}, \",\")", expect: "only"},
 
-		{"Split_comma", "import \"strings\"\nlen(strings.Split(\"a,b,c\", \",\"))", int64(3)},
-		{"Split_no_sep", "import \"strings\"\nlen(strings.Split(\"hello\", \",\"))", int64(1)},
+		{name: "Split_comma", code: "import \"strings\"\nlen(strings.Split(\"a,b,c\", \",\"))", expect: int64(3)},
+		{name: "Split_no_sep", code: "import \"strings\"\nlen(strings.Split(\"hello\", \",\"))", expect: int64(1)},
 
-		{"ReplaceAll_basic", "import \"strings\"\nstrings.ReplaceAll(\"aaa\", \"a\", \"b\")", "bbb"},
-		{"ReplaceAll_no_match", "import \"strings\"\nstrings.ReplaceAll(\"hello\", \"z\", \"x\")", "hello"},
-		{"ReplaceAll_empty_old", "import \"strings\"\nstrings.ReplaceAll(\"hi\", \"\", \"-\")", "-h-i-"},
+		{name: "ReplaceAll_basic", code: "import \"strings\"\nstrings.ReplaceAll(\"aaa\", \"a\", \"b\")", expect: "bbb"},
+		{name: "ReplaceAll_no_match", code: "import \"strings\"\nstrings.ReplaceAll(\"hello\", \"z\", \"x\")", expect: "hello"},
+		{name: "ReplaceAll_empty_old", code: "import \"strings\"\nstrings.ReplaceAll(\"hi\", \"\", \"-\")", expect: "-h-i-"},
 
-		{"Repeat_3", "import \"strings\"\nstrings.Repeat(\"ab\", 3)", "ababab"},
-		{"Repeat_0", "import \"strings\"\nstrings.Repeat(\"ab\", 0)", ""},
+		{name: "Repeat_3", code: "import \"strings\"\nstrings.Repeat(\"ab\", 3)", expect: "ababab"},
+		{name: "Repeat_0", code: "import \"strings\"\nstrings.Repeat(\"ab\", 0)", expect: ""},
 	}
 
 	for _, tt := range tests {
@@ -142,24 +142,24 @@ func TestIntrinsicMathFunctions(t *testing.T) {
 		delta  float64
 	}{
 
-		{"Abs_negative", "import \"math\"\nmath.Abs(-3.14)", 3.14, 0},
-		{"Abs_positive", "import \"math\"\nmath.Abs(3.14)", 3.14, 0},
-		{"Abs_zero", "import \"math\"\nmath.Abs(0.0)", 0.0, 0},
+		{name: "Abs_negative", code: "import \"math\"\nmath.Abs(-3.14)", expect: 3.14, delta: 0},
+		{name: "Abs_positive", code: "import \"math\"\nmath.Abs(3.14)", expect: 3.14, delta: 0},
+		{name: "Abs_zero", code: "import \"math\"\nmath.Abs(0.0)", expect: 0.0, delta: 0},
 
-		{"Sqrt_16", "import \"math\"\nmath.Sqrt(16.0)", 4.0, 0},
-		{"Sqrt_2", "import \"math\"\nmath.Sqrt(2.0)", math.Sqrt(2.0), 1e-10},
+		{name: "Sqrt_16", code: "import \"math\"\nmath.Sqrt(16.0)", expect: 4.0, delta: 0},
+		{name: "Sqrt_2", code: "import \"math\"\nmath.Sqrt(2.0)", expect: math.Sqrt(2.0), delta: 1e-10},
 
-		{"Floor_positive", "import \"math\"\nmath.Floor(3.7)", 3.0, 0},
-		{"Floor_negative", "import \"math\"\nmath.Floor(-3.2)", -4.0, 0},
+		{name: "Floor_positive", code: "import \"math\"\nmath.Floor(3.7)", expect: 3.0, delta: 0},
+		{name: "Floor_negative", code: "import \"math\"\nmath.Floor(-3.2)", expect: -4.0, delta: 0},
 
-		{"Ceil_positive", "import \"math\"\nmath.Ceil(3.2)", 4.0, 0},
-		{"Ceil_negative", "import \"math\"\nmath.Ceil(-3.7)", -3.0, 0},
+		{name: "Ceil_positive", code: "import \"math\"\nmath.Ceil(3.2)", expect: 4.0, delta: 0},
+		{name: "Ceil_negative", code: "import \"math\"\nmath.Ceil(-3.7)", expect: -3.0, delta: 0},
 
-		{"Trunc_positive", "import \"math\"\nmath.Trunc(3.9)", 3.0, 0},
-		{"Trunc_negative", "import \"math\"\nmath.Trunc(-3.9)", -3.0, 0},
+		{name: "Trunc_positive", code: "import \"math\"\nmath.Trunc(3.9)", expect: 3.0, delta: 0},
+		{name: "Trunc_negative", code: "import \"math\"\nmath.Trunc(-3.9)", expect: -3.0, delta: 0},
 
-		{"Round_up", "import \"math\"\nmath.Round(3.5)", 4.0, 0},
-		{"Round_down", "import \"math\"\nmath.Round(3.4)", 3.0, 0},
+		{name: "Round_up", code: "import \"math\"\nmath.Round(3.5)", expect: 4.0, delta: 0},
+		{name: "Round_down", code: "import \"math\"\nmath.Round(3.4)", expect: 3.0, delta: 0},
 	}
 
 	for _, tt := range tests {
@@ -181,19 +181,19 @@ func TestGoDispatchIntrinsicStrings(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"ContainsRune", "import \"strings\"\nstrings.ContainsRune(\"hello\", 'e')", true},
-		{"EqualFold", "import \"strings\"\nstrings.EqualFold(\"Go\", \"go\")", true},
-		{"Trim", "import \"strings\"\nstrings.Trim(\"  hello  \", \" \")", "hello"},
-		{"IndexRune", "import \"strings\"\nstrings.IndexRune(\"hello\", 'l')", int64(2)},
-		{"LastIndex", "import \"strings\"\nstrings.LastIndex(\"go gopher\", \"go\")", int64(3)},
-		{"Join", "import \"strings\"\nstrings.Join([]string{\"a\", \"b\"}, \",\")", "a,b"},
-		{"Split", "import \"strings\"\nlen(strings.Split(\"a,b,c\", \",\"))", int64(3)},
-		{"ReplaceAll", "import \"strings\"\nstrings.ReplaceAll(\"aaa\", \"a\", \"b\")", "bbb"},
-		{"Repeat", "import \"strings\"\nstrings.Repeat(\"ab\", 3)", "ababab"},
+		{name: "ContainsRune", code: "import \"strings\"\nstrings.ContainsRune(\"hello\", 'e')", expect: true},
+		{name: "EqualFold", code: "import \"strings\"\nstrings.EqualFold(\"Go\", \"go\")", expect: true},
+		{name: "Trim", code: "import \"strings\"\nstrings.Trim(\"  hello  \", \" \")", expect: "hello"},
+		{name: "IndexRune", code: "import \"strings\"\nstrings.IndexRune(\"hello\", 'l')", expect: int64(2)},
+		{name: "LastIndex", code: "import \"strings\"\nstrings.LastIndex(\"go gopher\", \"go\")", expect: int64(3)},
+		{name: "Join", code: "import \"strings\"\nstrings.Join([]string{\"a\", \"b\"}, \",\")", expect: "a,b"},
+		{name: "Split", code: "import \"strings\"\nlen(strings.Split(\"a,b,c\", \",\"))", expect: int64(3)},
+		{name: "ReplaceAll", code: "import \"strings\"\nstrings.ReplaceAll(\"aaa\", \"a\", \"b\")", expect: "bbb"},
+		{name: "Repeat", code: "import \"strings\"\nstrings.Repeat(\"ab\", 3)", expect: "ababab"},
 	}
 
 	for _, tt := range tests {
@@ -231,12 +231,12 @@ func TestGoDispatchIntrinsicMath(t *testing.T) {
 		code   string
 		expect float64
 	}{
-		{"Abs", "import \"math\"\nmath.Abs(-3.14)", 3.14},
-		{"Sqrt", "import \"math\"\nmath.Sqrt(16.0)", 4.0},
-		{"Floor", "import \"math\"\nmath.Floor(3.7)", 3.0},
-		{"Ceil", "import \"math\"\nmath.Ceil(3.2)", 4.0},
-		{"Trunc", "import \"math\"\nmath.Trunc(3.9)", 3.0},
-		{"Round", "import \"math\"\nmath.Round(3.5)", 4.0},
+		{name: "Abs", code: "import \"math\"\nmath.Abs(-3.14)", expect: 3.14},
+		{name: "Sqrt", code: "import \"math\"\nmath.Sqrt(16.0)", expect: 4.0},
+		{name: "Floor", code: "import \"math\"\nmath.Floor(3.7)", expect: 3.0},
+		{name: "Ceil", code: "import \"math\"\nmath.Ceil(3.2)", expect: 4.0},
+		{name: "Trunc", code: "import \"math\"\nmath.Trunc(3.9)", expect: 3.0},
+		{name: "Round", code: "import \"math\"\nmath.Round(3.5)", expect: 4.0},
 	}
 
 	for _, tt := range tests {
@@ -264,12 +264,12 @@ func TestGoDispatchIntrinsicStrconv(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"FormatBool", "import \"strconv\"\nstrconv.FormatBool(true)", "true"},
-		{"FormatInt", "import \"strconv\"\nstrconv.FormatInt(42, 10)", "42"},
+		{name: "FormatBool", code: "import \"strconv\"\nstrconv.FormatBool(true)", expect: "true"},
+		{name: "FormatInt", code: "import \"strconv\"\nstrconv.FormatInt(42, 10)", expect: "42"},
 	}
 
 	for _, tt := range tests {
@@ -293,16 +293,16 @@ func TestIntrinsicStrconvFunctions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"FormatBool_true", "import \"strconv\"\nstrconv.FormatBool(true)", "true"},
-		{"FormatBool_false", "import \"strconv\"\nstrconv.FormatBool(false)", "false"},
-		{"FormatInt_base10", "import \"strconv\"\nstrconv.FormatInt(42, 10)", "42"},
-		{"FormatInt_base16", "import \"strconv\"\nstrconv.FormatInt(255, 16)", "ff"},
-		{"FormatInt_base2", "import \"strconv\"\nstrconv.FormatInt(10, 2)", "1010"},
-		{"FormatInt_negative", "import \"strconv\"\nstrconv.FormatInt(-42, 10)", "-42"},
+		{name: "FormatBool_true", code: "import \"strconv\"\nstrconv.FormatBool(true)", expect: "true"},
+		{name: "FormatBool_false", code: "import \"strconv\"\nstrconv.FormatBool(false)", expect: "false"},
+		{name: "FormatInt_base10", code: "import \"strconv\"\nstrconv.FormatInt(42, 10)", expect: "42"},
+		{name: "FormatInt_base16", code: "import \"strconv\"\nstrconv.FormatInt(255, 16)", expect: "ff"},
+		{name: "FormatInt_base2", code: "import \"strconv\"\nstrconv.FormatInt(10, 2)", expect: "1010"},
+		{name: "FormatInt_negative", code: "import \"strconv\"\nstrconv.FormatInt(-42, 10)", expect: "-42"},
 	}
 
 	for _, tt := range tests {

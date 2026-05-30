@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
-// paintImage renders a replaced element (img tag) into the PDF stream,
-// attempting SVG vector rendering first before falling back to raster.
+// paintImage renders a replaced element (img tag) into the PDF stream, attempting SVG
+// vector rendering first before falling back to raster.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
@@ -63,8 +63,7 @@ func (painter *PdfPainter) paintImage(ctx context.Context, stream *ContentStream
 	painter.emitRasterImage(stream, box, resourceName, float64(pixelWidth), float64(pixelHeight))
 }
 
-// trySVGVector attempts native SVG vector rendering, returning true on
-// success.
+// trySVGVector attempts native SVG vector rendering, returning true on success.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
@@ -82,15 +81,12 @@ func (painter *PdfPainter) trySVGVector(ctx context.Context, stream *ContentStre
 	return painter.paintSVGVector(ctx, stream, box, svgXML) == nil
 }
 
-// emitRasterImage renders a raster image with object-fit and object-position
-// handling.
+// emitRasterImage renders a raster image with object-fit and object-position handling.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes box (*layouter_domain.LayoutBox) which provides the content
-// area dimensions.
+// Takes box (*layouter_domain.LayoutBox) which provides the content area dimensions.
 // Takes resourceName (string) which is the image XObject key.
-// Takes intrinsicW, intrinsicH (float64) which are the image's natural
-// pixel dimensions.
+// Takes intrinsicW, intrinsicH (float64) which are the image's natural pixel dimensions.
 func (painter *PdfPainter) emitRasterImage(
 	stream *ContentStream, box *layouter_domain.LayoutBox,
 	resourceName string, intrinsicW, intrinsicH float64,
@@ -123,8 +119,8 @@ func (painter *PdfPainter) emitRasterImage(
 	stream.RestoreState()
 }
 
-// extractSrcAttribute returns the "src" attribute value from a
-// replaced element's source node.
+// extractSrcAttribute returns the "src" attribute value from a replaced element's source
+// node.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the replaced element.
 //
@@ -141,13 +137,12 @@ func extractSrcAttribute(box *layouter_domain.LayoutBox) string {
 	return ""
 }
 
-// paintSVGVector renders an SVG as native PDF vector commands using
-// the configured SVGWriterPort.
+// paintSVGVector renders an SVG as native PDF vector commands using the configured
+// SVGWriterPort.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes box (*layouter_domain.LayoutBox) which provides the content
-// area.
+// Takes box (*layouter_domain.LayoutBox) which provides the content area.
 //
 // Returns error if SVG rendering fails.
 func (painter *PdfPainter) paintSVGVector(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, svgXML string) error {
@@ -212,10 +207,8 @@ func (painter *PdfPainter) paintTextShadows(stream *ContentStream, box *layouter
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the text run box.
 // Takes resolved (resolvedFont) which holds the matched font data.
-// Takes requested (pdfFontKey) which holds the originally requested
-// font key.
-// Takes shadow (layouter_domain.TextShadowValue) which holds the
-// shadow parameters.
+// Takes requested (pdfFontKey) which holds the originally requested font key.
+// Takes shadow (layouter_domain.TextShadowValue) which holds the shadow parameters.
 func (painter *PdfPainter) paintBlurredTextShadow(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -259,13 +252,12 @@ type textShadowPassParams struct {
 	alpha float64
 }
 
-// paintTextShadowPass renders text once at the given offset with the
-// specified colour and opacity, producing one shadow layer.
+// paintTextShadowPass renders text once at the given offset with the specified colour and
+// opacity, producing one shadow layer.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the text run box.
-// Takes p (textShadowPassParams) which holds the shadow rendering
-// parameters.
+// Takes p (textShadowPassParams) which holds the shadow rendering parameters.
 func (painter *PdfPainter) paintTextShadowPass(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -323,8 +315,7 @@ type textShadowRenderParams struct {
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the text run box.
 // Takes resolved (resolvedFont) which holds the matched font data.
-// Takes sp (textShadowRenderParams) which holds the rendering
-// parameters.
+// Takes sp (textShadowRenderParams) which holds the rendering parameters.
 func (painter *PdfPainter) paintShadowWithEmbeddedFont(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -376,13 +367,11 @@ func (painter *PdfPainter) paintShadowWithEmbeddedFont(
 	stream.EndText()
 }
 
-// paintShadowWithFallbackFont renders a shadow pass using the Helvetica
-// fallback font.
+// paintShadowWithFallbackFont renders a shadow pass using the Helvetica fallback font.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the text run box.
-// Takes sp (textShadowRenderParams) which holds the rendering
-// parameters.
+// Takes sp (textShadowRenderParams) which holds the rendering parameters.
 func (painter *PdfPainter) paintShadowWithFallbackFont(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -450,14 +439,13 @@ func (painter *PdfPainter) paintText(stream *ContentStream, box *layouter_domain
 	stream.EndText()
 }
 
-// paintTextWithEmbeddedFont renders a text run using an embedded
-// TrueType or OpenType font with harfbuzz-shaped glyph positioning.
+// paintTextWithEmbeddedFont renders a text run using an embedded TrueType or OpenType
+// font with harfbuzz-shaped glyph positioning.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the text run box.
 // Takes resolved (resolvedFont) which holds the matched font data.
-// Takes requested (pdfFontKey) which holds the originally requested
-// font key.
+// Takes requested (pdfFontKey) which holds the originally requested font key.
 func (painter *PdfPainter) paintTextWithEmbeddedFont(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -523,10 +511,8 @@ func (painter *PdfPainter) paintTextWithEmbeddedFont(
 // emitTextRenderingMode sets text rendering mode and stroke properties.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes box (*layouter_domain.LayoutBox) which supplies the text
-// rendering style.
-// Takes syntheticBold (bool) which indicates whether synthetic bold
-// is needed.
+// Takes box (*layouter_domain.LayoutBox) which supplies the text rendering style.
+// Takes syntheticBold (bool) which indicates whether synthetic bold is needed.
 func (painter *PdfPainter) emitTextRenderingMode(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -601,16 +587,14 @@ func (painter *PdfPainter) paintTextDecorations(stream *ContentStream, box *layo
 	stream.RestoreState()
 }
 
-// drawDecorationLine draws a single decoration line between startX and
-// endX at the given Y coordinate, using the specified decoration style.
+// drawDecorationLine draws a single decoration line between startX and endX at the given
+// Y coordinate, using the specified decoration style.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes startX, endX (float64) which define the horizontal extent.
-// Takes pdfY (float64) which is the vertical position in PDF
-// coordinates.
+// Takes pdfY (float64) which is the vertical position in PDF coordinates.
 // Takes lineWidth (float64) which is the stroke width in points.
-// Takes style (layouter_domain.TextDecorationStyleType) which selects
-// the line style.
+// Takes style (layouter_domain.TextDecorationStyleType) which selects the line style.
 func (*PdfPainter) drawDecorationLine(
 	stream *ContentStream,
 	startX, endX, pdfY, lineWidth float64,
@@ -657,8 +641,8 @@ func (*PdfPainter) drawDecorationLine(
 	}
 }
 
-// emitWavyLine draws a sinusoidal wave between startX and endX at baseY
-// using cubic Bezier curves.
+// emitWavyLine draws a sinusoidal wave between startX and endX at baseY using cubic
+// Bezier curves.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes startX, endX (float64) which define the horizontal extent.

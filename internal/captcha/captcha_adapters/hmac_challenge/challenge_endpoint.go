@@ -30,8 +30,8 @@ type challengeResponse struct {
 	Token string `json:"token"`
 }
 
-// ChallengeHandler returns an HTTP handler that generates HMAC challenge tokens.
-// The handler responds to GET requests with a JSON body containing the token.
+// ChallengeHandler returns an HTTP handler that generates HMAC challenge tokens. The
+// handler responds to GET requests with a JSON body containing the token.
 //
 // Query parameters:
 //   - action: the action name for the challenge

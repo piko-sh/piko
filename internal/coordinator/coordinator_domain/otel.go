@@ -24,65 +24,62 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// This file sets up all observability (logging, metrics, tracing) for the
-// coordinator domain.
+// This file sets up all observability (logging, metrics, tracing) for the coordinator
+// domain.
 
 var (
 	// log is the package-level logger for the coordinator_domain package.
 	log = logger_domain.GetLogger("piko/internal/coordinator/coordinator_domain")
 
-	// meter is the OpenTelemetry metric.Meter for the coordinator domain.
-	// All coordinator metrics are registered against this meter.
+	// meter is the OpenTelemetry metric.Meter for the coordinator domain. All coordinator
+	// metrics are registered against this meter.
 	meter = otel.Meter("piko/internal/coordinator/coordinator_domain")
 
-	// buildCount counts the total number of build operations started due to
-	// cache misses.
+	// buildCount counts the total number of build operations started due to cache misses.
 	buildCount metric.Int64Counter
 
-	// buildDuration measures the time taken for a full, uncached build operation,
-	// in milliseconds.
+	// buildDuration measures the time taken for a full, uncached build operation, in
+	// milliseconds.
 	buildDuration metric.Float64Histogram
 
 	// cacheHitCount counts the number of times a build was avoided due to a Tier 2
 	// (annotation) cache hit.
 	cacheHitCount metric.Int64Counter
 
-	// cacheMissCount counts the number of times a build was required because Tier
-	// 2 (annotation) cache missed.
+	// cacheMissCount counts the number of times a build was required because Tier 2
+	// (annotation) cache missed.
 	cacheMissCount metric.Int64Counter
 
-	// cacheErrorCount counts errors from the cache adapter itself (e.g., disk I/O
-	// errors).
+	// cacheErrorCount counts errors from the cache adapter itself (e.g., disk I/O errors).
 	cacheErrorCount metric.Int64Counter
 
-	// inputHashDuration measures the time taken to calculate the full input hash
-	// (Tier 2) for a build.
+	// inputHashDuration measures the time taken to calculate the full input hash (Tier 2)
+	// for a build.
 	inputHashDuration metric.Float64Histogram
 
-	// introspectionCacheHitCount counts the number of times the Tier 1
-	// (introspection) cache was hit. This indicates a template-only change where
-	// we can skip expensive type introspection.
+	// introspectionCacheHitCount counts the number of times the Tier 1 (introspection) cache
+	// was hit. This indicates a template-only change where we can skip expensive type
+	// introspection.
 	introspectionCacheHitCount metric.Int64Counter
 
-	// introspectionCacheMissCount counts the number of times the Tier 1
-	// (introspection) cache was missed. This indicates a script block or .go file
-	// changed, requiring full type introspection.
+	// introspectionCacheMissCount counts the number of times the Tier 1 (introspection)
+	// cache was missed. This indicates a script block or .go file changed, requiring full
+	// type introspection.
 	introspectionCacheMissCount metric.Int64Counter
 
-	// introspectionHashDuration measures the time taken to calculate the
-	// introspection hash (Tier 1).
+	// introspectionHashDuration measures the time taken to calculate the introspection hash
+	// (Tier 1).
 	introspectionHashDuration metric.Float64Histogram
 
-	// fastPathBuildCount counts builds with a Tier 1 cache hit (fast path).
-	// These builds skip Phase 1 (type introspection) and only run
-	// Phase 2 (annotation).
+	// fastPathBuildCount counts builds with a Tier 1 cache hit (fast path). These builds
+	// skip the type introspection step and only run the annotation step.
 	fastPathBuildCount metric.Int64Counter
 
-	// slowPathBuildCount counts the number of builds that used the slow path (both
-	// caches missed). These builds run full Phase 1 + Phase 2.
+	// slowPathBuildCount counts the number of builds that used the slow path (both caches
+	// missed). These builds run the full introspection plus annotation pipeline.
 	slowPathBuildCount metric.Int64Counter
 
-	// partialBuildDuration measures the time taken for a fast path build (Phase 2
+	// partialBuildDuration measures the time taken for a fast path build (annotation step
 	// only), in milliseconds.
 	partialBuildDuration metric.Float64Histogram
 )

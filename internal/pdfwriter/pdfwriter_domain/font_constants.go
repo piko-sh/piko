@@ -28,15 +28,14 @@ const (
 	// ttfHeaderSize is the fixed size of the TTF offset table (12 bytes).
 	ttfHeaderSize = 12
 
-	// ttfDirectoryEntrySize is the size of each table directory entry
-	// (16 bytes: tag + checksum + offset + length).
+	// ttfDirectoryEntrySize is the size of each table directory entry (16 bytes: tag +
+	// checksum + offset + length).
 	ttfDirectoryEntrySize = 16
 
 	// ttfScalerType is the TrueType scaler type (0x00010000).
 	ttfScalerType uint32 = 0x00010000
 
-	// ttfChecksumMagic is the magic value used for head table checksum
-	// adjustment.
+	// ttfChecksumMagic is the magic value used for head table checksum adjustment.
 	ttfChecksumMagic uint32 = 0xB1B0AFBA
 
 	// ttfAlignmentBoundary is the byte alignment boundary for table data.

@@ -18,12 +18,12 @@
 
 package interp_domain
 
-// decodeSpillIndex reads the opExt instruction following a spill/reload
-// opcode and returns the register file index for the spill slot.
-// It advances the program counter past the extension.
+// decodeSpillIndex reads the opExt instruction following a spill/reload opcode and
+// returns the register file index for the spill slot. It advances the program counter
+// past the extension.
 //
-// Takes frame (*callFrame) which provides access to the instruction
-// stream and program counter.
+// Takes frame (*callFrame) which provides access to the instruction stream and program
+// counter.
 //
 // Returns the register file index for the spill slot.
 func decodeSpillIndex(frame *callFrame) int {
@@ -32,74 +32,127 @@ func decodeSpillIndex(frame *callFrame) int {
 	return spillAreaOffset + decodeExtension24(ext)
 }
 
-// handleSpill handles the opSpill instruction by copying a register
-// value into the spill area of the register file (index >= 256).
+// spillBankSize returns the length of the register bank addressed by the given register
+// kind, used to bounds-check a decoded spill slot index before handleSpill/handleReload
+// index into the bank.
 //
-// Encoding: A=srcReg B=bankKind C=unused, followed by opExt with
-// 24-bit spillSlotIndex. The target index is spillAreaOffset +
-// spillSlotIndex.
+// Takes registers (*Registers) which provides the register banks.
+// Takes kind (registerKind) which selects the bank to measure.
 //
-// Takes frame (*callFrame) which provides access to the instruction
-// stream for reading the following opExt.
+// Returns the number of slots in the selected bank.
+func spillBankSize(registers *Registers, kind registerKind) int {
+	switch kind {
+	case registerInt:
+		return len(registers.ints)
+	case registerFloat:
+		return len(registers.floats)
+	case registerString:
+		return len(registers.strings)
+	case registerGeneral:
+		return len(registers.general)
+	case registerBool:
+		return len(registers.bools)
+	case registerUint:
+		return len(registers.uints)
+	case registerComplex:
+		return len(registers.complex)
+	default:
+		return 0
+	}
+}
+
+// checkSpillIndex verifies that a decoded spill slot index falls within the register bank
+// selected by instruction.b, setting an interpreted bounds error on the VM when it does
+// not.
+//
+// Takes vm (*VM) which receives the bounds error.
+// Takes frame (*callFrame) which provides program-counter context.
+// Takes registers (*Registers) which provides the register banks.
+// Takes index (int) which is the decoded spill slot index.
+// Takes kind (registerKind) which selects the bank to bounds-check.
+//
+// Returns true when the index is in range, false otherwise.
+func checkSpillIndex(vm *VM, frame *callFrame, registers *Registers, index int, kind registerKind) bool {
+	size := spillBankSize(registers, kind)
+	if index < 0 || index >= size {
+		vmBoundsError(vm, frame, "spill slot", index, size)
+		return false
+	}
+	return true
+}
+
+// handleSpill handles the opSpill instruction by copying a register value into the spill
+// area of the register file (index >= 256).
+//
+// Encoding: A=sourceRegister B=bankKind C=unused, followed by opExt with 24-bit
+// spillSlotIndex. The target index is spillAreaOffset + spillSlotIndex.
+//
+// Takes frame (*callFrame) which provides access to the instruction stream for reading
+// the following opExt.
 // Takes registers (*Registers) which holds the register banks.
-// Takes instr (instruction) which encodes the source register and
-// bank kind.
+// Takes instruction (instruction) which encodes the source register and bank kind.
 //
 // Returns opContinue.
-func handleSpill(_ *VM, frame *callFrame, registers *Registers, instr instruction) opResult {
-	idx := decodeSpillIndex(frame)
+func handleSpill(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
+	index := decodeSpillIndex(frame)
 
-	switch registerKind(instr.b) {
+	if !checkSpillIndex(vm, frame, registers, index, registerKind(instruction.b)) {
+		return opPanicError
+	}
+	switch registerKind(instruction.b) {
 	case registerInt:
-		registers.ints[idx] = registers.ints[instr.a]
+		registers.ints[index] = registers.ints[instruction.a]
 	case registerFloat:
-		registers.floats[idx] = registers.floats[instr.a]
+		registers.floats[index] = registers.floats[instruction.a]
 	case registerString:
-		registers.strings[idx] = registers.strings[instr.a]
+		registers.strings[index] = registers.strings[instruction.a]
 	case registerGeneral:
-		registers.general[idx] = registers.general[instr.a]
+		registers.general[index] = registers.general[instruction.a]
 	case registerBool:
-		registers.bools[idx] = registers.bools[instr.a]
+		registers.bools[index] = registers.bools[instruction.a]
 	case registerUint:
-		registers.uints[idx] = registers.uints[instr.a]
+		registers.uints[index] = registers.uints[instruction.a]
 	case registerComplex:
-		registers.complex[idx] = registers.complex[instr.a]
+		registers.complex[index] = registers.complex[instruction.a]
+	default:
 	}
 	return opContinue
 }
 
-// handleReload handles the opReload instruction by copying a value
-// from the spill area back into a directly-addressable register.
+// handleReload handles the opReload instruction by copying a value from the spill area
+// back into a directly-addressable register.
 //
-// Encoding: A=dstReg B=bankKind C=unused, followed by opExt with
-// 24-bit spillSlotIndex. The source index is spillAreaOffset +
-// spillSlotIndex.
+// Encoding: A=destinationRegister B=bankKind C=unused, followed by opExt with 24-bit
+// spillSlotIndex. The source index is spillAreaOffset + spillSlotIndex.
 //
-// Takes frame (*callFrame) which provides access to the instruction
-// stream for reading the following opExt.
+// Takes frame (*callFrame) which provides access to the instruction stream for reading
+// the following opExt.
 // Takes registers (*Registers) which holds the register banks.
-// Takes instr (instruction) which encodes the destination register
-// and bank kind.
+// Takes instruction (instruction) which encodes the destination register and bank kind.
 //
 // Returns opContinue.
-func handleReload(_ *VM, frame *callFrame, registers *Registers, instr instruction) opResult {
-	idx := decodeSpillIndex(frame)
+func handleReload(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
+	index := decodeSpillIndex(frame)
 
-	switch registerKind(instr.b) {
+	if !checkSpillIndex(vm, frame, registers, index, registerKind(instruction.b)) {
+		return opPanicError
+	}
+	switch registerKind(instruction.b) {
 	case registerInt:
-		registers.ints[instr.a] = registers.ints[idx]
+		registers.ints[instruction.a] = registers.ints[index]
 	case registerFloat:
-		registers.floats[instr.a] = registers.floats[idx]
+		registers.floats[instruction.a] = registers.floats[index]
 	case registerString:
-		registers.strings[instr.a] = registers.strings[idx]
+		registers.strings[instruction.a] = registers.strings[index]
 	case registerGeneral:
-		registers.general[instr.a] = registers.general[idx]
+		registers.general[instruction.a] = registers.general[index]
 	case registerBool:
-		registers.bools[instr.a] = registers.bools[idx]
+		registers.bools[instruction.a] = registers.bools[index]
 	case registerUint:
-		registers.uints[instr.a] = registers.uints[idx]
+		registers.uints[instruction.a] = registers.uints[index]
 	case registerComplex:
-		registers.complex[instr.a] = registers.complex[idx]
+		registers.complex[instruction.a] = registers.complex[index]
+	default:
 	}
 	return opContinue
 }

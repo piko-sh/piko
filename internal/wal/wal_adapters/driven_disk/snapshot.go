@@ -40,16 +40,15 @@ import (
 )
 
 const (
-	// snapshotMagic is the magic bytes identifying a snapshot file.
-	// "PIKO" in ASCII.
+	// snapshotMagic is the magic bytes identifying a snapshot file. "PIKO" in ASCII.
 	snapshotMagic uint32 = 0x50494B4F
 
 	// snapshotVersion is the current version of the snapshot file format.
 	snapshotVersion uint8 = 1
 
-	// snapshotHeaderSize is the size of the snapshot header in bytes.
-	// Layout: Magic(4) + Version(1) + Flags(1) + Reserved(2) + EntryCount(8) +
-	// Timestamp(8) + DataCRC(4) + HeaderCRC(4) = 32.
+	// snapshotHeaderSize is the size of the snapshot header in bytes. Layout: Magic(4) +
+	// Version(1) + Flags(1) + Reserved(2) + EntryCount(8) + Timestamp(8) + DataCRC(4) +
+	// HeaderCRC(4) = 32.
 	snapshotHeaderSize = 32
 
 	// flagCompressed indicates that the data has been compressed using zstd.
@@ -62,21 +61,13 @@ const (
 	headerOffsetDataCRC = 24
 )
 
-// DiskSnapshot implements the SnapshotStore interface using disk-based storage.
-// It also implements io.Closer.
+// DiskSnapshot implements the SnapshotStore interface using disk-based storage. It also
+// implements io.Closer.
 //
-// Snapshot file format:
-// [Header: 32 bytes]
-// [Entries: variable, optionally compressed]
-// Header format:
-// [Magic: 4 bytes "PIKO"]
-// [Version: 1 byte]
-// [Flags: 1 byte]
-// [Reserved: 2 bytes]
-// [EntryCount: 8 bytes]
-// [Timestamp: 8 bytes]
-// [DataCRC: 4 bytes]
-// [HeaderCRC: 4 bytes]
+// Snapshot file format: [Header: 32 bytes] [Entries: variable, optionally compressed]
+// Header format: [Magic: 4 bytes "PIKO"] [Version: 1 byte] [Flags: 1 byte] [Reserved: 2
+// bytes] [EntryCount: 8 bytes] [Timestamp: 8 bytes] [DataCRC: 4 bytes] [HeaderCRC: 4
+// bytes]
 type DiskSnapshot[K comparable, V any] struct {
 	// clock provides time functions; tests may replace this.
 	clock clock.Clock
@@ -100,16 +91,17 @@ type DiskSnapshot[K comparable, V any] struct {
 	mu sync.Mutex
 }
 
-var _ wal_domain.SnapshotStore[string, any] = (*DiskSnapshot[string, any])(nil)
+var (
+	_ wal_domain.SnapshotStore[string, any] = (*DiskSnapshot[string, any])(nil)
+)
 
 // SnapshotOption configures a DiskSnapshot instance.
 type SnapshotOption[K comparable, V any] func(*DiskSnapshot[K, V])
 
-// initialiseCompression creates the zstd encoder and decoder,
-// cleaning up on partial failure.
+// initialiseCompression creates the zstd encoder and decoder, cleaning up on partial
+// failure.
 //
-// Takes sandbox (safedisk.Sandbox) which is closed on failure to avoid resource
-// leaks.
+// Takes sandbox (safedisk.Sandbox) which is closed on failure to avoid resource leaks.
 //
 // Returns error when the encoder or decoder cannot be created.
 func (s *DiskSnapshot[K, V]) initialiseCompression(ctx context.Context, sandbox safedisk.Sandbox) error {
@@ -142,8 +134,8 @@ func (s *DiskSnapshot[K, V]) initialiseCompression(ctx context.Context, sandbox 
 
 // Save persists a complete snapshot of all entries.
 //
-// Takes entries ([]wal_domain.Entry[K, V]) which contains all entries to
-// include in the snapshot.
+// Takes entries ([]wal_domain.Entry[K, V]) which contains all entries to include in the
+// snapshot.
 //
 // Returns error when encoding, compression, or writing to disk fails.
 //
@@ -200,8 +192,8 @@ func (s *DiskSnapshot[K, V]) encodeEntries(entries []wal_domain.Entry[K, V]) ([]
 //
 // Takes data ([]byte) which is the raw data to compress.
 //
-// Returns []byte which is the compressed data, or the original if compression
-// is disabled.
+// Returns []byte which is the compressed data, or the original if compression is
+// disabled.
 // Returns uint8 which is the compression flag indicating the data state.
 func (s *DiskSnapshot[K, V]) compressData(data []byte) ([]byte, uint8) {
 	if s.config.EnableCompression && s.encoder != nil {
@@ -216,8 +208,8 @@ func (s *DiskSnapshot[K, V]) compressData(data []byte) ([]byte, uint8) {
 // Takes data ([]byte) which contains the snapshot data to compute CRC for.
 // Takes flags (uint8) which provides header flags for the snapshot.
 //
-// Returns []byte which contains the complete header with magic, version, flags,
-// entry count, timestamp, and CRC checksums.
+// Returns []byte which contains the complete header with magic, version, flags, entry
+// count, timestamp, and CRC checksums.
 func (s *DiskSnapshot[K, V]) buildSnapshotHeader(entryCount int, data []byte, flags uint8) []byte {
 	header := make([]byte, snapshotHeaderSize)
 	offset := 0
@@ -249,8 +241,8 @@ func (s *DiskSnapshot[K, V]) buildSnapshotHeader(entryCount int, data []byte, fl
 	return header
 }
 
-// writeSnapshotFile writes header and data to a temp file, then atomically
-// renames it to the final snapshot file.
+// writeSnapshotFile writes header and data to a temp file, then atomically renames it to
+// the final snapshot file.
 //
 // Takes header ([]byte) which contains the snapshot metadata.
 // Takes data ([]byte) which contains the serialised snapshot content.
@@ -281,14 +273,13 @@ func (s *DiskSnapshot[K, V]) writeSnapshotFile(ctx context.Context, header, data
 	return nil
 }
 
-// syncSnapshotDirectory fsyncs the sandbox root so the rename of the snapshot
-// file is durable on filesystems with journaled metadata. The snapshot file
-// itself was fsynced before the rename; this final step flushes the directory
-// entry for the rename so a crash cannot leave the file invisible after
-// recovery.
+// syncSnapshotDirectory fsyncs the sandbox root so the rename of the snapshot file is
+// durable on filesystems with journaled metadata. The snapshot file itself was fsynced
+// before the rename; this final step flushes the directory entry for the rename so a
+// crash cannot leave the file invisible after recovery.
 //
-// Errors are best-effort and silently dropped because the data on disk is
-// already durable; the worst case is a re-replay from the WAL on next start.
+// Errors are best-effort and silently dropped because the data on disk is already
+// durable; the worst case is a re-replay from the WAL on next start.
 //
 // Takes ctx (context.Context) which carries the logger for warning trace.
 func (s *DiskSnapshot[K, V]) syncSnapshotDirectory(ctx context.Context) {
@@ -371,23 +362,20 @@ func (s *DiskSnapshot[K, V]) recordSaveMetrics(ctx context.Context, startTime ti
 		logger_domain.Bool("compressed", flags&flagCompressed != 0))
 }
 
-// Load returns an iterator over snapshot entries without loading
-// all into memory.
+// Load returns an iterator over snapshot entries without loading all into memory.
 //
-// Returns iter.Seq2[wal_domain.Entry[K, V], error] which yields
-// each entry and any error encountered during iteration.
+// Returns iter.Seq2[wal_domain.Entry[K, V], error] which yields each entry and any error
+// encountered during iteration.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex held for the duration of iteration.
+// Safe for concurrent use. Access is serialised by an internal mutex held for the
+// duration of iteration.
 //
-// NOTE: Compressed snapshots must still decompress fully before
-// streaming entries, due to zstd's block-based decompression.
-// Uncompressed snapshots stream directly from the in-memory data
-// after CRC validation.
+// NOTE: Compressed snapshots must still decompress fully before streaming entries, due to
+// zstd's block-based decompression. Uncompressed snapshots stream directly from the
+// in-memory data after CRC validation.
 //
-// IMPORTANT: The iterator holds the snapshot lock during iteration.
-// Callers should consume all entries promptly or break out of the
-// loop to release.
+// IMPORTANT: The iterator holds the snapshot lock during iteration. Callers should
+// consume all entries promptly or break out of the loop to release.
 func (s *DiskSnapshot[K, V]) Load(ctx context.Context) iter.Seq2[wal_domain.Entry[K, V], error] {
 	return func(yield func(wal_domain.Entry[K, V], error) bool) {
 		startTime := s.clock.Now()
@@ -427,8 +415,8 @@ func (s *DiskSnapshot[K, V]) Load(ctx context.Context) iter.Seq2[wal_domain.Entr
 //
 // Takes data ([]byte) which contains the serialised snapshot entries.
 // Takes entryCount (uint64) which specifies the maximum entries to read.
-// Takes yield (func(...)) which receives each entry or error and returns
-// false to stop iteration.
+// Takes yield (func(...)) which receives each entry or error and returns false to stop
+// iteration.
 //
 // Returns int which is the number of entries successfully yielded.
 func (s *DiskSnapshot[K, V]) yieldEntries(
@@ -548,8 +536,7 @@ func (*DiskSnapshot[K, V]) validateDataCRC(header, data []byte) error {
 // Takes data ([]byte) which is the raw data to decompress.
 // Takes flags (uint8) which contains compression status bits.
 //
-// Returns []byte which is the decompressed data, or the original data if not
-// compressed.
+// Returns []byte which is the decompressed data, or the original data if not compressed.
 // Returns error when compression is disabled but data is compressed, or when
 // decompression fails.
 func (s *DiskSnapshot[K, V]) decompressData(data []byte, flags uint8) ([]byte, error) {
@@ -587,11 +574,9 @@ func (s *DiskSnapshot[K, V]) recordLoadMetrics(ctx context.Context, startTime ti
 //
 // Takes header ([]byte) which contains the raw header bytes to parse.
 //
-// Returns entryCount (uint64) which is the number of entries in the
-// snapshot.
+// Returns entryCount (uint64) which is the number of entries in the snapshot.
 // Returns flags (uint8) which contains the header flags.
-// Returns err (error) when the header is corrupt or has an unsupported
-// version.
+// Returns err (error) when the header is corrupt or has an unsupported version.
 func (*DiskSnapshot[K, V]) parseHeader(header []byte) (entryCount uint64, flags uint8, err error) {
 	offset := 0
 
@@ -710,16 +695,16 @@ func WithSnapshotClock[K comparable, V any](clk clock.Clock) SnapshotOption[K, V
 
 // NewDiskSnapshot creates a new disk-based snapshot store.
 //
-// Takes ctx (context.Context) which is stored for logging in
-// initialisation and cleanup paths.
-// Takes config (wal_domain.Config) which specifies the snapshot directory
-// and file settings.
+// Takes ctx (context.Context) which is stored for logging in initialisation and cleanup
+// paths.
+// Takes config (wal_domain.Config) which specifies the snapshot directory and file
+// settings.
 // Takes codec (*BinaryCodec[K, V]) which encodes and decodes entries.
 // Takes opts (...SnapshotOption[K, V]) which provide optional configuration.
 //
 // Returns *DiskSnapshot[K, V] which is the initialised snapshot store.
-// Returns error when the codec is nil, configuration is invalid, or
-// the sandbox cannot be created.
+// Returns error when the codec is nil, configuration is invalid, or the sandbox cannot be
+// created.
 func NewDiskSnapshot[K comparable, V any](
 	ctx context.Context,
 	config wal_domain.Config,
@@ -761,9 +746,8 @@ func NewDiskSnapshot[K comparable, V any](
 	return snapshot, nil
 }
 
-// createSnapshotSandbox creates a sandboxed filesystem for the snapshot
-// directory. The directory is created automatically by safedisk for
-// ModeReadWrite.
+// createSnapshotSandbox creates a sandboxed filesystem for the snapshot directory. The
+// directory is created automatically by safedisk for ModeReadWrite.
 //
 // Takes directory (string) which specifies the path to the snapshot directory.
 //

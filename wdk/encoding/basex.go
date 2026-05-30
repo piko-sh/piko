@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -57,12 +58,11 @@ const (
 	// maxBase36Len16 is the maximum Base36 encoded length for 16 bytes.
 	maxBase36Len16 = 25
 
-	// StdBase64Alphabet is the standard Base64 character set as defined in RFC
-	// 4648.
+	// StdBase64Alphabet is the standard Base64 character set as defined in RFC 4648.
 	StdBase64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-	// URLBase64Alphabet is the URL-safe Base64 alphabet as defined in RFC 4648.
-	// It uses '-' and '_' instead of '+' and '/' to avoid problems in URLs.
+	// URLBase64Alphabet is the URL-safe Base64 alphabet as defined in RFC 4648. It uses '-'
+	// and '_' instead of '+' and '/' to avoid problems in URLs.
 	URLBase64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 	// StdHexAlphabetLower is the standard lowercase hexadecimal alphabet.
@@ -74,21 +74,18 @@ const (
 	// StdBase32Alphabet is the standard Base32 alphabet from RFC 4648.
 	StdBase32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
-	// HexBase32Alphabet is the Extended Hex Base32 alphabet as defined in
-	// RFC 4648. This alphabet keeps the sort order of the original data when
-	// the encoded text is sorted.
+	// HexBase32Alphabet is the Extended Hex Base32 alphabet as defined in RFC 4648. This
+	// alphabet keeps the sort order of the original data when the encoded text is sorted.
 	HexBase32Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 
-	// maxUint64Digits is the maximum number of digits needed to represent a uint64
-	// in base 10. This sets the buffer size for encoding integers.
+	// maxUint64Digits is the maximum number of digits needed to represent a uint64 in base
+	// 10. This sets the buffer size for encoding integers.
 	maxUint64Digits = 20
 
-	// minFastPathBase is the minimum base for which the fast path
-	// buffer is sized, assuming base-36 encoding that produces at
-	// most 13 characters for 8 bytes.
+	// minFastPathBase is the minimum base for which the fast path buffer is sized, assuming
+	// base-36 encoding that produces at most 13 characters for 8 bytes.
 	//
-	// Smaller bases produce longer output and would overflow the
-	// buffer.
+	// Smaller bases produce longer output and would overflow the buffer.
 	minFastPathBase = 36
 
 	// bitsPerByte is the number of bits in a byte.
@@ -97,42 +94,43 @@ const (
 	// byteMask is the bitmask for getting the lowest 8 bits of an integer.
 	byteMask = 0xFF
 
-	// errFmtNonBaseChar is the format string for errors when input contains
-	// characters outside the encoding's alphabet.
+	// errFmtNonBaseChar is the format string for errors when input contains characters
+	// outside the encoding's alphabet.
 	errFmtNonBaseChar = "non-base character '%c' found in input"
 )
 
-// defaultMaxBaseXBytes is the default maximum input length (in bytes for
-// encode, characters for decode) accepted by the generic baseX path. baseX is
-// typically used for short identifiers, so 16 KiB is a generous practical cap.
-const defaultMaxBaseXBytes = 16 * 1024
+const (
+	// defaultMaxBaseXBytes is the default maximum input length (in bytes for encode,
+	// characters for decode) accepted by the generic baseX path. baseX is typically used for
+	// short identifiers, so 16 KiB is a generous practical cap.
+	defaultMaxBaseXBytes = 16 * 1024
+)
 
 var (
-	// ErrAlphabetEmpty is returned when an empty alphabet string is provided to
-	// NewEncoding.
+	// ErrAlphabetEmpty is returned when an empty alphabet string is provided to NewEncoding.
 	ErrAlphabetEmpty = errors.New("alphabet cannot be empty")
 
-	// ErrAlphabetAmbiguous is returned when an alphabet contains duplicate
-	// characters.
+	// ErrAlphabetAmbiguous is returned when an alphabet contains duplicate characters.
 	ErrAlphabetAmbiguous = errors.New("ambiguous alphabet")
 
-	// ErrBaseXInputTooLarge is returned when the input to a generic baseX
-	// encode or decode exceeds the configured cap. The bigint multiply/divide
-	// loop is O(n^2) in input length, so a cap protects against pathological
-	// inputs that could pin a CPU.
+	// ErrBaseXInputTooLarge is returned when the input to a generic baseX encode or decode
+	// exceeds the configured cap. The bigint multiply/divide loop is O(n^2) in input length,
+	// so a cap protects against pathological inputs that could pin a CPU.
 	ErrBaseXInputTooLarge = errors.New("baseX input exceeds maximum size")
 )
 
-// maxBaseXInputBytes holds the active cap for generic baseX operations. It is
-// stored atomically so SetMaxBaseXInputBytes can be called from any goroutine.
-var maxBaseXInputBytes atomic.Int64
+var (
+	// maxBaseXInputBytes holds the active cap for generic baseX operations. It is stored
+	// atomically so SetMaxBaseXInputBytes can be called from any goroutine.
+	maxBaseXInputBytes atomic.Int64
+)
 
 func init() {
 	maxBaseXInputBytes.Store(defaultMaxBaseXBytes)
 }
 
-// SetMaxBaseXInputBytes overrides the maximum input size for generic baseX
-// encode and decode operations. Pass a value <= 0 to restore the default.
+// SetMaxBaseXInputBytes overrides the maximum input size for generic baseX encode and
+// decode operations. Pass a value <= 0 to restore the default.
 //
 // Takes limit (int) which is the new cap in bytes (or characters for decode).
 func SetMaxBaseXInputBytes(limit int) {
@@ -150,8 +148,8 @@ func MaxBaseXInputBytes() int {
 	return int(maxBaseXInputBytes.Load())
 }
 
-// fastPathEncoder defines methods for fast encoding and decoding of bytes.
-// It allows base64 and hex encoders to be used in the same way.
+// fastPathEncoder defines methods for fast encoding and decoding of bytes. It allows
+// base64 and hex encoders to be used in the same way.
 type fastPathEncoder interface {
 	// EncodeToString encodes the source bytes to a string representation.
 	//
@@ -169,13 +167,12 @@ type fastPathEncoder interface {
 	DecodeString(s string) ([]byte, error)
 }
 
-// Encoding represents a generic base-X encoding scheme defined by a custom
-// alphabet. It can handle arbitrary bases but will automatically delegate to
-// optimised standard library implementations (like base64, hex) if a
-// standard alphabet is provided.
+// Encoding represents a generic base-X encoding scheme defined by a custom alphabet. It
+// can handle arbitrary bases but will automatically delegate to optimised standard
+// library implementations (like base64, hex) if a standard alphabet is provided.
 type Encoding struct {
-	// fastPath holds an optimised encoder for standard alphabets such as base64,
-	// base32, and hex; nil when using the generic baseX algorithm.
+	// fastPath holds an optimised encoder for standard alphabets such as base64, base32, and
+	// hex; nil when using the generic baseX algorithm.
 	fastPath fastPathEncoder
 
 	// reverseMap maps each rune in the alphabet to its numeric value for decoding.
@@ -209,9 +206,9 @@ type Encoding struct {
 	hasReverseBytes bool
 }
 
-// NewEncoding creates an Encoding for the given alphabet, using optimised
-// standard library implementations when the alphabet matches a well-known
-// encoding such as Base64, Base32, or Hex.
+// NewEncoding creates an Encoding for the given alphabet, using optimised standard
+// library implementations when the alphabet matches a well-known encoding such as Base64,
+// Base32, or Hex.
 //
 // Takes alphabet (string) which specifies the characters for the encoding.
 //
@@ -265,12 +262,12 @@ func NewEncoding(alphabet string) (*Encoding, error) {
 	return e, nil
 }
 
-// EncodeBytes converts a slice of bytes into a string using the encoding.
-// It will automatically use the optimised standard library if a
-// standard alphabet (Base64, Hex) was detected at creation time.
+// EncodeBytes converts a slice of bytes into a string using the encoding. It will
+// automatically use the optimised standard library if a standard alphabet (Base64, Hex)
+// was detected at creation time.
 //
-// For inputs that exceed the configured generic cap, this returns the empty
-// string. Use TryEncodeBytes for explicit error reporting.
+// For inputs that exceed the configured generic cap, this returns the empty string. Use
+// TryEncodeBytes for explicit error reporting.
 //
 // Takes data ([]byte) which is the raw bytes to encode.
 //
@@ -287,14 +284,14 @@ func (enc *Encoding) EncodeBytes(data []byte) string {
 	return enc.encodeBytesGeneric(data)
 }
 
-// TryEncodeBytes is the error-returning counterpart to EncodeBytes that
-// surfaces ErrBaseXInputTooLarge when the input exceeds the configured cap.
+// TryEncodeBytes is the error-returning counterpart to EncodeBytes that surfaces
+// ErrBaseXInputTooLarge when the input exceeds the configured cap.
 //
 // Takes data ([]byte) which is the raw bytes to encode.
 //
 // Returns string which is the encoded representation of the input bytes.
-// Returns error which wraps ErrBaseXInputTooLarge when the input exceeds the
-// configured cap.
+// Returns error which wraps ErrBaseXInputTooLarge when the input exceeds the configured
+// cap.
 func (enc *Encoding) TryEncodeBytes(data []byte) (string, error) {
 	if enc.fastPath != nil {
 		return enc.fastPath.EncodeToString(data), nil
@@ -307,15 +304,15 @@ func (enc *Encoding) TryEncodeBytes(data []byte) (string, error) {
 	return enc.encodeBytesGeneric(data), nil
 }
 
-// DecodeBytes converts a string created by EncodeBytes back into a slice of
-// bytes. It will automatically use the optimised standard library if a
-// standard alphabet (Base64, Hex) was detected at creation time.
+// DecodeBytes converts a string created by EncodeBytes back into a slice of bytes. It
+// will automatically use the optimised standard library if a standard alphabet (Base64,
+// Hex) was detected at creation time.
 //
 // Takes input (string) which is the encoded string to decode.
 //
 // Returns []byte which is the decoded byte slice.
-// Returns error when the input string is not valid for this encoding, or
-// wraps ErrBaseXInputTooLarge when the input exceeds the configured cap.
+// Returns error when the input string is not valid for this encoding, or wraps
+// ErrBaseXInputTooLarge when the input exceeds the configured cap.
 func (enc *Encoding) DecodeBytes(input string) ([]byte, error) {
 	if enc.fastPath != nil {
 		return enc.fastPath.DecodeString(input)
@@ -328,8 +325,8 @@ func (enc *Encoding) DecodeBytes(input string) ([]byte, error) {
 	return enc.decodeBytesGeneric(input)
 }
 
-// EncodeUint64 converts an uint64 value into a string using the encoding.
-// This is optimised for converting database IDs into short, clean identifiers.
+// EncodeUint64 converts an uint64 value into a string using the encoding. This is
+// optimised for converting database IDs into short, clean identifiers.
 //
 // Takes value (uint64) which is the number to encode.
 //
@@ -342,14 +339,13 @@ func (enc *Encoding) EncodeUint64(value uint64) string {
 	return enc.encodeUint64Runes(value)
 }
 
-// DecodeUint64 converts a string created by EncodeUint64 back into an uint64
-// value.
+// DecodeUint64 converts a string created by EncodeUint64 back into an uint64 value.
 //
 // Takes input (string) which is the encoded string to decode.
 //
 // Returns uint64 which is the decoded numeric value.
-// Returns error when the input is empty, contains invalid runes for the
-// alphabet, or the result would overflow uint64.
+// Returns error when the input is empty, contains invalid runes for the alphabet, or the
+// result would overflow uint64.
 func (enc *Encoding) DecodeUint64(input string) (uint64, error) {
 	if input == "" {
 		return 0, errors.New("cannot decode empty string as uint64")
@@ -371,7 +367,7 @@ func (enc *Encoding) initialiseASCIILookup(runes []rune) {
 		enc.reverseByteMap[i] = invalidASCII
 	}
 	for i, r := range runes {
-		b := byte(r)
+		b := safeconv.RuneToByte(r)
 		enc.alphabetBytes[i] = b
 		enc.reverseByteMap[b] = i
 	}
@@ -383,8 +379,8 @@ func (enc *Encoding) initialiseASCIILookup(runes []rune) {
 //
 // Takes value (uint64) which is the number to encode.
 //
-// Returns string which is the encoded representation, with zero allocation
-// for zero value.
+// Returns string which is the encoded representation, with zero allocation for zero
+// value.
 func (enc *Encoding) encodeUint64ASCII(value uint64) string {
 	if value == 0 {
 		return enc.zeroString
@@ -404,8 +400,8 @@ func (enc *Encoding) encodeUint64ASCII(value uint64) string {
 	return string(buffer[position:])
 }
 
-// encodeUint64Runes encodes an uint64 using the rune-based alphabet for
-// non-ASCII encodings.
+// encodeUint64Runes encodes an uint64 using the rune-based alphabet for non-ASCII
+// encodings.
 //
 // Takes value (uint64) which is the number to encode.
 //
@@ -483,8 +479,8 @@ func (enc *Encoding) decodeUint64Runes(input string) (uint64, error) {
 	return result, nil
 }
 
-// encodeBytesGeneric implements the generic arithmetic-based encoding for
-// custom alphabets.
+// encodeBytesGeneric implements the generic arithmetic-based encoding for custom
+// alphabets.
 //
 // Takes data ([]byte) which is the byte slice to encode.
 //
@@ -517,8 +513,8 @@ func (enc *Encoding) encodeBytesGeneric(data []byte) string {
 	return enc.encodeBytesRunes(digits, leadingZeroCount)
 }
 
-// encodeBytesASCII encodes digits to a string using the byte-based alphabet.
-// Avoids memory allocation where possible.
+// encodeBytesASCII encodes digits to a string using the byte-based alphabet. Avoids
+// memory allocation where possible.
 //
 // Takes digits ([]int) which contains the numeric values to encode.
 // Takes leadingZeroCount (int) which specifies zeros to add at the start.
@@ -533,16 +529,16 @@ func (enc *Encoding) encodeBytesASCII(digits []int, leadingZeroCount int) string
 	}
 
 	position := leadingZeroCount
-	for i := len(digits) - 1; i >= 0; i-- {
-		buffer[position] = enc.alphabetBytes[digits[i]]
+	for _, digit := range slices.Backward(digits) {
+		buffer[position] = enc.alphabetBytes[digit]
 		position++
 	}
 
 	return mem.String(buffer)
 }
 
-// encodeBytesRunes encodes digits to a string using rune-based alphabet
-// (for non-ASCII characters).
+// encodeBytesRunes encodes digits to a string using rune-based alphabet (for non-ASCII
+// characters).
 //
 // Takes digits ([]int) which contains the numeric values to encode.
 // Takes leadingZeroCount (int) which specifies zero padding at the start.
@@ -556,15 +552,15 @@ func (enc *Encoding) encodeBytesRunes(digits []int, leadingZeroCount int) string
 		_, _ = buffer.WriteRune(enc.zeroRune)
 	}
 
-	for i := len(digits) - 1; i >= 0; i-- {
-		_, _ = buffer.WriteRune(enc.alphabet[digits[i]])
+	for _, digit := range slices.Backward(digits) {
+		_, _ = buffer.WriteRune(enc.alphabet[digit])
 	}
 
 	return buffer.String()
 }
 
-// convertBytesToDigits converts raw bytes to base-N digits using a change of
-// base algorithm.
+// convertBytesToDigits converts raw bytes to base-N digits using a change of base
+// algorithm.
 //
 // Takes data ([]byte) which contains the raw bytes to convert.
 //
@@ -588,8 +584,8 @@ func (enc *Encoding) convertBytesToDigits(data []byte) []int {
 	return digits
 }
 
-// decodeBytesGeneric implements the generic arithmetic-based decoding for
-// custom alphabets.
+// decodeBytesGeneric implements the generic arithmetic-based decoding for custom
+// alphabets.
 //
 // Takes input (string) which is the encoded string to decode.
 //
@@ -607,8 +603,8 @@ func (enc *Encoding) decodeBytesGeneric(input string) ([]byte, error) {
 	return enc.decodeBytesRunes(input)
 }
 
-// decodeBytesASCII decodes a string using byte-based lookups, which avoids
-// []rune allocation.
+// decodeBytesASCII decodes a string using byte-based lookups, which avoids []rune
+// allocation.
 //
 // Takes input (string) which is the encoded string to decode.
 //
@@ -635,8 +631,7 @@ func (enc *Encoding) decodeBytesASCII(input string) ([]byte, error) {
 	return decoded, nil
 }
 
-// decodeBytesRunes decodes a string using rune-based lookups for non-ASCII
-// alphabets.
+// decodeBytesRunes decodes a string using rune-based lookups for non-ASCII alphabets.
 //
 // Takes input (string) which is the encoded string to decode.
 //
@@ -665,8 +660,8 @@ func (enc *Encoding) decodeBytesRunes(input string) ([]byte, error) {
 	return decoded, nil
 }
 
-// convertDigitsToBytesASCII converts a base-N encoded string back to bytes
-// using array lookups.
+// convertDigitsToBytesASCII converts a base-N encoded string back to bytes using array
+// lookups.
 //
 // Takes input (string) which is the base-N encoded string to convert.
 //
@@ -727,8 +722,8 @@ func (enc *Encoding) convertDigitsToBytesRunes(runes []rune) ([]byte, error) {
 	return bytesResult, nil
 }
 
-// encode8BytesFast encodes exactly 8 bytes using uint64 arithmetic.
-// This is a fast path that avoids the O(n^2) generic algorithm.
+// encode8BytesFast encodes exactly 8 bytes using uint64 arithmetic. This is a fast path
+// that avoids the O(n^2) generic algorithm.
 //
 // Takes data ([]byte) which must be exactly 8 bytes.
 // Takes leadingZeroCount (int) which is the number of leading zero bytes.
@@ -760,8 +755,8 @@ func (enc *Encoding) encode8BytesFast(data []byte, leadingZeroCount int) string 
 	return string(buffer[position:])
 }
 
-// encode16BytesFast encodes exactly 16 bytes using uint128 arithmetic.
-// This is a fast path that avoids the O(n^2) generic algorithm.
+// encode16BytesFast encodes exactly 16 bytes using uint128 arithmetic. This is a fast
+// path that avoids the O(n^2) generic algorithm.
 //
 // Takes data ([]byte) which must be exactly 16 bytes.
 // Takes leadingZeroCount (int) which is the number of leading zero bytes.
@@ -794,9 +789,8 @@ func (enc *Encoding) encode16BytesFast(data []byte, leadingZeroCount int) string
 	return string(buffer[position:])
 }
 
-// canUseFastPath8 checks whether the 8-byte fast path can be used for
-// encoding. This requires an ASCII alphabet, base >= 36, and the input to be
-// exactly 8 bytes.
+// canUseFastPath8 checks whether the 8-byte fast path can be used for encoding. This
+// requires an ASCII alphabet, base >= 36, and the input to be exactly 8 bytes.
 //
 // Takes data ([]byte) which is the input data.
 //
@@ -811,9 +805,8 @@ func (enc *Encoding) canUseFastPath8(data []byte) bool {
 	return len(data) == fastPathSize8
 }
 
-// canUseFastPath16 checks whether the 16-byte fast path can be used for
-// encoding. This requires an ASCII alphabet, base >= 36, and the input to be
-// exactly 16 bytes.
+// canUseFastPath16 checks whether the 16-byte fast path can be used for encoding. This
+// requires an ASCII alphabet, base >= 36, and the input to be exactly 16 bytes.
 //
 // Takes data ([]byte) which is the input data.
 //
@@ -828,14 +821,13 @@ func (enc *Encoding) canUseFastPath16(data []byte) bool {
 	return len(data) == fastPathSize16
 }
 
-// base64Adapter wraps a standard library base64 encoding to satisfy the
-// fastPathEncoder interface.
+// base64Adapter wraps a standard library base64 encoding to satisfy the fastPathEncoder
+// interface.
 type base64Adapter struct {
 	*base64.Encoding
 }
 
-// base32Adapter wraps a standard library base32 encoding to implement
-// fastPathEncoder.
+// base32Adapter wraps a standard library base32 encoding to implement fastPathEncoder.
 type base32Adapter struct {
 	*base32.Encoding
 }
@@ -866,8 +858,8 @@ func (hexAdapter) DecodeString(s string) ([]byte, error) {
 //
 // Takes data ([]byte) which is the byte slice to check.
 //
-// Returns bool which is true if all bytes are zero or the slice is empty,
-// false otherwise.
+// Returns bool which is true if all bytes are zero or the slice is empty, false
+// otherwise.
 func isAllZeroBytes(data []byte) bool {
 	for _, b := range data {
 		if b != 0 {
@@ -908,8 +900,8 @@ func isAllZeroRunes(runes []rune, zeroRune rune) bool {
 	return true
 }
 
-// countLeadingZeroRunes counts how many runes at the start of a slice match
-// the given zero rune.
+// countLeadingZeroRunes counts how many runes at the start of a slice match the given
+// zero rune.
 //
 // Takes runes ([]rune) which is the slice of runes to check.
 // Takes zeroRune (rune) which is the rune to match against.
@@ -926,8 +918,8 @@ func countLeadingZeroRunes(runes []rune, zeroRune rune) int {
 	return count
 }
 
-// isAllZeroBytesString checks whether every byte in a string matches the given
-// byte value.
+// isAllZeroBytesString checks whether every byte in a string matches the given byte
+// value.
 //
 // Takes s (string) which is the string to check.
 // Takes zeroByte (byte) which is the byte value to compare against.
@@ -942,8 +934,8 @@ func isAllZeroBytesString(s string, zeroByte byte) bool {
 	return true
 }
 
-// countLeadingZeroBytesString counts the number of leading bytes that match
-// the zero byte.
+// countLeadingZeroBytesString counts the number of leading bytes that match the zero
+// byte.
 //
 // Takes s (string) which is the string to examine.
 // Takes zeroByte (byte) which is the byte value to count from the start.

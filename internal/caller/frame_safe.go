@@ -22,11 +22,11 @@ package caller
 
 import "runtime"
 
-// resolveFrame returns the function name, file path, and line number for this
-// program counter.
+// resolveFrame returns the function name, file path, and line number for this program
+// counter.
 //
-// This is the safe (allocating) version used when building with -tags safe.
-// It uses runtime.CallersFrames which allocates internally.
+// This is the safe (allocating) version used when building with -tags safe. It uses
+// runtime.CallersFrames which allocates internally.
 //
 // Returns name (string) which is the fully qualified function name.
 // Returns file (string) which is the full file path.

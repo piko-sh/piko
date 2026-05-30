@@ -132,7 +132,7 @@ func TestStop_CallsServerShutdown(t *testing.T) {
 
 	_ = service.Stop(context.Background())
 
-	if atomic.LoadInt64(&mockServer.ShutdownCallCount) == 0 {
+	if mockServer.ShutdownCallCount.Load() == 0 {
 		t.Error("Expected server Shutdown to be called")
 	}
 }
@@ -155,7 +155,7 @@ func TestHandleBuildNotifications_IgnoresNilResult(t *testing.T) {
 
 	service.processNotification(context.Background(), &notification)
 
-	if atomic.LoadInt64(&mockSEO.GenerateArtefactsCallCount) != 0 {
+	if mockSEO.GenerateArtefactsCallCount.Load() != 0 {
 		t.Error("Expected GenerateArtefacts NOT to be called for nil result")
 	}
 }
@@ -203,7 +203,7 @@ func TestSubscribeToCoordinator_SubscribesToCoordinator(t *testing.T) {
 
 	_ = service.subscribeToCoordinator(ctx)
 
-	if atomic.LoadInt64(&mockCoordinator.SubscribeCallCount) == 0 {
+	if mockCoordinator.SubscribeCallCount.Load() == 0 {
 		t.Error("Expected Subscribe to be called on coordinator")
 	}
 }
@@ -491,7 +491,7 @@ func TestRunDev_SubscribesToCoordinator(t *testing.T) {
 	}()
 
 	if !waitForCondition(2*time.Second, func() bool {
-		return atomic.LoadInt64(&mockCoordinator.SubscribeCallCount) > 0
+		return mockCoordinator.SubscribeCallCount.Load() > 0
 	}) {
 		t.Fatal("timed out waiting for Subscribe to be called on coordinator")
 	}
@@ -786,7 +786,7 @@ func TestStop_StopsOrchestratorService(t *testing.T) {
 
 	_ = service.Stop(context.Background())
 
-	if atomic.LoadInt64(&mockOrchestrator.StopCallCount) == 0 {
+	if mockOrchestrator.StopCallCount.Load() == 0 {
 		t.Error("expected orchestrator Stop() to be called")
 	}
 }
@@ -831,17 +831,17 @@ func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) 
 	const slots = 2
 
 	release := make(chan struct{})
-	var inFlight int64
-	var peak int64
+	var inFlight atomic.Int64
+	var peak atomic.Int64
 
 	mockSEO := &MockSEOService{
 		GenerateArtefactsFunc: func(_ context.Context, _ *seo_dto.ProjectView) error {
-			current := atomic.AddInt64(&inFlight, 1)
-			defer atomic.AddInt64(&inFlight, -1)
+			current := inFlight.Add(1)
+			defer inFlight.Add(-1)
 
 			for {
-				existing := atomic.LoadInt64(&peak)
-				if current <= existing || atomic.CompareAndSwapInt64(&peak, existing, current) {
+				existing := peak.Load()
+				if current <= existing || peak.CompareAndSwap(existing, current) {
 					break
 				}
 			}
@@ -870,7 +870,7 @@ func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) 
 	}()
 
 	if !waitForCondition(2*time.Second, func() bool {
-		return atomic.LoadInt64(&inFlight) >= int64(slots)
+		return inFlight.Load() >= int64(slots)
 	}) {
 		t.Fatal("timed out waiting for semaphore to fill")
 	}
@@ -885,11 +885,11 @@ func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) 
 
 	service.seoWg.Wait()
 
-	if got := atomic.LoadInt64(&peak); got > int64(slots) {
+	if got := peak.Load(); got > int64(slots) {
 		t.Errorf("expected peak in-flight <= %d, got %d", slots, got)
 	}
 
-	if calls := atomic.LoadInt64(&mockSEO.GenerateArtefactsCallCount); calls != burst {
+	if calls := mockSEO.GenerateArtefactsCallCount.Load(); calls != burst {
 		t.Errorf("expected %d generate calls, got %d", burst, calls)
 	}
 }
@@ -921,7 +921,7 @@ func TestProcessSEOArtefacts_SkipsWhenSEOContextCancelled(t *testing.T) {
 
 	service.releaseSEOSlot()
 
-	if calls := atomic.LoadInt64(&mockSEO.GenerateArtefactsCallCount); calls != 0 {
+	if calls := mockSEO.GenerateArtefactsCallCount.Load(); calls != 0 {
 		t.Errorf("expected GenerateArtefacts NOT to be called when context cancelled, got %d", calls)
 	}
 }

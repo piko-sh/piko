@@ -19,15 +19,14 @@
 package linguistics_domain
 
 // BigramAnalyserPort analyses text for character bigram frequency patterns.
-// Implementations provide language-specific bigram frequency tables for
-// detecting gibberish or random text.
+// Implementations provide language-specific bigram frequency tables for detecting
+// gibberish or random text.
 type BigramAnalyserPort interface {
-	// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-	// to total bigrams in the text. Higher values indicate more random or
-	// nonsensical character patterns.
+	// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams
+	// in the text. Higher values indicate more random or nonsensical character patterns.
 	//
-	// Returns the ratio (0.0 to 1.0) and whether analysis was performed
-	// (false when the text is too short).
+	// Returns the ratio (0.0 to 1.0) and whether analysis was performed (false when the text
+	// is too short).
 	BigramFrequencyRatio(text string) (ratio float64, analysed bool)
 
 	// GetLanguage returns the language this analyser is configured for.

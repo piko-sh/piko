@@ -43,10 +43,12 @@ var (
 	// flagInteractive holds the -interactive command-line flag for TUI step-through mode.
 	flagInteractive = flag.Bool("interactive", false, "Enable interactive step-through mode with TUI")
 
-	// flagInteractiveSimple holds the -interactive-simple command-line flag for basic ANSI mode.
+	// flagInteractiveSimple holds the -interactive-simple command-line flag for basic ANSI
+	// mode.
 	flagInteractiveSimple = flag.Bool("interactive-simple", false, "Use basic ANSI mode instead of TUI")
 
-	// flagUpdateGolden holds the -update-goldens command-line flag for refreshing golden files.
+	// flagUpdateGolden holds the -update-goldens command-line flag for refreshing golden
+	// files.
 	flagUpdateGolden = flag.Bool("update-goldens", false, "Update golden files instead of comparing")
 )
 
@@ -62,12 +64,11 @@ type harnessOptions struct {
 	// projectDir is the path to the project folder used for building and testing.
 	projectDir string
 
-	// outputDir is the folder for saving screenshots, PDFs, and other test
-	// output. Defaults to the current working folder.
+	// outputDir is the folder for saving screenshots, PDFs, and other test output. Defaults
+	// to the current working folder.
 	outputDir string
 
-	// serverCommand specifies a custom command to start the server; overrides
-	// the default.
+	// serverCommand specifies a custom command to start the server; overrides the default.
 	serverCommand []string
 
 	// serverArgs holds extra command-line arguments to pass to the server.
@@ -114,8 +115,8 @@ type WaitOption func(*waitConfig)
 
 // specOptions holds the settings for RunSpec.
 type specOptions struct {
-	// updateGoldens indicates whether to update golden test files rather than
-	// compare against them.
+	// updateGoldens indicates whether to update golden test files rather than compare
+	// against them.
 	updateGoldens bool
 
 	// timeout is the maximum duration allowed for spec execution; 0 means no limit.
@@ -136,11 +137,11 @@ func WithProjectDir(directory string) HarnessOption {
 	}
 }
 
-// WithOutputDir sets the directory for saving test artefacts such as
-// screenshots and PDFs.
+// WithOutputDir sets the directory for saving test artefacts such as screenshots and
+// PDFs.
 //
-// Paths passed to Save* methods are relative to this directory. Defaults to
-// the current working directory.
+// Paths passed to Save* methods are relative to this directory. Defaults to the current
+// working directory.
 //
 // Takes directory (string) which specifies the output directory path.
 //
@@ -151,8 +152,8 @@ func WithOutputDir(directory string) HarnessOption {
 	}
 }
 
-// WithPort sets the server port.
-// A value of 0 means an available port is chosen automatically (default).
+// WithPort sets the server port. A value of 0 means an available port is chosen
+// automatically (default).
 //
 // Takes port (int) which specifies the port number to use.
 //
@@ -163,11 +164,10 @@ func WithPort(port int) HarnessOption {
 	}
 }
 
-// WithHeadless sets whether to run the browser in headless mode.
-// Defaults to true unless -headed or -interactive flags are set.
+// WithHeadless sets whether to run the browser in headless mode. Defaults to true unless
+// -headed or -interactive flags are set.
 //
-// Takes headless (bool) which specifies whether to run without a visible
-// browser window.
+// Takes headless (bool) which specifies whether to run without a visible browser window.
 //
 // Returns HarnessOption which configures the headless mode setting.
 func WithHeadless(headless bool) HarnessOption {
@@ -176,8 +176,8 @@ func WithHeadless(headless bool) HarnessOption {
 	}
 }
 
-// WithInteractive enables step-through mode with a terminal interface.
-// Defaults to false unless the -interactive flag is set.
+// WithInteractive enables step-through mode with a terminal interface. Defaults to false
+// unless the -interactive flag is set.
 //
 // Takes interactive (bool) which enables or disables interactive mode.
 //
@@ -192,8 +192,8 @@ func WithInteractive(interactive bool) HarnessOption {
 	}
 }
 
-// WithSimpleInteractive enables basic ANSI interactive mode instead of the
-// bubbletea TUI. Use it for terminals that do not support the TUI.
+// WithSimpleInteractive enables basic ANSI interactive mode instead of the bubbletea TUI.
+// Use it for terminals that do not support the TUI.
 //
 // Returns HarnessOption which sets the harness to use simple interactive mode.
 func WithSimpleInteractive() HarnessOption {
@@ -204,8 +204,8 @@ func WithSimpleInteractive() HarnessOption {
 	}
 }
 
-// WithBuildTimeout sets the timeout for building the project. The default
-// value is 5 minutes.
+// WithBuildTimeout sets the timeout for building the project. The default value is 5
+// minutes.
 //
 // Takes d (time.Duration) which specifies the build timeout.
 //
@@ -216,8 +216,8 @@ func WithBuildTimeout(d time.Duration) HarnessOption {
 	}
 }
 
-// WithSkipBuild skips the build step if the project is already built,
-// speeding up repeated test runs.
+// WithSkipBuild skips the build step if the project is already built, speeding up
+// repeated test runs.
 //
 // Takes skip (bool) which controls whether to skip the build step.
 //
@@ -242,15 +242,14 @@ func WithEnv(key, value string) HarnessOption {
 	}
 }
 
-// WithServerCommand sets a custom command to start the server.
-// This replaces the default "go run ./cmd/server" command.
+// WithServerCommand sets a custom command to start the server. This replaces the default
+// "go run ./cmd/server" command.
 //
 // Takes arguments (...string) which specifies the command and its arguments.
 //
 // Returns HarnessOption which configures the harness to use the custom command.
 //
-// Example:
-// browser.NewHarness(
+// Example: browser.NewHarness(
 //
 //	browser.WithServerCommand("go", "run", "./cmd/testserver"),
 //
@@ -261,11 +260,10 @@ func WithServerCommand(arguments ...string) HarnessOption {
 	}
 }
 
-// WithServerArgs adds extra arguments to the server command. These are added
-// after the default or custom server command.
+// WithServerArgs adds extra arguments to the server command. These are added after the
+// default or custom server command.
 //
-// Example:
-// browser.NewHarness(
+// Example: browser.NewHarness(
 //
 //	browser.WithServerArgs("--config", "test.yaml"),
 //
@@ -280,12 +278,11 @@ func WithServerArgs(arguments ...string) HarnessOption {
 	}
 }
 
-// WithSandboxFactory sets a factory for creating sandboxes in the harness.
-// When set, the factory is used instead of safedisk.NewNoOpSandbox for
-// creating source and output sandboxes.
+// WithSandboxFactory sets a factory for creating sandboxes in the harness. When set, the
+// factory is used instead of safedisk.NewNoOpSandbox for creating source and output
+// sandboxes.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
 // Returns HarnessOption which configures the harness with the given factory.
 func WithSandboxFactory(factory safedisk.Factory) HarnessOption {
@@ -305,8 +302,8 @@ func WithTimeout(d time.Duration) WaitOption {
 	}
 }
 
-// WithUpdateGoldens sets whether to update golden files.
-// Defaults to the value of the -update-goldens flag.
+// WithUpdateGoldens sets whether to update golden files. Defaults to the value of the
+// -update-goldens flag.
 //
 // Takes update (bool) which controls whether golden files are updated.
 //
@@ -317,8 +314,7 @@ func WithUpdateGoldens(update bool) SpecOption {
 	}
 }
 
-// WithSpecTimeout sets the timeout for spec execution. The default is
-// 5 minutes.
+// WithSpecTimeout sets the timeout for spec execution. The default is 5 minutes.
 //
 // Takes d (time.Duration) which specifies the timeout duration.
 //
@@ -331,8 +327,7 @@ func WithSpecTimeout(d time.Duration) SpecOption {
 
 // defaultHarnessOptions returns the default options for the test harness.
 //
-// Returns harnessOptions which contains sensible defaults for test harness
-// configuration.
+// Returns harnessOptions which contains sensible defaults for test harness configuration.
 func defaultHarnessOptions() harnessOptions {
 	return harnessOptions{
 		env:            make(map[string]string),

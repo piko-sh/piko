@@ -22,7 +22,6 @@ import (
 	"context"
 	"io"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"piko.sh/piko/internal/generator/generator_adapters"
@@ -147,13 +146,13 @@ const user: User = { name: "Alice" };
 				t.Errorf("expected artefact ID %q, got %q", tc.expectedArtefactID, artefactID)
 			}
 			if tc.expectEmpty {
-				if atomic.LoadInt64(&mock.UpsertArtefactCallCount) != 0 {
+				if mock.UpsertArtefactCallCount.Load() != 0 {
 					t.Error("expected no registry call for empty source")
 				}
 				return
 			}
-			if atomic.LoadInt64(&mock.UpsertArtefactCallCount) != 1 {
-				t.Errorf("expected 1 registry call, got %d", atomic.LoadInt64(&mock.UpsertArtefactCallCount))
+			if mock.UpsertArtefactCallCount.Load() != 1 {
+				t.Errorf("expected 1 registry call, got %d", mock.UpsertArtefactCallCount.Load())
 			}
 			if *lastArtefactID != tc.expectedArtefactID {
 				t.Errorf("expected stored artefact ID %q, got %q", tc.expectedArtefactID, *lastArtefactID)
@@ -194,7 +193,7 @@ func TestPKJSEmitter_EmitJS_SyntaxError(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for syntax error, got nil")
 	}
-	if atomic.LoadInt64(&mock.UpsertArtefactCallCount) != 0 {
+	if mock.UpsertArtefactCallCount.Load() != 0 {
 		t.Error("registry should not be called on transpile error")
 	}
 }

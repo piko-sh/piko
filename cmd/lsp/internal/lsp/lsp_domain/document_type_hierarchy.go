@@ -30,13 +30,13 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// PrepareTypeHierarchy returns the type hierarchy item at the given position.
-// This is the entry point for the LSP Type Hierarchy feature.
+// PrepareTypeHierarchy returns the type hierarchy item at the given position. This is the
+// entry point for the LSP Type Hierarchy feature.
 //
 // Takes position (protocol.Position) which specifies the cursor position to query.
 //
-// Returns []TypeHierarchyItem which contains the type at the position,
-// or empty slice if no type is found.
+// Returns []TypeHierarchyItem which contains the type at the position, or empty slice if
+// no type is found.
 // Returns error when the lookup fails.
 func (d *document) PrepareTypeHierarchy(ctx context.Context, position protocol.Position) ([]TypeHierarchyItem, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -64,8 +64,7 @@ func (d *document) PrepareTypeHierarchy(ctx context.Context, position protocol.P
 	return []TypeHierarchyItem{item}, nil
 }
 
-// extractTypeAtPosition finds the type name and package path at the given
-// position.
+// extractTypeAtPosition finds the type name and package path at the given position.
 //
 // Takes position (protocol.Position) which specifies the location to examine.
 //
@@ -125,14 +124,12 @@ func (d *document) lookupTypeDefinition(packagePath, typeName string) (file stri
 	return typeInfo.DefinedInFilePath, typeInfo.DefinitionLine, typeInfo.DefinitionColumn
 }
 
-// getTypeHierarchyIndexAndData extracts the index and data needed for
-// hierarchy lookups.
+// getTypeHierarchyIndexAndData extracts the index and data needed for hierarchy lookups.
 //
 // Takes item (TypeHierarchyItem) which contains the hierarchy item to process.
 // Takes opName (string) which identifies the operation for debug logging.
 //
-// Returns *inspector_domain.TypeHierarchyIndex which provides type hierarchy
-// access.
+// Returns *inspector_domain.TypeHierarchyIndex which provides type hierarchy access.
 // Returns *TypeHierarchyData which contains the extracted hierarchy data.
 // Returns bool which indicates whether the extraction was successful.
 func (d *document) getTypeHierarchyIndexAndData(
@@ -161,8 +158,8 @@ func (d *document) getTypeHierarchyIndexAndData(
 }
 
 // getTypeHierarchyRelations is the shared implementation for GetSupertypes and
-// GetSubtypes. It resolves the index, then delegates to lookupFn to retrieve
-// the related types and convert them to TypeHierarchyItem values.
+// GetSubtypes. It resolves the index, then delegates to lookupFn to retrieve the related
+// types and convert them to TypeHierarchyItem values.
 //
 // Takes item (TypeHierarchyItem) which identifies the type to query.
 // Takes opName (string) which names the operation for debug logging.
@@ -274,11 +271,11 @@ func buildTypeRange(line, column, nameLen int) protocol.Range {
 	}
 }
 
-// extractTypeHierarchyData extracts TypeHierarchyData from an item's Data field.
-// The Data field may be the struct directly or a map from JSON unmarshalling.
+// extractTypeHierarchyData extracts TypeHierarchyData from an item's Data field. The Data
+// field may be the struct directly or a map from JSON unmarshalling.
 //
-// Takes data (any) which is the raw data to extract, either a TypeHierarchyData
-// struct or a map from JSON unmarshalling.
+// Takes data (any) which is the raw data to extract, either a TypeHierarchyData struct or
+// a map from JSON unmarshalling.
 //
 // Returns *TypeHierarchyData which contains the extracted hierarchy data.
 // Returns error when JSON marshalling or unmarshalling fails.

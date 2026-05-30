@@ -18,9 +18,9 @@
 
 package inspector_domain
 
-// This file defines the TypeBuilder, which orchestrates the parsing,
-// caching, and serialisation of Go source code type information. It is designed
-// to be highly testable through the use of dependency injection.
+// This file defines the TypeBuilder, which orchestrates the parsing, caching, and
+// serialisation of Go source code type information. It is designed to be highly testable
+// through the use of dependency injection.
 
 import (
 	"cmp"
@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	// defaultMaxWorkers is the default number of workers used to parse files at the
-	// same time.
+	// defaultMaxWorkers is the default number of workers used to parse files at the same
+	// time.
 	defaultMaxWorkers = 4
 
 	// resolveTypeRecursionGuard is the maximum depth for resolving types.
@@ -54,10 +54,9 @@ type builderCacheKeyGenerator interface {
 	// Generates documentation output from the analysed source files.
 	//
 	// Takes config (inspector_dto.Config) which specifies the generation settings.
-	// Takes sourceContents (map[string][]byte) which provides the source file
-	// contents keyed by file path.
-	// Takes scriptHashes (map[string]string) which maps file paths to their
-	// content hashes.
+	// Takes sourceContents (map[string][]byte) which provides the source file contents keyed
+	// by file path.
+	// Takes scriptHashes (map[string]string) which maps file paths to their content hashes.
 	//
 	// Returns string which is the generated documentation.
 	// Returns error when generation fails.
@@ -68,8 +67,7 @@ type builderCacheKeyGenerator interface {
 type builderSourceParser interface {
 	// Parse processes source files and returns their AST representations.
 	//
-	// Takes sourceContents (map[string][]byte) which maps file paths to their
-	// source code.
+	// Takes sourceContents (map[string][]byte) which maps file paths to their source code.
 	// Takes maxWorkers (int) which limits the number of concurrent parsers.
 	//
 	// Returns map[string]*goast.File which maps file paths to their parsed ASTs.
@@ -94,17 +92,17 @@ type builderEncoder interface {
 	// Encode converts the given packages into a type data representation.
 	//
 	// Takes pkgs ([]*packages.Package) which contains the packages to encode.
-	// Takes moduleName (string) which is the user's module path for filtering
-	// internal packages from external dependencies.
+	// Takes moduleName (string) which is the user's module path for filtering internal
+	// packages from external dependencies.
 	//
 	// Returns *inspector_dto.TypeData which holds the encoded type information.
 	// Returns error when encoding fails.
 	Encode(pkgs []*packages.Package, moduleName string) (*inspector_dto.TypeData, error)
 }
 
-// TypeBuilder orchestrates the building and caching of Go source code type
-// information. It supports full mode (using go/packages) and lite mode
-// (using go/parser only), and is safe for concurrent use.
+// TypeBuilder orchestrates the building and caching of Go source code type information.
+// It supports full mode (using go/packages) and lite mode (using go/parser only), and is
+// safe for concurrent use.
 type TypeBuilder struct {
 	// provider is the optional cache provider for loading and saving type data.
 	provider TypeDataProvider
@@ -121,8 +119,8 @@ type TypeBuilder struct {
 	// keyGen generates cache keys for type building results.
 	keyGen builderCacheKeyGenerator
 
-	// sandboxFactory creates sandboxes with validated paths. Passed to the
-	// default key generator when no custom keyGen is provided.
+	// sandboxFactory creates sandboxes with validated paths. Passed to the default key
+	// generator when no custom keyGen is provided.
 	sandboxFactory safedisk.Factory
 
 	// querierByKey stores TypeQuerier instances by their cache key.
@@ -152,8 +150,8 @@ type TypeBuilderOption func(*TypeBuilder)
 
 // defaultKeyGenerator implements builderCacheKeyGenerator with default behaviour.
 type defaultKeyGenerator struct {
-	// sandboxFactory creates sandboxes with validated paths. When set, the
-	// factory is preferred over NewNoOpSandbox for fallback sandbox creation.
+	// sandboxFactory creates sandboxes with validated paths. When set, the factory is
+	// preferred over NewNoOpSandbox for fallback sandbox creation.
 	sandboxFactory safedisk.Factory
 }
 
@@ -161,8 +159,7 @@ type defaultKeyGenerator struct {
 //
 // Takes config (inspector_dto.Config) which specifies the inspection settings.
 // Takes sources (map[string][]byte) which contains the source files to hash.
-// Takes scriptHashes (map[string]string) which provides pre-computed hashes for
-// scripts.
+// Takes scriptHashes (map[string]string) which provides pre-computed hashes for scripts.
 //
 // Returns string which is the generated cache key.
 // Returns error when key generation fails.
@@ -187,16 +184,13 @@ func (*defaultParser) Parse(_ context.Context, sources map[string][]byte, maxWor
 // defaultLoader implements builderPackageLoader using the standard loader.
 type defaultLoader struct{}
 
-// Load uses the Go packages library to load and type-check packages from
-// source.
+// Load uses the Go packages library to load and type-check packages from source.
 //
-// Takes config (inspector_dto.Config) which specifies the package loading
-// settings.
-// Takes overlay (map[string][]byte) which provides in-memory file contents to
-// use instead of reading from disk.
+// Takes config (inspector_dto.Config) which specifies the package loading settings.
+// Takes overlay (map[string][]byte) which provides in-memory file contents to use instead
+// of reading from disk.
 //
-// Returns []*packages.Package which contains the loaded and type-checked
-// packages.
+// Returns []*packages.Package which contains the loaded and type-checked packages.
 // Returns error when package loading or type-checking fails.
 func (*defaultLoader) Load(ctx context.Context, config inspector_dto.Config, overlay map[string][]byte) ([]*packages.Package, error) {
 	return loadPackagesFromSource(ctx, config, overlay)
@@ -207,10 +201,9 @@ type defaultEncoder struct{}
 
 // Encode converts loaded packages into a portable TypeData DTO.
 //
-// Takes pkgs ([]*packages.Package) which contains the parsed Go packages to
-// process.
-// Takes moduleName (string) which is the user's module path for filtering
-// internal packages from external dependencies.
+// Takes pkgs ([]*packages.Package) which contains the parsed Go packages to process.
+// Takes moduleName (string) which is the user's module path for filtering internal
+// packages from external dependencies.
 //
 // Returns *inspector_dto.TypeData which holds the encoded type information.
 // Returns error when extraction or encoding fails.
@@ -218,17 +211,16 @@ func (*defaultEncoder) Encode(pkgs []*packages.Package, moduleName string) (*ins
 	return extractAndEncode(pkgs, moduleName)
 }
 
-// NewTypeBuilder creates a new TypeBuilder using functional options.
-// If key parts (parser, loader, and so on) are not given via options, it uses
-// default values that are ready for production.
+// NewTypeBuilder creates a new TypeBuilder using functional options. If key parts
+// (parser, loader, and so on) are not given via options, it uses default values that are
+// ready for production.
 //
-// Takes config (inspector_dto.Config) which sets the configuration, including
-// the maximum number of parse workers.
-// Takes opts (...TypeBuilderOption) which provides optional functional options
-// to change the builder's dependencies.
+// Takes config (inspector_dto.Config) which sets the configuration, including the maximum
+// number of parse workers.
+// Takes opts (...TypeBuilderOption) which provides optional functional options to change
+// the builder's dependencies.
 //
-// Returns *TypeBuilder which is ready for use after applying all options and
-// defaults.
+// Returns *TypeBuilder which is ready for use after applying all options and defaults.
 func NewTypeBuilder(config inspector_dto.Config, opts ...TypeBuilderOption) *TypeBuilder {
 	if config.MaxParseWorkers == nil {
 		config.MaxParseWorkers = new(defaultMaxWorkers)
@@ -269,12 +261,12 @@ func NewTypeBuilder(config inspector_dto.Config, opts ...TypeBuilderOption) *Typ
 	return m
 }
 
-// SetConfig updates the builder's configuration. This is used by the LSP to
-// reconfigure the builder for different modules without recreating it.
+// SetConfig updates the builder's configuration. This is used by the LSP to reconfigure
+// the builder for different modules without recreating it.
 //
-// The builder keeps per-module caches, so changing the configuration does not
-// clear existing cached data. Each module's data is stored by its unique cache
-// key (based on BaseDir, ModuleName, and source contents).
+// The builder keeps per-module caches, so changing the configuration does not clear
+// existing cached data. Each module's data is stored by its unique cache key (based on
+// BaseDir, ModuleName, and source contents).
 //
 // Takes config (inspector_dto.Config) which provides the new configuration.
 //
@@ -301,21 +293,19 @@ func (m *TypeBuilder) SetConfig(config inspector_dto.Config) {
 	}
 }
 
-// Build performs the main analysis and type-building process. It is
-// idempotent per module (cache key).
+// Build performs the main analysis and type-building process. It is idempotent per module
+// (cache key).
 //
-// Takes sourceContents (map[string][]byte) which provides virtual Go source
-// files from ModuleVirtualiser.
-// Takes scriptHashes (map[string]string) which maps .pk file paths to SHA1
-// hashes of their script block content. This is critical for cache
-// invalidation when scripts change, as sourceContents only contains stub
-// files that do not reflect script changes. In lite mode, scriptHashes is
-// ignored and caching is disabled.
+// Takes sourceContents (map[string][]byte) which provides virtual Go source files from
+// ModuleVirtualiser.
+// Takes scriptHashes (map[string]string) which maps .pk file paths to SHA1 hashes of
+// their script block content. This is critical for cache invalidation when scripts
+// change, as sourceContents only contains stub files that do not reflect script changes.
+// In lite mode, scriptHashes is ignored and caching is disabled.
 //
 // Returns error when the build process fails.
 //
-// Not safe for concurrent use. Acquires the internal mutex for the duration
-// of the build.
+// Not safe for concurrent use. Acquires the internal mutex for the duration of the build.
 func (m *TypeBuilder) Build(ctx context.Context, sourceContents map[string][]byte, scriptHashes map[string]string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "Build", logger_domain.Int("source_file_count", len(sourceContents)))
@@ -367,12 +357,12 @@ func (m *TypeBuilder) Build(ctx context.Context, sourceContents map[string][]byt
 	return nil
 }
 
-// GetTypeData returns the serialised type data for the current module.
-// Build must be called first.
+// GetTypeData returns the serialised type data for the current module. Build must be
+// called first.
 //
 // Returns *inspector_dto.TypeData which contains the serialised type data.
-// Returns error when Build has not been called or no data exists for the
-// current cache key.
+// Returns error when Build has not been called or no data exists for the current cache
+// key.
 //
 // Safe for concurrent use.
 func (m *TypeBuilder) GetTypeData() (*inspector_dto.TypeData, error) {
@@ -407,13 +397,11 @@ func (m *TypeBuilder) GetQuerier() (*TypeQuerier, bool) {
 	return querier, true
 }
 
-// GenerateCacheKeyForTest is a test-only helper to expose the cache key
-// generation logic.
+// GenerateCacheKeyForTest is a test-only helper to expose the cache key generation logic.
 //
-// Takes sourceContents (map[string][]byte) which provides the source file
-// contents keyed by path.
-// Takes scriptHashes (map[string]string) which provides precomputed hashes
-// for scripts.
+// Takes sourceContents (map[string][]byte) which provides the source file contents keyed
+// by path.
+// Takes scriptHashes (map[string]string) which provides precomputed hashes for scripts.
 //
 // Returns string which is the generated cache key.
 // Returns error when key generation fails.
@@ -428,16 +416,14 @@ func (m *TypeBuilder) IsLiteMode() bool {
 	return m.liteMode
 }
 
-// generateCacheKeyForBuild generates a cache key for the current build
-// configuration.
+// generateCacheKeyForBuild generates a cache key for the current build configuration.
 //
-// Takes sourceContents (map[string][]byte) which provides the source file
-// contents for cache key generation.
-// Takes scriptHashes (map[string]string) which provides script hashes for
-// cache validation.
+// Takes sourceContents (map[string][]byte) which provides the source file contents for
+// cache key generation.
+// Takes scriptHashes (map[string]string) which provides script hashes for cache
+// validation.
 //
-// Returns string which is the generated cache key, or empty if generation
-// fails.
+// Returns string which is the generated cache key, or empty if generation fails.
 func (m *TypeBuilder) generateCacheKeyForBuild(ctx context.Context, sourceContents map[string][]byte, scriptHashes map[string]string) string {
 	ctx, l := logger_domain.From(ctx, log)
 	cacheKey, err := m.keyGen.Generate(ctx, m.config, sourceContents, scriptHashes)
@@ -448,15 +434,13 @@ func (m *TypeBuilder) generateCacheKeyForBuild(ctx context.Context, sourceConten
 	return cacheKey
 }
 
-// buildFromCache tries to load type data from the cache and set up the
-// querier.
+// buildFromCache tries to load type data from the cache and set up the querier.
 //
 // Takes cacheKey (string) which identifies the cached type data to load.
-// Takes sourceContents (map[string][]byte) which provides the source files to
-// parse.
+// Takes sourceContents (map[string][]byte) which provides the source files to parse.
 //
-// Returns bool which is true when loading succeeds, or false when the cache
-// has no data or parsing fails.
+// Returns bool which is true when loading succeeds, or false when the cache has no data
+// or parsing fails.
 func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourceContents map[string][]byte) bool {
 	ctx, l := logger_domain.From(ctx, log)
 	if m.provider == nil {
@@ -486,10 +470,10 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 
 // buildFromSource runs the full build process without using the cache.
 //
-// Takes cacheKey (string) which identifies where to store the results. May be
-// empty if cache key generation failed.
-// Takes sourceContents (map[string][]byte) which provides the source files to
-// parse and build.
+// Takes cacheKey (string) which identifies where to store the results. May be empty if
+// cache key generation failed.
+// Takes sourceContents (map[string][]byte) which provides the source files to parse and
+// build.
 //
 // Returns error when parsing, loading, encoding, or validation fails.
 func (m *TypeBuilder) buildFromSource(ctx context.Context, cacheKey string, sourceContents map[string][]byte) error {
@@ -549,14 +533,14 @@ func (m *TypeBuilder) saveToCache(ctx context.Context, cacheKey string, typeData
 	}
 }
 
-// buildLite runs a lightweight build using the LiteBuilder.
-// This skips go/packages and uses only go/parser for AST parsing.
+// buildLite runs a lightweight build using the LiteBuilder. This skips go/packages and
+// uses only go/parser for AST parsing.
 //
-// Takes sourceContents (map[string][]byte) which maps file paths to their
-// source code bytes.
+// Takes sourceContents (map[string][]byte) which maps file paths to their source code
+// bytes.
 //
-// Returns error when the LiteBuilder is not set up, the build fails, or
-// type data cannot be retrieved.
+// Returns error when the LiteBuilder is not set up, the build fails, or type data cannot
+// be retrieved.
 func (m *TypeBuilder) buildLite(ctx context.Context, sourceContents map[string][]byte) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("[INSPECTOR-LITE] Starting lite build...")
@@ -600,11 +584,9 @@ func (m *TypeBuilder) buildLite(ctx context.Context, sourceContents map[string][
 
 // WithProvider sets the provider for storing and fetching type data.
 //
-// Takes provider (TypeDataProvider) which handles type data storage and
-// retrieval.
+// Takes provider (TypeDataProvider) which handles type data storage and retrieval.
 //
-// Returns TypeBuilderOption which configures the TypeBuilder with the given
-// provider.
+// Returns TypeBuilderOption which configures the TypeBuilder with the given provider.
 func WithProvider(provider TypeDataProvider) TypeBuilderOption {
 	return func(m *TypeBuilder) {
 		m.provider = provider
@@ -613,11 +595,9 @@ func WithProvider(provider TypeDataProvider) TypeBuilderOption {
 
 // WithParser sets the source code parser to use.
 //
-// Takes parser (builderSourceParser) which provides the logic for parsing
-// source files.
+// Takes parser (builderSourceParser) which provides the logic for parsing source files.
 //
-// Returns TypeBuilderOption which configures the TypeBuilder to use the
-// given parser.
+// Returns TypeBuilderOption which configures the TypeBuilder to use the given parser.
 func WithParser(parser builderSourceParser) TypeBuilderOption {
 	return func(m *TypeBuilder) {
 		m.parser = parser
@@ -626,8 +606,8 @@ func WithParser(parser builderSourceParser) TypeBuilderOption {
 
 // WithBuilderPackageLoader sets the Go package loader used to build types.
 //
-// Takes loader (builderPackageLoader) which provides the logic to load
-// packages for type resolution.
+// Takes loader (builderPackageLoader) which provides the logic to load packages for type
+// resolution.
 //
 // Returns TypeBuilderOption which sets up a TypeBuilder with the given loader.
 func WithBuilderPackageLoader(loader builderPackageLoader) TypeBuilderOption {
@@ -638,11 +618,9 @@ func WithBuilderPackageLoader(loader builderPackageLoader) TypeBuilderOption {
 
 // WithEncoder sets the encoder used to convert type data.
 //
-// Takes encoder (builderEncoder) which provides the encoding method for type
-// data.
+// Takes encoder (builderEncoder) which provides the encoding method for type data.
 //
-// Returns TypeBuilderOption which configures a TypeBuilder to use the given
-// encoder.
+// Returns TypeBuilderOption which configures a TypeBuilder to use the given encoder.
 func WithEncoder(encoder builderEncoder) TypeBuilderOption {
 	return func(m *TypeBuilder) {
 		m.encoder = encoder
@@ -651,23 +629,21 @@ func WithEncoder(encoder builderEncoder) TypeBuilderOption {
 
 // WithBuilderCacheKeyGenerator sets the cache key generator for a TypeBuilder.
 //
-// Takes keyGen (builderCacheKeyGenerator) which is the function used to create
-// cache keys.
+// Takes keyGen (builderCacheKeyGenerator) which is the function used to create cache
+// keys.
 //
-// Returns TypeBuilderOption which sets up a TypeBuilder to use the given key
-// generator.
+// Returns TypeBuilderOption which sets up a TypeBuilder to use the given key generator.
 func WithBuilderCacheKeyGenerator(keyGen builderCacheKeyGenerator) TypeBuilderOption {
 	return func(m *TypeBuilder) {
 		m.keyGen = keyGen
 	}
 }
 
-// WithBuilderSandboxFactory sets the sandbox factory for the TypeBuilder. The
-// factory is passed to the default cache key generator so it can create
-// sandboxes through the factory instead of using NewNoOpSandbox directly.
+// WithBuilderSandboxFactory sets the sandbox factory for the TypeBuilder. The factory is
+// passed to the default cache key generator so it can create sandboxes through the
+// factory instead of using NewNoOpSandbox directly.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
 // Returns TypeBuilderOption which configures the TypeBuilder with the factory.
 func WithBuilderSandboxFactory(factory safedisk.Factory) TypeBuilderOption {
@@ -676,17 +652,16 @@ func WithBuilderSandboxFactory(factory safedisk.Factory) TypeBuilderOption {
 	}
 }
 
-// WithLiteMode configures the builder to use lite mode, which bypasses
-// go/packages. Use it for REPL or WASM cases where go/packages is not
-// available.
+// WithLiteMode configures the builder to use lite mode, which bypasses go/packages. Use
+// it for REPL or WASM cases where go/packages is not available.
 //
 // When lite mode is enabled:
 //   - Build only requires sourceContents (scriptHashes is ignored)
 //   - Caching is disabled (no provider support)
 //   - Only AST parsing is done (no type-checking)
 //
-// Takes stdlibData (*inspector_dto.TypeData) which contains pre-made TypeData
-// for standard library types.
+// Takes stdlibData (*inspector_dto.TypeData) which contains pre-made TypeData for
+// standard library types.
 //
 // Returns TypeBuilderOption which sets up a TypeBuilder for lite mode.
 func WithLiteMode(stdlibData *inspector_dto.TypeData) TypeBuilderOption {

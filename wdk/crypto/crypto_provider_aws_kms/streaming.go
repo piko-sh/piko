@@ -32,15 +32,13 @@ import (
 	"piko.sh/piko/wdk/crypto/crypto_streaming"
 )
 
-// EncryptStream implements streaming encryption using AWS KMS envelope
-// encryption.
+// EncryptStream implements streaming encryption using AWS KMS envelope encryption.
 //
-// Generates a data encryption key (DEK) from KMS and uses it to perform local
-// AES-GCM streaming encryption. The encrypted DEK is stored in the streaming
-// header.
+// Generates a data encryption key (DEK) from KMS and uses it to perform local AES-GCM
+// streaming encryption. The encrypted DEK is stored in the streaming header.
 //
-// Cost: 1 KMS API call (GenerateDataKey) per stream, regardless of file size.
-// Memory: O(chunk_size) ~64KB, regardless of file size.
+// Cost: 1 KMS API call (GenerateDataKey) per stream, regardless of file size. Memory:
+// O(chunk_size) ~64KB, regardless of file size.
 //
 // Takes output (io.Writer) which receives the encrypted stream data.
 // Takes request (*crypto.EncryptRequest) which specifies encryption options.
@@ -108,27 +106,23 @@ func (p *Provider) EncryptStream(ctx context.Context, output io.Writer, request 
 	return writer, nil
 }
 
-// DecryptStream implements streaming decryption using AWS KMS envelope
-// encryption.
+// DecryptStream implements streaming decryption using AWS KMS envelope encryption.
 //
-// Reads the streaming header, decrypts the data encryption key (DEK) using
-// KMS, and uses it to perform local AES-GCM streaming decryption.
+// Reads the streaming header, decrypts the data encryption key (DEK) using KMS, and uses
+// it to perform local AES-GCM streaming decryption.
 //
 // Takes input (io.Reader) which provides the encrypted data stream.
 //
 // Returns io.ReadCloser which streams the decrypted plaintext.
-// Returns error when the header is invalid, the data key cannot be decrypted,
-// or the cipher cannot be initialised.
+// Returns error when the header is invalid, the data key cannot be decrypted, or the
+// cipher cannot be initialised.
 //
-// Cost: 1 KMS API call (Decrypt) per stream, regardless of file size.
-// Memory: O(chunk_size) ~64KB, regardless of file size.
+// Cost: 1 KMS API call (Decrypt) per stream, regardless of file size. Memory:
+// O(chunk_size) ~64KB, regardless of file size.
 //
-// Example:
-// decryptingReader, err := provider.DecryptStream(ctx, encryptedFile)
-// if err != nil { return err }
-// defer decryptingReader.Close()
-// plaintext, err := io.ReadAll(decryptingReader)
-// return plaintext, err
+// Example: decryptingReader, err := provider.DecryptStream(ctx, encryptedFile) if err !=
+// nil { return err } defer decryptingReader.Close() plaintext, err :=
+// io.ReadAll(decryptingReader) return plaintext, err
 func (p *Provider) DecryptStream(ctx context.Context, input io.Reader) (io.ReadCloser, error) {
 	header, err := readAndValidateDecryptHeader(input, p.Type())
 	if err != nil {
@@ -159,17 +153,15 @@ func (p *Provider) DecryptStream(ctx context.Context, input io.Reader) (io.ReadC
 	return reader, nil
 }
 
-// readAndValidateDecryptHeader reads and validates the streaming header for
-// decryption.
+// readAndValidateDecryptHeader reads and validates the streaming header for decryption.
 //
 // Takes input (io.Reader) which provides the encrypted stream to read from.
-// Takes providerType (crypto.ProviderType) which specifies the expected
-// encryption provider.
+// Takes providerType (crypto.ProviderType) which specifies the expected encryption
+// provider.
 //
-// Returns *crypto_streaming.StreamingHeader which contains the validated header
-// data.
-// Returns error when the header cannot be read, the provider does not match,
-// or the encrypted data key is missing.
+// Returns *crypto_streaming.StreamingHeader which contains the validated header data.
+// Returns error when the header cannot be read, the provider does not match, or the
+// encrypted data key is missing.
 func readAndValidateDecryptHeader(input io.Reader, providerType crypto.ProviderType) (*crypto_streaming.StreamingHeader, error) {
 	header, err := crypto_streaming.ReadStreamingHeader(input)
 	if err != nil {
@@ -187,8 +179,8 @@ func readAndValidateDecryptHeader(input io.Reader, providerType crypto.ProviderT
 	return header, nil
 }
 
-// createDecryptionCipher creates an AES-GCM AEAD cipher and decodes the base
-// IV from its base64 representation.
+// createDecryptionCipher creates an AES-GCM AEAD cipher and decodes the base IV from its
+// base64 representation.
 //
 // Takes plaintextKey ([]byte) which is the raw AES key material.
 // Takes ivB64 (string) which is the base64-encoded IV.

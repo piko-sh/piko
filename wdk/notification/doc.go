@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package notification provides a provider-agnostic framework for
-// sending notifications from a Piko application.
+// Package notification provides a provider-agnostic framework for sending notifications
+// from a Piko application.
 //
-// It offers a fluent builder API for composing and dispatching
-// notifications across one or more configured providers:
+// It offers a fluent builder API for composing and dispatching notifications across one
+// or more configured providers:
 //
 //	err := notification.NewNotificationBuilderFromDefault().
 //	    Title("System Alert").
@@ -28,7 +28,6 @@
 //	    Priority(notification.PriorityHigh).
 //	    Do(ctx)
 //
-// The service supports automatic retry with exponential backoff,
-// dead-letter queuing, batch operations, background dispatching,
-// priority levels, and rich formatting.
+// The service supports automatic retry with exponential backoff, dead-letter queuing,
+// batch operations, background dispatching, priority levels, and rich formatting.
 package notification

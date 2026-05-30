@@ -1,0 +1,4 @@
+{
+  "description": "init() in one file mutates package-level state accessing helpers declared in other files",
+  "expected": "events=[boot:a boot:b run] count=3"
+}

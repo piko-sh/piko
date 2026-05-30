@@ -29,11 +29,15 @@ type testNode struct {
 	value int
 }
 
-var preAllocNodes = []*testNode{{value: 1}, {value: 2}}
+var (
+	preAllocNodes = []*testNode{{value: 1}, {value: 2}}
+)
 
-var directPool = sync.Pool{
-	New: func() any { return make([]*testNode, 0, 8) },
-}
+var (
+	directPool = sync.Pool{
+		New: func() any { return make([]*testNode, 0, 8) },
+	}
+)
 
 func BenchmarkPool_Direct(b *testing.B) {
 	b.ReportAllocs()
@@ -46,11 +50,13 @@ func BenchmarkPool_Direct(b *testing.B) {
 	}
 }
 
-var ptrPool = sync.Pool{
-	New: func() any {
-		return new(make([]*testNode, 0, 8))
-	},
-}
+var (
+	ptrPool = sync.Pool{
+		New: func() any {
+			return new(make([]*testNode, 0, 8))
+		},
+	}
+)
 
 func BenchmarkPool_Pointer(b *testing.B) {
 	b.ReportAllocs()

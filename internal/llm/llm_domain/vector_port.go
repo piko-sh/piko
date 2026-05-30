@@ -29,8 +29,8 @@ type VectorNamespaceConfig struct {
 	// Metric is the similarity metric to use for search.
 	Metric llm_dto.SimilarityMetric
 
-	// IndexType is the index type, which is specific to the implementation
-	// (e.g. "hnsw", "ivfflat").
+	// IndexType is the index type, which is specific to the implementation (e.g. "hnsw",
+	// "ivfflat").
 	IndexType string
 
 	// Dimension is the number of elements in each embedding vector.
@@ -38,8 +38,8 @@ type VectorNamespaceConfig struct {
 }
 
 // VectorStorePort is the driven port for vector storage and similarity search.
-// Implementations provide storage for embedding vectors and efficient
-// similarity search capabilities.
+// Implementations provide storage for embedding vectors and efficient similarity search
+// capabilities.
 type VectorStorePort interface {
 	// Store adds or updates a single document in the vector store.
 	//

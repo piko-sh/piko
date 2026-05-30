@@ -16,12 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package fonts provides embedded NotoSans TrueType font data
-// shared across the layouter, PDF writer, and test packages.
+// Package fonts provides embedded NotoSans TrueType font data shared across the layouter,
+// PDF writer, and test packages.
 //
-// It embeds regular, bold, and variable-weight variants via
-// the go:embed mechanism, exposing them as byte slices
-// ([NotoSansRegularTTF], [NotoSansBoldTTF],
-// [NotoSansVariableTTF]). The fonts are licensed under the SIL
-// Open Font License.
+// It embeds regular, bold, and variable-weight variants via the go:embed mechanism,
+// exposing them as byte slices ([NotoSansRegularTTF], [NotoSansBoldTTF],
+// [NotoSansVariableTTF]). The fonts are licensed under the SIL Open Font License.
 package fonts

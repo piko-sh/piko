@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package asm defines the architecture-neutral handler descriptions
-// for the vectormaths SIMD functions. These definitions are used by
-// the asmgen service to generate the dot_f32_*.s and
-// euclid_sq_f32_*.s assembly files for each target architecture.
+// Package asm defines the architecture-neutral handler descriptions for the vectormaths
+// SIMD functions. These definitions are used by the asmgen service to generate the
+// dot_f32_*.s and euclid_sq_f32_*.s assembly files for each target architecture.
 package asm

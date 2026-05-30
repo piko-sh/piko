@@ -22,18 +22,17 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
-// backgroundBox returns the layout-coordinate rectangle for the given
-// background-clip or background-origin value. Defaults to border-box.
+// backgroundBox returns the layout-coordinate rectangle for the given background-clip or
+// background-origin value. Defaults to border-box.
 //
-// Takes box (*layouter_domain.LayoutBox) which is the layout box to
-// measure.
-// Takes value (string) which is the CSS background-clip or
-// background-origin keyword.
+// Takes box (*layouter_domain.LayoutBox) which is the layout box to measure.
+// Takes value (string) which is the CSS background-clip or background-origin keyword.
 //
 // Returns x (float64) which is the left edge position.
 // Returns y (float64) which is the top edge position.
@@ -60,8 +59,8 @@ func backgroundBox(box *layouter_domain.LayoutBox, value string) (x, y, w, h flo
 	return x, y, w, h
 }
 
-// paintBackground renders the background colour and all background
-// layers (images, gradients) for a layout box.
+// paintBackground renders the background colour and all background layers (images,
+// gradients) for a layout box.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
@@ -92,9 +91,8 @@ func (painter *PdfPainter) paintBackground(ctx context.Context, stream *ContentS
 		stream.RestoreState()
 	}
 
-	for i := len(box.Style.BgImages) - 1; i >= 0; i-- {
-		bg := box.Style.BgImages[i]
-		switch bg.Type {
+	for _, bg := range slices.Backward(box.Style.BgImages) {
+		switch bg.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case layouter_domain.BackgroundImageURL:
 			painter.paintBackgroundImage(ctx, stream, box, bg)
 		case layouter_domain.BackgroundImageLinearGradient, layouter_domain.BackgroundImageRepeatingLinearGradient:
@@ -105,9 +103,9 @@ func (painter *PdfPainter) paintBackground(ctx context.Context, stream *ContentS
 	}
 }
 
-// paintBackgroundImage draws a URL-based CSS background-image. Supports
-// background-size (cover, contain, explicit), background-position,
-// and background-repeat (no-repeat, repeat, repeat-x, repeat-y).
+// paintBackgroundImage draws a URL-based CSS background-image. Supports background-size
+// (cover, contain, explicit), background-position, and background-repeat (no-repeat,
+// repeat, repeat-x, repeat-y).
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
@@ -227,8 +225,8 @@ func (painter *PdfPainter) paintBackgroundTiles(
 	}
 }
 
-// resolveStartPosition computes the starting coordinate for tiled
-// repetition along one axis.
+// resolveStartPosition computes the starting coordinate for tiled repetition along one
+// axis.
 //
 // Takes img (float64) which is the initial image position.
 // Takes area (float64) which is the tiling area origin.
@@ -252,8 +250,7 @@ func resolveStartPosition(img, area, size float64, repeat bool) float64 {
 // Takes p (backgroundTileParams) which holds the tiling parameters.
 // Takes startX (float64) which is the first tile X position.
 // Takes ty (float64) which is the row Y position in layout coordinates.
-// Takes repeatX (bool) which indicates whether horizontal repeating
-// is enabled.
+// Takes repeatX (bool) which indicates whether horizontal repeating is enabled.
 func (painter *PdfPainter) paintTileRow(
 	stream *ContentStream,
 	p backgroundTileParams,
@@ -279,20 +276,15 @@ func (painter *PdfPainter) paintTileRow(
 	}
 }
 
-// resolveBackgroundSize computes the rendered size of a background image
-// given the CSS background-size value, area dimensions, and intrinsic
-// image dimensions.
+// resolveBackgroundSize computes the rendered size of a background image given the CSS
+// background-size value, area dimensions, and intrinsic image dimensions.
 //
 // Takes bgSize (string) which is the CSS background-size value.
-// Takes areaW, areaH (float64) which define the positioning area
-// dimensions.
-// Takes intrinsicW, intrinsicH (float64) which are the image's
-// natural dimensions.
+// Takes areaW, areaH (float64) which define the positioning area dimensions.
+// Takes intrinsicW, intrinsicH (float64) which are the image's natural dimensions.
 //
-// Returns imgWidth (float64) which is the computed
-// rendering width.
-// Returns imgHeight (float64) which is the computed
-// rendering height.
+// Returns imgWidth (float64) which is the computed rendering width.
+// Returns imgHeight (float64) which is the computed rendering height.
 func (painter *PdfPainter) resolveBackgroundSize(
 	bgSize string, areaW, areaH, intrinsicW, intrinsicH float64,
 ) (imgWidth float64, imgHeight float64) {
@@ -322,8 +314,8 @@ func (painter *PdfPainter) resolveBackgroundSize(
 	}
 }
 
-// parseBgDimension parses a single CSS background-size dimension value
-// and resolves it to points.
+// parseBgDimension parses a single CSS background-size dimension value and resolves it to
+// points.
 //
 // Takes s (string) which is the dimension string (e.g. "50%", "auto").
 // Takes areaDim (float64) which is the reference area dimension.
@@ -342,15 +334,14 @@ func (*PdfPainter) parseBgDimension(s string, areaDim, intrinsicDim float64) flo
 	return parseLength(s)
 }
 
-// paintLinearGradient draws a CSS linear-gradient background using a
-// native PDF Type 2 (axial) shading dictionary. When any colour stop
-// has alpha < 1.0, a luminosity soft mask is created from the alpha
-// channel so the gradient composites correctly over the background.
+// paintLinearGradient draws a CSS linear-gradient background using a native PDF Type 2
+// (axial) shading dictionary. When any colour stop has alpha < 1.0, a luminosity soft
+// mask is created from the alpha channel so the gradient composites correctly over the
+// background.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
-// Takes bg (layouter_domain.BackgroundImage) which holds the gradient
-// definition.
+// Takes bg (layouter_domain.BackgroundImage) which holds the gradient definition.
 func (painter *PdfPainter) paintLinearGradient(stream *ContentStream, box *layouter_domain.LayoutBox, bg layouter_domain.BackgroundImage) {
 	stops := NormaliseGradientStops(bg.Stops)
 	if len(stops) < 2 {
@@ -393,18 +384,17 @@ func (painter *PdfPainter) paintLinearGradient(stream *ContentStream, box *layou
 	stream.RestoreState()
 }
 
-// paintRadialGradient draws a CSS radial-gradient background using
-// a native PDF Type 3 (radial) shading dictionary.
+// paintRadialGradient draws a CSS radial-gradient background using a native PDF Type 3
+// (radial) shading dictionary.
 //
-// For circles the radius extends to the farthest corner. For ellipses
-// the gradient has the same aspect ratio as the box and passes through
-// the farthest corner; a CTM scale transform maps a circular shading
-// to an ellipse since PDF Type 3 shading only supports circles.
+// For circles the radius extends to the farthest corner. For ellipses the gradient has
+// the same aspect ratio as the box and passes through the farthest corner; a CTM scale
+// transform maps a circular shading to an ellipse since PDF Type 3 shading only supports
+// circles.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
-// Takes bg (layouter_domain.BackgroundImage) which holds the gradient
-// definition.
+// Takes bg (layouter_domain.BackgroundImage) which holds the gradient definition.
 func (painter *PdfPainter) paintRadialGradient(stream *ContentStream, box *layouter_domain.LayoutBox, bg layouter_domain.BackgroundImage) {
 	stops := NormaliseGradientStops(bg.Stops)
 	if len(stops) < 2 {
@@ -456,14 +446,13 @@ func (painter *PdfPainter) paintRadialGradient(stream *ContentStream, box *layou
 	stream.RestoreState()
 }
 
-// applyRadialAlphaMask applies a radial alpha soft mask when the gradient
-// stops contain semi-transparent colours.
+// applyRadialAlphaMask applies a radial alpha soft mask when the gradient stops contain
+// semi-transparent colours.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes stops ([]ResolvedStop) which are the gradient colour stops.
 // Takes isCircle (bool) which selects circular versus elliptical shape.
-// Takes pdfAreaX, pdfAreaY (float64) which specify the area origin in
-// PDF coordinates.
+// Takes pdfAreaX, pdfAreaY (float64) which specify the area origin in PDF coordinates.
 // Takes areaW, areaH (float64) which are the area dimensions in points.
 func (painter *PdfPainter) applyRadialAlphaMask(
 	stream *ContentStream,
@@ -488,17 +477,15 @@ func (painter *PdfPainter) applyRadialAlphaMask(
 	}
 }
 
-// applyShadingSoftMask builds a luminosity soft mask from an
-// already-registered grayscale shading and sets it as the active
-// ExtGState.
+// applyShadingSoftMask builds a luminosity soft mask from an already-registered grayscale
+// shading and sets it as the active ExtGState.
 //
-// The shading must use local coordinates (0,0 to w,h). The mask is
-// positioned at (x, y) in PDF page coordinates via CTM translation.
+// The shading must use local coordinates (0,0 to w,h). The mask is positioned at (x, y)
+// in PDF page coordinates via CTM translation.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes shadingName (string) which is the registered shading key.
-// Takes x, y (float64) which specify the mask position in PDF
-// coordinates.
+// Takes x, y (float64) which specify the mask position in PDF coordinates.
 // Takes w, h (float64) which are the mask dimensions in points.
 func (painter *PdfPainter) applyShadingSoftMask(stream *ContentStream, shadingName string, x, y, w, h float64) {
 	var maskStream ContentStream
@@ -522,13 +509,13 @@ func (painter *PdfPainter) applyShadingSoftMask(stream *ContentStream, shadingNa
 	stream.ConcatMatrix(1, 0, 0, 1, -x, -y)
 }
 
-// applyMaskImage parses a CSS mask-image value and applies it as a
-// PDF soft mask (SMask) via ExtGState. Currently supports
-// linear-gradient masks; other values are silently skipped.
+// applyMaskImage parses a CSS mask-image value and applies it as a PDF soft mask (SMask)
+// via ExtGState. Currently supports linear-gradient masks; other values are silently
+// skipped.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes box (*layouter_domain.LayoutBox) which supplies the mask-image
-// CSS value and box dimensions.
+// Takes box (*layouter_domain.LayoutBox) which supplies the mask-image CSS value and box
+// dimensions.
 //
 // Returns true if the mask was applied (caller must RestoreState).
 func (painter *PdfPainter) applyMaskImage(stream *ContentStream, box *layouter_domain.LayoutBox) bool {
@@ -598,8 +585,7 @@ func (*PdfPainter) convertToGrayscaleStops(stops []ResolvedStop) []ResolvedStop 
 
 // buildMaskShading registers and returns the shading name for a mask gradient.
 //
-// Takes bg (layouter_domain.BackgroundImage) which holds the gradient
-// definition.
+// Takes bg (layouter_domain.BackgroundImage) which holds the gradient definition.
 // Takes bbw, bbh (float64) which are the border box dimensions.
 // Takes grayStops ([]ResolvedStop) which are the greyscale stops.
 //

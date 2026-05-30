@@ -18,11 +18,10 @@
 
 // Package wasm_domain orchestrates the WASM runtime for Piko.
 //
-// The [Orchestrator] coordinates the inspector, compiler, generator,
-// interpreter, and render hexagons for browser-based REPL and playground
-// scenarios. It exposes a simple API that JavaScript code can call to
-// analyse Go source, provide code completions, display hover information,
-// validate syntax, generate code, and render templates.
+// The [Orchestrator] coordinates the inspector, compiler, generator, interpreter, and
+// render hexagons for browser-based REPL and playground scenarios. It exposes a simple
+// API that JavaScript code can call to analyse Go source, provide code completions,
+// display hover information, validate syntax, generate code, and render templates.
 //
 // # Usage
 //
@@ -44,6 +43,6 @@
 //
 // # Thread safety
 //
-// The [Orchestrator] is safe for concurrent use. All public methods
-// acquire appropriate read or write locks when accessing shared state.
+// The [Orchestrator] is safe for concurrent use. All public methods acquire appropriate
+// read or write locks when accessing shared state.
 package wasm_domain

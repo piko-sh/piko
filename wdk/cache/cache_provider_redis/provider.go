@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// RedisProvider implements the cache.Provider interface for Redis backends.
-// It manages a single shared Redis client connection across all namespaces,
-// where each namespace becomes a key prefix (e.g., "users:", "products:").
+// RedisProvider implements the cache.Provider interface for Redis backends. It manages a
+// single shared Redis client connection across all namespaces, where each namespace
+// becomes a key prefix (e.g., "users:", "products:").
 type RedisProvider struct {
 	// client is the shared Redis connection used by all namespaces.
 	client *redis.Client
@@ -47,13 +47,14 @@ type RedisProvider struct {
 	mu sync.RWMutex
 }
 
-var _ cache.Provider = (*RedisProvider)(nil)
+var (
+	_ cache.Provider = (*RedisProvider)(nil)
+)
 
-// NewRedisProvider creates a new Redis provider with a shared client connection.
-// All namespaces created from this provider will share the same Redis connection.
+// NewRedisProvider creates a new Redis provider with a shared client connection. All
+// namespaces created from this provider will share the same Redis connection.
 //
-// Takes config (Config) which specifies the Redis connection
-// settings and timeouts.
+// Takes config (Config) which specifies the Redis connection settings and timeouts.
 //
 // Returns *RedisProvider which is ready to create cache namespaces.
 // Returns error when the registry is nil or the Redis server is unreachable.
@@ -102,12 +103,12 @@ func NewRedisProvider(config Config) (*RedisProvider, error) {
 	return provider, nil
 }
 
-// CreateNamespaceTyped creates a new Redis cache instance for the given
-// namespace using type erasure.
+// CreateNamespaceTyped creates a new Redis cache instance for the given namespace using
+// type erasure.
 //
-// The namespace is used as a key prefix, and the same Redis client is shared
-// across all namespaces. This is a non-generic method; call via
-// CreateNamespace[K,V]() for type safety.
+// The namespace is used as a key prefix, and the same Redis client is shared across all
+// namespaces. This is a non-generic method; call via CreateNamespace[K,V]() for type
+// safety.
 //
 // Takes namespace (string) which specifies the key prefix for cache entries.
 // Takes options (any) which provides type information extracted via assertion.
@@ -118,8 +119,8 @@ func (p *RedisProvider) CreateNamespaceTyped(namespace string, options any) (any
 	return createRedisCache(p, namespace, options)
 }
 
-// Close releases all resources managed by this provider.
-// For Redis, this closes the shared client connection.
+// Close releases all resources managed by this provider. For Redis, this closes the
+// shared client connection.
 //
 // Returns error when the Redis client fails to close.
 //
@@ -148,17 +149,16 @@ func (*RedisProvider) Name() string {
 	return "redis"
 }
 
-// RedisProviderFactory creates a typed Redis cache instance for a given
-// provider and namespace. This is the Redis equivalent of
-// [cache_provider_otter.OtterProviderFactory], enabling domain-specific
-// types to be stored in Redis via [cache_domain.RegisterProviderFactory].
+// RedisProviderFactory creates a typed Redis cache instance for a given provider and
+// namespace. This is the Redis equivalent of [cache_provider_otter.OtterProviderFactory],
+// enabling domain-specific types to be stored in Redis via
+// [cache_domain.RegisterProviderFactory].
 //
 // Takes provider (*RedisProvider) which supplies the Redis connection.
 // Takes namespace (string) which specifies the key prefix for cache entries.
 // Takes opts (cache.Options[K, V]) which configures the cache behaviour.
 //
-// Returns the created cache instance and an error when cache
-// creation fails.
+// Returns the created cache instance and an error when cache creation fails.
 func RedisProviderFactory[K comparable, V any](provider *RedisProvider, namespace string, opts cache.Options[K, V]) (cache.Cache[K, V], error) {
 	return createNamespaceGeneric(provider, namespace, opts)
 }

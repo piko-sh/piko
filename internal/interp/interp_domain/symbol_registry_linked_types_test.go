@@ -21,6 +21,7 @@ package interp_domain
 import (
 	"go/types"
 	"reflect"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -132,4 +133,32 @@ func TestLinkedFieldToTypeBadTypeArgIndexReturnsNil(t *testing.T) {
 
 	result := linkedFieldToType(registry, descriptor, typeParams, 0)
 	require.Nil(t, result)
+}
+
+func TestRegisterNativeBackedGenericTypesMultiMethodNoPanic(t *testing.T) {
+	registry := NewSymbolRegistry(nil)
+	pkg := types.NewPackage("sync/atomic", "atomic")
+	converter := &reflectTypeConverter{
+		seen:       make(map[reflect.Type]types.Type),
+		pkg:        pkg,
+		registry:   registry,
+		localTypes: make(map[reflect.Type]bool),
+	}
+	exports := map[string]reflect.Value{
+		"Pointer": reflect.ValueOf(interp_link.WrapNativeGenericType(
+			"Pointer", 1,
+			reflect.TypeFor[atomic.Pointer[struct{}]](),
+			reflect.TypeFor[struct{}]())),
+	}
+
+	require.NotPanics(t, func() {
+		registry.registerNativeBackedGenericTypes(pkg, exports, converter)
+	})
+
+	object := pkg.Scope().Lookup("Pointer")
+	require.NotNil(t, object)
+	named, ok := object.Type().(*types.Named)
+	require.True(t, ok)
+	require.Equal(t, 1, named.TypeParams().Len())
+	require.Equal(t, 4, named.NumMethods())
 }

@@ -37,21 +37,18 @@ type signatureHelpContext struct {
 	// analysisCtx provides type analysis context for finding the callee signature.
 	analysisCtx *annotator_domain.AnalysisContext
 
-	// activeParam is the zero-based index of the active parameter in the
-	// function signature.
+	// activeParam is the zero-based index of the active parameter in the function signature.
 	activeParam int
 }
 
-// GetSignatureHelp provides parameter hints for function calls. It finds the
-// enclosing function call and returns signature information with the active
-// parameter highlighted.
+// GetSignatureHelp provides parameter hints for function calls. It finds the enclosing
+// function call and returns signature information with the active parameter highlighted.
 //
-// Takes position (protocol.Position) which specifies the cursor
-// position within the
+// Takes position (protocol.Position) which specifies the cursor position within the
 // document.
 //
-// Returns *protocol.SignatureHelp which contains the function signature with
-// the active parameter highlighted.
+// Returns *protocol.SignatureHelp which contains the function signature with the active
+// parameter highlighted.
 // Returns error when the signature help cannot be determined.
 func (d *document) GetSignatureHelp(position protocol.Position) (*protocol.SignatureHelp, error) {
 	ctx := d.getSignatureHelpContext(position)
@@ -67,13 +64,13 @@ func (d *document) GetSignatureHelp(position protocol.Position) (*protocol.Signa
 	return d.buildSignatureHelp(ctx.callExpr.Callee.String(), funcSig, ctx.activeParam), nil
 }
 
-// getSignatureHelpContext validates preconditions and returns the context
-// needed for signature help.
+// getSignatureHelpContext validates preconditions and returns the context needed for
+// signature help.
 //
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns *signatureHelpContext which contains the call expression and
-// analysis context, or nil if any precondition fails.
+// Returns *signatureHelpContext which contains the call expression and analysis context,
+// or nil if any precondition fails.
 func (d *document) getSignatureHelpContext(position protocol.Position) *signatureHelpContext {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
 		return nil
@@ -111,19 +108,17 @@ func (d *document) getSignatureHelpContext(position protocol.Position) *signatur
 	}
 }
 
-// lookupFunctionSignature finds the function signature for a call expression.
-// Handles both method calls (baseExpr.MethodName()) and function calls
-// (FuncName()).
+// lookupFunctionSignature finds the function signature for a call expression. Handles
+// both method calls (baseExpr.MethodName()) and function calls (FuncName()).
 //
-// Takes callExpr (*ast_domain.CallExpression) which is the call expression to look
-// up.
-// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which provides type
-// resolution for the callee.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the
-// current analysis context.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to look up.
+// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which provides type resolution for
+// the callee.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the current
+// analysis context.
 //
-// Returns *inspector_dto.FunctionSignature which is the resolved signature,
-// or nil if the callee type is not recognised.
+// Returns *inspector_dto.FunctionSignature which is the resolved signature, or nil if the
+// callee type is not recognised.
 func (d *document) lookupFunctionSignature(
 	callExpr *ast_domain.CallExpression,
 	calleeAnn *ast_domain.GoGeneratorAnnotation,
@@ -148,13 +143,13 @@ func (d *document) lookupFunctionSignature(
 
 // lookupMethodSignature finds the method signature for a member expression call.
 //
-// Takes memberExpr (*ast_domain.MemberExpression) which is the
-// member expression to look up.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the
-// current package and source path context.
+// Takes memberExpr (*ast_domain.MemberExpression) which is the member expression to look
+// up.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the current
+// package and source path context.
 //
-// Returns *inspector_dto.FunctionSignature which is the found method signature,
-// or nil if the base type cannot be found.
+// Returns *inspector_dto.FunctionSignature which is the found method signature, or nil if
+// the base type cannot be found.
 func (d *document) lookupMethodSignature(
 	memberExpr *ast_domain.MemberExpression,
 	analysisCtx *annotator_domain.AnalysisContext,
@@ -172,16 +167,15 @@ func (d *document) lookupMethodSignature(
 	)
 }
 
-// buildSignatureHelp constructs the SignatureHelp response from a function
-// signature.
+// buildSignatureHelp constructs the SignatureHelp response from a function signature.
 //
 // Takes calleeName (string) which is the name of the function being called.
-// Takes funcSig (*inspector_dto.FunctionSignature) which provides the function
-// signature details.
+// Takes funcSig (*inspector_dto.FunctionSignature) which provides the function signature
+// details.
 // Takes activeParam (int) which indicates the current parameter position.
 //
-// Returns *protocol.SignatureHelp which contains the formatted signature
-// information for display.
+// Returns *protocol.SignatureHelp which contains the formatted signature information for
+// display.
 func (*document) buildSignatureHelp(calleeName string, funcSig *inspector_dto.FunctionSignature, activeParam int) *protocol.SignatureHelp {
 	signature := protocol.SignatureInformation{
 		Label: calleeName + funcSig.ToSignatureString(),

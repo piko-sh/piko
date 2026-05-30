@@ -18,24 +18,25 @@
 
 package llm_provider_gemini
 
-import "errors"
+import (
+	"errors"
+)
 
 // Config holds configuration for the Gemini provider.
 type Config struct {
 	// APIKey is the Google AI API key. Required.
 	APIKey string
 
-	// DefaultModel is the model to use when not specified in requests.
-	// Defaults to "gemini-2.5-flash" if empty.
+	// DefaultModel is the model to use when not specified in requests. Defaults to
+	// "gemini-2.5-flash" if empty.
 	DefaultModel string
 
-	// DefaultEmbeddingModel is the embedding model to use when not specified
-	// in a request. Defaults to "text-embedding-004" if empty.
+	// DefaultEmbeddingModel is the embedding model to use when not specified in a request.
+	// Defaults to "text-embedding-004" if empty.
 	DefaultEmbeddingModel string
 
-	// EmbeddingDimensions overrides the default vector dimension for the
-	// configured embedding model. When zero, the dimension is resolved from
-	// a built-in lookup table.
+	// EmbeddingDimensions overrides the default vector dimension for the configured
+	// embedding model. When zero, the dimension is resolved from a built-in lookup table.
 	EmbeddingDimensions int
 }
 
@@ -49,11 +50,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// geminiEmbeddingDimensions maps known Gemini embedding models to their
-// default vector dimensions.
-var geminiEmbeddingDimensions = map[string]int{
-	"text-embedding-004": 768,
-}
+var (
+	// geminiEmbeddingDimensions maps known Gemini embedding models to their default vector
+	// dimensions.
+	geminiEmbeddingDimensions = map[string]int{
+		"text-embedding-004": 768,
+	}
+)
 
 // WithDefaults returns a copy of the configuration with default values set.
 //

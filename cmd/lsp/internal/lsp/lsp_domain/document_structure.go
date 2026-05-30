@@ -38,15 +38,15 @@ type symbolReference struct {
 	column int
 }
 
-// GetDocumentHighlights finds all uses of the symbol at the given cursor
-// position within the current document. This shows the user where a variable
-// or function is used in the file.
+// GetDocumentHighlights finds all uses of the symbol at the given cursor position within
+// the current document. This shows the user where a variable or function is used in the
+// file.
 //
-// Takes position (protocol.Position) which specifies the cursor location to find
-// symbol uses for.
+// Takes position (protocol.Position) which specifies the cursor location to find symbol
+// uses for.
 //
-// Returns []protocol.DocumentHighlight which contains all locations where the
-// symbol at the cursor position is used in the document.
+// Returns []protocol.DocumentHighlight which contains all locations where the symbol at
+// the cursor position is used in the document.
 // Returns error when the highlight operation fails.
 func (d *document) GetDocumentHighlights(ctx context.Context, position protocol.Position) ([]protocol.DocumentHighlight, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -62,14 +62,12 @@ func (d *document) GetDocumentHighlights(ctx context.Context, position protocol.
 	return d.collectHighlights(targetRef, expressionRangeMap), nil
 }
 
-// getSymbolReferenceAtPosition finds the symbol reference at the cursor
-// position.
+// getSymbolReferenceAtPosition finds the symbol reference at the cursor position.
 //
-// Takes position (protocol.Position) which specifies the cursor
-// location to search.
+// Takes position (protocol.Position) which specifies the cursor location to search.
 //
-// Returns *symbolReference which contains the location of the referenced
-// symbol, or nil if no valid symbol reference exists at the position.
+// Returns *symbolReference which contains the location of the referenced symbol, or nil
+// if no valid symbol reference exists at the position.
 func (d *document) getSymbolReferenceAtPosition(ctx context.Context, position protocol.Position) *symbolReference {
 	targetExpr, _ := findExpressionAtPosition(ctx, d.AnnotationResult.AnnotatedAST, position, d.URI.Filename())
 	if targetExpr == nil {
@@ -115,9 +113,9 @@ func (d *document) collectHighlights(targetRef *symbolReference, expressionRange
 	return highlights
 }
 
-// GetFoldingRanges provides code folding regions for the document based on
-// its structure, letting users collapse sections like elements, <template>,
-// <script>, and <style> blocks.
+// GetFoldingRanges provides code folding regions for the document based on its structure,
+// letting users collapse sections like elements, <template>, <script>, and <style>
+// blocks.
 //
 // Returns []protocol.FoldingRange which contains the foldable regions.
 // Returns error when the folding ranges cannot be computed.
@@ -168,13 +166,13 @@ func (d *document) GetFoldingRanges() ([]protocol.FoldingRange, error) {
 	return ranges, nil
 }
 
-// PrepareRename checks if the symbol at the cursor position is valid for
-// renaming and returns its current range.
+// PrepareRename checks if the symbol at the cursor position is valid for renaming and
+// returns its current range.
 //
 // Takes position (protocol.Position) which specifies the cursor location to check.
 //
-// Returns *protocol.Range which contains the symbol's range, or nil if the
-// symbol cannot be renamed.
+// Returns *protocol.Range which contains the symbol's range, or nil if the symbol cannot
+// be renamed.
 // Returns error when the operation fails.
 func (d *document) PrepareRename(ctx context.Context, position protocol.Position) (*protocol.Range, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -209,13 +207,11 @@ func (d *document) PrepareRename(ctx context.Context, position protocol.Position
 	return &targetRange, nil
 }
 
-// GetDocumentSymbols extracts a hierarchical outline of the document's
-// structure. This provides the document outline view in the IDE, showing
-// elements with IDs, partial invocations, and other significant structural
-// elements.
+// GetDocumentSymbols extracts a hierarchical outline of the document's structure. This
+// provides the document outline view in the IDE, showing elements with IDs, partial
+// invocations, and other significant structural elements.
 //
-// Returns []any which contains the document symbols as protocol.DocumentSymbol
-// values.
+// Returns []any which contains the document symbols as protocol.DocumentSymbol values.
 // Returns error when symbol extraction fails.
 func (d *document) GetDocumentSymbols() ([]any, error) {
 	if d.isPKCFile() {
@@ -267,13 +263,13 @@ type symbolInfo struct {
 	kind protocol.SymbolKind
 }
 
-// extractSymbolFromNode checks if a node should be represented as a symbol in
-// the outline.
+// extractSymbolFromNode checks if a node should be represented as a symbol in the
+// outline.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *protocol.DocumentSymbol which is the symbol representation, or nil
-// if the node should not appear in the outline.
+// Returns *protocol.DocumentSymbol which is the symbol representation, or nil if the node
+// should not appear in the outline.
 func (*document) extractSymbolFromNode(node *ast_domain.TemplateNode) *protocol.DocumentSymbol {
 	if node == nil || node.Location.Line == 0 || node.NodeType != ast_domain.NodeElement {
 		return nil
@@ -293,19 +289,20 @@ func (*document) extractSymbolFromNode(node *ast_domain.TemplateNode) *protocol.
 	}
 }
 
-// structuralBlockSymbols maps tag names to symbol information for top-level SFC
-// blocks.
-var structuralBlockSymbols = map[string]symbolInfo{
-	"template": {name: "<template>", kind: protocol.SymbolKindNamespace, detail: "template block"},
-	"script":   {name: "<script>", kind: protocol.SymbolKindNamespace, detail: "script block"},
-	"style":    {name: "<style>", kind: protocol.SymbolKindNamespace, detail: "style block"},
-	"i18n":     {name: "<i18n>", kind: protocol.SymbolKindNamespace, detail: "i18n block"},
-}
+var (
+	// structuralBlockSymbols maps tag names to symbol information for top-level SFC blocks.
+	structuralBlockSymbols = map[string]symbolInfo{
+		"template": {name: "<template>", kind: protocol.SymbolKindNamespace, detail: "template block"},
+		"script":   {name: "<script>", kind: protocol.SymbolKindNamespace, detail: "script block"},
+		"style":    {name: "<style>", kind: protocol.SymbolKindNamespace, detail: "style block"},
+		"i18n":     {name: "<i18n>", kind: protocol.SymbolKindNamespace, detail: "i18n block"},
+	}
+)
 
 // getSourcePath extracts the source path from an annotation.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the annotation
-// to extract the path from.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the annotation to extract
+// the path from.
 //
 // Returns string which is the original source path, or empty if none is set.
 func getSourcePath(ann *ast_domain.GoGeneratorAnnotation) string {
@@ -315,20 +312,16 @@ func getSourcePath(ann *ast_domain.GoGeneratorAnnotation) string {
 	return ""
 }
 
-// matchSymbolHighlight checks if an expression refers to the
-// target symbol and returns a highlight for it.
+// matchSymbolHighlight checks if an expression refers to the target symbol and returns a
+// highlight for it.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to check.
-// Takes targetRef (*symbolReference) which is the symbol to
-// match against.
-// Takes expressionRangeMap
-// (map[ast_domain.Expression]protocol.Range) which maps
+// Takes expression (ast_domain.Expression) which is the expression to check.
+// Takes targetRef (*symbolReference) which is the symbol to match against.
+// Takes expressionRangeMap (map[ast_domain.Expression]protocol.Range) which maps
 // expressions to their source ranges.
 //
-// Returns *protocol.DocumentHighlight which holds the
-// highlight range, or nil if the expression does not refer
-// to the target symbol.
+// Returns *protocol.DocumentHighlight which holds the highlight range, or nil if the
+// expression does not refer to the target symbol.
 func matchSymbolHighlight(expression ast_domain.Expression, targetRef *symbolReference, expressionRangeMap map[ast_domain.Expression]protocol.Range) *protocol.DocumentHighlight {
 	if expression == nil {
 		return nil
@@ -361,10 +354,8 @@ func matchSymbolHighlight(expression ast_domain.Expression, targetRef *symbolRef
 
 // isSameSymbol checks if a location refers to the same symbol as the target.
 //
-// Takes defLocation (ast_domain.Location) which is the
-// definition location to check.
-// Takes sourcePath (string) which is the file path of the
-// definition.
+// Takes defLocation (ast_domain.Location) which is the definition location to check.
+// Takes sourcePath (string) which is the file path of the definition.
 // Takes targetRef (*symbolReference) which is the reference to compare against.
 //
 // Returns bool which is true if the line, column, and path all match.
@@ -374,13 +365,12 @@ func isSameSymbol(defLocation ast_domain.Location, sourcePath string, targetRef 
 		sourcePath == targetRef.sourcePath
 }
 
-// extractSymbolInfo gets symbol information from a node by trying several
-// methods in turn.
+// extractSymbolInfo gets symbol information from a node by trying several methods in
+// turn.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *symbolInfo which holds the symbol details, or nil if no symbol was
-// found.
+// Returns *symbolInfo which holds the symbol details, or nil if no symbol was found.
 func extractSymbolInfo(node *ast_domain.TemplateNode) *symbolInfo {
 	if info := extractIDSymbol(node); info != nil {
 		return info
@@ -398,8 +388,8 @@ func extractSymbolInfo(node *ast_domain.TemplateNode) *symbolInfo {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *symbolInfo which contains the ID value as name and tag as detail,
-// or nil if the node has no ID attribute.
+// Returns *symbolInfo which contains the ID value as name and tag as detail, or nil if
+// the node has no ID attribute.
 func extractIDSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	for i := range node.Attributes {
 		attr := &node.Attributes[i]
@@ -414,13 +404,12 @@ func extractIDSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	return nil
 }
 
-// extractIsAttrSymbol extracts symbol info from a partial reference
-// (is="..." attribute).
+// extractIsAttrSymbol extracts symbol info from a partial reference (is="..." attribute).
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *symbolInfo which holds the partial reference info, or nil if the
-// node has no "is" attribute.
+// Returns *symbolInfo which holds the partial reference info, or nil if the node has no
+// "is" attribute.
 func extractIsAttrSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	for i := range node.Attributes {
 		attr := &node.Attributes[i]
@@ -435,14 +424,13 @@ func extractIsAttrSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	return nil
 }
 
-// extractPartialInfoSymbol extracts symbol details from GoAnnotations partial
-// info.
+// extractPartialInfoSymbol extracts symbol details from GoAnnotations partial info.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the template node with
-// possible partial info annotations.
+// Takes node (*ast_domain.TemplateNode) which contains the template node with possible
+// partial info annotations.
 //
-// Returns *symbolInfo which contains the extracted symbol details, or nil if
-// the node has no partial info or no valid name.
+// Returns *symbolInfo which contains the extracted symbol details, or nil if the node has
+// no partial info or no valid name.
 func extractPartialInfoSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
 		return nil
@@ -464,14 +452,13 @@ func extractPartialInfoSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	}
 }
 
-// extractStructuralBlockSymbol gets symbol info for top-level structural
-// blocks.
+// extractStructuralBlockSymbol gets symbol info for top-level structural blocks.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to get
-// symbol info from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to get symbol info
+// from.
 //
-// Returns *symbolInfo which holds the symbol info if the node's tag name
-// matches a known structural block, or nil if there is no match.
+// Returns *symbolInfo which holds the symbol info if the node's tag name matches a known
+// structural block, or nil if there is no match.
 func extractStructuralBlockSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 	if info, ok := structuralBlockSymbols[node.TagName]; ok {
 		return &info
@@ -483,8 +470,8 @@ func extractStructuralBlockSymbol(node *ast_domain.TemplateNode) *symbolInfo {
 //
 // Takes r (ast_domain.Range) which specifies the source code position range.
 //
-// Returns protocol.Range which is the LSP-compatible range with zero-based
-// line and column indices.
+// Returns protocol.Range which is the LSP-compatible range with zero-based line and
+// column indices.
 func nodeRangeToLSP(r ast_domain.Range) protocol.Range {
 	return protocol.Range{
 		Start: protocol.Position{

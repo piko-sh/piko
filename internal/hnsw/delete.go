@@ -18,11 +18,15 @@
 
 package hnsw
 
-// Delete removes the vector with the given key from the graph. If the key
-// does not exist, this is a no-op.
+import (
+	"slices"
+)
+
+// Delete removes the vector with the given key from the graph. If the key does not exist,
+// this is a no-op.
 //
-// After deletion, neighbours of the removed node are repaired to maintain
-// graph connectivity.
+// After deletion, neighbours of the removed node are repaired to maintain graph
+// connectivity.
 //
 // Takes key (K) which identifies the vector to remove.
 //
@@ -48,9 +52,8 @@ func (g *Graph[K]) Delete(key K) {
 	g.trimEmptyLayers()
 }
 
-// disconnectNode removes all edges to and from the node, then repairs each
-// former neighbour's links by trying to add edges from the neighbours of
-// neighbours.
+// disconnectNode removes all edges to and from the node, then repairs each former
+// neighbour's links by trying to add edges from the neighbours of neighbours.
 //
 // Takes target (*node[K]) which is the node being deleted.
 //
@@ -67,8 +70,8 @@ func (g *Graph[K]) disconnectNode(target *node[K]) {
 	}
 }
 
-// repairNeighbours attempts to reconnect former neighbours of a deleted node
-// by finding replacement edges from the neighbours-of-neighbours pool.
+// repairNeighbours attempts to reconnect former neighbours of a deleted node by finding
+// replacement edges from the neighbours-of-neighbours pool.
 //
 // Takes neighbours ([]*node[K]) which are the former neighbours.
 // Takes deleted (*node[K]) which is the node being removed.
@@ -131,9 +134,9 @@ func (g *Graph[K]) removeFromLayers(target *node[K]) {
 	}
 }
 
-// electNewEntry selects a new entry point after the current one is deleted,
-// picking a node from the highest non-empty layer or setting hasEntry to
-// false if the graph is empty.
+// electNewEntry selects a new entry point after the current one is deleted, picking a
+// node from the highest non-empty layer or setting hasEntry to false if the graph is
+// empty.
 //
 // Caller must hold the write lock.
 func (g *Graph[K]) electNewEntry() {
@@ -142,8 +145,8 @@ func (g *Graph[K]) electNewEntry() {
 		return
 	}
 
-	for layer := len(g.layers) - 1; layer >= 0; layer-- {
-		for k := range g.layers[layer] {
+	for _, layer := range slices.Backward(g.layers) {
+		for k := range layer {
 			g.entry = k
 			return
 		}

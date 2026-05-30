@@ -25,13 +25,11 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Resource rows show the resource's kind, status, ID, and
-// metadata; kind-summary rows show the breakdown by status; otherwise
-// the registry overview is rendered.
+// DetailView renders the detail-pane body for the row currently under the cursor.
+// Resource rows show the resource's kind, status, ID, and metadata; kind-summary rows
+// show the breakdown by status; otherwise the registry overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *RegistryPanel) DetailView(width, height int) string {
@@ -39,13 +37,14 @@ func (p *RegistryPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
-// Returns inspector.DetailBody describing the resource, kind summary, or registry overview.
+// Returns inspector.DetailBody describing the resource, kind summary, or registry
+// overview.
 func (p *RegistryPanel) buildDetailBody() inspector.DetailBody {
 	if item := p.GetItemAtCursor(); item != nil {
-		switch item.itemType {
+		switch item.itemType { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case registryItemResource:
 			if item.resource != nil {
 				return resourceDetailBody(item.resource)
@@ -57,8 +56,8 @@ func (p *RegistryPanel) buildDetailBody() inspector.DetailBody {
 	return p.overviewDetailBody()
 }
 
-// overviewDetailBody renders a summary of all kinds when no specific
-// row is under the cursor.
+// overviewDetailBody renders a summary of all kinds when no specific row is under the
+// cursor.
 //
 // Returns inspector.DetailBody listing each kind and its total resource count.
 func (p *RegistryPanel) overviewDetailBody() inspector.DetailBody {
@@ -158,11 +157,10 @@ func kindDetailBody(kind string, counts map[ResourceStatus]int) inspector.Detail
 
 // buildKindCountString builds the count summary string for a resource kind.
 //
-// Takes counts (map[ResourceStatus]int) which maps each resource status to its
-// count.
+// Takes counts (map[ResourceStatus]int) which maps each resource status to its count.
 //
-// Returns string which is a styled summary showing the total count and a
-// breakdown of unhealthy, degraded, and pending resources.
+// Returns string which is a styled summary showing the total count and a breakdown of
+// unhealthy, degraded, and pending resources.
 func buildKindCountString(counts map[ResourceStatus]int) string {
 	healthy := counts[ResourceStatusHealthy]
 	degraded := counts[ResourceStatusDegraded]

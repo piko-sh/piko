@@ -18,11 +18,12 @@
 
 package templater_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockManifestStoreView is a test double for ManifestStoreView that
-// returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockManifestStoreView is a test double for ManifestStoreView that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockManifestStoreView struct {
 	// GetKeysFunc is the function called by GetKeys.
 	GetKeysFunc func() []string
@@ -37,26 +38,27 @@ type MockManifestStoreView struct {
 	ListPreviewEntriesFunc func() []PreviewCatalogueEntry
 
 	// GetKeysCallCount tracks how many times GetKeys was called.
-	GetKeysCallCount int64
+	GetKeysCallCount atomic.Int64
 
 	// GetPageEntryCallCount tracks how many times GetPageEntry was called.
-	GetPageEntryCallCount int64
+	GetPageEntryCallCount atomic.Int64
 
 	// FindErrorPageCallCount tracks how many times FindErrorPage was called.
-	FindErrorPageCallCount int64
+	FindErrorPageCallCount atomic.Int64
 
-	// ListPreviewEntriesCallCount tracks how many times ListPreviewEntries
-	// was called.
-	ListPreviewEntriesCallCount int64
+	// ListPreviewEntriesCallCount tracks how many times ListPreviewEntries was called.
+	ListPreviewEntriesCallCount atomic.Int64
 }
 
-var _ ManifestStoreView = (*MockManifestStoreView)(nil)
+var (
+	_ ManifestStoreView = (*MockManifestStoreView)(nil)
+)
 
 // GetKeys returns all component source paths in the manifest.
 //
 // Returns []string, or nil if GetKeysFunc is nil.
 func (m *MockManifestStoreView) GetKeys() []string {
-	atomic.AddInt64(&m.GetKeysCallCount, 1)
+	m.GetKeysCallCount.Add(1)
 	if m.GetKeysFunc != nil {
 		return m.GetKeysFunc()
 	}
@@ -69,22 +71,22 @@ func (m *MockManifestStoreView) GetKeys() []string {
 //
 // Returns (PageEntryView, bool), or (nil, false) if GetPageEntryFunc is nil.
 func (m *MockManifestStoreView) GetPageEntry(path string) (PageEntryView, bool) {
-	atomic.AddInt64(&m.GetPageEntryCallCount, 1)
+	m.GetPageEntryCallCount.Add(1)
 	if m.GetPageEntryFunc != nil {
 		return m.GetPageEntryFunc(path)
 	}
 	return nil, false
 }
 
-// FindErrorPage looks up the most specific error page for the given status code
-// and request path.
+// FindErrorPage looks up the most specific error page for the given status code and
+// request path.
 //
 // Takes statusCode (int) which is the HTTP status code to find an error page for.
 // Takes requestPath (string) which is the request path to match against.
 //
 // Returns (PageEntryView, bool), or (nil, false) if FindErrorPageFunc is nil.
 func (m *MockManifestStoreView) FindErrorPage(statusCode int, requestPath string) (PageEntryView, bool) {
-	atomic.AddInt64(&m.FindErrorPageCallCount, 1)
+	m.FindErrorPageCallCount.Add(1)
 	if m.FindErrorPageFunc != nil {
 		return m.FindErrorPageFunc(statusCode, requestPath)
 	}
@@ -95,7 +97,7 @@ func (m *MockManifestStoreView) FindErrorPage(statusCode int, requestPath string
 //
 // Returns []PreviewCatalogueEntry, or nil if ListPreviewEntriesFunc is nil.
 func (m *MockManifestStoreView) ListPreviewEntries() []PreviewCatalogueEntry {
-	atomic.AddInt64(&m.ListPreviewEntriesCallCount, 1)
+	m.ListPreviewEntriesCallCount.Add(1)
 	if m.ListPreviewEntriesFunc != nil {
 		return m.ListPreviewEntriesFunc()
 	}

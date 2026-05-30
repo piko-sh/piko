@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Converts AST structures into human-readable string representations for debugging and inspection purposes.
-// Formats nodes, attributes, directives, and content with indentation to visualise the template tree structure clearly.
+// Converts AST structures into human-readable string representations for debugging and
+// inspection purposes. Formats nodes, attributes, directives, and content with
+// indentation to visualise the template tree structure clearly.
 
 import (
 	"fmt"
@@ -30,8 +31,8 @@ import (
 //
 // Takes tree (*TemplateAST) which is the tree to convert.
 //
-// Returns string which is the formatted tree, or "<empty tree>" if the input
-// is nil or has no root nodes.
+// Returns string which is the formatted tree, or "<empty tree>" if the input is nil or
+// has no root nodes.
 func treeToString(tree *TemplateAST) string {
 	if tree == nil || len(tree.RootNodes) == 0 {
 		return "<empty tree>"
@@ -87,8 +88,8 @@ func printNodeHeader(builder *strings.Builder, node *TemplateNode, indent string
 
 // printTextNodeHeader prints the header line for a text node.
 //
-// When the text content is only whitespace, it prints a label to show this.
-// Otherwise, it prints the line and column position.
+// When the text content is only whitespace, it prints a label to show this. Otherwise, it
+// prints the line and column position.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which provides the text content and position.
@@ -152,8 +153,8 @@ func printNodeAttributes(builder *strings.Builder, node *TemplateNode, indent st
 	}
 }
 
-// printNodeDynamicAttributes writes the dynamic attributes of a node to the
-// string builder.
+// printNodeDynamicAttributes writes the dynamic attributes of a node to the string
+// builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which contains the attributes to print.
@@ -177,8 +178,7 @@ func printNodeDynamicAttributes(builder *strings.Builder, node *TemplateNode, in
 // printNodeChildren writes all child nodes of a parent node to the output.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
-// Takes node (*TemplateNode) which is the parent node whose children will be
-// printed.
+// Takes node (*TemplateNode) which is the parent node whose children will be printed.
 // Takes indent (string) which sets the indentation prefix for each line.
 func printNodeChildren(builder *strings.Builder, node *TemplateNode, indent string) {
 	if len(node.Children) == 0 {
@@ -209,9 +209,8 @@ func printDistributedDirectives(builder *strings.Builder, node *TemplateNode, in
 	}
 }
 
-// printBasicDirectives writes single-value directives to a string builder.
-// These include p-if, p-for, p-show, p-model, p-text, p-html, p-class,
-// p-style, p-ref, and p-slot.
+// printBasicDirectives writes single-value directives to a string builder. These include
+// p-if, p-for, p-show, p-model, p-text, p-html, p-class, p-style, p-ref, and p-slot.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which contains the directives to print.
@@ -316,8 +315,8 @@ func printCustomEventDirectives(builder *strings.Builder, node *TemplateNode, in
 //
 // Takes modifier (string) which is the modifier name to format.
 //
-// Returns string which is the modifier with a leading dot, or an empty string
-// if the input is empty.
+// Returns string which is the modifier with a leading dot, or an empty string if the
+// input is empty.
 func buildModifierString(modifier string) string {
 	if modifier == "" {
 		return ""

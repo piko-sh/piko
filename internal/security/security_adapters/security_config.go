@@ -18,10 +18,12 @@
 
 package security_adapters
 
-import "piko.sh/piko/internal/security/security_dto"
+import (
+	"piko.sh/piko/internal/security/security_dto"
+)
 
-// Type aliases for backward compatibility with consumers that already
-// reference these types by their security_adapters package path.
+// Type aliases for backward compatibility with consumers that already reference these
+// types by their security_adapters package path.
 type (
 	// SecurityHeadersValues is an alias for security_dto.SecurityHeadersValues.
 	SecurityHeadersValues = security_dto.SecurityHeadersValues

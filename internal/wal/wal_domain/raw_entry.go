@@ -18,36 +18,35 @@
 
 package wal_domain
 
-// RawEntry represents a single WAL entry with untyped key and value bytes.
-// This is used by inspection tools that need to read WAL files without
-// knowing the concrete key/value types at compile time.
+// RawEntry represents a single WAL entry with untyped key and value bytes. This is used
+// by inspection tools that need to read WAL files without knowing the concrete key/value
+// types at compile time.
 type RawEntry struct {
 	// Key is the raw key bytes from the WAL entry.
 	Key []byte
 
-	// Value is the raw value bytes from the WAL entry.
-	// Only meaningful for OpSet; empty for OpDelete and OpClear.
+	// Value is the raw value bytes from the WAL entry. Only meaningful for OpSet; empty for
+	// OpDelete and OpClear.
 	Value []byte
 
-	// Tags are the cache tags associated with this entry.
-	// Only meaningful for OpSet.
+	// Tags are the cache tags associated with this entry. Only meaningful for OpSet.
 	Tags []string
 
-	// ExpiresAt is the Unix nanosecond timestamp when this entry expires.
-	// Zero means no expiration.
+	// ExpiresAt is the Unix nanosecond timestamp when this entry expires. Zero means no
+	// expiration.
 	ExpiresAt int64
 
 	// Timestamp is the Unix nanosecond timestamp when this operation occurred.
 	Timestamp int64
 
-	// SizeBytes is the total on-disk size of this entry including the length
-	// prefix, CRC, and payload.
+	// SizeBytes is the total on-disk size of this entry including the length prefix, CRC,
+	// and payload.
 	SizeBytes int
 
 	// Operation is the type of operation (Set, Delete, Clear).
 	Operation Operation
 
-	// CRCValid indicates whether the stored CRC32 checksum matched the
-	// computed checksum for this entry.
+	// CRCValid indicates whether the stored CRC32 checksum matched the computed checksum for
+	// this entry.
 	CRCValid bool
 }

@@ -342,7 +342,9 @@ func (m *mockByteCache) Query(_ context.Context, _ *cache_dto.QueryOptions) (cac
 func (m *mockByteCache) SupportsSearch() bool               { return false }
 func (m *mockByteCache) GetSchema() *cache_dto.SearchSchema { return nil }
 
-var _ Cache[string, []byte] = (*mockByteCache)(nil)
+var (
+	_ Cache[string, []byte] = (*mockByteCache)(nil)
+)
 
 type wrapperTestEncoder struct {
 	marshalErr      error

@@ -72,7 +72,9 @@ func setupCompilerBenchmark(b *testing.B) orchestrator_domain.TaskExecutor {
 	return executor
 }
 
-var taskCounter atomic.Int64
+var (
+	taskCounter atomic.Int64
+)
 
 func TestCompilerExecutor_BlobSizeTracking(t *testing.T) {
 

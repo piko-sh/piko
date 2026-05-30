@@ -18,8 +18,7 @@
 
 package layouter_dto
 
-// FontEntry describes a single font face to register with a font metrics
-// implementation.
+// FontEntry describes a single font face to register with a font metrics implementation.
 type FontEntry struct {
 	// Family is the CSS font-family name.
 	Family string
@@ -30,8 +29,8 @@ type FontEntry struct {
 	// Weight is the CSS font-weight value (100-900).
 	Weight int
 
-	// Style is the font style variant (0 = normal, 1 = italic),
-	// matching layouter_domain.FontStyle values.
+	// Style is the font style variant (0 = normal, 1 = italic), matching
+	// layouter_domain.FontStyle values.
 	Style int
 
 	// WeightMin defines the minimum weight axis value for variable fonts.

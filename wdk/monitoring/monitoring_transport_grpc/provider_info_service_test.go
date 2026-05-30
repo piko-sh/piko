@@ -63,7 +63,9 @@ func (m *mockProviderInfoInspector) DescribeResourceType(_ context.Context, _ st
 	return m.describeTypeRes, m.describeTypeErr
 }
 
-var _ monitoring_domain.ProviderInfoInspector = (*mockProviderInfoInspector)(nil)
+var (
+	_ monitoring_domain.ProviderInfoInspector = (*mockProviderInfoInspector)(nil)
+)
 
 func TestNewProviderInfoService(t *testing.T) {
 	t.Parallel()

@@ -16,13 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package safeerror separates user-safe messages from internal
-// error details for secure error handling in HTTP responses.
+// Package safeerror separates user-safe messages from internal error details for secure
+// error handling in HTTP responses.
 //
-// The [Error] interface pairs a sanitised message (returned by
-// SafeMessage) with the full error chain for logging.
-// [ExtractSafeMessage] selects the appropriate message based on
-// whether the application is running in development mode. Use
-// [NewError] or [Errorf] to create safe errors that wrap an
-// underlying cause.
+// The [Error] interface pairs a sanitised message (returned by SafeMessage) with the full
+// error chain for logging. [ExtractSafeMessage] selects the appropriate message based on
+// whether the application is running in the developer-facing mode. Use [NewError] or
+// [Errorf] to create safe errors that wrap an underlying cause.
 package safeerror

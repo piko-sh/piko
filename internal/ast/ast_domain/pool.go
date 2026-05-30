@@ -20,8 +20,8 @@ package ast_domain
 
 // PutTree returns an AST tree to the pool by releasing its arena.
 //
-// All nodes allocated from the arena are reset in a single operation when
-// the arena is returned to its pool.
+// All nodes allocated from the arena are reset in a single operation when the arena is
+// returned to its pool.
 //
 // Takes ast (*TemplateAST) which is the tree to return to the pool.
 func PutTree(ast *TemplateAST) {

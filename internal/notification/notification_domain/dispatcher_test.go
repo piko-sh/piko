@@ -108,7 +108,9 @@ func (*fakeService) FlushDispatcher(context.Context) error {
 }
 func (*fakeService) Close(context.Context) error { return nil }
 
-var _ Service = (*fakeService)(nil)
+var (
+	_ Service = (*fakeService)(nil)
+)
 
 func TestNewNotificationDispatcher_NonServiceImpl(t *testing.T) {
 	disp := NewNotificationDispatcher(&fakeService{}, nil, defaultTestConfig())
@@ -472,10 +474,10 @@ func TestFlush_Success(t *testing.T) {
 }
 
 func TestDispatcher_ProcessesBatchOnSize(t *testing.T) {
-	var sendCount int64
+	var sendCount atomic.Int64
 	provider := &mockProvider{
 		SendFunc: func(_ context.Context, _ *notification_dto.SendParams) error {
-			atomic.AddInt64(&sendCount, 1)
+			sendCount.Add(1)
 			return nil
 		},
 	}
@@ -492,9 +494,9 @@ func TestDispatcher_ProcessesBatchOnSize(t *testing.T) {
 	for {
 		select {
 		case <-deadline:
-			t.Fatalf("timed out waiting for batch processing, send count: %d", atomic.LoadInt64(&sendCount))
+			t.Fatalf("timed out waiting for batch processing, send count: %d", sendCount.Load())
 		default:
-			if atomic.LoadInt64(&sendCount) >= 2 {
+			if sendCount.Load() >= 2 {
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -503,10 +505,10 @@ func TestDispatcher_ProcessesBatchOnSize(t *testing.T) {
 }
 
 func TestDispatcher_ProcessesOnFlush(t *testing.T) {
-	var sendCount int64
+	var sendCount atomic.Int64
 	provider := &mockProvider{
 		SendFunc: func(_ context.Context, _ *notification_dto.SendParams) error {
-			atomic.AddInt64(&sendCount, 1)
+			sendCount.Add(1)
 			return nil
 		},
 	}
@@ -526,9 +528,9 @@ func TestDispatcher_ProcessesOnFlush(t *testing.T) {
 	for {
 		select {
 		case <-deadline:
-			t.Fatalf("timed out waiting for flush processing, send count: %d", atomic.LoadInt64(&sendCount))
+			t.Fatalf("timed out waiting for flush processing, send count: %d", sendCount.Load())
 		default:
-			if atomic.LoadInt64(&sendCount) >= 1 {
+			if sendCount.Load() >= 1 {
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -552,7 +554,7 @@ func TestDispatcher_SuccessfulSendIncrementsStats(t *testing.T) {
 		case <-deadline:
 			t.Fatal("timed out waiting for stats")
 		default:
-			if atomic.LoadInt64(&disp.totalProcessed) >= 2 && atomic.LoadInt64(&disp.totalSuccessful) >= 2 {
+			if disp.totalProcessed.Load() >= 2 && disp.totalSuccessful.Load() >= 2 {
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -588,9 +590,9 @@ func TestDispatcher_FailingSendGoesToDeadLetter(t *testing.T) {
 		select {
 		case <-deadline:
 			t.Fatalf("timed out waiting for DLQ, add count: %d, totalFailed: %d",
-				atomic.LoadInt64(&dlq.AddCallCount), atomic.LoadInt64(&disp.totalFailed))
+				dlq.AddCallCount.Load(), disp.totalFailed.Load())
 		default:
-			if atomic.LoadInt64(&dlq.AddCallCount) >= 1 {
+			if dlq.AddCallCount.Load() >= 1 {
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -624,9 +626,9 @@ func TestDispatcher_FailingSendNoDLQ(t *testing.T) {
 	for {
 		select {
 		case <-deadline:
-			t.Fatalf("timed out, totalFailed: %d", atomic.LoadInt64(&disp.totalFailed))
+			t.Fatalf("timed out, totalFailed: %d", disp.totalFailed.Load())
 		default:
-			if atomic.LoadInt64(&disp.totalFailed) >= 1 {
+			if disp.totalFailed.Load() >= 1 {
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -691,8 +693,8 @@ func TestScheduleRetry_ExceedsMaxRetries(t *testing.T) {
 
 	disp.scheduleRetry(context.Background(), qn)
 
-	if atomic.LoadInt64(&dlq.AddCallCount) != 1 {
-		t.Errorf("expected 1 DLQ add call, got %d", atomic.LoadInt64(&dlq.AddCallCount))
+	if dlq.AddCallCount.Load() != 1 {
+		t.Errorf("expected 1 DLQ add call, got %d", dlq.AddCallCount.Load())
 	}
 }
 
@@ -711,8 +713,8 @@ func TestScheduleRetry_HeapFull(t *testing.T) {
 
 	disp.scheduleRetry(context.Background(), qn)
 
-	if atomic.LoadInt64(&dlq.AddCallCount) != 1 {
-		t.Errorf("expected 1 DLQ add, got %d", atomic.LoadInt64(&dlq.AddCallCount))
+	if dlq.AddCallCount.Load() != 1 {
+		t.Errorf("expected 1 DLQ add, got %d", dlq.AddCallCount.Load())
 	}
 }
 
@@ -763,8 +765,8 @@ func TestSendToDeadLetter_DLQError(t *testing.T) {
 
 	disp.sendToDeadLetter(context.Background(), qn)
 
-	if atomic.LoadInt64(&disp.totalFailed) != 1 {
-		t.Errorf("expected totalFailed=1, got %d", atomic.LoadInt64(&disp.totalFailed))
+	if disp.totalFailed.Load() != 1 {
+		t.Errorf("expected totalFailed=1, got %d", disp.totalFailed.Load())
 	}
 }
 
@@ -780,8 +782,8 @@ func TestSendToDeadLetter_NilDLQ(t *testing.T) {
 
 	disp.sendToDeadLetter(context.Background(), qn)
 
-	if atomic.LoadInt64(&disp.totalFailed) != 1 {
-		t.Errorf("expected totalFailed=1, got %d", atomic.LoadInt64(&disp.totalFailed))
+	if disp.totalFailed.Load() != 1 {
+		t.Errorf("expected totalFailed=1, got %d", disp.totalFailed.Load())
 	}
 }
 

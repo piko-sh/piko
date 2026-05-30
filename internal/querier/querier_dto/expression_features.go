@@ -18,12 +18,14 @@
 
 package querier_dto
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// SQLExpressionFeature is a bitmask that declares which SQL expression kinds
-// an engine adapter supports. Each engine adapter returns its supported set via
-// EnginePort.SupportedExpressions(), allowing the type resolver to validate
-// expressions against dialect capabilities.
+// SQLExpressionFeature is a bitmask that declares which SQL expression kinds an engine
+// adapter supports. Each engine adapter returns its supported set via
+// EnginePort.SupportedExpressions(), allowing the type resolver to validate expressions
+// against dialect capabilities.
 //
 // This follows the same pattern as ast_domain.ExpressionFeature.
 type SQLExpressionFeature uint64
@@ -85,10 +87,10 @@ const (
 )
 
 const (
-	// SQLFeaturesBase is the set of expression features supported by most
-	// SQL dialects: arithmetic, comparisons, string concat, CASE, IS NULL,
-	// IN, BETWEEN, logical ops, unary ops, and pattern matching. Engine
-	// adapters can use this as a starting point and add or remove flags.
+	// SQLFeaturesBase is the set of expression features supported by most SQL dialects:
+	// arithmetic, comparisons, string concat, CASE, IS NULL, IN, BETWEEN, logical ops, unary
+	// ops, and pattern matching. Engine adapters compose this baseline with their own
+	// additions or removals.
 	SQLFeaturesBase = SQLFeatureBinaryArithmetic |
 		SQLFeatureBinaryComparison |
 		SQLFeatureStringConcat |
@@ -101,14 +103,14 @@ const (
 		SQLFeatureUnaryOp |
 		SQLFeaturePatternMatch
 
-	// SQLFeaturesAll enables every expression feature. Used by the mock engine
-	// in tests to exercise all code paths.
+	// SQLFeaturesAll enables every expression feature. Used by the mock engine in tests to
+	// exercise all code paths.
 	SQLFeaturesAll SQLExpressionFeature = ^SQLExpressionFeature(0)
 )
 
 // Has reports whether the feature set includes the given feature.
 //
-// Takes flag ([SQLExpressionFeature]) which is the feature to test for.
+// Takes flag (SQLExpressionFeature) which is the feature to test for.
 //
 // Returns bool which is true when the feature set includes the flag.
 func (feature SQLExpressionFeature) Has(flag SQLExpressionFeature) bool {

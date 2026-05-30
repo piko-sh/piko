@@ -27,19 +27,18 @@ import (
 )
 
 const (
-	// instantSubmissionThreshold is the duration below which a submission is
-	// considered instant (maximum spam score).
+	// instantSubmissionThreshold is the duration below which a submission is considered
+	// instant (maximum spam score).
 	instantSubmissionThreshold = 500 * time.Millisecond
 
-	// maxPlausibleFormDuration is the upper bound on the form-load to
-	// form-submit interval considered as honest user activity. Anything
-	// larger is treated as a missing or forged timestamp and scores zero
-	// rather than reading a clean timing pass.
+	// maxPlausibleFormDuration is the upper bound on the form-load to form-submit interval
+	// considered as honest user activity. Anything larger is treated as a missing or forged
+	// timestamp and scores zero rather than reading a clean timing pass.
 	maxPlausibleFormDuration = time.Hour
 )
 
-// TimingDetector analyses the duration between form load and form
-// submit to detect suspiciously fast submissions.
+// TimingDetector analyses the duration between form load and form submit to detect
+// suspiciously fast submissions.
 type TimingDetector struct {
 	// minDuration is the minimum expected time between form load and submit.
 	minDuration time.Duration
@@ -47,8 +46,7 @@ type TimingDetector struct {
 
 // NewTimingDetector creates a timing detector.
 //
-// Takes minDuration (time.Duration) which is the minimum expected submission
-// duration.
+// Takes minDuration (time.Duration) which is the minimum expected submission duration.
 //
 // Returns *TimingDetector which is the configured detector.
 func NewTimingDetector(minDuration time.Duration) *TimingDetector {
@@ -133,8 +131,7 @@ func (d *TimingDetector) Analyse(ctx context.Context, submission *spamdetect_dto
 	}, nil
 }
 
-// HealthCheck always succeeds because the detector has no external
-// dependencies.
+// HealthCheck always succeeds because the detector has no external dependencies.
 //
 // Returns error which is always nil.
 func (*TimingDetector) HealthCheck(_ context.Context) error { return nil }

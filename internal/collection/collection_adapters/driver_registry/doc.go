@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driver_registry implements the provider registry port for
-// collections.
+// Package driver_registry implements the provider registry port for collections.
 //
-// It stores registered collection providers in memory, allowing the
-// collection service to look them up by name at runtime.
+// It stores registered collection providers in memory, allowing the collection service to
+// look them up by name at runtime.
 //
 // # Usage
 //
@@ -31,6 +30,6 @@
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. The registry uses a
-// read-write mutex to allow concurrent reads whilst serialising writes.
+// All methods are safe for concurrent use. The registry uses a read-write mutex to allow
+// concurrent reads whilst serialising writes.
 package driver_registry

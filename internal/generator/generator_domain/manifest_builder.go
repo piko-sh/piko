@@ -35,24 +35,25 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// rootURLPath is the root URL path prefix used when building route patterns.
-const rootURLPath = "/"
+const (
+	// rootURLPath is the root URL path prefix used when building route patterns.
+	rootURLPath = "/"
+)
 
-// ManifestBuilder creates a complete Manifest from compiled and annotated
-// artefacts. It applies rules to tell pages from partials and gathers their
-// metadata into the final manifest structure.
+// ManifestBuilder creates a complete Manifest from compiled and annotated artefacts. It
+// applies rules to tell pages from partials and gathers their metadata into the final
+// manifest structure.
 type ManifestBuilder struct {
-	// configSandbox provides file system access for reading the config file.
-	// If nil, a sandbox is created from baseDir.
+	// configSandbox provides file system access for reading the config file. If nil, a
+	// sandbox is created from baseDir.
 	configSandbox safedisk.Sandbox
 
-	// configFactory creates sandboxes with validated paths. When set and
-	// configSandbox is nil, the factory is used before falling back to
-	// NewNoOpSandbox.
+	// configFactory creates sandboxes with validated paths. When set and configSandbox is
+	// nil, the factory is used before falling back to NewNoOpSandbox.
 	configFactory safedisk.Factory
 
-	// baseDir is the absolute path to the project root (where go.mod is found).
-	// It is used to build paths relative to the project for manifest keys.
+	// baseDir is the absolute path to the project root (where go.mod is found). It is used
+	// to build paths relative to the project for manifest keys.
 	baseDir string
 
 	// pagesSourceDir is the directory name for page components.
@@ -75,10 +76,10 @@ type ManifestBuilderOption func(*ManifestBuilder)
 //
 // Takes pathsConfig (GeneratorPathsConfig) which provides path settings.
 // Takes i18nDefaultLocale (string) which is the default locale for i18n.
-// Takes baseDir (string) which specifies the base directory for calculating
-// relative paths.
-// Takes opts (...ManifestBuilderOption) which provides optional configuration
-// such as WithConfigSandbox for testing.
+// Takes baseDir (string) which specifies the base directory for calculating relative
+// paths.
+// Takes opts (...ManifestBuilderOption) which provides optional configuration such as
+// WithConfigSandbox for testing.
 //
 // Returns *ManifestBuilder which is ready to build manifests.
 func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale string, baseDir string, opts ...ManifestBuilderOption) *ManifestBuilder {
@@ -98,11 +99,11 @@ func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale stri
 	return mb
 }
 
-// Build creates a complete Manifest from the generated artefacts for a project.
-// A pure transformation with no side effects.
+// Build creates a complete Manifest from the generated artefacts for a project. A pure
+// transformation with no side effects.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all
-// generated artefacts for the project.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all generated
+// artefacts for the project.
 //
 // Returns *generator_dto.Manifest which is the complete manifest object.
 // Returns error when an artefact cannot be processed.
@@ -126,17 +127,16 @@ func (mb *ManifestBuilder) Build(artefacts []*generator_dto.GeneratedArtefact) (
 	return manifest, nil
 }
 
-// processArtefact processes a single artefact and adds its entry to the
-// manifest.
+// processArtefact processes a single artefact and adds its entry to the manifest.
 //
-// Takes artefact (*generator_dto.GeneratedArtefact) which is the generated
-// artefact to process.
+// Takes artefact (*generator_dto.GeneratedArtefact) which is the generated artefact to
+// process.
 // Takes manifest (*generator_dto.Manifest) which receives the new entry.
-// Takes jsResolver (*partialJSDependencyResolver) which computes partial JS
-// dependencies for pages.
+// Takes jsResolver (*partialJSDependencyResolver) which computes partial JS dependencies
+// for pages.
 //
-// Returns error when the artefact is missing component metadata or the
-// manifest key cannot be computed.
+// Returns error when the artefact is missing component metadata or the manifest key
+// cannot be computed.
 func (mb *ManifestBuilder) processArtefact(
 	artefact *generator_dto.GeneratedArtefact,
 	manifest *generator_dto.Manifest,
@@ -173,8 +173,7 @@ func (mb *ManifestBuilder) processArtefact(
 
 // computeManifestKey finds the unique key for a component in the manifest.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which is the component to create
-// a key for.
+// Takes vc (*annotator_dto.VirtualComponent) which is the component to create a key for.
 //
 // Returns string which is the manifest key for the component.
 // Returns error when the relative path cannot be computed for local components.
@@ -192,20 +191,19 @@ func (mb *ManifestBuilder) computeManifestKey(vc *annotator_dto.VirtualComponent
 
 // addPageEntry creates and adds a page entry to the manifest.
 //
-// Plain pages and collection-backed pages register a single manifest entry
-// whose route pattern is derived from the page's file location, so a page at
-// `pages/examples/{slug}.pk` registers `/examples/{slug}` regardless of the
-// consumed collection's name and resolves items at runtime by looking up the
-// collection by the matched slug.
+// Plain pages and collection-backed pages register a single manifest entry whose route
+// pattern is derived from the page's file location, so a page at
+// `pages/examples/{slug}.pk` registers `/examples/{slug}` regardless of the consumed
+// collection's name and resolves items at runtime by looking up the collection by the
+// matched slug.
 //
 // Takes manifest (*generator_dto.Manifest) which receives the new page entry.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the
-// generated output paths and identifiers.
-// Takes vc (*annotator_dto.VirtualComponent) which describes the page being
-// added.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides the generated output
+// paths and identifiers.
+// Takes vc (*annotator_dto.VirtualComponent) which describes the page being added.
 // Takes manifestKey (string) which uniquely identifies this entry.
-// Takes jsResolver (*partialJSDependencyResolver) which computes partial JS
-// dependencies for the page.
+// Takes jsResolver (*partialJSDependencyResolver) which computes partial JS dependencies
+// for the page.
 func (mb *ManifestBuilder) addPageEntry(
 	manifest *generator_dto.Manifest,
 	artefact *generator_dto.GeneratedArtefact,
@@ -245,16 +243,13 @@ func (mb *ManifestBuilder) addPageEntry(
 	manifest.Pages[manifestKey] = pageEntry
 }
 
-// addErrorPageEntry creates and adds an error page entry to the manifest.
-// Error pages are not added to the Pages map  - they are stored separately
-// in the ErrorPages map and rendered by the server when the corresponding
-// HTTP error occurs.
+// addErrorPageEntry creates and adds an error page entry to the manifest. Error pages are
+// not added to the Pages map - they are stored separately in the ErrorPages map and
+// rendered by the server when the corresponding HTTP error occurs.
 //
 // Takes manifest (*generator_dto.Manifest) which is the target manifest.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides generated
-// output data.
-// Takes vc (*annotator_dto.VirtualComponent) which describes the error page
-// component.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides generated output data.
+// Takes vc (*annotator_dto.VirtualComponent) which describes the error page component.
 // Takes manifestKey (string) which identifies the entry in the manifest.
 func (mb *ManifestBuilder) addErrorPageEntry(
 	manifest *generator_dto.Manifest,
@@ -280,9 +275,8 @@ func (mb *ManifestBuilder) addErrorPageEntry(
 	manifest.ErrorPages[manifestKey] = entry
 }
 
-// calculateErrorPageScopePath derives the URL path prefix that an error page
-// covers, based on the error page's directory relative to the pages/ source
-// directory.
+// calculateErrorPageScopePath derives the URL path prefix that an error page covers,
+// based on the error page's directory relative to the pages/ source directory.
 //
 // Takes vc (*annotator_dto.VirtualComponent) which is the error page component.
 //
@@ -308,17 +302,15 @@ func (mb *ManifestBuilder) calculateErrorPageScopePath(vc *annotator_dto.Virtual
 	return "/" + directory + "/"
 }
 
-// addPartialEntry creates and adds a partial entry to the manifest if the
-// component is public.
+// addPartialEntry creates and adds a partial entry to the manifest if the component is
+// public.
 //
-// Takes manifest (*generator_dto.Manifest) which is the manifest to add the
-// entry to.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style
-// and JavaScript artefact data.
-// Takes vc (*annotator_dto.VirtualComponent) which is the virtual component
-// to create an entry for.
-// Takes manifestKey (string) which is the key to use in the manifest's
-// partials map.
+// Takes manifest (*generator_dto.Manifest) which is the manifest to add the entry to.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style and
+// JavaScript artefact data.
+// Takes vc (*annotator_dto.VirtualComponent) which is the virtual component to create an
+// entry for.
+// Takes manifestKey (string) which is the key to use in the manifest's partials map.
 func (*ManifestBuilder) addPartialEntry(manifest *generator_dto.Manifest, artefact *generator_dto.GeneratedArtefact, vc *annotator_dto.VirtualComponent, manifestKey string) {
 	if !vc.IsPublic {
 		return
@@ -340,12 +332,11 @@ func (*ManifestBuilder) addPartialEntry(manifest *generator_dto.Manifest, artefa
 
 // addEmailEntry creates and adds an email entry to the manifest.
 //
-// Takes manifest (*generator_dto.Manifest) which is the manifest to add the
-// entry to.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style
-// block for the entry.
-// Takes vc (*annotator_dto.VirtualComponent) which provides the package path
-// and locale settings.
+// Takes manifest (*generator_dto.Manifest) which is the manifest to add the entry to.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style block for
+// the entry.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the package path and locale
+// settings.
 // Takes manifestKey (string) which is the key used to store the email entry.
 func (*ManifestBuilder) addEmailEntry(manifest *generator_dto.Manifest, artefact *generator_dto.GeneratedArtefact, vc *annotator_dto.VirtualComponent, manifestKey string) {
 	emailEntry := generator_dto.ManifestEmailEntry{
@@ -361,12 +352,11 @@ func (*ManifestBuilder) addEmailEntry(manifest *generator_dto.Manifest, artefact
 
 // addPdfEntry creates and adds a PDF entry to the manifest.
 //
-// Takes manifest (*generator_dto.Manifest) which is the manifest to add the
-// entry to.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style
-// block for the entry.
-// Takes vc (*annotator_dto.VirtualComponent) which provides the package path
-// and locale settings.
+// Takes manifest (*generator_dto.Manifest) which is the manifest to add the entry to.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides the style block for
+// the entry.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the package path and locale
+// settings.
 // Takes manifestKey (string) which is the key used to store the PDF entry.
 func (*ManifestBuilder) addPdfEntry(manifest *generator_dto.Manifest, artefact *generator_dto.GeneratedArtefact, vc *annotator_dto.VirtualComponent, manifestKey string) {
 	pdfEntry := generator_dto.ManifestPdfEntry{
@@ -382,17 +372,16 @@ func (*ManifestBuilder) addPdfEntry(manifest *generator_dto.Manifest, artefact *
 
 // promoteToCatchAll widens the trailing dynamic parameter of a route pattern.
 //
-// chi's bare `{name}` pattern only matches a single URL segment; using the
-// regex form `{name:.+}` lets the named parameter capture multi-segment
-// suffixes such as `/docs/get-started/intro`, which is the
-// path-relative-to-collection identifier the runtime lookup keys on. Patterns
-// without a trailing dynamic param (`/about`, `/`) and patterns already
-// widened are returned unchanged.
+// chi's bare `{name}` pattern only matches a single URL segment; using the regex form
+// `{name:.+}` lets the named parameter capture multi-segment suffixes such as
+// `/docs/get-started/intro`, which is the path-relative-to-collection identifier the
+// runtime lookup keys on. Patterns without a trailing dynamic param (`/about`, `/`) and
+// patterns already widened are returned unchanged.
 //
 // Takes pattern (string) which is the source route pattern.
 //
-// Returns string which is the widened pattern, or the input when it has no
-// trailing dynamic parameter to widen.
+// Returns string which is the widened pattern, or the input when it has no trailing
+// dynamic parameter to widen.
 func promoteToCatchAll(pattern string) string {
 	parsed := route_pattern.ParseTrailing(pattern)
 	if !parsed.Found || parsed.HasRegex {
@@ -401,14 +390,13 @@ func promoteToCatchAll(pattern string) string {
 	return parsed.Prefix + "{" + parsed.Name + ":.+}"
 }
 
-// calculatePageRoutePattern computes the Chi route pattern for a page
-// component.
+// calculatePageRoutePattern computes the Chi route pattern for a page component.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which is the page component to
-// calculate the route for.
+// Takes vc (*annotator_dto.VirtualComponent) which is the page component to calculate the
+// route for.
 //
-// Returns string which is the URL route pattern, or empty if the component is
-// not a public page.
+// Returns string which is the URL route pattern, or empty if the component is not a
+// public page.
 func (mb *ManifestBuilder) calculatePageRoutePattern(vc *annotator_dto.VirtualComponent) string {
 	if !vc.IsPage || !vc.IsPublic {
 		return ""
@@ -447,13 +435,13 @@ func (mb *ManifestBuilder) calculatePageRoutePattern(vc *annotator_dto.VirtualCo
 	return result
 }
 
-// computeRoutePatterns generates locale-specific route patterns for a page
-// based on i18n configuration and the page's SupportedLocales setting.
+// computeRoutePatterns generates locale-specific route patterns for a page based on i18n
+// configuration and the page's SupportedLocales setting.
 //
-// If the page has no SupportedLocales, returns a single pattern for the default
-// locale only (opt-in model). If the page has SupportedLocales, generates
-// patterns for all locales from WebsiteConfig. The runtime will call
-// SupportedLocales to validate if a specific locale is actually supported.
+// If the page has no SupportedLocales, returns a single pattern for the default locale
+// only (opt-in model). If the page has SupportedLocales, generates patterns for all
+// locales from WebsiteConfig. The runtime will call SupportedLocales to validate if a
+// specific locale is actually supported.
 //
 // Takes basePattern (string) which is the base route pattern to localise.
 // Takes vc (*annotator_dto.VirtualComponent) which provides the page metadata.
@@ -487,8 +475,7 @@ func (mb *ManifestBuilder) computeRoutePatterns(
 
 // getDefaultLocale returns the default locale for the manifest.
 //
-// Returns string which is the configured default locale, or "en" if none is
-// set.
+// Returns string which is the configured default locale, or "en" if none is set.
 func (mb *ManifestBuilder) getDefaultLocale() string {
 	if mb.i18nDefaultLocale != "" {
 		return mb.i18nDefaultLocale
@@ -496,13 +483,13 @@ func (mb *ManifestBuilder) getDefaultLocale() string {
 	return "en"
 }
 
-// loadWebsiteConfig reads the website settings from the config.json file.
-// This is needed at build time to find the i18n routing method.
+// loadWebsiteConfig reads the website settings from the config.json file. This is needed
+// at build time to find the i18n routing method.
 //
-// Returns *config.WebsiteConfig which holds the parsed settings, or nil if
-// no config file exists.
-// Returns error when the sandbox cannot be created or the config file cannot
-// be read or parsed.
+// Returns *config.WebsiteConfig which holds the parsed settings, or nil if no config file
+// exists.
+// Returns error when the sandbox cannot be created or the config file cannot be read or
+// parsed.
 func (mb *ManifestBuilder) loadWebsiteConfig() (*config.WebsiteConfig, error) {
 	const configFileName = "config.json"
 
@@ -540,28 +527,25 @@ func (mb *ManifestBuilder) loadWebsiteConfig() (*config.WebsiteConfig, error) {
 	return &websiteConfig, nil
 }
 
-// WithConfigSandbox sets a custom sandbox for reading the config file. This
-// allows tests to use mock sandboxes for filesystem operations.
+// WithConfigSandbox sets a custom sandbox for reading the config file. This allows tests
+// to use mock sandboxes for filesystem operations.
 //
 // If not provided, a sandbox is created from baseDir when needed.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access for reading
-// the config file.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access for reading the
+// config file.
 //
-// Returns ManifestBuilderOption which sets up the builder with the given
-// sandbox.
+// Returns ManifestBuilderOption which sets up the builder with the given sandbox.
 func WithConfigSandbox(sandbox safedisk.Sandbox) ManifestBuilderOption {
 	return func(mb *ManifestBuilder) {
 		mb.configSandbox = sandbox
 	}
 }
 
-// WithConfigFactory sets the sandbox factory for the manifest builder. When
-// configSandbox is nil, the factory is tried before falling back to
-// NewNoOpSandbox.
+// WithConfigFactory sets the sandbox factory for the manifest builder. When configSandbox
+// is nil, the factory is tried before falling back to NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
 // Returns ManifestBuilderOption which configures the builder with the factory.
 func WithConfigFactory(factory safedisk.Factory) ManifestBuilderOption {
@@ -570,17 +554,16 @@ func WithConfigFactory(factory safedisk.Factory) ManifestBuilderOption {
 	}
 }
 
-// buildJSArtefactIDs combines the page's own JavaScript artefact ID with
-// partial IDs into a single slice. The page's own script (if any) comes first,
-// followed by partial scripts.
+// buildJSArtefactIDs combines the page's own JavaScript artefact ID with partial IDs into
+// a single slice. The page's own script (if any) comes first, followed by partial
+// scripts.
 //
-// Takes pageJSArtefactID (string) which is the page's JavaScript artefact ID.
-// May be empty if the page has no client-side script.
-// Takes partialJSArtefactIDs ([]string) which are the JavaScript artefact IDs
-// from embedded partials.
+// Takes pageJSArtefactID (string) which is the page's JavaScript artefact ID. May be
+// empty if the page has no client-side script.
+// Takes partialJSArtefactIDs ([]string) which are the JavaScript artefact IDs from
+// embedded partials.
 //
-// Returns []string containing all JavaScript artefact IDs, or nil if there
-// are none.
+// Returns []string containing all JavaScript artefact IDs, or nil if there are none.
 func buildJSArtefactIDs(pageJSArtefactID string, partialJSArtefactIDs []string) []string {
 	hasPageJS := pageJSArtefactID != ""
 	hasPartialJS := len(partialJSArtefactIDs) > 0
@@ -605,18 +588,17 @@ func buildJSArtefactIDs(pageJSArtefactID string, partialJSArtefactIDs []string) 
 	return result
 }
 
-// generateRoutesByStrategy generates route patterns based on the i18n strategy.
-// This is a pure function that does not need receiver state.
+// generateRoutesByStrategy generates route patterns based on the i18n strategy. This is a
+// pure function that does not need receiver state.
 //
 // Takes strategy (string) which specifies the i18n routing approach: "prefix",
 // "prefix_except_default", or "query-only".
 // Takes basePattern (string) which is the base URL path to generate routes for.
-// Takes defaultLocale (string) which is the locale that may receive special
-// treatment depending on strategy.
+// Takes defaultLocale (string) which is the locale that may receive special treatment
+// depending on strategy.
 // Takes locales ([]string) which lists all locales to generate routes for.
 //
-// Returns map[string]string which maps each locale to its generated route
-// pattern.
+// Returns map[string]string which maps each locale to its generated route pattern.
 func generateRoutesByStrategy(strategy, basePattern, defaultLocale string, locales []string) map[string]string {
 	routePatterns := make(map[string]string)
 

@@ -18,27 +18,29 @@
 
 package monitoring_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockSystemStatsProvider is a test double for SystemStatsProvider where
-// nil function fields return zero values and call counts are tracked
-// atomically.
+// MockSystemStatsProvider is a test double for SystemStatsProvider where nil function
+// fields return zero values and call counts are tracked atomically.
 type MockSystemStatsProvider struct {
 	// GetStatsFunc is the function called by GetStats.
 	GetStatsFunc func() SystemStats
 
-	// GetStatsCallCount tracks how many times GetStats
-	// was called.
-	GetStatsCallCount int64
+	// GetStatsCallCount tracks how many times GetStats was called.
+	GetStatsCallCount atomic.Int64
 }
 
-var _ SystemStatsProvider = (*MockSystemStatsProvider)(nil)
+var (
+	_ SystemStatsProvider = (*MockSystemStatsProvider)(nil)
+)
 
 // GetStats delegates to GetStatsFunc if set.
 //
 // Returns SystemStats{} if GetStatsFunc is nil.
 func (m *MockSystemStatsProvider) GetStats() SystemStats {
-	atomic.AddInt64(&m.GetStatsCallCount, 1)
+	m.GetStatsCallCount.Add(1)
 	if m.GetStatsFunc != nil {
 		return m.GetStatsFunc()
 	}

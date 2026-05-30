@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_domain defines the core business logic and ports for
-// the email subsystem.
+// Package email_domain defines the core business logic and ports for the email subsystem.
 //
-// It sends emails through pluggable providers with batched sending,
-// automatic retries with exponential backoff, dead-letter queues, and
-// circuit breaker protection. Fluent builders are available for
-// composing both simple and templated emails.
+// It sends emails through pluggable providers with batched sending, automatic retries
+// with exponential backoff, dead-letter queues, and circuit breaker protection. Fluent
+// builders are available for composing both simple and templated emails.
 //
 // Simple email:
 //
@@ -47,7 +45,6 @@
 //
 // All terminal operations honour context cancellation and deadlines.
 //
-// The Service and EmailDispatcher are safe for concurrent use. Fluent
-// builders are not thread-safe and should not be shared between
-// goroutines.
+// The Service and EmailDispatcher are safe for concurrent use. Fluent builders are not
+// thread-safe and should not be shared between goroutines.
 package email_domain

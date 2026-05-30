@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/pikotest/pikotest_dto"
 )
 
-// ActionResultView wraps a pikotest_dto.ActionResult and provides assertion
-// methods for testing server action outcomes.
+// ActionResultView wraps a pikotest_dto.ActionResult and provides assertion methods for
+// testing server action outcomes.
 type ActionResultView struct {
 	// tb is the testing interface for reporting failures and logging.
 	tb testing.TB
@@ -50,11 +50,10 @@ func (v *ActionResultView) AssertError() {
 	}
 }
 
-// AssertErrorContains asserts that the action returned an error containing
-// the given substring.
+// AssertErrorContains asserts that the action returned an error containing the given
+// substring.
 //
-// Takes substr (string) which is the expected substring within the error
-// message.
+// Takes substr (string) which is the expected substring within the error message.
 func (v *ActionResultView) AssertErrorContains(substr string) {
 	v.tb.Helper()
 	if v.result.Err == nil {
@@ -65,8 +64,7 @@ func (v *ActionResultView) AssertErrorContains(substr string) {
 	}
 }
 
-// AssertHelper asserts that the response includes a helper call with the
-// given name.
+// AssertHelper asserts that the response includes a helper call with the given name.
 //
 // Takes name (string) which is the helper name to look for.
 func (v *ActionResultView) AssertHelper(name string) {
@@ -103,8 +101,7 @@ func (v *ActionResultView) Err() error {
 
 // Result returns the underlying ActionResult DTO for advanced assertions.
 //
-// Returns *pikotest_dto.ActionResult which contains the raw response and
-// error.
+// Returns *pikotest_dto.ActionResult which contains the raw response and error.
 func (v *ActionResultView) Result() *pikotest_dto.ActionResult {
 	return v.result
 }

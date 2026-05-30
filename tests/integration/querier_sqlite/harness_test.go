@@ -37,7 +37,9 @@ import (
 	"piko.sh/piko/wdk/db/db_engine_sqlite"
 )
 
-const runnerModuleName = "querier_test_runner"
+const (
+	runnerModuleName = "querier_test_runner"
+)
 
 type testSpec struct {
 	Description     string                             `json:"description"`

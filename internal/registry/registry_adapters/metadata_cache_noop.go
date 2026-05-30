@@ -25,10 +25,12 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-var _ registry_domain.MetadataCache = (*NoOpMetadataCache)(nil)
+var (
+	_ registry_domain.MetadataCache = (*NoOpMetadataCache)(nil)
+)
 
-// NoOpMetadataCache implements MetadataCache as a no-op cache that always
-// returns cache misses. Use it in tests when caching is not needed.
+// NoOpMetadataCache implements MetadataCache as a no-op cache that always returns cache
+// misses. Use it in tests when caching is not needed.
 type NoOpMetadataCache struct{}
 
 // NewNoOpMetadataCache creates a new no-op metadata cache for testing.
@@ -40,8 +42,7 @@ func NewNoOpMetadataCache() *NoOpMetadataCache {
 
 // Get always returns nil, indicating a cache miss.
 //
-// Returns *registry_dto.ArtefactMeta which is always nil for this no-op
-// implementation.
+// Returns *registry_dto.ArtefactMeta which is always nil for this no-op implementation.
 // Returns error which is always nil.
 func (*NoOpMetadataCache) Get(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
 	return nil, nil
@@ -51,8 +52,7 @@ func (*NoOpMetadataCache) Get(_ context.Context, _ string) (*registry_dto.Artefa
 //
 // Takes artefactIDs ([]string) which specifies the artefact IDs to look up.
 //
-// Returns []*registry_dto.ArtefactMeta which is always nil for this no-op
-// implementation.
+// Returns []*registry_dto.ArtefactMeta which is always nil for this no-op implementation.
 // Returns []string which contains all requested IDs as cache misses.
 func (*NoOpMetadataCache) GetMultiple(_ context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, []string) {
 	return nil, artefactIDs

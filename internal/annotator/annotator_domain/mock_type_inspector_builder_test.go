@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockTypeInspectorBuilder_SetConfig(t *testing.T) {
 
 		mock.SetConfig(inspector_dto.Config{BaseDir: "/project"})
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetConfigCallCount))
+		assert.Equal(t, int64(1), mock.SetConfigCallCount.Load())
 	})
 
 	t.Run("delegates to SetConfigFunc", func(t *testing.T) {
@@ -66,7 +65,7 @@ func TestMockTypeInspectorBuilder_SetConfig(t *testing.T) {
 		mock.SetConfig(input)
 
 		assert.Equal(t, input, captured)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetConfigCallCount))
+		assert.Equal(t, int64(1), mock.SetConfigCallCount.Load())
 	})
 }
 
@@ -85,7 +84,7 @@ func TestMockTypeInspectorBuilder_Build(t *testing.T) {
 		)
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.BuildCallCount))
+		assert.Equal(t, int64(1), mock.BuildCallCount.Load())
 	})
 
 	t.Run("delegates to BuildFunc", func(t *testing.T) {
@@ -109,7 +108,7 @@ func TestMockTypeInspectorBuilder_Build(t *testing.T) {
 		err := mock.Build(context.Background(), wantOverlay, wantHashes)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.BuildCallCount))
+		assert.Equal(t, int64(1), mock.BuildCallCount.Load())
 	})
 
 	t.Run("propagates error from BuildFunc", func(t *testing.T) {
@@ -126,7 +125,7 @@ func TestMockTypeInspectorBuilder_Build(t *testing.T) {
 		err := mock.Build(context.Background(), nil, nil)
 
 		assert.ErrorIs(t, err, wantErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.BuildCallCount))
+		assert.Equal(t, int64(1), mock.BuildCallCount.Load())
 	})
 }
 
@@ -142,7 +141,7 @@ func TestMockTypeInspectorBuilder_GetQuerier(t *testing.T) {
 
 		require.True(t, ok)
 		assert.IsType(t, &inspector_domain.MockTypeQuerier{}, querier)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetQuerierCallCount))
+		assert.Equal(t, int64(1), mock.GetQuerierCallCount.Load())
 	})
 
 	t.Run("delegates to GetQuerierFunc", func(t *testing.T) {
@@ -160,7 +159,7 @@ func TestMockTypeInspectorBuilder_GetQuerier(t *testing.T) {
 
 		require.True(t, ok)
 		assert.Same(t, wantQuerier, querier)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetQuerierCallCount))
+		assert.Equal(t, int64(1), mock.GetQuerierCallCount.Load())
 	})
 
 	t.Run("GetQuerierFunc can return false", func(t *testing.T) {
@@ -176,7 +175,7 @@ func TestMockTypeInspectorBuilder_GetQuerier(t *testing.T) {
 
 		assert.False(t, ok)
 		assert.Nil(t, querier)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetQuerierCallCount))
+		assert.Equal(t, int64(1), mock.GetQuerierCallCount.Load())
 	})
 }
 
@@ -186,16 +185,16 @@ func TestMockTypeInspectorBuilder_ZeroValueIsUsable(t *testing.T) {
 	var mock MockTypeInspectorBuilder
 
 	mock.SetConfig(inspector_dto.Config{})
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetConfigCallCount))
+	assert.Equal(t, int64(1), mock.SetConfigCallCount.Load())
 
 	err := mock.Build(context.Background(), nil, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.BuildCallCount))
+	assert.Equal(t, int64(1), mock.BuildCallCount.Load())
 
 	querier, ok := mock.GetQuerier()
 	assert.True(t, ok)
 	assert.NotNil(t, querier)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetQuerierCallCount))
+	assert.Equal(t, int64(1), mock.GetQuerierCallCount.Load())
 }
 
 func TestMockTypeInspectorBuilder_ConcurrentAccess(t *testing.T) {
@@ -233,7 +232,7 @@ func TestMockTypeInspectorBuilder_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.SetConfigCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.BuildCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetQuerierCallCount))
+	assert.Equal(t, int64(goroutines), mock.SetConfigCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.BuildCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetQuerierCallCount.Load())
 }

@@ -18,10 +18,12 @@
 
 package collection_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockProviderRegistry is a test double for ProviderRegistryPort that returns
-// zero values from nil function fields and tracks call counts atomically.
+// MockProviderRegistry is a test double for ProviderRegistryPort that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockProviderRegistry struct {
 	// RegisterFunc is the function called by Register.
 	RegisterFunc func(provider CollectionProvider) error
@@ -35,31 +37,30 @@ type MockProviderRegistry struct {
 	// HasFunc is the function called by Has.
 	HasFunc func(name string) bool
 
-	// RegisterCallCount tracks how many times Register
-	// was called.
-	RegisterCallCount int64
+	// RegisterCallCount tracks how many times Register was called.
+	RegisterCallCount atomic.Int64
 
 	// GetCallCount tracks how many times Get was called.
-	GetCallCount int64
+	GetCallCount atomic.Int64
 
-	// ListCallCount tracks how many times List was
-	// called.
-	ListCallCount int64
+	// ListCallCount tracks how many times List was called.
+	ListCallCount atomic.Int64
 
 	// HasCallCount tracks how many times Has was called.
-	HasCallCount int64
+	HasCallCount atomic.Int64
 }
 
-var _ ProviderRegistryPort = (*MockProviderRegistry)(nil)
+var (
+	_ ProviderRegistryPort = (*MockProviderRegistry)(nil)
+)
 
 // Register delegates to RegisterFunc if set.
 //
-// Takes provider (CollectionProvider) which is the collection provider
-// to register.
+// Takes provider (CollectionProvider) which is the collection provider to register.
 //
 // Returns nil if RegisterFunc is nil.
 func (m *MockProviderRegistry) Register(provider CollectionProvider) error {
-	atomic.AddInt64(&m.RegisterCallCount, 1)
+	m.RegisterCallCount.Add(1)
 	if m.RegisterFunc != nil {
 		return m.RegisterFunc(provider)
 	}
@@ -72,7 +73,7 @@ func (m *MockProviderRegistry) Register(provider CollectionProvider) error {
 //
 // Returns (nil, false) if GetFunc is nil.
 func (m *MockProviderRegistry) Get(name string) (CollectionProvider, bool) {
-	atomic.AddInt64(&m.GetCallCount, 1)
+	m.GetCallCount.Add(1)
 	if m.GetFunc != nil {
 		return m.GetFunc(name)
 	}
@@ -83,7 +84,7 @@ func (m *MockProviderRegistry) Get(name string) (CollectionProvider, bool) {
 //
 // Returns nil if ListFunc is nil.
 func (m *MockProviderRegistry) List() []string {
-	atomic.AddInt64(&m.ListCallCount, 1)
+	m.ListCallCount.Add(1)
 	if m.ListFunc != nil {
 		return m.ListFunc()
 	}
@@ -96,7 +97,7 @@ func (m *MockProviderRegistry) List() []string {
 //
 // Returns false if HasFunc is nil.
 func (m *MockProviderRegistry) Has(name string) bool {
-	atomic.AddInt64(&m.HasCallCount, 1)
+	m.HasCallCount.Add(1)
 	if m.HasFunc != nil {
 		return m.HasFunc(name)
 	}

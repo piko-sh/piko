@@ -28,9 +28,8 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// componentRegistry stores all known PikoML component types and provides safe
-// access from multiple goroutines. It implements the ComponentRegistry
-// interface.
+// componentRegistry stores all known PikoML component types and provides safe access from
+// multiple goroutines. It implements the ComponentRegistry interface.
 type componentRegistry struct {
 	// components maps tag names to their registered PikoML components.
 	components map[string]pml_domain.Component
@@ -39,7 +38,9 @@ type componentRegistry struct {
 	mu sync.RWMutex
 }
 
-var _ pml_domain.ComponentRegistry = (*componentRegistry)(nil)
+var (
+	_ pml_domain.ComponentRegistry = (*componentRegistry)(nil)
+)
 
 // MustGet returns the component registered with the given tag name.
 //
@@ -47,9 +48,9 @@ var _ pml_domain.ComponentRegistry = (*componentRegistry)(nil)
 //
 // Returns pml_domain.Component which is the registered component.
 //
-// Panics if no component is registered with the given tag name. The caller
-// must have invariant proof that the component exists; otherwise prefer
-// Lookup, which returns an error and never panics.
+// Panics if no component is registered with the given tag name. The caller must have
+// invariant proof that the component exists; otherwise prefer Lookup, which returns an
+// error and never panics.
 func (r *componentRegistry) MustGet(tagName string) pml_domain.Component {
 	comp, ok := r.Get(tagName)
 	if !ok {
@@ -63,8 +64,7 @@ func (r *componentRegistry) MustGet(tagName string) pml_domain.Component {
 // Takes tagName (string) which identifies the component to retrieve.
 //
 // Returns pml_domain.Component which is the registered component.
-// Returns error which wraps pml_domain.ErrComponentNotFound when not
-// registered.
+// Returns error which wraps pml_domain.ErrComponentNotFound when not registered.
 func (r *componentRegistry) Lookup(tagName string) (pml_domain.Component, error) {
 	comp, ok := r.Get(tagName)
 	if !ok {
@@ -75,11 +75,11 @@ func (r *componentRegistry) Lookup(tagName string) (pml_domain.Component, error)
 
 // Register adds a component implementation to the registry.
 //
-// It uses the component's TagName method as the key. If a component with the
-// same name is already registered, it will be overwritten.
+// It uses the component's TagName method as the key. If a component with the same name is
+// already registered, it will be overwritten.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes comp (pml_domain.Component) which is the component to register.
 //
 // Returns error when comp is nil or its TagName returns an empty string.
@@ -125,8 +125,8 @@ func (r *componentRegistry) Get(tagName string) (pml_domain.Component, bool) {
 	return comp, exists
 }
 
-// GetAll returns a slice containing all registered component implementations.
-// The order of components in the returned slice is not guaranteed.
+// GetAll returns a slice containing all registered component implementations. The order
+// of components in the returned slice is not guaranteed.
 //
 // Returns []pml_domain.Component which contains all registered components.
 //
@@ -142,12 +142,10 @@ func (r *componentRegistry) GetAll() []pml_domain.Component {
 	return all
 }
 
-// NewRegistry creates and returns a new, empty component registry.
-// This is the starting point for building a registry that will hold built-in
-// or custom components.
+// NewRegistry creates and returns a new, empty component registry. This is the starting
+// point for building a registry that will hold built-in or custom components.
 //
-// Returns pml_domain.ComponentRegistry which is ready to accept component
-// registrations.
+// Returns pml_domain.ComponentRegistry which is ready to accept component registrations.
 func NewRegistry() pml_domain.ComponentRegistry {
 	return &componentRegistry{
 		components: make(map[string]pml_domain.Component),
@@ -155,15 +153,13 @@ func NewRegistry() pml_domain.ComponentRegistry {
 	}
 }
 
-// RegisterBuiltIns creates a new registry and populates it with all the
-// standard, built-in PikoML components. This is the typical way the engine is
-// initialised.
+// RegisterBuiltIns creates a new registry and populates it with all the standard,
+// built-in PikoML components. This is the typical way the engine is initialised.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 //
-// Returns pml_domain.ComponentRegistry which contains all registered built-in
-// components.
+// Returns pml_domain.ComponentRegistry which contains all registered built-in components.
 // Returns error when a built-in component fails to register.
 func RegisterBuiltIns(ctx context.Context) (pml_domain.ComponentRegistry, error) {
 	_, l := logger_domain.From(ctx, log)

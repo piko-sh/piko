@@ -20,12 +20,11 @@
 
 package interp_domain
 
-// runDispatched executes bytecode starting from baseFramePointer using
-// the standard switch dispatch loop on architectures without ASM
-// threaded dispatch.
+// runDispatched executes bytecode starting from baseFramePointer using the standard
+// switch dispatch loop on architectures without ASM threaded dispatch.
 //
-// Takes baseFramePointer (int) which specifies the call stack frame to
-// return from when execution completes.
+// Takes baseFramePointer (int) which specifies the call stack frame to return from when
+// execution completes.
 //
 // Returns the execution result and any error encountered.
 func (vm *VM) runDispatched(baseFramePointer int) (any, error) {

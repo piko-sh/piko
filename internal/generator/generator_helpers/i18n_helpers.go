@@ -26,22 +26,21 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// GenerateLocaleHead generates SEO-related locale metadata for a page.
-// It returns the current locale, the canonical URL, and a list of alternate
-// links for hreflang tags based on the i18n configuration.
+// GenerateLocaleHead generates SEO-related locale metadata for a page. It returns the
+// current locale, the canonical URL, and a list of alternate links for hreflang tags
+// based on the i18n configuration.
 //
-// Takes r (*templater_dto.RequestData) which provides request context including
-// locale and host information.
-// Takes websiteConfig (*config.WebsiteConfig) which specifies
-// the i18n configuration.
+// Takes r (*templater_dto.RequestData) which provides request context including locale
+// and host information.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the i18n configuration.
 // Takes pagePath (string) which is the path of the current page.
-// Takes supportedLocalesOverride ([]string) which optionally overrides the
-// configured locales.
+// Takes supportedLocalesOverride ([]string) which optionally overrides the configured
+// locales.
 //
 // Returns locale (string) which is the current request locale.
 // Returns canonicalURL (string) which is the canonical URL for the page.
-// Returns alternateLinks ([]map[string]string) which contains hreflang entries
-// for each supported locale plus x-default.
+// Returns alternateLinks ([]map[string]string) which contains hreflang entries for each
+// supported locale plus x-default.
 func GenerateLocaleHead(
 	r *templater_dto.RequestData,
 	websiteConfig *config.WebsiteConfig,

@@ -18,10 +18,10 @@
 
 package annotator_domain
 
-// Extracts TypeScript function parameter type annotations from client scripts
-// using esbuild's lexer directly. This runs BEFORE the parser (which discards
-// all type information) so that parameter types can be used for compile-time
-// validation of event handler calls.
+// Extracts TypeScript function parameter type annotations from client scripts using
+// esbuild's lexer directly. This runs BEFORE the parser (which discards all type
+// information) so that parameter types can be used for compile-time validation of event
+// handler calls.
 
 import (
 	"strings"
@@ -48,8 +48,8 @@ const (
 	categoryAny = "any"
 )
 
-// typeDepth tracks nesting depth of angle brackets, parentheses, and square
-// brackets during type expression parsing.
+// typeDepth tracks nesting depth of angle brackets, parentheses, and square brackets
+// during type expression parsing.
 type typeDepth struct {
 	// angle tracks the nesting depth of angle brackets (<>).
 	angle int
@@ -68,16 +68,15 @@ func (d *typeDepth) isTopLevel() bool {
 	return d.angle == 0 && d.paren == 0 && d.bracket == 0
 }
 
-// handleGroupingToken checks whether the current token is a grouping delimiter
-// (angle, paren, bracket) and adjusts depth accordingly. When the token is a
-// top-level close-paren, it signals the caller to stop.
+// handleGroupingToken checks whether the current token is a grouping delimiter (angle,
+// paren, bracket) and adjusts depth accordingly. When the token is a top-level
+// close-paren, it signals the caller to stop.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the current token.
 // Takes tokens (*[]string) which accumulates the type expression tokens.
 //
 // Returns handled (bool) which is true when the token was a grouping delimiter.
-// Returns stop (bool) which is true when parsing should stop (unmatched close
-// paren).
+// Returns stop (bool) which is true when parsing should stop (unmatched close paren).
 func (d *typeDepth) handleGroupingToken(lexer *js_lexer.Lexer, tokens *[]string) (handled, stop bool) {
 	switch lexer.Token {
 	case js_lexer.TLessThan:
@@ -129,12 +128,12 @@ func (d *typeDepth) handleGroupingToken(lexer *js_lexer.Lexer, tokens *[]string)
 	}
 }
 
-// ExtractFunctionParams uses esbuild's lexer to find function declarations and
-// arrow function assignments in TypeScript source code. For each function it
-// extracts parameter names, type annotations, and optional/rest markers.
+// ExtractFunctionParams uses esbuild's lexer to find function declarations and arrow
+// function assignments in TypeScript source code. For each function it extracts parameter
+// names, type annotations, and optional/rest markers.
 //
-// This must run BEFORE esbuild parsing because esbuild removes all type
-// information during parsing.
+// This must run BEFORE esbuild parsing because esbuild removes all type information
+// during parsing.
 //
 // Supported patterns:
 //   - [export] function NAME(params) { ... }
@@ -144,8 +143,8 @@ func (d *typeDepth) handleGroupingToken(lexer *js_lexer.Lexer, tokens *[]string)
 //
 // Takes source (string) which is the TypeScript source code to scan.
 //
-// Returns map[string][]ParamInfo which maps function names to their parameter
-// lists. Functions without parameters are included with an empty slice.
+// Returns map[string][]ParamInfo which maps function names to their parameter lists.
+// Functions without parameters are included with an empty slice.
 func ExtractFunctionParams(source string) (result map[string][]ParamInfo) {
 	if source == "" {
 		return nil
@@ -191,8 +190,8 @@ func ExtractFunctionParams(source string) (result map[string][]ParamInfo) {
 	return result
 }
 
-// isFunctionKeyword checks if the lexer is at a "function" keyword (not
-// preceded by "async", which is handled separately).
+// isFunctionKeyword checks if the lexer is at a "function" keyword (not preceded by
+// "async", which is handled separately).
 //
 // Takes lexer (*js_lexer.Lexer) which provides the current token to check.
 //
@@ -201,8 +200,8 @@ func isFunctionKeyword(lexer *js_lexer.Lexer) bool {
 	return lexer.Token == js_lexer.TFunction
 }
 
-// isAsyncFunctionKeyword checks if the lexer is at "async" which may be
-// followed by "function".
+// isAsyncFunctionKeyword checks if the lexer is at "async" which may be followed by
+// "function".
 //
 // Takes lexer (*js_lexer.Lexer) which provides the current token to check.
 //
@@ -223,8 +222,8 @@ func isConstKeyword(lexer *js_lexer.Lexer) bool {
 // extractFunctionDeclParams handles: function NAME(params) { ... }.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
-// Takes result (map[string][]ParamInfo) which collects extracted function
-// parameters keyed by function name.
+// Takes result (map[string][]ParamInfo) which collects extracted function parameters
+// keyed by function name.
 func extractFunctionDeclParams(lexer *js_lexer.Lexer, result map[string][]ParamInfo) {
 	lexer.Next()
 
@@ -246,8 +245,8 @@ func extractFunctionDeclParams(lexer *js_lexer.Lexer, result map[string][]ParamI
 // extractAsyncFunctionDeclParams handles: async function NAME(params) { ... }.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
-// Takes result (map[string][]ParamInfo) which collects extracted function
-// parameters keyed by function name.
+// Takes result (map[string][]ParamInfo) which collects extracted function parameters
+// keyed by function name.
 func extractAsyncFunctionDeclParams(lexer *js_lexer.Lexer, result map[string][]ParamInfo) {
 	lexer.Next()
 
@@ -259,12 +258,11 @@ func extractAsyncFunctionDeclParams(lexer *js_lexer.Lexer, result map[string][]P
 	skipToNextStatement(lexer)
 }
 
-// extractConstArrowParams handles const arrow and async const
-// arrow function patterns.
+// extractConstArrowParams handles const arrow and async const arrow function patterns.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
-// Takes result (map[string][]ParamInfo) which collects extracted function
-// parameters keyed by function name.
+// Takes result (map[string][]ParamInfo) which collects extracted function parameters
+// keyed by function name.
 func extractConstArrowParams(lexer *js_lexer.Lexer, result map[string][]ParamInfo) {
 	lexer.Next()
 
@@ -292,8 +290,8 @@ func extractConstArrowParams(lexer *js_lexer.Lexer, result map[string][]ParamInf
 	}
 }
 
-// extractParamList reads a complete parameter list from opening to closing
-// parenthesis, extracting parameter names and type annotations.
+// extractParamList reads a complete parameter list from opening to closing parenthesis,
+// extracting parameter names and type annotations.
 //
 // Takes lexer (*js_lexer.Lexer) which must be positioned at TOpenParen.
 //
@@ -319,14 +317,13 @@ func extractParamList(lexer *js_lexer.Lexer) []ParamInfo {
 	return parameters
 }
 
-// extractSingleParam reads one parameter declaration including optional rest
-// operator, name, optional marker, and type annotation.
+// extractSingleParam reads one parameter declaration including optional rest operator,
+// name, optional marker, and type annotation.
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned at
-// the start of a parameter.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned at the start
+// of a parameter.
 //
-// Returns ParamInfo which contains the extracted parameter name, type, and
-// flags.
+// Returns ParamInfo which contains the extracted parameter name, type, and flags.
 func extractSingleParam(lexer *js_lexer.Lexer) ParamInfo {
 	var param ParamInfo
 
@@ -370,12 +367,11 @@ func extractSingleParam(lexer *js_lexer.Lexer) ParamInfo {
 	return param
 }
 
-// extractParamType reads a TypeScript type expression from the lexer and
-// returns it as a string. Stops at a top-level comma, closing paren, or
-// equals sign (default value).
+// extractParamType reads a TypeScript type expression from the lexer and returns it as a
+// string. Stops at a top-level comma, closing paren, or equals sign (default value).
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned
-// after the colon of a type annotation.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned after the
+// colon of a type annotation.
 //
 // Returns string which is the reconstructed type expression text.
 func extractParamType(lexer *js_lexer.Lexer) string {
@@ -401,8 +397,8 @@ func extractParamType(lexer *js_lexer.Lexer) string {
 	return strings.Join(tokens, "")
 }
 
-// appendTypeToken appends the string representation of a non-grouping type
-// token to the tokens slice.
+// appendTypeToken appends the string representation of a non-grouping type token to the
+// tokens slice.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the current token.
 // Takes tokens (*[]string) which accumulates the type expression tokens.
@@ -436,8 +432,8 @@ func appendTypeToken(lexer *js_lexer.Lexer, tokens *[]string) {
 
 // skipTypeParameters skips past generic type parameters like <T> or <T, U>.
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream to advance
-// past any generic type parameter list.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream to advance past any
+// generic type parameter list.
 func skipTypeParameters(lexer *js_lexer.Lexer) {
 	if lexer.Token != js_lexer.TLessThan {
 		return
@@ -458,11 +454,11 @@ func skipTypeParameters(lexer *js_lexer.Lexer) {
 	}
 }
 
-// skipDestructurePattern skips past a destructured parameter pattern like
-// { a, b } or [ x, y ].
+// skipDestructurePattern skips past a destructured parameter pattern like { a, b } or [
+// x, y ].
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned at
-// the opening brace or bracket of a destructure pattern.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned at the opening
+// brace or bracket of a destructure pattern.
 func skipDestructurePattern(lexer *js_lexer.Lexer) {
 	var openTok, closeTok js_lexer.T
 	if lexer.Token == js_lexer.TOpenBrace {
@@ -477,7 +473,7 @@ func skipDestructurePattern(lexer *js_lexer.Lexer) {
 	lexer.Next()
 
 	for depth > 0 && lexer.Token != js_lexer.TEndOfFile {
-		switch lexer.Token {
+		switch lexer.Token { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case openTok:
 			depth++
 		case closeTok:
@@ -493,11 +489,11 @@ func skipDestructurePattern(lexer *js_lexer.Lexer) {
 	}
 }
 
-// skipDefaultValue skips past a default value expression in a parameter.
-// Stops at a top-level comma or closing paren.
+// skipDefaultValue skips past a default value expression in a parameter. Stops at a
+// top-level comma or closing paren.
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned
-// after the equals sign of a default value.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream positioned after the
+// equals sign of a default value.
 func skipDefaultValue(lexer *js_lexer.Lexer) {
 	depth := 0
 
@@ -524,11 +520,11 @@ func skipDefaultValue(lexer *js_lexer.Lexer) {
 	}
 }
 
-// skipToNextStatement advances the lexer past the current statement by
-// skipping until a matching closing brace at the top level or end of file.
+// skipToNextStatement advances the lexer past the current statement by skipping until a
+// matching closing brace at the top level or end of file.
 //
-// Takes lexer (*js_lexer.Lexer) which provides the token stream to advance
-// past the current statement.
+// Takes lexer (*js_lexer.Lexer) which provides the token stream to advance past the
+// current statement.
 func skipToNextStatement(lexer *js_lexer.Lexer) {
 	depth := 0
 
@@ -556,13 +552,12 @@ func skipToNextStatement(lexer *js_lexer.Lexer) {
 	}
 }
 
-// classifyTSType maps a raw TypeScript type string to a simplified
-// category, classifying nullable types by their non-null part.
+// classifyTSType maps a raw TypeScript type string to a simplified category, classifying
+// nullable types by their non-null part.
 //
 // Takes rawType (string) which is the TypeScript type annotation.
 //
-// Returns string which is one of: "string", "number", "boolean", "object",
-// or "any".
+// Returns string which is one of: "string", "number", "boolean", "object", or "any".
 func classifyTSType(rawType string) string {
 	if rawType == "" {
 		return categoryAny
@@ -589,11 +584,11 @@ func classifyTSType(rawType string) string {
 	}
 }
 
-// stripNullableFromType removes "null" and "undefined" from a union type
-// string and returns the remaining base type.
+// stripNullableFromType removes "null" and "undefined" from a union type string and
+// returns the remaining base type.
 //
-// Takes typeString (string) which is the type string that may contain nullable
-// union members.
+// Takes typeString (string) which is the type string that may contain nullable union
+// members.
 //
 // Returns string which is the base type with null and undefined removed.
 func stripNullableFromType(typeString string) string {

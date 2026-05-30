@@ -46,8 +46,8 @@ var (
 	// messageColour is the ANSI colour used for runtime diagnostic message text.
 	messageColour = colour.New(colour.Bold)
 
-	// rejectedPikoElementTags lists tag names that cannot be used as the resolved
-	// target of a <piko:element :is="..."> at runtime.
+	// rejectedPikoElementTags lists tag names that cannot be used as the resolved target of
+	// a <piko:element :is="..."> at runtime.
 	rejectedPikoElementTags = map[string]bool{
 		"piko:partial": true,
 		"piko:slot":    true,
@@ -55,12 +55,11 @@ var (
 	}
 )
 
-// AppendDiagnostic appends d to diagnostics and returns the updated slice.
-// Uses return-style (like Go's built-in append) so the caller's slice
-// variable stays stack-allocated.
+// AppendDiagnostic appends d to diagnostics and returns the updated slice. Uses
+// return-style (like Go's built-in append) so the caller's slice variable stays
+// stack-allocated.
 //
-// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which is the slice
-// to append to.
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which is the slice to append to.
 // Takes d (*generator_dto.RuntimeDiagnostic) which is the diagnostic to append.
 //
 // Returns []*generator_dto.RuntimeDiagnostic which is the updated slice.
@@ -72,20 +71,18 @@ func AppendDiagnostic(
 }
 
 // ValidatePikoElementTagName checks that a dynamically resolved tag name for
-// <piko:element :is="..."> is valid. If the tag is empty or a rejected target,
-// it appends a runtime diagnostic and returns "div" as a safe fallback.
+// <piko:element :is="..."> is valid. If the tag is empty or a rejected target, it appends
+// a runtime diagnostic and returns "div" as a safe fallback.
 //
 // Takes tag (string) which is the resolved tag name.
-// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which collects
-// runtime issues.
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which collects runtime issues.
 // Takes sourcePath (string) which identifies the source file.
 // Takes expression (string) which is the original :is expression.
 // Takes line (int) which is the line number.
 // Takes column (int) which is the column number.
 //
 // Returns string which is the validated tag name or "div" if invalid.
-// Returns []*generator_dto.RuntimeDiagnostic which is the updated diagnostics
-// slice.
+// Returns []*generator_dto.RuntimeDiagnostic which is the updated diagnostics slice.
 func ValidatePikoElementTagName(
 	tag string,
 	diagnostics []*generator_dto.RuntimeDiagnostic,
@@ -119,17 +116,17 @@ func ValidatePikoElementTagName(
 	return tag, diagnostics
 }
 
-// FormatRuntimeDiagnostics formats runtime diagnostics into a rich,
-// pretty-printed string suitable for console output.
+// FormatRuntimeDiagnostics formats runtime diagnostics into a rich, pretty-printed string
+// suitable for console output.
 //
-// When the diagnostics slice is empty, returns an empty string. Handles
-// invalid location data gracefully.
+// When the diagnostics slice is empty, returns an empty string. Handles invalid location
+// data gracefully.
 //
-// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which contains the
-// runtime issues to format.
-// Takes baseDir (string) which is the project root directory used to
-// reconstruct absolute paths from relative paths for IDE navigation.
-// Pass an empty string to display paths as-is.
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which contains the runtime
+// issues to format.
+// Takes baseDir (string) which is the project root directory used to reconstruct absolute
+// paths from relative paths for IDE navigation. Pass an empty string to display paths
+// as-is.
 //
 // Returns string which is the formatted, coloured output for console display.
 func FormatRuntimeDiagnostics(diagnostics []*generator_dto.RuntimeDiagnostic, baseDir string) string {

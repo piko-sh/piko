@@ -500,8 +500,7 @@ func (s *SSRServer) prepareInterpretedDeps(deps *bootstrap.Dependencies) error {
 // not already been assigned. Dev mode front-end modules and global setup are
 // applied on first creation.
 //
-// Takes deps (*bootstrap.Dependencies) which provides the application
-// dependencies.
+// Takes deps (*bootstrap.Dependencies) which provides the application dependencies.
 // Takes runMode (string) which specifies the execution mode (prod, dev, or
 // dev-interpreted).
 //
@@ -573,8 +572,7 @@ func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.C
 // (RunModeDev, RunModeDevInterpreted, or RunModeProd).
 //
 // Returns *bootstrap.Dependencies which contains the configured dependencies.
-// Returns error when dev-i mode is requested but no interpreter provider is
-// set.
+// Returns error when dev-i mode is requested but no interpreter provider is set.
 func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, error) {
 	deps := &bootstrap.Dependencies{
 		AppRouter: s.AppRouter,
@@ -599,10 +597,8 @@ func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, 
 //
 // Takes runMode (string) which specifies the execution mode (prod, dev, or
 // dev-interpreted).
-// Takes container (*bootstrap.Container) which provides the application
-// container.
-// Takes deps (*bootstrap.Dependencies) which provides the application
-// dependencies.
+// Takes container (*bootstrap.Container) which provides the application container.
+// Takes deps (*bootstrap.Dependencies) which provides the application dependencies.
 //
 // Returns error when bootstrapping fails, the run mode is invalid, or the
 // daemon exits unexpectedly.
@@ -939,14 +935,14 @@ func New(opts ...bootstrap.Option) *SSRServer {
 // Takes r (*RequestData) which provides the current request data.
 // Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
 // Takes pagePath (string) which is the page's URL path (e.g. "/about").
-// Takes supportedLocalesOverride ([]string) which optionally specifies locales
-// to use instead of the full config. Pass nil or empty slice to use all
-// locales from the config.
+// Takes supportedLocalesOverride ([]string) which optionally specifies locales to
+// use instead of the full config. Pass nil or empty slice to use all locales from
+// the config.
 //
 // Returns locale (string) which is the current request's locale from r.Locale.
 // Returns canonicalURL (string) which is the canonical URL for this page.
-// Returns alternateLinks ([]map[string]string) which contains hreflang
-// alternate links for SEO.
+// Returns alternateLinks ([]map[string]string) which contains hreflang alternate
+// links for SEO.
 func GenerateLocaleHead(
 	r *RequestData,
 	i18nConfig I18nConfig,
@@ -973,8 +969,7 @@ func GenerateLocaleHead(
 //
 // Takes opts (...Option) which configure providers, identical to New.
 //
-// Returns *bootstrap.Container which provides direct service access
-// if needed.
+// Returns *bootstrap.Container which provides direct service access if needed.
 // Returns error when provider configuration is invalid.
 //
 // Example:
@@ -1074,7 +1069,8 @@ func performGlobalSetup(ctx context.Context, container *bootstrap.Container, dev
 // from the container.
 //
 // Takes l (logger_domain.Logger) which logs diagnostic messages about module setup.
-// Takes container (*bootstrap.Container) which provides frontend module configuration.
+// Takes container (*bootstrap.Container) which provides frontend module
+// configuration.
 //
 // Returns error when a custom frontend module fails to register.
 func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container *bootstrap.Container, devMode bool) error {
@@ -1108,8 +1104,7 @@ func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container
 // filesystem operation.
 //
 // Takes baseDir (string) which is the project root directory.
-// Takes internalPath (string) which is the relative path for the
-// internal directory.
+// Takes internalPath (string) which is the relative path for the internal directory.
 //
 // Returns error when sandbox creation or directory creation fails.
 func ensurePikoInternalDir(baseDir, internalPath string) error {

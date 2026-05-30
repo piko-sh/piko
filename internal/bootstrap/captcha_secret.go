@@ -31,15 +31,15 @@ import (
 )
 
 const (
-	// captchaSecretFileName is the name of the file where the auto-generated
-	// captcha HMAC secret is stored.
+	// captchaSecretFileName is the name of the file where the auto-generated captcha HMAC
+	// secret is stored.
 	captchaSecretFileName = "piko_captcha_secret"
 
 	// captchaSecretLength is the number of random bytes for the HMAC secret.
 	captchaSecretLength = 32
 
-	// captchaSecretFilePermissions is the file permission mode for the captcha
-	// secret file. Owner read/write only (0o600).
+	// captchaSecretFilePermissions is the file permission mode for the captcha secret file.
+	// Owner read/write only (0o600).
 	captchaSecretFilePermissions = 0o600
 )
 
@@ -47,13 +47,12 @@ var (
 	// captchaSecretOnce guards single resolution of the captcha secret.
 	captchaSecretOnce sync.Once
 
-	// resolvedCaptchaSecret holds the cached result of captcha secret
-	// resolution.
+	// resolvedCaptchaSecret holds the cached result of captcha secret resolution.
 	resolvedCaptchaSecret []byte
 
-	// testCaptchaSandboxCreator is an optional test hook for sandbox creation
-	// that allows tests to inject a MockSandbox for error path testing. When
-	// set, it is called instead of createCaptchaTempSandbox.
+	// testCaptchaSandboxCreator is an optional test hook for sandbox creation that allows
+	// tests to inject a MockSandbox for error path testing. When set, it is called instead
+	// of createCaptchaTempSandbox.
 	//
 	// WARNING: This is for testing only and should never be set in production.
 	testCaptchaSandboxCreator func() (safedisk.Sandbox, error)
@@ -67,11 +66,11 @@ var (
 //  3. Create a new random secret, save it to the temp folder, and use it.
 //
 // The temp file method keeps the secret the same across restarts during local
-// development, so challenge tokens remain valid. Containers get fresh secrets
-// each time they start, since /tmp is usually cleared when a container stops.
+// development, so challenge tokens remain valid. Containers get fresh secrets each time
+// they start, since /tmp is usually cleared when a container stops.
 //
-// Takes configSecret (string) which is the secret from configuration, or empty
-// to use auto-resolution.
+// Takes configSecret (string) which is the secret from configuration, or empty to use
+// auto-resolution.
 //
 // Returns []byte which is the resolved HMAC secret.
 func resolveCaptchaSecret(configSecret string) []byte {
@@ -84,8 +83,8 @@ func resolveCaptchaSecret(configSecret string) []byte {
 
 // doResolveCaptchaSecret performs the actual secret resolution logic.
 //
-// Takes configSecret (string) which is the secret from configuration, or empty
-// to use auto-resolution.
+// Takes configSecret (string) which is the secret from configuration, or empty to use
+// auto-resolution.
 //
 // Returns []byte which is the resolved secret.
 func doResolveCaptchaSecret(configSecret string) []byte {
@@ -133,8 +132,7 @@ func doResolveCaptchaSecret(configSecret string) []byte {
 	return secret
 }
 
-// createCaptchaTempSandbox creates a sandboxed file system for the system temp
-// folder.
+// createCaptchaTempSandbox creates a sandboxed file system for the system temp folder.
 //
 // Returns safedisk.Sandbox which provides sandboxed access to the temp folder.
 // Returns error when the sandbox cannot be created.
@@ -142,8 +140,8 @@ func createCaptchaTempSandbox() (safedisk.Sandbox, error) {
 	return createSystemTempSandbox("captcha-secret")
 }
 
-// readCaptchaSecretFromSandbox reads and decodes a hex-encoded captcha secret
-// from the sandbox.
+// readCaptchaSecretFromSandbox reads and decodes a hex-encoded captcha secret from the
+// sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides access to the secret file.
 //
@@ -173,8 +171,8 @@ func readCaptchaSecretFromSandbox(sandbox safedisk.Sandbox) ([]byte, error) {
 	return secret, nil
 }
 
-// writeCaptchaSecretToSandbox writes a captcha secret to the sandbox as a
-// hex-encoded file.
+// writeCaptchaSecretToSandbox writes a captcha secret to the sandbox as a hex-encoded
+// file.
 //
 // Takes sandbox (safedisk.Sandbox) which provides access to the temp folder.
 // Takes secret ([]byte) which is the secret to persist.

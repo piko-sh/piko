@@ -29,14 +29,14 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// buildGRPCTLSCredentials creates gRPC transport credentials from the resolved
-// TLS configuration. It loads the server certificate (with optional hot-reload)
-// and optionally configures client CA verification for mTLS.
+// buildGRPCTLSCredentials creates gRPC transport credentials from the resolved TLS
+// configuration. It loads the server certificate (with optional hot-reload) and
+// optionally configures client CA verification for mTLS.
 //
 // Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS settings.
 //
-// Returns credentials.TransportCredentials which is the configured TLS
-// credentials for gRPC.
+// Returns credentials.TransportCredentials which is the configured TLS credentials for
+// gRPC.
 // Returns func() error which is a cleanup callback to release TLS resources.
 // Returns error when certificate or CA loading fails.
 func buildGRPCTLSCredentials(ctx context.Context, tlsValues tlscert.TLSValues, factory safedisk.Factory) (credentials.TransportCredentials, func() error, error) {

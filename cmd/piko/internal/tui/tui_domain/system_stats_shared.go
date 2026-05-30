@@ -28,12 +28,14 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// systemStatsRefreshTimeout is the maximum time a system-stats refresh
-// is allowed to block before being cancelled.
-const systemStatsRefreshTimeout = 5 * time.Second
+const (
+	// systemStatsRefreshTimeout is the maximum time a system-stats refresh is allowed to
+	// block before being cancelled.
+	systemStatsRefreshTimeout = 5 * time.Second
+)
 
-// systemStatsMessage carries the result of a system-stats fetch back to
-// the panel via the bubbletea dispatch loop.
+// systemStatsMessage carries the result of a system-stats fetch back to the panel via the
+// bubbletea dispatch loop.
 type systemStatsMessage struct {
 	// stats is the freshly fetched snapshot, or nil on error.
 	stats *SystemStats
@@ -42,12 +44,12 @@ type systemStatsMessage struct {
 	err error
 }
 
-// refreshSystemStatsCmd builds a tea.Cmd that fetches the current system
-// stats from provider with a bounded timeout. The result is delivered as
-// a systemStatsMessage so panels can update under their own mutex.
+// refreshSystemStatsCmd builds a tea.Cmd that fetches the current system stats from
+// provider with a bounded timeout. The result is delivered as a systemStatsMessage so
+// panels can update under their own mutex.
 //
-// Takes provider (SystemProvider) which produces the stats; nil yields
-// an error message rather than panicking.
+// Takes provider (SystemProvider) which produces the stats; nil yields an error message
+// rather than panicking.
 //
 // Returns tea.Cmd that performs the fetch.
 func refreshSystemStatsCmd(provider SystemProvider) tea.Cmd {
@@ -81,13 +83,11 @@ func formatUint64(v uint64) string {
 	return strconv.FormatUint(v, 10)
 }
 
-// pointsFromHistory converts a slice of values into ChartPoints whose
-// Time fields are stamped backwards from `now` at one-second intervals.
-// Used by detail panes that feed HistoryRing samples into the chart
-// widget without persisting per-sample timestamps.
+// pointsFromHistory converts a slice of values into ChartPoints whose Time fields are
+// stamped backwards from `now` at one-second intervals. Used by detail panes that feed
+// HistoryRing samples into the chart widget without persisting per-sample timestamps.
 //
-// Takes values ([]float64) which is the sample series in oldest-first
-// order.
+// Takes values ([]float64) which is the sample series in oldest-first order.
 // Takes now (time.Time) which becomes the timestamp of the latest point.
 //
 // Returns []ChartPoint suitable for passing to ChartSeries.
@@ -103,8 +103,8 @@ func pointsFromHistory(values []float64, now time.Time) []ChartPoint {
 	return points
 }
 
-// percentageString formats fraction (in [0,1]) as a percentage string
-// rounded to two decimal places.
+// percentageString formats fraction (in [0,1]) as a percentage string rounded to two
+// decimal places.
 //
 // Takes fraction (float64) which is the input ratio.
 //

@@ -44,14 +44,13 @@ type OGTag = templater_dto.OGTag
 // (e.g., <meta name="author" content="...">).
 type MetaTag = templater_dto.MetaTag
 
-// NoProps is a placeholder type for components that do not accept any
-// properties. It is used in the Render function signature when a component is
-// self-contained.
+// NoProps is a placeholder type for components that do not accept any properties. It
+// is used in the Render function signature when a component is self-contained.
 type NoProps = templater_dto.NoProps
 
-// NoResponse is a placeholder type for Render functions that do not return any
-// data for the template. The template can still access global state such as the
-// request object.
+// NoResponse is a placeholder type for Render functions that do not return any data
+// for the template. The template can still access global state such as the request
+// object.
 type NoResponse = templater_dto.NoResponse
 
 // CachePolicy defines the caching behaviour for a component's output.
@@ -346,9 +345,9 @@ var (
 	// HTTP. Use this only for local development where HTTPS is not available.
 	ClearCookieInsecure = daemon_dto.ClearCookieInsecure
 
-	// SmartSessionCookie creates a session cookie that automatically sets
-	// the Secure flag based on the runtime environment. In production
-	// Secure is true; in development Secure is false.
+	// SmartSessionCookie creates a session cookie that automatically sets the Secure
+	// flag based on the runtime environment. In production Secure is true; in
+	// development Secure is false.
 	SmartSessionCookie = daemon_dto.SmartSessionCookie
 
 	// SmartClearCookie creates a clear-cookie that automatically adapts

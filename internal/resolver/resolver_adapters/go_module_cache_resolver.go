@@ -37,7 +37,9 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-var _ resolver_domain.ResolverPort = (*GoModuleCacheResolver)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*GoModuleCacheResolver)(nil)
+)
 
 const (
 	// logKeyModulePath is the log field key for the module path.
@@ -50,10 +52,9 @@ const (
 	pathSeparator = "/"
 )
 
-// GoModuleCacheResolver implements ResolverPort to resolve Piko component
-// import paths from external Go modules in the module cache ($GOMODCACHE).
-// It reads the project's go.mod to find required modules and matches import
-// paths against them.
+// GoModuleCacheResolver implements ResolverPort to resolve Piko component import paths
+// from external Go modules in the module cache ($GOMODCACHE). It reads the project's
+// go.mod to find required modules and matches import paths against them.
 type GoModuleCacheResolver struct {
 	// dirCache maps module paths to their directory locations in the cache.
 	dirCache map[string]string
@@ -61,8 +62,7 @@ type GoModuleCacheResolver struct {
 	// workingDir is the directory containing go.mod for packages.Load calls.
 	workingDir string
 
-	// knownModules holds the sorted list of module paths from go.mod; protected by
-	// mu.
+	// knownModules holds the sorted list of module paths from go.mod; protected by mu.
 	knownModules []string
 
 	// mu guards access to knownModules and dirCache.
@@ -71,14 +71,13 @@ type GoModuleCacheResolver struct {
 
 // NewGoModuleCacheResolver creates a new Go module cache resolver.
 //
-// The resolver starts with an empty cache. The cache fills as modules are
-// found during the build process.
+// The resolver starts with an empty cache. The cache fills as modules are found during
+// the build process.
 //
 // Before use, you must call DetectLocalModule or create the resolver with
 // NewGoModuleCacheResolverWithWorkingDir to set up the module list.
 //
-// Returns *GoModuleCacheResolver which is ready for use after calling
-// DetectLocalModule.
+// Returns *GoModuleCacheResolver which is ready for use after calling DetectLocalModule.
 func NewGoModuleCacheResolver() *GoModuleCacheResolver {
 	return &GoModuleCacheResolver{
 		dirCache:     make(map[string]string),
@@ -88,17 +87,16 @@ func NewGoModuleCacheResolver() *GoModuleCacheResolver {
 	}
 }
 
-// NewGoModuleCacheResolverWithWorkingDir creates a new Go module cache resolver
-// with a specific working directory for packages.Load operations. This is
-// useful in test scenarios where the go.mod is in a non-standard location.
+// NewGoModuleCacheResolverWithWorkingDir creates a new Go module cache resolver with a
+// specific working directory for packages.Load operations. This is useful in test
+// scenarios where the go.mod is in a non-standard location.
 //
-// This constructor automatically loads the known modules from the go.mod file
-// in the specified working directory.
+// This constructor automatically loads the known modules from the go.mod file in the
+// specified working directory.
 //
 // Takes workingDir (string) which specifies the directory containing go.mod.
 //
-// Returns *GoModuleCacheResolver which is the configured resolver ready for
-// use.
+// Returns *GoModuleCacheResolver which is the configured resolver ready for use.
 // Returns error when go.mod cannot be found or parsed.
 func NewGoModuleCacheResolverWithWorkingDir(workingDir string) (*GoModuleCacheResolver, error) {
 	resolver := &GoModuleCacheResolver{
@@ -115,59 +113,55 @@ func NewGoModuleCacheResolverWithWorkingDir(workingDir string) (*GoModuleCacheRe
 	return resolver, nil
 }
 
-// DetectLocalModule loads the list of known modules from the project's go.mod
-// file. This must be called before any path resolution can occur, as it builds
-// the list of module boundaries used for import path parsing.
+// DetectLocalModule loads the list of known modules from the project's go.mod file. This
+// must be called before any path resolution can occur, as it builds the list of module
+// boundaries used for import path parsing.
 //
 // Returns error when the go.mod file cannot be read or parsed.
 func (gmcr *GoModuleCacheResolver) DetectLocalModule(ctx context.Context) error {
 	return gmcr.loadKnownModulesFromGoMod(ctx)
 }
 
-// GetModuleName returns an empty string as this resolver does not manage a
-// local module.
+// GetModuleName returns an empty string as this resolver does not manage a local module.
 //
 // Returns string which is always empty for this resolver.
 func (*GoModuleCacheResolver) GetModuleName() string {
 	return ""
 }
 
-// GetBaseDir returns an empty string as this resolver does not have a local
-// base directory.
+// GetBaseDir returns an empty string as this resolver does not have a local base
+// directory.
 //
 // Returns string which is always empty for this resolver type.
 func (*GoModuleCacheResolver) GetBaseDir() string {
 	return ""
 }
 
-// ConvertEntryPointPathToManifestKey returns the path as-is for external
-// components. External components use their full module path as the manifest
-// key (for example a GitHub-style path such as
-// "example.com/ui/lib/components/button.pk") to distinguish them from local
-// components and prevent naming conflicts.
+// ConvertEntryPointPathToManifestKey returns the path as-is for external components.
+// External components use their full module path as the manifest key (for example a
+// GitHub-style path such as "example.com/ui/lib/components/button.pk") to distinguish
+// them from local components and prevent naming conflicts.
 //
-// Takes entryPointPath (string) which is the full module path of the external
-// component.
+// Takes entryPointPath (string) which is the full module path of the external component.
 //
 // Returns string which is the unmodified path to use as the manifest key.
 func (*GoModuleCacheResolver) ConvertEntryPointPathToManifestKey(entryPointPath string) string {
 	return entryPointPath
 }
 
-// ResolvePKPath resolves a Piko component import path from an external Go
-// module. It uses the go/packages API to locate the module in the Go module
-// cache, then constructs the absolute path to the .pk file within that module.
+// ResolvePKPath resolves a Piko component import path from an external Go module. It uses
+// the go/packages API to locate the module in the Go module cache, then constructs the
+// absolute path to the .pk file within that module.
 //
-// The @ alias is supported and will be expanded using the containing file's
-// module.
+// The @ alias is supported and will be expanded using the containing file's module.
 //
 // Takes importPath (string) which is the import path to resolve.
-// Takes containingFilePath (string) which is the absolute path of the file
-// containing the import statement, used to resolve the @ alias.
+// Takes containingFilePath (string) which is the absolute path of the file containing the
+// import statement, used to resolve the @ alias.
 //
 // Returns string which is the absolute path to the resolved .pk file.
-// Returns error when the import path cannot be parsed, the module cannot be
-// located, or the .pk file does not exist.
+// Returns error when the import path cannot be parsed, the module cannot be located, or
+// the .pk file does not exist.
 func (gmcr *GoModuleCacheResolver) ResolvePKPath(ctx context.Context, importPath string, containingFilePath string) (string, error) {
 	ctx, span, _ := log.Span(ctx, "GoModuleCacheResolver.ResolvePKPath",
 		logger_domain.String("importPath", importPath),
@@ -203,31 +197,28 @@ func (gmcr *GoModuleCacheResolver) ResolvePKPath(ctx context.Context, importPath
 	return absolutePath, nil
 }
 
-// ResolveCSSPath is not implemented for this resolver.
-//
-// CSS resolution from external Go modules is not currently supported, but may
-// be added in future if there is a use case for it.
+// ResolveCSSPath reports that CSS resolution from external Go modules is unsupported by
+// this resolver.
 //
 // Returns string which is always empty.
 // Returns error which is always non-nil, showing the feature is unavailable.
 func (*GoModuleCacheResolver) ResolveCSSPath(_ context.Context, _ string, _ string) (string, error) {
-	return "", errors.New("CSS resolution from Go module cache is not yet implemented")
+	return "", errors.New("CSS resolution from Go module cache is unsupported")
 }
 
-// ResolveAssetPath returns an error as asset resolution from external Go
-// modules is not yet supported.
+// ResolveAssetPath reports that asset resolution from external Go modules is unsupported
+// by this resolver.
 //
 // Returns string which is always empty.
-// Returns error when called, as this feature is not implemented.
+// Returns error when called, since this resolver does not support assets.
 func (*GoModuleCacheResolver) ResolveAssetPath(_ context.Context, _ string, _ string) (string, error) {
-	return "", errors.New("asset resolution from Go module cache is not yet implemented")
+	return "", errors.New("asset resolution from Go module cache is unsupported")
 }
 
-// GetModuleDir implements ResolverPort.GetModuleDir.
-// It finds the directory for a Go module in the local module cache.
+// GetModuleDir implements ResolverPort.GetModuleDir. It finds the directory for a Go
+// module in the local module cache.
 //
-// Takes modulePath (string) which is the Go module path
-// (e.g. "piko.sh/piko").
+// Takes modulePath (string) which is the Go module path (e.g. "piko.sh/piko").
 //
 // Returns string which is the full path to the module directory.
 // Returns error when the module cannot be found or has not been downloaded.
@@ -235,9 +226,8 @@ func (gmcr *GoModuleCacheResolver) GetModuleDir(ctx context.Context, modulePath 
 	return gmcr.resolveModuleDir(ctx, modulePath)
 }
 
-// FindModuleBoundary implements ResolverPort.FindModuleBoundary.
-// It splits an import path into the module path and subpath using the known
-// modules from go.mod.
+// FindModuleBoundary implements ResolverPort.FindModuleBoundary. It splits an import path
+// into the module path and subpath using the known modules from go.mod.
 //
 // Takes importPath (string) which is a full import path to split.
 //
@@ -248,17 +238,17 @@ func (gmcr *GoModuleCacheResolver) FindModuleBoundary(_ context.Context, importP
 	return gmcr.findModulePath(importPath)
 }
 
-// loadKnownModulesFromGoMod reads the project's go.mod file and extracts all
-// required module paths. These are stored in sorted order (longest first) to
-// allow greedy prefix matching during import path resolution.
+// loadKnownModulesFromGoMod reads the project's go.mod file and extracts all required
+// module paths. These are stored in sorted order (longest first) to allow greedy prefix
+// matching during import path resolution.
 //
-// This gives accurate module boundary detection without guesswork, and works
-// with any module path format.
+// This gives accurate module boundary detection without guesswork, and works with any
+// module path format.
 //
 // Returns error when the go.mod file cannot be read or parsed.
 //
-// Safe for concurrent use. Acquires the receiver's mutex when storing the
-// parsed module list.
+// Safe for concurrent use. Acquires the receiver's mutex when storing the parsed module
+// list.
 func (gmcr *GoModuleCacheResolver) loadKnownModulesFromGoMod(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -315,12 +305,9 @@ func (*GoModuleCacheResolver) recordResolutionDuration(ctx context.Context, star
 //
 // Takes importPath (string) which is the full import path to split.
 //
-// Returns modulePath (string) which is the Go module portion of the
-// import path.
-// Returns filePathInModule (string) which is the file path within the
-// module.
-// Returns err (error) when the import path does not match any known
-// module.
+// Returns modulePath (string) which is the Go module portion of the import path.
+// Returns filePathInModule (string) which is the file path within the module.
+// Returns err (error) when the import path does not match any known module.
 func (gmcr *GoModuleCacheResolver) parseImportPath(ctx context.Context, importPath string) (modulePath, filePathInModule string, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	modulePath, filePathInModule, err = gmcr.findModulePath(importPath)
@@ -341,8 +328,7 @@ func (gmcr *GoModuleCacheResolver) parseImportPath(ctx context.Context, importPa
 	return modulePath, filePathInModule, nil
 }
 
-// constructAndValidatePKPath builds the full path and checks it has a .pk
-// extension.
+// constructAndValidatePKPath builds the full path and checks it has a .pk extension.
 //
 // Takes moduleDir (string) which is the module folder.
 // Takes filePathInModule (string) which is the file path within the module.
@@ -367,11 +353,11 @@ func (*GoModuleCacheResolver) constructAndValidatePKPath(ctx context.Context, mo
 	return absolutePath, nil
 }
 
-// resolveModuleDir finds the absolute directory path of a Go module in the
-// module cache. Results are cached to avoid repeated calls to packages.Load.
+// resolveModuleDir finds the absolute directory path of a Go module in the module cache.
+// Results are cached to avoid repeated calls to packages.Load.
 //
-// The go/packages API respects the project's go.mod and go.sum files, so the
-// correct version of each module is used.
+// The go/packages API respects the project's go.mod and go.sum files, so the correct
+// version of each module is used.
 //
 // Takes modulePath (string) which specifies the import path of the module.
 //
@@ -396,8 +382,8 @@ func (gmcr *GoModuleCacheResolver) resolveModuleDir(ctx context.Context, moduleP
 	return moduleDir, nil
 }
 
-// getCachedModuleDir checks if a module directory is in the cache and returns
-// it if found.
+// getCachedModuleDir checks if a module directory is in the cache and returns it if
+// found.
 //
 // Takes modulePath (string) which specifies the module to look up.
 //
@@ -418,8 +404,7 @@ func (gmcr *GoModuleCacheResolver) getCachedModuleDir(ctx context.Context, modul
 	return "", false
 }
 
-// loadModuleDirFromCache loads a module using go/packages and finds its
-// directory path.
+// loadModuleDirFromCache loads a module using go/packages and finds its directory path.
 //
 // Takes modulePath (string) which specifies the module to load.
 //
@@ -489,9 +474,8 @@ func (gmcr *GoModuleCacheResolver) cacheModuleDir(ctx context.Context, modulePat
 	)
 }
 
-// findModulePath splits an import path into the module path and the file path
-// within the module. It uses definitive module boundaries from go.mod rather
-// than heuristics.
+// findModulePath splits an import path into the module path and the file path within the
+// module. It uses definitive module boundaries from go.mod rather than heuristics.
 //
 // Works correctly with any module path format:
 //   - Standard: a GitHub-hosted module path like example.com/org/repo
@@ -499,13 +483,12 @@ func (gmcr *GoModuleCacheResolver) cacheModuleDir(ctx context.Context, modulePat
 //   - Vanity imports: gopkg.in/yaml.v2
 //   - Nested modules: example.com/org/repo/submodule
 //
-// Takes importPath (string) which is the full import path to split
-// into module and subpath components.
+// Takes importPath (string) which is the full import path to split into module and
+// subpath components.
 //
 // Returns modulePath (string) which is the matched module portion.
 // Returns pathInModule (string) which is the path within the module.
-// Returns err (error) when the import path does not match any known
-// module from go.mod.
+// Returns err (error) when the import path does not match any known module from go.mod.
 //
 // Safe for concurrent use; protected by a read lock.
 func (gmcr *GoModuleCacheResolver) findModulePath(importPath string) (modulePath, pathInModule string, err error) {

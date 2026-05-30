@@ -18,8 +18,10 @@
 
 package annotator_domain
 
-// Transforms responsive image elements by applying media transformation profiles and generating appropriate asset dependencies.
-// Processes piko:img elements with responsive profiles, extracts transformation parameters, and registers asset dependencies for image processing.
+// Transforms responsive image elements by applying media transformation profiles and
+// generating appropriate asset dependencies. Processes piko:img elements with responsive
+// profiles, extracts transformation parameters, and registers asset dependencies for
+// image processing.
 
 import (
 	"cmp"
@@ -42,17 +44,16 @@ type ResponsiveVariantSpec struct {
 	Width int
 }
 
-// expandResponsiveAssets takes assets marked as responsive and creates
-// multiple assets for each required variant (one per width and density
-// pair). Assets that are not responsive pass through unchanged.
+// expandResponsiveAssets takes assets marked as responsive and creates multiple assets
+// for each required variant (one per width and density pair). Assets that are not
+// responsive pass through unchanged.
 //
-// Takes dependencies ([]*annotator_dto.StaticAssetDependency) which is the
-// list of asset dependencies to process.
-// Takes assetsConfig (*config.AssetsConfig) which provides the responsive
-// image settings.
+// Takes dependencies ([]*annotator_dto.StaticAssetDependency) which is the list of asset
+// dependencies to process.
+// Takes assetsConfig (*config.AssetsConfig) which provides the responsive image settings.
 //
-// Returns []*annotator_dto.StaticAssetDependency which contains the expanded
-// list with responsive variants added.
+// Returns []*annotator_dto.StaticAssetDependency which contains the expanded list with
+// responsive variants added.
 func expandResponsiveAssets(
 	dependencies []*annotator_dto.StaticAssetDependency,
 	assetsConfig *config.AssetsConfig,
@@ -71,16 +72,15 @@ func expandResponsiveAssets(
 	return expanded
 }
 
-// expandSingleResponsiveAsset expands a single responsive asset into multiple
-// size variants for different screen densities.
+// expandSingleResponsiveAsset expands a single responsive asset into multiple size
+// variants for different screen densities.
 //
-// Takes dependency (*annotator_dto.StaticAssetDependency) which is the asset to
-// expand.
-// Takes assetsConfig (*config.AssetsConfig) which provides density and screen
-// size settings.
+// Takes dependency (*annotator_dto.StaticAssetDependency) which is the asset to expand.
+// Takes assetsConfig (*config.AssetsConfig) which provides density and screen size
+// settings.
 //
-// Returns []*annotator_dto.StaticAssetDependency which contains the expanded
-// variants, or a slice with only the original asset if no variants apply.
+// Returns []*annotator_dto.StaticAssetDependency which contains the expanded variants, or
+// a slice with only the original asset if no variants apply.
 func expandSingleResponsiveAsset(dependency *annotator_dto.StaticAssetDependency, assetsConfig *config.AssetsConfig) []*annotator_dto.StaticAssetDependency {
 	widthString := strings.TrimSuffix(dependency.TransformationParams["width"], "px")
 	baseWidth := 0
@@ -113,16 +113,16 @@ func expandSingleResponsiveAsset(dependency *annotator_dto.StaticAssetDependency
 	return result
 }
 
-// createVariantDependency creates a new asset dependency for a specific
-// responsive variant.
+// createVariantDependency creates a new asset dependency for a specific responsive
+// variant.
 //
-// Takes baseDep (*annotator_dto.StaticAssetDependency) which provides the
-// source dependency to copy settings from.
-// Takes variant (ResponsiveVariantSpec) which specifies the width and density
-// for the new variant.
+// Takes baseDep (*annotator_dto.StaticAssetDependency) which provides the source
+// dependency to copy settings from.
+// Takes variant (ResponsiveVariantSpec) which specifies the width and density for the new
+// variant.
 //
-// Returns *annotator_dto.StaticAssetDependency which is a new dependency with
-// the variant settings applied.
+// Returns *annotator_dto.StaticAssetDependency which is a new dependency with the variant
+// settings applied.
 func createVariantDependency(baseDep *annotator_dto.StaticAssetDependency, variant ResponsiveVariantSpec) *annotator_dto.StaticAssetDependency {
 	variantDep := &annotator_dto.StaticAssetDependency{
 		SourcePath:           baseDep.SourcePath,
@@ -144,8 +144,8 @@ func createVariantDependency(baseDep *annotator_dto.StaticAssetDependency, varia
 	return variantDep
 }
 
-// calculateResponsiveVariants generates all width and density combinations
-// for a responsive image, returning a deduplicated list of variants.
+// calculateResponsiveVariants generates all width and density combinations for a
+// responsive image, returning a deduplicated list of variants.
 //
 // Takes baseWidth (int) which specifies the explicit width attribute value.
 // Takes sizesString (string) which contains the sizes attribute to parse.
@@ -153,8 +153,8 @@ func createVariantDependency(baseDep *annotator_dto.StaticAssetDependency, varia
 // Takes defaultDensities ([]string) which provides fallback densities.
 // Takes screens (map[string]int) which maps screen names to breakpoint widths.
 //
-// Returns []ResponsiveVariantSpec which contains the sorted, deduplicated
-// variant specifications.
+// Returns []ResponsiveVariantSpec which contains the sorted, deduplicated variant
+// specifications.
 func calculateResponsiveVariants(
 	baseWidth int,
 	sizesString string,
@@ -215,13 +215,13 @@ func calculateResponsiveVariants(
 
 // parseDensity converts a density string to a float64 value.
 //
-// It handles formats like "x1", "2x", or "x2" by removing the "x" prefix or
-// suffix and parsing the number that remains.
+// It handles formats like "x1", "2x", or "x2" by removing the "x" prefix or suffix and
+// parsing the number that remains.
 //
 // Takes density (string) which is the density value to parse.
 //
-// Returns float64 which is the parsed value, or 1.0 if the input is empty or
-// cannot be parsed.
+// Returns float64 which is the parsed value, or 1.0 if the input is empty or cannot be
+// parsed.
 func parseDensity(density string) float64 {
 	density = strings.ToLower(strings.TrimSpace(density))
 	density = strings.TrimPrefix(density, "x")
@@ -235,9 +235,8 @@ func parseDensity(density string) float64 {
 	return multiplier
 }
 
-// parseSizes reads a sizes attribute string and returns the pixel widths.
-// It finds widths from breakpoints and viewport sizes, removes duplicates,
-// and sorts the results.
+// parseSizes reads a sizes attribute string and returns the pixel widths. It finds widths
+// from breakpoints and viewport sizes, removes duplicates, and sorts the results.
 //
 // Input example: "100vw sm:50vw md:800px"
 //
@@ -283,16 +282,14 @@ func parseSizes(sizesString string, screens map[string]int) []int {
 	return widths
 }
 
-// extractWidth parses a size value and returns the width in pixels. It handles
-// pixel values like "800px", viewport values like "100vw", and percentage
-// values like "50%".
+// extractWidth parses a size value and returns the width in pixels. It handles pixel
+// values like "800px", viewport values like "100vw", and percentage values like "50%".
 //
 // Takes sizeValue (string) which is the size value to parse.
 // Takes screens (map[string]int) which maps breakpoint names to pixel widths.
 // Takes breakpoint (string) which is the current screen size name.
 //
-// Returns int which is the width in pixels, or 0 if the value cannot be
-// parsed.
+// Returns int which is the width in pixels, or 0 if the value cannot be parsed.
 func extractWidth(sizeValue string, screens map[string]int, breakpoint string) int {
 	sizeValue = strings.TrimSpace(sizeValue)
 
@@ -325,8 +322,7 @@ func extractPixelWidth(sizeValue string) int {
 	return width
 }
 
-// extractViewportWidth parses a viewport width value and returns the width in
-// pixels.
+// extractViewportWidth parses a viewport width value and returns the width in pixels.
 //
 // Takes sizeValue (string) which is the size value ending in "vw".
 // Takes screens (map[string]int) which maps breakpoint names to pixel widths.
@@ -346,15 +342,14 @@ func extractViewportWidth(sizeValue string, screens map[string]int, breakpoint s
 	return int(float64(viewportWidth) * percent / 100.0)
 }
 
-// extractPercentageWidth converts a percentage value to a pixel width based on
-// the viewport size for the given breakpoint.
+// extractPercentageWidth converts a percentage value to a pixel width based on the
+// viewport size for the given breakpoint.
 //
 // Takes sizeValue (string) which is the percentage value (e.g. "50%").
 // Takes screens (map[string]int) which maps breakpoint names to pixel widths.
 // Takes breakpoint (string) which is the name of the target screen size.
 //
-// Returns int which is the width in pixels, or 0 if the value is not a valid
-// percentage.
+// Returns int which is the width in pixels, or 0 if the value is not a valid percentage.
 func extractPercentageWidth(sizeValue string, screens map[string]int, breakpoint string) int {
 	if !strings.HasSuffix(sizeValue, "%") {
 		return 0
@@ -373,8 +368,8 @@ func extractPercentageWidth(sizeValue string, screens map[string]int, breakpoint
 // Takes screens (map[string]int) which maps breakpoint names to pixel widths.
 // Takes breakpoint (string) which specifies the screen size to look up.
 //
-// Returns int which is the viewport width, or defaultViewportWidth if the
-// breakpoint is empty or not found.
+// Returns int which is the viewport width, or defaultViewportWidth if the breakpoint is
+// empty or not found.
 func getViewportWidth(screens map[string]int, breakpoint string) int {
 	if breakpoint == "" {
 		return defaultViewportWidth

@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage provides a provider-agnostic framework for
-// object storage operations.
+// Package storage provides a provider-agnostic framework for object storage operations.
 //
-// It abstracts away differences between storage backends behind a
-// unified API, allowing applications to switch providers without
-// changing business logic. Operations are composed using a fluent
-// builder pattern:
+// It abstracts away differences between storage backends behind a unified API, allowing
+// applications to switch providers without changing business logic. Operations are
+// composed using a fluent builder pattern:
 //
 //	err := storage.NewUploadBuilder(service, reader).
 //	    Key("documents/report.pdf").
@@ -33,10 +31,10 @@
 //	data, err := request.Get(ctx)
 //	defer data.Close()
 //
-// Provider and transformer implementations live in sub-packages.
-// Stream transformers (compression, encryption) run automatically
-// during uploads and downloads when registered with the service.
+// Provider and transformer implementations live in sub-packages. Stream transformers
+// (compression, encryption) run automatically during uploads and downloads when
+// registered with the service.
 //
-// All [Service] methods are safe for concurrent use. Builders
-// should not be shared between goroutines.
+// All [Service] methods are safe for concurrent use. Builders should not be shared
+// between goroutines.
 package storage

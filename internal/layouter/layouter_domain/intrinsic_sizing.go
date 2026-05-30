@@ -18,16 +18,13 @@
 
 package layouter_domain
 
-// measureIntrinsicWidth returns the intrinsic width for the given
-// box in the specified sizing mode. For min-content this is the
-// narrowest width that avoids overflow; for max-content this is
-// the width with no line breaks taken.
+// measureIntrinsicWidth returns the intrinsic width for the given box in the specified
+// sizing mode. For min-content this is the narrowest width that avoids overflow; for
+// max-content this is the width with no line breaks taken.
 //
 // Takes box (*LayoutBox) which is the box to measure.
-// Takes mode (SizingMode) which selects min-content or
-// max-content measurement.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes mode (SizingMode) which selects min-content or max-content measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 //
 // Returns float64 which is the intrinsic width in points.
 func measureIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics FontMetricsPort) float64 {
@@ -40,7 +37,7 @@ func measureIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics FontMetr
 		return measureTableIntrinsicWidth(box, fontMetrics)
 	default:
 
-		switch box.Style.Display {
+		switch box.Style.Display { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case DisplayFlex, DisplayInlineFlex:
 			return measureFlexIntrinsicWidth(box, mode, fontMetrics)
 		case DisplayTable:
@@ -50,9 +47,8 @@ func measureIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics FontMetr
 	}
 }
 
-// measureMinContentWidth returns the min-content width for the
-// given box. This is a convenience wrapper around
-// measureIntrinsicWidth.
+// measureMinContentWidth returns the min-content width for the given box. This is a
+// convenience wrapper around measureIntrinsicWidth.
 //
 // Takes box (*LayoutBox) which is the box to measure.
 // Takes fontMetrics (FontMetricsPort) which provides text measurement.
@@ -62,9 +58,8 @@ func measureMinContentWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64
 	return measureIntrinsicWidth(box, SizingModeMinContent, fontMetrics)
 }
 
-// measureMaxContentWidth returns the max-content width for the
-// given box. This is a convenience wrapper around
-// measureIntrinsicWidth.
+// measureMaxContentWidth returns the max-content width for the given box. This is a
+// convenience wrapper around measureIntrinsicWidth.
 //
 // Takes box (*LayoutBox) which is the box to measure.
 // Takes fontMetrics (FontMetricsPort) which provides text measurement.
@@ -74,12 +69,11 @@ func measureMaxContentWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64
 	return measureIntrinsicWidth(box, SizingModeMaxContent, fontMetrics)
 }
 
-// measureChildrenIntrinsicWidth returns the widest child's
-// intrinsic width, bypassing the parent box's declared width.
+// measureChildrenIntrinsicWidth returns the widest child's intrinsic width, bypassing the
+// parent box's declared width.
 //
-// This is needed when computing fit-content for min-width/
-// max-width constraints, because measureBlockIntrinsicWidth
-// short-circuits to the declared width when one is set.
+// This is needed when computing fit-content for min-width/ max-width constraints, because
+// measureBlockIntrinsicWidth short-circuits to the declared width when one is set.
 //
 // Takes box (*LayoutBox) which is the parent box.
 // Takes mode (SizingMode) which selects min-content or max-content.
@@ -169,17 +163,14 @@ func measureBlockIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Fon
 		box.Style.BorderLeftWidth + box.Style.BorderRightWidth
 }
 
-// measureTableIntrinsicWidth computes the intrinsic width of a
-// table by summing column preferred widths plus border-spacing
-// and the table's own padding and border.
+// measureTableIntrinsicWidth computes the intrinsic width of a table by summing column
+// preferred widths plus border-spacing and the table's own padding and border.
 //
-// This is needed because the generic block measurement takes the
-// max of children (rows), but a table row's width is the sum of
-// its cells, not the max.
+// This is needed because the generic block measurement takes the max of children (rows),
+// but a table row's width is the sum of its cells, not the max.
 //
 // Takes box (*LayoutBox) which is the table box.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
 //
 // Returns float64 which is the table's intrinsic width in points.
 func measureTableIntrinsicWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64 {

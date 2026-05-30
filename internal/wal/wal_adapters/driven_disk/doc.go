@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_disk implements disk-based write-ahead log and snapshot
-// storage.
+// Package driven_disk implements disk-based write-ahead log and snapshot storage.
 //
-// It implements [wal_domain.WAL] and [wal_domain.SnapshotStore] using a
-// compact binary format with CRC32 integrity checks. A group commit
-// pattern handles high-throughput concurrent writes, and snapshots
-// support optional zstd compression. All filesystem operations are
-// sandboxed via [safedisk.Sandbox].
+// It implements [wal_domain.WAL] and [wal_domain.SnapshotStore] using a compact binary
+// format with CRC32 integrity checks. A group commit pattern handles high-throughput
+// concurrent writes, and snapshots support optional zstd compression. All filesystem
+// operations are sandboxed via [safedisk.Sandbox].
 //
 // # Wire format
 //
@@ -37,7 +35,7 @@
 //
 // # Thread safety
 //
-// [DiskWAL] and [DiskSnapshot] are safe for concurrent use. DiskWAL
-// uses a dedicated commit goroutine to batch and serialise writes,
-// minimising lock contention and fsync overhead.
+// [DiskWAL] and [DiskSnapshot] are safe for concurrent use. DiskWAL uses a dedicated
+// commit goroutine to batch and serialise writes, minimising lock contention and fsync
+// overhead.
 package driven_disk

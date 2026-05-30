@@ -24,8 +24,10 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// CostCurrency is the currency code used for LLM cost calculations.
-const CostCurrency = "USD"
+const (
+	// CostCurrency is the currency code used for LLM cost calculations.
+	CostCurrency = "USD"
+)
 
 // ModelPricing defines the cost per token for a model.
 type ModelPricing struct {
@@ -41,8 +43,8 @@ type ModelPricing struct {
 	// OutputCostPer1M is the cost per 1 million output tokens in USD.
 	OutputCostPer1M maths.Decimal
 
-	// CachedInputPer1M is the cost for cached input tokens per 1 million.
-	// A zero value means cached pricing is not available.
+	// CachedInputPer1M is the cost for cached input tokens per 1 million. A zero value means
+	// cached pricing is not available.
 	CachedInputPer1M maths.Decimal
 }
 
@@ -61,8 +63,8 @@ type CostEstimate struct {
 	// InputCost is the cost for non-cached input tokens.
 	InputCost maths.Money
 
-	// CachedInputCost is the cost for cached input tokens. Zero when the
-	// model does not support cached pricing or no tokens were cached.
+	// CachedInputCost is the cost for cached input tokens. Zero when the model does not
+	// support cached pricing or no tokens were cached.
 	CachedInputCost maths.Money
 
 	// OutputCost is the cost for output tokens.

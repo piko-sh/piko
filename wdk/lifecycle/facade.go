@@ -19,14 +19,14 @@
 package lifecycle
 
 import (
-	// This import points to the internal implementation. This is allowed because
-	// this facade package is part of the same Go module.
+	// This import points to the internal implementation. This is allowed because this facade
+	// package is part of the same Go module.
 	"piko.sh/piko/internal/shutdown"
 )
 
 var (
-	// Register adds a function to be called during graceful shutdown. The name
-	// parameter is used for logging and observability to identify which cleanup
-	// function is running or has failed.
+	// Register adds a function to be called during graceful shutdown. The name parameter is
+	// used for logging and observability to identify which cleanup function is running or
+	// has failed.
 	Register = shutdown.Register
 )

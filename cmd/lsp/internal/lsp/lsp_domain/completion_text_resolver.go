@@ -29,25 +29,16 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// resolveExpressionFromText resolves a dot-separated expression by walking
-// through each segment. This is used when the AST is broken (parse errors) but
-// we still want autocomplete.
-//
-// Example: "state.Domain.CustomerItem" resolves to CustomerDto type.
-//
-// Algorithm:
-// 1. Split by dots: ["state", "Domain", "CustomerItem"]
-// 2. Resolve "state" -> Look in scope or use special handling -> type: Response
-// 3. Resolve "Domain" -> Field on Response -> type: CustomerModal
-// 4. Resolve "CustomerItem" -> Field on CustomerModal -> type: CustomerDto
-// 5. Return: CustomerDto type info for autocomplete
+// resolveExpressionFromText resolves a dot-separated expression by walking through each
+// segment. This is used when the AST is broken (parse errors) but we still want
+// autocomplete.
 //
 // Takes expressionText (string) which is the dot-separated expression to resolve.
-// Takes position (protocol.Position) which specifies where in the document to
-// resolve from.
+// Takes position (protocol.Position) which specifies where in the document to resolve
+// from.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the resolved type information,
-// or nil if resolution fails at any segment.
+// Returns *ast_domain.ResolvedTypeInfo which is the resolved type information, or nil if
+// resolution fails at any segment.
 func (d *document) resolveExpressionFromText(ctx context.Context, expressionText string, position protocol.Position) *ast_domain.ResolvedTypeInfo {
 	_, l := logger_domain.From(ctx, log)
 
@@ -94,17 +85,15 @@ func (d *document) resolveExpressionFromText(ctx context.Context, expressionText
 	return currentType
 }
 
-// resolveFirstSegment resolves the first identifier in an expression.
-// Handles special cases like "state" and "props", then falls back to scope
-// lookup.
+// resolveFirstSegment resolves the first identifier in an expression. Handles special
+// cases like "state" and "props", then falls back to scope lookup.
 //
-// Takes identifier (string) which is the first segment of the expression to
-// resolve.
+// Takes identifier (string) which is the first segment of the expression to resolve.
 // Takes position (protocol.Position) which specifies the source location for scope
 // lookup.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or
-// nil if the identifier cannot be resolved.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil if the
+// identifier cannot be resolved.
 func (d *document) resolveFirstSegment(ctx context.Context, identifier string, position protocol.Position) *ast_domain.ResolvedTypeInfo {
 	if identifier == "state" {
 		return d.resolveStateType()
@@ -117,15 +106,14 @@ func (d *document) resolveFirstSegment(ctx context.Context, identifier string, p
 	return d.resolveIdentifierFromScope(ctx, identifier, position)
 }
 
-// resolveIdentifierFromScope looks up an identifier in the symbol table at
-// the given position. This is used for text-based completion when the AST has
-// parse errors.
+// resolveIdentifierFromScope looks up an identifier in the symbol table at the given
+// position. This is used for text-based completion when the AST has parse errors.
 //
 // Takes identifier (string) which is the name to look up.
 // Takes position (protocol.Position) which specifies the location in the document.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or
-// nil if the identifier cannot be found.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil if the
+// identifier cannot be found.
 func (d *document) resolveIdentifierFromScope(ctx context.Context, identifier string, position protocol.Position) *ast_domain.ResolvedTypeInfo {
 	if d.AnalysisMap == nil || d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
 		return nil
@@ -139,13 +127,13 @@ func (d *document) resolveIdentifierFromScope(ctx context.Context, identifier st
 	return d.resolveIdentifierFromNode(ctx, identifier, targetNode)
 }
 
-// resolveIdentifierFromFallbackContext searches all analysis contexts for an
-// identifier. Used when the target node cannot be found at the cursor position.
+// resolveIdentifierFromFallbackContext searches all analysis contexts for an identifier.
+// Used when the target node cannot be found at the cursor position.
 //
 // Takes identifier (string) which is the name to search for across contexts.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil
-// if not found.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil if not
+// found.
 func (d *document) resolveIdentifierFromFallbackContext(ctx context.Context, identifier string) *ast_domain.ResolvedTypeInfo {
 	_, l := logger_domain.From(ctx, log)
 
@@ -167,11 +155,11 @@ func (d *document) resolveIdentifierFromFallbackContext(ctx context.Context, ide
 // resolveIdentifierFromNode looks up an identifier in a node's symbol table.
 //
 // Takes identifier (string) which is the name to find.
-// Takes targetNode (*ast_domain.TemplateNode) which provides the analysis
-// context for the lookup.
+// Takes targetNode (*ast_domain.TemplateNode) which provides the analysis context for the
+// lookup.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the type information for
-// the identifier, or nil if the identifier is not found.
+// Returns *ast_domain.ResolvedTypeInfo which contains the type information for the
+// identifier, or nil if the identifier is not found.
 func (d *document) resolveIdentifierFromNode(ctx context.Context, identifier string, targetNode *ast_domain.TemplateNode) *ast_domain.ResolvedTypeInfo {
 	_, l := logger_domain.From(ctx, log)
 
@@ -196,8 +184,8 @@ func (d *document) resolveIdentifierFromNode(ctx context.Context, identifier str
 
 // resolveStateType resolves the "state" identifier to the Render return type.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil
-// when the script block cannot be parsed or the return type cannot be found.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type, or nil when the
+// script block cannot be parsed or the return type cannot be found.
 func (d *document) resolveStateType() *ast_domain.ResolvedTypeInfo {
 	scriptResult, err := d.parseOriginalScriptBlock()
 	if err != nil || scriptResult == nil {
@@ -220,11 +208,11 @@ func (d *document) resolveStateType() *ast_domain.ResolvedTypeInfo {
 	}
 }
 
-// resolvePropsType resolves the "props" identifier to the component's props
-// type by extracting it from the Render function's second parameter.
+// resolvePropsType resolves the "props" identifier to the component's props type by
+// extracting it from the Render function's second parameter.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved props type,
-// or nil if the props type cannot be determined.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved props type, or nil if
+// the props type cannot be determined.
 func (d *document) resolvePropsType() *ast_domain.ResolvedTypeInfo {
 	scriptResult, err := d.parseOriginalScriptBlock()
 	if err != nil || scriptResult == nil {
@@ -241,8 +229,8 @@ func (d *document) resolvePropsType() *ast_domain.ResolvedTypeInfo {
 
 // resolveFieldOnType resolves a field name on a given type using the inspector.
 //
-// Takes baseType (*ast_domain.ResolvedTypeInfo) which is the type to search
-// for the field on.
+// Takes baseType (*ast_domain.ResolvedTypeInfo) which is the type to search for the field
+// on.
 // Takes fieldName (string) which is the name of the field to resolve.
 //
 // Returns *ast_domain.ResolvedTypeInfo which contains the resolved field type

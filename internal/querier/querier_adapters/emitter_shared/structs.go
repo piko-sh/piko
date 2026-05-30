@@ -33,9 +33,9 @@ type TypedField struct {
 	// Name holds the field name in snake_case.
 	Name string
 
-	// GoTypeOverride, when non-empty, bypasses type-mapping resolution and uses
-	// this Go type directly. Used for limit/offset parameters that must be plain
-	// int regardless of the underlying SQL type.
+	// GoTypeOverride, when non-empty, bypasses type-mapping resolution and uses this Go type
+	// directly. Used for limit/offset parameters that must be plain int regardless of the
+	// underlying SQL type.
 	GoTypeOverride *querier_dto.GoType
 
 	// SQLType holds the SQL type of the field.
@@ -44,13 +44,13 @@ type TypedField struct {
 	// Nullable holds whether the field accepts null values.
 	Nullable bool
 
-	// IsSlice indicates the parameter expands to multiple values (piko.slice).
-	// When true, the generated Go type is wrapped in a slice ([]T).
+	// IsSlice indicates the parameter expands to multiple values (piko.slice). When true,
+	// the generated Go type is wrapped in a slice ([]T).
 	IsSlice bool
 }
 
-// EmbedGroup describes a set of output columns that belong to one embedded
-// table, along with whether the table was introduced via an outer join.
+// EmbedGroup describes a set of output columns that belong to one embedded table, along
+// with whether the table was introduced via an outer join.
 type EmbedGroup struct {
 	// TableName holds the name of the embedded table.
 	TableName string
@@ -102,8 +102,8 @@ func HasSliceParameter(query *querier_dto.AnalysedQuery) bool {
 //
 // Takes query (*querier_dto.AnalysedQuery) which is the query to check.
 //
-// Returns bool which is true when the query has output columns and uses a
-// row-returning command.
+// Returns bool which is true when the query has output columns and uses a row-returning
+// command.
 func HasOutputColumns(query *querier_dto.AnalysedQuery) bool {
 	if len(query.OutputColumns) == 0 {
 		return false
@@ -116,8 +116,8 @@ func HasOutputColumns(query *querier_dto.AnalysedQuery) bool {
 	}
 }
 
-// BuildSQLConstant constructs a const declaration for the query's SQL text
-// with directive comments stripped.
+// BuildSQLConstant constructs a const declaration for the query's SQL text with directive
+// comments stripped.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the SQL and name.
 //
@@ -224,8 +224,8 @@ func HasEmbeddedColumns(query *querier_dto.AnalysedQuery) bool {
 	return false
 }
 
-// GroupColumnsByEmbed separates output columns into flat (non-embedded) columns
-// and embed groups, preserving order.
+// GroupColumnsByEmbed separates output columns into flat (non-embedded) columns and embed
+// groups, preserving order.
 //
 // Takes columns ([]querier_dto.OutputColumn) which are the columns to separate.
 //
@@ -271,13 +271,12 @@ func EmbedStructName(queryName, tableName string) string {
 	return queryName + SnakeToPascalCase(tableName)
 }
 
-// GroupByKeyTable extracts the table name from the first group_by key (e.g.,
-// "orders.id" -> "orders").
+// GroupByKeyTable extracts the table name from the first group_by key (e.g., "orders.id"
+// -> "orders").
 //
 // Takes query (*querier_dto.AnalysedQuery) which is the query to inspect.
 //
-// Returns string which is the key table name, or empty string if no group_by
-// is set.
+// Returns string which is the key table name, or empty string if no group_by is set.
 func GroupByKeyTable(query *querier_dto.AnalysedQuery) string {
 	if len(query.GroupByKey) == 0 {
 		return ""
@@ -289,9 +288,9 @@ func GroupByKeyTable(query *querier_dto.AnalysedQuery) string {
 	return ""
 }
 
-// IsGroupByDetailEmbed reports whether a given embed group is a "detail" group
-// in a group_by query (i.e., not the key table). Detail embeds become slices
-// in the row struct.
+// IsGroupByDetailEmbed reports whether a given embed group is a "detail" group in a
+// group_by query (i.e., not the key table). Detail embeds become slices in the row
+// struct.
 //
 // Takes group (EmbedGroup) which is the embed group to check.
 // Takes keyTable (string) which is the group_by key table name.
@@ -301,12 +300,11 @@ func IsGroupByDetailEmbed(group EmbedGroup, keyTable string) bool {
 	return keyTable != "" && !strings.EqualFold(group.TableName, keyTable)
 }
 
-// BuildOutputStructs generates the row struct and any per-embed structs for a
-// query.
+// BuildOutputStructs generates the row struct and any per-embed structs for a query.
 //
-// When no embeds are present, produces a single row struct. When embeds exist,
-// produces per-embed structs followed by a main row struct containing nested
-// embed fields. For group_by queries, non-key embed fields become slices.
+// When no embeds are present, produces a single row struct. When embeds exist, produces
+// per-embed structs followed by a main row struct containing nested embed fields. For
+// group_by queries, non-key embed fields become slices.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the output columns.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
@@ -336,15 +334,14 @@ func BuildOutputStructs(
 	return declarations
 }
 
-// BuildEmbedRowStruct constructs the main row struct with flat fields and
-// nested embed fields.
+// BuildEmbedRowStruct constructs the main row struct with flat fields and nested embed
+// fields.
 //
-// Inner-join embeds are value types; outer-join embeds are pointer types. In
-// group_by queries, non-key embeds become slice fields.
+// Inner-join embeds are value types; outer-join embeds are pointer types. In group_by
+// queries, non-key embeds become slice fields.
 //
 // Takes structName (string) which is the name for the generated struct.
-// Takes flatColumns ([]querier_dto.OutputColumn) which are the non-embedded
-// columns.
+// Takes flatColumns ([]querier_dto.OutputColumn) which are the non-embedded columns.
 // Takes embedGroups ([]EmbedGroup) which are the grouped embedded columns.
 // Takes queryName (string) which is the query name used for embed struct names.
 // Takes keyTable (string) which is the group_by key table name.

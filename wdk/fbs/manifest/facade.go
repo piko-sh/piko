@@ -18,7 +18,9 @@
 
 package manifest
 
-import "piko.sh/piko/internal/generator/generator_schema"
+import (
+	"piko.sh/piko/internal/generator/generator_schema"
+)
 
 var (
 	// SchemaHash is the SHA-256 hash of manifest.fbs.

@@ -26,102 +26,121 @@ import (
 )
 
 const (
+	// integerRankTinyint is the promotion rank assigned to TINYINT.
 	integerRankTinyint = 1
 
+	// integerRankSmallint is the promotion rank assigned to SMALLINT and unsigned TINYINT.
 	integerRankSmallint = 2
 
+	// integerRankMediumint is the promotion rank assigned to MEDIUMINT and unsigned
+	// SMALLINT.
 	integerRankMediumint = 3
 
+	// integerRankInt is the promotion rank assigned to INT and unsigned MEDIUMINT.
 	integerRankInt = 4
 
+	// integerRankBigint is the promotion rank assigned to BIGINT and unsigned INT.
 	integerRankBigint = 5
 
+	// integerRankBigintUns is the promotion rank assigned to unsigned BIGINT.
 	integerRankBigintUns = 6
 
+	// integerRankDefault is the rank used for unrecognised integer engine names.
 	integerRankDefault = integerRankInt
 )
 
-var builtinTypeMap = map[string]querier_dto.SQLType{
-	// Signed integer types
-	"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint"},
-	"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint"},
-	"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint"},
-	"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
-	"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
-	"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+var (
+	// builtinTypeMap maps lowercase MySQL type names to their structured SQLType
+	// descriptors.
+	builtinTypeMap = map[string]querier_dto.SQLType{
+		// Signed integer types
+		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint"},
+		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint"},
+		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint"},
+		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
+		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
+		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
 
-	// Unsigned integer types
-	"tinyint unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint unsigned"},
-	"smallint unsigned":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint unsigned"},
-	"mediumint unsigned": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint unsigned"},
-	"int unsigned":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
-	"integer unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
-	"bigint unsigned":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint unsigned"},
+		// Unsigned integer types
+		"tinyint unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint unsigned"},
+		"smallint unsigned":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint unsigned"},
+		"mediumint unsigned": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint unsigned"},
+		"int unsigned":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
+		"integer unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
+		"bigint unsigned":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint unsigned"},
 
-	// Float types
-	"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
-	"double":           {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-	"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-	"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		// Float types
+		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
+		"double":           {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
 
-	// Decimal types
-	"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-	"dec":     {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-	"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-	"fixed":   {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		// Decimal types
+		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		"dec":     {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		"fixed":   {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
 
-	// Boolean
-	"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
-	"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
+		// Boolean
+		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
+		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
 
-	// Text types
-	"char":       {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-	"varchar":    {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-	"tinytext":   {Category: querier_dto.TypeCategoryText, EngineName: "tinytext"},
-	"text":       {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"mediumtext": {Category: querier_dto.TypeCategoryText, EngineName: "mediumtext"},
-	"longtext":   {Category: querier_dto.TypeCategoryText, EngineName: "longtext"},
+		// Text types
+		"char":       {Category: querier_dto.TypeCategoryText, EngineName: "char"},
+		"varchar":    {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+		"tinytext":   {Category: querier_dto.TypeCategoryText, EngineName: "tinytext"},
+		"text":       {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"mediumtext": {Category: querier_dto.TypeCategoryText, EngineName: "mediumtext"},
+		"longtext":   {Category: querier_dto.TypeCategoryText, EngineName: "longtext"},
 
-	// Binary types
-	"binary":     {Category: querier_dto.TypeCategoryBytea, EngineName: "binary"},
-	"varbinary":  {Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"},
-	"tinyblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "tinyblob"},
-	"blob":       {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
-	"mediumblob": {Category: querier_dto.TypeCategoryBytea, EngineName: "mediumblob"},
-	"longblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "longblob"},
+		// Binary types
+		"binary":     {Category: querier_dto.TypeCategoryBytea, EngineName: "binary"},
+		"varbinary":  {Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"},
+		"tinyblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "tinyblob"},
+		"blob":       {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+		"mediumblob": {Category: querier_dto.TypeCategoryBytea, EngineName: "mediumblob"},
+		"longblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "longblob"},
 
-	// Temporal types
-	"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-	"time":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-	"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
-	"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-	"year":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "year"},
+		// Temporal types
+		"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
+		"time":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
+		"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
+		"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		"year":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "year"},
 
-	// JSON
-	"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		// JSON
+		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
 
-	// Geometric types
-	"geometry":           {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
-	"point":              {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
-	"linestring":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "linestring"},
-	"polygon":            {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
-	"multipoint":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipoint"},
-	"multilinestring":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "multilinestring"},
-	"multipolygon":       {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipolygon"},
-	"geometrycollection": {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometrycollection"},
+		// Geometric types
+		"geometry":           {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
+		"point":              {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
+		"linestring":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "linestring"},
+		"polygon":            {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
+		"multipoint":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipoint"},
+		"multilinestring":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "multilinestring"},
+		"multipolygon":       {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipolygon"},
+		"geometrycollection": {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometrycollection"},
 
-	// Other types
-	"enum": {Category: querier_dto.TypeCategoryEnum, EngineName: "enum"},
-	"set":  {Category: querier_dto.TypeCategoryText, EngineName: "set"},
-	"bit":  {Category: querier_dto.TypeCategoryInteger, EngineName: "bit"},
-}
+		// Other types
+		"enum": {Category: querier_dto.TypeCategoryEnum, EngineName: "enum"},
+		"set":  {Category: querier_dto.TypeCategoryText, EngineName: "set"},
+		"bit":  {Category: querier_dto.TypeCategoryInteger, EngineName: "bit"},
+	}
 
-var multiWordTypes = map[string]string{
-	"double precision": "double precision",
-}
+	// multiWordTypes lists MySQL type names whose canonical form contains more than one
+	// token, used by the lexer to keep them as a single name.
+	multiWordTypes = map[string]string{
+		"double precision": "double precision",
+	}
+)
 
-// buildTypeCatalogue constructs a TypeCatalogue from the built-in MySQL types
-// merged with any user-provided extra type mappings.
+// buildTypeCatalogue constructs a TypeCatalogue from the built-in MySQL types merged with
+// any user-provided extra type mappings.
+//
+// Takes extraTypes (map[string]querier_dto.SQLType) which provides additional type
+// mappings to merge in.
+//
+// Returns *querier_dto.TypeCatalogue which is the merged catalogue.
 func buildTypeCatalogue(extraTypes map[string]querier_dto.SQLType) *querier_dto.TypeCatalogue {
 	catalogue := &querier_dto.TypeCatalogue{
 		Types: make(map[string]querier_dto.SQLType, len(builtinTypeMap)+len(extraTypes)),
@@ -132,8 +151,18 @@ func buildTypeCatalogue(extraTypes map[string]querier_dto.SQLType) *querier_dto.
 }
 
 // normaliseTypeName resolves a raw SQL type name string to a structured SQLType.
-// It consults the hook first, then multi-word types, then built-in types,
-// falling back to Unknown for unrecognised names.
+//
+// Consults the hook first, then multi-word types, then built-in types, falling back to
+// Unknown for unrecognised names.
+//
+// Takes name (string) which is the raw type name to resolve.
+// Takes hook (func(string, []int) *querier_dto.SQLType) which is an optional override
+// consulted before the built-in tables.
+// Takes modifiers (...int) which carry precision, scale, or length values to apply to the
+// resolved type.
+//
+// Returns querier_dto.SQLType which is the resolved type, with modifiers applied where
+// applicable.
 func normaliseTypeName(
 	name string,
 	hook func(string, []int) *querier_dto.SQLType,
@@ -168,8 +197,11 @@ func normaliseTypeName(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lowered}
 }
 
-// applyModifiers sets precision, scale, or length on the given SQLType based
-// on the type category and the provided modifier values.
+// applyModifiers sets precision, scale, or length on the given SQLType based on the type
+// category and the provided modifier values.
+//
+// Takes sqlType (*querier_dto.SQLType) which is the type to mutate.
+// Takes modifiers ([]int) which is the slice of modifier values to apply.
 func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 	if len(modifiers) == 0 {
 		return
@@ -195,7 +227,13 @@ func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 }
 
 // integerPromotionRank returns the numeric width rank for MySQL integer types.
+//
 // Unsigned variants rank one step wider than their signed counterparts.
+//
+// Takes engineName (string) which is the engine-level integer type name.
+//
+// Returns int which is the promotion rank, defaulting to integerRankDefault for
+// unrecognised names.
 func integerPromotionRank(engineName string) int {
 	rank, exists := integerRanks[engineName]
 	if exists {
@@ -204,20 +242,29 @@ func integerPromotionRank(engineName string) int {
 	return integerRankDefault
 }
 
-var integerRanks = map[string]int{
-	"tinyint":            integerRankTinyint,
-	"smallint":           integerRankSmallint,
-	"tinyint unsigned":   integerRankSmallint,
-	"mediumint":          integerRankMediumint,
-	"smallint unsigned":  integerRankMediumint,
-	"int":                integerRankInt,
-	"mediumint unsigned": integerRankInt,
-	"bigint":             integerRankBigint,
-	"int unsigned":       integerRankBigint,
-	"bigint unsigned":    integerRankBigintUns,
-}
+var (
+	// integerRanks maps engine-level integer type names to their promotion rank used during
+	// arithmetic type widening.
+	integerRanks = map[string]int{
+		"tinyint":            integerRankTinyint,
+		"smallint":           integerRankSmallint,
+		"tinyint unsigned":   integerRankSmallint,
+		"mediumint":          integerRankMediumint,
+		"smallint unsigned":  integerRankMediumint,
+		"int":                integerRankInt,
+		"mediumint unsigned": integerRankInt,
+		"bigint":             integerRankBigint,
+		"int unsigned":       integerRankBigint,
+		"bigint unsigned":    integerRankBigintUns,
+	}
+)
 
 // floatPromotionRank returns the numeric width rank for MySQL float types.
+//
+// Takes engineName (string) which is the engine-level float type name.
+//
+// Returns int which is the promotion rank, with FLOAT ranking 1 and all other names
+// ranking 2.
 func floatPromotionRank(engineName string) int {
 	switch engineName {
 	case "float":

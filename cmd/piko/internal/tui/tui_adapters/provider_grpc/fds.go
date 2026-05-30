@@ -30,10 +30,12 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-var _ tui_domain.FDsProvider = (*FDsProvider)(nil)
+var (
+	_ tui_domain.FDsProvider = (*FDsProvider)(nil)
+)
 
-// FDsProvider provides file descriptor data via gRPC.
-// It implements tui_domain.FDsProvider.
+// FDsProvider provides file descriptor data via gRPC. It implements
+// tui_domain.FDsProvider.
 type FDsProvider struct {
 	// conn holds the gRPC connection with health and metrics clients.
 	conn *Connection
@@ -137,8 +139,8 @@ func (p *FDsProvider) GetFDs(_ context.Context) (*tui_domain.FDsData, error) {
 
 // convertFDsData converts protobuf FD data to domain FDsData.
 //
-// Takes response (*pb.GetFileDescriptorsResponse) which contains the protobuf
-// response with file descriptor information.
+// Takes response (*pb.GetFileDescriptorsResponse) which contains the protobuf response
+// with file descriptor information.
 //
 // Returns *tui_domain.FDsData which contains the converted domain model.
 func convertFDsData(response *pb.GetFileDescriptorsResponse) *tui_domain.FDsData {

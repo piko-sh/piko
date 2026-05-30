@@ -18,14 +18,15 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// dotProductHandlers returns the handler definitions for the
-// dot product SIMD functions across all supported
-// architectures.
+// dotProductHandlers returns the handler definitions for the dot product SIMD functions
+// across all supported architectures.
 //
-// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// containing SSE, AVX2, and NEON variants.
+// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort] containing SSE, AVX2,
+// and NEON variants.
 func dotProductHandlers() []asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return []asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		handlerDotF32SSE(),
@@ -36,12 +37,12 @@ func dotProductHandlers() []asmgen.HandlerDefinition[VectormathsArchitecturePort
 
 // handlerDotF32SSE returns the handler definition for the SSE dot product function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-52 NOSPLIT frame.
 func handlerDotF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "dotF32SSE",
-		Comment:       "func dotF32SSE(a, b []float32) float32",
+		Comment:       "dotF32SSE computes sum(a[i]*b[i]) for f32 vectors using 4-way SSE unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -52,12 +53,12 @@ func handlerDotF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 
 // handlerDotF32AVX2 returns the handler definition for the AVX2 dot product function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-52 NOSPLIT frame.
 func handlerDotF32AVX2() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "dotF32AVX2",
-		Comment:       "func dotF32AVX2(a, b []float32) float32",
+		Comment:       "dotF32AVX2 computes sum(a[i]*b[i]) for f32 vectors using 8-way AVX2 unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -68,12 +69,12 @@ func handlerDotF32AVX2() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 
 // handlerDotF32NEON returns the handler definition for the NEON dot product function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting arm64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting arm64 with a
+// $0-52 NOSPLIT frame.
 func handlerDotF32NEON() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "dotF32",
-		Comment:       "func dotF32(a, b []float32) float32",
+		Comment:       "dotF32 computes sum(a[i]*b[i]) for f32 vectors using 8-way NEON unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureARM64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {

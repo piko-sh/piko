@@ -39,8 +39,7 @@ func init() {
 	ConfigDefault = &stdAPI{escapeHTML: false}
 }
 
-// stdMarshalString serialises v into a JSON string using
-// the stdlib encoder.
+// stdMarshalString serialises v into a JSON string using the stdlib encoder.
 //
 // Takes v (any) which is the value to serialise.
 //
@@ -54,8 +53,7 @@ func stdMarshalString(v any) (string, error) {
 	return string(data), nil
 }
 
-// stdUnmarshalString deserialises a JSON string into v
-// using the stdlib decoder.
+// stdUnmarshalString deserialises a JSON string into v using the stdlib decoder.
 //
 // Takes s (string) which is the raw JSON text.
 // Takes v (any) which is the target to populate.
@@ -65,8 +63,7 @@ func stdUnmarshalString(s string, v any) error {
 	return stdjson.Unmarshal([]byte(s), v)
 }
 
-// stdNewEncoder creates a streaming stdlib JSON encoder
-// writing to w.
+// stdNewEncoder creates a streaming stdlib JSON encoder writing to w.
 //
 // Takes w (io.Writer) which receives the encoded JSON.
 //
@@ -75,8 +72,7 @@ func stdNewEncoder(w io.Writer) Encoder {
 	return stdjson.NewEncoder(w)
 }
 
-// stdNewDecoder creates a streaming stdlib JSON decoder
-// reading from r.
+// stdNewDecoder creates a streaming stdlib JSON decoder reading from r.
 //
 // Takes r (io.Reader) which supplies the raw JSON.
 //
@@ -85,8 +81,7 @@ func stdNewDecoder(r io.Reader) Decoder {
 	return stdjson.NewDecoder(r)
 }
 
-// stdValidString reports whether s is valid JSON using
-// the stdlib validator.
+// stdValidString reports whether s is valid JSON using the stdlib validator.
 //
 // Takes s (string) which is the JSON text to validate.
 //
@@ -95,13 +90,11 @@ func stdValidString(s string) bool {
 	return stdjson.Valid([]byte(s))
 }
 
-// stdPretouch buffers the type for later pretouching
-// when a provider activates.
+// stdPretouch buffers the type for later pretouching when a provider activates.
 //
 // Takes t (reflect.Type) which is the type to buffer.
 //
-// Returns error which is always nil for the stdlib
-// fallback.
+// Returns error which is always nil for the stdlib fallback.
 func stdPretouch(t reflect.Type) error {
 	pretouchBuffer = append(pretouchBuffer, t)
 	return nil

@@ -93,7 +93,9 @@ func (m *mockComponentCache) Clear(_ context.Context) {
 
 }
 
-var _ ComponentCachePort = (*mockComponentCache)(nil)
+var (
+	_ ComponentCachePort = (*mockComponentCache)(nil)
+)
 
 type testHarness struct {
 	t        *testing.T
@@ -927,7 +929,9 @@ func (*graphBuilderMockResolverWithFailures) FindModuleBoundary(_ context.Contex
 	return "", "", errors.New("FindModuleBoundary not implemented")
 }
 
-var _ resolver_domain.ResolverPort = (*graphBuilderMockResolverWithFailures)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*graphBuilderMockResolverWithFailures)(nil)
+)
 
 func TestShortHash(t *testing.T) {
 	t.Parallel()

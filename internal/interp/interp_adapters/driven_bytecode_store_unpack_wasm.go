@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/interp/interp_domain"
 )
 
-// LoadCompiledFileSet is a stub for WASM builds where
-// filesystem-based bytecode loading is not supported.
+// LoadCompiledFileSet is a stub for WASM builds where filesystem-based bytecode loading
+// is not supported.
 //
 // Returns *interp_domain.CompiledFileSet which is always nil.
 // Returns error which always indicates WASM is unsupported.

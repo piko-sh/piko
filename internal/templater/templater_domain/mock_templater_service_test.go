@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -133,11 +132,11 @@ func TestMockTemplaterService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ProbePageCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderPageCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ProbePartialCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderPartialCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SetRunnerCallCount))
+	assert.Equal(t, int64(goroutines), m.ProbePageCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderPageCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ProbePartialCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderPartialCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SetRunnerCallCount.Load())
 }
 
 func TestMockTemplaterService_ProbePage(t *testing.T) {
@@ -154,7 +153,7 @@ func TestMockTemplaterService_ProbePage(t *testing.T) {
 		result, err := m.ProbePage(ctx, page, request, websiteConfig)
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePageCallCount))
+		assert.Equal(t, int64(1), m.ProbePageCallCount.Load())
 	})
 
 	t.Run("delegates to ProbePageFunc", func(t *testing.T) {
@@ -170,7 +169,7 @@ func TestMockTemplaterService_ProbePage(t *testing.T) {
 		result, err := m.ProbePage(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), &config.WebsiteConfig{})
 		assert.Same(t, expected, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePageCallCount))
+		assert.Equal(t, int64(1), m.ProbePageCallCount.Load())
 	})
 
 	t.Run("propagates error from ProbePageFunc", func(t *testing.T) {
@@ -185,7 +184,7 @@ func TestMockTemplaterService_ProbePage(t *testing.T) {
 		result, err := m.ProbePage(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), &config.WebsiteConfig{})
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePageCallCount))
+		assert.Equal(t, int64(1), m.ProbePageCallCount.Load())
 	})
 }
 
@@ -205,7 +204,7 @@ func TestMockTemplaterService_RenderPage(t *testing.T) {
 			WebsiteConfig: &config.WebsiteConfig{},
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 
 	t.Run("delegates to RenderPageFunc", func(t *testing.T) {
@@ -228,7 +227,7 @@ func TestMockTemplaterService_RenderPage(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, "rendered", buffer.String())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderPageFunc", func(t *testing.T) {
@@ -249,7 +248,7 @@ func TestMockTemplaterService_RenderPage(t *testing.T) {
 			WebsiteConfig: &config.WebsiteConfig{},
 		})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 }
 
@@ -263,7 +262,7 @@ func TestMockTemplaterService_ProbePartial(t *testing.T) {
 		result, err := m.ProbePartial(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), &config.WebsiteConfig{})
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePartialCallCount))
+		assert.Equal(t, int64(1), m.ProbePartialCallCount.Load())
 	})
 
 	t.Run("delegates to ProbePartialFunc", func(t *testing.T) {
@@ -278,7 +277,7 @@ func TestMockTemplaterService_ProbePartial(t *testing.T) {
 		result, err := m.ProbePartial(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), &config.WebsiteConfig{})
 		assert.Same(t, expected, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePartialCallCount))
+		assert.Equal(t, int64(1), m.ProbePartialCallCount.Load())
 	})
 
 	t.Run("propagates error from ProbePartialFunc", func(t *testing.T) {
@@ -293,7 +292,7 @@ func TestMockTemplaterService_ProbePartial(t *testing.T) {
 		result, err := m.ProbePartial(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), &config.WebsiteConfig{})
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ProbePartialCallCount))
+		assert.Equal(t, int64(1), m.ProbePartialCallCount.Load())
 	})
 }
 
@@ -313,7 +312,7 @@ func TestMockTemplaterService_RenderPartial(t *testing.T) {
 			WebsiteConfig: &config.WebsiteConfig{},
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 
 	t.Run("delegates to RenderPartialFunc", func(t *testing.T) {
@@ -336,7 +335,7 @@ func TestMockTemplaterService_RenderPartial(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, "partial", buffer.String())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderPartialFunc", func(t *testing.T) {
@@ -357,7 +356,7 @@ func TestMockTemplaterService_RenderPartial(t *testing.T) {
 			WebsiteConfig: &config.WebsiteConfig{},
 		})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 }
 
@@ -368,7 +367,7 @@ func TestMockTemplaterService_SetRunner(t *testing.T) {
 		t.Parallel()
 		m := &templater_domain.MockTemplaterService{}
 		m.SetRunner(nil)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetRunnerCallCount))
+		assert.Equal(t, int64(1), m.SetRunnerCallCount.Load())
 	})
 
 	t.Run("delegates to SetRunnerFunc", func(t *testing.T) {
@@ -382,6 +381,6 @@ func TestMockTemplaterService_SetRunner(t *testing.T) {
 		}
 		m.SetRunner(runner)
 		assert.Same(t, runner, captured)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetRunnerCallCount))
+		assert.Equal(t, int64(1), m.SetRunnerCallCount.Load())
 	})
 }

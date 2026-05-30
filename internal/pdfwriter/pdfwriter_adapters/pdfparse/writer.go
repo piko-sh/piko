@@ -27,8 +27,8 @@ import (
 	"strings"
 )
 
-// Writer serialises a set of PDF objects into a valid PDF file with a
-// traditional cross-reference table and trailer.
+// Writer serialises a set of PDF objects into a valid PDF file with a traditional
+// cross-reference table and trailer.
 type Writer struct {
 	// objects maps object numbers to their Object values.
 	objects map[int]Object
@@ -50,8 +50,8 @@ func NewWriter() *Writer {
 	}
 }
 
-// NewWriterFromDocument creates a writer pre-populated with all objects from
-// a parsed Document.
+// NewWriterFromDocument creates a writer pre-populated with all objects from a parsed
+// Document.
 //
 // Takes doc (*Document) which is the parsed PDF to copy objects from.
 //
@@ -89,8 +89,8 @@ func (w *Writer) Trailer() Dict {
 	return w.trailer
 }
 
-// AddObject adds an object with the next available object number and
-// returns the assigned number.
+// AddObject adds an object with the next available object number and returns the assigned
+// number.
 //
 // Takes obj (Object) which is the object to add.
 //
@@ -102,8 +102,7 @@ func (w *Writer) AddObject(obj Object) int {
 	return num
 }
 
-// SetObject sets an object at a specific object number, replacing any
-// existing object.
+// SetObject sets an object at a specific object number, replacing any existing object.
 //
 // Takes num (int) which specifies the object number to assign.
 // Takes obj (Object) which is the object to store.
@@ -114,8 +113,7 @@ func (w *Writer) SetObject(num int, obj Object) {
 	}
 }
 
-// GetObject returns the object at the given number, or a null Object if
-// not found.
+// GetObject returns the object at the given number, or a null Object if not found.
 //
 // Takes num (int) which specifies the object number to retrieve.
 //
@@ -135,8 +133,7 @@ func (w *Writer) RemoveObject(num int) {
 	delete(w.objects, num)
 }
 
-// NextObjectNumber returns the next available object number without
-// allocating it.
+// NextObjectNumber returns the next available object number without allocating it.
 //
 // Returns int which is the next object number that will be assigned.
 func (w *Writer) NextObjectNumber() int {
@@ -185,15 +182,15 @@ func (w *Writer) Write() ([]byte, error) {
 	return []byte(buf.String()), nil
 }
 
-// WriteIncremental appends only the specified objects as an incremental
-// update to existingPDF. The new xref section references only the
-// appended objects, and the trailer includes a /Prev entry pointing to
-// the original startxref offset so readers can follow the chain.
+// WriteIncremental appends only the specified objects as an incremental update to
+// existingPDF. The new xref section references only the appended objects, and the trailer
+// includes a /Prev entry pointing to the original startxref offset so readers can follow
+// the chain.
 //
 // Takes existingPDF ([]byte) which is the original signed PDF.
 // Takes dirtyNums ([]int) which lists the object numbers to write.
-// Takes prevStartXRef (int64) which is the startxref offset of the
-// existing PDF's xref table.
+// Takes prevStartXRef (int64) which is the startxref offset of the existing PDF's xref
+// table.
 //
 // Returns []byte which is the complete PDF with incremental update.
 // Returns error when serialisation fails.
@@ -357,8 +354,7 @@ func writeArray(buf *strings.Builder, obj Object) {
 	buf.WriteByte(']')
 }
 
-// writeDictionary writes a PDF dictionary value to buf in double angle
-// bracket notation.
+// writeDictionary writes a PDF dictionary value to buf in double angle bracket notation.
 //
 // Takes buf (*strings.Builder) which is the output buffer.
 // Takes obj (Object) which holds the Dict value.
@@ -412,8 +408,8 @@ func writeXRefTable(buf *strings.Builder, objNums []int, offsets map[int]int64) 
 	}
 }
 
-// writeLiteralString writes a PDF literal string to buf with proper
-// escaping of special characters.
+// writeLiteralString writes a PDF literal string to buf with proper escaping of special
+// characters.
 //
 // Takes buf (*strings.Builder) which is the output buffer.
 // Takes s (string) which is the string content to write.
@@ -438,8 +434,8 @@ func writeLiteralString(buf *strings.Builder, s string) {
 	buf.WriteByte(')')
 }
 
-// writeHexString writes a PDF hex string to buf with each byte encoded as
-// two uppercase hex digits.
+// writeHexString writes a PDF hex string to buf with each byte encoded as two uppercase
+// hex digits.
 //
 // Takes buf (*strings.Builder) which is the output buffer.
 // Takes s (string) which is the raw byte content to hex-encode.
@@ -451,8 +447,8 @@ func writeHexString(buf *strings.Builder, s string) {
 	buf.WriteByte('>')
 }
 
-// encodeName encodes a PDF name string by escaping characters that require
-// hex encoding in the PDF name syntax.
+// encodeName encodes a PDF name string by escaping characters that require hex encoding
+// in the PDF name syntax.
 //
 // Takes name (string) which is the raw name value to encode.
 //

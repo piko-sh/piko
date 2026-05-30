@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -113,12 +112,12 @@ func TestMockRendererPort_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CollectMetadataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderPageCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderPartialCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderEmailCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenderASTToPlainTextCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetLastEmailAssetRequestsCallCount))
+	assert.Equal(t, int64(goroutines), m.CollectMetadataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderPageCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderPartialCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderEmailCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenderASTToPlainTextCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetLastEmailAssetRequestsCallCount.Load())
 }
 
 func TestMockRendererPort_CollectMetadata(t *testing.T) {
@@ -132,7 +131,7 @@ func TestMockRendererPort_CollectMetadata(t *testing.T) {
 		assert.Nil(t, links)
 		assert.Nil(t, pd)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CollectMetadataCallCount))
+		assert.Equal(t, int64(1), m.CollectMetadataCallCount.Load())
 	})
 
 	t.Run("delegates to CollectMetadataFunc", func(t *testing.T) {
@@ -149,7 +148,7 @@ func TestMockRendererPort_CollectMetadata(t *testing.T) {
 		links, _, err := m.CollectMetadata(ctx, httptest.NewRequest(http.MethodGet, "/", nil), &templater_dto.InternalMetadata{}, &config.WebsiteConfig{})
 		assert.Equal(t, expected, links)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CollectMetadataCallCount))
+		assert.Equal(t, int64(1), m.CollectMetadataCallCount.Load())
 	})
 
 	t.Run("propagates error from CollectMetadataFunc", func(t *testing.T) {
@@ -164,7 +163,7 @@ func TestMockRendererPort_CollectMetadata(t *testing.T) {
 		links, _, err := m.CollectMetadata(ctx, httptest.NewRequest(http.MethodGet, "/", nil), &templater_dto.InternalMetadata{}, &config.WebsiteConfig{})
 		assert.Nil(t, links)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CollectMetadataCallCount))
+		assert.Equal(t, int64(1), m.CollectMetadataCallCount.Load())
 	})
 }
 
@@ -177,7 +176,7 @@ func TestMockRendererPort_RenderPage(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderPage(ctx, templater_domain.RenderPageParams{})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 
 	t.Run("delegates to RenderPageFunc", func(t *testing.T) {
@@ -196,7 +195,7 @@ func TestMockRendererPort_RenderPage(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "body{}", capturedParams.Styling)
 		assert.True(t, capturedParams.IsFragment)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderPageFunc", func(t *testing.T) {
@@ -210,7 +209,7 @@ func TestMockRendererPort_RenderPage(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderPage(ctx, templater_domain.RenderPageParams{})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPageCallCount))
+		assert.Equal(t, int64(1), m.RenderPageCallCount.Load())
 	})
 }
 
@@ -223,7 +222,7 @@ func TestMockRendererPort_RenderPartial(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderPartial(ctx, templater_domain.RenderPageParams{})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 
 	t.Run("delegates to RenderPartialFunc", func(t *testing.T) {
@@ -242,7 +241,7 @@ func TestMockRendererPort_RenderPartial(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "div{}", capturedParams.Styling)
 		assert.False(t, capturedParams.IsFragment)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderPartialFunc", func(t *testing.T) {
@@ -256,7 +255,7 @@ func TestMockRendererPort_RenderPartial(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderPartial(ctx, templater_domain.RenderPageParams{})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderPartialCallCount))
+		assert.Equal(t, int64(1), m.RenderPartialCallCount.Load())
 	})
 }
 
@@ -269,7 +268,7 @@ func TestMockRendererPort_RenderEmail(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderEmail(ctx, templater_domain.RenderEmailParams{})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderEmailCallCount))
+		assert.Equal(t, int64(1), m.RenderEmailCallCount.Load())
 	})
 
 	t.Run("delegates to RenderEmailFunc", func(t *testing.T) {
@@ -288,7 +287,7 @@ func TestMockRendererPort_RenderEmail(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "welcome-email", capturedParams.PageID)
 		assert.Equal(t, "table{}", capturedParams.Styling)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderEmailCallCount))
+		assert.Equal(t, int64(1), m.RenderEmailCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderEmailFunc", func(t *testing.T) {
@@ -302,7 +301,7 @@ func TestMockRendererPort_RenderEmail(t *testing.T) {
 		ctx := context.Background()
 		err := m.RenderEmail(ctx, templater_domain.RenderEmailParams{})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderEmailCallCount))
+		assert.Equal(t, int64(1), m.RenderEmailCallCount.Load())
 	})
 }
 
@@ -316,7 +315,7 @@ func TestMockRendererPort_RenderASTToPlainText(t *testing.T) {
 		text, err := m.RenderASTToPlainText(ctx, nil)
 		assert.Empty(t, text)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderASTToPlainTextCallCount))
+		assert.Equal(t, int64(1), m.RenderASTToPlainTextCallCount.Load())
 	})
 
 	t.Run("delegates to RenderASTToPlainTextFunc", func(t *testing.T) {
@@ -333,7 +332,7 @@ func TestMockRendererPort_RenderASTToPlainText(t *testing.T) {
 		text, err := m.RenderASTToPlainText(ctx, ast)
 		assert.Equal(t, "plain text content", text)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderASTToPlainTextCallCount))
+		assert.Equal(t, int64(1), m.RenderASTToPlainTextCallCount.Load())
 	})
 
 	t.Run("propagates error from RenderASTToPlainTextFunc", func(t *testing.T) {
@@ -348,7 +347,7 @@ func TestMockRendererPort_RenderASTToPlainText(t *testing.T) {
 		text, err := m.RenderASTToPlainText(ctx, nil)
 		assert.Empty(t, text)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenderASTToPlainTextCallCount))
+		assert.Equal(t, int64(1), m.RenderASTToPlainTextCallCount.Load())
 	})
 }
 
@@ -360,7 +359,7 @@ func TestMockRendererPort_GetLastEmailAssetRequests(t *testing.T) {
 		m := &templater_domain.MockRendererPort{}
 		got := m.GetLastEmailAssetRequests()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLastEmailAssetRequestsCallCount))
+		assert.Equal(t, int64(1), m.GetLastEmailAssetRequestsCallCount.Load())
 	})
 
 	t.Run("delegates to GetLastEmailAssetRequestsFunc", func(t *testing.T) {
@@ -376,6 +375,6 @@ func TestMockRendererPort_GetLastEmailAssetRequests(t *testing.T) {
 		got := m.GetLastEmailAssetRequests()
 		require.Len(t, got, 1)
 		assert.Equal(t, "assets/images/logo.png", got[0].SourcePath)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLastEmailAssetRequestsCallCount))
+		assert.Equal(t, int64(1), m.GetLastEmailAssetRequestsCallCount.Load())
 	})
 }

@@ -16,12 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package asmgen_arch_arm64 provides the ARM64 assembly code
-// generation backend for SIMD vector mathematics operations.
+// Package asmgen_arch_arm64 provides the ARM64 assembly code generation backend for SIMD
+// vector mathematics operations.
 //
-// [VectormathsARM64Arch] extends the core ARM64 architecture
-// with NEON implementations of dot product, squared Euclidean
-// distance, and L2 normalisation. All emitted instructions use
-// Plan 9 assembly syntax with standard column-aligned
-// formatting.
+// [VectormathsARM64Arch] extends the core ARM64 architecture with NEON implementations of
+// dot product, squared Euclidean distance, and L2 normalisation. All emitted instructions
+// use Plan 9 assembly syntax with standard column-aligned formatting.
 package asmgen_arch_arm64

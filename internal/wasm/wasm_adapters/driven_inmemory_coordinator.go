@@ -26,18 +26,20 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 )
 
-// InMemoryCoordinator implements CoordinatorService for WASM contexts.
-// It provides a lightweight wrapper around the AnnotatorService without
-// the file watching, debouncing, and caching features of the full coordinator.
+// InMemoryCoordinator implements CoordinatorService for WASM contexts. It provides a
+// lightweight wrapper around the AnnotatorService without the file watching, debouncing,
+// and caching features of the full coordinator.
 //
-// This is suitable for one-shot generation requests where each call is
-// independent and the full coordinator infrastructure is not needed.
+// This is suitable for one-shot generation requests where each call is independent and
+// the full coordinator infrastructure is not needed.
 type InMemoryCoordinator struct {
 	// annotator provides the annotation service for the project.
 	annotator annotator_domain.AnnotatorPort
 }
 
-var _ coordinator_domain.CoordinatorService = (*InMemoryCoordinator)(nil)
+var (
+	_ coordinator_domain.CoordinatorService = (*InMemoryCoordinator)(nil)
+)
 
 // NewInMemoryCoordinator creates a new in-memory coordinator.
 //
@@ -50,15 +52,13 @@ func NewInMemoryCoordinator(annotator annotator_domain.AnnotatorPort) *InMemoryC
 	}
 }
 
-// GetResult performs annotation and returns the result.
-// This is the only method called by the generator service.
+// GetResult performs annotation and returns the result. This is the only method called by
+// the generator service.
 //
 // Takes ctx (context.Context) which is the request context.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the
-// files.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the files.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the
-// result.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the result.
 // Returns error when annotation fails.
 func (c *InMemoryCoordinator) GetResult(
 	ctx context.Context,
@@ -69,15 +69,13 @@ func (c *InMemoryCoordinator) GetResult(
 	return result, err
 }
 
-// GetOrBuildProject performs annotation and returns the result.
-// Behaves the same as GetResult for in-memory coordinator.
+// GetOrBuildProject performs annotation and returns the result. Behaves the same as
+// GetResult for in-memory coordinator.
 //
 // Takes ctx (context.Context) which is the request context.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the
-// files.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the files.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the
-// result.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the result.
 // Returns error when annotation fails.
 func (c *InMemoryCoordinator) GetOrBuildProject(
 	ctx context.Context,
@@ -97,8 +95,8 @@ func (*InMemoryCoordinator) Subscribe(_ string) (<-chan coordinator_domain.Build
 	return nil, func() {}
 }
 
-// RequestRebuild is a no-op for in-memory coordinator.
-// Async builds are not supported in WASM context.
+// RequestRebuild is a no-op for in-memory coordinator. Async builds are not supported in
+// WASM context.
 func (*InMemoryCoordinator) RequestRebuild(
 	_ context.Context,
 	_ []annotator_dto.EntryPoint,
@@ -106,8 +104,8 @@ func (*InMemoryCoordinator) RequestRebuild(
 ) {
 }
 
-// GetLastSuccessfulBuild returns nil and false.
-// Caching is not supported in in-memory coordinator.
+// GetLastSuccessfulBuild returns nil and false. Caching is not supported in in-memory
+// coordinator.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which is always nil.
 // Returns bool which is false indicating no cached result.
@@ -115,15 +113,14 @@ func (*InMemoryCoordinator) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnno
 	return nil, false
 }
 
-// Invalidate is a no-op for in-memory coordinator.
-// There is no cache to invalidate.
+// Invalidate is a no-op for in-memory coordinator. There is no cache to invalidate.
 //
 // Returns error which is always nil.
 func (*InMemoryCoordinator) Invalidate(_ context.Context) error {
 	return nil
 }
 
-// Shutdown does nothing for the in-memory coordinator.
-// There are no background goroutines to stop.
+// Shutdown does nothing for the in-memory coordinator. There are no background goroutines
+// to stop.
 func (*InMemoryCoordinator) Shutdown(_ context.Context) {
 }

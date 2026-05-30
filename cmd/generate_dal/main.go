@@ -32,19 +32,20 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// minimumArgCount is the minimum number of command-line arguments
-// required: the program name, base directory, and package name.
-const minimumArgCount = 3
+const (
+	// minimumArgCount is the minimum number of command-line arguments required: the program
+	// name, base directory, and package name.
+	minimumArgCount = 3
 
-// directoryPermissions defines the permissions for created output
-// directories.
-const directoryPermissions = 0o755
+	// directoryPermissions defines the permissions for created output directories.
+	directoryPermissions = 0o755
 
-// filePermissions defines the permissions for generated output files.
-const filePermissions = 0o644
+	// filePermissions defines the permissions for generated output files.
+	filePermissions = 0o644
+)
 
-// fileReader is a filesystem-backed implementation of the file reader
-// port used by the querier service.
+// fileReader is a filesystem-backed implementation of the file reader port used by the
+// querier service.
 type fileReader struct {
 	// factory creates sandboxed filesystem handles for safe file access.
 	factory safedisk.Factory
@@ -52,8 +53,7 @@ type fileReader struct {
 
 // ReadFile reads the entire contents of the file at the given path.
 //
-// Takes path (string) which is the absolute or relative file path
-// to read.
+// Takes path (string) which is the absolute or relative file path to read.
 //
 // Returns []byte which is the raw file contents.
 // Returns error when the file cannot be read.
@@ -85,10 +85,9 @@ func (r *fileReader) ReadDir(_ context.Context, directory string) ([]os.DirEntry
 	return sandbox.ReadDir(".")
 }
 
-// main generates Go data-access-layer files from SQL migrations and
-// query definitions. It expects two arguments: a base directory
-// containing migrations/ and queries/ subdirectories, and a Go
-// package name for the generated code.
+// main generates Go data-access-layer files from SQL migrations and query definitions. It
+// expects two arguments: a base directory containing migrations/ and queries/
+// subdirectories, and a Go package name for the generated code.
 func main() {
 	if err := run(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -149,9 +148,10 @@ func run() error {
 // writeOutput writes the generated DAL files to the output directory inside a sandbox.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
-// Takes base (string) which is the base directory that will contain the db/ output folder.
-// Takes files ([]querier_dto.GeneratedFile) which holds the generated
-// file names and contents.
+// Takes base (string) which is the base directory that will contain the db/ output
+// folder.
+// Takes files ([]querier_dto.GeneratedFile) which holds the generated file names and
+// contents.
 //
 // Returns error when the output directory cannot be created or a file cannot be written.
 func writeOutput(factory safedisk.Factory, base string, files []querier_dto.GeneratedFile) error {

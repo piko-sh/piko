@@ -22,8 +22,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// diagnosticContext carries all the information a diagnostic pass needs to
-// analyse a single query and produce diagnostics.
+// diagnosticContext carries all the information a diagnostic pass needs to analyse a
+// single query and produce diagnostics.
 type diagnosticContext struct {
 	// Query holds the fully analysed query with resolved types and columns.
 	Query *querier_dto.AnalysedQuery
@@ -37,34 +37,32 @@ type diagnosticContext struct {
 	// Filename holds the source file name for diagnostic source locations.
 	Filename string
 
-	// ParameterDirectives holds the user-specified parameter type directives
-	// parsed from query comments.
+	// ParameterDirectives holds the user-specified parameter type directives parsed from
+	// query comments.
 	ParameterDirectives []*querier_dto.ParameterDirective
 }
 
-// diagnosticPass is a single diagnostic check that inspects a query and
-// produces zero or more SourceError diagnostics. Passes are run sequentially
-// by the diagnosticAnalyser.
+// diagnosticPass is a single diagnostic check that inspects a query and produces zero or
+// more SourceError diagnostics. Passes are run sequentially by the diagnosticAnalyser.
 type diagnosticPass interface {
 	// Analyse inspects the query context and returns zero or more diagnostics.
 	Analyse(context *diagnosticContext) []querier_dto.SourceError
 }
 
-// diagnosticAnalyser coordinates SQL diagnostic passes over analysed queries,
-// following the same pattern used by internal/annotator for template analysis.
-// Each pass inspects the query from a different angle and produces structured
-// diagnostics with source locations.
+// diagnosticAnalyser coordinates SQL diagnostic passes over analysed queries, following
+// the same pattern used by internal/annotator for template analysis. Each pass inspects
+// the query from a different angle and produces structured diagnostics with source
+// locations.
 type diagnosticAnalyser struct {
-	// passes holds the ordered list of diagnostic passes to run against each
-	// query.
+	// passes holds the ordered list of diagnostic passes to run against each query.
 	passes []diagnosticPass
 }
 
-// newDiagnosticAnalyser creates a diagnostic analyser with the standard set of
-// diagnostic passes for the given catalogue and engine.
+// newDiagnosticAnalyser creates a diagnostic analyser with the standard set of diagnostic
+// passes for the given catalogue and engine.
 //
-// Takes catalogue (*querier_dto.Catalogue) which provides schema information
-// needed by passes such as generated column validation.
+// Takes catalogue (*querier_dto.Catalogue) which provides schema information needed by
+// passes such as generated column validation.
 //
 // Returns *diagnosticAnalyser which is ready to analyse queries.
 func newDiagnosticAnalyser(catalogue *querier_dto.Catalogue) *diagnosticAnalyser {
@@ -80,14 +78,14 @@ func newDiagnosticAnalyser(catalogue *querier_dto.Catalogue) *diagnosticAnalyser
 	}
 }
 
-// Analyse runs all registered passes against the given query context and
-// returns the collected diagnostics.
+// Analyse runs all registered passes against the given query context and returns the
+// collected diagnostics.
 //
-// Takes context (*diagnosticContext) which carries the query and scope
-// information for analysis.
+// Takes context (*diagnosticContext) which carries the query and scope information for
+// analysis.
 //
-// Returns []querier_dto.SourceError which holds all diagnostics collected
-// from the passes.
+// Returns []querier_dto.SourceError which holds all diagnostics collected from the
+// passes.
 func (a *diagnosticAnalyser) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	diagnostics := make([]querier_dto.SourceError, 0, len(a.passes))
 	for _, pass := range a.passes {

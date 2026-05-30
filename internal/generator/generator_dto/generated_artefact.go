@@ -23,19 +23,19 @@ import (
 )
 
 const (
-	// AnalysisBuildConstraint is the build constraint prepended to all generated
-	// dist files. It excludes physical dist files from type-checking when the
-	// "piko_analysis" build tag is active (used by the LSP inspector), while
-	// keeping them included during normal builds where the tag is absent.
+	// AnalysisBuildConstraint is the build constraint prepended to all generated dist files.
+	// It excludes physical dist files from type-checking when the "piko_analysis" build tag
+	// is active (used by the LSP inspector), while keeping them included during normal
+	// builds where the tag is absent.
 	AnalysisBuildConstraint = "//go:build !piko_analysis\n\n"
 )
 
-// GeneratedArtefact represents the complete output of the compilation pipeline
-// for a single entry-point component. It bundles the generated Go source code
-// with the rich analysis result that produced it.
+// GeneratedArtefact represents the complete output of the compilation pipeline for a
+// single entry-point component. It bundles the generated Go source code with the rich
+// analysis result that produced it.
 type GeneratedArtefact struct {
-	// Result holds the output from annotation, including style blocks and asset
-	// references used when building manifest entries.
+	// Result holds the output from annotation, including style blocks and asset references
+	// used when building manifest entries.
 	Result *annotator_dto.AnnotationResult
 
 	// Component holds the source component metadata; nil if not present.
@@ -44,8 +44,8 @@ type GeneratedArtefact struct {
 	// SuggestedPath is the relative file path where this artefact should be written.
 	SuggestedPath string
 
-	// JSArtefactID is the registry artefact ID for the client-side JavaScript
-	// file, or empty if the component has no client script.
+	// JSArtefactID is the registry artefact ID for the client-side JavaScript file, or empty
+	// if the component has no client script.
 	JSArtefactID string
 
 	// Content holds the generated Go source code as bytes.

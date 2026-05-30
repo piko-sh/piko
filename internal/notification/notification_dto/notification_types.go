@@ -18,10 +18,12 @@
 
 package notification_dto
 
-import "time"
+import (
+	"time"
+)
 
-// NotificationType defines the format and structure of notification content.
-// It implements fmt.Stringer.
+// NotificationType defines the format and structure of notification content. It
+// implements fmt.Stringer.
 type NotificationType int
 
 const (
@@ -32,8 +34,8 @@ const (
 	// formatting.
 	NotificationTypeRich
 
-	// NotificationTypeTemplated represents notifications with provider-specific
-	// rich formatting (e.g. Slack blocks, Discord embeds).
+	// NotificationTypeTemplated represents notifications with provider-specific rich
+	// formatting (e.g. Slack blocks, Discord embeds).
 	NotificationTypeTemplated
 )
 
@@ -72,8 +74,8 @@ func (t NotificationType) String() string {
 
 // String returns the string representation of the notification priority.
 //
-// Returns string which is the priority level name such as "low", "normal",
-// "high", "critical", or "unknown" for undefined values.
+// Returns string which is the priority level name such as "low", "normal", "high",
+// "critical", or "unknown" for undefined values.
 func (p NotificationPriority) String() string {
 	switch p {
 	case PriorityLow:
@@ -89,22 +91,20 @@ func (p NotificationPriority) String() string {
 	}
 }
 
-// NotificationContext provides metadata about the source and context of a
-// notification.
+// NotificationContext provides metadata about the source and context of a notification.
 type NotificationContext struct {
 	// Timestamp is when the notification was created.
 	Timestamp time.Time `json:"timestamp"`
 
-	// Source identifies where the notification originated (e.g. "logger",
-	// "webhook", "sms").
+	// Source identifies where the notification originated (e.g. "logger", "webhook", "sms").
 	Source string `json:"source"`
 
-	// Environment identifies the environment where the notification was created
-	// (e.g. "dev", "staging", "prod").
+	// Environment identifies the environment where the notification was created (e.g. "dev",
+	// "staging", "prod").
 	Environment string `json:"environment"`
 
-	// Service identifies the service that generated the notification
-	// in microservice architectures.
+	// Service identifies the service that generated the notification in microservice
+	// architectures.
 	Service string `json:"service,omitempty"`
 
 	// TraceID is the OpenTelemetry trace ID for request correlation.
@@ -119,8 +119,7 @@ type NotificationContent struct {
 	// Fields holds key-value pairs for extra data.
 	Fields map[string]string `json:"fields,omitempty"`
 
-	// TemplateData contains provider-specific template data for templated
-	// notifications.
+	// TemplateData contains provider-specific template data for templated notifications.
 	TemplateData map[string]any `json:"template_data,omitempty"`
 
 	// Title is the notification heading or subject line.

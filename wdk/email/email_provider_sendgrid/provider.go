@@ -31,11 +31,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/email/email_dto"
-	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/email"
+	"piko.sh/piko/wdk/logger"
 )
 
-var _ email.ProviderPort = (*SendGridProvider)(nil)
+var (
+	_ email.ProviderPort = (*SendGridProvider)(nil)
+)
 
 const (
 	// defaultCallsPerSecond is the SendGrid API rate limit in requests per second.
@@ -111,11 +113,11 @@ func (*SendGridProvider) Close(_ context.Context) error {
 
 // Send builds a SendGrid message and sends it using the client.
 //
-// Takes params (*email_dto.SendParams) which contains the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which contains the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, parameters are invalid, or the
-// SendGrid API returns an error or a non-success status code.
+// Returns error when rate limiting fails, parameters are invalid, or the SendGrid API
+// returns an error or a non-success status code.
 func (p *SendGridProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -159,8 +161,7 @@ func (*SendGridProvider) SupportsBulkSending() bool {
 
 // SendBulk sends multiple emails using SendGrid's bulk sending capabilities.
 //
-// Takes emails ([]*email_dto.SendParams) which contains the email messages to
-// send.
+// Takes emails ([]*email_dto.SendParams) which contains the email messages to send.
 //
 // Returns error when any batch fails to send.
 func (p *SendGridProvider) SendBulk(ctx context.Context, emails []*email_dto.SendParams) error {
@@ -184,8 +185,8 @@ func (p *SendGridProvider) SendBulk(ctx context.Context, emails []*email_dto.Sen
 	return sendErr
 }
 
-// determineSender returns the sender email address to use, preferring any
-// override in the params.
+// determineSender returns the sender email address to use, preferring any override in the
+// params.
 //
 // Takes params (*email_dto.SendParams) which may contain an override sender.
 //
@@ -199,8 +200,8 @@ func (p *SendGridProvider) determineSender(params *email_dto.SendParams) string 
 
 // sendBatches sends all batches and returns the first error encountered.
 //
-// Takes batches ([][]*email_dto.SendParams) which contains the grouped email
-// parameters to send.
+// Takes batches ([][]*email_dto.SendParams) which contains the grouped email parameters
+// to send.
 //
 // Returns error when any batch fails to send.
 func (p *SendGridProvider) sendBatches(ctx context.Context, batches [][]*email_dto.SendParams) error {
@@ -212,13 +213,12 @@ func (p *SendGridProvider) sendBatches(ctx context.Context, batches [][]*email_d
 	return nil
 }
 
-// groupEmailsForBulkSending splits emails into batches for efficient bulk
-// sending.
+// groupEmailsForBulkSending splits emails into batches for efficient bulk sending.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to group.
 //
-// Returns [][]*email_dto.SendParams which contains batches of emails, each
-// batch having at most maxBatchSize entries.
+// Returns [][]*email_dto.SendParams which contains batches of emails, each batch having
+// at most maxBatchSize entries.
 func (*SendGridProvider) groupEmailsForBulkSending(emails []*email_dto.SendParams) [][]*email_dto.SendParams {
 	batches := make([][]*email_dto.SendParams, 0)
 
@@ -230,8 +230,8 @@ func (*SendGridProvider) groupEmailsForBulkSending(emails []*email_dto.SendParam
 	return batches
 }
 
-// sendBulkBatch sends a batch of emails using SendGrid's personalisations
-// feature when possible, falling back to individual sends when emails differ.
+// sendBulkBatch sends a batch of emails using SendGrid's personalisations feature when
+// possible, falling back to individual sends when emails differ.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
@@ -260,14 +260,13 @@ func (p *SendGridProvider) sendBulkBatch(ctx context.Context, emails []*email_dt
 	return p.sendIndividualEmailsInBatch(ctx, emails)
 }
 
-// canUseBulkSending checks if all emails can be sent as a true bulk operation
-// by verifying they share the same subject, content, and sender.
+// canUseBulkSending checks if all emails can be sent as a true bulk operation by
+// verifying they share the same subject, content, and sender.
 //
 // Takes emails ([]*email_dto.SendParams) which is the list of emails to check.
 //
-// Returns bool which is true if all emails have identical subjects, body
-// content, and sender addresses; false if the list has one or fewer emails
-// or if any email differs.
+// Returns bool which is true if all emails have identical subjects, body content, and
+// sender addresses; false if the list has one or fewer emails or if any email differs.
 func (*SendGridProvider) canUseBulkSending(emails []*email_dto.SendParams) bool {
 	if len(emails) <= 1 {
 		return false
@@ -291,15 +290,14 @@ func (*SendGridProvider) canUseBulkSending(emails []*email_dto.SendParams) bool 
 	return true
 }
 
-// sendBulkWithPersonalisations sends emails using SendGrid's personalisations
-// feature to batch multiple recipients into a single API request.
+// sendBulkWithPersonalisations sends emails using SendGrid's personalisations feature to
+// batch multiple recipients into a single API request.
 //
 // Takes message (*mail.SGMailV3) which is the base message to configure.
-// Takes emails ([]*email_dto.SendParams) which contains the recipients and
-// their personalisation data.
+// Takes emails ([]*email_dto.SendParams) which contains the recipients and their
+// personalisation data.
 //
-// Returns error when the SendGrid API call fails or returns a non-success
-// status code.
+// Returns error when the SendGrid API call fails or returns a non-success status code.
 func (p *SendGridProvider) sendBulkWithPersonalisations(ctx context.Context, message *mail.SGMailV3, emails []*email_dto.SendParams) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before sending bulk email: %w", err)
@@ -327,8 +325,8 @@ func (p *SendGridProvider) sendBulkWithPersonalisations(ctx context.Context, mes
 	return nil
 }
 
-// sendIndividualEmailsInBatch sends emails individually when bulk sending is
-// not possible.
+// sendIndividualEmailsInBatch sends emails individually when bulk sending is not
+// possible.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
@@ -368,17 +366,15 @@ func (p *SendGridProvider) sendIndividualEmailsInBatch(ctx context.Context, emai
 	return nil
 }
 
-// NewSendGridProvider creates a new SendGrid email provider with the given
-// configuration.
+// NewSendGridProvider creates a new SendGrid email provider with the given configuration.
 //
-// It validates the API key and 'From' email address, sets up the client, and
-// configures rate limiting. SendGrid has a default rate limit of 100 calls per
-// second based on their API limits.
+// It validates the API key and 'From' email address, sets up the client, and configures
+// rate limiting. SendGrid has a default rate limit of 100 calls per second based on their
+// API limits.
 //
-// Takes arguments (SendGridProviderArgs) which provides the API key and sender
-// email address.
-// Takes opts (...ProviderOption) which allows overriding the
-// default rate limit settings.
+// Takes arguments (SendGridProviderArgs) which provides the API key and sender email
+// address.
+// Takes opts (...ProviderOption) which allows overriding the default rate limit settings.
 //
 // Returns email.ProviderPort which is the configured provider ready for use.
 // Returns error when the API key or 'From' email address is empty.
@@ -411,11 +407,9 @@ func NewSendGridProvider(ctx context.Context, arguments SendGridProviderArgs, op
 
 // validateSendParams checks the send parameters for required fields.
 //
-// Takes params (*email_dto.SendParams) which contains the email parameters to
-// check.
+// Takes params (*email_dto.SendParams) which contains the email parameters to check.
 //
-// Returns error when no recipients are given or when both body fields are
-// empty.
+// Returns error when no recipients are given or when both body fields are empty.
 func validateSendParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired
@@ -431,8 +425,8 @@ func validateSendParams(params *email_dto.SendParams) error {
 // buildSendGridMessage builds a SendGrid message from send parameters.
 //
 // Takes from (string) which specifies the sender email address.
-// Takes params (*email_dto.SendParams) which contains the email details
-// including recipients, subject, content, and attachments.
+// Takes params (*email_dto.SendParams) which contains the email details including
+// recipients, subject, content, and attachments.
 //
 // Returns *mail.SGMailV3 which is the SendGrid message ready to send.
 func buildSendGridMessage(from string, params *email_dto.SendParams) *mail.SGMailV3 {
@@ -482,8 +476,8 @@ func addContent(message *mail.SGMailV3, params *email_dto.SendParams) {
 
 // addAttachments adds file attachments to the email message.
 //
-// Attachments with a content ID are set as inline, which allows them to be
-// shown within the email body rather than as separate files.
+// Attachments with a content ID are set as inline, which allows them to be shown within
+// the email body rather than as separate files.
 //
 // Takes message (*mail.SGMailV3) which is the email to add attachments to.
 // Takes params (*email_dto.SendParams) which contains the attachments to add.
@@ -557,8 +551,8 @@ func recordBulkSendMetrics(ctx context.Context, duration float64, emailCount int
 // addBulkPersonalisations adds recipient details to each email in a bulk send.
 //
 // Takes message (*mail.SGMailV3) which is the message to add recipients to.
-// Takes emails ([]*email_dto.SendParams) which contains the recipient details
-// for each email in the batch.
+// Takes emails ([]*email_dto.SendParams) which contains the recipient details for each
+// email in the batch.
 func addBulkPersonalisations(message *mail.SGMailV3, emails []*email_dto.SendParams) {
 	for _, emailMessage := range emails {
 		personalization := mail.NewPersonalization()

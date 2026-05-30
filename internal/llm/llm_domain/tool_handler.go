@@ -26,25 +26,26 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// ToolHandlerFunc handles tool calls from the model by processing JSON
-// arguments and returning result text. Errors are sent back to the model
-// as the tool result, allowing it to recover or try a different approach.
+// ToolHandlerFunc handles tool calls from the model by processing JSON arguments and
+// returning result text. Errors are sent back to the model as the tool result, allowing
+// it to recover or try a different approach.
 type ToolHandlerFunc func(ctx context.Context, arguments string) (string, error)
 
-// DefaultMaxToolRounds is the maximum number of tool dispatch rounds before
-// the loop terminates. Each round consists of dispatching all tool calls in a
-// response and re-calling the LLM.
-const DefaultMaxToolRounds = 10
+const (
+	// DefaultMaxToolRounds is the maximum number of tool dispatch rounds before the loop
+	// terminates. Each round consists of dispatching all tool calls in a response and
+	// re-calling the LLM.
+	DefaultMaxToolRounds = 10
+)
 
-// ToolFunc adds a function tool definition and registers a handler for it.
-// When Do() is called and the model returns a tool call matching name, the
-// handler is invoked automatically and the result is fed back to the model.
+// ToolFunc adds a function tool definition and registers a handler for it. When Do() is
+// called and the model returns a tool call matching name, the handler is invoked
+// automatically and the result is fed back to the model.
 //
 // Takes name (string) which is the function name.
 // Takes description (string) which explains what the function does.
 // Takes params (*llm_dto.JSONSchema) which describes the function parameters.
-// Takes handler (ToolHandlerFunc) which is called when the model invokes this
-// tool.
+// Takes handler (ToolHandlerFunc) which is called when the model invokes this tool.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) ToolFunc(name, description string, params *llm_dto.JSONSchema, handler ToolHandlerFunc) *CompletionBuilder {
@@ -56,14 +57,13 @@ func (b *CompletionBuilder) ToolFunc(name, description string, params *llm_dto.J
 	return b
 }
 
-// StrictToolFunc adds a function tool with strict schema enforcement and
-// registers a handler for it.
+// StrictToolFunc adds a function tool with strict schema enforcement and registers a
+// handler for it.
 //
 // Takes name (string) which is the function name.
 // Takes description (string) which explains what the function does.
 // Takes params (*llm_dto.JSONSchema) which describes the function parameters.
-// Takes handler (ToolHandlerFunc) which is called when the model invokes this
-// tool.
+// Takes handler (ToolHandlerFunc) which is called when the model invokes this tool.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) StrictToolFunc(name, description string, params *llm_dto.JSONSchema, handler ToolHandlerFunc) *CompletionBuilder {
@@ -77,8 +77,8 @@ func (b *CompletionBuilder) StrictToolFunc(name, description string, params *llm
 
 // MaxToolRounds sets the maximum number of tool dispatch rounds.
 //
-// When n is 0, DefaultMaxToolRounds is used. When n is negative, unlimited
-// rounds are allowed.
+// When n is 0, DefaultMaxToolRounds is used. When n is negative, unlimited rounds are
+// allowed.
 //
 // Takes n (int) which is the maximum number of rounds.
 //
@@ -95,8 +95,8 @@ func (b *CompletionBuilder) hasToolHandlers() bool {
 	return len(b.toolHandlers) > 0
 }
 
-// resolvedMaxToolRounds returns the effective max tool rounds, applying the
-// default when the configured value is 0.
+// resolvedMaxToolRounds returns the effective max tool rounds, applying the default when
+// the configured value is 0.
 //
 // Returns int which is the configured value or DefaultMaxToolRounds if zero.
 func (b *CompletionBuilder) resolvedMaxToolRounds() int {
@@ -106,16 +106,14 @@ func (b *CompletionBuilder) resolvedMaxToolRounds() int {
 	return b.maxToolRounds
 }
 
-// executeToolLoop runs the tool dispatch loop. It checks whether the response
-// contains tool calls and, if handlers are registered, dispatches them and
-// re-calls the LLM until the model stops requesting tools or the maximum
-// number of rounds is reached.
+// executeToolLoop runs the tool dispatch loop. It checks whether the response contains
+// tool calls and, if handlers are registered, dispatches them and re-calls the LLM until
+// the model stops requesting tools or the maximum number of rounds is reached.
 //
 // Takes providerName (string) which identifies the LLM provider.
 // Takes response (*llm_dto.CompletionResponse) which is the initial response.
 //
-// Returns *llm_dto.CompletionResponse which is the final response after all
-// tool rounds.
+// Returns *llm_dto.CompletionResponse which is the final response after all tool rounds.
 // Returns error when a re-call to the LLM fails.
 func (b *CompletionBuilder) executeToolLoop(ctx context.Context, providerName string, response *llm_dto.CompletionResponse) (*llm_dto.CompletionResponse, error) {
 	if !b.hasToolHandlers() {
@@ -167,9 +165,8 @@ func (b *CompletionBuilder) executeToolLoop(ctx context.Context, providerName st
 	return response, nil
 }
 
-// dispatchToolCall looks up the handler for a tool call and invokes it.
-// If no handler is registered or the handler fails, an error message is
-// returned instead.
+// dispatchToolCall looks up the handler for a tool call and invokes it. If no handler is
+// registered or the handler fails, an error message is returned instead.
 //
 // Takes tc (llm_dto.ToolCall) which is the tool call to dispatch.
 //

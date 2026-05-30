@@ -26,11 +26,10 @@ import (
 
 // ValidateOptions checks cache settings for invalid or conflicting values.
 //
-// Takes options (cache_dto.Options[K, V]) which specifies the cache settings
-// to check.
+// Takes options (cache_dto.Options[K, V]) which specifies the cache settings to check.
 //
-// Returns error when the settings are invalid, such as setting both MaximumSize
-// and MaximumWeight, or using a Weigher without MaximumWeight.
+// Returns error when the settings are invalid, such as setting both MaximumSize and
+// MaximumWeight, or using a Weigher without MaximumWeight.
 func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error {
 	if options.MaximumSize > 0 && options.MaximumWeight > 0 {
 		return fmt.Errorf("%w: cannot set both MaximumSize and MaximumWeight", errInvalidConfiguration)
@@ -55,11 +54,10 @@ func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error
 	return nil
 }
 
-// IsUnbounded reports whether the options describe a cache with no
-// declared memory bound (neither MaximumSize nor MaximumWeight set).
+// IsUnbounded reports whether the options describe a cache with no declared memory bound
+// (neither MaximumSize nor MaximumWeight set).
 //
-// Takes options (cache_dto.Options[K, V]) which specifies the cache
-// settings to inspect.
+// Takes options (cache_dto.Options[K, V]) which specifies the cache settings to inspect.
 //
 // Returns bool which is true when the cache has no declared bound.
 func IsUnbounded[K comparable, V any](options cache_dto.Options[K, V]) bool {

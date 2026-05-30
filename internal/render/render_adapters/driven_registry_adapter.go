@@ -44,65 +44,64 @@ import (
 )
 
 const (
-	// defaultComponentCacheCapacity is the default capacity for the component
-	// cache when no value is specified in configuration.
+	// defaultComponentCacheCapacity is the default capacity for the component cache when no
+	// value is specified in configuration.
 	defaultComponentCacheCapacity = 100
 
-	// defaultComponentCacheTTLMinutes is the default time-to-live for cached
-	// components in minutes.
+	// defaultComponentCacheTTLMinutes is the default time-to-live for cached components in
+	// minutes.
 	defaultComponentCacheTTLMinutes = 5
 
-	// defaultSVGCacheCapacity is the default number of SVG entries to store
-	// in the cache.
+	// defaultSVGCacheCapacity is the default number of SVG entries to store in the cache.
 	defaultSVGCacheCapacity = 200
 
-	// defaultSVGCacheTTLMinutes is the default time-to-live in minutes for
-	// cached SVG data.
+	// defaultSVGCacheTTLMinutes is the default time-to-live in minutes for cached SVG data.
 	defaultSVGCacheTTLMinutes = 30
 
-	// cacheRefreshTTLMultiplier is the fraction of the cache TTL at which a
-	// background refresh is triggered.
+	// cacheRefreshTTLMultiplier is the fraction of the cache TTL at which a background
+	// refresh is triggered.
 	cacheRefreshTTLMultiplier = 0.9
 
 	// defaultSVGBufferCapacity is the initial buffer size in bytes for SVG data.
 	defaultSVGBufferCapacity = 4096
 
-	// sequentialSVGThreshold is the batch size at or below which SVGs are loaded
-	// one at a time rather than in parallel. Small batches run faster without the
-	// extra cost of starting goroutines.
+	// sequentialSVGThreshold is the batch size at or below which SVGs are loaded one at a
+	// time rather than in parallel. Small batches run faster without the extra cost of
+	// starting goroutines.
 	sequentialSVGThreshold = 5
 )
 
-// svgBufferPool reuses byte-slice buffers to reduce allocation pressure during
-// SVG content assembly.
-var svgBufferPool = sync.Pool{
-	New: func() any {
-		return new(make([]byte, 0, defaultSVGBufferCapacity))
-	},
-}
+var (
+	// svgBufferPool reuses byte-slice buffers to reduce allocation pressure during SVG
+	// content assembly.
+	svgBufferPool = sync.Pool{
+		New: func() any {
+			return new(make([]byte, 0, defaultSVGBufferCapacity))
+		},
+	}
+)
 
-// DataLoaderAdapterConfig holds configuration for DataLoaderRegistryAdapter.
-// It specifies cache capacities and TTLs for both component and SVG caches.
+// DataLoaderAdapterConfig holds configuration for DataLoaderRegistryAdapter. It specifies
+// cache capacities and TTLs for both component and SVG caches.
 type DataLoaderAdapterConfig struct {
-	// ComponentCacheCapacity is the maximum number of entries in the component
-	// cache; 0 uses the default capacity.
+	// ComponentCacheCapacity is the maximum number of entries in the component cache; 0 uses
+	// the default capacity.
 	ComponentCacheCapacity int
 
-	// ComponentCacheTTL is the time-to-live for cached components; 0 uses the
-	// default.
+	// ComponentCacheTTL is the time-to-live for cached components; 0 uses the default.
 	ComponentCacheTTL time.Duration
 
-	// SVGCacheCapacity is the maximum number of parsed SVG entries to cache.
-	// Zero uses the default value.
+	// SVGCacheCapacity is the maximum number of parsed SVG entries to cache. Zero uses the
+	// default value.
 	SVGCacheCapacity int
 
 	// SVGCacheTTL is how long SVG cache entries are kept; 0 uses the default.
 	SVGCacheTTL time.Duration
 }
 
-// DataLoaderRegistryAdapter implements the RegistryPort and
-// RenderRegistryCachePort interfaces using Otter v2 caches. It loads and
-// caches component metadata and SVG assets in batches.
+// DataLoaderRegistryAdapter implements the RegistryPort and RenderRegistryCachePort
+// interfaces using Otter v2 caches. It loads and caches component metadata and SVG assets
+// in batches.
 type DataLoaderRegistryAdapter struct {
 	// registryService provides the underlying registry operations.
 	registryService registry_domain.RegistryService
@@ -153,14 +152,14 @@ type cacheSlowConfig struct {
 	errorMessage string
 }
 
-// BulkGetComponentMetadata retrieves metadata for multiple component types
-// in a single batch operation. Cache hits are returned immediately; cache
-// misses are fetched together via the bulk loader.
+// BulkGetComponentMetadata retrieves metadata for multiple component types in a single
+// batch operation. Cache hits are returned immediately; cache misses are fetched together
+// via the bulk loader.
 //
 // Takes componentTypes ([]string) which lists the component types to look up.
 //
-// Returns map[string]*render_dto.ComponentMetadata which maps each component
-// type to its metadata.
+// Returns map[string]*render_dto.ComponentMetadata which maps each component type to its
+// metadata.
 // Returns error when the batch retrieval fails.
 func (r *DataLoaderRegistryAdapter) BulkGetComponentMetadata(ctx context.Context, componentTypes []string) (map[string]*render_dto.ComponentMetadata, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -170,9 +169,9 @@ func (r *DataLoaderRegistryAdapter) BulkGetComponentMetadata(ctx context.Context
 	return r.componentCache.BulkGet(ctx, componentTypes, r.componentBulkLoader)
 }
 
-// GetComponentMetadata retrieves component metadata from the cache or loads
-// it if not present. Uses a fast path for cache hits to avoid tracing and
-// loader allocation overhead.
+// GetComponentMetadata retrieves component metadata from the cache or loads it if not
+// present. Uses a fast path for cache hits to avoid tracing and loader allocation
+// overhead.
 //
 // Takes componentType (string) which specifies the type of component to load.
 //
@@ -193,9 +192,8 @@ func (r *DataLoaderRegistryAdapter) GetComponentMetadata(ctx context.Context, co
 		})
 }
 
-// GetAssetRawSVG retrieves parsed SVG data from the cache or loads it if not
-// present. Uses a fast path for cache hits to avoid tracing and loader
-// allocation overhead.
+// GetAssetRawSVG retrieves parsed SVG data from the cache or loads it if not present.
+// Uses a fast path for cache hits to avoid tracing and loader allocation overhead.
 //
 // Takes assetID (string) which identifies the SVG asset to retrieve.
 //
@@ -216,13 +214,12 @@ func (r *DataLoaderRegistryAdapter) GetAssetRawSVG(ctx context.Context, assetID 
 		})
 }
 
-// BulkGetAssetRawSVG retrieves multiple SVG assets efficiently using bulk
-// loading.
+// BulkGetAssetRawSVG retrieves multiple SVG assets efficiently using bulk loading.
 //
 // Takes assetIDs ([]string) which specifies the asset identifiers to retrieve.
 //
-// Returns map[string]*render_domain.ParsedSvgData which maps asset IDs to their
-// parsed SVG data.
+// Returns map[string]*render_domain.ParsedSvgData which maps asset IDs to their parsed
+// SVG data.
 // Returns error when the bulk retrieval fails.
 func (r *DataLoaderRegistryAdapter) BulkGetAssetRawSVG(ctx context.Context, assetIDs []string) (map[string]*render_domain.ParsedSvgData, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -244,8 +241,8 @@ func (r *DataLoaderRegistryAdapter) Close() {
 
 // GetStats returns statistics about the cache sizes.
 //
-// Returns render_domain.RegistryAdapterStats which contains the estimated sizes
-// of the component and SVG caches.
+// Returns render_domain.RegistryAdapterStats which contains the estimated sizes of the
+// component and SVG caches.
 func (r *DataLoaderRegistryAdapter) GetStats() render_domain.RegistryAdapterStats {
 	return render_domain.RegistryAdapterStats{
 		ComponentCacheSize: r.componentCache.EstimatedSize(),
@@ -253,16 +250,15 @@ func (r *DataLoaderRegistryAdapter) GetStats() render_domain.RegistryAdapterStat
 	}
 }
 
-// GetComponentCacheSize returns the estimated number of entries in the
-// component metadata cache.
+// GetComponentCacheSize returns the estimated number of entries in the component metadata
+// cache.
 //
 // Returns int which is the current estimated cache size.
 func (r *DataLoaderRegistryAdapter) GetComponentCacheSize() int {
 	return r.componentCache.EstimatedSize()
 }
 
-// GetSVGCacheSize returns the estimated number of entries in the SVG asset
-// cache.
+// GetSVGCacheSize returns the estimated number of entries in the SVG asset cache.
 //
 // Returns int which is the current estimated cache size.
 func (r *DataLoaderRegistryAdapter) GetSVGCacheSize() int {
@@ -288,8 +284,8 @@ func (r *DataLoaderRegistryAdapter) ClearSvgCache(_ context.Context, svgID strin
 }
 
 // GetArtefactServePath returns the cache-busted URL serve path for an artefact,
-// preferring the minified variant and caching results in a sync.Map to avoid
-// repeated registry lookups.
+// preferring the minified variant and caching results in a sync.Map to avoid repeated
+// registry lookups.
 //
 // Takes artefactID (string) which identifies the artefact to look up.
 //
@@ -327,16 +323,14 @@ func (r *DataLoaderRegistryAdapter) GetArtefactServePath(ctx context.Context, ar
 	return servePath
 }
 
-// findServableVariant returns the best variant to serve for an artefact.
-// Prefers the minified variant (VariantID "minified") over the source variant,
-// since browsers should load the processed output while the server handles
-// content-encoding negotiation for brotli/gzip.
+// findServableVariant returns the best variant to serve for an artefact. Prefers the
+// minified variant (VariantID "minified") over the source variant, since browsers should
+// load the processed output while the server handles content-encoding negotiation for
+// brotli/gzip.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
-// Returns *registry_dto.Variant which is the servable variant, or nil if none
-// exists.
+// Returns *registry_dto.Variant which is the servable variant, or nil if none exists.
 func findServableVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	var sourceVariant *registry_dto.Variant
 	for i := range artefact.ActualVariants {
@@ -351,19 +345,17 @@ func findServableVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Vari
 	return sourceVariant
 }
 
-// UpsertArtefact registers a dynamic asset with metadata-only profiles.
-// This delegates to the underlying registry service for metadata-only
-// registration.
+// UpsertArtefact registers a dynamic asset with metadata-only profiles. This delegates to
+// the underlying registry service for metadata-only registration.
 //
 // Takes artefactID (string) which identifies the artefact to register.
 // Takes sourcePath (string) which specifies the path to the source file.
 // Takes sourceData (io.Reader) which provides the artefact content.
 // Takes storageBackendID (string) which identifies the storage backend to use.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the
-// profiles to apply.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
+// apply.
 //
-// Returns *registry_dto.ArtefactMeta which contains the registered artefact
-// metadata.
+// Returns *registry_dto.ArtefactMeta which contains the registered artefact metadata.
 // Returns error when registration fails.
 func (r *DataLoaderRegistryAdapter) UpsertArtefact(
 	ctx context.Context,
@@ -376,19 +368,17 @@ func (r *DataLoaderRegistryAdapter) UpsertArtefact(
 	return r.registryService.UpsertArtefact(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
 }
 
-// NewDataLoaderRegistryAdapter creates a new DataLoaderRegistryAdapter with
-// the specified configuration. It initialises caches and bulk loaders for
-// component metadata and SVG assets.
+// NewDataLoaderRegistryAdapter creates a new DataLoaderRegistryAdapter with the specified
+// configuration. It initialises caches and bulk loaders for component metadata and SVG
+// assets.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to the component registry.
-// Takes config (*DataLoaderAdapterConfig) which specifies cache and loader
-// settings.
-// Takes artefactServePath (string) which specifies the base path for serving
-// component artefacts.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// component registry.
+// Takes config (*DataLoaderAdapterConfig) which specifies cache and loader settings.
+// Takes artefactServePath (string) which specifies the base path for serving component
+// artefacts.
 //
-// Returns render_domain.RegistryPort which is the configured adapter ready
-// for use.
+// Returns render_domain.RegistryPort which is the configured adapter ready for use.
 func NewDataLoaderRegistryAdapter(
 	registryService registry_domain.RegistryService,
 	config *DataLoaderAdapterConfig,
@@ -410,11 +400,10 @@ func NewDataLoaderRegistryAdapter(
 
 // applyConfigDefaults sets default values for nil or zero-valued fields.
 //
-// Takes config (*DataLoaderAdapterConfig) which is the configuration to update,
-// or nil to create a new configuration with all defaults.
+// Takes config (*DataLoaderAdapterConfig) which is the configuration to update, or nil to
+// create a new configuration with all defaults.
 //
-// Returns *DataLoaderAdapterConfig which is the configuration with defaults
-// set.
+// Returns *DataLoaderAdapterConfig which is the configuration with defaults set.
 func applyConfigDefaults(config *DataLoaderAdapterConfig) *DataLoaderAdapterConfig {
 	if config == nil {
 		config = &DataLoaderAdapterConfig{}
@@ -434,16 +423,15 @@ func applyConfigDefaults(config *DataLoaderAdapterConfig) *DataLoaderAdapterConf
 	return config
 }
 
-// createComponentBulkLoader creates an Otter bulk loader for component
-// metadata.
+// createComponentBulkLoader creates an Otter bulk loader for component metadata.
 //
-// Takes registryService (registry_domain.RegistryService) which provides
-// access to artefact data.
-// Takes artefactServePath (string) which is the base path for serving
-// component artefacts.
+// Takes registryService (registry_domain.RegistryService) which provides access to
+// artefact data.
+// Takes artefactServePath (string) which is the base path for serving component
+// artefacts.
 //
-// Returns otter.BulkLoader[string, *render_dto.ComponentMetadata] which
-// fetches component metadata in batches.
+// Returns otter.BulkLoader[string, *render_dto.ComponentMetadata] which fetches component
+// metadata in batches.
 func createComponentBulkLoader(
 	registryService registry_domain.RegistryService,
 	artefactServePath string,
@@ -480,18 +468,17 @@ func buildLookupSet(items []string) map[string]struct{} {
 	return set
 }
 
-// buildComponentResults processes artefacts and builds the component metadata
-// results map.
+// buildComponentResults processes artefacts and builds the component metadata results
+// map.
 //
-// Takes artefacts ([]*registry_dto.ArtefactMeta) which provides the source
-// artefact metadata to process.
-// Takes requestedTypes (map[string]struct{}) which specifies which component
-// types to include in the results.
-// Takes artefactServePath (string) which is the base path for serving
-// artefacts.
+// Takes artefacts ([]*registry_dto.ArtefactMeta) which provides the source artefact
+// metadata to process.
+// Takes requestedTypes (map[string]struct{}) which specifies which component types to
+// include in the results.
+// Takes artefactServePath (string) which is the base path for serving artefacts.
 //
-// Returns map[string]*render_dto.ComponentMetadata which maps tag names to
-// their component metadata.
+// Returns map[string]*render_dto.ComponentMetadata which maps tag names to their
+// component metadata.
 func buildComponentResults(
 	artefacts []*registry_dto.ArtefactMeta,
 	requestedTypes map[string]struct{},
@@ -508,17 +495,16 @@ func buildComponentResults(
 	return results
 }
 
-// extractComponentMetadata extracts component metadata from an artefact if it
-// matches requested types.
+// extractComponentMetadata extracts component metadata from an artefact if it matches
+// requested types.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact to
-// extract metadata from.
-// Takes requestedTypes (map[string]struct{}) which specifies the tag names to
-// include.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact to extract
+// metadata from.
+// Takes requestedTypes (map[string]struct{}) which specifies the tag names to include.
 // Takes artefactServePath (string) which is the base path for serving assets.
 //
-// Returns *render_dto.ComponentMetadata which contains the extracted metadata,
-// or nil if the artefact has no JS variant, no tag name, or is not requested.
+// Returns *render_dto.ComponentMetadata which contains the extracted metadata, or nil if
+// the artefact has no JS variant, no tag name, or is not requested.
 func extractComponentMetadata(
 	artefact *registry_dto.ArtefactMeta,
 	requestedTypes map[string]struct{},
@@ -557,14 +543,14 @@ func extractComponentMetadata(
 	}
 }
 
-// createSVGBulkLoader creates an Otter bulk loader for SVG assets.
-// Uses zero-copy buffer pooling and adaptive sequential/parallel processing.
+// createSVGBulkLoader creates an Otter bulk loader for SVG assets. Uses zero-copy buffer
+// pooling and adaptive sequential/parallel processing.
 //
-// Takes registryService (registry_domain.RegistryService) which provides
-// access to SVG artefact data.
+// Takes registryService (registry_domain.RegistryService) which provides access to SVG
+// artefact data.
 //
-// Returns otter.BulkLoader[string, *render_domain.ParsedSvgData] which
-// fetches and parses SVGs in batches.
+// Returns otter.BulkLoader[string, *render_domain.ParsedSvgData] which fetches and parses
+// SVGs in batches.
 func createSVGBulkLoader(
 	registryService registry_domain.RegistryService,
 ) otter.BulkLoader[string, *render_domain.ParsedSvgData] {
@@ -615,21 +601,19 @@ func createSVGBulkLoader(
 	)
 }
 
-// processSVGsSequential processes SVGs one at a time, used for
-// small batches where additional overhead exceeds benefit.
+// processSVGsSequential processes SVGs one at a time, used for small batches where
+// additional overhead exceeds benefit.
 //
 // Takes artefactIDs ([]string) which lists the IDs to process.
-// Takes artefactMap (map[string]*registry_dto.ArtefactMeta) which
-// maps IDs to their artefact metadata.
-// Takes results (map[string]*render_domain.ParsedSvgData) which
-// receives the parsed SVG data.
-// Takes frozenBuffers (*[]*[]byte) which collects buffers for
-// deferred pool return.
-// Takes registryService (registry_domain.RegistryService) which
-// provides variant data access.
+// Takes artefactMap (map[string]*registry_dto.ArtefactMeta) which maps IDs to their
+// artefact metadata.
+// Takes results (map[string]*render_domain.ParsedSvgData) which receives the parsed SVG
+// data.
+// Takes frozenBuffers (*[]*[]byte) which collects buffers for deferred pool return.
+// Takes registryService (registry_domain.RegistryService) which provides variant data
+// access.
 //
-// Returns []string which contains IDs of failed SVG loads, or nil
-// if none failed.
+// Returns []string which contains IDs of failed SVG loads, or nil if none failed.
 func processSVGsSequential(
 	ctx context.Context,
 	artefactIDs []string,
@@ -658,24 +642,22 @@ func processSVGsSequential(
 	return failedIDs
 }
 
-// processSVGsParallel processes SVGs simultaneously for larger
-// batches, limited to GOMAXPROCS workers.
+// processSVGsParallel processes SVGs simultaneously for larger batches, limited to
+// GOMAXPROCS workers.
 //
 // Takes artefactIDs ([]string) which lists the IDs to process.
-// Takes artefactMap (map[string]*registry_dto.ArtefactMeta) which
-// maps IDs to their artefact metadata.
-// Takes results (map[string]*render_domain.ParsedSvgData) which
-// receives the parsed SVG data.
-// Takes frozenBuffers (*[]*[]byte) which collects buffers for
-// deferred pool return.
-// Takes registryService (registry_domain.RegistryService) which
-// provides variant data access.
+// Takes artefactMap (map[string]*registry_dto.ArtefactMeta) which maps IDs to their
+// artefact metadata.
+// Takes results (map[string]*render_domain.ParsedSvgData) which receives the parsed SVG
+// data.
+// Takes frozenBuffers (*[]*[]byte) which collects buffers for deferred pool return.
+// Takes registryService (registry_domain.RegistryService) which provides variant data
+// access.
 //
-// Returns []string which contains IDs of failed SVG loads, or nil
-// if none failed.
+// Returns []string which contains IDs of failed SVG loads, or nil if none failed.
 //
-// Concurrent goroutines are spawned up to GOMAXPROCS via errgroup. Shared
-// results and frozenBuffers are protected by local mutexes.
+// Concurrent goroutines are spawned up to GOMAXPROCS via errgroup. Shared results and
+// frozenBuffers are protected by local mutexes.
 func processSVGsParallel(
 	ctx context.Context,
 	artefactIDs []string,
@@ -734,13 +716,11 @@ func processSVGsParallel(
 // createCaches initialises both component and SVG caches with the specified
 // configuration.
 //
-// Takes config (*DataLoaderAdapterConfig) which provides cache capacity
-// and TTL settings.
+// Takes config (*DataLoaderAdapterConfig) which provides cache capacity and TTL settings.
 //
-// Returns *otter.Cache[string, *render_dto.ComponentMetadata] which is the
-// component metadata cache.
-// Returns *otter.Cache[string, *render_domain.ParsedSvgData] which is the
-// SVG data cache.
+// Returns *otter.Cache[string, *render_dto.ComponentMetadata] which is the component
+// metadata cache.
+// Returns *otter.Cache[string, *render_domain.ParsedSvgData] which is the SVG data cache.
 func createCaches(
 	config *DataLoaderAdapterConfig,
 ) (*otter.Cache[string, *render_dto.ComponentMetadata], *otter.Cache[string, *render_domain.ParsedSvgData]) {
@@ -780,18 +760,17 @@ func createCaches(
 	return componentCache, svgCache
 }
 
-// getCacheWithFastPath combines an empty-key guard, a cache fast path, and the
-// slow path into a single generic helper. It avoids tracing and loader
-// allocation overhead on cache hits.
+// getCacheWithFastPath combines an empty-key guard, a cache fast path, and the slow path
+// into a single generic helper. It avoids tracing and loader allocation overhead on cache
+// hits.
 //
 // Takes key (string) which identifies the cache entry to retrieve.
-// Takes emptyKeyError (string) which is the error message returned when key is
-// empty.
+// Takes emptyKeyError (string) which is the error message returned when key is empty.
 // Takes cache (*otter.Cache) which stores the cached values.
 // Takes bulkLoader (otter.BulkLoader) which fetches values on cache miss.
 // Takes counters (cacheMetrics) which holds the error, hit, and miss counters.
-// Takes slowConfig (cacheSlowConfig) which configures span name, duration
-// histogram, and error reporting for the slow path.
+// Takes slowConfig (cacheSlowConfig) which configures span name, duration histogram, and
+// error reporting for the slow path.
 //
 // Returns *T which is the cached or freshly loaded value.
 // Returns error when key is empty or the slow path fails.
@@ -818,14 +797,14 @@ func getCacheWithFastPath[T any](
 	return getCacheSlow(ctx, key, cache, bulkLoader, slowConfig)
 }
 
-// getCacheSlow is a generic helper for cache miss handling with full tracing.
-// It creates a span, records duration metrics, and handles errors consistently.
+// getCacheSlow is a generic helper for cache miss handling with full tracing. It creates
+// a span, records duration metrics, and handles errors consistently.
 //
 // Takes key (string) which identifies the cache entry to retrieve.
 // Takes cache (*otter.Cache) which stores the cached values.
 // Takes bulkLoader (otter.BulkLoader) which fetches values on cache miss.
-// Takes config (cacheSlowConfig) which provides span name, metrics, and error
-// message configuration.
+// Takes config (cacheSlowConfig) which provides span name, metrics, and error message
+// configuration.
 //
 // Returns T which is the cached or freshly loaded value.
 // Returns error when the bulk loader fails or the key is not found.
@@ -872,13 +851,11 @@ func getCacheSlow[T any](
 	return result, nil
 }
 
-// findJSVariant finds the first variant with component-js type and entrypoint
-// role.
+// findJSVariant finds the first variant with component-js type and entrypoint role.
 //
 // Takes variants ([]registry_dto.Variant) which is the list to search.
 //
-// Returns *registry_dto.Variant which is the matching variant, or nil if not
-// found.
+// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
 func findJSVariant(variants []registry_dto.Variant) *registry_dto.Variant {
 	for i := range variants {
 		v := &variants[i]
@@ -889,21 +866,18 @@ func findJSVariant(variants []registry_dto.Variant) *registry_dto.Variant {
 	return nil
 }
 
-// getRawSVGFromArtefactZeroCopy loads SVG content using pooled buffers and
-// zero-copy string conversion.
+// getRawSVGFromArtefactZeroCopy loads SVG content using pooled buffers and zero-copy
+// string conversion.
 //
-// The frozenBuffers slice tracks buffers for deferred pool return after the
-// result is processed.
+// The frozenBuffers slice tracks buffers for deferred pool return after the result is
+// processed.
 //
-// Takes registryService (RegistryService) which provides access to variant
-// data.
+// Takes registryService (RegistryService) which provides access to variant data.
 // Takes artefact (*ArtefactMeta) which specifies the SVG artefact to load.
-// Takes frozenBuffers (*[]*[]byte) which collects buffers for later pool
-// return.
+// Takes frozenBuffers (*[]*[]byte) which collects buffers for later pool return.
 //
 // Returns string which contains the raw SVG content.
-// Returns error when the artefact is nil, no suitable variant exists, or
-// reading fails.
+// Returns error when the artefact is nil, no suitable variant exists, or reading fails.
 func getRawSVGFromArtefactZeroCopy(
 	ctx context.Context,
 	registryService registry_domain.RegistryService,
@@ -942,17 +916,16 @@ func getRawSVGFromArtefactZeroCopy(
 	return mem.String(*buffer), nil
 }
 
-// buildParsedSVGData creates a ParsedSvgData with all fields populated.
-// Pre-computes the symbol string at load time to avoid per-request
-// allocation overhead.
+// buildParsedSVGData creates a ParsedSvgData with all fields populated. Pre-computes the
+// symbol string at load time to avoid per-request allocation overhead.
 //
 // Takes artefactID (string) which identifies the SVG artefact.
-// Takes attributes ([]ast_domain.HTMLAttribute) which contains the SVG
-// element attributes.
+// Takes attributes ([]ast_domain.HTMLAttribute) which contains the SVG element
+// attributes.
 // Takes innerHTML (string) which holds the SVG content.
 //
-// Returns *render_domain.ParsedSvgData which is the fully populated SVG data
-// with cached symbol.
+// Returns *render_domain.ParsedSvgData which is the fully populated SVG data with cached
+// symbol.
 func buildParsedSVGData(artefactID string, attributes []ast_domain.HTMLAttribute, innerHTML string) *render_domain.ParsedSvgData {
 	data := &render_domain.ParsedSvgData{
 		Attributes:   attributes,
@@ -963,14 +936,13 @@ func buildParsedSVGData(artefactID string, attributes []ast_domain.HTMLAttribute
 	return data
 }
 
-// findSVGVariant finds the best SVG variant from an artefact, preferring
-// minified over source.
+// findSVGVariant finds the best SVG variant from an artefact, preferring minified over
+// source.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
-// Returns *registry_dto.Variant which is the minified-svg variant if found,
-// otherwise the source variant, or nil if neither exists.
+// Returns *registry_dto.Variant which is the minified-svg variant if found, otherwise the
+// source variant, or nil if neither exists.
 func findSVGVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
@@ -987,8 +959,7 @@ func findSVGVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	return nil
 }
 
-// indexFoldCase returns the index of the first case-insensitive match of
-// substr in s.
+// indexFoldCase returns the index of the first case-insensitive match of substr in s.
 //
 // Takes s (string) which is the string to search within.
 // Takes substr (string) which is the substring to find.
@@ -1040,8 +1011,8 @@ func lastIndexFoldCase(s, substr string) int {
 // Takes tagName (string) which is the tag name to find (e.g. "svg").
 //
 // Returns tagContent (string) which holds the tag's attributes.
-// Returns innerContent (string) which holds the content between the opening and
-// closing tags, or the full HTML if the tag is not found.
+// Returns innerContent (string) which holds the content between the opening and closing
+// tags, or the full HTML if the tag is not found.
 func extractTagContent(rawHTML, tagName string) (tagContent string, innerContent string) {
 	tagOpen := "<" + tagName
 

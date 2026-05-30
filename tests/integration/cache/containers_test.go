@@ -23,12 +23,14 @@ package cache_integration_test
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -94,8 +96,8 @@ func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 		if env.rawClusterClient != nil {
 			_ = env.rawClusterClient.Close()
 		}
-		for i := len(cleanups) - 1; i >= 0; i-- {
-			cleanups[i]()
+		for _, cleanup := range slices.Backward(cleanups) {
+			cleanup()
 		}
 	}
 
@@ -174,10 +176,11 @@ func startRedisClusterContainer(ctx context.Context) (testcontainers.Container, 
 		exposedPorts = append(exposedPorts, p+"/tcp")
 	}
 
-	portBindings := make(nat.PortMap, len(clusterPorts))
+	hostIP := netip.MustParseAddr("127.0.0.1")
+	portBindings := make(network.PortMap, len(clusterPorts))
 	for _, p := range clusterPorts {
-		portBindings[nat.Port(p+"/tcp")] = []nat.PortBinding{
-			{HostIP: "127.0.0.1", HostPort: p},
+		portBindings[network.MustParsePort(p+"/tcp")] = []network.PortBinding{
+			{HostIP: hostIP, HostPort: p},
 		}
 	}
 

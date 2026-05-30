@@ -30,8 +30,7 @@ import (
 // Takes u (uri.URI) which is the document URI to convert.
 //
 // Returns string which is the local file path.
-// Returns error when the URI cannot be parsed or uses a scheme other than
-// 'file'.
+// Returns error when the URI cannot be parsed or uses a scheme other than 'file'.
 func uriToPath(u uri.URI) (string, error) {
 	parsed, err := url.ParseRequestURI(string(u))
 	if err != nil {

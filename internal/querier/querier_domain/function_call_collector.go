@@ -24,14 +24,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// collectFunctionCalls extracts the unique set of function
-// names referenced in the output columns of an analysis.
+// collectFunctionCalls extracts the unique set of function names referenced in the output
+// columns of an analysis.
 //
-// Takes analysis (*querier_dto.RawQueryAnalysis) which holds
-// the raw query analysis with output column expressions.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which holds the raw query analysis with
+// output column expressions.
 //
-// Returns []string which holds the unique function names, or
-// nil if none are found.
+// Returns []string which holds the unique function names, or nil if none are found.
 func collectFunctionCalls(analysis *querier_dto.RawQueryAnalysis) []string {
 	if analysis == nil {
 		return nil
@@ -53,13 +52,11 @@ func collectFunctionCalls(analysis *querier_dto.RawQueryAnalysis) []string {
 	return result
 }
 
-// collectFromExpression recursively walks an expression
-// tree and records all function call names in the seen map.
+// collectFromExpression recursively walks an expression tree and records all function
+// call names in the seen map.
 //
-// Takes expression (querier_dto.Expression) which is the
-// expression tree to walk.
-// Takes seen (map[string]struct{}) which accumulates the
-// discovered function names.
+// Takes expression (querier_dto.Expression) which is the expression tree to walk.
+// Takes seen (map[string]struct{}) which accumulates the discovered function names.
 //
 //nolint:revive // expression dispatch
 func collectFromExpression(expression querier_dto.Expression, seen map[string]struct{}) {

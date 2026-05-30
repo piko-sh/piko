@@ -44,14 +44,16 @@ type wrapperConfig[K comparable, V any] struct {
 	encoder EncoderPort[V]
 }
 
-var _ Cache[any, any] = (*transformerWrapper[any, any])(nil)
+var (
+	_ Cache[any, any] = (*transformerWrapper[any, any])(nil)
+)
 
 // wrapperOption is a functional option for setting up a transformerWrapper.
 type wrapperOption[K comparable, V any] func(*wrapperConfig[K, V])
 
-// transformerWrapper wraps a cache provider to add transparent value
-// transformation such as compression or encryption. It implements io.Closer
-// and intercepts Set and Get operations to apply transformations automatically.
+// transformerWrapper wraps a cache provider to add transparent value transformation such
+// as compression or encryption. It implements io.Closer and intercepts Set and Get
+// operations to apply transformations automatically.
 type transformerWrapper[K comparable, V any] struct {
 	// provider is the wrapped storage provider for byte slices.
 	provider ProviderPort[K, []byte]
@@ -66,9 +68,9 @@ type transformerWrapper[K comparable, V any] struct {
 	encoder EncoderPort[V]
 }
 
-// encodeValue converts a generic value V to bytes using the configured
-// encoder. Falls back to JSON for backward compatibility if no encoder
-// was configured via WithWrapperEncoder.
+// encodeValue converts a generic value V to bytes using the configured encoder. Falls
+// back to JSON for backward compatibility if no encoder was configured via
+// WithWrapperEncoder.
 //
 // Takes value (V) which is the value to encode.
 //
@@ -92,8 +94,8 @@ func (w *transformerWrapper[K, V]) encodeValue(value V) ([]byte, error) {
 
 // decodeValue converts bytes back to the generic value V.
 //
-// If no encoder was set via WithWrapperEncoder, falls back to JSON for
-// backward compatibility.
+// If no encoder was set via WithWrapperEncoder, falls back to JSON for backward
+// compatibility.
 //
 // Takes data ([]byte) which contains the encoded value to decode.
 //
@@ -119,10 +121,10 @@ func (w *transformerWrapper[K, V]) decodeValue(data []byte) (V, error) {
 //
 // Takes data ([]byte) which contains the raw data to transform.
 //
-// Returns []byte which contains the wrapped data with transformation metadata,
-// or the original data if no transformers are configured.
-// Returns error when the transformer chain cannot be created, transformation
-// fails, or the wrapped value cannot be marshalled.
+// Returns []byte which contains the wrapped data with transformation metadata, or the
+// original data if no transformers are configured.
+// Returns error when the transformer chain cannot be created, transformation fails, or
+// the wrapped value cannot be marshalled.
 func (w *transformerWrapper[K, V]) transformAndWrap(ctx context.Context, data []byte) ([]byte, error) {
 	if w.config == nil || len(w.config.EnabledTransformers) == 0 {
 		return data, nil
@@ -158,8 +160,8 @@ func (w *transformerWrapper[K, V]) transformAndWrap(ctx context.Context, data []
 	return wrappedBytes, nil
 }
 
-// unwrapAndReverse checks if data is transformed, unwraps it, and reverses
-// the transformations to restore the original value.
+// unwrapAndReverse checks if data is transformed, unwraps it, and reverses the
+// transformations to restore the original value.
 //
 // Takes data ([]byte) which contains the potentially transformed value.
 //
@@ -209,8 +211,8 @@ func (w *transformerWrapper[K, V]) unwrapAndReverse(ctx context.Context, data []
 	return reversed, nil
 }
 
-// GetIfPresent retrieves a value if present, automatically reversing any
-// transformations and decoding the value.
+// GetIfPresent retrieves a value if present, automatically reversing any transformations
+// and decoding the value.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to retrieve.
@@ -244,8 +246,8 @@ func (w *transformerWrapper[K, V]) GetIfPresent(ctx context.Context, key K) (V, 
 
 // Get retrieves a value for a key, using the loader if the key is missing.
 //
-// The loader's result is automatically encoded and transformed before storage.
-// Retrieved values are automatically reverse-transformed and decoded.
+// The loader's result is automatically encoded and transformed before storage. Retrieved
+// values are automatically reverse-transformed and decoded.
 //
 // Takes key (K) which identifies the cached value to retrieve.
 // Takes loader (Loader) which provides the value when the key is not cached.
@@ -292,8 +294,8 @@ func (w *transformerWrapper[K, V]) Get(ctx context.Context, key K, loader cache_
 	return value, nil
 }
 
-// Set stores a value for a key, automatically encoding and transforming it
-// before storage.
+// Set stores a value for a key, automatically encoding and transforming it before
+// storage.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
@@ -315,8 +317,8 @@ func (w *transformerWrapper[K, V]) Set(ctx context.Context, key K, value V, tags
 	return goroutine.SafeCall(ctx, "cache.Set", func() error { return w.provider.Set(ctx, key, transformed, tags...) })
 }
 
-// SetWithTTL stores a value with a specific time-to-live, automatically
-// encoding and transforming it before storage.
+// SetWithTTL stores a value with a specific time-to-live, automatically encoding and
+// transforming it before storage.
 //
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
@@ -344,8 +346,8 @@ func (w *transformerWrapper[K, V]) SetWithTTL(ctx context.Context, key K, value 
 	return goroutine.SafeCall(ctx, "cache.SetWithTTL", func() error { return w.provider.SetWithTTL(ctx, key, transformed, ttl, tags...) })
 }
 
-// BulkSet stores multiple key-value pairs, encoding and transforming each
-// value before storage.
+// BulkSet stores multiple key-value pairs, encoding and transforming each value before
+// storage.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
 // Takes tags (...string) which apply to all items in the batch.
@@ -410,8 +412,7 @@ func (w *transformerWrapper[K, V]) InvalidateAll(ctx context.Context) error {
 	return goroutine.SafeCall(ctx, "cache.InvalidateAll", func() error { return w.provider.InvalidateAll(ctx) })
 }
 
-// unwrapAndDecode unwraps transformations and decodes bytes to a
-// value.
+// unwrapAndDecode unwraps transformations and decodes bytes to a value.
 //
 // Takes data ([]byte) which contains the wrapped and encoded data.
 //
@@ -451,11 +452,11 @@ func (w *transformerWrapper[K, V]) encodeAndTransform(ctx context.Context, value
 // computeCallback handles the inner compute callback for the Compute method.
 //
 // Takes ctx (context.Context) which is propagated for cancellation and timeout.
-// Takes computeFunction (func(...)) which transforms the old value
-// into a new value with an action indicating what to do.
+// Takes computeFunction (func(...)) which transforms the old value into a new value with
+// an action indicating what to do.
 //
-// Returns func([]byte, bool) ([]byte, cache_dto.ComputeAction) which wraps the
-// compute function to handle encoding and decoding of byte values.
+// Returns func([]byte, bool) ([]byte, cache_dto.ComputeAction) which wraps the compute
+// function to handle encoding and decoding of byte values.
 func (w *transformerWrapper[K, V]) computeCallback(
 	ctx context.Context,
 	computeFunction func(oldValue V, found bool) (newValue V, action cache_dto.ComputeAction),
@@ -492,9 +493,8 @@ func (w *transformerWrapper[K, V]) computeCallback(
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to compute.
-// Takes computeFunction (func(...)) which receives the old value and
-// whether it was found, and returns the new value with an action
-// indicating what to do.
+// Takes computeFunction (func(...)) which receives the old value and whether it was
+// found, and returns the new value with an action indicating what to do.
 //
 // Returns V which is the final computed value, or zero value on failure.
 // Returns bool which indicates whether the computation succeeded.
@@ -528,8 +528,8 @@ func (w *transformerWrapper[K, V]) Compute(ctx context.Context, key K, computeFu
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
 // Returns V which is the existing or newly computed value.
-// Returns bool which indicates whether the value was computed (true) or already
-// existed (false).
+// Returns bool which indicates whether the value was computed (true) or already existed
+// (false).
 // Returns error when the underlying provider or transformation fails.
 func (w *transformerWrapper[K, V]) ComputeIfAbsent(ctx context.Context, key K, computeFunction func() V) (V, bool, error) {
 	var finalValue V
@@ -575,12 +575,11 @@ func (w *transformerWrapper[K, V]) ComputeIfAbsent(ctx context.Context, key K, c
 // computeIfPresentCallback creates the inner callback for ComputeIfPresent.
 //
 // Takes ctx (context.Context) which is propagated for cancellation and timeout.
-// Takes computeFunction (func(oldValue V) (newValue V, action
-// ComputeAction)) which updates the existing value and returns the
-// action to take.
+// Takes computeFunction (func(oldValue V) (newValue V, action ComputeAction)) which
+// updates the existing value and returns the action to take.
 //
-// Returns func([]byte) ([]byte, ComputeAction) which wraps the compute
-// function with encoding and transformation logic.
+// Returns func([]byte) ([]byte, ComputeAction) which wraps the compute function with
+// encoding and transformation logic.
 func (w *transformerWrapper[K, V]) computeIfPresentCallback(
 	ctx context.Context,
 	computeFunction func(oldValue V) (newValue V, action cache_dto.ComputeAction),
@@ -609,17 +608,14 @@ func (w *transformerWrapper[K, V]) computeIfPresentCallback(
 	}
 }
 
-// ComputeIfPresent atomically computes a new value for the key if it is
-// present.
+// ComputeIfPresent atomically computes a new value for the key if it is present.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the key to look up and potentially update.
-// Takes computeFunction (func(...)) which computes the new value
-// from the old value.
+// Takes computeFunction (func(...)) which computes the new value from the old value.
 //
 // Returns V which is the final computed value, or the zero value if not found.
-// Returns bool which indicates whether the key was present and the computation
-// succeeded.
+// Returns bool which indicates whether the key was present and the computation succeeded.
 // Returns error when the underlying provider or transformation fails.
 func (w *transformerWrapper[K, V]) ComputeIfPresent(ctx context.Context, key K, computeFunction func(oldValue V) (newValue V, action cache_dto.ComputeAction)) (V, bool, error) {
 	var finalValue V
@@ -732,12 +728,11 @@ func (w *transformerWrapper[K, V]) encodeLoadedValues(ctx context.Context, loade
 
 // decodeResults converts a map of byte slices into typed values.
 //
-// Takes byteResults (map[K][]byte) which contains the raw byte data keyed by
-// identifier.
+// Takes byteResults (map[K][]byte) which contains the raw byte data keyed by identifier.
 // Takes opName (string) which identifies the operation for log messages.
 //
-// Returns map[K]V which contains the converted values, excluding any that
-// failed to process.
+// Returns map[K]V which contains the converted values, excluding any that failed to
+// process.
 func (w *transformerWrapper[K, V]) decodeResults(ctx context.Context, byteResults map[K][]byte, opName string) map[K]V {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -758,8 +753,7 @@ func (w *transformerWrapper[K, V]) decodeResults(ctx context.Context, byteResult
 // BulkGet retrieves multiple values by their keys in a single operation.
 //
 // Takes keys ([]K) which specifies the keys to look up.
-// Takes bulkLoader (BulkLoader[K, V]) which fetches missing keys from the
-// source.
+// Takes bulkLoader (BulkLoader[K, V]) which fetches missing keys from the source.
 //
 // Returns map[K]V which contains the values found, mapped by their keys.
 // Returns error when the bulk load or value conversion fails.
@@ -796,13 +790,13 @@ func (w *transformerWrapper[K, V]) BulkRefresh(ctx context.Context, keys []K, bu
 	w.provider.BulkRefresh(ctx, keys, wrappedBulkLoader)
 }
 
-// processRefreshResult processes a single byte result from Refresh and sends
-// the result to a channel.
+// processRefreshResult processes a single byte result from Refresh and sends the result
+// to a channel.
 //
-// Takes byteResult (cache_dto.LoadResult[[]byte]) which contains the raw bytes
-// to process.
-// Takes resultChan (chan<- cache_dto.LoadResult[V]) which receives the
-// transformed result.
+// Takes byteResult (cache_dto.LoadResult[[]byte]) which contains the raw bytes to
+// process.
+// Takes resultChan (chan<- cache_dto.LoadResult[V]) which receives the transformed
+// result.
 func (w *transformerWrapper[K, V]) processRefreshResult(ctx context.Context, byteResult cache_dto.LoadResult[[]byte], resultChan chan<- cache_dto.LoadResult[V]) {
 	if byteResult.Err != nil {
 		resultChan <- cache_dto.LoadResult[V]{Err: byteResult.Err}
@@ -826,8 +820,8 @@ func (w *transformerWrapper[K, V]) processRefreshResult(ctx context.Context, byt
 // Returns <-chan cache_dto.LoadResult[V] which delivers the refresh result
 // asynchronously.
 //
-// Safe for concurrent use. Spawns a goroutine that reads from
-// the provider's result channel and writes the decoded result.
+// Safe for concurrent use. Spawns a goroutine that reads from the provider's result
+// channel and writes the decoded result.
 func (w *transformerWrapper[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
 	wrappedLoader := cache_dto.LoaderFunc[K, []byte](func(ctx context.Context, key K) ([]byte, error) {
 		value, err := loader.Load(ctx, key)
@@ -921,15 +915,9 @@ func (w *transformerWrapper[K, V]) Values() iter.Seq[V] {
 // Returns bool which indicates whether the key was found.
 // Returns error when the underlying provider or transformation fails.
 func (w *transformerWrapper[K, V]) GetEntry(ctx context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
-	byteEntry, ok, err := goroutine.SafeCall2(ctx, "cache.GetEntry", func() (cache_dto.Entry[K, []byte], bool, error) { return w.provider.GetEntry(ctx, key) })
-	if err != nil {
-		return cache_dto.Entry[K, V]{}, false, fmt.Errorf("getting entry from provider: %w", err)
-	}
-	if !ok {
-		return cache_dto.Entry[K, V]{}, false, nil
-	}
-	entry, ok, err := w.processEntry(ctx, byteEntry, "GetEntry")
-	return entry, ok, err
+	return w.fetchAndProcessEntry(ctx, "GetEntry", "getting", func() (cache_dto.Entry[K, []byte], bool, error) {
+		return w.provider.GetEntry(ctx, key)
+	})
 }
 
 // ProbeEntry returns a snapshot without affecting access patterns.
@@ -941,26 +929,48 @@ func (w *transformerWrapper[K, V]) GetEntry(ctx context.Context, key K) (cache_d
 // Returns bool which indicates whether the key was found.
 // Returns error when the underlying provider or transformation fails.
 func (w *transformerWrapper[K, V]) ProbeEntry(ctx context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
-	byteEntry, ok, err := goroutine.SafeCall2(ctx, "cache.ProbeEntry", func() (cache_dto.Entry[K, []byte], bool, error) { return w.provider.ProbeEntry(ctx, key) })
+	return w.fetchAndProcessEntry(ctx, "ProbeEntry", "probing", func() (cache_dto.Entry[K, []byte], bool, error) {
+		return w.provider.ProbeEntry(ctx, key)
+	})
+}
+
+// fetchAndProcessEntry runs a provider fetch via goroutine.SafeCall2, then decodes the
+// resulting byte entry through processEntry.
+//
+// Takes ctx (context.Context) for cancellation and timeout.
+// Takes operationName (string) which identifies the operation in goroutine.SafeCall2
+// ("cache.GetEntry" / "cache.ProbeEntry") and is forwarded to processEntry for error
+// logging.
+// Takes errorVerb (string) which is the gerund used in the wrapper error message
+// ("getting" / "probing").
+// Takes fetch (func) which performs the underlying provider call.
+//
+// Returns cache_dto.Entry[K, V] which is the decoded entry snapshot.
+// Returns bool which indicates whether the key was found.
+// Returns error when the underlying provider or transformation fails.
+func (w *transformerWrapper[K, V]) fetchAndProcessEntry(
+	ctx context.Context,
+	operationName, errorVerb string,
+	fetch func() (cache_dto.Entry[K, []byte], bool, error),
+) (cache_dto.Entry[K, V], bool, error) {
+	byteEntry, ok, err := goroutine.SafeCall2(ctx, "cache."+operationName, fetch)
 	if err != nil {
-		return cache_dto.Entry[K, V]{}, false, fmt.Errorf("probing entry from provider: %w", err)
+		return cache_dto.Entry[K, V]{}, false, fmt.Errorf("%s entry from provider: %w", errorVerb, err)
 	}
 	if !ok {
 		return cache_dto.Entry[K, V]{}, false, nil
 	}
-	entry, ok, err := w.processEntry(ctx, byteEntry, "ProbeEntry")
+	entry, ok, err := w.processEntry(ctx, byteEntry, operationName)
 	return entry, ok, err
 }
 
-// processEntry unwraps transformations and decodes a byte-level cache
-// entry back into a typed Entry[K, V]. Returns an error if the reverse
-// transform or decode fails.
+// processEntry unwraps transformations and decodes a byte-level cache entry back into a
+// typed Entry[K, V]. Returns an error if the reverse transform or decode fails.
 //
 // Takes ctx (context.Context) which is propagated for cancellation and timeout.
-// Takes byteEntry (cache_dto.Entry[K, []byte]) which is the raw
-// byte-level entry to decode.
-// Takes methodName (string) which identifies the calling method for
-// error logging.
+// Takes byteEntry (cache_dto.Entry[K, []byte]) which is the raw byte-level entry to
+// decode.
+// Takes methodName (string) which identifies the calling method for error logging.
 //
 // Returns cache_dto.Entry[K, V] which is the decoded typed entry.
 // Returns bool which is false if decoding fails.
@@ -1046,16 +1056,16 @@ func (w *transformerWrapper[K, V]) SetExpiresAfter(ctx context.Context, key K, e
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
-// Takes refreshableAfter (time.Duration) which specifies when the entry
-// becomes eligible for refresh.
+// Takes refreshableAfter (time.Duration) which specifies when the entry becomes eligible
+// for refresh.
 //
 // Returns error when the underlying provider fails.
 func (w *transformerWrapper[K, V]) SetRefreshableAfter(ctx context.Context, key K, refreshableAfter time.Duration) error {
 	return goroutine.SafeCall(ctx, "cache.SetRefreshableAfter", func() error { return w.provider.SetRefreshableAfter(ctx, key, refreshableAfter) })
 }
 
-// Search returns ErrSearchNotSupported because the transformer wrapper
-// stores values as encoded bytes, not searchable structures.
+// Search returns ErrSearchNotSupported because the transformer wrapper stores values as
+// encoded bytes, not searchable structures.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes query (string) which is the search query (ignored).
@@ -1066,8 +1076,8 @@ func (*transformerWrapper[K, V]) Search(_ context.Context, _ string, _ *cache_dt
 	return cache_dto.SearchResult[K, V]{}, ErrSearchNotSupported
 }
 
-// Query returns ErrSearchNotSupported because the transformer wrapper
-// stores values as encoded bytes, not queryable structures.
+// Query returns ErrSearchNotSupported because the transformer wrapper stores values as
+// encoded bytes, not queryable structures.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes opts (*cache_dto.QueryOptions) which are the query options (ignored).
@@ -1077,28 +1087,25 @@ func (*transformerWrapper[K, V]) Query(_ context.Context, _ *cache_dto.QueryOpti
 	return cache_dto.SearchResult[K, V]{}, ErrSearchNotSupported
 }
 
-// SupportsSearch returns false because transformer-wrapped caches cannot
-// support search operations on encoded/transformed byte values.
+// SupportsSearch returns false because transformer-wrapped caches cannot support search
+// operations on encoded/transformed byte values.
 //
 // Returns bool which is always false for transformer wrappers.
 func (*transformerWrapper[K, V]) SupportsSearch() bool {
 	return false
 }
 
-// GetSchema returns nil because transformer-wrapped caches do not support
-// search schemas.
+// GetSchema returns nil because transformer-wrapped caches do not support search schemas.
 //
 // Returns *cache_dto.SearchSchema which is always nil for transformer wrappers.
 func (*transformerWrapper[K, V]) GetSchema() *cache_dto.SearchSchema {
 	return nil
 }
 
-// withWrapperEncoder provides a custom encoding implementation for the wrapper.
-// If not used, the wrapper will default to JSON encoding for backward
-// compatibility.
+// withWrapperEncoder provides a custom encoding implementation for the wrapper. If not
+// used, the wrapper will default to JSON encoding for backward compatibility.
 //
-// Takes s (EncoderPort[V]) which is the encoder to use for value
-// serialisation.
+// Takes s (EncoderPort[V]) which is the encoder to use for value serialisation.
 //
 // Returns wrapperOption[K, V] which configures the wrapper's encoder.
 func withWrapperEncoder[K comparable, V any](s EncoderPort[V]) wrapperOption[K, V] {
@@ -1107,27 +1114,23 @@ func withWrapperEncoder[K comparable, V any](s EncoderPort[V]) wrapperOption[K, 
 	}
 }
 
-// newTransformerWrapper creates a new transformer wrapper for a cache provider.
-// The wrapper transforms the cache from Cache[K,V] to Cache[K,[]byte]
-// internally, handling encoding and transformation transparently.
+// newTransformerWrapper creates a new transformer wrapper for a cache provider. The
+// wrapper transforms the cache from Cache[K,V] to Cache[K,[]byte] internally, handling
+// encoding and transformation transparently.
 //
 // By default, JSON encoding is used. To use a different encoder, pass the
-// withWrapperEncoder option:
-// wrapper := newTransformerWrapper(provider, registry, config,
+// withWrapperEncoder option: wrapper := newTransformerWrapper(provider, registry, config,
 //
 //	withWrapperEncoder(myCustomEncoder))
 //
-// Takes provider (ProviderPort[K, []byte]) which is the underlying byte-level
-// cache.
-// Takes registry (*TransformerRegistry) which holds the available
-// transformers.
-// Takes config (*cache_dto.TransformConfig) which specifies which
-// transformers to apply.
-// Takes opts (...wrapperOption[K, V]) which provides optional configuration
-// such as a custom encoder.
+// Takes provider (ProviderPort[K, []byte]) which is the underlying byte-level cache.
+// Takes registry (*TransformerRegistry) which holds the available transformers.
+// Takes config (*cache_dto.TransformConfig) which specifies which transformers to apply.
+// Takes opts (...wrapperOption[K, V]) which provides optional configuration such as a
+// custom encoder.
 //
-// Returns *transformerWrapper[K, V] which wraps the provider with encoding
-// and transformation.
+// Returns *transformerWrapper[K, V] which wraps the provider with encoding and
+// transformation.
 func newTransformerWrapper[K comparable, V any](
 	provider ProviderPort[K, []byte],
 	registry *TransformerRegistry,

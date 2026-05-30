@@ -29,65 +29,62 @@ const (
 	// DefaultPresignExpiry is the default length of time a token stays valid.
 	DefaultPresignExpiry = 15 * time.Minute
 
-	// MaxPresignExpiry is the maximum allowed validity duration for a
-	// presigned token.
+	// MaxPresignExpiry is the maximum allowed validity duration for a presigned token.
 	MaxPresignExpiry = 1 * time.Hour
 
-	// DefaultPresignMaxSize is the default largest file size allowed for uploads
-	// (100 MB).
+	// DefaultPresignMaxSize is the default largest file size allowed for uploads (100 MB).
 	DefaultPresignMaxSize = 100 * 1024 * 1024
 
 	// MaxPresignMaxSize is the highest allowed upload size, set to 1 GB.
 	MaxPresignMaxSize = 1024 * 1024 * 1024
 
-	// DefaultPresignRateLimit is the default rate limit for uploads per IP address
-	// per minute.
+	// DefaultPresignRateLimit is the default rate limit for uploads per IP address per
+	// minute.
 	DefaultPresignRateLimit = 50
 
 	// presignSecretKeyLength is the length of auto-generated secrets.
 	presignSecretKeyLength = 32
 )
 
-// PresignConfig holds configuration for service-level presigned URLs.
-// This is used when a storage provider does not support native presigned URLs.
+// PresignConfig holds configuration for service-level presigned URLs. This is used when a
+// storage provider does not support native presigned URLs.
 type PresignConfig struct {
-	// RIDCache holds the cache for replay protection using random identifiers.
-	// Initialised automatically during service construction via EnsureRIDCache.
+	// RIDCache holds the cache for replay protection using random identifiers. Initialised
+	// automatically during service construction via EnsureRIDCache.
 	RIDCache *PresignRIDCache
 
-	// BaseURL is the base URL for creating presigned upload URLs.
-	// If empty, the URL is created relative to the request origin.
+	// BaseURL is the base URL for creating presigned upload URLs. If empty, the URL is
+	// created relative to the request origin.
 	BaseURL string
 
-	// Secret is the HMAC secret for signing tokens (minimum 32 bytes).
-	// If empty, a random secret is generated on first use.
+	// Secret is the HMAC secret for signing tokens (minimum 32 bytes). If empty, a random
+	// secret is generated on first use.
 	Secret []byte
 
-	// DefaultExpiry is the default duration for token validity.
-	// Must not exceed MaxExpiry.
+	// DefaultExpiry is the default duration for token validity. Must not exceed MaxExpiry.
 	DefaultExpiry time.Duration
 
-	// MaxExpiry is the maximum allowed token validity duration.
-	// Requests for longer expiry are capped to this value.
+	// MaxExpiry is the maximum allowed token validity duration. Requests for longer expiry
+	// are capped to this value.
 	MaxExpiry time.Duration
 
-	// DefaultMaxSize is the default maximum upload size in bytes.
-	// Individual presign requests can specify smaller limits.
+	// DefaultMaxSize is the default maximum upload size in bytes. Individual presign
+	// requests can specify smaller limits.
 	DefaultMaxSize int64
 
-	// MaxMaxSize is the absolute maximum upload size in bytes.
-	// Requests for larger limits are capped to this value.
+	// MaxMaxSize is the absolute maximum upload size in bytes. Requests for larger limits
+	// are capped to this value.
 	MaxMaxSize int64
 
-	// RateLimitPerMinute is the per-IP rate limit for upload requests.
-	// Set to 0 to disable rate limiting.
+	// RateLimitPerMinute is the per-IP rate limit for upload requests. Set to 0 to disable
+	// rate limiting.
 	RateLimitPerMinute int
 }
 
 // Validate checks the configuration and applies defaults where needed.
 //
-// Returns error when the configuration contains invalid values that cannot
-// be corrected automatically.
+// Returns error when the configuration contains invalid values that cannot be corrected
+// automatically.
 func (c *PresignConfig) Validate() error {
 	if len(c.Secret) > 0 && len(c.Secret) < presignSecretMinLength {
 		return fmt.Errorf("presign: secret must be at least %d bytes, got %d", presignSecretMinLength, len(c.Secret))
@@ -172,10 +169,9 @@ func (c *PresignConfig) ClampMaxSize(maxSize int64) int64 {
 
 // EnsureRIDCache initialises the random identifier cache if not already set.
 //
-// Takes ctx (context.Context) which is the parent context for background
-// goroutines.
-// Takes cleanupInterval (time.Duration) which specifies how often to purge
-// expired identifiers.
+// Takes ctx (context.Context) which is the parent context for background goroutines.
+// Takes cleanupInterval (time.Duration) which specifies how often to purge expired
+// identifiers.
 func (c *PresignConfig) EnsureRIDCache(ctx context.Context, cleanupInterval time.Duration) {
 	if c.RIDCache == nil {
 		c.RIDCache = NewPresignRIDCache(ctx, cleanupInterval)

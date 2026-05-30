@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package compiler_domain provides the core business logic for compiling
-// Single File Components (.pkc) into JavaScript and HTML artefacts.
+// Package compiler_domain provides the core business logic for compiling Single File
+// Components (.pkc) into JavaScript and HTML artefacts.
 //
 // Handles the complete SFC compilation pipeline: parsing TypeScript/JavaScript,
-// transforming the AST for reactive state management, building virtual DOM
-// render methods, and generating optimised output for custom web components.
+// transforming the AST for reactive state management, building virtual DOM render
+// methods, and generating optimised output for custom web components.
 //
 // # Compilation pipeline
 //
@@ -36,11 +36,10 @@
 //
 // # Design rationale
 //
-// Pre-compiling .pkc files rather than interpreting them at runtime catches
-// errors at build time and produces optimised JavaScript output. The pipeline
-// converts between esbuild and tdewolff AST formats because esbuild handles
-// TypeScript stripping and module resolution while tdewolff provides the
-// fine-grained AST manipulation needed for reactive state transforms and
-// VDOM generation. An orchestrator coordinates the stages so each step can
-// be tested and traced independently.
+// Pre-compiling .pkc files rather than interpreting them at runtime catches errors at
+// build time and produces optimised JavaScript output. The pipeline converts between
+// esbuild and tdewolff AST formats because esbuild handles TypeScript stripping and
+// module resolution while tdewolff provides the fine-grained AST manipulation needed for
+// reactive state transforms and VDOM generation. An orchestrator coordinates the stages
+// so each step can be tested and traced independently.
 package compiler_domain

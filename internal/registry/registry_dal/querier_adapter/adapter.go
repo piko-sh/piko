@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/registry/registry_dal"
 	registry_db "piko.sh/piko/internal/registry/registry_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	// maxTransactionTimeout is the maximum duration a RunAtomic transaction
-	// may hold before being cancelled.
+	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold before
+	// being cancelled.
 	maxTransactionTimeout = 30 * time.Second
 
 	// defaultGCHintLimit is the default number of GC hints to fetch at once.
@@ -55,35 +55,32 @@ var (
 	// log is the package-level logger for the querier_adapter package.
 	log = logger.GetLogger("piko/internal/registry/registry_dal/querier_adapter")
 
-	// errDALNotInitialised is returned when a transaction is attempted but the
-	// DAL has not been initialised with a sql.DB connection.
+	// errDALNotInitialised is returned when a transaction is attempted but the DAL has not
+	// been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
 
-	// errSearchQueryEmpty is returned when a search operation is attempted
-	// with an empty query string.
+	// errSearchQueryEmpty is returned when a search operation is attempted with an empty
+	// query string.
 	errSearchQueryEmpty = errors.New("search query is empty")
 )
 
-// DAL wraps the querier-generated Queries struct to satisfy the
-// RegistryDALWithTx interface. It delegates simple queries directly
-// to the generated code and handles IN-clause expansion, FlatBuffer
-// serialisation, and transaction management.
+// DAL wraps the querier-generated Queries struct to satisfy the RegistryDALWithTx
+// interface. It delegates simple queries directly to the generated code and handles
+// IN-clause expansion, FlatBuffer serialisation, and transaction management.
 type DAL struct {
-	// db is the underlying database connection for health checks and
-	// transaction creation.
+	// db is the underlying database connection for health checks and transaction creation.
 	db *sql.DB
 
-	// dbtx is the active database or transaction handle used for dynamic
-	// queries that require IN-clause expansion. The generated Queries
-	// struct does not expose its internal reader/writer, so we keep a
-	// parallel reference.
+	// dbtx is the active database or transaction handle used for dynamic queries that
+	// require IN-clause expansion. The generated Queries struct does not expose its internal
+	// reader/writer, so we keep a parallel reference.
 	dbtx registry_db.DBTX
 
 	// queries provides access to the generated query methods.
 	queries *registry_db.Queries
 
-	// inTransaction is true when this DAL is a transaction-scoped clone
-	// created by withTransaction. It prevents nested transactions.
+	// inTransaction is true when this DAL is a transaction-scoped clone created by
+	// withTransaction. It prevents nested transactions.
 	inTransaction bool
 }
 
@@ -100,9 +97,9 @@ func NewDAL(database *sql.DB) *DAL {
 	}
 }
 
-// NewDALWithTx creates a transaction-scoped DAL clone. The clone uses the
-// provided transaction for all queries but retains the parent database
-// connection for health checks.
+// NewDALWithTx creates a transaction-scoped DAL clone. The clone uses the provided
+// transaction for all queries but retains the parent database connection for health
+// checks.
 //
 // Takes tx (*sql.Tx) which provides the transactional database connection.
 // Takes parentDB (*sql.DB) which is retained for health checks.
@@ -136,16 +133,14 @@ func (*DAL) Close() error {
 
 // RunAtomic executes fn within a transaction.
 //
-// The provided MetadataStore is scoped to the transaction, so all
-// reads and writes through it are atomic. If fn returns an error
-// (or panics), all mutations are rolled back.
+// The provided MetadataStore is scoped to the transaction, so all reads and writes
+// through it are atomic. If fn returns an error (or panics), all mutations are rolled
+// back.
 //
-// Takes fn (func(ctx context.Context,
-// transactionStore MetadataStore) error) which receives a
-// transactional MetadataStore.
+// Takes fn (func(ctx context.Context, transactionStore MetadataStore) error) which
+// receives a transactional MetadataStore.
 //
-// Returns error when fn returns an error or the transaction fails
-// to commit.
+// Returns error when fn returns an error or the transaction fails to commit.
 func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	if d.inTransaction {
 		return cache_domain.ErrNestedTransactionUnsupported
@@ -164,14 +159,14 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 	})
 }
 
-// GetArtefact retrieves a single artefact by ID with all its variants and
-// profiles. Uses FlatBuffer blob for optimised reads.
+// GetArtefact retrieves a single artefact by ID with all its variants and profiles. Uses
+// FlatBuffer blob for optimised reads.
 //
-// Takes artefactID (string) which specifies the unique identifier of the
-// artefact to retrieve.
+// Takes artefactID (string) which specifies the unique identifier of the artefact to
+// retrieve.
 //
-// Returns *registry_dto.ArtefactMeta which contains the artefact with its
-// variants and profiles.
+// Returns *registry_dto.ArtefactMeta which contains the artefact with its variants and
+// profiles.
 // Returns error when the artefact is not found or the database query fails.
 func (d *DAL) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
 	ctx, l := logger.From(ctx, log)
@@ -206,14 +201,13 @@ func (d *DAL) GetArtefact(ctx context.Context, artefactID string) (*registry_dto
 	return art, nil
 }
 
-// GetMultipleArtefacts retrieves multiple artefacts by their IDs.
-// Uses dynamic IN-clause expansion because the generated query does not
-// handle slices correctly.
+// GetMultipleArtefacts retrieves multiple artefacts by their IDs. Uses dynamic IN-clause
+// expansion because the generated query does not handle slices correctly.
 //
 // Takes artefactIDs ([]string) which specifies the artefact IDs to retrieve.
 //
-// Returns []*registry_dto.ArtefactMeta which contains the matching artefacts
-// in the same order as the input IDs.
+// Returns []*registry_dto.ArtefactMeta which contains the matching artefacts in the same
+// order as the input IDs.
 // Returns error when the database query fails.
 func (d *DAL) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
 	if len(artefactIDs) == 0 {
@@ -265,12 +259,12 @@ func (d *DAL) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
 
 // SearchArtefacts searches for artefacts matching the given tag query.
 //
-// Takes query (registry_domain.SearchQuery) which specifies the search
-// criteria including simple tag queries.
+// Takes query (registry_domain.SearchQuery) which specifies the search criteria including
+// simple tag queries.
 //
 // Returns []*registry_dto.ArtefactMeta which contains the matching artefacts.
-// Returns error when the query is empty, uses unsupported RediSearch syntax,
-// or when retrieval fails.
+// Returns error when the query is empty, uses unsupported RediSearch syntax, or when
+// retrieval fails.
 func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.SearchArtefacts",
@@ -318,9 +312,8 @@ func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQ
 	return artefacts, nil
 }
 
-// SearchArtefactsByTagValues searches for artefacts that have a specific tag
-// key with any of the given values. Uses dynamic IN-clause expansion for the
-// tag values.
+// SearchArtefactsByTagValues searches for artefacts that have a specific tag key with any
+// of the given values. Uses dynamic IN-clause expansion for the tag values.
 //
 // Takes tagKey (string) which specifies the tag key to search for.
 // Takes tagValues ([]string) which contains the tag values to match against.
@@ -362,8 +355,8 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 	return d.GetMultipleArtefacts(ctx, artefactIDs)
 }
 
-// FindArtefactByVariantStorageKey finds an artefact by the storage key of one
-// of its variants.
+// FindArtefactByVariantStorageKey finds an artefact by the storage key of one of its
+// variants.
 //
 // Takes storageKey (string) which identifies the variant's storage location.
 //
@@ -382,8 +375,8 @@ func (d *DAL) FindArtefactByVariantStorageKey(ctx context.Context, storageKey st
 
 // PopGCHints retrieves and removes garbage collection hints from the store.
 //
-// Takes limit (int) which specifies the maximum number of hints to retrieve.
-// Uses a default limit when limit is zero or negative.
+// Takes limit (int) which specifies the maximum number of hints to retrieve. Uses a
+// default limit when limit is zero or negative.
 //
 // Returns []registry_dto.GCHint which contains the retrieved hints.
 // Returns error when the database transaction fails.
@@ -437,14 +430,13 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 	return hints, nil
 }
 
-// AtomicUpdate performs a batch of atomic operations within a single
-// transaction.
+// AtomicUpdate performs a batch of atomic operations within a single transaction.
 //
-// Takes actions ([]registry_dto.AtomicAction) which specifies the operations
-// to execute atomically.
+// Takes actions ([]registry_dto.AtomicAction) which specifies the operations to execute
+// atomically.
 //
-// Returns error when the transaction fails to begin, an action fails, or the
-// commit fails.
+// Returns error when the transaction fails to begin, an action fails, or the commit
+// fails.
 func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.AtomicUpdate",
@@ -482,11 +474,10 @@ func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAct
 	return nil
 }
 
-// IncrementBlobRefCount atomically increments the reference count for a blob.
-// If the blob does not exist, it creates it with a reference count of one.
+// IncrementBlobRefCount atomically increments the reference count for a blob. If the blob
+// does not exist, it creates it with a reference count of one.
 //
-// Takes blob (registry_domain.BlobReference) which identifies the blob to
-// increment.
+// Takes blob (registry_domain.BlobReference) which identifies the blob to increment.
 //
 // Returns int which is the new reference count after the increment.
 // Returns error when the database operation fails.
@@ -519,8 +510,8 @@ func (d *DAL) IncrementBlobRefCount(ctx context.Context, blob registry_domain.Bl
 	return int(row.RefCount), nil
 }
 
-// DecrementBlobRefCount atomically decrements the reference count for a blob
-// and indicates whether the blob should be deleted.
+// DecrementBlobRefCount atomically decrements the reference count for a blob and
+// indicates whether the blob should be deleted.
 //
 // Takes storageKey (string) which identifies the blob in storage.
 //
@@ -598,12 +589,11 @@ func (d *DAL) GetBlobRefCount(ctx context.Context, storageKey string) (int, erro
 	return int(row.RefCount), nil
 }
 
-// ListArtefactSummary returns artefact counts grouped by status. Status is
-// stored inside the FlatBuffer payload so all artefacts are fetched and
-// aggregated in Go.
+// ListArtefactSummary returns artefact counts grouped by status. Status is stored inside
+// the FlatBuffer payload so all artefacts are fetched and aggregated in Go.
 //
-// Returns []registry_domain.ArtefactSummary which contains one entry per
-// status with its count.
+// Returns []registry_domain.ArtefactSummary which contains one entry per status with its
+// count.
 // Returns error when the database query fails or a FlatBuffer is corrupt.
 func (d *DAL) ListArtefactSummary(ctx context.Context) ([]registry_domain.ArtefactSummary, error) {
 	rows, err := d.queries.ListAllArtefactsWithData(ctx)
@@ -633,8 +623,8 @@ func (d *DAL) ListArtefactSummary(ctx context.Context) ([]registry_domain.Artefa
 
 // ListVariantSummary returns variant counts grouped by status.
 //
-// Returns []registry_domain.VariantSummary which contains one entry per
-// variant status with its count.
+// Returns []registry_domain.VariantSummary which contains one entry per variant status
+// with its count.
 // Returns error when the database query fails.
 func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.VariantSummary, error) {
 	rows, err := d.queries.ListVariantStatusCounts(ctx)
@@ -653,14 +643,13 @@ func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.Variant
 	return results, nil
 }
 
-// ListRecentArtefacts returns the most recently updated artefacts with
-// variant counts and total sizes.
+// ListRecentArtefacts returns the most recently updated artefacts with variant counts and
+// total sizes.
 //
-// Takes limit (int32) which specifies the maximum number of artefacts to
-// return.
+// Takes limit (int32) which specifies the maximum number of artefacts to return.
 //
-// Returns []registry_domain.ArtefactListItem which contains artefacts ordered
-// by update time descending.
+// Returns []registry_domain.ArtefactListItem which contains artefacts ordered by update
+// time descending.
 // Returns error when the database query fails or a FlatBuffer is corrupt.
 func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int32) ([]registry_domain.ArtefactListItem, error) {
 	rows, err := d.queries.ListRecentArtefactsWithData(ctx, limit)
@@ -696,15 +685,14 @@ func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int32) ([]registry_
 
 // runInTransaction executes fn within a transaction.
 //
-// If the DAL is already inside a transaction (inTransaction == true), it
-// reuses the existing queries and DBTX to avoid deadlocking on SQLite's
-// single-writer lock.
+// If the DAL is already inside a transaction (inTransaction == true), it reuses the
+// existing queries and DBTX to avoid deadlocking on SQLite's single-writer lock.
 //
-// Takes fn (func(ctx context.Context, dbtx DBTX, qtx *Queries) error) which
-// is the function to execute within the transaction scope.
+// Takes fn (func(ctx context.Context, dbtx DBTX, qtx *Queries) error) which is the
+// function to execute within the transaction scope.
 //
-// Returns error when the transaction cannot be started, fn returns an error,
-// or the commit fails.
+// Returns error when the transaction cannot be started, fn returns an error, or the
+// commit fails.
 func (d *DAL) runInTransaction(ctx context.Context, fn func(ctx context.Context, dbtx registry_db.DBTX, qtx *registry_db.Queries) error) error {
 	if d.inTransaction {
 		return fn(ctx, d.dbtx, d.queries)
@@ -722,17 +710,16 @@ func (d *DAL) runInTransaction(ctx context.Context, fn func(ctx context.Context,
 	return tx.Commit()
 }
 
-// withTransaction is an internal helper that executes an operation within a
-// database transaction, creating a transaction-scoped DAL clone.
+// withTransaction is an internal helper that executes an operation within a database
+// transaction, creating a transaction-scoped DAL clone.
 //
-// Takes operation (func(ctx context.Context, dal RegistryDAL) error) which is
-// the callback to execute within the transaction scope.
+// Takes operation (func(ctx context.Context, dal RegistryDAL) error) which is the
+// callback to execute within the transaction scope.
 //
-// Returns error when the DAL is not initialised, the transaction cannot be
-// started, the callback returns an error, or the commit fails.
+// Returns error when the DAL is not initialised, the transaction cannot be started, the
+// callback returns an error, or the commit fails.
 //
-// Panics if operation panics. The transaction is rolled back before
-// re-panicking.
+// Panics if operation panics. The transaction is rolled back before re-panicking.
 func (d *DAL) withTransaction(ctx context.Context, operation func(ctx context.Context, dal registry_dal.RegistryDAL) error) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -764,13 +751,12 @@ func (d *DAL) withTransaction(ctx context.Context, operation func(ctx context.Co
 	return tx.Commit()
 }
 
-// processTagQueries finds artefact IDs matching all tag queries using
-// intersection.
+// processTagQueries finds artefact IDs matching all tag queries using intersection.
 //
 // Takes tagQuery (map[string]string) which maps tag keys to required values.
 //
-// Returns []string which contains artefact IDs matching all tag criteria, or
-// nil if no matches exist.
+// Returns []string which contains artefact IDs matching all tag criteria, or nil if no
+// matches exist.
 // Returns error when the database query fails.
 func (d *DAL) processTagQueries(
 	ctx context.Context,
@@ -822,10 +808,8 @@ func (d *DAL) processTagQueries(
 
 // processAtomicAction executes a single atomic action within a transaction.
 //
-// Takes qtx (*registry_db.Queries) which provides transactional database
-// access.
-// Takes action (registry_dto.AtomicAction) which specifies the operation to
-// perform.
+// Takes qtx (*registry_db.Queries) which provides transactional database access.
+// Takes action (registry_dto.AtomicAction) which specifies the operation to perform.
 //
 // Returns error when the action fails or the action type is unrecognised.
 func (*DAL) processAtomicAction(
@@ -855,8 +839,7 @@ func (*DAL) processAtomicAction(
 // upsertArtefact inserts or updates an artefact and its related data.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which contains the artefact metadata
-// to store.
+// Takes art (*registry_dto.ArtefactMeta) which contains the artefact metadata to store.
 //
 // Returns error when the database operation fails.
 func upsertArtefact(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
@@ -886,8 +869,8 @@ func upsertArtefact(ctx context.Context, qtx *registry_db.Queries, art *registry
 // addGCHints stores garbage collection hints for the given storage keys.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
-// Takes hints ([]registry_dto.GCHint) which contains the storage keys to mark
-// for cleanup.
+// Takes hints ([]registry_dto.GCHint) which contains the storage keys to mark for
+// cleanup.
 //
 // Returns error when a hint cannot be added to the database.
 func addGCHints(ctx context.Context, qtx *registry_db.Queries, hints []registry_dto.GCHint) error {
@@ -909,8 +892,7 @@ func addGCHints(ctx context.Context, qtx *registry_db.Queries, hints []registry_
 // re-importing it.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which identifies the artefact to
-// clear.
+// Takes art (*registry_dto.ArtefactMeta) which identifies the artefact to clear.
 //
 // Returns error when any database deletion fails.
 func deleteExistingArtefactData(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
@@ -939,8 +921,8 @@ func deleteExistingArtefactData(ctx context.Context, qtx *registry_db.Queries, a
 	return nil
 }
 
-// insertVariantsWithData inserts all variants for an artefact along with their
-// tags and chunks.
+// insertVariantsWithData inserts all variants for an artefact along with their tags and
+// chunks.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
 // Takes art (*registry_dto.ArtefactMeta) which holds the variants to insert.
@@ -962,8 +944,7 @@ func insertVariantsWithData(ctx context.Context, qtx *registry_db.Queries, art *
 	return nil
 }
 
-// insertVariant stores a variant record in the database for the given
-// artefact.
+// insertVariant stores a variant record in the database for the given artefact.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
@@ -1035,8 +1016,7 @@ func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefact
 	return nil
 }
 
-// insertDesiredProfiles stores the desired profiles from an artefact into the
-// database.
+// insertDesiredProfiles stores the desired profiles from an artefact into the database.
 //
 // Takes qtx (*registry_db.Queries) which provides database access.
 // Takes art (*registry_dto.ArtefactMeta) which contains the profiles to store.
@@ -1064,15 +1044,15 @@ func insertDesiredProfiles(ctx context.Context, qtx *registry_db.Queries, art *r
 	return nil
 }
 
-// intersectIDSets finds the common IDs between the current set and a list of
-// IDs. If current is nil, it creates a new set with all the given IDs.
+// intersectIDSets finds the common IDs between the current set and a list of IDs. If
+// current is nil, it creates a new set with all the given IDs.
 //
-// Takes current (*map[string]struct{}) which is the existing ID set to check
-// against, or nil to create a new set.
+// Takes current (*map[string]struct{}) which is the existing ID set to check against, or
+// nil to create a new set.
 // Takes ids ([]string) which contains the IDs to match or add.
 //
-// Returns *map[string]struct{} which contains only the IDs found in both
-// current and ids, or all ids if current was nil.
+// Returns *map[string]struct{} which contains only the IDs found in both current and ids,
+// or all ids if current was nil.
 func intersectIDSets(current *map[string]struct{}, ids []string) *map[string]struct{} {
 	if current == nil {
 		idSet := make(map[string]struct{}, len(ids))
@@ -1091,11 +1071,11 @@ func intersectIDSets(current *map[string]struct{}, ids []string) *map[string]str
 	return &newSet
 }
 
-// convertDBHintsToDTO converts database GC hint rows to DTOs and returns IDs
-// for deletion.
+// convertDBHintsToDTO converts database GC hint rows to DTOs and returns IDs for
+// deletion.
 //
-// Takes dbHints ([]registry_db.PopGCHintsRow) which contains the database rows
-// to convert.
+// Takes dbHints ([]registry_db.PopGCHintsRow) which contains the database rows to
+// convert.
 //
 // Returns []registry_dto.GCHint which contains the converted hint DTOs.
 // Returns []int32 which contains the row IDs to delete from the database.

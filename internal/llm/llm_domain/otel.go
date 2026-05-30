@@ -81,41 +81,36 @@ var (
 	// builderCompleteErrorCount tracks CompletionBuilder.Complete errors.
 	builderCompleteErrorCount metric.Int64Counter
 
-	// requestCostHistogram records the cost of individual
-	// requests in USD.
+	// requestCostHistogram records the cost of individual requests in USD.
 	requestCostHistogram metric.Float64Histogram
 
 	// totalSpendCounter tracks cumulative spend across all requests in USD.
 	totalSpendCounter metric.Float64Counter
 
-	// rateLimitedCount tracks requests rejected due to
-	// rate limiting.
+	// rateLimitedCount tracks requests rejected due to rate limiting.
 	rateLimitedCount metric.Int64Counter
 
-	// budgetExceededCount tracks requests that were turned down due to budget
-	// limits.
+	// budgetExceededCount tracks requests that were turned down due to budget limits.
 	budgetExceededCount metric.Int64Counter
 
 	// retryAttemptCount tracks the number of retry attempts.
 	retryAttemptCount metric.Int64Counter
 
-	// retrySuccessCount tracks successful retries. These are requests that
-	// succeeded after an initial failure.
+	// retrySuccessCount tracks successful retries. These are requests that succeeded after
+	// an initial failure.
 	retrySuccessCount metric.Int64Counter
 
 	// retryExhaustedCount tracks requests that exhausted all retry attempts.
 	retryExhaustedCount metric.Int64Counter
 
-	// fallbackAttemptCount tracks the number of provider
-	// attempts in fallback chains.
+	// fallbackAttemptCount tracks the number of provider attempts in fallback chains.
 	fallbackAttemptCount metric.Int64Counter
 
-	// fallbackSuccessCount tracks successful fallbacks (requests that succeeded
-	// after primary failure).
+	// fallbackSuccessCount tracks successful fallbacks (requests that succeeded after
+	// primary failure).
 	fallbackSuccessCount metric.Int64Counter
 
-	// fallbackExhaustedCount tracks requests that exhausted all fallback
-	// providers.
+	// fallbackExhaustedCount tracks requests that exhausted all fallback providers.
 	fallbackExhaustedCount metric.Int64Counter
 
 	// cacheHitCount tracks the number of cache hits.
@@ -124,19 +119,18 @@ var (
 	// cacheMissCount records how many times a cache lookup fails to find an entry.
 	cacheMissCount metric.Int64Counter
 
-	// toolLoopRoundsCount tracks the number of completed
-	// tool dispatch rounds.
+	// toolLoopRoundsCount tracks the number of completed tool dispatch rounds.
 	toolLoopRoundsCount metric.Int64Counter
 
 	// toolLoopDispatchesCount tracks individual tool handler dispatches.
 	toolLoopDispatchesCount metric.Int64Counter
 
-	// toolLoopErrorsCount tracks tool dispatch errors (unregistered tools or
-	// handler errors).
+	// toolLoopErrorsCount tracks tool dispatch errors (unregistered tools or handler
+	// errors).
 	toolLoopErrorsCount metric.Int64Counter
 
-	// toolLoopMaxRoundsCount tracks when the tool loop terminates due to
-	// reaching the maximum number of rounds.
+	// toolLoopMaxRoundsCount tracks when the tool loop terminates due to reaching the
+	// maximum number of rounds.
 	toolLoopMaxRoundsCount metric.Int64Counter
 
 	// embeddingCount tracks the number of embedding requests.

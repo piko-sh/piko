@@ -18,10 +18,9 @@
 
 package pdfwriter_domain
 
-// Parses CSS transform function lists into a 2D affine matrix suitable
-// for the PDF cm operator. Supports translate, scale, rotate, skew, and
-// matrix functions. Multiple functions are composed by left-to-right
-// matrix multiplication.
+// Parses CSS transform function lists into a 2D affine matrix suitable for the PDF cm
+// operator. Supports translate, scale, rotate, skew, and matrix functions. Multiple
+// functions are composed by left-to-right matrix multiplication.
 
 import (
 	"math"
@@ -77,11 +76,11 @@ func (m AffineMatrix) compose(fn AffineMatrix) AffineMatrix {
 	}
 }
 
-// ParseCSSTransform parses a CSS transform value into a
-// 2D affine matrix [a, b, c, d, e, f].
+// ParseCSSTransform parses a CSS transform value into a 2D affine matrix [a, b, c, d, e,
+// f].
 //
-// Takes value (string) which is the CSS transform property
-// value (e.g. "rotate(45deg) scale(2)").
+// Takes value (string) which is the CSS transform property value (e.g. "rotate(45deg)
+// scale(2)").
 //
 // Returns ok == false if the value cannot be parsed.
 func ParseCSSTransform(value string) (AffineMatrix, bool) {
@@ -123,14 +122,13 @@ func ParseCSSTransform(value string) (AffineMatrix, bool) {
 	return result, parsedAny
 }
 
-// findMatchingParen returns the index of the closing parenthesis
-// matching the opening parenthesis at position open.
+// findMatchingParen returns the index of the closing parenthesis matching the opening
+// parenthesis at position open.
 //
 // Takes s (string) which is the string to search.
 // Takes open (int) which is the index of the opening parenthesis.
 //
-// Returns int which is the closing parenthesis index, or -1 if not
-// found.
+// Returns int which is the closing parenthesis index, or -1 if not found.
 func findMatchingParen(s string, open int) int {
 	depth := 1
 	for i := open + 1; i < len(s); i++ {
@@ -147,12 +145,11 @@ func findMatchingParen(s string, open int) int {
 	return -1
 }
 
-// parseTransformFunction dispatches a single CSS transform function
-// to its specific parser.
+// parseTransformFunction dispatches a single CSS transform function to its specific
+// parser.
 //
 // Takes name (string) which is the function name.
-// Takes args (string) which is the comma/space-separated argument
-// string.
+// Takes args (string) which is the comma/space-separated argument string.
 //
 // Returns AffineMatrix which is the resulting transformation matrix.
 // Returns bool which indicates whether parsing succeeded.
@@ -332,8 +329,8 @@ func parseMatrix(parts []string) (AffineMatrix, bool) {
 	}, true
 }
 
-// splitArgs splits a CSS function argument string on commas, spaces,
-// and tabs, discarding empty segments.
+// splitArgs splits a CSS function argument string on commas, spaces, and tabs, discarding
+// empty segments.
 //
 // Takes s (string) which is the raw argument string.
 //
@@ -357,8 +354,7 @@ func splitArgs(s string) []string {
 	return result
 }
 
-// parseAngle parses a CSS angle value (deg, rad, grad, turn) and
-// returns radians.
+// parseAngle parses a CSS angle value (deg, rad, grad, turn) and returns radians.
 //
 // Takes s (string) which is the angle string with optional unit suffix.
 //
@@ -380,8 +376,8 @@ func parseAngle(s string) float64 {
 	return parseNumber(s) * math.Pi / degreesToPiFactor
 }
 
-// parseLength parses a CSS length value by stripping known unit
-// suffixes and returning the numeric portion.
+// parseLength parses a CSS length value by stripping known unit suffixes and returning
+// the numeric portion.
 //
 // Takes s (string) which is the length string with optional unit.
 //
@@ -395,8 +391,8 @@ func parseLength(s string) float64 {
 	return parseNumber(s)
 }
 
-// parseNumber parses a numeric string and returns the float64 value,
-// returning 0 on failure.
+// parseNumber parses a numeric string and returns the float64 value, returning 0 on
+// failure.
 //
 // Takes s (string) which is the numeric string to parse.
 //

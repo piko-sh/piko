@@ -35,12 +35,14 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 )
 
-// maxPageCreationRetries is the number of times to retry creating an incognito
-// page if the page fails health checks.
-const maxPageCreationRetries = 3
+const (
+	// maxPageCreationRetries is the number of times to retry creating an incognito page if
+	// the page fails health checks.
+	maxPageCreationRetries = 3
+)
 
-// Browser wraps a chromedp browser instance and manages its lifecycle.
-// It implements io.Closer.
+// Browser wraps a chromedp browser instance and manages its lifecycle. It implements
+// io.Closer.
 type Browser struct {
 	// allocatorCtx is the context for the browser allocator.
 	allocatorCtx context.Context
@@ -54,8 +56,8 @@ type Browser struct {
 	// browserCancel cancels the browser context when Close is called.
 	browserCancel context.CancelFunc
 
-	// userDataDir is the temporary directory for the browser profile. Managed
-	// explicitly because chromedp's context-based cleanup is unreliable.
+	// userDataDir is the temporary directory for the browser profile. Managed explicitly
+	// because chromedp's context-based cleanup is unreliable.
 	userDataDir string
 
 	// headless indicates whether the browser runs without a visible window.
@@ -76,22 +78,21 @@ type ChromeFlag struct {
 
 // BrowserOptions holds settings for creating a browser instance.
 type BrowserOptions struct {
-	// ChromeFlags overrides the default Chrome flags when non-nil, with each
-	// flag passed to Chrome via --name=value; when nil, DefaultChromeFlags is
-	// used.
+	// ChromeFlags overrides the default Chrome flags when non-nil, with each flag passed to
+	// Chrome via --name=value; when nil, DefaultChromeFlags is used.
 	ChromeFlags []ChromeFlag
 
 	// Headless controls whether the browser runs without a visible window.
 	Headless bool
 
-	// IgnoreCertErrors makes the browser accept any TLS certificate, including
-	// self-signed ones. Use this for testing servers with self-signed certs.
+	// IgnoreCertErrors makes the browser accept any TLS certificate, including self-signed
+	// ones. Use this for testing servers with self-signed certs.
 	IgnoreCertErrors bool
 }
 
 // DefaultChromeFlags returns the Chrome command-line flags applied on top of
-// chromedp.DefaultExecAllocatorOptions. Only flags NOT already covered by the
-// chromedp defaults are listed here.
+// chromedp.DefaultExecAllocatorOptions. Only flags NOT already covered by the chromedp
+// defaults are listed here.
 //
 // Returns []ChromeFlag which contains the default set of extra Chrome flags.
 func DefaultChromeFlags() []ChromeFlag {
@@ -104,8 +105,8 @@ func DefaultChromeFlags() []ChromeFlag {
 	}
 }
 
-// IncognitoPage wraps a page with its incognito browser context for proper
-// cleanup. It implements io.Closer.
+// IncognitoPage wraps a page with its incognito browser context for proper cleanup. It
+// implements io.Closer.
 type IncognitoPage struct {
 	// Ctx is the browser context for this incognito page.
 	Ctx context.Context
@@ -127,9 +128,8 @@ type IncognitoPage struct {
 	releaseOnce sync.Once
 }
 
-// Close closes both the page and its incognito context. The pool
-// semaphore slot is released exactly once via sync.Once when created
-// by a BrowserPool with MaxPages.
+// Close closes both the page and its incognito context. The pool semaphore slot is
+// released exactly once via sync.Once when created by a BrowserPool with MaxPages.
 //
 // Returns error when the context cannot be closed.
 func (ip *IncognitoPage) Close() error {
@@ -153,8 +153,8 @@ func (ip *IncognitoPage) Close() error {
 	return nil
 }
 
-// CloseContext closes just the incognito browser context (not the page).
-// Use this when the page is closed separately (e.g., via PageHelper.Close).
+// CloseContext closes just the incognito browser context (not the page). Use this when
+// the page is closed separately (e.g., via PageHelper.Close).
 //
 // Returns error when disposing the browser context fails.
 func (ip *IncognitoPage) CloseContext() error {
@@ -235,15 +235,14 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 	}, nil
 }
 
-// NewIncognitoPage creates a new isolated browser page in an incognito context.
-// Each page has its own cookies, storage, and cache, making it safe for
-// parallel tests.
+// NewIncognitoPage creates a new isolated browser page in an incognito context. Each page
+// has its own cookies, storage, and cache, making it safe for parallel tests.
 //
 // Returns *IncognitoPage which provides an isolated browsing context.
 // Returns error when page creation fails after retrying with backoff.
 //
-// Safe for concurrent use. Call IncognitoPage.Close() to clean up both the
-// page and the browser context.
+// Safe for concurrent use. Call IncognitoPage.Close() to clean up both the page and the
+// browser context.
 func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -270,12 +269,11 @@ func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
 	return nil, fmt.Errorf("failed to create healthy page after %d attempts: %w", maxPageCreationRetries, lastErr)
 }
 
-// Close closes the browser and cleans up resources, including
-// the temporary user-data directory on disk.
+// Close closes the browser and cleans up resources, including the temporary user-data
+// directory on disk.
 //
-// Concurrency: safe for concurrent use. Repeated calls are
-// no-ops because the mutex serialises access and nil-guarded
-// cancels are idempotent.
+// Concurrency: safe for concurrent use. Repeated calls are no-ops because the mutex
+// serialises access and nil-guarded cancels are idempotent.
 func (b *Browser) Close() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -292,26 +290,26 @@ func (b *Browser) Close() {
 	}
 }
 
-// UserDataDir returns the path to the browser's temporary user-data directory.
-// Callers can use this to identify (and exclude) the directory during cleanup
-// of orphaned temp dirs left by killed subprocesses.
+// UserDataDir returns the path to the browser's temporary user-data directory. Callers
+// can use this to identify (and exclude) the directory during cleanup of orphaned temp
+// dirs left by killed subprocesses.
 //
 // Returns string which is the path to the temporary user-data directory.
 func (b *Browser) UserDataDir() string {
 	return b.userDataDir
 }
 
-// BrowserCtx returns the underlying chromedp browser context.
-// Use with caution - prefer using the wrapped methods.
+// BrowserCtx returns the underlying chromedp browser context. Use with caution - prefer
+// using the wrapped methods.
 //
 // Returns context.Context which is the chromedp browser context.
 func (b *Browser) BrowserCtx() context.Context {
 	return b.browserCtx
 }
 
-// createIncognitoPageOnce creates a single page (tab) without retries.
-// This creates a new tab context, not a true incognito context, but provides
-// sufficient isolation for parallel test execution.
+// createIncognitoPageOnce creates a single page (tab) without retries. This creates a new
+// tab context, not a true incognito context, but provides sufficient isolation for
+// parallel test execution.
 //
 // Returns *IncognitoPage which is the new tab ready for use.
 // Returns error when the page fails to initialise.
@@ -342,8 +340,8 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 
 // verifyPageHealthy checks that the page is responsive to CDP commands.
 //
-// Returns error when the page fails to respond within the timeout or the
-// document ready state is neither complete nor interactive.
+// Returns error when the page fails to respond within the timeout or the document ready
+// state is neither complete nor interactive.
 func (*Browser) verifyPageHealthy(ctx context.Context) error {
 	timedCtx, cancel := context.WithTimeoutCause(
 		ctx, 2*time.Second,
@@ -372,22 +370,21 @@ type ConsoleLog struct {
 	// Time is when the log entry was created.
 	Time time.Time
 
-	// Level is the log severity: "log", "warn", "error", "info", "debug", or
-	// "trace".
+	// Level is the log severity: "log", "warn", "error", "info", "debug", or "trace".
 	Level string
 
 	// Message is the text content of the console log entry.
 	Message string
 }
 
-// PageHelper wraps a chromedp context with additional helper methods for
-// E2E testing. It implements io.Closer.
+// PageHelper wraps a chromedp context with additional helper methods for E2E testing. It
+// implements io.Closer.
 type PageHelper struct {
 	// ctx is the chromedp context for browser automation.
 	ctx context.Context
 
-	// cancel stops all page operations when called, providing a cause for
-	// cancellation diagnostics.
+	// cancel stops all page operations when called, providing a cause for cancellation
+	// diagnostics.
 	cancel context.CancelCauseFunc
 
 	// stopChan signals when to stop console capture.
@@ -462,13 +459,12 @@ func (ph *PageHelper) ClearConsoleLogs() {
 	ph.consoleMutex.Unlock()
 }
 
-// ConsoleLogsWithLevel returns a copy of the captured console logs with their
-// levels.
+// ConsoleLogsWithLevel returns a copy of the captured console logs with their levels.
 //
 // Returns []ConsoleLog which contains a snapshot of all captured logs.
 //
-// Safe for concurrent use. The returned slice is a copy, so callers may
-// modify it without affecting the internal state.
+// Safe for concurrent use. The returned slice is a copy, so callers may modify it without
+// affecting the internal state.
 func (ph *PageHelper) ConsoleLogsWithLevel() []ConsoleLog {
 	ph.consoleMutex.Lock()
 	defer ph.consoleMutex.Unlock()
@@ -517,17 +513,16 @@ func (ph *PageHelper) HasConsoleErrors() bool {
 
 // ConsoleErrors returns all error-level console messages.
 //
-// Returns []ConsoleLog which contains all console entries logged at error
-// level.
+// Returns []ConsoleLog which contains all console entries logged at error level.
 func (ph *PageHelper) ConsoleErrors() []ConsoleLog {
 	return ph.ConsoleLogsByLevel("error")
 }
 
-// Close closes the page, handling beforeunload dialogues and
-// signalling the console capture task to stop.
+// Close closes the page, handling beforeunload dialogues and signalling the console
+// capture task to stop.
 //
-// Concurrency: safe for concurrent use. The stop channel
-// is closed under consoleMutex to prevent double-close.
+// Concurrency: safe for concurrent use. The stop channel is closed under consoleMutex to
+// prevent double-close.
 func (ph *PageHelper) Close() {
 	ph.consoleMutex.Lock()
 	if !ph.stopped {
@@ -593,8 +588,8 @@ func (ph *PageHelper) handleConsoleEvent(ev any) {
 // Takes message (string) which is the log message to record.
 // Takes level (string) which is the log severity level.
 //
-// Safe for concurrent use. Uses consoleMutex to protect access to the log
-// slices. Does nothing if the helper has been stopped.
+// Safe for concurrent use. Uses consoleMutex to protect access to the log slices. Does
+// nothing if the helper has been stopped.
 func (ph *PageHelper) recordConsoleLog(message, level string) {
 	ph.consoleMutex.Lock()
 	defer ph.consoleMutex.Unlock()
@@ -620,8 +615,8 @@ func DefaultBrowserOptions() BrowserOptions {
 	}
 }
 
-// WaitStable waits for the page DOM to stabilise, meaning no changes occur
-// for the given interval.
+// WaitStable waits for the page DOM to stabilise, meaning no changes occur for the given
+// interval.
 //
 // Takes interval (time.Duration) which sets how long to wait between checks.
 //
@@ -657,8 +652,7 @@ func WaitStable(ctx context.Context, interval time.Duration) error {
 
 // buildConsoleMessage converts console arguments to a single message string.
 //
-// Takes arguments ([]*runtime.RemoteObject) which are the console arguments to
-// convert.
+// Takes arguments ([]*runtime.RemoteObject) which are the console arguments to convert.
 //
 // Returns string which is the space-separated message built from all arguments.
 func buildConsoleMessage(arguments []*runtime.RemoteObject) string {
@@ -669,8 +663,7 @@ func buildConsoleMessage(arguments []*runtime.RemoteObject) string {
 	return strings.Join(parts, " ")
 }
 
-// remoteObjectToString converts a CDP RemoteObject to its string
-// representation.
+// remoteObjectToString converts a CDP RemoteObject to its string representation.
 //
 // Takes argument (*runtime.RemoteObject) which is the remote object to convert.
 //
@@ -693,8 +686,8 @@ func remoteObjectToString(argument *runtime.RemoteObject) string {
 //
 // Takes t (runtime.APIType) which specifies the console API type to map.
 //
-// Returns string which is the corresponding level name such as "debug",
-// "info", "error", "warn", "trace", or "log" for unhandled types.
+// Returns string which is the corresponding level name such as "debug", "info", "error",
+// "warn", "trace", or "log" for unhandled types.
 func mapConsoleLevel(t runtime.APIType) string {
 	switch t {
 	case runtime.APITypeDebug:

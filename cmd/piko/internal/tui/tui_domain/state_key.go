@@ -22,15 +22,15 @@ import (
 	"fmt"
 )
 
-// StateSlot identifies which sub-pane within a menu item a state snapshot
-// belongs to. The model keeps centre and detail snapshots separately so
-// scrolling in one does not displace scrolling in the other.
+// StateSlot identifies which sub-pane within a menu item a state snapshot belongs to. The
+// model keeps centre and detail snapshots separately so scrolling in one does not
+// displace scrolling in the other.
 type StateSlot int
 
 const (
-	// StateSlotMenu is the per-group left-column menu cursor. State for
-	// this slot lives keyed by group only; the ItemID component of a
-	// StateKey is empty when the slot is StateSlotMenu.
+	// StateSlotMenu is the per-group left-column menu cursor. State for this slot lives
+	// keyed by group only; the ItemID component of a StateKey is empty when the slot is
+	// StateSlotMenu.
 	StateSlotMenu StateSlot = iota
 
 	// StateSlotCentre is the centre column of a menu item.
@@ -58,25 +58,23 @@ func (s StateSlot) String() string {
 
 // StateKey addresses per (group, item, pane) state.
 //
-// Used by the grouped UI on top of the existing PanelStateStore;
-// callers store and reload state under StateKey.String().
+// Used by the grouped UI on top of the existing PanelStateStore; callers store and reload
+// state under StateKey.String().
 type StateKey struct {
 	// Group identifies the parent group. Required.
 	Group GroupID
 
-	// Item identifies the menu item within the group. Empty only when
-	// Pane == StateSlotMenu (in which case the key addresses the group's
-	// menu cursor as a whole).
+	// Item identifies the menu item within the group. Empty only when Pane == StateSlotMenu
+	// (in which case the key addresses the group's menu cursor as a whole).
 	Item ItemID
 
-	// Pane identifies which sub-pane within the item the state belongs
-	// to.
+	// Pane identifies which sub-pane within the item the state belongs to.
 	Pane StateSlot
 }
 
-// String produces a stable encoding suitable for use as a flat-key in the
-// existing PanelStateStore implementations. The encoding is "group/item/pane"
-// with a special "menu" pane that omits the item segment.
+// String produces a stable encoding suitable for use as a flat-key in the existing
+// PanelStateStore implementations. The encoding is "group/item/pane" with a special
+// "menu" pane that omits the item segment.
 //
 // Returns string suitable for keying flat-map stores.
 func (k StateKey) String() string {
@@ -97,8 +95,7 @@ func MenuKey(group GroupID) StateKey {
 
 // CentreKey returns a StateKey addressing the centre pane of an item.
 //
-// Takes group (GroupID) and item (ItemID) which together identify the
-// menu item.
+// Takes group (GroupID) and item (ItemID) which together identify the menu item.
 //
 // Returns StateKey with Pane == StateSlotCentre.
 func CentreKey(group GroupID, item ItemID) StateKey {
@@ -107,8 +104,7 @@ func CentreKey(group GroupID, item ItemID) StateKey {
 
 // DetailKey returns a StateKey addressing the detail pane of an item.
 //
-// Takes group (GroupID) and item (ItemID) which together identify the
-// menu item.
+// Takes group (GroupID) and item (ItemID) which together identify the menu item.
 //
 // Returns StateKey with Pane == StateSlotDetail.
 func DetailKey(group GroupID, item ItemID) StateKey {

@@ -16,19 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package compiler_adapters implements [compiler_domain.InputReaderPort]
-// for reading SFC (Single File Component) sources.
+// Package compiler_adapters implements [compiler_domain.InputReaderPort] for reading SFC
+// (Single File Component) sources.
 //
 // Two backends are included:
 //
-//   - Disk: reads SFC files via a sandboxed filesystem
-//     ([safedisk.Sandbox])
-//   - Memory: stores and retrieves SFC content from an in-memory map,
-//     primarily used for testing or dynamically generated sources
+//   - Disk: reads SFC files via a sandboxed filesystem ([safedisk.Sandbox])
+//   - Memory: stores and retrieves SFC content from an in-memory map, primarily used for
+//     testing or dynamically generated sources
 //
 // # Thread safety
 //
-// The disk input reader delegates thread safety to the underlying
-// sandbox. The memory input reader is safe for concurrent use; it
-// uses a [sync.RWMutex] to protect its internal data store.
+// The disk input reader delegates thread safety to the underlying sandbox. The memory
+// input reader is safe for concurrent use; it uses a [sync.RWMutex] to protect its
+// internal data store.
 package compiler_adapters

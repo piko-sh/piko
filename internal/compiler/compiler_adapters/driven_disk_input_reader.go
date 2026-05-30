@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// diskInputReader reads SFC files from disk using a sandboxed filesystem.
-// All file operations are constrained to the sandbox root directory.
+// diskInputReader reads SFC files from disk using a sandboxed filesystem. All file
+// operations are constrained to the sandbox root directory.
 type diskInputReader struct {
 	// sandbox provides safe file system access for reading source files.
 	sandbox safedisk.Sandbox
@@ -38,8 +38,8 @@ type diskInputReader struct {
 
 // ReadSFC reads an SFC file from disk using the sandboxed filesystem.
 //
-// Takes sourceIdentifier (string) which specifies the file path relative to
-// the sandbox root.
+// Takes sourceIdentifier (string) which specifies the file path relative to the sandbox
+// root.
 //
 // Returns []byte which contains the file contents.
 // Returns error when the file cannot be read or the path is a directory.
@@ -104,8 +104,8 @@ func (reader *diskInputReader) ReadSFC(ctx context.Context, sourceIdentifier str
 	return contentBytes, nil
 }
 
-// NewDiskInputReader creates a new input reader that uses the provided sandbox
-// for secure file system access.
+// NewDiskInputReader creates a new input reader that uses the provided sandbox for secure
+// file system access.
 //
 // Takes sandbox (safedisk.Sandbox) which provides secure file system access.
 //

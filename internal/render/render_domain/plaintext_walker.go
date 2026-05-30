@@ -46,10 +46,10 @@ type linkInfo struct {
 	isButton bool
 }
 
-// plainTextWalker is a stateful AST visitor that generates a plain-text
-// representation of a TemplateAST. It converts HTML structures like lists,
-// tables, and emphasis into readable text, and supports custom directives
-// like `p-plaintext-hide` and `p-plaintext-alt` for fine-grained control.
+// plainTextWalker is a stateful AST visitor that generates a plain-text representation of
+// a TemplateAST. It converts HTML structures like lists, tables, and emphasis into
+// readable text, and supports custom directives like `p-plaintext-hide` and
+// `p-plaintext-alt` for fine-grained control.
 type plainTextWalker struct {
 	// builder holds the plain text output as it is built during tree traversal.
 	builder strings.Builder
@@ -80,8 +80,8 @@ func (w *plainTextWalker) Walk(ast *ast_domain.TemplateAST) (string, error) {
 	return strings.TrimSpace(w.builder.String()), nil
 }
 
-// walkNode processes a node and its children, choosing the correct handler for
-// each node type.
+// walkNode processes a node and its children, choosing the correct handler for each node
+// type.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to process.
 func (w *plainTextWalker) walkNode(node *ast_domain.TemplateNode) {
@@ -113,8 +113,8 @@ func (w *plainTextWalker) walkNode(node *ast_domain.TemplateNode) {
 	}
 }
 
-// enterElement handles entering a new element during tree walking. It adds
-// opening formatting such as newlines, list markers, or emphasis characters.
+// enterElement handles entering a new element during tree walking. It adds opening
+// formatting such as newlines, list markers, or emphasis characters.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
 func (w *plainTextWalker) enterElement(node *ast_domain.TemplateNode) {
@@ -160,8 +160,8 @@ func (w *plainTextWalker) enterElement(node *ast_domain.TemplateNode) {
 	}
 }
 
-// exitElement adds closing marks when leaving an element.
-// This includes link URLs, heading underlines, and text styles.
+// exitElement adds closing marks when leaving an element. This includes link URLs,
+// heading underlines, and text styles.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element being exited.
 func (w *plainTextWalker) exitElement(node *ast_domain.TemplateNode) {
@@ -194,11 +194,10 @@ func (w *plainTextWalker) exitElement(node *ast_domain.TemplateNode) {
 	}
 }
 
-// handleText processes a text node by combining whitespace and extracting
-// literal text from rich text parts.
+// handleText processes a text node by combining whitespace and extracting literal text
+// from rich text parts.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the text content to
-// process.
+// Takes node (*ast_domain.TemplateNode) which contains the text content to process.
 func (w *plainTextWalker) handleText(node *ast_domain.TemplateNode) {
 	var text string
 	if len(node.RichText) > 0 {
@@ -313,9 +312,8 @@ func (w *plainTextWalker) writeLinkSuffix() {
 	w.isNewLine = false
 }
 
-// calculateUnderlineLength finds the right length for heading underlines.
-// It uses the length of the current line's text, kept between the minimum and
-// maximum values.
+// calculateUnderlineLength finds the right length for heading underlines. It uses the
+// length of the current line's text, kept between the minimum and maximum values.
 //
 // Returns int which is the underline length to use.
 func (w *plainTextWalker) calculateUnderlineLength() int {

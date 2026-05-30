@@ -28,23 +28,21 @@ import (
 )
 
 const (
-	// identQueryNameMap is the identifier for the package-level query name
-	// lookup map variable.
+	// identQueryNameMap is the identifier for the package-level query name lookup map
+	// variable.
 	identQueryNameMap = "queryNameMap"
 
-	// identQueryNameResolver is the identifier for the QueryNameResolver
-	// function.
+	// identQueryNameResolver is the identifier for the QueryNameResolver function.
 	identQueryNameResolver = "QueryNameResolver"
 )
 
-// EmitOTel generates the otel.go file containing the QueryNameResolver
-// function that maps SQL query constant text to human-readable operation names
-// for OpenTelemetry span and metric attributes.
+// EmitOTel generates the otel.go file containing the QueryNameResolver function that maps
+// SQL query constant text to human-readable operation names for OpenTelemetry span and
+// metric attributes.
 //
-// Takes packageName (string) which is the Go package name for the generated
-// file.
-// Takes queries ([]*querier_dto.AnalysedQuery) which provide the query names
-// and their SQL constants.
+// Takes packageName (string) which is the Go package name for the generated file.
+// Takes queries ([]*querier_dto.AnalysedQuery) which provide the query names and their
+// SQL constants.
 //
 // Returns querier_dto.GeneratedFile which contains the otel.go source.
 // Returns error when formatting fails.
@@ -75,8 +73,8 @@ func EmitOTel(packageName string, queries []*querier_dto.AnalysedQuery) (querier
 //	    ...
 //	}
 //
-// Only static queries are included; dynamic queries produce variable SQL that
-// cannot be matched by constant lookup.
+// Only static queries are included; dynamic queries produce variable SQL that cannot be
+// matched by constant lookup.
 //
 // Takes queries ([]*querier_dto.AnalysedQuery) which provide the query names.
 //

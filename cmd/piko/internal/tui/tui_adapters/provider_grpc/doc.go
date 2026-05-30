@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_grpc implements TUI data providers that communicate
-// with the Piko monitoring gRPC server.
+// Package provider_grpc implements TUI data providers that communicate with the Piko
+// monitoring gRPC server.
 //
-// It fulfils the [tui_domain] provider port interfaces using gRPC
-// clients generated from the monitoring API protobuf definitions,
-// replacing direct database access to enable remote monitoring
-// scenarios such as kubectl port-forward. Each provider caches its
-// data locally and refreshes at a configurable interval, communicating
-// with HealthService, MetricsService, OrchestratorInspectorService,
-// and RegistryInspectorService.
+// It fulfils the [tui_domain] provider port interfaces using gRPC clients generated from
+// the monitoring API protobuf definitions, replacing direct database access to enable
+// remote monitoring scenarios such as kubectl port-forward. Each provider caches its data
+// locally and refreshes at a configurable interval, communicating with HealthService,
+// MetricsService, OrchestratorInspectorService, and RegistryInspectorService.
 //
 // # Usage
 //
@@ -39,7 +37,7 @@
 //
 // # Thread safety
 //
-// All provider methods are safe for concurrent use. Each provider
-// guards its cached state with a [sync.RWMutex] so that concurrent
-// reads proceed freely whilst writes are serialised during refresh cycles.
+// All provider methods are safe for concurrent use. Each provider guards its cached state
+// with a [sync.RWMutex] so that concurrent reads proceed freely whilst writes are
+// serialised during refresh cycles.
 package provider_grpc

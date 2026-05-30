@@ -22,22 +22,27 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "russian"
+const (
 
-// stopWords contains common Russian stop words.
-var stopWords = map[string]bool{
-	"я": true, "ты": true, "он": true, "она": true, "мы": true, "вы": true, "они": true,
-	"меня": true, "тебя": true, "его": true, "её": true, "нас": true, "вас": true, "их": true,
-	"в": true, "на": true, "с": true, "к": true, "о": true, "от": true, "для": true, "по": true, "из": true, "за": true, "у": true,
-	"и": true, "а": true, "но": true, "или": true, "что": true, "чтобы": true, "если": true,
-	"быть": true, "есть": true, "был": true, "была": true, "были": true, "будет": true,
-	"это": true, "этот": true, "эта": true, "эти": true, "тот": true, "та": true, "те": true,
-	"не": true, "нет": true, "да": true, "как": true, "так": true, "ещё": true, "уже": true,
-}
+	// Language is the language code for this provider.
+	Language = "russian"
+)
 
-// Provider provides Russian stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+var (
+	// stopWords contains common Russian stop words.
+	stopWords = map[string]bool{
+		"я": true, "ты": true, "он": true, "она": true, "мы": true, "вы": true, "они": true,
+		"меня": true, "тебя": true, "его": true, "её": true, "нас": true, "вас": true, "их": true,
+		"в": true, "на": true, "с": true, "к": true, "о": true, "от": true, "для": true, "по": true, "из": true, "за": true, "у": true,
+		"и": true, "а": true, "но": true, "или": true, "что": true, "чтобы": true, "если": true,
+		"быть": true, "есть": true, "был": true, "была": true, "были": true, "будет": true,
+		"это": true, "этот": true, "эта": true, "эти": true, "тот": true, "та": true, "те": true,
+		"не": true, "нет": true, "да": true, "как": true, "так": true, "ещё": true, "уже": true,
+	}
+)
+
+// Provider provides Russian stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the Russian stop words.
@@ -56,13 +61,15 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new Russian stop words provider instance. Use this with
 // linguistics_domain.RegisterStopWordsProviderFactory for explicit registration.
 //
-// Returns linguistics_domain.StopWordsProviderPort which provides Russian stop
-// words filtering.
+// Returns linguistics_domain.StopWordsProviderPort which provides Russian stop words
+// filtering.
 // Returns error when the provider cannot be initialised.
 func Factory() (linguistics_domain.StopWordsProviderPort, error) {
 	return New()

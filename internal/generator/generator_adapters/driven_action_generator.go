@@ -39,12 +39,13 @@ const (
 	actionFilePermission fs.FileMode = 0640
 )
 
-var _ generator_domain.ActionGeneratorPort = (*ActionGeneratorAdapter)(nil)
+var (
+	_ generator_domain.ActionGeneratorPort = (*ActionGeneratorAdapter)(nil)
+)
 
-// ActionGeneratorAdapter implements ActionGeneratorPort by generating action
-// code using the embedded emitters. It converts the ActionManifest from the
-// annotator's auto-discovery into ActionSpec format and generates the action
-// code files.
+// ActionGeneratorAdapter implements ActionGeneratorPort by generating action code using
+// the embedded emitters. It converts the ActionManifest from the annotator's
+// auto-discovery into ActionSpec format and generates the action code files.
 type ActionGeneratorAdapter struct {
 	// registryEmitter generates Go registry code from action specifications.
 	registryEmitter *ActionRegistryEmitter
@@ -62,8 +63,8 @@ type ActionGeneratorAdapter struct {
 // ActionGeneratorOption configures an ActionGeneratorAdapter.
 type ActionGeneratorOption func(*ActionGeneratorAdapter)
 
-// NewActionGeneratorAdapter creates a new ActionGeneratorAdapter with the
-// embedded emitters for generating action code.
+// NewActionGeneratorAdapter creates a new ActionGeneratorAdapter with the embedded
+// emitters for generating action code.
 //
 // Takes opts (...ActionGeneratorOption) which configures the adapter.
 //
@@ -90,8 +91,8 @@ func NewActionGeneratorAdapter(opts ...ActionGeneratorOption) *ActionGeneratorAd
 //   - dist/ts/actions.gen.ts - TypeScript client types
 //
 // Takes ctx (context.Context) for cancellation.
-// Takes manifest (*annotator_dto.ActionManifest) which contains the discovered
-// actions from the actions/ directory.
+// Takes manifest (*annotator_dto.ActionManifest) which contains the discovered actions
+// from the actions/ directory.
 // Takes outputDir (string) which is the project root directory for output.
 //
 // Returns error when code generation or file writing fails.
@@ -149,16 +150,15 @@ func (a *ActionGeneratorAdapter) GenerateActions(
 	return nil
 }
 
-// writeFile writes data to a file, creating parent directories as needed
-// and resolving paths relative to the sandbox root when one is configured.
-// When no sandbox is configured, a one-shot sandbox is created at the file's
-// parent directory so writes still go through path-traversal protection.
+// writeFile writes data to a file, creating parent directories as needed and resolving
+// paths relative to the sandbox root when one is configured. When no sandbox is
+// configured, a one-shot sandbox is created at the file's parent directory so writes
+// still go through path-traversal protection.
 //
 // Takes path (string) which specifies the file path to write to.
 // Takes data ([]byte) which contains the content to write.
 //
-// Returns error when the directory cannot be created or the file cannot be
-// written.
+// Returns error when the directory cannot be created or the file cannot be written.
 func (a *ActionGeneratorAdapter) writeFile(path string, data []byte) error {
 	if a.sandbox != nil {
 		relPath := a.sandbox.RelPath(path)

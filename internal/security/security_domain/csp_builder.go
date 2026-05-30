@@ -24,24 +24,24 @@ import (
 	"piko.sh/piko/internal/security/security_dto"
 )
 
-// defaultDirectiveCapacity is the initial capacity for the order slice in
-// CSPBuilder. Most CSP policies use 4-8 directives, so 8 is a reasonable
-// starting point.
-const defaultDirectiveCapacity = 8
+const (
+	// defaultDirectiveCapacity is the initial capacity for the order slice in CSPBuilder.
+	// Most CSP policies use 4-8 directives, so 8 is a reasonable starting point.
+	defaultDirectiveCapacity = 8
+)
 
-// CSPBuilder provides a fluent API for constructing Content-Security-Policy
-// headers. It supports all standard CSP directives, report-only mode, and
-// dynamic per-request tokens for strict CSP policies.
+// CSPBuilder provides a fluent API for constructing Content-Security-Policy headers. It
+// supports all standard CSP directives, report-only mode, and dynamic per-request tokens
+// for strict CSP policies.
 type CSPBuilder struct {
-	// directives maps each directive to its allowed sources; nil value indicates
-	// a boolean directive with no sources.
+	// directives maps each directive to its allowed sources; nil value indicates a boolean
+	// directive with no sources.
 	directives map[Directive][]Source
 
 	// order maintains the insertion order of directives for consistent output.
 	order []Directive
 
-	// reportOnly uses Content-Security-Policy-Report-Only header instead of
-	// enforcing.
+	// reportOnly uses Content-Security-Policy-Report-Only header instead of enforcing.
 	reportOnly bool
 
 	// usesTokens indicates whether dynamic request tokens are used in the policy.
@@ -60,10 +60,9 @@ func NewCSPBuilder() *CSPBuilder {
 	}
 }
 
-// ReportOnly configures the builder to produce a
-// Content-Security-Policy-Report-Only header instead of an enforcing
-// Content-Security-Policy header, allowing policies to be tested before
-// enforcement.
+// ReportOnly configures the builder to produce a Content-Security-Policy-Report-Only
+// header instead of an enforcing Content-Security-Policy header, allowing policies to be
+// tested before enforcement.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) ReportOnly() *CSPBuilder {
@@ -78,17 +77,17 @@ func (b *CSPBuilder) IsReportOnly() bool {
 	return b.reportOnly
 }
 
-// UsesRequestTokens returns true if this builder uses dynamic per-request
-// tokens. When true, the security middleware must replace the
-// RequestTokenPlaceholder with a unique cryptographic token for each request.
+// UsesRequestTokens returns true if this builder uses dynamic per-request tokens. When
+// true, the security middleware must replace the RequestTokenPlaceholder with a unique
+// cryptographic token for each request.
 //
 // Returns bool which indicates whether per-request tokens are in use.
 func (b *CSPBuilder) UsesRequestTokens() bool {
 	return b.usesTokens
 }
 
-// Add appends sources to a directive using the generic API.
-// Use it when the directive is determined at runtime.
+// Add appends sources to a directive using the generic API. Use it when the directive is
+// determined at runtime.
 //
 // Takes directive (Directive) which specifies the CSP directive to modify.
 // Takes sources (...Source) which provides the source values to add.
@@ -101,8 +100,8 @@ func (b *CSPBuilder) Add(directive Directive, sources ...Source) *CSPBuilder {
 	return b.addSources(directive, sources...)
 }
 
-// DefaultSrc sets the default-src directive, which is the fallback for
-// other fetch directives.
+// DefaultSrc sets the default-src directive, which is the fallback for other fetch
+// directives.
 //
 // Takes sources (...Source) which specifies the allowed content sources.
 //
@@ -111,8 +110,7 @@ func (b *CSPBuilder) DefaultSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(DefaultSrc, sources...)
 }
 
-// ScriptSrc sets the script-src directive, controlling where scripts can be
-// loaded from.
+// ScriptSrc sets the script-src directive, controlling where scripts can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed script origins.
 //
@@ -123,8 +121,7 @@ func (b *CSPBuilder) ScriptSrc(sources ...Source) *CSPBuilder {
 
 // ScriptSrcElem sets the script-src-elem directive for script elements.
 //
-// Takes sources (...Source) which specifies the allowed sources for script
-// elements.
+// Takes sources (...Source) which specifies the allowed sources for script elements.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) ScriptSrcElem(sources ...Source) *CSPBuilder {
@@ -133,16 +130,15 @@ func (b *CSPBuilder) ScriptSrcElem(sources ...Source) *CSPBuilder {
 
 // ScriptSrcAttr sets the script-src-attr directive for inline event handlers.
 //
-// Takes sources (...Source) which specifies the allowed sources for inline
-// event handlers.
+// Takes sources (...Source) which specifies the allowed sources for inline event
+// handlers.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) ScriptSrcAttr(sources ...Source) *CSPBuilder {
 	return b.addSources(ScriptSrcAttr, sources...)
 }
 
-// StyleSrc sets the style-src directive, controlling where styles can be
-// loaded from.
+// StyleSrc sets the style-src directive, controlling where styles can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed style sources.
 //
@@ -153,8 +149,7 @@ func (b *CSPBuilder) StyleSrc(sources ...Source) *CSPBuilder {
 
 // StyleSrcElem sets the style-src-elem directive for style elements.
 //
-// Takes sources (...Source) which specifies the allowed sources for style
-// elements.
+// Takes sources (...Source) which specifies the allowed sources for style elements.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) StyleSrcElem(sources ...Source) *CSPBuilder {
@@ -163,16 +158,15 @@ func (b *CSPBuilder) StyleSrcElem(sources ...Source) *CSPBuilder {
 
 // StyleSrcAttr sets the style-src-attr directive for inline style attributes.
 //
-// Takes sources (...Source) which specifies the allowed sources for inline
-// style attributes.
+// Takes sources (...Source) which specifies the allowed sources for inline style
+// attributes.
 //
 // Returns *CSPBuilder which allows for method chaining.
 func (b *CSPBuilder) StyleSrcAttr(sources ...Source) *CSPBuilder {
 	return b.addSources(StyleSrcAttr, sources...)
 }
 
-// ImgSrc sets the img-src directive, controlling where images can be loaded
-// from.
+// ImgSrc sets the img-src directive, controlling where images can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed image sources.
 //
@@ -181,8 +175,7 @@ func (b *CSPBuilder) ImgSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(ImgSrc, sources...)
 }
 
-// FontSrc sets the font-src directive, controlling where fonts can be loaded
-// from.
+// FontSrc sets the font-src directive, controlling where fonts can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed font origins.
 //
@@ -191,8 +184,7 @@ func (b *CSPBuilder) FontSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(FontSrc, sources...)
 }
 
-// ConnectSrc sets the connect-src directive, controlling fetch, XHR, and
-// WebSocket URLs.
+// ConnectSrc sets the connect-src directive, controlling fetch, XHR, and WebSocket URLs.
 //
 // Takes sources (...Source) which specifies the allowed connection origins.
 //
@@ -201,8 +193,8 @@ func (b *CSPBuilder) ConnectSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(ConnectSrc, sources...)
 }
 
-// MediaSrc sets the media-src directive, controlling where audio and video
-// can be loaded from.
+// MediaSrc sets the media-src directive, controlling where audio and video can be loaded
+// from.
 //
 // Takes sources (...Source) which specifies the allowed origins for media.
 //
@@ -211,8 +203,7 @@ func (b *CSPBuilder) MediaSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(MediaSrc, sources...)
 }
 
-// ObjectSrc sets the object-src directive, controlling where plugins can be
-// loaded from.
+// ObjectSrc sets the object-src directive, controlling where plugins can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed plugin origins.
 //
@@ -221,8 +212,7 @@ func (b *CSPBuilder) ObjectSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(ObjectSrc, sources...)
 }
 
-// FrameSrc sets the frame-src directive, controlling where frames can be
-// loaded from.
+// FrameSrc sets the frame-src directive, controlling where frames can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed frame origins.
 //
@@ -240,8 +230,7 @@ func (b *CSPBuilder) ChildSrc(sources ...Source) *CSPBuilder {
 	return b.addSources(ChildSrc, sources...)
 }
 
-// WorkerSrc sets the worker-src directive, controlling where workers can be
-// loaded from.
+// WorkerSrc sets the worker-src directive, controlling where workers can be loaded from.
 //
 // Takes sources (...Source) which specifies the allowed worker origins.
 //
@@ -261,8 +250,7 @@ func (b *CSPBuilder) ManifestSrc(sources ...Source) *CSPBuilder {
 
 // PrefetchSrc sets the prefetch-src directive for prefetched resources.
 //
-// Takes sources (...Source) which specifies the allowed sources for
-// prefetching.
+// Takes sources (...Source) which specifies the allowed sources for prefetching.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) PrefetchSrc(sources ...Source) *CSPBuilder {
@@ -287,8 +275,7 @@ func (b *CSPBuilder) FormAction(sources ...Source) *CSPBuilder {
 	return b.addSources(FormAction, sources...)
 }
 
-// FrameAncestors sets the frame-ancestors directive, controlling who can
-// embed this page.
+// FrameAncestors sets the frame-ancestors directive, controlling who can embed this page.
 //
 // Takes sources (...Source) which specifies the allowed embedding origins.
 //
@@ -297,8 +284,7 @@ func (b *CSPBuilder) FrameAncestors(sources ...Source) *CSPBuilder {
 	return b.addSources(FrameAncestors, sources...)
 }
 
-// ReportToDirective sets the report-to directive for violation reports
-// (CSP Level 3).
+// ReportToDirective sets the report-to directive for violation reports (CSP Level 3).
 //
 // Takes groupName (string) which specifies the reporting group name.
 //
@@ -307,16 +293,16 @@ func (b *CSPBuilder) ReportToDirective(groupName string) *CSPBuilder {
 	return b.addSources(ReportTo, Source(groupName))
 }
 
-// UpgradeInsecureRequests adds the upgrade-insecure-requests directive,
-// which instructs browsers to treat all insecure URLs as secure.
+// UpgradeInsecureRequests adds the upgrade-insecure-requests directive, which instructs
+// browsers to treat all insecure URLs as secure.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) UpgradeInsecureRequests() *CSPBuilder {
 	return b.addBoolean(UpgradeInsecureRequests)
 }
 
-// BlockAllMixedContent adds the block-all-mixed-content directive, which
-// prevents loading any mixed (HTTP on HTTPS page) content.
+// BlockAllMixedContent adds the block-all-mixed-content directive, which prevents loading
+// any mixed (HTTP on HTTPS page) content.
 //
 // Returns *CSPBuilder which allows for method chaining.
 func (b *CSPBuilder) BlockAllMixedContent() *CSPBuilder {
@@ -325,11 +311,10 @@ func (b *CSPBuilder) BlockAllMixedContent() *CSPBuilder {
 
 // Sandbox sets the sandbox directive with the specified tokens.
 //
-// Pass no tokens for maximum restrictions (outputs just "sandbox"). Tokens are
-// not quoted in the output (unlike keywords like 'self'). The sandbox directive
-// restricts a page to a sandboxed environment where various capabilities are
-// disabled. Each token explicitly enables a capability that would otherwise be
-// restricted.
+// Pass no tokens for maximum restrictions (outputs just "sandbox"). Tokens are not quoted
+// in the output (unlike keywords like 'self'). The sandbox directive restricts a page to
+// a sandboxed environment where various capabilities are disabled. Each token explicitly
+// enables a capability that would otherwise be restricted.
 //
 // Takes tokens (...SandboxToken) which specifies the capabilities to enable.
 //
@@ -345,24 +330,21 @@ func (b *CSPBuilder) Sandbox(tokens ...SandboxToken) *CSPBuilder {
 	return b.addSources(Sandbox, sources...)
 }
 
-// RequireTrustedTypesFor enables Trusted Types enforcement at DOM XSS injection
-// sinks.
+// RequireTrustedTypesFor enables Trusted Types enforcement at DOM XSS injection sinks.
 //
-// This directive only accepts the 'script' keyword, which is added
-// automatically. When enabled, browsers will require the use of Trusted Types
-// for dangerous DOM operations.
+// This directive only accepts the 'script' keyword, which is added automatically. When
+// enabled, browsers will require the use of Trusted Types for dangerous DOM operations.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) RequireTrustedTypesFor() *CSPBuilder {
 	return b.addSources(RequireTrustedTypesFor, Script)
 }
 
-// TrustedTypes sets the trusted-types directive with the specified policy
-// names.
+// TrustedTypes sets the trusted-types directive with the specified policy names.
 //
-// Policy names are NOT quoted in the output. Use PolicyName to create them.
-// Pass Wildcard to allow creating policies with any unique names.
-// Pass None to explicitly forbid all policy creation.
+// Policy names are NOT quoted in the output. Use PolicyName to create them. Pass Wildcard
+// to allow creating policies with any unique names. Pass None to explicitly forbid all
+// policy creation.
 //
 // Takes sources (...Source) which specifies the policy names or special values.
 //
@@ -371,9 +353,8 @@ func (b *CSPBuilder) TrustedTypes(sources ...Source) *CSPBuilder {
 	return b.addSources(TrustedTypes, sources...)
 }
 
-// TrustedTypesWithDuplicates sets the trusted-types directive with the
-// specified policy names and allows duplicate policy names (via
-// 'allow-duplicates').
+// TrustedTypesWithDuplicates sets the trusted-types directive with the specified policy
+// names and allows duplicate policy names (via 'allow-duplicates').
 //
 // Takes policies (...Source) which specifies the policy names to allow.
 //
@@ -385,18 +366,17 @@ func (b *CSPBuilder) TrustedTypesWithDuplicates(policies ...Source) *CSPBuilder 
 	return b.addSources(TrustedTypes, sources...)
 }
 
-// TrustedTypesNone sets trusted-types to 'none', explicitly forbidding all
-// Trusted Types policy creation.
+// TrustedTypesNone sets trusted-types to 'none', explicitly forbidding all Trusted Types
+// policy creation.
 //
 // Returns *CSPBuilder which allows method chaining.
 func (b *CSPBuilder) TrustedTypesNone() *CSPBuilder {
 	return b.addSources(TrustedTypes, None)
 }
 
-// WithPikoDefaults configures the builder with Piko's recommended default
-// CSP policy. This provides a secure baseline that works with Piko's built-in
-// features including font loading, inline styles, and the async font loader
-// script.
+// WithPikoDefaults configures the builder with Piko's recommended default CSP policy.
+// This provides a secure baseline that works with Piko's built-in features including font
+// loading, inline styles, and the async font loader script.
 //
 // The default policy is:
 //   - default-src 'self'
@@ -420,8 +400,8 @@ func (b *CSPBuilder) WithPikoDefaults() *CSPBuilder {
 // Build produces the final CSP header value string. Keywords are automatically
 // single-quoted as required by the CSP specification.
 //
-// Returns string which contains the formatted header value, or empty if no
-// directives were added.
+// Returns string which contains the formatted header value, or empty if no directives
+// were added.
 func (b *CSPBuilder) Build() string {
 	if len(b.order) == 0 {
 		return ""
@@ -444,8 +424,8 @@ func (b *CSPBuilder) Build() string {
 	return strings.Join(parts, "; ")
 }
 
-// HeaderName returns the appropriate HTTP header name based on whether
-// report-only mode is enabled.
+// HeaderName returns the appropriate HTTP header name based on whether report-only mode
+// is enabled.
 //
 // Returns string which is either "Content-Security-Policy-Report-Only" or
 // "Content-Security-Policy".
@@ -456,8 +436,8 @@ func (b *CSPBuilder) HeaderName() string {
 	return "Content-Security-Policy"
 }
 
-// Clone creates a deep copy of the builder, allowing modifications without
-// affecting the original.
+// Clone creates a deep copy of the builder, allowing modifications without affecting the
+// original.
 //
 // Returns *CSPBuilder which is an independent copy with its own directives.
 func (b *CSPBuilder) Clone() *CSPBuilder {
@@ -478,12 +458,11 @@ func (b *CSPBuilder) Clone() *CSPBuilder {
 	return clone
 }
 
-// RuntimeConfig builds and returns an immutable CSPRuntimeConfig from this
-// builder. This should be called once at startup and the result passed to
-// middleware.
+// RuntimeConfig builds and returns an immutable CSPRuntimeConfig from this builder. This
+// should be called once at startup and the result passed to middleware.
 //
-// Returns security_dto.CSPRuntimeConfig which contains the built policy and
-// configuration flags ready for use by middleware.
+// Returns security_dto.CSPRuntimeConfig which contains the built policy and configuration
+// flags ready for use by middleware.
 func (b *CSPBuilder) RuntimeConfig() security_dto.CSPRuntimeConfig {
 	return security_dto.CSPRuntimeConfig{
 		Policy:            b.Build(),

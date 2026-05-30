@@ -18,10 +18,10 @@
 
 package annotator_domain
 
-// Orchestrates type resolution for template expressions by delegating to
-// specialised resolvers for different expression types. Coordinates member
-// access, function calls, operators, and collection operations whilst
-// maintaining type safety and diagnostic reporting.
+// Orchestrates type resolution for template expressions by delegating to specialised
+// resolvers for different expression types. Coordinates member access, function calls,
+// operators, and collection operations whilst maintaining type safety and diagnostic
+// reporting.
 
 import (
 	"context"
@@ -40,9 +40,8 @@ import (
 
 // CollectionServicePort is the interface for collection integration.
 //
-// This port allows the TypeResolver to process r.GetCollection() calls
-// during type resolution without directly depending on the collection_domain
-// implementation.
+// This port allows the TypeResolver to process r.GetCollection() calls during type
+// resolution without directly depending on the collection_domain implementation.
 type CollectionServicePort interface {
 	// ProcessGetCollectionCall handles r.GetCollection() calls in user code.
 	//
@@ -66,21 +65,18 @@ type CollectionServicePort interface {
 		options any,
 	) (*ast_domain.GoGeneratorAnnotation, error)
 
-	// ProcessCollectionDirective expands a p-collection directive into entry
-	// points.
+	// ProcessCollectionDirective expands a p-collection directive into entry points.
 	//
-	// Called after building the component graph when a component has a
-	// p-collection directive. Returns virtual entry points for each content
-	// item (for static providers) or a single dynamic route entry point
-	// (for dynamic providers).
+	// Called after building the component graph when a component has a p-collection
+	// directive. Returns virtual entry points for each content item (for static providers)
+	// or a single dynamic route entry point (for dynamic providers).
 	//
 	// Parameters:
 	//   - ctx: Context for cancellation and timeouts
 	//   - directive: Parsed information from the p-collection directive
 	//
 	// Returns:
-	//   - A slice of CollectionEntryPoint (one per content item for static
-	//     providers)
+	//   - A slice of CollectionEntryPoint (one per content item for static providers)
 	//   - An error if expansion fails
 	ProcessCollectionDirective(
 		ctx context.Context,
@@ -88,9 +84,9 @@ type CollectionServicePort interface {
 	) ([]*collection_dto.CollectionEntryPoint, error)
 }
 
-// TypeResolver looks up and resolves types within a given scope. It is used
-// by ComponentLinker, SemanticAnalyser, and other analysers for type checking
-// and type inference.
+// TypeResolver looks up and resolves types within a given scope. It is used by
+// ComponentLinker, SemanticAnalyser, and other analysers for type checking and type
+// inference.
 type TypeResolver struct {
 	// inspector provides access to type data for working out field types.
 	inspector TypeInspectorPort
@@ -98,13 +94,12 @@ type TypeResolver struct {
 	// virtualModule holds the parsed module data used for type resolution.
 	virtualModule *annotator_dto.VirtualModule
 
-	// collectionService handles collection calls such as GetCollection; nil means
-	// collection features are turned off.
+	// collectionService handles collection calls such as GetCollection; nil means collection
+	// features are turned off.
 	collectionService CollectionServicePort
 }
 
-// packageMemberAnnotationParams holds parameters for creating package member
-// annotations.
+// packageMemberAnnotationParams holds parameters for creating package member annotations.
 type packageMemberAnnotationParams struct {
 	// typeExpr is the AST expression for the package member's type.
 	typeExpr goast.Expr
@@ -137,10 +132,9 @@ type packageMemberAnnotationParams struct {
 // NewTypeResolver creates a new, configured TypeResolver.
 //
 // Takes inspector (TypeInspectorPort) which provides type query capabilities.
-// Takes virtualModule (*annotator_dto.VirtualModule) which contains the virtual
-// module data.
-// Takes collectionService (CollectionServicePort) which handles collection
-// operations.
+// Takes virtualModule (*annotator_dto.VirtualModule) which contains the virtual module
+// data.
+// Takes collectionService (CollectionServicePort) which handles collection operations.
 //
 // Returns *TypeResolver which is the configured resolver ready for use.
 func NewTypeResolver(
@@ -155,16 +149,16 @@ func NewTypeResolver(
 	}
 }
 
-// Resolve is the primary entry point for the TypeResolver. It performs a
-// full, recursive semantic analysis on a single expression and attaches the
-// final annotation to the AST node.
+// Resolve is the primary entry point for the TypeResolver. It performs a full, recursive
+// semantic analysis on a single expression and attaches the final annotation to the AST
+// node.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and scope.
 // Takes expression (ast_domain.Expression) which is the expression to analyse.
 // Takes location (ast_domain.Location) which specifies the source location.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information for the expression.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information
+// for the expression.
 func (tr *TypeResolver) Resolve(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -174,17 +168,16 @@ func (tr *TypeResolver) Resolve(
 	return tr.resolveRecursive(goCtx, ctx, expression, location, 0)
 }
 
-// DetermineIterationItemType determines the type of elements when iterating
-// over a collection.
+// DetermineIterationItemType determines the type of elements when iterating over a
+// collection.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes collectionExpr (ast_domain.Expression) which is the collection being
-// iterated.
-// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which provides type
-// information for the collection.
+// Takes collectionExpr (ast_domain.Expression) which is the collection being iterated.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which provides type information
+// for the collection.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the resolved element type, or
-// "any" if the collection type cannot be determined.
+// Returns *ast_domain.ResolvedTypeInfo which is the resolved element type, or "any" if
+// the collection type cannot be determined.
 func (tr *TypeResolver) DetermineIterationItemType(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -202,15 +195,15 @@ func (tr *TypeResolver) DetermineIterationItemType(
 	return tr.determineItemTypeFromCollectionType(ctx, collectionTypeInfo)
 }
 
-// DetermineIterationIndexType determines the type of the index when iterating
-// over a collection.
+// DetermineIterationIndexType determines the type of the index when iterating over a
+// collection.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the
-// collection being iterated.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the collection
+// being iterated.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the resolved type of the
-// iteration index, defaulting to int for non-map types.
+// Returns *ast_domain.ResolvedTypeInfo which is the resolved type of the iteration index,
+// defaulting to int for non-map types.
 func (tr *TypeResolver) DetermineIterationIndexType(ctx *AnalysisContext, collectionTypeInfo *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {
 	if collectionTypeInfo != nil && collectionTypeInfo.TypeExpression != nil {
 		underlyingType := tr.inspector.ResolveToUnderlyingAST(collectionTypeInfo.TypeExpression, ctx.CurrentGoFullPackagePath)
@@ -224,16 +217,15 @@ func (tr *TypeResolver) DetermineIterationIndexType(ctx *AnalysisContext, collec
 	return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeInt))
 }
 
-// lookupPikoImportAlias checks if the given alias is a user-defined Piko import
-// alias and returns the corresponding hashed package name. Resolves template
-// expressions like card.FormatPrice() where "card" is the user's import alias
-// but the actual package name is partials_card_abc123.
+// lookupPikoImportAlias checks if the given alias is a user-defined Piko import alias and
+// returns the corresponding hashed package name. Resolves template expressions like
+// card.FormatPrice() where "card" is the user's import alias but the actual package name
+// is partials_card_abc123.
 //
 // Takes goPackagePath (string) which is the full Go package path of the component.
 // Takes alias (string) which is the potential Piko import alias to look up.
 //
-// Returns string which is the hashed package name, or empty string if not
-// found.
+// Returns string which is the hashed package name, or empty string if not found.
 func (tr *TypeResolver) lookupPikoImportAlias(goPackagePath, alias string) string {
 	if tr.virtualModule == nil {
 		return ""
@@ -247,16 +239,16 @@ func (tr *TypeResolver) lookupPikoImportAlias(goPackagePath, alias string) strin
 
 // resolveRecursive is the core implementation of type resolution.
 //
-// It both returns the annotation for its parent and attaches the annotation
-// to its own node as a side-effect for debugging and golden files.
+// It both returns the annotation for its parent and attaches the annotation to its own
+// node as a side-effect for debugging and golden files.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
 // Takes location (ast_domain.Location) which specifies the source location.
 // Takes depth (int) which tracks recursion depth for logging.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type
-// annotation, or nil if expression is nil.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type annotation, or nil
+// if expression is nil.
 func (tr *TypeResolver) resolveRecursive(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -332,8 +324,8 @@ func (tr *TypeResolver) dispatchExpressionType(
 // Takes location (ast_domain.Location) which gives the source location.
 // Takes depth (int) which tracks how deep the lookup has gone.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the type information,
-// or a blank identifier annotation when the name is "_".
+// Returns *ast_domain.GoGeneratorAnnotation which holds the type information, or a blank
+// identifier annotation when the name is "_".
 func (*TypeResolver) resolveIdentifierExpression(
 	ctx *AnalysisContext, analyser *typeExpressionAnalyser, n *ast_domain.Identifier,
 	location ast_domain.Location, depth int,
@@ -353,8 +345,8 @@ func (*TypeResolver) resolveIdentifierExpression(
 	return handleUndefinedIdentifier(ctx, n, location, depth+1)
 }
 
-// propagateAnnotation sets the given annotation on an expression and all its
-// child expressions that do not already have an annotation.
+// propagateAnnotation sets the given annotation on an expression and all its child
+// expressions that do not already have an annotation.
 //
 // Takes expr (ast_domain.Expression) which is the root expression to annotate.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to set.
@@ -368,15 +360,15 @@ func (*TypeResolver) propagateAnnotation(expr ast_domain.Expression, ann *ast_do
 	})
 }
 
-// tryResolveSymbol looks up an identifier in the symbol table and builds an
-// annotation from its properties.
+// tryResolveSymbol looks up an identifier in the symbol table and builds an annotation
+// from its properties.
 //
 // Takes ctx (*AnalysisContext) which provides the symbol table and source path.
 // Takes n (*ast_domain.Identifier) which is the identifier to look up.
 // Takes location (ast_domain.Location) which is where the identifier appears.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved symbol
-// data for code generation.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved symbol data for code
+// generation.
 // Returns bool which is true if the symbol was found, false otherwise.
 func (tr *TypeResolver) tryResolveSymbol(ctx *AnalysisContext, n *ast_domain.Identifier, location ast_domain.Location) (*ast_domain.GoGeneratorAnnotation, bool) {
 	if symbol, found := ctx.Symbols.Find(n.Name); found {
@@ -434,8 +426,8 @@ func (tr *TypeResolver) tryResolveSymbol(ctx *AnalysisContext, n *ast_domain.Ide
 // Takes location (ast_domain.Location) which is the source location for errors.
 // Takes depth (int) which tracks how deep the call stack is for tracing.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information, or a fallback annotation if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
+// or a fallback annotation if resolution fails.
 func (tr *TypeResolver) resolvePackageMember(
 	ctx *AnalysisContext,
 	packageAlias string,
@@ -497,15 +489,14 @@ func (tr *TypeResolver) resolvePackageMember(
 	return newFallbackAnnotation()
 }
 
-// tryInferFromArrayLiteral gets the item type from the first element of an
-// array literal.
+// tryInferFromArrayLiteral gets the item type from the first element of an array literal.
 //
 // Takes ctx (*AnalysisContext) which provides the context for analysis.
-// Takes collectionExpr (ast_domain.Expression) which is the expression to
-// check for an array literal type.
+// Takes collectionExpr (ast_domain.Expression) which is the expression to check for an
+// array literal type.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the type of the first
-// element, or nil if the expression is not an array literal.
+// Returns *ast_domain.ResolvedTypeInfo which contains the type of the first element, or
+// nil if the expression is not an array literal.
 func (tr *TypeResolver) tryInferFromArrayLiteral(goCtx context.Context, ctx *AnalysisContext, collectionExpr ast_domain.Expression) *ast_domain.ResolvedTypeInfo {
 	arrayLit, isArrayLit := collectionExpr.(*ast_domain.ArrayLiteral)
 	if !isArrayLit {
@@ -525,11 +516,11 @@ func (tr *TypeResolver) tryInferFromArrayLiteral(goCtx context.Context, ctx *Ana
 // determineItemTypeFromCollectionType finds the item type of a collection.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis context.
-// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the
-// collection type to get the item type from.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the collection
+// type to get the item type from.
 //
-// Returns *ast_domain.ResolvedTypeInfo which describes the item type of the
-// collection, or any if the type cannot be found.
+// Returns *ast_domain.ResolvedTypeInfo which describes the item type of the collection,
+// or any if the type cannot be found.
 func (tr *TypeResolver) determineItemTypeFromCollectionType(ctx *AnalysisContext, collectionTypeInfo *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {
 	effectiveCtx := ctx
 	if collectionTypeInfo.CanonicalPackagePath != "" && collectionTypeInfo.CanonicalPackagePath != ctx.CurrentGoFullPackagePath {
@@ -565,13 +556,13 @@ func (tr *TypeResolver) determineItemTypeFromCollectionType(ctx *AnalysisContext
 	return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeAny))
 }
 
-// resolveCollectionElementType resolves the element type and copies the
-// package path from the collection if needed.
+// resolveCollectionElementType resolves the element type and copies the package path from
+// the collection if needed.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
 // Takes elementType (goast.Expr) which is the element type to resolve.
-// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which is the
-// resolved type info for the parent collection.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which is the resolved type info
+// for the parent collection.
 //
 // Returns *ast_domain.ResolvedTypeInfo which is the resolved element type.
 func (tr *TypeResolver) resolveCollectionElementType(ctx *AnalysisContext, elementType goast.Expr, collectionTypeInfo *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {
@@ -580,13 +571,13 @@ func (tr *TypeResolver) resolveCollectionElementType(ctx *AnalysisContext, eleme
 	return result
 }
 
-// inheritPackagePathFromCollection copies the package path from a collection
-// type to the result when the result does not have its own package path.
+// inheritPackagePathFromCollection copies the package path from a collection type to the
+// result when the result does not have its own package path.
 //
 // Takes result (*ast_domain.ResolvedTypeInfo) which receives the package path.
 // Takes elementType (goast.Expr) which is the type expression of the element.
-// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the
-// package path to copy.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which provides the package path
+// to copy.
 func (*TypeResolver) inheritPackagePathFromCollection(result *ast_domain.ResolvedTypeInfo, elementType goast.Expr, collectionTypeInfo *ast_domain.ResolvedTypeInfo) {
 	if result.CanonicalPackagePath != "" || result.PackageAlias == "" || collectionTypeInfo.CanonicalPackagePath == "" {
 		return
@@ -600,16 +591,15 @@ func (*TypeResolver) inheritPackagePathFromCollection(result *ast_domain.Resolve
 }
 
 // newResolvedTypeInfo is the single, authoritative function for creating a
-// fully-populated ResolvedTypeInfo. It deconstructs a type expression,
-// resolves its local package alias to a canonical import path, and returns
-// the complete struct.
+// fully-populated ResolvedTypeInfo. It deconstructs a type expression, resolves its local
+// package alias to a canonical import path, and returns the complete struct.
 //
-// Takes ctx (*AnalysisContext) which provides the current file and package
-// context for resolving imports.
+// Takes ctx (*AnalysisContext) which provides the current file and package context for
+// resolving imports.
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type with
-// its canonical package path, or nil if typeExpr is nil.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved type with its
+// canonical package path, or nil if typeExpr is nil.
 func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast.Expr) *ast_domain.ResolvedTypeInfo {
 	if typeExpr == nil {
 		return nil
@@ -661,21 +651,18 @@ func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast
 	}
 }
 
-// validateCallArguments validates function call arguments against a
-// function signature by checking argument count and each argument's
-// type compatibility.
+// validateCallArguments validates function call arguments against a function signature by
+// checking argument count and each argument's type compatibility.
 //
 // Takes ctx (*AnalysisContext) which collects diagnostics.
-// Takes n (*ast_domain.CallExpression) which is the call expression to
-// validate.
-// Takes sig (*inspector_dto.FunctionSignature) which describes the
-// expected parameters. A nil signature skips validation.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides
-// resolved type information for each argument.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the
-// annotation for the function being called.
-// Takes location (ast_domain.Location) which is the source position for
-// error reporting.
+// Takes n (*ast_domain.CallExpression) which is the call expression to validate.
+// Takes sig (*inspector_dto.FunctionSignature) which describes the expected parameters. A
+// nil signature skips validation.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
+// information for each argument.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the
+// function being called.
+// Takes location (ast_domain.Location) which is the source position for error reporting.
 func (*TypeResolver) validateCallArguments(
 	ctx *AnalysisContext,
 	n *ast_domain.CallExpression,
@@ -728,19 +715,18 @@ type argumentValidationContext struct {
 	location ast_domain.Location
 }
 
-// buildAnnotationFromSignatureResult creates a type annotation from the
-// return values of a function signature.
+// buildAnnotationFromSignatureResult creates a type annotation from the return values of
+// a function signature.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes sig (*inspector_dto.FunctionSignature) which contains the function
-// signature to process.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the base
-// annotation to build upon.
+// Takes sig (*inspector_dto.FunctionSignature) which contains the function signature to
+// process.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the base annotation to build
+// upon.
 // Takes methodInfo (*inspector_dto.Method) which provides method details.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a nil type annotation
-// when the signature has no results, or a return type annotation when results
-// are present.
+// Returns *ast_domain.GoGeneratorAnnotation which is a nil type annotation when the
+// signature has no results, or a return type annotation when results are present.
 func (tr *TypeResolver) buildAnnotationFromSignatureResult(
 	ctx *AnalysisContext,
 	sig *inspector_dto.FunctionSignature,
@@ -754,19 +740,18 @@ func (tr *TypeResolver) buildAnnotationFromSignatureResult(
 	return tr.buildReturnTypeAnnotation(ctx, sig, baseAnn, methodInfo)
 }
 
-// buildReturnTypeAnnotation constructs an annotation from a function's return
-// type.
+// buildReturnTypeAnnotation constructs an annotation from a function's return type.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes sig (*inspector_dto.FunctionSignature) which contains the function
-// signature with return type information.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// annotation for package alias resolution.
-// Takes methodInfo (*inspector_dto.Method) which supplies method metadata for
-// path resolution.
+// Takes sig (*inspector_dto.FunctionSignature) which contains the function signature with
+// return type information.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base annotation
+// for package alias resolution.
+// Takes methodInfo (*inspector_dto.Method) which supplies method metadata for path
+// resolution.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information and stringability details.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information
+// and stringability details.
 func (tr *TypeResolver) buildReturnTypeAnnotation(
 	ctx *AnalysisContext,
 	sig *inspector_dto.FunctionSignature,
@@ -821,19 +806,18 @@ func (tr *TypeResolver) buildReturnTypeAnnotation(
 	}
 }
 
-// resolveReturnTypeCanonicalPath resolves the canonical package path for a
-// return type. For method calls, this uses the method's defining context to
-// resolve package aliases.
+// resolveReturnTypeCanonicalPath resolves the canonical package path for a return type.
+// For method calls, this uses the method's defining context to resolve package aliases.
 //
-// Takes ctx (*AnalysisContext) which provides the current analysis
-// state for fallback context.
-// Takes packageAlias (string) which is the package alias extracted from the
-// return type expression.
-// Takes methodInfo (*inspector_dto.Method) which provides the method's
-// defining context for alias resolution, or nil for caller context.
+// Takes ctx (*AnalysisContext) which provides the current analysis state for fallback
+// context.
+// Takes packageAlias (string) which is the package alias extracted from the return type
+// expression.
+// Takes methodInfo (*inspector_dto.Method) which provides the method's defining context
+// for alias resolution, or nil for caller context.
 //
-// Returns string which is the canonical package path for the return
-// type, or empty if the alias cannot be resolved.
+// Returns string which is the canonical package path for the return type, or empty if the
+// alias cannot be resolved.
 func (tr *TypeResolver) resolveReturnTypeCanonicalPath(
 	ctx *AnalysisContext,
 	_ goast.Expr,
@@ -871,14 +855,13 @@ func (tr *TypeResolver) resolveReturnTypeCanonicalPath(
 	return canonicalPath
 }
 
-// diagnoseCallFailure logs details when a call cannot be resolved and returns
-// a fallback annotation.
+// diagnoseCallFailure logs details when a call cannot be resolved and returns a fallback
+// annotation.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
-// Takes n (*ast_domain.CallExpression) which is the call that could
-// not be resolved.
-// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the callee
-// annotation if known.
+// Takes n (*ast_domain.CallExpression) which is the call that could not be resolved.
+// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the callee annotation if
+// known.
 // Takes location (ast_domain.Location) which is the source location of the call.
 // Takes depth (int) which tracks how deep the analysis has gone.
 //
@@ -904,12 +887,12 @@ func (tr *TypeResolver) diagnoseCallFailure(
 	return fallback
 }
 
-// buildUndefinedCalleeMessage builds an error message for a call to a function
-// or method that cannot be found. It includes a suggested name if one exists.
+// buildUndefinedCalleeMessage builds an error message for a call to a function or method
+// that cannot be found. It includes a suggested name if one exists.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes n (*ast_domain.CallExpression) which is the call expression
-// with the unknown callee.
+// Takes n (*ast_domain.CallExpression) which is the call expression with the unknown
+// callee.
 //
 // Returns string which is the error message, with a suggestion if one is found.
 func (tr *TypeResolver) buildUndefinedCalleeMessage(ctx *AnalysisContext, n *ast_domain.CallExpression) string {
@@ -941,14 +924,13 @@ func (tr *TypeResolver) findCallSuggestion(ctx *AnalysisContext, callee ast_doma
 	return ""
 }
 
-// findIdentifierCallSuggestion finds a suggestion for a mistyped
-// function name.
+// findIdentifierCallSuggestion finds a suggestion for a mistyped function name.
 //
 // Takes ctx (*AnalysisContext) which provides the symbols to search.
 // Takes name (string) which is the mistyped function name to match.
 //
-// Returns string which is the closest matching function name, or empty if no
-// match is found.
+// Returns string which is the closest matching function name, or empty if no match is
+// found.
 func (*TypeResolver) findIdentifierCallSuggestion(ctx *AnalysisContext, name string) string {
 	var functionSymbols []string
 	for _, symbol := range ctx.Symbols.symbols {
@@ -962,11 +944,10 @@ func (*TypeResolver) findIdentifierCallSuggestion(ctx *AnalysisContext, name str
 // findMemberCallSuggestion finds a suggestion for a misspelt method name.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
-// Takes member (*ast_domain.MemberExpression) which is the member
-// expression to find suggestions for.
+// Takes member (*ast_domain.MemberExpression) which is the member expression to find
+// suggestions for.
 //
-// Returns string which is the closest matching method name, or empty if none
-// is found.
+// Returns string which is the closest matching method name, or empty if none is found.
 func (tr *TypeResolver) findMemberCallSuggestion(ctx *AnalysisContext, member *ast_domain.MemberExpression) string {
 	baseAnn := getAnnotationFromExpression(member.Base)
 	if baseAnn == nil || baseAnn.ResolvedType == nil || baseAnn.ResolvedType.TypeExpression == nil {
@@ -983,14 +964,15 @@ func (tr *TypeResolver) findMemberCallSuggestion(ctx *AnalysisContext, member *a
 	return findClosestMatch(propName, candidates)
 }
 
-// parseSignatureFromFuncType extracts parameter and result types from an AST
-// function type node.
+// parseSignatureFromFuncType extracts parameter and result types from an AST function
+// type node.
 //
 // Takes fnType (*goast.FuncType) which is the function type node to parse.
 // Takes packageAlias (string) which is the package alias prefix for type names.
 //
-// Returns *inspector_dto.FunctionSignature which contains the parsed parameter
-// and result type strings. Returns nil when fnType is nil.
+// Returns *inspector_dto.FunctionSignature which contains the parsed parameter and result
+// type strings.
+// Returns nil when fnType is nil.
 func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageAlias string) *inspector_dto.FunctionSignature {
 	if fnType == nil {
 		return nil
@@ -1001,11 +983,11 @@ func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageA
 	}
 }
 
-// newFallbackAnnotation creates a default GoGeneratorAnnotation with 'any'
-// type. Used when type resolution fails but a valid annotation is still needed.
+// newFallbackAnnotation creates a default GoGeneratorAnnotation with 'any' type. Used
+// when type resolution fails but a valid annotation is still needed.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a minimal valid annotation
-// with only the ResolvedType field set.
+// Returns *ast_domain.GoGeneratorAnnotation which is a minimal valid annotation with only
+// the ResolvedType field set.
 func newFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -1045,14 +1027,14 @@ func newFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
 	}
 }
 
-// newPackageFunctionAnnotation creates an annotation for a package-level
-// function reference.
+// newPackageFunctionAnnotation creates an annotation for a package-level function
+// reference.
 //
-// Takes p (packageMemberAnnotationParams) which provides the package alias,
-// canonical path, member name, and location for the annotation.
+// Takes p (packageMemberAnnotationParams) which provides the package alias, canonical
+// path, member name, and location for the annotation.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the function
-// reference with its resolved type and symbol details.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the function reference with
+// its resolved type and symbol details.
 func newPackageFunctionAnnotation(p packageMemberAnnotationParams) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -1096,14 +1078,14 @@ func newPackageFunctionAnnotation(p packageMemberAnnotationParams) *ast_domain.G
 	}
 }
 
-// newPackageVariableAnnotation creates an annotation for a package-level
-// variable reference.
+// newPackageVariableAnnotation creates an annotation for a package-level variable
+// reference.
 //
-// Takes p (packageMemberAnnotationParams) which holds the package member
-// details such as type, location, and whether it is a constant.
+// Takes p (packageMemberAnnotationParams) which holds the package member details such as
+// type, location, and whether it is a constant.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// and symbol data for the variable.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type and symbol
+// data for the variable.
 func newPackageVariableAnnotation(p packageMemberAnnotationParams) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -1151,11 +1133,10 @@ func newPackageVariableAnnotation(p packageMemberAnnotationParams) *ast_domain.G
 	}
 }
 
-// isSignatureVariadic checks whether a function signature has a variadic
-// parameter.
+// isSignatureVariadic checks whether a function signature has a variadic parameter.
 //
-// Takes sig (*inspector_dto.FunctionSignature) which provides the function
-// signature to check.
+// Takes sig (*inspector_dto.FunctionSignature) which provides the function signature to
+// check.
 //
 // Returns bool which is true if the last parameter starts with "...".
 func isSignatureVariadic(sig *inspector_dto.FunctionSignature) bool {
@@ -1165,15 +1146,14 @@ func isSignatureVariadic(sig *inspector_dto.FunctionSignature) bool {
 	return strings.HasPrefix(sig.Params[len(sig.Params)-1], "...")
 }
 
-// validateArgumentCount checks that the number of arguments in a function call
-// matches the expected count from the function signature.
+// validateArgumentCount checks that the number of arguments in a function call matches
+// the expected count from the function signature.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
 // Takes n (*ast_domain.CallExpression) which is the call expression to check.
-// Takes sig (*inspector_dto.FunctionSignature) which defines the expected
-// parameters.
-// Takes isVariadic (bool) which shows whether a variable number of arguments
-// is supported.
+// Takes sig (*inspector_dto.FunctionSignature) which defines the expected parameters.
+// Takes isVariadic (bool) which shows whether a variable number of arguments is
+// supported.
 // Takes location (ast_domain.Location) which is the source location for errors.
 //
 // Returns bool which is true when the argument count is valid.
@@ -1198,19 +1178,18 @@ func validateArgumentCount(ctx *AnalysisContext, n *ast_domain.CallExpression, s
 	return true
 }
 
-// validateEachArgument checks each argument type against the expected
-// parameter type in a function call.
+// validateEachArgument checks each argument type against the expected parameter type in a
+// function call.
 //
 // Takes ctx (*AnalysisContext) which holds the analysis state.
 // Takes n (*ast_domain.CallExpression) which is the call expression being checked.
-// Takes sig (*inspector_dto.FunctionSignature) which defines the expected
-// parameter types.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds type
-// details for each argument.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// type context.
-// Takes isVariadic (bool) which indicates whether a variable number of
-// arguments is supported.
+// Takes sig (*inspector_dto.FunctionSignature) which defines the expected parameter
+// types.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds type details for each
+// argument.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base type context.
+// Takes isVariadic (bool) which indicates whether a variable number of arguments is
+// supported.
 // Takes location (ast_domain.Location) which specifies where to report any errors.
 func validateEachArgument(
 	ctx *AnalysisContext,
@@ -1241,12 +1220,11 @@ func validateEachArgument(
 	}
 }
 
-// validateSingleArgument checks that a single argument can be assigned to its
-// matching parameter type.
+// validateSingleArgument checks that a single argument can be assigned to its matching
+// parameter type.
 //
-// Takes params (*argumentValidationContext) which holds the argument, its
-// expected type from the function signature, and the context for reporting
-// any type mismatch errors.
+// Takes params (*argumentValidationContext) which holds the argument, its expected type
+// from the function signature, and the context for reporting any type mismatch errors.
 func validateSingleArgument(params *argumentValidationContext) {
 	destParamType := getExpectedParamType(params.signature, params.argIndex, params.isVariadic)
 	destTypeExpr := goastutil.TypeStringToAST(destParamType)
@@ -1275,18 +1253,16 @@ func validateSingleArgument(params *argumentValidationContext) {
 	}
 }
 
-// getExpectedParamType returns the expected parameter type for a given
-// argument position.
+// getExpectedParamType returns the expected parameter type for a given argument position.
 //
-// Takes sig (*inspector_dto.FunctionSignature) which holds the function
-// signature with its parameter types.
+// Takes sig (*inspector_dto.FunctionSignature) which holds the function signature with
+// its parameter types.
 // Takes argIndex (int) which is the zero-based position of the argument.
-// Takes isVariadic (bool) which shows whether a variable number of arguments
-// is supported.
+// Takes isVariadic (bool) which shows whether a variable number of arguments is
+// supported.
 //
-// Returns string which is the parameter type. For variadic functions, the
-// "..." prefix is removed when the argument is beyond the last fixed
-// parameter.
+// Returns string which is the parameter type. For variadic functions, the "..." prefix is
+// removed when the argument is beyond the last fixed parameter.
 func getExpectedParamType(sig *inspector_dto.FunctionSignature, argIndex int, isVariadic bool) string {
 	if isVariadic && argIndex >= len(sig.Params)-1 {
 		return strings.TrimPrefix(sig.Params[len(sig.Params)-1], "...")
@@ -1296,11 +1272,10 @@ func getExpectedParamType(sig *inspector_dto.FunctionSignature, argIndex int, is
 
 // getExpectedTypeForError returns the expected type for use in error messages.
 //
-// Takes sig (*inspector_dto.FunctionSignature) which holds the function
-// signature with its parameter types.
+// Takes sig (*inspector_dto.FunctionSignature) which holds the function signature with
+// its parameter types.
 // Takes argIndex (int) which is the position of the argument to look up.
-// Takes isVariadic (bool) which shows whether a varying number of arguments
-// is supported.
+// Takes isVariadic (bool) which shows whether a varying number of arguments is supported.
 //
 // Returns string which is the expected type, or empty if not found.
 func getExpectedTypeForError(sig *inspector_dto.FunctionSignature, argIndex int, isVariadic bool) string {
@@ -1315,8 +1290,8 @@ func getExpectedTypeForError(sig *inspector_dto.FunctionSignature, argIndex int,
 
 // newNilTypeAnnotation creates an annotation for a nil type.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which has its ResolvedType set to
-// the nil type identifier.
+// Returns *ast_domain.GoGeneratorAnnotation which has its ResolvedType set to the nil
+// type identifier.
 func newNilTypeAnnotation() *ast_domain.GoGeneratorAnnotation {
 	return newAnnotationWithTypeAndStringability(
 		&ast_domain.ResolvedTypeInfo{
@@ -1332,13 +1307,13 @@ func newNilTypeAnnotation() *ast_domain.GoGeneratorAnnotation {
 	)
 }
 
-// diagnoseNonCallableExpression reports an error when the callee exists but
-// cannot be called.
+// diagnoseNonCallableExpression reports an error when the callee exists but cannot be
+// called.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
 // Takes n (*ast_domain.CallExpression) which is the call expression being checked.
-// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which holds type
-// details for the callee.
+// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which holds type details for the
+// callee.
 // Takes location (ast_domain.Location) which specifies where to report the error.
 //
 // Returns bool which is true if an error was reported, false otherwise.
@@ -1364,8 +1339,8 @@ func diagnoseNonCallableExpression(ctx *AnalysisContext, n *ast_domain.CallExpre
 // Takes fieldList (*goast.FieldList) which contains the fields to parse.
 // Takes packageAlias (string) which sets the package alias for type names.
 //
-// Returns []string which holds the type string for each field. When a field
-// has more than one name, a separate entry is made for each name.
+// Returns []string which holds the type string for each field. When a field has more than
+// one name, a separate entry is made for each name.
 func parseFieldListTypeStrings(fieldList *goast.FieldList, packageAlias string) []string {
 	if fieldList == nil {
 		return nil

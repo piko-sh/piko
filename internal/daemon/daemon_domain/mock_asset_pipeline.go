@@ -25,30 +25,29 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// MockAssetPipeline is a test double for AssetPipelinePort where nil
-// function fields return zero values and call counts are tracked atomically.
+// MockAssetPipeline is a test double for AssetPipelinePort where nil function fields
+// return zero values and call counts are tracked atomically.
 type MockAssetPipeline struct {
-	// ProcessBuildResultFunc is the function called by
-	// ProcessBuildResult.
+	// ProcessBuildResultFunc is the function called by ProcessBuildResult.
 	ProcessBuildResultFunc func(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) error
 
-	// ProcessBuildResultCallCount tracks how many times
-	// ProcessBuildResult was called.
-	ProcessBuildResultCallCount int64
+	// ProcessBuildResultCallCount tracks how many times ProcessBuildResult was called.
+	ProcessBuildResultCallCount atomic.Int64
 }
 
-var _ AssetPipelinePort = (*MockAssetPipeline)(nil)
+var (
+	_ AssetPipelinePort = (*MockAssetPipeline)(nil)
+)
 
 // ProcessBuildResult handles the annotation result from a build operation.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signals.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which
-// is the build output to process.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which is the build output to
+// process.
 //
 // Returns error, or nil if ProcessBuildResultFunc is nil.
 func (m *MockAssetPipeline) ProcessBuildResult(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) error {
-	atomic.AddInt64(&m.ProcessBuildResultCallCount, 1)
+	m.ProcessBuildResultCallCount.Add(1)
 	if m.ProcessBuildResultFunc != nil {
 		return m.ProcessBuildResultFunc(ctx, result)
 	}

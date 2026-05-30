@@ -411,12 +411,12 @@ type RecordingExecutor struct {
 	ExecutionOrder []string
 	wg             sync.WaitGroup
 	mu             sync.Mutex
-	expectCalls    int32
-	callCount      int32
+	expectCalls    atomic.Int32
+	callCount      atomic.Int32
 }
 
 func (e *RecordingExecutor) ExpectCalls(n int) {
-	atomic.StoreInt32(&e.expectCalls, int32(n))
+	e.expectCalls.Store(int32(n))
 	e.wg.Add(n)
 }
 
@@ -429,7 +429,7 @@ func (e *RecordingExecutor) Execute(_ context.Context, payload map[string]any) (
 	e.ExecutionOrder = append(e.ExecutionOrder, taskID)
 	e.mu.Unlock()
 
-	if atomic.AddInt32(&e.callCount, 1) <= atomic.LoadInt32(&e.expectCalls) {
+	if e.callCount.Add(1) <= e.expectCalls.Load() {
 		e.wg.Done()
 	}
 	return map[string]any{"status": "ok"}, e.err
@@ -877,12 +877,12 @@ type SlowExecutor struct {
 	delay          time.Duration
 	mu             sync.Mutex
 	completedCount int
-	expectCalls    int32
-	callCount      int32
+	expectCalls    atomic.Int32
+	callCount      atomic.Int32
 }
 
 func (e *SlowExecutor) ExpectCalls(n int) {
-	atomic.StoreInt32(&e.expectCalls, int32(n))
+	e.expectCalls.Store(int32(n))
 	e.wg.Add(n)
 }
 
@@ -892,7 +892,7 @@ func (e *SlowExecutor) Execute(_ context.Context, _ map[string]any) (map[string]
 	e.completedCount++
 	e.mu.Unlock()
 
-	if atomic.AddInt32(&e.callCount, 1) <= atomic.LoadInt32(&e.expectCalls) {
+	if e.callCount.Add(1) <= e.expectCalls.Load() {
 		e.wg.Done()
 	}
 	return map[string]any{"status": "ok"}, nil
@@ -907,17 +907,17 @@ func (e *HangingExecutor) Execute(ctx context.Context, _ map[string]any) (map[st
 
 type AlwaysFailExecutor struct {
 	wg          sync.WaitGroup
-	expectCalls int32
-	callCount   int32
+	expectCalls atomic.Int32
+	callCount   atomic.Int32
 }
 
 func (e *AlwaysFailExecutor) ExpectCalls(n int) {
-	atomic.StoreInt32(&e.expectCalls, int32(n))
+	e.expectCalls.Store(int32(n))
 	e.wg.Add(n)
 }
 
 func (e *AlwaysFailExecutor) Execute(_ context.Context, _ map[string]any) (map[string]any, error) {
-	if atomic.AddInt32(&e.callCount, 1) <= atomic.LoadInt32(&e.expectCalls) {
+	if e.callCount.Add(1) <= e.expectCalls.Load() {
 		defer e.wg.Done()
 	}
 	return nil, errors.New("always fails")

@@ -29,13 +29,18 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// healthProbeName is the identifier used in the health probe system.
-const healthProbeName = "SpamDetectService"
+const (
 
-var _ interface {
-	Name() string
-	Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status
-} = (*spamDetectService)(nil)
+	// healthProbeName is the identifier used in the health probe system.
+	healthProbeName = "SpamDetectService"
+)
+
+var (
+	_ interface {
+		Name() string
+		Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status
+	} = (*spamDetectService)(nil)
+)
 
 // Name returns the service identifier for the health probe system.
 //
@@ -46,8 +51,7 @@ func (*spamDetectService) Name() string {
 
 // Check performs a health check on the spam detection service.
 //
-// Takes checkType (healthprobe_dto.CheckType) which selects liveness or
-// readiness.
+// Takes checkType (healthprobe_dto.CheckType) which selects liveness or readiness.
 //
 // Returns healthprobe_dto.Status which describes the service health.
 func (s *spamDetectService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -84,8 +88,7 @@ func (s *spamDetectService) checkLiveness(ctx context.Context, startTime time.Ti
 	}
 }
 
-// checkReadiness returns a readiness probe status including
-// per-detector health.
+// checkReadiness returns a readiness probe status including per-detector health.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes startTime (time.Time) which marks the check start.
@@ -129,10 +132,9 @@ func (s *spamDetectService) checkReadiness(ctx context.Context, startTime time.T
 	}
 }
 
-// buildDetectorDependencies builds health status entries for all
-// detectors. Each per-detector probe runs in parallel under a
-// healthCheckTimeout deadline so one slow detector cannot stall the
-// readiness response.
+// buildDetectorDependencies builds health status entries for all detectors. Each
+// per-detector probe runs in parallel under a healthCheckTimeout deadline so one slow
+// detector cannot stall the readiness response.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes startTime (time.Time) which marks the check start.
@@ -156,15 +158,15 @@ func (s *spamDetectService) buildDetectorDependencies(ctx context.Context, start
 	return dependencies
 }
 
-// probeDetectorHealth resolves a single detector and runs its
-// HealthCheck under a bounded deadline.
+// probeDetectorHealth resolves a single detector and runs its HealthCheck under a bounded
+// deadline.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes name (string) which identifies the detector.
 // Takes startTime (time.Time) which marks the check start.
 //
-// Returns *healthprobe_dto.Status which describes the detector's
-// liveness in the dependency list.
+// Returns *healthprobe_dto.Status which describes the detector's liveness in the
+// dependency list.
 func (s *spamDetectService) probeDetectorHealth(ctx context.Context, name string, startTime time.Time) *healthprobe_dto.Status {
 	detector, err := s.registry.GetProvider(ctx, name)
 	if err != nil {

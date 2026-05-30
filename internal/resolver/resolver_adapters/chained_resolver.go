@@ -28,7 +28,9 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-var _ resolver_domain.ResolverPort = (*ChainedResolver)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*ChainedResolver)(nil)
+)
 
 const (
 	// logKeyIndex is the log field key for the resolver index in the chain.
@@ -46,38 +48,33 @@ const (
 	// errorItemFormat is the format string used to list errors from resolvers.
 	errorItemFormat = "  %d. %T: %v"
 
-	// errNoResolversConfigured is the error message returned when ChainedResolver
-	// methods are called but no resolvers have been added to the chain.
+	// errNoResolversConfigured is the error message returned when ChainedResolver methods
+	// are called but no resolvers have been added to the chain.
 	errNoResolversConfigured = "no resolvers configured in chain"
 )
 
-// stringResolverFunc is a callback that tries to resolve a path using a
-// single resolver.
+// stringResolverFunc is a callback that tries to resolve a path using a single resolver.
 type stringResolverFunc func(resolver resolver_domain.ResolverPort) (string, error)
 
-// ChainedResolver implements ResolverPort using the Chain of Responsibility
-// pattern. It delegates to multiple resolvers in priority order, letting local
-// module paths take precedence over external Go module paths.
+// ChainedResolver implements ResolverPort using the Chain of Responsibility pattern. It
+// delegates to multiple resolvers in priority order, letting local module paths take
+// precedence over external Go module paths.
 type ChainedResolver struct {
-	// resolvers holds the chain of resolvers to try in order; the first is
-	// the primary resolver and must succeed, while others are optional.
+	// resolvers holds the chain of resolvers to try in order; the first is the primary
+	// resolver and must succeed, while others are optional.
 	resolvers []resolver_domain.ResolverPort
 }
 
-// NewChainedResolver creates a chained resolver from the given
-// resolvers. Resolvers are tried in order, so the first resolver
-// has the highest priority.
+// NewChainedResolver creates a chained resolver from the given resolvers. Resolvers are
+// tried in order, so the first resolver has the highest priority.
 //
-// Typical usage:
-// localResolver := NewLocalModuleResolver(baseDir)
-// cacheResolver := NewGoModuleCacheResolver()
-// chainedResolver := NewChainedResolver(localResolver, cacheResolver)
+// Typical usage: localResolver := NewLocalModuleResolver(baseDir) cacheResolver :=
+// NewGoModuleCacheResolver() chainedResolver := NewChainedResolver(localResolver,
+// cacheResolver)
 //
-// Takes resolvers (...ResolverPort) which are the resolvers to
-// chain together.
+// Takes resolvers (...ResolverPort) which are the resolvers to chain together.
 //
-// Returns *ChainedResolver which wraps the given resolvers in
-// priority order.
+// Returns *ChainedResolver which wraps the given resolvers in priority order.
 func NewChainedResolver(resolvers ...resolver_domain.ResolverPort) *ChainedResolver {
 	return &ChainedResolver{resolvers: resolvers}
 }
@@ -85,12 +82,11 @@ func NewChainedResolver(resolvers ...resolver_domain.ResolverPort) *ChainedResol
 // DetectLocalModule initialises all resolvers in the chain by calling their
 // DetectLocalModule methods.
 //
-// The first resolver is the primary and its error is fatal. Secondary
-// resolvers are also initialised to populate their internal state, but their
-// errors are ignored.
+// The first resolver is the primary and its error is fatal. Secondary resolvers are also
+// initialised to populate their internal state, but their errors are ignored.
 //
-// Returns error when no resolvers are configured or when the primary resolver
-// fails to detect.
+// Returns error when no resolvers are configured or when the primary resolver fails to
+// detect.
 func (cr *ChainedResolver) DetectLocalModule(ctx context.Context) error {
 	if len(cr.resolvers) == 0 {
 		return errors.New(errNoResolversConfigured)
@@ -107,8 +103,8 @@ func (cr *ChainedResolver) DetectLocalModule(ctx context.Context) error {
 	return nil
 }
 
-// GetModuleName delegates to the first resolver in the chain.
-// This returns the local project's module name.
+// GetModuleName delegates to the first resolver in the chain. This returns the local
+// project's module name.
 //
 // Returns string which is the module name, or empty if no resolvers exist.
 func (cr *ChainedResolver) GetModuleName() string {
@@ -118,11 +114,10 @@ func (cr *ChainedResolver) GetModuleName() string {
 	return cr.resolvers[0].GetModuleName()
 }
 
-// GetBaseDir delegates to the first resolver in the chain.
-// This returns the local project's base directory.
+// GetBaseDir delegates to the first resolver in the chain. This returns the local
+// project's base directory.
 //
-// Returns string which is the base directory path, or empty if no resolvers
-// exist.
+// Returns string which is the base directory path, or empty if no resolvers exist.
 func (cr *ChainedResolver) GetBaseDir() string {
 	if len(cr.resolvers) == 0 {
 		return ""
@@ -130,13 +125,12 @@ func (cr *ChainedResolver) GetBaseDir() string {
 	return cr.resolvers[0].GetBaseDir()
 }
 
-// ConvertEntryPointPathToManifestKey delegates to the first resolver in the
-// chain to generate manifest keys using the local module's naming convention.
+// ConvertEntryPointPathToManifestKey delegates to the first resolver in the chain to
+// generate manifest keys using the local module's naming convention.
 //
 // Takes entryPointPath (string) which is the path to convert.
 //
-// Returns string which is the manifest key, or the original path if the chain
-// is empty.
+// Returns string which is the manifest key, or the original path if the chain is empty.
 func (cr *ChainedResolver) ConvertEntryPointPathToManifestKey(entryPointPath string) string {
 	if len(cr.resolvers) == 0 {
 		return entryPointPath
@@ -144,22 +138,19 @@ func (cr *ChainedResolver) ConvertEntryPointPathToManifestKey(entryPointPath str
 	return cr.resolvers[0].ConvertEntryPointPathToManifestKey(entryPointPath)
 }
 
-// ResolvePKPath resolves a Piko component path using the chain of
-// resolvers.
+// ResolvePKPath resolves a Piko component path using the chain of resolvers.
 //
-// The first resolver to successfully resolve the path wins. If all resolvers
-// fail, an error is returned with details from all attempted resolvers.
+// The first resolver to successfully resolve the path wins. If all resolvers fail, an
+// error is returned with details from all attempted resolvers.
 //
 // This implements the core Chain of Responsibility pattern:
 //  1. Try LocalModuleResolver - resolves local project components
-//  2. If that fails, try GoModuleCacheResolver - resolves external module
-//     components
+//  2. If that fails, try GoModuleCacheResolver - resolves external module components
 //  3. If all fail, return a combined error
 //
 // Takes importPath (string) which is the Piko component path to resolve.
-// Takes containingFilePath (string) which is the absolute path of the file
-// containing the import statement, used to resolve the @ alias to the correct
-// module.
+// Takes containingFilePath (string) which is the absolute path of the file containing the
+// import statement, used to resolve the @ alias to the correct module.
 //
 // Returns string which is the resolved file system path to the component.
 // Returns error when no resolvers are configured or all resolvers fail.
@@ -180,12 +171,11 @@ func (cr *ChainedResolver) ResolvePKPath(ctx context.Context, importPath string,
 	})
 }
 
-// ResolveCSSPath tries to resolve a CSS import path using each resolver in the
-// chain. The first resolver to find the path is used.
+// ResolveCSSPath tries to resolve a CSS import path using each resolver in the chain. The
+// first resolver to find the path is used.
 //
 // Takes importPath (string) which specifies the CSS import path to resolve.
-// Takes containingDir (string) which specifies the folder of the importing
-// file.
+// Takes containingDir (string) which specifies the folder of the importing file.
 //
 // Returns string which is the resolved absolute path to the CSS file.
 // Returns error when no resolvers are set up or all resolvers fail.
@@ -205,13 +195,12 @@ func (cr *ChainedResolver) ResolveCSSPath(ctx context.Context, importPath string
 	})
 }
 
-// ResolveAssetPath attempts to resolve an asset path using each resolver in
-// the chain. The first resolver to successfully resolve the path wins.
+// ResolveAssetPath attempts to resolve an asset path using each resolver in the chain.
+// The first resolver to successfully resolve the path wins.
 //
 // Takes importPath (string) which is the path to the asset to resolve.
-// Takes containingFilePath (string) which is the absolute path of the
-// component file containing the asset reference, used to resolve the @ alias
-// to the correct module.
+// Takes containingFilePath (string) which is the absolute path of the component file
+// containing the asset reference, used to resolve the @ alias to the correct module.
 //
 // Returns string which is the resolved absolute path to the asset.
 // Returns error when no resolvers are configured or all resolvers fail.
@@ -231,9 +220,9 @@ func (cr *ChainedResolver) ResolveAssetPath(ctx context.Context, importPath stri
 	})
 }
 
-// GetModuleDir resolves a Go module path to its filesystem directory by
-// attempting each resolver in the chain. This is used for accessing content
-// from external Go modules (e.g., for p-collection-source).
+// GetModuleDir resolves a Go module path to its filesystem directory by attempting each
+// resolver in the chain. This is used for accessing content from external Go modules
+// (e.g., for p-collection-source).
 //
 // Takes modulePath (string) which is the Go module path to resolve.
 //
@@ -254,9 +243,9 @@ func (cr *ChainedResolver) GetModuleDir(ctx context.Context, modulePath string) 
 	})
 }
 
-// FindModuleBoundary splits an import path into the module path and subpath
-// by attempting each resolver in the chain. This uses the known modules from
-// go.mod for accurate boundary detection.
+// FindModuleBoundary splits an import path into the module path and subpath by attempting
+// each resolver in the chain. This uses the known modules from go.mod for accurate
+// boundary detection.
 //
 // Takes importPath (string) which is the full import path to split.
 //
@@ -311,12 +300,12 @@ func (cr *ChainedResolver) FindModuleBoundary(ctx context.Context, importPath st
 	return "", "", errors.New(errorMessage)
 }
 
-// tryResolvers tries each resolver in the chain and returns the result from
-// the first one that succeeds.
+// tryResolvers tries each resolver in the chain and returns the result from the first one
+// that succeeds.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes resourceType (string) which describes what is being resolved (e.g.
-// "component", "CSS", "asset").
+// Takes resourceType (string) which describes what is being resolved (e.g. "component",
+// "CSS", "asset").
 // Takes resourcePath (string) which is the path to resolve.
 // Takes resolve (stringResolverFunc) which is called for each resolver.
 //

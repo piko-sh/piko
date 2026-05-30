@@ -16,21 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crypto_provider_gcp_kms provides a Google Cloud KMS encryption
-// provider.
+// Package crypto_provider_gcp_kms provides a Google Cloud KMS encryption provider.
 //
-// This provider delegates all cryptographic operations to Google Cloud
-// KMS. Master keys never leave Google's Hardware Security Modules
-// (HSMs). It supports both direct encryption and envelope encryption
-// for efficient bulk operations, as well as streaming encryption for
-// large files with constant memory usage.
+// This provider delegates all cryptographic operations to Google Cloud KMS. Master keys
+// never leave Google's Hardware Security Modules (HSMs). It supports both direct
+// encryption and envelope encryption for efficient bulk operations, as well as streaming
+// encryption for large files with constant memory usage.
 //
-// Authentication uses Application Default Credentials (ADC). The
-// principal needs the cloudkms.cryptoKeyEncrypterDecrypter role or
-// equivalent encrypt, decrypt, and get permissions.
+// Authentication uses Application Default Credentials (ADC). The principal needs the
+// cloudkms.cryptoKeyEncrypterDecrypter role or equivalent encrypt, decrypt, and get
+// permissions.
 //
 // # Thread safety
 //
-// All methods on [Provider] are safe for concurrent use. The
-// underlying GCP KMS client manages connection pooling internally.
+// All methods on [Provider] are safe for concurrent use. The underlying GCP KMS client
+// manages connection pooling internally.
 package crypto_provider_gcp_kms

@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_transformer_zstd provides Zstandard compression
-// transformation for cache values.
+// Package cache_transformer_zstd provides Zstandard compression transformation for cache
+// values.
 //
-// Zstd typically achieves better compression than gzip with faster
-// decompression. It is most effective for values larger than about
-// 1 KB. The compression level is configurable from SpeedFastest (1)
-// through SpeedBestCompression (11), with SpeedDefault (3) offering
+// Zstd typically achieves better compression than gzip with faster decompression. It is
+// most effective for values larger than about 1 KB. The compression level is configurable
+// from SpeedFastest (1) through SpeedBestCompression (11), with SpeedDefault (3) offering
 // a balanced trade-off.
 //
-// When combining with encryption, register compression at a lower
-// priority number so it runs first.
+// When combining with encryption, register compression at a lower priority number so it
+// runs first.
 //
 // All methods are safe for concurrent use.
 package cache_transformer_zstd

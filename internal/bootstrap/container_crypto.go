@@ -33,11 +33,10 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// AddCryptoProvider registers a named encryption provider for cryptographic
-// operations.
+// AddCryptoProvider registers a named encryption provider for cryptographic operations.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (EncryptionProvider) which handles encryption and decryption.
@@ -49,19 +48,18 @@ func (c *Container) AddCryptoProvider(name string, provider crypto_domain.Encryp
 	registerCloseableForShutdown(c.GetAppContext(), "CryptoProvider-"+name, provider)
 }
 
-// SetCryptoDefaultProvider sets the default encryption provider to use when
-// none is specified.
+// SetCryptoDefaultProvider sets the default encryption provider to use when none is
+// specified.
 //
 // Takes name (string) which identifies the provider to use as the default.
 func (c *Container) SetCryptoDefaultProvider(name string) {
 	c.cryptoDefaultProvider = name
 }
 
-// GetCryptoService returns the crypto service, initialising a default one if
-// none was provided.
+// GetCryptoService returns the crypto service, initialising a default one if none was
+// provided.
 //
-// Returns crypto_domain.CryptoServicePort which provides cryptographic
-// operations.
+// Returns crypto_domain.CryptoServicePort which provides cryptographic operations.
 // Returns error when the default crypto service fails to initialise.
 func (c *Container) GetCryptoService() (crypto_domain.CryptoServicePort, error) {
 	c.cryptoOnce.Do(func() {
@@ -112,17 +110,15 @@ func (c *Container) createDefaultCryptoService() {
 		logger_domain.Bool("data_key_caching_enabled", cacheService != nil && deref(securityConfig.DataKeyCacheTTL, 0) > 0))
 }
 
-// selectCryptoProvider selects the appropriate crypto provider based on options
-// or config.
+// selectCryptoProvider selects the appropriate crypto provider based on options or
+// config.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
-// Takes securityConfig (*config.SecurityConfig) which provides the security
-// settings including the provider type and encryption key.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes securityConfig (*config.SecurityConfig) which provides the security settings
+// including the provider type and encryption key.
 //
 // Returns string which is the selected provider name.
-// Returns crypto_domain.EncryptionProvider which provides the
-// encryption operations.
+// Returns crypto_domain.EncryptionProvider which provides the encryption operations.
 // Returns string which is the active key identifier.
 // Returns error when the provider cannot be selected or created.
 func (c *Container) selectCryptoProvider(ctx context.Context, securityConfig *config.SecurityConfig) (providerName string, provider crypto_domain.EncryptionProvider, activeKeyID string, err error) {
@@ -154,30 +150,26 @@ func (c *Container) selectCryptoProvider(ctx context.Context, securityConfig *co
 	return c.createProviderFromConfig(ctx, securityConfig)
 }
 
-// createProviderFromConfig creates a crypto provider based on config
-// settings. This fallback only supports the local_aes_gcm provider
-// for simple config-based initialisation.
+// createProviderFromConfig creates a crypto provider based on config settings. This
+// fallback only supports the local_aes_gcm provider for simple config-based
+// initialisation.
 //
-// For cloud providers (AWS KMS, GCP KMS) or custom providers, use
-// the option-based approach:
-// import "piko.sh/piko/wdk/crypto/crypto_provider_aws_kms"
-// provider, _ := crypto_provider_aws_kms.NewAWSKMSProvider(ctx, config)
-// server := piko.New(
+// For cloud providers (AWS KMS, GCP KMS) or custom providers, use the option-based
+// approach: import "piko.sh/piko/wdk/crypto/crypto_provider_aws_kms" provider, _ :=
+// crypto_provider_aws_kms.NewAWSKMSProvider(ctx, config) server := piko.New(
 //
 //	piko.WithCryptoProvider("aws_kms", provider),
 //	piko.WithDefaultCryptoProvider("aws_kms"),
 //
 // )
 //
-// Takes securityConfig (*config.SecurityConfig) which provides the security
-// settings including the provider type and encryption key.
+// Takes securityConfig (*config.SecurityConfig) which provides the security settings
+// including the provider type and encryption key.
 //
 // Returns string which is the selected provider name.
-// Returns crypto_domain.EncryptionProvider which provides the
-// encryption operations.
+// Returns crypto_domain.EncryptionProvider which provides the encryption operations.
 // Returns string which is the active key identifier.
-// Returns error when the provider type is unsupported or creation
-// fails.
+// Returns error when the provider type is unsupported or creation fails.
 func (c *Container) createProviderFromConfig(_ context.Context, securityConfig *config.SecurityConfig) (providerName string, provider crypto_domain.EncryptionProvider, activeKeyID string, err error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	providerType := deref(securityConfig.CryptoProvider, "local_aes_gcm")
@@ -204,16 +196,14 @@ func (c *Container) createProviderFromConfig(_ context.Context, securityConfig *
 
 // createLocalAESGCMProvider creates a local AES-GCM provider from config.
 //
-// Takes securityConfig (*config.SecurityConfig) which provides the encryption key
-// for AES-GCM operations.
+// Takes securityConfig (*config.SecurityConfig) which provides the encryption key for
+// AES-GCM operations.
 //
-// Returns string which is the provider name ("local_aes_gcm" or
-// "disabled").
-// Returns crypto_domain.EncryptionProvider which provides the AES-GCM
-// encryption operations, or nil when disabled.
+// Returns string which is the provider name ("local_aes_gcm" or "disabled").
+// Returns crypto_domain.EncryptionProvider which provides the AES-GCM encryption
+// operations, or nil when disabled.
 // Returns string which is the active key identifier.
-// Returns error when the base64 key is invalid or provider creation
-// fails.
+// Returns error when the base64 key is invalid or provider creation fails.
 func (*Container) createLocalAESGCMProvider(securityConfig *config.SecurityConfig) (providerName string, provider crypto_domain.EncryptionProvider, activeKeyID string, err error) {
 	encKey := deref(securityConfig.EncryptionKey, "")
 	if encKey == "" {
@@ -228,8 +218,8 @@ func (*Container) createLocalAESGCMProvider(securityConfig *config.SecurityConfi
 	return "local_aes_gcm", provider, "piko-default-key", nil
 }
 
-// cloudProviderConfigError returns an error for cloud providers that cannot
-// be set up via a config file.
+// cloudProviderConfigError returns an error for cloud providers that cannot be set up via
+// a config file.
 //
 // Takes providerType (string) which identifies the cloud provider type.
 //
@@ -256,15 +246,15 @@ func (*Container) cloudProviderConfigError(providerType string) error {
 // buildCryptoService creates the crypto service with the selected provider.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes baseProvider (crypto_domain.EncryptionProvider) which provides the
-// underlying encryption operations.
+// Takes baseProvider (crypto_domain.EncryptionProvider) which provides the underlying
+// encryption operations.
 // Takes cacheService (cache_domain.Service) which handles data key caching.
 // Takes activeKeyID (string) which identifies the current encryption key.
-// Takes securityConfig (*config.SecurityConfig) which specifies
-// cache TTL and deprecated key settings.
+// Takes securityConfig (*config.SecurityConfig) which specifies cache TTL and deprecated
+// key settings.
 //
-// Returns crypto_domain.CryptoServicePort which is the configured crypto
-// service ready for use.
+// Returns crypto_domain.CryptoServicePort which is the configured crypto service ready
+// for use.
 // Returns error when the crypto service cannot be created.
 func (*Container) buildCryptoService(
 	ctx context.Context,
@@ -310,11 +300,11 @@ func (*Container) buildCryptoService(
 
 // SetCryptoService sets a pre-configured crypto service on the container.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
-// Takes service (crypto_domain.CryptoServicePort) which is the crypto service
-// to use. Allows builders to provide their own implementation.
+// Takes service (crypto_domain.CryptoServicePort) which is the crypto service to use.
+// Allows builders to provide their own implementation.
 func (c *Container) SetCryptoService(service crypto_domain.CryptoServicePort) {
 	c.cryptoService = service
 	registerCloseableForShutdown(c.GetAppContext(), "CryptoService", service)

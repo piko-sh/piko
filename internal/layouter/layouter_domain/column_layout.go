@@ -23,8 +23,8 @@ import (
 	"math"
 )
 
-// layoutMultiColumnContainer performs multi-column layout
-// for a container with column-count or column-width set.
+// layoutMultiColumnContainer performs multi-column layout for a container with
+// column-count or column-width set.
 //
 // Takes box (*LayoutBox) which is the multi-column container.
 // Takes input (layoutInput) which carries the layout constraints.
@@ -89,9 +89,8 @@ func layoutMultiColumnContainer(ctx context.Context, box *LayoutBox, input layou
 	}
 }
 
-// resolveColumnDimensions computes the actual column count
-// and column width from the CSS properties and available
-// space, following the CSS Multi-column spec section 3.
+// resolveColumnDimensions computes the actual column count and column width from the CSS
+// properties and available space, following the CSS Multi-column spec section 3.
 //
 // Takes columnCount (int) which is the declared column-count value.
 // Takes columnWidth (Dimension) which is the declared column-width value.
@@ -135,8 +134,8 @@ func resolveColumnDimensions(
 
 // resolveColumnHeight determines the column height.
 //
-// For balanced columns, the total content height is divided evenly.
-// For auto-fill columns, an explicit container height is used.
+// For balanced columns, the total content height is divided evenly. For auto-fill
+// columns, an explicit container height is used.
 //
 // Takes totalContentHeight (float64) which is the total content height.
 // Takes columnCount (int) which is the number of columns.
@@ -170,8 +169,8 @@ func resolveColumnHeight(
 	return balanced
 }
 
-// fragmentIntoColumns splits a flat list of child fragments
-// into column groups based on the target column height.
+// fragmentIntoColumns splits a flat list of child fragments into column groups based on
+// the target column height.
 //
 // Takes children ([]*Fragment) which is the flat list of child fragments.
 // Takes columnHeight (float64) which is the target column height in points.
@@ -218,9 +217,8 @@ func fragmentIntoColumns(children []*Fragment, columnHeight float64) [][]*Fragme
 	return columns
 }
 
-// positionColumns places column groups side by side with
-// the given column width and gap, returning wrapper
-// fragments for each column.
+// positionColumns places column groups side by side with the given column width and gap,
+// returning wrapper fragments for each column.
 //
 // Takes columns ([][]*Fragment) which is the column groups.
 // Takes columnWidth (float64) which is the width of each column.

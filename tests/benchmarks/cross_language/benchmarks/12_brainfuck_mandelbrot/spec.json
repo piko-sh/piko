@@ -1,0 +1,14 @@
+{
+  "name": "12_brainfuck_mandelbrot",
+  "description": "Interpret a small Brainfuck program that exercises every BF opcode plus nested loops. The 'interpreter inside interpreter' benchmark: every BF dispatch is a host-language interpreter step.",
+  "args": [],
+  "expected_stdout_sha256": "f59f52637e1f7462419d76242c44191e63d2c81e94177c0f54c429a2cf5fb616",
+  "k_inner": 5,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "a79e040668b0aa89610fa78b594814723ab9724fd97c1388ff1b09e53009bf90",
+    "py/cpython.py": "f07881015a08189d246d7dfb41636a3387384a4c0bec204ff62b637262cffa47",
+    "py/pypy.py": "f07881015a08189d246d7dfb41636a3387384a4c0bec204ff62b637262cffa47"
+  }
+}

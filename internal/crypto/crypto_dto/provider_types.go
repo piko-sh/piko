@@ -18,28 +18,27 @@
 
 package crypto_dto
 
-// ProviderType identifies which encryption provider to use and implements
-// fmt.Stringer.
+// ProviderType identifies which encryption provider to use and implements fmt.Stringer.
 type ProviderType string
 
 const (
-	// ProviderTypeLocalAESGCM uses local AES-256-GCM encryption. Best for
-	// development, testing, and single-server deployments.
+	// ProviderTypeLocalAESGCM uses local AES-256-GCM encryption. Best for development,
+	// testing, and single-server deployments.
 	ProviderTypeLocalAESGCM ProviderType = "local_aes_gcm"
 
-	// ProviderTypeAWSKMS uses AWS Key Management Service for encryption.
-	// Best for production AWS deployments and multi-region setups.
+	// ProviderTypeAWSKMS uses AWS Key Management Service for encryption. Best for production
+	// AWS deployments and multi-region setups.
 	ProviderTypeAWSKMS ProviderType = "aws_kms"
 
 	// ProviderTypeGCPKMS uses Google Cloud Key Management Service for encryption.
 	ProviderTypeGCPKMS ProviderType = "gcp_kms"
 
-	// ProviderTypeAzureKeyVault uses Azure Key Vault for key management.
-	// Best for production Azure deployments.
+	// ProviderTypeAzureKeyVault uses Azure Key Vault for key management. Best for production
+	// Azure deployments.
 	ProviderTypeAzureKeyVault ProviderType = "azure_keyvault"
 
-	// ProviderTypeHashiCorpVault uses HashiCorp Vault for secrets management.
-	// Suited for on-premise or multi-cloud deployments.
+	// ProviderTypeHashiCorpVault uses HashiCorp Vault for secrets management. Suited for
+	// on-premise or multi-cloud deployments.
 	ProviderTypeHashiCorpVault ProviderType = "hashicorp_vault"
 )
 

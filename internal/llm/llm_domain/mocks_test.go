@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -85,7 +84,7 @@ func TestMockLLMProvider_Complete(t *testing.T) {
 		assert.Equal(t, "Mock response", response.Choices[0].Message.Content)
 		require.NotNil(t, response.Usage)
 		assert.Equal(t, 15, response.Usage.TotalTokens)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CompleteCallCount))
+		assert.Equal(t, int64(1), m.CompleteCallCount.Load())
 	})
 
 	t.Run("delegates to CompleteFunc", func(t *testing.T) {
@@ -140,7 +139,7 @@ func TestMockLLMProvider_Stream(t *testing.T) {
 		}
 		require.Len(t, events, 1)
 		assert.True(t, events[0].Done)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.StreamCallCount))
+		assert.Equal(t, int64(1), m.StreamCallCount.Load())
 	})
 
 	t.Run("delegates to StreamFunc", func(t *testing.T) {
@@ -462,8 +461,8 @@ func TestMockLLMProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CompleteCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.StreamCallCount))
+	assert.Equal(t, int64(goroutines), m.CompleteCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.StreamCallCount.Load())
 }
 
 func TestMockEmbeddingProvider_ZeroValueIsUsable(t *testing.T) {
@@ -508,7 +507,7 @@ func TestMockEmbeddingProvider_Embed(t *testing.T) {
 		assert.Equal(t, 1, response.Embeddings[1].Index)
 		require.NotNil(t, response.Usage)
 		assert.Equal(t, 10, response.Usage.PromptTokens)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.EmbedCallCount))
+		assert.Equal(t, int64(1), m.EmbedCallCount.Load())
 	})
 
 	t.Run("delegates to EmbedFunc", func(t *testing.T) {
@@ -686,7 +685,7 @@ func TestMockEmbeddingProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.EmbedCallCount))
+	assert.Equal(t, int64(goroutines), m.EmbedCallCount.Load())
 }
 
 func TestMockCacheStore_ZeroValueIsUsable(t *testing.T) {
@@ -1400,7 +1399,7 @@ func TestMockSummariser_Complete(t *testing.T) {
 		assert.Equal(t, "gpt-4o", response.Model)
 		require.Len(t, response.Choices, 1)
 		assert.Contains(t, response.Choices[0].Message.Content, "mock summary")
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CompleteCallCount))
+		assert.Equal(t, int64(1), m.CompleteCallCount.Load())
 	})
 
 	t.Run("delegates to CompleteFunc", func(t *testing.T) {
@@ -1454,7 +1453,7 @@ func TestMockSummariser_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CompleteCallCount))
+	assert.Equal(t, int64(goroutines), m.CompleteCallCount.Load())
 }
 
 func TestMockRateLimiterStore_ZeroValueIsUsable(t *testing.T) {
@@ -1702,8 +1701,8 @@ func TestNewMockLLMProvider(t *testing.T) {
 	assert.Nil(t, m.StreamFunc)
 	assert.Nil(t, m.ListModelsFunc)
 	assert.Nil(t, m.CloseFunc)
-	assert.Equal(t, int64(0), m.CompleteCallCount)
-	assert.Equal(t, int64(0), m.StreamCallCount)
+	assert.Equal(t, int64(0), m.CompleteCallCount.Load())
+	assert.Equal(t, int64(0), m.StreamCallCount.Load())
 }
 
 func TestNewMockEmbeddingProvider(t *testing.T) {
@@ -1716,7 +1715,7 @@ func TestNewMockEmbeddingProvider(t *testing.T) {
 	assert.Nil(t, m.ListModelsFunc)
 	assert.Nil(t, m.CloseFunc)
 	assert.Nil(t, m.EmbeddingDimensionsFunc)
-	assert.Equal(t, int64(0), m.EmbedCallCount)
+	assert.Equal(t, int64(0), m.EmbedCallCount.Load())
 }
 
 func TestNewMockCacheStore(t *testing.T) {
@@ -1756,7 +1755,7 @@ func TestNewMockSummariser(t *testing.T) {
 
 	assert.NotNil(t, m)
 	assert.Nil(t, m.CompleteFunc)
-	assert.Equal(t, int64(0), m.CompleteCallCount)
+	assert.Equal(t, int64(0), m.CompleteCallCount.Load())
 }
 
 func TestNewMockRateLimiterStore(t *testing.T) {

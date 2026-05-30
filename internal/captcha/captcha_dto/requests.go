@@ -23,11 +23,11 @@ type VerifyRequest struct {
 	// Token is the captcha response token from the client widget.
 	Token string
 
-	// RemoteIP is the client's IP address, forwarded to the captcha provider
-	// for additional validation.
+	// RemoteIP is the client's IP address, forwarded to the captcha provider for additional
+	// validation.
 	RemoteIP string
 
-	// Action is an optional action name for score-based providers like
-	// reCAPTCHA v3. It identifies which form or flow the captcha protects.
+	// Action is an optional action name for score-based providers like reCAPTCHA v3. It
+	// identifies which form or flow the captcha protects.
 	Action string
 }

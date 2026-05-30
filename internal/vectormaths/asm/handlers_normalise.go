@@ -18,13 +18,15 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// normaliseHandlers returns the handler definitions for the
-// SIMD vector normalisation functions.
+// normaliseHandlers returns the handler definitions for the SIMD vector normalisation
+// functions.
 //
-// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// containing SSE, AVX2, and NEON variants.
+// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort] containing SSE, AVX2,
+// and NEON variants.
 func normaliseHandlers() []asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return []asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		handlerNormaliseF32SSE(),
@@ -33,15 +35,15 @@ func normaliseHandlers() []asmgen.HandlerDefinition[VectormathsArchitecturePort]
 	}
 }
 
-// handlerNormaliseF32SSE returns the handler definition for
-// the SSE in-place normalisation function.
+// handlerNormaliseF32SSE returns the handler definition for the SSE in-place
+// normalisation function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-24 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-24 NOSPLIT frame.
 func handlerNormaliseF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "normaliseF32SSE",
-		Comment:       "func normaliseF32SSE(v []float32)",
+		Comment:       "normaliseF32SSE rescales f32 vector in place so the L2 norm is 1 using SSE.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-24", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -50,15 +52,15 @@ func handlerNormaliseF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePo
 	}
 }
 
-// handlerNormaliseF32AVX2 returns the handler definition for
-// the AVX2 in-place normalisation function.
+// handlerNormaliseF32AVX2 returns the handler definition for the AVX2 in-place
+// normalisation function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-24 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-24 NOSPLIT frame.
 func handlerNormaliseF32AVX2() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "normaliseF32AVX2",
-		Comment:       "func normaliseF32AVX2(v []float32)",
+		Comment:       "normaliseF32AVX2 rescales f32 vector in place so the L2 norm is 1 using AVX2.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-24", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -67,15 +69,15 @@ func handlerNormaliseF32AVX2() asmgen.HandlerDefinition[VectormathsArchitectureP
 	}
 }
 
-// handlerNormaliseF32NEON returns the handler definition for
-// the NEON in-place normalisation function.
+// handlerNormaliseF32NEON returns the handler definition for the NEON in-place
+// normalisation function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting arm64 with a $0-24 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting arm64 with a
+// $0-24 NOSPLIT frame.
 func handlerNormaliseF32NEON() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "normaliseF32",
-		Comment:       "func normaliseF32(v []float32)",
+		Comment:       "normaliseF32 rescales f32 vector in place so the L2 norm is 1 using NEON.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureARM64},
 		FrameSize:     "$0-24", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {

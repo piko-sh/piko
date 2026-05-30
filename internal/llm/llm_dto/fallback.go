@@ -18,23 +18,21 @@
 
 package llm_dto
 
-// FallbackTrigger defines the conditions that trigger fallback to the next
-// provider. Multiple triggers can be combined using bitwise OR.
+// FallbackTrigger defines the conditions that trigger fallback to the next provider.
+// Multiple triggers can be combined using bitwise OR.
 type FallbackTrigger int
 
 const (
 	// FallbackOnError triggers fallback when any provider returns an error.
 	FallbackOnError FallbackTrigger = 1 << iota
 
-	// FallbackOnRateLimit triggers fallback when the provider rate limits the
-	// request.
+	// FallbackOnRateLimit triggers fallback when the provider rate limits the request.
 	FallbackOnRateLimit
 
 	// FallbackOnTimeout triggers fallback when the provider request times out.
 	FallbackOnTimeout
 
-	// FallbackOnBudgetExceeded triggers fallback when the provider's budget is
-	// exceeded.
+	// FallbackOnBudgetExceeded triggers fallback when the provider's budget is exceeded.
 	FallbackOnBudgetExceeded
 
 	// FallbackOnAll triggers fallback on any failure condition.
@@ -52,22 +50,22 @@ func (t FallbackTrigger) HasTrigger(trigger FallbackTrigger) bool {
 
 // FallbackConfig configures fallback behaviour for LLM completion requests.
 type FallbackConfig struct {
-	// ModelMapping maps provider names to model overrides. For example,
-	// {"anthropic": "claude-3-5-sonnet-20241022"} uses that model for the
-	// Anthropic provider instead of the default.
+	// ModelMapping maps provider names to model overrides. For example, {"anthropic":
+	// "claude-3-5-sonnet-20241022"} uses that model for the Anthropic provider instead of
+	// the default.
 	ModelMapping map[string]string
 
-	// Providers lists the provider names to try in order. The first provider is
-	// tried first; if it fails, the next provider is tried, and so on.
+	// Providers lists the provider names to try in order. The first provider is tried first;
+	// if it fails, the next provider is tried, and so on.
 	Providers []string
 
-	// Triggers sets which conditions cause a fallback to the next provider.
-	// If not set (zero), defaults to FallbackOnAll.
+	// Triggers sets which conditions cause a fallback to the next provider. If not set
+	// (zero), defaults to FallbackOnAll.
 	Triggers FallbackTrigger
 }
 
-// NewFallbackConfig creates a new FallbackConfig with the given providers.
-// The default triggers are set to FallbackOnAll.
+// NewFallbackConfig creates a new FallbackConfig with the given providers. The default
+// triggers are set to FallbackOnAll.
 //
 // Takes providers (...string) which are the provider names in priority order.
 //
@@ -116,8 +114,8 @@ func (c *FallbackConfig) GetModel(provider, defaultModel string) string {
 
 // FallbackResult contains information about fallback execution.
 type FallbackResult struct {
-	// Errors maps provider names to the errors they returned. Only providers
-	// that failed are included; successful providers are not present in this map.
+	// Errors maps provider names to the errors they returned. Only providers that failed are
+	// included; successful providers are not present in this map.
 	Errors map[string]error
 
 	// UsedProvider is the name of the provider that handled the request.

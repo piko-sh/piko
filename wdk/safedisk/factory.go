@@ -25,12 +25,12 @@ import (
 	"sync"
 )
 
-// Factory creates sandboxes with validated paths.
-// It restricts sandbox creation to paths within the allowed list,
-// preventing malicious or accidental access to sensitive directories.
+// Factory creates sandboxes with validated paths. It restricts sandbox creation to paths
+// within the allowed list, preventing malicious or accidental access to sensitive
+// directories.
 type Factory interface {
-	// Create creates a new sandbox for the given path. The path must be within
-	// the allowed paths list if configured; CWD is always implicitly allowed.
+	// Create creates a new sandbox for the given path. The path must be within the allowed
+	// paths list if configured; CWD is always implicitly allowed.
 	//
 	// Takes purpose (string) which is a descriptive name for logging.
 	// Takes path (string) which is the directory to sandbox.
@@ -40,8 +40,8 @@ type Factory interface {
 	// Returns error when the path is not allowed or sandbox creation fails.
 	Create(purpose string, path string, mode Mode) (Sandbox, error)
 
-	// MustCreate works like Create but panics on error.
-	// Use only during application startup when failure cannot be recovered.
+	// MustCreate works like Create but panics on error. Use only during application startup
+	// when failure cannot be recovered.
 	//
 	// Takes purpose (string) which describes why the sandbox is needed.
 	// Takes path (string) which is the root directory for the sandbox.
@@ -65,18 +65,16 @@ type Factory interface {
 
 // FactoryConfig configures the sandbox factory.
 type FactoryConfig struct {
-	// CWD is the current working directory, which is always allowed.
-	// If empty, it is detected automatically.
+	// CWD is the current working directory, which is always allowed. If empty, it is
+	// detected automatically.
 	CWD string
 
-	// AllowedPaths is a list of absolute paths that can be
-	// sandboxed, normalised during factory creation, where an
-	// empty list allows all paths (backwards compatible).
+	// AllowedPaths is a list of absolute paths that can be sandboxed, normalised during
+	// factory creation, where an empty list allows all paths (backwards compatible).
 	AllowedPaths []string
 
-	// Enabled controls whether sandboxing uses os.Root (true)
-	// or NoOpSandbox (false), where false provides no actual
-	// security and only basic path validation (default: true).
+	// Enabled controls whether sandboxing uses os.Root (true) or NoOpSandbox (false), where
+	// false provides no actual security and only basic path validation (default: true).
 	Enabled bool
 }
 
@@ -98,8 +96,8 @@ type factoryImpl struct {
 // Takes path (string) which specifies the filesystem path to sandbox.
 // Takes mode (Mode) which sets the access mode for the sandbox.
 //
-// Returns Sandbox which is either a real sandbox or a no-op implementation
-// depending on the factory configuration.
+// Returns Sandbox which is either a real sandbox or a no-op implementation depending on
+// the factory configuration.
 // Returns error when path is empty, invalid, or not within allowed paths.
 func (f *factoryImpl) Create(purpose string, path string, mode Mode) (Sandbox, error) {
 	if path == "" {
@@ -196,8 +194,8 @@ func (f *factoryImpl) checkPathAllowed(absPath string) bool {
 }
 
 var (
-	// globalFactory is a shared factory instance for use across the package.
-	// It must be set up before use by calling initialiseGlobalFactory.
+	// globalFactory is a shared factory instance for use across the package. It must be set
+	// up before use by calling initialiseGlobalFactory.
 	globalFactory Factory
 
 	// globalFactoryInit indicates whether the global factory has been initialised.
@@ -212,8 +210,8 @@ var (
 // Takes config (FactoryConfig) which specifies the factory settings.
 //
 // Returns Factory which is the configured factory ready for use.
-// Returns error when the configuration contains an invalid path or when the
-// current working directory cannot be determined.
+// Returns error when the configuration contains an invalid path or when the current
+// working directory cannot be determined.
 func NewFactory(config FactoryConfig) (Factory, error) {
 	cwd := config.CWD
 	if cwd == "" {
@@ -259,12 +257,12 @@ func NewFactory(config FactoryConfig) (Factory, error) {
 	}, nil
 }
 
-// NewCLIFactory creates a factory suitable for CLI tools and standalone
-// commands. It enables kernel-level sandboxing, uses the given working
-// directory, and places no restrictions on allowed paths.
+// NewCLIFactory creates a factory suitable for CLI tools and standalone commands. It
+// enables kernel-level sandboxing, uses the given working directory, and places no
+// restrictions on allowed paths.
 //
-// Takes cwd (string) which is the working directory for the factory. When
-// empty, the current working directory is detected automatically.
+// Takes cwd (string) which is the working directory for the factory. When empty, the
+// current working directory is detected automatically.
 //
 // Returns Factory which creates sandboxes with no path restrictions.
 // Returns error when factory creation fails.
@@ -283,15 +281,13 @@ func NewCLIFactory(cwd string) (Factory, error) {
 // Takes mode (Mode) which controls the sandbox behaviour.
 //
 // Returns Sandbox which is the created sandbox instance.
-// Returns error when the global factory has not been initialised or creation
-// fails.
+// Returns error when the global factory has not been initialised or creation fails.
 func Create(purpose string, path string, mode Mode) (Sandbox, error) {
 	return getGlobalFactory().Create(purpose, path, mode)
 }
 
-// newDefaultFactory creates a factory with default settings.
-// Sandboxing is enabled and the current working directory is detected
-// automatically.
+// newDefaultFactory creates a factory with default settings. Sandboxing is enabled and
+// the current working directory is detected automatically.
 //
 // Returns Factory which is configured with default sandboxing settings.
 // Returns error when the working directory cannot be detected.
@@ -324,8 +320,7 @@ func isWithinOrEqual(parent, path string) bool {
 	return false
 }
 
-// initialiseGlobalFactory initialises the global factory with the
-// given configuration.
+// initialiseGlobalFactory initialises the global factory with the given configuration.
 // Call this once during application startup.
 //
 // When called after the factory is already initialised, returns nil immediately.
@@ -370,8 +365,8 @@ func getGlobalFactory() Factory {
 	return globalFactory
 }
 
-// resetGlobalFactory resets the global factory for testing.
-// This must only be called from tests.
+// resetGlobalFactory resets the global factory for testing. This must only be called from
+// tests.
 //
 // Safe for concurrent use by multiple goroutines.
 func resetGlobalFactory() {

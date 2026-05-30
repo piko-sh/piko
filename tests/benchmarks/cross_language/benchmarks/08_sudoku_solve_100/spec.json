@@ -1,0 +1,14 @@
+{
+  "name": "08_sudoku_solve_100",
+  "description": "Backtracking solver for 100 sudoku puzzles. Each puzzle is built deterministically by blanking 40 cells from a known-valid 9x9 grid. Returns a 32-bit fold hash of all solved boards.",
+  "args": [],
+  "expected_stdout_sha256": "a86f4a8e8cbfb4136efb3c893440793284c29e59c6952701cc624e56e86a2748",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "9e84c93733f4d20e57a4ba3eb07f25b326c6ff514e1d3a6fa6c8b2735eff943c",
+    "py/cpython.py": "bf2b2e711ade72697e1ec7fce2ade146fde94f3eb5435f6eb3cd50ac318094ef",
+    "py/pypy.py": "bf2b2e711ade72697e1ec7fce2ade146fde94f3eb5435f6eb3cd50ac318094ef"
+  }
+}

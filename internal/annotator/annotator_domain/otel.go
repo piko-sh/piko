@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Defines OpenTelemetry metrics for monitoring compilation performance and
-// tracking operation counts. Provides counters, histograms, and gauges for
-// observing annotator behaviour including parse times, CSS processing, and
-// error rates.
+// Defines OpenTelemetry metrics for monitoring compilation performance and tracking
+// operation counts. Provides counters, histograms, and gauges for observing annotator
+// behaviour including parse times, CSS processing, and error rates.
 
 import (
 	"go.opentelemetry.io/otel"
@@ -42,12 +41,10 @@ var (
 	// CSSProcessDuration tracks how long CSS processing tasks take.
 	CSSProcessDuration metric.Float64Histogram
 
-	// CSSProcessErrorCount tracks the number of errors that occur when processing
-	// CSS files.
+	// CSSProcessErrorCount tracks the number of errors that occur when processing CSS files.
 	CSSProcessErrorCount metric.Int64Counter
 
-	// CSSScopeCount tracks the number of CSS scoping operations that have
-	// happened.
+	// CSSScopeCount tracks the number of CSS scoping operations that have happened.
 	CSSScopeCount metric.Int64Counter
 
 	// CSSScopeDuration tracks how long CSS scoping operations take.
@@ -71,8 +68,7 @@ var (
 	// WalkASTNodeDuration tracks how long it takes to walk through AST nodes.
 	WalkASTNodeDuration metric.Float64Histogram
 
-	// PartialExpandCount is a counter that tracks the number of partial expand
-	// operations.
+	// PartialExpandCount is a counter that tracks the number of partial expand operations.
 	PartialExpandCount metric.Int64Counter
 
 	// PartialExpandDuration tracks the duration of partial expand operations.
@@ -81,35 +77,30 @@ var (
 	// PartialExpandErrorCount tracks the number of partial expand errors.
 	PartialExpandErrorCount metric.Int64Counter
 
-	// PartialRecursiveExpandCount tracks the number of recursive partial expand
-	// operations.
+	// PartialRecursiveExpandCount tracks the number of recursive partial expand operations.
 	PartialRecursiveExpandCount metric.Int64Counter
 
-	// PartialRecursiveExpandDuration tracks the duration of recursive partial
-	// expand operations.
+	// PartialRecursiveExpandDuration tracks the duration of recursive partial expand
+	// operations.
 	PartialRecursiveExpandDuration metric.Float64Histogram
 
-	// PartialHandleExpansionCount tracks the number of partial handle expansion
-	// operations.
+	// PartialHandleExpansionCount tracks the number of partial handle expansion operations.
 	PartialHandleExpansionCount metric.Int64Counter
 
-	// PartialHandleExpansionDuration tracks the duration of partial handle
-	// expansion operations.
+	// PartialHandleExpansionDuration tracks the duration of partial handle expansion
+	// operations.
 	PartialHandleExpansionDuration metric.Float64Histogram
 
 	// PartialFillSlotsCount counts the number of partial fill slots operations.
 	PartialFillSlotsCount metric.Int64Counter
 
-	// PartialFillSlotsDuration tracks the duration of partial fill slots
-	// operations.
+	// PartialFillSlotsDuration tracks the duration of partial fill slots operations.
 	PartialFillSlotsDuration metric.Float64Histogram
 
-	// PartialAnnotateTypesCount tracks the number of partial annotate types
-	// operations.
+	// PartialAnnotateTypesCount tracks the number of partial annotate types operations.
 	PartialAnnotateTypesCount metric.Int64Counter
 
-	// PartialAnnotateTypesDuration tracks the duration of partial annotate types
-	// operations.
+	// PartialAnnotateTypesDuration tracks the duration of partial annotate types operations.
 	PartialAnnotateTypesDuration metric.Float64Histogram
 )
 

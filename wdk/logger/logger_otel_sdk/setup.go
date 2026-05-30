@@ -38,8 +38,7 @@ const (
 	// batchSpanQueueSize is the maximum number of spans buffered before export.
 	batchSpanQueueSize = 1024
 
-	// batchSpanExportMaxBatch is the maximum number of spans exported in a
-	// single batch.
+	// batchSpanExportMaxBatch is the maximum number of spans exported in a single batch.
 	batchSpanExportMaxBatch = 256
 )
 
@@ -47,20 +46,20 @@ func init() {
 	driver_handlers.RegisterOtelProviderFactory(createProviders)
 }
 
-// createProviders creates real OTEL SDK trace and metric providers. It is
-// registered as the OtelProviderFactory during init().
+// createProviders creates real OTEL SDK trace and metric providers. It is registered as
+// the OtelProviderFactory during init().
 //
-// The additionalProcessors and additionalReaders slices contain values whose
-// concrete types satisfy sdktrace.SpanProcessor and sdkmetric.Reader
-// respectively. Elements that do not match these types are silently skipped.
+// The additionalProcessors and additionalReaders slices contain values whose concrete
+// types satisfy sdktrace.SpanProcessor and sdkmetric.Reader respectively. Elements that
+// do not match these types are silently skipped.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies OTLP
-// endpoint, protocol, and sampling settings.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies OTLP endpoint, protocol,
+// and sampling settings.
 // Takes additionalProcessors ([]any) which holds optional span processors.
 // Takes additionalReaders ([]any) which holds optional metric readers.
 //
-// Returns driver_handlers.OtelProviderResult which contains the configured
-// tracer and meter providers.
+// Returns driver_handlers.OtelProviderResult which contains the configured tracer and
+// meter providers.
 // Returns error when provider creation fails.
 func createProviders(
 	ctx context.Context,
@@ -90,11 +89,10 @@ func createProviders(
 	}, nil
 }
 
-// collectTyped extracts items of type T from a slice of
-// any, skipping non-matching elements.
+// collectTyped extracts items of type T from a slice of any, skipping non-matching
+// elements.
 //
-// Takes items ([]any) which holds the source items to
-// filter.
+// Takes items ([]any) which holds the source items to filter.
 //
 // Returns []T which holds the matched items.
 func collectTyped[T any](items []any) []T {
@@ -107,18 +105,16 @@ func collectTyped[T any](items []any) []T {
 	return result
 }
 
-// buildTracerProvider creates either an OTLP or local
-// tracer provider depending on the config.
+// buildTracerProvider creates either an OTLP or local tracer provider depending on the
+// config.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which
-// specifies OTLP endpoint, protocol, and sampling settings.
-// Takes processors ([]sdktrace.SpanProcessor) which holds
-// additional span processors to register.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies OTLP endpoint, protocol,
+// and sampling settings.
+// Takes processors ([]sdktrace.SpanProcessor) which holds additional span processors to
+// register.
 //
-// Returns *sdktrace.TracerProvider which is the configured
-// tracer provider.
-// Returns []io.Closer which holds optional closers for OTLP
-// connections.
+// Returns *sdktrace.TracerProvider which is the configured tracer provider.
+// Returns []io.Closer which holds optional closers for OTLP connections.
 // Returns error when provider creation fails.
 func buildTracerProvider(ctx context.Context, config driver_handlers.OtelSetupConfig, processors []sdktrace.SpanProcessor) (*sdktrace.TracerProvider, []io.Closer, error) {
 	if config.Enabled {
@@ -136,18 +132,15 @@ func buildTracerProvider(ctx context.Context, config driver_handlers.OtelSetupCo
 	return tp, nil, err
 }
 
-// buildMeterProvider creates either an OTLP or local meter
-// provider depending on the config.
+// buildMeterProvider creates either an OTLP or local meter provider depending on the
+// config.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which
-// specifies OTLP endpoint, protocol, and sampling settings.
-// Takes readers ([]sdkmetric.Reader) which holds additional
-// metric readers to register.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies OTLP endpoint, protocol,
+// and sampling settings.
+// Takes readers ([]sdkmetric.Reader) which holds additional metric readers to register.
 //
-// Returns *sdkmetric.MeterProvider which is the configured
-// meter provider.
-// Returns []io.Closer which holds optional closers for OTLP
-// connections.
+// Returns *sdkmetric.MeterProvider which is the configured meter provider.
+// Returns []io.Closer which holds optional closers for OTLP connections.
 // Returns error when provider creation fails.
 func buildMeterProvider(ctx context.Context, config driver_handlers.OtelSetupConfig, readers []sdkmetric.Reader) (*sdkmetric.MeterProvider, []io.Closer, error) {
 	if config.Enabled {
@@ -165,19 +158,14 @@ func buildMeterProvider(ctx context.Context, config driver_handlers.OtelSetupCon
 	return mp, nil, err
 }
 
-// buildShutdownFunc creates a shutdown function that
-// flushes the tracer and meter providers and closes all
-// OTLP connections.
+// buildShutdownFunc creates a shutdown function that flushes the tracer and meter
+// providers and closes all OTLP connections.
 //
-// Takes sdkTP (*sdktrace.TracerProvider) which is the tracer
-// provider to shut down.
-// Takes sdkMP (*sdkmetric.MeterProvider) which is the meter
-// provider to shut down.
-// Takes closers ([]io.Closer) which holds OTLP connections
-// to close.
+// Takes sdkTP (*sdktrace.TracerProvider) which is the tracer provider to shut down.
+// Takes sdkMP (*sdkmetric.MeterProvider) which is the meter provider to shut down.
+// Takes closers ([]io.Closer) which holds OTLP connections to close.
 //
-// Returns func(context.Context) error which performs the
-// ordered shutdown.
+// Returns func(context.Context) error which performs the ordered shutdown.
 func buildShutdownFunc(sdkTP *sdktrace.TracerProvider, sdkMP *sdkmetric.MeterProvider, closers []io.Closer) func(context.Context) error {
 	return func(ctx context.Context) error {
 		var allErrors []error
@@ -200,19 +188,18 @@ func buildShutdownFunc(sdkTP *sdktrace.TracerProvider, sdkMP *sdkmetric.MeterPro
 	}
 }
 
-// createOtlpTracerProvider creates an OpenTelemetry tracer provider with OTLP
-// export configured based on the specified protocol.
+// createOtlpTracerProvider creates an OpenTelemetry tracer provider with OTLP export
+// configured based on the specified protocol.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and protocol.
-// Takes additionalProcessors ([]sdktrace.SpanProcessor) which provides
-// additional span processors to register (e.g., Sentry, monitoring service).
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// protocol.
+// Takes additionalProcessors ([]sdktrace.SpanProcessor) which provides additional span
+// processors to register (e.g., Sentry, monitoring service).
 //
 // Returns *sdktrace.TracerProvider which is the configured tracer provider.
-// Returns io.Closer which is an optional closer (e.g. a gRPC connection) that
-// should be closed during shutdown, or nil when not applicable.
-// Returns error when the protocol is unsupported or the exporter cannot be
-// created.
+// Returns io.Closer which is an optional closer (e.g. a gRPC connection) that should be
+// closed during shutdown, or nil when not applicable.
+// Returns error when the protocol is unsupported or the exporter cannot be created.
 func createOtlpTracerProvider(ctx context.Context, config driver_handlers.OtelSetupConfig, additionalProcessors []sdktrace.SpanProcessor) (*sdktrace.TracerProvider, io.Closer, error) {
 	protocol, ok := driver_handlers.GetOtlpProtocol(config.Protocol)
 	if !ok {
@@ -260,14 +247,12 @@ func createOtlpTracerProvider(ctx context.Context, config driver_handlers.OtelSe
 	return sdktrace.NewTracerProvider(providerOptions...), closer, nil
 }
 
-// createLocalTracerProvider creates a tracer provider without OTLP export,
-// using only the provided span processors. This is used when the monitoring
-// service is enabled but OTLP is not configured.
+// createLocalTracerProvider creates a tracer provider without OTLP export, using only the
+// provided span processors. This is used when the monitoring service is enabled but OTLP
+// is not configured.
 //
-// Takes sampleRate (float64) which is the fraction of traces to sample (0.0 to
-// 1.0).
-// Takes processors ([]sdktrace.SpanProcessor) which are the processors to
-// register.
+// Takes sampleRate (float64) which is the fraction of traces to sample (0.0 to 1.0).
+// Takes processors ([]sdktrace.SpanProcessor) which are the processors to register.
 //
 // Returns *sdktrace.TracerProvider which is the configured tracer provider.
 // Returns error when resource creation fails.
@@ -289,19 +274,18 @@ func createLocalTracerProvider(sampleRate float64, processors []sdktrace.SpanPro
 	return sdktrace.NewTracerProvider(providerOptions...), nil
 }
 
-// createOtlpMeterProvider creates an OpenTelemetry meter provider using the
-// specified OTLP configuration.
+// createOtlpMeterProvider creates an OpenTelemetry meter provider using the specified
+// OTLP configuration.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and protocol.
-// Takes additionalReaders ([]sdkmetric.Reader) which provides additional
-// metric readers to register (e.g., monitoring service).
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// protocol.
+// Takes additionalReaders ([]sdkmetric.Reader) which provides additional metric readers
+// to register (e.g., monitoring service).
 //
 // Returns *sdkmetric.MeterProvider which is configured with a periodic reader.
-// Returns io.Closer which is an optional closer (e.g. a gRPC connection) that
-// should be closed during shutdown, or nil when not applicable.
-// Returns error when the protocol is unsupported or the exporter cannot be
-// created.
+// Returns io.Closer which is an optional closer (e.g. a gRPC connection) that should be
+// closed during shutdown, or nil when not applicable.
+// Returns error when the protocol is unsupported or the exporter cannot be created.
 func createOtlpMeterProvider(ctx context.Context, config driver_handlers.OtelSetupConfig, additionalReaders []sdkmetric.Reader) (*sdkmetric.MeterProvider, io.Closer, error) {
 	protocol, ok := driver_handlers.GetOtlpProtocol(config.Protocol)
 	if !ok {
@@ -345,9 +329,9 @@ func createOtlpMeterProvider(ctx context.Context, config driver_handlers.OtelSet
 	return sdkmetric.NewMeterProvider(opts...), closer, nil
 }
 
-// createLocalMeterProvider creates a meter provider without OTLP export,
-// using only the provided metric readers. This is used when the monitoring
-// service is enabled but OTLP is not configured.
+// createLocalMeterProvider creates a meter provider without OTLP export, using only the
+// provided metric readers. This is used when the monitoring service is enabled but OTLP
+// is not configured.
 //
 // Takes readers ([]sdkmetric.Reader) which are the readers to register.
 //
@@ -370,12 +354,12 @@ func createLocalMeterProvider(readers []sdkmetric.Reader) (*sdkmetric.MeterProvi
 	return sdkmetric.NewMeterProvider(opts...), nil
 }
 
-// createResource builds an OpenTelemetry resource with service metadata and
-// any environment attributes detected at startup (K8s, Lambda, Cloud Run,
-// Azure Container Apps, Piko-specific overrides).
+// createResource builds an OpenTelemetry resource with service metadata and any
+// environment attributes detected at startup (K8s, Lambda, Cloud Run, Azure Container
+// Apps, Piko-specific overrides).
 //
-// Returns *resource.Resource which contains the merged default resource and
-// service attributes.
+// Returns *resource.Resource which contains the merged default resource and service
+// attributes.
 // Returns error when the resource merge fails.
 func createResource() (*resource.Resource, error) {
 	envAttrs := logger_domain.EnvironmentOtelAttrs()

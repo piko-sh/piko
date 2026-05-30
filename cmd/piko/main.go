@@ -31,8 +31,7 @@ import (
 	_ "piko.sh/piko/wdk/logger/logger_otel_sdk"
 )
 
-// main is the entry point that dispatches subcommands or shows the welcome
-// message.
+// main is the entry point that dispatches subcommands or shows the welcome message.
 func main() {
 	sonicjson.New().Activate()
 

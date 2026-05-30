@@ -1,0 +1,18 @@
+package lib
+
+import (
+	"fmt"
+	"strings"
+)
+
+type Printer struct {
+	Separator string
+}
+
+func (p *Printer) Print(items ...interface{}) string {
+	parts := make([]string, len(items))
+	for i, it := range items {
+		parts[i] = fmt.Sprintf("%v", it)
+	}
+	return strings.Join(parts, p.Separator)
+}

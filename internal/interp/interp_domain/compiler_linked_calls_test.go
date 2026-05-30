@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/wdk/interp/interp_link"
 )
 
-var errTestEmptyKey = errors.New("empty key")
+var (
+	errTestEmptyKey = errors.New("empty key")
+)
 
 func linkedFixtureTypesPackage(t *testing.T, moduleRoot string) *packages.Package {
 	t.Helper()
@@ -65,7 +67,9 @@ func TestLinkedGenericDispatchesThroughSibling(t *testing.T) {
 		"go.mod": "module example.com/linked\n\ngo 1.22\n",
 		"linked.go": `package linked
 
-import "reflect"
+import (
+	"reflect"
+)
 
 //piko:link GetItemLink
 func GetItem[T any](label string) T {
@@ -105,7 +109,9 @@ func GetItemLink(tType reflect.Type, label string) reflect.Value {
 
 	source := `package main
 
-import "example.com/linked"
+import (
+	"example.com/linked"
+)
 
 func run() string {
 	return linked.GetItem[string]("hello")
@@ -126,7 +132,9 @@ func TestLinkedGenericWithUserStructType(t *testing.T) {
 		"go.mod": "module example.com/userlinked\n\ngo 1.22\n",
 		"linked.go": `package userlinked
 
-import "reflect"
+import (
+	"reflect"
+)
 
 //piko:link BuildLink
 func Build[T any](title string) T {
@@ -167,7 +175,9 @@ func BuildLink(tType reflect.Type, title string) reflect.Value {
 
 	source := `package main
 
-import "example.com/userlinked"
+import (
+	"example.com/userlinked"
+)
 
 type Post struct {
 	Title string
@@ -236,7 +246,9 @@ func FetchLink(tType reflect.Type, key string) (reflect.Value, error) {
 
 	source := `package main
 
-import "example.com/linkederr"
+import (
+	"example.com/linkederr"
+)
 
 func run() string {
 	value, err := linkederr.Fetch[string]("present")
@@ -347,7 +359,9 @@ func TestLinkedGenericVariadicWithSliceReturn(t *testing.T) {
 
 	source := `package main
 
-import "example.com/searchpkg"
+import (
+	"example.com/searchpkg"
+)
 
 type Doc struct {
 	Title string
@@ -397,7 +411,9 @@ func TestLinkedGenericWithSynthesisedTypesPackage(t *testing.T) {
 
 	source := `package main
 
-import "example.com/synth"
+import (
+	"example.com/synth"
+)
 
 type Post struct {
 	Title string

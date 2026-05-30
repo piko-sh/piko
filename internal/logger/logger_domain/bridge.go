@@ -23,17 +23,15 @@ import (
 	"log/slog"
 )
 
-// SpanLifecycleHook provides callbacks for span lifecycle events, allowing
-// external systems to hook into span creation and error reporting for
-// observability integration.
+// SpanLifecycleHook provides callbacks for span lifecycle events, allowing external
+// systems to hook into span creation and error reporting for observability integration.
 type SpanLifecycleHook interface {
 	// OnSpanStart begins a new tracing span with the given name and attributes.
 	//
 	// Takes spanName (string) which identifies the span.
 	// Takes attrs ([]slog.Attr) which provides additional span metadata.
 	//
-	// Returns newCtx (context.Context) which carries the span for child
-	// operations.
+	// Returns newCtx (context.Context) which carries the span for child operations.
 	// Returns finisher (func()) which must be called to end the span.
 	OnSpanStart(ctx context.Context, spanName string, attrs []slog.Attr) (newCtx context.Context, finisher func())
 

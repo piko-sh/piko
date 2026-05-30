@@ -18,8 +18,7 @@
 
 package bootstrap
 
-// This file provides integration of the healthprobe system into the Piko build
-// pipeline.
+// This file provides integration of the healthprobe system into the Piko build pipeline.
 
 import (
 	"context"
@@ -50,30 +49,35 @@ type probeRegistration struct {
 	name string
 }
 
-// defaultCheckTimeoutSeconds is the default health probe check timeout.
-const defaultCheckTimeoutSeconds = 5
+const (
 
-// serviceProbes lists all services that may implement health probes.
-var serviceProbes = []probeRegistration{
-	{name: "RegistryService", getter: func(c *Container) (any, error) { return c.GetRegistryService() }},
-	{name: "CollectionService", getter: func(c *Container) (any, error) { return c.GetCollectionService() }},
-	{name: "OrchestratorService", getter: func(c *Container) (any, error) { return c.GetOrchestratorService() }},
-	{name: "EventsProvider", getter: func(c *Container) (any, error) { return c.GetEventsProvider() }},
-	{name: "StorageService", getter: func(c *Container) (any, error) { return c.GetStorageService() }},
-	{name: "EmailService", getter: func(c *Container) (any, error) { return c.GetEmailService() }},
-	{name: "CryptoService", getter: func(c *Container) (any, error) { return c.GetCryptoService() }},
-	{name: "CacheService", getter: func(c *Container) (any, error) { return c.GetCacheService() }},
-	{name: "SEOService", getter: func(c *Container) (any, error) { return c.GetSEOService() }},
-	{name: "ImageService", getter: func(c *Container) (any, error) { return c.GetImageService() }},
-	{name: "VideoService", getter: func(c *Container) (any, error) { return c.GetVideoService() }},
-	{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
-	{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
-	{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
-	{name: "SpamDetectService", getter: func(c *Container) (any, error) { return c.GetSpamDetectService() }},
-}
+	// defaultCheckTimeoutSeconds is the default health probe check timeout.
+	defaultCheckTimeoutSeconds = 5
+)
 
-// createHealthProbeService creates and sets up the health probe service with
-// health check probes from all services. Call this once during bootstrap.
+var (
+	// serviceProbes lists all services that may implement health probes.
+	serviceProbes = []probeRegistration{
+		{name: "RegistryService", getter: func(c *Container) (any, error) { return c.GetRegistryService() }},
+		{name: "CollectionService", getter: func(c *Container) (any, error) { return c.GetCollectionService() }},
+		{name: "OrchestratorService", getter: func(c *Container) (any, error) { return c.GetOrchestratorService() }},
+		{name: "EventsProvider", getter: func(c *Container) (any, error) { return c.GetEventsProvider() }},
+		{name: "StorageService", getter: func(c *Container) (any, error) { return c.GetStorageService() }},
+		{name: "EmailService", getter: func(c *Container) (any, error) { return c.GetEmailService() }},
+		{name: "CryptoService", getter: func(c *Container) (any, error) { return c.GetCryptoService() }},
+		{name: "CacheService", getter: func(c *Container) (any, error) { return c.GetCacheService() }},
+		{name: "SEOService", getter: func(c *Container) (any, error) { return c.GetSEOService() }},
+		{name: "ImageService", getter: func(c *Container) (any, error) { return c.GetImageService() }},
+		{name: "VideoService", getter: func(c *Container) (any, error) { return c.GetVideoService() }},
+		{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
+		{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
+		{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
+		{name: "SpamDetectService", getter: func(c *Container) (any, error) { return c.GetSpamDetectService() }},
+	}
+)
+
+// createHealthProbeService creates and sets up the health probe service with health check
+// probes from all services. Call this once during bootstrap.
 //
 // The health probe service:
 //   - Runs liveness checks to see if the application is running.
@@ -83,8 +87,8 @@ var serviceProbes = []probeRegistration{
 //
 // Takes c (*Container) which provides access to services and configuration.
 //
-// Returns healthprobe_domain.Service which is the configured health probe
-// service ready for use.
+// Returns healthprobe_domain.Service which is the configured health probe service ready
+// for use.
 // Returns error when the service cannot be created.
 func createHealthProbeService(c *Container) (healthprobe_domain.Service, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
@@ -106,12 +110,11 @@ func createHealthProbeService(c *Container) (healthprobe_domain.Service, error) 
 	return healthProbeService, nil
 }
 
-// registerServiceProbes registers health probes from services that return
-// a service and error pair.
+// registerServiceProbes registers health probes from services that return a service and
+// error pair.
 //
 // Takes c (*Container) which provides access to service instances.
-// Takes registry (healthprobe_domain.Registry) which receives probe
-// registrations.
+// Takes registry (healthprobe_domain.Registry) which receives probe registrations.
 func registerServiceProbes(c *Container, registry healthprobe_domain.Registry) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -127,12 +130,11 @@ func registerServiceProbes(c *Container, registry healthprobe_domain.Registry) {
 	}
 }
 
-// registerDirectProbes adds health probes from services that do not return
-// errors during setup.
+// registerDirectProbes adds health probes from services that do not return errors during
+// setup.
 //
 // Takes c (*Container) which provides access to the service instances.
-// Takes registry (healthprobe_domain.Registry) which receives the probe
-// registrations.
+// Takes registry (healthprobe_domain.Registry) which receives the probe registrations.
 func registerDirectProbes(c *Container, registry healthprobe_domain.Registry) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -147,12 +149,10 @@ func registerDirectProbes(c *Container, registry healthprobe_domain.Registry) {
 	}
 }
 
-// registerCustomProbes adds custom health probes from the container to the
-// registry.
+// registerCustomProbes adds custom health probes from the container to the registry.
 //
 // Takes c (*Container) which holds the custom health probes to register.
-// Takes registry (healthprobe_domain.Registry) which receives the probe
-// registrations.
+// Takes registry (healthprobe_domain.Registry) which receives the probe registrations.
 func registerCustomProbes(c *Container, registry healthprobe_domain.Registry) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -172,8 +172,8 @@ func registerCustomProbes(c *Container, registry healthprobe_domain.Registry) {
 //
 // Returns daemon_domain.ServerAdapter which is the configured health server.
 // Returns http.Handler which is the router with health check paths added.
-// Returns daemon_domain.DrainSignaller which signals drain to the health
-// service during shutdown; nil when health probes are disabled.
+// Returns daemon_domain.DrainSignaller which signals drain to the health service during
+// shutdown; nil when health probes are disabled.
 // Returns error when the health probe service cannot be obtained.
 func setupHealthProbeServer(
 	c *Container,
@@ -240,14 +240,14 @@ func setupHealthProbeServer(
 	return healthServer, r, drainSignaller, nil
 }
 
-// newTLSRedirectServerIfConfigured returns a new HTTP server adapter when the
-// daemon config enables TLS redirect, or nil otherwise.
+// newTLSRedirectServerIfConfigured returns a new HTTP server adapter when the daemon
+// config enables TLS redirect, or nil otherwise.
 //
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS
-// redirect settings to check.
+// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS redirect
+// settings to check.
 //
-// Returns daemon_domain.ServerAdapter which is the redirect server, or nil
-// when TLS redirect is not enabled.
+// Returns daemon_domain.ServerAdapter which is the redirect server, or nil when TLS
+// redirect is not enabled.
 func newTLSRedirectServerIfConfigured(daemonConfig daemon_domain.DaemonConfig) daemon_domain.ServerAdapter {
 	if daemonConfig.TLSRedirectHTTPPort != "" {
 		return daemon_adapters.NewDriverHTTPServerAdapter()

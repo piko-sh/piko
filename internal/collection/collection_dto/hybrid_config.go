@@ -18,23 +18,24 @@
 
 package collection_dto
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	// defaultRevalidationSeconds is the default time in seconds between cache
-	// revalidations.
+	// defaultRevalidationSeconds is the default time in seconds between cache revalidations.
 	defaultRevalidationSeconds = 60
 
-	// ETagSourceModtimeHash uses file modification times to compute the ETag.
-	// This is fast and works well for local file-based providers like markdown.
+	// ETagSourceModtimeHash uses file modification times to compute the ETag. This is fast
+	// and works well for local file-based providers like markdown.
 	ETagSourceModtimeHash = "modtime-hash"
 
-	// ETagSourceContentHash computes the ETag from the file content. This is more
-	// accurate but slower because it must read all files.
+	// ETagSourceContentHash computes the ETag from the file content. This is more accurate
+	// but slower because it must read all files.
 	ETagSourceContentHash = "content-hash"
 
-	// ETagSourceProviderETag uses the ETag from the provider.
-	// Suitable for HTTP-based providers that return ETag headers.
+	// ETagSourceProviderETag uses the ETag from the provider. Suitable for HTTP-based
+	// providers that return ETag headers.
 	ETagSourceProviderETag = "provider-etag"
 )
 
@@ -60,27 +61,24 @@ type HybridConfig struct {
 
 	// RevalidationTTL is how long to wait before checking if cached data is stale.
 	//
-	// After this time passes, the next request starts a background ETag check.
-	// The request still gets the cached content straight away while the check
-	// runs.
+	// After this time passes, the next request starts a background ETag check. The request
+	// still gets the cached content straight away while the check runs.
 	//
-	// Default: 60 seconds.
-	// Zero value: check every request (not suggested for production).
+	// Default: 60 seconds. Zero value: check every request (not suggested for production).
 	RevalidationTTL time.Duration
 
 	// MaxStaleAge is the maximum age of content before forcing a refresh.
 	//
-	// If content is older than this, the system will attempt a synchronous
-	// refresh instead of serving stale content (unless StaleIfError is true
-	// and the refresh fails).
+	// If content is older than this, the system will attempt a synchronous refresh instead
+	// of serving stale content (unless StaleIfError is true and the refresh fails).
 	//
 	// Default: 0 (no maximum - content can be arbitrarily stale)
 	MaxStaleAge time.Duration
 
 	// StaleIfError controls whether to serve stale content when revalidation fails.
 	//
-	// When true (default), if the ETag check or content fetch fails, the system
-	// continues serving the last known good content instead of returning an error.
+	// When true (default), if the ETag check or content fetch fails, the system continues
+	// serving the last known good content instead of returning an error.
 	//
 	// Default: true
 	StaleIfError bool
@@ -91,15 +89,15 @@ type HybridRevalidationResult struct {
 	// RevalidatedAt is when this revalidation finished.
 	RevalidatedAt time.Time
 
-	// Error holds any failure that occurred during revalidation.
-	// When StaleIfError is true, stale content is served despite this error.
+	// Error holds any failure that occurred during revalidation. When StaleIfError is true,
+	// stale content is served despite this error.
 	Error error
 
 	// NewETag is the ETag from the latest check; unchanged if still valid.
 	NewETag string
 
-	// NewItems holds the fresh content when ETagChanged is true.
-	// Nil if the content has not changed or if an error occurred.
+	// NewItems holds the fresh content when ETagChanged is true. Nil if the content has not
+	// changed or if an error occurred.
 	NewItems []ContentItem
 
 	// ETagChanged indicates whether the content has changed since the last check.
@@ -115,8 +113,8 @@ func (r *HybridRevalidationResult) IsValid() bool {
 
 // NeedsUpdate returns true if the cache should be updated with new content.
 //
-// Returns bool which is true when there is no error, the ETag has changed,
-// and new items are available.
+// Returns bool which is true when there is no error, the ETag has changed, and new items
+// are available.
 func (r *HybridRevalidationResult) NeedsUpdate() bool {
 	return r.Error == nil && r.ETagChanged && len(r.NewItems) > 0
 }

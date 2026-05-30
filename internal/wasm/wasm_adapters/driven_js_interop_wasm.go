@@ -37,11 +37,10 @@ type jsInterop struct {
 	global js.Value
 }
 
-// RegisterFunction registers a Go function to be callable from JavaScript.
-// The function is exposed on the global 'piko' object.
+// RegisterFunction registers a Go function to be callable from JavaScript. The function
+// is exposed on the global 'piko' object.
 //
-// Takes name (string) which specifies the name to expose the function as in
-// JavaScript.
+// Takes name (string) which specifies the name to expose the function as in JavaScript.
 // Takes handler (func(...)) which is the Go function to call when invoked from
 // JavaScript.
 func (j *jsInterop) RegisterFunction(name string, handler func(arguments []any) (any, error)) {
@@ -72,8 +71,8 @@ func (j *jsInterop) RegisterFunction(name string, handler func(arguments []any) 
 
 // Log writes a message to the JavaScript console.
 //
-// Takes level (string) which specifies the console method to use (debug, info,
-// warn, error, or log for any other value).
+// Takes level (string) which specifies the console method to use (debug, info, warn,
+// error, or log for any other value).
 // Takes message (string) which is the main log message.
 // Takes arguments (...any) which provides optional values appended to the message.
 func (j *jsInterop) Log(level string, message string, arguments ...any) {
@@ -213,9 +212,9 @@ func newJSInterop() *jsInterop {
 //
 // Takes v (js.Value) which is the JavaScript value to convert.
 //
-// Returns any which is the matching Go type: nil for undefined or null, bool
-// for booleans, float64 for numbers, string for strings, []any for arrays, or
-// map[string]any for objects.
+// Returns any which is the matching Go type: nil for undefined or null, bool for
+// booleans, float64 for numbers, string for strings, []any for arrays, or map[string]any
+// for objects.
 func jsValueToGo(v js.Value) any {
 	switch v.Type() {
 	case js.TypeUndefined, js.TypeNull:
@@ -245,8 +244,8 @@ func jsValueToGo(v js.Value) any {
 //
 // Takes v (js.Value) which is the JavaScript object to convert.
 //
-// Returns map[string]any which contains the converted key-value pairs, or nil
-// if the conversion fails.
+// Returns map[string]any which contains the converted key-value pairs, or nil if the
+// conversion fails.
 func jsObjectToMap(v js.Value) map[string]any {
 	jsonStringify := js.Global().Get("JSON").Get("stringify")
 	jsonString := jsonStringify.Invoke(v).String()

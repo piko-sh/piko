@@ -159,7 +159,7 @@ func TestLayoutTextWithTabStops_AdvancesToPosition(t *testing.T) {
 		Style: style,
 	}
 
-	ctx.layoutTextWithTabStops(box)
+	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
 	if len(ctx.currentLineItems) < 2 {
 		t.Fatalf("expected at least 2 line items, got %d", len(ctx.currentLineItems))
@@ -187,7 +187,7 @@ func TestLayoutTextWithTabStops_RightAligned(t *testing.T) {
 		Style: style,
 	}
 
-	ctx.layoutTextWithTabStops(box)
+	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
 	if len(ctx.currentLineItems) < 2 {
 		t.Fatalf("expected at least 2 line items, got %d", len(ctx.currentLineItems))
@@ -216,7 +216,7 @@ func TestLayoutTextWithTabStops_LeaderCharacters(t *testing.T) {
 		Style: style,
 	}
 
-	ctx.layoutTextWithTabStops(box)
+	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
 	if len(ctx.currentLineItems) != 3 {
 		t.Fatalf("expected 3 line items, got %d", len(ctx.currentLineItems))

@@ -29,8 +29,7 @@ import (
 //
 // Takes currentVal (reflect.Value) which is the value to unwrap.
 //
-// Returns reflect.Value which is the unwrapped value, or the original if not
-// a pointer.
+// Returns reflect.Value which is the unwrapped value, or the original if not a pointer.
 func dereferencePointer(currentVal reflect.Value) reflect.Value {
 	if currentVal.Kind() == reflect.Pointer {
 		if currentVal.IsNil() {
@@ -41,9 +40,8 @@ func dereferencePointer(currentVal reflect.Value) reflect.Value {
 	return currentVal
 }
 
-// dereferenceIndirections dereferences both pointer and interface indirections.
-// Use it when working with map[string]any where indexed values are wrapped
-// in interface{}.
+// dereferenceIndirections dereferences both pointer and interface indirections. Use it
+// when working with map[string]any where indexed values are wrapped in interface{}.
 //
 // Takes value (reflect.Value) which is the value to unwrap.
 //
@@ -62,16 +60,15 @@ func dereferenceIndirections(value reflect.Value) reflect.Value {
 	}
 }
 
-// initialiseNilPointer checks if a value is a nil settable pointer and, if so,
-// allocates a new value and dereferences it, bridging the gap between
-// dereferenceIndirections (which skips nil pointers) and dereferencePointer
-// (which initialises them) when the caller needs to access struct fields
-// behind nil pointers.
+// initialiseNilPointer checks if a value is a nil settable pointer and, if so, allocates
+// a new value and dereferences it, bridging the gap between dereferenceIndirections
+// (which skips nil pointers) and dereferencePointer (which initialises them) when the
+// caller needs to access struct fields behind nil pointers.
 //
 // Takes value (reflect.Value) which is the value to check.
 //
-// Returns reflect.Value which is the dereferenced value if a nil pointer was
-// initialised, or the original value otherwise.
+// Returns reflect.Value which is the dereferenced value if a nil pointer was initialised,
+// or the original value otherwise.
 func initialiseNilPointer(value reflect.Value) reflect.Value {
 	if value.Kind() == reflect.Pointer && value.IsNil() && value.CanSet() {
 		value.Set(reflect.New(value.Type().Elem()))
@@ -80,8 +77,8 @@ func initialiseNilPointer(value reflect.Value) reflect.Value {
 	return value
 }
 
-// convertMapKey converts a string to a reflect.Value for use as a map key.
-// It handles string, signed integer, and unsigned integer key types.
+// convertMapKey converts a string to a reflect.Value for use as a map key. It handles
+// string, signed integer, and unsigned integer key types.
 //
 // Takes value (string) which is the string form of the key.
 // Takes keyType (reflect.Type) which is the target map key type.
@@ -109,8 +106,8 @@ func convertMapKey(value string, keyType reflect.Type) (reflect.Value, error) {
 	}
 }
 
-// fieldByIndexSafe retrieves a struct field by index path, creating any nil
-// pointer fields along the way.
+// fieldByIndexSafe retrieves a struct field by index path, creating any nil pointer
+// fields along the way.
 //
 // Takes v (reflect.Value) which is the struct value to traverse.
 // Takes index ([]int) which is the field path as a slice of indices.
@@ -129,8 +126,8 @@ func fieldByIndexSafe(v reflect.Value, index []int) reflect.Value {
 	return v
 }
 
-// growSliceToFitIndex makes sure a slice has enough space for a given index.
-// It checks the maxSize limit to stop the slice from growing too large.
+// growSliceToFitIndex makes sure a slice has enough space for a given index. It checks
+// the maxSize limit to stop the slice from growing too large.
 //
 // Takes sliceVal (reflect.Value) which is the slice to grow.
 // Takes index (int) which is the index that must be reachable.

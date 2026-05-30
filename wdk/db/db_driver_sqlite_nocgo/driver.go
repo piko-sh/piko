@@ -34,48 +34,57 @@ const (
 	// intFormat is the fmt verb for formatting integers in PRAGMA values.
 	intFormat = "%d"
 
+	// driverName is the database/sql driver registration name for modernc SQLite.
 	driverName = "sqlite"
 
+	// defaultBusyTimeoutMs caps the SQLite busy wait at 10 seconds.
 	defaultBusyTimeoutMs = 10_000
 
+	// defaultCachePages requests a page cache of approximately 20 MB (negative values denote
+	// kibibytes in SQLite cache_size).
 	defaultCachePages = -20_000
 
+	// defaultMmapSize sets memory-mapped I/O to 64 MiB.
 	defaultMmapSize = 64 * 1024 * 1024
 
+	// defaultJournalSizeLimit caps the WAL journal at 32 MiB.
 	defaultJournalSizeLimit = 32 * 1024 * 1024
 
+	// poolSize fixes the connection pool to one open connection, matching SQLite's
+	// single-writer model.
 	poolSize = 1
 
+	// connMaxIdleTime is how long idle connections may remain in the pool.
 	connMaxIdleTime = 5 * time.Minute
 
+	// connMaxLifetime caps the lifetime of any individual connection.
 	connMaxLifetime = 1 * time.Hour
 )
 
 // Config holds configuration for opening a SQLite database.
 type Config struct {
-	// BusyTimeoutMs is the timeout in milliseconds for SQLite busy waits.
-	// Zero uses the default (10000).
+	// BusyTimeoutMs is the timeout in milliseconds for SQLite busy waits. Zero uses the
+	// default (10000).
 	BusyTimeoutMs int
 
-	// CachePages sets the number of pages to keep in the SQLite cache.
-	// Zero uses the default (-20000, approximately 20 MB).
+	// CachePages sets the number of pages to keep in the SQLite cache. Zero uses the default
+	// (-20000, approximately 20 MB).
 	CachePages int
 
-	// MmapSize sets the memory-mapped I/O size in bytes.
-	// Zero uses the default (64 MB).
+	// MmapSize sets the memory-mapped I/O size in bytes. Zero uses the default (64 MB).
 	MmapSize int
 
-	// JournalSizeLimit sets the maximum size in bytes for the WAL journal.
-	// Zero uses the default (32 MB).
+	// JournalSizeLimit sets the maximum size in bytes for the WAL journal. Zero uses the
+	// default (32 MB).
 	JournalSizeLimit int
 }
 
-// Open opens a SQLite database at the given path with production-ready
-// PRAGMAs applied. The returned *sql.DB is configured with a single
-// connection (SQLite's single-writer model) and WAL mode enabled.
+// Open opens a SQLite database at the given path with production-ready PRAGMAs applied.
+// The returned *sql.DB is configured with a single connection (SQLite's single-writer
+// model) and WAL mode enabled.
 //
-// The modernc.org/sqlite driver does not parse DSN pragma parameters,
-// so all PRAGMAs are applied explicitly after opening the connection.
+// The modernc.org/sqlite driver does not parse DSN pragma parameters, so all PRAGMAs are
+// applied explicitly after opening the connection.
 //
 // Takes path (string) which is the filesystem path to the SQLite database file.
 // Takes config (Config) which provides optional tuning parameters.
@@ -138,6 +147,14 @@ func Open(path string, config Config) (*sql.DB, error) {
 }
 
 // applyPragmas executes PRAGMA statements for performance and safety.
+//
+// Takes database (*sql.DB) which is the open SQLite connection pool.
+// Takes busyTimeout (int) which sets PRAGMA busy_timeout in milliseconds.
+// Takes cachePages (int) which sets PRAGMA cache_size in pages or KiB.
+// Takes mmapSize (int) which sets PRAGMA mmap_size in bytes.
+// Takes journalSizeLimit (int) which sets PRAGMA journal_size_limit in bytes.
+//
+// Returns error when any PRAGMA statement fails to execute.
 func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
 	pragmas := []struct {
 		name  string
@@ -165,7 +182,7 @@ func applyPragmas(database *sql.DB, busyTimeout, cachePages, mmapSize, journalSi
 	return nil
 }
 
-// DriverName returns the database/sql driver name used by this package.
+// DriverName returns the database/sql driver name used for nocgo SQLite.
 //
 // Returns string which is "sqlite".
 func DriverName() string {

@@ -21,13 +21,12 @@
 //go:build !safe && !(js && wasm) && arm64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_arm64.h"
 
-// Comparison, conversion, math intrinsic, and control flow handlers.
-
 // handlerEqInt sets ints[A] = (ints[B] == ints[C]) ? 1 : 0.
-TEXT ·handlerEqInt(SB), NOSPLIT, $0
+TEXT ·handlerEqInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -41,7 +40,7 @@ TEXT ·handlerEqInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerNeInt sets ints[A] = (ints[B] != ints[C]) ? 1 : 0.
-TEXT ·handlerNeInt(SB), NOSPLIT, $0
+TEXT ·handlerNeInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -55,7 +54,7 @@ TEXT ·handlerNeInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLtInt sets ints[A] = (ints[B] < ints[C]) ? 1 : 0.
-TEXT ·handlerLtInt(SB), NOSPLIT, $0
+TEXT ·handlerLtInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -69,7 +68,7 @@ TEXT ·handlerLtInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLeInt sets ints[A] = (ints[B] <= ints[C]) ? 1 : 0.
-TEXT ·handlerLeInt(SB), NOSPLIT, $0
+TEXT ·handlerLeInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -83,7 +82,7 @@ TEXT ·handlerLeInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerGtInt sets ints[A] = (ints[B] > ints[C]) ? 1 : 0.
-TEXT ·handlerGtInt(SB), NOSPLIT, $0
+TEXT ·handlerGtInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -97,7 +96,7 @@ TEXT ·handlerGtInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerGeInt sets ints[A] = (ints[B] >= ints[C]) ? 1 : 0.
-TEXT ·handlerGeInt(SB), NOSPLIT, $0
+TEXT ·handlerGeInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -110,8 +109,98 @@ TEXT ·handlerGeInt(SB), NOSPLIT, $0
 	MOVD R6, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
+// handlerEqUint sets ints[A] = (uints[B] == uints[C]) ? 1 : 0.
+TEXT ·handlerEqUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET EQ, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerNeUint sets ints[A] = (uints[B] != uints[C]) ? 1 : 0.
+TEXT ·handlerNeUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET NE, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerLtUint sets ints[A] = (uints[B] < uints[C]) ? 1 : 0.
+TEXT ·handlerLtUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET LO, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerLeUint sets ints[A] = (uints[B] <= uints[C]) ? 1 : 0.
+TEXT ·handlerLeUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET LS, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerGtUint sets ints[A] = (uints[B] > uints[C]) ? 1 : 0.
+TEXT ·handlerGtUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET HI, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerGeUint sets ints[A] = (uints[B] >= uints[C]) ? 1 : 0.
+TEXT ·handlerGeUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	CMP  R7, R6
+	CSET HS, R6
+	MOVD R6, (R23)(R3<<3)
+	DISPATCH_NEXT()
+
 // handlerEqFloat sets ints[A] = (floats[B] == floats[C]) ? 1 : 0.
-TEXT ·handlerEqFloat(SB), NOSPLIT, $0
+TEXT ·handlerEqFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -125,7 +214,7 @@ TEXT ·handlerEqFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerNeFloat sets ints[A] = (floats[B] != floats[C]) ? 1 : 0.
-TEXT ·handlerNeFloat(SB), NOSPLIT, $0
+TEXT ·handlerNeFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -139,7 +228,7 @@ TEXT ·handlerNeFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLtFloat sets ints[A] = (floats[B] < floats[C]) ? 1 : 0.
-TEXT ·handlerLtFloat(SB), NOSPLIT, $0
+TEXT ·handlerLtFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -153,7 +242,7 @@ TEXT ·handlerLtFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLeFloat sets ints[A] = (floats[B] <= floats[C]) ? 1 : 0.
-TEXT ·handlerLeFloat(SB), NOSPLIT, $0
+TEXT ·handlerLeFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -167,7 +256,7 @@ TEXT ·handlerLeFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerGtFloat sets ints[A] = (floats[B] > floats[C]) ? 1 : 0.
-TEXT ·handlerGtFloat(SB), NOSPLIT, $0
+TEXT ·handlerGtFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -181,7 +270,7 @@ TEXT ·handlerGtFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerGeFloat sets ints[A] = (floats[B] >= floats[C]) ? 1 : 0.
-TEXT ·handlerGeFloat(SB), NOSPLIT, $0
+TEXT ·handlerGeFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -194,108 +283,8 @@ TEXT ·handlerGeFloat(SB), NOSPLIT, $0
 	MOVD  R6, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
-// handlerIntToFloat converts ints[B] to float64 and stores in floats[A].
-TEXT ·handlerIntToFloat(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD (R23)(R4<<3), R5
-	SCVTFD R5, F0
-	FMOVD F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerFloatToInt converts floats[B] to int64 (truncate toward zero) and stores in ints[A].
-TEXT ·handlerFloatToInt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD (R24)(R4<<3), F0
-	FCVTZSD F0, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathSqrt sets floats[A] = sqrt(floats[B]).
-TEXT ·handlerMathSqrt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD (R24)(R4<<3), F0
-	FSQRTD F0, F0
-	FMOVD F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathAbs sets floats[A] = abs(floats[B]).
-TEXT ·handlerMathAbs(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD (R24)(R4<<3), F0
-	FABSD F0, F0
-	FMOVD F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathFloor sets floats[A] = floor(floats[B]).
-TEXT ·handlerMathFloor(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD   (R24)(R4<<3), F0
-	FRINTMD F0, F0
-	FMOVD   F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathCeil sets floats[A] = ceil(floats[B]).
-TEXT ·handlerMathCeil(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD   (R24)(R4<<3), F0
-	FRINTPD F0, F0
-	FMOVD   F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathTrunc sets floats[A] = trunc(floats[B]).
-TEXT ·handlerMathTrunc(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD   (R24)(R4<<3), F0
-	FRINTZD F0, F0
-	FMOVD   F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMathRound sets floats[A] = round(floats[B]) (half away from zero).
-TEXT ·handlerMathRound(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD   (R24)(R4<<3), F0
-	FRINTAD F0, F0
-	FMOVD   F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerNot sets ints[A] = (ints[B] == 0) ? 1 : 0.
-TEXT ·handlerNot(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD (R23)(R4<<3), R5
-	CMP  $0, R5
-	CSET EQ, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
 // handlerJump unconditionally jumps by signed 16-bit offset B|(C<<8).
-TEXT ·handlerJump(SB), NOSPLIT, $0
+TEXT ·handlerJump(SB), NOSPLIT|NOFRAME, $0
 	LSR  $16, R0, R3
 	LSL  $48, R3, R3
 	ASR  $48, R3, R3
@@ -303,7 +292,7 @@ TEXT ·handlerJump(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerJumpIfTrue jumps if ints[A] != 0.
-TEXT ·handlerJumpIfTrue(SB), NOSPLIT, $0
+TEXT ·handlerJumpIfTrue(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	MOVD (R23)(R3<<3), R4
@@ -317,7 +306,7 @@ skip:
 	DISPATCH_NEXT()
 
 // handlerJumpIfFalse jumps if ints[A] == 0.
-TEXT ·handlerJumpIfFalse(SB), NOSPLIT, $0
+TEXT ·handlerJumpIfFalse(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	MOVD (R23)(R3<<3), R4

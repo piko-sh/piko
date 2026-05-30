@@ -26,20 +26,18 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// TransformJSImportPath transforms a JS import path if it uses the @/ alias.
-// The @/ prefix is expanded to the module name from context, and the path is
-// rewritten to the asset serve URL.
+// TransformJSImportPath transforms a JS import path if it uses the @/ alias. The @/
+// prefix is expanded to the module name from context, and the path is rewritten to the
+// asset serve URL.
 //
-// For example:
-// @/lib/utils.js -> /_piko/assets/mymodule/lib/utils.js
-// This matches how the build system registers assets (with module-qualified IDs).
+// For example: @/lib/utils.js -> /_piko/assets/mymodule/lib/utils.js This matches how the
+// build system registers assets (with module-qualified IDs).
 //
 // Takes importPath (string) which is the original import path from the PKC.
 //
-// Returns string which is the transformed path, or original if no transform
-// needed.
-// Returns *compiler_dto.JSDependency which is the dependency if the path was
-// transformed, or nil otherwise.
+// Returns string which is the transformed path, or original if no transform needed.
+// Returns *compiler_dto.JSDependency which is the dependency if the path was transformed,
+// or nil otherwise.
 func TransformJSImportPath(ctx context.Context, importPath string, moduleName string) (string, *compiler_dto.JSDependency) {
 	ctx, l := logger_domain.From(ctx, log)
 	if !jsimport.IsTransformable(importPath) {

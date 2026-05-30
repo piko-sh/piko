@@ -27,11 +27,16 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// formatInt is the fmt verb for integer values.
-const formatInt = "%d"
+const (
+	// formatInt is the fmt verb for integer values.
+	formatInt = "%d"
+)
 
-var _ provider_domain.ResourceDescriptor = (*databaseService)(nil)
-var _ provider_domain.ResourceTypeDescriptor = (*databaseService)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*databaseService)(nil)
+
+	_ provider_domain.ResourceTypeDescriptor = (*databaseService)(nil)
+)
 
 // ResourceType returns the CLI resource name for the database service.
 //
@@ -40,8 +45,7 @@ func (*databaseService) ResourceType() string {
 	return "database"
 }
 
-// ResourceListColumns returns column definitions for the database provider
-// list table.
+// ResourceListColumns returns column definitions for the database provider list table.
 //
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*databaseService) ResourceListColumns() []provider_domain.ColumnDefinition {
@@ -54,11 +58,11 @@ func (*databaseService) ResourceListColumns() []provider_domain.ColumnDefinition
 	}
 }
 
-// ResourceListProviders returns all registered database connections as list
-// rows, sorted alphabetically by name.
+// ResourceListProviders returns all registered database connections as list rows, sorted
+// alphabetically by name.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// database connection.
+// Returns []provider_domain.ProviderListEntry which contains one entry per database
+// connection.
 func (s *databaseService) ResourceListProviders(_ context.Context) []provider_domain.ProviderListEntry {
 	names := slices.Sorted(maps.Keys(s.instances))
 
@@ -82,8 +86,8 @@ func (s *databaseService) ResourceListProviders(_ context.Context) []provider_do
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// database connection.
+// ResourceDescribeProvider returns detailed information for a single named database
+// connection.
 //
 // Takes name (string) which identifies the database to describe.
 //
@@ -148,8 +152,7 @@ func (s *databaseService) ResourceDescribeProvider(ctx context.Context, name str
 	}, nil
 }
 
-// ResourceDescribeType returns a service-level overview of the database
-// system.
+// ResourceDescribeType returns a service-level overview of the database system.
 //
 // Returns *provider_domain.ProviderDetail which contains the overview.
 func (s *databaseService) ResourceDescribeType(_ context.Context) *provider_domain.ProviderDetail {

@@ -18,32 +18,30 @@
 
 package layouter_domain
 
-// SizingMode controls how layout algorithms determine
-// the box's width. Normal mode uses the available width
-// from the parent; MinContent and MaxContent modes
-// measure intrinsic sizes.
+// SizingMode controls how layout algorithms determine the box's width. Normal mode uses
+// the available width from the parent; MinContent and MaxContent modes measure intrinsic
+// sizes.
 type SizingMode int
 
 const (
-	// SizingModeNormal resolves widths using the
-	// available width from the containing block.
+	// SizingModeNormal resolves widths using the available width from the containing block.
 	SizingModeNormal SizingMode = iota
 
-	// SizingModeMinContent resolves to the narrowest
-	// width that avoids overflow.
+	// SizingModeMinContent resolves to the narrowest width that avoids overflow.
 	SizingModeMinContent
 
-	// SizingModeMaxContent resolves to the width the
-	// content would take with no line breaks.
+	// SizingModeMaxContent resolves to the width the content would take with no line breaks.
 	SizingModeMaxContent
 )
 
-// sizingModeNames maps SizingMode values to their CSS keyword strings.
-var sizingModeNames = [...]string{
-	SizingModeNormal:     "normal",
-	SizingModeMinContent: "min-content",
-	SizingModeMaxContent: "max-content",
-}
+var (
+	// sizingModeNames maps SizingMode values to their CSS keyword strings.
+	sizingModeNames = [...]string{
+		SizingModeNormal:     "normal",
+		SizingModeMinContent: "min-content",
+		SizingModeMaxContent: "max-content",
+	}
+)
 
 // String returns the CSS keyword for this sizing mode.
 //
@@ -55,91 +53,76 @@ func (s SizingMode) String() string {
 	return cssKeywordUnknown
 }
 
-// layoutInput carries the constraints and context passed from a parent formatting
-// context to a child layout algorithm. Evolves into a full constraint space as
-// layout algorithms are progressively enriched.
+// layoutInput carries the constraints and context passed from a parent formatting context
+// to a child layout algorithm. Evolves into a full constraint space as layout algorithms
+// are progressively enriched.
 type layoutInput struct {
-	// FontMetrics provides text measurement and font
-	// metric queries.
+	// FontMetrics provides text measurement and font metric queries.
 	FontMetrics FontMetricsPort
 
-	// Cache stores previously computed layout results
-	// for reuse within a single LayoutBoxTree call.
-	// Nil disables caching.
+	// Cache stores previously computed layout results for reuse within a single
+	// LayoutBoxTree call. Nil disables caching.
 	Cache *layoutCache
 
-	// Floats provides access to the parent block formatting
-	// context's float state, allowing inline content to
-	// shorten line boxes around floats. Nil when no floats
-	// are active.
+	// Floats provides access to the parent block formatting context's float state, allowing
+	// inline content to shorten line boxes around floats. Nil when no floats are active.
 	Floats *floatContext
 
-	// Edges carries the resolved padding, border, and
-	// vertical margin values for the current box.
+	// Edges carries the resolved padding, border, and vertical margin values for the current
+	// box.
 	Edges resolvedEdges
 
-	// AvailableWidth is the inline-axis space available
-	// from the containing block, in points.
+	// AvailableWidth is the inline-axis space available from the containing block, in
+	// points.
 	AvailableWidth float64
 
-	// AvailableBlockSize is the block-axis space available
-	// from the containing block, in points. Zero means
-	// indefinite (the default).
+	// AvailableBlockSize is the block-axis space available from the containing block, in
+	// points. Zero means indefinite (the default).
 	AvailableBlockSize float64
 
-	// PercentageResolution is the basis for resolving
-	// percentage widths and heights. Zero means fall back
-	// to AvailableWidth.
+	// PercentageResolution is the basis for resolving percentage widths and heights. Zero
+	// means fall back to AvailableWidth.
 	PercentageResolution float64
 
-	// BFCOffset is the offset from the block formatting
-	// context root, used for accurate float placement.
-	// Zero is the default.
+	// BFCOffset is the offset from the block formatting context root, used for accurate
+	// float placement. Zero is the default.
 	BFCOffset float64
 
-	// MarginStrut is the pending collapsed margin carried
-	// from the parent, in points. Zero is the default.
+	// MarginStrut is the pending collapsed margin carried from the parent, in points. Zero
+	// is the default.
 	MarginStrut float64
 
-	// FragmentainerBlockSize is the block-axis size of
-	// the current fragmentainer (page or column), in
-	// points. Zero means no fragmentainer is active.
+	// FragmentainerBlockSize is the block-axis size of the current fragmentainer (page or
+	// column), in points. Zero means no fragmentainer is active.
 	FragmentainerBlockSize float64
 
-	// FragmentainerOffset is how far into the current
-	// fragmentainer layout has progressed, in points.
-	// Used to determine remaining space before a break.
+	// FragmentainerOffset is how far into the current fragmentainer layout has progressed,
+	// in points. Used to determine remaining space before a break.
 	FragmentainerOffset float64
 
-	// FloatBFCOffsetY is the Y offset from the BFC root
-	// to this box's content top, used to translate local
-	// Y coordinates into float coordinate space.
+	// FloatBFCOffsetY is the Y offset from the BFC root to this box's content top, used to
+	// translate local Y coordinates into float coordinate space.
 	FloatBFCOffsetY float64
 
-	// FloatContainerX is the X coordinate of the BFC
-	// content area in float coordinate space.
+	// FloatContainerX is the X coordinate of the BFC content area in float coordinate space.
 	FloatContainerX float64
 
-	// FloatContainerWidth is the width of the BFC content
-	// area in float coordinate space.
+	// FloatContainerWidth is the width of the BFC content area in float coordinate space.
 	FloatContainerWidth float64
 
-	// SizingMode controls how width is determined.
-	// Zero value (SizingModeNormal) preserves current
-	// behaviour.
+	// SizingMode controls how width is determined. Zero value (SizingModeNormal) preserves
+	// current behaviour.
 	SizingMode SizingMode
 
-	// ContainingBlockDirection is the direction property of
-	// the containing block, used to determine which margin
-	// absorbs remaining space for over-constrained blocks.
+	// ContainingBlockDirection is the direction property of the containing block, used to
+	// determine which margin absorbs remaining space for over-constrained blocks.
 	ContainingBlockDirection DirectionType
 
-	// IsNewBFC indicates whether this box establishes a
-	// new block formatting context. False is the default.
+	// IsNewBFC indicates whether this box establishes a new block formatting context. False
+	// is the default.
 	IsNewBFC bool
 
-	// IsFixedInlineSize indicates that the parent has
-	// already determined this box's inline size. False
-	// is the default.
+	// IsFixedInlineSize indicates that the parent has already determined this box's inline
+	// size. False is the default.
 	IsFixedInlineSize bool
 }

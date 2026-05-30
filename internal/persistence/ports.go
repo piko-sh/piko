@@ -26,27 +26,23 @@ const (
 	DatabaseTypeOtter DatabaseType = "otter"
 )
 
-// RegistryDALFactory creates Registry data access layers from the otter
-// backend.
+// RegistryDALFactory creates Registry data access layers from the otter backend.
 type RegistryDALFactory interface {
 	// NewRegistryDAL creates a new Registry data access layer instance.
 	//
-	// Returns any which should be type-asserted to
-	// registry_dal.RegistryDALWithTx. The any type avoids import cycles between
-	// persistence and registry packages.
+	// Returns any which should be type-asserted to registry_dal.RegistryDALWithTx. The any
+	// type avoids import cycles between persistence and registry packages.
 	//
 	// Returns error when the DAL cannot be created.
 	NewRegistryDAL() (any, error)
 }
 
-// OrchestratorDALFactory creates Orchestrator data access layers from the
-// otter backend.
+// OrchestratorDALFactory creates Orchestrator data access layers from the otter backend.
 type OrchestratorDALFactory interface {
 	// NewOrchestratorDAL creates a new Orchestrator data access layer instance.
 	//
-	// Returns any which should be type-asserted to
-	// orchestrator_domain.TaskStore. The any type avoids import cycles between
-	// persistence and orchestrator packages.
+	// Returns any which should be type-asserted to orchestrator_domain.TaskStore. The any
+	// type avoids import cycles between persistence and orchestrator packages.
 	//
 	// Returns error when the DAL cannot be created.
 	NewOrchestratorDAL() (any, error)

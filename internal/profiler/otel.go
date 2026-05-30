@@ -18,7 +18,11 @@
 
 package profiler
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
-// log is the package-level logger for the profiler package.
-var log = logger_domain.GetLogger("piko/internal/profiler")
+var (
+	// log is the package-level logger for the profiler package.
+	log = logger_domain.GetLogger("piko/internal/profiler")
+)

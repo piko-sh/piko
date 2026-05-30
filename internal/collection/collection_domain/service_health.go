@@ -26,23 +26,22 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// Name returns the service identifier and implements the
-// healthprobe_domain.Probe interface.
+// Name returns the service identifier and implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the service name "CollectionService".
 func (*collectionService) Name() string {
 	return "CollectionService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies that collection providers are registered and optionally checks
-// their health.
+// Check implements the healthprobe_domain.Probe interface. It verifies that collection
+// providers are registered and optionally checks their health.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
-// Returns healthprobe_dto.Status which indicates the health status of the
-// collection service.
+// Returns healthprobe_dto.Status which indicates the health status of the collection
+// service.
 func (s *collectionService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := s.clock.Now()
 
@@ -79,13 +78,12 @@ func (s *collectionService) checkLiveness(startTime time.Time) healthprobe_dto.S
 
 // checkReadiness performs a readiness check including provider health.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes startTime (time.Time) which marks when the check began for duration
-// calculation.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes startTime (time.Time) which marks when the check began for duration calculation.
 //
-// Returns healthprobe_dto.Status which contains the readiness state, message,
-// and any provider dependency statuses.
+// Returns healthprobe_dto.Status which contains the readiness state, message, and any
+// provider dependency statuses.
 func (s *collectionService) checkReadiness(ctx context.Context, checkType healthprobe_dto.CheckType, startTime time.Time) healthprobe_dto.Status {
 	providerNames := s.registry.List()
 
@@ -117,15 +115,14 @@ func (s *collectionService) checkReadiness(ctx context.Context, checkType health
 	}
 }
 
-// checkProviderHealth checks the health of each provider and combines the
-// results.
+// checkProviderHealth checks the health of each provider and combines the results.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to run.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// run.
 // Takes providerNames ([]string) which lists the providers to check.
 //
-// Returns []*healthprobe_dto.Status which contains the health status of each
-// checked provider.
+// Returns []*healthprobe_dto.Status which contains the health status of each checked
+// provider.
 // Returns healthprobe_dto.State which is the combined overall health state.
 func (s *collectionService) checkProviderHealth(
 	ctx context.Context,
@@ -151,8 +148,8 @@ func (s *collectionService) checkProviderHealth(
 
 // getProviderStatus gets the health status for a single provider.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to run.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// run.
 // Takes name (string) which identifies the provider in status messages.
 // Takes provider (CollectionProvider) which is checked for health status.
 //

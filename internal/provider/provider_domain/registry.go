@@ -23,20 +23,20 @@ import (
 	"time"
 )
 
-// ProviderRegistry manages provider registration, discovery, and lifecycle.
-// It implements the ProviderRegistry interface from the provider domain.
+// ProviderRegistry manages provider registration, discovery, and lifecycle. It implements
+// the ProviderRegistry interface from the provider domain.
 //
 // The generic type T is the provider interface (such as EmailProviderPort or
-// StorageProviderPort). The registry provides type-safe provider registration
-// with duplicate detection, default provider selection, provider discovery
-// with metadata, and graceful shutdown with provider cleanup.
+// StorageProviderPort). The registry provides type-safe provider registration with
+// duplicate detection, default provider selection, provider discovery with metadata, and
+// graceful shutdown with provider cleanup.
 //
 // Thread-safety: All implementations must be safe for concurrent use.
 type ProviderRegistry[T any] interface {
 	// RegisterProvider adds a named provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (T) which is the provider to register.
 	//
@@ -47,8 +47,8 @@ type ProviderRegistry[T any] interface {
 
 	// SetDefaultProvider marks a provider as the default.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes name (string) which identifies the provider to set as default.
 	//
 	// Returns error when the provider is not found.
@@ -69,8 +69,8 @@ type ProviderRegistry[T any] interface {
 
 	// ListProviders returns details about all registered providers.
 	//
-	// Returns []ProviderInfo which contains the name, type, and capabilities of
-	// each provider.
+	// Returns []ProviderInfo which contains the name, type, and capabilities of each
+	// provider.
 	ListProviders(ctx context.Context) []ProviderInfo
 
 	// HasProvider checks whether a provider with the given name is registered.
@@ -80,15 +80,15 @@ type ProviderRegistry[T any] interface {
 	// Returns bool which is true if the provider exists, false otherwise.
 	HasProvider(name string) bool
 
-	// CloseAll gracefully closes all registered providers during application
-	// shutdown. Providers that implement io.Closer will have Close called.
+	// CloseAll gracefully closes all registered providers during application shutdown.
+	// Providers that implement io.Closer will have Close called.
 	//
 	// Returns error when any provider fails to close.
 	CloseAll(ctx context.Context) error
 }
 
-// ProviderInfo contains metadata about a registered provider.
-// Returned by ListProviders() for discovery and monitoring.
+// ProviderInfo contains metadata about a registered provider. Returned by ListProviders()
+// for discovery and monitoring.
 type ProviderInfo struct {
 	// Capabilities contains provider-specific metadata. It is populated from the
 	// ProviderMetadata interface if the provider implements it.
@@ -100,8 +100,8 @@ type ProviderInfo struct {
 	// Name is the unique identifier for the provider, set during registration.
 	Name string `json:"name"`
 
-	// ProviderType is the implementation type such as "smtp", "ses", "s3", or
-	// "disk". Populated from ProviderMetadata interface if implemented.
+	// ProviderType is the implementation type such as "smtp", "ses", "s3", or "disk".
+	// Populated from ProviderMetadata interface if implemented.
 	ProviderType string `json:"provider_type"`
 
 	// IsDefault indicates whether this is the default provider.

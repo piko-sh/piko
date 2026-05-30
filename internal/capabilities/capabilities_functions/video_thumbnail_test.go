@@ -60,7 +60,9 @@ func (m *mockVideoService) ExtractThumbnail(ctx context.Context, input io.Reader
 	return nil, errors.New("no mock configured")
 }
 
-var _ video_domain.Service = (*mockVideoService)(nil)
+var (
+	_ video_domain.Service = (*mockVideoService)(nil)
+)
 
 func TestGetFirstNonEmpty(t *testing.T) {
 	t.Parallel()

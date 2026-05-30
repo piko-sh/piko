@@ -38,21 +38,20 @@ import (
 )
 
 const (
-	// cacheKeyHexDigits is the number of hex digits for hash representation
-	// (64-bit / 4 bits per digit).
+	// cacheKeyHexDigits is the number of hex digits for hash representation (64-bit / 4 bits
+	// per digit).
 	cacheKeyHexDigits = 16
 
 	// cacheKeyNibbleMask selects the lowest 4 bits to extract one hex digit.
 	cacheKeyNibbleMask = 0xf
 
-	// cacheKeyNibbleShift is the number of bits to shift when extracting each
-	// hex digit.
+	// cacheKeyNibbleShift is the number of bits to shift when extracting each hex digit.
 	cacheKeyNibbleShift = 4
 )
 
 // CachingManifestRunner is a decorator that adds multi-level caching to a
-// ManifestRunnerPort. It intercepts calls to RunPage and RunPartial, checking
-// the cache before delegating to the next runner on a cache miss.
+// ManifestRunnerPort. It intercepts calls to RunPage and RunPartial, checking the cache
+// before delegating to the next runner on a cache miss.
 type CachingManifestRunner struct {
 	// next is the wrapped runner called when the cache does not contain the result.
 	next templater_domain.ManifestRunnerPort
@@ -61,36 +60,37 @@ type CachingManifestRunner struct {
 	cache ast_domain.ASTCacheService
 }
 
-// backgroundCacheWriteConcurrency caps in-flight backgroundCacheWrite
-// goroutines so a cache-miss storm does not spawn one goroutine plus
-// one AST clone per request.
-const backgroundCacheWriteConcurrency = 8
+const (
+	// backgroundCacheWriteConcurrency caps in-flight backgroundCacheWrite goroutines so a
+	// cache-miss storm does not spawn one goroutine plus one AST clone per request.
+	backgroundCacheWriteConcurrency = 8
+)
 
 var (
 	_ templater_domain.ManifestRunnerPort = (*CachingManifestRunner)(nil)
 
-	// backgroundCacheWriteSem bounds in-flight backgroundCacheWrite
-	// goroutines to [backgroundCacheWriteConcurrency].
+	// backgroundCacheWriteSem bounds in-flight backgroundCacheWrite goroutines to
+	// backgroundCacheWriteConcurrency.
 	backgroundCacheWriteSem = make(chan struct{}, backgroundCacheWriteConcurrency)
 
-	// cacheKeyHasherPool provides reusable xxhash Digest instances for cache key
-	// generation, avoiding per-request allocations.
+	// cacheKeyHasherPool provides reusable xxhash Digest instances for cache key generation,
+	// avoiding per-request allocations.
 	cacheKeyHasherPool = sync.Pool{
 		New: func() any {
 			return xxhash.New()
 		},
 	}
 
-	// cacheKeyNullSeparator is a pre-allocated byte for cache key component
-	// separation, avoiding allocation per-separator.
+	// cacheKeyNullSeparator is a pre-allocated byte for cache key component separation,
+	// avoiding allocation per-separator.
 	cacheKeyNullSeparator = []byte{0}
 
 	// cacheKeyHexTable maps nibble values to hex characters.
 	cacheKeyHexTable = []byte("0123456789abcdef")
 )
 
-// missFunction is a callback type used by RunPage and RunPartial methods.
-// It keeps the runWithCache method simpler and provides type safety.
+// missFunction is a callback type used by RunPage and RunPartial methods. It keeps the
+// runWithCache method simpler and provides type safety.
 type missFunction func(
 	context.Context,
 	templater_dto.PageDefinition,
@@ -99,11 +99,10 @@ type missFunction func(
 
 // RunPage returns a page from the cache if it is available.
 //
-// If the page is not in the cache or cannot be cached, RunPage calls the
-// wrapped runner and stores the result in the cache.
+// If the page is not in the cache or cannot be cached, RunPage calls the wrapped runner
+// and stores the result in the cache.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template structure.
@@ -118,11 +117,10 @@ func (c *CachingManifestRunner) RunPage(
 	return c.runWithCache(ctx, pageDef, request, c.next.RunPage)
 }
 
-// RunPartial attempts to serve a partial from the cache, following the same
-// logic as RunPage.
+// RunPartial attempts to serve a partial from the cache, following the same logic as
+// RunPage.
 //
-// Takes pageDef (templater_dto.PageDefinition) which defines the partial to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which defines the partial to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 //
 // Returns *ast_domain.TemplateAST which contains the parsed template tree.
@@ -137,12 +135,11 @@ func (c *CachingManifestRunner) RunPartial(
 	return c.runWithCache(ctx, pageDef, request, c.next.RunPartial)
 }
 
-// RunPartialWithProps bypasses caching for prop-driven renders and delegates
-// directly to the next runner. Caching with arbitrary props is non-trivial and
-// outside current scope; this preserves correctness.
+// RunPartialWithProps bypasses caching for prop-driven renders and delegates directly to
+// the next runner. Caching with arbitrary props is non-trivial and outside current scope;
+// this preserves correctness.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes props (any) which contains the properties to pass to the partial.
 //
@@ -171,8 +168,7 @@ func (c *CachingManifestRunner) GetPageEntry(ctx context.Context, manifestKey st
 
 // runWithCache contains the core, shared logic for the caching strategy.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes missFunction (missFunction) which handles cache misses by generating fresh
 // content.
@@ -235,17 +231,14 @@ func (c *CachingManifestRunner) runWithCache(
 	return c.processCacheMiss(ctx, err, pageDef, request, missFunction, cacheKey, pageEntry)
 }
 
-// processCacheMiss handles cache miss cases, telling apart expected misses
-// from errors.
+// processCacheMiss handles cache miss cases, telling apart expected misses from errors.
 //
 // Takes err (error) which is the cache lookup result to check.
-// Takes pageDef (templater_dto.PageDefinition) which defines the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which defines the page to render.
 // Takes request (*http.Request) which provides the incoming HTTP request.
 // Takes missFunction (missFunction) which creates fresh content on cache miss.
 // Takes cacheKey (string) which identifies the cache entry.
-// Takes pageEntry (templater_domain.PageEntryView) which provides page
-// metadata.
+// Takes pageEntry (templater_domain.PageEntryView) which provides page metadata.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template tree.
 // Returns templater_dto.InternalMetadata which contains rendering metadata.
@@ -272,25 +265,23 @@ func (c *CachingManifestRunner) processCacheMiss(
 	return c.handleCacheMiss(ctx, pageDef, request, missFunction, cacheKey, pageEntry)
 }
 
-// handleCacheMiss creates, encodes, and caches a new entry when the cache
-// does not contain the requested page.
+// handleCacheMiss creates, encodes, and caches a new entry when the cache does not
+// contain the requested page.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes missFunction (missFunction) which creates fresh content when called.
 // Takes cacheKey (string) which identifies the cache entry.
-// Takes pageEntry (templater_domain.PageEntryView) which provides cache policy
-// settings.
+// Takes pageEntry (templater_domain.PageEntryView) which provides cache policy settings.
 //
 // Returns *ast_domain.TemplateAST which contains the newly created AST.
 // Returns templater_dto.InternalMetadata which contains the page metadata.
 // Returns string which contains the styling data.
 // Returns error when the wrapped runner fails to create content.
 //
-// Concurrent goroutine is started to write the entry to the cache in the
-// background. The goroutine uses its own context with a 10-second timeout
-// so the write can finish even if the request context is cancelled.
+// Concurrent goroutine is started to write the entry to the cache in the background. The
+// goroutine uses its own context with a 10-second timeout so the write can finish even if
+// the request context is cancelled.
 func (c *CachingManifestRunner) handleCacheMiss(
 	ctx context.Context,
 	pageDef templater_dto.PageDefinition,
@@ -338,8 +329,8 @@ func (c *CachingManifestRunner) handleCacheMiss(
 	return freshAST, metadata, styling, nil
 }
 
-// backgroundCacheWrite stores the cloned AST entry in the cache in a
-// background goroutine with its own timeout context.
+// backgroundCacheWrite stores the cloned AST entry in the cache in a background goroutine
+// with its own timeout context.
 //
 // Takes ctx (context.Context) which provides the parent context for
 // cancellation-independent background work.
@@ -394,13 +385,13 @@ func (c *CachingManifestRunner) backgroundCacheWrite(
 
 // NewCachingManifestRunner creates a new caching decorator.
 //
-// Takes next (templater_domain.ManifestRunnerPort) which is the runner to fall
-// back to when the cache misses.
-// Takes cache (ast_domain.ASTCacheService) which provides the configured AST
-// cache service.
+// Takes next (templater_domain.ManifestRunnerPort) which is the runner to fall back to
+// when the cache misses.
+// Takes cache (ast_domain.ASTCacheService) which provides the configured AST cache
+// service.
 //
-// Returns templater_domain.ManifestRunnerPort which wraps the next runner with
-// caching behaviour.
+// Returns templater_domain.ManifestRunnerPort which wraps the next runner with caching
+// behaviour.
 func NewCachingManifestRunner(next templater_domain.ManifestRunnerPort, cache ast_domain.ASTCacheService) templater_domain.ManifestRunnerPort {
 	return &CachingManifestRunner{
 		next:  next,
@@ -415,8 +406,8 @@ func NewCachingManifestRunner(next templater_domain.ManifestRunnerPort, cache as
 //
 // Returns string which is the hex-encoded hash key.
 //
-// Uses xxhash for speed and to make it clear this is not for cryptographic
-// purposes. Uses a pooled hasher and direct hex encoding to avoid allocations.
+// Uses xxhash for speed and to make it clear this is not for cryptographic purposes. Uses
+// a pooled hasher and direct hex encoding to avoid allocations.
 func generateCacheKey(r *http.Request, entry templater_domain.PageEntryView) string {
 	hasher, ok := cacheKeyHasherPool.Get().(*xxhash.Digest)
 	if !ok {
@@ -443,9 +434,9 @@ func generateCacheKey(r *http.Request, entry templater_domain.PageEntryView) str
 	return formatCacheKeyHex(sum)
 }
 
-// formatCacheKeyHex formats a hash value as a 16-character hex string.
-// Uses direct hex encoding instead of hex.EncodeToString to avoid memory
-// allocations (except the final string conversion).
+// formatCacheKeyHex formats a hash value as a 16-character hex string. Uses direct hex
+// encoding instead of hex.EncodeToString to avoid memory allocations (except the final
+// string conversion).
 //
 // Takes hash (uint64) which is the value to convert to hexadecimal.
 //

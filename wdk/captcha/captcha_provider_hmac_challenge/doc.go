@@ -16,18 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package captcha_provider_hmac_challenge provides a built-in HMAC-based
-// captcha provider.
+// Package captcha_provider_hmac_challenge provides a built-in HMAC-based captcha
+// provider.
 //
-// This provider generates and verifies challenge tokens locally
-// using HMAC-SHA256 signatures without any external service
-// dependency. It is suitable for development, testing, and
-// integration test scenarios where the full captcha pipeline needs
-// to be exercised but external provider credentials are unavailable.
+// This provider generates and verifies challenge tokens locally using HMAC-SHA256
+// signatures without any external service dependency. It is suitable for development,
+// testing, and integration test scenarios where the full captcha pipeline needs to be
+// exercised but external provider credentials are unavailable.
 //
-// It is not intended for production bot protection. For production
-// use, prefer Cloudflare Turnstile, Google reCAPTCHA v3, or hCaptcha
-// via their respective provider packages.
+// It is not intended for production bot protection. For production use, prefer Cloudflare
+// Turnstile, Google reCAPTCHA v3, or hCaptcha via their respective provider packages.
 //
 // # Thread safety
 //

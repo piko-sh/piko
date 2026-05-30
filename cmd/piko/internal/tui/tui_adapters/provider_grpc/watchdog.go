@@ -33,31 +33,32 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// downloadProfileMaxBytes caps the bytes a single DownloadProfile
-// stream may deliver before being aborted. Without a cap, a hostile or
-// runaway server could keep streaming indefinitely and exhaust the
-// caller's writer (often a file or in-memory buffer).
-const downloadProfileMaxBytes = 256 * 1024 * 1024
+const (
+	// downloadProfileMaxBytes caps the bytes a single DownloadProfile stream may deliver
+	// before being aborted. Without a cap, a hostile or runaway server could keep streaming
+	// indefinitely and exhaust the caller's writer (often a file or in-memory buffer).
+	downloadProfileMaxBytes = 256 * 1024 * 1024
 
-// downloadSidecarMaxBytes caps the size of a single sidecar payload.
-// Sidecars are small JSON metadata; 16 MiB is well above typical sizes
-// while still bounding the response.
-const downloadSidecarMaxBytes = 16 * 1024 * 1024
+	// downloadSidecarMaxBytes caps the size of a single sidecar payload. Sidecars are small
+	// JSON metadata; 16 MiB is well above typical sizes while still bounding the response.
+	downloadSidecarMaxBytes = 16 * 1024 * 1024
+)
 
-// ErrWatchdogDownloadTooLarge is returned by DownloadProfile when the
-// streamed bytes exceed downloadProfileMaxBytes.
-var ErrWatchdogDownloadTooLarge = errors.New("watchdog profile download exceeded byte budget")
+var (
+	// ErrWatchdogDownloadTooLarge is returned by DownloadProfile when the streamed bytes
+	// exceed downloadProfileMaxBytes.
+	ErrWatchdogDownloadTooLarge = errors.New("watchdog profile download exceeded byte budget")
 
-// ErrWatchdogSidecarTooLarge is returned by DownloadSidecar when the
-// payload exceeds downloadSidecarMaxBytes.
-var ErrWatchdogSidecarTooLarge = errors.New("watchdog sidecar payload exceeded byte budget")
+	// ErrWatchdogSidecarTooLarge is returned by DownloadSidecar when the payload exceeds
+	// downloadSidecarMaxBytes.
+	ErrWatchdogSidecarTooLarge = errors.New("watchdog sidecar payload exceeded byte budget")
 
-var _ tui_domain.WatchdogProvider = (*WatchdogProvider)(nil)
+	_ tui_domain.WatchdogProvider = (*WatchdogProvider)(nil)
+)
 
-// WatchdogProvider bridges the watchdog gRPC inspector service to the
-// TUI's WatchdogProvider interface. Snapshot calls populate an in-memory
-// cache on Refresh; streaming events are exposed through SubscribeEvents
-// directly.
+// WatchdogProvider bridges the watchdog gRPC inspector service to the TUI's
+// WatchdogProvider interface. Snapshot calls populate an in-memory cache on Refresh;
+// streaming events are exposed through SubscribeEvents directly.
 type WatchdogProvider struct {
 	// conn is the shared gRPC connection used for all RPCs.
 	conn *Connection
@@ -101,10 +102,9 @@ func (*WatchdogProvider) Name() string { return "grpc-watchdog" }
 
 // Health performs a basic gRPC health check against the connection.
 //
-// Returns error when the context is cancelled, the health probe fails,
-// or no connection exists. The context is checked first so a cancelled
-// context produces ctx.Err rather than masking the cancellation as a
-// "no connection" error.
+// Returns error when the context is cancelled, the health probe fails, or no connection
+// exists. The context is checked first so a cancelled context produces ctx.Err rather
+// than masking the cancellation as a "no connection" error.
 func (p *WatchdogProvider) Health(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -119,8 +119,8 @@ func (p *WatchdogProvider) Health(ctx context.Context) error {
 	return nil
 }
 
-// Close releases the provider's resources. The underlying connection is
-// not closed here because it is shared with other providers.
+// Close releases the provider's resources. The underlying connection is not closed here
+// because it is shared with other providers.
 //
 // Returns error which is always nil.
 func (*WatchdogProvider) Close() error { return nil }
@@ -130,14 +130,14 @@ func (*WatchdogProvider) Close() error { return nil }
 // Returns time.Duration which is the configured refresh interval.
 func (p *WatchdogProvider) RefreshInterval() time.Duration { return p.interval }
 
-// Refresh populates the cache by issuing the three snapshot RPCs
-// concurrently. Partial failures are tolerated: successful sub-results
-// still update the cache, while the first error encountered is returned.
+// Refresh populates the cache by issuing the three snapshot RPCs concurrently. Partial
+// failures are tolerated: successful sub-results still update the cache, while the first
+// error encountered is returned.
 //
 // Returns error which is the first non-nil per-RPC error, or nil.
 //
-// Concurrency: Safe for concurrent use; guarded by mu and spawns
-// goroutines via WaitGroup.
+// Concurrency: Safe for concurrent use; guarded by mu and spawns goroutines via
+// WaitGroup.
 func (p *WatchdogProvider) Refresh(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -229,8 +229,8 @@ func (p *WatchdogProvider) GetStartupHistory(_ context.Context) ([]tui_domain.Wa
 	return out, nil
 }
 
-// ListEvents performs a one-shot ListEvents RPC and converts the result
-// to TUI-side events.
+// ListEvents performs a one-shot ListEvents RPC and converts the result to TUI-side
+// events.
 //
 // Takes query (tui_domain.WatchdogEventQuery) which carries the filter.
 //
@@ -261,12 +261,10 @@ func (p *WatchdogProvider) ListEvents(ctx context.Context, query tui_domain.Watc
 	return out, nil
 }
 
-// SubscribeEvents opens a server-streaming subscription and forwards
-// events on a buffered channel. Drops are accounted for via the
-// atomic dropped counter.
+// SubscribeEvents opens a server-streaming subscription and forwards events on a buffered
+// channel. Drops are accounted for via the atomic dropped counter.
 //
-// Takes since (time.Time) which is the back-fill cutoff. Zero disables
-// back-fill.
+// Takes since (time.Time) which is the back-fill cutoff. Zero disables back-fill.
 //
 // Returns <-chan tui_domain.WatchdogEvent which delivers events.
 // Returns func() which cancels the subscription.
@@ -318,8 +316,7 @@ func (p *WatchdogProvider) SubscribeEvents(ctx context.Context, since time.Time)
 	return out, cancelFn, nil
 }
 
-// DroppedEvents returns the cumulative drop count for the upstream
-// stream.
+// DroppedEvents returns the cumulative drop count for the upstream stream.
 //
 // Returns uint64 which is the cumulative drop count.
 func (p *WatchdogProvider) DroppedEvents() uint64 { return p.dropped.Load() }
@@ -344,16 +341,14 @@ func (p *WatchdogProvider) PruneProfiles(ctx context.Context, profileType string
 	return safeconv.Int32ToInt(response.GetDeletedCount()), nil
 }
 
-// DownloadProfile streams the profile bytes to the supplied writer.
-// The total bytes received are capped at downloadProfileMaxBytes;
-// exceeding this cap returns ErrWatchdogDownloadTooLarge so a hostile
-// server cannot exhaust the caller's writer.
+// DownloadProfile streams the profile bytes to the supplied writer. The total bytes
+// received are capped at downloadProfileMaxBytes; exceeding this cap returns
+// ErrWatchdogDownloadTooLarge so a hostile server cannot exhaust the caller's writer.
 //
 // Takes filename (string) which selects the profile to download.
 // Takes w (io.Writer) which receives the streamed bytes.
 //
-// Returns error when the RPC fails, a write fails, or the byte cap
-// is exceeded.
+// Returns error when the RPC fails, a write fails, or the byte cap is exceeded.
 func (p *WatchdogProvider) DownloadProfile(ctx context.Context, filename string, w io.Writer) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -385,16 +380,16 @@ func (p *WatchdogProvider) DownloadProfile(ctx context.Context, filename string,
 	}
 }
 
-// DownloadSidecar fetches a profile's JSON sidecar. The payload size
-// is capped at downloadSidecarMaxBytes so a hostile server cannot
-// force the client to hold an arbitrarily large blob.
+// DownloadSidecar fetches a profile's JSON sidecar. The payload size is capped at
+// downloadSidecarMaxBytes so a hostile server cannot force the client to hold an
+// arbitrarily large blob.
 //
 // Takes profileFilename (string) which is the profile filename.
 //
 // Returns []byte which is the sidecar payload.
 // Returns bool which is true when a sidecar exists.
-// Returns error when the RPC fails, no connection exists, or the
-// payload exceeds the byte cap.
+// Returns error when the RPC fails, no connection exists, or the payload exceeds the byte
+// cap.
 func (p *WatchdogProvider) DownloadSidecar(ctx context.Context, profileFilename string) ([]byte, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
@@ -436,8 +431,8 @@ func (p *WatchdogProvider) RunContentionDiagnostic(ctx context.Context) error {
 	return nil
 }
 
-// fetchStatus issues the GetWatchdogStatus RPC and converts the
-// response to the TUI-side WatchdogStatus type.
+// fetchStatus issues the GetWatchdogStatus RPC and converts the response to the TUI-side
+// WatchdogStatus type.
 //
 // Returns *tui_domain.WatchdogStatus which is the converted status.
 // Returns error when the RPC fails.

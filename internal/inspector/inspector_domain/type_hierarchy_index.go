@@ -25,15 +25,16 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// typeKeySeparator is used to join package path and type name in index keys.
-const typeKeySeparator = "#"
+const (
+	// typeKeySeparator is used to join package path and type name in index keys.
+	typeKeySeparator = "#"
+)
 
-// TypeHierarchyIndex tracks embedded type relationships for Go's composition
-// model. It enables the LSP Type Hierarchy feature by mapping types to their
-// embedded types (supertypes) and vice versa.
+// TypeHierarchyIndex tracks embedded type relationships for Go's composition model. It
+// enables the LSP Type Hierarchy feature by mapping types to their embedded types
+// (supertypes) and vice versa.
 type TypeHierarchyIndex struct {
-	// typeToEmbedded maps a type (packagePath#typeName) to its embedded types
-	// (supertypes).
+	// typeToEmbedded maps a type (packagePath#typeName) to its embedded types (supertypes).
 	typeToEmbedded map[string][]EmbeddedTypeInfo
 
 	// embeddedToTypes maps an embedded type to the types that embed it.
@@ -43,8 +44,7 @@ type TypeHierarchyIndex struct {
 	mu sync.RWMutex
 }
 
-// EmbeddedTypeInfo describes a type that is embedded by another type (a
-// supertype).
+// EmbeddedTypeInfo describes a type that is embedded by another type (a supertype).
 type EmbeddedTypeInfo struct {
 	// TypeName is the name of the embedded type.
 	TypeName string
@@ -94,8 +94,7 @@ func NewTypeHierarchyIndex(typeData *inspector_dto.TypeData) *TypeHierarchyIndex
 	return index
 }
 
-// GetSupertypes returns the types that the given type embeds (its "parent"
-// types).
+// GetSupertypes returns the types that the given type embeds (its "parent" types).
 //
 // Takes packagePath (string) which is the package path of the type.
 // Takes typeName (string) which is the name of the type.
@@ -127,8 +126,7 @@ func (idx *TypeHierarchyIndex) GetSubtypes(packagePath, typeName string) []Embed
 	return idx.embeddedToTypes[key]
 }
 
-// buildFromTypeData populates the index by scanning all types for embedded
-// fields.
+// buildFromTypeData populates the index by scanning all types for embedded fields.
 //
 // Takes typeData (*inspector_dto.TypeData) which contains the package and type
 // information to scan.
@@ -152,12 +150,10 @@ func (idx *TypeHierarchyIndex) buildFromTypeData(typeData *inspector_dto.TypeDat
 
 // processTypeEmbeddings processes embedded fields for a single type.
 //
-// Takes packagePath (string) which is the package path of the type
-// being processed.
+// Takes packagePath (string) which is the package path of the type being processed.
 // Takes typeName (string) which is the name of the type being processed.
 // Takes typeInfo (*inspector_dto.Type) which contains the type's field data.
-// Takes typeData (*inspector_dto.TypeData) which provides type definitions for
-// lookups.
+// Takes typeData (*inspector_dto.TypeData) which provides type definitions for lookups.
 func (idx *TypeHierarchyIndex) processTypeEmbeddings(
 	packagePath, typeName string,
 	typeInfo *inspector_dto.Type,
@@ -230,9 +226,8 @@ func (*TypeHierarchyIndex) lookupTypeDefinition(
 	return typeInfo.DefinitionLine, typeInfo.DefinitionColumn, typeInfo.DefinedInFilePath
 }
 
-// parseEmbeddedType extracts type name and package from an embedded field.
-// Handles pointer types (e.g., *Foo), qualified names (e.g., pkg.Foo), and
-// generics.
+// parseEmbeddedType extracts type name and package from an embedded field. Handles
+// pointer types (e.g., *Foo), qualified names (e.g., pkg.Foo), and generics.
 //
 // Takes field (*inspector_dto.Field) which contains the embedded type to parse.
 //

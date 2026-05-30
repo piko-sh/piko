@@ -117,10 +117,12 @@ const (
 	WalkStop
 )
 
-// MaxMarkdownDepth caps the recursive walk depth so a maliciously nested AST
-// cannot overflow the Go stack. Real-world Markdown rarely nests beyond a
-// dozen levels, so 256 is generous.
-const MaxMarkdownDepth = 256
+const (
+	// MaxMarkdownDepth caps the recursive walk depth so a maliciously nested AST cannot
+	// overflow the Go stack. Real-world Markdown rarely nests beyond a dozen levels, so 256
+	// is generous.
+	MaxMarkdownDepth = 256
+)
 
 // Segment represents a byte range within the source markdown.
 type Segment struct {
@@ -135,8 +137,7 @@ type Segment struct {
 //
 // Takes source ([]byte) which is the full markdown content.
 //
-// Returns []byte which is the sub-slice for this segment, or nil if the
-// range is invalid.
+// Returns []byte which is the sub-slice for this segment, or nil if the range is invalid.
 func (s Segment) Value(source []byte) []byte {
 	if s.Start < 0 || s.Stop < 0 || s.Start >= s.Stop {
 		return nil
@@ -205,8 +206,7 @@ type Node interface {
 
 	// PreviousSibling returns the previous sibling, or nil if first.
 	//
-	// Returns Node which is the previous sibling, or nil if this is the
-	// first.
+	// Returns Node which is the previous sibling, or nil if this is the first.
 	PreviousSibling() Node
 
 	// HasChildren reports whether the node has any children.
@@ -216,8 +216,7 @@ type Node interface {
 
 	// Lines returns the source line segments for block-level nodes.
 	//
-	// Returns Segments which holds the byte ranges, or an empty Segments
-	// for inline nodes.
+	// Returns Segments which holds the byte ranges, or an empty Segments for inline nodes.
 	Lines() Segments
 
 	// SetParent sets the parent node.
@@ -231,8 +230,8 @@ type Node interface {
 	AppendChild(child Node)
 }
 
-// BaseNode provides the tree structure shared by all node types. Embed it
-// in concrete node structs to satisfy the Node interface.
+// BaseNode provides the tree structure shared by all node types. Embed it in concrete
+// node structs to satisfy the Node interface.
 type BaseNode struct {
 	// parent is the parent node in the tree.
 	parent Node
@@ -272,8 +271,8 @@ func NewBaseNode(kind NodeKind, nodeType NodeType) BaseNode {
 	return BaseNode{kind: kind, nodeType: nodeType}
 }
 
-// SetSelf stores the concrete Node wrapper so AppendChild can use it as the
-// parent. Each concrete constructor should call this after creation.
+// SetSelf stores the concrete Node wrapper so AppendChild can use it as the parent. Each
+// concrete constructor should call this after creation.
 //
 // Takes self (Node) which is the concrete wrapper embedding this BaseNode.
 func (n *BaseNode) SetSelf(self Node) { n.self = self }
@@ -333,9 +332,8 @@ func (n *BaseNode) SetParent(parent Node) { n.parent = parent }
 // Takes lines (Segments) which are the new source byte ranges.
 func (n *BaseNode) SetLines(lines Segments) { n.lines = lines }
 
-// AppendChild adds a child node to the end of this node's child list and
-// sets the child's parent pointer to the concrete Node that embeds this
-// BaseNode (stored via SetSelf).
+// AppendChild adds a child node to the end of this node's child list and sets the child's
+// parent pointer to the concrete Node that embeds this BaseNode (stored via SetSelf).
 //
 // Takes child (Node) which is the node to append.
 func (n *BaseNode) AppendChild(child Node) {
@@ -352,13 +350,13 @@ func (n *BaseNode) AppendChild(child Node) {
 	}
 }
 
-// getBaseNode extracts the embedded BaseNode from any Node. All concrete node types
-// embed BaseNode, so this always succeeds.
+// getBaseNode extracts the embedded BaseNode from any Node. All concrete node types embed
+// BaseNode, so this always succeeds.
 //
 // Takes n (Node) which is the node to extract from.
 //
-// Returns *BaseNode which is the embedded base, or nil if the node does not
-// implement the baseNodeGetter interface.
+// Returns *BaseNode which is the embedded base, or nil if the node does not implement the
+// baseNodeGetter interface.
 func getBaseNode(n Node) *BaseNode {
 	type baseNodeGetter interface {
 		getBase() *BaseNode
@@ -369,14 +367,12 @@ func getBaseNode(n Node) *BaseNode {
 	return nil
 }
 
-// getBase returns the receiver itself, satisfying the baseNodeGetter
-// interface.
+// getBase returns the receiver itself, satisfying the baseNodeGetter interface.
 //
 // Returns *BaseNode which is this node's base.
 func (n *BaseNode) getBase() *BaseNode { return n }
 
-// setNextSibling assigns sib as node's next sibling by mutating the
-// underlying BaseNode.
+// setNextSibling assigns sib as node's next sibling by mutating the underlying BaseNode.
 //
 // Takes node (Node) which is the node to update.
 // Takes sib (Node) which is the new next sibling.
@@ -386,8 +382,8 @@ func setNextSibling(node, sib Node) {
 	}
 }
 
-// setPreviousSibling assigns sib as node's previous sibling by mutating
-// the underlying BaseNode.
+// setPreviousSibling assigns sib as node's previous sibling by mutating the underlying
+// BaseNode.
 //
 // Takes node (Node) which is the node to update.
 // Takes sib (Node) which is the new previous sibling.
@@ -397,8 +393,8 @@ func setPreviousSibling(node, sib Node) {
 	}
 }
 
-// Attributable is implemented by nodes that support key-value attributes
-// (e.g. headings with auto-generated IDs).
+// Attributable is implemented by nodes that support key-value attributes (e.g. headings
+// with auto-generated IDs).
 type Attributable interface {
 	// AttributeString returns the value of the named attribute.
 	//
@@ -420,8 +416,7 @@ type Attributes struct {
 	items map[string]any
 }
 
-// AttributeString returns the attribute value for name, or
-// (nil, false).
+// AttributeString returns the attribute value for name, or (nil, false).
 //
 // Takes name (string) which is the attribute key.
 //
@@ -446,11 +441,11 @@ func (a *Attributes) SetAttributeString(name string, value any) {
 	a.items[name] = value
 }
 
-// Walk traverses the AST depth-first. The callback is called twice for each
-// node: once on entry (entering=true) and once on exit (entering=false).
+// Walk traverses the AST depth-first. The callback is called twice for each node: once on
+// entry (entering=true) and once on exit (entering=false).
 //
-// The walk stops cleanly when the depth exceeds MaxMarkdownDepth so a
-// pathological tree cannot overflow the Go stack.
+// The walk stops cleanly when the depth exceeds MaxMarkdownDepth so a pathological tree
+// cannot overflow the Go stack.
 //
 // Takes root (Node) which is the starting node.
 // Takes fn (func(Node, bool) WalkStatus) which is the visitor callback.

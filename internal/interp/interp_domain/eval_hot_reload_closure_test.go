@@ -31,8 +31,8 @@ func TestHotReloadRegisteredClosure(t *testing.T) {
 	t.Parallel()
 
 	type handlerStore struct {
-		mu       sync.Mutex
 		handlers map[string]func() int
+		mu       sync.Mutex
 	}
 	store := &handlerStore{handlers: map[string]func() int{}}
 
@@ -68,7 +68,9 @@ func TestHotReloadRegisteredClosure(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "hot"
+import (
+	"hot"
+)
 
 var sink = hot.Register("x", func() int { return 42 })
 
@@ -90,7 +92,9 @@ func main() {}
 		"": {
 			"main.go": `package main
 
-import "hot"
+import (
+	"hot"
+)
 
 var sink = hot.Register("x", func() int {
 	helper := func() int { return 7 }

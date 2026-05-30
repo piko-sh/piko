@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file contains the core business logic for encoding Go source code type
-// information into the DTO format used by the querier.
+// This file contains the core business logic for encoding Go source code type information
+// into the DTO format used by the querier.
 
 import (
 	"context"
@@ -36,37 +36,37 @@ import (
 )
 
 const (
-	// initialMethodSetCacheSize is the starting capacity for the method set
-	// cache in each encoder.
+	// initialMethodSetCacheSize is the starting capacity for the method set cache in each
+	// encoder.
 	initialMethodSetCacheSize = 256
 
-	// initialPrimitiveGuardSize is the starting capacity for the primitive
-	// recursion guard map in each encoder.
+	// initialPrimitiveGuardSize is the starting capacity for the primitive recursion guard
+	// map in each encoder.
 	initialPrimitiveGuardSize = 16
 )
 
-// processedPackageResult is a small struct to pass results from worker
-// goroutines back to the main aggregator.
+// processedPackageResult is a small struct to pass results from worker goroutines back to
+// the main aggregator.
 type processedPackageResult struct {
 	// Package holds the processed package data for storage in the type data map.
 	Package *inspector_dto.Package
 }
 
 var (
-	// getTextMarshalerInterface returns a lazily initialised interface type
-	// representing encoding.TextMarshaler.
+	// getTextMarshalerInterface returns a lazily initialised interface type representing
+	// encoding.TextMarshaler.
 	getTextMarshalerInterface = sync.OnceValue(func() *types.Interface {
 		return getMarshalerInterface("MarshalText")
 	})
 
-	// getJSONMarshalerInterface returns a lazily initialised interface type
-	// representing encoding/json.Marshaler.
+	// getJSONMarshalerInterface returns a lazily initialised interface type representing
+	// encoding/json.Marshaler.
 	getJSONMarshalerInterface = sync.OnceValue(func() *types.Interface {
 		return getMarshalerInterface("MarshalJSON")
 	})
 
-	// encoderPool reuses encoder instances to reduce allocation pressure during
-	// type information serialisation.
+	// encoderPool reuses encoder instances to reduce allocation pressure during type
+	// information serialisation.
 	encoderPool = sync.Pool{
 		New: func() any {
 			return &encoder{
@@ -76,8 +76,8 @@ var (
 		},
 	}
 
-	// pikoSpecialTypes is a lookup map for known Piko types that have
-	// dedicated, high-performance formatters in the runtime.
+	// pikoSpecialTypes is a lookup map for known Piko types that have dedicated,
+	// high-performance formatters in the runtime.
 	pikoSpecialTypes = map[string]bool{
 		"piko.sh/piko/wdk/maths.Money":   true,
 		"piko.sh/piko/wdk/maths.Decimal": true,
@@ -85,9 +85,9 @@ var (
 	}
 )
 
-// encodingPipeline manages the state and execution of concurrent package
-// processing. It encapsulates the complexity of the worker pool, allowing the
-// main extractAndEncode function to remain a simple, high-level orchestrator.
+// encodingPipeline manages the state and execution of concurrent package processing. It
+// encapsulates the complexity of the worker pool, allowing the main extractAndEncode
+// function to remain a simple, high-level orchestrator.
 type encodingPipeline struct {
 	// ctx controls cancellation for worker goroutines.
 	ctx context.Context
@@ -102,13 +102,12 @@ type encodingPipeline struct {
 	results chan processedPackageResult
 }
 
-// run starts workers simultaneously, feeds them jobs, and waits
-// for completion.
+// run starts workers simultaneously, feeds them jobs, and waits for completion.
 //
 // Returns error when any worker fails or the context is cancelled.
 //
-// Concurrent goroutines are spawned for NumCPU workers plus a feeder,
-// coordinated by an errgroup.
+// Concurrent goroutines are spawned for NumCPU workers plus a feeder, coordinated by an
+// errgroup.
 func (p *encodingPipeline) run() error {
 	jobs := make(chan *packages.Package, len(p.allPackages))
 
@@ -133,8 +132,7 @@ func (p *encodingPipeline) run() error {
 	return p.g.Wait()
 }
 
-// worker processes packages from a jobs channel and sends results to the
-// results channel.
+// worker processes packages from a jobs channel and sends results to the results channel.
 //
 // Takes jobs (<-chan *packages.Package) which provides packages to process.
 //
@@ -174,8 +172,7 @@ func (p *encodingPipeline) feedJobs(jobs chan<- *packages.Package) error {
 	return nil
 }
 
-// collectResults drains the results channel and gathers them into the final
-// TypeData DTO.
+// collectResults drains the results channel and gathers them into the final TypeData DTO.
 //
 // Returns *inspector_dto.TypeData which contains all packages and file mappings.
 func (p *encodingPipeline) collectResults() *inspector_dto.TypeData {
@@ -192,14 +189,13 @@ func (p *encodingPipeline) collectResults() *inspector_dto.TypeData {
 	return typeData
 }
 
-// ExtractAndEncodeForTest provides an exported wrapper for white-box
-// testing of the encoding logic.
+// ExtractAndEncodeForTest provides an exported wrapper for white-box testing of the
+// encoding logic.
 //
-// Takes loadedPackages ([]*packages.Package) which contains the parsed Go packages
-// to process.
-// Takes moduleName (string) which is the user's module path for filtering
-// internal packages from external dependencies. Pass empty string to disable
-// filtering.
+// Takes loadedPackages ([]*packages.Package) which contains the parsed Go packages to
+// process.
+// Takes moduleName (string) which is the user's module path for filtering internal
+// packages from external dependencies. Pass empty string to disable filtering.
 //
 // Returns *inspector_dto.TypeData which holds the extracted type information.
 // Returns error when extraction or encoding fails.
@@ -209,8 +205,8 @@ func ExtractAndEncodeForTest(loadedPackages []*packages.Package, moduleName stri
 
 // getEncoder retrieves an encoder from the pool and sets it up for use.
 //
-// Takes allPackages (map[string]*packages.Package) which provides the parsed
-// packages for cross-reference lookups.
+// Takes allPackages (map[string]*packages.Package) which provides the parsed packages for
+// cross-reference lookups.
 //
 // Returns *encoder which is ready for use with the given packages.
 func getEncoder(allPackages map[string]*packages.Package) *encoder {
@@ -237,16 +233,16 @@ func putEncoder(s *encoder) {
 	encoderPool.Put(s)
 }
 
-// extractAndEncode converts live package data into an encodable DTO
-// format. It orchestrates a concurrent encoding pipeline.
+// extractAndEncode converts live package data into an encodable DTO format. It
+// orchestrates a concurrent encoding pipeline.
 //
-// Takes loadedPackages ([]*packages.Package) which provides the loaded Go packages
-// to process.
-// Takes moduleName (string) which is the user's module path for filtering
-// internal packages from external dependencies.
+// Takes loadedPackages ([]*packages.Package) which provides the loaded Go packages to
+// process.
+// Takes moduleName (string) which is the user's module path for filtering internal
+// packages from external dependencies.
 //
-// Returns *inspector_dto.TypeData which contains the encoded type
-// information for all discovered packages.
+// Returns *inspector_dto.TypeData which contains the encoded type information for all
+// discovered packages.
 // Returns error when the encoding pipeline fails to run.
 func extractAndEncode(loadedPackages []*packages.Package, moduleName string) (*inspector_dto.TypeData, error) {
 	allPackages := discoverAllPackages(loadedPackages, moduleName)
@@ -268,8 +264,8 @@ func extractAndEncode(loadedPackages []*packages.Package, moduleName string) (*i
 
 // newEncodingPipeline creates and initialises a new encoding pipeline.
 //
-// Takes allPackages (map[string]*packages.Package) which provides the
-// packages to process.
+// Takes allPackages (map[string]*packages.Package) which provides the packages to
+// process.
 //
 // Returns *encodingPipeline which is the initialised pipeline ready for use.
 func newEncodingPipeline(allPackages map[string]*packages.Package) *encodingPipeline {
@@ -283,17 +279,17 @@ func newEncodingPipeline(allPackages map[string]*packages.Package) *encodingPipe
 	}
 }
 
-// discoverAllPackages finds all unique packages by searching the dependency
-// graph starting from the given packages. It skips internal packages from
-// external modules that the user's code cannot import.
+// discoverAllPackages finds all unique packages by searching the dependency graph
+// starting from the given packages. It skips internal packages from external modules that
+// the user's code cannot import.
 //
-// Takes initialPackages ([]*packages.Package) which provides the starting packages
-// from which to discover all dependencies.
-// Takes moduleName (string) which is the user's module path for filtering
-// internal packages. When empty, no filtering is done.
+// Takes initialPackages ([]*packages.Package) which provides the starting packages from
+// which to discover all dependencies.
+// Takes moduleName (string) which is the user's module path for filtering internal
+// packages. When empty, no filtering is done.
 //
-// Returns map[string]*packages.Package which maps package paths to their
-// package objects for all discovered packages.
+// Returns map[string]*packages.Package which maps package paths to their package objects
+// for all discovered packages.
 func discoverAllPackages(initialPackages []*packages.Package, moduleName string) map[string]*packages.Package {
 	allPackages := make(map[string]*packages.Package, len(initialPackages)*2)
 	seen := make(map[string]struct{}, len(initialPackages)*2)
@@ -328,8 +324,8 @@ func discoverAllPackages(initialPackages []*packages.Package, moduleName string)
 //
 // Takes methodName (string) which specifies the name of the marshal method.
 //
-// Returns *types.Interface which defines an interface with a single method
-// that takes no arguments and returns ([]byte, error).
+// Returns *types.Interface which defines an interface with a single method that takes no
+// arguments and returns ([]byte, error).
 func getMarshalerInterface(methodName string) *types.Interface {
 	byteSliceType := types.NewSlice(types.Typ[types.Uint8])
 	errorType := types.Universe.Lookup("error").Type()

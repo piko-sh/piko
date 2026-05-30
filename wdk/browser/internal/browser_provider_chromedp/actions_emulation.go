@@ -39,20 +39,22 @@ const (
 	ViewportHeight4K = 2160
 )
 
-// CommonViewportSizes provides standard viewport sizes for responsive testing.
-var CommonViewportSizes = map[string]struct {
-	Width  int64
-	Height int64
-}{
-	"mobile-s":   {Width: 320, Height: 568},
-	"mobile-m":   {Width: 375, Height: 667},
-	"mobile-l":   {Width: 414, Height: 896},
-	"tablet":     {Width: 768, Height: 1024},
-	"laptop":     {Width: 1024, Height: 768},
-	"laptop-l":   {Width: 1440, Height: 900},
-	"desktop":    {Width: 1920, Height: 1080},
-	"desktop-4k": {Width: 3840, Height: 2160},
-}
+var (
+	// CommonViewportSizes provides standard viewport sizes for responsive testing.
+	CommonViewportSizes = map[string]struct {
+		Width  int64
+		Height int64
+	}{
+		"mobile-s":   {Width: 320, Height: 568},
+		"mobile-m":   {Width: 375, Height: 667},
+		"mobile-l":   {Width: 414, Height: 896},
+		"tablet":     {Width: 768, Height: 1024},
+		"laptop":     {Width: 1024, Height: 768},
+		"laptop-l":   {Width: 1440, Height: 900},
+		"desktop":    {Width: 1920, Height: 1080},
+		"desktop-4k": {Width: 3840, Height: 2160},
+	}
+)
 
 // EmulateIPhone14 emulates an iPhone 14.
 //
@@ -153,8 +155,8 @@ func EmulateGalaxyS8(ctx *ActionContext) error {
 	return chromedp.Run(ctx.Ctx, chromedp.Emulate(device.GalaxyS8))
 }
 
-// EmulateMobile emulates a generic mobile device (iPhone 13).
-// This sets a common mobile viewport with touch support.
+// EmulateMobile emulates a generic mobile device (iPhone 13). This sets a common mobile
+// viewport with touch support.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 //
@@ -163,8 +165,8 @@ func EmulateMobile(ctx *ActionContext) error {
 	return EmulateIPhone13(ctx)
 }
 
-// EmulateTablet emulates a generic tablet device (iPad).
-// This sets a common tablet viewport with touch support.
+// EmulateTablet emulates a generic tablet device (iPad). This sets a common tablet
+// viewport with touch support.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 //
@@ -222,8 +224,8 @@ func EmulateIPadLandscape(ctx *ActionContext) error {
 
 // EmulateViewportByName sets the viewport to a common size by name.
 //
-// Valid names: "mobile-s", "mobile-m", "mobile-l", "tablet", "laptop",
-// "laptop-l", "desktop", "desktop-4k".
+// Valid names: "mobile-s", "mobile-m", "mobile-l", "tablet", "laptop", "laptop-l",
+// "desktop", "desktop-4k".
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes sizeName (string) which specifies the viewport size name to use.

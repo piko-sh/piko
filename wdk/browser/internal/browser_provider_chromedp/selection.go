@@ -26,16 +26,15 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 )
 
-// SetCursorPosition sets the cursor to a specific offset within a
-// contenteditable element. The offset is counted as characters from the start
-// of the text content.
+// SetCursorPosition sets the cursor to a specific offset within a contenteditable
+// element. The offset is counted as characters from the start of the text content.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the contenteditable element.
 // Takes offset (int) which specifies the character position for the cursor.
 //
-// Returns error when the element cannot be found, the cursor cannot be set,
-// or the offset is out of range.
+// Returns error when the element cannot be found, the cursor cannot be set, or the offset
+// is out of range.
 func SetCursorPosition(ctx *ActionContext, selector string, offset int) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -55,8 +54,8 @@ func SetCursorPosition(ctx *ActionContext, selector string, offset int) error {
 	return nil
 }
 
-// SetSelection selects text within an element by start and end offsets.
-// Offsets are counted as characters from the start of the text content.
+// SetSelection selects text within an element by start and end offsets. Offsets are
+// counted as characters from the start of the text content.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
 // Takes selector (string) which identifies the target element.
@@ -88,8 +87,8 @@ func SetSelection(ctx *ActionContext, selector string, start, end int) error {
 // Takes ctx (*ActionContext) which provides the browser context for the action.
 // Takes selector (string) which identifies the target element.
 //
-// Returns int which is the cursor position, or -1 if the cursor is not within
-// the element.
+// Returns int which is the cursor position, or -1 if the cursor is not within the
+// element.
 // Returns error when the element cannot be found or the script fails.
 func GetCursorPosition(ctx *ActionContext, selector string) (int, error) {
 	_, err := FindElement(ctx.Ctx, selector)
@@ -112,20 +111,17 @@ func GetCursorPosition(ctx *ActionContext, selector string) (int, error) {
 	}
 }
 
-// GetSelection returns the current selection start and end offsets within an
-// element.
+// GetSelection returns the current selection start and end offsets within an element.
 // Returns (-1, -1) if there is no selection within the element.
 //
-// Takes ctx (*ActionContext) which provides the browser context for
-// the action.
+// Takes ctx (*ActionContext) which provides the browser context for the action.
 // Takes selector (string) which identifies the target element.
 //
-// Returns start (int) which is the starting character offset of the
-// selection, or -1 if there is no selection.
-// Returns end (int) which is the ending character offset of the
-// selection, or -1 if there is no selection.
-// Returns err (error) when the element cannot be found or the script
-// fails.
+// Returns start (int) which is the starting character offset of the selection, or -1 if
+// there is no selection.
+// Returns end (int) which is the ending character offset of the selection, or -1 if there
+// is no selection.
+// Returns err (error) when the element cannot be found or the script fails.
 func GetSelection(ctx *ActionContext, selector string) (start, end int, err error) {
 	_, err = FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -173,8 +169,7 @@ func SelectAll(ctx *ActionContext, selector string) error {
 // CollapseSelection collapses the current selection to its start or end.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
-// Takes toEnd (bool) which when true collapses to the end, otherwise to the
-// start.
+// Takes toEnd (bool) which when true collapses to the end, otherwise to the start.
 //
 // Returns error when the selection cannot be collapsed.
 func CollapseSelection(ctx *ActionContext, toEnd bool) error {
@@ -191,23 +186,22 @@ func CollapseSelection(ctx *ActionContext, toEnd bool) error {
 	return nil
 }
 
-// PlaceCursorInElement places the cursor inside a child element of a parent
-// element.
+// PlaceCursorInElement places the cursor inside a child element of a parent element.
 //
-// Use it to programmatically position the cursor inside inline elements
-// where Click() may not reliably position the cursor due to browser caret
-// behaviour. The cursor is placed at offset 1 within the first text node
-// of the child element, or at offset 0 if the text is empty. This handles
-// Shadow DOM by using the shadow root's getSelection() method when available.
+// Use it to programmatically position the cursor inside inline elements where Click() may
+// not reliably position the cursor due to browser caret behaviour. The cursor is placed
+// at offset 1 within the first text node of the child element, or at offset 0 if the text
+// is empty. This handles Shadow DOM by using the shadow root's getSelection() method when
+// available.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
-// Takes parentSelector (string) which selects the parent container element
-// (supports shadow DOM with >>>).
-// Takes childSelector (string) which is a CSS selector for the child element
-// within the parent.
+// Takes parentSelector (string) which selects the parent container element (supports
+// shadow DOM with >>>).
+// Takes childSelector (string) which is a CSS selector for the child element within the
+// parent.
 //
-// Returns error when the parent element cannot be found, the cursor placement
-// script fails, or the child element does not exist.
+// Returns error when the parent element cannot be found, the cursor placement script
+// fails, or the child element does not exist.
 func PlaceCursorInElement(ctx *ActionContext, parentSelector, childSelector string) error {
 	_, err := FindElement(ctx.Ctx, parentSelector)
 	if err != nil {

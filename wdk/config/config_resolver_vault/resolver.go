@@ -24,42 +24,41 @@ import (
 	"strings"
 
 	"github.com/hashicorp/vault/api"
-	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/config"
+	"piko.sh/piko/wdk/json"
 )
 
-var _ config.Resolver = (*Resolver)(nil)
+var (
+	_ config.Resolver = (*Resolver)(nil)
+)
 
-// Resolver fetches secrets from HashiCorp Vault.
-// It implements the config.Resolver interface.
+// Resolver fetches secrets from HashiCorp Vault. It implements the config.Resolver
+// interface.
 //
-// Circuit breaker protection is provided by the config Loader layer,
-// not by this resolver directly.
+// Circuit breaker protection is provided by the config Loader layer, not by this resolver
+// directly.
 //
-// AUTHENTICATION:
-// The resolver uses the official Vault Go client, which authenticates
+// AUTHENTICATION: The resolver uses the official Vault Go client, which authenticates
 // automatically via standard environment variables (VAULT_ADDR, VAULT_TOKEN,
-// VAULT_NAMESPACE, etc.). It is compatible with various auth methods
-// configured via these variables.
+// VAULT_NAMESPACE, etc.). It is compatible with various auth methods configured via these
+// variables.
 //
-// USAGE FORMAT:
-// The value is expected in the format: "vault:mount/path/to/secret#key"
-//  1. Plain secret: "vault:secret/data/my-app/production" -> returns the
-//     entire JSON secret object.
+// USAGE FORMAT: The value is expected in the format: "vault:mount/path/to/secret#key"
+//  1. Plain secret: "vault:secret/data/my-app/production" -> returns the entire JSON
+//     secret object.
 //  2. JSON key: "vault:secret/data/my-app/production#db_password" -> fetches
 //     "db_password" from the secret.
 //
-// NOTE: This implementation is designed for Vault's KVv2 secrets engine,
-// which is the modern standard. The path should include the mount point
-// (e.g., "secret").
+// NOTE: This implementation is designed for Vault's KVv2 secrets engine, which is the
+// modern standard. The path should include the mount point (e.g., "secret").
 type Resolver struct {
 	// client is the Vault API client used to fetch secrets.
 	client *api.Client
 }
 
-// NewResolver creates a new HashiCorp Vault resolver.
-// It uses the default Vault client settings, which rely on environment
-// variables (VAULT_ADDR, VAULT_TOKEN, etc.) for authentication.
+// NewResolver creates a new HashiCorp Vault resolver. It uses the default Vault client
+// settings, which rely on environment variables (VAULT_ADDR, VAULT_TOKEN, etc.) for
+// authentication.
 //
 // Returns *Resolver which is the configured resolver ready for use.
 // Returns error when the Vault client cannot be created.
@@ -76,33 +75,31 @@ func NewResolver() (*Resolver, error) {
 
 // GetPrefix returns the prefix this resolver handles.
 //
-// Returns string which is the prefix "vault:" that identifies secrets to be
-// resolved by this resolver.
+// Returns string which is the prefix "vault:" that identifies secrets to be resolved by
+// this resolver.
 func (*Resolver) GetPrefix() string {
 	return "vault:"
 }
 
 // Resolve fetches the secret value from HashiCorp Vault.
 //
-// Takes value (string) which specifies the secret path, optionally followed by
-// a "#" and a JSON key to extract a specific field.
+// Takes value (string) which specifies the secret path, optionally followed by a "#" and
+// a JSON key to extract a specific field.
 //
-// Returns string which is the secret value, or the entire secret as JSON if no
-// key is specified.
-// Returns error when the path format is invalid, the secret is not found, or
-// the Vault API call fails.
+// Returns string which is the secret value, or the entire secret as JSON if no key is
+// specified.
+// Returns error when the path format is invalid, the secret is not found, or the Vault
+// API call fails.
 func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	secretPath, jsonKey, _ := strings.Cut(value, "#")
 	if secretPath == "" {
 		return "", fmt.Errorf("invalid Vault secret format: %q; path must not be empty", value)
 	}
 
-	parts := strings.SplitN(secretPath, "/", 2)
-	if len(parts) < 2 {
+	mountPath, pathInMount, ok := strings.Cut(secretPath, "/")
+	if !ok {
 		return "", fmt.Errorf("invalid Vault path %q: must include mount point (e.g., 'secret/data/...')", secretPath)
 	}
-	mountPath := parts[0]
-	pathInMount := parts[1]
 
 	secret, err := r.client.KVv2(mountPath).Get(ctx, pathInMount)
 	if err != nil {
@@ -135,9 +132,9 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	return secretValue, nil
 }
 
-// Register creates a new Vault resolver and registers it in the global
-// resolver registry. This is a convenience function equivalent to
-// NewResolver() followed by config.RegisterResolver().
+// Register creates a new Vault resolver and registers it in the global resolver registry.
+// This is a convenience function equivalent to NewResolver() followed by
+// config.RegisterResolver().
 //
 // Returns error when resolver creation or registration fails.
 //

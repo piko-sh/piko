@@ -26,15 +26,15 @@ import (
 	"piko.sh/piko/internal/mem"
 )
 
-// unpackPackages unpacks packages from a FlatBuffer using WASM-safe patterns
-// with arena allocation.
+// unpackPackages unpacks packages from a FlatBuffer using WASM-safe patterns with arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.TypeData) which contains the
-// serialised package data to unpack.
+// Takes fb (*inspector_schema_gen.TypeData) which contains the serialised package data to
+// unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Package which maps package paths to their
-// unpacked package data, or nil when there are no packages.
+// Returns map[string]*inspector_dto.Package which maps package paths to their unpacked
+// package data, or nil when there are no packages.
 func unpackPackages(fb *inspector_schema_gen.TypeData, arena *unpackArena) map[string]*inspector_dto.Package {
 	length := fb.PackagesLength()
 	if length == 0 {
@@ -56,11 +56,10 @@ func unpackPackages(fb *inspector_schema_gen.TypeData, arena *unpackArena) map[s
 	return m
 }
 
-// unpackPackageWASM unpacks a single package using WASM-safe patterns with
-// arena allocation.
+// unpackPackageWASM unpacks a single package using WASM-safe patterns with arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which is the FlatBuffer package to
-// unpack.
+// Takes fb (*inspector_schema_gen.Package) which is the FlatBuffer package to unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Package which contains the unpacked package data.
@@ -78,11 +77,11 @@ func unpackPackageWASM(fb *inspector_schema_gen.Package, arena *unpackArena) *in
 
 // unpackFileImportsWASM extracts file imports using WASM-safe patterns.
 //
-// Takes fb (*inspector_schema_gen.Package) which provides the package data to
-// extract imports from.
+// Takes fb (*inspector_schema_gen.Package) which provides the package data to extract
+// imports from.
 //
-// Returns map[string]map[string]string which maps file paths to their import
-// alias mappings, or nil when there are no imports.
+// Returns map[string]map[string]string which maps file paths to their import alias
+// mappings, or nil when there are no imports.
 func unpackFileImportsWASM(fb *inspector_schema_gen.Package) map[string]map[string]string {
 	length := fb.FileImportsLength()
 	if length == 0 {
@@ -106,11 +105,11 @@ func unpackFileImportsWASM(fb *inspector_schema_gen.Package) map[string]map[stri
 
 // unpackAliasMapWASM extracts alias-to-path mappings using WASM-safe patterns.
 //
-// Takes fb (*inspector_schema_gen.FileImportMap) which contains the FlatBuffer
-// import map to unpack.
+// Takes fb (*inspector_schema_gen.FileImportMap) which contains the FlatBuffer import map
+// to unpack.
 //
-// Returns map[string]string which maps aliases to their paths, or nil if the
-// input contains no entries.
+// Returns map[string]string which maps aliases to their paths, or nil if the input
+// contains no entries.
 func unpackAliasMapWASM(fb *inspector_schema_gen.FileImportMap) map[string]string {
 	length := fb.EntriesLength()
 	if length == 0 {
@@ -127,15 +126,15 @@ func unpackAliasMapWASM(fb *inspector_schema_gen.FileImportMap) map[string]strin
 	return m
 }
 
-// unpackNamedTypesWASM extracts named types using WASM-safe patterns with
-// arena allocation.
+// unpackNamedTypesWASM extracts named types using WASM-safe patterns with arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which provides the
-// FlatBuffer package containing named type entries.
+// Takes fb (*inspector_schema_gen.Package) which provides the FlatBuffer package
+// containing named type entries.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Type which maps type names to their
-// unpacked type definitions, or nil when the package has no named types.
+// Returns map[string]*inspector_dto.Type which maps type names to their unpacked type
+// definitions, or nil when the package has no named types.
 func unpackNamedTypesWASM(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Type {
 	length := fb.NamedTypesLength()
 	if length == 0 {
@@ -157,11 +156,10 @@ func unpackNamedTypesWASM(fb *inspector_schema_gen.Package, arena *unpackArena) 
 	return m
 }
 
-// unpackFuncsWASM extracts functions using WASM-safe patterns with arena
-// allocation.
+// unpackFuncsWASM extracts functions using WASM-safe patterns with arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which contains the
-// FlatBuffers package data to extract functions from.
+// Takes fb (*inspector_schema_gen.Package) which contains the FlatBuffers package data to
+// extract functions from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns map[string]*inspector_dto.Function which maps function names to their
@@ -187,15 +185,14 @@ func unpackFuncsWASM(fb *inspector_schema_gen.Package, arena *unpackArena) map[s
 	return m
 }
 
-// unpackVariablesWASM extracts variables using WASM-safe patterns with arena
-// allocation.
+// unpackVariablesWASM extracts variables using WASM-safe patterns with arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which contains the serialised
-// variable data to unpack.
+// Takes fb (*inspector_schema_gen.Package) which contains the serialised variable data to
+// unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Variable which maps variable names to
-// their unpacked representations, or nil if the package has no variables.
+// Returns map[string]*inspector_dto.Variable which maps variable names to their unpacked
+// representations, or nil if the package has no variables.
 func unpackVariablesWASM(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Variable {
 	length := fb.VariablesLength()
 	if length == 0 {
@@ -217,11 +214,10 @@ func unpackVariablesWASM(fb *inspector_schema_gen.Package, arena *unpackArena) m
 	return m
 }
 
-// unpackVariableWASM converts a FlatBuffer variable using WASM-safe patterns
-// with arena allocation.
+// unpackVariableWASM converts a FlatBuffer variable using WASM-safe patterns with arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Variable) which is the FlatBuffer variable
-// to convert.
+// Takes fb (*inspector_schema_gen.Variable) which is the FlatBuffer variable to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Variable which contains the converted variable data.
@@ -239,15 +235,15 @@ func unpackVariableWASM(fb *inspector_schema_gen.Variable, arena *unpackArena) *
 	return result
 }
 
-// unpackVariableCompositePartsWASM extracts composite parts from a variable
-// using arena allocation.
+// unpackVariableCompositePartsWASM extracts composite parts from a variable using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Variable) which contains the composite parts
-// to extract.
+// Takes fb (*inspector_schema_gen.Variable) which contains the composite parts to
+// extract.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts,
-// or nil when the variable has no composite parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
+// the variable has no composite parts.
 func unpackVariableCompositePartsWASM(fb *inspector_schema_gen.Variable, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -264,11 +260,10 @@ func unpackVariableCompositePartsWASM(fb *inspector_schema_gen.Variable, arena *
 	return s
 }
 
-// unpackTypeWASM converts a FlatBuffer type using WASM-safe patterns with
-// arena allocation.
+// unpackTypeWASM converts a FlatBuffer type using WASM-safe patterns with arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type
-// to convert.
+// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Type which is the converted data transfer object.
@@ -289,15 +284,13 @@ func unpackTypeWASM(fb *inspector_schema_gen.Type, arena *unpackArena) *inspecto
 	return result
 }
 
-// unpackFieldsWASM extracts fields using WASM-safe patterns with arena
-// allocation.
+// unpackFieldsWASM extracts fields using WASM-safe patterns with arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which provides the type to
-// extract fields from.
+// Takes fb (*inspector_schema_gen.Type) which provides the type to extract fields from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.Field which contains the extracted fields, or nil
-// if the type has no fields.
+// Returns []*inspector_dto.Field which contains the extracted fields, or nil if the type
+// has no fields.
 func unpackFieldsWASM(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Field {
 	length := fb.FieldsLength()
 	if length == 0 {
@@ -314,15 +307,13 @@ func unpackFieldsWASM(fb *inspector_schema_gen.Type, arena *unpackArena) []*insp
 	return s
 }
 
-// unpackFieldWASM converts a single field using WASM-safe patterns with arena
-// allocation.
+// unpackFieldWASM converts a single field using WASM-safe patterns with arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Field) which is the FlatBuffers
-// field to convert.
+// Takes fb (*inspector_schema_gen.Field) which is the FlatBuffers field to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns *inspector_dto.Field which is the converted field with all string
-// values safely copied from WASM memory.
+// Returns *inspector_dto.Field which is the converted field with all string values safely
+// copied from WASM memory.
 func unpackFieldWASM(fb *inspector_schema_gen.Field, arena *unpackArena) *inspector_dto.Field {
 	result := arena.AllocField()
 	result.Name = mem.String(fb.Name())
@@ -346,15 +337,13 @@ func unpackFieldWASM(fb *inspector_schema_gen.Field, arena *unpackArena) *inspec
 	return result
 }
 
-// unpackCompositePartsWASM extracts composite parts from a field using arena
-// allocation.
+// unpackCompositePartsWASM extracts composite parts from a field using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Field) which contains the composite parts to
-// extract.
+// Takes fb (*inspector_schema_gen.Field) which contains the composite parts to extract.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts,
-// or nil when the field has no composite parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
+// the field has no composite parts.
 func unpackCompositePartsWASM(fb *inspector_schema_gen.Field, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -371,15 +360,13 @@ func unpackCompositePartsWASM(fb *inspector_schema_gen.Field, arena *unpackArena
 	return s
 }
 
-// unpackCompositePartWASM converts a single composite part using arena
-// allocation.
+// unpackCompositePartWASM converts a single composite part using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.CompositePart) which is the FlatBuffers
-// composite part to convert.
+// Takes fb (*inspector_schema_gen.CompositePart) which is the FlatBuffers composite part
+// to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns *inspector_dto.CompositePart which is the converted DTO
-// representation.
+// Returns *inspector_dto.CompositePart which is the converted DTO representation.
 func unpackCompositePartWASM(fb *inspector_schema_gen.CompositePart, arena *unpackArena) *inspector_dto.CompositePart {
 	result := arena.AllocCompositePart()
 	result.Type = mem.String(fb.Type())
@@ -398,15 +385,14 @@ func unpackCompositePartWASM(fb *inspector_schema_gen.CompositePart, arena *unpa
 	return result
 }
 
-// unpackNestedCompositePartsWASM extracts nested composite parts using arena
-// allocation.
+// unpackNestedCompositePartsWASM extracts nested composite parts using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.CompositePart) which is the parent
-// composite part to extract nested parts from.
+// Takes fb (*inspector_schema_gen.CompositePart) which is the parent composite part to
+// extract nested parts from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted nested
-// parts, or nil if there are no nested parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted nested parts, or
+// nil if there are no nested parts.
 func unpackNestedCompositePartsWASM(fb *inspector_schema_gen.CompositePart, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -423,15 +409,14 @@ func unpackNestedCompositePartsWASM(fb *inspector_schema_gen.CompositePart, aren
 	return s
 }
 
-// unpackMethodsWASM extracts methods using WASM-safe patterns with arena
-// allocation.
+// unpackMethodsWASM extracts methods using WASM-safe patterns with arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffers type
-// to extract methods from.
+// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffers type to extract methods
+// from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.Method which contains the extracted methods, or nil
-// if the type has no methods.
+// Returns []*inspector_dto.Method which contains the extracted methods, or nil if the
+// type has no methods.
 func unpackMethodsWASM(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Method {
 	length := fb.MethodsLength()
 	if length == 0 {
@@ -448,11 +433,10 @@ func unpackMethodsWASM(fb *inspector_schema_gen.Type, arena *unpackArena) []*ins
 	return s
 }
 
-// unpackMethodWASM converts a single method from FlatBuffers to DTO format
-// using arena allocation.
+// unpackMethodWASM converts a single method from FlatBuffers to DTO format using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Method) which is the FlatBuffers
-// method to convert.
+// Takes fb (*inspector_schema_gen.Method) which is the FlatBuffers method to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Method which is the converted method representation.
@@ -474,8 +458,8 @@ func unpackMethodWASM(fb *inspector_schema_gen.Method, arena *unpackArena) *insp
 	return result
 }
 
-// unpackFunctionWASM converts a function from the WASM schema to the DTO using
-// arena allocation.
+// unpackFunctionWASM converts a function from the WASM schema to the DTO using arena
+// allocation.
 //
 // Takes fb (*inspector_schema_gen.Function) which is the function to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
@@ -496,16 +480,14 @@ func unpackFunctionWASM(fb *inspector_schema_gen.Function, arena *unpackArena) *
 	return result
 }
 
-// unpackFunctionSignatureWASM extracts a function signature from a WASM buffer
-// using arena allocation.
+// unpackFunctionSignatureWASM extracts a function signature from a WASM buffer using
+// arena allocation.
 //
-// Takes fb (*inspector_schema_gen.FunctionSignature) which is the flatbuffer to
-// unpack.
+// Takes fb (*inspector_schema_gen.FunctionSignature) which is the flatbuffer to unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns inspector_dto.FunctionSignature which contains the extracted
-// parameter and result type names, or an empty signature if fb is nil or has
-// no parameters or results.
+// Returns inspector_dto.FunctionSignature which contains the extracted parameter and
+// result type names, or an empty signature if fb is nil or has no parameters or results.
 func unpackFunctionSignatureWASM(fb *inspector_schema_gen.FunctionSignature, arena *unpackArena) inspector_dto.FunctionSignature {
 	if fb == nil {
 		return inspector_dto.FunctionSignature{}
@@ -542,15 +524,15 @@ func unpackFunctionSignatureWASM(fb *inspector_schema_gen.FunctionSignature, are
 	return sig
 }
 
-// unpackTypeParamsWASM extracts type parameters from a FlatBuffer type using
-// arena allocation.
+// unpackTypeParamsWASM extracts type parameters from a FlatBuffer type using arena
+// allocation.
 //
 // Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to extract
 // parameters from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []string which contains the extracted type parameters, or nil if
-// there are none.
+// Returns []string which contains the extracted type parameters, or nil if there are
+// none.
 func unpackTypeParamsWASM(fb *inspector_schema_gen.Type, arena *unpackArena) []string {
 	length := fb.TypeParamsLength()
 	if length == 0 {

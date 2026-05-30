@@ -23,7 +23,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockHealthyBlobStore_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 
 	t.Run("delegates to NameFunc", func(t *testing.T) {
@@ -56,7 +55,7 @@ func TestMockHealthyBlobStore_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "s3-backend", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 }
 
@@ -70,7 +69,7 @@ func TestMockHealthyBlobStore_Check(t *testing.T) {
 		got := m.Check(context.Background(), healthprobe_dto.CheckTypeLiveness)
 
 		assert.Equal(t, healthprobe_dto.Status{}, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CheckCallCount))
+		assert.Equal(t, int64(1), m.CheckCallCount.Load())
 	})
 
 	t.Run("delegates to CheckFunc", func(t *testing.T) {
@@ -86,7 +85,7 @@ func TestMockHealthyBlobStore_Check(t *testing.T) {
 		got := m.Check(context.Background(), healthprobe_dto.CheckTypeLiveness)
 
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CheckCallCount))
+		assert.Equal(t, int64(1), m.CheckCallCount.Load())
 	})
 }
 
@@ -100,7 +99,7 @@ func TestMockHealthyBlobStore_EmbeddedPut(t *testing.T) {
 		err := m.Put(context.Background(), "key-1", strings.NewReader("data"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PutCallCount))
+		assert.Equal(t, int64(1), m.PutCallCount.Load())
 	})
 
 	t.Run("delegates to PutFunc", func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestMockHealthyBlobStore_EmbeddedPut(t *testing.T) {
 		err := m.Put(context.Background(), "key-1", strings.NewReader("data"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PutCallCount))
+		assert.Equal(t, int64(1), m.PutCallCount.Load())
 	})
 }
 
@@ -129,7 +128,7 @@ func TestMockHealthyBlobStore_EmbeddedGet(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("delegates to GetFunc", func(t *testing.T) {
@@ -159,7 +158,7 @@ func TestMockHealthyBlobStore_EmbeddedRangeGet(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RangeGetCallCount))
+		assert.Equal(t, int64(1), m.RangeGetCallCount.Load())
 	})
 
 	t.Run("delegates to RangeGetFunc", func(t *testing.T) {
@@ -190,7 +189,7 @@ func TestMockHealthyBlobStore_EmbeddedDelete(t *testing.T) {
 		err := m.Delete(context.Background(), "key-1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteCallCount))
+		assert.Equal(t, int64(1), m.DeleteCallCount.Load())
 	})
 
 	t.Run("delegates to DeleteFunc", func(t *testing.T) {
@@ -217,7 +216,7 @@ func TestMockHealthyBlobStore_EmbeddedRename(t *testing.T) {
 		err := m.Rename(context.Background(), "temp", "final")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenameCallCount))
+		assert.Equal(t, int64(1), m.RenameCallCount.Load())
 	})
 
 	t.Run("delegates to RenameFunc", func(t *testing.T) {
@@ -246,7 +245,7 @@ func TestMockHealthyBlobStore_EmbeddedExists(t *testing.T) {
 
 		assert.False(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ExistsCallCount))
+		assert.Equal(t, int64(1), m.ExistsCallCount.Load())
 	})
 
 	t.Run("delegates to ExistsFunc", func(t *testing.T) {
@@ -327,12 +326,12 @@ func TestMockHealthyBlobStore_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.NameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CheckCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PutCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RangeGetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DeleteCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ExistsCallCount))
+	assert.Equal(t, int64(goroutines), m.NameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CheckCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PutCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RangeGetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DeleteCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ExistsCallCount.Load())
 }

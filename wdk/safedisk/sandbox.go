@@ -42,22 +42,21 @@ const (
 	// tempRandomBytes is the number of random bytes used for temporary file names.
 	tempRandomBytes = 8
 
-	// defaultDirPerm is the file mode used when creating new directories.
-	// Uses 0750: owner rwx, group rx, others none.
+	// defaultDirPerm is the file mode used when creating new directories. Uses 0750: owner
+	// rwx, group rx, others none.
 	defaultDirPerm = fs.FileMode(0750)
 
-	// defaultFilePerm is the file permission used when creating new files.
-	// Uses 0640: owner rw, group r, others none.
+	// defaultFilePerm is the file permission used when creating new files. Uses 0640: owner
+	// rw, group r, others none.
 	defaultFilePerm = fs.FileMode(0640)
 
-	// currentDir is the current directory marker used as a default when handling
-	// paths.
+	// currentDir is the current directory marker used as a default when handling paths.
 	currentDir = "."
 )
 
-// osSandbox implements Sandbox using Go 1.24's os.Root for kernel-level
-// protection. It uses the operating system's own security mechanisms
-// (openat2 with RESOLVE_BENEATH on Linux) to prevent path traversal attacks.
+// osSandbox implements Sandbox using Go 1.24's os.Root for kernel-level protection. It
+// uses the operating system's own security mechanisms (openat2 with RESOLVE_BENEATH on
+// Linux) to prevent path traversal attacks.
 type osSandbox struct {
 	// root is the OS root handle for sandboxed file operations.
 	root *os.Root
@@ -72,8 +71,11 @@ type osSandbox struct {
 	closed atomic.Bool
 }
 
-var _ Sandbox = (*osSandbox)(nil)
-var _ fs.DirEntry = (*dirEntry)(nil)
+var (
+	_ Sandbox = (*osSandbox)(nil)
+
+	_ fs.DirEntry = (*dirEntry)(nil)
+)
 
 // Open opens a file for reading within the sandbox.
 //
@@ -96,28 +98,28 @@ func (s *osSandbox) Open(name string) (FileHandle, error) {
 }
 
 // ReadFile reads the entire contents of a file within the sandbox up to
-// DefaultReadFileMaxBytes. Callers that need a tighter or looser cap should
-// use ReadFileLimit.
+// DefaultReadFileMaxBytes. Callers that need a tighter or looser cap should use
+// ReadFileLimit.
 //
 // Takes name (string) which specifies the path to the file to read.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read, or wraps
-// ErrFileExceedsLimit when the file exceeds DefaultReadFileMaxBytes.
+// Returns error when the file cannot be opened or read, or wraps ErrFileExceedsLimit when
+// the file exceeds DefaultReadFileMaxBytes.
 func (s *osSandbox) ReadFile(name string) ([]byte, error) {
 	return readFileViaOpen(s.Open, name)
 }
 
-// ReadFileLimit reads up to maxBytes from a file within the sandbox.
-// See Sandbox.ReadFileLimit for the contract.
+// ReadFileLimit reads up to maxBytes from a file within the sandbox. See
+// Sandbox.ReadFileLimit for the contract.
 //
 // Takes name (string) which specifies the path to the file to read.
 // Takes maxBytes (int64) which caps the byte count read into memory.
 //
 // Returns []byte which contains the file content (up to maxBytes).
 // Returns int64 which is the stat-reported file size at stat time.
-// Returns error which wraps ErrFileExceedsLimit, ErrInvalidLimit, or any
-// underlying stat or read error.
+// Returns error which wraps ErrFileExceedsLimit, ErrInvalidLimit, or any underlying stat
+// or read error.
 func (s *osSandbox) ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error) {
 	return readFileLimitViaOpen(s.Open, s.Stat, name, maxBytes)
 }
@@ -293,9 +295,9 @@ func (s *osSandbox) WriteFile(name string, data []byte, perm fs.FileMode) error 
 	return nil
 }
 
-// WriteFileAtomic writes data to a file atomically within the sandbox. It first
-// writes to a temporary file in the same directory and then renames it to the
-// target path, which provides crash safety.
+// WriteFileAtomic writes data to a file atomically within the sandbox. It first writes to
+// a temporary file in the same directory and then renames it to the target path, which
+// provides crash safety.
 //
 // Takes name (string) which is the relative path within the sandbox.
 // Takes data ([]byte) which contains the content to write.
@@ -354,11 +356,9 @@ func (s *osSandbox) WriteFileAtomic(name string, data []byte, perm fs.FileMode) 
 // Mkdir creates a directory within the sandbox.
 //
 // Takes name (string) which is the path of the directory to create.
-// Takes perm (fs.FileMode) which specifies the permission bits for the new
-// directory.
+// Takes perm (fs.FileMode) which specifies the permission bits for the new directory.
 //
-// Returns error when the sandbox is not writable or the directory cannot be
-// created.
+// Returns error when the sandbox is not writable or the directory cannot be created.
 func (s *osSandbox) Mkdir(name string, perm fs.FileMode) error {
 	if err := s.checkWritable(); err != nil {
 		return err
@@ -457,8 +457,8 @@ func (s *osSandbox) RemoveAll(path string) error {
 		return fmt.Errorf("walking directory tree for removal in sandbox %q: %w", cleanPath, walkErr)
 	}
 
-	for i := len(paths) - 1; i >= 0; i-- {
-		if err := s.root.Remove(paths[i]); err != nil && !os.IsNotExist(err) {
+	for _, path := range slices.Backward(paths) {
+		if err := s.root.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
@@ -468,16 +468,16 @@ func (s *osSandbox) RemoveAll(path string) error {
 
 // Rename moves a file or directory to a new path within the sandbox.
 //
-// Uses absolute paths internally but both must be within the sandbox.
-// The source is validated via os.Root; the destination is validated by
-// checking that the resolved absolute path remains under the sandbox root,
-// since os.Root does not provide a Rename method.
+// Uses absolute paths internally but both must be within the sandbox. The source is
+// validated via os.Root; the destination is validated by checking that the resolved
+// absolute path remains under the sandbox root, since os.Root does not provide a Rename
+// method.
 //
 // Takes oldpath (string) which is the current path of the file or directory.
 // Takes newpath (string) which is the destination path.
 //
-// Returns error when the sandbox is read-only, either path escapes the
-// sandbox, or the source path is invalid.
+// Returns error when the sandbox is read-only, either path escapes the sandbox, or the
+// source path is invalid.
 func (s *osSandbox) Rename(oldpath, newpath string) error {
 	if err := s.checkWritable(); err != nil {
 		return err
@@ -531,14 +531,14 @@ func (s *osSandbox) Chmod(name string, mode fs.FileMode) error {
 
 // CreateTemp creates a temporary file within the sandbox.
 //
-// Takes directory (string) which specifies the directory for the
-// file, or empty for the current directory.
-// Takes pattern (string) which specifies the filename pattern with optional
-// prefix and suffix around a random string.
+// Takes directory (string) which specifies the directory for the file, or empty for the
+// current directory.
+// Takes pattern (string) which specifies the filename pattern with optional prefix and
+// suffix around a random string.
 //
 // Returns FileHandle which is the created temporary file.
-// Returns error when the sandbox is read-only, the directory cannot be
-// created, or a unique filename cannot be generated.
+// Returns error when the sandbox is read-only, the directory cannot be created, or a
+// unique filename cannot be generated.
 func (s *osSandbox) CreateTemp(directory, pattern string) (FileHandle, error) {
 	if err := s.checkWritable(); err != nil {
 		return nil, err
@@ -573,14 +573,14 @@ func (s *osSandbox) CreateTemp(directory, pattern string) (FileHandle, error) {
 
 // MkdirTemp creates a temporary directory within the sandbox.
 //
-// Takes directory (string) which specifies the parent directory for the temp
-// directory, or empty string to use the current directory.
-// Takes pattern (string) which specifies a prefix and suffix for the directory
-// name, with a random string inserted between them.
+// Takes directory (string) which specifies the parent directory for the temp directory,
+// or empty string to use the current directory.
+// Takes pattern (string) which specifies a prefix and suffix for the directory name, with
+// a random string inserted between them.
 //
 // Returns string which is the path to the created temporary directory.
-// Returns error when the sandbox is not writable, the parent directory cannot
-// be created, or no unique name can be found after maximum attempts.
+// Returns error when the sandbox is not writable, the parent directory cannot be created,
+// or no unique name can be found after maximum attempts.
 func (s *osSandbox) MkdirTemp(directory, pattern string) (string, error) {
 	if err := s.checkWritable(); err != nil {
 		return "", err
@@ -644,8 +644,8 @@ func (s *osSandbox) Close() error {
 	return s.root.Close()
 }
 
-// RelPath converts a path to a sandbox-relative path.
-// See the Sandbox interface for full documentation.
+// RelPath converts a path to a sandbox-relative path. See the Sandbox interface for full
+// documentation.
 //
 // Takes path (string) which is the path to convert.
 //
@@ -670,17 +670,16 @@ func (s *osSandbox) RelPath(path string) string {
 
 // syncParentDirectory fsyncs the parent directory after a rename.
 //
-// Without this step, the rename may not be durable on disk after a crash
-// on filesystems with journaled metadata only (such as ext4 with default
-// mount options), allowing the file to vanish even though the rename
-// returned successfully.
+// Without this step, the rename may not be durable on disk after a crash on filesystems
+// with journaled metadata only (such as ext4 with default mount options), allowing the
+// file to vanish even though the rename returned successfully.
 //
-// The sync is best-effort. Any failure is silently ignored because the data
-// itself was already fsynced before rename, so loss is bounded to the metadata
-// flush. Surfacing the error would not let callers do anything useful.
+// The sync is best-effort. Any failure is silently ignored because the data itself was
+// already fsynced before rename, so loss is bounded to the metadata flush. Surfacing the
+// error would not let callers do anything useful.
 //
-// Takes directory (string) which is the cleaned relative path of the parent
-// directory within the sandbox.
+// Takes directory (string) which is the cleaned relative path of the parent directory
+// within the sandbox.
 func (s *osSandbox) syncParentDirectory(directory string) {
 	if directory == "" {
 		directory = currentDir
@@ -766,9 +765,9 @@ func (s *osSandbox) walkDirRecursive(path string, walkFunction fs.WalkDirFunc) e
 	return nil
 }
 
-// NewSandbox creates a sandboxed filesystem rooted at the given directory.
-// All file operations through this sandbox are limited to the specified
-// directory and its subdirectories.
+// NewSandbox creates a sandboxed filesystem rooted at the given directory. All file
+// operations through this sandbox are limited to the specified directory and its
+// subdirectories.
 //
 // Takes directory (string) which is the path to the sandbox root directory.
 // Takes mode (Mode) which sets whether the sandbox allows write operations.
@@ -776,8 +775,8 @@ func (s *osSandbox) walkDirRecursive(path string, walkFunction fs.WalkDirFunc) e
 // Returns Sandbox which is the sandboxed filesystem.
 // Returns error when the directory path is empty or cannot be opened.
 //
-// For read-only mode, the directory must exist.
-// For read-write mode, the directory is created if it does not exist.
+// For read-only mode, the directory must exist. For read-write mode, the directory is
+// created if it does not exist.
 func NewSandbox(directory string, mode Mode) (Sandbox, error) {
 	if directory == "" {
 		return nil, errEmptyPath
@@ -807,8 +806,8 @@ func NewSandbox(directory string, mode Mode) (Sandbox, error) {
 	}, nil
 }
 
-// cleanPath makes a path ready for use within the sandbox.
-// It removes any leading slash and cleans the path to make it relative.
+// cleanPath makes a path ready for use within the sandbox. It removes any leading slash
+// and cleans the path to make it relative.
 //
 // Takes name (string) which is the path to clean.
 //
@@ -820,8 +819,7 @@ func cleanPath(name string) string {
 
 // parsePattern splits a pattern like "upload-*.tmp" into prefix and suffix.
 //
-// Takes pattern (string) which is the glob pattern to split at the last
-// asterisk.
+// Takes pattern (string) which is the glob pattern to split at the last asterisk.
 //
 // Returns prefix (string) which is the part before the asterisk.
 // Returns suffix (string) which is the part after the asterisk.
@@ -842,8 +840,8 @@ func parsePattern(pattern string) (prefix, suffix string) {
 
 // randomString generates a random hex string for temporary file names.
 //
-// Returns string which is a random hex string, or a fallback based on the
-// process ID if random generation fails.
+// Returns string which is a random hex string, or a fallback based on the process ID if
+// random generation fails.
 func randomString() string {
 	b := make([]byte, tempRandomBytes)
 	if _, err := rand.Read(b); err != nil {

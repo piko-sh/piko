@@ -97,11 +97,10 @@ func DiscoverTestCases(testdataRoot string) ([]TestCase, error) {
 // Takes srcDir (string) which specifies the root source directory to scan.
 // Takes moduleName (string) which identifies the module for path resolution.
 // Takes pagesDir (string) which specifies the subdirectory containing pages.
-// Takes partialsDir (string) which specifies the subdirectory containing
-// partials.
+// Takes partialsDir (string) which specifies the subdirectory containing partials.
 //
-// Returns []EntryPoint which contains discovered templates from both pages
-// and partials directories.
+// Returns []EntryPoint which contains discovered templates from both pages and
+// partials directories.
 // Returns error when a directory cannot be read.
 func DiscoverEntryPoints(srcDir, moduleName, pagesDir, partialsDir string) ([]EntryPoint, error) {
 	var entryPoints []EntryPoint

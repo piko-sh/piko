@@ -34,24 +34,26 @@ import (
 type securityViolationType string
 
 const (
-	// violationDimensionExceeded indicates that an image dimension (width or
-	// height) has exceeded the set limits.
+	// violationDimensionExceeded indicates that an image dimension (width or height) has
+	// exceeded the set limits.
 	violationDimensionExceeded securityViolationType = "dimension_exceeded"
 
 	// violationPixelCountExceeded means the image has too many pixels.
 	violationPixelCountExceeded securityViolationType = "pixel_count_exceeded"
 
-	// violationInvalidFormat indicates that a requested image format is not in the
-	// allowed list.
+	// violationInvalidFormat indicates that a requested image format is not in the allowed
+	// list.
 	violationInvalidFormat securityViolationType = "invalid_format"
 )
 
-// ErrSizeLimitExceeded is returned by LimitedReader when the input exceeds the
-// configured byte limit.
-var ErrSizeLimitExceeded = errors.New("input size exceeded limit")
+var (
+	// ErrSizeLimitExceeded is returned by LimitedReader when the input exceeds the
+	// configured byte limit.
+	ErrSizeLimitExceeded = errors.New("input size exceeded limit")
+)
 
-// securityViolation represents a security check failure. It implements the
-// error interface and provides details about the specific security issue found.
+// securityViolation represents a security check failure. It implements the error
+// interface and provides details about the specific security issue found.
 type securityViolation struct {
 	// details contains extra context about the violation.
 	details map[string]any
@@ -70,8 +72,8 @@ func (v securityViolation) Error() string {
 	return fmt.Sprintf("security violation [%s]: %s", v.violationType, v.message)
 }
 
-// LimitedReader wraps an io.Reader and enforces a maximum read size.
-// It prevents reading more than maxBytes, protecting against memory exhaustion.
+// LimitedReader wraps an io.Reader and enforces a maximum read size. It prevents reading
+// more than maxBytes, protecting against memory exhaustion.
 type LimitedReader struct {
 	// reader is the underlying source from which data is read.
 	reader io.Reader
@@ -83,8 +85,8 @@ type LimitedReader struct {
 	read int64
 }
 
-// NewLimitedReader creates a reader that returns an error if more than the
-// specified maximum bytes are read.
+// NewLimitedReader creates a reader that returns an error if more than the specified
+// maximum bytes are read.
 //
 // Takes r (io.Reader) which is the underlying reader to wrap.
 // Takes maxBytes (int64) which is the maximum number of bytes allowed.
@@ -98,15 +100,15 @@ func NewLimitedReader(r io.Reader, maxBytes int64) *LimitedReader {
 	}
 }
 
-// Read reads from the underlying reader and tracks the total bytes read.
-// The read buffer is capped so that no more than maxBytes are ever read from
-// the underlying source, preventing over-read past the configured limit.
+// Read reads from the underlying reader and tracks the total bytes read. The read buffer
+// is capped so that no more than maxBytes are ever read from the underlying source,
+// preventing over-read past the configured limit.
 //
 // Takes p ([]byte) which is the buffer to read data into.
 //
 // Returns n (int) which is the number of bytes read into p.
-// Returns err (error) when the underlying reader returns an error or
-// the byte limit has been exceeded.
+// Returns err (error) when the underlying reader returns an error or the byte limit has
+// been exceeded.
 func (lr *LimitedReader) Read(p []byte) (n int, err error) {
 	if lr.read >= lr.maxBytes {
 		return 0, fmt.Errorf("%w: %d bytes", ErrSizeLimitExceeded, lr.maxBytes)
@@ -123,16 +125,16 @@ func (lr *LimitedReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-// ValidateImageDimensions checks if image dimensions and total pixel count are
-// within allowed limits. This combines width/height checks with a pixel count
-// check to prevent callers from accidentally skipping the pixel budget.
+// ValidateImageDimensions checks if image dimensions and total pixel count are within
+// allowed limits. This combines width/height checks with a pixel count check to prevent
+// callers from accidentally skipping the pixel budget.
 //
 // Takes width (int) which specifies the image width in pixels.
 // Takes height (int) which specifies the image height in pixels.
 // Takes config (ServiceConfig) which provides the maximum dimension limits.
 //
-// Returns error when the width, height, or total pixel count exceeds the
-// configured limits.
+// Returns error when the width, height, or total pixel count exceeds the configured
+// limits.
 func ValidateImageDimensions(ctx context.Context, width, height int, config ServiceConfig) error {
 	if width > config.MaxImageWidth {
 		recordSecurityViolation(ctx, violationDimensionExceeded, map[string]any{
@@ -167,8 +169,7 @@ func ValidateImageDimensions(ctx context.Context, width, height int, config Serv
 	return ValidateImagePixelCount(ctx, width, height, config)
 }
 
-// ValidateImagePixelCount checks if the total pixel count is within the allowed
-// limit.
+// ValidateImagePixelCount checks if the total pixel count is within the allowed limit.
 //
 // Takes width (int) which is the image width in pixels.
 // Takes height (int) which is the image height in pixels.
@@ -236,13 +237,12 @@ func ValidateImageFormat(ctx context.Context, format string, config ServiceConfi
 	}
 }
 
-// recordSecurityViolation increases the security violation counter and logs
-// the violation for audit purposes.
+// recordSecurityViolation increases the security violation counter and logs the violation
+// for audit purposes.
 //
-// Takes violationType (securityViolationType) which identifies the kind of
-// security violation found.
-// Takes details (map[string]any) which provides extra context about the
-// violation.
+// Takes violationType (securityViolationType) which identifies the kind of security
+// violation found.
+// Takes details (map[string]any) which provides extra context about the violation.
 func recordSecurityViolation(ctx context.Context, violationType securityViolationType, details map[string]any) {
 	ctx, l := logger_domain.From(ctx, log)
 	securityViolationCount.Add(ctx, 1,

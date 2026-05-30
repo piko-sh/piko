@@ -18,21 +18,22 @@
 
 package coordinator_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrCacheMiss is returned by a CachePort's Get method when an item is not found.
 	ErrCacheMiss = errors.New("coordinator cache: item not found")
 
-	// ErrInvalidCacheEntry is returned when attempting to cache an invalid entry
-	// (e.g., nil values, version mismatch, corrupted data).
+	// ErrInvalidCacheEntry is returned when attempting to cache an invalid entry (e.g., nil
+	// values, version mismatch, corrupted data).
 	ErrInvalidCacheEntry = errors.New("coordinator cache: invalid cache entry")
 
-	// errBuildInProgress indicates that a build is currently
-	// running but no previous successful build is available.
+	// errBuildInProgress indicates that a build is currently running but no previous
+	// successful build is available.
 	errBuildInProgress = errors.New("coordinator: a build is in progress, but no previous successful build is available")
 
-	// errNoBuildAvailable indicates that no build has been
-	// successfully completed.
+	// errNoBuildAvailable indicates that no build has been successfully completed.
 	errNoBuildAvailable = errors.New("coordinator: no build result is available")
 )

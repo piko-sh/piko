@@ -24,36 +24,34 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
-// MockEncoder is a test double for CollectionEncoderPort that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockEncoder is a test double for CollectionEncoderPort that returns zero values from
+// nil function fields and tracks call counts atomically.
 type MockEncoder struct {
-	// EncodeCollectionFunc is the function called by
-	// EncodeCollection.
+	// EncodeCollectionFunc is the function called by EncodeCollection.
 	EncodeCollectionFunc func(items []collection_dto.ContentItem) ([]byte, error)
 
-	// DecodeCollectionItemFunc is the function called by
-	// DecodeCollectionItem.
+	// DecodeCollectionItemFunc is the function called by DecodeCollectionItem.
 	DecodeCollectionItemFunc func(blob []byte, route string) (metadataJSON, contentAST, excerptAST []byte, err error)
 
-	// EncodeCollectionCallCount tracks how many times
-	// EncodeCollection was called.
-	EncodeCollectionCallCount int64
+	// EncodeCollectionCallCount tracks how many times EncodeCollection was called.
+	EncodeCollectionCallCount atomic.Int64
 
-	// DecodeCollectionItemCallCount tracks how many times
-	// DecodeCollectionItem was called.
-	DecodeCollectionItemCallCount int64
+	// DecodeCollectionItemCallCount tracks how many times DecodeCollectionItem was called.
+	DecodeCollectionItemCallCount atomic.Int64
 }
 
-var _ CollectionEncoderPort = (*MockEncoder)(nil)
+var (
+	_ CollectionEncoderPort = (*MockEncoder)(nil)
+)
 
 // EncodeCollection delegates to EncodeCollectionFunc if set.
 //
-// Takes items ([]collection_dto.ContentItem) which is the list of
-// content items to encode.
+// Takes items ([]collection_dto.ContentItem) which is the list of content items to
+// encode.
 //
 // Returns (nil, nil) if EncodeCollectionFunc is nil.
 func (m *MockEncoder) EncodeCollection(items []collection_dto.ContentItem) ([]byte, error) {
-	atomic.AddInt64(&m.EncodeCollectionCallCount, 1)
+	m.EncodeCollectionCallCount.Add(1)
 	if m.EncodeCollectionFunc != nil {
 		return m.EncodeCollectionFunc(items)
 	}
@@ -67,7 +65,7 @@ func (m *MockEncoder) EncodeCollection(items []collection_dto.ContentItem) ([]by
 //
 // Returns (nil, nil, nil, nil) if DecodeCollectionItemFunc is nil.
 func (m *MockEncoder) DecodeCollectionItem(blob []byte, route string) (metadataJSON, contentAST, excerptAST []byte, err error) {
-	atomic.AddInt64(&m.DecodeCollectionItemCallCount, 1)
+	m.DecodeCollectionItemCallCount.Add(1)
 	if m.DecodeCollectionItemFunc != nil {
 		return m.DecodeCollectionItemFunc(blob, route)
 	}

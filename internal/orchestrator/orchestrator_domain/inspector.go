@@ -18,7 +18,9 @@
 
 package orchestrator_domain
 
-import "context"
+import (
+	"context"
+)
 
 // TaskSummary holds the count of tasks grouped by status for dashboard display.
 type TaskSummary struct {
@@ -83,9 +85,9 @@ type WorkflowSummary struct {
 	UpdatedAt int64
 }
 
-// OrchestratorInspector provides read-only access to orchestrator state.
-// The monitoring service uses the port to show task and workflow data in the TUI
-// without needing direct database access.
+// OrchestratorInspector provides read-only access to orchestrator state. The monitoring
+// service uses the port to show task and workflow data in the TUI without needing direct
+// database access.
 type OrchestratorInspector interface {
 	// ListTaskSummary returns task counts grouped by status.
 	//

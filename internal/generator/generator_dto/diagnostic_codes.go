@@ -19,31 +19,31 @@
 package generator_dto
 
 const (
-	// CodeRenderError indicates the component's Render function returned an
-	// error at runtime.
+	// CodeRenderError indicates the component's Render function returned an error at
+	// runtime.
 	CodeRenderError = "R001"
 
-	// CodePartialRenderError indicates a partial's Render function returned an
-	// error at runtime.
+	// CodePartialRenderError indicates a partial's Render function returned an error at
+	// runtime.
 	CodePartialRenderError = "R002"
 
-	// CodeNilPropertyAccess indicates an attempt to access a property on a nil
-	// value during template rendering.
+	// CodeNilPropertyAccess indicates an attempt to access a property on a nil value during
+	// template rendering.
 	CodeNilPropertyAccess = "R003"
 
-	// CodeNilIndexAccess indicates an attempt to index into a nil slice or map
-	// during template rendering.
+	// CodeNilIndexAccess indicates an attempt to index into a nil slice or map during
+	// template rendering.
 	CodeNilIndexAccess = "R004"
 
-	// CodeIndexOutOfBounds indicates a slice index was outside the valid range
-	// during template rendering.
+	// CodeIndexOutOfBounds indicates a slice index was outside the valid range during
+	// template rendering.
 	CodeIndexOutOfBounds = "R005"
 
-	// CodeEmptyElementTag indicates a <piko:element :is="..."> resolved to an
-	// empty string at runtime.
+	// CodeEmptyElementTag indicates a <piko:element :is="..."> resolved to an empty string
+	// at runtime.
 	CodeEmptyElementTag = "R006"
 
-	// CodeRejectedElementTag indicates a <piko:element :is="..."> resolved to
-	// a reserved tag name (piko:partial, piko:slot, piko:element).
+	// CodeRejectedElementTag indicates a <piko:element :is="..."> resolved to a reserved tag
+	// name (piko:partial, piko:slot, piko:element).
 	CodeRejectedElementTag = "R007"
 )

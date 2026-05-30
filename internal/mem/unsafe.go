@@ -20,13 +20,14 @@
 
 package mem
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 // String converts a byte slice to a string without memory allocation.
 //
-// The returned string shares memory with the input slice. The caller must
-// ensure the input slice outlives the string and is not changed while the
-// string is in use.
+// The returned string shares memory with the input slice. The caller must ensure the
+// input slice outlives the string and is not changed while the string is in use.
 //
 // Takes b ([]byte) which is the byte slice to convert.
 //
@@ -40,9 +41,9 @@ func String(b []byte) string {
 
 // Bytes converts a string to a byte slice without memory allocation.
 //
-// The returned slice shares memory with the input string. The caller must not
-// change the returned slice, as strings cannot be changed in Go. Changing the
-// slice will corrupt the string and cause undefined behaviour.
+// The returned slice shares memory with the input string. The caller must not change the
+// returned slice, as strings cannot be changed in Go. Changing the slice will corrupt the
+// string and cause undefined behaviour.
 //
 // Takes s (string) which is the string to convert.
 //

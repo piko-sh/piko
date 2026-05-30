@@ -16,20 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package capabilities_functions supplies built-in capability
-// implementations for content transformation and processing.
+// Package capabilities_functions supplies built-in capability implementations for content
+// transformation and processing.
 //
-// Each factory function returns a capabilities_domain.CapabilityFunc
-// that processes streaming data via io.Reader and returns transformed
-// output. Built-in capabilities cover compression (gzip, Brotli),
-// minification (CSS, JavaScript, SVG), media processing (image
-// transforms, video thumbnails, video transcoding), and component
-// compilation.
+// Each factory function returns a capabilities_domain.CapabilityFunc that processes
+// streaming data via io.Reader and returns transformed output. Built-in capabilities
+// cover compression (gzip, Brotli), minification (CSS, JavaScript, SVG), media processing
+// (image transforms, video thumbnails, video transcoding), and component compilation.
 //
 // # Usage
 //
-// Capabilities are registered with the capability service during
-// initialisation:
+// Capabilities are registered with the capability service during initialisation:
 //
 //	service.Register("gzip", capabilities_functions.Gzip())
 //	service.Register("minify-css", capabilities_functions.MinifyCSS())
@@ -38,7 +35,7 @@
 //
 // # Thread safety
 //
-// All factory functions return stateless CapabilityFunc instances that
-// are safe for concurrent use. Compression capabilities use sync.Pool
-// for writer reuse to reduce allocations under high load.
+// All factory functions return stateless CapabilityFunc instances that are safe for
+// concurrent use. Compression capabilities use sync.Pool for writer reuse to reduce
+// allocations under high load.
 package capabilities_functions

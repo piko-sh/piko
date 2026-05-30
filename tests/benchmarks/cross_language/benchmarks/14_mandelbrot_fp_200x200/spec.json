@@ -1,0 +1,14 @@
+{
+  "name": "14_mandelbrot_fp_200x200",
+  "description": "Mandelbrot set escape-time render at 200x200 with 80 iterations per pixel. Hand-rolled complex arithmetic; no math/cmplx, no complex types, no math.* or math module. Output is the integer sum of escape iteration counts, so canonical hashing is FP-safe. Tests pure float64 scalar interpreter throughput.",
+  "args": [],
+  "expected_stdout_sha256": "ee3e6940f5d44bc8315611c6ef4394031968cb32d4fa4523c1132b3a3e688b29",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "13ab5feb5cb3a40bb4509fac58f58df88e1e2a1e7700aedf45027f0f2e6a4624",
+    "py/cpython.py": "659400ac29090ebda452752ed561d0f146e4659ae6e7c1a3ab08bdab185caf23",
+    "py/pypy.py": "659400ac29090ebda452752ed561d0f146e4659ae6e7c1a3ab08bdab185caf23"
+  }
+}

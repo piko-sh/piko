@@ -16,10 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package fixtures provides pre-built template AST structures for render
-// integration tests.
+// Package fixtures provides pre-built template AST structures for render integration
+// tests.
 //
-// Each fixture function returns a deterministic page AST of varying
-// complexity, from simple static content through to multi-component
-// layouts with forms, directives, and runtime annotations.
+// Each fixture function returns a deterministic page AST of varying complexity, from
+// simple static content through to multi-component layouts with forms, directives, and
+// runtime annotations.
 package fixtures

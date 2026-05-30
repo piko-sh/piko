@@ -31,13 +31,15 @@ import (
 	"piko.sh/piko/internal/shutdown"
 )
 
-// fieldProvider is the structured log field key for provider names.
-const fieldProvider = "provider"
+const (
+	// fieldProvider is the structured log field key for provider names.
+	fieldProvider = "provider"
+)
 
 // AddLLMProvider registers a named LLM provider for completions.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (llm_domain.LLMProviderPort) which handles LLM requests.
@@ -49,24 +51,22 @@ func (c *Container) AddLLMProvider(name string, provider llm_domain.LLMProviderP
 	registerCloseableForShutdown(c.GetAppContext(), "LLMProvider-"+name, provider)
 }
 
-// SetLLMDefaultProvider sets the default LLM provider to use when none is
-// specified.
+// SetLLMDefaultProvider sets the default LLM provider to use when none is specified.
 //
 // Takes name (string) which is the provider name to set as default.
 func (c *Container) SetLLMDefaultProvider(name string) {
 	c.llmDefaultProvider = name
 }
 
-// AddEmbeddingProvider registers a standalone embedding provider for
-// embedding-only services such as Voyage AI. Unlike AddLLMProvider, this does
-// not register a completion provider.
+// AddEmbeddingProvider registers a standalone embedding provider for embedding-only
+// services such as Voyage AI. Unlike AddLLMProvider, this does not register a completion
+// provider.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider.
-// Takes provider (llm_domain.EmbeddingProviderPort) which handles embedding
-// requests.
+// Takes provider (llm_domain.EmbeddingProviderPort) which handles embedding requests.
 func (c *Container) AddEmbeddingProvider(name string, provider llm_domain.EmbeddingProviderPort) {
 	if c.llmEmbeddingProviders == nil {
 		c.llmEmbeddingProviders = make(map[string]llm_domain.EmbeddingProviderPort)
@@ -75,9 +75,9 @@ func (c *Container) AddEmbeddingProvider(name string, provider llm_domain.Embedd
 	registerCloseableForShutdown(c.GetAppContext(), "EmbeddingProvider-"+name, provider)
 }
 
-// SetDefaultEmbeddingProvider sets the name of the default embedding provider.
-// When set, this takes precedence over the auto-detected embedding support
-// from the default LLM provider.
+// SetDefaultEmbeddingProvider sets the name of the default embedding provider. When set,
+// this takes precedence over the auto-detected embedding support from the default LLM
+// provider.
 //
 // Takes name (string) which is the provider name to set as default.
 func (c *Container) SetDefaultEmbeddingProvider(name string) {
@@ -86,8 +86,8 @@ func (c *Container) SetDefaultEmbeddingProvider(name string) {
 
 // SetLLMService sets a custom LLM service, overriding the default.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes service (llm_domain.Service) which is the custom service to use.
 func (c *Container) SetLLMService(service llm_domain.Service) {
@@ -95,8 +95,7 @@ func (c *Container) SetLLMService(service llm_domain.Service) {
 	registerCloseableForShutdown(c.GetAppContext(), "LLMService", service)
 }
 
-// GetLLMService returns the LLM service, initialising a default one if none
-// was provided.
+// GetLLMService returns the LLM service, initialising a default one if none was provided.
 //
 // Returns llm_domain.Service which is the configured LLM service.
 // Returns error when the LLM service could not be created.
@@ -115,8 +114,8 @@ func (c *Container) GetLLMService() (llm_domain.Service, error) {
 
 // createDefaultLLMService creates and sets up the default LLM service.
 //
-// It creates the service and registers any providers that were added via
-// AddLLMProvider. Any errors are stored in c.llmErr rather than returned.
+// It creates the service and registers any providers that were added via AddLLMProvider.
+// Any errors are stored in c.llmErr rather than returned.
 func (c *Container) createDefaultLLMService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default LLMService...")
@@ -148,8 +147,8 @@ func (c *Container) createDefaultLLMService() {
 	c.llmService = s
 }
 
-// registerLLMProviders registers all LLM providers and auto-registers any that
-// also support embeddings.
+// registerLLMProviders registers all LLM providers and auto-registers any that also
+// support embeddings.
 //
 // Takes s (llm_domain.Service) which is the service to register providers with.
 // Takes l (logger_domain.Logger) which provides structured logging.
@@ -177,8 +176,8 @@ func (c *Container) registerLLMProviders(s llm_domain.Service, l logger_domain.L
 	return nil
 }
 
-// registerStandaloneEmbeddingProviders registers all standalone embedding
-// providers that were added via AddEmbeddingProvider.
+// registerStandaloneEmbeddingProviders registers all standalone embedding providers that
+// were added via AddEmbeddingProvider.
 //
 // Takes s (llm_domain.Service) which is the service to register with.
 // Takes l (logger_domain.Logger) which provides structured logging.
@@ -193,8 +192,7 @@ func (c *Container) registerStandaloneEmbeddingProviders(s llm_domain.Service, l
 	}
 }
 
-// configureLLMDefaults sets the default LLM and embedding providers on the
-// service.
+// configureLLMDefaults sets the default LLM and embedding providers on the service.
 //
 // Takes s (llm_domain.Service) which is the service to configure.
 // Takes l (logger_domain.Logger) which provides structured logging.
@@ -211,8 +209,8 @@ func (c *Container) configureLLMDefaults(s llm_domain.Service, l logger_domain.L
 	c.configureDefaultEmbeddingProvider(s, l)
 }
 
-// configureDefaultEmbeddingProvider sets the default embedding provider, either
-// from an explicit setting or by auto-detecting from the default LLM provider.
+// configureDefaultEmbeddingProvider sets the default embedding provider, either from an
+// explicit setting or by auto-detecting from the default LLM provider.
 //
 // Takes s (llm_domain.Service) which is the service to configure.
 // Takes l (logger_domain.Logger) which provides structured logging.
@@ -275,9 +273,8 @@ func (c *Container) configureLLMCache(s llm_domain.Service) error {
 	return nil
 }
 
-// configureLLMBudget sets up the cache-backed budget store for the LLM
-// service, enabling shared budget tracking across instances when backed by a
-// distributed cache provider.
+// configureLLMBudget sets up the cache-backed budget store for the LLM service, enabling
+// shared budget tracking across instances when backed by a distributed cache provider.
 //
 // Takes s (llm_domain.Service) which is the service to configure.
 //

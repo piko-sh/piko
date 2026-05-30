@@ -25,23 +25,26 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this bigram analyser.
-const Language = "german"
+const (
+	// Language is the language code for this bigram analyser.
+	Language = "german"
 
-// minFieldLength is the minimum letter count for bigram analysis.
-const minFieldLength = 4
+	// minFieldLength is the minimum letter count for bigram analysis.
+	minFieldLength = 4
 
-// maxAnalyseLength is the maximum text byte length processed during analysis.
-const maxAnalyseLength = 4096
+	// maxAnalyseLength is the maximum text byte length processed during analysis.
+	maxAnalyseLength = 4096
+)
 
-var _ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+var (
+	_ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+)
 
-// BigramAnalyser provides German character bigram frequency analysis
-// for detecting gibberish or random text.
+// BigramAnalyser provides German character bigram frequency analysis for detecting
+// gibberish or random text.
 type BigramAnalyser struct{}
 
-// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-// to total bigrams.
+// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams.
 //
 // Takes text (string) which is the text to analyse.
 //
@@ -100,43 +103,45 @@ func init() {
 	linguistics_domain.RegisterBigramAnalyserFactory(Language, Factory)
 }
 
-// germanBigrams contains the most frequent German letter bigrams.
-var germanBigrams = map[string]struct{}{
-	"en": {}, "er": {}, "ch": {}, "de": {}, "ei": {},
-	"te": {}, "nd": {}, "in": {}, "ie": {}, "ge": {},
-	"st": {}, "un": {}, "ic": {}, "re": {}, "an": {},
-	"be": {}, "he": {}, "le": {}, "ne": {}, "se": {},
-	"it": {}, "me": {}, "es": {}, "ve": {}, "nt": {},
-	"sc": {}, "au": {}, "ng": {}, "rt": {}, "ru": {},
-	"tz": {}, "ur": {}, "ut": {}, "la": {}, "li": {},
-	"ha": {}, "da": {}, "ti": {}, "al": {}, "on": {},
-	"ab": {}, "hr": {}, "as": {}, "ra": {}, "or": {},
-	"si": {}, "um": {}, "sp": {}, "wi": {}, "el": {},
-	"no": {}, "gr": {}, "ze": {}, "eb": {}, "lt": {},
-	"so": {}, "ar": {}, "ah": {}, "rs": {}, "rd": {},
-	"rn": {}, "tu": {}, "to": {}, "sa": {}, "ol": {},
-	"om": {}, "ni": {}, "bi": {}, "em": {}, "ns": {},
-	"ke": {}, "ed": {}, "ig": {}, "il": {}, "is": {},
-	"os": {}, "ss": {}, "ts": {}, "eh": {}, "ew": {},
-	"fe": {}, "fo": {}, "fr": {}, "hi": {}, "ho": {},
-	"ir": {}, "ka": {}, "ko": {}, "ki": {}, "lo": {},
-	"ma": {}, "mi": {}, "mo": {}, "mu": {}, "na": {},
-	"sw": {}, "ta": {}, "vo": {}, "we": {}, "wo": {},
-	"ue": {}, "üb": {}, "ag": {}, "ac": {}, "ad": {},
-	"af": {}, "ak": {}, "am": {}, "ap": {}, "at": {},
-	"aß": {}, "ba": {}, "bl": {}, "br": {}, "bu": {},
-	"ca": {}, "ce": {}, "co": {}, "cr": {}, "cu": {},
-	"di": {}, "do": {}, "du": {}, "ea": {}, "ec": {},
-	"eg": {}, "ek": {}, "ep": {}, "eu": {}, "ev": {},
-	"ex": {}, "ey": {}, "fa": {}, "fi": {}, "fl": {},
-	"fu": {}, "ga": {}, "gl": {}, "go": {}, "gu": {},
-	"ib": {}, "id": {}, "if": {}, "ih": {}, "im": {},
-	"io": {}, "ip": {}, "ja": {}, "je": {}, "jo": {},
-	"ju": {}, "kl": {}, "kn": {}, "kr": {}, "ku": {},
-	"ld": {}, "ll": {}, "lm": {}, "lp": {}, "ls": {},
-	"ly": {}, "mb": {}, "mm": {}, "mp": {}, "ms": {},
-	"nc": {}, "nk": {}, "nz": {}, "oa": {}, "ob": {},
-	"od": {}, "of": {}, "og": {}, "oh": {}, "oi": {},
-	"ok": {}, "op": {}, "ot": {}, "ov": {}, "ow": {},
-	"pa": {}, "pe": {}, "ph": {}, "pi": {},
-}
+var (
+	// germanBigrams contains the most frequent German letter bigrams.
+	germanBigrams = map[string]struct{}{
+		"en": {}, "er": {}, "ch": {}, "de": {}, "ei": {},
+		"te": {}, "nd": {}, "in": {}, "ie": {}, "ge": {},
+		"st": {}, "un": {}, "ic": {}, "re": {}, "an": {},
+		"be": {}, "he": {}, "le": {}, "ne": {}, "se": {},
+		"it": {}, "me": {}, "es": {}, "ve": {}, "nt": {},
+		"sc": {}, "au": {}, "ng": {}, "rt": {}, "ru": {},
+		"tz": {}, "ur": {}, "ut": {}, "la": {}, "li": {},
+		"ha": {}, "da": {}, "ti": {}, "al": {}, "on": {},
+		"ab": {}, "hr": {}, "as": {}, "ra": {}, "or": {},
+		"si": {}, "um": {}, "sp": {}, "wi": {}, "el": {},
+		"no": {}, "gr": {}, "ze": {}, "eb": {}, "lt": {},
+		"so": {}, "ar": {}, "ah": {}, "rs": {}, "rd": {},
+		"rn": {}, "tu": {}, "to": {}, "sa": {}, "ol": {},
+		"om": {}, "ni": {}, "bi": {}, "em": {}, "ns": {},
+		"ke": {}, "ed": {}, "ig": {}, "il": {}, "is": {},
+		"os": {}, "ss": {}, "ts": {}, "eh": {}, "ew": {},
+		"fe": {}, "fo": {}, "fr": {}, "hi": {}, "ho": {},
+		"ir": {}, "ka": {}, "ko": {}, "ki": {}, "lo": {},
+		"ma": {}, "mi": {}, "mo": {}, "mu": {}, "na": {},
+		"sw": {}, "ta": {}, "vo": {}, "we": {}, "wo": {},
+		"ue": {}, "üb": {}, "ag": {}, "ac": {}, "ad": {},
+		"af": {}, "ak": {}, "am": {}, "ap": {}, "at": {},
+		"aß": {}, "ba": {}, "bl": {}, "br": {}, "bu": {},
+		"ca": {}, "ce": {}, "co": {}, "cr": {}, "cu": {},
+		"di": {}, "do": {}, "du": {}, "ea": {}, "ec": {},
+		"eg": {}, "ek": {}, "ep": {}, "eu": {}, "ev": {},
+		"ex": {}, "ey": {}, "fa": {}, "fi": {}, "fl": {},
+		"fu": {}, "ga": {}, "gl": {}, "go": {}, "gu": {},
+		"ib": {}, "id": {}, "if": {}, "ih": {}, "im": {},
+		"io": {}, "ip": {}, "ja": {}, "je": {}, "jo": {},
+		"ju": {}, "kl": {}, "kn": {}, "kr": {}, "ku": {},
+		"ld": {}, "ll": {}, "lm": {}, "lp": {}, "ls": {},
+		"ly": {}, "mb": {}, "mm": {}, "mp": {}, "ms": {},
+		"nc": {}, "nk": {}, "nz": {}, "oa": {}, "ob": {},
+		"od": {}, "of": {}, "og": {}, "oh": {}, "oi": {},
+		"ok": {}, "op": {}, "ot": {}, "ov": {}, "ow": {},
+		"pa": {}, "pe": {}, "ph": {}, "pi": {},
+	}
+)

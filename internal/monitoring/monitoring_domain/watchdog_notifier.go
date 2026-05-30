@@ -28,82 +28,78 @@ import (
 type WatchdogEventType string
 
 const (
-	// WatchdogEventHeapThresholdExceeded is emitted when heap allocation
-	// exceeds the configured high-water mark and a profile is captured.
+	// WatchdogEventHeapThresholdExceeded is emitted when heap allocation exceeds the
+	// configured high-water mark and a profile is captured.
 	WatchdogEventHeapThresholdExceeded WatchdogEventType = "heap_threshold_exceeded"
 
-	// WatchdogEventGoroutineThresholdExceeded is emitted when the goroutine
-	// count exceeds the configured threshold and a profile is captured.
+	// WatchdogEventGoroutineThresholdExceeded is emitted when the goroutine count exceeds
+	// the configured threshold and a profile is captured.
 	WatchdogEventGoroutineThresholdExceeded WatchdogEventType = "goroutine_threshold_exceeded"
 
-	// WatchdogEventGoroutineSafetyCeiling is emitted when the goroutine count
-	// exceeds the safety ceiling and profile capture is suppressed.
+	// WatchdogEventGoroutineSafetyCeiling is emitted when the goroutine count exceeds the
+	// safety ceiling and profile capture is suppressed.
 	WatchdogEventGoroutineSafetyCeiling WatchdogEventType = "goroutine_safety_ceiling"
 
-	// WatchdogEventGCPressureWarning is emitted when GC CPU fraction exceeds
-	// the configured threshold.
+	// WatchdogEventGCPressureWarning is emitted when GC CPU fraction exceeds the configured
+	// threshold.
 	WatchdogEventGCPressureWarning WatchdogEventType = "gc_pressure_warning"
 
-	// WatchdogEventCaptureError is emitted when a profile capture or storage
-	// operation fails.
+	// WatchdogEventCaptureError is emitted when a profile capture or storage operation
+	// fails.
 	WatchdogEventCaptureError WatchdogEventType = "capture_error"
 
-	// WatchdogEventGomemlimitNotConfigured is emitted at startup when
-	// GOMEMLIMIT is not set.
+	// WatchdogEventGomemlimitNotConfigured is emitted at startup when GOMEMLIMIT is not set.
 	WatchdogEventGomemlimitNotConfigured WatchdogEventType = "gomemlimit_not_configured"
 
-	// WatchdogEventMemProfileRateDisabled is emitted at startup when
-	// runtime.MemProfileRate is zero, disarming heap and allocs captures.
+	// WatchdogEventMemProfileRateDisabled is emitted at startup when runtime.MemProfileRate
+	// is zero, disarming heap and allocs captures.
 	WatchdogEventMemProfileRateDisabled WatchdogEventType = "memprofilerate_disabled"
 
-	// WatchdogEventRSSThresholdExceeded is emitted when RSS approaches the
-	// cgroup memory limit.
+	// WatchdogEventRSSThresholdExceeded is emitted when RSS approaches the cgroup memory
+	// limit.
 	WatchdogEventRSSThresholdExceeded WatchdogEventType = "rss_threshold_exceeded"
 
-	// WatchdogEventHeapTrendWarning is emitted when heap growth rate projects
-	// a breach within the configured warning horizon.
+	// WatchdogEventHeapTrendWarning is emitted when heap growth rate projects a breach
+	// within the configured warning horizon.
 	WatchdogEventHeapTrendWarning WatchdogEventType = "heap_trend_warning"
 
-	// WatchdogEventGoroutineLeakDetected is emitted when the Go 1.26
-	// goroutine leak profile finds unreachable blocked goroutines.
+	// WatchdogEventGoroutineLeakDetected is emitted when the Go 1.26 goroutine leak profile
+	// finds unreachable blocked goroutines.
 	WatchdogEventGoroutineLeakDetected WatchdogEventType = "goroutine_leak_detected"
 
-	// WatchdogEventPreDeathSnapshot is emitted when a pre-shutdown diagnostic
-	// snapshot is captured.
+	// WatchdogEventPreDeathSnapshot is emitted when a pre-shutdown diagnostic snapshot is
+	// captured.
 	WatchdogEventPreDeathSnapshot WatchdogEventType = "pre_death_snapshot"
 
-	// WatchdogEventLoopPanicked is emitted when the watchdog evaluation loop
-	// panics. The loop does not auto-restart by design; this event makes the
-	// failure externally visible.
+	// WatchdogEventLoopPanicked is emitted when the watchdog evaluation loop panics. The
+	// loop does not auto-restart by design; this event makes the failure externally visible.
 	WatchdogEventLoopPanicked WatchdogEventType = "loop_panicked"
 
-	// WatchdogEventFDPressureExceeded is emitted when the open file
-	// descriptor count approaches the soft RLIMIT_NOFILE.
+	// WatchdogEventFDPressureExceeded is emitted when the open file descriptor count
+	// approaches the soft RLIMIT_NOFILE.
 	WatchdogEventFDPressureExceeded WatchdogEventType = "fd_pressure_exceeded"
 
-	// WatchdogEventSchedulerLatencyHigh is emitted when the runtime
-	// /sched/latencies:seconds p99 exceeds the configured threshold,
-	// indicating goroutine starvation or scheduler contention.
+	// WatchdogEventSchedulerLatencyHigh is emitted when the runtime /sched/latencies:seconds
+	// p99 exceeds the configured threshold, indicating goroutine starvation or scheduler
+	// contention.
 	WatchdogEventSchedulerLatencyHigh WatchdogEventType = "scheduler_latency_high"
 
-	// WatchdogEventCrashLoopDetected is emitted at startup when the recent
-	// startup-history shows multiple unclean exits within a short window,
-	// indicating the process is in a crash loop.
+	// WatchdogEventCrashLoopDetected is emitted at startup when the recent startup-history
+	// shows multiple unclean exits within a short window, indicating the process is in a
+	// crash loop.
 	WatchdogEventCrashLoopDetected WatchdogEventType = "crash_loop_detected"
 
-	// WatchdogEventPreviousCrashClassified is emitted at startup when the
-	// most recent startup-history entry has no clean stop marker, indicating
-	// the previous process exited uncleanly.
+	// WatchdogEventPreviousCrashClassified is emitted at startup when the most recent
+	// startup-history entry has no clean stop marker, indicating the previous process exited
+	// uncleanly.
 	WatchdogEventPreviousCrashClassified WatchdogEventType = "previous_crash_classified"
 
-	// WatchdogEventRoutineProfileCaptured is emitted (when notification is
-	// enabled) for each continuous-profiling routine capture. Informational
-	// only -- do not page on this event.
+	// WatchdogEventRoutineProfileCaptured is emitted (when notification is enabled) for each
+	// continuous-profiling routine capture. Informational only -- do not page on this event.
 	WatchdogEventRoutineProfileCaptured WatchdogEventType = "routine_profile_captured"
 
-	// WatchdogEventContentionDiagnostic is emitted at the start and end of
-	// a contention diagnostic so external observability sees the change in
-	// runtime overhead.
+	// WatchdogEventContentionDiagnostic is emitted at the start and end of a contention
+	// diagnostic so external observability sees the change in runtime overhead.
 	WatchdogEventContentionDiagnostic WatchdogEventType = "contention_diagnostic"
 )
 
@@ -111,15 +107,14 @@ const (
 type WatchdogEventPriority int
 
 const (
-	// WatchdogPriorityNormal is for informational events that do not require
-	// immediate attention.
+	// WatchdogPriorityNormal is for informational events that do not require immediate
+	// attention.
 	WatchdogPriorityNormal WatchdogEventPriority = iota + 1
 
 	// WatchdogPriorityHigh is for events that warrant prompt investigation.
 	WatchdogPriorityHigh
 
-	// WatchdogPriorityCritical is for events indicating imminent system
-	// instability.
+	// WatchdogPriorityCritical is for events indicating imminent system instability.
 	WatchdogPriorityCritical
 )
 
@@ -138,8 +133,8 @@ type WatchdogEvent struct {
 	Priority WatchdogEventPriority
 }
 
-// NewHeapThresholdEvent creates an event for when heap allocation exceeds the
-// high-water mark.
+// NewHeapThresholdEvent creates an event for when heap allocation exceeds the high-water
+// mark.
 //
 // Takes heapAlloc (uint64) which is the current heap allocation in bytes.
 // Takes highWater (uint64) which is the high-water mark that was exceeded.
@@ -157,8 +152,8 @@ func NewHeapThresholdEvent(heapAlloc, highWater uint64) WatchdogEvent {
 	}
 }
 
-// NewGoroutineThresholdEvent creates an event for when the goroutine count
-// exceeds the configured threshold.
+// NewGoroutineThresholdEvent creates an event for when the goroutine count exceeds the
+// configured threshold.
 //
 // Takes count (int) which is the current goroutine count.
 // Takes threshold (int) which is the configured goroutine threshold.
@@ -176,8 +171,8 @@ func NewGoroutineThresholdEvent(count, threshold int) WatchdogEvent {
 	}
 }
 
-// NewGoroutineSafetyCeilingEvent creates an event for when the goroutine count
-// exceeds the safety ceiling and captures are suppressed.
+// NewGoroutineSafetyCeilingEvent creates an event for when the goroutine count exceeds
+// the safety ceiling and captures are suppressed.
 //
 // Takes count (int) which is the current goroutine count.
 // Takes ceiling (int) which is the configured safety ceiling.
@@ -195,8 +190,8 @@ func NewGoroutineSafetyCeilingEvent(count, ceiling int) WatchdogEvent {
 	}
 }
 
-// NewGCPressureEvent creates an event for when GC CPU fraction exceeds the
-// configured threshold.
+// NewGCPressureEvent creates an event for when GC CPU fraction exceeds the configured
+// threshold.
 //
 // Takes fraction (float64) which is the current GC CPU fraction.
 // Takes threshold (float64) which is the configured GC pressure threshold.
@@ -214,12 +209,11 @@ func NewGCPressureEvent(fraction, threshold float64) WatchdogEvent {
 	}
 }
 
-// NewCaptureErrorEvent creates an event for when a profile capture or storage
-// operation fails.
+// NewCaptureErrorEvent creates an event for when a profile capture or storage operation
+// fails.
 //
 // Takes profileType (string) which identifies the profile that failed.
-// Takes err (error) which is the error that occurred during capture or
-// storage.
+// Takes err (error) which is the error that occurred during capture or storage.
 //
 // Returns WatchdogEvent which describes the capture failure.
 func NewCaptureErrorEvent(profileType string, err error) WatchdogEvent {
@@ -234,8 +228,7 @@ func NewCaptureErrorEvent(profileType string, err error) WatchdogEvent {
 	}
 }
 
-// NewRSSThresholdEvent creates an event for when RSS approaches the cgroup
-// memory limit.
+// NewRSSThresholdEvent creates an event for when RSS approaches the cgroup memory limit.
 //
 // Takes rss (uint64) which is the current RSS in bytes.
 // Takes cgroupLimit (uint64) which is the cgroup memory limit in bytes.
@@ -255,9 +248,9 @@ func NewRSSThresholdEvent(rss, cgroupLimit, threshold uint64) WatchdogEvent {
 	}
 }
 
-// NewFDPressureEvent creates an event for when the open FD count approaches
-// the configured fraction of the soft RLIMIT_NOFILE. FD exhaustion is
-// unrecoverable for accept loops, hence Critical priority.
+// NewFDPressureEvent creates an event for when the open FD count approaches the
+// configured fraction of the soft RLIMIT_NOFILE. FD exhaustion is unrecoverable for
+// accept loops, hence Critical priority.
 //
 // Takes fdCount (int32) which is the observed FD count.
 // Takes fdLimitSoft (int64) which is the soft FD limit.
@@ -282,9 +275,9 @@ func NewFDPressureEvent(fdCount int32, fdLimitSoft int64, thresholdPercent float
 //
 // Takes latencyP99 (time.Duration) which is the observed p99 latency.
 // Takes threshold (time.Duration) which is the configured threshold.
-// Takes consecutiveCount (int) which is the count of consecutive triggers
-// inside the rule's tracking window -- used by the contention diagnostic to
-// decide whether to escalate.
+// Takes consecutiveCount (int) which is the count of consecutive triggers inside the
+// rule's tracking window -- used by the contention diagnostic to decide whether to
+// escalate.
 //
 // Returns WatchdogEvent which describes the scheduler latency anomaly.
 func NewSchedulerLatencyEvent(latencyP99, threshold time.Duration, consecutiveCount int) WatchdogEvent {
@@ -300,12 +293,12 @@ func NewSchedulerLatencyEvent(latencyP99, threshold time.Duration, consecutiveCo
 	}
 }
 
-// NewCrashLoopDetectedEvent creates an event for when the recent startup
-// history indicates the process is in a crash loop (multiple unclean exits
-// within a short window).
+// NewCrashLoopDetectedEvent creates an event for when the recent startup history
+// indicates the process is in a crash loop (multiple unclean exits within a short
+// window).
 //
-// Takes uncleanInWindow (int) which is the number of unclean entries in the
-// inspection window.
+// Takes uncleanInWindow (int) which is the number of unclean entries in the inspection
+// window.
 // Takes windowSeconds (int) which is the window duration in seconds.
 //
 // Returns WatchdogEvent which describes the detected crash loop.
@@ -321,9 +314,9 @@ func NewCrashLoopDetectedEvent(uncleanInWindow int, windowSeconds int) WatchdogE
 	}
 }
 
-// NewPreviousCrashClassifiedEvent creates an event for when the previous
-// startup-history entry was missing a clean stop marker, indicating the
-// previous process exited uncleanly.
+// NewPreviousCrashClassifiedEvent creates an event for when the previous startup-history
+// entry was missing a clean stop marker, indicating the previous process exited
+// uncleanly.
 //
 // Takes prev (startupHistoryEntry) which is the patched previous entry.
 //
@@ -346,12 +339,11 @@ func NewPreviousCrashClassifiedEvent(prev startupHistoryEntry) WatchdogEvent {
 	}
 }
 
-// NewContentionDiagnosticEvent creates an event marking the boundary of a
-// contention diagnostic. Phase indicates "started" or "completed" so the
-// operator can correlate with profile artefacts.
+// NewContentionDiagnosticEvent creates an event marking the boundary of a contention
+// diagnostic. Phase indicates "started" or "completed" so the operator can correlate with
+// profile artefacts.
 //
-// Takes phase (string) which is the diagnostic phase ("started" or
-// "completed").
+// Takes phase (string) which is the diagnostic phase ("started" or "completed").
 // Takes window (time.Duration) which is the configured diagnostic window.
 //
 // Returns WatchdogEvent which describes the diagnostic boundary.
@@ -385,12 +377,11 @@ func NewRoutineProfileCapturedEvent(profileType string) WatchdogEvent {
 	}
 }
 
-// NewLoopPanickedEvent creates an event emitted when the watchdog evaluation
-// loop panics. The loop does not auto-restart, so this event combined with a
-// stale heartbeat signals "watchdog stopped".
+// NewLoopPanickedEvent creates an event emitted when the watchdog evaluation loop panics.
+// The loop does not auto-restart, so this event combined with a stale heartbeat signals
+// "watchdog stopped".
 //
-// Takes panicValue (string) which is the recovered panic value formatted as a
-// string.
+// Takes panicValue (string) which is the recovered panic value formatted as a string.
 //
 // Returns WatchdogEvent which describes the loop panic.
 func NewLoopPanickedEvent(panicValue string) WatchdogEvent {
@@ -404,8 +395,8 @@ func NewLoopPanickedEvent(panicValue string) WatchdogEvent {
 	}
 }
 
-// NewGomemlimitNotConfiguredEvent creates an event emitted at startup when
-// GOMEMLIMIT is not set.
+// NewGomemlimitNotConfiguredEvent creates an event emitted at startup when GOMEMLIMIT is
+// not set.
 //
 // Returns WatchdogEvent which describes the missing GOMEMLIMIT configuration.
 func NewGomemlimitNotConfiguredEvent() WatchdogEvent {

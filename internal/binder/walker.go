@@ -26,41 +26,33 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// setByAST is the entry point for the recursive AST walker on the slow
-// path. It initialises depth tracking and delegates to
-// setByASTRecursive.
+// setByAST is the entry point for the recursive AST walker on the slow path. It
+// initialises depth tracking and delegates to setByASTRecursive.
 //
 // Takes currentVal (reflect.Value) which is the value to be modified.
-// Takes expression (ast_domain.Expression) which is the parsed AST
-// expression.
+// Takes expression (ast_domain.Expression) which is the parsed AST expression.
 // Takes valueToSet (string) which is the value to assign.
 // Takes fullPath (string) which is the full path for error messages.
-// Takes limits (binderOptions) which provides recursion and binding
-// limits.
+// Takes limits (binderOptions) which provides recursion and binding limits.
 //
-// Returns error when the value cannot be set or the expression is
-// invalid.
+// Returns error when the value cannot be set or the expression is invalid.
 func (b *ASTBinder) setByAST(currentVal reflect.Value, expression ast_domain.Expression, valueToSet string, fullPath string, limits binderOptions) error {
 	return b.setByASTRecursive(currentVal, expression, valueToSet, fullPath, 0, limits)
 }
 
-// setByASTRecursive recursively walks the AST to set a field value at
-// the specified path, tracking depth to prevent unbounded recursion.
+// setByASTRecursive recursively walks the AST to set a field value at the specified path,
+// tracking depth to prevent unbounded recursion.
 //
-// Takes currentVal (reflect.Value) which is the current struct being
-// traversed.
-// Takes expression (ast_domain.Expression) which is the AST node to
-// process.
-// Takes valueToSet (string) which is the value to assign to the
-// target field.
-// Takes fullPath (string) which is the complete path for error
-// reporting.
+// Takes currentVal (reflect.Value) which is the current struct being traversed.
+// Takes expression (ast_domain.Expression) which is the AST node to process.
+// Takes valueToSet (string) which is the value to assign to the target field.
+// Takes fullPath (string) which is the complete path for error reporting.
 // Takes depth (int) which tracks recursion depth for limit checking.
-// Takes limits (binderOptions) which provides depth limits to avoid
-// repeated atomic loads in recursive calls.
+// Takes limits (binderOptions) which provides depth limits to avoid repeated atomic loads
+// in recursive calls.
 //
-// Returns error when the depth limit is exceeded, the current value
-// is not a struct, or the expression type is unsupported.
+// Returns error when the depth limit is exceeded, the current value is not a struct, or
+// the expression type is unsupported.
 func (b *ASTBinder) setByASTRecursive(currentVal reflect.Value, expression ast_domain.Expression, valueToSet string, fullPath string, depth int, limits binderOptions) error {
 	if err := checkDepthLimit(fullPath, depth, limits.maxPathDepth); err != nil {
 		return fmt.Errorf("checking depth limit for %q: %w", fullPath, err)
@@ -109,22 +101,19 @@ func (b *ASTBinder) handleIdentifierNode(currentVal reflect.Value, node *ast_dom
 	return b.convertAndSet(field, valueToSet, fullPath, fi)
 }
 
-// handleIndexExprNode processes an IndexExpr AST node (e.g., items[0] or
-// config["key"]).
+// handleIndexExprNode processes an IndexExpr AST node (e.g., items[0] or config["key"]).
 //
 // Dispatches to specific handlers based on the resolved value's kind.
 //
-// Takes currentVal (reflect.Value) which is the current reflection value being
-// processed.
+// Takes currentVal (reflect.Value) which is the current reflection value being processed.
 // Takes node (*ast_domain.IndexExpression) which is the index expression AST node.
-// Takes valueToSet (string) which is the value to assign at the indexed
-// position.
+// Takes valueToSet (string) which is the value to assign at the indexed position.
 // Takes fullPath (string) which is the dot-separated path for error reporting.
 // Takes depth (int) which tracks recursion depth for nested expressions.
 // Takes limits (binderOptions) which provides size limits and binding options.
 //
-// Returns error when the base value is not a slice or map, or when the index
-// operation fails.
+// Returns error when the base value is not a slice or map, or when the index operation
+// fails.
 func (b *ASTBinder) handleIndexExprNode(currentVal reflect.Value, node *ast_domain.IndexExpression, valueToSet string, fullPath string, depth int, limits binderOptions) error {
 	if innerIndex, ok := node.Base.(*ast_domain.IndexExpression); ok {
 		if shouldUseChainedIndexHandler(currentVal, innerIndex, limits.maxPathDepth) {
@@ -192,8 +181,8 @@ func (b *ASTBinder) handleSliceIndexExpr(sliceVal reflect.Value, node *ast_domai
 // Takes valueToSet (string) which is the value to store at the index.
 // Takes fullPath (string) which is the field path used in error messages.
 //
-// Returns error when chained indexing is not allowed, the map cannot be set
-// up, key conversion fails, or value conversion fails.
+// Returns error when chained indexing is not allowed, the map cannot be set up, key
+// conversion fails, or value conversion fails.
 func (b *ASTBinder) handleMapIndexExpr(mapVal reflect.Value, node *ast_domain.IndexExpression, valueToSet string, fullPath string) error {
 	mapType := mapVal.Type()
 	elemType := mapType.Elem()
@@ -221,10 +210,9 @@ func (b *ASTBinder) handleMapIndexExpr(mapVal reflect.Value, node *ast_domain.In
 	return nil
 }
 
-// handleStructIndexExpr handles bracket-notation access on a struct field
-// where flattened JSON form data produces paths like
-// shippingAddress['street'] and the bracket index is a string literal that
-// maps to a struct field name or json tag.
+// handleStructIndexExpr handles bracket-notation access on a struct field where flattened
+// JSON form data produces paths like shippingAddress['street'] and the bracket index is a
+// string literal that maps to a struct field name or json tag.
 //
 // Takes structVal (reflect.Value) which is the struct to access.
 // Takes node (*ast_domain.IndexExpression) which contains the string index.
@@ -232,8 +220,8 @@ func (b *ASTBinder) handleMapIndexExpr(mapVal reflect.Value, node *ast_domain.In
 // Takes fullPath (string) which is the path for error reporting.
 // Takes limits (binderOptions) which provides binding constraints.
 //
-// Returns error when the index is not a string literal, the field is not
-// found, or the value cannot be set.
+// Returns error when the index is not a string literal, the field is not found, or the
+// value cannot be set.
 func (b *ASTBinder) handleStructIndexExpr(structVal reflect.Value, node *ast_domain.IndexExpression, valueToSet string, fullPath string, limits binderOptions) error {
 	strIndex, ok := node.Index.(*ast_domain.StringLiteral)
 	if !ok {
@@ -245,13 +233,12 @@ func (b *ASTBinder) handleStructIndexExpr(structVal reflect.Value, node *ast_dom
 	return b.handleIdentifierNode(structVal, &ast_domain.Identifier{Name: strIndex.Value}, valueToSet, fullPath, limits)
 }
 
-// handleChainedIndexExpr handles chained index expressions like
-// fields['key1']['key2']. This is needed for map[string]any where intermediate
-// values may not exist and need to be created as maps.
+// handleChainedIndexExpr handles chained index expressions like fields['key1']['key2'].
+// This is needed for map[string]any where intermediate values may not exist and need to
+// be created as maps.
 //
 // Takes currentVal (reflect.Value) which is the struct containing the base map.
-// Takes innerIndex (*ast_domain.IndexExpression) which is the inner
-// index expression.
+// Takes innerIndex (*ast_domain.IndexExpression) which is the inner index expression.
 // Takes outerKey (ast_domain.Expression) which is the outer key.
 // Takes valueToSet (string) which is the value to assign.
 // Takes fullPath (string) which is the full path for error reporting.
@@ -286,8 +273,7 @@ func (b *ASTBinder) handleChainedIndexExpr(
 	return b.setValueInIntermediateMap(intermediateVal, outerKey, valueToSet, fullPath)
 }
 
-// resolveAndValidateBaseMap resolves the base map from an expression and
-// validates it.
+// resolveAndValidateBaseMap resolves the base map from an expression and validates it.
 //
 // Takes currentVal (reflect.Value) which is the current value being bound.
 // Takes base (ast_domain.Expression) which is the expression to resolve.
@@ -325,16 +311,15 @@ func (b *ASTBinder) resolveAndValidateBaseMap(
 	return baseMapVal, nil
 }
 
-// setValueInIntermediateMap sets a value in the intermediate map using the
-// outer key.
+// setValueInIntermediateMap sets a value in the intermediate map using the outer key.
 //
 // Takes intermediateVal (reflect.Value) which is the map to update.
 // Takes outerKey (ast_domain.Expression) which identifies the map key.
 // Takes valueToSet (string) which is the value to convert and store.
 // Takes fullPath (string) which identifies the field location for errors.
 //
-// Returns error when the key conversion fails or the value cannot be
-// converted to the map's element type.
+// Returns error when the key conversion fails or the value cannot be converted to the
+// map's element type.
 func (b *ASTBinder) setValueInIntermediateMap(
 	intermediateVal reflect.Value,
 	outerKey ast_domain.Expression,
@@ -359,16 +344,14 @@ func (b *ASTBinder) setValueInIntermediateMap(
 
 // handleUncachedField processes a field that was not found in the cache.
 //
-// Takes currentVal (reflect.Value) which is the struct value containing the
-// field to set.
+// Takes currentVal (reflect.Value) which is the struct value containing the field to set.
 // Takes fieldName (string) which is the name of the field to process.
 // Takes valueToSet (string) which is the string value to convert and assign.
 // Takes fullPath (string) which is the full path for error reporting.
-// Takes ignoreUnknown (bool) which controls whether unknown fields are
-// silently ignored.
+// Takes ignoreUnknown (bool) which controls whether unknown fields are silently ignored.
 //
-// Returns error when the field is not found and ignoreUnknown is false, or
-// when the value cannot be converted and set.
+// Returns error when the field is not found and ignoreUnknown is false, or when the value
+// cannot be converted and set.
 func (b *ASTBinder) handleUncachedField(currentVal reflect.Value, fieldName, valueToSet, fullPath string, ignoreUnknown bool) error {
 	field := currentVal.FieldByName(fieldName)
 	if !field.IsValid() {
@@ -385,8 +368,7 @@ func (b *ASTBinder) handleUncachedField(currentVal reflect.Value, fieldName, val
 // handleMemberExprNode processes a MemberExpr AST node.
 //
 // Takes currentVal (reflect.Value) which is the current value being traversed.
-// Takes node (*ast_domain.MemberExpression) which is the member
-// expression to process.
+// Takes node (*ast_domain.MemberExpression) which is the member expression to process.
 // Takes valueToSet (string) which is the value to assign at the target path.
 // Takes fullPath (string) which is the complete path for error messages.
 // Takes depth (int) which tracks recursion depth.
@@ -409,12 +391,11 @@ func (b *ASTBinder) handleMemberExprNode(currentVal reflect.Value, node *ast_dom
 	return b.setByASTRecursive(baseVal, node.Property, valueToSet, fullPath, depth+1, limits)
 }
 
-// handleNestedMapAccess processes nested map access patterns by combining
-// property expressions and delegating to the map support handler.
+// handleNestedMapAccess processes nested map access patterns by combining property
+// expressions and delegating to the map support handler.
 //
 // Takes currentVal (reflect.Value) which is the current value being processed.
-// Takes node (*ast_domain.MemberExpression) which is the member
-// expression to access.
+// Takes node (*ast_domain.MemberExpression) which is the member expression to access.
 // Takes valueToSet (string) which is the value to assign at the target path.
 // Takes fullPath (string) which is the complete path for error reporting.
 // Takes depth (int) which tracks recursion depth.
@@ -443,23 +424,21 @@ func (b *ASTBinder) handleNestedMapAccess(
 	return b.setByASTWithMapSupport(currentVal, info.indexExpr, combinedProperty, valueToSet, fullPath, depth, limits)
 }
 
-// setByASTWithMapSupport handles the special case of setting a field on a
-// map element using a get-modify-set pattern because MapIndex returns a
-// non-addressable copy.
+// setByASTWithMapSupport handles the special case of setting a field on a map element
+// using a get-modify-set pattern because MapIndex returns a non-addressable copy.
 //
 // Takes currentVal (reflect.Value) which is the current value being traversed.
-// Takes indexExpr (*ast_domain.IndexExpression) which is the index expression to
-// resolve.
-// Takes property (ast_domain.Expression) which is the property to set on the
-// resolved element.
+// Takes indexExpr (*ast_domain.IndexExpression) which is the index expression to resolve.
+// Takes property (ast_domain.Expression) which is the property to set on the resolved
+// element.
 // Takes valueToSet (string) which is the value to assign.
 // Takes fullPath (string) which is the full path for error reporting.
 // Takes depth (int) which tracks recursion depth.
-// Takes limits (binderOptions) which provides limits to avoid repeated atomic
-// loads in recursive calls.
+// Takes limits (binderOptions) which provides limits to avoid repeated atomic loads in
+// recursive calls.
 //
-// Returns error when the base cannot be resolved, index is out of range, or
-// the field is not a slice or map.
+// Returns error when the base cannot be resolved, index is out of range, or the field is
+// not a slice or map.
 func (b *ASTBinder) setByASTWithMapSupport(
 	currentVal reflect.Value,
 	indexExpr *ast_domain.IndexExpression,
@@ -503,14 +482,12 @@ func (b *ASTBinder) setByASTWithMapSupport(
 // setMapElement implements the get-modify-set pattern for map elements.
 //
 // Takes mapVal (reflect.Value) which is the map to modify.
-// Takes indexExpr (*ast_domain.IndexExpression) which specifies the
-// key expression.
+// Takes indexExpr (*ast_domain.IndexExpression) which specifies the key expression.
 // Takes property (ast_domain.Expression) which is the nested property to set.
 // Takes valueToSet (string) which is the value to assign.
 // Takes fullPath (string) which is the path for error messages.
 // Takes depth (int) which tracks recursion depth.
-// Takes limits (binderOptions) which avoids repeated atomic loads in recursive
-// calls.
+// Takes limits (binderOptions) which avoids repeated atomic loads in recursive calls.
 //
 // Returns error when index conversion fails or recursive setting fails.
 func (b *ASTBinder) setMapElement(
@@ -548,8 +525,8 @@ func (b *ASTBinder) setMapElement(
 	return nil
 }
 
-// checkDepthLimit checks if the current depth is within the allowed limit.
-// The maxDepth is passed as a parameter to avoid repeated atomic loads.
+// checkDepthLimit checks if the current depth is within the allowed limit. The maxDepth
+// is passed as a parameter to avoid repeated atomic loads.
 //
 // Takes fullPath (string) which is the path being checked.
 // Takes depth (int) which is the current depth level.
@@ -563,17 +540,17 @@ func checkDepthLimit(fullPath string, depth int, maxDepth int) error {
 	return nil
 }
 
-// shouldUseChainedIndexHandler checks if the chained index expression should use
-// the special handler for map[string]any. Returns true only when the base map
-// has interface{} element type.
+// shouldUseChainedIndexHandler checks if the chained index expression should use the
+// special handler for map[string]any. Returns true only when the base map has interface{}
+// element type.
 //
-// Takes currentVal (reflect.Value) which is the struct value containing the
-// base map field.
-// Takes innerIndex (*ast_domain.IndexExpression) which is the inner index
-// expression to inspect for a base identifier.
+// Takes currentVal (reflect.Value) which is the struct value containing the base map
+// field.
+// Takes innerIndex (*ast_domain.IndexExpression) which is the inner index expression to
+// inspect for a base identifier.
 //
-// Returns bool which is true when the base map has an interface{} element
-// type, indicating chained index handling is needed.
+// Returns bool which is true when the base map has an interface{} element type,
+// indicating chained index handling is needed.
 func shouldUseChainedIndexHandler(currentVal reflect.Value, innerIndex *ast_domain.IndexExpression, _ int) bool {
 	baseIdent, ok := innerIndex.Base.(*ast_domain.Identifier)
 	if !ok {
@@ -598,8 +575,7 @@ func shouldUseChainedIndexHandler(currentVal reflect.Value, innerIndex *ast_doma
 // Takes structVal (reflect.Value) which is the struct to search within.
 // Takes name (string) which is the field name or json tag to find.
 //
-// Returns reflect.Value which is the matching field, or an invalid value if
-// not found.
+// Returns reflect.Value which is the matching field, or an invalid value if not found.
 func findFieldByNameOrTag(structVal reflect.Value, name string) reflect.Value {
 	field := structVal.FieldByName(name)
 	if field.IsValid() {
@@ -613,8 +589,7 @@ func findFieldByNameOrTag(structVal reflect.Value, name string) reflect.Value {
 // Takes structVal (reflect.Value) which is the struct to search within.
 // Takes name (string) which is the JSON tag name to find.
 //
-// Returns reflect.Value which is the matching field, or an invalid Value if
-// not found.
+// Returns reflect.Value which is the matching field, or an invalid Value if not found.
 func findFieldByJSONTag(structVal reflect.Value, name string) reflect.Value {
 	for sf, field := range structVal.Fields() {
 		tag := sf.Tag.Get("json")
@@ -643,8 +618,7 @@ func extractJSONTagName(tag string) string {
 	return tag
 }
 
-// getOrCreateIntermediateValue gets or creates the intermediate value for
-// chained access.
+// getOrCreateIntermediateValue gets or creates the intermediate value for chained access.
 //
 // Takes baseMapVal (reflect.Value) which is the map to retrieve or create in.
 // Takes innerKey (reflect.Value) which is the key for the intermediate value.
@@ -674,8 +648,7 @@ func getOrCreateIntermediateValue(baseMapVal, innerKey reflect.Value, fullPath s
 
 // needsIntermediateCreation checks if an intermediate value needs to be created.
 //
-// Takes intermediateVal (reflect.Value) which is the current intermediate value
-// to check.
+// Takes intermediateVal (reflect.Value) which is the current intermediate value to check.
 // Takes elemType (reflect.Type) which is the expected element type.
 //
 // Returns bool which is true if the value is invalid or is a nil interface.
@@ -689,8 +662,7 @@ func needsIntermediateCreation(intermediateVal reflect.Value, elemType reflect.T
 	return false
 }
 
-// createIntermediateMapValue creates an intermediate map value for chained
-// access.
+// createIntermediateMapValue creates an intermediate map value for chained access.
 //
 // Takes baseMapVal (reflect.Value) which is the parent map to modify.
 // Takes innerKey (reflect.Value) which is the key for the new entry.
@@ -710,8 +682,7 @@ func createIntermediateMapValue(baseMapVal, innerKey reflect.Value, elemType ref
 
 // convertOuterKey converts an AST expression to a map key value.
 //
-// Takes outerKey (ast_domain.Expression) which is the AST expression to
-// convert.
+// Takes outerKey (ast_domain.Expression) which is the AST expression to convert.
 // Takes keyType (reflect.Type) which specifies the target map key type.
 // Takes fullPath (string) which provides the path for error messages.
 //
@@ -736,13 +707,12 @@ func convertOuterKey(outerKey ast_domain.Expression, keyType reflect.Type, fullP
 	return keyVal, nil
 }
 
-// newFieldInfoForType creates a fieldInfo struct for a given type with
-// unmarshaler detection.
+// newFieldInfoForType creates a fieldInfo struct for a given type with unmarshaler
+// detection.
 //
-// Used to reduce repeated code in handleSliceIndexExpr and handleMapIndexExpr.
-// The Offset, Kind, and CanDirect fields are set to zero or false because these
-// are for dynamic paths, not fixed struct fields that could use unsafe direct
-// access.
+// Used to reduce repeated code in handleSliceIndexExpr and handleMapIndexExpr. The
+// Offset, Kind, and CanDirect fields are set to zero or false because these are for
+// dynamic paths, not fixed struct fields that could use unsafe direct access.
 //
 // Takes path (string) which specifies the field path for error messages.
 // Takes t (reflect.Type) which specifies the type to create field info for.
@@ -795,8 +765,8 @@ func validateChainedIndexing(mapVal reflect.Value, elemType reflect.Type, fullPa
 // Takes mapType (reflect.Type) which is the type to use when making the map.
 // Takes fullPath (string) which is the path shown in error messages.
 //
-// Returns error when the map is nil but cannot be set. This happens when the
-// map is accessed through another map, as chained map access is not supported.
+// Returns error when the map is nil but cannot be set. This happens when the map is
+// accessed through another map, as chained map access is not supported.
 func initialiseMapIfNil(mapVal reflect.Value, mapType reflect.Type, fullPath string) error {
 	if !mapVal.IsNil() {
 		return nil

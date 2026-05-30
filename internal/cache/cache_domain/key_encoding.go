@@ -26,25 +26,23 @@ import (
 	"strings"
 )
 
-// EncodeKey converts a key of type K to a string suitable for use as a cache
-// key in any provider.
+// EncodeKey converts a key of type K to a string suitable for use as a cache key in any
+// provider.
 //
 // It handles three strategies in order of priority:
 //  1. String keys: fast path, returned directly (then namespace-prefixed).
 //  2. No KeyRegistry: uses fmt.Sprintf (backward compatible for primitives).
-//  3. KeyRegistry available: uses registry with base64 encoding for struct
-//     keys.
+//  3. KeyRegistry available: uses registry with base64 encoding for struct keys.
 //
 // All keys are prefixed with the namespace if configured.
 //
 // Takes key (K) which is the cache key to encode.
 // Takes namespace (string) which is the namespace prefix to prepend.
-// Takes keyRegistry (*EncodingRegistry) which provides type-specific encoders,
-// or nil for primitive keys.
+// Takes keyRegistry (*EncodingRegistry) which provides type-specific encoders, or nil for
+// primitive keys.
 //
 // Returns string which is the encoded key, with namespace prefix if set.
-// Returns error when no encoder is registered for the key type or when
-// marshalling fails.
+// Returns error when no encoder is registered for the key type or when marshalling fails.
 func EncodeKey[K comparable](key K, namespace string, keyRegistry *EncodingRegistry) (string, error) {
 	var keyString string
 
@@ -73,19 +71,19 @@ func EncodeKey[K comparable](key K, namespace string, keyRegistry *EncodingRegis
 	return keyString, nil
 }
 
-// DecodeKey converts a cache key string back to a key of type K.
-// It reverses the encoding strategy used in EncodeKey: strips namespace prefix
-// if present, uses direct conversion for string keys, fmt.Sscan for primitives
-// without a registry, or base64 decode with registry unmarshal for structs.
+// DecodeKey converts a cache key string back to a key of type K. It reverses the encoding
+// strategy used in EncodeKey: strips namespace prefix if present, uses direct conversion
+// for string keys, fmt.Sscan for primitives without a registry, or base64 decode with
+// registry unmarshal for structs.
 //
 // Takes keyString (string) which is the cache key to decode.
 // Takes namespace (string) which is the namespace prefix to strip.
-// Takes keyRegistry (*EncodingRegistry) which provides type-specific decoders,
-// or nil for primitive keys.
+// Takes keyRegistry (*EncodingRegistry) which provides type-specific decoders, or nil for
+// primitive keys.
 //
 // Returns K which is the decoded key value.
-// Returns error when the namespace prefix is missing, decoding fails, or no
-// encoder is registered for the key type.
+// Returns error when the namespace prefix is missing, decoding fails, or no encoder is
+// registered for the key type.
 func DecodeKey[K comparable](keyString string, namespace string, keyRegistry *EncodingRegistry) (K, error) {
 	var key K
 
@@ -156,8 +154,8 @@ func EncodeValue[V any](value V, registry *EncodingRegistry) ([]byte, error) {
 // Takes registry (*EncodingRegistry) which provides type-specific decoders.
 //
 // Returns V which is the decoded value.
-// Returns error when the encoder cannot be found, unmarshalling fails, or type
-// assertion fails.
+// Returns error when the encoder cannot be found, unmarshalling fails, or type assertion
+// fails.
 func DecodeValue[V any](valBytes []byte, registry *EncodingRegistry) (V, error) {
 	var v V
 	encoder, err := registry.GetByType(reflect.TypeFor[V]())

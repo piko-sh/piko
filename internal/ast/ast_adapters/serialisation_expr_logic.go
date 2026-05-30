@@ -30,12 +30,14 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// expressionPayloadCount is the total number of expression payload types for
-// array dispatch sizing.
-const expressionPayloadCount = 24
+const (
+	// expressionPayloadCount is the total number of expression payload types for array
+	// dispatch sizing.
+	expressionPayloadCount = 24
+)
 
-// expressionEncoderEntry pairs a FlatBuffer payload type with a builder
-// function for a specific concrete Expression type.
+// expressionEncoderEntry pairs a FlatBuffer payload type with a builder function for a
+// specific concrete Expression type.
 type expressionEncoderEntry struct {
 	// build is the function that encodes the expression to FlatBuffers.
 	build func(*encoder, ast_domain.Expression) (flatbuffers.UOffsetT, error)
@@ -53,8 +55,7 @@ var (
 		ast_domain.OpTruthy: ast_schema_gen.UnaryOperatorFBTRUTHY,
 	}
 
-	// mapFBUnaryOpToGo maps the FlatBuffers enum for UnaryOperatorFB to the Go
-	// domain type.
+	// mapFBUnaryOpToGo maps the FlatBuffers enum for UnaryOperatorFB to the Go domain type.
 	mapFBUnaryOpToGo = map[ast_schema_gen.UnaryOperatorFB]ast_domain.UnaryOp{
 		ast_schema_gen.UnaryOperatorFBNOT:     ast_domain.OpNot,
 		ast_schema_gen.UnaryOperatorFBNEG:     ast_domain.OpNeg,
@@ -82,35 +83,32 @@ var (
 		ast_domain.OpCoalesce: ast_schema_gen.BinaryOperatorFBCOALESCE,
 	}
 
-	// mapFBBinaryOpToGo maps the FlatBuffers enum for BinaryOperatorFB to the Go
-	// domain type.
+	// mapFBBinaryOpToGo maps the FlatBuffers enum for BinaryOperatorFB to the Go domain
+	// type.
 	mapFBBinaryOpToGo = make(map[ast_schema_gen.BinaryOperatorFB]ast_domain.BinaryOp)
 
-	// expressionUnpackers is an array dispatch table mapping ExpressionPayloadFB
-	// enum values to their corresponding unpacker functions.
+	// expressionUnpackers is an array dispatch table mapping ExpressionPayloadFB enum values
+	// to their corresponding unpacker functions.
 	//
-	// This is a pointer to break the initialisation cycle between the dispatch
-	// table and the unpacker functions that recursively call unpackExpressionNode.
+	// This is a pointer to break the initialisation cycle between the dispatch table and the
+	// unpacker functions that recursively call unpackExpressionNode.
 	expressionUnpackers *[expressionPayloadCount]expressionUnpacker
 
-	// expressionEncoders maps concrete Expression types to their FlatBuffer
-	// payload type and builder function. Used by buildExpressionNode for
-	// table-driven dispatch instead of a type switch.
+	// expressionEncoders maps concrete Expression types to their FlatBuffer payload type and
+	// builder function. Used by buildExpressionNode for table-driven dispatch instead of a
+	// type switch.
 	expressionEncoders map[reflect.Type]expressionEncoderEntry
 )
 
-// buildExpressionNode is the main encoder for the Expression union. It
-// determines the concrete type of the expression via the expressionEncoders
-// dispatch table, calls the appropriate builder, and wraps the result in an
-// ExpressionNodeFB wrapper table.
+// buildExpressionNode is the main encoder for the Expression union. It determines the
+// concrete type of the expression via the expressionEncoders dispatch table, calls the
+// appropriate builder, and wraps the result in an ExpressionNodeFB wrapper table.
 //
-// Takes expression (ast_domain.Expression) which is the expression
-// to encode into the FlatBuffer.
+// Takes expression (ast_domain.Expression) which is the expression to encode into the
+// FlatBuffer.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the encoded
-// wrapper table.
-// Returns error when the expression type is unhandled or encoding
-// fails.
+// Returns flatbuffers.UOffsetT which is the offset of the encoded wrapper table.
+// Returns error when the expression type is unhandled or encoding fails.
 func (s *encoder) buildExpressionNode(expression ast_domain.Expression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
 		return 0, nil
@@ -135,13 +133,11 @@ func (s *encoder) buildExpressionNode(expression ast_domain.Expression) (flatbuf
 
 // buildMemberExpr serialises a member expression to FlatBuffers format.
 //
-// Takes expression (*ast_domain.MemberExpression) which is the
-// member expression to serialise.
+// Takes expression (*ast_domain.MemberExpression) which is the member expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised data.
-// Returns error when serialising the base, property, or location
-// fails.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised data.
+// Returns error when serialising the base, property, or location fails.
 func (s *encoder) buildMemberExpr(expression *ast_domain.MemberExpression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
 		return 0, nil
@@ -170,11 +166,10 @@ func (s *encoder) buildMemberExpr(expression *ast_domain.MemberExpression) (flat
 
 // buildIndexExpr serialises an index expression to the FlatBuffer format.
 //
-// Takes expression (*ast_domain.IndexExpression) which is the
-// index expression to serialise.
+// Takes expression (*ast_domain.IndexExpression) which is the index expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised data.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when serialising any child node fails.
 func (s *encoder) buildIndexExpr(expression *ast_domain.IndexExpression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
@@ -203,11 +198,10 @@ func (s *encoder) buildIndexExpr(expression *ast_domain.IndexExpression) (flatbu
 
 // buildUnaryExpr serialises a unary expression to FlatBuffers format.
 //
-// Takes expression (*ast_domain.UnaryExpression) which is the
-// unary expression to serialise.
+// Takes expression (*ast_domain.UnaryExpression) which is the unary expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised data.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when serialising the operand or location fails.
 func (s *encoder) buildUnaryExpr(expression *ast_domain.UnaryExpression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
@@ -231,13 +225,11 @@ func (s *encoder) buildUnaryExpr(expression *ast_domain.UnaryExpression) (flatbu
 
 // buildBinaryExpr serialises a binary expression to the FlatBuffer format.
 //
-// Takes expression (*ast_domain.BinaryExpression) which is the
-// binary expression to serialise.
+// Takes expression (*ast_domain.BinaryExpression) which is the binary expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised expression.
-// Returns error when serialising the left, right, or location
-// fails.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised expression.
+// Returns error when serialising the left, right, or location fails.
 func (s *encoder) buildBinaryExpr(expression *ast_domain.BinaryExpression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
 		return 0, nil
@@ -265,13 +257,11 @@ func (s *encoder) buildBinaryExpr(expression *ast_domain.BinaryExpression) (flat
 
 // buildCallExpr serialises a call expression to FlatBuffers format.
 //
-// Takes expression (*ast_domain.CallExpression) which is the call
-// expression to serialise.
+// Takes expression (*ast_domain.CallExpression) which is the call expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised call expression.
-// Returns error when serialising the callee, arguments, or
-// location fails.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised call expression.
+// Returns error when serialising the callee, arguments, or location fails.
 func (s *encoder) buildCallExpr(expression *ast_domain.CallExpression) (flatbuffers.UOffsetT, error) {
 	if expression == nil {
 		return 0, nil
@@ -308,11 +298,9 @@ func (s *encoder) buildCallExpr(expression *ast_domain.CallExpression) (flatbuff
 
 // buildForInExpr serialises a for-in expression to its flatbuffer form.
 //
-// Takes expression (*ast_domain.ForInExpression) which is the
-// expression to serialise.
+// Takes expression (*ast_domain.ForInExpression) which is the expression to serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised data.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when any child element fails to serialise.
 //
 //nolint:dupl // type-specific FlatBuffer encode/decode
@@ -347,8 +335,7 @@ func (s *encoder) buildForInExpr(expression *ast_domain.ForInExpression) (flatbu
 
 // buildArrayLiteral serialises an array literal to the FlatBuffer format.
 //
-// Takes lit (*ast_domain.ArrayLiteral) which is the array literal to
-// serialise.
+// Takes lit (*ast_domain.ArrayLiteral) which is the array literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when serialising elements or location fails.
@@ -375,8 +362,7 @@ func (s *encoder) buildArrayLiteral(lit *ast_domain.ArrayLiteral) (flatbuffers.U
 
 // buildObjectLiteral serialises an object literal AST node to FlatBuffers.
 //
-// Takes lit (*ast_domain.ObjectLiteral) which is the object literal to
-// serialise.
+// Takes lit (*ast_domain.ObjectLiteral) which is the object literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised object.
 // Returns error when serialising pairs or location fails.
@@ -404,11 +390,10 @@ func (s *encoder) buildObjectLiteral(lit *ast_domain.ObjectLiteral) (flatbuffers
 
 // buildTernaryExpr serialises a ternary expression to the flatbuffer.
 //
-// Takes expression (*ast_domain.TernaryExpression) which is the
-// ternary expression to serialise.
+// Takes expression (*ast_domain.TernaryExpression) which is the ternary expression to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the
-// serialised expression.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised expression.
 // Returns error when any child expression fails to serialise.
 //
 //nolint:dupl // type-specific FlatBuffer encode/decode
@@ -445,8 +430,7 @@ func (s *encoder) buildTernaryExpr(expression *ast_domain.TernaryExpression) (fl
 
 // buildTemplateLiteral serialises a template literal to flatbuffer format.
 //
-// Takes lit (*ast_domain.TemplateLiteral) which is the template literal to
-// serialise.
+// Takes lit (*ast_domain.TemplateLiteral) which is the template literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when serialising parts or location fails.
@@ -501,15 +485,13 @@ func (s *encoder) buildTemplateLiteralPart(part *ast_domain.TemplateLiteralPart)
 // FlatBuffers.
 type expressionUnpacker func(d *decoder, table *flatbuffers.Table, sourceLength int) (ast_domain.Expression, error)
 
-// unpackExpressionNode is the main decoder for the Expression union. It uses
-// an array dispatch table to route to the appropriate unpacker function based
-// on payload type.
+// unpackExpressionNode is the main decoder for the Expression union. It uses an array
+// dispatch table to route to the appropriate unpacker function based on payload type.
 //
-// Takes fb (*ast_schema_gen.ExpressionNodeFB) which is the flatbuffer node to
-// decode.
+// Takes fb (*ast_schema_gen.ExpressionNodeFB) which is the flatbuffer node to decode.
 //
-// Returns ast_domain.Expression which is the decoded expression, or nil if the
-// input is nil or has no payload.
+// Returns ast_domain.Expression which is the decoded expression, or nil if the input is
+// nil or has no payload.
 // Returns error when the payload type is not recognised.
 func (d *decoder) unpackExpressionNode(fb *ast_schema_gen.ExpressionNodeFB) (ast_domain.Expression, error) {
 	if fb == nil {
@@ -539,8 +521,8 @@ func (d *decoder) unpackExpressionNode(fb *ast_schema_gen.ExpressionNodeFB) (ast
 // Takes fb (*ast_schema_gen.MemberExprFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the source length for the result.
 //
-// Returns *ast_domain.MemberExpression which is the converted domain model, or nil
-// if fb is nil.
+// Returns *ast_domain.MemberExpression which is the converted domain model, or nil if fb
+// is nil.
 // Returns error when unpacking the base, property, or location fails.
 func (d *decoder) unpackMemberExpr(fb *ast_schema_gen.MemberExprFB, sourceLength int) (*ast_domain.MemberExpression, error) {
 	if fb == nil {
@@ -603,8 +585,8 @@ func (d *decoder) unpackIndexExpr(fb *ast_schema_gen.IndexExprFB, sourceLength i
 // Takes fb (*ast_schema_gen.UnaryExprFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which sets the source length for the node.
 //
-// Returns *ast_domain.UnaryExpression which is the converted unary expression, or
-// nil if fb is nil.
+// Returns *ast_domain.UnaryExpression which is the converted unary expression, or nil if
+// fb is nil.
 // Returns error when converting the operand or location fails.
 func (d *decoder) unpackUnaryExpr(fb *ast_schema_gen.UnaryExprFB, sourceLength int) (*ast_domain.UnaryExpression, error) {
 	if fb == nil {
@@ -626,16 +608,14 @@ func (d *decoder) unpackUnaryExpr(fb *ast_schema_gen.UnaryExprFB, sourceLength i
 	return expression, nil
 }
 
-// unpackBinaryExpr converts a FlatBuffer binary expression into a domain
-// object.
+// unpackBinaryExpr converts a FlatBuffer binary expression into a domain object.
 //
-// Takes fb (*ast_schema_gen.BinaryExprFB) which is the FlatBuffer binary
-// expression to convert.
+// Takes fb (*ast_schema_gen.BinaryExprFB) which is the FlatBuffer binary expression to
+// convert.
 // Takes sourceLength (int) which specifies the length of the source text.
 //
-// Returns *ast_domain.BinaryExpression which is the converted domain
-// object, or nil
-// if fb is nil.
+// Returns *ast_domain.BinaryExpression which is the converted domain object, or nil if fb
+// is nil.
 // Returns error when unpacking the left, right, or location fields fails.
 func (d *decoder) unpackBinaryExpr(fb *ast_schema_gen.BinaryExprFB, sourceLength int) (*ast_domain.BinaryExpression, error) {
 	if fb == nil {
@@ -663,12 +643,11 @@ func (d *decoder) unpackBinaryExpr(fb *ast_schema_gen.BinaryExprFB, sourceLength
 
 // unpackCallExpr converts a FlatBuffer CallExprFB into a domain CallExpr.
 //
-// Takes fb (*ast_schema_gen.CallExprFB) which is the serialised call
-// expression.
+// Takes fb (*ast_schema_gen.CallExprFB) which is the serialised call expression.
 // Takes sourceLength (int) which specifies the length in the original source.
 //
-// Returns *ast_domain.CallExpression which is the deserialised call expression, or
-// nil if fb is nil.
+// Returns *ast_domain.CallExpression which is the deserialised call expression, or nil if
+// fb is nil.
 // Returns error when deserialising the callee, arguments, or location fails.
 func (d *decoder) unpackCallExpr(fb *ast_schema_gen.CallExprFB, sourceLength int) (*ast_domain.CallExpression, error) {
 	if fb == nil {
@@ -789,8 +768,8 @@ func (d *decoder) unpackObjectLiteral(fb *ast_schema_gen.ObjectLiteralFB, source
 	return lit, nil
 }
 
-// unpackTernaryExpr converts a FlatBuffer ternary expression into a domain
-// ternary expression.
+// unpackTernaryExpr converts a FlatBuffer ternary expression into a domain ternary
+// expression.
 //
 // Takes fb (*ast_schema_gen.TernaryExprFB) which is the FlatBuffer source.
 // Takes sourceLength (int) which specifies the length in the source code.
@@ -824,15 +803,13 @@ func (d *decoder) unpackTernaryExpr(fb *ast_schema_gen.TernaryExprFB, sourceLeng
 	return expression, nil
 }
 
-// unpackTemplateLiteral converts a FlatBuffer template literal into a domain
-// object.
+// unpackTemplateLiteral converts a FlatBuffer template literal into a domain object.
 //
-// Takes fb (*ast_schema_gen.TemplateLiteralFB) which is the FlatBuffer data to
-// convert.
+// Takes fb (*ast_schema_gen.TemplateLiteralFB) which is the FlatBuffer data to convert.
 // Takes sourceLength (int) which is the length in the source code.
 //
-// Returns *ast_domain.TemplateLiteral which is the converted domain object, or
-// nil if fb is nil.
+// Returns *ast_domain.TemplateLiteral which is the converted domain object, or nil if fb
+// is nil.
 // Returns error when unpacking parts or location fails.
 //
 //nolint:dupl // type-specific FlatBuffer encode/decode
@@ -859,11 +836,11 @@ func (d *decoder) unpackTemplateLiteral(fb *ast_schema_gen.TemplateLiteralFB, so
 	return result, nil
 }
 
-// unpackTemplateLiteralPart converts a FlatBuffer template literal part to a
-// domain object.
+// unpackTemplateLiteralPart converts a FlatBuffer template literal part to a domain
+// object.
 //
-// Takes fb (*ast_schema_gen.TemplateLiteralPartFB) which is the FlatBuffer
-// data to convert.
+// Takes fb (*ast_schema_gen.TemplateLiteralPartFB) which is the FlatBuffer data to
+// convert.
 //
 // Returns ast_domain.TemplateLiteralPart which is the converted domain object.
 // Returns error when unpacking the expression or location fails.
@@ -887,11 +864,11 @@ func (d *decoder) unpackTemplateLiteralPart(fb *ast_schema_gen.TemplateLiteralPa
 	return part, nil
 }
 
-// buildExpressionVector builds a FlatBuffers vector from a slice of
-// Expression interfaces.
+// buildExpressionVector builds a FlatBuffers vector from a slice of Expression
+// interfaces.
 //
-// Takes items ([]ast_domain.Expression) which contains the expressions to
-// serialise into the vector.
+// Takes items ([]ast_domain.Expression) which contains the expressions to serialise into
+// the vector.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the created vector.
 // Returns error when any expression in the slice fails to build.
@@ -914,8 +891,7 @@ func (s *encoder) buildExpressionVector(items []ast_domain.Expression) (flatbuff
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
-// Takes sourceLength (int) which specifies the source code length for
-// validation.
+// Takes sourceLength (int) which specifies the source code length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked member expression.
 // Returns error when the member expression cannot be decoded.
@@ -928,10 +904,8 @@ func unpackMemberExprPayload(d *decoder, table *flatbuffers.Table, sourceLength 
 // unpackIndexExprPayload converts a FlatBuffer table into an index expression.
 //
 // Takes d (*decoder) which provides the decoding context.
-// Takes table (*flatbuffers.Table) which contains the serialised index
-// expression.
-// Takes sourceLength (int) which specifies the source code length for
-// validation.
+// Takes table (*flatbuffers.Table) which contains the serialised index expression.
+// Takes sourceLength (int) which specifies the source code length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked index expression.
 // Returns error when the index expression cannot be unpacked.
@@ -945,8 +919,7 @@ func unpackIndexExprPayload(d *decoder, table *flatbuffers.Table, sourceLength i
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised expression.
-// Takes sourceLength (int) which specifies the source text length for
-// validation.
+// Takes sourceLength (int) which specifies the source text length for validation.
 //
 // Returns ast_domain.Expression which is the decoded unary expression.
 // Returns error when the expression cannot be unpacked.
@@ -960,8 +933,7 @@ func unpackUnaryExprPayload(d *decoder, table *flatbuffers.Table, sourceLength i
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
-// Takes sourceLength (int) which specifies the source text length for
-// validation.
+// Takes sourceLength (int) which specifies the source text length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked binary expression.
 // Returns error when the binary expression cannot be unpacked.
@@ -974,10 +946,8 @@ func unpackBinaryExprPayload(d *decoder, table *flatbuffers.Table, sourceLength 
 // unpackCallExprPayload extracts a call expression from a FlatBuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
-// Takes table (*flatbuffers.Table) which contains the serialised call
-// expression.
-// Takes sourceLength (int) which specifies the source text length for
-// validation.
+// Takes table (*flatbuffers.Table) which contains the serialised call expression.
+// Takes sourceLength (int) which specifies the source text length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked call expression.
 // Returns error when the call expression cannot be unpacked.
@@ -990,8 +960,7 @@ func unpackCallExprPayload(d *decoder, table *flatbuffers.Table, sourceLength in
 // unpackForInExprPayload unpacks a for-in expression from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
-// Takes table (*flatbuffers.Table) which contains the serialised expression
-// data.
+// Takes table (*flatbuffers.Table) which contains the serialised expression data.
 // Takes sourceLength (int) which specifies the length of the source text.
 //
 // Returns ast_domain.Expression which is the unpacked for-in expression.
@@ -1030,13 +999,11 @@ func unpackObjectLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLeng
 	return d.unpackObjectLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackTernaryExprPayload extracts a ternary expression from a FlatBuffers
-// table.
+// unpackTernaryExprPayload extracts a ternary expression from a FlatBuffers table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised expression.
-// Takes sourceLength (int) which specifies the source text length for
-// validation.
+// Takes sourceLength (int) which specifies the source text length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked ternary expression.
 // Returns error when the expression cannot be decoded.
@@ -1046,8 +1013,7 @@ func unpackTernaryExprPayload(d *decoder, table *flatbuffers.Table, sourceLength
 	return d.unpackTernaryExpr(&flatbuffer, sourceLength)
 }
 
-// unpackTemplateLiteralPayload unpacks a template literal from a FlatBuffer
-// table.
+// unpackTemplateLiteralPayload unpacks a template literal from a FlatBuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
@@ -1061,13 +1027,11 @@ func unpackTemplateLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLe
 	return d.unpackTemplateLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackIdentifierPayload extracts an identifier expression from a flatbuffer
-// table.
+// unpackIdentifierPayload extracts an identifier expression from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised identifier.
-// Takes sourceLength (int) which specifies the source code length for
-// validation.
+// Takes sourceLength (int) which specifies the source code length for validation.
 //
 // Returns ast_domain.Expression which is the unpacked identifier expression.
 // Returns error when the identifier cannot be unpacked.
@@ -1091,8 +1055,7 @@ func unpackStringLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLeng
 	return d.unpackStringLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackIntegerLiteralPayload extracts an integer literal from a flatbuffer
-// table.
+// unpackIntegerLiteralPayload extracts an integer literal from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
@@ -1106,8 +1069,7 @@ func unpackIntegerLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLen
 	return d.unpackIntegerLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackFloatLiteralPayload extracts a float literal expression from a
-// flatbuffer table.
+// unpackFloatLiteralPayload extracts a float literal expression from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised float data.
@@ -1121,14 +1083,11 @@ func unpackFloatLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLengt
 	return d.unpackFloatLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackBooleanLiteralPayload extracts a boolean literal from a FlatBuffer
-// table.
+// unpackBooleanLiteralPayload extracts a boolean literal from a FlatBuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
-// Takes table (*flatbuffers.Table) which contains the serialised boolean d
-// ata.
-// Takes sourceLength (int) which specifies the source text length for
-// validation.
+// Takes table (*flatbuffers.Table) which contains the serialised boolean d ata.
+// Takes sourceLength (int) which specifies the source text length for validation.
 //
 // Returns ast_domain.Expression which is the decoded boolean literal.
 // Returns error when the boolean literal cannot be unpacked.
@@ -1138,8 +1097,7 @@ func unpackBooleanLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLen
 	return d.unpackBooleanLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackNilLiteralPayload extracts a nil literal expression from the flatbuffer
-// table.
+// unpackNilLiteralPayload extracts a nil literal expression from the flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised nil literal.
@@ -1153,8 +1111,7 @@ func unpackNilLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLength 
 	return d.unpackNilLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackDecimalLiteralPayload unpacks a decimal literal from a flatbuffer
-// table.
+// unpackDecimalLiteralPayload unpacks a decimal literal from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
@@ -1182,8 +1139,7 @@ func unpackBigIntLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLeng
 	return d.unpackBigIntLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackRuneLiteralPayload extracts a rune literal expression from a
-// FlatBuffers table.
+// unpackRuneLiteralPayload extracts a rune literal expression from a FlatBuffers table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
@@ -1197,8 +1153,7 @@ func unpackRuneLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLength
 	return d.unpackRuneLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackDateTimeLiteralPayload extracts a date-time literal from the flatbuffer
-// table.
+// unpackDateTimeLiteralPayload extracts a date-time literal from the flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised literal data.
@@ -1212,8 +1167,7 @@ func unpackDateTimeLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLe
 	return d.unpackDateTimeLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackDateLiteralPayload extracts a date literal expression from a flatbuffer
-// table.
+// unpackDateLiteralPayload extracts a date literal expression from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised date literal.
@@ -1227,8 +1181,7 @@ func unpackDateLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLength
 	return d.unpackDateLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackTimeLiteralPayload extracts a time literal expression from a
-// flatbuffer table.
+// unpackTimeLiteralPayload extracts a time literal expression from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised time literal.
@@ -1242,8 +1195,7 @@ func unpackTimeLiteralPayload(d *decoder, table *flatbuffers.Table, sourceLength
 	return d.unpackTimeLiteral(&flatbuffer, sourceLength)
 }
 
-// unpackDurationLiteralPayload extracts a duration literal from a flatbuffer
-// table.
+// unpackDurationLiteralPayload extracts a duration literal from a flatbuffer table.
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes table (*flatbuffers.Table) which contains the serialised data.
@@ -1268,8 +1220,7 @@ func init() {
 
 // exprEnc is a shorthand constructor for expressionEncoderEntry.
 //
-// Takes pt (ast_schema_gen.ExpressionPayloadFB) which is the
-// payload type discriminator.
+// Takes pt (ast_schema_gen.ExpressionPayloadFB) which is the payload type discriminator.
 // Takes fn (func) which is the encoder function for the type.
 //
 // Returns expressionEncoderEntry which is the constructed entry.
@@ -1280,23 +1231,23 @@ func exprEnc(
 	return expressionEncoderEntry{payloadType: pt, build: fn}
 }
 
-// buildExpressionEncoders constructs the type-to-encoder dispatch
-// map used by buildExpressionNode for table-driven encoding.
+// buildExpressionEncoders constructs the type-to-encoder dispatch map used by
+// buildExpressionNode for table-driven encoding.
 //
-// Returns map[reflect.Type]expressionEncoderEntry which is the
-// combined encoder dispatch map.
+// Returns map[reflect.Type]expressionEncoderEntry which is the combined encoder dispatch
+// map.
 func buildExpressionEncoders() map[reflect.Type]expressionEncoderEntry {
 	m := buildCompoundExpressionEncoders()
 	maps.Copy(m, buildLiteralExpressionEncoders())
 	return m
 }
 
-// buildCompoundExpressionEncoders returns encoders for compound
-// expression types such as member access, index, unary, binary,
-// call, for-in, array, object, ternary, template, and identifier.
+// buildCompoundExpressionEncoders returns encoders for compound expression types such as
+// member access, index, unary, binary, call, for-in, array, object, ternary, template,
+// and identifier.
 //
-// Returns map[reflect.Type]expressionEncoderEntry which is the
-// compound expression encoder map.
+// Returns map[reflect.Type]expressionEncoderEntry which is the compound expression
+// encoder map.
 func buildCompoundExpressionEncoders() map[reflect.Type]expressionEncoderEntry {
 	return map[reflect.Type]expressionEncoderEntry{
 		reflect.TypeFor[*ast_domain.MemberExpression](): exprEnc(ast_schema_gen.ExpressionPayloadFBMemberExprFB, func(s *encoder, e ast_domain.Expression) (flatbuffers.UOffsetT, error) {
@@ -1335,12 +1286,12 @@ func buildCompoundExpressionEncoders() map[reflect.Type]expressionEncoderEntry {
 	}
 }
 
-// buildLiteralExpressionEncoders returns encoders for scalar
-// literal expression types such as string, integer, float,
-// boolean, nil, decimal, bigint, rune, and temporal literals.
+// buildLiteralExpressionEncoders returns encoders for scalar literal expression types
+// such as string, integer, float, boolean, nil, decimal, bigint, rune, and temporal
+// literals.
 //
-// Returns map[reflect.Type]expressionEncoderEntry which is the
-// literal expression encoder map.
+// Returns map[reflect.Type]expressionEncoderEntry which is the literal expression encoder
+// map.
 func buildLiteralExpressionEncoders() map[reflect.Type]expressionEncoderEntry {
 	return map[reflect.Type]expressionEncoderEntry{
 		reflect.TypeFor[*ast_domain.StringLiteral](): exprEnc(ast_schema_gen.ExpressionPayloadFBStringLiteralFB, func(s *encoder, e ast_domain.Expression) (flatbuffers.UOffsetT, error) {
@@ -1382,11 +1333,11 @@ func buildLiteralExpressionEncoders() map[reflect.Type]expressionEncoderEntry {
 	}
 }
 
-// buildExpressionUnpackers constructs the array dispatch table
-// mapping ExpressionPayloadFB enum values to unpacker functions.
+// buildExpressionUnpackers constructs the array dispatch table mapping
+// ExpressionPayloadFB enum values to unpacker functions.
 //
-// Returns *[expressionPayloadCount]expressionUnpacker which is the
-// populated dispatch table.
+// Returns *[expressionPayloadCount]expressionUnpacker which is the populated dispatch
+// table.
 func buildExpressionUnpackers() *[expressionPayloadCount]expressionUnpacker {
 	return &[expressionPayloadCount]expressionUnpacker{
 		ast_schema_gen.ExpressionPayloadFBNONE:              nil,

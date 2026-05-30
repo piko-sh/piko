@@ -47,20 +47,18 @@ type ThumbnailSpec struct {
 	// Format specifies the output image format; valid values are jpeg, png, webp.
 	Format string `json:"format,omitempty"`
 
-	// Timestamp is the position in the video to extract the frame from.
-	// Zero extracts the first frame.
+	// Timestamp is the position in the video to extract the frame from. Zero extracts the
+	// first frame.
 	Timestamp time.Duration `json:"timestamp,omitempty"`
 
-	// Width is the output width in pixels. Zero maintains aspect
-	// ratio based on Height.
+	// Width is the output width in pixels. Zero maintains aspect ratio based on Height.
 	Width int `json:"width,omitempty"`
 
-	// Height is the output height in pixels. Zero maintains aspect
-	// ratio based on Width.
+	// Height is the output height in pixels. Zero maintains aspect ratio based on Width.
 	Height int `json:"height,omitempty"`
 
-	// Quality specifies the compression quality for lossy formats (1-100).
-	// Zero uses the default quality; values outside 0-100 are invalid.
+	// Quality specifies the compression quality for lossy formats (1-100). Zero uses the
+	// default quality; values outside 0-100 are invalid.
 	Quality int `json:"quality,omitempty"`
 }
 
@@ -100,11 +98,9 @@ func (s *ThumbnailSpec) Validate() error {
 	return nil
 }
 
-// WithDefaults returns a copy of the spec with default values for any empty
-// fields.
+// WithDefaults returns a copy of the spec with default values for any empty fields.
 //
-// Returns ThumbnailSpec which is a copy with defaults set for format and
-// quality.
+// Returns ThumbnailSpec which is a copy with defaults set for format and quality.
 func (s ThumbnailSpec) WithDefaults() ThumbnailSpec {
 	result := s
 	if result.Format == "" {
@@ -116,8 +112,8 @@ func (s ThumbnailSpec) WithDefaults() ThumbnailSpec {
 	return result
 }
 
-// ParseThumbnailTime parses a time string into a Duration.
-// Supports formats like "5s", "1m30s", "0.5s", "1:30", "01:30.5".
+// ParseThumbnailTime parses a time string into a Duration. Supports formats like "5s",
+// "1m30s", "0.5s", "1:30", "01:30.5".
 //
 // Takes timeString (string) which is the time string to parse.
 //
@@ -153,8 +149,8 @@ func ParseThumbnailTime(timeString string) (time.Duration, error) {
 // Takes secondsString (string) which is the seconds component to parse.
 //
 // Returns time.Duration which is the combined duration from minutes and seconds.
-// Returns error when minutesString is not a valid integer or
-// secondsString is not a valid float.
+// Returns error when minutesString is not a valid integer or secondsString is not a valid
+// float.
 func parseMMSS(minutesString, secondsString string) (time.Duration, error) {
 	minutes, err := strconv.Atoi(minutesString)
 	if err != nil {
@@ -171,8 +167,7 @@ func parseMMSS(minutesString, secondsString string) (time.Duration, error) {
 //
 // Takes hoursString (string) which is the hours component.
 // Takes minutesString (string) which is the minutes component.
-// Takes secondsString (string) which is the seconds component (may
-// include decimals).
+// Takes secondsString (string) which is the seconds component (may include decimals).
 //
 // Returns time.Duration which is the total duration.
 // Returns error when any component cannot be parsed as a number.

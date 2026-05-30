@@ -1,0 +1,5 @@
+{
+  "description": "Unrecovered panic in the main flow should surface as an error from ExecuteEntrypoint.",
+  "shouldError": true,
+  "errorContains": "boom"
+}

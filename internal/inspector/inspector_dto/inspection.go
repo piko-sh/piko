@@ -18,7 +18,9 @@
 
 package inspector_dto
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 // FieldInfo holds details about a struct field found during inspection.
 type FieldInfo struct {
@@ -46,20 +48,19 @@ type FieldInfo struct {
 	// DefiningFilePath is the path to the file where the field is defined.
 	DefiningFilePath string
 
-	// DefiningPackagePath is the import path of the package where
-	// the field is defined.
+	// DefiningPackagePath is the import path of the package where the field is defined.
 	DefiningPackagePath string
 
 	// RawTag is the raw struct field tag string as written in the source code.
 	RawTag string
 
 	// InitialPackagePath is the package path where the generic type was instantiated.
-	// Resolves substituted type arguments that reference packages
-	// not imported by the field-defining type.
+	// Resolves substituted type arguments that reference packages not imported by the
+	// field-defining type.
 	InitialPackagePath string
 
-	// InitialFilePath is the file path where the generic type was instantiated.
-	// This provides the import context for resolving substituted type arguments.
+	// InitialFilePath is the file path where the generic type was instantiated. This
+	// provides the import context for resolving substituted type arguments.
 	InitialFilePath string
 
 	// DefinitionLine is the line number in the source file where the field is defined.

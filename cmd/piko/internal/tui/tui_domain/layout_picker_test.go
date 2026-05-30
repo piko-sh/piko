@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestLayoutPickerInitialState(t *testing.T) {
 	p := NewLayoutPicker()

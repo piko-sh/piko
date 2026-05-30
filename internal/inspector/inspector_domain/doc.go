@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package inspector_domain provides the core business logic for analysing
-// Go source code and extracting type information.
+// Package inspector_domain provides the core business logic for analysing Go source code
+// and extracting type information.
 //
-// It contains the type builder for parsing and caching Go source files,
-// and the type querier for resolving types, fields, and methods from AST
-// expressions. Two build modes are supported: a full mode that uses
-// go/packages for complete type-checking, and a lightweight AST-only
-// mode for REPL/WASM environments where go/packages is unavailable.
+// It contains the type builder for parsing and caching Go source files, and the type
+// querier for resolving types, fields, and methods from AST expressions. Two build modes
+// are supported: a full mode that uses go/packages for complete type-checking, and a
+// lightweight AST-only mode for REPL/WASM environments where go/packages is unavailable.
 //
-// The type builder is not safe for concurrent use. The type querier is
-// safe for concurrent use after creation, with memoisation via sync.Map.
+// The type builder is not safe for concurrent use. The type querier is safe for
+// concurrent use after creation, with memoisation via sync.Map.
 package inspector_domain

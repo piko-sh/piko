@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package generator_schema provides versioned serialisation for the
-// generator hexagon's project manifest FlatBuffer representation.
+// Package generator_schema provides versioned serialisation for the generator hexagon's
+// project manifest FlatBuffer representation.
 //
-// It embeds the manifest.fbs schema file and computes a SHA-256 hash
-// at init time. This hash is prepended to every serialised manifest
-// payload so that the cache is automatically invalidated whenever
-// the schema evolves. The sub-package generator_schema_gen contains
-// the generated FlatBuffer types that define the binary format for
-// the project manifest -- the runtime "phone book" describing a
-// compiled Piko application's structure, routing, and assets.
+// It embeds the manifest.fbs schema file and computes a SHA-256 hash at init time. This
+// hash is prepended to every serialised manifest payload so that the cache is
+// automatically invalidated whenever the schema evolves. The sub-package
+// generator_schema_gen contains the generated FlatBuffer types that define the binary
+// format for the project manifest -- the runtime "phone book" describing a compiled Piko
+// application's structure, routing, and assets.
 package generator_schema

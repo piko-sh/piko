@@ -36,9 +36,8 @@ type BatchActionItem struct {
 	Name string `json:"name"`
 }
 
-// BatchActionResponse contains results for all actions in a batch.
-// Uses "continue all, report failures" strategy - all actions execute,
-// failures are reported in results.
+// BatchActionResponse contains results for all actions in a batch. Uses "continue all,
+// report failures" strategy - all actions execute, failures are reported in results.
 type BatchActionResponse struct {
 	// Results contains the outcome of each action in the batch.
 	Results []BatchActionResult `json:"results"`

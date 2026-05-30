@@ -18,7 +18,6 @@
 
 // Package mocks provides test doubles for render page integration tests.
 //
-// It wraps centralised mock types with convenience helpers for golden file
-// and benchmark tests. All mocks are safe for concurrent use from parallel
-// subtests.
+// It wraps centralised mock types with convenience helpers for golden file and benchmark
+// tests. All mocks are safe for concurrent use from parallel subtests.
 package mocks

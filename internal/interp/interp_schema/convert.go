@@ -24,12 +24,13 @@ import (
 	"piko.sh/piko/internal/interp/interp_schema/interp_schema_gen"
 )
 
-var registerBankNames = [...]string{
-	"int", "float", "string", "general", "bool", "uint", "complex",
-}
+var (
+	registerBankNames = [...]string{
+		"int", "float", "string", "general", "bool", "uint", "complex",
+	}
+)
 
-// BytecodeInspection is a JSON-serialisable summary of a compiled
-// bytecode file set.
+// BytecodeInspection is a JSON-serialisable summary of a compiled bytecode file set.
 type BytecodeInspection struct {
 	Root *FunctionInspection `json:"root"`
 
@@ -40,8 +41,7 @@ type BytecodeInspection struct {
 	InitFunctions []uint16 `json:"init_functions,omitempty"`
 }
 
-// FunctionInspection is a JSON-serialisable summary of a single
-// compiled function.
+// FunctionInspection is a JSON-serialisable summary of a single compiled function.
 type FunctionInspection struct {
 	NumRegisters map[string]uint32 `json:"num_registers"`
 
@@ -62,11 +62,11 @@ type FunctionInspection struct {
 	IsVariadic bool `json:"is_variadic,omitempty"`
 }
 
-// ConvertBytecode reads a raw FlatBuffer payload and returns a
-// JSON-serialisable inspection summary.
+// ConvertBytecode reads a raw FlatBuffer payload and returns a JSON-serialisable
+// inspection summary.
 //
-// Takes payload ([]byte) which is the raw FlatBuffer bytes (after
-// version header has been stripped by Unpack).
+// Takes payload ([]byte) which is the raw FlatBuffer bytes (after version header has been
+// stripped by Unpack).
 //
 // Returns *BytecodeInspection which holds the structural metadata.
 // Returns error when the payload is empty or malformed.

@@ -18,9 +18,8 @@
 
 package bootstrap
 
-// This file contains lifecycle service related container methods.
-// The lifecycle service manages asset seeding, file watching, and
-// build notification handling.
+// This file contains lifecycle service related container methods. The lifecycle service
+// manages asset seeding, file watching, and build notification handling.
 
 import (
 	"context"
@@ -32,9 +31,9 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// lifecycleServiceConfig holds configuration for creating a lifecycle service.
-// Some dependencies like WatcherAdapter and RouterManager are daemon-specific
-// and must be provided when building the service.
+// lifecycleServiceConfig holds configuration for creating a lifecycle service. Some
+// dependencies like WatcherAdapter and RouterManager are daemon-specific and must be
+// provided when building the service.
 type lifecycleServiceConfig struct {
 	// WatcherAdapter monitors file system changes; nil turns off file watching.
 	WatcherAdapter lifecycle_domain.FileSystemWatcher
@@ -51,20 +50,20 @@ type lifecycleServiceConfig struct {
 	// BuildCacheInvalidator clears cached builds; nil disables cache invalidation.
 	BuildCacheInvalidator lifecycle_domain.BuildCacheInvalidator
 
-	// DevEventNotifier broadcasts build-complete events to connected browsers
-	// via SSE. Nil in production mode.
+	// DevEventNotifier broadcasts build-complete events to connected browsers via SSE. Nil
+	// in production mode.
 	DevEventNotifier lifecycle_domain.DevEventNotifier
 
 	// Clock provides time functions; nil uses the real system clock.
 	Clock clock.Clock
 
-	// PathsConfig holds the resolved source directory paths for the lifecycle
-	// service. Each builder populates this from its own config conversion.
+	// PathsConfig holds the resolved source directory paths for the lifecycle service. Each
+	// builder populates this from its own config conversion.
 	PathsConfig lifecycle_domain.LifecyclePathsConfig
 }
 
-// createLifecycleService creates a new lifecycle service with the container's
-// services and the provided configuration.
+// createLifecycleService creates a new lifecycle service with the container's services
+// and the provided configuration.
 //
 // The lifecycle service is responsible for:
 //   - Initial asset seeding and config loading
@@ -72,11 +71,9 @@ type lifecycleServiceConfig struct {
 //   - Build notification handling
 //   - Post-startup garbage collection scheduling
 //
-// Takes config (*lifecycleServiceConfig) which provides daemon-specific
-// dependencies.
+// Takes config (*lifecycleServiceConfig) which provides daemon-specific dependencies.
 //
-// Returns lifecycle_domain.LifecycleService which manages the build-to-runtime
-// lifecycle.
+// Returns lifecycle_domain.LifecycleService which manages the build-to-runtime lifecycle.
 // Returns error when required services cannot be resolved.
 func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (lifecycle_domain.LifecycleService, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)

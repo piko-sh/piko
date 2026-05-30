@@ -25,20 +25,21 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// maxTagSearchLines limits how many lines to search for tag closing characters
-// (> or />).
-const maxTagSearchLines = 10
+const (
+	// maxTagSearchLines limits how many lines to search for tag closing characters (> or
+	// />).
+	maxTagSearchLines = 10
+)
 
-// findComponentTagAtPosition finds the template node (component tag) that
-// contains the given position. Locates the exact tag where a diagnostic was
-// reported.
+// findComponentTagAtPosition finds the template node (component tag) that contains the
+// given position. Locates the exact tag where a diagnostic was reported.
 //
-// Takes rootNodes ([]*ast_domain.TemplateNode) which is the list of
-// root template nodes to search through.
+// Takes rootNodes ([]*ast_domain.TemplateNode) which is the list of root template nodes
+// to search through.
 // Takes line (uint32) which is the zero-based line number to match.
 //
-// Returns *ast_domain.TemplateNode which is the matching component tag
-// node, or nil if no tag is found at the given position.
+// Returns *ast_domain.TemplateNode which is the matching component tag node, or nil if no
+// tag is found at the given position.
 func findComponentTagAtPosition(rootNodes []*ast_domain.TemplateNode, line, _ uint32) *ast_domain.TemplateNode {
 	if rootNodes == nil {
 		return nil
@@ -75,8 +76,8 @@ func findComponentTagAtPosition(rootNodes []*ast_domain.TemplateNode, line, _ ui
 	return result
 }
 
-// calculateTagEndPosition finds the closing > or /> in a component tag.
-// Determines where to insert missing attributes.
+// calculateTagEndPosition finds the closing > or /> in a component tag. Determines where
+// to insert missing attributes.
 //
 // Takes content ([]byte) which contains the template source.
 // Takes node (*ast_domain.TemplateNode) which specifies the tag to search from.

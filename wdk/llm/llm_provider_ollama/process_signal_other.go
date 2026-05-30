@@ -18,8 +18,7 @@ package llm_provider_ollama
 
 import "os"
 
-// interruptSignal returns the interrupt signal for non-Unix
-// platforms.
+// interruptSignal returns the interrupt signal for non-Unix platforms.
 //
 // Returns os.Signal which is the platform interrupt signal.
 func interruptSignal() os.Signal {

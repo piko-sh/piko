@@ -39,32 +39,34 @@ import (
 	"piko.sh/piko/internal/seo/seo_adapters"
 )
 
-// defaultMaxConcurrentSEOJobs is the fallback semaphore size for SEO artefact
-// regeneration. It scales with the host's CPU count so smaller machines do not
-// stack goroutines beyond what they can serve, while larger hosts can absorb
-// bursty hot-reload traffic without blocking.
-var defaultMaxConcurrentSEOJobs = runtime.NumCPU()
+var (
+	// defaultMaxConcurrentSEOJobs is the fallback semaphore size for SEO artefact
+	// regeneration. It scales with the host's CPU count so smaller machines do not stack
+	// goroutines beyond what they can serve, while larger hosts can absorb bursty hot-reload
+	// traffic without blocking.
+	defaultMaxConcurrentSEOJobs = runtime.NumCPU()
+)
 
 // DaemonServiceDeps contains all dependencies needed to create a DaemonService.
-// Struct-based dependency injection improves testability by making dependencies
-// explicit and easier to mock.
+// Struct-based dependency injection improves testability by making dependencies explicit
+// and easier to mock.
 //
-// Build-triggered operations (asset manifest, interpreted mode, routing)
-// are handled by the lifecycle service. The daemon focuses on HTTP serving,
-// signal handling, and SEO artefact generation.
+// Build-triggered operations (asset manifest, interpreted mode, routing) are handled by
+// the lifecycle service. The daemon focuses on HTTP serving, signal handling, and SEO
+// artefact generation.
 type DaemonServiceDeps struct {
 	// OrchestratorService handles task scheduling and coordination.
 	OrchestratorService orchestrator_domain.OrchestratorService
 
-	// SignalNotifier is optional - if nil, defaults to osSignalNotifier.
-	// Inject a mock to control shutdown timing in tests without real OS signals.
+	// SignalNotifier is optional - if nil, defaults to osSignalNotifier. Inject a mock to
+	// control shutdown timing in tests without real OS signals.
 	SignalNotifier SignalNotifier
 
 	// HealthServer is the server for health checks; nil disables health checks.
 	HealthServer ServerAdapter
 
-	// TLSRedirectServer is the plain HTTP server that redirects to HTTPS;
-	// nil disables the redirect.
+	// TLSRedirectServer is the plain HTTP server that redirects to HTTPS; nil disables the
+	// redirect.
 	TLSRedirectServer ServerAdapter
 
 	// HealthRouter serves health check endpoint requests.
@@ -73,8 +75,8 @@ type DaemonServiceDeps struct {
 	// CoordinatorService manages coordination tasks for the daemon.
 	CoordinatorService coordinator_domain.CoordinatorService
 
-	// DrainSignaller marks readiness probes as unhealthy during shutdown.
-	// When nil, no drain signal is sent before shutting down servers.
+	// DrainSignaller marks readiness probes as unhealthy during shutdown. When nil, no drain
+	// signal is sent before shutting down servers.
 	DrainSignaller DrainSignaller
 
 	// Server is the HTTP server adapter for handling requests.
@@ -86,31 +88,31 @@ type DaemonServiceDeps struct {
 	// SEOService provides search engine optimisation operations.
 	SEOService SEOServicePort
 
-	// OnServerBound is an optional callback invoked after the main HTTP server
-	// successfully binds to a port, receiving the resolved listen address.
+	// OnServerBound is an optional callback invoked after the main HTTP server successfully
+	// binds to a port, receiving the resolved listen address.
 	OnServerBound func(address string)
 
-	// WatchMode points to the build config's WatchMode flag, allowing RunProd
-	// to disable file watching. Nil is safe and means no mutation occurs.
+	// WatchMode points to the build config's WatchMode flag, allowing RunProd to disable
+	// file watching. Nil is safe and means no mutation occurs.
 	WatchMode *bool
 
-	// OnHealthBound is an optional callback invoked after the health server
-	// successfully binds to a port, receiving the resolved listen address.
+	// OnHealthBound is an optional callback invoked after the health server successfully
+	// binds to a port, receiving the resolved listen address.
 	OnHealthBound func(address string)
 
-	// DaemonConfig holds the resolved network and health probe values needed
-	// by the daemon lifecycle. All fields are value types; pointer-to-value
-	// conversion is performed in the bootstrap layer.
+	// DaemonConfig holds the resolved network and health probe values needed by the daemon
+	// lifecycle. All fields are value types; pointer-to-value conversion is performed in the
+	// bootstrap layer.
 	DaemonConfig DaemonConfig
 }
 
-// daemonService is the core domain service for the Piko runtime daemon.
-// It implements DaemonService and manages the application lifecycle, including
-// starting and stopping the HTTP server and handling graceful shutdown.
+// daemonService is the core domain service for the Piko runtime daemon. It implements
+// DaemonService and manages the application lifecycle, including starting and stopping
+// the HTTP server and handling graceful shutdown.
 //
-// Build-triggered operations (asset manifest processing, interpreted mode
-// handling, route reloading) are handled by the lifecycle service. The daemon
-// only processes SEO artefacts from build notifications.
+// Build-triggered operations (asset manifest processing, interpreted mode handling, route
+// reloading) are handled by the lifecycle service. The daemon only processes SEO
+// artefacts from build notifications.
 type daemonService struct {
 	// seoCtx is the context for SEO operations; cancelled during shutdown.
 	seoCtx context.Context
@@ -127,8 +129,8 @@ type daemonService struct {
 	// orchestratorService manages task orchestration; nil until the daemon starts.
 	orchestratorService orchestrator_domain.OrchestratorService
 
-	// drainSignaller marks readiness probes as unhealthy during shutdown;
-	// nil when health probes are disabled.
+	// drainSignaller marks readiness probes as unhealthy during shutdown; nil when health
+	// probes are disabled.
 	drainSignaller DrainSignaller
 
 	// signalNotifier handles OS signal listening for graceful shutdown.
@@ -149,12 +151,10 @@ type daemonService struct {
 	// stopChan signals the service to begin shutdown when Stop is called.
 	stopChan chan struct{}
 
-	// seoSemaphore bounds the number of in-flight SEO artefact regeneration
-	// goroutines.
+	// seoSemaphore bounds the number of in-flight SEO artefact regeneration goroutines.
 	//
-	// Buffered to MaxConcurrentSEOJobs; each launch acquires a slot, each
-	// completion releases it. A nil channel means SEO processing is
-	// unconfigured.
+	// Buffered to MaxConcurrentSEOJobs; each launch acquires a slot, each completion
+	// releases it. A nil channel means SEO processing is unconfigured.
 	seoSemaphore chan struct{}
 
 	// seoCancel stops SEO work when the service shuts down.
@@ -173,8 +173,8 @@ type daemonService struct {
 	stopOnce sync.Once
 }
 
-// fallbackSignalNotifier implements SignalNotifier using signal.NotifyContext.
-// It is used when no notifier is provided, to avoid a circular dependency.
+// fallbackSignalNotifier implements SignalNotifier using signal.NotifyContext. It is used
+// when no notifier is provided, to avoid a circular dependency.
 type fallbackSignalNotifier struct{}
 
 // NotifyContext returns a context that is cancelled on SIGINT or SIGTERM.
@@ -185,9 +185,8 @@ func (*fallbackSignalNotifier) NotifyContext(parent context.Context) (context.Co
 	return signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 }
 
-// RunDev starts the daemon in development mode.
-// It launches the server, file watcher, and asset orchestrator at the same
-// time.
+// RunDev starts the daemon in development mode. It launches the server, file watcher, and
+// asset orchestrator at the same time.
 //
 // Returns error when setup fails or a fatal error occurs during operation.
 func (ds *daemonService) RunDev(parentCtx context.Context) error {
@@ -209,8 +208,8 @@ func (ds *daemonService) RunDev(parentCtx context.Context) error {
 	return ds.awaitShutdownDev(signalCtx, span, serverErrChan)
 }
 
-// RunProd starts the daemon in production mode.
-// It does not start the file watcher and assumes all artefacts are pre-built.
+// RunProd starts the daemon in production mode. It does not start the file watcher and
+// assumes all artefacts are pre-built.
 //
 // Returns error when the daemon main process fails.
 func (ds *daemonService) RunProd(parentCtx context.Context) error {
@@ -279,23 +278,21 @@ func (ds *daemonService) Stop(ctx context.Context) error {
 	return nil
 }
 
-// GetHandler returns the HTTP handler for serving requests.
-// Use it to test without starting the full server.
+// GetHandler returns the HTTP handler for serving requests. Use it to test without
+// starting the full server.
 //
 // Returns http.Handler which processes incoming HTTP requests.
 func (ds *daemonService) GetHandler() http.Handler {
 	return ds.finalRouter
 }
 
-// launchDaemonProcess starts the main daemon process in a
-// background task, running the main loop and closing the error
-// channel on exit.
+// launchDaemonProcess starts the main daemon process in a background task, running the
+// main loop and closing the error channel on exit.
 //
-// Returns chan error which receives any fatal errors from the
-// daemon process and is closed when the process exits.
+// Returns chan error which receives any fatal errors from the daemon process and is
+// closed when the process exits.
 //
-// Concurrent goroutine is spawned to run the main daemon loop
-// in the background.
+// Concurrent goroutine is spawned to run the main daemon loop in the background.
 func (ds *daemonService) launchDaemonProcess(ctx context.Context) chan error {
 	ctx, l := logger_domain.From(ctx, log)
 	serverErrChan := make(chan error, 1)
@@ -315,14 +312,13 @@ func (ds *daemonService) launchDaemonProcess(ctx context.Context) chan error {
 	return serverErrChan
 }
 
-// subscribeToCoordinator subscribes to build notifications if a coordinator
-// is available.
+// subscribeToCoordinator subscribes to build notifications if a coordinator is available.
 //
-// Returns func() which unsubscribes from notifications. Returns a no-op
-// function when no coordinator is set up.
+// Returns func() which unsubscribes from notifications.
+// Returns a no-op function when no coordinator is set up.
 //
-// Spawns a goroutine to handle incoming build notifications. The goroutine
-// runs until the context is cancelled.
+// Spawns a goroutine to handle incoming build notifications. The goroutine runs until the
+// context is cancelled.
 func (ds *daemonService) subscribeToCoordinator(ctx context.Context) func() {
 	if ds.coordinatorService == nil {
 		return func() {}
@@ -388,8 +384,8 @@ func (ds *daemonService) awaitShutdownDev(
 
 // handleBuildNotifications listens for build notifications and processes them.
 //
-// Takes notifications (<-chan coordinator_domain.BuildNotification) which
-// yields build events from the coordinator.
+// Takes notifications (<-chan coordinator_domain.BuildNotification) which yields build
+// events from the coordinator.
 //
 // Blocks until the context is cancelled or the channel is closed.
 func (ds *daemonService) handleBuildNotifications(ctx context.Context, notifications <-chan coordinator_domain.BuildNotification) {
@@ -414,12 +410,12 @@ func (ds *daemonService) handleBuildNotifications(ctx context.Context, notificat
 
 // processNotification handles a single build notification.
 //
-// The daemon only processes SEO artefacts from build notifications. Other
-// updates triggered by builds (such as asset manifest, interpreted mode, and
-// route reloading) are handled by the lifecycle service.
+// The daemon only processes SEO artefacts from build notifications. Other updates
+// triggered by builds (such as asset manifest, interpreted mode, and route reloading) are
+// handled by the lifecycle service.
 //
-// Takes notification (*coordinator_domain.BuildNotification) which contains
-// the build result to process.
+// Takes notification (*coordinator_domain.BuildNotification) which contains the build
+// result to process.
 func (ds *daemonService) processNotification(ctx context.Context, notification *coordinator_domain.BuildNotification) {
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("Received new build result", logger_domain.String("causationID", notification.CausationID))
@@ -434,13 +430,13 @@ func (ds *daemonService) processNotification(ctx context.Context, notification *
 
 // processSEOArtefacts regenerates SEO artefacts in the background.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
-// annotation data to turn into SEO artefacts.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotation
+// data to turn into SEO artefacts.
 //
-// Acquires a slot from the SEO semaphore before launching the goroutine so
-// that bursty build notifications (typical in dev-mode hot reload) cannot
-// stack regenerations without bound. The acquire short-circuits when the
-// daemon's SEO context has been cancelled during shutdown.
+// Acquires a slot from the SEO semaphore before launching the goroutine so that bursty
+// build notifications (typical in dev-mode hot reload) cannot stack regenerations without
+// bound. The acquire short-circuits when the daemon's SEO context has been cancelled
+// during shutdown.
 func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnotationResult) {
 	if ds.seoService == nil {
 		return
@@ -467,14 +463,14 @@ func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnota
 	})
 }
 
-// acquireSEOSlot reserves a permit on the SEO semaphore, blocking until one
-// becomes free or the daemon's SEO context is cancelled.
+// acquireSEOSlot reserves a permit on the SEO semaphore, blocking until one becomes free
+// or the daemon's SEO context is cancelled.
 //
 // Takes ctx (context.Context) which carries the SEO cancellation signal.
 //
-// Returns bool which is true when a slot was acquired; false when shutdown
-// was triggered before a slot became available, in which case the caller
-// must skip launching the SEO goroutine.
+// Returns bool which is true when a slot was acquired; false when shutdown was triggered
+// before a slot became available, in which case the caller must skip launching the SEO
+// goroutine.
 func (ds *daemonService) acquireSEOSlot(ctx context.Context) bool {
 	if ds.seoSemaphore == nil {
 		return true
@@ -507,8 +503,8 @@ func (ds *daemonService) acquireSEOSlot(ctx context.Context) bool {
 	}
 }
 
-// releaseSEOSlot returns a permit to the SEO semaphore so that another
-// build-triggered regeneration may proceed.
+// releaseSEOSlot returns a permit to the SEO semaphore so that another build-triggered
+// regeneration may proceed.
 func (ds *daemonService) releaseSEOSlot() {
 	if ds.seoSemaphore == nil {
 		return
@@ -519,9 +515,9 @@ func (ds *daemonService) releaseSEOSlot() {
 	}
 }
 
-// NewService creates a configured daemon service using dependency injection.
-// All dependencies are passed through the deps struct, which makes it easy
-// to test by allowing dependencies to be replaced.
+// NewService creates a configured daemon service using dependency injection. All
+// dependencies are passed through the deps struct, which makes it easy to test by
+// allowing dependencies to be replaced.
 //
 // Takes deps (*DaemonServiceDeps) which provides all service dependencies.
 //

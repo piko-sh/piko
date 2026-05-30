@@ -34,9 +34,8 @@ const (
 	attributeLang = "lang"
 )
 
-// transformHrefForLocale applies locale routing rules to a link target.
-// It uses the current locale from the render context unless langOverride
-// is set.
+// transformHrefForLocale applies locale routing rules to a link target. It uses the
+// current locale from the render context unless langOverride is set.
 //
 // Takes href (string) which is the link target to change.
 // Takes langOverride (string) which replaces the context locale when set.
@@ -57,13 +56,13 @@ func transformHrefForLocale(href string, langOverride string, hasLangAttr bool, 
 	return applyLocaleStrategy(href, effectiveLocale, rctx)
 }
 
-// shouldSkipHrefTransform checks whether a link should be left unchanged
-// during locale transformation.
+// shouldSkipHrefTransform checks whether a link should be left unchanged during locale
+// transformation.
 //
 // Takes href (string) which is the link to check.
 //
-// Returns bool which is true when the href is empty, starts with http://,
-// https://, or # (fragment), or uses a special scheme such as mailto or tel.
+// Returns bool which is true when the href is empty, starts with http://, https://, or #
+// (fragment), or uses a special scheme such as mailto or tel.
 func shouldSkipHrefTransform(href string) bool {
 	if href == "" {
 		return true
@@ -81,11 +80,10 @@ func shouldSkipHrefTransform(href string) bool {
 
 // resolveEffectiveLocale works out which locale to use for URL changes.
 //
-// Takes langOverride (string) which is a locale from a lang attribute, or
-// empty if there is no override.
+// Takes langOverride (string) which is a locale from a lang attribute, or empty if there
+// is no override.
 // Takes hasLangAttr (bool) which shows whether a lang attribute was present.
-// Takes rctx (*renderContext) which holds the current locale and i18n
-// settings.
+// Takes rctx (*renderContext) which holds the current locale and i18n settings.
 //
 // Returns string which is the locale to use for the URL change.
 // Returns bool which is true when the URL change should be skipped.
@@ -106,8 +104,8 @@ func resolveEffectiveLocale(langOverride string, hasLangAttr bool, rctx *renderC
 	return effectiveLocale, false
 }
 
-// applyLocaleStrategy changes a link to include locale information based on
-// the routing strategy set in the render context.
+// applyLocaleStrategy changes a link to include locale information based on the routing
+// strategy set in the render context.
 //
 // Takes href (string) which is the link to change.
 // Takes effectiveLocale (string) which is the target locale for the link.
@@ -127,14 +125,13 @@ func applyLocaleStrategy(href, effectiveLocale string, rctx *renderContext) stri
 	}
 }
 
-// applyPrefixStrategy adds a locale prefix to paths that do not already have
-// one.
+// applyPrefixStrategy adds a locale prefix to paths that do not already have one.
 //
 // Takes href (string) which is the path to check and possibly prefix.
 // Takes locale (string) which is the locale code to use as a prefix.
 //
-// Returns string which is the path with the locale prefix added, such as
-// /en/about, or the original path if it already has the prefix.
+// Returns string which is the path with the locale prefix added, such as /en/about, or
+// the original path if it already has the prefix.
 func applyPrefixStrategy(href, locale string) string {
 	if !strings.HasPrefix(href, "/"+locale+"/") {
 		return joinLocalePath(locale, href)
@@ -142,15 +139,15 @@ func applyPrefixStrategy(href, locale string) string {
 	return href
 }
 
-// applyPrefixExceptDefaultStrategy adds a locale prefix to the href for
-// non-default locales only.
+// applyPrefixExceptDefaultStrategy adds a locale prefix to the href for non-default
+// locales only.
 //
 // Takes href (string) which is the path to add a prefix to.
 // Takes locale (string) which is the current locale.
 // Takes defaultLocale (string) which is the locale that needs no prefix.
 //
-// Returns string which is the href unchanged if locale matches the default,
-// or the href with the locale path added as a prefix.
+// Returns string which is the href unchanged if locale matches the default, or the href
+// with the locale path added as a prefix.
 func applyPrefixExceptDefaultStrategy(href, locale, defaultLocale string) string {
 	if locale != defaultLocale && !strings.HasPrefix(href, "/"+locale+"/") {
 		return joinLocalePath(locale, href)
@@ -163,8 +160,8 @@ func applyPrefixExceptDefaultStrategy(href, locale, defaultLocale string) string
 // Takes href (string) which is the URL to modify.
 // Takes locale (string) which is the locale value to add.
 //
-// Returns string which is the URL with the locale parameter added. Appends
-// &locale= if the URL already has query parameters, or ?locale= otherwise.
+// Returns string which is the URL with the locale parameter added. Appends &locale= if
+// the URL already has query parameters, or ?locale= otherwise.
 func applyQueryStrategy(href, locale string) string {
 	if strings.Contains(href, "?") {
 		return href + "&locale=" + locale
@@ -172,8 +169,8 @@ func applyQueryStrategy(href, locale string) string {
 	return href + "?locale=" + locale
 }
 
-// joinLocalePath joins a locale and href into a path like "/en/about".
-// This is faster than path.Join as it skips path cleaning.
+// joinLocalePath joins a locale and href into a path like "/en/about". This is faster
+// than path.Join as it skips path cleaning.
 //
 // Takes locale (string) which is the locale prefix to add.
 // Takes href (string) which is the path to join after the locale.
@@ -186,19 +183,18 @@ func joinLocalePath(locale, href string) string {
 	return "/" + locale + "/" + href
 }
 
-// renderPikoA renders a <piko:a> component directly to the output stream as
-// an <a> tag, without mutating the AST. This implements the "direct-to-writer"
-// pattern for zero-copy rendering.
+// renderPikoA renders a <piko:a> component directly to the output stream as an <a> tag,
+// without mutating the AST. This implements the "direct-to-writer" pattern for zero-copy
+// rendering.
 //
-// Handles the complete rendering of a <piko:a> element,
-// including:
+// Handles the complete rendering of a <piko:a> element, including:
 //   - Writing the <a> opening tag with transformed attributes
 //   - Applying i18n locale transformations to href
 //   - Rendering children
 //   - Writing the </a> closing tag
 //
-// Takes ro (*RenderOrchestrator) which provides the rendering context and
-// child rendering capabilities.
+// Takes ro (*RenderOrchestrator) which provides the rendering context and child rendering
+// capabilities.
 // Takes node (*ast_domain.TemplateNode) which is the piko:a node to render.
 // Takes qw (*qt.Writer) which is the output stream to write to.
 // Takes rctx (*renderContext) which contains locale and rendering state.
@@ -242,11 +238,10 @@ func renderPikoA(
 	return nil
 }
 
-// hasAttributeWriter checks whether an attribute is bound via an attribute
-// writer.
+// hasAttributeWriter checks whether an attribute is bound via an attribute writer.
 //
-// Takes writers ([]*ast_domain.DirectWriter) which contains the attribute
-// writers to search.
+// Takes writers ([]*ast_domain.DirectWriter) which contains the attribute writers to
+// search.
 // Takes attributeName (string) which specifies the attribute name to find.
 //
 // Returns bool which is true if a matching writer exists.
@@ -259,16 +254,12 @@ func hasAttributeWriter(writers []*ast_domain.DirectWriter, attributeName string
 	return false
 }
 
-// extractLinkAttrs finds the href and lang values from a list of HTML
-// attributes.
+// extractLinkAttrs finds the href and lang values from a list of HTML attributes.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the link attributes
-// to search.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the link attributes to search.
 //
-// Returns href (string) which is the href attribute value, or empty if not
-// found.
-// Returns langOverride (string) which is the lang attribute value, or empty if
-// not found.
+// Returns href (string) which is the href attribute value, or empty if not found.
+// Returns langOverride (string) which is the lang attribute value, or empty if not found.
 // Returns hasLang (bool) which is true when a lang attribute was present.
 func extractLinkAttrs(attrs []ast_domain.HTMLAttribute) (href, langOverride string, hasLang bool) {
 	for i := range attrs {
@@ -283,11 +274,11 @@ func extractLinkAttrs(attrs []ast_domain.HTMLAttribute) (href, langOverride stri
 	return href, langOverride, hasLang
 }
 
-// writeLinkUserAttributes writes user-defined attributes to the output,
-// skipping reserved attributes such as href, lang, and piko:a.
+// writeLinkUserAttributes writes user-defined attributes to the output, skipping reserved
+// attributes such as href, lang, and piko:a.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to
-// filter and write.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to filter and
+// write.
 // Takes qw (*qt.Writer) which is the output writer for the rendered HTML.
 func writeLinkUserAttributes(attrs []ast_domain.HTMLAttribute, qw *qt.Writer) {
 	for i := range attrs {
@@ -303,8 +294,8 @@ func writeLinkUserAttributes(attrs []ast_domain.HTMLAttribute, qw *qt.Writer) {
 	}
 }
 
-// writeLinkHrefAndMarker writes the href attribute and link marker to the
-// template output.
+// writeLinkHrefAndMarker writes the href attribute and link marker to the template
+// output.
 //
 // Takes transformedHref (string) which is the URL for the link.
 // Takes qw (*qt.Writer) which is the template writer.
@@ -318,9 +309,8 @@ func writeLinkHrefAndMarker(transformedHref string, qw *qt.Writer) {
 	writeLinkMarkerOnly(qw)
 }
 
-// writeLinkMarkerOnly writes only the piko:a marker attribute without an
-// href. Used when the href is set at runtime and will be written by
-// writeAttributeWriters.
+// writeLinkMarkerOnly writes only the piko:a marker attribute without an href. Used when
+// the href is set at runtime and will be written by writeAttributeWriters.
 //
 // Takes qw (*qt.Writer) which receives the marker attribute output.
 func writeLinkMarkerOnly(qw *qt.Writer) {

@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package orchestrator_domain defines the core task orchestration
-// abstractions and business logic. It contains the domain model for
-// distributed task execution: lifecycle management, workflow tracking,
-// scheduled execution, and event-driven coordination.
+// Package orchestrator_domain defines the core task orchestration abstractions and
+// business logic. It contains the domain model for distributed task execution: lifecycle
+// management, workflow tracking, scheduled execution, and event-driven coordination.
 //
-// Tasks progress through SCHEDULED, PENDING, PROCESSING, RETRYING,
-// COMPLETE, and FAILED statuses.
+// Tasks progress through SCHEDULED, PENDING, PROCESSING, RETRYING, COMPLETE, and FAILED
+// statuses.
 //
-// The [OrchestratorService] and its components are safe for concurrent
-// use. Task dispatch and scheduling operations are non-blocking and
-// use internal queues to handle backpressure.
+// The [OrchestratorService] and its components are safe for concurrent use. Task dispatch
+// and scheduling operations are non-blocking and use internal queues to handle
+// backpressure.
 package orchestrator_domain

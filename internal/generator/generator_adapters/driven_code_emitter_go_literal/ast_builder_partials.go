@@ -32,14 +32,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// buildPartialRenderCalls creates the top-level render calls for partial
-// invocations. It skips any invocation that depends on loop variables, as
-// those must be rendered inside the loop body by the for-emitter.
+// buildPartialRenderCalls creates the top-level render calls for partial invocations. It
+// skips any invocation that depends on loop variables, as those must be rendered inside
+// the loop body by the for-emitter.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotation
-// context for code generation.
-// Takes sortedInvocations ([]*annotator_dto.PartialInvocation) which lists the
-// partial invocations to process in order.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotation context
+// for code generation.
+// Takes sortedInvocations ([]*annotator_dto.PartialInvocation) which lists the partial
+// invocations to process in order.
 //
 // Returns []goast.Stmt which contains the generated render call statements.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics produced.
@@ -90,13 +90,12 @@ func (b *astBuilder) buildPartialRenderCalls(
 
 // emitPartialRenderCall builds the Go statements for a partial invocation.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which describes the partial
-// to call.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which describes the partial to call.
 // Takes result (*annotator_dto.AnnotationResult) which collects annotations.
 //
 // Returns []goast.Stmt which contains the generated statements.
-// Returns []*ast_domain.Diagnostic which contains any problems found while
-// building props.
+// Returns []*ast_domain.Diagnostic which contains any problems found while building
+// props.
 func (b *astBuilder) emitPartialRenderCall(
 	pInfo *ast_domain.PartialInvocationInfo,
 	result *annotator_dto.AnnotationResult,
@@ -119,17 +118,16 @@ func (b *astBuilder) emitPartialRenderCall(
 
 // buildPartialProps builds the props variable for a partial invocation.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the partial
-// invocation details.
-// Takes result (*annotator_dto.AnnotationResult) which provides annotation
-// context.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the partial invocation
+// details.
+// Takes result (*annotator_dto.AnnotationResult) which provides annotation context.
 // Takes key (string) which identifies the props variable uniquely.
 //
 // Returns *goast.Ident which is the identifier for the props variable.
-// Returns []goast.Stmt which contains the prerequisite statements including
-// the props assignment.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// building the props literal.
+// Returns []goast.Stmt which contains the prerequisite statements including the props
+// assignment.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from building the props
+// literal.
 func (b *astBuilder) buildPartialProps(
 	pInfo *ast_domain.PartialInvocationInfo,
 	result *annotator_dto.AnnotationResult,
@@ -144,18 +142,17 @@ func (b *astBuilder) buildPartialProps(
 
 // buildPropsLiteral creates the props struct literal for a partial call.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which provides the partial
-// invocation details including passed props and location.
-// Takes result (*annotator_dto.AnnotationResult) which contains the virtual
-// module with component definitions.
-// Takes currentPackageHash (string) which identifies the current package for
-// type resolution.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which provides the partial invocation
+// details including passed props and location.
+// Takes result (*annotator_dto.AnnotationResult) which contains the virtual module with
+// component definitions.
+// Takes currentPackageHash (string) which identifies the current package for type
+// resolution.
 //
 // Returns *goast.CompositeLit which is the constructed props literal.
-// Returns []goast.Stmt which contains prerequisite statements needed before
-// the literal.
-// Returns []*ast_domain.Diagnostic which contains any errors encountered
-// during construction.
+// Returns []goast.Stmt which contains prerequisite statements needed before the literal.
+// Returns []*ast_domain.Diagnostic which contains any errors encountered during
+// construction.
 func (b *astBuilder) buildPropsLiteral(
 	pInfo *ast_domain.PartialInvocationInfo,
 	result *annotator_dto.AnnotationResult,
@@ -207,19 +204,19 @@ func (b *astBuilder) buildPropsLiteral(
 	return propsLit, allPrereqs, allDiags
 }
 
-// isPartialInvocationLoopDependent checks if a partial invocation depends on
-// loop variables, either directly via its props or indirectly via its
-// dependencies (e.g., a nested partial whose parent is inside a p-for loop).
+// isPartialInvocationLoopDependent checks if a partial invocation depends on loop
+// variables, either directly via its props or indirectly via its dependencies (e.g., a
+// nested partial whose parent is inside a p-for loop).
 //
-// Takes invocation (*annotator_dto.PartialInvocation) which is the partial
-// invocation to check for loop dependencies.
-// Takes invocationsByKey (map[string]*annotator_dto.PartialInvocation) which
-// maps invocation keys to their invocations, used to look up dependencies.
-// Takes visited (map[string]bool) which tracks already-visited invocation keys
-// to prevent infinite recursion in circular dependency scenarios.
+// Takes invocation (*annotator_dto.PartialInvocation) which is the partial invocation to
+// check for loop dependencies.
+// Takes invocationsByKey (map[string]*annotator_dto.PartialInvocation) which maps
+// invocation keys to their invocations, used to look up dependencies.
+// Takes visited (map[string]bool) which tracks already-visited invocation keys to prevent
+// infinite recursion in circular dependency scenarios.
 //
-// Returns bool which is true if any passed prop or request override is loop
-// dependent, or if any dependency is loop dependent.
+// Returns bool which is true if any passed prop or request override is loop dependent, or
+// if any dependency is loop dependent.
 func isPartialInvocationLoopDependent(
 	invocation *annotator_dto.PartialInvocation,
 	invocationsByKey map[string]*annotator_dto.PartialInvocation,
@@ -255,17 +252,16 @@ func isPartialInvocationLoopDependent(
 	return false
 }
 
-// buildPartialRenderCallBlock builds the statements that call a partial's
-// Render method and handle any errors it returns.
+// buildPartialRenderCallBlock builds the statements that call a partial's Render method
+// and handle any errors it returns.
 //
-// Takes reqVar (*goast.Ident) which is the request variable to pass.
-// Takes propsVar (*goast.Ident) which is the props variable to pass.
-// Takes key (string) which names the partial and is used to create variable
-// names.
-// Takes packageName (string) which is the package that contains the Render method.
+// Takes reqVar (*goast.Ident) which is the request variable to pass. Takes propsVar
+// (*goast.Ident) which is the props variable to pass. Takes key (string) which names the
+// partial and is used to create variable names. Takes packageName (string) which is the
+// package that contains the Render method.
 //
-// Returns []goast.Stmt which contains the render call, error handler, and
-// placeholder assignments for data, meta, and error values.
+// Returns []goast.Stmt which contains the render call, error handler, and placeholder
+// assignments for data, meta, and error values.
 func buildPartialRenderCallBlock(reqVar, propsVar *goast.Ident, key, packageName string) []goast.Stmt {
 	dataVar := cachedIdent(packageName + "Data_" + key)
 	metaVar := cachedIdent(packageName + "Meta_" + key)
@@ -289,14 +285,13 @@ func buildPartialRenderCallBlock(reqVar, propsVar *goast.Ident, key, packageName
 	}
 }
 
-// buildPartialErrorHandler creates the error handling block for partial render
-// calls.
+// buildPartialErrorHandler creates the error handling block for partial render calls.
 //
 // Takes errVar (*goast.Ident) which is the error variable to check.
 // Takes packageName (string) which is the partial name for error messages.
 //
-// Returns goast.Stmt which is an if statement that adds a diagnostic and
-// returns early when the error is not nil.
+// Returns goast.Stmt which is an if statement that adds a diagnostic and returns early
+// when the error is not nil.
 func buildPartialErrorHandler(errVar *goast.Ident, packageName string) goast.Stmt {
 	return &goast.IfStmt{
 		Cond: &goast.BinaryExpr{X: errVar, Op: token.NEQ, Y: cachedIdent("nil")},
@@ -332,16 +327,14 @@ func buildPartialErrorHandler(errVar *goast.Ident, packageName string) goast.Stm
 
 // determinePropsTypeExpr finds the correct type expression for props.
 //
-// Takes rawPropsTypeExpr (goast.Expr) which is the raw type expression to
-// process.
-// Takes partialPackageName (string) which is the package name for types without a
-// package prefix.
-// Takes currentPackageHash (string) which identifies the current package for
-// comparison.
+// Takes rawPropsTypeExpr (goast.Expr) which is the raw type expression to process.
+// Takes partialPackageName (string) which is the package name for types without a package
+// prefix.
+// Takes currentPackageHash (string) which identifies the current package for comparison.
 //
-// Returns goast.Expr which is the adjusted type expression. If the type is in
-// the current package, the package prefix is removed. Otherwise, the partial
-// package name is added as a prefix.
+// Returns goast.Expr which is the adjusted type expression. If the type is in the current
+// package, the package prefix is removed. Otherwise, the partial package name is added as
+// a prefix.
 func determinePropsTypeExpr(
 	rawPropsTypeExpr goast.Expr,
 	partialPackageName string,

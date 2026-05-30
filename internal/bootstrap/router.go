@@ -18,10 +18,10 @@
 
 package bootstrap
 
-// This file is responsible for assembling the complete HTTP routing and
-// middleware stack for the application. It orchestrates the process by
-// resolving dependencies from the DI container, mounting application-specific
-// routes, and wrapping the final handler in essential system-level middleware.
+// This file is responsible for assembling the complete HTTP routing and middleware stack
+// for the application. It orchestrates the process by resolving dependencies from the DI
+// container, mounting application-specific routes, and wrapping the final handler in
+// essential system-level middleware.
 
 import (
 	"context"
@@ -34,6 +34,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
+	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
@@ -42,13 +44,11 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
-	"piko.sh/piko/internal/captcha/captcha_domain"
-	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/storage/storage_adapters/presign_http"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
@@ -62,38 +62,38 @@ const (
 	// defaultMaxMultipartFormBytes is the fallback limit for multipart form data (32 MiB).
 	defaultMaxMultipartFormBytes = int64(33_554_432)
 
-	// defaultMaxSSEDurationSeconds is the default maximum lifetime for SSE
-	// connections (30 minutes), preventing indefinite connection holding while
-	// being generous for long-running streams.
+	// defaultMaxSSEDurationSeconds is the default maximum lifetime for SSE connections (30
+	// minutes), preventing indefinite connection holding while being generous for
+	// long-running streams.
 	defaultMaxSSEDurationSeconds = 1800
 
-	// defaultActionResponseCacheMaxBytes is the default byte cap on the
-	// action-response cache.
+	// defaultActionResponseCacheMaxBytes is the default byte cap on the action-response
+	// cache.
 	defaultActionResponseCacheMaxBytes = uint64(256 << 20)
 
-	// defaultActionResponseCacheMaxTTL is the upper-bound write expiration for
-	// the action response cache. Individual actions override this with their
-	// own TTL via SetExpiresAfter, but otter requires a non-nil
-	// ExpiryCalculator for per-entry expiration to function.
+	// defaultActionResponseCacheMaxTTL is the upper-bound write expiration for the action
+	// response cache. Individual actions override this with their own TTL via
+	// SetExpiresAfter, but otter requires a non-nil ExpiryCalculator for per-entry
+	// expiration to function.
 	defaultActionResponseCacheMaxTTL = 1 * time.Hour
 
-	// defaultArtefactMetadataCacheMaxEntries is the maximum number of entries
-	// in the artefact metadata cache.
+	// defaultArtefactMetadataCacheMaxEntries is the maximum number of entries in the
+	// artefact metadata cache.
 	defaultArtefactMetadataCacheMaxEntries = 500
 
-	// defaultArtefactMetadataCacheTTL is how long artefact metadata stays
-	// cached before expiring (5 minutes).
+	// defaultArtefactMetadataCacheTTL is how long artefact metadata stays cached before
+	// expiring (5 minutes).
 	defaultArtefactMetadataCacheTTL = 5 * time.Minute
 )
 
-// actionResponseWeigher returns the byte cost of an action response
-// cache entry as the sum of key and value lengths.
+// actionResponseWeigher returns the byte cost of an action response cache entry as the
+// sum of key and value lengths.
 //
 // Takes key (string) which is the cache key.
 // Takes value ([]byte) which is the cached response payload.
 //
-// Returns uint32 which is the entry weight in bytes, clamped to the
-// maximum uint32 value when the total would overflow.
+// Returns uint32 which is the entry weight in bytes, clamped to the maximum uint32 value
+// when the total would overflow.
 func actionResponseWeigher(key string, value []byte) uint32 {
 	total := len(key) + len(value)
 	if total > int(^uint32(0)) {
@@ -106,9 +106,9 @@ var (
 	// errUnknownManifestFormat is a specific error for invalid configuration.
 	errUnknownManifestFormat = errors.New("invalid or unknown manifestFormat in config")
 
-	// manifestProviderBuilders is a dispatch table mapping format strings to
-	// builder functions. Each builder receives the manifest file path and an
-	// optional sandbox for safe filesystem access.
+	// manifestProviderBuilders is a dispatch table mapping format strings to builder
+	// functions. Each builder receives the manifest file path and an optional sandbox for
+	// safe filesystem access.
 	manifestProviderBuilders = map[string]manifestProviderBuilder{
 		manifestFormatJSON: func(path string, sandbox safedisk.Sandbox) generator_domain.ManifestProviderPort {
 			var opts []generator_adapters.JSONManifestProviderOption
@@ -132,8 +132,7 @@ type routerOperation struct {
 	// variantGenerator creates image variants on demand for responsive images.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
-	// store provides read-only access to manifests for cache middleware and
-	// routing.
+	// store provides read-only access to manifests for cache middleware and routing.
 	store templater_domain.ManifestStoreView
 
 	// templaterService renders HTML templates for HTTP responses.
@@ -160,16 +159,14 @@ type routerOperation struct {
 	// rateLimitService controls request rate limits for router middleware.
 	rateLimitService security_domain.RateLimitService
 
-	// devEventsBroadcaster serves the /_piko/dev/events SSE endpoint; nil in
-	// production mode.
+	// devEventsBroadcaster serves the /_piko/dev/events SSE endpoint; nil in production
+	// mode.
 	devEventsBroadcaster http.Handler
 
-	// devAPIHandler serves the /_piko/dev/api/* REST endpoints; nil in
-	// production mode.
+	// devAPIHandler serves the /_piko/dev/api/* REST endpoints; nil in production mode.
 	devAPIHandler daemon_domain.DevAPIHandlerPort
 
-	// devPreviewHandler serves the /_piko/dev/preview/* endpoints; nil in
-	// production mode.
+	// devPreviewHandler serves the /_piko/dev/preview/* endpoints; nil in production mode.
 	devPreviewHandler daemon_domain.DevPreviewHandlerPort
 
 	// container provides access to application services.
@@ -181,15 +178,14 @@ type routerOperation struct {
 	// cspConfig holds the CSP settings defined at startup; these do not change.
 	cspConfig security_dto.CSPRuntimeConfig
 
-	// disableHTTPCache disables aggressive HTTP caching on static assets. Set
-	// to true in dev mode so that ETags are revalidated on every request.
+	// disableHTTPCache disables aggressive HTTP caching on static assets. Set to true in dev
+	// mode so that ETags are revalidated on every request.
 	disableHTTPCache bool
 }
 
 // execute runs the steps to build the router.
 //
-// Returns http.Handler which is the fully set up router ready to serve
-// requests.
+// Returns http.Handler which is the fully set up router ready to serve requests.
 // Returns error when service resolution or router building fails.
 func (op *routerOperation) execute(ctx context.Context) (http.Handler, error) {
 	_, span, l := log.Span(ctx, "bootstrap.routerOperation.execute")
@@ -211,8 +207,8 @@ func (op *routerOperation) execute(ctx context.Context) (http.Handler, error) {
 	return finalRouter, nil
 }
 
-// resolveServices fetches all required service dependencies from the DI
-// container and sets up the variant generator.
+// resolveServices fetches all required service dependencies from the DI container and
+// sets up the variant generator.
 //
 // Returns error when any required service cannot be resolved.
 func (op *routerOperation) resolveServices(ctx context.Context) error {
@@ -260,8 +256,7 @@ func (op *routerOperation) resolveServices(ctx context.Context) error {
 	return nil
 }
 
-// buildFinalRouter builds the complete HTTP handler with all middleware and
-// routes.
+// buildFinalRouter builds the complete HTTP handler with all middleware and routes.
 //
 // Returns http.Handler which is the fully set up router ready for use.
 // Returns error when the router fails to build.
@@ -335,8 +330,8 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 
 // mountApplicationRoutes mounts all application routes from the manifest.
 //
-// Takes cacheMiddleware (*daemon_adapters.CacheMiddleware) which provides
-// caching for route handlers.
+// Takes cacheMiddleware (*daemon_adapters.CacheMiddleware) which provides caching for
+// route handlers.
 func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMiddleware *daemon_adapters.CacheMiddleware) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -376,11 +371,10 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 	l.Internal("All dynamic application routes from manifest have been mounted.")
 }
 
-// buildRouterConfig constructs the typed RouterConfig from the server
-// configuration with any container-level overrides applied.
+// buildRouterConfig constructs the typed RouterConfig from the server configuration with
+// any container-level overrides applied.
 //
-// Returns *daemon_domain.RouterConfig which contains exactly the fields the
-// router needs.
+// Returns *daemon_domain.RouterConfig which contains exactly the fields the router needs.
 func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain.RouterConfig {
 	_, l := logger_domain.From(ctx, log)
 
@@ -403,15 +397,15 @@ func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain
 	return routerConfig
 }
 
-// getPresignHandlers creates and returns presigned upload, download, and
-// public download HTTP handlers if the storage service is available.
+// getPresignHandlers creates and returns presigned upload, download, and public download
+// HTTP handlers if the storage service is available.
 //
-// Returns uploadHandler (http.Handler) which handles authenticated
-// uploads, or nil if not available.
-// Returns downloadHandler (http.Handler) which handles authenticated
-// downloads, or nil if not available.
-// Returns publicDownloadHandler (http.Handler) which handles public
-// downloads, or nil if not available.
+// Returns uploadHandler (http.Handler) which handles authenticated uploads, or nil if not
+// available.
+// Returns downloadHandler (http.Handler) which handles authenticated downloads, or nil if
+// not available.
+// Returns publicDownloadHandler (http.Handler) which handles public downloads, or nil if
+// not available.
 func (op *routerOperation) getPresignHandlers(ctx context.Context) (uploadHandler, downloadHandler, publicDownloadHandler http.Handler) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -438,12 +432,10 @@ func (op *routerOperation) getPresignHandlers(ctx context.Context) (uploadHandle
 	return uploadHandler, downloadHandler, publicDownloadHandler
 }
 
-// getPresignConfig retrieves the presign configuration from the storage
-// service. If the storage service provides a GetConfig method, use it;
-// otherwise return defaults.
+// getPresignConfig retrieves the presign configuration from the storage service. If the
+// storage service provides a GetConfig method, use it; otherwise return defaults.
 //
-// Takes storageService (storage_domain.Service) which provides the storage
-// configuration.
+// Takes storageService (storage_domain.Service) which provides the storage configuration.
 //
 // Returns storage_domain.PresignConfig which contains the presign settings.
 func (*routerOperation) getPresignConfig(storageService storage_domain.Service) storage_domain.PresignConfig {
@@ -455,8 +447,7 @@ func (*routerOperation) getPresignConfig(storageService storage_domain.Service) 
 	return storage_domain.DefaultPresignConfig()
 }
 
-// manifestProviderBuilder defines a function signature for creating a manifest
-// provider.
+// manifestProviderBuilder defines a function signature for creating a manifest provider.
 type manifestProviderBuilder func(path string, sandbox safedisk.Sandbox) generator_domain.ManifestProviderPort
 
 // devRouterHandlers holds optional dev-mode handlers passed to buildRouter.
@@ -473,16 +464,15 @@ type devRouterHandlers struct {
 
 // buildRouter creates the HTTP router for the application.
 //
-// This is the main entry point for building the router. It creates a
-// routerOperation with the given settings and runs it to produce the final
-// handler.
+// This is the main entry point for building the router. It creates a routerOperation with
+// the given settings and runs it to produce the final handler.
 //
 // Takes deps (*Dependencies) which provides the application dependencies.
 // Takes c (*Container) which holds the dependency injection container.
 // Takes store (ManifestStoreView) which provides access to manifest data.
 // Takes templaterService (TemplaterService) which handles template rendering.
-// Takes devHandlers (*devRouterHandlers) which provides optional dev-mode
-// handlers; nil in production mode.
+// Takes devHandlers (*devRouterHandlers) which provides optional dev-mode handlers; nil
+// in production mode.
 //
 // Returns http.Handler which is the configured router ready to serve requests.
 // Returns error when the router operation fails to run.
@@ -515,16 +505,14 @@ func buildRouter(
 	return operation.execute(ctx)
 }
 
-// buildCSPRuntimeConfig builds the Content Security Policy runtime settings
-// from the container's CSP builder, falling back to Piko defaults when needed.
-// Called once at startup and the result is passed through the router chain, so
-// the server config stays unchanged.
+// buildCSPRuntimeConfig builds the Content Security Policy runtime settings from the
+// container's CSP builder, falling back to Piko defaults when needed. Called once at
+// startup and the result is passed through the router chain, so the server config stays
+// unchanged.
 //
-// Takes c (*Container) which holds the CSP builder settings and resolved
-// server config.
+// Takes c (*Container) which holds the CSP builder settings and resolved server config.
 //
-// Returns security_dto.CSPRuntimeConfig which contains the computed CSP
-// settings.
+// Returns security_dto.CSPRuntimeConfig which contains the computed CSP settings.
 func buildCSPRuntimeConfig(c *Container) security_dto.CSPRuntimeConfig {
 	ctx := c.GetAppContext()
 	_, l := logger_domain.From(ctx, log)
@@ -561,14 +549,14 @@ func buildCSPRuntimeConfig(c *Container) security_dto.CSPRuntimeConfig {
 	return builder.RuntimeConfig()
 }
 
-// mergeCaptchaCSPDomains adds CSP domains from all registered captcha
-// providers to the CSP builder. This allows captcha provider SDKs to load
-// without manual CSP configuration.
+// mergeCaptchaCSPDomains adds CSP domains from all registered captcha providers to the
+// CSP builder. This allows captcha provider SDKs to load without manual CSP
+// configuration.
 //
-// Takes c (*Container) which provides access to the captcha service and
-// application context.
-// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to
-// merge provider domains into.
+// Takes c (*Container) which provides access to the captcha service and application
+// context.
+// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to merge provider
+// domains into.
 func mergeCaptchaCSPDomains(ctx context.Context, c *Container, builder *security_domain.CSPBuilder) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -595,13 +583,13 @@ func mergeCaptchaCSPDomains(ctx context.Context, c *Container, builder *security
 	}
 }
 
-// mergeProviderCSPDomains adds the CSP domains from a single captcha provider's
-// render requirements to the CSP builder.
+// mergeProviderCSPDomains adds the CSP domains from a single captcha provider's render
+// requirements to the CSP builder.
 //
-// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to add
-// directive sources to.
-// Takes requirements (*captcha_dto.RenderRequirements) which contains the
-// script, frame, and connect domains the provider needs.
+// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to add directive
+// sources to.
+// Takes requirements (*captcha_dto.RenderRequirements) which contains the script, frame,
+// and connect domains the provider needs.
 func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *captcha_dto.RenderRequirements) {
 	if len(requirements.CSPScriptDomains) > 0 {
 		scriptSources := make([]security_domain.Source, 0, 1+len(requirements.CSPScriptDomains))
@@ -624,14 +612,13 @@ func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *
 	}
 }
 
-// createManifestProvider selects the correct manifest loading adapter based
-// on configuration.
+// createManifestProvider selects the correct manifest loading adapter based on
+// configuration.
 //
 // Takes ctx (context.Context) which carries the application context for logging.
 // Takes c (*Container) which provides configuration and sandbox creation.
 //
-// Returns generator_domain.ManifestProviderPort which is the selected manifest
-// loader.
+// Returns generator_domain.ManifestProviderPort which is the selected manifest loader.
 // Returns error when the manifest format is not recognised.
 func createManifestProvider(ctx context.Context, c *Container) (generator_domain.ManifestProviderPort, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -660,14 +647,13 @@ func createManifestProvider(ctx context.Context, c *Container) (generator_domain
 }
 
 // buildRouteSettings constructs a RouteSettings from the server configuration,
-// dereferencing pointer fields with sensible defaults that match the config
-// struct tags.
+// dereferencing pointer fields with sensible defaults that match the config struct tags.
 //
-// Takes serverConfig (ServerConfig) which is the loaded server
-// configuration to extract route settings from.
+// Takes serverConfig (ServerConfig) which is the loaded server configuration to extract
+// route settings from.
 //
-// Returns daemon_adapters.RouteSettings which holds the resolved route
-// configuration values.
+// Returns daemon_adapters.RouteSettings which holds the resolved route configuration
+// values.
 func buildRouteSettings(serverConfig *ServerConfig) daemon_adapters.RouteSettings {
 	return daemon_adapters.RouteSettings{
 		E2EMode:                      deref(serverConfig.Build.E2EMode, false),

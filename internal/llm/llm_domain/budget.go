@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// BudgetStorePort defines the driven port for storing budget data.
-// Implementations must be safe for concurrent use.
+// BudgetStorePort defines the driven port for storing budget data. Implementations must
+// be safe for concurrent use.
 type BudgetStorePort interface {
 	// Record adds a cost entry for a scope.
 	//
@@ -49,12 +49,12 @@ type BudgetStorePort interface {
 	// Returns error if the status cannot be retrieved.
 	GetStatus(ctx context.Context, scope string) (*llm_dto.BudgetStatus, error)
 
-	// CheckAndReserve atomically checks whether the estimated cost fits
-	// within all configured limits and, if so, reserves it by adding the
-	// cost to the current spend counters.
+	// CheckAndReserve atomically checks whether the estimated cost fits within all
+	// configured limits and, if so, reserves it by adding the cost to the current spend
+	// counters.
 	//
-	// Implementations must hold their lock for the entire
-	// check-and-reserve to prevent concurrent overspend.
+	// Implementations must hold their lock for the entire check-and-reserve to prevent
+	// concurrent overspend.
 	//
 	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
@@ -64,8 +64,8 @@ type BudgetStorePort interface {
 	// Returns error which is ErrBudgetExceeded if any limit is breached.
 	CheckAndReserve(ctx context.Context, scope string, estimatedCost maths.Money, limits llm_dto.BudgetLimits) error
 
-	// Unreserve releases a previously reserved cost when the request fails
-	// before RecordUsage is called. This prevents phantom charges.
+	// Unreserve releases a previously reserved cost when the request fails before
+	// RecordUsage is called. This prevents phantom charges.
 	//
 	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
@@ -160,14 +160,13 @@ func (m *BudgetManager) RemoveBudget(scope string) {
 	delete(m.alertTriggered, scope)
 }
 
-// CheckBudget returns an error if a request would exceed limits.
-// This is a pre-request check based on estimated cost.
+// CheckBudget returns an error if a request would exceed limits. This is a pre-request
+// check based on estimated cost.
 //
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the estimated cost.
 //
-// Returns error which is ErrBudgetExceeded or ErrMaxCostExceeded if
-// limits are exceeded.
+// Returns error which is ErrBudgetExceeded or ErrMaxCostExceeded if limits are exceeded.
 //
 // Safe for concurrent use; protects internal config access with a mutex.
 func (m *BudgetManager) CheckBudget(ctx context.Context, scope string, estimatedCost maths.Money) error {
@@ -198,8 +197,8 @@ func (m *BudgetManager) CheckBudget(ctx context.Context, scope string, estimated
 	return nil
 }
 
-// UnreserveBudget releases a previously reserved cost when the request fails
-// before RecordUsage is called.
+// UnreserveBudget releases a previously reserved cost when the request fails before
+// RecordUsage is called.
 //
 // Takes scope (string) which identifies the budget scope.
 // Takes cost (maths.Money) which is the cost to release.
@@ -209,8 +208,8 @@ func (m *BudgetManager) UnreserveBudget(ctx context.Context, scope string, cost 
 	return m.store.Unreserve(ctx, scope, cost)
 }
 
-// RecordUsage records actual usage after a request completes.
-// Also triggers alert callbacks if thresholds are reached.
+// RecordUsage records actual usage after a request completes. Also triggers alert
+// callbacks if thresholds are reached.
 //
 // Takes scope (string) which identifies the budget scope.
 // Takes cost (*llm_dto.CostEstimate) which is the actual cost to record.
@@ -280,8 +279,7 @@ func (m *BudgetManager) HasBudget(scope string) bool {
 //
 // Takes scope (string) which identifies the budget scope.
 //
-// Returns *llm_dto.BudgetConfig containing the configuration, or nil if not
-// found.
+// Returns *llm_dto.BudgetConfig containing the configuration, or nil if not found.
 //
 // Safe for concurrent use.
 func (m *BudgetManager) GetConfig(scope string) *llm_dto.BudgetConfig {
@@ -305,8 +303,8 @@ func (m *BudgetManager) Reset(ctx context.Context, scope string) error {
 	return m.store.Reset(ctx, scope)
 }
 
-// ResetDaily resets the daily spend counter for all scopes.
-// This should be called at the start of each day.
+// ResetDaily resets the daily spend counter for all scopes. This should be called at the
+// start of each day.
 //
 // Returns error if any reset fails.
 //
@@ -331,13 +329,12 @@ func (m *BudgetManager) ResetDaily(ctx context.Context) error {
 	return nil
 }
 
-// checkAlertThreshold checks if alert threshold is reached and triggers
-// callback.
+// checkAlertThreshold checks if alert threshold is reached and triggers callback.
 //
 // Takes scope (string) which identifies the budget scope to check.
 //
-// Safe for concurrent use. When threshold is reached, the alert
-// callback runs in a separate goroutine.
+// Safe for concurrent use. When threshold is reached, the alert callback runs in a
+// separate goroutine.
 func (m *BudgetManager) checkAlertThreshold(ctx context.Context, scope string) {
 	ctx, l := logger_domain.From(ctx, log)
 	m.mu.RLock()
@@ -366,8 +363,8 @@ func (m *BudgetManager) checkAlertThreshold(ctx context.Context, scope string) {
 	m.fireAlertCallback(l, scope, config, status)
 }
 
-// fireAlertCallback invokes the budget alert callback in a separate goroutine
-// with panic recovery.
+// fireAlertCallback invokes the budget alert callback in a separate goroutine with panic
+// recovery.
 //
 // Takes l (logger_domain.Logger) which provides structured logging.
 // Takes scope (string) which identifies the budget scope.
@@ -387,9 +384,8 @@ func (*BudgetManager) fireAlertCallback(l logger_domain.Logger, scope string, co
 	}()
 }
 
-// EstimateInputTokens provides a rough estimate of input tokens based on
-// message content. It uses the common approximation of ~4 characters per
-// token.
+// EstimateInputTokens provides a rough estimate of input tokens based on message content.
+// It uses the common approximation of ~4 characters per token.
 //
 // Takes messages ([]llm_dto.Message) which are the messages to estimate.
 //
@@ -402,15 +398,13 @@ func EstimateInputTokens(messages []llm_dto.Message) int {
 	return totalChars / CharactersPerToken
 }
 
-// minRemainingBudget computes the minimum remaining budget across all
-// configured limits (total, daily, hourly).
+// minRemainingBudget computes the minimum remaining budget across all configured limits
+// (total, daily, hourly).
 //
 // Takes config (*llm_dto.BudgetConfig) which holds the spend limits.
-// Takes status (*llm_dto.BudgetStatus) which holds current spend
-// amounts.
+// Takes status (*llm_dto.BudgetStatus) which holds current spend amounts.
 //
-// Returns maths.Money which is the smallest remaining budget across
-// all active limits.
+// Returns maths.Money which is the smallest remaining budget across all active limits.
 func minRemainingBudget(config *llm_dto.BudgetConfig, status *llm_dto.BudgetStatus) maths.Money {
 	var result maths.Money
 	first := true
@@ -436,11 +430,9 @@ func minRemainingBudget(config *llm_dto.BudgetConfig, status *llm_dto.BudgetStat
 	return result
 }
 
-// isSpendThresholdReached checks whether any spend limit has reached its alert
-// threshold.
+// isSpendThresholdReached checks whether any spend limit has reached its alert threshold.
 //
-// Takes config (*llm_dto.BudgetConfig) which holds the spend limits and
-// threshold.
+// Takes config (*llm_dto.BudgetConfig) which holds the spend limits and threshold.
 // Takes status (*llm_dto.BudgetStatus) which holds the current spend amounts.
 //
 // Returns bool which is true when at least one limit has reached the threshold.

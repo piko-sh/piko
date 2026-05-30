@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Parses component template files into structured AST representations by extracting template, script, and style blocks.
-// Handles Go script parsing, validates template structure, and produces source objects ready for further compilation stages.
+// Parses component template files into structured AST representations by extracting
+// template, script, and style blocks. Handles Go script parsing, validates template
+// structure, and produces source objects ready for further compilation stages.
 
 import (
 	"context"
@@ -59,13 +60,12 @@ const (
 	// functionNameAuthPolicy is the name of the AuthPolicy lifecycle hook function.
 	functionNameAuthPolicy = "AuthPolicy"
 
-	// functionNamePreview is the name of the Preview convention function for
-	// dev-mode component previewing.
+	// functionNamePreview is the name of the Preview convention function for dev-mode
+	// component previewing.
 	functionNamePreview = "Preview"
 )
 
-// Sources holds the separated source code blocks from a .pk file.
-// Intended for debugging.
+// Sources holds the separated source code blocks from a .pk file. Intended for debugging.
 type Sources struct {
 	// TemplateSource is the raw template content used for parsing.
 	TemplateSource string
@@ -77,8 +77,8 @@ type Sources struct {
 	StyleBlocks []sfcparser.Style
 }
 
-// scriptBlockParseError represents a fatal syntax error within a Go script
-// block. It implements the error interface.
+// scriptBlockParseError represents a fatal syntax error within a Go script block. It
+// implements the error interface.
 type scriptBlockParseError struct {
 	// reason describes why the script block could not be parsed.
 	reason string
@@ -91,17 +91,16 @@ func (e *scriptBlockParseError) Error() string {
 	return "cannot parse <script> snippet: " + e.reason
 }
 
-// ParsePK parses an SFC file and extracts its template, script, and i18n
-// blocks.
+// ParsePK parses an SFC file and extracts its template, script, and i18n blocks.
 //
 // Takes data ([]byte) which contains the raw SFC file content.
 // Takes sourcePath (string) which identifies the file path for error messages.
 //
-// Returns *annotator_dto.ParsedComponent which contains the parsed template,
-// script, and i18n blocks.
+// Returns *annotator_dto.ParsedComponent which contains the parsed template, script, and
+// i18n blocks.
 // Returns Sources which provides the separated source blocks for each section.
-// Returns error when the script or i18n blocks cannot be parsed. Template
-// errors are returned with a partial component to support LSP features.
+// Returns error when the script or i18n blocks cannot be parsed. Template errors are
+// returned with a partial component to support LSP features.
 func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dto.ParsedComponent, Sources, error) {
 	sfcResult, srcs, err := parseAndSeparateSFC(data)
 	if err != nil {
@@ -151,14 +150,14 @@ func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dt
 	return component, srcs, nil
 }
 
-// parseTemplateBlock handles only the parsing of the <template> block into
-// the custom AST.
+// parseTemplateBlock handles only the parsing of the <template> block into the custom
+// AST.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes templateSource (string) which contains the raw template content.
 // Takes sourcePath (string) which identifies the file for error reporting.
-// Takes templateContentLocation (ast_domain.Location) which specifies the
-// position of the template content within the source file.
+// Takes templateContentLocation (ast_domain.Location) which specifies the position of the
+// template content within the source file.
 //
 // Returns *ast_domain.TemplateAST which contains the parsed template tree.
 // Returns error when the template contains parse errors or diagnostics.
@@ -207,21 +206,20 @@ func parseAndSeparateSFC(data []byte) (*sfcparser.ParseResult, Sources, error) {
 	return sfcResult, srcs, nil
 }
 
-// validateScriptBlocks checks all script blocks for missing or unrecognised
-// lang/type attributes and returns diagnostics for any problems found.
+// validateScriptBlocks checks all script blocks for missing or unrecognised lang/type
+// attributes and returns diagnostics for any problems found.
 //
-// Valid lang and type combinations cover Go, JavaScript, and TypeScript. See
-// the implementation for the recognised lang and MIME type strings accepted
-// for each language.
+// Valid lang and type combinations cover Go, JavaScript, and TypeScript. See the
+// implementation for the recognised lang and MIME type strings accepted for each
+// language.
 //
 // Script blocks without a lang or type attribute will trigger a warning.
 //
-// Takes sfcResult (*sfcparser.ParseResult) which contains the parsed script
-// blocks.
+// Takes sfcResult (*sfcparser.ParseResult) which contains the parsed script blocks.
 // Takes sourcePath (string) which is the file path for diagnostic reporting.
 //
-// Returns []*ast_domain.Diagnostic which contains warnings for script blocks
-// with missing or unrecognised attributes.
+// Returns []*ast_domain.Diagnostic which contains warnings for script blocks with missing
+// or unrecognised attributes.
 func validateScriptBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) []*ast_domain.Diagnostic {
 	diagnostics := make([]*ast_domain.Diagnostic, 0, len(sfcResult.Scripts))
 
@@ -265,20 +263,17 @@ func validateScriptBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) [
 
 // buildParsedComponent builds a ParsedComponent from parsed SFC parts.
 //
-// Takes parsedTemplate (*ast_domain.TemplateAST) which is the parsed template
-// AST.
-// Takes parsedScript (*annotator_dto.ParsedScript) which is the parsed Go
-// script.
-// Takes localTranslations (i18n_domain.Translations) which contains the local
-// translation strings.
+// Takes parsedTemplate (*ast_domain.TemplateAST) which is the parsed template AST.
+// Takes parsedScript (*annotator_dto.ParsedScript) which is the parsed Go script.
+// Takes localTranslations (i18n_domain.Translations) which contains the local translation
+// strings.
 // Takes sourcePath (string) which is the path to the source file.
-// Takes sfcResult (*sfcparser.ParseResult) which is the SFC parse result
-// including styles and client script.
-// Takes pikoImports ([]annotator_dto.PikoImport) which lists the Piko
-// component imports.
+// Takes sfcResult (*sfcparser.ParseResult) which is the SFC parse result including styles
+// and client script.
+// Takes pikoImports ([]annotator_dto.PikoImport) which lists the Piko component imports.
 //
-// Returns *annotator_dto.ParsedComponent which is the assembled component
-// ready for further processing.
+// Returns *annotator_dto.ParsedComponent which is the assembled component ready for
+// further processing.
 func buildParsedComponent(
 	parsedTemplate *ast_domain.TemplateAST,
 	parsedScript *annotator_dto.ParsedScript,
@@ -335,15 +330,13 @@ func buildParsedComponent(
 	return component
 }
 
-// resolveCollectionSourceAlias finds the full import path for a given alias.
-// Resolves p-collection-source attributes that reference Go imports for external
-// markdown content.
+// resolveCollectionSourceAlias finds the full import path for a given alias. Resolves
+// p-collection-source attributes that reference Go imports for external markdown content.
 //
 // Takes alias (string) which is the import alias to look up.
 // Takes goImports ([]*goast.ImportSpec) which contains the parsed Go imports.
 //
-// Returns string which is the full import path, or an empty string if not
-// found.
+// Returns string which is the full import path, or an empty string if not found.
 func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) string {
 	for _, imp := range goImports {
 		if imp == nil || imp.Path == nil {
@@ -366,8 +359,8 @@ func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) s
 
 // createEmptyParsedScript creates a default ParsedScript for empty script blocks.
 //
-// Returns *annotator_dto.ParsedScript which contains a minimal valid script
-// structure with default values.
+// Returns *annotator_dto.ParsedScript which contains a minimal valid script structure
+// with default values.
 func createEmptyParsedScript() *annotator_dto.ParsedScript {
 	const defaultPackageName = "piko_default"
 	return &annotator_dto.ParsedScript{
@@ -389,17 +382,17 @@ func createEmptyParsedScript() *annotator_dto.ParsedScript {
 
 // analyseGoScript parses Go source code and extracts script metadata.
 //
-// When the script source is empty or contains only whitespace, returns an
-// empty parsed script with no imports.
+// When the script source is empty or contains only whitespace, returns an empty parsed
+// script with no imports.
 //
 // Takes scriptSource (string) which is the Go source code to parse.
-// Takes scriptStartLocation (ast_domain.Location) which specifies where the
-// script begins in the original file.
+// Takes scriptStartLocation (ast_domain.Location) which specifies where the script begins
+// in the original file.
 //
 // Returns *annotator_dto.ParsedScript which contains the AST and metadata.
 // Returns []annotator_dto.PikoImport which lists any Piko-specific imports.
-// Returns error when the Go source code has parse errors. In fault-tolerant
-// mode, a partial script is still returned along with the error.
+// Returns error when the Go source code has parse errors. In fault-tolerant mode, a
+// partial script is still returned along with the error.
 func analyseGoScript(scriptSource string, scriptStartLocation ast_domain.Location) (*annotator_dto.ParsedScript, []annotator_dto.PikoImport, error) {
 	if isEffectivelyEmpty(scriptSource) {
 		return createEmptyParsedScript(), nil, nil
@@ -452,8 +445,8 @@ func analyseGoScript(scriptSource string, scriptStartLocation ast_domain.Locatio
 	return parsedScript, pikoImports, nil
 }
 
-// separateImports splits declarations into piko imports, standard Go imports,
-// and other declarations.
+// separateImports splits declarations into piko imports, standard Go imports, and other
+// declarations.
 //
 // Takes decls ([]goast.Decl) which contains the declarations to separate.
 // Takes fset (*token.FileSet) which provides source position data.
@@ -478,8 +471,8 @@ func separateImports(decls []goast.Decl, fset *token.FileSet) ([]annotator_dto.P
 	return pikoImports, goImports, otherDecls
 }
 
-// categoriseImportDecl processes a single import declaration and sorts its
-// specs into Piko imports or standard Go imports.
+// categoriseImportDecl processes a single import declaration and sorts its specs into
+// Piko imports or standard Go imports.
 //
 // Takes genDecl (*goast.GenDecl) which is the import declaration to process.
 // Takes fset (*token.FileSet) which provides position information.
@@ -496,8 +489,8 @@ func categoriseImportDecl(genDecl *goast.GenDecl, fset *token.FileSet, pikoImpor
 	}
 }
 
-// categoriseImportSpec sorts a single import into either the Piko imports list
-// or the standard Go imports list.
+// categoriseImportSpec sorts a single import into either the Piko imports list or the
+// standard Go imports list.
 //
 // Takes impSpec (*goast.ImportSpec) which is the import to check.
 // Takes fset (*token.FileSet) which provides position details.
@@ -550,8 +543,8 @@ func createPikoImport(impSpec *goast.ImportSpec, fset *token.FileSet, pathVal st
 	}
 }
 
-// reconstructImportBlock adds a single, tidy import block back to the AST
-// if one is needed.
+// reconstructImportBlock adds a single, tidy import block back to the AST if one is
+// needed.
 //
 // Takes file (*goast.File) which is the AST to modify.
 func reconstructImportBlock(file *goast.File) {
@@ -566,11 +559,11 @@ func reconstructImportBlock(file *goast.File) {
 	file.Decls = append([]goast.Decl{importDecl}, file.Decls...)
 }
 
-// inspectDeclarations walks the AST and passes each node to functions that
-// handle specific declaration types.
+// inspectDeclarations walks the AST and passes each node to functions that handle
+// specific declaration types.
 //
-// Takes result (*annotator_dto.ParsedScript) which holds the parsed AST and
-// collects the declarations found during the walk.
+// Takes result (*annotator_dto.ParsedScript) which holds the parsed AST and collects the
+// declarations found during the walk.
 func inspectDeclarations(result *annotator_dto.ParsedScript) {
 	inspector := func(n goast.Node) bool {
 		switch node := n.(type) {
@@ -584,8 +577,7 @@ func inspectDeclarations(result *annotator_dto.ParsedScript) {
 	goast.Inspect(result.AST, inspector)
 }
 
-// inspectTypeSpec checks a type declaration and stores it if it is a Props
-// type.
+// inspectTypeSpec checks a type declaration and stores it if it is a Props type.
 //
 // Takes node (*goast.TypeSpec) which is the type declaration to check.
 // Takes result (*annotator_dto.ParsedScript) which stores the found Props type.
@@ -597,8 +589,7 @@ func inspectTypeSpec(node *goast.TypeSpec, result *annotator_dto.ParsedScript) {
 	}
 }
 
-// inspectFuncDecl checks a function declaration for Render and lifecycle
-// functions.
+// inspectFuncDecl checks a function declaration for Render and lifecycle functions.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to check.
 // Takes result (*annotator_dto.ParsedScript) which stores the parsed data.
@@ -614,13 +605,13 @@ func inspectFuncDecl(node *goast.FuncDecl, result *annotator_dto.ParsedScript) {
 	}
 }
 
-// isRenderFuncSignature checks whether a function declaration matches the
-// expected signature for a Render function.
+// isRenderFuncSignature checks whether a function declaration matches the expected
+// signature for a Render function.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to check.
 //
-// Returns bool which is true if the function is named Render and has at least
-// one parameter and one return value.
+// Returns bool which is true if the function is named Render and has at least one
+// parameter and one return value.
 func isRenderFuncSignature(node *goast.FuncDecl) bool {
 	return node.Name.Name == functionNameRender &&
 		node.Type.Params != nil &&
@@ -629,9 +620,9 @@ func isRenderFuncSignature(node *goast.FuncDecl) bool {
 		node.Type.Results.NumFields() > 0
 }
 
-// findAndAnalyseLifecycleFuncs checks for special lifecycle functions and
-// records their presence in the parsed script result. It looks for functions
-// named Middlewares, Locales, and CachePolicy.
+// findAndAnalyseLifecycleFuncs checks for special lifecycle functions and records their
+// presence in the parsed script result. It looks for functions named Middlewares,
+// Locales, and CachePolicy.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to check.
 // Takes result (*annotator_dto.ParsedScript) which stores the analysis results.
@@ -662,13 +653,12 @@ func findAndAnalyseLifecycleFuncs(node *goast.FuncDecl, result *annotator_dto.Pa
 
 // parseI18nBlocks extracts and flattens translation data from i18n blocks.
 //
-// Takes sfcResult (*sfcparser.ParseResult) which contains the parsed SFC with
-// i18n blocks to process.
-// Takes sourcePath (string) which identifies the source file for error
-// messages.
+// Takes sfcResult (*sfcparser.ParseResult) which contains the parsed SFC with i18n blocks
+// to process.
+// Takes sourcePath (string) which identifies the source file for error messages.
 //
-// Returns i18n_domain.Translations which contains the flattened translations
-// grouped by locale.
+// Returns i18n_domain.Translations which contains the flattened translations grouped by
+// locale.
 // Returns error when the i18n JSON block cannot be parsed.
 func parseI18nBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) (i18n_domain.Translations, error) {
 	if len(sfcResult.I18nBlocks) == 0 {
@@ -698,13 +688,12 @@ func parseI18nBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) (i18n_
 	return localTranslations, nil
 }
 
-// isEffectivelyEmpty checks whether Go source code contains only whitespace
-// and comments.
+// isEffectivelyEmpty checks whether Go source code contains only whitespace and comments.
 //
 // Takes source (string) which is the Go source code to check.
 //
-// Returns bool which is true if the source has no code apart from whitespace
-// and comments.
+// Returns bool which is true if the source has no code apart from whitespace and
+// comments.
 func isEffectivelyEmpty(source string) bool {
 	if strings.TrimSpace(source) == "" {
 		return true

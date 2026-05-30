@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	// DefaultCacheMaximumSize is the default maximum number of entries for
-	// in-memory cache providers.
+	// DefaultCacheMaximumSize is the default maximum number of entries for in-memory cache
+	// providers.
 	DefaultCacheMaximumSize = 10000
 )
 
@@ -46,20 +46,20 @@ type Config struct {
 	// Clock provides time operations. If nil, defaults to RealClock.
 	Clock clock.Clock
 
-	// Provider specifies the cache provider (e.g., "otter", "redis",
-	// "redis-cluster"). If empty, uses the service's default provider.
+	// Provider specifies the cache provider (e.g., "otter", "redis", "redis-cluster"). If
+	// empty, uses the service's default provider.
 	Provider string
 
 	// Namespace is the key prefix for all cache entries (e.g. "llm:cache").
 	Namespace string
 
-	// MaximumSize is the maximum number of entries for in-memory providers.
-	// Remote providers ignore this value.
+	// MaximumSize is the maximum number of entries for in-memory providers. Remote providers
+	// ignore this value.
 	MaximumSize int
 }
 
-// Store provides an LLM cache using the internal cache service.
-// It implements llm_domain.CacheStorePort and io.Closer.
+// Store provides an LLM cache using the internal cache service. It implements
+// llm_domain.CacheStorePort and io.Closer.
 type Store struct {
 	// cache stores LLM response entries for fast retrieval.
 	cache cache_domain.Cache[string, *llm_dto.CacheEntry]
@@ -77,16 +77,18 @@ type Store struct {
 	misses atomic.Int64
 }
 
-var _ llm_domain.CacheStorePort = (*Store)(nil)
+var (
+	_ llm_domain.CacheStorePort = (*Store)(nil)
+)
 
 // StoreOption configures optional Store dependencies.
 type StoreOption func(*Store)
 
-// WithCache injects a pre-built cache, bypassing the default cache builder.
-// Intended for testing.
+// WithCache injects a pre-built cache, bypassing the default cache builder. Intended for
+// testing.
 //
-// Takes cache (cache_domain.Cache[string, *llm_dto.CacheEntry]) which is the
-// cache to use.
+// Takes cache (cache_domain.Cache[string, *llm_dto.CacheEntry]) which is the cache to
+// use.
 //
 // Returns StoreOption which applies this setting to the store.
 func WithCache(cache cache_domain.Cache[string, *llm_dto.CacheEntry]) StoreOption {
@@ -158,8 +160,8 @@ func (s *Store) Clear(ctx context.Context) error {
 
 // GetStats returns cache statistics.
 //
-// Returns *llm_dto.CacheStats which contains the current hit and miss counts,
-// cache size, and estimated cost saved.
+// Returns *llm_dto.CacheStats which contains the current hit and miss counts, cache size,
+// and estimated cost saved.
 // Returns error which is always nil.
 func (s *Store) GetStats(_ context.Context) (*llm_dto.CacheStats, error) {
 	return &llm_dto.CacheStats{
@@ -179,8 +181,8 @@ func (s *Store) Close() {
 //
 // Takes ctx (context.Context) which controls cancellation during cache setup.
 // Takes config (Config) which configures the store.
-// Takes options (...StoreOption) which are optional functions to configure the
-// store, such as WithCache for injecting a test cache.
+// Takes options (...StoreOption) which are optional functions to configure the store,
+// such as WithCache for injecting a test cache.
 //
 // Returns *Store which is ready for use.
 // Returns error when cache creation fails.

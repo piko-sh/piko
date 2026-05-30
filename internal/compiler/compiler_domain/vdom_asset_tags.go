@@ -38,8 +38,8 @@ const (
 	// tagPikoPicture is the tag name for piko:picture custom elements.
 	tagPikoPicture = "piko:picture"
 
-	// tagPikoSvgInline is the custom element name that fetches and inlines SVGs at
-	// runtime, enabling CSS styling of SVG internals (fill, stroke, etc.).
+	// tagPikoSvgInline is the custom element name that fetches and inlines SVGs at runtime,
+	// enabling CSS styling of SVG internals (fill, stroke, etc.).
 	tagPikoSvgInline = "piko-svg-inline"
 
 	// attributeSrc is the name of the src attribute for image and SVG elements.
@@ -66,8 +66,8 @@ type pikoImgAttrs struct {
 	// source is the static source URL for the image; empty if dynamically bound.
 	source string
 
-	// dynamicSource holds the AST expression for a dynamic src attribute binding;
-	// nil means the source is static or not present.
+	// dynamicSource holds the AST expression for a dynamic src attribute binding; nil means
+	// the source is static or not present.
 	dynamicSource ast_domain.Expression
 
 	// sizes is the HTML sizes attribute value for responsive images.
@@ -76,8 +76,7 @@ type pikoImgAttrs struct {
 	// densities specifies pixel density descriptors for responsive images.
 	densities string
 
-	// formats lists image output formats as comma-separated values; defaults to
-	// webp.
+	// formats lists image output formats as comma-separated values; defaults to webp.
 	formats string
 
 	// widths specifies available image widths as a comma-separated list.
@@ -101,8 +100,8 @@ type pikoSvgAttrs struct {
 }
 
 var (
-	// pikoImgExcludedAttrs contains attribute names to exclude when copying
-	// piko:img attributes.
+	// pikoImgExcludedAttrs contains attribute names to exclude when copying piko:img
+	// attributes.
 	pikoImgExcludedAttrs = map[string]bool{
 		attributeSrc:       true,
 		attributeSizes:     true,
@@ -111,15 +110,14 @@ var (
 		attributeWidths:    true,
 	}
 
-	// pikoSvgExcludedAttrs contains attribute names to exclude when copying
-	// piko:svg attributes.
+	// pikoSvgExcludedAttrs contains attribute names to exclude when copying piko:svg
+	// attributes.
 	pikoSvgExcludedAttrs = map[string]bool{
 		attributeSrc: true,
 	}
 )
 
-// isAssetTag checks if a tag name is a special asset tag (piko:img or
-// piko:svg).
+// isAssetTag checks if a tag name is a special asset tag (piko:img or piko:svg).
 //
 // Takes tagName (string) which is the tag name to check.
 //
@@ -156,11 +154,9 @@ func isPikoSvg(tagName string) bool {
 	return strings.EqualFold(tagName, tagPikoSvg)
 }
 
-// buildAssetElementNodeAST builds the JavaScript AST for a piko:img or piko:svg
-// element.
+// buildAssetElementNodeAST builds the JavaScript AST for a piko:img or piko:svg element.
 //
-// Takes n (*ast_domain.TemplateNode) which is the asset element node to
-// process.
+// Takes n (*ast_domain.TemplateNode) which is the asset element node to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
@@ -185,8 +181,8 @@ func buildAssetElementNodeAST(
 	return buildElementNodeAST(ctx, n, buildContext, keyJSExpr)
 }
 
-// buildPikoImgAST builds the JavaScript AST for a piko:img element.
-// Transforms piko:img to an img tag with transformed src and srcset attributes.
+// buildPikoImgAST builds the JavaScript AST for a piko:img element. Transforms piko:img
+// to an img tag with transformed src and srcset attributes.
 //
 // Takes n (*ast_domain.TemplateNode) which is the piko:img element to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
@@ -229,16 +225,14 @@ func buildPikoImgAST(
 	return elementCall, nil
 }
 
-// handlePikoImgSrcAttr handles the src attribute for piko:img elements. It
-// transforms static src paths and builds srcset for responsive images, or wraps
-// dynamic src expressions with runtime transformation.
+// handlePikoImgSrcAttr handles the src attribute for piko:img elements. It transforms
+// static src paths and builds srcset for responsive images, or wraps dynamic src
+// expressions with runtime transformation.
 //
-// Takes imgAttrs (pikoImgAttrs) which contains the extracted piko:img
-// attributes.
+// Takes imgAttrs (pikoImgAttrs) which contains the extracted piko:img attributes.
 // Takes properties (map[string]js_ast.Expr) which receives the src properties.
 // Takes registry (*RegistryContext) which provides compilation context.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 func handlePikoImgSrcAttr(imgAttrs pikoImgAttrs, properties map[string]js_ast.Expr, registry *RegistryContext, moduleName string) {
 	if imgAttrs.source != "" {
 		transformedSrc := transformAssetSrc(imgAttrs.source, moduleName)
@@ -269,17 +263,16 @@ func handlePikoImgSrcAttr(imgAttrs pikoImgAttrs, properties map[string]js_ast.Ex
 	properties[attributeSrc] = js_ast.Expr{Data: &js_ast.EUnary{Op: js_ast.UnOpPos, Value: transformedExpr}}
 }
 
-// buildPikoSvgAST builds the JavaScript AST for a piko:svg element. Transforms
-// piko:svg to a piko-svg-inline custom element that fetches and inlines the SVG
-// at runtime, allowing CSS styling of SVG internals.
+// buildPikoSvgAST builds the JavaScript AST for a piko:svg element. Transforms piko:svg
+// to a piko-svg-inline custom element that fetches and inlines the SVG at runtime,
+// allowing CSS styling of SVG internals.
 //
 // Takes n (*ast_domain.TemplateNode) which is the piko:svg element to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
 //
-// Returns js_ast.Expr which is the JavaScript AST for the piko-svg-inline
-// element.
+// Returns js_ast.Expr which is the JavaScript AST for the piko-svg-inline element.
 // Returns error when building the element fails.
 func buildPikoSvgAST(
 	ctx context.Context,
@@ -395,21 +388,19 @@ func extractPikoSvgAttrs(n *ast_domain.TemplateNode) pikoSvgAttrs {
 	return result
 }
 
-// transformAssetSrc transforms an asset source path by prepending the asset
-// serve path. Delegates to assetpath.Transform with the given module name.
+// transformAssetSrc transforms an asset source path by prepending the asset serve path.
+// Delegates to assetpath.Transform with the given module name.
 //
 // Takes src (string) which is the original source path.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 //
 // Returns string which is the transformed source path.
 func transformAssetSrc(src string, moduleName string) string {
 	return assetpath.Transform(src, moduleName, assetpath.DefaultServePath)
 }
 
-// buildSrcsetValue builds a srcset value from responsive image attributes.
-// Generates URLs with profile query parameters for on-demand variant
-// generation.
+// buildSrcsetValue builds a srcset value from responsive image attributes. Generates URLs
+// with profile query parameters for on-demand variant generation.
 //
 // Takes baseSrc (string) which is the transformed base source URL.
 // Takes attrs (pikoImgAttrs) which contains the responsive image attributes.
@@ -455,8 +446,7 @@ func buildSrcsetValue(baseSrc string, attrs pikoImgAttrs) string {
 	return strings.Join(parts, ", ")
 }
 
-// parseCommaSeparated splits a string by commas and trims whitespace from each
-// part.
+// parseCommaSeparated splits a string by commas and trims whitespace from each part.
 //
 // Takes s (string) which is the input to split.
 //
@@ -480,8 +470,8 @@ func parseCommaSeparated(s string) []string {
 //
 // Takes s (string) which is the input containing integers separated by commas.
 //
-// Returns []int which contains the parsed positive integers, skipping any
-// values that are not valid or are less than one.
+// Returns []int which contains the parsed positive integers, skipping any values that are
+// not valid or are less than one.
 func parseIntList(s string) []int {
 	parts := parseCommaSeparated(s)
 	result := make([]int, 0, len(parts))
@@ -493,12 +483,11 @@ func parseIntList(s string) []int {
 	return result
 }
 
-// buildAssetSrcTransformCall wraps a dynamic src expression with runtime
-// transformation. Generates: piko.assets.resolve(expr, moduleName).
+// buildAssetSrcTransformCall wraps a dynamic src expression with runtime transformation.
+// Generates: piko.assets.resolve(expr, moduleName).
 //
 // Takes srcExpr (js_ast.Expr) which is the dynamic src expression.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 //
 // Returns js_ast.Expr which is the wrapped transformation call.
 func buildAssetSrcTransformCall(srcExpr js_ast.Expr, moduleName string) js_ast.Expr {
@@ -520,12 +509,10 @@ func buildAssetSrcTransformCall(srcExpr js_ast.Expr, moduleName string) js_ast.E
 	}}
 }
 
-// collectPikoImgStaticAttrs collects static attributes excluding piko:img
-// specific ones.
+// collectPikoImgStaticAttrs collects static attributes excluding piko:img specific ones.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node.
-// Takes properties (map[string]js_ast.Expr) which receives collected
-// attributes.
+// Takes properties (map[string]js_ast.Expr) which receives collected attributes.
 // Takes attrs (pikoImgAttrs) which contains the extracted piko:img attributes.
 func collectPikoImgStaticAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, attrs pikoImgAttrs) {
 	for i := range n.Attributes {
@@ -544,8 +531,7 @@ func collectPikoImgStaticAttrs(n *ast_domain.TemplateNode, properties map[string
 // collectPikoAssetDynamicAttrs collects dynamic attributes excluding src.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node.
-// Takes properties (map[string]js_ast.Expr) which receives the collected
-// attributes.
+// Takes properties (map[string]js_ast.Expr) which receives the collected attributes.
 // Takes booleanProps ([]string) which lists boolean property names.
 // Takes registry (*RegistryContext) which provides compilation context.
 func collectPikoAssetDynamicAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, booleanProps []string, registry *RegistryContext) {
@@ -566,12 +552,10 @@ func collectPikoAssetDynamicAttrs(n *ast_domain.TemplateNode, properties map[str
 	}
 }
 
-// collectPikoSvgStaticAttrs collects static attributes excluding piko:svg
-// specific ones.
+// collectPikoSvgStaticAttrs collects static attributes excluding piko:svg specific ones.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node.
-// Takes properties (map[string]js_ast.Expr) which receives the collected
-// attributes.
+// Takes properties (map[string]js_ast.Expr) which receives the collected attributes.
 func collectPikoSvgStaticAttrs(n *ast_domain.TemplateNode, properties map[string]js_ast.Expr, _ pikoSvgAttrs) {
 	for i := range n.Attributes {
 		attr := &n.Attributes[i]

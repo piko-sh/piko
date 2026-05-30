@@ -43,7 +43,7 @@ const (
 	// NotificationNameWebhook identifies the generic webhook notification provider.
 	NotificationNameWebhook = "webhook"
 
-	// NotificationNameStdout identifies the stdout notification provider,
-	// used for development and testing.
+	// NotificationNameStdout identifies the stdout notification provider, used for
+	// development and testing.
 	NotificationNameStdout = "stdout"
 )

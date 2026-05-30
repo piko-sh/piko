@@ -41,8 +41,8 @@ func TestDisassembleAssembly_singleFunction(t *testing.T) {
 	child := newBytecodeBuilder().
 		intRegisters(3).
 		stringRegisters(1).
-		emit(opLoadIntConstSmall, 0, 42, 0).
-		emit(opReturnVoid, 0, 0, 0).
+		emit(opDrillTier1, uint8(subOpLoadIntConstSmall), 0, 42).
+		emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid)).
 		build()
 	child.name = "main"
 	child.intConstants = []int64{42}
@@ -70,11 +70,11 @@ func TestDisassembleAssembly_callSiteResolution(t *testing.T) {
 
 	b := newBytecodeBuilder()
 	funcIndex := b.addSubFunction(fibonacci)
-	siteIndex := b.addCallSite(callSite{funcIndex: funcIndex})
+	siteIndex := b.addCallSite(&callSite{funcIndex: funcIndex})
 	lo := uint8(siteIndex & 0xFF)
 	hi := uint8(siteIndex >> 8)
 	b.emit(opCall, 0, lo, hi)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	b.intRegisters(3)
 
 	main := b.build()
@@ -94,11 +94,11 @@ func TestDisassembleAssembly_callSiteResolution(t *testing.T) {
 func TestDisassembleAssembly_nativeCallComment(t *testing.T) {
 	t.Parallel()
 	b := newBytecodeBuilder()
-	siteIndex := b.addCallSite(callSite{isNative: true, nativeRegister: 2})
+	siteIndex := b.addCallSite(&callSite{isNative: true, nativeRegister: 2})
 	lo := uint8(siteIndex & 0xFF)
 	hi := uint8(siteIndex >> 8)
 	b.emit(opCallNative, 0, lo, hi)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	b.generalRegisters(3)
 
 	fn := b.build()
@@ -123,7 +123,7 @@ func TestDisassembleAssembly_closureComment(t *testing.T) {
 	lo := uint8(funcIndex & 0xFF)
 	hi := uint8(funcIndex >> 8)
 	b.emit(opMakeClosure, 0, lo, hi)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	b.generalRegisters(2)
 
 	fn := b.build()
@@ -145,14 +145,14 @@ func TestDisassembleAssembly_nestedFunctionsIndented(t *testing.T) {
 	inner := &CompiledFunction{
 		name: "inner",
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 	outer := &CompiledFunction{
 		name:      "outer",
 		functions: []*CompiledFunction{inner},
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 
@@ -201,11 +201,11 @@ func TestDisassembleAssembly_emptyBody(t *testing.T) {
 func TestDisassembleAssembly_paramAndReturnKinds(t *testing.T) {
 	t.Parallel()
 	fn := &CompiledFunction{
-		name:        "add",
-		paramKinds:  []registerKind{registerInt, registerInt},
-		resultKinds: []registerKind{registerInt},
+		name:           "add",
+		parameterKinds: []registerKind{registerInt, registerInt},
+		resultKinds:    []registerKind{registerInt},
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 	root := &CompiledFunction{
@@ -223,11 +223,11 @@ func TestDisassembleAssembly_paramAndReturnKinds(t *testing.T) {
 func TestDisassembleAssembly_variadic(t *testing.T) {
 	t.Parallel()
 	fn := &CompiledFunction{
-		name:       "sprintf",
-		paramKinds: []registerKind{registerString, registerGeneral},
-		isVariadic: true,
+		name:           "sprintf",
+		parameterKinds: []registerKind{registerString, registerGeneral},
+		isVariadic:     true,
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 	root := &CompiledFunction{
@@ -246,8 +246,8 @@ func TestDisassembleAssembly_varInitFunction(t *testing.T) {
 	varInit := &CompiledFunction{
 		name: "<varinit>",
 		body: []instruction{
-			{op: opLoadIntConstSmall, a: 0, b: 10},
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpLoadIntConstSmall), b: 0, c: 10},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 
@@ -269,8 +269,8 @@ func TestDisassembleAssembly_sourceLineAnnotations(t *testing.T) {
 	fn := &CompiledFunction{
 		name: "main",
 		body: []instruction{
-			{op: opLoadIntConstSmall, a: 0, b: 42},
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpLoadIntConstSmall), b: 0, c: 42},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 		debugSourceMap: &sourceMap{
 			files: &files,
@@ -297,8 +297,8 @@ func TestDisassembleFunctionAssembly_standalone(t *testing.T) {
 	t.Parallel()
 	fn := newBytecodeBuilder().
 		intRegisters(2).
-		emit(opLoadIntConstSmall, 0, 1, 0).
-		emit(opReturnVoid, 0, 0, 0).
+		emit(opDrillTier1, uint8(subOpLoadIntConstSmall), 0, 1).
+		emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid)).
 		build()
 	fn.name = "helper"
 
@@ -320,7 +320,7 @@ func TestDisassembleAssembly_constantPools(t *testing.T) {
 		uintConstants:    []uint64{255},
 		complexConstants: []complex128{1 + 2i},
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 
@@ -352,7 +352,7 @@ func TestDisassembleAssembly_tailCallComment(t *testing.T) {
 	target := &CompiledFunction{name: "recurse"}
 	b := newBytecodeBuilder()
 	funcIndex := b.addSubFunction(target)
-	siteIndex := b.addCallSite(callSite{funcIndex: funcIndex})
+	siteIndex := b.addCallSite(&callSite{funcIndex: funcIndex})
 	lo := uint8(siteIndex & 0xFF)
 	hi := uint8(siteIndex >> 8)
 	b.emit(opTailCall, 0, lo, hi)
@@ -375,11 +375,11 @@ func TestDisassembleAssembly_tailCallComment(t *testing.T) {
 func TestDisassembleAssembly_closureCallSite(t *testing.T) {
 	t.Parallel()
 	b := newBytecodeBuilder()
-	siteIndex := b.addCallSite(callSite{isClosure: true, closureRegister: 5})
+	siteIndex := b.addCallSite(&callSite{isClosure: true, closureRegister: 5})
 	lo := uint8(siteIndex & 0xFF)
 	hi := uint8(siteIndex >> 8)
 	b.emit(opCall, 0, lo, hi)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	b.generalRegisters(6)
 
 	fn := b.build()
@@ -399,9 +399,9 @@ func TestDisassembleAssembly_closureCallSite(t *testing.T) {
 func TestDisassembleAssembly_methodCallComment(t *testing.T) {
 	t.Parallel()
 	b := newBytecodeBuilder()
-	b.addCallSite(callSite{isMethod: true})
+	b.addCallSite(&callSite{isMethod: true})
 	b.emit(opCallMethod, 0, 0, 0)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 
 	fn := b.build()
 	fn.name = "main"
@@ -421,7 +421,7 @@ func TestDisassembleAssembly_builtinCallComment(t *testing.T) {
 	t.Parallel()
 	b := newBytecodeBuilder()
 	b.emit(opCallBuiltin, 0, 0, 0)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 
 	fn := b.build()
 	fn.name = "main"
@@ -442,11 +442,11 @@ func TestDisassembleAssembly_iifeComment(t *testing.T) {
 	iifeFn := &CompiledFunction{name: "init$1"}
 	b := newBytecodeBuilder()
 	funcIndex := b.addSubFunction(iifeFn)
-	siteIndex := b.addCallSite(callSite{funcIndex: funcIndex})
+	siteIndex := b.addCallSite(&callSite{funcIndex: funcIndex})
 	lo := uint8(siteIndex & 0xFF)
 	hi := uint8(siteIndex >> 8)
 	b.emit(opCallIIFE, 0, lo, hi)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 
 	fn := b.build()
 	fn.name = "main"
@@ -467,7 +467,7 @@ func TestDisassembleAssembly_existingCommentsPreserved(t *testing.T) {
 	b := newBytecodeBuilder()
 	b.addIntConst(100)
 	b.emit(opLoadIntConst, 0, 0, 0)
-	b.emit(opReturnVoid, 0, 0, 0)
+	b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	b.intRegisters(2)
 
 	fn := b.build()
@@ -490,7 +490,7 @@ func TestDisassembleAssembly_sourceFileInHeader(t *testing.T) {
 		name:       "main",
 		sourceFile: "cmd/server/main.go",
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 	root := &CompiledFunction{
@@ -509,7 +509,7 @@ func TestDisassembleAssembly_sourceFileOmittedWhenEmpty(t *testing.T) {
 	fn := &CompiledFunction{
 		name: "main",
 		body: []instruction{
-			{op: opReturnVoid},
+			{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)},
 		},
 	}
 	root := &CompiledFunction{
@@ -527,17 +527,17 @@ func TestDisassembleAssembly_deepNesting(t *testing.T) {
 	t.Parallel()
 	level3 := &CompiledFunction{
 		name: "level3",
-		body: []instruction{{op: opReturnVoid}},
+		body: []instruction{{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)}},
 	}
 	level2 := &CompiledFunction{
 		name:      "level2",
 		functions: []*CompiledFunction{level3},
-		body:      []instruction{{op: opReturnVoid}},
+		body:      []instruction{{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)}},
 	}
 	level1 := &CompiledFunction{
 		name:      "level1",
 		functions: []*CompiledFunction{level2},
-		body:      []instruction{{op: opReturnVoid}},
+		body:      []instruction{{op: opDrillTier1, a: uint8(subOpDrillTier2), b: uint8(subOpTier2DrillTier3), c: uint8(subOpTier3ReturnVoid)}},
 	}
 	root := &CompiledFunction{
 		name:      "<root>",

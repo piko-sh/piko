@@ -18,14 +18,16 @@
 
 package fbs
 
-import "piko.sh/piko/internal/fbs"
+import (
+	"piko.sh/piko/internal/fbs"
+)
 
 // SchemaHash is a fixed-size array holding a SHA-256 hash of a schema file.
 type SchemaHash = fbs.SchemaHash
 
 var (
-	// ErrSchemaVersionMismatch is returned when stored data was saved with a
-	// different schema version.
+	// ErrSchemaVersionMismatch is returned when stored data was saved with a different
+	// schema version.
 	ErrSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
 
 	// ComputeSchemaHash computes a SHA-256 hash of schema file content.

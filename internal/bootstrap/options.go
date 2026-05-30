@@ -57,12 +57,11 @@ const (
 	// megabyte is the number of bytes in a megabyte.
 	megabyte = 1024 * kilobyte
 
-	// defaultRegistryCacheSizeMB is the default size for the registry cache
-	// in megabytes.
+	// defaultRegistryCacheSizeMB is the default size for the registry cache in megabytes.
 	defaultRegistryCacheSizeMB = 256
 
-	// defaultRegistryCacheTTLMinutes is the default time-to-live in minutes for
-	// registry cache entries.
+	// defaultRegistryCacheTTLMinutes is the default time-to-live in minutes for registry
+	// cache entries.
 	defaultRegistryCacheTTLMinutes = 30
 )
 
@@ -72,19 +71,18 @@ type MonitoringOption func(*monitoring_domain.ServiceConfig)
 // ProfilingOption configures the pprof HTTP debug server.
 type ProfilingOption func(*profiler.Config)
 
-// GeneratorProfilingOption configures profiling for short-lived generator
-// builds that capture profiles to disk.
+// GeneratorProfilingOption configures profiling for short-lived generator builds that
+// capture profiles to disk.
 type GeneratorProfilingOption func(*profiler.Config)
 
-// cssResetConfig holds the intermediate configuration for the CSS reset
-// feature before it is resolved into the final CSS string.
+// cssResetConfig holds the intermediate configuration for the CSS reset feature before it
+// is resolved into the final CSS string.
 type cssResetConfig struct {
-	// css is the custom CSS override provided by the user. When non-empty, it
-	// takes precedence over the useComplete flag.
+	// css is the custom CSS override provided by the user. When non-empty, it takes
+	// precedence over the useComplete flag.
 	css string
 
-	// useComplete selects the comprehensive legacy reset instead of the simple
-	// default.
+	// useComplete selects the comprehensive legacy reset instead of the simple default.
 	useComplete bool
 }
 
@@ -105,8 +103,8 @@ func WithPort(port int) Option {
 
 // WithEventBus sets a custom EventBus implementation for the container.
 //
-// If the bus implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be registered for graceful shutdown.
+// If the bus implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// registered for graceful shutdown.
 //
 // Takes bus (EventBus) which specifies the event bus to use.
 //
@@ -120,8 +118,8 @@ func WithEventBus(bus orchestrator_domain.EventBus) Option {
 
 // WithRegistryService sets a custom RegistryService for the container.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// registered for graceful shutdown.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown.
 //
 // Takes service (RegistryService) which is the registry service to use.
 //
@@ -135,11 +133,10 @@ func WithRegistryService(service registry_domain.RegistryService) Option {
 
 // WithCapabilityService sets a custom capability service for the container.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// registered for graceful shutdown.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown.
 //
-// Takes service (capabilities.Service) which replaces the default capability
-// service.
+// Takes service (capabilities.Service) which replaces the default capability service.
 //
 // Returns Option which sets up the container with the custom service.
 func WithCapabilityService(service capabilities.Service) Option {
@@ -151,8 +148,8 @@ func WithCapabilityService(service capabilities.Service) Option {
 
 // WithOrchestratorService sets a custom OrchestratorService for the container.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// added to the list of services that are closed when the application stops.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be added to
+// the list of services that are closed when the application stops.
 //
 // Takes service (OrchestratorService) which is the custom service to use.
 //
@@ -166,11 +163,10 @@ func WithOrchestratorService(service orchestrator_domain.OrchestratorService) Op
 
 // WithI18nService provides a custom internationalisation service.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// registered for graceful shutdown.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown.
 //
-// Takes service (i18n_domain.Service) which is the internationalisation
-// service to use.
+// Takes service (i18n_domain.Service) which is the internationalisation service to use.
 //
 // Returns Option which sets up the container to use the provided service.
 func WithI18nService(service i18n_domain.Service) Option {
@@ -182,8 +178,8 @@ func WithI18nService(service i18n_domain.Service) Option {
 
 // WithEmailService sets a custom email service for the container.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// registered for graceful shutdown when the container stops.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown when the container stops.
 //
 // Takes service (email_domain.Service) which is the email service to use.
 //
@@ -222,8 +218,8 @@ func WithCryptoService(service crypto_domain.CryptoServicePort) Option {
 	return func(c *Container) { c.SetCryptoService(service) }
 }
 
-// WithSearchService sets a custom search service implementation.
-// This is typically used for testing with mock implementations.
+// WithSearchService sets a custom search service implementation. This is typically used
+// for testing with mock implementations.
 //
 // Takes service (SearchServicePort) which specifies the search service to use.
 //
@@ -232,15 +228,15 @@ func WithSearchService(service collection_domain.SearchServicePort) Option {
 	return func(c *Container) { c.SetSearchService(service) }
 }
 
-// WithMarkdownParser sets the markdown parser implementation used by the
-// collection service for processing markdown content.
+// WithMarkdownParser sets the markdown parser implementation used by the collection
+// service for processing markdown content.
 //
-// When a parser is configured, the collection service will register a markdown
-// content provider that uses it to parse .md files. If no parser is set, the
-// markdown collection provider is not registered.
+// When a parser is configured, the collection service will register a markdown content
+// provider that uses it to parse .md files. If no parser is set, the markdown collection
+// provider is not registered.
 //
-// Takes parser (markdown_domain.MarkdownParserPort) which provides the
-// markdown parsing implementation.
+// Takes parser (markdown_domain.MarkdownParserPort) which provides the markdown parsing
+// implementation.
 //
 // Returns Option which configures the container with the given parser.
 func WithMarkdownParser(parser markdown_domain.MarkdownParserPort) Option {
@@ -249,9 +245,9 @@ func WithMarkdownParser(parser markdown_domain.MarkdownParserPort) Option {
 	}
 }
 
-// WithMemoryRegistryCache configures the default RegistryService to use an
-// in-memory cache via the cache hexagon. For more control over cache settings,
-// use WithRegistryMetadataCacheConfig instead.
+// WithMemoryRegistryCache configures the default RegistryService to use an in-memory
+// cache via the cache hexagon. For more control over cache settings, use
+// WithRegistryMetadataCacheConfig instead.
 //
 // Returns Option which applies the in-memory cache settings to the container.
 func WithMemoryRegistryCache() Option {
@@ -264,8 +260,8 @@ func WithMemoryRegistryCache() Option {
 	}
 }
 
-// WithJSONTypeInspectorCache configures the TypeInspectorManager to use a
-// JSON file-based cache for storing type inspection data.
+// WithJSONTypeInspectorCache configures the TypeInspectorManager to use a JSON file-based
+// cache for storing type inspection data.
 //
 // Returns Option which applies the JSON cache configuration to a Container.
 func WithJSONTypeInspectorCache() Option {
@@ -293,8 +289,8 @@ func WithCSRFSecret(key []byte) Option {
 
 // WithCSRFTokenMaxAge sets the safety-net maximum age for CSRF tokens.
 //
-// The primary expiry mechanism is cookie rotation; this is a fallback for
-// tokens backed by cookies that persist beyond their expected lifetime.
+// The primary expiry mechanism is cookie rotation; this is a fallback for tokens backed
+// by cookies that persist beyond their expected lifetime.
 //
 // When d is 0 or negative, the default of 30 days is used.
 //
@@ -307,9 +303,9 @@ func WithCSRFTokenMaxAge(d time.Duration) Option {
 	}
 }
 
-// WithCSRFSecFetchSiteEnforcement controls whether browser requests (identified
-// by the Sec-Fetch-Site header) are required to include CSRF tokens, enabled by
-// default for defence-in-depth security.
+// WithCSRFSecFetchSiteEnforcement controls whether browser requests (identified by the
+// Sec-Fetch-Site header) are required to include CSRF tokens, enabled by default for
+// defence-in-depth security.
 //
 // Takes enabled (bool) which controls enforcement.
 //
@@ -320,13 +316,13 @@ func WithCSRFSecFetchSiteEnforcement(enabled bool) Option {
 	}
 }
 
-// WithTrustedProxies configures the CIDR ranges of reverse proxies trusted to
-// set X-Forwarded-For headers. When a request arrives from one of these ranges,
-// the real client IP is extracted from forwarding headers rather than using the
-// connection IP directly.
+// WithTrustedProxies configures the CIDR ranges of reverse proxies trusted to set
+// X-Forwarded-For headers. When a request arrives from one of these ranges, the real
+// client IP is extracted from forwarding headers rather than using the connection IP
+// directly.
 //
-// Common values include RFC 1918 private ranges: "10.0.0.0/8",
-// "172.16.0.0/12", "192.168.0.0/16".
+// Common values include RFC 1918 private ranges: "10.0.0.0/8", "172.16.0.0/12",
+// "192.168.0.0/16".
 //
 // Takes cidrs (...string) which are the CIDR ranges to trust.
 //
@@ -337,12 +333,11 @@ func WithTrustedProxies(cidrs ...string) Option {
 	}
 }
 
-// WithCloudflareEnabled controls whether to trust the CF-Connecting-IP header
-// from trusted proxies.
+// WithCloudflareEnabled controls whether to trust the CF-Connecting-IP header from
+// trusted proxies.
 //
-// When false (default), the header is ignored even from trusted proxies.
-// Enable this only when Cloudflare is your edge proxy and its IP ranges are
-// listed in TrustedProxies.
+// When false (default), the header is ignored even from trusted proxies. Enable this only
+// when Cloudflare is your edge proxy and its IP ranges are listed in TrustedProxies.
 //
 // Takes enabled (bool) which controls whether CF-Connecting-IP is trusted.
 //
@@ -353,9 +348,9 @@ func WithCloudflareEnabled(enabled bool) Option {
 	}
 }
 
-// WithRateLimitEnabled enables or disables HTTP request rate limiting.
-// Rate limiting is disabled by default to prevent accidental self-limiting
-// when deployed behind a reverse proxy without TrustedProxies configured.
+// WithRateLimitEnabled enables or disables HTTP request rate limiting. Rate limiting is
+// disabled by default to prevent accidental self-limiting when deployed behind a reverse
+// proxy without TrustedProxies configured.
 //
 // Takes enabled (bool) which controls whether rate limiting is active.
 //
@@ -377,10 +372,9 @@ func WithConfigResolvers(resolvers ...config_domain.Resolver) Option {
 	}
 }
 
-// WithShutdownDrainDelay sets the duration to wait after marking the instance
-// as not ready (readiness returns 503) before shutting down the HTTP server.
-// This gives load balancers time to deregister the instance during rolling
-// deploys.
+// WithShutdownDrainDelay sets the duration to wait after marking the instance as not
+// ready (readiness returns 503) before shutting down the HTTP server. This gives load
+// balancers time to deregister the instance during rolling deploys.
 //
 // Default: 0s in dev mode, 3s in production.
 //
@@ -393,14 +387,12 @@ func WithShutdownDrainDelay(delay time.Duration) Option {
 	}
 }
 
-// WithFrontendModule enables a built-in frontend module across the whole site.
-// Built-in modules include Analytics, Modals, and Toasts.
+// WithFrontendModule enables a built-in frontend module across the whole site. Built-in
+// modules include Analytics, Modals, and Toasts.
 //
 // Takes module (FrontendModule) which specifies the built-in module to enable.
-// Takes moduleConfig (...any) which provides an optional config struct:
-//   - AnalyticsConfig for ModuleAnalytics
-//   - ModalsConfig for ModuleModals
-//   - ToastsConfig for ModuleToasts
+// Takes moduleConfig (...any) which provides an optional config struct: - AnalyticsConfig
+// for ModuleAnalytics - ModalsConfig for ModuleModals - ToastsConfig for ModuleToasts
 //
 // Returns Option which sets up the container to load the specified module.
 func WithFrontendModule(module daemon_frontend.FrontendModule, moduleConfig ...any) Option {
@@ -413,9 +405,8 @@ func WithFrontendModule(module daemon_frontend.FrontendModule, moduleConfig ...a
 	}
 }
 
-// WithCustomFrontendModule registers a custom frontend JavaScript module.
-// The module will be served at /_piko/dist/ppframework.{name}.min.js and
-// included in all pages.
+// WithCustomFrontendModule registers a custom frontend JavaScript module. The module will
+// be served at /_piko/dist/ppframework.{name}.min.js and included in all pages.
 //
 // Takes name (string) which specifies the module name used in the URL.
 // Takes content ([]byte) which contains the JavaScript module source code.
@@ -432,18 +423,18 @@ func WithCustomFrontendModule(name string, content []byte, moduleConfig ...map[s
 	}
 }
 
-// WithMetricsExporter configures a metrics exporter for the health probe
-// server. When enabled, OTEL metrics are exposed at the configured MetricsPath
-// (default: /metrics) on the health probe server (default port: 9090).
+// WithMetricsExporter configures a metrics exporter for the health probe server. When
+// enabled, OTEL metrics are exposed at the configured MetricsPath (default: /metrics) on
+// the health probe server (default port: 9090).
 //
-// The exporter integrates with the OTEL MeterProvider, so all metrics recorded
-// through OTEL instrumentation will be available for scraping.
+// The exporter integrates with the OTEL MeterProvider, so all metrics recorded through
+// OTEL instrumentation will be available for scraping.
 //
-// This option should be used in conjunction with the health probe server. If
-// the health probe is disabled, the metrics endpoint will not be available.
+// This option should be used in conjunction with the health probe server. If the health
+// probe is disabled, the metrics endpoint will not be available.
 //
-// Takes exporter (monitoring_domain.MetricsExporter) which is the metrics
-// exporter to use.
+// Takes exporter (monitoring_domain.MetricsExporter) which is the metrics exporter to
+// use.
 //
 // Returns Option which configures the container with the metrics exporter.
 func WithMetricsExporter(exporter monitoring_domain.MetricsExporter) Option {
@@ -469,8 +460,8 @@ func WithMonitoringAddress(addr string) MonitoringOption {
 	}
 }
 
-// WithMonitoringBindAddress sets the network address for the monitoring server
-// to bind to.
+// WithMonitoringBindAddress sets the network address for the monitoring server to bind
+// to.
 //
 // Takes addr (string) which specifies the address and port to listen on.
 //
@@ -481,9 +472,9 @@ func WithMonitoringBindAddress(addr string) MonitoringOption {
 	}
 }
 
-// WithMonitoringAutoNextPort enables automatic port selection for the
-// monitoring server. When the configured port is already in use, the server
-// tries consecutive ports up to 100 attempts.
+// WithMonitoringAutoNextPort enables automatic port selection for the monitoring server.
+// When the configured port is already in use, the server tries consecutive ports up to
+// 100 attempts.
 //
 // Takes enabled (bool) which controls whether auto-port selection is active.
 //
@@ -494,21 +485,20 @@ func WithMonitoringAutoNextPort(enabled bool) MonitoringOption {
 	}
 }
 
-// WithMonitoring enables the monitoring subsystem for telemetry collection.
-// When a transport is configured via WithMonitoringTransport, monitoring data
-// (metrics, traces, system stats) is also available to remote clients.
+// WithMonitoring enables the monitoring subsystem for telemetry collection. When a
+// transport is configured via WithMonitoringTransport, monitoring data (metrics, traces,
+// system stats) is also available to remote clients.
 //
-// The monitoring service provides span processors and metric readers for
-// use with the OpenTelemetry SDK, so traces and metrics can be captured
-// without needing external backends like Jaeger or Prometheus.
+// The monitoring service provides span processors and metric readers for use with the
+// OpenTelemetry SDK, so traces and metrics can be captured without needing external
+// backends like Jaeger or Prometheus.
 //
-// The service starts during application bootstrap and stops during graceful
-// shutdown.
+// The service starts during application bootstrap and stops during graceful shutdown.
 //
-// Takes opts (...MonitoringOption) which provides optional settings:
-//   - WithMonitoringAddress(":9091"): sets the transport listen port.
-//   - WithMonitoringBindAddress("127.0.0.1"): sets the bind address.
-//   - WithMonitoringTransport(factory): sets the transport (e.g. gRPC).
+// Takes opts (...MonitoringOption) which provides optional settings: -
+// WithMonitoringAddress(":9091"): sets the transport listen port. -
+// WithMonitoringBindAddress("127.0.0.1"): sets the bind address. -
+// WithMonitoringTransport(factory): sets the transport (e.g. gRPC).
 //
 // Returns Option which configures the container with the monitoring service.
 func WithMonitoring(opts ...MonitoringOption) Option {
@@ -548,14 +538,13 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 	}
 }
 
-// buildMonitoringServiceOpts constructs the service options slice from the
-// monitoring configuration.
+// buildMonitoringServiceOpts constructs the service options slice from the monitoring
+// configuration.
 //
-// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the
-// monitoring settings to convert into service options.
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the monitoring
+// settings to convert into service options.
 //
-// Returns []monitoring_domain.ServiceOption which contains the resolved
-// options.
+// Returns []monitoring_domain.ServiceOption which contains the resolved options.
 func buildMonitoringServiceOpts(serviceConfig *monitoring_domain.ServiceConfig) []monitoring_domain.ServiceOption {
 	serviceOpts := []monitoring_domain.ServiceOption{
 		monitoring_domain.WithServiceAddress(serviceConfig.Address),
@@ -581,14 +570,13 @@ func buildMonitoringServiceOpts(serviceConfig *monitoring_domain.ServiceConfig) 
 	return appendWatchdogServiceOpts(serviceOpts, serviceConfig)
 }
 
-// resolveMonitoringFactories returns the service factories from configuration
-// or the default factories if none are configured.
+// resolveMonitoringFactories returns the service factories from configuration or the
+// default factories if none are configured.
 //
-// Takes serviceConfig (*monitoring_domain.ServiceConfig) which may contain
-// custom factory overrides.
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which may contain custom factory
+// overrides.
 //
-// Returns monitoring_domain.ServiceFactories which contains the resolved
-// factories.
+// Returns monitoring_domain.ServiceFactories which contains the resolved factories.
 func resolveMonitoringFactories(serviceConfig *monitoring_domain.ServiceConfig) monitoring_domain.ServiceFactories {
 	if serviceConfig.Factories != nil {
 		return *serviceConfig.Factories
@@ -597,16 +585,15 @@ func resolveMonitoringFactories(serviceConfig *monitoring_domain.ServiceConfig) 
 	return monitoring_adapters.DefaultServiceFactories()
 }
 
-// appendWatchdogServiceOpts appends watchdog-related service options when
-// watchdog configuration is present.
+// appendWatchdogServiceOpts appends watchdog-related service options when watchdog
+// configuration is present.
 //
-// Takes serviceOpts ([]monitoring_domain.ServiceOption) which is the existing
-// options slice to extend.
-// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the
-// watchdog settings.
+// Takes serviceOpts ([]monitoring_domain.ServiceOption) which is the existing options
+// slice to extend.
+// Takes serviceConfig (*monitoring_domain.ServiceConfig) which provides the watchdog
+// settings.
 //
-// Returns []monitoring_domain.ServiceOption which is the extended options
-// slice.
+// Returns []monitoring_domain.ServiceOption which is the extended options slice.
 func appendWatchdogServiceOpts(
 	serviceOpts []monitoring_domain.ServiceOption,
 	serviceConfig *monitoring_domain.ServiceConfig,
@@ -626,9 +613,8 @@ func appendWatchdogServiceOpts(
 	return serviceOpts
 }
 
-// WithMonitoringTransport sets the transport factory for the monitoring
-// service, enabling remote clients to connect via the given transport
-// (e.g. gRPC).
+// WithMonitoringTransport sets the transport factory for the monitoring service, enabling
+// remote clients to connect via the given transport (e.g. gRPC).
 //
 // Example:
 //
@@ -636,8 +622,7 @@ func appendWatchdogServiceOpts(
 //	    piko.WithMonitoringTransport(monitoring_transport_grpc.Transport()),
 //	)
 //
-// Takes factory (monitoring_domain.TransportFactory) which creates the
-// transport server.
+// Takes factory (monitoring_domain.TransportFactory) which creates the transport server.
 //
 // Returns MonitoringOption which configures the transport on the service.
 func WithMonitoringTransport(factory monitoring_domain.TransportFactory) MonitoringOption {
@@ -646,10 +631,10 @@ func WithMonitoringTransport(factory monitoring_domain.TransportFactory) Monitor
 	}
 }
 
-// WithMonitoringOtelFactories overrides the default noop monitoring service
-// factories with real OTEL SDK implementations. Use this with the factories
-// from logger_otel_sdk.OtelServiceFactories() to enable SDK-backed span
-// processing and metrics collection.
+// WithMonitoringOtelFactories overrides the default noop monitoring service factories
+// with real OTEL SDK implementations. Use this with the factories from
+// logger_otel_sdk.OtelServiceFactories() to enable SDK-backed span processing and metrics
+// collection.
 //
 // Example:
 //
@@ -657,8 +642,8 @@ func WithMonitoringTransport(factory monitoring_domain.TransportFactory) Monitor
 //	    piko.WithMonitoringOtelFactories(logger_otel_sdk.OtelServiceFactories()),
 //	)
 //
-// Takes factories (monitoring_domain.ServiceFactories) which provides the
-// span processor and metrics collector factories.
+// Takes factories (monitoring_domain.ServiceFactories) which provides the span processor
+// and metrics collector factories.
 //
 // Returns MonitoringOption which configures the factories on the service.
 func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) MonitoringOption {
@@ -667,10 +652,9 @@ func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) M
 	}
 }
 
-// WithMonitoringProfiling enables the remote profiling gRPC service, allowing
-// operators to toggle pprof on and off at runtime via the monitoring endpoint.
-// Without this option, the ProfilingService is not registered and profiling
-// cannot be controlled remotely.
+// WithMonitoringProfiling enables the remote profiling gRPC service, allowing operators
+// to toggle pprof on and off at runtime via the monitoring endpoint. Without this option,
+// the ProfilingService is not registered and profiling cannot be controlled remotely.
 //
 // Returns MonitoringOption which enables the profiling service.
 func WithMonitoringProfiling() MonitoringOption {
@@ -682,12 +666,11 @@ func WithMonitoringProfiling() MonitoringOption {
 // WatchdogOption configures the runtime watchdog.
 type WatchdogOption func(*monitoring_domain.WatchdogConfig)
 
-// WithDiagnosticDirectory sets a single root directory for all runtime
-// diagnostic artefacts: the crash mirror file (dir/crash.log) and the
-// watchdog's profile / sidecar / startup-history files (dir/profiles).
+// WithDiagnosticDirectory sets a single root directory for all runtime diagnostic
+// artefacts: the crash mirror file (dir/crash.log) and the watchdog's profile / sidecar /
+// startup-history files (dir/profiles).
 //
-// Takes directory (string) which is the root directory for diagnostic
-// artefacts.
+// Takes directory (string) which is the root directory for diagnostic artefacts.
 //
 // Returns Option which sets the diagnostic directory on the container.
 func WithDiagnosticDirectory(directory string) Option {
@@ -700,14 +683,13 @@ func WithDiagnosticDirectory(directory string) Option {
 	}
 }
 
-// WithCrashOutput configures runtime/debug.SetCrashOutput to mirror Go's
-// fatal-error output (panics, stack overflows, concurrent map writes, OOM
-// aborts) to the given file path. The file is opened in append mode so
-// captures from earlier crashes are preserved.
+// WithCrashOutput configures runtime/debug.SetCrashOutput to mirror Go's fatal-error
+// output (panics, stack overflows, concurrent map writes, OOM aborts) to the given file
+// path. The file is opened in append mode so captures from earlier crashes are preserved.
 //
-// When the file cannot be opened (read-only filesystem, missing parent
-// directory) the feature is disabled silently and a warning is logged.
-// Crash output must never block startup.
+// When the file cannot be opened (read-only filesystem, missing parent directory) the
+// feature is disabled silently and a warning is logged. Crash output must never block
+// startup.
 //
 // Pass an empty path to leave the feature disabled (default).
 //
@@ -720,11 +702,10 @@ func WithCrashOutput(path string) Option {
 	}
 }
 
-// WithCrashTraceback sets the GOTRACEBACK level via
-// runtime/debug.SetTraceback. Valid levels are "none", "single" (Go default),
-// "all", "system", "crash" (raises SIGABRT after the traceback so the kernel
-// or systemd-coredump can capture a coredump), and "wer" (Windows error
-// reporting).
+// WithCrashTraceback sets the GOTRACEBACK level via runtime/debug.SetTraceback. Valid
+// levels are "none", "single" (Go default), "all", "system", "crash" (raises SIGABRT
+// after the traceback so the kernel or systemd-coredump can capture a coredump), and
+// "wer" (Windows error reporting).
 //
 // Takes level (string) which is the traceback level to set.
 //
@@ -735,9 +716,9 @@ func WithCrashTraceback(level string) Option {
 	}
 }
 
-// WithMonitoringWatchdog enables the runtime watchdog that monitors heap
-// memory, goroutine counts, and GC pressure, automatically capturing
-// diagnostic profiles when anomalies are detected.
+// WithMonitoringWatchdog enables the runtime watchdog that monitors heap memory,
+// goroutine counts, and GC pressure, automatically capturing diagnostic profiles when
+// anomalies are detected.
 //
 // Takes opts (...WatchdogOption) which configure thresholds and behaviour.
 //
@@ -752,8 +733,8 @@ func WithMonitoringWatchdog(opts ...WatchdogOption) MonitoringOption {
 	}
 }
 
-// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of
-// GOMEMLIMIT (0.0-1.0). Default: 0.85.
+// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of GOMEMLIMIT
+// (0.0-1.0). Default: 0.85.
 //
 // Takes percent (float64) which is the threshold fraction.
 //
@@ -764,8 +745,8 @@ func WithWatchdogHeapThresholdPercent(percent float64) WatchdogOption {
 	}
 }
 
-// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes,
-// used when GOMEMLIMIT is not configured. Default: 512 MiB.
+// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes, used when
+// GOMEMLIMIT is not configured. Default: 512 MiB.
 //
 // Takes thresholdBytes (uint64) which is the threshold in bytes.
 //
@@ -776,8 +757,8 @@ func WithWatchdogHeapThresholdBytes(thresholdBytes uint64) WatchdogOption {
 	}
 }
 
-// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a
-// goroutine profile capture. Default: 10,000.
+// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a goroutine
+// profile capture. Default: 10,000.
 //
 // Takes threshold (int) which is the goroutine count threshold.
 //
@@ -788,11 +769,9 @@ func WithWatchdogGoroutineThreshold(threshold int) WatchdogOption {
 	}
 }
 
-// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime
-// metrics.
+// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime metrics.
 //
-// Shorter intervals detect anomalies faster at negligible CPU cost.
-// Default: 500ms.
+// Shorter intervals detect anomalies faster at negligible CPU cost. Default: 500ms.
 //
 // Takes interval (time.Duration) which is the check period.
 //
@@ -803,8 +782,8 @@ func WithWatchdogCheckInterval(interval time.Duration) WatchdogOption {
 	}
 }
 
-// WithWatchdogCooldown sets the minimum duration between consecutive profile
-// captures for the same metric type. Default: 2 minutes.
+// WithWatchdogCooldown sets the minimum duration between consecutive profile captures for
+// the same metric type. Default: 2 minutes.
 //
 // Takes duration (time.Duration) which is the cooldown period.
 //
@@ -815,8 +794,8 @@ func WithWatchdogCooldown(duration time.Duration) WatchdogOption {
 	}
 }
 
-// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles
-// per type (heap, goroutine).
+// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles per type
+// (heap, goroutine).
 //
 // Oldest profiles are rotated out. Default: 5.
 //
@@ -829,8 +808,8 @@ func WithWatchdogMaxProfilesPerType(count int) WatchdogOption {
 	}
 }
 
-// WithWatchdogProfileDirectory sets the local directory for profile storage.
-// Default: os.TempDir()/piko-watchdog.
+// WithWatchdogProfileDirectory sets the local directory for profile storage. Default:
+// os.TempDir()/piko-watchdog.
 //
 // Takes directory (string) which is the directory path.
 //
@@ -841,8 +820,8 @@ func WithWatchdogProfileDirectory(directory string) WatchdogOption {
 	}
 }
 
-// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside
-// each capture so the user can compute a diff between consecutive captures.
+// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside each
+// capture so the user can compute a diff between consecutive captures.
 //
 // Returns WatchdogOption which enables delta profiling.
 func WithWatchdogDeltaProfiling() WatchdogOption {
@@ -851,15 +830,15 @@ func WithWatchdogDeltaProfiling() WatchdogOption {
 	}
 }
 
-// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture.
-// When enabled, each goroutine profile firing also writes a human-readable
-// .stacks.txt sidecar containing the full stack of every goroutine
-// (pprof debug=2), alongside the existing aggregated .pb.gz binary profile.
+// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture. When enabled,
+// each goroutine profile firing also writes a human-readable .stacks.txt sidecar
+// containing the full stack of every goroutine (pprof debug=2), alongside the existing
+// aggregated .pb.gz binary profile.
 //
-// Useful when investigating goroutine leaks where you need to know the exact
-// call site or closure-captured arguments (e.g. which channel a publisher is
-// blocked on). Disabled by default because the sidecar can be tens of
-// megabytes per dump for processes with many thousand goroutines.
+// Useful when investigating goroutine leaks where you need to know the exact call site or
+// closure-captured arguments (e.g. which channel a publisher blocks against). Disabled by
+// default because the sidecar can be tens of megabytes per dump for processes with many
+// thousand goroutines.
 //
 // Takes enabled (bool) which toggles the feature.
 //
@@ -870,8 +849,8 @@ func WithWatchdogIncludeGoroutineStacks(enabled bool) WatchdogOption {
 	}
 }
 
-// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit
-// above which RSS triggers a profile capture. Default: 0.85.
+// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit above
+// which RSS triggers a profile capture. Default: 0.85.
 //
 // Takes percent (float64) which is the threshold fraction (0.0-1.0).
 //
@@ -882,8 +861,8 @@ func WithWatchdogRSSThresholdPercent(percent float64) WatchdogOption {
 	}
 }
 
-// WithWatchdogFDPressureThresholdPercent sets the fraction of the soft
-// RLIMIT_NOFILE above which the watchdog emits an FD pressure warning.
+// WithWatchdogFDPressureThresholdPercent sets the fraction of the soft RLIMIT_NOFILE
+// above which the watchdog emits an FD pressure warning.
 //
 // Default is 0.80; pass 0 to disable the rule.
 //
@@ -896,8 +875,8 @@ func WithWatchdogFDPressureThresholdPercent(percent float64) WatchdogOption {
 	}
 }
 
-// WithWatchdogSchedulerLatencyP99Threshold sets the p99 scheduler latency
-// above which the watchdog emits a scheduler-latency warning.
+// WithWatchdogSchedulerLatencyP99Threshold sets the p99 scheduler latency above which the
+// watchdog emits a scheduler-latency warning.
 //
 // Default is 10ms; pass zero to disable the rule.
 //
@@ -910,11 +889,11 @@ func WithWatchdogSchedulerLatencyP99Threshold(threshold time.Duration) WatchdogO
 	}
 }
 
-// WithWatchdogMaxWarningsPerWindow sets the maximum number of warning-only
-// events permitted within a single CaptureWindow.
+// WithWatchdogMaxWarningsPerWindow sets the maximum number of warning-only events
+// permitted within a single CaptureWindow.
 //
-// Default is 10. Warnings have their own budget separate from profile
-// captures so flapping warnings cannot crowd out real captures.
+// Default is 10. Warnings have their own budget separate from profile captures so
+// flapping warnings cannot crowd out real captures.
 //
 // Takes count (int) which is the maximum warnings per window.
 //
@@ -925,10 +904,9 @@ func WithWatchdogMaxWarningsPerWindow(count int) WatchdogOption {
 	}
 }
 
-// WithWatchdogContinuousProfiling enables the continuous-profiling loop
-// which captures routine profile snapshots so post-mortem operators have
-// recent profiles even when no threshold breach occurred. Default behaviour
-// is disabled (opt-in).
+// WithWatchdogContinuousProfiling enables the continuous-profiling loop which captures
+// routine profile snapshots so post-mortem operators have recent profiles even when no
+// threshold breach occurred. Default behaviour is disabled (opt-in).
 //
 // Returns WatchdogOption which enables continuous profiling.
 func WithWatchdogContinuousProfiling() WatchdogOption {
@@ -937,8 +915,8 @@ func WithWatchdogContinuousProfiling() WatchdogOption {
 	}
 }
 
-// WithWatchdogContinuousProfilingInterval sets the interval between routine
-// profile captures.
+// WithWatchdogContinuousProfilingInterval sets the interval between routine profile
+// captures.
 //
 // Default is 10 minutes; validation enforces a minimum of 1 minute.
 //
@@ -951,8 +929,8 @@ func WithWatchdogContinuousProfilingInterval(interval time.Duration) WatchdogOpt
 	}
 }
 
-// WithWatchdogContinuousProfilingTypes sets the profile types captured each
-// routine interval.
+// WithWatchdogContinuousProfilingTypes sets the profile types captured each routine
+// interval.
 //
 // Default is ["heap"]. Allowed values are heap, goroutine, and allocs.
 //
@@ -965,8 +943,8 @@ func WithWatchdogContinuousProfilingTypes(types ...string) WatchdogOption {
 	}
 }
 
-// WithWatchdogContinuousProfilingRetention sets the maximum number of
-// routine profile files retained per type. Default: 6.
+// WithWatchdogContinuousProfilingRetention sets the maximum number of routine profile
+// files retained per type. Default: 6.
 //
 // Takes count (int) which is the retention cap.
 //
@@ -977,9 +955,8 @@ func WithWatchdogContinuousProfilingRetention(count int) WatchdogOption {
 	}
 }
 
-// WithWatchdogContinuousProfilingNotify enables informational notifications
-// for each routine capture. Default behaviour is suppression to avoid
-// flooding notifiers.
+// WithWatchdogContinuousProfilingNotify enables informational notifications for each
+// routine capture. Default behaviour is suppression to avoid flooding notifiers.
 //
 // Returns WatchdogOption which enables routine-capture notifications.
 func WithWatchdogContinuousProfilingNotify() WatchdogOption {
@@ -988,8 +965,8 @@ func WithWatchdogContinuousProfilingNotify() WatchdogOption {
 	}
 }
 
-// WithWatchdogContentionDiagnosticWindow sets the duration during which
-// block + mutex profiling are active during a contention diagnostic.
+// WithWatchdogContentionDiagnosticWindow sets the duration during which block + mutex
+// profiling are active during a contention diagnostic.
 //
 // Default is 60s; allowed range is 1s to 5m.
 //
@@ -1002,21 +979,19 @@ func WithWatchdogContentionDiagnosticWindow(window time.Duration) WatchdogOption
 	}
 }
 
-// WithWatchdogContentionDiagnosticAutoFire enables automatic
-// contention-diagnostic firing when scheduler-latency events repeat.
-// Default behaviour is manual (operator must call RunContentionDiagnostic).
+// WithWatchdogContentionDiagnosticAutoFire enables automatic contention-diagnostic firing
+// when scheduler-latency events repeat. Default behaviour is manual (operator must call
+// RunContentionDiagnostic).
 //
-// Returns WatchdogOption which enables automatic contention diagnostic
-// firing.
+// Returns WatchdogOption which enables automatic contention diagnostic firing.
 func WithWatchdogContentionDiagnosticAutoFire() WatchdogOption {
 	return func(c *monitoring_domain.WatchdogConfig) {
 		c.ContentionDiagnosticAutoFire = true
 	}
 }
 
-// WithWatchdogContentionDiagnosticBlockProfileRate sets the runtime block
-// profile rate during a contention diagnostic. Default: 1e6 (one sample per
-// 1ms of blocking).
+// WithWatchdogContentionDiagnosticBlockProfileRate sets the runtime block profile rate
+// during a contention diagnostic. Default: 1e6 (one sample per 1ms of blocking).
 //
 // Takes rate (int) which is the runtime block profile rate.
 //
@@ -1027,8 +1002,8 @@ func WithWatchdogContentionDiagnosticBlockProfileRate(rate int) WatchdogOption {
 	}
 }
 
-// WithWatchdogContentionDiagnosticMutexProfileFraction sets the runtime
-// mutex profile fraction during a contention diagnostic. Default: 100.
+// WithWatchdogContentionDiagnosticMutexProfileFraction sets the runtime mutex profile
+// fraction during a contention diagnostic. Default: 100.
 //
 // Takes fraction (int) which is the runtime mutex profile fraction.
 //
@@ -1039,12 +1014,11 @@ func WithWatchdogContentionDiagnosticMutexProfileFraction(fraction int) Watchdog
 	}
 }
 
-// WithWatchdogNotifier sets the notification delivery mechanism for watchdog
-// events. When set, the watchdog sends notifications to external systems when
-// thresholds are breached or errors occur.
+// WithWatchdogNotifier sets the notification delivery mechanism for watchdog events. When
+// set, the watchdog sends notifications to external systems when thresholds are breached
+// or errors occur.
 //
-// Takes notifier (monitoring_domain.WatchdogNotifier) which delivers event
-// notifications.
+// Takes notifier (monitoring_domain.WatchdogNotifier) which delivers event notifications.
 //
 // Returns MonitoringOption which configures the notifier on the service.
 func WithWatchdogNotifier(notifier monitoring_domain.WatchdogNotifier) MonitoringOption {
@@ -1053,12 +1027,12 @@ func WithWatchdogNotifier(notifier monitoring_domain.WatchdogNotifier) Monitorin
 	}
 }
 
-// WithWatchdogProfileUploader sets the remote storage backend for watchdog
-// profile uploads. When set, captured profiles are uploaded to the configured
-// storage provider after being written to local disk.
+// WithWatchdogProfileUploader sets the remote storage backend for watchdog profile
+// uploads. When set, captured profiles are uploaded to the configured storage provider
+// after being written to local disk.
 //
-// Takes uploader (monitoring_domain.WatchdogProfileUploader) which handles
-// remote storage.
+// Takes uploader (monitoring_domain.WatchdogProfileUploader) which handles remote
+// storage.
 //
 // Returns MonitoringOption which configures the uploader on the service.
 func WithWatchdogProfileUploader(uploader monitoring_domain.WatchdogProfileUploader) MonitoringOption {
@@ -1078,8 +1052,7 @@ func WithProfilingPort(port int) ProfilingOption {
 	}
 }
 
-// WithProfilingBindAddress sets the network address for the pprof server to
-// bind to.
+// WithProfilingBindAddress sets the network address for the pprof server to bind to.
 //
 // Takes addr (string) which specifies the bind address.
 //
@@ -1091,8 +1064,8 @@ func WithProfilingBindAddress(addr string) ProfilingOption {
 }
 
 // WithProfilingBlockRate sets the block profiling rate. After calling
-// runtime.SetBlockProfileRate, the profiler samples one blocking event per
-// this many nanoseconds of blocking.
+// runtime.SetBlockProfileRate, the profiler samples one blocking event per this many
+// nanoseconds of blocking.
 //
 // Takes rate (int) which specifies the sampling rate in nanoseconds.
 //
@@ -1103,8 +1076,8 @@ func WithProfilingBlockRate(rate int) ProfilingOption {
 	}
 }
 
-// WithProfilingMutexFraction sets the mutex profiling fraction. On average
-// 1/n mutex contention events are reported.
+// WithProfilingMutexFraction sets the mutex profiling fraction. On average 1/n mutex
+// contention events are reported.
 //
 // Takes fraction (int) which specifies the sampling fraction.
 //
@@ -1117,8 +1090,8 @@ func WithProfilingMutexFraction(fraction int) ProfilingOption {
 
 // WithProfilingMemProfileRate sets the memory profiling sample rate.
 //
-// When rate is 0 (the default), the Go runtime default of 512 KiB sampling is
-// used. Lower values capture smaller allocations but add overhead.
+// When rate is 0 (the default), the Go runtime default of 512 KiB sampling is used. Lower
+// values capture smaller allocations but add overhead.
 //
 // Takes rate (int) which specifies the sampling rate in bytes.
 //
@@ -1129,12 +1102,11 @@ func WithProfilingMemProfileRate(rate int) ProfilingOption {
 	}
 }
 
-// WithProfilingRollingTrace enables a bounded in-memory rolling execution trace
-// buffer for the profiling server. The most recent trace window can later be
-// downloaded from /_piko/profiler/trace/recent.
+// WithProfilingRollingTrace enables a bounded in-memory rolling execution trace buffer
+// for the profiling server. The most recent trace window can later be downloaded from
+// /_piko/profiler/trace/recent.
 //
-// Returns ProfilingOption which enables rolling trace capture with safe
-// defaults.
+// Returns ProfilingOption which enables rolling trace capture with safe defaults.
 func WithProfilingRollingTrace() ProfilingOption {
 	return func(c *profiler.Config) {
 		c.EnableRollingTrace = true
@@ -1147,12 +1119,11 @@ func WithProfilingRollingTrace() ProfilingOption {
 	}
 }
 
-// WithProfilingRollingTraceMinAge sets the retention target for the rolling
-// trace recorder. Implicitly enables rolling trace capture if not already
-// enabled.
+// WithProfilingRollingTraceMinAge sets the retention target for the rolling trace
+// recorder. Implicitly enables rolling trace capture if not already enabled.
 //
-// Takes minAge (time.Duration) which specifies how much recent trace history to
-// keep when rolling trace capture is enabled.
+// Takes minAge (time.Duration) which specifies how much recent trace history to keep when
+// rolling trace capture is enabled.
 //
 // Returns ProfilingOption which configures the rolling trace minimum age.
 func WithProfilingRollingTraceMinAge(minAge time.Duration) ProfilingOption {
@@ -1162,12 +1133,11 @@ func WithProfilingRollingTraceMinAge(minAge time.Duration) ProfilingOption {
 	}
 }
 
-// WithProfilingRollingTraceMaxBytes sets the memory budget hint for the rolling
-// trace recorder. Implicitly enables rolling trace capture if not already
-// enabled.
+// WithProfilingRollingTraceMaxBytes sets the memory budget hint for the rolling trace
+// recorder. Implicitly enables rolling trace capture if not already enabled.
 //
-// Takes maxBytes (uint64) which specifies the approximate in-memory budget for
-// the rolling trace buffer.
+// Takes maxBytes (uint64) which specifies the approximate in-memory budget for the
+// rolling trace buffer.
 //
 // Returns ProfilingOption which configures the rolling trace buffer size.
 func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
@@ -1177,17 +1147,16 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 	}
 }
 
-// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on
-// the container's cgroup memory limit.
+// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on the
+// container's cgroup memory limit.
 //
-// This prevents OOM kills in containerised deployments by making the
-// garbage collector aware of the memory ceiling.
+// This prevents OOM kills in containerised deployments by making the garbage collector
+// aware of the memory ceiling.
 //
-// The provider function is called during bootstrap and should return the
-// limit that was applied (in bytes), or an error if detection failed.
+// The provider function is called during bootstrap and should return the limit that was
+// applied (in bytes), or an error if detection failed.
 //
-// Takes provider (func() (int64, error)) which detects and applies the
-// memory limit.
+// Takes provider (func() (int64, error)) which detects and applies the memory limit.
 //
 // Returns Option which configures automatic memory limit detection.
 func WithAutoMemoryLimit(provider func() (int64, error)) Option {
@@ -1196,24 +1165,23 @@ func WithAutoMemoryLimit(provider func() (int64, error)) Option {
 	}
 }
 
-// WithProfiling enables the pprof HTTP debug server. The server exposes
-// profiling endpoints at /_piko/debug/pprof/ on a dedicated port (default 6060).
+// WithProfiling enables the pprof HTTP debug server. The server exposes profiling
+// endpoints at /_piko/debug/pprof/ on a dedicated port (default 6060).
 //
 // When enabled, block and mutex profiling rates are configured so that
 // /_piko/debug/pprof/block and /_piko/debug/pprof/mutex return meaningful data.
 //
-// The server starts during application bootstrap and stops during graceful
-// shutdown.
+// The server starts during application bootstrap and stops during graceful shutdown.
 //
-// Takes opts (...ProfilingOption) which provides optional settings:
-//   - WithProfilingPort(6060): sets the HTTP listen port.
-//   - WithProfilingBindAddress("localhost"): sets the bind address.
-//   - WithProfilingBlockRate(1000): sets the block profile rate.
-//   - WithProfilingMutexFraction(10): sets the mutex profile fraction.
-//   - WithProfilingMemProfileRate(0): sets the memory profile sample rate.
-//   - WithProfilingRollingTrace(): enables bounded rolling trace capture.
-//   - WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age.
-//   - WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
+// Takes opts (...ProfilingOption) which provides optional settings: -
+// WithProfilingPort(6060): sets the HTTP listen port. -
+// WithProfilingBindAddress("localhost"): sets the bind address. -
+// WithProfilingBlockRate(1000): sets the block profile rate. -
+// WithProfilingMutexFraction(10): sets the mutex profile fraction. -
+// WithProfilingMemProfileRate(0): sets the memory profile sample rate. -
+// WithProfilingRollingTrace(): enables bounded rolling trace capture. -
+// WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age. -
+// WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
 //
 // Returns Option which configures the container with profiling settings.
 func WithProfiling(opts ...ProfilingOption) Option {
@@ -1232,8 +1200,7 @@ func WithProfiling(opts ...ProfilingOption) Option {
 	}
 }
 
-// WithGeneratorProfilingOutputDir sets the directory for captured profile
-// files.
+// WithGeneratorProfilingOutputDir sets the directory for captured profile files.
 //
 // Takes directory (string) which specifies the output directory path.
 //
@@ -1244,8 +1211,7 @@ func WithGeneratorProfilingOutputDir(directory string) GeneratorProfilingOption 
 	}
 }
 
-// WithGeneratorProfilingBlockRate sets the block profiling rate for generator
-// profiling.
+// WithGeneratorProfilingBlockRate sets the block profiling rate for generator profiling.
 //
 // Takes rate (int) which specifies the sampling rate in nanoseconds.
 //
@@ -1256,8 +1222,8 @@ func WithGeneratorProfilingBlockRate(rate int) GeneratorProfilingOption {
 	}
 }
 
-// WithGeneratorProfilingMutexFraction sets the mutex profiling fraction for
-// generator profiling.
+// WithGeneratorProfilingMutexFraction sets the mutex profiling fraction for generator
+// profiling.
 //
 // Takes fraction (int) which specifies the sampling fraction.
 //
@@ -1268,8 +1234,8 @@ func WithGeneratorProfilingMutexFraction(fraction int) GeneratorProfilingOption 
 	}
 }
 
-// WithGeneratorProfilingMemProfileRate sets the memory profiling sample rate
-// for generator profiling. 0 uses the Go runtime default.
+// WithGeneratorProfilingMemProfileRate sets the memory profiling sample rate for
+// generator profiling. 0 uses the Go runtime default.
 //
 // Takes rate (int) which specifies the sampling rate in bytes.
 //
@@ -1280,22 +1246,21 @@ func WithGeneratorProfilingMemProfileRate(rate int) GeneratorProfilingOption {
 	}
 }
 
-// WithGeneratorProfiling enables profiling for short-lived generator builds.
-// CPU, trace, heap, block, mutex, goroutine, and allocs profiles are captured
-// to disk in the specified output directory (default "./profiles").
+// WithGeneratorProfiling enables profiling for short-lived generator builds. CPU, trace,
+// heap, block, mutex, goroutine, and allocs profiles are captured to disk in the
+// specified output directory (default "./profiles").
 //
-// Unlike WithProfiling, this does not start an HTTP server. Instead, it wraps
-// the build execution: profiling starts before the build and profiles are
-// written when the build completes.
+// Unlike WithProfiling, this does not start an HTTP server. Instead, it wraps the build
+// execution: profiling starts before the build and profiles are written when the build
+// completes.
 //
-// Takes opts (...GeneratorProfilingOption) which provides optional settings:
-//   - WithGeneratorProfilingOutputDir("./profiles"): sets the output directory.
-//   - WithGeneratorProfilingBlockRate(1): sets the block profile rate.
-//   - WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction.
-//   - WithGeneratorProfilingMemProfileRate(4096): sets the memory profile rate.
+// Takes opts (...GeneratorProfilingOption) which provides optional settings: -
+// WithGeneratorProfilingOutputDir("./profiles"): sets the output directory. -
+// WithGeneratorProfilingBlockRate(1): sets the block profile rate. -
+// WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction. -
+// WithGeneratorProfilingMemProfileRate(4096): sets the memory profile rate.
 //
-// Returns Option which configures the container with generator profiling
-// settings.
+// Returns Option which configures the container with generator profiling settings.
 func WithGeneratorProfiling(opts ...GeneratorProfilingOption) Option {
 	return func(c *Container) {
 		profilingConfig := profiler.Config{
@@ -1311,15 +1276,14 @@ func WithGeneratorProfiling(opts ...GeneratorProfilingOption) Option {
 	}
 }
 
-// WithDatabase registers a named database connection for use by the querier
-// system and persistence adapters. When a database named DatabaseNameRegistry
-// or DatabaseNameOrchestrator is registered, the bootstrap container uses the
-// querier-based DAL adapters instead of the default otter in-memory backend
-// for that subsystem.
+// WithDatabase registers a named database connection for use by the querier system and
+// persistence adapters. When a database named DatabaseNameRegistry or
+// DatabaseNameOrchestrator is registered, the bootstrap container uses the querier-based
+// DAL adapters instead of the default otter in-memory backend for that subsystem.
 //
 // Takes name (string) which identifies the database for later retrieval.
-// Takes registration (*DatabaseRegistration) which provides connection and
-// migration configuration.
+// Takes registration (*DatabaseRegistration) which provides connection and migration
+// configuration.
 //
 // Returns Option which registers the database with the container.
 func WithDatabase(name string, registration *DatabaseRegistration) Option {
@@ -1330,14 +1294,14 @@ func WithDatabase(name string, registration *DatabaseRegistration) Option {
 
 // WithComponents registers external component definitions from libraries.
 //
-// Use this to make UI component libraries from external Go modules available
-// in your Piko templates. Components are checked at registration time:
+// Use this to make UI component libraries from external Go modules available in your Piko
+// templates. Components are checked at registration time:
 //   - Tag names must contain a hyphen (Web Components specification)
 //   - Tag names must not shadow standard HTML elements
 //   - Duplicate registrations are rejected
 //
-// Takes components (...component_dto.ComponentDefinition) which are the
-// component definitions to register.
+// Takes components (...component_dto.ComponentDefinition) which are the component
+// definitions to register.
 //
 // Returns Option which sets up the container with the external components.
 func WithComponents(components ...component_dto.ComponentDefinition) Option {
@@ -1346,8 +1310,8 @@ func WithComponents(components ...component_dto.ComponentDefinition) Option {
 	}
 }
 
-// WithResolver sets a custom module resolver for the container. This must be
-// called before any services that depend on the resolver.
+// WithResolver sets a custom module resolver for the container. This must be called
+// before any services that depend on the resolver.
 //
 // Takes resolver (resolver_domain.ResolverPort) which is the resolver to use.
 //
@@ -1358,8 +1322,8 @@ func WithResolver(resolver resolver_domain.ResolverPort) Option {
 	}
 }
 
-// WithSandboxFactory sets a custom sandbox factory for the container. This
-// allows injection of mock sandboxes for testing filesystem operations.
+// WithSandboxFactory sets a custom sandbox factory for the container. This allows
+// injection of mock sandboxes for testing filesystem operations.
 //
 // Takes factory (SandboxFactory) which creates sandboxes for filesystem access.
 //
@@ -1370,12 +1334,12 @@ func WithSandboxFactory(factory SandboxFactory) Option {
 	}
 }
 
-// WithExperimentalPrerendering configures whether static HTML prerendering is
-// enabled for template generation. This is an experimental feature.
+// WithExperimentalPrerendering configures whether static HTML prerendering is enabled for
+// template generation. This is an experimental feature.
 //
-// When enabled, fully-static template subtrees are rendered to HTML bytes at
-// generation time, avoiding AST traversal at runtime.
-// Email templates are never prerendered regardless of this setting.
+// When enabled, fully-static template subtrees are rendered to HTML bytes at generation
+// time, avoiding AST traversal at runtime. Email templates are never prerendered
+// regardless of this setting.
 //
 // Takes enabled (bool) which specifies whether prerendering is active.
 //
@@ -1386,8 +1350,8 @@ func WithExperimentalPrerendering(enabled bool) Option {
 	}
 }
 
-// WithExperimentalCommentStripping configures whether HTML comments are
-// stripped from the generated output. This is an experimental feature.
+// WithExperimentalCommentStripping configures whether HTML comments are stripped from the
+// generated output. This is an experimental feature.
 //
 // When enabled, HTML comments (<!-- ... -->) are omitted from output.
 //
@@ -1400,14 +1364,14 @@ func WithExperimentalCommentStripping(enabled bool) Option {
 	}
 }
 
-// WithExperimentalDwarfLineDirectives configures whether generated Go code
-// emits valid DWARF //line directives. This is an experimental feature.
+// WithExperimentalDwarfLineDirectives configures whether generated Go code emits valid
+// DWARF //line directives. This is an experimental feature.
 //
-// When enabled, the code generator emits "//line file:line" (no space) which
-// the Go compiler processes and embeds into DWARF debug info, enabling
-// debuggers like Delve to map breakpoints back to .pk source files.
-// When disabled (default), the generator emits "// line file:line" (with a
-// space) which is treated as a plain comment and has no DWARF effect.
+// When enabled, the code generator emits "//line file:line" (no space) which the Go
+// compiler processes and embeds into DWARF debug info, enabling debuggers like Delve to
+// map breakpoints back to .pk source files. When disabled (default), the generator emits
+// "// line file:line" (with a space) which is treated as a plain comment and has no DWARF
+// effect.
 //
 // Takes enabled (bool) which specifies whether DWARF line directives are active.
 //
@@ -1419,19 +1383,15 @@ func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 }
 
 // WithStandardLoader causes the type inspector to use the standard
-// golang.org/x/tools/go/packages.Load instead of the faster
-// quickpackages loader.
+// golang.org/x/tools/go/packages.Load instead of the faster quickpackages loader.
 //
-// This is slower but always stable, as it is maintained by the
-// Go team. Useful as a fallback when quickpackages encounters
-// issues with specific dependency configurations (e.g. complex
-// CGo setups).
+// This is slower but always stable, as it is maintained by the Go team. Useful as a
+// fallback when quickpackages encounters issues with specific dependency configurations
+// (e.g. complex CGo setups).
 //
-// Takes enabled (bool) which controls whether the standard
-// loader is used.
+// Takes enabled (bool) which controls whether the standard loader is used.
 //
-// Returns Option which configures the container's package loader
-// behaviour.
+// Returns Option which configures the container's package loader behaviour.
 func WithStandardLoader(enabled bool) Option {
 	return func(c *Container) {
 		c.useStandardLoader = enabled
@@ -1449,8 +1409,7 @@ func WithCSSTreeShaking(enabled bool) Option {
 	}
 }
 
-// WithCSSTreeShakingSafelist sets CSS class names to preserve during
-// tree-shaking.
+// WithCSSTreeShakingSafelist sets CSS class names to preserve during tree-shaking.
 //
 // Takes classes ([]string) which lists the CSS class names to preserve.
 //
@@ -1461,10 +1420,9 @@ func WithCSSTreeShakingSafelist(classes []string) Option {
 	}
 }
 
-// WithCSSResetComplete selects the comprehensive legacy CSS reset instead of
-// the simple default. The comprehensive reset includes element-level resets,
-// typography defaults, heading sizes via theme variables, and focus-ring
-// styles.
+// WithCSSResetComplete selects the comprehensive legacy CSS reset instead of the simple
+// default. The comprehensive reset includes element-level resets, typography defaults,
+// heading sizes via theme variables, and focus-ring styles.
 //
 // Returns CSSResetOption which switches to the complete reset preset.
 func WithCSSResetComplete() CSSResetOption {
@@ -1473,8 +1431,8 @@ func WithCSSResetComplete() CSSResetOption {
 	}
 }
 
-// WithCSSResetPKOverride replaces the default CSS reset with custom CSS
-// content for PK files (pages, partials, emails).
+// WithCSSResetPKOverride replaces the default CSS reset with custom CSS content for PK
+// files (pages, partials, emails).
 //
 // Takes css (string) which is the custom CSS reset content.
 //
@@ -1485,13 +1443,13 @@ func WithCSSResetPKOverride(css string) CSSResetOption {
 	}
 }
 
-// WithCSSReset enables the CSS reset for PK files (pages, partials, emails),
-// defaulting to the simple reset (box-sizing, margin, and padding zeroing)
-// unless overridden via WithCSSResetComplete or WithCSSResetPKOverride.
+// WithCSSReset enables the CSS reset for PK files (pages, partials, emails), defaulting
+// to the simple reset (box-sizing, margin, and padding zeroing) unless overridden via
+// WithCSSResetComplete or WithCSSResetPKOverride.
 //
-// Takes opts (...CSSResetOption) which provides optional settings:
-//   - WithCSSResetComplete(): selects the comprehensive legacy reset.
-//   - WithCSSResetPKOverride(css): overrides with custom CSS content.
+// Takes opts (...CSSResetOption) which provides optional settings: -
+// WithCSSResetComplete(): selects the comprehensive legacy reset. -
+// WithCSSResetPKOverride(css): overrides with custom CSS content.
 //
 // Returns Option which configures the container's CSS reset behaviour.
 func WithCSSReset(opts ...CSSResetOption) Option {
@@ -1512,8 +1470,8 @@ func WithCSSReset(opts ...CSSResetOption) Option {
 	}
 }
 
-// WithStartupBanner controls whether the startup information banner is
-// displayed when the server starts. Defaults to true.
+// WithStartupBanner controls whether the startup information banner is displayed when the
+// server starts. Defaults to true.
 //
 // Takes enabled (bool) which specifies whether the banner is shown.
 //
@@ -1524,8 +1482,8 @@ func WithStartupBanner(enabled bool) Option {
 	}
 }
 
-// WithIAmACatPerson swaps the large pixel-art mascot in the startup banner
-// for the small ASCII art version. Defaults to false.
+// WithIAmACatPerson swaps the large pixel-art mascot in the startup banner for the small
+// ASCII art version. Defaults to false.
 //
 // Returns Option which configures the mascot preference.
 func WithIAmACatPerson() Option {
@@ -1534,9 +1492,9 @@ func WithIAmACatPerson() Option {
 	}
 }
 
-// WithWatchMode controls whether file system watching for hot-reloading is
-// enabled. This is typically derived from the run mode (dev -> true,
-// prod -> false) and does not need to be set manually.
+// WithWatchMode controls whether file system watching for hot-reloading is enabled. This
+// is typically derived from the run mode (dev -> true, prod -> false) and does not need
+// to be set manually.
 //
 // Takes enabled (bool) which controls whether watch mode is active.
 //
@@ -1547,8 +1505,8 @@ func WithWatchMode(enabled bool) Option {
 	}
 }
 
-// WithE2EMode controls whether E2E test pages and partials are included in
-// the build. WARNING: Never enable in production.
+// WithE2EMode controls whether E2E test pages and partials are included in the build.
+// WARNING: Never enable in production.
 //
 // Takes enabled (bool) which controls whether E2E mode is active.
 //
@@ -1559,9 +1517,9 @@ func WithE2EMode(enabled bool) Option {
 	}
 }
 
-// WithSEO provides the SEO configuration for sitemap and robots.txt
-// generation. SEO is only active when this option is provided with an enabled
-// configuration and a non-empty sitemap hostname.
+// WithSEO provides the SEO configuration for sitemap and robots.txt generation. SEO is
+// only active when this option is provided with an enabled configuration and a non-empty
+// sitemap hostname.
 //
 // Takes seoConfig (config.SEOConfig) which specifies the SEO settings.
 //
@@ -1572,9 +1530,9 @@ func WithSEO(seoConfig config.SEOConfig) Option {
 	}
 }
 
-// WithAssets provides the asset configuration including image/video profiles,
-// screen breakpoints, and default densities for responsive images. These
-// settings are used at compile time by the annotator for static asset analysis.
+// WithAssets provides the asset configuration including image/video profiles, screen
+// breakpoints, and default densities for responsive images. These settings are used at
+// compile time by the annotator for static asset analysis.
 //
 // Takes assetsConfig (config.AssetsConfig) which specifies the asset settings.
 //
@@ -1585,12 +1543,11 @@ func WithAssets(assetsConfig config.AssetsConfig) Option {
 	}
 }
 
-// WithWebsiteConfig provides the website configuration programmatically,
-// replacing the file-based config.json loading entirely. When set, the
-// config.json file is not read.
+// WithWebsiteConfig provides the website configuration programmatically, replacing the
+// file-based config.json loading entirely. When set, the config.json file is not read.
 //
-// Takes websiteConfig (config.WebsiteConfig) which specifies the website
-// settings including theme, favicons, fonts, and i18n.
+// Takes websiteConfig (config.WebsiteConfig) which specifies the website settings
+// including theme, favicons, fonts, and i18n.
 //
 // Returns Option which configures the container with the given website config.
 func WithWebsiteConfig(websiteConfig config.WebsiteConfig) Option {
@@ -1599,11 +1556,11 @@ func WithWebsiteConfig(websiteConfig config.WebsiteConfig) Option {
 	}
 }
 
-// WithHybridCacheMaxBytes overrides the framework default weight cap on
-// the hybrid-collections cache.
+// WithHybridCacheMaxBytes overrides the framework default weight cap on the
+// hybrid-collections cache.
 //
-// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
-// framework default in place.
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the framework default in
+// place.
 //
 // Returns Option which configures the container with the override.
 func WithHybridCacheMaxBytes(maxBytes uint64) Option {
@@ -1612,11 +1569,11 @@ func WithHybridCacheMaxBytes(maxBytes uint64) Option {
 	}
 }
 
-// WithHybridCacheWriteExpiration overrides the framework default
-// write-expiration on the hybrid-collections cache.
+// WithHybridCacheWriteExpiration overrides the framework default write-expiration on the
+// hybrid-collections cache.
 //
-// Takes expiration (time.Duration) which is the write-expiration;
-// zero or negative leaves the framework default in place.
+// Takes expiration (time.Duration) which is the write-expiration; zero or negative leaves
+// the framework default in place.
 //
 // Returns Option which configures the container with the override.
 func WithHybridCacheWriteExpiration(expiration time.Duration) Option {
@@ -1628,11 +1585,11 @@ func WithHybridCacheWriteExpiration(expiration time.Duration) Option {
 	}
 }
 
-// WithActionResponseCacheMaxBytes overrides the framework default
-// weight cap on the action-response cache.
+// WithActionResponseCacheMaxBytes overrides the framework default weight cap on the
+// action-response cache.
 //
-// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
-// framework default in place.
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the framework default in
+// place.
 //
 // Returns Option which configures the container with the override.
 func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
@@ -1641,9 +1598,9 @@ func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
 	}
 }
 
-// WithDevWidget enables the dev tools overlay widget in dev mode, providing
-// at-a-glance system stats, build pipeline status, and provider information
-// with no effect in production mode.
+// WithDevWidget enables the dev tools overlay widget in dev mode, providing at-a-glance
+// system stats, build pipeline status, and provider information with no effect in
+// production mode.
 //
 // Returns Option which enables the dev widget.
 func WithDevWidget() Option {
@@ -1652,9 +1609,9 @@ func WithDevWidget() Option {
 	}
 }
 
-// WithDevHotreload enables automatic page refresh in dev mode, where the
-// browser receives an SSE event that triggers a navigation reload when a
-// rebuild completes, with no effect in production mode.
+// WithDevHotreload enables automatic page refresh in dev mode, where the browser receives
+// an SSE event that triggers a navigation reload when a rebuild completes, with no effect
+// in production mode.
 //
 // Returns Option which enables dev hot-reload.
 func WithDevHotreload() Option {
@@ -1663,9 +1620,9 @@ func WithDevHotreload() Option {
 	}
 }
 
-// WithSRI controls whether Subresource Integrity (SRI) hashes are added to
-// script and link tags in rendered HTML, enabled by default but can be
-// disabled for development environments where assets change frequently.
+// WithSRI controls whether Subresource Integrity (SRI) hashes are added to script and
+// link tags in rendered HTML, enabled by default but can be disabled for development
+// environments where assets change frequently.
 //
 // Takes enabled (bool) which controls whether integrity attributes are emitted.
 //
@@ -1676,13 +1633,11 @@ func WithSRI(enabled bool) Option {
 	}
 }
 
-// WithAuthProvider registers an authentication provider that Piko
-// calls on every request to resolve the auth state. The resolved
-// AuthContext is available via RequestData.Auth() in pages and
-// ActionMetadata.Auth() in actions.
+// WithAuthProvider registers an authentication provider that Piko calls on every request
+// to resolve the auth state. The resolved AuthContext is available via RequestData.Auth()
+// in pages and ActionMetadata.Auth() in actions.
 //
-// Takes provider (daemon_dto.AuthProvider) which resolves auth state
-// from HTTP requests.
+// Takes provider (daemon_dto.AuthProvider) which resolves auth state from HTTP requests.
 //
 // Returns Option which configures the auth provider.
 func WithAuthProvider(provider daemon_dto.AuthProvider) Option {
@@ -1691,14 +1646,12 @@ func WithAuthProvider(provider daemon_dto.AuthProvider) Option {
 	}
 }
 
-// WithBackendAnalytics registers one or more backend analytics
-// collectors.
+// WithBackendAnalytics registers one or more backend analytics collectors.
 //
-// Events are fired automatically for page views via middleware.
-// Multiple collectors can be registered; each receives every event.
+// Events are fired automatically for page views via middleware. Multiple collectors can
+// be registered; each receives every event.
 //
-// Takes collectors (...analytics_domain.Collector) which handle event
-// delivery.
+// Takes collectors (...analytics_domain.Collector) which handle event delivery.
 //
 // Returns Option which registers the collectors.
 func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
@@ -1709,15 +1662,14 @@ func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
 	}
 }
 
-// WithAuthGuard enables route-level authentication enforcement, where routes
-// not listed in the public paths or prefixes require authentication and
-// unauthenticated requests are redirected to the login path or handled by a
-// custom callback.
+// WithAuthGuard enables route-level authentication enforcement, where routes not listed
+// in the public paths or prefixes require authentication and unauthenticated requests are
+// redirected to the login path or handled by a custom callback.
 //
 // Requires WithAuthProvider to be set; ignored without it.
 //
-// Takes authGuardConfig (daemon_dto.AuthGuardConfig) which specifies public
-// paths, login redirect, and optional custom handler.
+// Takes authGuardConfig (daemon_dto.AuthGuardConfig) which specifies public paths, login
+// redirect, and optional custom handler.
 //
 // Returns Option which configures the auth guard.
 func WithAuthGuard(authGuardConfig daemon_dto.AuthGuardConfig) Option {

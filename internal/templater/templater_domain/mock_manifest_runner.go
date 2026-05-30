@@ -27,62 +27,55 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// MockManifestRunnerPort is a test double for ManifestRunnerPort that
-// returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockManifestRunnerPort is a test double for ManifestRunnerPort that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockManifestRunnerPort struct {
 	// RunPageFunc is the function called by RunPage.
 	RunPageFunc func(ctx context.Context, pageDefinition templater_dto.PageDefinition, request *http.Request) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error)
 
-	// RunPartialFunc is the function called by
-	// RunPartial.
+	// RunPartialFunc is the function called by RunPartial.
 	RunPartialFunc func(ctx context.Context, pageDefinition templater_dto.PageDefinition, request *http.Request) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error)
 
-	// RunPartialWithPropsFunc is the function called by
-	// RunPartialWithProps.
+	// RunPartialWithPropsFunc is the function called by RunPartialWithProps.
 	RunPartialWithPropsFunc func(
 		ctx context.Context, pageDefinition templater_dto.PageDefinition,
 		request *http.Request, props any,
 	) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error)
 
-	// GetPageEntryFunc is the function called by
-	// GetPageEntry.
+	// GetPageEntryFunc is the function called by GetPageEntry.
 	GetPageEntryFunc func(ctx context.Context, manifestKey string) (PageEntryView, error)
 
-	// RunPageCallCount tracks how many times RunPage
-	// was called.
-	RunPageCallCount int64
+	// RunPageCallCount tracks how many times RunPage was called.
+	RunPageCallCount atomic.Int64
 
-	// RunPartialCallCount tracks how many times
-	// RunPartial was called.
-	RunPartialCallCount int64
+	// RunPartialCallCount tracks how many times RunPartial was called.
+	RunPartialCallCount atomic.Int64
 
-	// RunPartialWithPropsCallCount tracks how many
-	// times RunPartialWithProps was called.
-	RunPartialWithPropsCallCount int64
+	// RunPartialWithPropsCallCount tracks how many times RunPartialWithProps was called.
+	RunPartialWithPropsCallCount atomic.Int64
 
-	// GetPageEntryCallCount tracks how many times
-	// GetPageEntry was called.
-	GetPageEntryCallCount int64
+	// GetPageEntryCallCount tracks how many times GetPageEntry was called.
+	GetPageEntryCallCount atomic.Int64
 }
 
-var _ ManifestRunnerPort = (*MockManifestRunnerPort)(nil)
+var (
+	_ ManifestRunnerPort = (*MockManifestRunnerPort)(nil)
+)
 
 // RunPage renders a page from the given definition and request.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes pageDefinition (templater_dto.PageDefinition)
-// which describes the page to render.
+// Takes pageDefinition (templater_dto.PageDefinition) which describes the page to render.
 // Takes request (*http.Request) which is the incoming HTTP request.
 //
-// Returns (*TemplateAST, InternalMetadata, string, error), or zero values if
-// RunPageFunc is nil.
+// Returns (*TemplateAST, InternalMetadata, string, error), or zero values if RunPageFunc
+// is nil.
 func (m *MockManifestRunnerPort) RunPage(
 	ctx context.Context,
 	pageDefinition templater_dto.PageDefinition,
 	request *http.Request,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
-	atomic.AddInt64(&m.RunPageCallCount, 1)
+	m.RunPageCallCount.Add(1)
 	if m.RunPageFunc != nil {
 		return m.RunPageFunc(ctx, pageDefinition, request)
 	}
@@ -92,35 +85,32 @@ func (m *MockManifestRunnerPort) RunPage(
 // RunPartial renders a partial template from the given page definition.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes pageDefinition (templater_dto.PageDefinition)
-// which describes the partial to render.
-// Takes request (*http.Request) which is the incoming
-// HTTP request.
+// Takes pageDefinition (templater_dto.PageDefinition) which describes the partial to
+// render.
+// Takes request (*http.Request) which is the incoming HTTP request.
 //
-// Returns (*TemplateAST, InternalMetadata, string,
-// error), or zero values if RunPartialFunc is nil.
+// Returns (*TemplateAST, InternalMetadata, string, error), or zero values if
+// RunPartialFunc is nil.
 func (m *MockManifestRunnerPort) RunPartial(
 	ctx context.Context,
 	pageDefinition templater_dto.PageDefinition,
 	request *http.Request,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
-	atomic.AddInt64(&m.RunPartialCallCount, 1)
+	m.RunPartialCallCount.Add(1)
 	if m.RunPartialFunc != nil {
 		return m.RunPartialFunc(ctx, pageDefinition, request)
 	}
 	return nil, templater_dto.InternalMetadata{}, "", nil
 }
 
-// RunPartialWithProps runs a partial and passes props data through to the
-// compiled template.
+// RunPartialWithProps runs a partial and passes props data through to the compiled
+// template.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes pageDefinition (templater_dto.PageDefinition)
-// which describes the partial to render.
-// Takes request (*http.Request) which is the incoming
-// HTTP request.
-// Takes props (any) which contains the properties to
-// pass to the template.
+// Takes pageDefinition (templater_dto.PageDefinition) which describes the partial to
+// render.
+// Takes request (*http.Request) which is the incoming HTTP request.
+// Takes props (any) which contains the properties to pass to the template.
 //
 // Returns (*TemplateAST, InternalMetadata, string, error), or zero values if
 // RunPartialWithPropsFunc is nil.
@@ -130,7 +120,7 @@ func (m *MockManifestRunnerPort) RunPartialWithProps(
 	request *http.Request,
 	props any,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
-	atomic.AddInt64(&m.RunPartialWithPropsCallCount, 1)
+	m.RunPartialWithPropsCallCount.Add(1)
 	if m.RunPartialWithPropsFunc != nil {
 		return m.RunPartialWithPropsFunc(ctx, pageDefinition, request, props)
 	}
@@ -147,7 +137,7 @@ func (m *MockManifestRunnerPort) GetPageEntry(
 	ctx context.Context,
 	manifestKey string,
 ) (PageEntryView, error) {
-	atomic.AddInt64(&m.GetPageEntryCallCount, 1)
+	m.GetPageEntryCallCount.Add(1)
 	if m.GetPageEntryFunc != nil {
 		return m.GetPageEntryFunc(ctx, manifestKey)
 	}

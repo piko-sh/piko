@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const inlineEpsilon = 0.001
+const (
+	inlineEpsilon = 0.001
+)
 
 func TestAllowsWrapping(t *testing.T) {
 	tests := []struct {

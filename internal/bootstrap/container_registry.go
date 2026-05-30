@@ -44,11 +44,9 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// GetRegistryService returns the template registry service, creating it if
-// necessary.
+// GetRegistryService returns the template registry service, creating it if necessary.
 //
-// Returns registry_domain.RegistryService which provides template registry
-// operations.
+// Returns registry_domain.RegistryService which provides template registry operations.
 // Returns error when the service could not be created.
 func (c *Container) GetRegistryService() (registry_domain.RegistryService, error) {
 	c.registryOnce.Do(func() {
@@ -65,8 +63,8 @@ func (c *Container) GetRegistryService() (registry_domain.RegistryService, error
 
 // createDefaultRegistryService sets up the default registry service.
 //
-// Sets c.registryErr and returns early when the database provider is not
-// available, the database type is not supported, or blob storage setup fails.
+// Sets c.registryErr and returns early when the database provider is not available, the
+// database type is not supported, or blob storage setup fails.
 func (c *Container) createDefaultRegistryService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default RegistryService...")
@@ -98,13 +96,11 @@ func (c *Container) createDefaultRegistryService() {
 	c.registryService = registry_domain.NewRegistryService(metaStore, blobStores, eventBus, metadataCache)
 }
 
-// createRegistryMetadataStore creates the metadata store using the provider's
-// factory. This approach avoids importing driver-specific packages into the
-// bootstrap layer, so users only download dependencies for drivers they
-// explicitly import.
+// createRegistryMetadataStore creates the metadata store using the provider's factory.
+// This approach avoids importing driver-specific packages into the bootstrap layer, so
+// users only download dependencies for drivers they explicitly import.
 //
-// Returns registry_domain.MetadataStore which provides metadata storage
-// operations.
+// Returns registry_domain.MetadataStore which provides metadata storage operations.
 // Returns error when the database provider is unavailable or the factory fails.
 func (c *Container) createRegistryMetadataStore() (registry_domain.MetadataStore, error) {
 	if c.dbRegistrations != nil {
@@ -116,8 +112,8 @@ func (c *Container) createRegistryMetadataStore() (registry_domain.MetadataStore
 	return c.createProviderRegistryDAL()
 }
 
-// createQuerierRegistryDAL creates a registry DAL from a querier-managed
-// database connection registered via AddDatabase(DatabaseNameRegistry, ...).
+// createQuerierRegistryDAL creates a registry DAL from a querier-managed database
+// connection registered via AddDatabase(DatabaseNameRegistry, ...).
 //
 // Returns registry_domain.MetadataStore which is the querier-backed metadata store.
 // Returns error when the database connection cannot be obtained.
@@ -137,8 +133,8 @@ func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, e
 	return dal, nil
 }
 
-// createProviderRegistryDAL creates a registry DAL from the default otter
-// in-memory backend with WAL persistence.
+// createProviderRegistryDAL creates a registry DAL from the default otter in-memory
+// backend with WAL persistence.
 //
 // Returns registry_domain.MetadataStore which is the otter-backed metadata store.
 // Returns error when the otter DAL cannot be created or does not implement
@@ -161,13 +157,13 @@ func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, 
 	return dal, nil
 }
 
-// createRegistryBlobStores creates the blob stores for the registry service.
-// Closes metaStore on error to prevent resource leaks.
+// createRegistryBlobStores creates the blob stores for the registry service. Closes
+// metaStore on error to prevent resource leaks.
 //
 // Takes metaStore (registry_domain.MetadataStore) which is closed on error.
 //
-// Returns map[string]registry_domain.BlobStore which contains blob stores keyed
-// by storage backend ID.
+// Returns map[string]registry_domain.BlobStore which contains blob stores keyed by
+// storage backend ID.
 // Returns error when blob provider or adapter creation fails.
 func (c *Container) createRegistryBlobStores(metaStore registry_domain.MetadataStore) (map[string]registry_domain.BlobStore, error) {
 	blobProvider, err := c.getRegistryBlobProvider()
@@ -188,13 +184,11 @@ func (c *Container) createRegistryBlobStores(metaStore registry_domain.MetadataS
 	return map[string]registry_domain.BlobStore{"local_disk_cache": blobAdapter}, nil
 }
 
-// createRegistryMetadataCache creates the metadata cache from config or
-// provider. When a config is present, the cache is built via the cache
-// hexagon's builder using the "artefact-metadata" factory blueprint registered
-// by registry_adapters.
+// createRegistryMetadataCache creates the metadata cache from config or provider. When a
+// config is present, the cache is built via the cache hexagon's builder using the
+// "artefact-metadata" factory blueprint registered by registry_adapters.
 //
-// Returns registry_domain.MetadataCache which may be nil if no cache is
-// configured.
+// Returns registry_domain.MetadataCache which may be nil if no cache is configured.
 func (c *Container) createRegistryMetadataCache() registry_domain.MetadataCache {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -234,8 +228,7 @@ func (c *Container) createRegistryMetadataCache() registry_domain.MetadataCache 
 	return metaCache
 }
 
-// registerRegistryShutdownHandlers registers shutdown handlers for registry
-// resources.
+// registerRegistryShutdownHandlers registers shutdown handlers for registry resources.
 func (c *Container) registerRegistryShutdownHandlers() {
 	shutdown.Register(c.GetAppContext(), "RegistryMetadataStore", func(_ context.Context) error {
 		return c.registryMetaStore.Close()
@@ -247,12 +240,10 @@ func (c *Container) registerRegistryShutdownHandlers() {
 	}
 }
 
-// getRegistryBlobProvider returns the storage provider for registry blob
-// storage using a priority order: "system" -> "default" -> built-in disk at
-// .piko/blobs/.
+// getRegistryBlobProvider returns the storage provider for registry blob storage using a
+// priority order: "system" -> "default" -> built-in disk at .piko/blobs/.
 //
-// Returns storage_domain.StorageProviderPort which provides blob storage
-// access.
+// Returns storage_domain.StorageProviderPort which provides blob storage access.
 // Returns error when the built-in disk provider cannot be created.
 func (c *Container) getRegistryBlobProvider() (storage_domain.StorageProviderPort, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
@@ -282,11 +273,9 @@ func (c *Container) getRegistryBlobProvider() (storage_domain.StorageProviderPor
 	return diskProvider, nil
 }
 
-// GetRenderRegistry returns the component render registry, creating it if
-// necessary.
+// GetRenderRegistry returns the component render registry, creating it if necessary.
 //
-// Returns render_domain.RegistryPort which provides access to render
-// components.
+// Returns render_domain.RegistryPort which provides access to render components.
 func (c *Container) GetRenderRegistry() render_domain.RegistryPort {
 	c.renderRegOnce.Do(func() {
 		_, l := logger_domain.From(c.GetAppContext(), log)
@@ -300,9 +289,9 @@ func (c *Container) GetRenderRegistry() render_domain.RegistryPort {
 	return c.renderRegistry
 }
 
-// SetRenderRegistryOverride sets a custom render registry to bypass the default
-// creation which requires database connectivity. Use it for LSP and other
-// lightweight tools that don't need full render capabilities.
+// SetRenderRegistryOverride sets a custom render registry to bypass the default creation
+// which requires database connectivity. Use it for LSP and other lightweight tools that
+// don't need full render capabilities.
 //
 // Takes registry (RegistryPort) which provides the custom render registry.
 func (c *Container) SetRenderRegistryOverride(registry render_domain.RegistryPort) {

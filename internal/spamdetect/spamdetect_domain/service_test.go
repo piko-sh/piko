@@ -899,7 +899,7 @@ func TestSpamDetectService_CacheEviction(t *testing.T) {
 	}))
 
 	schema := testSchema(spamdetect_dto.SignalGibberish)
-	var submissionIDs []string
+	submissionIDs := make([]string, 0, 5)
 
 	for range 5 {
 		submission := testSubmission()

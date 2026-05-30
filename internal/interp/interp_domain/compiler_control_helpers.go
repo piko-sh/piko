@@ -20,7 +20,6 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/constant"
@@ -30,25 +29,30 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// incDecWrapMsg is the fmt.Errorf wrapper used when forwarding a
-// sub-compiler's increment/decrement error so every dispatch branch
-// returns a uniformly prefixed diagnostic.
-const incDecWrapMsg = "compiling increment/decrement: %w"
+const (
+	// incDecWrapMsg is the fmt.Errorf wrapper used when forwarding a sub-compiler's
+	// increment/decrement error so every dispatch branch returns a uniformly prefixed
+	// diagnostic.
+	incDecWrapMsg = "compiling increment/decrement: %w"
+)
 
-// compileIncDec compiles an increment or decrement statement (x++ or
-// x--).
+// compileIncDec compiles an increment or decrement statement (x++ or x--).
 //
-// Takes statement (*ast.IncDecStmt) which is the increment or decrement
-// statement AST node to compile.
+// Takes statement (*ast.IncDecStmt) which is the increment or decrement statement AST
+// node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileIncDec(ctx context.Context, statement *ast.IncDecStmt) (varLocation, error) {
-	if selExpr, ok := statement.X.(*ast.SelectorExpr); ok {
-		return wrapIncDecResult(c.compileIncDecSelector(ctx, statement, selExpr))
+	if selectorExpression, ok := statement.X.(*ast.SelectorExpr); ok {
+		return wrapIncDecResult(c.compileIncDecSelector(ctx, statement, selectorExpression))
 	}
 
-	if indexExpr, ok := statement.X.(*ast.IndexExpr); ok {
-		return wrapIncDecResult(c.compileIncDecIndex(ctx, statement, indexExpr))
+	if indexExpression, ok := statement.X.(*ast.IndexExpr); ok {
+		return wrapIncDecResult(c.compileIncDecIndex(ctx, statement, indexExpression))
+	}
+
+	if starExpression, ok := statement.X.(*ast.StarExpr); ok {
+		return wrapIncDecResult(c.compileIncDecStar(ctx, statement, starExpression))
 	}
 
 	identifier, ok := statement.X.(*ast.Ident)
@@ -60,31 +64,62 @@ func (c *compiler) compileIncDec(ctx context.Context, statement *ast.IncDecStmt)
 		return wrapIncDecResult(c.compileIncDecUpvalue(ctx, statement, ref))
 	}
 
-	if gv, ok := c.globalVars[identifier.Name]; ok {
+	if gv, ok := c.globalVariables[identifier.Name]; ok {
 		return wrapIncDecResult(c.compileIncDecGlobal(ctx, statement, gv))
 	}
 
 	return c.compileIncDecLocal(ctx, statement, identifier)
 }
 
-// wrapIncDecResult forwards a sub-compiler's result pair, wrapping
-// any error with the shared incDecWrapMsg.
+// compileIncDecStar compiles `*p++` or `*p--` by reading through the pointer, applying
+// inc/dec, and writing the result back through the same pointer.
 //
-// Takes result (varLocation) which is the sub-compiler's location.
-// Takes err (error) which is the sub-compiler's error, possibly nil.
+// Takes statement (*ast.IncDecStmt) which is the inc/dec statement.
+// Takes target (*ast.StarExpr) which is the dereference expression.
 //
-// Returns the result unchanged on success, or a zero location with
-// the wrapped error.
-func wrapIncDecResult(result varLocation, err error) (varLocation, error) {
+// Returns the location of the post-write value and any compilation error.
+func (c *compiler) compileIncDecStar(ctx context.Context, statement *ast.IncDecStmt, target *ast.StarExpr) (varLocation, error) {
+	currentLocation, err := c.compileStarExpression(ctx, target)
 	if err != nil {
-		return varLocation{}, fmt.Errorf(incDecWrapMsg, err)
+		return varLocation{}, err
 	}
-	return result, nil
+	if _, err := c.emitIncDec(ctx, statement.Tok, currentLocation); err != nil {
+		return varLocation{}, err
+	}
+	c.emitNarrowIntegerTruncation(currentLocation, c.incDecStaticType(target))
+	if err := c.compileStarAssign(ctx, target, currentLocation); err != nil {
+		return varLocation{}, err
+	}
+	return currentLocation, nil
 }
 
-// compileIncDecLocal resolves the identifier against the current
-// scope and emits the appropriate inc/dec sequence for a stack-local
-// or spilled variable.
+// incDecStaticType returns the static Go type the type-checker recorded for an inc/dec
+// target expression, or nil when none is available. Used by inc/dec call sites to detect
+// narrow numeric types that need post-write truncation.
+//
+// Takes targetExpression (ast.Expr) which is the inc/dec target.
+//
+// Returns the recorded types.Type, or nil when no type is available.
+func (c *compiler) incDecStaticType(targetExpression ast.Expr) types.Type {
+	if c.info == nil {
+		return nil
+	}
+	if tv, ok := c.info.Types[targetExpression]; ok && tv.Type != nil {
+		return tv.Type
+	}
+	if identifier, ok := targetExpression.(*ast.Ident); ok {
+		if obj := c.info.Uses[identifier]; obj != nil {
+			return obj.Type()
+		}
+		if obj := c.info.Defs[identifier]; obj != nil {
+			return obj.Type()
+		}
+	}
+	return nil
+}
+
+// compileIncDecLocal resolves the identifier against the current scope and emits the
+// appropriate inc/dec sequence for a stack-local or spilled variable.
 //
 // Takes statement (*ast.IncDecStmt) which is the inc/dec statement.
 // Takes identifier (*ast.Ident) which names the target variable.
@@ -100,13 +135,31 @@ func (c *compiler) compileIncDecLocal(
 		return varLocation{}, fmt.Errorf("undefined variable: %s at %s", identifier.Name, c.positionString(identifier.Pos()))
 	}
 
+	staticType := c.incDecStaticType(identifier)
+
 	if location.isSpilled {
 		scratch := c.materialise(ctx, location)
 		if _, err := c.emitIncDec(ctx, statement.Tok, scratch); err != nil {
 			return varLocation{}, err
 		}
+		c.emitNarrowIntegerTruncation(scratch, staticType)
 		c.emitSpillStore(ctx, scratch.register, location.kind, location.spillSlot)
 		c.scopes.alloc.freeTemp(location.kind, scratch.register)
+		c.emitSyncCaptured(ctx, location)
+		return varLocation{}, nil
+	}
+
+	if location.isIndirect {
+		scratch, err := c.emitIndirectRead(ctx, location)
+		if err != nil {
+			return varLocation{}, err
+		}
+		if _, err := c.emitIncDec(ctx, statement.Tok, scratch); err != nil {
+			return varLocation{}, err
+		}
+		c.emitNarrowIntegerTruncation(scratch, staticType)
+		c.emitIndirectWrite(ctx, location, scratch)
+		c.scopes.alloc.freeTemp(scratch.kind, scratch.register)
 		c.emitSyncCaptured(ctx, location)
 		return varLocation{}, nil
 	}
@@ -115,20 +168,21 @@ func (c *compiler) compileIncDecLocal(
 	if err != nil {
 		return result, err
 	}
+	c.emitNarrowIntegerTruncation(location, staticType)
 	c.emitSyncCaptured(ctx, location)
 	return result, nil
 }
 
-// compileIncDecIndex compiles m[k]++ and s[i]++ (and their -- forms)
-// by desugaring to m[k] += 1 / m[k] -= 1 and dispatching through the
-// existing compound-assign-index path. This covers both map and
-// slice/array targets because the compound path already handles both.
+// compileIncDecIndex compiles m[k]++ and s[i]++ (and their decrement forms) by desugaring
+// to m[k] += 1 / m[k] -= 1 and dispatching through the existing compound-assign-index
+// path. This covers both map and slice/array targets because the compound path already
+// handles both.
 //
 // Takes statement (*ast.IncDecStmt) which holds the ++/-- token.
-// Takes indexExpr (*ast.IndexExpr) which is the target expression.
+// Takes indexExpression (*ast.IndexExpr) which is the target expression.
 //
 // Returns the compiled location (always zero value) and any error.
-func (c *compiler) compileIncDecIndex(ctx context.Context, statement *ast.IncDecStmt, indexExpr *ast.IndexExpr) (varLocation, error) {
+func (c *compiler) compileIncDecIndex(ctx context.Context, statement *ast.IncDecStmt, indexExpression *ast.IndexExpr) (varLocation, error) {
 	one := &ast.BasicLit{
 		ValuePos: statement.Pos(),
 		Kind:     token.INT,
@@ -138,19 +192,18 @@ func (c *compiler) compileIncDecIndex(ctx context.Context, statement *ast.IncDec
 	if statement.Tok == token.DEC {
 		operatorToken = token.SUB
 	}
-	c.populateIncDecLiteralType(indexExpr, one)
-	return c.compileCompoundAssignIndex(ctx, indexExpr, one, operatorToken)
+	c.populateIncDecLiteralType(indexExpression, one)
+	return c.compileCompoundAssignIndex(ctx, indexExpression, one, operatorToken)
 }
 
-// populateIncDecLiteralType records a TypeAndValue for the synthetic
-// "1" literal used to desugar inc/dec into compound assignment. Without
-// this the compound path reads an empty types.Type and mis-classifies
-// the register kind on nested expressions.
+// populateIncDecLiteralType records a TypeAndValue for the synthetic "1" literal used to
+// desugar inc/dec into compound assignment. Without this the compound path reads an empty
+// types.Type and mis-classifies the register kind on nested expressions.
 //
-// Takes indexExpr (*ast.IndexExpr) which identifies the element type.
+// Takes indexExpression (*ast.IndexExpr) which identifies the element type.
 // Takes literal (*ast.BasicLit) which is the synthetic "1" node.
-func (c *compiler) populateIncDecLiteralType(indexExpr *ast.IndexExpr, literal *ast.BasicLit) {
-	collectionType, ok := c.info.Types[indexExpr.X]
+func (c *compiler) populateIncDecLiteralType(indexExpression *ast.IndexExpr, literal *ast.BasicLit) {
+	collectionType, ok := c.info.Types[indexExpression.X]
 	if !ok || collectionType.Type == nil {
 		return
 	}
@@ -176,10 +229,9 @@ func (c *compiler) populateIncDecLiteralType(indexExpr *ast.IndexExpr, literal *
 
 // compileIncDecGlobal compiles an inc/dec on a global variable.
 //
-// Takes statement (*ast.IncDecStmt) which is the increment or decrement
-// statement AST node.
-// Takes gv (globalVariableInfo) which is the global variable information
-// for the target.
+// Takes statement (*ast.IncDecStmt) which is the increment or decrement statement AST
+// node.
+// Takes gv (globalVariableInfo) which is the global variable information for the target.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileIncDecGlobal(ctx context.Context, statement *ast.IncDecStmt, gv globalVariableInfo) (varLocation, error) {
@@ -187,70 +239,155 @@ func (c *compiler) compileIncDecGlobal(ctx context.Context, statement *ast.IncDe
 	if _, err := c.emitIncDec(ctx, statement.Tok, currentLocation); err != nil {
 		return varLocation{}, err
 	}
+	c.emitNarrowIntegerTruncation(currentLocation, c.incDecStaticType(statement.X))
 	c.emitSetGlobal(ctx, gv, currentLocation)
 	return varLocation{}, nil
 }
 
 // compileIncDecSelector compiles s.Field++ or s.Field--.
 //
-// Takes statement (*ast.IncDecStmt) which is the increment or decrement
-// statement AST node.
-// Takes selExpr (*ast.SelectorExpr) which is the selector expression
+// Takes statement (*ast.IncDecStmt) which is the increment or decrement statement AST
+// node.
+// Takes selectorExpression (*ast.SelectorExpr) which is the selector expression
 // identifying the struct field.
 //
 // Returns the compiled location and any error encountered.
-func (c *compiler) compileIncDecSelector(ctx context.Context, statement *ast.IncDecStmt, selExpr *ast.SelectorExpr) (varLocation, error) {
-	recvLocation, err := c.compileExpression(ctx, selExpr.X)
+func (c *compiler) compileIncDecSelector(ctx context.Context, statement *ast.IncDecStmt, selectorExpression *ast.SelectorExpr) (varLocation, error) {
+	receiverLocation, err := c.compileExpression(ctx, selectorExpression.X)
 	if err != nil {
 		return varLocation{}, err
 	}
-	c.boxToGeneral(ctx, &recvLocation)
+	c.boxToGeneral(ctx, &receiverLocation)
 
-	selection := c.info.Selections[selExpr]
+	selection := c.info.Selections[selectorExpression]
 	if selection == nil {
-		return varLocation{}, fmt.Errorf("unresolved selector: %s", selExpr.Sel.Name)
+		return varLocation{}, fmt.Errorf("unresolved selector: %s", selectorExpression.Sel.Name)
 	}
 	index := selection.Index()
 	fieldIndex := safeconv.MustIntToUint8(index[len(index)-1])
 
-	fieldKind := kindForType(selection.Type())
+	fieldKind := c.kindFor(selection.Type())
 	if fieldKind != registerInt && fieldKind != registerFloat && fieldKind != registerUint {
-		return varLocation{}, errors.New("inc/dec on selector requires numeric field")
+		return varLocation{}, ErrCompileIncDecSelectorNumeric
 	}
 
-	if fieldKind == registerInt && len(index) == 1 {
-		valReg := c.scopes.alloc.allocTemp(registerInt)
-		c.function.emit(opGetFieldInt, valReg, recvLocation.register, fieldIndex)
-		valLocation := varLocation{register: valReg, kind: registerInt}
-		if _, err := c.emitIncDec(ctx, statement.Tok, valLocation); err != nil {
-			return varLocation{}, err
-		}
-		c.function.emit(opSetFieldInt, recvLocation.register, fieldIndex, valReg)
+	if c.tryEmitFusedIncDecStructField(ctx, statement.Tok, selection, fieldKind, receiverLocation) {
 		return varLocation{}, nil
 	}
 
-	currentRegister := c.scopes.alloc.allocTemp(registerGeneral)
-	c.function.emit(opGetField, currentRegister, recvLocation.register, fieldIndex)
+	if fieldKind == registerInt && len(index) == 1 {
+		return c.emitTypedIntFieldIncDec(ctx, statement.Tok, selection, receiverLocation, fieldIndex)
+	}
 
-	valReg := c.scopes.alloc.allocTemp(fieldKind)
-	c.function.emit(opUnpackInterface, valReg, currentRegister, uint8(fieldKind))
-	valLocation := varLocation{register: valReg, kind: fieldKind}
-	if _, err := c.emitIncDec(ctx, statement.Tok, valLocation); err != nil {
+	return c.emitBoxedFieldIncDec(ctx, statement.Tok, selection, receiverLocation, fieldIndex, fieldKind)
+}
+
+// tryEmitFusedIncDecStructField emits the fused tier-1 subOpIncStructFieldInt/Uint (or
+// Dec) super-instruction when the struct layout resolves at compile time AND the field is
+// int/uint kind AND no narrow truncation is required AND the layout index fits in uint8.
+//
+// Saves the opGetFieldInt, tier-2 IncInt, opSetFieldInt three-trip and the int register
+// temporary. Float is excluded because emitIncDec for floats already needs a constant
+// pool entry and the gain wouldn't justify the second sub-op variant.
+//
+// Takes operatorToken (token.Token) which is the INC/DEC token.
+// Takes selection (*types.Selection) which describes the field access.
+// Takes fieldKind (registerKind) which is the field's register kind.
+// Takes receiverLocation (varLocation) which is the boxed receiver.
+//
+// Returns true when the fused opcode was emitted.
+func (c *compiler) tryEmitFusedIncDecStructField(ctx context.Context, operatorToken token.Token, selection *types.Selection, fieldKind registerKind, receiverLocation varLocation) bool {
+	if fieldKind != registerInt && fieldKind != registerUint {
+		return false
+	}
+	if narrowIntegerBitWidth(selection.Type()) != 0 {
+		return false
+	}
+	layoutIdx, ok := c.tryResolveStructFieldLayout(ctx, selection)
+	if !ok {
+		return false
+	}
+	layout := c.function.structLayoutTable[layoutIdx]
+	if registerKind(layout.RegisterKind) != fieldKind || !structFieldLayoutIndexFitsTier0(layoutIdx) {
+		return false
+	}
+	sub := pickIncDecStructFieldSubOp(fieldKind, operatorToken)
+	if sub == 0 {
+		return false
+	}
+	c.function.emit(opDrillTier1, uint8(sub), receiverLocation.register, safeconv.MustUintToUint8(uint(layoutIdx)))
+	return true
+}
+
+// emitTypedIntFieldIncDec emits inc/dec on a direct int-kind field.
+//
+// Emits opGetFieldInt, the inc/dec opcode, an optional narrow-truncation, and
+// opSetFieldInt.
+//
+// Takes ctx (context.Context) which is observed for cancellation during sub-emission.
+// Takes operatorToken (token.Token) which is the INC or DEC token.
+// Takes selection (*types.Selection) which describes the field.
+// Takes receiverLocation (varLocation) which is the boxed receiver.
+// Takes fieldIndex (uint8) which is the direct field index.
+//
+// Returns varLocation which is the empty value location yielded by the statement.
+// Returns error when emitIncDec surfaces a sub-emission failure.
+func (c *compiler) emitTypedIntFieldIncDec(ctx context.Context, operatorToken token.Token, selection *types.Selection, receiverLocation varLocation, fieldIndex uint8) (varLocation, error) {
+	valueRegister := c.scopes.alloc.allocTemp(registerInt)
+	valueLocation := varLocation{register: valueRegister, kind: registerInt}
+	c.emitTyped(ctx, opGetFieldInt, valueLocation, receiverLocation, rawOperand(fieldIndex))
+	if _, err := c.emitIncDec(ctx, operatorToken, valueLocation); err != nil {
 		return varLocation{}, err
 	}
+	c.emitNarrowIntegerTruncation(valueLocation, selection.Type())
+	c.emitTyped(ctx, opSetFieldInt, receiverLocation, rawOperand(fieldIndex), valueLocation)
+	return varLocation{}, nil
+}
+
+// emitBoxedFieldIncDec emits inc/dec on a boxed field.
+//
+// Used for any field that cannot take the typed-int fast path: unpack the interface
+// value, increment or decrement in the field-kind bank, then repack and store.
+//
+// Takes ctx (context.Context) which is observed for cancellation during sub-emission.
+// Takes operatorToken (token.Token) which is the INC or DEC token.
+// Takes selection (*types.Selection) which describes the field.
+// Takes receiverLocation (varLocation) which is the boxed receiver.
+// Takes fieldIndex (uint8) which is the direct field index.
+// Takes fieldKind (registerKind) which is the field's register kind.
+//
+// Returns varLocation which is the empty value location yielded by the statement.
+// Returns error when emitIncDec surfaces a sub-emission failure.
+func (c *compiler) emitBoxedFieldIncDec(
+	ctx context.Context,
+	operatorToken token.Token,
+	selection *types.Selection,
+	receiverLocation varLocation,
+	fieldIndex uint8,
+	fieldKind registerKind,
+) (varLocation, error) {
+	currentRegister := c.scopes.alloc.allocTemp(registerGeneral)
+	c.function.emit(opGetField, currentRegister, receiverLocation.register, fieldIndex)
+
+	valueRegister := c.scopes.alloc.allocTemp(fieldKind)
+	c.function.emit(opUnpackInterface, valueRegister, currentRegister, uint8(fieldKind))
+	valueLocation := varLocation{register: valueRegister, kind: fieldKind}
+	if _, err := c.emitIncDec(ctx, operatorToken, valueLocation); err != nil {
+		return varLocation{}, err
+	}
+	c.emitNarrowIntegerTruncation(valueLocation, selection.Type())
 	genResult := c.scopes.alloc.allocTemp(registerGeneral)
-	c.function.emit(opPackInterface, genResult, valReg, uint8(fieldKind))
-	c.function.emit(opSetField, recvLocation.register, fieldIndex, genResult)
+	c.function.emit(opPackInterface, genResult, valueRegister, uint8(fieldKind))
+	c.function.emit(opSetField, receiverLocation.register, fieldIndex, genResult)
 
 	return varLocation{}, nil
 }
 
 // compileIncDecUpvalue compiles an inc/dec on a captured upvalue.
 //
-// Takes statement (*ast.IncDecStmt) which is the increment or decrement
-// statement AST node.
-// Takes ref (upvalueReference) which is the upvalue reference for the
-// captured variable.
+// Takes statement (*ast.IncDecStmt) which is the increment or decrement statement AST
+// node.
+// Takes ref (upvalueReference) which is the upvalue reference for the captured variable.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileIncDecUpvalue(ctx context.Context, statement *ast.IncDecStmt, ref upvalueReference) (varLocation, error) {
@@ -262,126 +399,125 @@ func (c *compiler) compileIncDecUpvalue(ctx context.Context, statement *ast.IncD
 		c.scopes.alloc.freeTemp(ref.kind, currentRegister)
 		return varLocation{}, err
 	}
+	c.emitNarrowIntegerTruncation(currentLocation, c.incDecStaticType(statement.X))
 
 	c.function.emit(opSetUpvalue, currentRegister, safeconv.MustIntToUint8(ref.index), uint8(ref.kind))
 	c.scopes.alloc.freeTemp(ref.kind, currentRegister)
 	return varLocation{}, nil
 }
 
-// emitIncDec emits the actual increment or decrement instruction for a
-// numeric register.
+// emitIncDec emits the actual increment or decrement instruction for a numeric register.
 //
-// Takes operatorToken (token.Token) which indicates whether this is an
-// increment (token.INC) or decrement (token.DEC).
-// Takes location (varLocation) which is the register location of the
-// numeric value to modify.
+// Takes operatorToken (token.Token) which indicates whether this is an increment
+// (token.INC) or decrement (token.DEC).
+// Takes location (varLocation) which is the register location of the numeric value to
+// modify.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) emitIncDec(_ context.Context, operatorToken token.Token, location varLocation) (varLocation, error) {
 	switch location.kind {
 	case registerInt:
 		if operatorToken == token.INC {
-			c.function.emit(opIncInt, location.register, 0, 0)
+			c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncInt), location.register)
 		} else {
-			c.function.emit(opDecInt, location.register, 0, 0)
+			c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DecInt), location.register)
 		}
 	case registerFloat:
-		oneIndex := c.function.addFloatConstant(1.0)
-		tmpReg := c.scopes.alloc.allocTemp(registerFloat)
-		c.function.emitWide(opLoadFloatConst, tmpReg, oneIndex)
-		if operatorToken == token.INC {
-			c.function.emit(opAddFloat, location.register, location.register, tmpReg)
-		} else {
-			c.function.emit(opSubFloat, location.register, location.register, tmpReg)
+		oneIndex, err := c.function.addFloatConstant(1.0)
+		if err != nil {
+			return varLocation{}, err
 		}
-		c.scopes.alloc.freeTemp(registerFloat, tmpReg)
+		temporaryRegister := c.scopes.alloc.allocTemp(registerFloat)
+		c.function.emitWide(opLoadFloatConst, temporaryRegister, oneIndex)
+		if operatorToken == token.INC {
+			c.function.emit(opAddFloat, location.register, location.register, temporaryRegister)
+		} else {
+			c.function.emit(opSubFloat, location.register, location.register, temporaryRegister)
+		}
+		c.scopes.alloc.freeTemp(registerFloat, temporaryRegister)
 	case registerUint:
 		if operatorToken == token.INC {
-			c.function.emit(opIncUint, location.register, 0, 0)
+			c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncUint), location.register)
 		} else {
-			c.function.emit(opDecUint, location.register, 0, 0)
+			c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DecUint), location.register)
 		}
 	default:
-		return varLocation{}, errors.New("inc/dec requires numeric variable")
+		return varLocation{}, ErrCompileIncDecRequiresNumeric
 	}
 	return varLocation{}, nil
 }
 
-// multiReturnDeferredStore records a non-direct LHS target whose
-// store instruction must be emitted after the call completes.
+// multiReturnDeferredStore records a non-direct LHS target whose store instruction must
+// be emitted after the call completes.
 type multiReturnDeferredStore struct {
 	// target specifies the LHS expression that needs a deferred store.
 	target ast.Expr
 
-	// srcLocation specifies the source register location holding the value to store.
-	srcLocation varLocation
+	// sourceLocation specifies the source register location holding the value to store.
+	sourceLocation varLocation
 }
 
-// callResultKinds determines the register kinds for each result of a
-// call expression.
+// callResultKinds determines the register kinds for each result of a call expression.
 //
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// determine result kinds for.
+// Takes callExpression (*ast.CallExpr) which is the call expression to determine result
+// kinds for.
 //
-// Returns the slice of register kinds for each result and any error
-// encountered.
-func (c *compiler) callResultKinds(_ context.Context, callExpr *ast.CallExpr) ([]registerKind, error) {
-	if identifier, ok := callExpr.Fun.(*ast.Ident); ok {
+// Returns the slice of register kinds for each result and any error encountered.
+func (c *compiler) callResultKinds(_ context.Context, callExpression *ast.CallExpr) ([]registerKind, error) {
+	if identifier, ok := callExpression.Fun.(*ast.Ident); ok {
 		if funcIndex, found := c.funcTable[identifier.Name]; found {
 			return c.rootFunction.functions[funcIndex].resultKinds, nil
 		}
 	}
 
-	tv := c.info.Types[callExpr.Fun]
+	tv := c.info.Types[callExpression.Fun]
 	signature, ok := tv.Type.Underlying().(*types.Signature)
 	if !ok {
-		return nil, fmt.Errorf("cannot determine result types for call: %T", callExpr.Fun)
+		return nil, fmt.Errorf("cannot determine result types for call: %T", callExpression.Fun)
 	}
 	var kinds []registerKind
 	for v := range signature.Results().Variables() {
-		kinds = append(kinds, kindForType(v.Type()))
+		kinds = append(kinds, c.kindFor(v.Type()))
 	}
 	return kinds, nil
 }
 
-// compileMultiReturnAssign compiles an assignment from a multi-return
-// function call.
+// compileMultiReturnAssign compiles an assignment from a multi-return function call.
 //
-// Takes lhsList ([]ast.Expr) which is the left-hand side expressions to
-// assign results to.
-// Takes callExpr (*ast.CallExpr) which is the multi-return call
-// expression to compile.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes leftHandSideList ([]ast.Expr) which is the left-hand side expressions to assign
+// results to.
+// Takes callExpression (*ast.CallExpr) which is the multi-return call expression to
+// compile.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
 // Returns the first result location and any error encountered.
-func (c *compiler) compileMultiReturnAssign(ctx context.Context, lhsList []ast.Expr, callExpr *ast.CallExpr, isDefine bool) (varLocation, error) {
-	resultKinds, err := c.callResultKinds(ctx, callExpr)
+func (c *compiler) compileMultiReturnAssign(ctx context.Context, leftHandSideList []ast.Expr, callExpression *ast.CallExpr, isDefine bool) (varLocation, error) {
+	resultKinds, err := c.callResultKinds(ctx, callExpression)
 	if err != nil {
 		return varLocation{}, err
 	}
 
-	returnLocs := make([]varLocation, len(lhsList))
+	returnLocations := make([]varLocation, len(leftHandSideList))
 	var deferred []multiReturnDeferredStore
 
-	for i, leftHandSide := range lhsList {
+	for i, leftHandSide := range leftHandSideList {
 		location, ds, err := c.resolveMultiReturnTarget(ctx, leftHandSide, resultKinds[i], isDefine)
 		if err != nil {
 			return varLocation{}, err
 		}
-		returnLocs[i] = location
+		returnLocations[i] = location
 		if ds != nil {
 			deferred = append(deferred, *ds)
 		}
 	}
 
-	if err := c.emitMultiReturnCall(ctx, callExpr, returnLocs); err != nil {
+	if err := c.emitMultiReturnCall(ctx, callExpression, returnLocations); err != nil {
 		return varLocation{}, err
 	}
 
-	for i, leftHandSide := range lhsList {
+	for i, leftHandSide := range leftHandSideList {
 		if identifier, ok := leftHandSide.(*ast.Ident); ok && identifier.Name == blankIdentName {
-			c.scopes.alloc.recycleRegister(returnLocs[i].kind, returnLocs[i].register)
+			c.scopes.alloc.recycleRegister(returnLocations[i].kind, returnLocations[i].register)
 		}
 	}
 
@@ -391,24 +527,19 @@ func (c *compiler) compileMultiReturnAssign(ctx context.Context, lhsList []ast.E
 		}
 	}
 
-	if len(returnLocs) > 0 {
-		return returnLocs[0], nil
+	if len(returnLocations) > 0 {
+		return returnLocations[0], nil
 	}
 	return varLocation{}, nil
 }
 
-// resolveMultiReturnTarget resolves a single LHS target for a
-// multi-return assignment.
+// resolveMultiReturnTarget resolves a single LHS target for a multi-return assignment.
 //
-// Takes leftHandSide (ast.Expr) which is the left-hand side expression to
-// resolve.
-// Takes kind (registerKind) which is the expected register kind for the
-// result.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes leftHandSide (ast.Expr) which is the left-hand side expression to resolve.
+// Takes kind (registerKind) which is the expected register kind for the result.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
-// Returns the target location, an optional deferred store, and any
-// error.
+// Returns the target location, an optional deferred store, and any error.
 func (c *compiler) resolveMultiReturnTarget(ctx context.Context,
 	leftHandSide ast.Expr,
 	kind registerKind,
@@ -421,7 +552,7 @@ func (c *compiler) resolveMultiReturnTarget(ctx context.Context,
 	case *ast.IndexExpr, *ast.SelectorExpr, *ast.StarExpr:
 		register := c.scopes.alloc.alloc(kind)
 		location := varLocation{register: register, kind: kind}
-		ds := &multiReturnDeferredStore{srcLocation: location, target: leftHandSide}
+		ds := &multiReturnDeferredStore{sourceLocation: location, target: leftHandSide}
 		return location, ds, nil
 
 	default:
@@ -429,24 +560,21 @@ func (c *compiler) resolveMultiReturnTarget(ctx context.Context,
 	}
 }
 
-// resolveMultiReturnIdent resolves an identifier LHS target for a
-// multi-return assignment.
+// resolveMultiReturnIdent resolves an identifier LHS target for a multi-return
+// assignment.
 //
 // Takes target (*ast.Ident) which is the identifier to resolve.
-// Takes kind (registerKind) which is the expected register kind for the
-// result.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes kind (registerKind) which is the expected register kind for the result.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
-// Returns the target location, an optional deferred store, and any
-// error.
+// Returns the target location, an optional deferred store, and any error.
 func (c *compiler) resolveMultiReturnIdent(ctx context.Context,
 	target *ast.Ident,
 	kind registerKind,
 	isDefine bool,
 ) (varLocation, *multiReturnDeferredStore, error) {
 	if target.Name == blankIdentName {
-		register := c.scopes.alloc.allocOrRecycle(kind, 0)
+		register := c.scopes.alloc.alloc(kind)
 		return varLocation{register: register, kind: kind}, nil, nil
 	}
 
@@ -457,16 +585,12 @@ func (c *compiler) resolveMultiReturnIdent(ctx context.Context,
 	return c.resolveMultiReturnAssignIdent(ctx, target, kind)
 }
 
-// resolveMultiReturnDefine resolves a := target for a multi-return
-// assignment.
+// resolveMultiReturnDefine resolves a := target for a multi-return assignment.
 //
-// Takes target (*ast.Ident) which is the identifier to declare or look
-// up.
-// Takes kind (registerKind) which is the register kind for the new
-// variable.
+// Takes target (*ast.Ident) which is the identifier to declare or look up.
+// Takes kind (registerKind) which is the register kind for the new variable.
 //
-// Returns the target location, an optional deferred store, and any
-// error.
+// Returns the target location, an optional deferred store, and any error.
 func (c *compiler) resolveMultiReturnDefine(_ context.Context,
 	target *ast.Ident,
 	kind registerKind,
@@ -480,15 +604,12 @@ func (c *compiler) resolveMultiReturnDefine(_ context.Context,
 	return location, nil, nil
 }
 
-// resolveMultiReturnAssignIdent resolves a plain = target for a
-// multi-return assignment.
+// resolveMultiReturnAssignIdent resolves a plain = target for a multi-return assignment.
 //
 // Takes target (*ast.Ident) which is the identifier to look up.
-// Takes kind (registerKind) which is the expected register kind for the
-// result.
+// Takes kind (registerKind) which is the expected register kind for the result.
 //
-// Returns the target location, an optional deferred store, and any
-// error.
+// Returns the target location, an optional deferred store, and any error.
 func (c *compiler) resolveMultiReturnAssignIdent(_ context.Context,
 	target *ast.Ident,
 	kind registerKind,
@@ -496,135 +617,146 @@ func (c *compiler) resolveMultiReturnAssignIdent(_ context.Context,
 	if _, ok := c.upvalueMap[target.Name]; ok {
 		register := c.scopes.alloc.alloc(kind)
 		location := varLocation{register: register, kind: kind}
-		return location, &multiReturnDeferredStore{srcLocation: location, target: target}, nil
+		return location, &multiReturnDeferredStore{sourceLocation: location, target: target}, nil
 	}
-	if _, ok := c.globalVars[target.Name]; ok {
+	if _, ok := c.globalVariables[target.Name]; ok {
 		register := c.scopes.alloc.alloc(kind)
 		location := varLocation{register: register, kind: kind}
-		return location, &multiReturnDeferredStore{srcLocation: location, target: target}, nil
+		return location, &multiReturnDeferredStore{sourceLocation: location, target: target}, nil
 	}
 	location, _ := c.scopes.lookupVar(target.Name)
 	return location, nil, nil
 }
 
-// emitMultiReturnCall compiles and emits the call instruction for a
-// multi-return call.
+// emitMultiReturnCall compiles and emits the call instruction for a multi-return call.
 //
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// compile.
-// Takes returnLocs ([]varLocation) which is the pre-allocated return
-// locations for each result.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile.
+// Takes returnLocations ([]varLocation) which is the pre-allocated return locations for
+// each result.
 //
 // Returns any error encountered during compilation.
-func (c *compiler) emitMultiReturnCall(ctx context.Context, callExpr *ast.CallExpr, returnLocs []varLocation) error {
-	callFun := c.unwrapGenericInstantiation(ctx, callExpr.Fun)
+func (c *compiler) emitMultiReturnCall(ctx context.Context, callExpression *ast.CallExpr, returnLocations []varLocation) error {
+	callFun := c.unwrapGenericInstantiation(ctx, callExpression.Fun)
 	switch fun := callFun.(type) {
 	case *ast.Ident:
 		if funcIndex, found := c.funcTable[fun.Name]; found {
 			callee := c.rootFunction.functions[funcIndex]
-			argLocs, err := c.compileCallArgs(ctx, callExpr, callee)
+			argumentLocations, err := c.compileCallArguments(ctx, callExpression, callee)
 			if err != nil {
 				return err
 			}
 			site := callSite{
 				funcIndex: funcIndex,
-				arguments: argLocs,
-				returns:   returnLocs,
+				arguments: argumentLocations,
+				returns:   returnLocations,
 			}
-			siteIndex := c.function.addCallSite(site)
+			siteIndex, addErr := c.function.addCallSite(&site)
+			if addErr != nil {
+				return addErr
+			}
 			c.function.emitWide(opCall, 0, siteIndex)
 			return nil
 		}
 
-		fnLocation, found := c.scopes.lookupVar(fun.Name)
+		functionLocation, found := c.scopes.lookupVar(fun.Name)
 		if !found {
 			return fmt.Errorf("undefined function: %s at %s", fun.Name, c.positionString(fun.Pos()))
 		}
-		argLocs, err := c.compileArgExprs(ctx, callExpr)
+		argumentLocations, err := c.compileArgumentExpressions(ctx, callExpression)
 		if err != nil {
 			return err
 		}
+		argumentTypeNames, argumentTypeStrings := c.resolveArgumentStaticTypes(callExpression)
 		site := callSite{
-			isNative:       true,
-			nativeRegister: fnLocation.register,
-			arguments:      argLocs,
-			returns:        returnLocs,
+			isNative:                  true,
+			nativeRegister:            functionLocation.register,
+			arguments:                 argumentLocations,
+			returns:                   returnLocations,
+			argumentStaticTypeNames:   argumentTypeNames,
+			argumentStaticTypeStrings: argumentTypeStrings,
 		}
-		siteIndex := c.function.addCallSite(site)
+		siteIndex, addErr := c.function.addCallSite(&site)
+		if addErr != nil {
+			return addErr
+		}
 		c.function.emitWide(opCallNative, 0, siteIndex)
 		return nil
 
 	case *ast.SelectorExpr:
-		return c.compileMultiReturnSelectorCall(ctx, fun, callExpr, returnLocs)
+		return c.compileMultiReturnSelectorCall(ctx, fun, callExpression, returnLocations)
 
 	default:
-		return fmt.Errorf("unsupported call target: %T at %s", callExpr.Fun, c.positionString(callExpr.Fun.Pos()))
+		return fmt.Errorf("unsupported call target: %T at %s", callExpression.Fun, c.positionString(callExpression.Fun.Pos()))
 	}
 }
 
-// compileArgExprs compiles all argument expressions for a call.
+// compileArgumentExpressions compiles all argument expressions for a native call.
 //
-// Bool-typed expressions whose results land in an int register (for
-// example the result of a comparison such as `a != ""`) are coerced
-// to a bool register so that downstream boxing into an interface{}
-// parameter reflects the source type rather than int64.
+// Bool-typed expressions whose results land in an int register (for example a comparison
+// such as `a != ""`) are coerced to a bool register so downstream boxing into an
+// interface{} parameter reflects the source type rather than int64. Scalar arguments
+// destined for a fixed interface{} parameter are pre-boxed via
+// preboxNativeInterfaceArgument so they reach the native callee clothed in their exact
+// source-level type (int, int32, ...) rather than the canonical int64 the runtime boxing
+// path produces; without this, `v, ok := m.Load(7)` passes int64(7) while `m.Store(7, x)`
+// passes int(7), so the sync.Map key lookup misses. The single-return path applies the
+// same pre-boxing in compileNativeArguments.
 //
-// Takes callExpr (*ast.CallExpr) which is the call expression whose
-// arguments are compiled.
+// Takes callExpression (*ast.CallExpr) which is the call expression whose arguments are
+// compiled.
 //
 // Returns the compiled argument locations and any error encountered.
-func (c *compiler) compileArgExprs(ctx context.Context, callExpr *ast.CallExpr) ([]varLocation, error) {
-	argLocs := make([]varLocation, len(callExpr.Args))
-	for i, arg := range callExpr.Args {
-		location, err := c.compileExpression(ctx, arg)
+func (c *compiler) compileArgumentExpressions(ctx context.Context, callExpression *ast.CallExpr) ([]varLocation, error) {
+	nativeSignature := c.nativeCallSignature(callExpression)
+	argumentLocations := make([]varLocation, len(callExpression.Args))
+	for i, argument := range callExpression.Args {
+		location, err := c.compileExpression(ctx, argument)
 		if err != nil {
 			return nil, err
 		}
-		argLocs[i] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
+		location = c.coerceEvalBoolResult(ctx, c.info, argument, location)
+		argumentLocations[i] = c.preboxNativeInterfaceArgument(nativeSignature, i, location)
 	}
-	return argLocs, nil
+	return argumentLocations, nil
 }
 
-// compileMultiReturnSelectorCall dispatches a multi-return selector
-// call to the appropriate code path.
+// compileMultiReturnSelectorCall dispatches a multi-return selector call to the
+// appropriate code path.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression
 // identifying the method or function.
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// compile.
-// Takes returnLocs ([]varLocation) which is the pre-allocated return
-// locations for each result.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile.
+// Takes returnLocations ([]varLocation) which is the pre-allocated return locations for
+// each result.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) compileMultiReturnSelectorCall(ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
-	callExpr *ast.CallExpr,
-	returnLocs []varLocation,
+	callExpression *ast.CallExpr,
+	returnLocations []varLocation,
 ) error {
 	if funcIndex, ok := c.resolveMethodFunc(ctx, selectorExpression); ok {
 		fieldPath := c.resolveEmbeddedFieldPath(ctx, selectorExpression)
-		return c.emitMethodCallWithReturns(ctx, selectorExpression, callExpr, funcIndex, fieldPath, returnLocs)
+		return c.emitMethodCallWithReturns(ctx, selectorExpression, callExpression, funcIndex, fieldPath, returnLocations)
 	}
 
 	if c.isInterfaceMethodCall(ctx, selectorExpression) {
-		return c.emitDynamicMethodCallWithReturns(ctx, selectorExpression, callExpr, returnLocs)
+		return c.emitDynamicMethodCallWithReturns(ctx, selectorExpression, callExpression, returnLocations)
 	}
 
-	if handled, err := c.emitLinkedCallWithReturns(ctx, selectorExpression, callExpr, returnLocs); handled || err != nil {
+	if handled, err := c.emitLinkedCallWithReturns(ctx, selectorExpression, callExpression, returnLocations); handled || err != nil {
 		return err
 	}
 
-	return c.emitNativeSelectorCallWithReturns(ctx, selectorExpression, callExpr, returnLocs)
+	return c.emitNativeSelectorCallWithReturns(ctx, selectorExpression, callExpression, returnLocations)
 }
 
-// resolveMethodFunc resolves a selector expression to a compiled method
-// function index.
+// resolveMethodFunc resolves a selector expression to a compiled method function index.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression to
 // resolve.
 //
-// Returns the function index and true if found, or zero and false
-// otherwise.
+// Returns the function index and true if found, or zero and false otherwise.
 func (c *compiler) resolveMethodFunc(ctx context.Context, selectorExpression *ast.SelectorExpr) (uint16, bool) {
 	tableName, ok := c.resolveMethodTableName(ctx, selectorExpression)
 	if !ok {
@@ -634,14 +766,13 @@ func (c *compiler) resolveMethodFunc(ctx context.Context, selectorExpression *as
 	return funcIndex, found
 }
 
-// resolveEmbeddedFieldPath returns the field path for an embedded
-// method receiver.
+// resolveEmbeddedFieldPath returns the field path for an embedded method receiver.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression to
 // resolve the embedded path for.
 //
-// Returns the field index path excluding the final method index, or nil
-// for direct methods.
+// Returns the field index path excluding the final method index, or nil for direct
+// methods.
 func (c *compiler) resolveEmbeddedFieldPath(_ context.Context, selectorExpression *ast.SelectorExpr) []int {
 	selection, ok := c.info.Selections[selectorExpression]
 	if !ok {
@@ -654,266 +785,270 @@ func (c *compiler) resolveEmbeddedFieldPath(_ context.Context, selectorExpressio
 	return index[:len(index)-1]
 }
 
-// emitMethodCallWithReturns compiles an interpreted method call with
-// pre-allocated return locations.
+// emitMethodCallWithReturns compiles an interpreted method call with pre-allocated return
+// locations.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression
 // identifying the method.
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// compile.
-// Takes funcIndex (uint16) which is the function index of the compiled
-// method.
-// Takes fieldPath ([]int) which is the embedded field path to the
-// receiver, or nil.
-// Takes returnLocs ([]varLocation) which is the pre-allocated return
-// locations for each result.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile.
+// Takes funcIndex (uint16) which is the function index of the compiled method.
+// Takes fieldPath ([]int) which is the embedded field path to the receiver, or nil.
+// Takes returnLocations ([]varLocation) which is the pre-allocated return locations for
+// each result.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) emitMethodCallWithReturns(ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
-	callExpr *ast.CallExpr,
+	callExpression *ast.CallExpr,
 	funcIndex uint16,
 	fieldPath []int,
-	returnLocs []varLocation,
+	returnLocations []varLocation,
 ) error {
-	recvLocation, err := c.compileExpression(ctx, selectorExpression.X)
+	receiverLocation, err := c.compileExpression(ctx, selectorExpression.X)
 	if err != nil {
 		return err
 	}
-	c.boxToGeneral(ctx, &recvLocation)
+	c.boxToGeneral(ctx, &receiverLocation)
 
 	for _, fieldIndex := range fieldPath {
 		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opGetField, dest, recvLocation.register, safeconv.MustIntToUint8(fieldIndex))
-		recvLocation = varLocation{register: dest, kind: registerGeneral}
+		c.function.emit(opGetField, dest, receiverLocation.register, safeconv.MustIntToUint8(fieldIndex))
+		receiverLocation = varLocation{register: dest, kind: registerGeneral}
 	}
 
-	argLocs := make([]varLocation, 0, 1+len(callExpr.Args))
-	argLocs = append(argLocs, recvLocation)
-	for _, arg := range callExpr.Args {
-		location, err := c.compileExpression(ctx, arg)
+	argumentLocations := make([]varLocation, 0, 1+len(callExpression.Args))
+	argumentLocations = append(argumentLocations, receiverLocation)
+	for _, argument := range callExpression.Args {
+		location, err := c.compileExpression(ctx, argument)
 		if err != nil {
 			return err
 		}
-		argLocs = append(argLocs, location)
+		argumentLocations = append(argumentLocations, location)
 	}
 
 	site := callSite{
 		funcIndex: funcIndex,
-		arguments: argLocs,
-		returns:   returnLocs,
+		arguments: argumentLocations,
+		returns:   returnLocations,
 	}
-	siteIndex := c.function.addCallSite(site)
+	siteIndex, addErr := c.function.addCallSite(&site)
+	if addErr != nil {
+		return addErr
+	}
 	c.function.emitWide(opCall, 0, siteIndex)
 	return nil
 }
 
-// emitDynamicMethodCallWithReturns compiles an interface method call
-// with pre-allocated return locations.
+// emitDynamicMethodCallWithReturns compiles an interface method call with pre-allocated
+// return locations.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression
 // identifying the interface method.
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// compile.
-// Takes returnLocs ([]varLocation) which is the pre-allocated return
-// locations for each result.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile.
+// Takes returnLocations ([]varLocation) which is the pre-allocated return locations for
+// each result.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) emitDynamicMethodCallWithReturns(ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
-	callExpr *ast.CallExpr,
-	returnLocs []varLocation,
+	callExpression *ast.CallExpr,
+	returnLocations []varLocation,
 ) error {
-	recvLocation, err := c.compileExpression(ctx, selectorExpression.X)
+	receiverLocation, err := c.compileExpression(ctx, selectorExpression.X)
 	if err != nil {
 		return err
 	}
-	c.boxToGeneral(ctx, &recvLocation)
+	c.boxToGeneral(ctx, &receiverLocation)
 
-	argLocs := make([]varLocation, 0, 1+len(callExpr.Args))
-	argLocs = append(argLocs, recvLocation)
-	for _, arg := range callExpr.Args {
-		location, err := c.compileExpression(ctx, arg)
+	argumentLocations := make([]varLocation, 0, 1+len(callExpression.Args))
+	argumentLocations = append(argumentLocations, receiverLocation)
+	for _, argument := range callExpression.Args {
+		location, err := c.compileExpression(ctx, argument)
 		if err != nil {
 			return err
 		}
-		argLocs = append(argLocs, location)
+		argumentLocations = append(argumentLocations, location)
 	}
 
-	methodIndex := c.function.addStringConstant(selectorExpression.Sel.Name)
+	methodIndex, methodErr := c.function.addStringConstant(selectorExpression.Sel.Name)
+	if methodErr != nil {
+		return methodErr
+	}
 
 	site := callSite{
-		arguments: argLocs,
-		returns:   returnLocs,
+		arguments: argumentLocations,
+		returns:   returnLocations,
 	}
-	siteIndex := c.function.addCallSite(site)
+	siteIndex, addErr := c.function.addCallSite(&site)
+	if addErr != nil {
+		return addErr
+	}
 	c.function.emitWide(opCallMethod, 0, siteIndex)
 	c.function.emitExtension(methodIndex, 0)
 	return nil
 }
 
-// emitNativeSelectorCallWithReturns compiles a native selector call
-// with pre-allocated return locations.
+// emitNativeSelectorCallWithReturns compiles a native selector call with pre-allocated
+// return locations.
 //
 // Takes selectorExpression (*ast.SelectorExpr) which is the selector expression
 // identifying the native function or method.
-// Takes callExpr (*ast.CallExpr) which is the call expression to
-// compile.
-// Takes returnLocs ([]varLocation) which is the pre-allocated return
-// locations for each result.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile.
+// Takes returnLocations ([]varLocation) which is the pre-allocated return locations for
+// each result.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) emitNativeSelectorCallWithReturns(ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
-	callExpr *ast.CallExpr,
-	returnLocs []varLocation,
+	callExpression *ast.CallExpr,
+	returnLocations []varLocation,
 ) error {
-	fnLocation, err := c.compileSelectorExpression(ctx, selectorExpression)
+	functionLocation, err := c.compileSelectorExpression(ctx, selectorExpression)
 	if err != nil {
 		return err
 	}
 
-	argLocs, err := c.compileArgExprs(ctx, callExpr)
+	argumentLocations, err := c.compileArgumentExpressions(ctx, callExpression)
 	if err != nil {
 		return err
 	}
 
+	argumentTypeNames, argumentTypeStrings := c.resolveArgumentStaticTypes(callExpression)
 	site := callSite{
-		isNative:       true,
-		nativeRegister: fnLocation.register,
-		arguments:      argLocs,
-		returns:        returnLocs,
+		isNative:                  true,
+		nativeRegister:            functionLocation.register,
+		arguments:                 argumentLocations,
+		returns:                   returnLocations,
+		argumentStaticTypeNames:   argumentTypeNames,
+		argumentStaticTypeStrings: argumentTypeStrings,
 	}
-	siteIndex := c.function.addCallSite(site)
+	siteIndex, addErr := c.function.addCallSite(&site)
+	if addErr != nil {
+		return addErr
+	}
 	c.function.emitWide(opCallNative, 0, siteIndex)
 	return nil
 }
 
-// emitDeferredStore emits a store instruction for a multi-return LHS
-// target that could not be written directly.
+// emitDeferredStore emits a store instruction for a multi-return LHS target that could
+// not be written directly.
 //
-// Takes ds (multiReturnDeferredStore) which is the deferred store record
-// containing the target and source location.
+// Takes ds (multiReturnDeferredStore) which is the deferred store record containing the
+// target and source location.
 //
 // Returns any error encountered during the store emission.
 func (c *compiler) emitDeferredStore(ctx context.Context, ds multiReturnDeferredStore) error {
 	switch target := ds.target.(type) {
 	case *ast.Ident:
 		if ref, ok := c.upvalueMap[target.Name]; ok {
-			c.function.emit(opSetUpvalue, ds.srcLocation.register, safeconv.MustIntToUint8(ref.index), uint8(ref.kind))
+			c.function.emit(opSetUpvalue, ds.sourceLocation.register, safeconv.MustIntToUint8(ref.index), uint8(ref.kind))
 			return nil
 		}
-		if gv, ok := c.globalVars[target.Name]; ok {
-			c.emitSetGlobal(ctx, gv, ds.srcLocation)
+		if gv, ok := c.globalVariables[target.Name]; ok {
+			c.emitSetGlobal(ctx, gv, ds.sourceLocation)
 			return nil
 		}
 		return fmt.Errorf("deferred store: variable %s not found at %s", target.Name, c.positionString(target.Pos()))
 	case *ast.IndexExpr:
-		return c.compileIndexAssign(ctx, target, ds.srcLocation)
+		return c.compileIndexAssign(ctx, target, ds.sourceLocation)
 	case *ast.SelectorExpr:
-		return c.compileSelectorAssign(ctx, target, ds.srcLocation)
+		return c.compileSelectorAssign(ctx, target, ds.sourceLocation)
 	case *ast.StarExpr:
-		return c.compileStarAssign(ctx, target, ds.srcLocation)
+		return c.compileStarAssign(ctx, target, ds.sourceLocation)
 	default:
 		return fmt.Errorf("unsupported deferred store target: %T at %s", ds.target, c.positionString(ds.target.Pos()))
 	}
 }
 
-// declareCommaOkTargets declares or looks up the value and ok
-// destination variables for comma-ok assignments.
+// declareCommaOkTargets declares or looks up the value and ok destination variables for
+// comma-ok assignments.
 //
-// Takes valIdent (*ast.Ident) which is the identifier for the value
-// target.
-// Takes okIdent (*ast.Ident) which is the identifier for the ok boolean
-// target.
-// Takes valKind (registerKind) which is the register kind for the value
-// variable.
-// Takes blankValKind (registerKind) which is the register kind to use
-// when the value target is blank.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes valueIdentifier (*ast.Ident) which is the identifier for the value target.
+// Takes okIdentifier (*ast.Ident) which is the identifier for the ok boolean target.
+// Takes valueKind (registerKind) which is the register kind for the value variable.
+// Takes blankValueKind (registerKind) which is the register kind to use when the value
+// target is blank.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
-// Returns the value destination location and the ok destination
-// location.
-func (c *compiler) declareCommaOkTargets(ctx context.Context, valIdent, okIdent *ast.Ident, valKind registerKind, blankValKind registerKind, isDefine bool) (valDest varLocation, okDest varLocation) {
+// Returns the value destination location and the ok destination location.
+func (c *compiler) declareCommaOkTargets(
+	ctx context.Context,
+	valueIdentifier, okIdentifier *ast.Ident,
+	valueKind registerKind,
+	blankValueKind registerKind,
+	isDefine bool,
+) (valueDestination varLocation, okDestination varLocation) {
 	if isDefine {
-		valDest = c.declareCommaOkVal(ctx, valIdent, valKind, blankValKind)
-		okDest = c.declareCommaOkBool(ctx, okIdent)
+		valueDestination = c.declareCommaOkValue(ctx, valueIdentifier, valueKind, blankValueKind)
+		okDestination = c.declareCommaOkBool(ctx, okIdentifier)
 	} else {
-		valDest = c.lookupCommaOkVal(ctx, valIdent, blankValKind)
-		okDest = c.lookupCommaOkBool(ctx, okIdent)
+		valueDestination = c.lookupCommaOkValue(ctx, valueIdentifier, blankValueKind)
+		okDestination = c.lookupCommaOkBool(ctx, okIdentifier)
 	}
 
-	return valDest, okDest
+	return valueDestination, okDestination
 }
 
-// declareCommaOkVal declares or resolves the value target for a
-// comma-ok define.
+// declareCommaOkValue declares or resolves the value target for a comma-ok define.
 //
-// Takes valIdent (*ast.Ident) which is the identifier for the value
-// target.
-// Takes valKind (registerKind) which is the register kind for the value
-// variable.
-// Takes blankValKind (registerKind) which is the register kind to use
-// when the target is blank.
+// Takes valueIdentifier (*ast.Ident) which is the identifier for the value target.
+// Takes valueKind (registerKind) which is the register kind for the value variable.
+// Takes blankValueKind (registerKind) which is the register kind to use when the target
+// is blank.
 //
 // Returns the resolved value location.
-func (c *compiler) declareCommaOkVal(_ context.Context, valIdent *ast.Ident, valKind registerKind, blankValKind registerKind) varLocation {
-	if valIdent.Name != blankIdentName {
-		typeObject := c.info.Defs[valIdent]
+func (c *compiler) declareCommaOkValue(_ context.Context, valueIdentifier *ast.Ident, valueKind registerKind, blankValueKind registerKind) varLocation {
+	if valueIdentifier.Name != blankIdentName {
+		typeObject := c.info.Defs[valueIdentifier]
 		if typeObject != nil {
-			return c.scopes.declareVar(valIdent.Name, valKind)
+			return c.scopes.declareVar(valueIdentifier.Name, valueKind)
 		}
-		location, _ := c.scopes.lookupVar(valIdent.Name)
+		location, _ := c.scopes.lookupVar(valueIdentifier.Name)
 		return location
 	}
-	return varLocation{register: c.scopes.alloc.allocTemp(blankValKind), kind: blankValKind}
+	return varLocation{register: c.scopes.alloc.allocTemp(blankValueKind), kind: blankValueKind}
 }
 
-// declareCommaOkBool declares or resolves the ok target for a comma-ok
-// define.
+// declareCommaOkBool declares or resolves the ok target for a comma-ok define.
 //
-// Takes okIdent (*ast.Ident) which is the identifier for the ok boolean
-// target.
+// Takes okIdentifier (*ast.Ident) which is the identifier for the ok boolean target.
 //
 // Returns the resolved ok location.
-func (c *compiler) declareCommaOkBool(_ context.Context, okIdent *ast.Ident) varLocation {
-	if okIdent.Name != blankIdentName {
-		typeObject := c.info.Defs[okIdent]
+func (c *compiler) declareCommaOkBool(_ context.Context, okIdentifier *ast.Ident) varLocation {
+	if okIdentifier.Name != blankIdentName {
+		typeObject := c.info.Defs[okIdentifier]
 		if typeObject != nil {
-			return c.scopes.declareVar(okIdent.Name, registerInt)
+			return c.scopes.declareVar(okIdentifier.Name, registerInt)
 		}
-		location, _ := c.scopes.lookupVar(okIdent.Name)
+		location, _ := c.scopes.lookupVar(okIdentifier.Name)
 		return location
 	}
 	return varLocation{register: c.scopes.alloc.allocTemp(registerInt), kind: registerInt}
 }
 
-// lookupCommaOkVal looks up the value target for a comma-ok assign.
+// lookupCommaOkValue looks up the value target for a comma-ok assign.
 //
-// Takes valIdent (*ast.Ident) which is the identifier for the value
-// target.
-// Takes blankValKind (registerKind) which is the register kind to use
-// when the target is blank.
+// Takes valueIdentifier (*ast.Ident) which is the identifier for the value target.
+// Takes blankValueKind (registerKind) which is the register kind to use when the target
+// is blank.
 //
 // Returns the resolved value location.
-func (c *compiler) lookupCommaOkVal(_ context.Context, valIdent *ast.Ident, blankValKind registerKind) varLocation {
-	if valIdent.Name != blankIdentName {
-		location, _ := c.scopes.lookupVar(valIdent.Name)
+func (c *compiler) lookupCommaOkValue(_ context.Context, valueIdentifier *ast.Ident, blankValueKind registerKind) varLocation {
+	if valueIdentifier.Name != blankIdentName {
+		location, _ := c.scopes.lookupVar(valueIdentifier.Name)
 		return location
 	}
-	return varLocation{register: c.scopes.alloc.allocTemp(blankValKind), kind: blankValKind}
+	return varLocation{register: c.scopes.alloc.allocTemp(blankValueKind), kind: blankValueKind}
 }
 
 // lookupCommaOkBool looks up the ok target for a comma-ok assign.
 //
-// Takes okIdent (*ast.Ident) which is the identifier for the ok boolean
-// target.
+// Takes okIdentifier (*ast.Ident) which is the identifier for the ok boolean target.
 //
 // Returns the resolved ok location.
-func (c *compiler) lookupCommaOkBool(_ context.Context, okIdent *ast.Ident) varLocation {
-	if okIdent.Name != blankIdentName {
-		location, _ := c.scopes.lookupVar(okIdent.Name)
+func (c *compiler) lookupCommaOkBool(_ context.Context, okIdentifier *ast.Ident) varLocation {
+	if okIdentifier.Name != blankIdentName {
+		location, _ := c.scopes.lookupVar(okIdentifier.Name)
 		return location
 	}
 	return varLocation{register: c.scopes.alloc.allocTemp(registerInt), kind: registerInt}
@@ -921,166 +1056,293 @@ func (c *compiler) lookupCommaOkBool(_ context.Context, okIdent *ast.Ident) varL
 
 // compileMapCommaOk compiles v, ok := m[k] or v, ok = m[k].
 //
-// Takes lhsList ([]ast.Expr) which is the left-hand side expressions
-// for value and ok targets.
-// Takes indexExpr (*ast.IndexExpr) which is the map index expression to
-// compile.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes leftHandSideList ([]ast.Expr) which is the left-hand side expressions for value
+// and ok targets.
+// Takes indexExpression (*ast.IndexExpr) which is the map index expression to compile.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
 // Returns the value destination location and any error encountered.
-func (c *compiler) compileMapCommaOk(ctx context.Context, lhsList []ast.Expr, indexExpr *ast.IndexExpr, isDefine bool) (varLocation, error) {
-	mapLocation, err := c.compileExpression(ctx, indexExpr.X)
+func (c *compiler) compileMapCommaOk(ctx context.Context, leftHandSideList []ast.Expr, indexExpression *ast.IndexExpr, isDefine bool) (varLocation, error) {
+	mapLocation, err := c.compileExpression(ctx, indexExpression.X)
 	if err != nil {
 		return varLocation{}, err
 	}
 	c.boxToGeneral(ctx, &mapLocation)
-
-	keyLocation, err := c.compileExpression(ctx, indexExpr.Index)
+	keyLocation, err := c.compileExpression(ctx, indexExpression.Index)
 	if err != nil {
 		return varLocation{}, err
+	}
+	valueIdentifier, okIdentifier, err := mapCommaOkTargetIdents(leftHandSideList)
+	if err != nil {
+		return varLocation{}, err
+	}
+	valueKind, keyKind, elementType, err := c.mapCommaOkKinds(indexExpression, isDefine)
+	if err != nil {
+		return varLocation{}, err
+	}
+	if op, ok := selectTypedMapIndexOkOpcode(keyKind, valueKind, keyLocation.kind); ok {
+		return c.emitTypedMapCommaOk(ctx, typedMapCommaOkRequest{
+			valueIdentifier: valueIdentifier,
+			okIdentifier:    okIdentifier,
+			mapLocation:     mapLocation,
+			keyLocation:     keyLocation,
+			op:              op,
+			valueKind:       valueKind,
+			isDefine:        isDefine,
+		}), nil
 	}
 	c.boxToGeneral(ctx, &keyLocation)
-
-	valIdent, ok := lhsList[0].(*ast.Ident)
-	if !ok {
-		return varLocation{}, errors.New("map comma-ok value target is not an identifier")
-	}
-	okIdent, ok := lhsList[1].(*ast.Ident)
-	if !ok {
-		return varLocation{}, errors.New("map comma-ok ok target is not an identifier")
-	}
-
-	valKind := registerKind(registerGeneral)
-	if isDefine {
-		mapType, ok := c.info.Types[indexExpr.X].Type.Underlying().(*types.Map)
-		if !ok {
-			return varLocation{}, errors.New("map comma-ok source is not a map type")
-		}
-		valKind = kindForType(mapType.Elem())
-	}
-
-	valDest, okDest := c.declareCommaOkTargets(ctx, valIdent, okIdent, valKind, registerGeneral, isDefine)
-
+	valueDestination, okDestination := c.declareCommaOkTargets(ctx, valueIdentifier, okIdentifier, valueKind, registerGeneral, isDefine)
 	genDest := c.scopes.alloc.alloc(registerGeneral)
-	okReg := c.scopes.alloc.alloc(registerInt)
-
+	okRegister := c.scopes.alloc.alloc(registerInt)
 	c.function.emit(opMapIndexOk, genDest, mapLocation.register, keyLocation.register)
-	c.function.emit(opExt, okReg, 0, 0)
-
-	if valDest.kind == registerGeneral {
-		c.emitMove(ctx, valDest, varLocation{register: genDest, kind: registerGeneral})
-	} else if valDest.isSpilled {
-		scratch := c.scopes.alloc.allocTemp(valDest.kind)
-		c.function.emit(opUnpackInterface, scratch, genDest, uint8(valDest.kind))
-		c.emitSpillStore(ctx, scratch, valDest.kind, valDest.spillSlot)
-		c.scopes.alloc.freeTemp(valDest.kind, scratch)
-	} else {
-		c.function.emit(opUnpackInterface, valDest.register, genDest, uint8(valDest.kind))
-	}
-
-	c.emitMove(ctx, okDest, varLocation{register: okReg, kind: registerInt})
-
-	return valDest, nil
+	c.function.emit(opExt, okRegister, 0, 0)
+	c.storeCommaOkResult(ctx, valueDestination, genDest, elementType)
+	c.emitMove(ctx, okDestination, varLocation{register: okRegister, kind: registerInt})
+	return valueDestination, nil
 }
 
-// compileChanRecvCommaOk compiles v, ok := <-ch or v, ok = <-ch.
+// mapCommaOkKinds resolves the value kind, key kind, and value element type from a map
+// index expression. For define-form (`v, ok := m[k]`) the source must be a map type; the
+// assign-form falls back to general-bank kinds when the type checker hasn't recorded a
+// map.
 //
-// Takes lhsList ([]ast.Expr) which is the left-hand side expressions
-// for value and ok targets.
-// Takes unaryExpr (*ast.UnaryExpr) which is the channel receive
-// expression to compile.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes indexExpression (*ast.IndexExpr) which is the map index.
+// Takes isDefine (bool) which differentiates `:=` from `=`.
+//
+// Returns the value kind, key kind, value element type, and any validation error.
+func (c *compiler) mapCommaOkKinds(indexExpression *ast.IndexExpr, isDefine bool) (valueKind registerKind, keyKind registerKind, elementType types.Type, err error) {
+	mapType, ok := c.info.Types[indexExpression.X].Type.Underlying().(*types.Map)
+	if !ok {
+		if isDefine {
+			return registerGeneral, registerGeneral, nil, ErrCompileMapCommaOkSourceNotMap
+		}
+		return registerGeneral, registerGeneral, nil, nil
+	}
+	elementType = mapType.Elem()
+	return c.kindFor(elementType), c.kindFor(mapType.Key()), elementType, nil
+}
+
+// typedMapCommaOkRequest bundles the parameters of emitTypedMapCommaOk so the helper
+// signature stays under the argument-count cap and the call site reads each field by
+// name.
+type typedMapCommaOkRequest struct {
+	// valueIdentifier is the LHS identifier receiving the matched value.
+	valueIdentifier *ast.Ident
+
+	// okIdentifier is the LHS identifier receiving the presence bool.
+	okIdentifier *ast.Ident
+
+	// mapLocation is the compiled location of the source map register.
+	mapLocation varLocation
+
+	// keyLocation is the compiled location of the lookup key.
+	keyLocation varLocation
+
+	// op is the typed comma-ok opcode to emit.
+	op opcode
+
+	// valueKind is the register kind for the value destination.
+	valueKind registerKind
+
+	// isDefine reports whether the assignment uses := (declare) rather than = (assign).
+	isDefine bool
+}
+
+// emitTypedMapCommaOk emits the typed comma-ok bytecode (typed key, typed value, ok flag)
+// for the matched primitive (key, value) kinds. Allocates the typed destination, emits
+// the op + extension word, and moves the result into the declared targets.
+//
+// Takes request (typedMapCommaOkRequest) which carries the matched opcode, identifiers,
+// register locations, value kind, and the declare-vs-assign flag.
+//
+// Returns the value destination location.
+func (c *compiler) emitTypedMapCommaOk(ctx context.Context, request typedMapCommaOkRequest) varLocation {
+	valueDestination, okDestination := c.declareCommaOkTargets(ctx, request.valueIdentifier, request.okIdentifier, request.valueKind, registerGeneral, request.isDefine)
+	typedDest := c.scopes.alloc.alloc(request.valueKind)
+	okRegister := c.scopes.alloc.alloc(registerInt)
+	c.function.emit(request.op, typedDest, request.mapLocation.register, request.keyLocation.register)
+	c.function.emit(opExt, okRegister, 0, 0)
+	if valueDestination.isSpilled {
+		c.emitSpillStore(ctx, typedDest, request.valueKind, valueDestination.spillSlot)
+	} else if valueDestination.register != typedDest || valueDestination.kind != request.valueKind {
+		c.emitMove(ctx, valueDestination, varLocation{register: typedDest, kind: request.valueKind})
+	}
+	c.emitMove(ctx, okDestination, varLocation{register: okRegister, kind: registerInt})
+	return valueDestination
+}
+
+// storeCommaOkResult writes a comma-ok value into its declared target.
+//
+// Moves the boxed general-bank value at genDest into valueDestination, choosing
+// emitMoveTyped for general-bank destinations, opUnpackInterface for typed-bank
+// destinations, and the spill-store pathway when valueDestination is spilled. Used by the
+// `v, ok := ...` shapes (map index, type assertion) that dispatch through opMapIndexOk /
+// opTypeAssert and write to a typed bank destination via the general scratch.
+//
+// Takes valueDestination (varLocation) which is the destination register location of the
+// comma-ok value.
+// Takes genDest (uint8) which is the general scratch register holding the boxed value
+// emitted by the producing opcode.
+// Takes elementType (types.Type) which carries the static type of the comma-ok value,
+// used by emitMoveTyped to pick the right opMoveGeneral snapshot mode. May be nil.
+func (c *compiler) storeCommaOkResult(ctx context.Context, valueDestination varLocation, genDest uint8, elementType types.Type) {
+	switch {
+	case valueDestination.kind == registerGeneral:
+		c.emitMoveTyped(ctx, valueDestination, varLocation{register: genDest, kind: registerGeneral}, elementType)
+	case valueDestination.isSpilled:
+		scratch := c.scopes.alloc.allocTemp(valueDestination.kind)
+		c.function.emit(opUnpackInterface, scratch, genDest, uint8(valueDestination.kind))
+		c.emitSpillStore(ctx, scratch, valueDestination.kind, valueDestination.spillSlot)
+		c.scopes.alloc.freeTemp(valueDestination.kind, scratch)
+	default:
+		c.function.emit(opUnpackInterface, valueDestination.register, genDest, uint8(valueDestination.kind))
+	}
+}
+
+// compileChannelReceiveCommaOk compiles v, ok := <-ch or v, ok = <-ch.
+//
+// Takes leftHandSideList ([]ast.Expr) which is the left-hand side expressions for value
+// and ok targets.
+// Takes unaryExpression (*ast.UnaryExpr) which is the channel receive expression to
+// compile.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
 // Returns the value destination location and any error encountered.
-func (c *compiler) compileChanRecvCommaOk(ctx context.Context, lhsList []ast.Expr, unaryExpr *ast.UnaryExpr, isDefine bool) (varLocation, error) {
-	chLocation, err := c.compileExpression(ctx, unaryExpr.X)
+func (c *compiler) compileChannelReceiveCommaOk(ctx context.Context, leftHandSideList []ast.Expr, unaryExpression *ast.UnaryExpr, isDefine bool) (varLocation, error) {
+	channelLocation, err := c.compileExpression(ctx, unaryExpression.X)
 	if err != nil {
 		return varLocation{}, err
 	}
 
-	tv := c.info.Types[unaryExpr.X]
-	chanType, ok := tv.Type.Underlying().(*types.Chan)
+	tv := c.info.Types[unaryExpression.X]
+	channelType, ok := tv.Type.Underlying().(*types.Chan)
 	if !ok {
-		return varLocation{}, errors.New("channel receive comma-ok source is not a channel type")
+		return varLocation{}, ErrCompileChanRecvCommaOkSourceNotChan
 	}
-	elemType := chanType.Elem()
-	valKind := kindForType(elemType)
+	elementType := channelType.Elem()
+	valueKind := c.kindFor(elementType)
 
-	valIdent, ok := lhsList[0].(*ast.Ident)
+	valueIdentifier, ok := leftHandSideList[0].(*ast.Ident)
 	if !ok {
-		return varLocation{}, errors.New("channel receive comma-ok value target is not an identifier")
+		return varLocation{}, ErrCompileChanRecvCommaOkValueNotIdent
 	}
-	okIdent, ok := lhsList[1].(*ast.Ident)
+	okIdentifier, ok := leftHandSideList[1].(*ast.Ident)
 	if !ok {
-		return varLocation{}, errors.New("channel receive comma-ok ok target is not an identifier")
+		return varLocation{}, ErrCompileChanRecvCommaOkOkNotIdent
 	}
 
-	valDest, okDest := c.declareCommaOkTargets(ctx, valIdent, okIdent, valKind, valKind, isDefine)
+	valueDestination, okDestination := c.declareCommaOkTargets(ctx, valueIdentifier, okIdentifier, valueKind, valueKind, isDefine)
 
-	okReg := c.scopes.alloc.alloc(registerInt)
-	destReg := c.scopes.alloc.alloc(valKind)
-	c.function.emit(opChanRecv, chLocation.register, okReg, 0)
-	c.function.emit(opExt, destReg, uint8(valKind), 0)
+	okRegister := c.scopes.alloc.alloc(registerInt)
+	destinationRegister := c.scopes.alloc.alloc(valueKind)
+	c.function.emit(opDrillTier1, uint8(subOpChannelReceive), channelLocation.register, okRegister)
+	c.function.emit(opExt, destinationRegister, uint8(valueKind), 0)
 
-	c.emitMove(ctx, valDest, varLocation{register: destReg, kind: valKind})
-	c.emitMove(ctx, okDest, varLocation{register: okReg, kind: registerInt})
+	c.emitMoveTyped(ctx, valueDestination, varLocation{register: destinationRegister, kind: valueKind}, elementType)
+	c.emitMove(ctx, okDestination, varLocation{register: okRegister, kind: registerInt})
 
-	return valDest, nil
+	return valueDestination, nil
 }
 
 // compileTypeAssertCommaOk compiles v, ok := x.(T) or v, ok = x.(T).
 //
-// Takes lhsList ([]ast.Expr) which is the left-hand side expressions
-// for value and ok targets.
-// Takes assertExpr (*ast.TypeAssertExpr) which is the type assertion
-// expression to compile.
-// Takes isDefine (bool) which indicates whether this is a := define or
-// = assign.
+// Takes leftHandSideList ([]ast.Expr) which is the left-hand side expressions for value
+// and ok targets.
+// Takes assertExpr (*ast.TypeAssertExpr) which is the type assertion expression to
+// compile.
+// Takes isDefine (bool) which indicates whether this is a := define or = assign.
 //
 // Returns the value destination location and any error encountered.
-func (c *compiler) compileTypeAssertCommaOk(ctx context.Context, lhsList []ast.Expr, assertExpr *ast.TypeAssertExpr, isDefine bool) (varLocation, error) {
-	srcLocation, err := c.compileExpression(ctx, assertExpr.X)
+func (c *compiler) compileTypeAssertCommaOk(ctx context.Context, leftHandSideList []ast.Expr, assertExpr *ast.TypeAssertExpr, isDefine bool) (varLocation, error) {
+	sourceLocation, err := c.compileExpression(ctx, assertExpr.X)
 	if err != nil {
 		return varLocation{}, err
 	}
-	c.boxToGeneral(ctx, &srcLocation)
+	c.boxToGeneral(ctx, &sourceLocation)
 
 	targetType := c.info.Types[assertExpr.Type].Type
-	reflectType := c.typeToReflect(ctx, targetType)
-	typeIndex := c.function.addTypeRef(reflectType)
-	valKind := kindForType(targetType)
-
-	valIdent, ok := lhsList[0].(*ast.Ident)
-	if !ok {
-		return varLocation{}, errors.New("type assert comma-ok value target is not an identifier")
+	reflectType := c.typeAssertReflectType(ctx, targetType)
+	methodNames := interfaceTargetMethodNames(targetType)
+	typeIndex, typeErr := c.function.addTypeRefWithMethods(reflectType, methodNames)
+	if typeErr != nil {
+		return varLocation{}, typeErr
 	}
-	okIdent, ok := lhsList[1].(*ast.Ident)
+	valueKind := c.kindFor(targetType)
+
+	valueIdentifier, ok := leftHandSideList[0].(*ast.Ident)
 	if !ok {
-		return varLocation{}, errors.New("type assert comma-ok ok target is not an identifier")
+		return varLocation{}, ErrCompileTypeAssertCommaOkValueNotIdent
+	}
+	okIdentifier, ok := leftHandSideList[1].(*ast.Ident)
+	if !ok {
+		return varLocation{}, ErrCompileTypeAssertCommaOkOkNotIdent
 	}
 
-	valDest, okDest := c.declareCommaOkTargets(ctx, valIdent, okIdent, valKind, registerGeneral, isDefine)
+	valueDestination, okDestination := c.declareCommaOkTargets(ctx, valueIdentifier, okIdentifier, valueKind, registerGeneral, isDefine)
 
 	genDest := c.scopes.alloc.alloc(registerGeneral)
-	okReg := c.scopes.alloc.alloc(registerInt)
+	okRegister := c.scopes.alloc.alloc(registerInt)
 
-	c.function.emit(opTypeAssert, genDest, srcLocation.register, okReg)
+	c.function.emit(opTypeAssert, genDest, sourceLocation.register, okRegister)
 	c.function.emitExtension(typeIndex, 0)
 
-	if valDest.kind == registerGeneral {
-		c.emitMove(ctx, valDest, varLocation{register: genDest, kind: registerGeneral})
-	} else if valDest.isSpilled {
-		scratch := c.scopes.alloc.allocTemp(valDest.kind)
-		c.function.emit(opUnpackInterface, scratch, genDest, uint8(valDest.kind))
-		c.emitSpillStore(ctx, scratch, valDest.kind, valDest.spillSlot)
-		c.scopes.alloc.freeTemp(valDest.kind, scratch)
-	} else {
-		c.function.emit(opUnpackInterface, valDest.register, genDest, uint8(valDest.kind))
+	c.storeCommaOkResult(ctx, valueDestination, genDest, targetType)
+	c.emitMove(ctx, okDestination, varLocation{register: okRegister, kind: registerInt})
+
+	return valueDestination, nil
+}
+
+// wrapIncDecResult forwards a sub-compiler's result pair, wrapping any error with the
+// shared incDecWrapMsg.
+//
+// Takes result (varLocation) which is the sub-compiler's location.
+// Takes err (error) which is the sub-compiler's error, possibly nil.
+//
+// Returns the result unchanged on success, or a zero location with the wrapped error.
+func wrapIncDecResult(result varLocation, err error) (varLocation, error) {
+	if err != nil {
+		return varLocation{}, fmt.Errorf(incDecWrapMsg, err)
 	}
+	return result, nil
+}
 
-	c.emitMove(ctx, okDest, varLocation{register: okReg, kind: registerInt})
+// pickIncDecStructFieldSubOp selects the fused inc/dec sub-opcode for the given field
+// kind and INC/DEC token. Returns 0 when no fused variant exists.
+//
+// Takes fieldKind (registerKind) which is the field's register kind.
+// Takes operatorToken (token.Token) which is the INC or DEC token.
+//
+// Returns the chosen sub-opcode, or 0 when there is no fused variant.
+func pickIncDecStructFieldSubOp(fieldKind registerKind, operatorToken token.Token) subOpcode {
+	switch {
+	case fieldKind == registerInt && operatorToken == token.INC:
+		return subOpIncStructFieldInt
+	case fieldKind == registerInt && operatorToken == token.DEC:
+		return subOpDecStructFieldInt
+	case fieldKind == registerUint && operatorToken == token.INC:
+		return subOpIncStructFieldUint
+	case fieldKind == registerUint && operatorToken == token.DEC:
+		return subOpDecStructFieldUint
+	}
+	return 0
+}
 
-	return valDest, nil
+// mapCommaOkTargetIdents extracts the value and ok identifier targets from a comma-ok
+// left-hand side, returning a descriptive error when either target is not a bare
+// identifier.
+//
+// Takes leftHandSideList ([]ast.Expr) which is the LHS of the comma-ok assignment.
+//
+// Returns the value identifier, the ok identifier, and any validation error.
+func mapCommaOkTargetIdents(leftHandSideList []ast.Expr) (valueIdentifier *ast.Ident, okIdentifier *ast.Ident, err error) {
+	value, ok := leftHandSideList[0].(*ast.Ident)
+	if !ok {
+		return nil, nil, ErrCompileMapCommaOkValueNotIdent
+	}
+	okIdent, ok := leftHandSideList[1].(*ast.Ident)
+	if !ok {
+		return nil, nil, ErrCompileMapCommaOkOkNotIdent
+	}
+	return value, okIdent, nil
 }

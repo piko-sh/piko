@@ -55,15 +55,15 @@ const (
 	// resultFailed is the status text shown when a diagnostic check fails.
 	resultFailed = "failed"
 
-	// resultSkipped is the status text shown when an opt-in service is not
-	// registered on the server.
+	// resultSkipped is the status text shown when an opt-in service is not registered on the
+	// server.
 	resultSkipped = "not registered (opt-in)"
 
 	// diagnosticsTimeout is the time allowed for diagnostics checks to complete.
 	diagnosticsTimeout = 15 * time.Second
 
-	// diagnosticsLimit is the maximum number of items to fetch from each list query
-	// when running diagnostics.
+	// diagnosticsLimit is the maximum number of items to fetch from each list query when
+	// running diagnostics.
 	diagnosticsLimit = 5
 )
 
@@ -84,8 +84,8 @@ type DiagnosticsResult struct {
 	// Failed is the count of tests that did not pass.
 	Failed int
 
-	// Skipped is the number of tests skipped because the service is not
-	// registered (opt-in services).
+	// Skipped is the number of tests skipped because the service is not registered (opt-in
+	// services).
 	Skipped int
 
 	// Connected indicates whether a connection to the server was established.
@@ -109,8 +109,8 @@ type ServiceResult struct {
 	// OK indicates whether the service check passed.
 	OK bool
 
-	// IsSkipped indicates the check was skipped because the service is not
-	// registered on the server (opt-in services).
+	// IsSkipped indicates the check was skipped because the service is not registered on the
+	// server (opt-in services).
 	IsSkipped bool
 }
 
@@ -139,8 +139,7 @@ func (r *DiagnosticsResult) Print(w io.Writer) {
 	r.printSummary(w)
 }
 
-// printConnectionFailure writes a connection failure message to the given
-// writer.
+// printConnectionFailure writes a connection failure message to the given writer.
 //
 // Takes w (io.Writer) which receives the formatted failure output.
 func (r *DiagnosticsResult) printConnectionFailure(w io.Writer) {
@@ -215,8 +214,7 @@ func (r *DiagnosticsResult) printSummary(w io.Writer) {
 // Takes service (string) which identifies the service being tested.
 // Takes method (string) which specifies the test method name.
 // Takes err (error) which indicates the test outcome; nil means success.
-// Takes details (string) which provides additional information for passing
-// tests.
+// Takes details (string) which provides additional information for passing tests.
 func (r *DiagnosticsResult) addResult(service, method string, err error, details string) {
 	sr := ServiceResult{
 		Error:     err,
@@ -235,14 +233,13 @@ func (r *DiagnosticsResult) addResult(service, method string, err error, details
 	r.Services = append(r.Services, sr)
 }
 
-// addSkippedResult records a service check as skipped. This is used for
-// opt-in services that are not registered on the server, to avoid false
-// failure alarms.
+// addSkippedResult records a service check as skipped. This is used for opt-in services
+// that are not registered on the server, to avoid false failure alarms.
 //
 // Takes service (string) which identifies the service being tested.
 // Takes method (string) which specifies the test method name.
-// Takes details (string) which provides additional information about why the
-// check was skipped.
+// Takes details (string) which provides additional information about why the check was
+// skipped.
 func (r *DiagnosticsResult) addSkippedResult(service, method, details string) {
 	r.Services = append(r.Services, ServiceResult{
 		Name:      service,
@@ -253,16 +250,16 @@ func (r *DiagnosticsResult) addSkippedResult(service, method, details string) {
 	r.Skipped++
 }
 
-// RunDiagnostics tests connectivity to a gRPC monitoring endpoint and runs
-// tests for all services.
+// RunDiagnostics tests connectivity to a gRPC monitoring endpoint and runs tests for all
+// services.
 //
-// Takes endpoint (string) which is the gRPC server address
-// (e.g. "127.0.0.1:9091"). If empty, uses the default monitoring endpoint.
-// Takes creds (credentials.TransportCredentials) which is optional TLS
-// credentials; nil uses insecure credentials.
+// Takes endpoint (string) which is the gRPC server address (e.g. "127.0.0.1:9091"). If
+// empty, uses the default monitoring endpoint.
+// Takes creds (credentials.TransportCredentials) which is optional TLS credentials; nil
+// uses insecure credentials.
 //
-// Returns *DiagnosticsResult which contains the test results for the
-// connection and each service.
+// Returns *DiagnosticsResult which contains the test results for the connection and each
+// service.
 func RunDiagnostics(ctx context.Context, endpoint string, creds credentials.TransportCredentials) *DiagnosticsResult {
 	if endpoint == "" {
 		endpoint = tui_dto.DefaultMonitoringEndpoint
@@ -299,8 +296,7 @@ func RunDiagnostics(ctx context.Context, endpoint string, creds credentials.Tran
 // Takes endpoint (string) which specifies the gRPC server address.
 //
 // Returns *grpc.ClientConn which is the connection ready for use.
-// Returns error when the client cannot be created or the server cannot be
-// reached.
+// Returns error when the client cannot be created or the server cannot be reached.
 func dialWithTimeout(ctx context.Context, endpoint string, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	transportCreds := insecure.NewCredentials()
 	if creds != nil {
@@ -323,11 +319,9 @@ func dialWithTimeout(ctx context.Context, endpoint string, creds credentials.Tra
 	return conn, nil
 }
 
-// runServiceTests runs diagnostic tests for all services over the given
-// connection.
+// runServiceTests runs diagnostic tests for all services over the given connection.
 //
-// Takes conn (*grpc.ClientConn) which provides the gRPC connection to the
-// server.
+// Takes conn (*grpc.ClientConn) which provides the gRPC connection to the server.
 // Takes result (*DiagnosticsResult) which stores the test results.
 func runServiceTests(ctx context.Context, conn *grpc.ClientConn, result *DiagnosticsResult) {
 	testHealthService(ctx, pb.NewHealthServiceClient(conn), result)
@@ -338,11 +332,10 @@ func runServiceTests(ctx context.Context, conn *grpc.ClientConn, result *Diagnos
 	testWatchdogService(ctx, pb.NewWatchdogInspectorServiceClient(conn), result)
 }
 
-// testHealthService checks the health service endpoints and records the
-// liveness and readiness status.
+// testHealthService checks the health service endpoints and records the liveness and
+// readiness status.
 //
-// Takes client (pb.HealthServiceClient) which provides access to the health
-// service API.
+// Takes client (pb.HealthServiceClient) which provides access to the health service API.
 // Takes result (*DiagnosticsResult) which collects the test results.
 func testHealthService(ctx context.Context, client pb.HealthServiceClient, result *DiagnosticsResult) {
 	healthResp, err := client.GetHealth(ctx, &pb.GetHealthRequest{})
@@ -364,8 +357,8 @@ func testHealthService(ctx context.Context, client pb.HealthServiceClient, resul
 
 // testMetricsService checks the gRPC endpoints of the metrics service.
 //
-// Takes client (pb.MetricsServiceClient) which provides the gRPC client for
-// calling metrics service methods.
+// Takes client (pb.MetricsServiceClient) which provides the gRPC client for calling
+// metrics service methods.
 // Takes result (*DiagnosticsResult) which collects the test outcomes.
 func testMetricsService(ctx context.Context, client pb.MetricsServiceClient, result *DiagnosticsResult) {
 	metricsResp, err := client.GetMetrics(ctx, &pb.GetMetricsRequest{})
@@ -400,8 +393,8 @@ func testMetricsService(ctx context.Context, client pb.MetricsServiceClient, res
 
 // testOrchestratorService tests the orchestrator inspector service endpoints.
 //
-// Takes client (pb.OrchestratorInspectorServiceClient) which provides access
-// to the orchestrator inspector service.
+// Takes client (pb.OrchestratorInspectorServiceClient) which provides access to the
+// orchestrator inspector service.
 // Takes result (*DiagnosticsResult) which collects the test results.
 func testOrchestratorService(ctx context.Context, client pb.OrchestratorInspectorServiceClient, result *DiagnosticsResult) {
 	taskSummaryResp, err := client.GetTaskSummary(ctx, &pb.GetTaskSummaryRequest{})
@@ -430,8 +423,8 @@ func testOrchestratorService(ctx context.Context, client pb.OrchestratorInspecto
 
 // testRegistryService tests the registry inspector service endpoints.
 //
-// Takes client (pb.RegistryInspectorServiceClient) which provides access to
-// the registry inspector service.
+// Takes client (pb.RegistryInspectorServiceClient) which provides access to the registry
+// inspector service.
 // Takes result (*DiagnosticsResult) which collects the test outcomes.
 func testRegistryService(ctx context.Context, client pb.RegistryInspectorServiceClient, result *DiagnosticsResult) {
 	artefactSummaryResp, err := client.GetArtefactSummary(ctx, &pb.GetArtefactSummaryRequest{})
@@ -461,8 +454,8 @@ func testRegistryService(ctx context.Context, client pb.RegistryInspectorService
 
 // testProfilingService tests the profiling service endpoint.
 //
-// Takes client (pb.ProfilingServiceClient) which provides access to the
-// profiling service API.
+// Takes client (pb.ProfilingServiceClient) which provides access to the profiling service
+// API.
 // Takes result (*DiagnosticsResult) which collects the test results.
 func testProfilingService(ctx context.Context, client pb.ProfilingServiceClient, result *DiagnosticsResult) {
 	statusResp, err := client.GetProfilingStatus(ctx, &pb.GetProfilingStatusRequest{})
@@ -471,24 +464,23 @@ func testProfilingService(ctx context.Context, client pb.ProfilingServiceClient,
 
 // testWatchdogService tests the watchdog inspector service endpoint.
 //
-// Takes client (pb.WatchdogInspectorServiceClient) which provides access to
-// the watchdog inspector service API.
+// Takes client (pb.WatchdogInspectorServiceClient) which provides access to the watchdog
+// inspector service API.
 // Takes result (*DiagnosticsResult) which collects the test results.
 func testWatchdogService(ctx context.Context, client pb.WatchdogInspectorServiceClient, result *DiagnosticsResult) {
 	statusResp, err := client.GetWatchdogStatus(ctx, &pb.GetWatchdogStatusRequest{})
 	testOptInEnabledService(result, serviceWatchdog, "GetWatchdogStatus", err, statusResp.GetEnabled())
 }
 
-// testOptInEnabledService records the result for an opt-in service that
-// returns an enabled/disabled status. If the RPC returns Unimplemented, the
-// check is recorded as skipped rather than failed.
+// testOptInEnabledService records the result for an opt-in service that returns an
+// enabled/disabled status. If the RPC returns Unimplemented, the check is recorded as
+// skipped rather than failed.
 //
 // Takes result (*DiagnosticsResult) which collects the test results.
 // Takes service (string) which identifies the service being tested.
 // Takes method (string) which specifies the RPC method name.
 // Takes err (error) which is the RPC error, or nil on success.
-// Takes enabled (bool) which indicates whether the service reported itself
-// as enabled.
+// Takes enabled (bool) which indicates whether the service reported itself as enabled.
 func testOptInEnabledService(result *DiagnosticsResult, service, method string, err error, enabled bool) {
 	if err != nil {
 		if s, ok := grpcstatus.FromError(err); ok && s.Code() == codes.Unimplemented {

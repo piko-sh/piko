@@ -53,17 +53,16 @@ type fsService struct {
 
 // GetStore returns the translation Store for zero-allocation lookups.
 //
-// Returns *i18n_domain.Store which is the loaded translation store, or nil if
-// no translations are loaded.
+// Returns *i18n_domain.Store which is the loaded translation store, or nil if no
+// translations are loaded.
 func (s *fsService) GetStore() *i18n_domain.Store {
 	return s.store
 }
 
-// GetStrBufPool returns a shared buffer pool for zero-allocation string
-// rendering.
+// GetStrBufPool returns a shared buffer pool for zero-allocation string rendering.
 //
-// Returns *i18n_domain.StrBufPool which is the shared buffer pool, or nil if
-// not initialised.
+// Returns *i18n_domain.StrBufPool which is the shared buffer pool, or nil if not
+// initialised.
 func (s *fsService) GetStrBufPool() *i18n_domain.StrBufPool {
 	return s.strBufPool
 }
@@ -77,9 +76,9 @@ func (s *fsService) DefaultLocale() string {
 
 // NewService creates an i18n service using the best available source.
 //
-// It first checks for a pre-compiled FlatBuffer binary (dist/i18n.bin) for
-// optimal performance. If not found, it falls back to loading from JSON files.
-// This is the recommended constructor for production use.
+// It first checks for a pre-compiled FlatBuffer binary (dist/i18n.bin) for optimal
+// performance. If not found, it falls back to loading from JSON files. This is the
+// recommended constructor for production use.
 //
 // Takes sandbox (safedisk.Sandbox) which handles all file operations.
 // Takes defaultLocale (string) which specifies the fallback locale.
@@ -100,14 +99,13 @@ func NewService(ctx context.Context, sandbox safedisk.Sandbox, defaultLocale, i1
 	return NewFSService(ctx, sandbox, defaultLocale, i18nSourceDir)
 }
 
-// NewFlatBufferService creates a translation service from a pre-compiled
-// FlatBuffer binary file. This gives zero-copy loading for fast startup.
+// NewFlatBufferService creates a translation service from a pre-compiled FlatBuffer
+// binary file. This gives zero-copy loading for fast startup.
 //
 // Takes ctx (context.Context) which carries logger and tracing data.
 // Takes sandbox (safedisk.Sandbox) which provides filesystem access.
 // Takes filePath (string) which is the path relative to the sandbox root.
-// Takes defaultLocale (string) which sets the fallback locale; uses "en" if
-// empty.
+// Takes defaultLocale (string) which sets the fallback locale; uses "en" if empty.
 //
 // Returns i18n_domain.Service which is the ready-to-use translation service.
 // Returns error when the FlatBuffer file cannot be loaded.
@@ -135,12 +133,11 @@ func NewFlatBufferService(ctx context.Context, sandbox safedisk.Sandbox, filePat
 
 // NewFSService creates a translation service that loads from JSON files.
 //
-// When the translation folder is not set up or does not exist, this returns
-// an empty service.
+// When the translation folder is not set up or does not exist, this returns an empty
+// service.
 //
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
-// Takes defaultLocale (string) which specifies the fallback locale; uses "en"
-// if empty.
+// Takes defaultLocale (string) which specifies the fallback locale; uses "en" if empty.
 // Takes i18nSourceDir (string) which specifies the path to i18n JSON files.
 //
 // Returns i18n_domain.Service which looks up translations.
@@ -192,8 +189,8 @@ func newFSServiceFromDir(ctx context.Context, sandbox safedisk.Sandbox, dirPath,
 //
 // Takes defaultLocale (string) which specifies the fallback locale to use.
 //
-// Returns *fsService which is an uninitialised service with empty
-// translations and nil store.
+// Returns *fsService which is an uninitialised service with empty translations and nil
+// store.
 func newEmptyService(defaultLocale string) *fsService {
 	return &fsService{
 		store:         nil,
@@ -208,8 +205,8 @@ func newEmptyService(defaultLocale string) *fsService {
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes files ([]fs.DirEntry) which contains the directory entries to check.
 // Takes dirPath (string) which specifies the path to the translation folder.
-// Takes translations (i18n_domain.Translations) which stores the loaded
-// translations by locale.
+// Takes translations (i18n_domain.Translations) which stores the loaded translations by
+// locale.
 func loadJSONFiles(ctx context.Context, sandbox safedisk.Sandbox, files []fs.DirEntry, dirPath string, translations i18n_domain.Translations) {
 	_, l := logger_domain.From(ctx, log)
 	for _, file := range files {
@@ -240,8 +237,7 @@ func loadJSONFiles(ctx context.Context, sandbox safedisk.Sandbox, files []fs.Dir
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes filePath (string) which specifies the path to the JSON file.
 //
-// Returns map[string]string which contains the flattened translation keys and
-// values.
+// Returns map[string]string which contains the flattened translation keys and values.
 // Returns error when the file cannot be read or the JSON is not valid.
 func loadJSONFile(sandbox safedisk.Sandbox, filePath string) (map[string]string, error) {
 	content, err := sandbox.ReadFile(filePath)

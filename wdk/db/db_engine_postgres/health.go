@@ -28,20 +28,37 @@ import (
 )
 
 const (
+	// replicationLagDegradedSeconds is the threshold above which replication lag is reported
+	// as degraded.
 	replicationLagDegradedSeconds = 10.0
 
+	// replicationLagUnhealthySeconds is the threshold above which replication lag is
+	// reported as unhealthy.
 	replicationLagUnhealthySeconds = 60.0
 
+	// healthStateUnhealthy is the diagnostic state string used when a probe fails or crosses
+	// the unhealthy threshold.
 	healthStateUnhealthy = "UNHEALTHY"
 
+	// healthQueryFailedFormat is the format string used to describe a failed health probe
+	// query.
 	healthQueryFailedFormat = "query failed: %v"
 
+	// initialDiagnosticsCapacity sizes the diagnostics slice for the common case where all
+	// probes succeed.
 	initialDiagnosticsCapacity = 4
 )
 
-// CheckHealth returns PostgreSQL-specific diagnostics: database size, active
-// connections, recovery state, and replication lag. Each query handles its own
-// errors independently so a single failing diagnostic does not prevent others.
+// CheckHealth returns PostgreSQL-specific health diagnostics.
+//
+// Each probe handles its own errors so a single failing diagnostic does not prevent
+// others. The set covers database size, active connections, recovery state, and
+// replication lag.
+//
+// Takes ctx (context.Context) which bounds each probe query.
+// Takes database (*sql.DB) which is the connection pool to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which lists every collected probe.
 func (*PostgresEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	diagnostics := make([]db.DatabaseHealthDiagnostic, 0, initialDiagnosticsCapacity)
 	diagnostics = append(diagnostics, checkPostgresDatabaseSize(ctx, database)...)
@@ -51,6 +68,13 @@ func (*PostgresEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.D
 	return diagnostics
 }
 
+// checkPostgresDatabaseSize probes the current database size in bytes.
+//
+// Takes ctx (context.Context) which bounds the probe query.
+// Takes database (*sql.DB) which is the connection pool to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting size or
+// an unhealthy state.
 func checkPostgresDatabaseSize(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var sizeBytes int64
 	if err := database.QueryRowContext(ctx, "SELECT pg_database_size(current_database())").Scan(&sizeBytes); err != nil {
@@ -63,6 +87,13 @@ func checkPostgresDatabaseSize(ctx context.Context, database *sql.DB) []db.Datab
 	}}
 }
 
+// checkPostgresActiveConnections probes the count of active sessions.
+//
+// Takes ctx (context.Context) which bounds the probe query.
+// Takes database (*sql.DB) which is the connection pool to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting the count
+// or an unhealthy state.
 func checkPostgresActiveConnections(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var count int
 	if err := database.QueryRowContext(ctx, "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'").Scan(&count); err != nil {
@@ -75,6 +106,13 @@ func checkPostgresActiveConnections(ctx context.Context, database *sql.DB) []db.
 	}}
 }
 
+// checkPostgresRecoveryState probes whether the server is in recovery mode.
+//
+// Takes ctx (context.Context) which bounds the probe query.
+// Takes database (*sql.DB) which is the connection pool to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting the
+// boolean state or an unhealthy state.
 func checkPostgresRecoveryState(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var inRecovery bool
 	if err := database.QueryRowContext(ctx, "SELECT pg_is_in_recovery()").Scan(&inRecovery); err != nil {
@@ -87,6 +125,13 @@ func checkPostgresRecoveryState(ctx context.Context, database *sql.DB) []db.Data
 	}}
 }
 
+// checkPostgresReplicationLag probes replication lag when in recovery.
+//
+// Takes ctx (context.Context) which bounds the probe query.
+// Takes database (*sql.DB) which is the connection pool to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting lag and
+// an optional degraded or unhealthy state, or nil when replication is not active.
 func checkPostgresReplicationLag(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var lagSeconds sql.NullFloat64
 
@@ -123,6 +168,11 @@ func checkPostgresReplicationLag(ctx context.Context, database *sql.DB) []db.Dat
 	}}
 }
 
+// formatBytes renders a byte count using IEC binary unit suffixes.
+//
+// Takes bytes (int64) which is the count of bytes to format.
+//
+// Returns string which is the human-readable size, such as "1.5 MiB".
 func formatBytes(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {

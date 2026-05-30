@@ -28,8 +28,7 @@ import (
 	"piko.sh/piko/cmd/piko/internal/tui"
 )
 
-// diagnosticServiceResult represents a single service check result for JSON
-// output.
+// diagnosticServiceResult represents a single service check result for JSON output.
 type diagnosticServiceResult struct {
 	// Name is the identifier of the diagnostic.
 	Name string `json:"name"`
@@ -70,10 +69,8 @@ type diagnosticJSONResult struct {
 
 // runDiagnosticsCmd tests connectivity to the gRPC monitoring server.
 //
-// Takes ctx (context.Context) which controls the deadline for the
-// diagnostic checks.
-// Takes cc (*CommandContext) which provides output settings and the
-// target endpoint.
+// Takes ctx (context.Context) which controls the deadline for the diagnostic checks.
+// Takes cc (*CommandContext) which provides output settings and the target endpoint.
 //
 // Returns error when diagnostics fail or output formatting fails.
 func runDiagnosticsCmd(ctx context.Context, cc *CommandContext, _ []string) error {
@@ -94,8 +91,7 @@ func runDiagnosticsCmd(ctx context.Context, cc *CommandContext, _ []string) erro
 
 // formatDiagnosticResult formats a diagnostic result as JSON or text.
 //
-// Takes result (*tui.DiagnosticsResult) which contains the
-// diagnostic checks.
+// Takes result (*tui.DiagnosticsResult) which contains the diagnostic checks.
 // Takes p (*Printer) which controls the output format.
 // Takes stdout (io.Writer) which receives text output.
 //

@@ -26,12 +26,17 @@ import (
 
 // SQLiteEngine implements the querier EnginePort for SQLite.
 type SQLiteEngine struct {
+	// functions catalogues the SQLite built-in functions.
 	functions *querier_dto.FunctionCatalogue
 
+	// types catalogues the SQLite built-in storage classes and affinities.
 	types *querier_dto.TypeCatalogue
 }
 
 // NewSQLiteEngine creates a new SQLite engine adapter.
+//
+// Returns *SQLiteEngine which is the constructed engine with built-in catalogues
+// populated.
 func NewSQLiteEngine() *SQLiteEngine {
 	return &SQLiteEngine{
 		functions: buildFunctionCatalogue(),
@@ -40,6 +45,12 @@ func NewSQLiteEngine() *SQLiteEngine {
 }
 
 // ParseStatements tokenises and classifies SQL statements for the SQLite dialect.
+//
+// Takes sql (string) which is the raw SQL text potentially containing multiple
+// statements.
+//
+// Returns []querier_dto.ParsedStatement which is one entry per statement found.
+// Returns error when tokenising the input fails.
 func (*SQLiteEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
 	tokens, tokeniseError := tokenise(sql)
 	if tokeniseError != nil {
@@ -62,6 +73,13 @@ func (*SQLiteEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement,
 }
 
 // ApplyDDL applies a DDL statement to the catalogue for the SQLite dialect.
+//
+// Takes statement (querier_dto.ParsedStatement) which is a previously classified DDL
+// statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil for
+// unsupported statement kinds.
+// Returns error when the statement's Raw field is the wrong type or parsing fails.
 func (engine *SQLiteEngine) ApplyDDL(statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
@@ -96,7 +114,14 @@ func (engine *SQLiteEngine) ApplyDDL(statement querier_dto.ParsedStatement) (*qu
 	}
 }
 
-// AnalyseQuery performs structural analysis of a DML statement for the SQLite dialect.
+// AnalyseQuery performs structural analysis of a DML statement.
+//
+// Takes _ (*querier_dto.Catalogue) which is the schema catalogue used by richer engines
+// and ignored here.
+// Takes statement (querier_dto.ParsedStatement) which is a classified DML statement.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the structural analysis result.
+// Returns error when the statement's Raw field is the wrong type.
 func (*SQLiteEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -125,27 +150,39 @@ func (*SQLiteEngine) AnalyseQuery(
 }
 
 // BuiltinFunctions returns the SQLite built-in function catalogue.
+//
+// Returns *querier_dto.FunctionCatalogue which is the engine's function catalogue.
 func (engine *SQLiteEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
 	return engine.functions
 }
 
 // BuiltinTypes returns the SQLite built-in type catalogue.
+//
+// Returns *querier_dto.TypeCatalogue which is the engine's type catalogue.
 func (engine *SQLiteEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
 	return engine.types
 }
 
-// NormaliseTypeName resolves a raw type name to a structured SQLType
-// using SQLite affinity rules.
+// NormaliseTypeName resolves a raw type name to a structured SQLType.
+//
+// Takes name (string) which is the raw type name as it appears in DDL.
+// Takes modifiers (...int) which are optional precision or length modifiers.
+//
+// Returns querier_dto.SQLType which is the normalised type using SQLite affinity rules.
 func (*SQLiteEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	return normaliseTypeName(name, modifiers...)
 }
 
 // ParameterStyle returns the question-mark parameter style used by SQLite.
+//
+// Returns querier_dto.ParameterStyle which is always ParameterStyleQuestion.
 func (*SQLiteEngine) ParameterStyle() querier_dto.ParameterStyle {
 	return querier_dto.ParameterStyleQuestion
 }
 
 // SupportedDirectivePrefixes returns the parameter prefixes valid in SQLite directives.
+//
+// Returns []querier_dto.DirectiveParameterPrefix which is the supported prefix list.
 func (*SQLiteEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParameterPrefix {
 	return []querier_dto.DirectiveParameterPrefix{
 		{Prefix: '?', IsNamed: false},
@@ -156,16 +193,22 @@ func (*SQLiteEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParamet
 }
 
 // SupportsReturning reports that SQLite supports RETURNING clauses.
+//
+// Returns bool which is always true for SQLite.
 func (*SQLiteEngine) SupportsReturning() bool {
 	return true
 }
 
 // Dialect returns "sqlite".
+//
+// Returns string which is the dialect identifier "sqlite".
 func (*SQLiteEngine) Dialect() string {
 	return "sqlite"
 }
 
 // SupportedExpressions returns the expression features supported by SQLite.
+//
+// Returns querier_dto.SQLExpressionFeature which is the bitmask of supported features.
 func (*SQLiteEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 	return querier_dto.SQLFeaturesBase |
 		querier_dto.SQLFeatureWindowFunction |
@@ -175,12 +218,19 @@ func (*SQLiteEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 }
 
 // DefaultSchema returns the default schema name for SQLite.
+//
+// Returns string which is always "main".
 func (*SQLiteEngine) DefaultSchema() string {
 	return "main"
 }
 
-// TableValuedFunctionColumns returns the output column schema for a known
-// table-valued function, or nil if the function is not recognised.
+// TableValuedFunctionColumns returns the output column schema for a known table-valued
+// function.
+//
+// Takes functionName (string) which is the function name as it appears in the SQL source.
+//
+// Returns []querier_dto.ScopedColumn which is the output schema, or nil when the function
+// is not recognised.
 func (*SQLiteEngine) TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn {
 	columns, exists := tableValuedFunctionColumns[functionName]
 	if !exists {
@@ -191,15 +241,26 @@ func (*SQLiteEngine) TableValuedFunctionColumns(functionName string) []querier_d
 	return result
 }
 
-// PromoteType returns the wider type within the same category. SQLite has
-// only four storage classes (INTEGER, REAL, TEXT, BLOB), so same-category
-// operands are always the same type - the left operand is returned unchanged.
+// PromoteType returns the wider type within the same category.
+//
+// SQLite has only four storage classes (INTEGER, REAL, TEXT, BLOB), so same-category
+// operands are always the same type and the left operand is returned unchanged.
+//
+// Takes left (querier_dto.SQLType) which is the left operand's type.
+// Takes _ (querier_dto.SQLType) which is the right operand's type and is ignored.
+//
+// Returns querier_dto.SQLType which is always the left operand's type.
 func (*SQLiteEngine) PromoteType(left querier_dto.SQLType, _ querier_dto.SQLType) querier_dto.SQLType {
 	return left
 }
 
-// CanImplicitCast reports whether SQLite allows implicit conversion between
-// the given type categories.
+// CanImplicitCast reports whether SQLite allows implicit conversion between the given
+// type categories.
+//
+// Takes from (querier_dto.SQLTypeCategory) which is the source category.
+// Takes to (querier_dto.SQLTypeCategory) which is the destination category.
+//
+// Returns bool which is true when implicit conversion is permitted.
 func (*SQLiteEngine) CanImplicitCast(from querier_dto.SQLTypeCategory, to querier_dto.SQLTypeCategory) bool {
 	switch {
 	case from == querier_dto.TypeCategoryInteger && to == querier_dto.TypeCategoryDecimal:
@@ -216,6 +277,8 @@ func (*SQLiteEngine) CanImplicitCast(from querier_dto.SQLTypeCategory, to querie
 }
 
 // CommentStyle returns the standard SQL comment style for SQLite.
+//
+// Returns querier_dto.CommentStyle which is the default SQL comment style.
 func (*SQLiteEngine) CommentStyle() querier_dto.CommentStyle {
 	return querier_dto.DefaultSQLCommentStyle()
 }

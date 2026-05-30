@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	// doubleAngleBracketDepth is the amount to subtract from the angle bracket
-	// depth when a ">>" token closes two brackets at once.
+	// doubleAngleBracketDepth is the amount to subtract from the angle bracket depth when a
+	// ">>" token closes two brackets at once.
 	doubleAngleBracketDepth = 2
 
 	// tripleAngleBracketDepth is the depth value to subtract for a >>> token.
@@ -125,11 +125,11 @@ type ParsedTypeInfo struct {
 	IsNullable bool
 }
 
-// ExtractTypeAssertions finds and extracts "as Type" assertions from the state
-// object in TypeScript source code using esbuild's lexer.
+// ExtractTypeAssertions finds and extracts "as Type" assertions from the state object in
+// TypeScript source code using esbuild's lexer.
 //
-// Must run BEFORE esbuild parsing because esbuild removes all type information
-// during parsing.
+// Must run BEFORE esbuild parsing because esbuild removes all type information during
+// parsing.
 //
 // Uses a state machine approach to:
 //  1. Find the "const state = {" declaration.
@@ -137,16 +137,16 @@ type ParsedTypeInfo struct {
 //  3. For each property, detect the "propName: value as Type" pattern.
 //  4. Extract type tokens, including nested generics, arrays, and unions.
 //
-// When the source contains strings with "as" inside them, the lexer handles
-// them as string literals and ignores them. Comments containing "as" are also
-// skipped by the lexer. Array literals in values like [1,2,3] do not affect
-// type bracket detection. Nested generics like Map<string, Array<number>> and
-// union types like User | nil are handled correctly.
+// When the source contains strings with "as" inside them, the lexer handles them as
+// string literals and ignores them. Comments containing "as" are also skipped by the
+// lexer. Array literals in values like [1,2,3] do not affect type bracket detection.
+// Nested generics like Map<string, Array<number>> and union types like User | nil are
+// handled correctly.
 //
 // Takes source (string) which is the TypeScript source code to parse.
 //
-// Returns map[string]TypeAssertion which maps property names to their type
-// assertion information.
+// Returns map[string]TypeAssertion which maps property names to their type assertion
+// information.
 func ExtractTypeAssertions(source string) map[string]TypeAssertion {
 	assertions := make(map[string]TypeAssertion)
 
@@ -173,8 +173,8 @@ func ExtractTypeAssertions(source string) map[string]TypeAssertion {
 //
 // Takes typeString (string) which is the TypeScript type to parse.
 //
-// Returns ParsedTypeInfo which holds the base type, element type for arrays,
-// key and value types for maps, and whether the type is nullable.
+// Returns ParsedTypeInfo which holds the base type, element type for arrays, key and
+// value types for maps, and whether the type is nullable.
 func ParseTypeString(typeString string) ParsedTypeInfo {
 	typeString = strings.TrimSpace(typeString)
 
@@ -209,13 +209,13 @@ func ParseTypeString(typeString string) ParsedTypeInfo {
 	}
 }
 
-// seekToStateObject moves the lexer forward to find the opening brace of a
-// `const state = {` pattern.
+// seekToStateObject moves the lexer forward to find the opening brace of a `const state =
+// {` pattern.
 //
 // Takes lexer (*js_lexer.Lexer) which is the JavaScript lexer to move forward.
 //
-// Returns bool which is true if the pattern was found, or false if the end of
-// the file was reached first.
+// Returns bool which is true if the pattern was found, or false if the end of the file
+// was reached first.
 func seekToStateObject(lexer *js_lexer.Lexer) bool {
 	for lexer.Token != js_lexer.TEndOfFile {
 		if !isConstStatePattern(lexer) {
@@ -228,8 +228,8 @@ func seekToStateObject(lexer *js_lexer.Lexer) bool {
 	return false
 }
 
-// isConstStatePattern checks if the lexer is at a "const state = {" pattern
-// and moves through it.
+// isConstStatePattern checks if the lexer is at a "const state = {" pattern and moves
+// through it.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to check.
 //
@@ -256,8 +256,7 @@ func isConstStatePattern(lexer *js_lexer.Lexer) bool {
 // extractStateProperties parses type assertions from state object properties.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to parse.
-// Takes assertions (map[string]TypeAssertion) which stores the extracted type
-// assertions.
+// Takes assertions (map[string]TypeAssertion) which stores the extracted type assertions.
 func extractStateProperties(lexer *js_lexer.Lexer, assertions map[string]TypeAssertion) {
 	braceDepth := 1
 
@@ -286,12 +285,12 @@ func extractStateProperties(lexer *js_lexer.Lexer, assertions map[string]TypeAss
 	}
 }
 
-// extractPropertyAssertion reads a single property from the token stream and
-// extracts any type assertion it contains.
+// extractPropertyAssertion reads a single property from the token stream and extracts any
+// type assertion it contains.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
-// Takes assertions (map[string]TypeAssertion) which stores the extracted type
-// assertions keyed by property name.
+// Takes assertions (map[string]TypeAssertion) which stores the extracted type assertions
+// keyed by property name.
 func extractPropertyAssertion(lexer *js_lexer.Lexer, assertions map[string]TypeAssertion) {
 	if lexer.Token != js_lexer.TIdentifier {
 		lexer.Next()
@@ -355,15 +354,14 @@ func scanForTypeAssertion(lexer *js_lexer.Lexer, propName string, assertions map
 	}
 }
 
-// classifyValueToken decides what action to take for a token when scanning a
-// value.
+// classifyValueToken decides what action to take for a token when scanning a value.
 //
 // Takes token (js_lexer.T) which is the token type to check.
-// Takes valueDepth (int) which tracks nesting depth within brackets, braces,
-// or parentheses.
+// Takes valueDepth (int) which tracks nesting depth within brackets, braces, or
+// parentheses.
 //
-// Returns tokenAction which shows whether to increase depth, decrease depth,
-// end the property, or keep scanning.
+// Returns tokenAction which shows whether to increase depth, decrease depth, end the
+// property, or keep scanning.
 func classifyValueToken(token js_lexer.T, valueDepth int) tokenAction {
 	switch token {
 	case js_lexer.TOpenBracket, js_lexer.TOpenBrace, js_lexer.TOpenParen:
@@ -397,8 +395,8 @@ func isAsKeyword(lexer *js_lexer.Lexer) bool {
 	return lexer.Token == js_lexer.TIdentifier && lexer.Raw() == "as"
 }
 
-// extractTypeTokens reads tokens from a TypeScript type expression and joins
-// them into a single string.
+// extractTypeTokens reads tokens from a TypeScript type expression and joins them into a
+// single string.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
 //
@@ -443,9 +441,8 @@ func processTypeToken(lexer *js_lexer.Lexer, state *typeTokenState) bool {
 	return false
 }
 
-// handleAngleBrackets processes angle bracket tokens in generic types.
-// It handles single, double, and triple angle brackets, and updates the
-// bracket depth and token list.
+// handleAngleBrackets processes angle bracket tokens in generic types. It handles single,
+// double, and triple angle brackets, and updates the bracket depth and token list.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
 // Takes state (*typeTokenState) which tracks bracket depth and collected tokens.
@@ -486,8 +483,7 @@ func handleAngleBrackets(lexer *js_lexer.Lexer, state *typeTokenState) bool {
 // handleSquareBrackets processes square bracket tokens for array types.
 //
 // Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
-// Takes state (*typeTokenState) which tracks bracket depth and collected
-// tokens.
+// Takes state (*typeTokenState) which tracks bracket depth and collected tokens.
 //
 // Returns bool which is true if a bracket was processed.
 func handleSquareBrackets(lexer *js_lexer.Lexer, state *typeTokenState) bool {
@@ -512,8 +508,7 @@ func handleSquareBrackets(lexer *js_lexer.Lexer, state *typeTokenState) bool {
 //
 // Takes token (js_lexer.T) which is the token to check.
 //
-// Returns bool which is true if the token is a comma, closing brace, or
-// semicolon.
+// Returns bool which is true if the token is a comma, closing brace, or semicolon.
 func isPropertyDelimiter(token js_lexer.T) bool {
 	return token == js_lexer.TComma || token == js_lexer.TCloseBrace || token == js_lexer.TSemicolon
 }
@@ -522,8 +517,8 @@ func isPropertyDelimiter(token js_lexer.T) bool {
 //
 // Takes lexer (*js_lexer.Lexer) which provides the current token to check.
 //
-// Returns string which is the raw text for identifiers, a fixed string for
-// type operators (|, &, ,), or an empty string for other tokens.
+// Returns string which is the raw text for identifiers, a fixed string for type operators
+// (|, &, ,), or an empty string for other tokens.
 func collectTypeToken(lexer *js_lexer.Lexer) string {
 	switch lexer.Token {
 	case js_lexer.TIdentifier:
@@ -541,13 +536,13 @@ func collectTypeToken(lexer *js_lexer.Lexer) string {
 	}
 }
 
-// parseNullableType splits a union type string once and returns the base type
-// with null/undefined removed, along with whether it was nullable.
+// parseNullableType splits a union type string once and returns the base type with
+// null/undefined removed, along with whether it was nullable.
 //
 // Takes typeString (string) which is the type expression to process.
 //
-// Returns string which is the type with null and undefined removed, or "any"
-// if no types remain.
+// Returns string which is the type with null and undefined removed, or "any" if no types
+// remain.
 // Returns bool which is true if the type includes null or undefined.
 func parseNullableType(typeString string) (string, bool) {
 	parts := strings.Split(typeString, unionTypeSeparator)
@@ -568,14 +563,13 @@ func parseNullableType(typeString string) (string, bool) {
 	return strings.Join(nonNullParts, " "+unionTypeSeparator+" "), isNullable
 }
 
-// parseGenericTypeString parses generic type patterns such as Array<T>,
-// Map<K,V>, and Set<T>.
+// parseGenericTypeString parses generic type patterns such as Array<T>, Map<K,V>, and
+// Set<T>.
 //
 // Takes typeString (string) which contains the type string to parse.
 //
-// Returns genericTypeInfo which holds the parsed type details, with OK set to
-// true when parsing succeeds, or an empty struct when the string is not a valid
-// generic type.
+// Returns genericTypeInfo which holds the parsed type details, with OK set to true when
+// parsing succeeds, or an empty struct when the string is not a valid generic type.
 func parseGenericTypeString(typeString string) genericTypeInfo {
 	openIndex := strings.Index(typeString, "<")
 	if openIndex < 0 {
@@ -602,14 +596,13 @@ func parseGenericTypeString(typeString string) genericTypeInfo {
 	}
 }
 
-// parseMapGenericString parses a Map<K, V> generic part into its key and value
-// types.
+// parseMapGenericString parses a Map<K, V> generic part into its key and value types.
 //
-// Takes genericPart (string) which contains the generic parameters, for example
-// "String, Number" from "Map<String, Number>".
+// Takes genericPart (string) which contains the generic parameters, for example "String,
+// Number" from "Map<String, Number>".
 //
-// Returns genericTypeInfo which holds the parsed key and value types, or an
-// empty struct if the format is not valid.
+// Returns genericTypeInfo which holds the parsed key and value types, or an empty struct
+// if the format is not valid.
 func parseMapGenericString(genericPart string) genericTypeInfo {
 	parts := strings.SplitN(genericPart, ",", 2)
 	if len(parts) != 2 {
@@ -624,13 +617,12 @@ func parseMapGenericString(genericPart string) genericTypeInfo {
 	}
 }
 
-// extractBaseType returns the base type from a union or intersection type
-// string.
+// extractBaseType returns the base type from a union or intersection type string.
 //
 // Takes typeString (string) which is the type string to extract the base from.
 //
-// Returns string which is the first type in the union or intersection, or the
-// original string if no separator is found.
+// Returns string which is the first type in the union or intersection, or the original
+// string if no separator is found.
 func extractBaseType(typeString string) string {
 	if !strings.Contains(typeString, unionTypeSeparator) && !strings.Contains(typeString, "&") {
 		return typeString

@@ -53,16 +53,16 @@ var (
 	// ErrEmptyCiphertext is returned when attempting to decrypt empty ciphertext.
 	ErrEmptyCiphertext = errors.New("ciphertext cannot be empty")
 
-	// ErrCiphertextTooShort is returned when ciphertext is shorter than the
-	// minimum length required for decryption.
+	// ErrCiphertextTooShort is returned when ciphertext is shorter than the minimum length
+	// required for decryption.
 	ErrCiphertextTooShort = errors.New("ciphertext too short: must be at least IV + tag length")
 
 	// ErrInvalidBase64 is returned when ciphertext is not valid base64 encoding.
 	ErrInvalidBase64 = errors.New("ciphertext is not valid base64 encoding")
 )
 
-// provider implements local AES-256-GCM encryption without external dependencies.
-// It is suitable for development, testing, and single-server deployments.
+// provider implements local AES-256-GCM encryption without external dependencies. It is
+// suitable for development, testing, and single-server deployments.
 type provider struct {
 	// aead provides authenticated encryption for sealing and opening data.
 	aead cipher.AEAD
@@ -71,12 +71,13 @@ type provider struct {
 	keyID string
 }
 
-var _ crypto_domain.EncryptionProvider = (*provider)(nil)
+var (
+	_ crypto_domain.EncryptionProvider = (*provider)(nil)
+)
 
 // Type returns the provider type.
 //
-// Returns crypto_dto.ProviderType which identifies this as a local AES-GCM
-// provider.
+// Returns crypto_dto.ProviderType which identifies this as a local AES-GCM provider.
 func (*provider) Type() crypto_dto.ProviderType {
 	return crypto_dto.ProviderTypeLocalAESGCM
 }
@@ -91,11 +92,10 @@ func (*provider) Type() crypto_dto.ProviderType {
 //
 // Output format: base64([12-byte iv][ciphertext][16-byte tag])
 //
-// Takes request (*crypto_dto.EncryptRequest) which contains the plaintext to
-// encrypt.
+// Takes request (*crypto_dto.EncryptRequest) which contains the plaintext to encrypt.
 //
-// Returns *crypto_dto.EncryptResponse which contains the base64-encoded
-// ciphertext, key ID, and provider type.
+// Returns *crypto_dto.EncryptResponse which contains the base64-encoded ciphertext, key
+// ID, and provider type.
 // Returns error when the plaintext is empty or IV generation fails.
 func (p *provider) Encrypt(_ context.Context, request *crypto_dto.EncryptRequest) (*crypto_dto.EncryptResponse, error) {
 	if request.Plaintext == "" {
@@ -122,16 +122,16 @@ func (p *provider) Encrypt(_ context.Context, request *crypto_dto.EncryptRequest
 
 // Decrypt decrypts ciphertext using AES-256-GCM.
 //
-// The algorithm base64-decodes the input, extracts the IV (first 12 bytes)
-// and ciphertext with tag (remaining bytes), then verifies the authentication
-// tag and decrypts using AEAD.Open.
+// The algorithm base64-decodes the input, extracts the IV (first 12 bytes) and ciphertext
+// with tag (remaining bytes), then verifies the authentication tag and decrypts using
+// AEAD.Open.
 //
-// Takes request (*crypto_dto.DecryptRequest) which contains the base64-encoded
-// ciphertext to decrypt.
+// Takes request (*crypto_dto.DecryptRequest) which contains the base64-encoded ciphertext
+// to decrypt.
 //
 // Returns *crypto_dto.DecryptResponse which contains the decrypted plaintext.
-// Returns error when the ciphertext is empty, not valid base64, too short,
-// or when the authentication tag is invalid (data tampered).
+// Returns error when the ciphertext is empty, not valid base64, too short, or when the
+// authentication tag is invalid (data tampered).
 func (p *provider) Decrypt(_ context.Context, request *crypto_dto.DecryptRequest) (*crypto_dto.DecryptResponse, error) {
 	if request.Ciphertext == "" {
 		return nil, crypto_dto.ErrEmptyCiphertext
@@ -160,18 +160,17 @@ func (p *provider) Decrypt(_ context.Context, request *crypto_dto.DecryptRequest
 	}, nil
 }
 
-// GenerateDataKey generates a random data encryption key for envelope
-// encryption patterns. For the local provider, this generates a random
-// 32-byte key and encrypts it with the master key.
+// GenerateDataKey generates a random data encryption key for envelope encryption
+// patterns. For the local provider, this generates a random 32-byte key and encrypts it
+// with the master key.
 //
-// Takes request (*crypto_dto.GenerateDataKeyRequest) which specifies the key ID
-// to use for encrypting the generated data key.
+// Takes request (*crypto_dto.GenerateDataKeyRequest) which specifies the key ID to use
+// for encrypting the generated data key.
 //
-// Returns *crypto_dto.DataKey which contains the plaintext key in secure
-// memory (mmap+mlock) and the encrypted key. The PlaintextKey MUST be closed
-// by the caller when no longer needed.
-// Returns error when key generation, encryption, or secure memory allocation
-// fails.
+// Returns *crypto_dto.DataKey which contains the plaintext key in secure memory
+// (mmap+mlock) and the encrypted key. The PlaintextKey MUST be closed by the caller when
+// no longer needed.
+// Returns error when key generation, encryption, or secure memory allocation fails.
 func (p *provider) GenerateDataKey(ctx context.Context, request *crypto_dto.GenerateDataKeyRequest) (*crypto_dto.DataKey, error) {
 	dataKey := make([]byte, KeySize)
 	if _, err := io.ReadFull(rand.Reader, dataKey); err != nil {
@@ -203,8 +202,8 @@ func (p *provider) GenerateDataKey(ctx context.Context, request *crypto_dto.Gene
 	}, nil
 }
 
-// GetKeyInfo returns metadata about the specified key.
-// For a local provider, this returns mostly fixed information.
+// GetKeyInfo returns metadata about the specified key. For a local provider, this returns
+// mostly fixed information.
 //
 // Takes keyID (string) which identifies the key to look up.
 //
@@ -229,11 +228,11 @@ func (p *provider) GetKeyInfo(_ context.Context, keyID string) (*crypto_dto.KeyI
 	}, nil
 }
 
-// HealthCheck checks that the provider is working by running a test
-// encryption and decryption cycle.
+// HealthCheck checks that the provider is working by running a test encryption and
+// decryption cycle.
 //
-// Returns error when encryption fails, decryption fails, or the decrypted
-// result does not match the original plaintext.
+// Returns error when encryption fails, decryption fails, or the decrypted result does not
+// match the original plaintext.
 func (p *provider) HealthCheck(ctx context.Context) error {
 	testPlaintext := "health-check-test"
 
@@ -287,8 +286,8 @@ func NewProvider(config Config) (crypto_domain.EncryptionProvider, error) {
 	}, nil
 }
 
-// zeroBytes clears the given byte slice in a way that the compiler cannot
-// remove during optimisation.
+// zeroBytes clears the given byte slice in a way that the compiler cannot remove during
+// optimisation.
 //
 // Takes data ([]byte) which is the memory to clear.
 func zeroBytes(data []byte) {

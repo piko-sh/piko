@@ -44,14 +44,14 @@ type compressionConfig struct {
 	defaultLevel int
 }
 
-// createCompressionCapability returns a capability function that performs
-// streaming compression using the given settings.
+// createCompressionCapability returns a capability function that performs streaming
+// compression using the given settings.
 //
-// Takes config (compressionConfig) which specifies the compression settings
-// including span name, level parser, default level, and compressor factory.
+// Takes config (compressionConfig) which specifies the compression settings including
+// span name, level parser, default level, and compressor factory.
 //
-// Returns capabilities_domain.CapabilityFunc which wraps the compression
-// logic for use with the capability system.
+// Returns capabilities_domain.CapabilityFunc which wraps the compression logic for use
+// with the capability system.
 func createCompressionCapability(config compressionConfig) capabilities_domain.CapabilityFunc {
 	return func(ctx context.Context, inputData io.Reader, params capabilities_domain.CapabilityParams) (io.Reader, error) {
 		ctx, span, l := log.Span(ctx, config.spanName,

@@ -18,12 +18,14 @@
 
 package pdfwriter_dto
 
-import "piko.sh/piko/internal/layouter/layouter_dto"
+import (
+	"piko.sh/piko/internal/layouter/layouter_dto"
+)
 
 // PdfResult holds the output of a PDF rendering operation.
 type PdfResult struct {
-	// LayoutDump is an optional human-readable serialisation of the layout
-	// box tree, useful for golden file debugging in integration tests.
+	// LayoutDump is an optional human-readable serialisation of the layout box tree, useful
+	// for golden file debugging in integration tests.
 	//
 	// Empty when not requested.
 	LayoutDump string
@@ -37,18 +39,16 @@ type PdfResult struct {
 
 // PdfConfig holds configuration for a PDF rendering operation.
 type PdfConfig struct {
-	// Stylesheets contains additional CSS strings to apply after the
-	// user-agent stylesheet and before inline styles.
+	// Stylesheets contains additional CSS strings to apply after the user-agent stylesheet
+	// and before inline styles.
 	Stylesheets []string
 
 	// Page defines the page dimensions and margins in points.
 	Page layouter_dto.PageConfig
 
-	// DefaultFontSize is the root font size in points. Defaults to 12.0
-	// if zero.
+	// DefaultFontSize is the root font size in points. Defaults to 12.0 if zero.
 	DefaultFontSize float64
 
-	// DefaultLineHeight is the unitless line-height multiplier. Defaults
-	// to 1.2 if zero.
+	// DefaultLineHeight is the unitless line-height multiplier. Defaults to 1.2 if zero.
 	DefaultLineHeight float64
 }

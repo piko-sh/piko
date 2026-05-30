@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Provides formatting and tidying utilities for serialised Go code to improve readability and maintainability.
-// Applies context-aware formatting rules, manages line breaks, and maintains consistent indentation in generated struct literals.
+// Provides formatting and tidying utilities for serialised Go code to improve readability
+// and maintainability. Applies context-aware formatting rules, manages line breaks, and
+// maintains consistent indentation in generated struct literals.
 
 import (
 	"strings"
@@ -46,8 +47,10 @@ const (
 	ctxStructTypeDef
 )
 
-// defaultTabWidth is the number of spaces used for tab indentation.
-const defaultTabWidth = 4
+const (
+	// defaultTabWidth is the number of spaces used for tab indentation.
+	defaultTabWidth = 4
+)
 
 // tidier tracks state while cleaning and formatting Go source code.
 type tidier struct {
@@ -173,9 +176,9 @@ func (t *tidier) processCode() {
 
 // handleCommentStart processes the start of a comment token.
 //
-// When inside a composite literal or struct type definition, inserts a comma
-// and newline before the comment if needed. Sets comment state flags based on
-// whether this is a single-line or multi-line comment.
+// When inside a composite literal or struct type definition, inserts a comma and newline
+// before the comment if needed. Sets comment state flags based on whether this is a
+// single-line or multi-line comment.
 func (t *tidier) handleCommentStart() {
 	if t.context() == ctxCompositeLiteral || t.context() == ctxStructTypeDef {
 		last := findLastMeaningfulChar(t.builder.String())
@@ -194,8 +197,8 @@ func (t *tidier) handleCommentStart() {
 	}
 }
 
-// handleOpeningBrace processes an opening brace by checking what comes before
-// it and pushing the correct context type onto the stack.
+// handleOpeningBrace processes an opening brace by checking what comes before it and
+// pushing the correct context type onto the stack.
 func (t *tidier) handleOpeningBrace() {
 	trimmedBuffer := strings.TrimRightFunc(t.builder.String(), unicode.IsSpace)
 	isBlock := isFunctionOrControlBlock(trimmedBuffer)
@@ -214,8 +217,7 @@ func (t *tidier) handleOpeningBrace() {
 	}
 }
 
-// handleClosingBrace writes a closing brace and adds trailing punctuation
-// when needed.
+// handleClosingBrace writes a closing brace and adds trailing punctuation when needed.
 func (t *tidier) handleClosingBrace() {
 	ctx := t.context()
 	switch ctx {
@@ -245,8 +247,8 @@ func (t *tidier) handleOpeningBracket() {
 	_, _ = t.builder.WriteRune('[')
 }
 
-// handleClosingBracket writes a closing bracket and pops the type declaration
-// context if one is active.
+// handleClosingBracket writes a closing bracket and pops the type declaration context if
+// one is active.
 func (t *tidier) handleClosingBracket() {
 	if t.context() == ctxTypeDecl {
 		t.popContext()
@@ -295,8 +297,7 @@ func (t *tidier) popContext() {
 //
 // Takes ctx (tidyContext) which specifies the context type to check.
 //
-// Returns bool which is true for composite literals, struct type definitions,
-// and blocks.
+// Returns bool which is true for composite literals, struct type definitions, and blocks.
 func (*tidier) shouldPopContext(ctx tidyContext) bool {
 	return ctx == ctxCompositeLiteral || ctx == ctxStructTypeDef || ctx == ctxBlock
 }
@@ -311,8 +312,8 @@ func (t *tidier) peekRune() rune {
 	return 0
 }
 
-// peekNextMeaningfulChar returns the next non-whitespace character without
-// advancing the cursor.
+// peekNextMeaningfulChar returns the next non-whitespace character without advancing the
+// cursor.
 //
 // Returns rune which is the next meaningful character, or 0 if none remains.
 func (t *tidier) peekNextMeaningfulChar() rune {
@@ -327,13 +328,12 @@ func (t *tidier) peekNextMeaningfulChar() rune {
 
 // tidyGoLiteral formats a compact Go literal string.
 //
-// It tracks nesting of composite literals and code blocks to add newlines and
-// trailing commas in the right places.
+// It tracks nesting of composite literals and code blocks to add newlines and trailing
+// commas in the right places.
 //
 // Takes compact (string) which is the compact Go literal to format.
 //
-// Returns string which is the formatted literal with proper newlines and
-// trailing commas.
+// Returns string which is the formatted literal with proper newlines and trailing commas.
 func tidyGoLiteral(compact string) string {
 	t := newTidier(compact)
 	return t.run()
@@ -357,14 +357,14 @@ func newTidier(compact string) *tidier {
 	}
 }
 
-// isFunctionOrControlBlock checks if an opening brace belongs to a code block
-// such as if, for, or func, rather than a composite literal. It uses a
-// two-stage check to tell these cases apart.
+// isFunctionOrControlBlock checks if an opening brace belongs to a code block such as if,
+// for, or func, rather than a composite literal. It uses a two-stage check to tell these
+// cases apart.
 //
 // Takes s (string) which is the source code segment to check.
 //
-// Returns bool which is true if the brace belongs to a function or control
-// block, false if it belongs to a composite literal.
+// Returns bool which is true if the brace belongs to a function or control block, false
+// if it belongs to a composite literal.
 func isFunctionOrControlBlock(s string) bool {
 	lastBrace := -1
 	for i := len(s) - 1; i >= 0; i-- {
@@ -390,13 +390,13 @@ func isFunctionOrControlBlock(s string) bool {
 	return hasControlKeywordPrefix(segment)
 }
 
-// hasControlKeywordPrefix checks if a text segment contains or starts with a
-// Go control flow keyword.
+// hasControlKeywordPrefix checks if a text segment contains or starts with a Go control
+// flow keyword.
 //
 // Takes segment (string) which is the text to check.
 //
-// Returns bool which is true if the segment contains "func" or starts with
-// "if", "for", "else", "switch", "case", or "default".
+// Returns bool which is true if the segment contains "func" or starts with "if", "for",
+// "else", "switch", "case", or "default".
 func hasControlKeywordPrefix(segment string) bool {
 	if strings.Contains(segment, "func") {
 		return true
@@ -409,8 +409,8 @@ func hasControlKeywordPrefix(segment string) bool {
 		strings.HasPrefix(segment, "default")
 }
 
-// isPrecededByWord checks whether a string ends with the given word after
-// removing trailing whitespace.
+// isPrecededByWord checks whether a string ends with the given word after removing
+// trailing whitespace.
 //
 // Takes s (string) which is the text to check.
 // Takes word (string) which is the suffix to look for.
@@ -421,8 +421,8 @@ func isPrecededByWord(s string, word string) bool {
 	return strings.HasSuffix(trimmed, word)
 }
 
-// findLastMeaningfulChar finds the last character in a string that is not
-// whitespace or part of a comment.
+// findLastMeaningfulChar finds the last character in a string that is not whitespace or
+// part of a comment.
 //
 // Takes s (string) which is the input string to search.
 //

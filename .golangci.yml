@@ -24,7 +24,9 @@ linters:
     - bidichk
     - iotamixing
     - unused
-#    - prealloc
+    - prealloc
+    - grouper
+    - exhaustive
 
   settings:
     revive:
@@ -146,6 +148,20 @@ linters:
         - name: range
         - name: optimize-operands-order
 
+    grouper:
+      const-require-single-const: false
+      const-require-grouping: true
+      import-require-single-import: true
+      import-require-grouping: true
+      var-require-single-var: false
+      var-require-grouping: true
+
+    exhaustive:
+      check:
+        - switch
+        - map
+      default-signifies-exhaustive: true
+
     misspell:
       locale: UK
       mode: "restricted"
@@ -154,6 +170,8 @@ linters:
         - center
         - initialize
         - initialized
+        - materialize
+        - materialized
 
     gocritic:
       enable-all: true
@@ -246,6 +264,7 @@ linters:
       - third_party
       - vendor
       - node_modules
+      - tests/benchmarks/cross_language/benchmarks
 
     rules:
       - path: internal/config/
@@ -260,18 +279,24 @@ linters:
           - godoclint
           - funcorder
           - dupl
+          - exhaustive
           - exhaustruct
           - goheader
           - decorder
           - unused
+          - prealloc
 
       - path: _test\.go$
         linters: [staticcheck]
         text: "QF1011|SA1012|SA1029|S1040|SA2001"
 
+      - path: (internal/interp/interp_domain/asm/asmgen_arch_amd64|internal/interp/interp_domain/asm/asmgen_arch_arm64|internal/vectormaths/asm/asmgen_arch_amd64|internal/vectormaths/asm/asmgen_arch_arm64)/
+        linters: [revive]
+        text: "add-constant"
+
       - path: _test\.go$
         linters: [revive]
-        text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|struct-tag|context-as-argument"
+        text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|struct-tag|context-as-argument|call-to-gc"
 
       - path: _test/
         linters:
@@ -340,6 +365,10 @@ linters:
 
       - linters: [dupl]
         path: "wdk/asmgen/asmgen_arch_"
+
+      - path: internal/interp/interp_domain/
+        linters: [govet]
+        text: "unsafeptr"
 
       - path: _test\.go$
         linters: [govet]

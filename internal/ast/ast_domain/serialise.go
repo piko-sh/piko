@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Serialises TemplateAST structures into Go source code as struct literals for caching and code generation.
-// Converts parsed templates into compilable Go code with proper formatting, imports, and package declarations.
+// Serialises TemplateAST structures into Go source code as struct literals for caching
+// and code generation. Converts parsed templates into compilable Go code with proper
+// formatting, imports, and package declarations.
 
 import (
 	"fmt"
@@ -28,9 +29,8 @@ import (
 	"go/token"
 )
 
-// SerialiseASTToGoFileContent creates the full content of a Go file that
-// stores the given TemplateAST as a variable. It formats the AST as a readable,
-// multi-line literal.
+// SerialiseASTToGoFileContent creates the full content of a Go file that stores the given
+// TemplateAST as a variable. It formats the AST as a readable, multi-line literal.
 //
 // Takes tree (*TemplateAST) which is the AST to turn into Go code.
 // Takes packageName (string) which sets the package name for the output file.
@@ -69,8 +69,8 @@ func SerialiseASTString(tree *TemplateAST) string {
 //
 // Takes node (*TemplateNode) which is the template node to convert.
 //
-// Returns string which is the formatted Go source code. When node is nil,
-// returns a comment that states the node is nil.
+// Returns string which is the formatted Go source code. When node is nil, returns a
+// comment that states the node is nil.
 func SerialiseNodeString(node *TemplateNode) string {
 	if node == nil {
 		return "/* Node is nil */"
@@ -124,8 +124,7 @@ func formatCompactLiteral(compact string) string {
 	return tidyGoLiteral(compact)
 }
 
-// embedLiteralInGoFile creates a Go source file containing an embedded AST
-// literal.
+// embedLiteralInGoFile creates a Go source file containing an embedded AST literal.
 //
 // Takes literal (string) which is the AST literal to embed in the file.
 // Takes packageName (string) which is the package name for the generated file.
@@ -155,8 +154,8 @@ func astType(name string) goast.Expr {
 	return &goast.SelectorExpr{X: goast.NewIdent("ast_domain"), Sel: goast.NewIdent(name)}
 }
 
-// newCompositeLit creates a new composite literal AST node with the given type
-// and elements.
+// newCompositeLit creates a new composite literal AST node with the given type and
+// elements.
 //
 // Takes typ (goast.Expr) which specifies the type of the composite literal.
 // Takes elts ([]goast.Expr) which provides the elements of the literal.
@@ -197,8 +196,7 @@ func newStarExpr(x goast.Expr) *goast.StarExpr {
 	}
 }
 
-// newUnaryExpr creates a Go unary expression with the given operator and
-// operand.
+// newUnaryExpr creates a Go unary expression with the given operator and operand.
 //
 // Takes operator (token.Token) which specifies the unary operator.
 // Takes x (goast.Expr) which is the operand expression.
@@ -226,8 +224,7 @@ func newMapType(key, value goast.Expr) *goast.MapType {
 	}
 }
 
-// newBasicLit creates a new basic literal AST node with the given token kind
-// and value.
+// newBasicLit creates a new basic literal AST node with the given token kind and value.
 //
 // Takes kind (token.Token) which specifies the literal type.
 // Takes value (string) which is the literal value.
@@ -274,8 +271,7 @@ func newCallExpr(fun goast.Expr, arguments []goast.Expr) *goast.CallExpr {
 // buildIIFE builds an immediately invoked function expression (IIFE) AST node.
 //
 // Takes returnTypeName (string) which sets the return type of the function.
-// Takes bodyExpr (goast.Expr) which provides the expression for the function
-// body.
+// Takes bodyExpr (goast.Expr) which provides the expression for the function body.
 //
 // Returns *goast.CallExpr which is the complete IIFE call expression.
 func buildIIFE(returnTypeName string, bodyExpr goast.Expr) *goast.CallExpr {
@@ -291,14 +287,13 @@ func buildIIFE(returnTypeName string, bodyExpr goast.Expr) *goast.CallExpr {
 	}
 }
 
-// buildIIFEFuncType builds a function type AST node for an IIFE that returns
-// a pointer to the given type.
+// buildIIFEFuncType builds a function type AST node for an IIFE that returns a pointer to
+// the given type.
 //
-// Takes returnTypeName (string) which is the name of the type to return a
-// pointer to.
+// Takes returnTypeName (string) which is the name of the type to return a pointer to.
 //
-// Returns *goast.FuncType which represents a function with no parameters and
-// a single pointer return type.
+// Returns *goast.FuncType which represents a function with no parameters and a single
+// pointer return type.
 func buildIIFEFuncType(returnTypeName string) *goast.FuncType {
 	return &goast.FuncType{
 		Func:       0,
@@ -314,8 +309,8 @@ func buildIIFEFuncType(returnTypeName string) *goast.FuncType {
 	}
 }
 
-// buildIIFEBody builds the body of an immediately invoked function expression.
-// It creates helper variable assignments and a return statement.
+// buildIIFEBody builds the body of an immediately invoked function expression. It creates
+// helper variable assignments and a return statement.
 //
 // Takes bodyExpr (goast.Expr) which is the expression to return from the IIFE.
 //
@@ -332,11 +327,10 @@ func buildIIFEBody(bodyExpr goast.Expr) *goast.BlockStmt {
 	}
 }
 
-// buildTypeExprFromStringHelperAssignment creates an assignment statement that
-// defines the type expression helper function.
+// buildTypeExprFromStringHelperAssignment creates an assignment statement that defines
+// the type expression helper function.
 //
-// Returns *goast.AssignStmt which assigns the helper function literal to its
-// identifier.
+// Returns *goast.AssignStmt which assigns the helper function literal to its identifier.
 func buildTypeExprFromStringHelperAssignment() *goast.AssignStmt {
 	return &goast.AssignStmt{
 		Lhs:    []goast.Expr{goast.NewIdent(identTypeExprFromString)},
@@ -346,11 +340,11 @@ func buildTypeExprFromStringHelperAssignment() *goast.AssignStmt {
 	}
 }
 
-// buildTypeExprFromStringFuncLit builds an AST function literal that parses a
-// string into a Go expression.
+// buildTypeExprFromStringFuncLit builds an AST function literal that parses a string into
+// a Go expression.
 //
-// Returns *goast.FuncLit which takes a string and returns a goast.Expr, or nil
-// if parsing fails.
+// Returns *goast.FuncLit which takes a string and returns a goast.Expr, or nil if parsing
+// fails.
 func buildTypeExprFromStringFuncLit() *goast.FuncLit {
 	return &goast.FuncLit{
 		Type: &goast.FuncType{
@@ -382,8 +376,7 @@ func buildTypeExprFromStringFuncLit() *goast.FuncLit {
 
 // buildBlankAssignment creates an assignment statement that discards a value.
 //
-// Takes varName (string) which is the variable to assign to the blank
-// identifier.
+// Takes varName (string) which is the variable to assign to the blank identifier.
 //
 // Returns *goast.AssignStmt which represents "_ = varName".
 func buildBlankAssignment(varName string) *goast.AssignStmt {
@@ -397,8 +390,7 @@ func buildBlankAssignment(varName string) *goast.AssignStmt {
 
 // newFieldList creates a FieldList that holds a single field.
 //
-// Takes name (*goast.Ident) which is the field name, or nil for unnamed
-// fields.
+// Takes name (*goast.Ident) which is the field name, or nil for unnamed fields.
 // Takes typ (goast.Expr) which is the type expression for the field.
 //
 // Returns *goast.FieldList which holds the new field.

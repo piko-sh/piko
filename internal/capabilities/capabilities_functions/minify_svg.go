@@ -24,11 +24,13 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
-// minifierSVG holds the pre-configured SVG minifier instance.
-var minifierSVG *minify.M
+var (
+	// minifierSVG holds the pre-configured SVG minifier instance.
+	minifierSVG *minify.M
+)
 
-// MinifySVG returns a capability function that minifies SVG content using
-// the tdewolff/minify library.
+// MinifySVG returns a capability function that minifies SVG content using the
+// tdewolff/minify library.
 //
 // Returns capabilities_domain.CapabilityFunc which minifies SVG content.
 func MinifySVG() capabilities_domain.CapabilityFunc {

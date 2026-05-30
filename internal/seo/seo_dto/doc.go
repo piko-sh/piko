@@ -19,12 +19,12 @@
 // Package seo_dto defines data transfer objects for the SEO module.
 //
 // It contains XML sitemap structures, robots.txt content, and
-// [ProjectView]/[ComponentView] types that decouple the SEO domain
-// from the annotator with a read-only anti-corruption layer.
+// [ProjectView]/[ComponentView] types that decouple the SEO domain from the annotator
+// with a read-only anti-corruption layer.
 //
 // # Predefined bot lists
 //
-// The package exports [AIBots] and [NonSEOBots] slices containing
-// known crawler user-agents for blocking AI training bots and
-// non-SEO scrapers in robots.txt generation.
+// The package exports [AIBots] and [NonSEOBots] slices containing known crawler
+// user-agents for blocking AI training bots and non-SEO scrapers in robots.txt
+// generation.
 package seo_dto

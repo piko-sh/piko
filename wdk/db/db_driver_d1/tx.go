@@ -28,13 +28,15 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-// Compile-time interface check.
-var _ driver.Tx = (*d1Tx)(nil)
+var (
+	_ driver.Tx = (*d1Tx)(nil)
+)
 
-// d1Tx implements driver.Tx for D1. Since D1 does not support interactive
-// transactions, statements are collected in a batch and flushed as a single
-// request wrapped in BEGIN/COMMIT when Commit is called. Rollback simply
-// discards the collected statements, as no server-side state exists to revert.
+// d1Tx implements driver.Tx for D1 with client-side batching.
+//
+// D1 does not support interactive transactions. Statements are collected into a batch and
+// flushed as a single request wrapped in BEGIN/COMMIT when Commit is called. Rollback
+// discards the collected statements, since no server-side state exists to revert.
 type d1Tx struct {
 	// conn is the parent connection used to execute the final batch.
 	conn *d1Conn
@@ -46,8 +48,8 @@ type d1Tx struct {
 	committed bool
 }
 
-// batchStatement holds a single SQL statement and its stringified parameters
-// for batch execution within a transaction.
+// batchStatement holds a single SQL statement and its stringified parameters for batch
+// execution within a transaction.
 type batchStatement struct {
 	// query is the SQL statement text.
 	query string
@@ -59,8 +61,7 @@ type batchStatement struct {
 // Commit flushes all collected statements as a single batch request wrapped in
 // BEGIN/COMMIT. If no statements were collected, Commit is a no-op.
 //
-// Returns error when the batch execution fails or Commit has already been
-// called.
+// Returns error when the batch execution fails or Commit has already been called.
 func (tx *d1Tx) Commit() error {
 	if tx.committed {
 		return errors.New("db_driver_d1: transaction already committed")
@@ -95,9 +96,9 @@ func (tx *d1Tx) Commit() error {
 	return nil
 }
 
-// Rollback discards all collected statements. Since D1 transactions are
-// client-side only (no server-side state exists until Commit), there is nothing
-// to roll back on the server.
+// Rollback discards all collected statements. Since D1 transactions are client-side only
+// (no server-side state exists until Commit), there is nothing to roll back on the
+// server.
 //
 // Returns error when the transaction has already been committed.
 func (tx *d1Tx) Rollback() error {

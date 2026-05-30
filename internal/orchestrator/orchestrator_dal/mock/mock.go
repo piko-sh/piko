@@ -29,21 +29,22 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 )
 
-// activeStatuses are the task statuses considered "active" for deduplication.
-var activeStatuses = map[orchestrator_domain.TaskStatus]bool{
-	orchestrator_domain.StatusScheduled:  true,
-	orchestrator_domain.StatusPending:    true,
-	orchestrator_domain.StatusProcessing: true,
-	orchestrator_domain.StatusRetrying:   true,
-}
+var (
+	// activeStatuses are the task statuses considered "active" for deduplication.
+	activeStatuses = map[orchestrator_domain.TaskStatus]bool{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		orchestrator_domain.StatusScheduled:  true,
+		orchestrator_domain.StatusPending:    true,
+		orchestrator_domain.StatusProcessing: true,
+		orchestrator_domain.StatusRetrying:   true,
+	}
+)
 
 // Behaviour defines settings that control how mock methods act during tests.
 type Behaviour struct {
 	// Error is the error to return instead of the normal result.
 	Error error
 
-	// PanicMessage is the custom message to use when panicking; empty uses a
-	// default.
+	// PanicMessage is the custom message to use when panicking; empty uses a default.
 	PanicMessage string
 
 	// Delay specifies how long to wait before running; 0 means no delay.
@@ -65,8 +66,7 @@ type CallRecord struct {
 	Args []any
 }
 
-// OrchestratorDAL is a mock implementation of OrchestratorDALWithTx for
-// testing.
+// OrchestratorDAL is a mock implementation of OrchestratorDALWithTx for testing.
 type OrchestratorDAL struct {
 	// tasks stores all tasks indexed by their ID.
 	tasks map[string]*orchestrator_domain.Task
@@ -183,8 +183,8 @@ func (m *OrchestratorDAL) HealthCheck(_ context.Context) error {
 	return m.executeBehaviour("HealthCheck")
 }
 
-// Close releases resources held by the mock DAL.
-// Implements orchestrator_dal.OrchestratorDAL.
+// Close releases resources held by the mock DAL. Implements
+// orchestrator_dal.OrchestratorDAL.
 //
 // Returns error when the configured behaviour returns an error.
 //
@@ -198,8 +198,7 @@ func (m *OrchestratorDAL) Close() error {
 
 // RunAtomic executes fn within a transaction.
 //
-// Takes fn (func(...) error) which is the function to execute
-// within the transaction.
+// Takes fn (func(...) error) which is the function to execute within the transaction.
 //
 // Returns error when fn returns an error, or nil on success.
 func (m *OrchestratorDAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error {
@@ -245,8 +244,7 @@ func (m *OrchestratorDAL) CreateTask(_ context.Context, task *orchestrator_domai
 
 // CreateTasks implements orchestrator_dal.TaskDAL.
 //
-// Takes tasks ([]*orchestrator_domain.Task) which specifies the tasks to
-// create.
+// Takes tasks ([]*orchestrator_domain.Task) which specifies the tasks to create.
 //
 // Returns error when the configured behaviour produces an error.
 //
@@ -292,12 +290,12 @@ func (m *OrchestratorDAL) UpdateTask(_ context.Context, task *orchestrator_domai
 
 // FetchAndMarkDueTasks implements orchestrator_dal.TaskDAL.
 //
-// Takes priority (orchestrator_domain.TaskPriority) which filters tasks to
-// fetch only those at or above this priority level.
+// Takes priority (orchestrator_domain.TaskPriority) which filters tasks to fetch only
+// those at or above this priority level.
 // Takes limit (int) which specifies the maximum number of tasks to return.
 //
-// Returns []*orchestrator_domain.Task which contains the tasks that were
-// marked as processing.
+// Returns []*orchestrator_domain.Task which contains the tasks that were marked as
+// processing.
 // Returns error when a configured behaviour produces an error.
 //
 // Safe for concurrent use; protects internal state with a mutex.
@@ -331,8 +329,8 @@ func (m *OrchestratorDAL) FetchAndMarkDueTasks(_ context.Context, priority orche
 	return results, nil
 }
 
-// GetWorkflowStatus checks if all tasks in a workflow have reached a terminal
-// state. Implements orchestrator_dal.TaskDAL.
+// GetWorkflowStatus checks if all tasks in a workflow have reached a terminal state.
+// Implements orchestrator_dal.TaskDAL.
 //
 // Takes workflowID (string) which identifies the workflow to check.
 //
@@ -398,8 +396,8 @@ func (m *OrchestratorDAL) PromoteScheduledTasks(_ context.Context) (int, error) 
 	return promoted, nil
 }
 
-// PendingTaskCount returns the count of tasks with pending status.
-// Implements orchestrator_dal.TaskDAL.
+// PendingTaskCount returns the count of tasks with pending status. Implements
+// orchestrator_dal.TaskDAL.
 //
 // Returns int64 which is the number of pending tasks.
 // Returns error when a configured behaviour fails.
@@ -466,11 +464,10 @@ func (m *OrchestratorDAL) GetTaskCount() int {
 
 // GetTasksByWorkflow returns all tasks for a workflow.
 //
-// Takes workflowID (string) which identifies the workflow to retrieve tasks
-// for.
+// Takes workflowID (string) which identifies the workflow to retrieve tasks for.
 //
-// Returns []*orchestrator_domain.Task which contains copies of all tasks
-// belonging to the workflow, or nil if the workflow does not exist.
+// Returns []*orchestrator_domain.Task which contains copies of all tasks belonging to the
+// workflow, or nil if the workflow does not exist.
 //
 // Safe for concurrent use; acquires a read lock on the internal data store.
 func (m *OrchestratorDAL) GetTasksByWorkflow(workflowID string) []*orchestrator_domain.Task {
@@ -494,11 +491,10 @@ func (m *OrchestratorDAL) GetTasksByWorkflow(workflowID string) []*orchestrator_
 
 // GetTasksByStatus returns all tasks with a specific status.
 //
-// Takes status (orchestrator_domain.TaskStatus) which filters tasks by their
-// current status.
+// Takes status (orchestrator_domain.TaskStatus) which filters tasks by their current
+// status.
 //
-// Returns []*orchestrator_domain.Task which contains copies of all matching
-// tasks.
+// Returns []*orchestrator_domain.Task which contains copies of all matching tasks.
 //
 // Safe for concurrent use. Uses a read lock to protect access to the task map.
 func (m *OrchestratorDAL) GetTasksByStatus(status orchestrator_domain.TaskStatus) []*orchestrator_domain.Task {
@@ -515,14 +511,13 @@ func (m *OrchestratorDAL) GetTasksByStatus(status orchestrator_domain.TaskStatus
 	return tasks
 }
 
-// CreateTaskWithDedup implements orchestrator_dal.TaskDAL and creates a
-// task with deduplication support. If the task has a DeduplicationKey set
-// and an active task with the same key exists, returns ErrDuplicateTask.
+// CreateTaskWithDedup implements orchestrator_dal.TaskDAL and creates a task with
+// deduplication support. If the task has a DeduplicationKey set and an active task with
+// the same key exists, returns ErrDuplicateTask.
 //
 // Takes task (*orchestrator_domain.Task) which specifies the task to create.
 //
-// Returns error when a duplicate exists or the configured behaviour returns
-// an error.
+// Returns error when a duplicate exists or the configured behaviour returns an error.
 //
 // Safe for concurrent use.
 func (m *OrchestratorDAL) CreateTaskWithDedup(_ context.Context, task *orchestrator_domain.Task) error {
@@ -544,15 +539,13 @@ func (m *OrchestratorDAL) CreateTaskWithDedup(_ context.Context, task *orchestra
 	return nil
 }
 
-// RecoverStaleTasks implements orchestrator_dal.TaskDAL. It resets PROCESSING
-// tasks that have exceeded the stale threshold.
+// RecoverStaleTasks implements orchestrator_dal.TaskDAL. It resets PROCESSING tasks that
+// have exceeded the stale threshold.
 //
-// Takes staleThreshold (time.Duration) which defines how long a task can be in
-// PROCESSING before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking
-// FAILED.
-// Takes recoveryError (string) which is the error message to record on
-// recovered tasks.
+// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
+// before being considered stuck.
+// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
+// Takes recoveryError (string) which is the error message to record on recovered tasks.
 //
 // Returns int which is the count of tasks recovered.
 // Returns error when the configured behaviour returns an error.
@@ -589,11 +582,11 @@ func (m *OrchestratorDAL) RecoverStaleTasks(_ context.Context, staleThreshold ti
 	return recovered, nil
 }
 
-// GetStaleProcessingTaskCount implements orchestrator_dal.TaskDAL.
-// It returns the count of tasks stuck in PROCESSING longer than the threshold.
+// GetStaleProcessingTaskCount implements orchestrator_dal.TaskDAL. It returns the count
+// of tasks stuck in PROCESSING longer than the threshold.
 //
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is
-// considered stuck.
+// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
+// stuck.
 //
 // Returns int64 which is the count of stale tasks.
 // Returns error when the configured behaviour returns an error.
@@ -620,8 +613,7 @@ func (m *OrchestratorDAL) GetStaleProcessingTaskCount(_ context.Context, staleTh
 	return count, nil
 }
 
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task in
-// PROCESSING status.
+// UpdateTaskHeartbeat updates the updated_at timestamp for a task in PROCESSING status.
 //
 // Takes taskID (string) which identifies the task to update.
 //
@@ -644,11 +636,10 @@ func (m *OrchestratorDAL) UpdateTaskHeartbeat(_ context.Context, taskID string) 
 	return nil
 }
 
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for
-// recovery.
+// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery.
 //
-// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed
-// tasks, or nil if no stale tasks are found.
+// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks, or
+// nil if no stale tasks are found.
 // Returns error when the configured mock behaviour returns an error.
 //
 // Safe for concurrent use; guards internal state with a mutex.
@@ -713,8 +704,7 @@ func (m *OrchestratorDAL) CreateWorkflowReceipt(_ context.Context, _, _, _ strin
 	return m.executeBehaviour("CreateWorkflowReceipt")
 }
 
-// ResolveWorkflowReceipts marks all pending receipts for a workflow as
-// resolved.
+// ResolveWorkflowReceipts marks all pending receipts for a workflow as resolved.
 //
 // Returns int which is the number of receipts resolved.
 // Returns error when the operation fails.
@@ -734,8 +724,8 @@ func (m *OrchestratorDAL) ResolveWorkflowReceipts(_ context.Context, _ string, _
 
 // GetPendingReceiptsByNode retrieves all pending receipts created by a node.
 //
-// Returns []orchestrator_domain.PendingReceipt which contains the pending
-// receipts for the specified node.
+// Returns []orchestrator_domain.PendingReceipt which contains the pending receipts for
+// the specified node.
 // Returns error when the configured behaviour produces an error.
 //
 // Safe for concurrent use; protected by a mutex.
@@ -753,8 +743,8 @@ func (m *OrchestratorDAL) GetPendingReceiptsByNode(_ context.Context, _ string) 
 
 // GetPendingReceiptsByWorkflow retrieves all pending receipts for a workflow.
 //
-// Returns []orchestrator_domain.PendingReceipt which contains the pending
-// receipts for the workflow.
+// Returns []orchestrator_domain.PendingReceipt which contains the pending receipts for
+// the workflow.
 // Returns error when the configured behaviour fails.
 //
 // Safe for concurrent use; access is protected by a mutex.
@@ -770,8 +760,7 @@ func (m *OrchestratorDAL) GetPendingReceiptsByWorkflow(_ context.Context, _ stri
 	return nil, nil
 }
 
-// CleanupOldResolvedReceipts deletes resolved receipts older than the
-// specified time.
+// CleanupOldResolvedReceipts deletes resolved receipts older than the specified time.
 //
 // Returns int which is the number of receipts deleted.
 // Returns error when the cleanup operation fails.
@@ -825,15 +814,14 @@ func (m *OrchestratorDAL) ListFailedTasks(_ context.Context) ([]*orchestrator_do
 
 // withTransaction is an internal helper used by RunAtomic.
 //
-// Takes operation (func(...)) which is the function to execute within the
-// transaction.
+// Takes operation (func(...)) which is the function to execute within the transaction.
 //
-// Returns error when the transaction function fails or when a configured
-// mock behaviour returns an error.
+// Returns error when the transaction function fails or when a configured mock behaviour
+// returns an error.
 //
-// Safe for concurrent use. The function executes within a transaction-isolated
-// copy of the mock. Changes are committed only if operation
-// succeeds; otherwise they are discarded.
+// Safe for concurrent use. The function executes within a transaction-isolated copy of
+// the mock. Changes are committed only if operation succeeds; otherwise they are
+// discarded.
 func (m *OrchestratorDAL) withTransaction(ctx context.Context, operation func(ctx context.Context, dal orchestrator_dal.OrchestratorDAL) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -895,11 +883,9 @@ func (m *OrchestratorDAL) executeBehaviour(method string) error {
 	return nil
 }
 
-// createTransactionCopy creates a deep copy of the mock for transaction
-// isolation.
+// createTransactionCopy creates a deep copy of the mock for transaction isolation.
 //
-// Returns *OrchestratorDAL which is an isolated copy for use within a
-// transaction.
+// Returns *OrchestratorDAL which is an isolated copy for use within a transaction.
 func (m *OrchestratorDAL) createTransactionCopy() *OrchestratorDAL {
 	txMock := &OrchestratorDAL{
 		tasks:           make(map[string]*orchestrator_domain.Task),
@@ -926,8 +912,7 @@ func (m *OrchestratorDAL) createTransactionCopy() *OrchestratorDAL {
 
 // commitTransaction applies transaction changes back to the main mock.
 //
-// Takes txMock (*OrchestratorDAL) which contains the transaction state to
-// merge.
+// Takes txMock (*OrchestratorDAL) which contains the transaction state to merge.
 func (m *OrchestratorDAL) commitTransaction(txMock *OrchestratorDAL) {
 	m.tasks = txMock.tasks
 	m.tasksByWorkflow = txMock.tasksByWorkflow
@@ -944,8 +929,8 @@ func (m *OrchestratorDAL) storeTaskInternal(task *orchestrator_domain.Task) {
 	m.tasksByWorkflow[task.WorkflowID] = append(m.tasksByWorkflow[task.WorkflowID], task.ID)
 }
 
-// hasActiveDuplicate checks if an active task with the given deduplication
-// key exists. Must be called with lock held.
+// hasActiveDuplicate checks if an active task with the given deduplication key exists.
+// Must be called with lock held.
 //
 // Takes dedupKey (string) which identifies the task to check for duplicates.
 //
@@ -959,4 +944,6 @@ func (m *OrchestratorDAL) hasActiveDuplicate(dedupKey string) bool {
 	return false
 }
 
-var _ orchestrator_dal.OrchestratorDALWithTx = (*OrchestratorDAL)(nil)
+var (
+	_ orchestrator_dal.OrchestratorDALWithTx = (*OrchestratorDAL)(nil)
+)

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +47,7 @@ func TestMockCoordinatorService_Subscribe(t *testing.T) {
 
 		assert.NotPanics(t, func() { unsub() })
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
+		assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
 	})
 
 	t.Run("delegates to SubscribeFunc", func(t *testing.T) {
@@ -69,7 +68,7 @@ func TestMockCoordinatorService_Subscribe(t *testing.T) {
 		assert.Equal(t, "my-subscriber", calledWith)
 		assert.Equal(t, (<-chan BuildNotification)(expected), notificationChannel)
 		require.NotNil(t, unsub)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
+		assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
 	})
 }
 
@@ -85,7 +84,7 @@ func TestMockCoordinatorService_RequestRebuild(t *testing.T) {
 			m.RequestRebuild(context.Background(), nil)
 		})
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RequestRebuildCallCount))
+		assert.Equal(t, int64(1), m.RequestRebuildCallCount.Load())
 	})
 
 	t.Run("delegates to RequestRebuildFunc", func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestMockCoordinatorService_RequestRebuild(t *testing.T) {
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, eps, capturedEPs)
 		require.Len(t, capturedOpts, 1)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RequestRebuildCallCount))
+		assert.Equal(t, int64(1), m.RequestRebuildCallCount.Load())
 	})
 }
 
@@ -129,7 +128,7 @@ func TestMockCoordinatorService_GetResult(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetResultCallCount))
+		assert.Equal(t, int64(1), m.GetResultCallCount.Load())
 	})
 
 	t.Run("delegates to GetResultFunc", func(t *testing.T) {
@@ -149,7 +148,7 @@ func TestMockCoordinatorService_GetResult(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetResultCallCount))
+		assert.Equal(t, int64(1), m.GetResultCallCount.Load())
 	})
 
 	t.Run("propagates error from GetResultFunc", func(t *testing.T) {
@@ -167,7 +166,7 @@ func TestMockCoordinatorService_GetResult(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, sentinel)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetResultCallCount))
+		assert.Equal(t, int64(1), m.GetResultCallCount.Load())
 	})
 }
 
@@ -182,7 +181,7 @@ func TestMockCoordinatorService_GetOrBuildProject(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOrBuildProjectCallCount))
+		assert.Equal(t, int64(1), m.GetOrBuildProjectCallCount.Load())
 	})
 
 	t.Run("delegates to GetOrBuildProjectFunc", func(t *testing.T) {
@@ -202,7 +201,7 @@ func TestMockCoordinatorService_GetOrBuildProject(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOrBuildProjectCallCount))
+		assert.Equal(t, int64(1), m.GetOrBuildProjectCallCount.Load())
 	})
 
 	t.Run("propagates error from GetOrBuildProjectFunc", func(t *testing.T) {
@@ -220,7 +219,7 @@ func TestMockCoordinatorService_GetOrBuildProject(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, sentinel)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOrBuildProjectCallCount))
+		assert.Equal(t, int64(1), m.GetOrBuildProjectCallCount.Load())
 	})
 }
 
@@ -235,7 +234,7 @@ func TestMockCoordinatorService_GetLastSuccessfulBuild(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.False(t, ok)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLastSuccessfulBuildCallCount))
+		assert.Equal(t, int64(1), m.GetLastSuccessfulBuildCallCount.Load())
 	})
 
 	t.Run("delegates to GetLastSuccessfulBuildFunc", func(t *testing.T) {
@@ -253,7 +252,7 @@ func TestMockCoordinatorService_GetLastSuccessfulBuild(t *testing.T) {
 
 		assert.True(t, ok)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLastSuccessfulBuildCallCount))
+		assert.Equal(t, int64(1), m.GetLastSuccessfulBuildCallCount.Load())
 	})
 }
 
@@ -267,7 +266,7 @@ func TestMockCoordinatorService_Invalidate(t *testing.T) {
 		err := m.Invalidate(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.InvalidateCallCount))
+		assert.Equal(t, int64(1), m.InvalidateCallCount.Load())
 	})
 
 	t.Run("delegates to InvalidateFunc", func(t *testing.T) {
@@ -287,7 +286,7 @@ func TestMockCoordinatorService_Invalidate(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, ctx, capturedCtx)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.InvalidateCallCount))
+		assert.Equal(t, int64(1), m.InvalidateCallCount.Load())
 	})
 
 	t.Run("propagates error from InvalidateFunc", func(t *testing.T) {
@@ -304,7 +303,7 @@ func TestMockCoordinatorService_Invalidate(t *testing.T) {
 		err := m.Invalidate(context.Background())
 
 		assert.ErrorIs(t, err, sentinel)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.InvalidateCallCount))
+		assert.Equal(t, int64(1), m.InvalidateCallCount.Load())
 	})
 }
 
@@ -317,7 +316,7 @@ func TestMockCoordinatorService_Shutdown(t *testing.T) {
 		m := &MockCoordinatorService{}
 
 		assert.NotPanics(t, func() { m.Shutdown(context.Background()) })
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ShutdownCallCount))
+		assert.Equal(t, int64(1), m.ShutdownCallCount.Load())
 	})
 
 	t.Run("delegates to ShutdownFunc", func(t *testing.T) {
@@ -334,7 +333,7 @@ func TestMockCoordinatorService_Shutdown(t *testing.T) {
 		m.Shutdown(context.Background())
 
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ShutdownCallCount))
+		assert.Equal(t, int64(1), m.ShutdownCallCount.Load())
 	})
 }
 
@@ -371,13 +370,13 @@ func TestMockCoordinatorService_ZeroValueIsUsable(t *testing.T) {
 
 	assert.NotPanics(t, func() { m.Shutdown(context.Background()) })
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.RequestRebuildCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetResultCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOrBuildProjectCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLastSuccessfulBuildCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.InvalidateCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.ShutdownCallCount))
+	assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
+	assert.Equal(t, int64(1), m.RequestRebuildCallCount.Load())
+	assert.Equal(t, int64(1), m.GetResultCallCount.Load())
+	assert.Equal(t, int64(1), m.GetOrBuildProjectCallCount.Load())
+	assert.Equal(t, int64(1), m.GetLastSuccessfulBuildCallCount.Load())
+	assert.Equal(t, int64(1), m.InvalidateCallCount.Load())
+	assert.Equal(t, int64(1), m.ShutdownCallCount.Load())
 }
 
 func TestMockCoordinatorService_ConcurrentAccess(t *testing.T) {
@@ -431,11 +430,11 @@ func TestMockCoordinatorService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SubscribeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RequestRebuildCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetResultCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetOrBuildProjectCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetLastSuccessfulBuildCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.InvalidateCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ShutdownCallCount))
+	assert.Equal(t, int64(goroutines), m.SubscribeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RequestRebuildCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetResultCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetOrBuildProjectCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetLastSuccessfulBuildCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.InvalidateCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ShutdownCallCount.Load())
 }

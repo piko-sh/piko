@@ -1,0 +1,4 @@
+{
+  "description": "Package vars across files with dependency: var b in fileB depends on var a in fileA; Go evaluates in dependency order regardless of file/source order",
+  "expected": "a=10 b=15 c=25"
+}

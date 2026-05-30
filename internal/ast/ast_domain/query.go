@@ -19,11 +19,12 @@
 package ast_domain
 
 // Implements CSS selector querying for AST nodes with support for combinators,
-// pseudo-classes, and attribute matching. Provides QueryAll and related
-// functions with cached selector parsing and precomputed tree relationships for
-// efficient repeated queries.
+// pseudo-classes, and attribute matching. Provides QueryAll and related functions with
+// cached selector parsing and precomputed tree relationships for efficient repeated
+// queries.
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,9 +35,8 @@ const (
 	// querySourcePath is the source file path used when reporting query errors.
 	querySourcePath = "query.go"
 
-	// maxQueryDepth is the limit for how deep queries can search through the
-	// template tree. This prevents stack overflow errors in deeply nested
-	// templates.
+	// maxQueryDepth is the limit for how deep queries can search through the template tree.
+	// This prevents stack overflow errors in deeply nested templates.
 	maxQueryDepth = 10000
 
 	// indexCapacityTags is the initial map capacity for tag-based node indexing.
@@ -52,17 +52,18 @@ const (
 	indexCapacityElements = 200
 )
 
-// selectorCacheMaxEntries caps the number of cached parsed selectors.
-const selectorCacheMaxEntries = 20000
+const (
+	// selectorCacheMaxEntries caps the number of cached parsed selectors.
+	selectorCacheMaxEntries = 20000
+)
 
 var (
-	// selectorCache caches parsed selectors to avoid re-parsing identical
-	// selector strings. This improves performance for repeated queries with the
-	// same selectors.
+	// selectorCache caches parsed selectors to avoid re-parsing identical selector strings.
+	// This improves performance for repeated queries with the same selectors.
 	selectorCache sync.Map
 
-	// selectorCacheCount approximates the size of selectorCache for
-	// bounding. May temporarily lag the map under concurrent ops.
+	// selectorCacheCount approximates the size of selectorCache for bounding. May
+	// temporarily lag the map under concurrent ops.
 	selectorCacheCount atomic.Int64
 
 	// combinatorHandlers maps CSS combinator symbols to their query handler functions.
@@ -86,8 +87,8 @@ type cachedSelector struct {
 	diagnostics []*Diagnostic
 }
 
-// effectiveTreeInfo tracks parent, sibling, and child links within a template
-// tree. It includes indexes for fast query lookups.
+// effectiveTreeInfo tracks parent, sibling, and child links within a template tree. It
+// includes indexes for fast query lookups.
 type effectiveTreeInfo struct {
 	// parentOf maps each node to its parent in the effective tree.
 	parentOf map[*TemplateNode]*TemplateNode
@@ -95,36 +96,34 @@ type effectiveTreeInfo struct {
 	// siblingsOf maps each node to its list of sibling nodes, including itself.
 	siblingsOf map[*TemplateNode][]*TemplateNode
 
-	// childrenOf maps each node to its effective children, with fragments
-	// expanded.
+	// childrenOf maps each node to its effective children, with fragments expanded.
 	childrenOf map[*TemplateNode][]*TemplateNode
 
 	// attributeMapCache stores built attribute maps for nodes to avoid repeated work.
 	attributeMapCache map[*TemplateNode]map[string]string
 
-	// byTag maps tag names to matching elements for O(1) lookups
-	// (e.g. "div" -> [node1, node2, ...]).
+	// byTag maps tag names to matching elements for O(1) lookups (e.g. "div" -> [node1,
+	// node2, ...]).
 	byTag map[string][]*TemplateNode
 
-	// byClass maps class names to all elements with that class ("button" ->
-	// [node1, node2, ...]).
+	// byClass maps class names to all elements with that class ("button" -> [node1, node2,
+	// ...]).
 	byClass map[string][]*TemplateNode
 
-	// byID maps ID values to elements with that ID ("header" -> [node1, ...]).
-	// Supports duplicate IDs in invalid HTML.
+	// byID maps ID values to elements with that ID ("header" -> [node1, ...]). Supports
+	// duplicate IDs in invalid HTML.
 	byID map[string][]*TemplateNode
 
 	// allElements holds all element nodes for universal selector ("*") matching.
 	allElements []*TemplateNode
 }
 
-// getOrBuildAttrMap returns a cached attribute map for the node, building it
-// on first access.
+// getOrBuildAttrMap returns a cached attribute map for the node, building it on first
+// access.
 //
 // Takes node (*TemplateNode) which is the node to get attributes for.
 //
-// Returns map[string]string which maps attribute names in lowercase to their
-// values.
+// Returns map[string]string which maps attribute names in lowercase to their values.
 func (info *effectiveTreeInfo) getOrBuildAttrMap(node *TemplateNode) map[string]string {
 	if attrs, ok := info.attributeMapCache[node]; ok {
 		return attrs
@@ -137,22 +136,19 @@ func (info *effectiveTreeInfo) getOrBuildAttrMap(node *TemplateNode) map[string]
 	return attrs
 }
 
-// QueryContext provides efficient parent and sibling lookups for CSS selector
-// matching.
+// QueryContext provides efficient parent and sibling lookups for CSS selector matching.
 type QueryContext struct {
-	// virtualRoot is the starting node for tree walks; all nodes are its
-	// descendants.
+	// virtualRoot is the starting node for tree walks; all nodes are its descendants.
 	virtualRoot *TemplateNode
 
 	// treeInfo holds tree structure data used for child and sibling lookups.
 	treeInfo effectiveTreeInfo
 }
 
-// getQueryContext returns the cached query context, building it if needed.
-// Caching improves performance for repeated queries on the same AST.
+// getQueryContext returns the cached query context, building it if needed. Caching
+// improves performance for repeated queries on the same AST.
 //
-// Returns *QueryContext which provides the query execution context for this
-// AST.
+// Returns *QueryContext which provides the query execution context for this AST.
 func (ast *TemplateAST) getQueryContext() *QueryContext {
 	if ast.queryContext == nil {
 		ast.queryContext = newQueryContext(ast)
@@ -160,14 +156,14 @@ func (ast *TemplateAST) getQueryContext() *QueryContext {
 	return ast.queryContext
 }
 
-// InvalidateQueryContext clears the cached query context. Call this after any
-// changes to the AST structure, such as adding, removing, or moving nodes.
+// InvalidateQueryContext clears the cached query context. Call this after any changes to
+// the AST structure, such as adding, removing, or moving nodes.
 func (ast *TemplateAST) InvalidateQueryContext() {
 	ast.queryContext = nil
 }
 
-// QueryAll finds all nodes that match a CSS selector, starting from this node
-// as the root.
+// QueryAll finds all nodes that match a CSS selector, starting from this node as the
+// root.
 //
 // Takes selector (string) which is the CSS selector to match against nodes.
 // Takes sourcePath (string) which identifies the source for diagnostics.
@@ -175,11 +171,10 @@ func (ast *TemplateAST) InvalidateQueryContext() {
 // Returns []*TemplateNode which contains all matching nodes found.
 // Returns []*Diagnostic which contains any issues found during the query.
 //
-// Creates a new search context with this node as the root. As a result,
-// selectors that depend on position in the full document (like sibling
-// selectors + and ~, or :first-child) will work relative to this node, not
-// the original document. For queries that need the full document context, use
-// the top-level QueryAll function instead.
+// Creates a new search context with this node as the root. As a result, selectors that
+// depend on position in the full document (like sibling selectors + and ~, or
+// :first-child) will work relative to this node, not the original document. For queries
+// that need the full document context, use the top-level QueryAll function instead.
 func (n *TemplateNode) QueryAll(selector, sourcePath string) ([]*TemplateNode, []*Diagnostic) {
 	if n == nil {
 		return nil, nil
@@ -198,9 +193,9 @@ func (n *TemplateNode) QueryAll(selector, sourcePath string) ([]*TemplateNode, [
 	return QueryAll(tempAST, selector, sourcePath)
 }
 
-// Query searches for the first node matching the CSS selector starting from
-// this node as the root. See the documentation for TemplateNode.QueryAll for
-// notes on context limitations.
+// Query searches for the first node matching the CSS selector starting from this node as
+// the root. See the documentation for TemplateNode.QueryAll for notes on context
+// limitations.
 //
 // Takes selector (string) which specifies the CSS selector to match.
 //
@@ -214,16 +209,13 @@ func (n *TemplateNode) Query(selector string) (*TemplateNode, []*Diagnostic) {
 	return nil, diagnostics
 }
 
-// MustQuery returns the first node matching the selector, ignoring
-// diagnostics.
+// MustQuery returns the first node matching the selector, ignoring diagnostics.
 //
 // Takes selector (string) which specifies the CSS-like query to match.
 //
-// Returns *TemplateNode which is the first matching node, or nil if none
-// found.
+// Returns *TemplateNode which is the first matching node, or nil if none found.
 //
-// See the documentation for TemplateNode.QueryAll for notes on context
-// limitations.
+// See the documentation for TemplateNode.QueryAll for notes on context limitations.
 func (n *TemplateNode) MustQuery(selector string) *TemplateNode {
 	results, _ := n.QueryAll(selector, querySourcePath)
 	if len(results) > 0 {
@@ -232,27 +224,25 @@ func (n *TemplateNode) MustQuery(selector string) *TemplateNode {
 	return nil
 }
 
-// combinatorHandler is a function type that handles a combinator selector and
-// returns matching nodes.
+// combinatorHandler is a function type that handles a combinator selector and returns
+// matching nodes.
 type combinatorHandler func(startNode *TemplateNode, simple *SimpleSelector, qc *QueryContext) []*TemplateNode
 
-// pseudoClassHandler is a function that checks if a template node matches a
-// pseudo-class selector.
+// pseudoClassHandler is a function that checks if a template node matches a pseudo-class
+// selector.
 type pseudoClassHandler func(node *TemplateNode, pseudo PseudoClassSelector, qc *QueryContext) bool
 
-// ClearSelectorCache resets the selector cache to an empty state.
-// This is intended for test isolation between iterations.
+// ClearSelectorCache resets the selector cache to an empty state. This is intended for
+// test isolation between iterations.
 func ClearSelectorCache() {
 	selectorCache = sync.Map{}
 	selectorCacheCount.Store(0)
 }
 
-// QueryAll searches the entire TemplateAST for all nodes matching the given
-// CSS selector.
+// QueryAll searches the entire TemplateAST for all nodes matching the given CSS selector.
 //
-// This is the main query function that supports all combinators and
-// pseudo-classes. The QueryContext is cached on the AST for efficient
-// repeated queries.
+// This is the main query function that supports all combinators and pseudo-classes. The
+// QueryContext is cached on the AST for efficient repeated queries.
 //
 // Takes selector (string) which specifies the CSS selector to match.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
@@ -293,8 +283,7 @@ func QueryAll(root *TemplateAST, selector, sourcePath string) ([]*TemplateNode, 
 //
 // Takes selector (string) which specifies the CSS selector pattern to match.
 //
-// Returns *TemplateNode which is the first matching node, or nil if none is
-// found.
+// Returns *TemplateNode which is the first matching node, or nil if none is found.
 // Returns []*Diagnostic which contains any warnings or errors from parsing.
 func Query(root *TemplateAST, selector string) (*TemplateNode, []*Diagnostic) {
 	results, diagnostics := QueryAll(root, selector, querySourcePath)
@@ -304,13 +293,12 @@ func Query(root *TemplateAST, selector string) (*TemplateNode, []*Diagnostic) {
 	return nil, diagnostics
 }
 
-// MustQuery returns the first node that matches the selector, or nil if no
-// match is found. It wraps QueryAll and ignores any diagnostics.
+// MustQuery returns the first node that matches the selector, or nil if no match is
+// found. It wraps QueryAll and ignores any diagnostics.
 //
 // Takes selector (string) which specifies the query pattern to match.
 //
-// Returns *TemplateNode which is the first matching node, or nil if none is
-// found.
+// Returns *TemplateNode which is the first matching node, or nil if none is found.
 func MustQuery(root *TemplateAST, selector string) *TemplateNode {
 	results, _ := QueryAll(root, selector, querySourcePath)
 	if len(results) > 0 {
@@ -332,8 +320,8 @@ func newQueryContext(root *TemplateAST) *QueryContext {
 	}
 }
 
-// parseSelector parses a CSS selector string and returns the parsed result
-// along with any errors found. Results are stored in a global cache.
+// parseSelector parses a CSS selector string and returns the parsed result along with any
+// errors found. Results are stored in a global cache.
 //
 // Takes selector (string) which is the CSS selector string to parse.
 // Takes sourcePath (string) which identifies the source for error messages.
@@ -354,8 +342,7 @@ func parseSelector(selector, sourcePath string) (SelectorSet, []*Diagnostic) {
 	return cs.set, cs.diagnostics
 }
 
-// parseSelectorUncached parses a selector string and stores the result in the
-// cache.
+// parseSelectorUncached parses a selector string and stores the result in the cache.
 //
 // Takes selector (string) which is the selector text to parse.
 // Takes sourcePath (string) which is the file path shown in error messages.
@@ -410,16 +397,15 @@ func processSelectorGroup(virtualRoot *TemplateNode, selectorGroup SelectorGroup
 	return currentMatches
 }
 
-// applyCombinator applies a single combinator to the current set of matched
-// nodes.
+// applyCombinator applies a single combinator to the current set of matched nodes.
 //
 // Takes currentMatches ([]*TemplateNode) which is the set of nodes to process.
-// Takes complexSel (ComplexSelector) which specifies the combinator and simple
-// selector to apply.
+// Takes complexSel (ComplexSelector) which specifies the combinator and simple selector
+// to apply.
 // Takes qc (*QueryContext) which provides the query context.
 //
-// Returns []*TemplateNode which contains the nodes that match after applying
-// the combinator. Duplicates are removed from the result.
+// Returns []*TemplateNode which contains the nodes that match after applying the
+// combinator. Duplicates are removed from the result.
 func applyCombinator(currentMatches []*TemplateNode, complexSel ComplexSelector, qc *QueryContext) []*TemplateNode {
 	handler, ok := combinatorHandlers[complexSel.Combinator]
 	if !ok {
@@ -434,13 +420,11 @@ func applyCombinator(currentMatches []*TemplateNode, complexSel ComplexSelector,
 	return deduplicateNodes(nextMatches)
 }
 
-// deduplicateNodes removes duplicate nodes from a slice while keeping the
-// original order.
+// deduplicateNodes removes duplicate nodes from a slice while keeping the original order.
 //
 // Takes nodes ([]*TemplateNode) which is the slice to filter.
 //
-// Returns []*TemplateNode which contains only unique nodes in their original
-// order.
+// Returns []*TemplateNode which contains only unique nodes in their original order.
 func deduplicateNodes(nodes []*TemplateNode) []*TemplateNode {
 	if len(nodes) == 0 {
 		return nodes
@@ -459,16 +443,14 @@ func deduplicateNodes(nodes []*TemplateNode) []*TemplateNode {
 	return uniqueNodes
 }
 
-// mergeUniqueMatches adds new matches to the list of all matches, keeping
-// only those not already seen.
+// mergeUniqueMatches adds new matches to the list of all matches, keeping only those not
+// already seen.
 //
-// Takes allMatches ([]*TemplateNode) which is the current list of unique
-// matches.
+// Takes allMatches ([]*TemplateNode) which is the current list of unique matches.
 // Takes newMatches ([]*TemplateNode) which holds the items to add.
 // Takes uniqueMap (map[*TemplateNode]bool) which tracks nodes already added.
 //
-// Returns []*TemplateNode which is the updated list with any new unique
-// matches added.
+// Returns []*TemplateNode which is the updated list with any new unique matches added.
 func mergeUniqueMatches(allMatches, newMatches []*TemplateNode, uniqueMap map[*TemplateNode]bool) []*TemplateNode {
 	for _, match := range newMatches {
 		if !uniqueMap[match] {
@@ -479,8 +461,7 @@ func mergeUniqueMatches(allMatches, newMatches []*TemplateNode, uniqueMap map[*T
 	return allMatches
 }
 
-// handleDescendantCombinator finds all nodes at any depth that match a
-// selector.
+// handleDescendantCombinator finds all nodes at any depth that match a selector.
 //
 // Takes startNode (*TemplateNode) which is the root node to search from.
 // Takes simple (*SimpleSelector) which defines the matching criteria.
@@ -495,15 +476,13 @@ func handleDescendantCombinator(startNode *TemplateNode, simple *SimpleSelector,
 	return nextMatches
 }
 
-// handleChildCombinator finds direct children of startNode that match the
-// selector.
+// handleChildCombinator finds direct children of startNode that match the selector.
 //
 // Takes startNode (*TemplateNode) which is the parent node to search from.
 // Takes simple (*SimpleSelector) which defines the matching criteria.
 // Takes qc (*QueryContext) which provides query state and options.
 //
-// Returns []*TemplateNode which contains matching child nodes, or nil if none
-// match.
+// Returns []*TemplateNode which contains matching child nodes, or nil if none match.
 func handleChildCombinator(startNode *TemplateNode, simple *SimpleSelector, qc *QueryContext) []*TemplateNode {
 	var nextMatches []*TemplateNode
 	for _, child := range qc.treeInfo.childrenOf[startNode] {
@@ -514,15 +493,13 @@ func handleChildCombinator(startNode *TemplateNode, simple *SimpleSelector, qc *
 	return nextMatches
 }
 
-// handleAdjacentSiblingCombinator finds the next sibling node that matches the
-// selector.
+// handleAdjacentSiblingCombinator finds the next sibling node that matches the selector.
 //
 // Takes startNode (*TemplateNode) which is the node to find the sibling of.
 // Takes simple (*SimpleSelector) which sets the matching rules.
 // Takes qc (*QueryContext) which provides tree structure data.
 //
-// Returns []*TemplateNode which holds the matching sibling, or nil if none is
-// found.
+// Returns []*TemplateNode which holds the matching sibling, or nil if none is found.
 func handleAdjacentSiblingCombinator(startNode *TemplateNode, simple *SimpleSelector, qc *QueryContext) []*TemplateNode {
 	siblings := qc.treeInfo.siblingsOf[startNode]
 	for j, sibling := range siblings {
@@ -537,16 +514,14 @@ func handleAdjacentSiblingCombinator(startNode *TemplateNode, simple *SimpleSele
 	return nil
 }
 
-// handleGeneralSiblingCombinator finds all sibling nodes that come after
-// startNode and match the given selector.
+// handleGeneralSiblingCombinator finds all sibling nodes that come after startNode and
+// match the given selector.
 //
-// Takes startNode (*TemplateNode) which is the reference node to find siblings
-// after.
+// Takes startNode (*TemplateNode) which is the reference node to find siblings after.
 // Takes simple (*SimpleSelector) which defines the matching criteria.
 // Takes qc (*QueryContext) which provides the tree structure.
 //
-// Returns []*TemplateNode which contains all matching siblings in document
-// order.
+// Returns []*TemplateNode which contains all matching siblings in document order.
 func handleGeneralSiblingCombinator(startNode *TemplateNode, simple *SimpleSelector, qc *QueryContext) []*TemplateNode {
 	var nextMatches []*TemplateNode
 	siblings := qc.treeInfo.siblingsOf[startNode]
@@ -586,8 +561,7 @@ func matches(node *TemplateNode, simple *SimpleSelector, qc *QueryContext) bool 
 // matchesCore checks whether a template node matches a simple CSS selector.
 //
 // Takes node (*TemplateNode) which is the element to test.
-// Takes simple (*SimpleSelector) which holds the tag name, ID, and class
-// names to match.
+// Takes simple (*SimpleSelector) which holds the tag name, ID, and class names to match.
 //
 // Returns bool which is true if the node matches all parts of the selector.
 func matchesCore(node *TemplateNode, simple *SimpleSelector) bool {
@@ -617,12 +591,12 @@ func matchesCore(node *TemplateNode, simple *SimpleSelector) bool {
 	return true
 }
 
-// matchesAttributes checks whether a template node matches all the given
-// attribute selectors.
+// matchesAttributes checks whether a template node matches all the given attribute
+// selectors.
 //
 // Takes node (*TemplateNode) which is the node to check.
-// Takes attributeSelectors ([]AttributeSelector) which lists the attribute
-// conditions to match.
+// Takes attributeSelectors ([]AttributeSelector) which lists the attribute conditions to
+// match.
 // Takes qc (*QueryContext) which provides the attribute map cache.
 //
 // Returns bool which is true if all selectors match or if none are given.
@@ -644,14 +618,12 @@ func matchesAttributes(node *TemplateNode, attributeSelectors []AttributeSelecto
 
 // buildAttributeMap creates a map from attribute names to their values.
 //
-// Includes both static Attributes and dynamic AttributeWriters. Static
-// attributes take precedence. If an attribute exists in both, the static
-// value is used.
+// Includes both static Attributes and dynamic AttributeWriters. Static attributes take
+// precedence. If an attribute exists in both, the static value is used.
 //
 // Takes node (*TemplateNode) which contains the attributes to map.
 //
-// Returns map[string]string which maps lowercase attribute names to their
-// values.
+// Returns map[string]string which maps lowercase attribute names to their values.
 func buildAttributeMap(node *TemplateNode) map[string]string {
 	attrs := make(map[string]string, len(node.Attributes)+len(node.AttributeWriters))
 
@@ -677,14 +649,12 @@ func buildAttributeMap(node *TemplateNode) map[string]string {
 	return attrs
 }
 
-// matchesSingleAttribute checks whether a node matches a single attribute
-// selector.
+// matchesSingleAttribute checks whether a node matches a single attribute selector.
 //
 // Takes node (*TemplateNode) which is the node to check.
-// Takes attributeSelector (AttributeSelector) which specifies the
-// attribute condition.
-// Takes nodeAttrs (*map[string]string) which caches the node's attributes
-// within the current matchesAttributes call.
+// Takes attributeSelector (AttributeSelector) which specifies the attribute condition.
+// Takes nodeAttrs (*map[string]string) which caches the node's attributes within the
+// current matchesAttributes call.
 // Takes qc (*QueryContext) which provides the shared attribute map cache.
 //
 // Returns bool which is true if the node matches the attribute selector.
@@ -710,8 +680,8 @@ func matchesSingleAttribute(node *TemplateNode, attributeSelector AttributeSelec
 	return matchesAttributeOperator(nodeVal, attributeSelector)
 }
 
-// matchesAttributeOperator checks if a node value matches an attribute
-// selector based on the operator.
+// matchesAttributeOperator checks if a node value matches an attribute selector based on
+// the operator.
 //
 // Takes nodeVal (string) which is the value from the node to compare.
 // Takes attributeSelector (AttributeSelector) which holds the operator and value.
@@ -744,8 +714,7 @@ func matchesAttributeOperator(nodeVal string, attributeSelector AttributeSelecto
 
 // matchesWordInList checks whether a word appears in a space-separated list.
 //
-// Takes nodeVal (string) which is the list of words to search, separated by
-// spaces.
+// Takes nodeVal (string) which is the list of words to search, separated by spaces.
 // Takes targetWord (string) which is the word to find.
 //
 // Returns bool which is true if the word is found, false otherwise.
@@ -758,8 +727,8 @@ func matchesWordInList(nodeVal string, targetWord string) bool {
 	return false
 }
 
-// matchesDashPrefix reports whether nodeVal equals prefix or starts with
-// prefix followed by a dash.
+// matchesDashPrefix reports whether nodeVal equals prefix or starts with prefix followed
+// by a dash.
 //
 // Takes nodeVal (string) which is the value to check.
 // Takes prefix (string) which is the prefix to match against.
@@ -802,8 +771,7 @@ func handlePseudoNot(node *TemplateNode, pseudo PseudoClassSelector, qc *QueryCo
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the first child among its
-// siblings.
+// Returns bool which is true if the node is the first child among its siblings.
 func handlePseudoFirstChild(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	return len(siblings) > 0 && siblings[0] == node
@@ -814,8 +782,7 @@ func handlePseudoFirstChild(node *TemplateNode, _ PseudoClassSelector, qc *Query
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the last child among its
-// siblings.
+// Returns bool which is true if the node is the last child among its siblings.
 func handlePseudoLastChild(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	return len(siblings) > 0 && siblings[len(siblings)-1] == node
@@ -826,8 +793,7 @@ func handlePseudoLastChild(node *TemplateNode, _ PseudoClassSelector, qc *QueryC
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the only child among its
-// siblings.
+// Returns bool which is true if the node is the only child among its siblings.
 func handlePseudoOnlyChild(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	return len(siblings) == 1 && siblings[0] == node
@@ -850,14 +816,12 @@ func handlePseudoNthChild(node *TemplateNode, pseudo PseudoClassSelector, qc *Qu
 	return false
 }
 
-// handlePseudoFirstOfType matches the :first-of-type CSS pseudo-class
-// selector.
+// handlePseudoFirstOfType matches the :first-of-type CSS pseudo-class selector.
 //
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the first sibling with its tag
-// name.
+// Returns bool which is true if the node is the first sibling with its tag name.
 func handlePseudoFirstOfType(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	for _, s := range siblings {
@@ -873,13 +837,12 @@ func handlePseudoFirstOfType(node *TemplateNode, _ PseudoClassSelector, qc *Quer
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the last sibling with its tag
-// name.
+// Returns bool which is true if the node is the last sibling with its tag name.
 func handlePseudoLastOfType(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
-	for i := len(siblings) - 1; i >= 0; i-- {
-		if siblings[i].TagName == node.TagName {
-			return siblings[i] == node
+	for _, sibling := range slices.Backward(siblings) {
+		if sibling.TagName == node.TagName {
+			return sibling == node
 		}
 	}
 	return false
@@ -890,8 +853,7 @@ func handlePseudoLastOfType(node *TemplateNode, _ PseudoClassSelector, qc *Query
 // Takes node (*TemplateNode) which is the node to test.
 // Takes qc (*QueryContext) which provides sibling data for the check.
 //
-// Returns bool which is true if the node is the only sibling with its tag
-// name.
+// Returns bool which is true if the node is the only sibling with its tag name.
 func handlePseudoOnlyOfType(node *TemplateNode, _ PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	count := 0
@@ -912,8 +874,8 @@ func handlePseudoOnlyOfType(node *TemplateNode, _ PseudoClassSelector, qc *Query
 // Takes pseudo (PseudoClassSelector) which holds the nth formula.
 // Takes qc (*QueryContext) which provides access to sibling data.
 //
-// Returns bool which is true if the node is at the correct position among
-// siblings with the same tag name.
+// Returns bool which is true if the node is at the correct position among siblings with
+// the same tag name.
 func handlePseudoNthOfType(node *TemplateNode, pseudo PseudoClassSelector, qc *QueryContext) bool {
 	siblings := qc.treeInfo.siblingsOf[node]
 	count := 0
@@ -928,8 +890,7 @@ func handlePseudoNthOfType(node *TemplateNode, pseudo PseudoClassSelector, qc *Q
 	return false
 }
 
-// handlePseudoNthLastChild checks if a node matches an :nth-last-child
-// selector.
+// handlePseudoNthLastChild checks if a node matches an :nth-last-child selector.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes pseudo (PseudoClassSelector) which holds the nth expression.
@@ -947,11 +908,11 @@ func handlePseudoNthLastChild(node *TemplateNode, pseudo PseudoClassSelector, qc
 	return false
 }
 
-// handlePseudoNthLastOfType checks if a node matches the :nth-last-of-type
-// pseudo-class selector.
+// handlePseudoNthLastOfType checks if a node matches the :nth-last-of-type pseudo-class
+// selector.
 //
-// Uses a single-pass method to find matching siblings and node position,
-// avoiding extra loops for better speed.
+// Uses a single-pass method to find matching siblings and node position, avoiding extra
+// loops for better speed.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes pseudo (PseudoClassSelector) which holds the nth expression.
@@ -981,9 +942,8 @@ func handlePseudoNthLastOfType(node *TemplateNode, pseudo PseudoClassSelector, q
 	return matchesNth(lastIndex, pseudo.Value)
 }
 
-// canUseIndex determines if a simple selector can use query indexes
-// for O(1) lookups. It returns true for simple tag, class, or ID
-// selectors without complex filters.
+// canUseIndex determines if a simple selector can use query indexes for O(1) lookups. It
+// returns true for simple tag, class, or ID selectors without complex filters.
 //
 // Takes simple (*SimpleSelector) which defines the matching criteria.
 //
@@ -994,8 +954,7 @@ func canUseIndex(simple *SimpleSelector) bool {
 	return hasIndexableSelector && !hasComplexFilters
 }
 
-// getCandidatesFromIndex retrieves candidate nodes from query indexes using
-// O(1) lookups.
+// getCandidatesFromIndex retrieves candidate nodes from query indexes using O(1) lookups.
 // Returns nil if no candidates are found.
 //
 // Takes simple (*SimpleSelector) which specifies what to look up.
@@ -1018,9 +977,9 @@ func getCandidatesFromIndex(simple *SimpleSelector, info effectiveTreeInfo) []*T
 	return info.allElements
 }
 
-// isDescendantOf checks if a candidate node is a descendant of the start node
-// by traversing the parent map in O(log n) time, handling the virtual root
-// case where root-level nodes have nil as their effective parent.
+// isDescendantOf checks if a candidate node is a descendant of the start node by
+// traversing the parent map in O(log n) time, handling the virtual root case where
+// root-level nodes have nil as their effective parent.
 //
 // Takes candidate (*TemplateNode) which is the node to check.
 // Takes startNode (*TemplateNode) which is the ancestor to search for.
@@ -1046,9 +1005,9 @@ func isDescendantOf(candidate *TemplateNode, startNode *TemplateNode, qc *QueryC
 	return false
 }
 
-// collectMatches finds all nodes that match a simple selector within a subtree.
-// Uses query indexes for O(1) lookups when possible, falling back to tree
-// traversal for complex selectors.
+// collectMatches finds all nodes that match a simple selector within a subtree. Uses
+// query indexes for O(1) lookups when possible, falling back to tree traversal for
+// complex selectors.
 //
 // Takes startNode (*TemplateNode) which is the root of the subtree to search.
 // Takes simple (*SimpleSelector) which defines the matching criteria.
@@ -1069,8 +1028,8 @@ func collectMatches(startNode *TemplateNode, simple *SimpleSelector, results *[]
 	collectMatchesWithDepth(startNode, simple, results, qc, 0)
 }
 
-// collectMatchesWithDepth finds nodes that match a selector by walking the
-// tree up to a set depth limit.
+// collectMatchesWithDepth finds nodes that match a selector by walking the tree up to a
+// set depth limit.
 //
 // Takes startNode (*TemplateNode) which is the root node to start from.
 // Takes simple (*SimpleSelector) which defines the matching rules.
@@ -1089,15 +1048,14 @@ func collectMatchesWithDepth(startNode *TemplateNode, simple *SimpleSelector, re
 	}
 }
 
-// buildEffectiveTreeInfo creates parent, sibling, and children maps for the
-// effective tree, treating fragments as invisible wrappers.
+// buildEffectiveTreeInfo creates parent, sibling, and children maps for the effective
+// tree, treating fragments as invisible wrappers.
 //
 // Takes root (*TemplateAST) which provides the template tree to analyse.
-// Takes virtualRoot (*TemplateNode) which is the virtual root node for tree
-// traversal.
+// Takes virtualRoot (*TemplateNode) which is the virtual root node for tree traversal.
 //
-// Returns effectiveTreeInfo which contains the computed parent, sibling, and
-// children relationships.
+// Returns effectiveTreeInfo which contains the computed parent, sibling, and children
+// relationships.
 func buildEffectiveTreeInfo(root *TemplateAST, virtualRoot *TemplateNode) effectiveTreeInfo {
 	_ = root
 
@@ -1106,8 +1064,8 @@ func buildEffectiveTreeInfo(root *TemplateAST, virtualRoot *TemplateNode) effect
 	return info
 }
 
-// createEmptyTreeInfo initialises an empty tree info structure with proper
-// capacities for parent, sibling, child, and index maps.
+// createEmptyTreeInfo initialises an empty tree info structure with proper capacities for
+// parent, sibling, child, and index maps.
 //
 // Returns effectiveTreeInfo which is ready to be populated with tree data.
 func createEmptyTreeInfo() effectiveTreeInfo {
@@ -1125,8 +1083,8 @@ func createEmptyTreeInfo() effectiveTreeInfo {
 // walkAndBuildIndexes recursively walks the tree and builds query indexes.
 //
 // Takes node (*TemplateNode) which is the current node to process.
-// Takes effectiveParent (*TemplateNode) which is the logical parent for
-// indexing purposes.
+// Takes effectiveParent (*TemplateNode) which is the logical parent for indexing
+// purposes.
 // Takes depth (int) which tracks recursion depth to prevent infinite loops.
 // Takes info (*effectiveTreeInfo) which accumulates the index data.
 func walkAndBuildIndexes(node *TemplateNode, effectiveParent *TemplateNode, depth int, info *effectiveTreeInfo) {
@@ -1145,11 +1103,10 @@ func walkAndBuildIndexes(node *TemplateNode, effectiveParent *TemplateNode, dept
 // determineEffectiveParent returns the effective parent for child nodes.
 //
 // Takes node (*TemplateNode) which is the current node to evaluate.
-// Takes effectiveParent (*TemplateNode) which is the fallback parent for
-// fragment nodes.
+// Takes effectiveParent (*TemplateNode) which is the fallback parent for fragment nodes.
 //
-// Returns *TemplateNode which is the node itself unless it is a fragment, in
-// which case the effective parent is returned.
+// Returns *TemplateNode which is the node itself unless it is a fragment, in which case
+// the effective parent is returned.
 func determineEffectiveParent(node *TemplateNode, effectiveParent *TemplateNode) *TemplateNode {
 	if node.NodeType != NodeFragment {
 		return node
@@ -1217,14 +1174,14 @@ func processChildren(children []*TemplateNode, parent *TemplateNode, depth int, 
 	}
 }
 
-// newVirtualRootNode creates a fragment node that acts as a virtual root for
-// tree traversal.
+// newVirtualRootNode creates a fragment node that acts as a virtual root for tree
+// traversal.
 //
-// Takes children ([]*TemplateNode) which provides the child nodes to attach to
-// the virtual root.
+// Takes children ([]*TemplateNode) which provides the child nodes to attach to the
+// virtual root.
 //
-// Returns *TemplateNode which is a fragment node with all fields set to zero
-// values except Children.
+// Returns *TemplateNode which is a fragment node with all fields set to zero values
+// except Children.
 func newVirtualRootNode(children []*TemplateNode) *TemplateNode {
 	return &TemplateNode{
 		Key: nil, DirKey: nil, DirHTML: nil, GoAnnotations: nil, RuntimeAnnotations: nil,
@@ -1239,15 +1196,14 @@ func newVirtualRootNode(children []*TemplateNode) *TemplateNode {
 	}
 }
 
-// getEffectiveChildrenWithDepth returns the child nodes of a parent node,
-// skipping fragment nodes and looking inside them up to the given depth.
+// getEffectiveChildrenWithDepth returns the child nodes of a parent node, skipping
+// fragment nodes and looking inside them up to the given depth.
 //
 // Takes parent (*TemplateNode) which is the node to get children from.
-// Takes depth (int) which tracks how deep the search has gone to prevent
-// infinite loops.
+// Takes depth (int) which tracks how deep the search has gone to prevent infinite loops.
 //
-// Returns []*TemplateNode which contains element children, with fragment
-// contents included directly.
+// Returns []*TemplateNode which contains element children, with fragment contents
+// included directly.
 func getEffectiveChildrenWithDepth(parent *TemplateNode, depth int) []*TemplateNode {
 	if parent == nil || depth > maxQueryDepth {
 		return nil
@@ -1267,8 +1223,8 @@ func getEffectiveChildrenWithDepth(parent *TemplateNode, depth int) []*TemplateN
 
 // matchesNth checks if a position matches a CSS nth-child style formula.
 //
-// The formula follows the "an+b" pattern used in CSS selectors. It also
-// accepts keywords like "odd" and "even", or simple numbers.
+// The formula follows the "an+b" pattern used in CSS selectors. It also accepts keywords
+// like "odd" and "even", or simple numbers.
 //
 // Takes index (int) which is the position to test against the formula.
 // Takes formula (string) which is the nth-child formula to match.
@@ -1306,14 +1262,13 @@ func matchNthKeyword(index int, formula string) (matched bool, result bool) {
 	}
 }
 
-// matchNthSimpleNumber checks whether the index matches a simple number
-// formula.
+// matchNthSimpleNumber checks whether the index matches a simple number formula.
 //
 // Takes index (int) which is the position to check.
 // Takes formula (string) which is the number to match as text.
 //
-// Returns bool which is true when the index equals the parsed formula number,
-// or false when the formula is not a valid number.
+// Returns bool which is true when the index equals the parsed formula number, or false
+// when the formula is not a valid number.
 func matchNthSimpleNumber(index int, formula string) bool {
 	b, err := strconv.Atoi(formula)
 	if err != nil {

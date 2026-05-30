@@ -43,8 +43,8 @@ const (
 
 // LayoutPositionRect represents a positioned element's bounding box in pixels.
 type LayoutPositionRect struct {
-	// TextRects holds per-line bounding boxes for text content within this
-	// element. Empty for elements that contain no text runs.
+	// TextRects holds per-line bounding boxes for text content within this element. Empty
+	// for elements that contain no text runs.
 	TextRects []LayoutPositionRect `json:"textRects,omitempty"`
 
 	// X holds the horizontal position of the element in pixels.
@@ -77,8 +77,8 @@ type LayoutPositionConfig struct {
 	// FontData is the raw TTF or OTF font bytes used for text measurement.
 	FontData []byte
 
-	// ExtraStylesheets holds additional CSS stylesheets (e.g. CSS reset) applied
-	// before the page's own styling during CSS resolution.
+	// ExtraStylesheets holds additional CSS stylesheets (e.g. CSS reset) applied before the
+	// page's own styling during CSS resolution.
 	ExtraStylesheets []string
 
 	// PointsPerPixel is the CSS points-per-pixel ratio. Defaults to 0.75 if zero.
@@ -93,7 +93,8 @@ type LayoutPositionConfig struct {
 	// PageHeightPx is the page height in CSS pixels. Only used when Paginate is true.
 	PageHeightPx float64
 
-	// PageMarginPx is the uniform page margin in CSS pixels. Only used when Paginate is true.
+	// PageMarginPx is the uniform page margin in CSS pixels. Only used when Paginate is
+	// true.
 	PageMarginPx float64
 
 	// ViewportWidth is the viewport width in pixels.
@@ -102,23 +103,23 @@ type LayoutPositionConfig struct {
 	// ViewportHeight is the viewport height in pixels.
 	ViewportHeight int
 
-	// Paginate enables pagination after layout. When true, positions are
-	// emitted as page-relative coordinates and include a PageIndex.
+	// Paginate enables pagination after layout. When true, positions are emitted as
+	// page-relative coordinates and include a PageIndex.
 	Paginate bool
 }
 
-// ExtractLayoutPositions loads a compiled manifest, gets the post-codegen AST
-// for the specified page, runs the CSS resolution and layout pipeline, and
-// returns element positions keyed by the specified attribute value.
+// ExtractLayoutPositions loads a compiled manifest, gets the post-codegen AST for the
+// specified page, runs the CSS resolution and layout pipeline, and returns element
+// positions keyed by the specified attribute value.
 //
-// The compiled dist/ package must have been imported (so that init() has
-// registered the BuildAST functions) before invoking it.
+// The compiled dist/ package must have been imported (so that init() has registered the
+// BuildAST functions) before invoking it.
 //
-// Takes config (LayoutPositionConfig) which specifies the manifest, page,
-// viewport, font, and attribute settings.
+// Takes config (LayoutPositionConfig) which specifies the manifest, page, viewport, font,
+// and attribute settings.
 //
-// Returns map[string]LayoutPositionRect which maps attribute values to
-// positioned bounding boxes in pixel coordinates.
+// Returns map[string]LayoutPositionRect which maps attribute values to positioned
+// bounding boxes in pixel coordinates.
 // Returns error when any step of the pipeline fails.
 func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPositionRect, error) {
 	ctx := context.Background()
@@ -159,11 +160,10 @@ func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPosit
 	return positions, nil
 }
 
-// loadLayoutAST loads the manifest and retrieves the AST and styling for
-// the configured page.
+// loadLayoutAST loads the manifest and retrieves the AST and styling for the configured
+// page.
 //
-// Takes config (LayoutPositionConfig) which specifies the manifest path and
-// request path.
+// Takes config (LayoutPositionConfig) which specifies the manifest path and request path.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template tree.
 // Returns string which is the CSS styling for the page.
@@ -192,11 +192,10 @@ func loadLayoutAST(ctx context.Context, config LayoutPositionConfig) (*ast_domai
 	return tree, styling, nil
 }
 
-// buildLayoutBoxTree creates font metrics, resolves CSS, and builds the box
-// tree for layout position extraction.
+// buildLayoutBoxTree creates font metrics, resolves CSS, and builds the box tree for
+// layout position extraction.
 //
-// Takes config (LayoutPositionConfig) which provides font data and viewport
-// dimensions.
+// Takes config (LayoutPositionConfig) which provides font data and viewport dimensions.
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template AST.
 // Takes styling (string) which is the CSS stylesheet to resolve.
 // Takes pointsPerPixel (float64) which is the CSS points-per-pixel ratio.
@@ -204,8 +203,7 @@ func loadLayoutAST(ctx context.Context, config LayoutPositionConfig) (*ast_domai
 //
 // Returns *layouter_domain.LayoutBox which is the root of the box tree.
 // Returns *layouter_adapters.GoTextFontMetrics which provides font measurement.
-// Returns error when font creation, style resolution, or box tree building
-// fails.
+// Returns error when font creation, style resolution, or box tree building fails.
 func buildLayoutBoxTree(
 	ctx context.Context,
 	config LayoutPositionConfig,
@@ -253,15 +251,15 @@ func buildLayoutBoxTree(
 	return rootBox, fontMetrics, nil
 }
 
-// collectLayoutPositions walks the box tree recursively and records a
-// LayoutPositionRect for each element that carries the named attribute.
+// collectLayoutPositions walks the box tree recursively and records a LayoutPositionRect
+// for each element that carries the named attribute.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the current box to inspect.
 // Takes attributeName (string) which is the HTML attribute to match.
 // Takes pointsPerPixel (float64) which converts points to pixels.
 // Takes paginate (bool) which enables page-relative coordinate adjustment.
-// Takes pageGeometry (layouter_domain.PageGeometry) which provides page
-// dimensions when paginate is true.
+// Takes pageGeometry (layouter_domain.PageGeometry) which provides page dimensions when
+// paginate is true.
 // Takes positions (map[string]LayoutPositionRect) which accumulates results.
 func collectLayoutPositions(
 	box *layouter_domain.LayoutBox,
@@ -280,15 +278,15 @@ func collectLayoutPositions(
 	}
 }
 
-// collectMatchingAttribute searches a box's source node attributes for a
-// matching attribute and, if found, records a LayoutPositionRect in positions.
+// collectMatchingAttribute searches a box's source node attributes for a matching
+// attribute and, if found, records a LayoutPositionRect in positions.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the box to inspect.
 // Takes attributeName (string) which is the attribute name to match.
 // Takes pointsPerPixel (float64) which converts points to pixels.
 // Takes paginate (bool) which enables page-relative coordinate adjustment.
-// Takes pageGeometry (layouter_domain.PageGeometry) which provides page
-// dimensions when paginate is true.
+// Takes pageGeometry (layouter_domain.PageGeometry) which provides page dimensions when
+// paginate is true.
 // Takes positions (map[string]LayoutPositionRect) which accumulates results.
 func collectMatchingAttribute(
 	box *layouter_domain.LayoutBox,
@@ -322,10 +320,9 @@ func collectMatchingAttribute(
 	}
 }
 
-// collectTextRunRects walks the children of box and returns a
-// LayoutPositionRect for each BoxTextRun descendant, representing per-line
-// text bounding boxes. The walk stops at children that have their own
-// data-layout-id (those are tracked independently).
+// collectTextRunRects walks the children of box and returns a LayoutPositionRect for each
+// BoxTextRun descendant, representing per-line text bounding boxes. The walk stops at
+// children that have their own data-layout-id (those are tracked independently).
 //
 // Takes box (*layouter_domain.LayoutBox) which is the parent box to walk.
 // Takes pointsPerPixel (float64) which converts points to pixels.
@@ -337,16 +334,12 @@ func collectTextRunRects(box *layouter_domain.LayoutBox, pointsPerPixel float64)
 	return rects
 }
 
-// collectTextRunRectsRecursive recursively collects text run
-// bounding boxes from box children, appending results to
-// rects.
+// collectTextRunRectsRecursive recursively collects text run bounding boxes from box
+// children, appending results to rects.
 //
-// Takes box (*layouter_domain.LayoutBox) which is the parent
-// box to walk.
-// Takes pointsPerPixel (float64) which converts points to
-// pixels.
-// Takes rects (*[]LayoutPositionRect) which accumulates the
-// per-line text bounding boxes.
+// Takes box (*layouter_domain.LayoutBox) which is the parent box to walk.
+// Takes pointsPerPixel (float64) which converts points to pixels.
+// Takes rects (*[]LayoutPositionRect) which accumulates the per-line text bounding boxes.
 func collectTextRunRectsRecursive(box *layouter_domain.LayoutBox, pointsPerPixel float64, rects *[]LayoutPositionRect) {
 	for _, child := range box.Children {
 		if child.Type == layouter_domain.BoxListMarker {
@@ -369,8 +362,8 @@ func collectTextRunRectsRecursive(box *layouter_domain.LayoutBox, pointsPerPixel
 	}
 }
 
-// hasLayoutIDAttribute reports whether a box's source node carries a
-// "data-layout-id" attribute, indicating it is tracked independently.
+// hasLayoutIDAttribute reports whether a box's source node carries a "data-layout-id"
+// attribute, indicating it is tracked independently.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the box to inspect.
 //
@@ -387,9 +380,8 @@ func hasLayoutIDAttribute(box *layouter_domain.LayoutBox) bool {
 	return false
 }
 
-// findPageEntryByRoute converts a request URL such as
-// "/main" to the manifest page key format and looks it up
-// in the store.
+// findPageEntryByRoute converts a request URL such as "/main" to the manifest page key
+// format and looks it up in the store.
 //
 // Takes store (templater_domain.ManifestStoreView) which provides page lookups.
 // Takes requestPath (string) which is the URL path to convert.

@@ -22,35 +22,33 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// StaticAssetDependency represents a single, statically-known asset referenced
-// from a component, along with its required transformations.
+// StaticAssetDependency represents a single, statically-known asset referenced from a
+// component, along with its required transformations.
 type StaticAssetDependency struct {
-	// SourcePath is the path to the asset as written in the src attribute
-	// (e.g. "lib/images/hero.jpg").
+	// SourcePath is the path to the asset as written in the src attribute (e.g.
+	// "lib/images/hero.jpg").
 	SourcePath string
 
 	// AssetType is the type of asset, taken from the HTML tag (e.g. "svg", "img").
 	AssetType string
 
-	// TransformationParams maps parameter names to their values, taken from
-	// component attributes. For example: {"width": "300", "density": "2x"}.
+	// TransformationParams maps parameter names to their values, taken from component
+	// attributes. For example: {"width": "300", "density": "2x"}.
 	TransformationParams map[string]string
 
-	// OriginComponentPath is the path of the .pk file that contains this
-	// reference, for diagnostics.
+	// OriginComponentPath is the path of the .pk file that contains this reference, for
+	// diagnostics.
 	OriginComponentPath string
 
-	// Location specifies where the tag appears in the source file, used for
-	// error messages.
+	// Location specifies where the tag appears in the source file, used for error messages.
 	Location ast_domain.Location
 }
 
-// FinalAssetDependency holds the details of an asset that has been processed
-// and is ready for use, including its source location and any transformations
-// applied.
+// FinalAssetDependency holds the details of an asset that has been processed and is ready
+// for use, including its source location and any transformations applied.
 type FinalAssetDependency struct {
-	// TransformationParams holds key-value pairs for asset transformation
-	// settings, such as image quality or video encoding options.
+	// TransformationParams holds key-value pairs for asset transformation settings, such as
+	// image quality or video encoding options.
 	TransformationParams map[string][]string
 
 	// SourcePath is the file path to the source asset.

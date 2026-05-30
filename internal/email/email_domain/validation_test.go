@@ -26,10 +26,12 @@ import (
 	"piko.sh/piko/internal/email/email_dto"
 )
 
-var defaultTestConfig = ServiceConfig{
-	MaxTotalRecipients:  10,
-	MaxPayloadSizeBytes: 1024,
-}
+var (
+	defaultTestConfig = ServiceConfig{
+		MaxTotalRecipients:  10,
+		MaxPayloadSizeBytes: 1024,
+	}
+)
 
 func Test_validateSingle(t *testing.T) {
 	testCases := []struct {

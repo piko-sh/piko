@@ -30,12 +30,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/wdk/db/db_engine_mysql"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_engine_mysql"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testSpec struct {
 	Description             string                             `json:"description"`

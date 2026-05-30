@@ -34,8 +34,8 @@ import (
 // Takes variant (*registry_dto.Variant) which identifies the variant to fetch.
 //
 // Returns io.ReadCloser which provides access to the variant's blob data.
-// Returns error when the variant has empty storage fields, the storage backend
-// is not found, or the blob cannot be retrieved.
+// Returns error when the variant has empty storage fields, the storage backend is not
+// found, or the blob cannot be retrieved.
 func (s *registryService) GetVariantData(ctx context.Context, variant *registry_dto.Variant) (io.ReadCloser, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "RegistryService.GetVariantData",
@@ -83,15 +83,14 @@ func (s *registryService) GetVariantData(ctx context.Context, variant *registry_
 
 // GetVariantChunk retrieves the data for a specific chunk within a variant.
 //
-// Takes variant (*registry_dto.Variant) which identifies the variant containing
-// the chunk.
-// Takes chunkID (string) which specifies the unique identifier of the chunk to
-// retrieve.
+// Takes variant (*registry_dto.Variant) which identifies the variant containing the
+// chunk.
+// Takes chunkID (string) which specifies the unique identifier of the chunk to retrieve.
 //
-// Returns io.ReadCloser which provides access to the chunk data and must be
-// closed by the caller.
-// Returns error when the chunk is not found, the storage backend is missing,
-// or the blob cannot be retrieved.
+// Returns io.ReadCloser which provides access to the chunk data and must be closed by the
+// caller.
+// Returns error when the chunk is not found, the storage backend is missing, or the blob
+// cannot be retrieved.
 func (s *registryService) GetVariantChunk(ctx context.Context, variant *registry_dto.Variant, chunkID string) (io.ReadCloser, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "RegistryService.GetVariantChunk",
@@ -134,16 +133,16 @@ func (s *registryService) GetVariantChunk(ctx context.Context, variant *registry
 	return data, nil
 }
 
-// GetVariantDataRange retrieves a specific byte range from a variant's data.
-// Use it for HTTP Range requests and streaming large files.
+// GetVariantDataRange retrieves a specific byte range from a variant's data. Use it for
+// HTTP Range requests and streaming large files.
 //
 // Takes variant (*registry_dto.Variant) which identifies the stored data.
 // Takes offset (int64) which specifies the starting byte position.
 // Takes length (int64) which specifies the number of bytes to read.
 //
 // Returns io.ReadCloser which provides access to the requested byte range.
-// Returns error when the range is invalid, the storage backend is not found,
-// or the blob cannot be retrieved.
+// Returns error when the range is invalid, the storage backend is not found, or the blob
+// cannot be retrieved.
 func (s *registryService) GetVariantDataRange(ctx context.Context, variant *registry_dto.Variant, offset int64, length int64) (io.ReadCloser, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "RegistryService.GetVariantDataRange",
@@ -226,8 +225,7 @@ func (s *registryService) GetBlobStore(backendID string) (BlobStore, error) {
 	return store, nil
 }
 
-// PopGCHints retrieves and removes garbage collection hints from the
-// metadata store.
+// PopGCHints retrieves and removes garbage collection hints from the metadata store.
 //
 // Takes limit (int) which specifies the maximum number of hints to retrieve.
 //
@@ -256,8 +254,8 @@ func (s *registryService) PopGCHints(ctx context.Context, limit int) ([]registry
 	return hints, nil
 }
 
-// ListBlobStoreIDs returns the identifiers of all registered blob storage
-// backends, sorted alphabetically.
+// ListBlobStoreIDs returns the identifiers of all registered blob storage backends,
+// sorted alphabetically.
 //
 // Returns []string which contains all backend IDs.
 func (s *registryService) ListBlobStoreIDs() []string {

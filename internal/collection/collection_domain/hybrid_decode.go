@@ -26,11 +26,11 @@ import (
 	coll_fb "piko.sh/piko/internal/collection/collection_schema/collection_schema_gen"
 )
 
-// DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed
-// slice. Each item's metadata JSON is unmarshalled into T.
+// DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed slice. Each
+// item's metadata JSON is unmarshalled into T.
 //
-// Called by generated hybrid collection getter functions to convert the cached
-// FlatBuffer blob back into the user's typed slice.
+// Called by generated hybrid collection getter functions to convert the cached FlatBuffer
+// blob back into the user's typed slice.
 //
 // Takes blob ([]byte) which is the FlatBuffer-encoded collection data.
 //

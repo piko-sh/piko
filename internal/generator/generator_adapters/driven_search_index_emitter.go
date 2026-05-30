@@ -77,16 +77,16 @@ type DrivenSearchIndexEmitter struct {
 
 // NewDrivenSearchIndexEmitter creates a new search index emitter instance.
 //
-// Takes indexBuilder (search_domain.IndexBuilderPort) which builds the search
-// index entries.
-// Takes fsWriter (generator_domain.FSWriterPort) which writes files to the
-// output directory.
+// Takes indexBuilder (search_domain.IndexBuilderPort) which builds the search index
+// entries.
+// Takes fsWriter (generator_domain.FSWriterPort) which writes files to the output
+// directory.
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes moduleName (string) which specifies the Go module being documented.
 // Takes manifestFormat (string) which defines the output format for the index.
 //
-// Returns *DrivenSearchIndexEmitter which is configured and ready to emit
-// search index files.
+// Returns *DrivenSearchIndexEmitter which is configured and ready to emit search index
+// files.
 func NewDrivenSearchIndexEmitter(
 	indexBuilder search_domain.IndexBuilderPort,
 	fsWriter generator_domain.FSWriterPort,
@@ -103,28 +103,24 @@ func NewDrivenSearchIndexEmitter(
 	}
 }
 
-// EmitSearchIndex generates search index binaries and updates the collection
-// wrapper.
+// EmitSearchIndex generates search index binaries and updates the collection wrapper.
 //
 // Takes collectionName (string) which identifies the target collection.
-// Takes items ([]collection_dto.ContentItem) which provides the content to
-// index.
+// Takes items ([]collection_dto.ContentItem) which provides the content to index.
 // Takes outputDir (string) which specifies where to write generated files.
-// Takes modes ([]string) which lists the search modes to generate (fast,
-// smart).
+// Takes modes ([]string) which lists the search modes to generate (fast, smart).
 //
-// Returns error when the collection directory does not exist, an unknown mode
-// is specified, or writing fails.
+// Returns error when the collection directory does not exist, an unknown mode is
+// specified, or writing fails.
 //
 // Workflow:
 //  1. Validate that collection directory exists
-//  2. For each requested mode (Fast/Smart):
-//     a. Build inverted index using IndexBuilder
-//     b. Write binary to search_{mode}.bin
+//  2. For each requested mode (Fast/Smart): a. Build inverted index using IndexBuilder b.
+//     Write binary to search_{mode}.bin
 //  3. Update generated.go to embed and register search indexes
 //
-// May be called multiple times for different modes, or once with multiple modes
-// to generate all indexes in a single call.
+// May be called multiple times for different modes, or once with multiple modes to
+// generate all indexes in a single call.
 func (e *DrivenSearchIndexEmitter) EmitSearchIndex(
 	ctx context.Context,
 	collectionName string,
@@ -181,8 +177,8 @@ func (e *DrivenSearchIndexEmitter) EmitSearchIndex(
 // Takes collectionDir (string) which gives the output folder path.
 // Takes mode (search_schema_gen.SearchMode) which sets the indexing method.
 //
-// Returns error when the mode is not supported, index building fails, or the
-// file cannot be written.
+// Returns error when the mode is not supported, index building fails, or the file cannot
+// be written.
 func (e *DrivenSearchIndexEmitter) emitModeIndex(
 	ctx context.Context,
 	collectionName string,
@@ -223,16 +219,15 @@ func (e *DrivenSearchIndexEmitter) emitModeIndex(
 	return nil
 }
 
-// generateGoWrapper creates Go source code for a collection and search index
-// wrapper using AST-based code generation for deterministic output.
+// generateGoWrapper creates Go source code for a collection and search index wrapper
+// using AST-based code generation for deterministic output.
 //
 // The generated file:
 //   - Uses //go:embed to embed data.bin and search_{mode}.bin files
 //   - Registers all blobs with the runtime in init()
 //   - Conditionally includes search indexes based on what was generated
 //
-// Takes collectionName (string) which specifies the package name for the
-// generated code.
+// Takes collectionName (string) which specifies the package name for the generated code.
 // Takes hasFast (bool) which indicates whether to include fast search index.
 // Takes hasSmart (bool) which indicates whether to include smart search index.
 //
@@ -274,8 +269,7 @@ type goWrapperConfig struct {
 
 // buildGoWrapper builds a complete Go AST file and formats it as bytes.
 //
-// Takes config (goWrapperConfig) which specifies the wrapper generation
-// settings.
+// Takes config (goWrapperConfig) which specifies the wrapper generation settings.
 //
 // Returns []byte which contains the formatted Go source code.
 // Returns error when printing the AST to the buffer fails.
@@ -303,8 +297,8 @@ func buildGoWrapper(config goWrapperConfig) ([]byte, error) {
 
 // buildGoWrapperFile builds a complete AST file for a Go wrapper.
 //
-// Takes config (goWrapperConfig) which specifies the package name and settings
-// for imports, variables, and init function.
+// Takes config (goWrapperConfig) which specifies the package name and settings for
+// imports, variables, and init function.
 //
 // Returns *goast.File which contains the full AST with imports, embed variable
 // declarations, and an init function.
@@ -350,8 +344,7 @@ func buildGoWrapperImports() *goast.GenDecl {
 
 // buildGoWrapperVarDecls creates variable declarations with //go:embed comments.
 //
-// Takes config (goWrapperConfig) which specifies which search indices to
-// include.
+// Takes config (goWrapperConfig) which specifies which search indices to include.
 //
 // Returns []goast.Decl which contains the embed variable declarations.
 func buildGoWrapperVarDecls(config goWrapperConfig) []goast.Decl {
@@ -375,8 +368,8 @@ func buildGoWrapperVarDecls(config goWrapperConfig) []goast.Decl {
 // Takes embedPath (string) which is the file path for the embed directive.
 // Takes varName (string) which is the name of the variable to declare.
 //
-// Returns *goast.GenDecl which is the AST node for a []byte variable with the
-// embed directive attached.
+// Returns *goast.GenDecl which is the AST node for a []byte variable with the embed
+// directive attached.
 func buildEmbedVarDecl(embedPath, varName string) *goast.GenDecl {
 	return &goast.GenDecl{
 		Tok: token.VAR,
@@ -396,14 +389,13 @@ func buildEmbedVarDecl(embedPath, varName string) *goast.GenDecl {
 	}
 }
 
-// buildGoWrapperInitFunc creates the init() function that registers blobs
-// with the runtime.
+// buildGoWrapperInitFunc creates the init() function that registers blobs with the
+// runtime.
 //
-// Takes config (goWrapperConfig) which specifies the collection name and
-// which search indices to register.
+// Takes config (goWrapperConfig) which specifies the collection name and which search
+// indices to register.
 //
-// Returns *goast.FuncDecl which is the AST node for the generated init
-// function.
+// Returns *goast.FuncDecl which is the AST node for the generated init function.
 func buildGoWrapperInitFunc(config goWrapperConfig) *goast.FuncDecl {
 	statements := []goast.Stmt{buildRegisterCollectionBlobStmt(config.collectionName)}
 
@@ -426,8 +418,7 @@ func buildGoWrapperInitFunc(config goWrapperConfig) *goast.FuncDecl {
 //
 // Takes collectionName (string) which identifies the collection to register.
 //
-// Returns goast.Stmt which is the expression statement for the registration
-// call.
+// Returns goast.Stmt which is the expression statement for the registration call.
 func buildRegisterCollectionBlobStmt(collectionName string) goast.Stmt {
 	return &goast.ExprStmt{
 		X: &goast.CallExpr{
@@ -454,11 +445,9 @@ func buildRegisterCollectionBlobStmt(collectionName string) goast.Stmt {
 //
 // Takes collectionName (string) which identifies the collection.
 // Takes modeName (string) which is the search mode (e.g. "fast", "smart").
-// Takes varName (string) which is the Go variable name holding the embedded
-// blob.
+// Takes varName (string) which is the Go variable name holding the embedded blob.
 //
-// Returns goast.Stmt which is the expression statement for the registration
-// call.
+// Returns goast.Stmt which is the expression statement for the registration call.
 func buildRegisterSearchIndexStmt(collectionName, modeName, varName string) goast.Stmt {
 	return &goast.ExprStmt{
 		X: &goast.CallExpr{

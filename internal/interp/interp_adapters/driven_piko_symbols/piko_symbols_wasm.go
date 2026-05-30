@@ -18,23 +18,6 @@
 
 //go:build js && wasm
 
-// WASM-specific symbol registration for piko.sh/piko.
-//
-// The generated gen_piko.sh_piko.go imports the root piko.sh/piko facade which
-// transitively pulls in the entire server (bootstrap, daemon, email, LLM,
-// monitoring, orchestrator, WAL, cache, etc.) - adding ~157 unnecessary
-// packages and ~40MB to the WASM binary.
-//
-// This file registers the same symbols by importing directly from internal
-// packages that are already in the WASM dependency graph. Go type aliases make
-// this transparent: reflect.ValueOf((*templater_dto.RequestData)(nil))
-// registered under "piko.sh/piko"/"RequestData" is identical to
-// reflect.ValueOf((*piko.RequestData)(nil)) per the Go spec.
-//
-// Symbols from packages NOT in the WASM dep graph (daemon_domain, bootstrap,
-// daemon_adapters, daemon_frontend, safeerror, pikotest) are either omitted or
-// redefined locally when the underlying type is trivial (e.g. string).
-
 package driven_piko_symbols
 
 import (
@@ -48,11 +31,10 @@ import (
 	"piko.sh/piko/wdk/runtime"
 )
 
-// httpMethod mirrors daemon_domain.HTTPMethod to avoid importing daemon_domain
-// which pulls in 609 transitive dependencies. Must be a named type (not alias)
-// so that reflect.TypeOf gives a distinct type - an alias to string would
-// poison the type synthesiser's seen map, causing all string parameters to
-// resolve as piko.HTTPMethod.
+// httpMethod mirrors daemon_domain.HTTPMethod to avoid importing daemon_domain which
+// pulls in 609 transitive dependencies. Must be a named type (not alias) so that
+// reflect.TypeOf gives a distinct type - an alias to string would poison the type
+// synthesiser's seen map, causing all string parameters to resolve as piko.HTTPMethod.
 type httpMethod string
 
 const (
@@ -78,8 +60,8 @@ const (
 	methodPatch httpMethod = "PATCH"
 )
 
-// transport mirrors daemon_domain.Transport. Named type for the same reason
-// as httpMethod above.
+// transport mirrors daemon_domain.Transport. Named type for the same reason as httpMethod
+// above.
 type transport string
 
 const (
@@ -90,8 +72,8 @@ const (
 	transportSSE transport = "sse"
 )
 
-// version mirrors piko.Version. In WASM context the exact value is
-// informational only; user code rarely depends on it.
+// version mirrors piko.Version. In WASM context the exact value is informational only;
+// user code rarely depends on it.
 var version = "0.1.0-alpha"
 
 func init() {

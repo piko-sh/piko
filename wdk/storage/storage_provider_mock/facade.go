@@ -23,9 +23,8 @@ import (
 	"piko.sh/piko/wdk/storage"
 )
 
-// NewMockProvider creates a new in-memory mock storage provider. This is
-// useful for testing and development without requiring external storage
-// services.
+// NewMockProvider creates a new in-memory mock storage provider. This is useful for
+// testing and development without requiring external storage services.
 //
 // Returns storage.ProviderPort which is a mock provider for testing.
 func NewMockProvider() storage.ProviderPort {

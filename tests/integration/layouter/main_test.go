@@ -154,10 +154,12 @@ func TestLayouterComparison_Integration(t *testing.T) {
 	}
 }
 
-var subprocessSemaphore = func() chan struct{} {
-	concurrency := max(runtime.NumCPU()/4, 1)
-	return make(chan struct{}, concurrency)
-}()
+var (
+	subprocessSemaphore = func() chan struct{} {
+		concurrency := max(runtime.NumCPU()/4, 1)
+		return make(chan struct{}, concurrency)
+	}()
+)
 
 func runTestInSubprocess(t *testing.T, testName string) {
 	t.Helper()

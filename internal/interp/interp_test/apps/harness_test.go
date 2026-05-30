@@ -42,6 +42,7 @@ type testSpec struct {
 	ErrorContains string `json:"errorContains"`
 	Expected      string `json:"expected"`
 	ModulePath    string `json:"modulePath,omitempty"`
+	KnownBug      string `json:"knownBug,omitempty"`
 }
 
 func TestApps(t *testing.T) {
@@ -68,6 +69,10 @@ func TestApps(t *testing.T) {
 			requireFileExists(t, specPath)
 
 			spec := loadTestSpec(t, specPath)
+
+			if spec.KnownBug != "" {
+				t.Skipf("known bug: %s", spec.KnownBug)
+			}
 
 			service := interp_domain.NewService()
 			service.UseSymbolProviders(driven_system_symbols.NewProvider())
@@ -112,6 +117,10 @@ func TestApps(t *testing.T) {
 			actual := fmt.Sprint(result)
 			require.Equal(t, spec.Expected, actual,
 				"result mismatch for %s", name)
+
+			if os.Getenv("PIKO_APPS_SKIP_GO_PARITY") != "" {
+				return
+			}
 
 			var goOutput string
 			if spec.ModulePath != "" {

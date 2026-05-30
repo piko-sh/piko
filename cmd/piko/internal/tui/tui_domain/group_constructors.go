@@ -18,10 +18,9 @@
 
 package tui_domain
 
-// menuItemTemplate is the static portion of a menu entry: its ID,
-// label, and hotkey, independent of the panel it ultimately wraps.
-// Per-tab template tables below are bound to panels at construction
-// time via bindMenuItems.
+// menuItemTemplate is the static portion of a menu entry: its ID, label, and hotkey,
+// independent of the panel it ultimately wraps. Per-tab template tables below are bound
+// to panels at construction time via bindMenuItems.
 type menuItemTemplate struct {
 	// ID is the menu-item identifier used by Selection and Snapshot.
 	ID ItemID
@@ -29,27 +28,28 @@ type menuItemTemplate struct {
 	// Label is rendered in the left-column menu.
 	Label string
 
-	// Hotkey is the per-tab keyboard accelerator. See
-	// MenuItem.Hotkey for the supported syntax.
+	// Hotkey is the per-tab keyboard accelerator. See MenuItem.Hotkey for the supported
+	// syntax.
 	Hotkey string
 }
 
-// menuLabelOverview is the standard "Overview" label shared by every
-// group's first menu item.
-const menuLabelOverview = "Overview"
+const (
 
-// bindMenuItems pairs a static template list with a per-ID panel
-// map. Each template is bundled with the panel under its ID into a
-// MenuItemSpec ready for collectMenuItems / buildGroup.
+	// menuLabelOverview is the standard "Overview" label shared by every group's first menu
+	// item.
+	menuLabelOverview = "Overview"
+)
+
+// bindMenuItems pairs a static template list with a per-ID panel map. Each template is
+// bundled with the panel under its ID into a MenuItemSpec ready for collectMenuItems /
+// buildGroup.
 //
-// The map-keyed API surfaces wiring mistakes at the call site (a
-// missing or misnamed key fails immediately) rather than relying on
-// silent positional alignment.
+// The map-keyed API surfaces wiring mistakes at the call site (a missing or misnamed key
+// fails immediately) rather than relying on silent positional alignment.
 //
-// Takes templates ([]menuItemTemplate) which is the ordered static
-// metadata.
-// Takes panels (map[ItemID]Panel) which provides the panel for each
-// template ID. Missing IDs panic; extra keys are ignored.
+// Takes templates ([]menuItemTemplate) which is the ordered static metadata.
+// Takes panels (map[ItemID]Panel) which provides the panel for each template ID. Missing
+// IDs panic; extra keys are ignored.
 //
 // Returns []MenuItemSpec ready to pass to buildGroup.
 //
@@ -66,54 +66,55 @@ func bindMenuItems(templates []menuItemTemplate, panels map[ItemID]Panel) []Menu
 	return out
 }
 
-// contentMenuTemplates holds the static Content-tab menu metadata.
-var contentMenuTemplates = []menuItemTemplate{
-	{ID: "content-overview", Label: menuLabelOverview, Hotkey: "1"},
-	{ID: "registry", Label: "Registry", Hotkey: "2"},
-	{ID: "storage", Label: "Storage", Hotkey: "3"},
-	{ID: "orchestrator", Label: "Orchestrator", Hotkey: "4"},
-}
+var (
+	// contentMenuTemplates holds the static Content-tab menu metadata.
+	contentMenuTemplates = []menuItemTemplate{
+		{ID: "content-overview", Label: menuLabelOverview, Hotkey: "1"},
+		{ID: "registry", Label: "Registry", Hotkey: "2"},
+		{ID: "storage", Label: "Storage", Hotkey: "3"},
+		{ID: "orchestrator", Label: "Orchestrator", Hotkey: "4"},
+	}
 
-// telemetryMenuTemplates holds the static Telemetry-tab menu metadata.
-var telemetryMenuTemplates = []menuItemTemplate{
-	{ID: "telemetry-overview", Label: menuLabelOverview, Hotkey: "1"},
-	{ID: "health", Label: "Health", Hotkey: "2"},
-	{ID: "metrics", Label: "Metrics", Hotkey: "3"},
-	{ID: "traces", Label: "Traces", Hotkey: "4"},
-	{ID: "routes", Label: "Routes", Hotkey: "5"},
-	{ID: "rate-limiter", Label: "Rate Limiter", Hotkey: "6"},
-}
+	// telemetryMenuTemplates holds the static Telemetry-tab menu metadata.
+	telemetryMenuTemplates = []menuItemTemplate{
+		{ID: "telemetry-overview", Label: menuLabelOverview, Hotkey: "1"},
+		{ID: "health", Label: "Health", Hotkey: "2"},
+		{ID: "metrics", Label: "Metrics", Hotkey: "3"},
+		{ID: "traces", Label: "Traces", Hotkey: "4"},
+		{ID: "routes", Label: "Routes", Hotkey: "5"},
+		{ID: "rate-limiter", Label: "Rate Limiter", Hotkey: "6"},
+	}
 
-// runtimeMenuTemplates holds the static Runtime-tab menu metadata.
-// Providers and DLQ live here (rather than under Content) because they
-// describe runtime state: what's registered with the running server
-// and which dispatcher items have failed, rather than artefact-pipeline
-// content.
-var runtimeMenuTemplates = []menuItemTemplate{
-	{ID: "runtime-overview", Label: menuLabelOverview, Hotkey: "1"},
-	{ID: "system", Label: "System", Hotkey: "2"},
-	{ID: "resources", Label: "Resources", Hotkey: "3"},
-	{ID: "lifecycle", Label: "Lifecycle", Hotkey: "4"},
-	{ID: "memory", Label: "Memory", Hotkey: "5"},
-	{ID: "process", Label: "Process", Hotkey: "6"},
-	{ID: "build", Label: titleBuild, Hotkey: "7"},
-	{ID: "profiling", Label: titleProfiling, Hotkey: "8"},
-	{ID: "providers", Label: "Providers", Hotkey: "9"},
-	{ID: "dlq", Label: "DLQ", Hotkey: "0"},
-}
+	// runtimeMenuTemplates holds the static Runtime-tab menu metadata. Providers and DLQ
+	// live here (rather than under Content) because they describe runtime state: what's
+	// registered with the running server and which dispatcher items have failed, rather than
+	// artefact-pipeline content.
+	runtimeMenuTemplates = []menuItemTemplate{
+		{ID: "runtime-overview", Label: menuLabelOverview, Hotkey: "1"},
+		{ID: "system", Label: "System", Hotkey: "2"},
+		{ID: "resources", Label: "Resources", Hotkey: "3"},
+		{ID: "lifecycle", Label: "Lifecycle", Hotkey: "4"},
+		{ID: "memory", Label: "Memory", Hotkey: "5"},
+		{ID: "process", Label: "Process", Hotkey: "6"},
+		{ID: "build", Label: titleBuild, Hotkey: "7"},
+		{ID: "profiling", Label: titleProfiling, Hotkey: "8"},
+		{ID: "providers", Label: "Providers", Hotkey: "9"},
+		{ID: "dlq", Label: "DLQ", Hotkey: "0"},
+	}
 
-// watchdogMenuTemplates holds the static Watchdog-tab menu metadata.
-var watchdogMenuTemplates = []menuItemTemplate{
-	{ID: "overview", Label: menuLabelOverview, Hotkey: "1"},
-	{ID: "events", Label: "Events", Hotkey: "2"},
-	{ID: "profiles", Label: "Profiles", Hotkey: "3"},
-	{ID: "history", Label: "History", Hotkey: "4"},
-	{ID: "diagnostic", Label: "Diagnostic", Hotkey: "5"},
-	{ID: "config", Label: "Config", Hotkey: "6"},
-}
+	// watchdogMenuTemplates holds the static Watchdog-tab menu metadata.
+	watchdogMenuTemplates = []menuItemTemplate{
+		{ID: "overview", Label: menuLabelOverview, Hotkey: "1"},
+		{ID: "events", Label: "Events", Hotkey: "2"},
+		{ID: "profiles", Label: "Profiles", Hotkey: "3"},
+		{ID: "history", Label: "History", Hotkey: "4"},
+		{ID: "diagnostic", Label: "Diagnostic", Hotkey: "5"},
+		{ID: "config", Label: "Config", Hotkey: "6"},
+	}
+)
 
-// ContentPanels bundles the panels NewContentGroup wires under the
-// Content tab. Each field may be nil.
+// ContentPanels bundles the panels NewContentGroup wires under the Content tab. Each
+// field may be nil.
 type ContentPanels struct {
 	// Overview renders the at-a-glance Content tile.
 	Overview Panel
@@ -130,8 +131,7 @@ type ContentPanels struct {
 
 // NewContentGroup constructs the Content tab from panels.
 //
-// Takes panels (ContentPanels) which bundles the panels to wire under
-// the Content tab.
+// Takes panels (ContentPanels) which bundles the panels to wire under the Content tab.
 //
 // Returns PanelGroup which is the assembled Content tab group.
 func NewContentGroup(panels ContentPanels) PanelGroup {
@@ -144,8 +144,7 @@ func NewContentGroup(panels ContentPanels) PanelGroup {
 	return buildGroup(GroupContent, "Content", '1', specs)
 }
 
-// TelemetryPanels bundles the panels NewTelemetryGroup wires under the
-// Telemetry tab.
+// TelemetryPanels bundles the panels NewTelemetryGroup wires under the Telemetry tab.
 type TelemetryPanels struct {
 	// Overview renders the at-a-glance Telemetry tile.
 	Overview Panel
@@ -168,8 +167,8 @@ type TelemetryPanels struct {
 
 // NewTelemetryGroup constructs the Telemetry tab from panels.
 //
-// Takes panels (TelemetryPanels) which bundles the panels to wire under
-// the Telemetry tab.
+// Takes panels (TelemetryPanels) which bundles the panels to wire under the Telemetry
+// tab.
 //
 // Returns PanelGroup which is the assembled Telemetry tab group.
 func NewTelemetryGroup(panels TelemetryPanels) PanelGroup {
@@ -184,8 +183,7 @@ func NewTelemetryGroup(panels TelemetryPanels) PanelGroup {
 	return buildGroup(GroupTelemetry, "Telemetry", '2', specs)
 }
 
-// RuntimePanels bundles the panels NewRuntimeGroup wires under the
-// Runtime tab.
+// RuntimePanels bundles the panels NewRuntimeGroup wires under the Runtime tab.
 type RuntimePanels struct {
 	// Overview is the at-a-glance Runtime -> Overview panel.
 	Overview Panel
@@ -220,8 +218,7 @@ type RuntimePanels struct {
 
 // NewRuntimeGroup constructs the Runtime tab from panels.
 //
-// Takes panels (RuntimePanels) which bundles the panels to wire under
-// the Runtime tab.
+// Takes panels (RuntimePanels) which bundles the panels to wire under the Runtime tab.
 //
 // Returns PanelGroup which is the assembled Runtime tab group.
 func NewRuntimeGroup(panels RuntimePanels) PanelGroup {
@@ -240,8 +237,7 @@ func NewRuntimeGroup(panels RuntimePanels) PanelGroup {
 	return buildGroup(GroupRuntime, "Runtime", '3', specs)
 }
 
-// WatchdogPanels bundles the panels NewWatchdogGroup wires under the
-// Watchdog tab.
+// WatchdogPanels bundles the panels NewWatchdogGroup wires under the Watchdog tab.
 type WatchdogPanels struct {
 	// Overview is the at-a-glance Watchdog dashboard.
 	Overview Panel
@@ -264,11 +260,10 @@ type WatchdogPanels struct {
 
 // NewWatchdogGroup constructs the Watchdog tab from panels.
 //
-// The group reports Visible() == false when no items are configured (i.e. when
-// the watchdog provider is unavailable).
+// The group reports Visible() == false when no items are configured (i.e. when the
+// watchdog provider is unavailable).
 //
-// Takes panels (WatchdogPanels) which bundles the panels to wire under
-// the Watchdog tab.
+// Takes panels (WatchdogPanels) which bundles the panels to wire under the Watchdog tab.
 //
 // Returns PanelGroup which is the assembled Watchdog tab group.
 func NewWatchdogGroup(panels WatchdogPanels) PanelGroup {

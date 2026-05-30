@@ -1,0 +1,4 @@
+{
+  "description": "Method value captured into a variable across files; struct in fileA, methods in fileB, capture+invocation in main",
+  "expected": "first=Hi-Alice second=Hi-Bob third=Hi-Cara"
+}

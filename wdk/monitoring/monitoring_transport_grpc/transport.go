@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package monitoring_transport_grpc provides a gRPC transport implementation
-// for the piko monitoring subsystem.
+// Package monitoring_transport_grpc provides a gRPC transport implementation for the piko
+// monitoring subsystem.
 //
 // Usage:
 //
@@ -47,8 +47,8 @@ type transportConfig struct {
 	enableReflection bool
 }
 
-// WithReflection controls whether the gRPC reflection service is registered.
-// Reflection is enabled by default.
+// WithReflection controls whether the gRPC reflection service is registered. Reflection
+// is enabled by default.
 //
 // Takes enabled (bool) which controls whether reflection is active.
 //
@@ -59,8 +59,8 @@ func WithReflection(enabled bool) Option {
 	}
 }
 
-// WithGRPCServerOptions appends additional gRPC server options, such as TLS
-// credentials or interceptors.
+// WithGRPCServerOptions appends additional gRPC server options, such as TLS credentials
+// or interceptors.
 //
 // Takes opts (...grpc.ServerOption) which are the options to add.
 //
@@ -71,13 +71,12 @@ func WithGRPCServerOptions(opts ...grpc.ServerOption) Option {
 	}
 }
 
-// Transport returns a TransportFactory that creates a gRPC-based monitoring
-// transport server. This is the entry point for bootstrap wiring.
+// Transport returns a TransportFactory that creates a gRPC-based monitoring transport
+// server. This is the entry point for bootstrap wiring.
 //
 // Takes opts (...Option) for gRPC-specific configuration.
 //
-// Returns monitoring_domain.TransportFactory which creates gRPC transport
-// servers.
+// Returns monitoring_domain.TransportFactory which creates gRPC transport servers.
 func Transport(opts ...Option) monitoring_domain.TransportFactory {
 	tc := transportConfig{
 		enableReflection: true,

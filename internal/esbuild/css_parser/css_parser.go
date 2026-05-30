@@ -1812,7 +1812,7 @@ type convertTokensOpts struct {
 }
 
 func (p *parser) convertTokensHelper(tokens []css_lexer.Token, close css_lexer.T, opts convertTokensOpts) ([]css_ast.Token, []css_lexer.Token) {
-	result := make([]css_ast.Token, 0, len(tokens))
+	result := []css_ast.Token{}
 	var nextWhitespace css_ast.WhitespaceFlags
 
 	// Enable verbatim whitespace mode when the first two non-whitespace tokens

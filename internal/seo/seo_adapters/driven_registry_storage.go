@@ -28,20 +28,20 @@ import (
 	"piko.sh/piko/internal/seo/seo_domain"
 )
 
-// RegistryStorageAdapter implements SEOStoragePort using the registry service.
-// It stores SEO artefacts (sitemap.xml, robots.txt) in the registry.
+// RegistryStorageAdapter implements SEOStoragePort using the registry service. It stores
+// SEO artefacts (sitemap.xml, robots.txt) in the registry.
 type RegistryStorageAdapter struct {
 	// registryService stores and retrieves artefacts in the container registry.
 	registryService registry_domain.RegistryService
 }
 
-// StoreSitemap stores the sitemap.xml content in the registry with the
-// specified compression profiles. Implements SEOStoragePort.StoreSitemap.
+// StoreSitemap stores the sitemap.xml content in the registry with the specified
+// compression profiles. Implements SEOStoragePort.StoreSitemap.
 //
 // Takes artefactID (string) which identifies the sitemap artefact.
 // Takes content ([]byte) which is the raw sitemap.xml content to store.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the
-// compression profiles to apply.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the compression
+// profiles to apply.
 //
 // Returns error when upserting the artefact fails.
 func (a *RegistryStorageAdapter) StoreSitemap(
@@ -68,8 +68,8 @@ func (a *RegistryStorageAdapter) StoreSitemap(
 	return nil
 }
 
-// StoreRobotsTxt stores the robots.txt content in the registry without
-// compression. Implements SEOStoragePort.StoreRobotsTxt.
+// StoreRobotsTxt stores the robots.txt content in the registry without compression.
+// Implements SEOStoragePort.StoreRobotsTxt.
 //
 // Takes content ([]byte) which is the robots.txt data to store.
 //
@@ -95,8 +95,8 @@ func (a *RegistryStorageAdapter) StoreRobotsTxt(ctx context.Context, content []b
 
 // NewRegistryStorageAdapter creates a new registry storage adapter.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// the registry data.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// registry data.
 //
 // Returns seo_domain.SEOStoragePort which is the adapter ready for use.
 func NewRegistryStorageAdapter(registryService registry_domain.RegistryService) seo_domain.SEOStoragePort {

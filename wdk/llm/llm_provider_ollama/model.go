@@ -28,19 +28,21 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// logKeyModel is the logger attribute key for the Ollama model name.
-const logKeyModel = "model"
+const (
+	// logKeyModel is the logger attribute key for the Ollama model name.
+	logKeyModel = "model"
+)
 
-// resolveModel returns the model name and reference to verify against.
-// If reqModel is non-empty it takes priority as a per-request override;
-// otherwise the default reference is used.
+// resolveModel returns the model name and reference to verify against. If reqModel is
+// non-empty it takes priority as a per-request override; otherwise the default reference
+// is used.
 //
 // Takes reqModel (string) which specifies the per-request model override.
 // Takes defaultRef (ModelRef) which provides the fallback model reference.
 //
 // Returns string which is the model name to use.
-// Returns ModelRef which is the reference to verify against; per-request
-// models have no digest and are unverified.
+// Returns ModelRef which is the reference to verify against; per-request models have no
+// digest and are unverified.
 func (*ollamaProvider) resolveModel(reqModel string, defaultRef ModelRef) (string, ModelRef) {
 	if reqModel != "" {
 		return reqModel, ModelRef{Name: reqModel}
@@ -48,9 +50,9 @@ func (*ollamaProvider) resolveModel(reqModel string, defaultRef ModelRef) (strin
 	return defaultRef.Name, defaultRef
 }
 
-// ensureModel checks that a model is available locally and pulls it if
-// AutoPull is enabled and the model is not found. When ref carries a Digest,
-// the locally installed model's digest is verified after pull/discovery.
+// ensureModel checks that a model is available locally and pulls it if AutoPull is
+// enabled and the model is not found. When ref carries a Digest, the locally installed
+// model's digest is verified after pull/discovery.
 //
 // Takes model (string) which is the model name to ensure.
 // Takes ref (ModelRef) which optionally carries a digest for verification.
@@ -77,8 +79,8 @@ func (p *ollamaProvider) ensureModel(ctx context.Context, model string, ref Mode
 	return p.verifyModelDigest(ctx, model, ref)
 }
 
-// pullModel downloads a model via the Ollama Pull API, logging
-// layer progress as each new layer is discovered.
+// pullModel downloads a model via the Ollama Pull API, logging layer progress as each new
+// layer is discovered.
 //
 // Takes l (logger.Logger) which receives progress log entries.
 // Takes model (string) which is the model name to pull.
@@ -121,17 +123,15 @@ type pullTracker struct {
 	// model is the name of the model being pulled.
 	model string
 
-	// lastLogStatus is the most recently logged status string,
-	// used to avoid duplicate log entries.
+	// lastLogStatus is the most recently logged status string, used to avoid duplicate log
+	// entries.
 	lastLogStatus string
 
-	// layerOrder records digests in discovery order so that
-	// layer indices are stable.
+	// layerOrder records digests in discovery order so that layer indices are stable.
 	layerOrder []string
 }
 
-// layerProgress tracks the byte progress of a single layer
-// download.
+// layerProgress tracks the byte progress of a single layer download.
 type layerProgress struct {
 	// total is the total number of bytes for this layer.
 	total int64
@@ -140,11 +140,9 @@ type layerProgress struct {
 	completed int64
 }
 
-// onProgress handles a single progress callback from the Ollama
-// Pull API.
+// onProgress handles a single progress callback from the Ollama Pull API.
 //
-// Takes response (api.ProgressResponse) which contains the current
-// pull progress data.
+// Takes response (api.ProgressResponse) which contains the current pull progress data.
 //
 // Returns error which is always nil.
 func (t *pullTracker) onProgress(response api.ProgressResponse) error {
@@ -180,9 +178,8 @@ func (t *pullTracker) onProgress(response api.ProgressResponse) error {
 	return nil
 }
 
-// verifyModelDigest checks the local model's digest against ref.Digest when
-// a digest was specified. It queries the Ollama List API to obtain the
-// installed model's digest.
+// verifyModelDigest checks the local model's digest against ref.Digest when a digest was
+// specified. It queries the Ollama List API to obtain the installed model's digest.
 //
 // Takes model (string) which specifies the model name to verify.
 // Takes ref (ModelRef) which contains the expected digest to check against.
@@ -227,8 +224,8 @@ func newPullTracker(l logger.Logger, model string) *pullTracker {
 	}
 }
 
-// shortDigest returns the first 12 hex characters of a digest string,
-// stripping any "sha256:" prefix.
+// shortDigest returns the first 12 hex characters of a digest string, stripping any
+// "sha256:" prefix.
 //
 // Takes digest (string) which is the digest value to shorten.
 //

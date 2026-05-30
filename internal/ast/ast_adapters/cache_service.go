@@ -29,12 +29,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// cacheKeyAttr is the attribute key for logging cache operations.
-const cacheKeyAttr = "cache.key"
+const (
+	// cacheKeyAttr is the attribute key for logging cache operations.
+	cacheKeyAttr = "cache.key"
+)
 
-// ASTCacheService provides a high-level, configured caching solution for ASTs.
-// It internally manages a multi-level cache (in-memory L1 + file-based L2)
-// and exposes it through the standard ast_domain.ASTCache interface.
+// ASTCacheService provides a high-level, configured caching solution for ASTs. It
+// internally manages a multi-level cache (in-memory L1 + file-based L2) and exposes it
+// through the standard ast_domain.ASTCache interface.
 type ASTCacheService struct {
 	// cache stores parsed AST entries and provides Get, Set, and Delete methods.
 	cache ast_domain.ASTCache
@@ -42,37 +44,36 @@ type ASTCacheService struct {
 
 // ASTCacheConfig holds all the necessary configuration for the cache service.
 type ASTCacheConfig struct {
-	// L2CacheBaseDir is the folder path for the persistent FlatBuffers cache.
-	// This must be a folder that the application can read and write to.
+	// L2CacheBaseDir is the folder path for the persistent FlatBuffers cache. This must be a
+	// folder that the application can read and write to.
 	L2CacheBaseDir string
 
 	// L1CacheTTL is the time-to-live for items in the in-memory cache.
 	//
-	// After this duration, an item is considered expired and a fetch from
-	// the L2 cache is triggered on next access. Must be positive. A value
-	// of 1 hour is a reasonable default.
+	// After this duration, an item is considered expired and a fetch from the L2 cache is
+	// triggered on next access. Must be positive. A value of 1 hour is a reasonable default.
 	L1CacheTTL time.Duration
 
-	// L1CacheCapacity is the maximum number of ASTs to hold in the
-	// fast in-memory cache. A value of 1000 is a reasonable default
-	// for many applications.
+	// L1CacheCapacity is the maximum number of ASTs to hold in the fast in-memory cache. A
+	// value of 1000 is a reasonable default for many applications.
 	L1CacheCapacity int
 }
 
-var _ ast_domain.ASTCacheService = (*ASTCacheService)(nil)
+var (
+	_ ast_domain.ASTCacheService = (*ASTCacheService)(nil)
+)
 
-// NewASTCacheService creates and sets up the full caching stack based on the
-// given configuration.
+// NewASTCacheService creates and sets up the full caching stack based on the given
+// configuration.
 //
-// Takes ctx (context.Context) which is the parent context for background
-// worker goroutines.
-// Takes config (ASTCacheConfig) which specifies the cache settings including
-// L1 capacity, TTL, and L2 base directory.
+// Takes ctx (context.Context) which is the parent context for background worker
+// goroutines.
+// Takes config (ASTCacheConfig) which specifies the cache settings including L1 capacity,
+// TTL, and L2 base directory.
 //
-// Returns *ASTCacheService which is the configured caching service ready for
-// use.
-// Returns error when the configuration is not valid, such as non-positive
-// capacity or TTL, empty base directory, or when L2 cache creation fails.
+// Returns *ASTCacheService which is the configured caching service ready for use.
+// Returns error when the configuration is not valid, such as non-positive capacity or
+// TTL, empty base directory, or when L2 cache creation fails.
 func NewASTCacheService(ctx context.Context, config ASTCacheConfig) (*ASTCacheService, error) {
 	if config.L1CacheCapacity <= 0 {
 		return nil, fmt.Errorf("L1CacheCapacity must be positive, but was %d", config.L1CacheCapacity)
@@ -147,8 +148,7 @@ func (s *ASTCacheService) Get(ctx context.Context, key string) (*ast_domain.Cach
 // Set stores an AST entry in the multi-level cache.
 //
 // Takes key (string) which identifies the cache entry.
-// Takes astEntry (*ast_domain.CachedASTEntry) which contains the AST and its
-// metadata.
+// Takes astEntry (*ast_domain.CachedASTEntry) which contains the AST and its metadata.
 //
 // Returns error when the cache operation fails.
 func (s *ASTCacheService) Set(ctx context.Context, key string, astEntry *ast_domain.CachedASTEntry) error {
@@ -202,8 +202,7 @@ func (s *ASTCacheService) Delete(ctx context.Context, key string) error {
 
 // Shutdown stops the cache service in a clean way.
 //
-// If the cache supports shutdown, calls its Shutdown method.
-// Otherwise, does nothing.
+// If the cache supports shutdown, calls its Shutdown method. Otherwise, does nothing.
 func (s *ASTCacheService) Shutdown(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	if shutdowner, ok := s.cache.(interface {

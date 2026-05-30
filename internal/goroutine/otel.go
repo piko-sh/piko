@@ -31,15 +31,14 @@ var (
 	// meter is the OpenTelemetry meter for goroutine panic tracking.
 	meter = otel.Meter("piko/internal/goroutine")
 
-	// PanicRecoveryCount tracks the total number of panics recovered across
-	// all goroutines. Each increment represents a goroutine that would have
-	// crashed the process without recovery.
+	// PanicRecoveryCount tracks the total number of panics recovered across all goroutines.
+	// Each increment represents a goroutine that would have crashed the process without
+	// recovery.
 	PanicRecoveryCount metric.Int64Counter
 
-	// ProviderTimeoutCount tracks context deadline or cancellation errors
-	// that originated inside a provider rather than from the caller's
-	// context. Each increment represents a provider that timed out or
-	// cancelled its own internal context.
+	// ProviderTimeoutCount tracks context deadline or cancellation errors that originated
+	// inside a provider rather than from the caller's context. Each increment represents a
+	// provider that timed out or cancelled its own internal context.
 	ProviderTimeoutCount metric.Int64Counter
 )
 

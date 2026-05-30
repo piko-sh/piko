@@ -35,9 +35,9 @@ type TextSpan struct {
 	EndColumn int
 }
 
-// DirectiveBlock is the root AST node for all directives in a query
-// header. It holds the fully parsed representation of the -- piko.*
-// comment lines that precede a SQL statement.
+// DirectiveBlock is the root AST node for all directives in a query header. It holds the
+// fully parsed representation of the -- piko.* comment lines that precede a SQL
+// statement.
 type DirectiveBlock struct {
 	// Name holds the parsed piko.name directive, or nil if absent.
 	Name *NameDirective
@@ -88,8 +88,8 @@ type CommandDirective struct {
 	Command QueryCommand
 }
 
-// ParameterDirectiveKind identifies the role of a parameter declared
-// with the $N as piko.X(name) header syntax.
+// ParameterDirectiveKind identifies the role of a parameter declared with the $N as
+// piko.X(name) header syntax.
 type ParameterDirectiveKind uint8
 
 const (
@@ -112,8 +112,8 @@ const (
 	ParameterDirectiveOffset
 )
 
-// ParameterDirective represents a parameter directive such as
-// `-- ?1 as piko.limit(page_size)` or `-- :email as piko.param`.
+// ParameterDirective represents a parameter directive such as `-- ?1 as
+// piko.limit(page_size)` or `-- :email as piko.param`.
 type ParameterDirective struct {
 	// TypeHint holds the optional SQL type hint for this parameter, or nil if unspecified.
 	TypeHint *string
@@ -121,12 +121,12 @@ type ParameterDirective struct {
 	// Nullable holds the optional nullability override, or nil if unspecified.
 	Nullable *bool
 
-	// DefaultVal holds the optional default value for
-	// limit/offset parameters, or nil if unspecified.
+	// DefaultVal holds the optional default value for limit/offset parameters, or nil if
+	// unspecified.
 	DefaultVal *int
 
-	// MaxVal holds the optional maximum value for
-	// limit/offset parameters, or nil if unspecified.
+	// MaxVal holds the optional maximum value for limit/offset parameters, or nil if
+	// unspecified.
 	MaxVal *int
 
 	// Name holds the declared parameter name.
@@ -159,8 +159,8 @@ type ParameterDirective struct {
 	// Kind holds the parsed parameter directive kind enumeration value.
 	Kind ParameterDirectiveKind
 
-	// IsNamed indicates whether this parameter uses named
-	// (:name) rather than positional (?N) syntax.
+	// IsNamed indicates whether this parameter uses named (:name) rather than positional
+	// (?N) syntax.
 	IsNamed bool
 }
 
@@ -182,8 +182,8 @@ type DirectiveOption struct {
 	ValueSpan TextSpan
 }
 
-// MetadataDirective represents a -- piko.directive: value directive
-// such as piko.group_by or piko.nullable.
+// MetadataDirective represents a -- piko.directive: value directive such as piko.group_by
+// or piko.nullable.
 type MetadataDirective struct {
 	// Directive holds the directive name string (e.g. "group_by", "nullable").
 	Directive string

@@ -176,8 +176,8 @@ func NewTextBlock() *TextBlock {
 
 // Text is an inline text node.
 type Text struct {
-	// Value holds the resolved text bytes. Populated by the parser adapter
-	// so the domain doesn't need access to the source buffer.
+	// Value holds the resolved text bytes. Populated by the parser adapter so the domain
+	// doesn't need access to the source buffer.
 	Value []byte
 
 	BaseNode
@@ -356,8 +356,7 @@ func NewTableRow() *TableRow {
 type TableCell struct {
 	BaseNode
 
-	// IsHeader is true when the cell is in a header row (<th>), false for
-	// body cells (<td>).
+	// IsHeader is true when the cell is in a header row (<th>), false for body cells (<td>).
 	IsHeader bool
 }
 

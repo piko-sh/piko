@@ -31,8 +31,8 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/json"
 
 	"piko.sh/piko/internal/notification/notification_dto"
 	"piko.sh/piko/internal/safeerror"

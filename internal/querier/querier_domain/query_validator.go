@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// queryValidator performs cross-query validation that requires visibility
-// across all analysed queries. Per-query diagnostics are handled by the
-// diagnosticAnalyser and its passes.
+// queryValidator performs cross-query validation that requires visibility across all
+// analysed queries. Per-query diagnostics are handled by the diagnosticAnalyser and its
+// passes.
 //
 // Validation codes handled here:
 //   - Q006: Duplicate query name across files
@@ -34,20 +34,18 @@ type queryValidator struct{}
 
 // newQueryValidator creates a query validator.
 //
-// Returns *queryValidator which is ready to validate
-// queries.
+// Returns *queryValidator which is ready to validate queries.
 func newQueryValidator() *queryValidator {
 	return &queryValidator{}
 }
 
-// ValidateDuplicateNames checks for duplicate query names
-// across all analysed queries.
+// ValidateDuplicateNames checks for duplicate query names across all analysed queries.
 //
-// Takes queries ([]*querier_dto.AnalysedQuery) which holds
-// the queries to check for duplicate names.
+// Takes queries ([]*querier_dto.AnalysedQuery) which holds the queries to check for
+// duplicate names.
 //
-// Returns []querier_dto.SourceError which holds Q006
-// diagnostics for any duplicates found.
+// Returns []querier_dto.SourceError which holds Q006 diagnostics for any duplicates
+// found.
 func (*queryValidator) ValidateDuplicateNames(
 	queries []*querier_dto.AnalysedQuery,
 ) []querier_dto.SourceError {
@@ -75,11 +73,10 @@ func (*queryValidator) ValidateDuplicateNames(
 	return diagnostics
 }
 
-// commandName returns the human-readable name of a query
-// command for use in diagnostic messages.
+// commandName returns the human-readable name of a query command for use in diagnostic
+// messages.
 //
-// Takes command (querier_dto.QueryCommand) which is the
-// command enum value.
+// Takes command (querier_dto.QueryCommand) which is the command enum value.
 //
 // Returns string which is the human-readable command name.
 func commandName(command querier_dto.QueryCommand) string {

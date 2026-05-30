@@ -26,19 +26,15 @@ import (
 // Config holds settings for the disk storage provider.
 type Config = provider_disk.Config
 
-// NewDiskProvider creates a new disk-based storage provider.
-// It stores objects on the local filesystem within the configured base
-// directory.
+// NewDiskProvider creates a new disk-based storage provider. It stores objects on the
+// local filesystem within the configured base directory.
 //
-// Takes config (Config) which specifies the storage settings including the
-// base directory path.
-// Takes opts (...storage.ProviderOption) which provides optional behaviour
-// controls.
+// Takes config (Config) which specifies the storage settings including the base directory
+// path.
+// Takes opts (...storage.ProviderOption) which provides optional behaviour controls.
 //
-// Returns storage.ProviderPort which is the configured storage provider ready
-// for use.
-// Returns error when the configuration is invalid or the provider cannot be
-// created.
+// Returns storage.ProviderPort which is the configured storage provider ready for use.
+// Returns error when the configuration is invalid or the provider cannot be created.
 func NewDiskProvider(config Config, opts ...storage.ProviderOption) (storage.ProviderPort, error) {
 	return provider_disk.NewDiskProvider(config, opts...)
 }

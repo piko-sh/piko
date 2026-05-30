@@ -44,10 +44,9 @@ const (
 	logKeySection = "section"
 )
 
-// NavigationBuilder constructs hierarchical navigation trees from flat
-// content lists. It uses single-pass O(n) construction per group and supports
-// locale-aware, multi-group navigation such as sidebars, footers, and
-// breadcrumbs.
+// NavigationBuilder constructs hierarchical navigation trees from flat content lists. It
+// uses single-pass O(n) construction per group and supports locale-aware, multi-group
+// navigation such as sidebars, footers, and breadcrumbs.
 type NavigationBuilder struct{}
 
 // NewNavigationBuilder creates a new navigation builder.
@@ -59,19 +58,19 @@ func NewNavigationBuilder() *NavigationBuilder {
 
 // BuildNavigationGroups creates navigation groups from content items.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes items ([]collection_dto.ContentItem) which contains the content to
-// organise into navigation structures.
-// Takes config (collection_dto.NavigationConfig) which specifies locale and
-// grouping options.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes items ([]collection_dto.ContentItem) which contains the content to organise into
+// navigation structures.
+// Takes config (collection_dto.NavigationConfig) which specifies locale and grouping
+// options.
 //
-// Returns *collection_dto.NavigationGroups which contains all named groups
-// (sidebar, footer, and similar) with their navigation trees.
+// Returns *collection_dto.NavigationGroups which contains all named groups (sidebar,
+// footer, and similar) with their navigation trees.
 //
-// The method first collects all group names from items, then builds a tree
-// for each group. If config.Locale is set, only that locale is used.
-// Otherwise, trees are built for all locales and the first is returned.
+// The method first collects all group names from items, then builds a tree for each
+// group. If config.Locale is set, only that locale is used. Otherwise, trees are built
+// for all locales and the first is returned.
 func (nb *NavigationBuilder) BuildNavigationGroups(
 	ctx context.Context,
 	items []collection_dto.ContentItem,
@@ -110,17 +109,17 @@ func (nb *NavigationBuilder) BuildNavigationGroups(
 
 // selectTreeForLocale selects the appropriate tree based on locale.
 //
-// If a specific locale is requested, returns that locale's tree or nil if
-// not found. If no locale is specified, returns the first available tree.
+// If a specific locale is requested, returns that locale's tree or nil if not found. If
+// no locale is specified, returns the first available tree.
 //
-// Takes trees (map[string]*collection_dto.NavigationTree) which maps locale
-// codes to their navigation trees.
-// Takes requestedLocale (string) which specifies the desired locale, or empty
-// for any available tree.
+// Takes trees (map[string]*collection_dto.NavigationTree) which maps locale codes to
+// their navigation trees.
+// Takes requestedLocale (string) which specifies the desired locale, or empty for any
+// available tree.
 // Takes groupName (string) which identifies the navigation group for logging.
 //
-// Returns *collection_dto.NavigationTree which is the selected tree, or nil
-// if no trees are available.
+// Returns *collection_dto.NavigationTree which is the selected tree, or nil if no trees
+// are available.
 func (*NavigationBuilder) selectTreeForLocale(
 	ctx context.Context,
 	trees map[string]*collection_dto.NavigationTree,
@@ -150,8 +149,8 @@ func (*NavigationBuilder) selectTreeForLocale(
 
 // collectGroupNames finds all unique group names across the given items.
 //
-// Takes items ([]collection_dto.ContentItem) which contains the content items
-// to scan for group names.
+// Takes items ([]collection_dto.ContentItem) which contains the content items to scan for
+// group names.
 //
 // Returns map[string]bool which is a set of group names found.
 func (*NavigationBuilder) collectGroupNames(
@@ -164,19 +163,17 @@ func (*NavigationBuilder) collectGroupNames(
 	return groups
 }
 
-// buildTreeForGroup constructs navigation trees for a single group across
-// all locales.
+// buildTreeForGroup constructs navigation trees for a single group across all locales.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes items ([]collection_dto.ContentItem) which contains the content items
-// to organise into trees.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes items ([]collection_dto.ContentItem) which contains the content items to organise
+// into trees.
 // Takes groupName (string) which identifies the navigation group.
-// Takes config (collection_dto.NavigationConfig) which controls tree building
-// behaviour.
+// Takes config (collection_dto.NavigationConfig) which controls tree building behaviour.
 //
-// Returns map[string]*collection_dto.NavigationTree which maps locale codes
-// to their navigation trees.
+// Returns map[string]*collection_dto.NavigationTree which maps locale codes to their
+// navigation trees.
 func (nb *NavigationBuilder) buildTreeForGroup(
 	ctx context.Context,
 	items []collection_dto.ContentItem,
@@ -196,10 +193,10 @@ func (nb *NavigationBuilder) buildTreeForGroup(
 
 // buildTreeForLocale constructs a navigation tree for a single locale.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes localeItems ([]collection_dto.ContentItem) which provides the content
-// items to include in the tree.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes localeItems ([]collection_dto.ContentItem) which provides the content items to
+// include in the tree.
 // Takes locale (string) which identifies the locale for the tree.
 // Takes groupName (string) which specifies the navigation group.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
@@ -226,16 +223,14 @@ func (nb *NavigationBuilder) buildTreeForLocale(
 
 // processItemsIntoSections processes content items into section nodes.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes items ([]collection_dto.ContentItem) which contains the items to
-// process.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes items ([]collection_dto.ContentItem) which contains the items to process.
 // Takes groupName (string) which identifies the group these items belong to.
-// Takes config (collection_dto.NavigationConfig) which controls processing
-// behaviour.
+// Takes config (collection_dto.NavigationConfig) which controls processing behaviour.
 //
-// Returns map[string]*collection_dto.NavigationNode which maps section names
-// to their navigation nodes.
+// Returns map[string]*collection_dto.NavigationNode which maps section names to their
+// navigation nodes.
 func (nb *NavigationBuilder) processItemsIntoSections(
 	ctx context.Context,
 	items []collection_dto.ContentItem,
@@ -275,14 +270,13 @@ type processingStats struct {
 
 // processItem processes a single content item into the sections map.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes item (*collection_dto.ContentItem) which is the content to process.
 // Takes groupName (string) which identifies the group containing the item.
-// Takes config (collection_dto.NavigationConfig) which controls navigation
-// behaviour.
-// Takes sections (map[string]*collection_dto.NavigationNode) which collects
-// the processed items by section.
+// Takes config (collection_dto.NavigationConfig) which controls navigation behaviour.
+// Takes sections (map[string]*collection_dto.NavigationNode) which collects the processed
+// items by section.
 // Takes stats (*processingStats) which tracks processing outcomes.
 func (nb *NavigationBuilder) processItem(
 	ctx context.Context,
@@ -314,8 +308,8 @@ func (nb *NavigationBuilder) processItem(
 
 // addItemToSection adds an item to the correct place within a section.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes section (*collection_dto.NavigationNode) which is the parent section.
 // Takes item (*collection_dto.ContentItem) which is the content to add.
 // Takes groupMeta (*markdown_dto.NavGroupMetadata) which specifies grouping.
@@ -337,11 +331,11 @@ func (nb *NavigationBuilder) addItemToSection(
 
 // sectionsMapToSlice converts a sections map to a slice.
 //
-// Takes sections (map[string]*collection_dto.NavigationNode) which contains
-// the navigation nodes keyed by their identifiers.
+// Takes sections (map[string]*collection_dto.NavigationNode) which contains the
+// navigation nodes keyed by their identifiers.
 //
-// Returns []*collection_dto.NavigationNode which contains all nodes from the
-// map in an unspecified order.
+// Returns []*collection_dto.NavigationNode which contains all nodes from the map in an
+// unspecified order.
 func (*NavigationBuilder) sectionsMapToSlice(
 	sections map[string]*collection_dto.NavigationNode,
 ) []*collection_dto.NavigationNode {
@@ -356,8 +350,8 @@ func (*NavigationBuilder) sectionsMapToSlice(
 //
 // Takes items ([]collection_dto.ContentItem) which contains the items to group.
 //
-// Returns map[string][]collection_dto.ContentItem which maps locale codes to
-// their items. Items without a locale default to "en".
+// Returns map[string][]collection_dto.ContentItem which maps locale codes to their items.
+// Items without a locale default to "en".
 func (*NavigationBuilder) groupByLocale(
 	items []collection_dto.ContentItem,
 ) map[string][]collection_dto.ContentItem {
@@ -371,17 +365,17 @@ func (*NavigationBuilder) groupByLocale(
 	return grouped
 }
 
-// getGroupMetadata retrieves navigation metadata for a specific group from a
-// content item.
+// getGroupMetadata retrieves navigation metadata for a specific group from a content
+// item.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes item (*collection_dto.ContentItem) which provides the content with
-// navigation metadata.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes item (*collection_dto.ContentItem) which provides the content with navigation
+// metadata.
 // Takes groupName (string) which specifies the navigation group to look up.
 //
-// Returns *markdown_dto.NavGroupMetadata which contains the group's navigation
-// settings, or nil if the group is not found.
+// Returns *markdown_dto.NavGroupMetadata which contains the group's navigation settings,
+// or nil if the group is not found.
 func (*NavigationBuilder) getGroupMetadata(
 	ctx context.Context,
 	item *collection_dto.ContentItem,
@@ -442,16 +436,16 @@ func (*NavigationBuilder) getGroupMetadata(
 //
 // Sections are top-level category nodes in the navigation tree.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes sections (map[string]*collection_dto.NavigationNode) which holds
-// existing section nodes keyed by their ID.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes sections (map[string]*collection_dto.NavigationNode) which holds existing section
+// nodes keyed by their ID.
 // Takes sectionID (string) which identifies the section to get or create.
-// Takes config (collection_dto.NavigationConfig) which provides default values
-// for new sections.
+// Takes config (collection_dto.NavigationConfig) which provides default values for new
+// sections.
 //
-// Returns *collection_dto.NavigationNode which is the existing or newly created
-// section node.
+// Returns *collection_dto.NavigationNode which is the existing or newly created section
+// node.
 func (nb *NavigationBuilder) ensureSection(
 	ctx context.Context,
 	sections map[string]*collection_dto.NavigationNode,
@@ -492,17 +486,16 @@ func (nb *NavigationBuilder) ensureSection(
 //
 // Subsections are second-level category nodes.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes sectionNode (*collection_dto.NavigationNode) which is the parent
-// section to search or add the subsection to.
-// Takes subsectionID (string) which identifies the subsection to find or
-// create.
-// Takes config (collection_dto.NavigationConfig) which provides default
-// ordering for new subsections.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes sectionNode (*collection_dto.NavigationNode) which is the parent section to
+// search or add the subsection to.
+// Takes subsectionID (string) which identifies the subsection to find or create.
+// Takes config (collection_dto.NavigationConfig) which provides default ordering for new
+// subsections.
 //
-// Returns *collection_dto.NavigationNode which is the existing or newly
-// created subsection node.
+// Returns *collection_dto.NavigationNode which is the existing or newly created
+// subsection node.
 func (nb *NavigationBuilder) ensureSubsection(
 	ctx context.Context,
 	sectionNode *collection_dto.NavigationNode,
@@ -545,11 +538,11 @@ func (nb *NavigationBuilder) ensureSubsection(
 
 // addItemToNode adds a content item as a child of the given parent node.
 //
-// Takes parentNode (*collection_dto.NavigationNode) which is the parent node
-// to attach the new child to.
+// Takes parentNode (*collection_dto.NavigationNode) which is the parent node to attach
+// the new child to.
 // Takes item (*collection_dto.ContentItem) which provides the content data.
-// Takes navMeta (*markdown_dto.NavGroupMetadata) which provides the display
-// settings for navigation.
+// Takes navMeta (*markdown_dto.NavGroupMetadata) which provides the display settings for
+// navigation.
 // Takes level (int) which sets the depth in the navigation tree.
 func (*NavigationBuilder) addItemToNode(
 	parentNode *collection_dto.NavigationNode,
@@ -581,11 +574,11 @@ func (*NavigationBuilder) addItemToNode(
 	parentNode.Children = append(parentNode.Children, node)
 }
 
-// sortNodes recursively sorts navigation nodes by Order (ascending), then by
-// Title (alphabetical).
+// sortNodes recursively sorts navigation nodes by Order (ascending), then by Title
+// (alphabetical).
 //
-// Takes nodes ([]*collection_dto.NavigationNode) which is the slice of nodes
-// to sort in place.
+// Takes nodes ([]*collection_dto.NavigationNode) which is the slice of nodes to sort in
+// place.
 //
 // This produces consistent, predictable navigation order.
 func (nb *NavigationBuilder) sortNodes(nodes []*collection_dto.NavigationNode) {
@@ -629,8 +622,8 @@ func (*NavigationBuilder) humanise(slug string) string {
 
 // extractGroupNamesFromItem extracts group names from a single content item.
 //
-// Takes item (*collection_dto.ContentItem) which is the content item to get
-// group names from.
+// Takes item (*collection_dto.ContentItem) which is the content item to get group names
+// from.
 // Takes groups (map[string]bool) which collects the found group names.
 func extractGroupNamesFromItem(item *collection_dto.ContentItem, groups map[string]bool) {
 	navData, ok := item.Metadata[collection_dto.MetaKeyNavigation]
@@ -648,11 +641,11 @@ func extractGroupNamesFromItem(item *collection_dto.ContentItem, groups map[stri
 	}
 }
 
-// extractGroupNamesFromTypedNav gets group names from navigation metadata and
-// adds them to a map.
+// extractGroupNamesFromTypedNav gets group names from navigation metadata and adds them
+// to a map.
 //
-// Takes nav (*markdown_dto.NavigationMetadata) which holds the navigation data
-// with group definitions.
+// Takes nav (*markdown_dto.NavigationMetadata) which holds the navigation data with group
+// definitions.
 // Takes groups (map[string]bool) which is the map to fill with group names.
 func extractGroupNamesFromTypedNav(nav *markdown_dto.NavigationMetadata, groups map[string]bool) {
 	for groupName := range nav.Groups {
@@ -660,11 +653,9 @@ func extractGroupNamesFromTypedNav(nav *markdown_dto.NavigationMetadata, groups 
 	}
 }
 
-// extractGroupNamesFromMapNav extracts group names from map-based navigation
-// metadata.
+// extractGroupNamesFromMapNav extracts group names from map-based navigation metadata.
 //
-// Takes navMap (map[string]any) which contains navigation metadata with a
-// Groups key.
+// Takes navMap (map[string]any) which contains navigation metadata with a Groups key.
 // Takes groups (map[string]bool) which collects found group names.
 func extractGroupNamesFromMapNav(navMap map[string]any, groups map[string]bool) {
 	groupsMap, ok := navMap["Groups"].(map[string]any)
@@ -678,10 +669,10 @@ func extractGroupNamesFromMapNav(navMap map[string]any, groups map[string]bool) 
 
 // logTreeStructure logs the tree structure for debugging purposes.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes tree (*collection_dto.NavigationTree) which holds the navigation
-// structure to log.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes tree (*collection_dto.NavigationTree) which holds the navigation structure to
+// log.
 // Takes locale (string) which identifies the locale being processed.
 // Takes groupName (string) which identifies the collection group.
 func logTreeStructure(ctx context.Context, tree *collection_dto.NavigationTree, locale, groupName string) {
@@ -730,8 +721,8 @@ func getMapKeys(m map[string]any) []string {
 // Takes m (map[string]any) which is the map to get the value from.
 // Takes key (string) which is the key to look up.
 //
-// Returns string which is the value if found and is a string, or an empty
-// string if not found or not a string.
+// Returns string which is the value if found and is a string, or an empty string if not
+// found or not a string.
 func getStringFromMap(m map[string]any, key string) string {
 	if value, ok := m[key].(string); ok {
 		return value
@@ -741,15 +732,14 @@ func getStringFromMap(m map[string]any, key string) string {
 
 // getIntFromMap gets an integer value from a map using the given key.
 //
-// Handles int, int8, int16, int32, int64, uint, uint8, uint16, uint32,
-// uint64, float32, float64, and string types to account for different JSON
-// decoders (e.g. sonic with UseInt64 returns int64 instead of float64).
+// Handles int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32,
+// float64, and string types to account for different JSON decoders (e.g. sonic with
+// UseInt64 returns int64 instead of float64).
 //
 // Takes m (map[string]any) which is the map to search.
 // Takes key (string) which is the key to look up.
 //
-// Returns int which is the value at the key, or 0 if not found or not a
-// number.
+// Returns int which is the value at the key, or 0 if not found or not a number.
 func getIntFromMap(m map[string]any, key string) int {
 	v := m[key]
 	if v == nil {
@@ -792,15 +782,14 @@ func getIntFromMap(m map[string]any, key string) int {
 
 // getBoolFromMap retrieves a boolean value from a map by key.
 //
-// Handles bool, int types (0 = false, non-zero = true), and string
-// representations ("true", "1", etc.) to account for different JSON
-// decoders and data sources.
+// Handles bool, int types (0 = false, non-zero = true), and string representations
+// ("true", "1", etc.) to account for different JSON decoders and data sources.
 //
 // Takes m (map[string]any) which is the map to search in.
 // Takes key (string) which is the key to look up.
 //
-// Returns bool which is the value if found, or false if the key does not
-// exist or the value is not a boolean.
+// Returns bool which is the value if found, or false if the key does not exist or the
+// value is not a boolean.
 func getBoolFromMap(m map[string]any, key string) bool {
 	v := m[key]
 	if v == nil {

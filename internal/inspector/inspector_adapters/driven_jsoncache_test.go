@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/wdk/safedisk"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/json"
 )
 
 func TestJSONCache(t *testing.T) {

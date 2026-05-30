@@ -38,18 +38,20 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// lspLogFilePermissions is the file permission for LSP log files.
-const lspLogFilePermissions = 0660
+const (
+	// lspLogFilePermissions is the file permission for LSP log files.
+	lspLogFilePermissions = 0660
+)
 
 // stdioAdapter is a driving adapter for the LSP hexagon.
 //
-// It implements lsp_domain.LSPServerPort to connect the core LSP domain logic
-// to an external communication channel provided as an io.ReadWriteCloser
-// (typically stdin/stdout).
+// It implements lsp_domain.LSPServerPort to connect the core LSP domain logic to an
+// external communication channel provided as an io.ReadWriteCloser (typically
+// stdin/stdout).
 //
-// It is also the composition root. It receives pre-built dependencies and uses
-// them to instantiate the lsp_domain.Server. It then drives the domain by
-// connecting it to the JSON-RPC stream.
+// It is also the composition root. It receives pre-built dependencies and uses them to
+// instantiate the lsp_domain.Server. It then drives the domain by connecting it to the
+// JSON-RPC stream.
 type stdioAdapter struct {
 	// coordinatorService handles document analysis across language services.
 	coordinatorService coordinator_domain.CoordinatorService
@@ -69,15 +71,17 @@ type stdioAdapter struct {
 	// pathsConfig supplies workspace path settings for the LSP server.
 	pathsConfig *config.PathsConfig
 
-	// sandboxFactory creates sandboxes for filesystem access. When nil,
-	// a no-op sandbox is used as a fallback.
+	// sandboxFactory creates sandboxes for filesystem access. When nil, a no-op sandbox is
+	// used as a fallback.
 	sandboxFactory safedisk.Factory
 
 	// formattingEnabled controls whether formatting features are shown to clients.
 	formattingEnabled bool
 }
 
-var _ lsp_domain.LSPServerPort = (*stdioAdapter)(nil)
+var (
+	_ lsp_domain.LSPServerPort = (*stdioAdapter)(nil)
+)
 
 // lspLogResources holds the log file and sandbox used by the LSP server.
 type lspLogResources struct {
@@ -101,12 +105,12 @@ func (r *lspLogResources) close() {
 	}
 }
 
-// Run implements the LSPServerPort interface. It sets up the JSON-RPC
-// communication over the provided stream and starts the language server,
-// blocking until the session is complete.
+// Run implements the LSPServerPort interface. It sets up the JSON-RPC communication over
+// the provided stream and starts the language server, blocking until the session is
+// complete.
 //
-// Takes stream (io.ReadWriteCloser) which provides the bidirectional
-// communication channel for JSON-RPC messages.
+// Takes stream (io.ReadWriteCloser) which provides the bidirectional communication
+// channel for JSON-RPC messages.
 //
 // Returns error when the connection closes with an error condition.
 func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error {
@@ -143,22 +147,21 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 	return conn.Err()
 }
 
-// NewStdioAdapter is the factory function for creating the stdio driving
-// adapter. It requires all the dependencies that the LSP server needs.
+// NewStdioAdapter is the factory function for creating the stdio driving adapter. It
+// requires all the dependencies that the LSP server needs.
 //
-// Takes coordinatorService (coordinator_domain.CoordinatorService) which
-// provides coordination between build and annotation operations.
+// Takes coordinatorService (coordinator_domain.CoordinatorService) which provides
+// coordination between build and annotation operations.
 // Takes resolver (resolver_domain.ResolverPort) which resolves module paths.
-// Takes typeInspectorManager (*inspector_domain.TypeBuilder) which inspects
-// Go types for documentation analysis.
+// Takes typeInspectorManager (*inspector_domain.TypeBuilder) which inspects Go types for
+// documentation analysis.
 // Takes docCache (*lsp_domain.DocumentCache) which caches parsed documents.
-// Takes lspReader (annotator_domain.FSReaderPort) which reads files from the
-// filesystem.
+// Takes lspReader (annotator_domain.FSReaderPort) which reads files from the filesystem.
 // Takes pathsConfig (*config.PathsConfig) which supplies workspace path settings.
 // Takes formattingEnabled (bool) which controls whether formatting is applied.
 //
-// Returns lsp_domain.LSPServerPort which is the configured LSP server adapter
-// ready to handle stdio communication.
+// Returns lsp_domain.LSPServerPort which is the configured LSP server adapter ready to
+// handle stdio communication.
 // Returns error when any required dependency is nil.
 func NewStdioAdapter(
 	coordinatorService coordinator_domain.CoordinatorService,
@@ -196,14 +199,14 @@ func NewStdioAdapter(
 
 // setupLogFile creates the log file and sandbox for LSP protocol logging.
 //
-// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for
-// testing. When nil, a sandbox is created for the temp directory.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access. When nil, a no-op sandbox is used as a fallback.
+// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
+// nil, a sandbox is created for the temp directory.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
+// nil, a no-op sandbox is used as a fallback.
 //
-// Returns *lspLogResources which holds the log file and sandbox handles,
-// or nil if the log file could not be created. The LSP server will continue
-// without protocol logging in that case.
+// Returns *lspLogResources which holds the log file and sandbox handles, or nil if the
+// log file could not be created. The LSP server will continue without protocol logging in
+// that case.
 func setupLogFile(injectedSandbox safedisk.Sandbox, factory safedisk.Factory) *lspLogResources {
 	_, l := logger_domain.From(context.Background(), log)
 

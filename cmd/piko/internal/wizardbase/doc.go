@@ -16,7 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package wizardbase provides reusable building blocks for
-// interactive Bubble Tea wizard flows, including [WizardBase] for
-// common state management and shared rendering functions.
+// Package wizardbase provides reusable building blocks for interactive Bubble Tea wizard
+// flows, including [WizardBase] for common state management and shared rendering
+// functions.
 package wizardbase

@@ -42,14 +42,13 @@ const (
 	fieldNamePadWidth = 20
 )
 
-// findLocalSymbolDefinition searches for any symbol (type, field, variable)
-// in the original .pk script. This is the main entry point for .pk-local
-// definition lookup.
+// findLocalSymbolDefinition searches for any symbol (type, field, variable) in the
+// original .pk script. This is the main entry point for .pk-local definition lookup.
 //
 // Takes symbolName (string) which is the name of the symbol to locate.
 //
-// Returns *protocol.Location which is the location of the symbol definition,
-// or nil if the symbol is not found or the document is not a .pk file.
+// Returns *protocol.Location which is the location of the symbol definition, or nil if
+// the symbol is not found or the document is not a .pk file.
 func (d *document) findLocalSymbolDefinition(ctx context.Context, symbolName string) *protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -92,15 +91,15 @@ func (d *document) findLocalSymbolDefinition(ctx context.Context, symbolName str
 	return nil
 }
 
-// findLocalPKTypeDefinition attempts to find a type definition within the
-// current .pk file's script block. This is necessary because the inspector
-// analyses rewritten code with wrong positions, so we parse the original
-// script content and find definitions directly.
+// findLocalPKTypeDefinition attempts to find a type definition within the current .pk
+// file's script block. This is necessary because the inspector analyses rewritten code
+// with wrong positions, so we parse the original script content and find definitions
+// directly.
 //
 // Takes typeName (string) which specifies the type to search for.
 //
-// Returns *protocol.Location which provides the adjusted position of the type
-// definition, or nil if the type is not defined locally.
+// Returns *protocol.Location which provides the adjusted position of the type definition,
+// or nil if the type is not defined locally.
 func (d *document) findLocalPKTypeDefinition(ctx context.Context, typeName string) *protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -144,13 +143,13 @@ type scriptParseResult struct {
 	Offset *sfcparser.Location
 }
 
-// parseOriginalScriptBlock reads the current .pk file content and extracts
-// the Go script block AST.
+// parseOriginalScriptBlock reads the current .pk file content and extracts the Go script
+// block AST.
 //
-// Returns *scriptParseResult which contains the parsed AST, FileSet, and the
-// script's start location offset within the .pk file.
-// Returns error when the content is empty, SFC parsing fails, no Go script
-// block is found, or the script content cannot be parsed as Go code.
+// Returns *scriptParseResult which contains the parsed AST, FileSet, and the script's
+// start location offset within the .pk file.
+// Returns error when the content is empty, SFC parsing fails, no Go script block is
+// found, or the script content cannot be parsed as Go code.
 func (d *document) parseOriginalScriptBlock() (*scriptParseResult, error) {
 	if len(d.Content) == 0 {
 		return nil, errors.New("no content available for .pk file")
@@ -179,12 +178,11 @@ func (d *document) parseOriginalScriptBlock() (*scriptParseResult, error) {
 	}, nil
 }
 
-// findStateTypeDefinition handles the special "state" identifier.
-// It finds the Render function's first return type and jumps to that type
-// definition.
+// findStateTypeDefinition handles the special "state" identifier. It finds the Render
+// function's first return type and jumps to that type definition.
 //
-// Returns *protocol.Location which points to the state type definition,
-// or nil if the file is not a .pk file or the type cannot be found.
+// Returns *protocol.Location which points to the state type definition, or nil if the
+// file is not a .pk file or the type cannot be found.
 func (d *document) findStateTypeDefinition(ctx context.Context) *protocol.Location {
 	_, l := logger_domain.From(ctx, log)
 
@@ -209,8 +207,7 @@ func (d *document) findStateTypeDefinition(ctx context.Context) *protocol.Locati
 	return d.findLocalPKTypeDefinition(ctx, returnTypeName)
 }
 
-// typeDefLocation holds the location of a type or field definition within a
-// parsed AST.
+// typeDefLocation holds the location of a type or field definition within a parsed AST.
 type typeDefLocation struct {
 	// Name is the name of the type definition.
 	Name string
@@ -228,8 +225,8 @@ type typeDefLocation struct {
 // Takes fset (*token.FileSet) which provides position data for the AST.
 // Takes typeName (string) which is the name of the type to find.
 //
-// Returns *typeDefLocation which contains the position of the type name in
-// the AST, or nil if the type is not found.
+// Returns *typeDefLocation which contains the position of the type name in the AST, or
+// nil if the type is not found.
 func findTypeDefinitionInAST(fileAST *ast.File, fset *token.FileSet, typeName string) *typeDefLocation {
 	for _, declaration := range fileAST.Decls {
 		genDecl, ok := declaration.(*ast.GenDecl)
@@ -256,15 +253,15 @@ func findTypeDefinitionInAST(fileAST *ast.File, fset *token.FileSet, typeName st
 	return nil
 }
 
-// findFunctionDefinitionInAST searches for a function declaration with the
-// given name in the file AST.
+// findFunctionDefinitionInAST searches for a function declaration with the given name in
+// the file AST.
 //
 // Takes fileAST (*ast.File) which contains the parsed Go source file.
 // Takes fset (*token.FileSet) which provides position data for the AST.
 // Takes functionName (string) which is the name of the function to find.
 //
-// Returns *typeDefLocation which contains the position of the function name in
-// the AST, or nil if the function is not found.
+// Returns *typeDefLocation which contains the position of the function name in the AST,
+// or nil if the function is not found.
 func findFunctionDefinitionInAST(fileAST *ast.File, fset *token.FileSet, functionName string) *typeDefLocation {
 	for _, declaration := range fileAST.Decls {
 		funcDecl, ok := declaration.(*ast.FuncDecl)
@@ -284,16 +281,14 @@ func findFunctionDefinitionInAST(fileAST *ast.File, fset *token.FileSet, functio
 	return nil
 }
 
-// findAnyFieldDefinition searches all type definitions in a file for a field
-// with the given name. Use it when the field name is known but not which
-// type it belongs to.
+// findAnyFieldDefinition searches all type definitions in a file for a field with the
+// given name. Use it when the field name is known but not which type it belongs to.
 //
 // Takes fileAST (*ast.File) which contains the parsed Go source file.
 // Takes fset (*token.FileSet) which provides position information.
 // Takes fieldName (string) which specifies the field to search for.
 //
-// Returns *typeDefLocation which contains the field's location, or nil if not
-// found.
+// Returns *typeDefLocation which contains the field's location, or nil if not found.
 func findAnyFieldDefinition(fileAST *ast.File, fset *token.FileSet, fieldName string) *typeDefLocation {
 	for _, declaration := range fileAST.Decls {
 		genDecl, ok := declaration.(*ast.GenDecl)
@@ -321,8 +316,8 @@ func findAnyFieldDefinition(fileAST *ast.File, fset *token.FileSet, fieldName st
 // Takes fset (*token.FileSet) which provides position data.
 // Takes fieldName (string) which specifies the field name to find.
 //
-// Returns *typeDefLocation which contains the field's position, or nil if
-// the type is not a struct or the field is not found.
+// Returns *typeDefLocation which contains the field's position, or nil if the type is not
+// a struct or the field is not found.
 func findFieldDefinitionInType(typeSpec *ast.TypeSpec, fset *token.FileSet, fieldName string) *typeDefLocation {
 	structType, ok := typeSpec.Type.(*ast.StructType)
 	if !ok || structType.Fields == nil {
@@ -348,8 +343,8 @@ func findFieldDefinitionInType(typeSpec *ast.TypeSpec, fset *token.FileSet, fiel
 //
 // Takes fileAST (*ast.File) which contains the parsed Go source file to search.
 //
-// Returns string which is the type name (e.g. "Response") or an empty string
-// if no Render function is found or it has no return values.
+// Returns string which is the type name (e.g. "Response") or an empty string if no Render
+// function is found or it has no return values.
 func findRenderReturnType(fileAST *ast.File) string {
 	for _, declaration := range fileAST.Decls {
 		funcDecl, ok := declaration.(*ast.FuncDecl)
@@ -369,13 +364,12 @@ func findRenderReturnType(fileAST *ast.File) string {
 	return ""
 }
 
-// findRenderPropsType finds the props type from the Render function's second
-// parameter.
+// findRenderPropsType finds the props type from the Render function's second parameter.
 //
 // Takes fileAST (*ast.File) which contains the parsed Go source file to search.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the resolved props type,
-// or nil if the Render function is not found or has fewer than two parameters.
+// Returns *ast_domain.ResolvedTypeInfo which contains the resolved props type, or nil if
+// the Render function is not found or has fewer than two parameters.
 func findRenderPropsType(fileAST *ast.File) *ast_domain.ResolvedTypeInfo {
 	for _, declaration := range fileAST.Decls {
 		funcDecl, ok := declaration.(*ast.FuncDecl)
@@ -393,13 +387,12 @@ func findRenderPropsType(fileAST *ast.File) *ast_domain.ResolvedTypeInfo {
 	return nil
 }
 
-// buildResolvedTypeFromExpr turns an AST type expression into a
-// ResolvedTypeInfo struct.
+// buildResolvedTypeFromExpr turns an AST type expression into a ResolvedTypeInfo struct.
 //
 // Takes typeExpr (ast.Expr) which is the type expression to convert.
 //
-// Returns *ast_domain.ResolvedTypeInfo which holds the type expression and
-// package alias if one exists, or nil if the expression is nil.
+// Returns *ast_domain.ResolvedTypeInfo which holds the type expression and package alias
+// if one exists, or nil if the expression is nil.
 func buildResolvedTypeFromExpr(typeExpr ast.Expr) *ast_domain.ResolvedTypeInfo {
 	if typeExpr == nil {
 		return nil
@@ -435,11 +428,10 @@ func buildResolvedTypeFromExpr(typeExpr ast.Expr) *ast_domain.ResolvedTypeInfo {
 
 // formatTypeExpr converts an ast.Expr to its string form.
 //
-// Takes expression (ast.Expr) which is the type expression
-// to format.
+// Takes expression (ast.Expr) which is the type expression to format.
 //
-// Returns string which is the formatted type name, or "?"
-// if the expression type is not recognised.
+// Returns string which is the formatted type name, or "?" if the expression type is not
+// recognised.
 func formatTypeExpr(expression ast.Expr) string {
 	switch t := expression.(type) {
 	case *ast.Ident:
@@ -468,8 +460,8 @@ func formatTypeExpr(expression ast.Expr) string {
 // Takes typeName (string) which is the name of the type to preview.
 // Takes maxFields (int) which limits how many fields to show.
 //
-// Returns string which is the formatted struct preview, or an empty
-// string if the type is not found or is not a struct.
+// Returns string which is the formatted struct preview, or an empty string if the type is
+// not found or is not a struct.
 func getLocalTypePreview(fileAST *ast.File, _ *token.FileSet, typeName string, maxFields int) string {
 	typeSpec := findTypeSpecByName(fileAST, typeName)
 	if typeSpec == nil {
@@ -513,8 +505,8 @@ func findTypeSpecByName(fileAST *ast.File, typeName string) *ast.TypeSpec {
 
 // formatStructPreview formats a struct type as a preview string.
 //
-// The preview shows the struct definition with up to maxFields fields. If the
-// struct has more fields than the limit, it adds a count of hidden fields.
+// The preview shows the struct definition with up to maxFields fields. If the struct has
+// more fields than the limit, it adds a count of hidden fields.
 //
 // Takes typeName (string) which is the name of the struct type.
 // Takes structType (*ast.StructType) which is the AST node for the struct.
@@ -571,14 +563,14 @@ func countStructFields(structType *ast.StructType) int {
 	return total
 }
 
-// formatLocalFieldLine formats a struct field line for a .pk local AST type
-// preview with proper alignment.
+// formatLocalFieldLine formats a struct field line for a .pk local AST type preview with
+// proper alignment.
 //
 // Takes field (*ast.Field) which provides the field's type and optional tag.
 // Takes fieldName (string) which specifies the field name to display.
 //
-// Returns string which contains the formatted field line with the name padded
-// to a fixed width, followed by the type and tag if present.
+// Returns string which contains the formatted field line with the name padded to a fixed
+// width, followed by the type and tag if present.
 func formatLocalFieldLine(field *ast.Field, fieldName string) string {
 	paddedName := fieldName
 	if len(paddedName) < fieldNamePadWidth {
@@ -598,11 +590,10 @@ func formatLocalFieldLine(field *ast.Field, fieldName string) string {
 	return fmt.Sprintf("%s %s", paddedName, typeString)
 }
 
-// buildProtocolLocation creates a protocol.Location for a symbol at the given
-// position. The line and column are 1-based (as returned by token.Position).
+// buildProtocolLocation creates a protocol.Location for a symbol at the given position.
+// The line and column are 1-based (as returned by token.Position).
 //
-// Takes uri (protocol.DocumentURI) which specifies the document containing the
-// symbol.
+// Takes uri (protocol.DocumentURI) which specifies the document containing the symbol.
 // Takes symbolName (string) which determines the range length for the location.
 // Takes line (int) which is the 1-based line number of the symbol.
 // Takes column (int) which is the 1-based column number of the symbol.

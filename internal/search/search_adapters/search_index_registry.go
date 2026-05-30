@@ -27,31 +27,33 @@ import (
 	"piko.sh/piko/internal/search/search_domain"
 )
 
-// searchIndexRegistry stores all search index data as binary blobs.
-//
-// This is the internal registry populated by generated code during package
-// initialisation via //go:embed directives. Each collection can have multiple
-// search indexes (Fast mode and Smart mode).
-//
-// Design:
-//   - Zero-copy access (data lives in read-only memory segment)
-//   - O(log n) term lookups via binary search
-//   - Supports dual-mode indexing (Fast + Smart)
-//
-// Thread-safety: Safe for concurrent reads after initialisation.
-var searchIndexRegistry = struct {
-	// indexes maps collectionName -> mode -> binary blob.
-	indexes map[string]map[string][]byte
+var (
+	// searchIndexRegistry stores all search index data as binary blobs.
+	//
+	// This is the internal registry populated by generated code during package
+	// initialisation via //go:embed directives. Each collection can have multiple search
+	// indexes (Fast mode and Smart mode).
+	//
+	// Design:
+	//   - Zero-copy access (data lives in read-only memory segment)
+	//   - O(log n) term lookups via binary search
+	//   - Supports dual-mode indexing (Fast + Smart)
+	//
+	// Thread-safety: Safe for concurrent reads after initialisation.
+	searchIndexRegistry = struct {
+		// indexes maps collectionName -> mode -> binary blob.
+		indexes map[string]map[string][]byte
 
-	mu sync.RWMutex
-}{
-	indexes: make(map[string]map[string][]byte),
-}
+		mu sync.RWMutex
+	}{
+		indexes: make(map[string]map[string][]byte),
+	}
+)
 
 // RegisterSearchIndex registers a binary search index blob for a collection.
 //
-// This is called by generated code in init() functions (from //go:embed
-// directives) to register the embedded index binaries for runtime access.
+// This is called by generated code in init() functions (from //go:embed directives) to
+// register the embedded index binaries for runtime access.
 //
 // Takes collectionName (string) which identifies the collection (e.g. "docs").
 // Takes mode (string) which specifies the search mode ("fast" or "smart").
@@ -59,9 +61,9 @@ var searchIndexRegistry = struct {
 //
 // Returns error when the mode is not "fast" or "smart".
 //
-// Safe for concurrent use. The blob is not copied (zero-copy registration);
-// the byte slice points to read-only memory in the executable. Multiple modes
-// can be registered for the same collection.
+// Safe for concurrent use. The blob is not copied (zero-copy registration); the byte
+// slice points to read-only memory in the executable. Multiple modes can be registered
+// for the same collection.
 func RegisterSearchIndex(collectionName, mode string, data []byte) error {
 	searchIndexRegistry.mu.Lock()
 	defer searchIndexRegistry.mu.Unlock()
@@ -81,17 +83,17 @@ func RegisterSearchIndex(collectionName, mode string, data []byte) error {
 
 // GetSearchIndex retrieves a search index reader for a collection and mode.
 //
-// This performs zero-copy initialisation of a FlatBuffer reader for querying
-// the search index. Returns a new reader instance for each call (readers are
-// stateless), while the underlying binary data is shared (zero-copy).
+// This performs zero-copy initialisation of a FlatBuffer reader for querying the search
+// index. Returns a new reader instance for each call (readers are stateless), while the
+// underlying binary data is shared (zero-copy).
 //
 // Takes collectionName (string) which identifies the collection to search.
 // Takes mode (string) which specifies the search mode ("fast" or "smart").
 //
-// Returns search_domain.IndexReaderPort which is an initialised reader for
-// zero-copy queries.
-// Returns error when the collection or mode is not found, or when loading the
-// index fails.
+// Returns search_domain.IndexReaderPort which is an initialised reader for zero-copy
+// queries.
+// Returns error when the collection or mode is not found, or when loading the index
+// fails.
 //
 // Safe for concurrent use. Protected by a read lock on the registry mutex.
 func GetSearchIndex(collectionName, mode string) (search_domain.IndexReaderPort, error) {
@@ -158,8 +160,8 @@ func HasSearchIndex(collectionName, mode string) bool {
 
 // ListSearchIndexes returns all registered search indexes.
 //
-// Returns map[string][]string which maps collection names to their available
-// search modes.
+// Returns map[string][]string which maps collection names to their available search
+// modes.
 //
 // Safe for concurrent use by multiple goroutines.
 func ListSearchIndexes() map[string][]string {
@@ -176,15 +178,14 @@ func ListSearchIndexes() map[string][]string {
 	return result
 }
 
-// GetSearchIndexMetadata returns metadata about a specific search index,
-// aiding debugging and understanding of index characteristics.
+// GetSearchIndexMetadata returns metadata about a specific search index, aiding debugging
+// and understanding of index characteristics.
 //
 // Takes collectionName (string) which identifies the search index collection.
 // Takes mode (string) which specifies the index mode to retrieve.
 //
-// Returns map[string]any which contains the index metadata including format,
-// collection name, mode, document count, vocabulary size, and average document
-// length.
+// Returns map[string]any which contains the index metadata including format, collection
+// name, mode, document count, vocabulary size, and average document length.
 // Returns error when the search index cannot be retrieved.
 func GetSearchIndexMetadata(collectionName, mode string) (map[string]any, error) {
 	reader, err := GetSearchIndex(collectionName, mode)

@@ -18,10 +18,12 @@
 
 package collection_dto
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
-	// ErrProviderNotFound is returned when a requested collection provider is
-	// not registered.
+	// ErrProviderNotFound is returned when a requested collection provider is not
+	// registered.
 	ErrProviderNotFound = errors.New("collection provider not found")
 )

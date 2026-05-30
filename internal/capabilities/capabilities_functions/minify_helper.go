@@ -45,14 +45,13 @@ type minifyConfig struct {
 	contentType string
 }
 
-// createMinifyCapability returns a capability function that minifies content
-// using the provided tdewolff/minify settings.
+// createMinifyCapability returns a capability function that minifies content using the
+// provided tdewolff/minify settings.
 //
-// Takes config (minifyConfig) which specifies the minifier settings and content
-// type.
+// Takes config (minifyConfig) which specifies the minifier settings and content type.
 //
-// Returns capabilities_domain.CapabilityFunc which wraps the minification
-// logic as a streaming capability.
+// Returns capabilities_domain.CapabilityFunc which wraps the minification logic as a
+// streaming capability.
 func createMinifyCapability(config minifyConfig) capabilities_domain.CapabilityFunc {
 	return func(ctx context.Context, inputData io.Reader, _ capabilities_domain.CapabilityParams) (io.Reader, error) {
 		ctx, span, l := log.Span(ctx, config.spanName,

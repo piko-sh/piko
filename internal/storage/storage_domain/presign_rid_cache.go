@@ -27,9 +27,11 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// DefaultRIDCleanupInterval is the default interval for purging expired random
-// identifiers.
-const DefaultRIDCleanupInterval = 1 * time.Minute
+const (
+	// DefaultRIDCleanupInterval is the default interval for purging expired random
+	// identifiers.
+	DefaultRIDCleanupInterval = 1 * time.Minute
+)
 
 // ridEntry stores a random identifier with its expiry time.
 type ridEntry struct {
@@ -40,9 +42,9 @@ type ridEntry struct {
 // PresignRIDCacheOption configures a PresignRIDCache.
 type PresignRIDCacheOption func(*PresignRIDCache)
 
-// PresignRIDCache provides thread-safe random identifier tracking for replay
-// protection. It stores random identifiers with their expiry times and
-// periodically purges expired entries.
+// PresignRIDCache provides thread-safe random identifier tracking for replay protection.
+// It stores random identifiers with their expiry times and periodically purges expired
+// entries.
 type PresignRIDCache struct {
 	// rids maps random identifier strings to their expiry details.
 	rids map[string]ridEntry
@@ -60,18 +62,17 @@ type PresignRIDCache struct {
 	stopped bool
 }
 
-// NewPresignRIDCache creates a new random identifier cache with background
-// cleanup.
+// NewPresignRIDCache creates a new random identifier cache with background cleanup.
 //
-// Takes ctx (context.Context) which is threaded to the background cleanup
-// goroutine for panic recovery.
-// Takes cleanupInterval (time.Duration) which specifies how often to purge
-// expired identifiers. Use DefaultRIDCleanupInterval for sensible defaults.
+// Takes ctx (context.Context) which is threaded to the background cleanup goroutine for
+// panic recovery.
+// Takes cleanupInterval (time.Duration) which specifies how often to purge expired
+// identifiers. Use DefaultRIDCleanupInterval for sensible defaults.
 //
 // Returns *PresignRIDCache which is ready for use.
 //
-// Spawns a background goroutine for periodic cleanup. Call Stop to terminate
-// the cleanup goroutine when the cache is no longer needed.
+// Spawns a background goroutine for periodic cleanup. Call Stop to terminate the cleanup
+// goroutine when the cache is no longer needed.
 func NewPresignRIDCache(ctx context.Context, cleanupInterval time.Duration, opts ...PresignRIDCacheOption) *PresignRIDCache {
 	if cleanupInterval <= 0 {
 		cleanupInterval = DefaultRIDCleanupInterval
@@ -93,15 +94,15 @@ func NewPresignRIDCache(ctx context.Context, cleanupInterval time.Duration, opts
 	return c
 }
 
-// Add registers a random identifier with the given expiry time. Returns true
-// if the identifier was added (not seen before), or false if it already exists
-// (indicating a potential replay attack).
+// Add registers a random identifier with the given expiry time. Returns true if the
+// identifier was added (not seen before), or false if it already exists (indicating a
+// potential replay attack).
 //
 // Takes rid (string) which is the random identifier value to register.
 // Takes expiresAt (time.Time) which is when the identifier should expire.
 //
-// Returns bool which is true if the identifier was successfully added, false if
-// it was already present.
+// Returns bool which is true if the identifier was successfully added, false if it was
+// already present.
 //
 // Safe for concurrent use. Protected by a mutex.
 func (c *PresignRIDCache) Add(rid string, expiresAt time.Time) bool {
@@ -155,8 +156,8 @@ func (c *PresignRIDCache) Clear() {
 	c.rids = make(map[string]ridEntry)
 }
 
-// Stop terminates the background cleanup goroutine.
-// This should be called during graceful shutdown.
+// Stop terminates the background cleanup goroutine. This should be called during graceful
+// shutdown.
 func (c *PresignRIDCache) Stop() {
 	c.mu.Lock()
 	if c.stopped {
@@ -190,8 +191,7 @@ func (c *PresignRIDCache) cleanupLoop(ctx context.Context, interval time.Duratio
 	}
 }
 
-// purgeExpired removes all random identifiers that have passed their expiry
-// time.
+// purgeExpired removes all random identifiers that have passed their expiry time.
 //
 // Safe for concurrent use; acquires the cache mutex during iteration.
 func (c *PresignRIDCache) purgeExpired() {
@@ -207,8 +207,8 @@ func (c *PresignRIDCache) purgeExpired() {
 	}
 }
 
-// WithPresignRIDCacheClock sets the clock used for expiry checks. If not
-// provided, the real system clock is used.
+// WithPresignRIDCacheClock sets the clock used for expiry checks. If not provided, the
+// real system clock is used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //

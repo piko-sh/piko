@@ -33,8 +33,7 @@ import (
 )
 
 const (
-	// currentDirPath represents the current directory path for use in destination
-	// checks.
+	// currentDirPath represents the current directory path for use in destination checks.
 	currentDirPath = "."
 
 	// dirPermissions is the file mode used when creating directories.
@@ -52,37 +51,34 @@ type ScaffoldData struct {
 	// ModuleName is the Go module path for the generated project.
 	ModuleName string
 
-	// DestinationPath is the target directory path; "." means the current
-	// directory.
+	// DestinationPath is the target directory path; "." means the current directory.
 	DestinationPath string
 
-	// PikoVersion is the resolved version of piko.sh/piko to use in the
-	// generated go.mod. When empty, the template falls back to "v0.0.0".
+	// PikoVersion is the resolved version of piko.sh/piko to use in the generated go.mod.
+	// When empty, the template falls back to "v0.0.0".
 	PikoVersion string
 
 	// EnableInterpreted enables experimental interpreted mode support.
 	EnableInterpreted bool
 
-	// EnableAgents enables AI agent integration files (AGENTS.md, SKILL.md,
-	// .claude-plugin/, .lsp.json, references/) for coding assistants.
+	// EnableAgents enables AI agent integration files (AGENTS.md, SKILL.md, .claude-plugin/,
+	// .lsp.json, references/) for coding assistants.
 	EnableAgents bool
 
-	// EnableValidator enables struct validation via the go-playground/validator
-	// wdk module.
+	// EnableValidator enables struct validation via the go-playground/validator wdk module.
 	EnableValidator bool
 
-	// EnableSonicJSON enables the high-performance Sonic JSON provider via
-	// the piko.sh/piko/wdk/json/json_provider_sonic module.
+	// EnableSonicJSON enables the high-performance Sonic JSON provider via the
+	// piko.sh/piko/wdk/json/json_provider_sonic module.
 	EnableSonicJSON bool
 }
 
 // CreateProject sets up a new Piko project at the given destination.
 //
-// Takes data (ScaffoldData) which contains the project name and destination
-// path.
+// Takes data (ScaffoldData) which contains the project name and destination path.
 //
-// Returns error when the destination already exists, the current folder is not
-// empty, or any file operation fails.
+// Returns error when the destination already exists, the current folder is not empty, or
+// any file operation fails.
 func CreateProject(data ScaffoldData) error {
 	sandboxDir, _ := resolveSandboxPaths(data.DestinationPath)
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
@@ -121,12 +117,12 @@ func CreateProject(data ScaffoldData) error {
 	return createAgents(data)
 }
 
-// CopyProjectAgents writes AGENTS.md and references/ to the given directory.
-// Used by the scaffold wizard and `piko agents install` for project-level
-// integration (Codex, Cursor, Copilot, Windsurf, and other AGENTS.md tools).
+// CopyProjectAgents writes AGENTS.md and references/ to the given directory. Used by the
+// scaffold wizard and `piko agents install` for project-level integration (Codex, Cursor,
+// Copilot, Windsurf, and other AGENTS.md tools).
 //
-// Stale files in references/ are removed before copying so that renamed or
-// deleted reference files do not linger across Piko upgrades.
+// Stale files in references/ are removed before copying so that renamed or deleted
+// reference files do not linger across Piko upgrades.
 //
 // Takes destRoot (string) which is the directory to write agent files into.
 //
@@ -148,12 +144,12 @@ func CopyProjectAgents(destRoot string) error {
 	})
 }
 
-// CopyClaudeCodeSkill writes SKILL.md and references/ to the given directory.
-// Used by `piko agents install` to install a personal-level Claude Code skill
-// at ~/.claude/skills/piko/.
+// CopyClaudeCodeSkill writes SKILL.md and references/ to the given directory. Used by
+// `piko agents install` to install a personal-level Claude Code skill at
+// ~/.claude/skills/piko/.
 //
-// The entire destination directory is removed before copying so that renamed
-// or deleted files do not linger across Piko upgrades.
+// The entire destination directory is removed before copying so that renamed or deleted
+// files do not linger across Piko upgrades.
 //
 // Takes destDir (string) which is the directory to write skill files into.
 //
@@ -174,15 +170,13 @@ func CopyClaudeCodeSkill(destDir string) error {
 	})
 }
 
-// validateDestination checks that the destination path is suitable for project
-// creation.
+// validateDestination checks that the destination path is suitable for project creation.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes destinationPath (string) which is the path to validate.
 //
-// Returns error when the sandbox cannot be created, the path cannot be checked,
-// or the existing path is not suitable for project creation.
+// Returns error when the sandbox cannot be created, the path cannot be checked, or the
+// existing path is not suitable for project creation.
 func validateDestination(factory safedisk.Factory, destinationPath string) error {
 	sandboxDir, checkPath := resolveSandboxPaths(destinationPath)
 
@@ -202,8 +196,7 @@ func validateDestination(factory safedisk.Factory, destinationPath string) error
 	return nil
 }
 
-// resolveSandboxPaths determines the sandbox directory and check path for
-// validation.
+// resolveSandboxPaths determines the sandbox directory and check path for validation.
 //
 // Takes destinationPath (string) which specifies the target path to resolve.
 //
@@ -220,15 +213,14 @@ func resolveSandboxPaths(destinationPath string) (sandboxDir, checkPath string) 
 	return filepath.Dir(destinationPath), filepath.Base(destinationPath)
 }
 
-// validateExistingPath checks if an existing path is suitable for project
-// creation.
+// validateExistingPath checks if an existing path is suitable for project creation.
 //
 // Takes sandbox (safedisk.Sandbox) which provides filesystem access.
 // Takes info (os.FileInfo) which contains metadata about the existing path.
 // Takes destinationPath (string) which specifies the target project location.
 //
-// Returns error when the path is not a directory, already exists as a named
-// directory, or the current directory is not empty.
+// Returns error when the path is not a directory, already exists as a named directory, or
+// the current directory is not empty.
 func validateExistingPath(sandbox safedisk.Sandbox, info os.FileInfo, destinationPath string) error {
 	if !info.IsDir() {
 		return fmt.Errorf("path '%s' already exists and is not a directory", destinationPath)
@@ -243,16 +235,12 @@ func validateExistingPath(sandbox safedisk.Sandbox, info os.FileInfo, destinatio
 	return nil
 }
 
-// createDirs creates the standard project directory structure at the given
-// path.
+// createDirs creates the standard project directory structure at the given path.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
-// Takes data (ScaffoldData) which provides the destination path and feature
-// flags.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
+// Takes data (ScaffoldData) which provides the destination path and feature flags.
 //
-// Returns error when the sandbox cannot be created or a directory cannot be
-// made.
+// Returns error when the sandbox cannot be created or a directory cannot be made.
 func createDirs(factory safedisk.Factory, data ScaffoldData) error {
 	dirs := []string{
 		"actions/greeting",
@@ -288,14 +276,13 @@ func createDirs(factory safedisk.Factory, data ScaffoldData) error {
 
 // createStaticFiles copies embedded files to a destination directory.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes destinationPath (string) which specifies where files will be written.
 // Takes sourceFS (embed.FS) which contains the embedded source files.
 // Takes files (map[string]string) which maps destination paths to source paths.
 //
-// Returns error when the sandbox cannot be created, a source file cannot be
-// read, or a destination file cannot be written.
+// Returns error when the sandbox cannot be created, a source file cannot be read, or a
+// destination file cannot be written.
 func createStaticFiles(factory safedisk.Factory, destinationPath string, sourceFS embed.FS, files map[string]string) error {
 	sandbox, err := factory.Create("scaffold-static", destinationPath, safedisk.ModeReadWrite)
 	if err != nil {
@@ -318,8 +305,7 @@ func createStaticFiles(factory safedisk.Factory, destinationPath string, sourceF
 
 // createReadmes creates README files for all standard project folders.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes data (ScaffoldData) which provides template values and the output path.
 //
 // Returns error when any file creation or template processing fails.
@@ -353,10 +339,8 @@ func createReadmes(factory safedisk.Factory, data ScaffoldData) error {
 
 // createConfigs copies configuration files to the given path.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
-// Takes data (ScaffoldData) which provides the destination path and feature
-// flags.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
+// Takes data (ScaffoldData) which provides the destination path and feature flags.
 //
 // Returns error when the files cannot be created.
 func createConfigs(factory safedisk.Factory, data ScaffoldData) error {
@@ -376,8 +360,7 @@ func createConfigs(factory safedisk.Factory, data ScaffoldData) error {
 
 // createIcons copies SVG icon files to the project's lib/icons directory.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes data (ScaffoldData) which provides the destination path.
 //
 // Returns error when the files cannot be created.
@@ -395,8 +378,7 @@ func createIcons(factory safedisk.Factory, data ScaffoldData) error {
 
 // createTemplateFiles creates the project scaffold by rendering templates.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes data (ScaffoldData) which contains the project settings.
 //
 // Returns error when a template cannot be created.
@@ -442,16 +424,14 @@ func createTemplateFiles(factory safedisk.Factory, data ScaffoldData) error {
 
 // createFromTemplate creates a file at destPath by executing a named template.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes destPath (string) which is the path where the file will be created.
-// Takes templateName (string) which is the template file to parse from
-// sourceFS.
+// Takes templateName (string) which is the template file to parse from sourceFS.
 // Takes sourceFS (embed.FS) which contains the embedded template files.
 // Takes data (ScaffoldData) which provides the values for template execution.
 //
-// Returns error when the template cannot be parsed, the file cannot be created,
-// or template execution fails.
+// Returns error when the template cannot be parsed, the file cannot be created, or
+// template execution fails.
 func createFromTemplate(factory safedisk.Factory, destPath, templateName string, sourceFS embed.FS, data ScaffoldData) error {
 	parsedTemplate, err := template.New(filepath.Base(templateName)).ParseFS(sourceFS, templateName)
 	if err != nil {
@@ -479,12 +459,11 @@ func createFromTemplate(factory safedisk.Factory, destPath, templateName string,
 	return nil
 }
 
-// createAgents copies project-level AI agent files into the project when
-// enabled. Only AGENTS.md and references/ are written  - Claude Code-specific
-// files are installed globally via `piko agents install`.
+// createAgents copies project-level AI agent files into the project when enabled. Only
+// AGENTS.md and references/ are written - Claude Code-specific files are installed
+// globally via `piko agents install`.
 //
-// Takes data (ScaffoldData) which provides the destination path and feature
-// flags.
+// Takes data (ScaffoldData) which provides the destination path and feature flags.
 //
 // Returns error when the embedded files cannot be copied.
 func createAgents(data ScaffoldData) error {
@@ -494,9 +473,9 @@ func createAgents(data ScaffoldData) error {
 	return CopyProjectAgents(data.DestinationPath)
 }
 
-// copyAgentFiles walks the embedded agents filesystem and copies files
-// matching the include filter to destRoot, preserving directory structure.
-// Parent directories are created on demand.
+// copyAgentFiles walks the embedded agents filesystem and copies files matching the
+// include filter to destRoot, preserving directory structure. Parent directories are
+// created on demand.
 //
 // Takes destRoot (string) which is the target directory.
 // Takes include (func(string) bool) which returns true for paths to copy.

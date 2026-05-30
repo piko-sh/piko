@@ -1,0 +1,4 @@
+{
+  "description": "Generic type aliases (Go 1.24) declared in one file are constructed and consumed across files; tests instantiation, struct field access, and slice operations on aliased generic types",
+  "expected": "total=6 pair=name:piko"
+}

@@ -24,11 +24,10 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the section under the
-// cursor: its full label, every field, and its current value.
+// DetailView renders the detail-pane body for the section under the cursor: its full
+// label, every field, and its current value.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogConfigPanel) DetailView(width, height int) string {
@@ -36,11 +35,11 @@ func (p *WatchdogConfigPanel) DetailView(width, height int) string {
 	return RenderDetailBody(p.theme, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// currently-selected section.
+// buildDetailBody assembles the structured detail content based on the currently-selected
+// section.
 //
-// Returns inspector.DetailBody describing the selected configuration section, or
-// the configuration overview when no section is highlighted.
+// Returns inspector.DetailBody describing the selected configuration section, or the
+// configuration overview when no section is highlighted.
 func (p *WatchdogConfigPanel) buildDetailBody() inspector.DetailBody {
 	status := p.snapshot()
 	if status == nil {
@@ -80,8 +79,8 @@ func configOverviewDetailBody(sections []configSection, status *WatchdogStatus) 
 	}
 }
 
-// configSectionDetailBody renders every field in a section against the
-// current status snapshot.
+// configSectionDetailBody renders every field in a section against the current status
+// snapshot.
 //
 // Takes section (configSection) which is the section to render.
 // Takes status (*WatchdogStatus) which is the current watchdog status snapshot.

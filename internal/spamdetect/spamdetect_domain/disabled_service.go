@@ -25,12 +25,13 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// DisabledSpamDetectService implements SpamDetectServicePort but returns
-// errors for analysis operations. Used when no spam detection detector is
-// configured.
+// DisabledSpamDetectService implements SpamDetectServicePort but returns errors for
+// analysis operations. Used when no spam detection detector is configured.
 type DisabledSpamDetectService struct{}
 
-var _ SpamDetectServicePort = (*DisabledSpamDetectService)(nil)
+var (
+	_ SpamDetectServicePort = (*DisabledSpamDetectService)(nil)
+)
 
 // NewDisabledSpamDetectService creates a disabled spam detection service.
 //

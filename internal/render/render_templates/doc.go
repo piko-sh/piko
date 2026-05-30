@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package render_templates provides quicktemplate-based HTML page wrappers
-// for different output contexts: full web pages, partial fragments, and
-// email messages.
+// Package render_templates provides quicktemplate-based HTML page wrappers for different
+// output contexts: full web pages, partial fragments, and email messages.
 //
-// The .qtpl.go files are generated from .qtpl template sources. Do not edit
-// them directly; modify the .qtpl files and regenerate.
+// The .qtpl.go files are generated from .qtpl template sources. Do not edit them
+// directly; modify the .qtpl files and regenerate.
 package render_templates

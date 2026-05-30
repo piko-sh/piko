@@ -58,8 +58,7 @@ type cacheMetrics struct {
 	// errors counts failed cache operations.
 	errors metric.Int64Counter
 
-	// serviceLatency records the latency of cache service operations
-	// in milliseconds.
+	// serviceLatency records the latency of cache service operations in milliseconds.
 	serviceLatency metric.Float64Histogram
 
 	// serviceHits counts cache hits from the overall cache service.

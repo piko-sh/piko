@@ -25,43 +25,41 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 )
 
-// MockFileSystemWatcher is a test double for FileSystemWatcher that
-// returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockFileSystemWatcher is a test double for FileSystemWatcher that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockFileSystemWatcher struct {
 	// WatchFunc is the function called by Watch.
 	WatchFunc func(ctx context.Context, recursiveDirs []string, nonRecursiveDirs []string) (<-chan lifecycle_dto.FileEvent, error)
 
-	// UpdateWatchedFilesFunc is the function called by
-	// UpdateWatchedFiles.
+	// UpdateWatchedFilesFunc is the function called by UpdateWatchedFiles.
 	UpdateWatchedFilesFunc func(ctx context.Context, files []string) error
 
 	// CloseFunc is the function called by Close.
 	CloseFunc func() error
 
 	// WatchCallCount tracks how many times Watch was called.
-	WatchCallCount int64
+	WatchCallCount atomic.Int64
 
-	// UpdateWatchedFilesCallCount tracks how many times
-	// UpdateWatchedFiles was called.
-	UpdateWatchedFilesCallCount int64
+	// UpdateWatchedFilesCallCount tracks how many times UpdateWatchedFiles was called.
+	UpdateWatchedFilesCallCount atomic.Int64
 
 	// CloseCallCount tracks how many times Close was called.
-	CloseCallCount int64
+	CloseCallCount atomic.Int64
 }
 
-var _ FileSystemWatcher = (*MockFileSystemWatcher)(nil)
+var (
+	_ FileSystemWatcher = (*MockFileSystemWatcher)(nil)
+)
 
 // Watch begins watching the specified directories for file changes.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes recursiveDirs ([]string) which lists directories to watch recursively.
-// Takes nonRecursiveDirs ([]string) which lists directories to
-// watch non-recursively.
+// Takes nonRecursiveDirs ([]string) which lists directories to watch non-recursively.
 //
 // Returns (<-chan FileEvent, error), or (nil, nil) if WatchFunc is nil.
 func (m *MockFileSystemWatcher) Watch(ctx context.Context, recursiveDirs []string, nonRecursiveDirs []string) (<-chan lifecycle_dto.FileEvent, error) {
-	atomic.AddInt64(&m.WatchCallCount, 1)
+	m.WatchCallCount.Add(1)
 	if m.WatchFunc != nil {
 		return m.WatchFunc(ctx, recursiveDirs, nonRecursiveDirs)
 	}
@@ -75,7 +73,7 @@ func (m *MockFileSystemWatcher) Watch(ctx context.Context, recursiveDirs []strin
 //
 // Returns error, or nil if UpdateWatchedFilesFunc is nil.
 func (m *MockFileSystemWatcher) UpdateWatchedFiles(ctx context.Context, files []string) error {
-	atomic.AddInt64(&m.UpdateWatchedFilesCallCount, 1)
+	m.UpdateWatchedFilesCallCount.Add(1)
 	if m.UpdateWatchedFilesFunc != nil {
 		return m.UpdateWatchedFilesFunc(ctx, files)
 	}
@@ -86,7 +84,7 @@ func (m *MockFileSystemWatcher) UpdateWatchedFiles(ctx context.Context, files []
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockFileSystemWatcher) Close() error {
-	atomic.AddInt64(&m.CloseCallCount, 1)
+	m.CloseCallCount.Add(1)
 	if m.CloseFunc != nil {
 		return m.CloseFunc()
 	}

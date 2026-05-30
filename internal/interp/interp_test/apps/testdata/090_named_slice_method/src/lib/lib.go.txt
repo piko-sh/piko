@@ -1,0 +1,39 @@
+package lib
+
+// Filters is a named slice type - the cross-package GET_METHOD
+// receiver case the compile-time getMethodReceiverTypeNames table
+// exists to support. The runtime reflect.Type for a slice has no
+// fields, so the `_pikoID_<Name>` sentinel can't carry the name;
+// the compiler-recorded "Filters" entry on the GET_METHOD's PC is
+// what handleGetMethod consults to look up "Filters.Match" in
+// globalStore.externalMethods.
+type Filters []func(int) bool
+
+func NewFilters() Filters {
+	return Filters{}
+}
+
+func (f Filters) Add(predicate func(int) bool) Filters {
+	return append(f, predicate)
+}
+
+func (f Filters) Match(candidate int) bool {
+	for _, predicate := range f {
+		if !predicate(candidate) {
+			return false
+		}
+	}
+	return true
+}
+
+func GreaterThan(threshold int) func(int) bool {
+	return func(value int) bool { return value > threshold }
+}
+
+func LessThan(threshold int) func(int) bool {
+	return func(value int) bool { return value < threshold }
+}
+
+func NotEqual(other int) func(int) bool {
+	return func(value int) bool { return value != other }
+}

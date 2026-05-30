@@ -32,11 +32,10 @@ import (
 	"piko.sh/piko/wdk/events/events_provider_gochannel"
 )
 
-// GetEventBus returns the application event bus for publish/subscribe
-// messaging.
+// GetEventBus returns the application event bus for publish/subscribe messaging.
 //
-// Returns orchestrator_domain.EventBus which provides publish/subscribe
-// messaging capabilities.
+// Returns orchestrator_domain.EventBus which provides publish/subscribe messaging
+// capabilities.
 // Returns error when the underlying events provider cannot be initialised.
 func (c *Container) GetEventBus() (orchestrator_domain.EventBus, error) {
 	c.eventBusOnce.Do(func() {
@@ -64,9 +63,9 @@ func (c *Container) GetEventBus() (orchestrator_domain.EventBus, error) {
 	return c.eventBus, c.eventBusErr
 }
 
-// GetEventsProvider returns the events infrastructure provider, initialising a
-// default GoChannel provider if none was provided. The provider gives access to
-// Watermill Router, Publisher, and Subscriber for advanced use cases.
+// GetEventsProvider returns the events infrastructure provider, initialising a default
+// GoChannel provider if none was provided. The provider gives access to Watermill Router,
+// Publisher, and Subscriber for advanced use cases.
 //
 // Returns events_domain.Provider which provides event infrastructure access.
 // Returns error when the provider could not be created.
@@ -83,8 +82,8 @@ func (c *Container) GetEventsProvider() (events_domain.Provider, error) {
 	return c.eventsProvider, c.eventsProviderErr
 }
 
-// SetEventsProvider sets a custom events provider implementation.
-// This must be called before GetEventBus or GetEventsProvider to take effect.
+// SetEventsProvider sets a custom events provider implementation. This must be called
+// before GetEventBus or GetEventsProvider to take effect.
 //
 // Takes provider (events_domain.Provider) which is the custom provider to use.
 func (c *Container) SetEventsProvider(provider events_domain.Provider) {

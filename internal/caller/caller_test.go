@@ -357,7 +357,9 @@ func BenchmarkCaller(b *testing.B) {
 	_ = pc
 }
 
-var sinkPCs caller.PCs
+var (
+	sinkPCs caller.PCs
+)
 
 func BenchmarkCallers(b *testing.B) {
 	b.ReportAllocs()
@@ -419,7 +421,9 @@ func BenchmarkRuntimeCallers(b *testing.B) {
 	}
 }
 
-var sinkFrame string
+var (
+	sinkFrame string
+)
 
 func BenchmarkFormattedFrame_Cached(b *testing.B) {
 	b.ReportAllocs()

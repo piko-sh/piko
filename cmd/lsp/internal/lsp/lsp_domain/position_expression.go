@@ -30,22 +30,20 @@ import (
 )
 
 const (
-	// maxRangeValue is a large value used to represent an unbounded range
-	// endpoint. Used when initialising a "worst case" range that any valid range
-	// will be smaller than.
+	// maxRangeValue is a large value used to represent an unbounded range endpoint. Used
+	// when initialising a "worst case" range that any valid range will be smaller than.
 	maxRangeValue = 999999
 
-	// lineSizeMultiplier is used in range size calculations to weight line
-	// differences more heavily than character differences, ensuring multi-line
-	// ranges are compared correctly.
+	// lineSizeMultiplier is used in range size calculations to weight line differences more
+	// heavily than character differences, ensuring multi-line ranges are compared correctly.
 	lineSizeMultiplier = 10000
 )
 
 // expressionFindResult holds the result of finding an expression at a position.
 type expressionFindResult struct {
-	// memberContext is the MemberExpr whose property contains the cursor, if any.
-	// It provides method lookup context when the best match is an Identifier that
-	// is the property of a MemberExpr.
+	// memberContext is the MemberExpr whose property contains the cursor, if any. It
+	// provides method lookup context when the best match is an Identifier that is the
+	// property of a MemberExpr.
 	memberContext *ast_domain.MemberExpression
 
 	// bestMatch is the most specific expression found at the target position.
@@ -55,37 +53,36 @@ type expressionFindResult struct {
 	bestRange protocol.Range
 }
 
-// findExpressionAtPosition searches the AST to find the most specific
-// expression node at the given cursor position.
+// findExpressionAtPosition searches the AST to find the most specific expression node at
+// the given cursor position.
 //
-// The search works in steps: first it finds the template node that contains
-// the cursor, then it looks for the attribute or interpolation block within
-// that node, and finally it searches down through the expression tree to find
-// the most specific sub-expression.
+// The search works in steps: first it finds the template node that contains the cursor,
+// then it looks for the attribute or interpolation block within that node, and finally it
+// searches down through the expression tree to find the most specific sub-expression.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which is the cursor position to find.
 // Takes docPath (string) which is the document path for node matching.
 //
-// Returns ast_domain.Expression which is the most specific expression at the
-// position, or nil if none is found.
-// Returns protocol.Range which is the range of the found expression, or an
-// empty range if none is found.
+// Returns ast_domain.Expression which is the most specific expression at the position, or
+// nil if none is found.
+// Returns protocol.Range which is the range of the found expression, or an empty range if
+// none is found.
 func findExpressionAtPosition(ctx context.Context, tree *ast_domain.TemplateAST, position protocol.Position, docPath string) (ast_domain.Expression, protocol.Range) {
 	result := findExpressionAtPositionWithContext(ctx, tree, position, docPath)
 	return result.bestMatch, result.bestRange
 }
 
-// findExpressionAtPositionWithContext searches the AST to find the most
-// specific expression node at a cursor position and tracks method context
-// for method signature lookups.
+// findExpressionAtPositionWithContext searches the AST to find the most specific
+// expression node at a cursor position and tracks method context for method signature
+// lookups.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which is the cursor position to find.
 // Takes docPath (string) which is the document path for node matching.
 //
-// Returns expressionFindResult which contains the most specific expression,
-// its range, and any MemberExpr context for method lookups.
+// Returns expressionFindResult which contains the most specific expression, its range,
+// and any MemberExpr context for method lookups.
 func findExpressionAtPositionWithContext(ctx context.Context, tree *ast_domain.TemplateAST, position protocol.Position, docPath string) expressionFindResult {
 	_, l := logger_domain.From(ctx, log)
 
@@ -105,15 +102,15 @@ func findExpressionAtPositionWithContext(ctx context.Context, tree *ast_domain.T
 	return findMostSpecificExpression(topLevelExpr, baseLocation, position)
 }
 
-// findTargetNodeWithFallback finds the target node at the given position,
-// trying partial invocation fallback if the primary search fails.
+// findTargetNodeWithFallback finds the target node at the given position, trying partial
+// invocation fallback if the primary search fails.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which specifies the cursor position.
 // Takes docPath (string) which identifies the document being searched.
 //
-// Returns *ast_domain.TemplateNode which is the found node, or nil if no node
-// exists at the position.
+// Returns *ast_domain.TemplateNode which is the found node, or nil if no node exists at
+// the position.
 func findTargetNodeWithFallback(ctx context.Context, tree *ast_domain.TemplateAST, position protocol.Position, docPath string) *ast_domain.TemplateNode {
 	_, l := logger_domain.From(ctx, log)
 
@@ -138,8 +135,7 @@ func findTargetNodeWithFallback(ctx context.Context, tree *ast_domain.TemplateAS
 
 // logTargetNodeInfo logs debug information about a target node.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which is the node to log details
-// for.
+// Takes targetNode (*ast_domain.TemplateNode) which is the node to log details for.
 func logTargetNodeInfo(ctx context.Context, targetNode *ast_domain.TemplateNode) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -159,8 +155,7 @@ func logTargetNodeInfo(ctx context.Context, targetNode *ast_domain.TemplateNode)
 		logger_domain.Int("numDynAttrs", len(targetNode.DynamicAttributes)))
 }
 
-// findExpressionOnNodeOrChildren finds an expression on the node or its
-// children.
+// findExpressionOnNodeOrChildren finds an expression on the node or its children.
 //
 // Takes tree (*ast_domain.TemplateAST) which provides the full template AST.
 // Takes targetNode (*ast_domain.TemplateNode) which is the node to search.
@@ -184,14 +179,12 @@ func findExpressionOnNodeOrChildren(ctx context.Context, tree *ast_domain.Templa
 
 // findExprInTextChildren searches text node children for rich text expressions.
 //
-// Takes targetNode (*ast_domain.TemplateNode) which is the node whose children
-// to search.
-// Takes position (protocol.Position) which specifies the position
-// to match against.
+// Takes targetNode (*ast_domain.TemplateNode) which is the node whose children to search.
+// Takes position (protocol.Position) which specifies the position to match against.
 //
 // Returns ast_domain.Expression which is the found expression, or nil if none.
-// Returns ast_domain.Location which is the location of the expression, or an
-// empty location if none found.
+// Returns ast_domain.Location which is the location of the expression, or an empty
+// location if none found.
 func findExprInTextChildren(ctx context.Context, targetNode *ast_domain.TemplateNode, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -208,8 +201,8 @@ func findExprInTextChildren(ctx context.Context, targetNode *ast_domain.Template
 	return nil, ast_domain.Location{}
 }
 
-// tryPartialInvocationFallback tries to find an expression on a partial
-// invocation node when the primary node lookup fails.
+// tryPartialInvocationFallback tries to find an expression on a partial invocation node
+// when the primary node lookup fails.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which is the cursor position to check.
@@ -235,19 +228,16 @@ func tryPartialInvocationFallback(ctx context.Context, tree *ast_domain.Template
 	return expression, location
 }
 
-// findMostSpecificExpression searches an expression tree to find the smallest
-// expression that contains the given position.
+// findMostSpecificExpression searches an expression tree to find the smallest expression
+// that contains the given position.
 //
-// Takes expression (ast_domain.Expression) which is the root
-// expression to search.
-// Takes baseLocation (ast_domain.Location) which provides the base
-// offset for range calculations.
-// Takes position (protocol.Position) which is the position to find
-// within the tree.
+// Takes expression (ast_domain.Expression) which is the root expression to search.
+// Takes baseLocation (ast_domain.Location) which provides the base offset for range
+// calculations.
+// Takes position (protocol.Position) which is the position to find within the tree.
 //
-// Returns expressionFindResult which contains the most specific
-// expression found at the position, or an empty result if no match
-// exists.
+// Returns expressionFindResult which contains the most specific expression found at the
+// position, or an empty result if no match exists.
 func findMostSpecificExpression(expression ast_domain.Expression, baseLocation ast_domain.Location, position protocol.Position) expressionFindResult {
 	result := expressionFindResult{
 		bestRange: protocol.Range{
@@ -261,17 +251,13 @@ func findMostSpecificExpression(expression ast_domain.Expression, baseLocation a
 	return result
 }
 
-// visitExpressionTreeWithContext walks an expression tree and tracks both the
-// most specific expression and any MemberExpr context for method lookups.
+// visitExpressionTreeWithContext walks an expression tree and tracks both the most
+// specific expression and any MemberExpr context for method lookups.
 //
-// Takes expression (ast_domain.Expression) which is the expression
-// to visit.
-// Takes baseLocation (ast_domain.Location) which provides position
-// offsets.
-// Takes position (protocol.Position) which is the target cursor
-// position.
-// Takes result (*expressionFindResult) which stores the search
-// results.
+// Takes expression (ast_domain.Expression) which is the expression to visit.
+// Takes baseLocation (ast_domain.Location) which provides position offsets.
+// Takes position (protocol.Position) which is the target cursor position.
+// Takes result (*expressionFindResult) which stores the search results.
 func visitExpressionTreeWithContext(expression ast_domain.Expression, baseLocation ast_domain.Location, position protocol.Position, result *expressionFindResult) {
 	if expression == nil {
 		return
@@ -299,17 +285,13 @@ func visitExpressionTreeWithContext(expression ast_domain.Expression, baseLocati
 	visitExpressionChildrenWithContext(expression, baseLocation, position, result)
 }
 
-// visitExpressionChildrenWithContext visits child expressions with context
-// tracking.
+// visitExpressionChildrenWithContext visits child expressions with context tracking.
 //
-// Takes expression (ast_domain.Expression) which is the parent
-// expression to visit.
-// Takes baseLocation (ast_domain.Location) which is the base
-// position for calculating child locations.
-// Takes position (protocol.Position) which is the cursor position
-// being searched.
-// Takes result (*expressionFindResult) which accumulates matching
-// expressions.
+// Takes expression (ast_domain.Expression) which is the parent expression to visit.
+// Takes baseLocation (ast_domain.Location) which is the base position for calculating
+// child locations.
+// Takes position (protocol.Position) which is the cursor position being searched.
+// Takes result (*expressionFindResult) which accumulates matching expressions.
 func visitExpressionChildrenWithContext(expression ast_domain.Expression, baseLocation ast_domain.Location, position protocol.Position, result *expressionFindResult) {
 	switch n := expression.(type) {
 	case *ast_domain.IndexExpression:
@@ -355,8 +337,8 @@ func visitExpressionChildrenWithContext(expression ast_domain.Expression, baseLo
 // visitForInExprChildrenWithContext visits the child nodes of a ForInExpr.
 //
 // Takes n (*ast_domain.ForInExpression) which is the for-in expression to visit.
-// Takes baseLocation (ast_domain.Location) which is the base location for
-// position calculations.
+// Takes baseLocation (ast_domain.Location) which is the base location for position
+// calculations.
 // Takes position (protocol.Position) which is the position to match against.
 // Takes result (*expressionFindResult) which accumulates matching expressions.
 func visitForInExprChildrenWithContext(n *ast_domain.ForInExpression, baseLocation ast_domain.Location, position protocol.Position, result *expressionFindResult) {
@@ -369,16 +351,14 @@ func visitForInExprChildrenWithContext(n *ast_domain.ForInExpression, baseLocati
 	visitExpressionTreeWithContext(n.Collection, baseLocation, position, result)
 }
 
-// calculateExpressionRange computes the LSP range for an expression given its
-// base location.
+// calculateExpressionRange computes the LSP range for an expression given its base
+// location.
 //
-// Takes expression (ast_domain.Expression) which is the expression
-// to compute the range for.
-// Takes baseLocation (ast_domain.Location) which is the base
-// position to offset from.
+// Takes expression (ast_domain.Expression) which is the expression to compute the range
+// for.
+// Takes baseLocation (ast_domain.Location) which is the base position to offset from.
 //
-// Returns protocol.Range which is the computed range with start and
-// end positions.
+// Returns protocol.Range which is the computed range with start and end positions.
 func calculateExpressionRange(expression ast_domain.Expression, baseLocation ast_domain.Location) protocol.Range {
 	finalStart := baseLocation.Add(expression.GetRelativeLocation())
 	expressionLength := expression.GetSourceLength()
@@ -395,13 +375,11 @@ func calculateExpressionRange(expression ast_domain.Expression, baseLocation ast
 	}
 }
 
-// visitExpressionTree walks an expression tree and calls the visitor function
-// for each node.
+// visitExpressionTree walks an expression tree and calls the visitor function for each
+// node.
 //
-// Takes expression (ast_domain.Expression) which is the root
-// expression to walk.
-// Takes visitor (func(...)) which is called for each node in the
-// tree.
+// Takes expression (ast_domain.Expression) which is the root expression to walk.
+// Takes visitor (func(...)) which is called for each node in the tree.
 func visitExpressionTree(expression ast_domain.Expression, visitor func(ast_domain.Expression)) {
 	if expression == nil {
 		return
@@ -412,10 +390,8 @@ func visitExpressionTree(expression ast_domain.Expression, visitor func(ast_doma
 
 // visitExpressionChildren visits each child node of the given expression.
 //
-// Takes expression (ast_domain.Expression) which is the parent
-// expression to visit.
-// Takes visitor (func(...)) which is called for each child
-// expression.
+// Takes expression (ast_domain.Expression) which is the parent expression to visit.
+// Takes visitor (func(...)) which is called for each child expression.
 func visitExpressionChildren(expression ast_domain.Expression, visitor func(ast_domain.Expression)) {
 	switch n := expression.(type) {
 	case *ast_domain.MemberExpression:
@@ -461,8 +437,7 @@ func visitExpressionChildren(expression ast_domain.Expression, visitor func(ast_
 
 // visitForInExprChildren visits the child nodes of a ForInExpr node.
 //
-// Takes n (*ast_domain.ForInExpression) which is the for-in
-// expression to traverse.
+// Takes n (*ast_domain.ForInExpression) which is the for-in expression to traverse.
 // Takes visitor (func(...)) which is called for each child expression found.
 func visitForInExprChildren(n *ast_domain.ForInExpression, visitor func(ast_domain.Expression)) {
 	if n.IndexVariable != nil {
@@ -474,13 +449,12 @@ func visitForInExprChildren(n *ast_domain.ForInExpression, visitor func(ast_doma
 	visitExpressionTree(n.Collection, visitor)
 }
 
-// findTopLevelExpressionOnNode searches a template node to find the expression
-// container at the given position. It checks dynamic attributes, directives,
-// rich text interpolations, and static attributes.
+// findTopLevelExpressionOnNode searches a template node to find the expression container
+// at the given position. It checks dynamic attributes, directives, rich text
+// interpolations, and static attributes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to search.
-// Takes position (protocol.Position) which is the position to
-// find an expression at.
+// Takes position (protocol.Position) which is the position to find an expression at.
 //
 // Returns ast_domain.Expression which is the found expression, or nil if none.
 // Returns ast_domain.Location which is the location of the expression.
@@ -508,15 +482,15 @@ func findTopLevelExpressionOnNode(ctx context.Context, node *ast_domain.Template
 	return nil, ast_domain.Location{}
 }
 
-// findExprInPassedProps searches passed props for an expression at the given
-// position. This handles server.* prefixed attributes on partial invocations.
+// findExprInPassedProps searches passed props for an expression at the given position.
+// This handles server.* prefixed attributes on partial invocations.
 //
 // Takes ctx (context.Context) which carries the request context for logging.
 // Takes node (*ast_domain.TemplateNode) which is the node to search.
 // Takes position (protocol.Position) which is the position to find.
 //
-// Returns ast_domain.Expression which is the expression at the position, or
-// nil if not found.
+// Returns ast_domain.Expression which is the expression at the position, or nil if not
+// found.
 // Returns ast_domain.Location which is the location of the expression.
 func findExprInPassedProps(ctx context.Context, node *ast_domain.TemplateNode, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	_, l := logger_domain.From(ctx, log)
@@ -555,15 +529,13 @@ func findExprInPassedProps(ctx context.Context, node *ast_domain.TemplateNode, p
 	return nil, ast_domain.Location{}
 }
 
-// copyAnnotationToExpression copies relevant fields from an annotation to
-// the expression's own GoAnnotations. This is needed for PassedProps where
-// the type info is stored in InvokerAnnotation but hover code expects it
-// on the expression itself.
+// copyAnnotationToExpression copies relevant fields from an annotation to the
+// expression's own GoAnnotations. This is needed for PassedProps where the type info is
+// stored in InvokerAnnotation but hover code expects it on the expression itself.
 //
-// Takes expression (ast_domain.Expression) which is the target
-// expression to update.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the
-// annotation data to copy.
+// Takes expression (ast_domain.Expression) which is the target expression to update.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation data to
+// copy.
 func copyAnnotationToExpression(expression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation) {
 	if expression == nil || ann == nil {
 		return
@@ -583,17 +555,17 @@ func copyAnnotationToExpression(expression ast_domain.Expression, ann *ast_domai
 	}
 }
 
-// findExprInDynamicAttrs searches dynamic attributes for an expression at the
-// given position.
+// findExprInDynamicAttrs searches dynamic attributes for an expression at the given
+// position.
 //
-// Takes attrs ([]ast_domain.DynamicAttribute) which is the list of dynamic
-// attributes to search.
+// Takes attrs ([]ast_domain.DynamicAttribute) which is the list of dynamic attributes to
+// search.
 // Takes position (protocol.Position) which is the position to find.
 //
-// Returns ast_domain.Expression which is the expression at the position, or
-// nil if not found.
-// Returns ast_domain.Location which is the location of the expression, or an
-// empty location if not found.
+// Returns ast_domain.Expression which is the expression at the position, or nil if not
+// found.
+// Returns ast_domain.Location which is the location of the expression, or an empty
+// location if not found.
 func findExprInDynamicAttrs(attrs []ast_domain.DynamicAttribute, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	for i := range attrs {
 		attribute := &attrs[i]
@@ -608,16 +580,16 @@ func findExprInDynamicAttrs(attrs []ast_domain.DynamicAttribute, position protoc
 	return nil, ast_domain.Location{}
 }
 
-// findExprInNodeDirectives searches all directive fields on a node for an
-// expression at the given position.
+// findExprInNodeDirectives searches all directive fields on a node for an expression at
+// the given position.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to search.
 // Takes position (protocol.Position) which specifies the position to find.
 //
-// Returns ast_domain.Expression which is the expression found at the position,
-// or nil if none exists.
-// Returns ast_domain.Location which is the location of the found expression,
-// or an empty location if none exists.
+// Returns ast_domain.Expression which is the expression found at the position, or nil if
+// none exists.
+// Returns ast_domain.Location which is the location of the found expression, or an empty
+// location if none exists.
 func findExprInNodeDirectives(node *ast_domain.TemplateNode, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	directives := []*ast_domain.Directive{
 		node.DirIf, node.DirElseIf, node.DirFor, node.DirShow, node.DirModel,
@@ -670,17 +642,17 @@ func checkDirectiveAtPos(directive *ast_domain.Directive, position protocol.Posi
 	return nil, ast_domain.Location{}, false
 }
 
-// findExprInRichText searches rich text interpolations for an expression at
-// the given position.
+// findExprInRichText searches rich text interpolations for an expression at the given
+// position.
 //
-// Takes parts ([]ast_domain.TextPart) which contains the rich text parts to
-// search through.
+// Takes parts ([]ast_domain.TextPart) which contains the rich text parts to search
+// through.
 // Takes position (protocol.Position) which specifies the cursor position to match.
 //
-// Returns ast_domain.Expression which is the matched expression, or nil if no
-// match is found.
-// Returns ast_domain.Location which is the location of the matched expression,
-// or an empty location if no match is found.
+// Returns ast_domain.Expression which is the matched expression, or nil if no match is
+// found.
+// Returns ast_domain.Location which is the location of the matched expression, or an
+// empty location if no match is found.
 func findExprInRichText(ctx context.Context, parts []ast_domain.TextPart, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -717,17 +689,17 @@ func findExprInRichText(ctx context.Context, parts []ast_domain.TextPart, positi
 	return nil, ast_domain.Location{}
 }
 
-// findExprInStaticAttrs creates a synthetic string literal for a static
-// attribute value at the given cursor position.
+// findExprInStaticAttrs creates a synthetic string literal for a static attribute value
+// at the given cursor position.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to
-// search through.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to search
+// through.
 // Takes position (protocol.Position) which specifies the cursor position to match.
 //
-// Returns ast_domain.Expression which is a synthetic string literal for the
-// matched attribute, or nil if no match is found.
-// Returns ast_domain.Location which is the location of the matched attribute,
-// or an empty location if no match is found.
+// Returns ast_domain.Expression which is a synthetic string literal for the matched
+// attribute, or nil if no match is found.
+// Returns ast_domain.Location which is the location of the matched attribute, or an empty
+// location if no match is found.
 func findExprInStaticAttrs(attrs []ast_domain.HTMLAttribute, position protocol.Position) (ast_domain.Expression, ast_domain.Location) {
 	for i := range attrs {
 		attribute := &attrs[i]
@@ -744,12 +716,11 @@ func findExprInStaticAttrs(attrs []ast_domain.HTMLAttribute, position protocol.P
 
 // calculateAttrSourceLen works out the source length of an attribute value.
 //
-// Takes attribute (*ast_domain.HTMLAttribute) which contains the attribute to
-// measure.
+// Takes attribute (*ast_domain.HTMLAttribute) which contains the attribute to measure.
 //
-// Returns int which is the length of the attribute value in source code. For
-// attributes on a single line, this is the column difference. For attributes
-// that span multiple lines, this is the string length.
+// Returns int which is the length of the attribute value in source code. For attributes
+// on a single line, this is the column difference. For attributes that span multiple
+// lines, this is the string length.
 func calculateAttrSourceLen(attribute *ast_domain.HTMLAttribute) int {
 	if attribute.AttributeRange.Start.Line == attribute.AttributeRange.End.Line {
 		return attribute.AttributeRange.End.Column - attribute.Location.Column - 1
@@ -757,15 +728,15 @@ func calculateAttrSourceLen(attribute *ast_domain.HTMLAttribute) int {
 	return len(attribute.Value)
 }
 
-// createSyntheticStringLiteral creates a StringLiteral expression for a static
-// HTML attribute.
+// createSyntheticStringLiteral creates a StringLiteral expression for a static HTML
+// attribute.
 //
-// Takes attribute (*ast_domain.HTMLAttribute) which provides the attribute value
-// and name for the string literal.
+// Takes attribute (*ast_domain.HTMLAttribute) which provides the attribute value and name
+// for the string literal.
 // Takes sourceLen (int) which sets the source length for the literal.
 //
-// Returns *ast_domain.StringLiteral which contains the created literal with
-// Go annotations for hover provider support.
+// Returns *ast_domain.StringLiteral which contains the created literal with Go
+// annotations for hover provider support.
 func createSyntheticStringLiteral(attribute *ast_domain.HTMLAttribute, sourceLen int) *ast_domain.StringLiteral {
 	stringLit := &ast_domain.StringLiteral{
 		Value:            attribute.Value,
@@ -786,8 +757,8 @@ func createSyntheticStringLiteral(attribute *ast_domain.HTMLAttribute, sourceLen
 	return stringLit
 }
 
-// isPositionInAttributeValue checks if a position is inside the value part of
-// an attribute range.
+// isPositionInAttributeValue checks if a position is inside the value part of an
+// attribute range.
 //
 // Takes position (protocol.Position) which specifies the position to check.
 // Takes attributeRange (*ast_domain.Range) which defines the attribute's range.

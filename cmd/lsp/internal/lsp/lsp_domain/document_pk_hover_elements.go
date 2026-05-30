@@ -26,8 +26,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// attributeTypeString is the type name used for string-valued element attributes.
-const attributeTypeString = "string"
+const (
+	// attributeTypeString is the type name used for string-valued element attributes.
+	attributeTypeString = "string"
+)
 
 // pikoAttrDoc holds documentation for a single attribute of a Piko element.
 type pikoAttrDoc struct {
@@ -188,8 +190,8 @@ var (
 		},
 	}
 
-	// pikoTimelineElementDocuments contains hover documentation for timeline
-	// elements. These are only valid inside <piko:timeline> blocks in PKC files.
+	// pikoTimelineElementDocuments contains hover documentation for timeline elements. These
+	// are only valid inside <piko:timeline> blocks in PKC files.
 	pikoTimelineElementDocuments = map[string]pikoElementDoc{
 		"piko:timeline": {
 			Name: "piko:timeline",
@@ -302,15 +304,14 @@ var (
 	}
 )
 
-// checkPikoElementHoverContext checks if the cursor is on a piko:* element tag
-// name.
+// checkPikoElementHoverContext checks if the cursor is on a piko:* element tag name.
 //
 // Takes line (string) which is the current line text.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a piko element tag name, or nil when no match is found.
+// Returns *PKHoverContext which provides hover context when the cursor is on a piko
+// element tag name, or nil when no match is found.
 func (d *document) checkPikoElementHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	tagStart := findPikoTagStart(line, cursor)
 	if tagStart == -1 {
@@ -378,18 +379,16 @@ func (*document) getPikoElementHover(ctx *PKHoverContext) (*protocol.Hover, erro
 	}, nil
 }
 
-// newPikoImageOptionalAttrs builds the optional attribute list for an
-// image-like element. The altDesc and formatsDesc parameters customise the
-// descriptions that differ between piko:img and piko:picture.
+// newPikoImageOptionalAttrs builds the optional attribute list for an image-like element.
+// The altDesc and formatsDesc parameters customise the descriptions that differ between
+// piko:img and piko:picture.
 //
 // Takes altDesc (string) which is the description text for the alt attribute.
-// Takes widthsDesc (string) which is the description text for the widths
-// attribute.
-// Takes formatsDesc (string) which is the description text for the formats
-// attribute.
+// Takes widthsDesc (string) which is the description text for the widths attribute.
+// Takes formatsDesc (string) which is the description text for the formats attribute.
 //
-// Returns []pikoAttrDoc which contains the optional attribute definitions for
-// the image-like element.
+// Returns []pikoAttrDoc which contains the optional attribute definitions for the
+// image-like element.
 func newPikoImageOptionalAttrs(altDesc, widthsDesc, formatsDesc string) []pikoAttrDoc {
 	return []pikoAttrDoc{
 		{Name: "alt", Type: attributeTypeString, Description: altDesc},
@@ -407,8 +406,7 @@ func newPikoImageOptionalAttrs(altDesc, widthsDesc, formatsDesc string) []pikoAt
 // Takes line (string) which contains the text to search.
 // Takes cursor (int) which is the position within the line.
 //
-// Returns int which is the position where the tag name starts, or -1 if no
-// tag is found.
+// Returns int which is the position where the tag name starts, or -1 if no tag is found.
 func findPikoTagStart(line string, cursor int) int {
 	if len(line) == 0 {
 		return -1

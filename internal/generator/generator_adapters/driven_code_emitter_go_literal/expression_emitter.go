@@ -35,16 +35,15 @@ const (
 	// goTypeAny is the Go type name used when the actual type cannot be found.
 	goTypeAny = "any"
 
-	// helperEvaluateStrictEquality is the runtime helper function name for strict
-	// equality checks.
+	// helperEvaluateStrictEquality is the runtime helper function name for strict equality
+	// checks.
 	helperEvaluateStrictEquality = "EvaluateStrictEquality"
 
-	// helperEvaluateLooseEquality is the runtime helper function name for loose
-	// equality checks.
+	// helperEvaluateLooseEquality is the runtime helper function name for loose equality
+	// checks.
 	helperEvaluateLooseEquality = "EvaluateLooseEquality"
 
-	// helperEvaluateCoalesce is the helper function name for null coalescing
-	// operations.
+	// helperEvaluateCoalesce is the helper function name for null coalescing operations.
 	helperEvaluateCoalesce = "EvaluateCoalesce"
 
 	// helperEvaluateOr is the name of the helper function for logical OR.
@@ -65,25 +64,25 @@ var (
 	}
 
 	// runtimeHelperFunctionNames maps function names that are emitted as
-	// pikoruntime.FuncName() calls. These are Piko built-in functions that live
-	// in the wdk/runtime package.
+	// pikoruntime.FuncName() calls. These are Piko built-in functions that live in the
+	// wdk/runtime package.
 	runtimeHelperFunctionNames = map[string]bool{
 		"F": true,
 	}
 
-	// stringerBuilderCallNames lists built-in function names whose runtime return
-	// type implements fmt.Stringer but which the annotator resolves as returning
-	// string. The emitter wraps calls to these functions with .String() so that
-	// the generated Go code compiles correctly.
+	// stringerBuilderCallNames lists built-in function names whose runtime return type
+	// implements fmt.Stringer but which the annotator resolves as returning string. The
+	// emitter wraps calls to these functions with .String() so that the generated Go code
+	// compiles correctly.
 	//
-	// F/LF are NOT listed here because the annotator returns *FormatBuilder for
-	// them, enabling the stringability pipeline to add .String() automatically.
+	// F/LF are NOT listed here because the annotator returns *FormatBuilder for them,
+	// enabling the stringability pipeline to add .String() automatically.
 	stringerBuilderCallNames = map[string]bool{
 		"T": true, "LT": true,
 	}
 
-	// coercionFunctionNames maps coercion built-in function names.
-	// These are special functions that convert values between types.
+	// coercionFunctionNames maps coercion built-in function names. These are special
+	// functions that convert values between types.
 	coercionFunctionNames = map[string]bool{
 		"string":  true,
 		"int":     true,
@@ -101,18 +100,16 @@ var (
 	_ ExpressionEmitter = (*expressionEmitter)(nil)
 )
 
-// ExpressionEmitter emits Piko expressions as Go expressions.
-// This enables mocking and testing of expression emission logic.
+// ExpressionEmitter emits Piko expressions as Go expressions. This enables mocking and
+// testing of expression emission logic.
 type ExpressionEmitter interface {
 	// emit converts a domain expression into Go AST representation.
 	//
 	// Takes expression (ast_domain.Expression) which is the expression to convert.
 	//
 	// Returns goast.Expr which is the converted Go expression.
-	// Returns []goast.Stmt which contains any statements needed before the
-	// expression.
-	// Returns []*ast_domain.Diagnostic which contains any issues found during
-	// conversion.
+	// Returns []goast.Stmt which contains any statements needed before the expression.
+	// Returns []*ast_domain.Diagnostic which contains any issues found during conversion.
 	emit(expr ast_domain.Expression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
 
 	// valueToString converts a Go expression to its string representation.
@@ -124,22 +121,20 @@ type ExpressionEmitter interface {
 	// Returns goast.Expr which is the string representation of the input.
 	valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr
 
-	// getTypeExprForVarDecl returns the type expression for a variable
-	// declaration.
+	// getTypeExprForVarDecl returns the type expression for a variable declaration.
 	//
-	// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the annotation
-	// to extract the type expression from.
+	// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the annotation to extract
+	// the type expression from.
 	//
 	// Returns goast.Expr which is the type expression for the variable.
 	getTypeExprForVarDecl(ann *ast_domain.GoGeneratorAnnotation) goast.Expr
 
-	// emitTemplateLiteralParts extracts each part of a template literal as a
-	// separate Go expression, without concatenating them. This is used for
-	// generating variadic calls like BuildClassBytesV(part1, part2, ...) that
-	// avoid intermediate string allocation from the + operator.
+	// emitTemplateLiteralParts extracts each part of a template literal as a separate Go
+	// expression, without concatenating them. This is used for generating variadic calls
+	// like BuildClassBytesV(part1, part2, ...) that avoid intermediate string allocation
+	// from the + operator.
 	//
-	// Takes n (*ast_domain.TemplateLiteral) which is the template literal to
-	// process.
+	// Takes n (*ast_domain.TemplateLiteral) which is the template literal to process.
 	//
 	// Returns []goast.Expr which contains one Go expression per template part.
 	// Returns []goast.Stmt which contains any prerequisite statements.
@@ -147,15 +142,13 @@ type ExpressionEmitter interface {
 	emitTemplateLiteralParts(n *ast_domain.TemplateLiteral) ([]goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
 }
 
-// expressionEmitter translates annotated Piko AST expressions into Go AST
-// expressions. It implements ExpressionEmitter and holds references to its
-// specialist sub-emitters.
+// expressionEmitter translates annotated Piko AST expressions into Go AST expressions. It
+// implements ExpressionEmitter and holds references to its specialist sub-emitters.
 type expressionEmitter struct {
 	// emitter provides shared output generation and import management.
 	emitter *emitter
 
-	// binaryEmitter handles binary operations; uses interface type for
-	// flexibility.
+	// binaryEmitter handles binary operations; uses interface type for flexibility.
 	binaryEmitter BinaryOpEmitter
 
 	// stringConv converts values to their string form.
@@ -164,12 +157,10 @@ type expressionEmitter struct {
 
 // emit is the main entry point for converting expressions.
 //
-// It converts a Piko AST expression to a Go AST expression. It tries several
-// conversion methods in order: collection calls, operators, literals, and
-// composite expressions.
+// It converts a Piko AST expression to a Go AST expression. It tries several conversion
+// methods in order: collection calls, operators, literals, and composite expressions.
 //
-// Takes expression (ast_domain.Expression) which is the Piko AST expression to
-// convert.
+// Takes expression (ast_domain.Expression) which is the Piko AST expression to convert.
 //
 // Returns goast.Expr which is the matching Go AST expression.
 // Returns []goast.Stmt which contains any setup statements needed first.
@@ -200,11 +191,10 @@ func (ee *expressionEmitter) emit(expression ast_domain.Expression) (goast.Expr,
 
 // tryEmitLiteralExpression handles literal value expressions.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to check and emit.
+// Takes expression (ast_domain.Expression) which is the expression to check and emit.
 //
-// Returns goast.Expr which is the Go AST literal expression, or nil if the
-// input is not a literal.
+// Returns goast.Expr which is the Go AST literal expression, or nil if the input is not a
+// literal.
 // Returns []goast.Stmt which is always nil for literal expressions.
 // Returns []*ast_domain.Diagnostic which is always nil for literal expressions.
 // Returns bool which is true if the expression was a literal type.
@@ -246,10 +236,9 @@ func (ee *expressionEmitter) tryEmitLiteralExpression(expression ast_domain.Expr
 	return nil, nil, nil, false
 }
 
-// emitTemporalParseLiteral generates an IIFE that parses a time string literal.
-// The generated code is: func() time.Time { t, _ := time.Parse(layout, value);
-// return t }() The parser has already validated the format, so the error is
-// unreachable.
+// emitTemporalParseLiteral generates an IIFE that parses a time string literal. The
+// generated code is: func() time.Time { t, _ := time.Parse(layout, value); return t }()
+// The parser has already validated the format, so the error is unreachable.
 //
 // Takes layoutExpr (goast.Expr) which is the layout argument (string literal or
 // time.RFC3339 selector).
@@ -267,15 +256,13 @@ func (ee *expressionEmitter) emitTemporalParseLiteral(layoutExpr goast.Expr, val
 	return buildTemporalIIFE("Time", "t", parseCall)
 }
 
-// emitDurationParseLiteral generates an IIFE that parses a duration string
-// literal. The generated code is: func() time.Duration { d, _ :=
-// time.ParseDuration(value); return d }() The parser has already validated the
-// format, so the error is unreachable.
+// emitDurationParseLiteral generates an IIFE that parses a duration string literal. The
+// generated code is: func() time.Duration { d, _ := time.ParseDuration(value); return d
+// }() The parser has already validated the format, so the error is unreachable.
 //
 // Takes value (string) which is the duration string to parse.
 //
-// Returns goast.Expr which is the IIFE call expression producing a
-// time.Duration.
+// Returns goast.Expr which is the IIFE call expression producing a time.Duration.
 func (ee *expressionEmitter) emitDurationParseLiteral(value string) goast.Expr {
 	ee.emitter.addImport(timePackagePath, "")
 
@@ -289,14 +276,13 @@ func (ee *expressionEmitter) emitDurationParseLiteral(value string) goast.Expr {
 
 // emitUnhandledExpression handles expression types that are not known.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression that could not be matched to a known type.
+// Takes expression (ast_domain.Expression) which is the expression that could not be
+// matched to a known type.
 //
-// Returns goast.Expr which is a nil placeholder with a comment noting the
-// unhandled type.
+// Returns goast.Expr which is a nil placeholder with a comment noting the unhandled type.
 // Returns []goast.Stmt which is always nil.
-// Returns []*ast_domain.Diagnostic which contains an error describing the
-// unhandled expression type.
+// Returns []*ast_domain.Diagnostic which contains an error describing the unhandled
+// expression type.
 func (*expressionEmitter) emitUnhandledExpression(expression ast_domain.Expression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
 	diagnostic := ast_domain.NewDiagnostic(
 		ast_domain.Error,
@@ -312,26 +298,25 @@ func (*expressionEmitter) emitUnhandledExpression(expression ast_domain.Expressi
 // valueToString passes the work to the stringConverter helper.
 //
 // Takes goExpr (goast.Expr) which is the expression to convert.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides generator
-// context.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides generator context.
 //
 // Returns goast.Expr which is the string conversion expression.
 func (ee *expressionEmitter) valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
 	return ee.stringConv.valueToString(goExpr, ann)
 }
 
-// getTypeExprForVarDecl determines the correct type expression to use for a
-// variable declaration.
+// getTypeExprForVarDecl determines the correct type expression to use for a variable
+// declaration.
 //
-// It strips the package qualifier if the type belongs to the package currently
-// being generated. It also handles import alias conflicts by updating the type
-// expression to use the resolved alias.
+// It strips the package qualifier if the type belongs to the package currently being
+// generated. It also handles import alias conflicts by updating the type expression to
+// use the resolved alias.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved
-// type information for the variable.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved type
+// information for the variable.
 //
-// Returns goast.Expr which is the type expression to use, or an 'any' type
-// identifier when the annotation is nil or has no resolved type.
+// Returns goast.Expr which is the type expression to use, or an 'any' type identifier
+// when the annotation is nil or has no resolved type.
 func (ee *expressionEmitter) getTypeExprForVarDecl(ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
 	if ann == nil || ann.ResolvedType == nil || ann.ResolvedType.TypeExpression == nil {
 		return cachedIdent(goTypeAny)
@@ -364,9 +349,9 @@ func (ee *expressionEmitter) getTypeExprForVarDecl(ann *ast_domain.GoGeneratorAn
 	return resolvedType.TypeExpression
 }
 
-// wrapWithStringerCall wraps a Go expression with a .String() method call.
-// Used for builder-pattern functions (T, LT, F, LF) whose runtime return type
-// implements fmt.Stringer.
+// wrapWithStringerCall wraps a Go expression with a .String() method call. Used for
+// builder-pattern functions (T, LT, F, LF) whose runtime return type implements
+// fmt.Stringer.
 //
 // Takes expression (goast.Expr) which is the expression to wrap.
 //
@@ -392,17 +377,15 @@ func newExpressionEmitter(emitter *emitter, binaryEmitter BinaryOpEmitter, strin
 	}
 }
 
-// buildTemporalIIFE creates an IIFE AST node that calls parseCall,
-// discards the error, and returns the result using the given typeName
-// (e.g. "Time" or "Duration") and varName for the local assignment.
+// buildTemporalIIFE creates an IIFE AST node that calls parseCall, discards the error,
+// and returns the result using the given typeName (e.g. "Time" or "Duration") and varName
+// for the local assignment.
 //
 // Takes typeName (string) which is the time package type name to return.
 // Takes varName (string) which is the local variable name in the IIFE.
-// Takes parseCall (goast.Expr) which is the parse function call
-// expression.
+// Takes parseCall (goast.Expr) which is the parse function call expression.
 //
-// Returns *goast.CallExpr which is the IIFE that parses and returns the
-// temporal value.
+// Returns *goast.CallExpr which is the IIFE that parses and returns the temporal value.
 func buildTemporalIIFE(typeName, varName string, parseCall goast.Expr) *goast.CallExpr {
 	return &goast.CallExpr{
 		Fun: &goast.FuncLit{
@@ -424,9 +407,9 @@ func buildTemporalIIFE(typeName, varName string, parseCall goast.Expr) *goast.Ca
 	}
 }
 
-// updateTypeExprAlias creates a copy of a type expression with the package
-// alias changed to a new value. This is used when fixing import alias clashes
-// by creating unique aliases.
+// updateTypeExprAlias creates a copy of a type expression with the package alias changed
+// to a new value. This is used when fixing import alias clashes by creating unique
+// aliases.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to update.
 // Takes newAlias (string) which is the new package alias to use.

@@ -37,10 +37,10 @@ const (
 	// tagNameAnchor is the lowercased tag name for HTML anchor elements.
 	tagNameAnchor = "a"
 
-	// tagNamePikoAnchor is the Piko-namespaced anchor tag. Element-level
-	// anchors that we successfully rewrite to an in-collection URL are
-	// promoted to this tag so the runtime renderer emits the soft-navigation
-	// marker attribute and the frontend intercepts the click.
+	// tagNamePikoAnchor is the Piko-namespaced anchor tag. Element-level anchors that we
+	// successfully rewrite to an in-collection URL are promoted to this tag so the runtime
+	// renderer emits the soft-navigation marker attribute and the frontend intercepts the
+	// click.
 	tagNamePikoAnchor = "piko:a"
 
 	// attributeSrc is the HTML attribute that carries image references.
@@ -49,136 +49,130 @@ const (
 	// attributeHref is the HTML attribute that carries hyperlink references.
 	attributeHref = "href"
 
-	// markdownExtension is the file suffix that marks an anchor href as a
-	// link to another markdown document inside the collection.
+	// markdownExtension is the file suffix that marks an anchor href as a link to another
+	// markdown document inside the collection.
 	markdownExtension = ".md"
 
-	// maxRawHTMLReplacements caps how many attribute rewrites a single raw
-	// HTML block may produce, to stop a pathological document from
-	// unbounded registrar or analyser calls.
+	// maxRawHTMLReplacements caps how many attribute rewrites a single raw HTML block may
+	// produce, to stop a pathological document from unbounded registrar or analyser calls.
 	maxRawHTMLReplacements = 256
 
-	// initialReplacementCapacity pre-sizes the replacements slice; most raw
-	// HTML blocks contain a small handful of rewritten attributes.
+	// initialReplacementCapacity pre-sizes the replacements slice; most raw HTML blocks
+	// contain a small handful of rewritten attributes.
 	initialReplacementCapacity = 4
 
 	// maxRawHTMLBytes caps the size of a single raw HTML blob accepted by
 	// rewriteRelativeURLs.
 	//
-	// Markdown rendering is synchronous and the rewriter fully buffers its
-	// input, so an unbounded blob would let a pathological document exhaust
-	// build-time memory. The cap is generous enough to fit any plausible
-	// legitimate authored document.
+	// Markdown rendering is synchronous and the rewriter fully buffers its input, so an
+	// unbounded blob would let a pathological document exhaust build-time memory. The cap is
+	// generous enough to fit any plausible legitimate authored document.
 	maxRawHTMLBytes = 8 * 1024 * 1024
 )
 
-// srcReplacement identifies a single attribute-value span to replace inside
-// a raw HTML blob.
+// srcReplacement identifies a single attribute-value span to replace inside a raw HTML
+// blob.
 type srcReplacement struct {
-	// replacement is the bytes to splice into the source, including the
-	// surrounding quote characters when the original was quoted.
+	// replacement is the bytes to splice into the source, including the surrounding quote
+	// characters when the original was quoted.
 	replacement string
 
-	// start is the byte offset in the original source where the replacement
-	// span begins (inclusive).
+	// start is the byte offset in the original source where the replacement span begins
+	// (inclusive).
 	start int
 
-	// end is the byte offset in the original source where the replacement
-	// span ends (exclusive).
+	// end is the byte offset in the original source where the replacement span ends
+	// (exclusive).
 	end int
 }
 
-// rewriteState carries the per-blob state for the streaming rewrite. Field
-// order is governed by fieldalignment to keep the GC pointer-scan range
-// minimal; group changes belong with a fresh fieldalignment pass.
+// rewriteState carries the per-blob state for the streaming rewrite. Field order is
+// governed by fieldalignment to keep the GC pointer-scan range minimal; group changes
+// belong with a fresh fieldalignment pass.
 type rewriteState struct {
-	// registrar resolves a sandbox-relative asset path to a serve URL and
-	// registers the bytes with the artefact registry. When nil, <img src>
-	// rewriting is disabled.
+	// registrar resolves a sandbox-relative asset path to a serve URL and registers the
+	// bytes with the artefact registry. When nil, <img src> rewriting is disabled.
 	registrar collection_domain.AssetRegistrar
 
-	// sandbox provides read access to the source content tree where the
-	// relative srcs are resolved.
+	// sandbox provides read access to the source content tree where the relative srcs are
+	// resolved.
 	sandbox safedisk.Sandbox
 
-	// analyser maps a relative .md file path to its public URL inside the
-	// collection. When nil, <a href> rewriting is disabled.
+	// analyser maps a relative .md file path to its public URL inside the collection. When
+	// nil, <a href> rewriting is disabled.
 	analyser *pathAnalyser
 
-	// mdDirectory is the directory of the originating .md file inside the
-	// sandbox, used as the anchor when joining relative src or href values.
+	// mdDirectory is the directory of the originating .md file inside the sandbox, used as
+	// the anchor when joining relative src or href values.
 	mdDirectory string
 
-	// collectionName scopes the artefactID emitted for each registered
-	// asset, and prefixes the public URL produced for anchor hrefs.
+	// collectionName scopes the artefactID emitted for each registered asset, and prefixes
+	// the public URL produced for anchor hrefs.
 	collectionName string
 
 	// mdRelativePath is the .md file path used for diagnostic logging only.
 	mdRelativePath string
 
-	// currentTag is the lowercased name of the start tag the lexer is
-	// currently streaming attribute tokens for, or "" when between tags.
-	// Only tagNameImg and tagNameAnchor produce rewrites; other tags set
-	// this back to "".
+	// currentTag is the lowercased name of the start tag the lexer is currently streaming
+	// attribute tokens for, or "" when between tags. Only tagNameImg and tagNameAnchor
+	// produce rewrites; other tags set this back to "".
 	currentTag string
 
-	// replacements accumulates the attribute spans to splice into the
-	// rewritten source once lexing completes.
+	// replacements accumulates the attribute spans to splice into the rewritten source once
+	// lexing completes.
 	replacements []srcReplacement
 }
 
-// rewriteParams bundles the dependencies and per-blob context that
-// rewriteRelativeURLs needs. Bundling keeps the call signature within the
-// 7-argument lint cap and makes call sites easier to scan.
+// rewriteParams bundles the dependencies and per-blob context that rewriteRelativeURLs
+// needs. Bundling keeps the call signature within the 7-argument lint cap and makes call
+// sites easier to scan.
 type rewriteParams struct {
-	// Sandbox provides read access to the source content tree; the
-	// registrar reads asset file bytes through it.
+	// Sandbox provides read access to the source content tree; the registrar reads asset
+	// file bytes through it.
 	Sandbox safedisk.Sandbox
 
-	// Registrar uploads asset bytes and returns a serve URL. Nil disables
-	// <img src> rewriting.
+	// Registrar uploads asset bytes and returns a serve URL. Nil disables <img src>
+	// rewriting.
 	Registrar collection_domain.AssetRegistrar
 
-	// Analyser converts a collection-relative .md path into its public URL.
-	// Nil disables <a href> rewriting.
+	// Analyser converts a collection-relative .md path into its public URL. Nil disables <a
+	// href> rewriting.
 	Analyser *pathAnalyser
 
-	// MdDirectory is the directory of the originating .md file inside the
-	// collection; used as the anchor for resolving relative src and href
-	// values.
+	// MdDirectory is the directory of the originating .md file inside the collection; used
+	// as the anchor for resolving relative src and href values.
 	MdDirectory string
 
-	// CollectionName scopes the artefactID emitted for each asset and
-	// prefixes the public URL produced for anchor hrefs.
+	// CollectionName scopes the artefactID emitted for each asset and prefixes the public
+	// URL produced for anchor hrefs.
 	CollectionName string
 
 	// MdRelativePath is the .md file path used for diagnostic logging only.
 	MdRelativePath string
 }
 
-// rewriteRelativeURLs rewrites relative <img src> and <a href> references in
-// a raw HTML blob.
+// rewriteRelativeURLs rewrites relative <img src> and <a href> references in a raw HTML
+// blob.
 //
 // Two rewrites run in a single pass:
 //
-//  1. <img src="..."> values that point at relative asset files. Each
-//     resolved path is registered via Registrar and the src is replaced
-//     with the returned serve URL. Skipped when Registrar is nil.
-//  2. <a href="..."> values that point at sibling .md files in the same
-//     collection. Each resolved path is mapped to its public URL via
-//     Analyser. Skipped when Analyser is nil.
+//  1. <img src="..."> values that point at relative asset files. Each resolved path is
+//     registered via Registrar and the src is replaced with the returned serve URL.
+//     Skipped when Registrar is nil.
+//  2. <a href="..."> values that point at sibling .md files in the same collection. Each
+//     resolved path is mapped to its public URL via Analyser. Skipped when Analyser is
+//     nil.
 //
-// Absolute URLs, fragment-only hrefs (#section), data URIs, and paths
-// that escape the sandbox are always left untouched.
+// Absolute URLs, fragment-only hrefs (#section), data URIs, and paths that escape the
+// sandbox are always left untouched.
 //
 // Takes ctx (context.Context) which carries cancellation and the logger.
-// Takes params (rewriteParams) which bundles the rewrite dependencies and
-// the per-blob context (sandbox, registrar, analyser, mdDirectory,
-// collectionName, mdRelativePath).
+// Takes params (rewriteParams) which bundles the rewrite dependencies and the per-blob
+// context (sandbox, registrar, analyser, mdDirectory, collectionName, mdRelativePath).
 // Takes raw (string) which is the raw HTML blob to rewrite.
 //
-// Returns string which is the rewritten HTML, or the original blob when no
-// rewrites were applied.
+// Returns string which is the rewritten HTML, or the original blob when no rewrites were
+// applied.
 // Returns bool which is true when at least one attribute was rewritten.
 func rewriteRelativeURLs(ctx context.Context, params rewriteParams, raw string) (string, bool) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -229,12 +223,12 @@ func rewriteRelativeURLs(ctx context.Context, params rewriteParams, raw string) 
 //
 // Takes lexer (*htmllexer.Lexer) which is advanced one token by this call.
 //
-// Returns done (bool) which is always true for processed tokens, for
-// symmetry with the caller's continue pattern.
-// Returns stop (bool) which is true when the caller should exit the loop
-// (error token reached or replacement cap exceeded).
+// Returns done (bool) which is always true for processed tokens, for symmetry with the
+// caller's continue pattern.
+// Returns stop (bool) which is true when the caller should exit the loop (error token
+// reached or replacement cap exceeded).
 func (s *rewriteState) handleToken(ctx context.Context, lexer *htmllexer.Lexer) (done, stop bool) {
-	switch lexer.Next() {
+	switch lexer.Next() { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case htmllexer.ErrorToken:
 		return true, true
 
@@ -256,17 +250,15 @@ func (s *rewriteState) handleToken(ctx context.Context, lexer *htmllexer.Lexer) 
 	return true, false
 }
 
-// handleAttribute processes an attribute token for the current tag and
-// dispatches to the appropriate per-tag rewriter. Attributes outside a
-// recognised start tag, or for an attribute other than the one carrying
-// the rewriteable reference, are ignored.
+// handleAttribute processes an attribute token for the current tag and dispatches to the
+// appropriate per-tag rewriter. Attributes outside a recognised start tag, or for an
+// attribute other than the one carrying the rewriteable reference, are ignored.
 //
-// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute
-// token to inspect.
+// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute token to inspect.
 //
 // Returns done (bool) which is true after processing.
-// Returns stop (bool) which is true when the replacement cap has been
-// reached and the loop should exit.
+// Returns stop (bool) which is true when the replacement cap has been reached and the
+// loop should exit.
 func (s *rewriteState) handleAttribute(ctx context.Context, lexer *htmllexer.Lexer) (done, stop bool) {
 	if s.currentTag == "" {
 		return true, false
@@ -309,26 +301,26 @@ func (s *rewriteState) handleAttribute(ctx context.Context, lexer *htmllexer.Lex
 	return true, false
 }
 
-// buildImgSrcReplacement inspects the current AttributeToken on lexer, and
-// if the value is a relative asset path inside the sandbox, registers the
-// asset and prepares a replacement span for splicing back into the source.
+// buildImgSrcReplacement inspects the current AttributeToken on lexer, and if the value
+// is a relative asset path inside the sandbox, registers the asset and prepares a
+// replacement span for splicing back into the source.
 //
-// Takes sandbox (safedisk.Sandbox) which provides read access to the
-// source content tree for the registrar.
-// Takes registrar (collection_domain.AssetRegistrar) which uploads the
-// bytes and returns a serve URL.
-// Takes mdDirectory (string) which is the directory of the originating
-// .md file used as the anchor for resolving relative src values.
+// Takes sandbox (safedisk.Sandbox) which provides read access to the source content tree
+// for the registrar.
+// Takes registrar (collection_domain.AssetRegistrar) which uploads the bytes and returns
+// a serve URL.
+// Takes mdDirectory (string) which is the directory of the originating .md file used as
+// the anchor for resolving relative src values.
 // Takes collectionName (string) which scopes the artefactID.
-// Takes mdRelativePath (string) which is the .md file path used for
-// diagnostic logging only.
-// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute
-// token whose value may be rewritten.
+// Takes mdRelativePath (string) which is the .md file path used for diagnostic logging
+// only.
+// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute token whose value
+// may be rewritten.
 //
-// Returns srcReplacement which describes the span to replace and the
-// replacement text (with quote characters preserved where present).
-// Returns bool which is true when a rewrite should be applied; false when
-// the src should be left untouched.
+// Returns srcReplacement which describes the span to replace and the replacement text
+// (with quote characters preserved where present).
+// Returns bool which is true when a rewrite should be applied; false when the src should
+// be left untouched.
 func buildImgSrcReplacement(
 	ctx context.Context,
 	sandbox safedisk.Sandbox,
@@ -394,18 +386,18 @@ func buildImgSrcReplacement(
 	}, true
 }
 
-// splitQuotes returns the trimmed inner bytes of an attribute value along
-// with the opening and closing quote characters when present. An unquoted
-// value returns zero quote bytes.
+// splitQuotes returns the trimmed inner bytes of an attribute value along with the
+// opening and closing quote characters when present. An unquoted value returns zero quote
+// bytes.
 //
 // Takes rawValue ([]byte) which is the attribute value as returned by
 // htmllexer.Lexer.AttrVal (may include surrounding quotes).
 //
 // Returns trimmed ([]byte) which is the value without surrounding quotes.
-// Returns opener (byte) which is the opening quote character, or zero when
-// the value was unquoted.
-// Returns closer (byte) which is the closing quote character, or zero when
-// the value was unquoted or had no matching closer.
+// Returns opener (byte) which is the opening quote character, or zero when the value was
+// unquoted.
+// Returns closer (byte) which is the closing quote character, or zero when the value was
+// unquoted or had no matching closer.
 func splitQuotes(rawValue []byte) (trimmed []byte, opener byte, closer byte) {
 	if len(rawValue) == 0 {
 		return rawValue, 0, 0
@@ -422,13 +414,13 @@ func splitQuotes(rawValue []byte) (trimmed []byte, opener byte, closer byte) {
 	return rawValue[1:], opener, 0
 }
 
-// applyReplacements splices the given replacements into the original
-// source, sorted by start offset, and returns the resulting string.
+// applyReplacements splices the given replacements into the original source, sorted by
+// start offset, and returns the resulting string.
 //
-// Takes raw (string) which is the original HTML content, returned
-// unchanged when there are no replacements.
-// Takes source ([]byte) which is the byte view of raw shared with the
-// lexer; used to read the spans outside any replacement.
+// Takes raw (string) which is the original HTML content, returned unchanged when there
+// are no replacements.
+// Takes source ([]byte) which is the byte view of raw shared with the lexer; used to read
+// the spans outside any replacement.
 // Takes replacements ([]srcReplacement) which lists the spans to rewrite.
 //
 // Returns string which is the rewritten content.
@@ -456,10 +448,10 @@ func applyReplacements(raw string, source []byte, replacements []srcReplacement)
 	return sb.String()
 }
 
-// sortReplacementsByStart sorts replacements ascending by start offset.
-// Uses an insertion sort because replacement counts are small (bounded by
-// maxRawHTMLReplacements) and the lexer emits attribute tokens in source
-// order, so the slice is already near-sorted on arrival.
+// sortReplacementsByStart sorts replacements ascending by start offset. Uses an insertion
+// sort because replacement counts are small (bounded by maxRawHTMLReplacements) and the
+// lexer emits attribute tokens in source order, so the slice is already near-sorted on
+// arrival.
 //
 // Takes replacements ([]srcReplacement) which is sorted in place.
 func sortReplacementsByStart(replacements []srcReplacement) {
@@ -474,19 +466,18 @@ func sortReplacementsByStart(replacements []srcReplacement) {
 	}
 }
 
-// resolveAnchorHref maps a relative .md href to the public URL it should
-// be served at on the website.
+// resolveAnchorHref maps a relative .md href to the public URL it should be served at on
+// the website.
 //
-// The source markdown is designed to render correctly on GitHub and
-// similar static viewers, where internal links carry the .md extension.
-// At build time we strip the extension and rebuild the URL through the
-// same path analyser used for the canonical URL of each page, so a link
-// like "../tutorials/foo.md#section" inside docs/get-started/install.md
-// becomes "/docs/tutorials/foo#section".
+// The source markdown is designed to render correctly on GitHub and similar static
+// viewers, where internal links carry the .md extension. At build time we strip the
+// extension and rebuild the URL through the same path analyser used for the canonical URL
+// of each page, so a link like "../tutorials/foo.md#section" inside
+// docs/get-started/install.md becomes "/docs/tutorials/foo#section".
 //
 // Hrefs are passed through unchanged when:
-//   - empty, schemed (http://, https://, mailto:, tel:, data:),
-//     protocol-relative (//host), or absolute (/path);
+//   - empty, schemed (http://, https://, mailto:, tel:, data:), protocol-relative
+//     (//host), or absolute (/path);
 //   - fragment-only (#section) or query-only (?key=value);
 //   - the path component does not end in .md;
 //   - resolution against mdDirectory escapes the collection root.
@@ -494,17 +485,14 @@ func sortReplacementsByStart(replacements []srcReplacement) {
 // Fragments and query strings are preserved when present.
 //
 // Takes href (string) which is the raw href value from the markdown source.
-// Takes mdDirectory (string) which is the directory of the .md file that
-// contains the link, relative to the collection root.
-// Takes collectionName (string) which is the collection the link lives in;
-// used by analyser to build the public URL prefix.
-// Takes analyser (*pathAnalyser) which produces the public URL for a
-// resolved .md path.
+// Takes mdDirectory (string) which is the directory of the .md file that contains the
+// link, relative to the collection root.
+// Takes collectionName (string) which is the collection the link lives in; used by
+// analyser to build the public URL prefix.
+// Takes analyser (*pathAnalyser) which produces the public URL for a resolved .md path.
 //
-// Returns string which is the rewritten href; empty when no rewrite
-// applies.
-// Returns bool which is true when the caller should replace href with the
-// returned value.
+// Returns string which is the rewritten href; empty when no rewrite applies.
+// Returns bool which is true when the caller should replace href with the returned value.
 func resolveAnchorHref(href, mdDirectory, collectionName string, analyser *pathAnalyser) (string, bool) {
 	if href == "" || analyser == nil {
 		return "", false
@@ -539,16 +527,15 @@ func resolveAnchorHref(href, mdDirectory, collectionName string, analyser *pathA
 	return info.url + suffix, true
 }
 
-// splitURLSuffix splits an href into its path component and a trailing
-// fragment-or-query suffix. The suffix retains its leading delimiter so
-// it can be concatenated back onto the rewritten path verbatim.
+// splitURLSuffix splits an href into its path component and a trailing fragment-or-query
+// suffix. The suffix retains its leading delimiter so it can be concatenated back onto
+// the rewritten path verbatim.
 //
 // Takes href (string) which is the full href value to split.
 //
-// Returns pathPart (string) which is the href content before any '#' or
-// '?' delimiter.
-// Returns suffix (string) which is the delimiter and everything after it,
-// or "" when neither delimiter is present.
+// Returns pathPart (string) which is the href content before any '#' or '?' delimiter.
+// Returns suffix (string) which is the delimiter and everything after it, or "" when
+// neither delimiter is present.
 func splitURLSuffix(href string) (pathPart, suffix string) {
 	fragment := strings.IndexByte(href, '#')
 	query := strings.IndexByte(href, '?')
@@ -567,20 +554,19 @@ func splitURLSuffix(href string) (pathPart, suffix string) {
 	return href[:cut], href[cut:]
 }
 
-// buildAnchorHrefReplacement inspects the current AttributeToken on lexer
-// and, when the value is a relative .md link inside the collection,
-// prepares a replacement span that points at the public URL.
+// buildAnchorHrefReplacement inspects the current AttributeToken on lexer and, when the
+// value is a relative .md link inside the collection, prepares a replacement span that
+// points at the public URL.
 //
-// Takes analyser (*pathAnalyser) which maps a resolved .md path to its
-// public URL.
-// Takes mdDirectory (string) which is the directory of the .md file
-// inside the collection used as the anchor for resolving the href.
+// Takes analyser (*pathAnalyser) which maps a resolved .md path to its public URL.
+// Takes mdDirectory (string) which is the directory of the .md file inside the collection
+// used as the anchor for resolving the href.
 // Takes collectionName (string) which is the collection the link lives in.
-// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute
-// token whose value may be rewritten.
+// Takes lexer (*htmllexer.Lexer) which is positioned on the attribute token whose value
+// may be rewritten.
 //
-// Returns srcReplacement which describes the span to replace and the
-// replacement text (with quote characters preserved when present).
+// Returns srcReplacement which describes the span to replace and the replacement text
+// (with quote characters preserved when present).
 // Returns bool which is true when a rewrite should be applied.
 func buildAnchorHrefReplacement(
 	analyser *pathAnalyser,

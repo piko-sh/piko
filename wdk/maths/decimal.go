@@ -27,20 +27,21 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
-// decimalContext holds the default arbitrary-precision decimal arithmetic context
-// used by all Decimal operations.
-var decimalContext = apd.Context{
-	Precision:   34,
-	MaxExponent: apd.MaxExponent,
-	MinExponent: apd.MinExponent,
-	Rounding:    apd.RoundHalfEven,
-	Traps:       apd.DefaultTraps,
-}
+var (
+	// decimalContext holds the default arbitrary-precision decimal arithmetic context used
+	// by all Decimal operations.
+	decimalContext = apd.Context{
+		Precision:   34,
+		MaxExponent: apd.MaxExponent,
+		MinExponent: apd.MinExponent,
+		Rounding:    apd.RoundHalfEven,
+		Traps:       apd.DefaultTraps,
+	}
+)
 
-// Decimal represents a high-precision decimal number that implements
-// fmt.Stringer, json.Marshaler, json.Unmarshaler, sql.Scanner, and
-// driver.Valuer. It uses a fluent API and propagates the first error
-// encountered in a chain of operations.
+// Decimal represents a high-precision decimal number that implements fmt.Stringer,
+// json.Marshaler, json.Unmarshaler, sql.Scanner, and driver.Valuer. It uses a fluent API
+// and propagates the first error encountered in a chain of operations.
 type Decimal struct {
 	// err holds the first error from a chain of operations; nil means no error.
 	err error
@@ -51,13 +52,13 @@ type Decimal struct {
 
 // NewDecimalFromString creates a Decimal from a string.
 //
-// It supports standard decimal notation and scientific notation
-// (e.g., "1.23e-2"). An empty string is treated as zero.
+// It supports standard decimal notation and scientific notation (e.g., "1.23e-2"). An
+// empty string is treated as zero.
 //
 // Takes s (string) which is the decimal value to parse.
 //
-// Returns Decimal which holds the parsed value, or an error state if
-// the string is not valid.
+// Returns Decimal which holds the parsed value, or an error state if the string is not
+// valid.
 func NewDecimalFromString(s string) Decimal {
 	if s == "" {
 		return ZeroDecimal()
@@ -69,9 +70,8 @@ func NewDecimalFromString(s string) Decimal {
 	return NewDecimalFromApd(*d)
 }
 
-// NewDecimalFromApd creates a Decimal from an existing apd.Decimal.
-// This is an internal helper that reduces the value to its
-// canonical form.
+// NewDecimalFromApd creates a Decimal from an existing apd.Decimal. This is an internal
+// helper that reduces the value to its canonical form.
 //
 // Takes value (apd.Decimal) which is the arbitrary precision decimal to convert.
 //
@@ -88,8 +88,7 @@ func NewDecimalFromApd(value apd.Decimal) Decimal {
 //
 // Takes value (int64) which is the integer to convert.
 //
-// Returns Decimal which holds the value as a fixed-point decimal with no
-// fractional part.
+// Returns Decimal which holds the value as a fixed-point decimal with no fractional part.
 func NewDecimalFromInt(value int64) Decimal {
 	return Decimal{value: *apd.New(value, 0)}
 }
@@ -98,8 +97,8 @@ func NewDecimalFromInt(value int64) Decimal {
 //
 // Takes value (float64) which is the floating-point number to convert.
 //
-// Returns Decimal which is an error-state Decimal if value is NaN or Infinity,
-// otherwise a valid Decimal representing the value.
+// Returns Decimal which is an error-state Decimal if value is NaN or Infinity, otherwise
+// a valid Decimal representing the value.
 func NewDecimalFromFloat(value float64) Decimal {
 	if math.IsNaN(value) {
 		return Decimal{err: errors.New("maths: cannot convert NaN to Decimal")}
@@ -119,9 +118,8 @@ func (d Decimal) Err() error {
 	return d.err
 }
 
-// Must returns the Decimal value or panics if it is in an error state.
-// It is intended for use in initialisation or tests where an error is a
-// programmer bug.
+// Must returns the Decimal value or panics if it is in an error state. It is intended for
+// use in initialisation or tests where an error is a programmer bug.
 //
 // Returns Decimal which is the valid decimal value.
 //
@@ -135,8 +133,7 @@ func (d Decimal) Must() Decimal {
 
 // ToBigInt converts the Decimal to a BigInt.
 //
-// Returns BigInt which holds an error state if the Decimal is not a whole
-// number.
+// Returns BigInt which holds an error state if the Decimal is not a whole number.
 func (d Decimal) ToBigInt() BigInt {
 	if d.err != nil {
 		return ZeroBigIntWithError(d.err)
@@ -156,8 +153,8 @@ func (d Decimal) ToBigInt() BigInt {
 //
 // Takes d2 (Decimal) which is the value to add to the receiver.
 //
-// Returns Decimal which is the sum of d and d2. If either operand has an
-// error, returns that operand unchanged.
+// Returns Decimal which is the sum of d and d2. If either operand has an error, returns
+// that operand unchanged.
 func (d Decimal) Add(d2 Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -201,8 +198,7 @@ func (d Decimal) AddBigInt(b BigInt) Decimal {
 //
 // Takes i (int64) which is the integer to add.
 //
-// Returns Decimal which contains the sum, or the original decimal if it has
-// an error.
+// Returns Decimal which contains the sum, or the original decimal if it has an error.
 func (d Decimal) AddInt(i int64) Decimal {
 	if d.err != nil {
 		return d
@@ -214,8 +210,8 @@ func (d Decimal) AddInt(i int64) Decimal {
 //
 // Takes i (string) which is the decimal value to parse and add.
 //
-// Returns Decimal which contains the sum, or the original value if the
-// receiver already has an error.
+// Returns Decimal which contains the sum, or the original value if the receiver already
+// has an error.
 func (d Decimal) AddString(i string) Decimal {
 	if d.err != nil {
 		return d
@@ -227,8 +223,8 @@ func (d Decimal) AddString(i string) Decimal {
 //
 // Takes i (float64) which is the value to add.
 //
-// Returns Decimal which contains the sum, or the original decimal if it
-// already holds an error.
+// Returns Decimal which contains the sum, or the original decimal if it already holds an
+// error.
 func (d Decimal) AddFloat(i float64) Decimal {
 	if d.err != nil {
 		return d
@@ -284,8 +280,8 @@ func (d Decimal) SubtractBigInt(b BigInt) Decimal {
 //
 // Takes i (int64) which is the value to subtract.
 //
-// Returns Decimal which is the difference. Returns the original decimal
-// unchanged if it has an error.
+// Returns Decimal which is the difference.
+// Returns the original decimal unchanged if it has an error.
 func (d Decimal) SubtractInt(i int64) Decimal {
 	if d.err != nil {
 		return d
@@ -293,8 +289,7 @@ func (d Decimal) SubtractInt(i int64) Decimal {
 	return d.Subtract(NewDecimalFromInt(i))
 }
 
-// SubtractString subtracts a decimal value given as a string from this
-// decimal.
+// SubtractString subtracts a decimal value given as a string from this decimal.
 //
 // Takes i (string) which is the decimal value to subtract.
 //
@@ -322,8 +317,8 @@ func (d Decimal) SubtractFloat(i float64) Decimal {
 //
 // Takes d2 (Decimal) which is the value to multiply by.
 //
-// Returns Decimal which is the product. If either value has an error, or if
-// the multiplication fails, the returned Decimal holds the error.
+// Returns Decimal which is the product. If either value has an error, or if the
+// multiplication fails, the returned Decimal holds the error.
 func (d Decimal) Multiply(d2 Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -343,8 +338,8 @@ func (d Decimal) Multiply(d2 Decimal) Decimal {
 //
 // Takes d2 (Decimal) which is the multiplier.
 //
-// Returns Decimal which is the product, or the receiver unchanged if it
-// contains an error.
+// Returns Decimal which is the product, or the receiver unchanged if it contains an
+// error.
 func (d Decimal) MultiplyDecimal(d2 Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -404,8 +399,8 @@ func (d Decimal) MultiplyFloat(i float64) Decimal {
 //
 // Takes d2 (Decimal) which is the divisor.
 //
-// Returns Decimal which holds the quotient. The result has an error state if
-// either operand has an error or if d2 is zero.
+// Returns Decimal which holds the quotient. The result has an error state if either
+// operand has an error or if d2 is zero.
 func (d Decimal) Divide(d2 Decimal) Decimal {
 	return d.divisionResult(d2, decimalContext.Quo, "division by zero", "Divide")
 }
@@ -462,8 +457,8 @@ func (d Decimal) DivideString(i string) Decimal {
 //
 // Takes i (float64) which is the divisor.
 //
-// Returns Decimal which is the result of the division, or the original
-// decimal if it already contains an error.
+// Returns Decimal which is the result of the division, or the original decimal if it
+// already contains an error.
 func (d Decimal) DivideFloat(i float64) Decimal {
 	if d.err != nil {
 		return d
@@ -475,8 +470,8 @@ func (d Decimal) DivideFloat(i float64) Decimal {
 //
 // Takes d2 (Decimal) which is the divisor.
 //
-// Returns Decimal which holds the result, or an error if either value has an
-// error or d2 is zero.
+// Returns Decimal which holds the result, or an error if either value has an error or d2
+// is zero.
 func (d Decimal) Modulus(d2 Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -503,8 +498,7 @@ func (d Decimal) Modulus(d2 Decimal) Decimal {
 //
 // Takes d2 (Decimal) which is the divisor.
 //
-// Returns Decimal which contains the remainder, or d unchanged if d has an
-// error.
+// Returns Decimal which contains the remainder, or d unchanged if d has an error.
 func (d Decimal) ModulusDecimal(d2 Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -528,8 +522,8 @@ func (d Decimal) ModulusBigInt(b BigInt) Decimal {
 //
 // Takes i (int64) which is the divisor.
 //
-// Returns Decimal which contains the remainder, or the original value if it
-// holds an error.
+// Returns Decimal which contains the remainder, or the original value if it holds an
+// error.
 func (d Decimal) ModulusInt(i int64) Decimal {
 	if d.err != nil {
 		return d
@@ -537,8 +531,7 @@ func (d Decimal) ModulusInt(i int64) Decimal {
 	return d.Modulus(NewDecimalFromInt(i))
 }
 
-// ModulusString returns the remainder of dividing this decimal by the given
-// string value.
+// ModulusString returns the remainder of dividing this decimal by the given string value.
 //
 // Takes i (string) which is parsed as a decimal divisor.
 //
@@ -607,13 +600,12 @@ func (d Decimal) RemainderInt(i int64) Decimal {
 	return d.Remainder(NewDecimalFromInt(i))
 }
 
-// RemainderString returns the remainder of dividing this decimal by the given
-// string value.
+// RemainderString returns the remainder of dividing this decimal by the given string
+// value.
 //
 // Takes i (string) which is parsed as a decimal divisor.
 //
-// Returns Decimal which contains the remainder, or propagates any existing
-// error.
+// Returns Decimal which contains the remainder, or propagates any existing error.
 func (d Decimal) RemainderString(i string) Decimal {
 	if d.err != nil {
 		return d
@@ -625,8 +617,7 @@ func (d Decimal) RemainderString(i string) Decimal {
 //
 // Takes i (float64) which is the divisor.
 //
-// Returns Decimal which contains the remainder, or propagates any existing
-// error in d.
+// Returns Decimal which contains the remainder, or propagates any existing error in d.
 func (d Decimal) RemainderFloat(i float64) Decimal {
 	if d.err != nil {
 		return d
@@ -638,8 +629,8 @@ func (d Decimal) RemainderFloat(i float64) Decimal {
 //
 // Takes exponent (Decimal) which specifies the power to raise d to.
 //
-// Returns Decimal which contains the result, or an error state if the
-// operation fails or either operand has an existing error.
+// Returns Decimal which contains the result, or an error state if the operation fails or
+// either operand has an existing error.
 func (d Decimal) Power(exponent Decimal) Decimal {
 	if d.err != nil {
 		return d
@@ -736,8 +727,8 @@ func (d *Decimal) MultiplyInPlace(d2 Decimal) {
 	d.applyInPlace(d2, decimalContext.Mul, "MultiplyInPlace")
 }
 
-// applyInPlace performs a binary decimal operation in place on the receiver,
-// including error propagation and trailing-zero reduction.
+// applyInPlace performs a binary decimal operation in place on the receiver, including
+// error propagation and trailing-zero reduction.
 //
 // Takes d2 (Decimal) which is the second operand.
 // Takes op (func) which is the apd operation to apply (Add, Sub, Mul).
@@ -759,9 +750,8 @@ func (d *Decimal) applyInPlace(d2 Decimal, op func(d, x, y *apd.Decimal) (apd.Co
 	}
 }
 
-// divisionResult performs a division-like operation with a zero-divisor check.
-// Shared by Divide and Remainder to avoid duplicating the error handling and
-// zero-check logic.
+// divisionResult performs a division-like operation with a zero-divisor check. Shared by
+// Divide and Remainder to avoid duplicating the error handling and zero-check logic.
 //
 // Takes d2 (Decimal) which is the divisor.
 // Takes op (func) which is the apd operation to perform (Quo or Rem).
@@ -798,8 +788,7 @@ func ZeroDecimal() Decimal {
 	return Decimal{value: *apd.New(0, 0)}
 }
 
-// ZeroDecimalWithError returns a zero-value Decimal that holds a pre-existing
-// error.
+// ZeroDecimalWithError returns a zero-value Decimal that holds a pre-existing error.
 //
 // Takes err (error) which is the error to store in the returned Decimal.
 //

@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm provides a unified, provider-agnostic interface for
-// interacting with large language models.
+// Package llm provides a unified, provider-agnostic interface for interacting with large
+// language models.
 //
-// The fluent builder API covers completions, streaming,
-// tool/function calling, structured JSON output, embeddings, and
-// conversation memory. Provider adapters live in separate
+// The fluent builder API covers completions, streaming, tool/function calling, structured
+// JSON output, embeddings, and conversation memory. Provider adapters live in separate
 // sub-packages so you only import the ones you need.
 //
 // # Basic usage
@@ -86,7 +85,6 @@
 //
 // # Thread safety
 //
-// [Service], [CostCalculator], [BudgetManager], [RateLimiter], and
-// [CacheManager] are safe for concurrent use. Builder instances
-// should not be shared between goroutines.
+// [Service], [CostCalculator], [BudgetManager], [RateLimiter], and [CacheManager] are
+// safe for concurrent use. Builder instances should not be shared between goroutines.
 package llm

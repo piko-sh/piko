@@ -22,13 +22,15 @@ import (
 	"testing"
 )
 
-const testHTMLStorage = `<!DOCTYPE html>
-<html>
-<head><title>Storage Test</title></head>
-<body>
-<div id="content">Storage Test Page</div>
-</body>
-</html>`
+const (
+	testHTMLStorage = `<!DOCTYPE html>
+	<html>
+	<head><title>Storage Test</title></head>
+	<body>
+	<div id="content">Storage Test Page</div>
+	</body>
+	</html>`
+)
 
 func TestLocalStorage(t *testing.T) {
 	t.Parallel()

@@ -18,26 +18,26 @@
 
 package driver_symbols_extract
 
-import "slices"
+import (
+	"slices"
+)
 
-// ManifestDiff summarises the difference between what a manifest
-// declares and what a project actually requires. A green check run
-// should report empty Missing; Unused entries are informational.
+// ManifestDiff summarises the difference between what a manifest declares and what a
+// project actually requires. A green check run should report empty Missing; Unused
+// entries are informational.
 type ManifestDiff struct {
-	// Missing lists import paths that discovery found but the
-	// manifest does not declare. Non-empty means the interpreter
-	// will fail to resolve these packages.
+	// Missing lists import paths that discovery found but the manifest does not declare.
+	// Non-empty means the interpreter will fail to resolve these packages.
 	Missing []string
 
-	// Unused lists import paths that the manifest declares but
-	// discovery did not find in the project. Keeping them is
-	// harmless but they add unnecessary registration overhead.
+	// Unused lists import paths that the manifest declares but discovery did not find in the
+	// project. Keeping them is harmless but they add unnecessary registration overhead.
 	Unused []string
 }
 
-// Diff computes the symmetric difference between a loaded manifest
-// and a discovery result. Both input slices are treated as sets;
-// output slices are sorted for determinism.
+// Diff computes the symmetric difference between a loaded manifest and a discovery
+// result. Both input slices are treated as sets; output slices are sorted for
+// determinism.
 //
 // Takes manifest (*Manifest) which supplies the declared packages.
 // Takes discovered (DiscoverResult) which supplies the required set.
@@ -46,7 +46,8 @@ type ManifestDiff struct {
 func Diff(manifest *Manifest, discovered DiscoverResult) ManifestDiff {
 	declared := make(map[string]struct{})
 	if manifest != nil {
-		for _, config := range manifest.Packages {
+		for i := range manifest.Packages {
+			config := &manifest.Packages[i]
 			if config.ImportPath != "" {
 				declared[config.ImportPath] = struct{}{}
 			}

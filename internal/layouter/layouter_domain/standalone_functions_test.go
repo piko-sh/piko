@@ -25,7 +25,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const standaloneEpsilon = 0.001
+const (
+	standaloneEpsilon = 0.001
+)
 
 func TestLayoutTextRun_BasicText(t *testing.T) {
 
@@ -600,6 +602,121 @@ func TestApplyInlineVerticalAlign_Bottom(t *testing.T) {
 	applyInlineVerticalAlign(items, 50)
 
 	assert.InDelta(t, 30.0, items[0].fragment.OffsetY, standaloneEpsilon)
+}
+
+func TestApplyInlineVerticalAlign_Sub(t *testing.T) {
+	baselineItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignBaseline}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+	}
+	subItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignSub}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+		parentMetrics: FontMetrics{XHeight: 6, Ascent: 10, Descent: 2},
+	}
+	items := []lineItem{baselineItem, subItem}
+
+	applyInlineVerticalAlign(items, 50)
+
+	assert.InDelta(t, 0.0, baselineItem.fragment.OffsetY, standaloneEpsilon)
+	assert.InDelta(t, 3.0, subItem.fragment.OffsetY, standaloneEpsilon)
+}
+
+func TestApplyInlineVerticalAlign_Super(t *testing.T) {
+	baselineItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignBaseline}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+	}
+	superItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignSuper}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+		parentMetrics: FontMetrics{XHeight: 6, Ascent: 10, Descent: 2},
+	}
+	items := []lineItem{baselineItem, superItem}
+
+	applyInlineVerticalAlign(items, 50)
+
+	assert.InDelta(t, 0.0, baselineItem.fragment.OffsetY, standaloneEpsilon)
+	assert.InDelta(t, -3.0, superItem.fragment.OffsetY, standaloneEpsilon)
+}
+
+func TestApplyInlineVerticalAlign_TextTop(t *testing.T) {
+	baselineItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignBaseline}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+	}
+	textTopItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignTextTop}},
+			OffsetY:       0,
+			ContentHeight: 8,
+		},
+		parentMetrics: FontMetrics{XHeight: 6, Ascent: 10, Descent: 2},
+	}
+	items := []lineItem{baselineItem, textTopItem}
+
+	applyInlineVerticalAlign(items, 50)
+
+	assert.InDelta(t, -10.0, textTopItem.fragment.OffsetY, standaloneEpsilon)
+}
+
+func TestApplyInlineVerticalAlign_TextBottom(t *testing.T) {
+	baselineItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignBaseline}},
+			OffsetY:       0,
+			ContentHeight: 20,
+		},
+	}
+	textBottomItem := lineItem{
+		fragment: &Fragment{
+			Box:           &LayoutBox{Style: ComputedStyle{VerticalAlign: VerticalAlignTextBottom}},
+			OffsetY:       0,
+			ContentHeight: 8,
+		},
+		parentMetrics: FontMetrics{XHeight: 6, Ascent: 10, Descent: 2},
+	}
+	items := []lineItem{baselineItem, textBottomItem}
+
+	applyInlineVerticalAlign(items, 50)
+
+	assert.InDelta(t, -6.0, textBottomItem.fragment.OffsetY, standaloneEpsilon)
+}
+
+func TestExtendLineHeightForVerticalAlign_SubGrowsLineBox(t *testing.T) {
+	parentMetrics := FontMetrics{XHeight: 8, Ascent: 10, Descent: 2}
+	grown := extendLineHeightForVerticalAlign(20, 20, parentMetrics, VerticalAlignSub)
+
+	assert.InDelta(t, 24.0, grown, standaloneEpsilon)
+}
+
+func TestExtendLineHeightForVerticalAlign_SuperGrowsLineBox(t *testing.T) {
+	parentMetrics := FontMetrics{XHeight: 8, Ascent: 10, Descent: 2}
+	grown := extendLineHeightForVerticalAlign(20, 20, parentMetrics, VerticalAlignSuper)
+
+	assert.InDelta(t, 24.0, grown, standaloneEpsilon)
+}
+
+func TestExtendLineHeightForVerticalAlign_BaselinePreservesHeight(t *testing.T) {
+	parentMetrics := FontMetrics{XHeight: 8, Ascent: 10, Descent: 2}
+	preserved := extendLineHeightForVerticalAlign(20, 20, parentMetrics, VerticalAlignBaseline)
+
+	assert.InDelta(t, 20.0, preserved, standaloneEpsilon)
 }
 
 func TestFragmentIntoColumns_SplitsAcrossColumns(t *testing.T) {

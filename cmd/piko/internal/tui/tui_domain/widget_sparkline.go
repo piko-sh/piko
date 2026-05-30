@@ -39,14 +39,15 @@ const (
 	// thresholdKilo is the value above which numbers are shown in thousands.
 	thresholdKilo = 1e3
 
-	// thresholdMilli is the threshold below which values are formatted in milli
-	// notation.
+	// thresholdMilli is the threshold below which values are formatted in milli notation.
 	thresholdMilli = 0.001
 )
 
-// sparklineChars holds the characters from lowest to highest for sparklines.
-// Uses Unicode block elements for smooth gradients.
-var sparklineChars = []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+var (
+	// sparklineChars holds the characters from lowest to highest for sparklines. Uses
+	// Unicode block elements for smooth gradients.
+	sparklineChars = []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+)
 
 // SparklineConfig holds settings for rendering sparkline charts.
 type SparklineConfig struct {
@@ -59,8 +60,8 @@ type SparklineConfig struct {
 	// LowStyle is the style used when the value falls below LowThreshold.
 	LowStyle lipgloss.Style
 
-	// HighThreshold is the value above which high-style formatting is applied;
-	// nil means no high threshold check.
+	// HighThreshold is the value above which high-style formatting is applied; nil means no
+	// high threshold check.
 	HighThreshold *float64
 
 	// LowThreshold is the value below which LowStyle is applied; nil disables it.
@@ -79,8 +80,8 @@ type SparklineConfig struct {
 	ShowCurrent bool
 }
 
-// DefaultSparklineConfig returns a SparklineConfig with sensible default
-// values for rendering sparklines.
+// DefaultSparklineConfig returns a SparklineConfig with sensible default values for
+// rendering sparklines.
 //
 // Returns SparklineConfig which contains ready-to-use styles and settings.
 func DefaultSparklineConfig() SparklineConfig {
@@ -102,8 +103,8 @@ func DefaultSparklineConfig() SparklineConfig {
 // When values is empty, returns a horizontal line of the configured width.
 //
 // Takes values ([]float64) which contains the data points to display.
-// Takes config (*SparklineConfig) which controls rendering options such as
-// width, current value display, and min/max labels.
+// Takes config (*SparklineConfig) which controls rendering options such as width, current
+// value display, and min/max labels.
 //
 // Returns string which is the rendered sparkline with optional labels.
 func Sparkline(values []float64, config *SparklineConfig) string {
@@ -139,9 +140,8 @@ func Sparkline(values []float64, config *SparklineConfig) string {
 // Takes height (int) which specifies the number of rows in the sparkline.
 // Takes style (*lipgloss.Style) which defines the styling for filled blocks.
 //
-// Returns string which contains the rendered multiline sparkline joined by
-// newlines. Returns a horizontal line when values is empty or height is less
-// than one.
+// Returns string which contains the rendered multiline sparkline joined by newlines.
+// Returns a horizontal line when values is empty or height is less than one.
 func MultilineSparkline(values []float64, width, height int, style *lipgloss.Style) string {
 	if len(values) == 0 || height < 1 {
 		return strings.Repeat("─", width)
@@ -263,9 +263,8 @@ func addMinMaxLabels(result string, minVal, maxVal float64) string {
 // Takes values ([]float64) which holds the input data to resize.
 // Takes targetCount (int) which sets the wanted output length.
 //
-// Returns []float64 which holds the resized values. When the input is shorter
-// than the target, the first value fills the start. When longer, values are
-// grouped and averaged.
+// Returns []float64 which holds the resized values. When the input is shorter than the
+// target, the first value fills the start. When longer, values are grouped and averaged.
 func resampleValues(values []float64, targetCount int) []float64 {
 	if len(values) <= targetCount {
 		if len(values) == targetCount {
@@ -305,8 +304,8 @@ func resampleValues(values []float64, targetCount int) []float64 {
 //
 // Takes v (float64) which is the value to format.
 //
-// Returns string which contains the formatted value with a unit suffix (G, M,
-// K) or in decimal or scientific notation based on size.
+// Returns string which contains the formatted value with a unit suffix (G, M, K) or in
+// decimal or scientific notation based on size.
 func formatValue(v float64) string {
 	absV := math.Abs(v)
 	switch {

@@ -16,17 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_otter implements the cache provider port using the
-// Otter in-memory cache library.
+// Package provider_otter implements the cache provider port using the Otter in-memory
+// cache library.
 //
-// This adapter provides tag-based invalidation, full-text search via an
-// inverted index, sorted field indexes backed by B-trees, and optional
-// WAL-based persistence for crash recovery. Each namespace gets an
-// independent cache instance with no shared resources.
+// This adapter provides tag-based invalidation, full-text search via an inverted index,
+// sorted field indexes backed by B-trees, and optional WAL-based persistence for crash
+// recovery. Each namespace gets an independent cache instance with no shared resources.
 //
 // # Thread safety
 //
-// All exported methods are safe for concurrent use. Write operations
-// coordinate with WAL checkpointing via a read-write mutex to ensure
-// snapshot consistency.
+// All exported methods are safe for concurrent use. Write operations coordinate with WAL
+// checkpointing via a read-write mutex to ensure snapshot consistency.
 package provider_otter

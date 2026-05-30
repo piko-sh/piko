@@ -18,7 +18,11 @@
 
 package markdown_domain
 
-import "bytes"
+import (
+	"slices"
+
+	"bytes"
+)
 
 // positionMapper converts byte offsets to line/column positions in a source file.
 type positionMapper interface {
@@ -31,22 +35,24 @@ type positionMapper interface {
 	Position(offset int) (line, column int)
 }
 
-// locationMapper holds a pre-calculated index of newline positions in a
-// source file, allowing fast conversion of a byte offset to a line and
-// column number. It implements the positionMapper interface.
+// locationMapper holds a pre-calculated index of newline positions in a source file,
+// allowing fast conversion of a byte offset to a line and column number. It implements
+// the positionMapper interface.
 type locationMapper struct {
 	// source holds the original source code bytes for position calculations.
 	source []byte
 
-	// lineStarts holds byte offsets where each line begins in the source.
-	// The index is the line number (0-indexed) and the value is the offset.
+	// lineStarts holds byte offsets where each line begins in the source. The index is the
+	// line number (0-indexed) and the value is the offset.
 	lineStarts []int
 }
 
-var _ positionMapper = (*locationMapper)(nil)
+var (
+	_ positionMapper = (*locationMapper)(nil)
+)
 
-// Position finds the line and column number for a given byte offset.
-// Both values are 1-based.
+// Position finds the line and column number for a given byte offset. Both values are
+// 1-based.
 //
 // Takes offset (int) which specifies the byte position in the source.
 //
@@ -58,8 +64,8 @@ func (lm *locationMapper) Position(offset int) (line, column int) {
 	}
 
 	lineIndex := 0
-	for i := len(lm.lineStarts) - 1; i >= 0; i-- {
-		if lm.lineStarts[i] <= offset {
+	for i, lineStart := range slices.Backward(lm.lineStarts) {
+		if lineStart <= offset {
 			lineIndex = i
 			break
 		}
@@ -76,8 +82,7 @@ func (lm *locationMapper) Position(offset int) (line, column int) {
 //
 // Takes source ([]byte) which contains the content to build line mappings for.
 //
-// Returns *locationMapper which converts byte offsets to line and column
-// positions.
+// Returns *locationMapper which converts byte offsets to line and column positions.
 func newLocationMapper(source []byte) *locationMapper {
 	lineStarts := make([]int, 0, bytes.Count(source, []byte("\n"))+1)
 	lineStarts = append(lineStarts, 0)

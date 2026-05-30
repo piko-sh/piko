@@ -21,7 +21,6 @@ package llm_domain
 import (
 	"context"
 	"errors"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -404,7 +403,7 @@ func TestEmbeddingBuilder_FullChain(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.EmbedCallCount))
+	assert.Equal(t, int64(1), provider.EmbedCallCount.Load())
 	require.NotNil(t, capturedReq)
 	assert.Equal(t, "text-embedding-3-small", capturedReq.Model)
 	assert.Equal(t, []string{"Hello", "World"}, capturedReq.Input)

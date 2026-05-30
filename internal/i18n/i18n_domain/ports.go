@@ -18,18 +18,18 @@
 
 package i18n_domain
 
-// Service defines the interface for accessing translations.
-// Implementations load translations from their respective sources (e.g.,
-// filesystem, embedded resources) and provide them in a flattened format.
+// Service defines the interface for accessing translations. Implementations load
+// translations from their respective sources (e.g., filesystem, embedded resources) and
+// provide them in a flattened format.
 type Service interface {
 	// GetStore returns the translation Store for zero-allocation lookups.
 	//
-	// Returns *Store which provides access to translations, or nil if no
-	// translations are loaded.
+	// Returns *Store which provides access to translations, or nil if no translations are
+	// loaded.
 	GetStore() *Store
 
-	// GetStrBufPool returns a shared buffer pool for string rendering without
-	// memory allocation.
+	// GetStrBufPool returns a shared buffer pool for string rendering without memory
+	// allocation.
 	//
 	// Returns *StrBufPool which is the shared buffer pool, or nil if not set up.
 	GetStrBufPool() *StrBufPool

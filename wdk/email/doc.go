@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email provides a provider-agnostic framework for sending
-// emails, with support for templating, attachments, and background
-// dispatch.
+// Package email provides a provider-agnostic framework for sending emails, with support
+// for templating, attachments, and background dispatch.
 //
-// Create a [Service] with [NewService], register one or more
-// provider backends, and use the fluent builder API to compose
-// and send messages. If the Piko framework has been bootstrapped,
-// [GetDefaultService] returns the pre-configured service instance.
+// Create a [Service] with [NewService], register one or more provider backends, and use
+// the fluent builder API to compose and send messages. If the Piko framework has been
+// bootstrapped, [GetDefaultService] returns the pre-configured service instance.
 //
 // # Usage
 //
@@ -56,12 +54,11 @@
 //
 // # Providers
 //
-// Provider adapters for various email services, as well as
-// development and testing backends, are available in the
-// email_provider_* sub-packages.
+// Provider adapters for various email services, as well as development and testing
+// backends, are available in the email_provider_* sub-packages.
 //
 // # Thread safety
 //
-// [Service] and its builders are safe for concurrent use once
-// providers have been registered.
+// [Service] and its builders are safe for concurrent use once providers have been
+// registered.
 package email

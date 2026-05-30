@@ -19,17 +19,15 @@
 // Package maths provides arbitrary-precision numeric types with fluent APIs.
 //
 // Offers three core types for precise numerical computation: BigInt for
-// arbitrary-precision integers, Decimal for high-precision decimal numbers (34
-// digits), and Money for currency-aware monetary values. All types use a fluent
-// API pattern and propagate the first error encountered in a chain of
-// operations.
+// arbitrary-precision integers, Decimal for high-precision decimal numbers (34 digits),
+// and Money for currency-aware monetary values. All types use a fluent API pattern and
+// propagate the first error encountered in a chain of operations.
 //
 // # Fluent API and error propagation
 //
-// All numeric types follow a fluent API pattern where operations return
-// new values rather than modifying in place (except for explicit
-// *InPlace methods). Errors are captured within the type and propagated
-// through chains:
+// All numeric types follow a fluent API pattern where operations return new values rather
+// than modifying in place (except for explicit *InPlace methods). Errors are captured
+// within the type and propagated through chains:
 //
 //	result := maths.NewDecimalFromString("100.50").
 //		Add(maths.NewDecimalFromString("25.25")).
@@ -49,18 +47,16 @@
 //
 // # Allocation
 //
-// Values can be split proportionally using the Allocate method. The
-// last portion receives any remainder to ensure the sum of parts
-// equals the original value:
+// Values can be split proportionally using the Allocate method. The last portion receives
+// any remainder to ensure the sum of parts equals the original value:
 //
 //	parts, err := maths.NewDecimalFromString("100").Allocate(1, 1, 1)
 //
 // # Currency conversion
 //
-// Two converters are provided for exchanging monetary values between
-// currencies. [Converter] uses rates relative to a single base
-// currency, whilst [MatrixConverter] uses a full rate matrix
-// supporting direct and triangulated conversions:
+// Two converters are provided for exchanging monetary values between currencies.
+// [Converter] uses rates relative to a single base currency, whilst [MatrixConverter]
+// uses a full rate matrix supporting direct and triangulated conversions:
 //
 //	rates, _ := maths.NewExchangeRates("GBP", map[string]maths.Decimal{
 //		"USD": maths.NewDecimalFromString("1.27"),
@@ -79,8 +75,7 @@
 //
 // # Thread safety
 //
-// Individual values are not safe for concurrent modification. However,
-// Money operations that access the currency registry
-// ([NewMoneyFromDecimal], [RegisterCurrency]) use appropriate locking
-// and are safe for concurrent use.
+// Individual values are not safe for concurrent modification. However, Money operations
+// that access the currency registry ([NewMoneyFromDecimal], [RegisterCurrency]) use
+// appropriate locking and are safe for concurrent use.
 package maths

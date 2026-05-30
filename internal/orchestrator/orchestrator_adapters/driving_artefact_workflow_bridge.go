@@ -50,15 +50,14 @@ const (
 	logKeyReference = "reference"
 )
 
-// ArtefactWorkflowBridge is a driving adapter that listens for artefact
-// events from the registry and dispatches compilation tasks to the
-// orchestrator. It implements BridgeWithCounter and bridges the registry
-// hexagon's domain events to the orchestrator's task system.
+// ArtefactWorkflowBridge is a driving adapter that listens for artefact events from the
+// registry and dispatches compilation tasks to the orchestrator. It implements
+// BridgeWithCounter and bridges the registry hexagon's domain events to the
+// orchestrator's task system.
 //
-// Deduplication: Tasks are deduplicated at the database level using
-// DeduplicationKey (artefactID:profileName). This limits to one active
-// task exists per profile across all instances, supporting distributed
-// deployments.
+// Deduplication: Tasks are deduplicated at the database level using DeduplicationKey
+// (artefactID:profileName). This limits to one active task exists per profile across all
+// instances, supporting distributed deployments.
 type ArtefactWorkflowBridge struct {
 	// registryService provides access to the artefact registry for lookups.
 	registryService registry_domain.RegistryService
@@ -66,8 +65,7 @@ type ArtefactWorkflowBridge struct {
 	// orchestratorService manages the running of multi-step workflows.
 	orchestratorService orchestrator_domain.OrchestratorService
 
-	// taskDispatcher sends tasks to priority queues for processing at the same
-	// time.
+	// taskDispatcher sends tasks to priority queues for processing at the same time.
 	taskDispatcher orchestrator_domain.TaskDispatcher
 
 	// eventBus sends events to handlers that have registered to receive them.
@@ -76,15 +74,14 @@ type ArtefactWorkflowBridge struct {
 	// eventGroup prevents duplicate processing of events for the same artefact.
 	eventGroup singleflight.Group
 
-	// artefactEventsProcessed counts the number of artefact events fully handled.
-	// The daemon uses this for flush detection: it waits until this count
-	// matches the registry's published count before checking if the dispatcher
-	// is idle.
+	// artefactEventsProcessed counts the number of artefact events fully handled. The daemon
+	// uses this for flush detection: it waits until this count matches the registry's
+	// published count before checking if the dispatcher is idle.
 	artefactEventsProcessed atomic.Int64
 }
 
-// NewArtefactWorkflowBridge creates a new ArtefactWorkflowBridge with the
-// given dependencies.
+// NewArtefactWorkflowBridge creates a new ArtefactWorkflowBridge with the given
+// dependencies.
 //
 // Takes registry (RegistryService) which provides artefact registry access.
 // Takes orchestrator (OrchestratorService) which manages workflow execution.
@@ -108,13 +105,12 @@ func NewArtefactWorkflowBridge(
 	}
 }
 
-// Listen starts listening for artefact events from the provided EventBus,
-// automatically detecting handler-based subscription support for efficient Ack/Nack
-// semantics.
+// Listen starts listening for artefact events from the provided EventBus, automatically
+// detecting handler-based subscription support for efficient Ack/Nack semantics.
 //
-// Behaviour: blocks until the context is cancelled. For proper initialisation
-// ordering, use StartListening() instead which sets up subscriptions synchronously
-// and returns immediately.
+// Behaviour: blocks until the context is cancelled. For proper initialisation ordering,
+// use StartListening() instead which sets up subscriptions synchronously and returns
+// immediately.
 //
 // When using handler-based subscription:
 //   - Messages are processed by Watermill's router
@@ -122,8 +118,8 @@ func NewArtefactWorkflowBridge(
 //   - Returning error from the handler Nacks the message
 //   - Singleflight provides idempotent processing per artefact
 //
-// Takes bus (orchestrator_domain.EventBus) which provides the
-// event source to subscribe to.
+// Takes bus (orchestrator_domain.EventBus) which provides the event source to subscribe
+// to.
 func (b *ArtefactWorkflowBridge) Listen(ctx context.Context, bus orchestrator_domain.EventBus) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "ArtefactWorkflowBridge.Listen",
@@ -134,27 +130,23 @@ func (b *ArtefactWorkflowBridge) Listen(ctx context.Context, bus orchestrator_do
 	b.listenWithHandler(ctx, bus)
 }
 
-// StartListening sets up subscriptions synchronously and returns
-// immediately, providing a wait function that blocks until the context
-// is cancelled so that subscriptions are established before any events
-// are published.
+// StartListening sets up subscriptions synchronously and returns immediately, providing a
+// wait function that blocks until the context is cancelled so that subscriptions are
+// established before any events are published.
 //
-// Usage:
-// wait, err := bridge.StartListening(ctx, bus)
+// Usage: wait, err := bridge.StartListening(ctx, bus)
 //
 //	if err != nil {
 //	    return err
 //	}
 //
-// go wait() // Block in goroutine until shutdown
-// This is the preferred method over Listen() for proper initialisation
-// ordering.
+// go wait() // Block in goroutine until shutdown This is the preferred method over
+// Listen() for proper initialisation ordering.
 //
-// Takes bus (orchestrator_domain.EventBus) which provides the event source
-// to subscribe to.
+// Takes bus (orchestrator_domain.EventBus) which provides the event source to subscribe
+// to.
 //
-// Returns wait (func()) which blocks until the context is
-// cancelled.
+// Returns wait (func()) which blocks until the context is cancelled.
 // Returns err (error) when subscription setup fails.
 func (b *ArtefactWorkflowBridge) StartListening(ctx context.Context, bus orchestrator_domain.EventBus) (wait func(), err error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -166,23 +158,21 @@ func (b *ArtefactWorkflowBridge) StartListening(ctx context.Context, bus orchest
 	return b.setupHandlerSubscriptions(ctx, bus)
 }
 
-// ArtefactEventsProcessed returns the number of artefact events fully
-// processed. Used for pipeline flush detection - the daemon waits until this
-// equals the registry's published count before checking if the dispatcher is
-// idle.
+// ArtefactEventsProcessed returns the number of artefact events fully processed. Used for
+// pipeline flush detection - the daemon waits until this equals the registry's published
+// count before checking if the dispatcher is idle.
 //
 // Returns int64 which is the count of fully processed artefact events.
 func (b *ArtefactWorkflowBridge) ArtefactEventsProcessed() int64 {
 	return b.artefactEventsProcessed.Load()
 }
 
-// setupHandlerSubscriptions establishes handler-based subscriptions
-// synchronously and returns a wait function that blocks until context
-// cancellation.
+// setupHandlerSubscriptions establishes handler-based subscriptions synchronously and
+// returns a wait function that blocks until context cancellation.
 //
 // Takes ctx (context.Context) which controls the subscription lifetime.
-// Takes bus (orchestrator_domain.EventBus) which provides
-// handler-based event subscription.
+// Takes bus (orchestrator_domain.EventBus) which provides handler-based event
+// subscription.
 //
 // Returns func() which blocks until the context is cancelled.
 // Returns error when subscribing to any artefact topic fails.
@@ -227,15 +217,15 @@ func (b *ArtefactWorkflowBridge) setupHandlerSubscriptions(ctx context.Context, 
 	}, nil
 }
 
-// listenWithHandler subscribes to artefact events using handler-based
-// semantics for proper Ack/Nack support.
+// listenWithHandler subscribes to artefact events using handler-based semantics for
+// proper Ack/Nack support.
 //
-// Preferred when using a Watermill-backed event bus. Unlike channel-based
-// subscription, Watermill's GoChannel does not support wildcard patterns. Subscribes
-// to each topic in registry_domain.ArtefactTopics explicitly.
+// Preferred when using a Watermill-backed event bus. Unlike channel-based subscription,
+// Watermill's GoChannel does not support wildcard patterns. Subscribes to each topic in
+// registry_domain.ArtefactTopics explicitly.
 //
-// Takes bus (orchestrator_domain.EventBus) which provides the event
-// bus with handler-based subscription support.
+// Takes bus (orchestrator_domain.EventBus) which provides the event bus with
+// handler-based subscription support.
 func (b *ArtefactWorkflowBridge) listenWithHandler(ctx context.Context, bus orchestrator_domain.EventBus) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "ArtefactWorkflowBridge.listenWithHandler")
@@ -279,8 +269,8 @@ func (b *ArtefactWorkflowBridge) listenWithHandler(ctx context.Context, bus orch
 //
 // Takes event (orchestrator_domain.Event) which contains the event to process.
 //
-// Returns error when the message should be Nacked for redelivery; returns nil
-// to Ack when the message was processed or is not valid.
+// Returns error when the message should be Nacked for redelivery; returns nil to Ack when
+// the message was processed or is not valid.
 func (b *ArtefactWorkflowBridge) handleEventWithAck(ctx context.Context, event orchestrator_domain.Event) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "ArtefactWorkflowBridge.handleEventWithAck",
@@ -302,8 +292,8 @@ func (b *ArtefactWorkflowBridge) handleEventWithAck(ctx context.Context, event o
 
 // handleEvent processes an artefact workflow event.
 //
-// Takes event (orchestrator_domain.Event) which contains the event type and
-// payload with artefact details.
+// Takes event (orchestrator_domain.Event) which contains the event type and payload with
+// artefact details.
 func (b *ArtefactWorkflowBridge) handleEvent(ctx context.Context, event orchestrator_domain.Event) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "ArtefactWorkflowBridge.handleEvent",
@@ -338,8 +328,8 @@ func (b *ArtefactWorkflowBridge) handleEvent(ctx context.Context, event orchestr
 	b.finaliseEventHandling(ctx, span, err, artefactID, startTime)
 }
 
-// processArtefactEvent handles the main logic for processing an artefact event
-// within singleflight.
+// processArtefactEvent handles the main logic for processing an artefact event within
+// singleflight.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which records tracing data for this operation.
@@ -389,8 +379,8 @@ func (b *ArtefactWorkflowBridge) processArtefactEvent(
 	return nil, nil
 }
 
-// fetchArtefact retrieves artefact details from the registry and records
-// fetch timing metrics.
+// fetchArtefact retrieves artefact details from the registry and records fetch timing
+// metrics.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes artefactID (string) which identifies the artefact to fetch.
@@ -420,13 +410,13 @@ func (b *ArtefactWorkflowBridge) fetchArtefact(
 	return artefact, err
 }
 
-// evaluateAndDispatchProfiles iterates over all desired profiles and
-// dispatches tasks for eligible ones.
+// evaluateAndDispatchProfiles iterates over all desired profiles and dispatches tasks for
+// eligible ones.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the artefact
-// metadata containing the desired profiles to evaluate.
-// Takes variantStatus (map[string]registry_dto.VariantStatus) which maps
-// variant names to their current status.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the artefact metadata
+// containing the desired profiles to evaluate.
+// Takes variantStatus (map[string]registry_dto.VariantStatus) which maps variant names to
+// their current status.
 //
 // Returns int which is the number of tasks successfully dispatched.
 func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfiles(
@@ -446,16 +436,16 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfiles(
 	return tasksDispatched
 }
 
-// evaluateAndDispatchProfile evaluates a single profile and dispatches a task
-// if dependencies are met.
+// evaluateAndDispatchProfile evaluates a single profile and dispatches a task if
+// dependencies are met.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the artefact
-// metadata to evaluate.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the artefact metadata to
+// evaluate.
 // Takes profileName (string) which identifies the profile to evaluate.
-// Takes profile (registry_dto.DesiredProfile) which specifies the desired
-// profile configuration.
-// Takes variantStatus (map[string]registry_dto.VariantStatus) which provides
-// the current status of all variants.
+// Takes profile (registry_dto.DesiredProfile) which specifies the desired profile
+// configuration.
+// Takes variantStatus (map[string]registry_dto.VariantStatus) which provides the current
+// status of all variants.
 //
 // Returns bool which is true if a task was successfully dispatched.
 func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
@@ -492,19 +482,17 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 	return b.dispatchProfileTask(profileCtx, profileSpan, artefact, profileName, profile, dedupKey)
 }
 
-// dispatchProfileTask creates and sends a compilation task for the given
-// profile.
+// dispatchProfileTask creates and sends a compilation task for the given profile.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which records tracing data.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to compile.
 // Takes profileName (string) which identifies the target profile.
-// Takes profile (registry_dto.DesiredProfile) which defines the compilation
-// settings.
+// Takes profile (registry_dto.DesiredProfile) which defines the compilation settings.
 // Takes dedupKey (string) which prevents duplicate tasks.
 //
-// Returns bool which is true when the task was sent, or false when the task
-// already exists or sending failed.
+// Returns bool which is true when the task was sent, or false when the task already
+// exists or sending failed.
 func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 	ctx context.Context,
 	span trace.Span,
@@ -550,8 +538,8 @@ func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 	return true
 }
 
-// finaliseEventHandling records metrics and updates span status after event
-// processing completes.
+// finaliseEventHandling records metrics and updates span status after event processing
+// completes.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which receives status updates and timing data.
@@ -622,8 +610,8 @@ func (*ArtefactWorkflowBridge) mapPriority(priority registry_dto.ProfilePriority
 //
 // Takes variants ([]registry_dto.Variant) which provides the variants to index.
 //
-// Returns map[string]registry_dto.VariantStatus which maps each variant ID to
-// its status value.
+// Returns map[string]registry_dto.VariantStatus which maps each variant ID to its status
+// value.
 func buildVariantStatusMap(variants []registry_dto.Variant) map[string]registry_dto.VariantStatus {
 	variantStatus := make(map[string]registry_dto.VariantStatus, len(variants))
 	for i := range variants {
@@ -634,15 +622,14 @@ func buildVariantStatusMap(variants []registry_dto.Variant) map[string]registry_
 
 // isProfileAlreadyReady checks if a profile variant exists and is ready.
 //
-// Takes variantStatus (map[string]registry_dto.VariantStatus) which maps
-// profile
-// names to their current status.
+// Takes variantStatus (map[string]registry_dto.VariantStatus) which maps profile names to
+// their current status.
 // Takes profileName (string) which identifies the profile to check.
 //
-// Returns bool which is true when the profile exists and has ready status.
-// Variants are only created with ready status after task completion.
-// Database-level deduplication using DeduplicationKey handles the race window
-// between task dispatch and variant creation.
+// Returns bool which is true when the profile exists and has ready status. Variants are
+// only created with ready status after task completion. Database-level deduplication
+// using DeduplicationKey handles the race window between task dispatch and variant
+// creation.
 func isProfileAlreadyReady(variantStatus map[string]registry_dto.VariantStatus, profileName string) bool {
 	currentStatus, exists := variantStatus[profileName]
 	return exists && currentStatus == registry_dto.VariantStatusReady
@@ -650,13 +637,12 @@ func isProfileAlreadyReady(variantStatus map[string]registry_dto.VariantStatus, 
 
 // findMissingDependencies returns a list of dependency IDs that are not ready.
 //
-// Takes dependsOn (*registry_dto.Dependencies) which contains the dependencies
-// to check.
-// Takes variantStatus (map[string]registry_dto.VariantStatus) which provides
-// the current status of each variant.
+// Takes dependsOn (*registry_dto.Dependencies) which contains the dependencies to check.
+// Takes variantStatus (map[string]registry_dto.VariantStatus) which provides the current
+// status of each variant.
 //
-// Returns []string which contains the IDs of dependencies that do not exist
-// or are not in a ready state.
+// Returns []string which contains the IDs of dependencies that do not exist or are not in
+// a ready state.
 func findMissingDependencies(dependsOn *registry_dto.Dependencies, variantStatus map[string]registry_dto.VariantStatus) []string {
 	var missingDeps []string
 	for depID := range dependsOn.All() {

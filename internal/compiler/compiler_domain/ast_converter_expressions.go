@@ -26,17 +26,16 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// jsImportKeyword is the JavaScript import keyword used in dynamic imports.
-const jsImportKeyword = "import"
+const (
+	// jsImportKeyword is the JavaScript import keyword used in dynamic imports.
+	jsImportKeyword = "import"
+)
 
-// convertExpression converts an esbuild expression to a tdewolff
-// expression.
+// convertExpression converts an esbuild expression to a tdewolff expression.
 //
-// Takes expression (js_ast.Expr) which is the esbuild expression
-// to convert.
+// Takes expression (js_ast.Expr) which is the esbuild expression to convert.
 //
-// Returns parsejs.IExpr which is the converted tdewolff
-// expression.
+// Returns parsejs.IExpr which is the converted tdewolff expression.
 // Returns error when conversion of a nested expression fails.
 func (c *ASTConverter) convertExpression(expression js_ast.Expr) (parsejs.IExpr, error) {
 	if expression.Data == nil {
@@ -62,14 +61,13 @@ func (c *ASTConverter) convertExpression(expression js_ast.Expr) (parsejs.IExpr,
 	return c.convertOperatorOrFunctionExpr(expression)
 }
 
-// tryConvertPrimitiveLiteral converts simple esbuild literal
-// expressions to their tdewolff equivalents.
+// tryConvertPrimitiveLiteral converts simple esbuild literal expressions to their
+// tdewolff equivalents.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression to convert.
 //
-// Returns parsejs.IExpr which is the converted literal
-// expression, or nil if not a primitive literal.
+// Returns parsejs.IExpr which is the converted literal expression, or nil if not a
+// primitive literal.
 func (*ASTConverter) tryConvertPrimitiveLiteral(expression js_ast.Expr) parsejs.IExpr {
 	switch expression.Data.(type) {
 	case *js_ast.ENull:
@@ -85,18 +83,13 @@ func (*ASTConverter) tryConvertPrimitiveLiteral(expression js_ast.Expr) parsejs.
 	}
 }
 
-// tryConvertValueExpr handles identifiers, literals, and
-// collection expressions.
+// tryConvertValueExpr handles identifiers, literals, and collection expressions.
 //
-// Takes expression (js_ast.Expr) which is the expression node to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression node to convert.
 //
-// Returns parsejs.IExpr which is the converted expression, or
-// nil for elision.
-// Returns bool which shows whether the call handled the
-// expression type.
-// Returns error when conversion of a supported expression type
-// fails.
+// Returns parsejs.IExpr which is the converted expression, or nil for elision.
+// Returns bool which shows whether the call handled the expression type.
+// Returns error when conversion of a supported expression type fails.
 func (c *ASTConverter) tryConvertValueExpr(expression js_ast.Expr) (parsejs.IExpr, bool, error) {
 	switch e := expression.Data.(type) {
 	case *js_ast.EIdentifier:
@@ -144,13 +137,10 @@ func (c *ASTConverter) tryConvertValueExpr(expression js_ast.Expr) (parsejs.IExp
 
 // tryConvertCallExpr handles call and member access expressions.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression to convert.
 //
-// Returns parsejs.IExpr which is the converted expression, or
-// nil if not handled.
-// Returns bool which indicates whether this converter handled
-// the expression.
+// Returns parsejs.IExpr which is the converted expression, or nil if not handled.
+// Returns bool which indicates whether this converter handled the expression.
 // Returns error when conversion fails.
 func (c *ASTConverter) tryConvertCallExpr(expression js_ast.Expr) (parsejs.IExpr, bool, error) {
 	switch e := expression.Data.(type) {
@@ -171,15 +161,13 @@ func (c *ASTConverter) tryConvertCallExpr(expression js_ast.Expr) (parsejs.IExpr
 	}
 }
 
-// convertOperatorOrFunctionExpr handles operators, control flow,
-// and function expressions.
+// convertOperatorOrFunctionExpr handles operators, control flow, and function
+// expressions.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression to convert.
 //
 // Returns parsejs.IExpr which is the converted expression.
-// Returns error when conversion of the underlying expression
-// fails.
+// Returns error when conversion of the underlying expression fails.
 func (c *ASTConverter) convertOperatorOrFunctionExpr(expression js_ast.Expr) (parsejs.IExpr, error) {
 	var result parsejs.IExpr
 	var err error
@@ -239,11 +227,10 @@ func (c *ASTConverter) convertEIdentifier(e *js_ast.EIdentifier) (parsejs.IExpr,
 	return &parsejs.Var{Data: []byte(name)}, nil
 }
 
-// convertEPrivateIdentifier converts a private identifier expression
-// (e.g., #field) to its parsed form.
+// convertEPrivateIdentifier converts a private identifier expression (e.g., #field) to
+// its parsed form.
 //
-// Takes e (*js_ast.EPrivateIdentifier) which is the private identifier to
-// convert.
+// Takes e (*js_ast.EPrivateIdentifier) which is the private identifier to convert.
 //
 // Returns parsejs.IExpr which is the converted literal expression.
 // Returns error when conversion fails.
@@ -261,12 +248,10 @@ func (c *ASTConverter) convertEPrivateIdentifier(e *js_ast.EPrivateIdentifier) (
 	}, nil
 }
 
-// convertEImportIdentifier converts an ES6 import identifier expression.
-// This is similar to EIdentifier but refers to an imported symbol rather than
-// a local one.
+// convertEImportIdentifier converts an ES6 import identifier expression. This is similar
+// to EIdentifier but refers to an imported symbol rather than a local one.
 //
-// Takes e (*js_ast.EImportIdentifier) which is the import identifier to
-// convert.
+// Takes e (*js_ast.EImportIdentifier) which is the import identifier to convert.
 //
 // Returns parsejs.IExpr which is the converted variable expression.
 // Returns error when conversion fails.
@@ -426,9 +411,9 @@ func (c *ASTConverter) convertENew(e *js_ast.ENew) (parsejs.IExpr, error) {
 	}, nil
 }
 
-// convertEDot converts a dot/member expression to the internal AST format.
-// It wraps the target in GroupExpr when needed to preserve correct operator
-// precedence, e.g., (a || []).map(...) must not become a || [].map(...).
+// convertEDot converts a dot/member expression to the internal AST format. It wraps the
+// target in GroupExpr when needed to preserve correct operator precedence, e.g., (a ||
+// []).map(...) must not become a || [].map(...).
 //
 // Takes e (*js_ast.EDot) which is the dot expression to convert.
 //
@@ -475,9 +460,9 @@ func (c *ASTConverter) convertEIndex(e *js_ast.EIndex) (parsejs.IExpr, error) {
 	}, nil
 }
 
-// convertEBinary converts a binary expression. It wraps child expressions in
-// GroupExpr when needed to keep the correct order of operations, since the
-// printer does not add brackets on its own.
+// convertEBinary converts a binary expression. It wraps child expressions in GroupExpr
+// when needed to keep the correct order of operations, since the printer does not add
+// brackets on its own.
 //
 // Takes e (*js_ast.EBinary) which is the binary expression to convert.
 //
@@ -516,16 +501,21 @@ func (c *ASTConverter) convertEBinary(e *js_ast.EBinary) (parsejs.IExpr, error) 
 		left = &parsejs.GroupExpr{X: left}
 	}
 
+	op, err := convertBinaryOp(e.Op)
+	if err != nil {
+		return nil, fmt.Errorf("converting binary operator: %w", err)
+	}
+
 	return &parsejs.BinaryExpr{
-		Op: convertBinaryOp(e.Op),
+		Op: op,
 		X:  left,
 		Y:  right,
 	}, nil
 }
 
-// convertEUnary converts a unary expression.
-// UnOpPos (unary plus) is used as a marker for dynamic attribute values
-// and should be converted to a GroupExpr (parentheses), not a literal +.
+// convertEUnary converts a unary expression. UnOpPos (unary plus) is used as a marker for
+// dynamic attribute values and should be converted to a GroupExpr (parentheses), not a
+// literal +.
 //
 // Takes e (*js_ast.EUnary) which is the unary expression to convert.
 //
@@ -661,8 +651,8 @@ func (*ASTConverter) convertSimpleTemplate(e *js_ast.ETemplate) (parsejs.IExpr, 
 	}, nil
 }
 
-// convertInterpolatedTemplate converts a template literal with embedded
-// expressions into an internal template expression.
+// convertInterpolatedTemplate converts a template literal with embedded expressions into
+// an internal template expression.
 //
 // Takes e (*js_ast.ETemplate) which is the template expression to convert.
 //
@@ -774,11 +764,9 @@ func (c *ASTConverter) convertEYield(e *js_ast.EYield) (parsejs.IExpr, error) {
 
 // convertEBigInt converts a BigInt literal.
 //
-// Takes e (*js_ast.EBigInt) which contains the BigInt value without the 'n'
-// suffix.
+// Takes e (*js_ast.EBigInt) which contains the BigInt value without the 'n' suffix.
 //
-// Returns parsejs.IExpr which is the literal expression with the 'n' suffix
-// appended.
+// Returns parsejs.IExpr which is the literal expression with the 'n' suffix appended.
 // Returns error when conversion fails.
 func (*ASTConverter) convertEBigInt(e *js_ast.EBigInt) (parsejs.IExpr, error) {
 	return &parsejs.LiteralExpr{
@@ -837,8 +825,7 @@ func (c *ASTConverter) convertEClass(e *js_ast.EClass) (parsejs.IExpr, error) {
 
 // convertEImportCall converts a dynamic import() expression.
 //
-// Takes e (*js_ast.EImportCall) which contains the import expression to
-// convert.
+// Takes e (*js_ast.EImportCall) which contains the import expression to convert.
 //
 // Returns parsejs.IExpr which is the converted call expression.
 // Returns error when the inner expression conversion fails.
@@ -926,14 +913,13 @@ func (*ASTConverter) convertEImportMeta() (parsejs.IExpr, error) {
 	}, nil
 }
 
-// wrapIIFETarget wraps arrow or function expressions in brackets for IIFE
-// calls.
+// wrapIIFETarget wraps arrow or function expressions in brackets for IIFE calls.
 //
 // Takes original (js_ast.Expr) which is the original JavaScript AST expression.
 // Takes converted (parsejs.IExpr) which is the converted expression to wrap.
 //
-// Returns parsejs.IExpr which is the wrapped expression if original is an arrow
-// or function expression, otherwise returns converted unchanged.
+// Returns parsejs.IExpr which is the wrapped expression if original is an arrow or
+// function expression, otherwise returns converted unchanged.
 func wrapIIFETarget(original js_ast.Expr, converted parsejs.IExpr) parsejs.IExpr {
 	switch original.Data.(type) {
 	case *js_ast.EArrow, *js_ast.EFunction:
@@ -942,15 +928,14 @@ func wrapIIFETarget(original js_ast.Expr, converted parsejs.IExpr) parsejs.IExpr
 	return converted
 }
 
-// wrapLowPrecedenceForMemberAccess wraps expressions that have lower
-// precedence than member access in parentheses. This means members are
-// accessed in the correct order.
+// wrapLowPrecedenceForMemberAccess wraps expressions that have lower precedence than
+// member access in parentheses. This means members are accessed in the correct order.
 //
 // Takes original (js_ast.Expr) which is the source expression to check.
 // Takes converted (parsejs.IExpr) which is the already-converted expression.
 //
-// Returns parsejs.IExpr which is the converted expression, wrapped in
-// parentheses if needed.
+// Returns parsejs.IExpr which is the converted expression, wrapped in parentheses if
+// needed.
 func wrapLowPrecedenceForMemberAccess(original js_ast.Expr, converted parsejs.IExpr) parsejs.IExpr {
 	switch original.Data.(type) {
 	case *js_ast.EBinary, *js_ast.EIf:

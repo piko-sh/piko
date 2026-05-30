@@ -26,11 +26,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// pikoPrefix holds the common prefix for all piko directive keywords.
-const pikoPrefix = "piko."
+const (
+	// pikoPrefix holds the common prefix for all piko directive keywords.
+	pikoPrefix = "piko."
+)
 
-// directiveParser parses directive comment blocks into
-// structured directive representations.
+// directiveParser parses directive comment blocks into structured directive
+// representations.
 type directiveParser struct {
 	// prefixLookup maps parameter prefix bytes to their directive definitions.
 	prefixLookup map[byte]querier_dto.DirectiveParameterPrefix
@@ -39,18 +41,16 @@ type directiveParser struct {
 	commentStyle querier_dto.CommentStyle
 }
 
-// newDirectiveParser creates a directive parser configured
-// with the given parameter prefixes and comment style.
+// newDirectiveParser creates a directive parser configured with the given parameter
+// prefixes and comment style.
 //
-// Takes prefixes ([]querier_dto.DirectiveParameterPrefix)
-// which holds the engine-specific parameter prefix
-// definitions.
+// Takes prefixes ([]querier_dto.DirectiveParameterPrefix) which holds the engine-specific
+// parameter prefix definitions.
 //
-// Takes commentStyle (querier_dto.CommentStyle) which
-// specifies the SQL comment syntax used by the engine.
+// Takes commentStyle (querier_dto.CommentStyle) which specifies the SQL comment syntax
+// used by the engine.
 //
-// Returns *directiveParser which holds the initialised
-// parser.
+// Returns *directiveParser which holds the initialised parser.
 func newDirectiveParser(
 	prefixes []querier_dto.DirectiveParameterPrefix,
 	commentStyle querier_dto.CommentStyle,
@@ -65,21 +65,17 @@ func newDirectiveParser(
 	}
 }
 
-// Parse parses a query block's directive comments into
-// a structured DirectiveBlock.
+// Parse parses a query block's directive comments into a structured DirectiveBlock.
 //
-// Takes block (queryBlock) which holds the raw SQL text
-// and line information to parse.
+// Takes block (queryBlock) which holds the raw SQL text and line information to parse.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns *querier_dto.DirectiveBlock which holds the
-// parsed directives including name, command, parameters,
-// and metadata.
+// Returns *querier_dto.DirectiveBlock which holds the parsed directives including name,
+// command, parameters, and metadata.
 //
-// Returns []querier_dto.SourceError which holds any syntax
-// errors or validation warnings found during parsing.
+// Returns []querier_dto.SourceError which holds any syntax errors or validation warnings
+// found during parsing.
 func (p *directiveParser) Parse(
 	block queryBlock,
 	filename string,
@@ -126,23 +122,22 @@ func (p *directiveParser) Parse(
 	return result, diagnostics
 }
 
-// handleParameterLine parses a single parameter directive
-// line and appends the result or error.
+// handleParameterLine parses a single parameter directive line and appends the result or
+// error.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the parameter prefix.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the
+// parameter prefix.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to append the parameter to.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to append
+// the parameter to.
 //
-// Takes diagnostics (*[]querier_dto.SourceError) which
-// holds the diagnostics slice to append errors to.
+// Takes diagnostics (*[]querier_dto.SourceError) which holds the diagnostics slice to
+// append errors to.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes prefix (querier_dto.DirectiveParameterPrefix)
-// which holds the matched prefix definition.
+// Takes prefix (querier_dto.DirectiveParameterPrefix) which holds the matched prefix
+// definition.
 func (*directiveParser) handleParameterLine(
 	scanner *directiveLineScanner,
 	result *querier_dto.DirectiveBlock,
@@ -166,24 +161,20 @@ func (*directiveParser) handleParameterLine(
 	}
 }
 
-// setBlockSpan sets the text span on the directive block
-// result from the first and last directive lines.
+// setBlockSpan sets the text span on the directive block result from the first and last
+// directive lines.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to update.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to update.
 //
-// Takes firstLine (int) which specifies the first
-// directive line number, or -1 if no directives were
-// found.
+// Takes firstLine (int) which specifies the first directive line number, or -1 if no
+// directives were found.
 //
-// Takes lastLine (int) which specifies the last directive
-// line number.
+// Takes lastLine (int) which specifies the last directive line number.
 //
-// Takes lines ([]string) which holds the split lines of
-// the block for computing end column.
+// Takes lines ([]string) which holds the split lines of the block for computing end
+// column.
 //
-// Takes startLine (int) which specifies the starting line
-// offset of the block.
+// Takes startLine (int) which specifies the starting line offset of the block.
 func setBlockSpan(
 	result *querier_dto.DirectiveBlock,
 	firstLine int,
@@ -202,20 +193,18 @@ func setBlockSpan(
 	}
 }
 
-// validateRequiredDirectives checks that the mandatory
-// piko.name and piko.command directives are present.
+// validateRequiredDirectives checks that the mandatory piko.name and piko.command
+// directives are present.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the parsed directive block to validate.
+// Takes result (*querier_dto.DirectiveBlock) which holds the parsed directive block to
+// validate.
 //
-// Takes diagnostics (*[]querier_dto.SourceError) which
-// holds the diagnostics slice to append errors to.
+// Takes diagnostics (*[]querier_dto.SourceError) which holds the diagnostics slice to
+// append errors to.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes startLine (int) which specifies the line number
-// for error positioning.
+// Takes startLine (int) which specifies the line number for error positioning.
 func validateRequiredDirectives(
 	result *querier_dto.DirectiveBlock,
 	diagnostics *[]querier_dto.SourceError,
@@ -245,20 +234,18 @@ func validateRequiredDirectives(
 	}
 }
 
-// parsePikoDirective parses a piko-prefixed directive and
-// dispatches to the appropriate sub-parser.
+// parsePikoDirective parses a piko-prefixed directive and dispatches to the appropriate
+// sub-parser.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the piko prefix.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the piko
+// prefix.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to populate.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to populate.
 //
-// Takes diagnostics (*[]querier_dto.SourceError) which
-// holds the diagnostics slice to append errors to.
+// Takes diagnostics (*[]querier_dto.SourceError) which holds the diagnostics slice to
+// append errors to.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 func parsePikoDirective(
 	scanner *directiveLineScanner,
 	result *querier_dto.DirectiveBlock,
@@ -280,20 +267,18 @@ func parsePikoDirective(
 	}
 }
 
-// parseParenthesisedDirective parses a directive in
-// piko.key(value) form and appends it as metadata.
+// parseParenthesisedDirective parses a directive in piko.key(value) form and appends it
+// as metadata.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the opening parenthesis.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the opening
+// parenthesis.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to append metadata to.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to append
+// metadata to.
 //
-// Takes directive (string) which specifies the directive
-// keyword name.
+// Takes directive (string) which specifies the directive keyword name.
 //
-// Takes keySpan (querier_dto.TextSpan) which holds the
-// text span of the directive key.
+// Takes keySpan (querier_dto.TextSpan) which holds the text span of the directive key.
 func parseParenthesisedDirective(
 	scanner *directiveLineScanner,
 	result *querier_dto.DirectiveBlock,
@@ -316,20 +301,18 @@ func parseParenthesisedDirective(
 	})
 }
 
-// parseBareDirective parses a directive with no value
-// syntax and records it as a boolean true metadata entry.
+// parseBareDirective parses a directive with no value syntax and records it as a boolean
+// true metadata entry.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned after the directive keyword.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned after the
+// directive keyword.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to append metadata to.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to append
+// metadata to.
 //
-// Takes directive (string) which specifies the directive
-// keyword name.
+// Takes directive (string) which specifies the directive keyword name.
 //
-// Takes keySpan (querier_dto.TextSpan) which holds the
-// text span of the directive key.
+// Takes keySpan (querier_dto.TextSpan) which holds the text span of the directive key.
 func parseBareDirective(
 	scanner *directiveLineScanner,
 	result *querier_dto.DirectiveBlock,
@@ -350,27 +333,22 @@ func parseBareDirective(
 	})
 }
 
-// parseColonDirective parses a directive in
-// piko.key: value form and handles name, command, or
-// metadata entries.
+// parseColonDirective parses a directive in piko.key: value form and handles name,
+// command, or metadata entries.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned after the colon.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned after the
+// colon.
 //
-// Takes result (*querier_dto.DirectiveBlock) which holds
-// the directive block to populate.
+// Takes result (*querier_dto.DirectiveBlock) which holds the directive block to populate.
 //
-// Takes diagnostics (*[]querier_dto.SourceError) which
-// holds the diagnostics slice to append errors to.
+// Takes diagnostics (*[]querier_dto.SourceError) which holds the diagnostics slice to
+// append errors to.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes directive (string) which specifies the directive
-// keyword name.
+// Takes directive (string) which specifies the directive keyword name.
 //
-// Takes keySpan (querier_dto.TextSpan) which holds the
-// text span of the directive key.
+// Takes keySpan (querier_dto.TextSpan) which holds the text span of the directive key.
 func parseColonDirective(
 	scanner *directiveLineScanner,
 	result *querier_dto.DirectiveBlock,
@@ -416,14 +394,13 @@ func parseColonDirective(
 	}
 }
 
-// directiveLineSpan constructs a TextSpan covering the
-// entire current line of the scanner.
+// directiveLineSpan constructs a TextSpan covering the entire current line of the
+// scanner.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner whose line number and content are used.
+// Takes scanner (*directiveLineScanner) which holds the scanner whose line number and
+// content are used.
 //
-// Returns querier_dto.TextSpan which holds the span from
-// column 1 to end of line.
+// Returns querier_dto.TextSpan which holds the span from column 1 to end of line.
 func directiveLineSpan(scanner *directiveLineScanner) querier_dto.TextSpan {
 	return querier_dto.TextSpan{
 		Line:      scanner.lineNumber,
@@ -433,32 +410,24 @@ func directiveLineSpan(scanner *directiveLineScanner) querier_dto.TextSpan {
 	}
 }
 
-// parseCommandValue parses a command directive value
-// string into a CommandDirective.
+// parseCommandValue parses a command directive value string into a CommandDirective.
 //
-// Takes value (string) which specifies the command name
-// to parse.
+// Takes value (string) which specifies the command name to parse.
 //
-// Takes lineSpan (querier_dto.TextSpan) which holds the
-// span of the full directive line.
+// Takes lineSpan (querier_dto.TextSpan) which holds the span of the full directive line.
 //
-// Takes keySpan (querier_dto.TextSpan) which holds the
-// span of the directive key.
+// Takes keySpan (querier_dto.TextSpan) which holds the span of the directive key.
 //
-// Takes valueSpan (querier_dto.TextSpan) which holds the
-// span of the directive value.
+// Takes valueSpan (querier_dto.TextSpan) which holds the span of the directive value.
 //
-// Takes lineNumber (int) which specifies the line number
-// for error reporting.
+// Takes lineNumber (int) which specifies the line number for error reporting.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns *querier_dto.CommandDirective which holds the
-// parsed command directive, or nil on error.
+// Returns *querier_dto.CommandDirective which holds the parsed command directive, or nil
+// on error.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseCommandValue(
 	value string,
 	lineSpan querier_dto.TextSpan,
@@ -487,23 +456,20 @@ func parseCommandValue(
 	}, nil
 }
 
-// parseNumberedParameterDirective parses a numbered
-// parameter directive such as $1 as piko.param(name).
+// parseNumberedParameterDirective parses a numbered parameter directive such as $1 as
+// piko.param(name).
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the prefix character.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the prefix
+// character.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes prefix (byte) which specifies the parameter
-// prefix character.
+// Takes prefix (byte) which specifies the parameter prefix character.
 //
-// Returns *querier_dto.ParameterDirective which holds the
-// parsed parameter directive, or nil on error.
+// Returns *querier_dto.ParameterDirective which holds the parsed parameter directive, or
+// nil on error.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseNumberedParameterDirective(
 	scanner *directiveLineScanner,
 	filename string,
@@ -556,23 +522,20 @@ func parseNumberedParameterDirective(
 	return directive, nil
 }
 
-// parseNamedParameterDirective parses a named parameter
-// directive such as @name as piko.param(name).
+// parseNamedParameterDirective parses a named parameter directive such as @name as
+// piko.param(name).
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the prefix character.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the prefix
+// character.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes sequentialNumber (int) which specifies the
-// sequential parameter number to assign.
+// Takes sequentialNumber (int) which specifies the sequential parameter number to assign.
 //
-// Returns *querier_dto.ParameterDirective which holds the
-// parsed parameter directive, or nil on error.
+// Returns *querier_dto.ParameterDirective which holds the parsed parameter directive, or
+// nil on error.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseNamedParameterDirective(
 	scanner *directiveLineScanner,
 	filename string,
@@ -634,28 +597,24 @@ func parseNamedParameterDirective(
 	return directive, nil
 }
 
-// parseParameterNumber reads and converts the numeric
-// portion of a numbered parameter reference.
+// parseParameterNumber reads and converts the numeric portion of a numbered parameter
+// reference.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned after the prefix character.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned after the
+// prefix character.
 //
-// Takes numberStart (int) which specifies the column
-// where the number begins for span tracking.
+// Takes numberStart (int) which specifies the column where the number begins for span
+// tracking.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes prefix (byte) which specifies the parameter
-// prefix character for error messages.
+// Takes prefix (byte) which specifies the parameter prefix character for error messages.
 //
 // Returns int which holds the parsed parameter number.
 //
-// Returns querier_dto.TextSpan which holds the text span
-// covering the number.
+// Returns querier_dto.TextSpan which holds the text span covering the number.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseParameterNumber(
 	scanner *directiveLineScanner,
 	numberStart int,
@@ -675,23 +634,19 @@ func parseParameterNumber(
 	return number, scanner.spanFrom(numberStart), nil
 }
 
-// parseParameterKindFromScanner reads and resolves a piko
-// parameter kind keyword from the scanner.
+// parseParameterKindFromScanner reads and resolves a piko parameter kind keyword from the
+// scanner.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the piko prefix.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the piko
+// prefix.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns querier_dto.ParameterDirectiveKind which holds
-// the resolved parameter kind.
+// Returns querier_dto.ParameterDirectiveKind which holds the resolved parameter kind.
 //
-// Returns querier_dto.TextSpan which holds the text span
-// covering the kind keyword.
+// Returns querier_dto.TextSpan which holds the text span covering the kind keyword.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseParameterKindFromScanner(
 	scanner *directiveLineScanner,
 	filename string,
@@ -712,23 +667,18 @@ func parseParameterKindFromScanner(
 	return kind, kindSpan, nil
 }
 
-// parseParameterName reads a parenthesised parameter
-// name from the scanner.
+// parseParameterName reads a parenthesised parameter name from the scanner.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the opening parenthesis.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the opening
+// parenthesis.
 //
-// Takes filename (string) which specifies the source file
-// path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns string which holds the extracted parameter
-// name.
+// Returns string which holds the extracted parameter name.
 //
-// Returns querier_dto.TextSpan which holds the text span
-// covering the parameter name.
+// Returns querier_dto.TextSpan which holds the text span covering the parameter name.
 //
-// Returns *querier_dto.SourceError which holds the parse
-// error, or nil on success.
+// Returns *querier_dto.SourceError which holds the parse error, or nil on success.
 func parseParameterName(
 	scanner *directiveLineScanner,
 	filename string,
@@ -750,14 +700,12 @@ func parseParameterName(
 	return parameterName, nameSpan, nil
 }
 
-// parseAllOptions reads all remaining key:value option
-// pairs from the scanner.
+// parseAllOptions reads all remaining key:value option pairs from the scanner.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned after the parameter kind.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned after the
+// parameter kind.
 //
-// Returns []*querier_dto.DirectiveOption which holds the
-// parsed options.
+// Returns []*querier_dto.DirectiveOption which holds the parsed options.
 func parseAllOptions(scanner *directiveLineScanner) []*querier_dto.DirectiveOption {
 	var options []*querier_dto.DirectiveOption
 	scanner.skipWhitespace()
@@ -771,14 +719,13 @@ func parseAllOptions(scanner *directiveLineScanner) []*querier_dto.DirectiveOpti
 	return options
 }
 
-// parseOption reads a single key:value option pair from
-// the scanner.
+// parseOption reads a single key:value option pair from the scanner.
 //
-// Takes scanner (*directiveLineScanner) which holds the
-// scanner positioned at the start of the option.
+// Takes scanner (*directiveLineScanner) which holds the scanner positioned at the start
+// of the option.
 //
-// Returns *querier_dto.DirectiveOption which holds the
-// parsed option, or nil if the syntax is invalid.
+// Returns *querier_dto.DirectiveOption which holds the parsed option, or nil if the
+// syntax is invalid.
 func parseOption(scanner *directiveLineScanner) *querier_dto.DirectiveOption {
 	optionStart := scanner.column()
 	keyStart := scanner.column()
@@ -807,26 +754,24 @@ func parseOption(scanner *directiveLineScanner) *querier_dto.DirectiveOption {
 	}
 }
 
-// resolveParameterOptions applies parsed key:value
-// options to the parameter directive's typed fields.
+// resolveParameterOptions applies parsed key:value options to the parameter directive's
+// typed fields.
 //
-// Takes directive (*querier_dto.ParameterDirective)
-// which holds the directive whose options are resolved
-// in place.
+// Takes directive (*querier_dto.ParameterDirective) which holds the directive whose
+// options are resolved in place.
 func resolveParameterOptions(directive *querier_dto.ParameterDirective) {
 	for _, option := range directive.Options {
 		resolveOption(directive, option)
 	}
 }
 
-// resolveOption applies a single key:value option to the
-// appropriate field on the parameter directive.
+// resolveOption applies a single key:value option to the appropriate field on the
+// parameter directive.
 //
-// Takes directive (*querier_dto.ParameterDirective)
-// which holds the directive to update.
+// Takes directive (*querier_dto.ParameterDirective) which holds the directive to update.
 //
-// Takes option (*querier_dto.DirectiveOption) which holds
-// the option key and value to apply.
+// Takes option (*querier_dto.DirectiveOption) which holds the option key and value to
+// apply.
 func resolveOption(directive *querier_dto.ParameterDirective, option *querier_dto.DirectiveOption) {
 	switch option.Key {
 	case "type":
@@ -851,15 +796,14 @@ func resolveOption(directive *querier_dto.ParameterDirective, option *querier_dt
 	}
 }
 
-// extractQueryDirectives extracts query-level directives
-// such as group_by, nullable, and runtime from a
-// directive block.
+// extractQueryDirectives extracts query-level directives such as group_by, nullable, and
+// runtime from a directive block.
 //
-// Takes block (*querier_dto.DirectiveBlock) which holds
-// the parsed directive block to extract from.
+// Takes block (*querier_dto.DirectiveBlock) which holds the parsed directive block to
+// extract from.
 //
-// Returns *querier_dto.QueryDirectives which holds the
-// extracted query-level directive settings.
+// Returns *querier_dto.QueryDirectives which holds the extracted query-level directive
+// settings.
 func extractQueryDirectives(block *querier_dto.DirectiveBlock) *querier_dto.QueryDirectives {
 	directives := &querier_dto.QueryDirectives{}
 	for _, metadata := range block.Metadata {
@@ -886,8 +830,8 @@ func extractQueryDirectives(block *querier_dto.DirectiveBlock) *querier_dto.Quer
 	return directives
 }
 
-// setBoolOverride sets a boolean pointer override from a
-// string value of "true" or "false".
+// setBoolOverride sets a boolean pointer override from a string value of "true" or
+// "false".
 //
 // Takes target (**bool) which holds the pointer to the boolean override field to set.
 //
@@ -911,8 +855,7 @@ func setBoolOverride(target **bool, value string) {
 //
 // Takes message (string) which specifies the human-readable error description.
 //
-// Returns *querier_dto.SourceError which holds the
-// constructed syntax error.
+// Returns *querier_dto.SourceError which holds the constructed syntax error.
 func syntaxError(filename string, lineNumber int, column int, message string) *querier_dto.SourceError {
 	return &querier_dto.SourceError{
 		Filename: filename,
@@ -928,11 +871,9 @@ func syntaxError(filename string, lineNumber int, column int, message string) *q
 //
 // Takes name (string) which specifies the kind name to resolve.
 //
-// Returns querier_dto.ParameterDirectiveKind which holds
-// the resolved kind.
+// Returns querier_dto.ParameterDirectiveKind which holds the resolved kind.
 //
-// Returns bool which indicates whether the name was
-// recognised.
+// Returns bool which indicates whether the name was recognised.
 func parseParameterDirectiveKind(name string) (querier_dto.ParameterDirectiveKind, bool) {
 	switch name {
 	case "param":
@@ -952,17 +893,14 @@ func parseParameterDirectiveKind(name string) (querier_dto.ParameterDirectiveKin
 	}
 }
 
-// parseQueryCommand maps a command name string to its
-// enumerated QueryCommand constant.
+// parseQueryCommand maps a command name string to its enumerated QueryCommand constant.
 //
-// Takes value (string) which specifies the command name
-// to resolve, compared case-insensitively.
+// Takes value (string) which specifies the command name to resolve, compared
+// case-insensitively.
 //
-// Returns querier_dto.QueryCommand which holds the
-// resolved command.
+// Returns querier_dto.QueryCommand which holds the resolved command.
 //
-// Returns bool which indicates whether the command name
-// was recognised.
+// Returns bool which indicates whether the command name was recognised.
 func parseQueryCommand(value string) (querier_dto.QueryCommand, bool) {
 	switch strings.ToLower(value) {
 	case "one":

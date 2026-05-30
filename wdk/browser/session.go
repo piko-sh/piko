@@ -28,13 +28,15 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 )
 
-// defaultWaitReadyTimeout is the maximum time WaitReady will wait for an
-// element to appear in the DOM before returning an error.
-const defaultWaitReadyTimeout = 30 * time.Second
+const (
+	// defaultWaitReadyTimeout is the maximum time WaitReady will wait for an element to
+	// appear in the DOM before returning an error.
+	defaultWaitReadyTimeout = 30 * time.Second
+)
 
-// Session is a browser tab for standalone (non-test) automation. Unlike Page,
-// it returns errors instead of calling testing.TB.Fatalf, making it usable
-// from main() and CLI tools.
+// Session is a browser tab for standalone (non-test) automation. Unlike Page, it returns
+// errors instead of calling testing.TB.Fatalf, making it usable from main() and CLI
+// tools.
 //
 // Create a Session via Harness.NewSession.
 type Session struct {
@@ -45,8 +47,8 @@ type Session struct {
 	serverURL string
 }
 
-// Navigate loads a path on the server by appending it to the configured server
-// URL after a responsiveness pre-flight check.
+// Navigate loads a path on the server by appending it to the configured server URL after
+// a responsiveness pre-flight check.
 //
 // Takes path (string) which is appended to the server URL.
 //
@@ -55,9 +57,9 @@ func (s *Session) Navigate(path string) error {
 	return browser_provider_chromedp.Navigate(s.actionCtx(), path)
 }
 
-// Stop halts any in-progress page loading with a 2-second timeout. Call this
-// after the DOM elements you need are ready to prevent background resource
-// fetches from blocking subsequent CDP calls.
+// Stop halts any in-progress page loading with a 2-second timeout. Call this after the
+// DOM elements you need are ready to prevent background resource fetches from blocking
+// subsequent CDP calls.
 //
 // Returns error when the stop command fails or times out.
 func (s *Session) Stop() error {
@@ -74,9 +76,8 @@ func (s *Session) SetViewport(width, height int64) error {
 	return browser_provider_chromedp.SetViewport(s.actionCtx(), width, height)
 }
 
-// SetViewportWithScale sets the viewport dimensions and device pixel ratio.
-// Use scale > 1 to render at higher resolution while keeping CSS layout at
-// the given width/height.
+// SetViewportWithScale sets the viewport dimensions and device pixel ratio. Use scale > 1
+// to render at higher resolution while keeping CSS layout at the given width/height.
 //
 // Takes width (int64) which is the CSS viewport width.
 // Takes height (int64) which is the CSS viewport height.
@@ -93,8 +94,8 @@ func (s *Session) SetViewportWithScale(width, height int64, scale float64) error
 	return nil
 }
 
-// WaitReady waits for an element matching the selector to be present in the
-// DOM, with a default timeout of 30 seconds.
+// WaitReady waits for an element matching the selector to be present in the DOM, with a
+// default timeout of 30 seconds.
 //
 // Takes selector (string) which identifies the element to wait for.
 //
@@ -162,8 +163,8 @@ func (s *Session) Close() error {
 
 // actionCtx builds the ActionContext used by internal provider functions.
 //
-// Returns *ActionContext with only Ctx and ServerURL populated; sandbox and
-// PageHelper fields are left nil.
+// Returns *ActionContext with only Ctx and ServerURL populated; sandbox and PageHelper
+// fields are left nil.
 func (s *Session) actionCtx() *browser_provider_chromedp.ActionContext {
 	return &browser_provider_chromedp.ActionContext{
 		Ctx:       s.page.Ctx,

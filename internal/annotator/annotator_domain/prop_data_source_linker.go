@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Links prop data sources by resolving p-data attributes and connecting them to their corresponding component props.
-// Validates data source expressions, enforces type compatibility, and annotates the AST with resolved data bindings.
+// Links prop data sources by resolving p-data attributes and connecting them to their
+// corresponding component props. Validates data source expressions, enforces type
+// compatibility, and annotates the AST with resolved data bindings.
 
 import (
 	"context"
@@ -59,9 +60,9 @@ func (v *pdsSetterVisitor) Enter(_ context.Context, _ *ast_domain.TemplateNode) 
 	return v, nil
 }
 
-// Exit implements the ast_domain.Visitor interface. It processes partial
-// invocation nodes when leaving the AST, setting up property data sources for
-// passed props that have resolved annotations.
+// Exit implements the ast_domain.Visitor interface. It processes partial invocation nodes
+// when leaving the AST, setting up property data sources for passed props that have
+// resolved annotations.
 //
 // Takes ctx (context.Context) which carries the session logger.
 // Takes node (*ast_domain.TemplateNode) which is the AST node being exited.
@@ -105,8 +106,8 @@ func (v *pdsSetterVisitor) Exit(ctx context.Context, node *ast_domain.TemplateNo
 	return nil
 }
 
-// pdsLinkerVisitor links partial template calls to their property sources.
-// It implements the ast_domain.Visitor interface.
+// pdsLinkerVisitor links partial template calls to their property sources. It implements
+// the ast_domain.Visitor interface.
 type pdsLinkerVisitor struct {
 	// diagnostics collects problems found during parsing.
 	diagnostics *[]*ast_domain.Diagnostic
@@ -120,8 +121,8 @@ type pdsLinkerVisitor struct {
 	// propMapsByHash stores cached property name maps keyed by component hash.
 	propMapsByHash map[string]map[string]string
 
-	// validPropInfoCache stores valid property info for each component, keyed by
-	// hashed name. A nil entry means a previous lookup failed.
+	// validPropInfoCache stores valid property info for each component, keyed by hashed
+	// name. A nil entry means a previous lookup failed.
 	validPropInfoCache map[string]map[string]validPropInfo
 
 	// invocationByNode maps template nodes to their partial invocation info.
@@ -139,8 +140,8 @@ type pdsLinkerVisitor struct {
 // Takes ctx (context.Context) which carries the session logger.
 // Takes node (*ast_domain.TemplateNode) which is the AST node to visit.
 //
-// Returns ast_domain.Visitor which is the visitor for child nodes, or nil if
-// the node is nil.
+// Returns ast_domain.Visitor which is the visitor for child nodes, or nil if the node is
+// nil.
 // Returns error when visiting fails.
 func (v *pdsLinkerVisitor) Enter(ctx context.Context, node *ast_domain.TemplateNode) (ast_domain.Visitor, error) {
 	if node == nil {
@@ -166,8 +167,8 @@ func (v *pdsLinkerVisitor) Enter(ctx context.Context, node *ast_domain.TemplateN
 	return v, nil
 }
 
-// Exit implements the ast_domain.Visitor interface. It restores the
-// invocation map to the parent scope when leaving a template node.
+// Exit implements the ast_domain.Visitor interface. It restores the invocation map to the
+// parent scope when leaving a template node.
 //
 // Takes ctx (context.Context) which carries the session logger.
 //
@@ -180,17 +181,15 @@ func (v *pdsLinkerVisitor) Exit(_ context.Context, _ *ast_domain.TemplateNode) e
 	return nil
 }
 
-// linkPropsForInvocation links property data sources for a partial
-// invocation by walking the invocation node's children and matching
-// expressions against the partial's prop map.
+// linkPropsForInvocation links property data sources for a partial invocation by walking
+// the invocation node's children and matching expressions against the partial's prop map.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes invocationNode (*ast_domain.TemplateNode) which is the template
-// node representing the partial invocation.
-// Takes partialInfo (*ast_domain.PartialInvocationInfo) which describes the
-// partial being invoked and its passed props.
-// Takes invocationMap
-// (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
+// Takes invocationNode (*ast_domain.TemplateNode) which is the template node representing
+// the partial invocation.
+// Takes partialInfo (*ast_domain.PartialInvocationInfo) which describes the partial being
+// invoked and its passed props.
+// Takes invocationMap (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
 // which maps template nodes to their invocation info.
 func (v *pdsLinkerVisitor) linkPropsForInvocation(
 	ctx context.Context,
@@ -214,18 +213,17 @@ func (v *pdsLinkerVisitor) linkPropsForInvocation(
 	})
 }
 
-// linkDataSourceForExpression resolves and links data sources for property
-// usages within an expression tree.
+// linkDataSourceForExpression resolves and links data sources for property usages within
+// an expression tree.
 //
 // Takes ctx (context.Context) which carries the session logger.
 // Takes rootExpr (ast_domain.Expression) which is the expression to traverse.
-// Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the
-// current partial invocation context.
-// Takes propMapForExpr (map[string]string) which maps property names to their
-// source identifiers.
-// Takes invocationMap (map[*ast_domain.TemplateNode]
-// *ast_domain.PartialInvocationInfo) which maps template nodes to their
-// partial invocation info.
+// Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the current
+// partial invocation context.
+// Takes propMapForExpr (map[string]string) which maps property names to their source
+// identifiers.
+// Takes invocationMap (map[*ast_domain.TemplateNode] *ast_domain.PartialInvocationInfo)
+// which maps template nodes to their partial invocation info.
 func (v *pdsLinkerVisitor) linkDataSourceForExpression(
 	ctx context.Context,
 	rootExpr ast_domain.Expression,
@@ -260,22 +258,21 @@ func (v *pdsLinkerVisitor) linkDataSourceForExpression(
 	})
 }
 
-// resolveTransitiveDataSource finds the data source for an expression that
-// references a property passed from a parent partial invocation.
+// resolveTransitiveDataSource finds the data source for an expression that references a
+// property passed from a parent partial invocation.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes currentExpr (ast_domain.Expression) which is the member expression
-// being resolved.
-// Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the
-// current partial's invocation context.
-// Takes propMapForExpr (map[string]string) which maps Go field names to
-// HTML property names.
-// Takes invocationMap (map[*ast_domain.TemplateNode]*
-// ast_domain.PartialInvocationInfo) which maps template nodes to their
-// invocation context.
+// Takes currentExpr (ast_domain.Expression) which is the member expression being
+// resolved.
+// Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the current
+// partial's invocation context.
+// Takes propMapForExpr (map[string]string) which maps Go field names to HTML property
+// names.
+// Takes invocationMap (map[*ast_domain.TemplateNode]* ast_domain.PartialInvocationInfo)
+// which maps template nodes to their invocation context.
 //
-// Returns *ast_domain.PropDataSource which is the resolved data source, or
-// nil if the expression does not reference a passed property.
+// Returns *ast_domain.PropDataSource which is the resolved data source, or nil if the
+// expression does not reference a passed property.
 func (v *pdsLinkerVisitor) resolveTransitiveDataSource(
 	ctx context.Context,
 	currentExpr ast_domain.Expression,
@@ -297,22 +294,20 @@ func (v *pdsLinkerVisitor) resolveTransitiveDataSource(
 	return v.followDataSourceChain(ctx, passedProp.Expression, activePInfo, invocationMap)
 }
 
-// followDataSourceChain follows a chain of prop data sources through
-// partial invocations to find the ultimate data source. Stops when
-// the expression is no longer a prop usage or when a transform is
-// detected.
+// followDataSourceChain follows a chain of prop data sources through partial invocations
+// to find the ultimate data source. Stops when the expression is no longer a prop usage
+// or when a transform is detected.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes sourceExpression (ast_domain.Expression) which is the starting
-// expression to trace.
-// Takes sourcePartialInfo (*ast_domain.PartialInvocationInfo) which is the
-// invocation info for the current partial.
-// Takes invocationMap
-// (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
+// Takes sourceExpression (ast_domain.Expression) which is the starting expression to
+// trace.
+// Takes sourcePartialInfo (*ast_domain.PartialInvocationInfo) which is the invocation
+// info for the current partial.
+// Takes invocationMap (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
 // which maps template nodes to their invocation info.
 //
-// Returns *ast_domain.PropDataSource which is the ultimate data
-// source, or nil if the chain cannot be followed.
+// Returns *ast_domain.PropDataSource which is the ultimate data source, or nil if the
+// chain cannot be followed.
 func (v *pdsLinkerVisitor) followDataSourceChain(
 	ctx context.Context,
 	sourceExpression ast_domain.Expression,
@@ -348,13 +343,12 @@ func (v *pdsLinkerVisitor) followDataSourceChain(
 	return finalSourceAnn.PropDataSource
 }
 
-// didPropTransform checks if a prop was changed by coercion, defaults, or a
-// factory at its component boundary. This ends the data source chain.
+// didPropTransform checks if a prop was changed by coercion, defaults, or a factory at
+// its component boundary. This ends the data source chain.
 //
 // Takes ctx (context.Context) which carries the session logger.
 // Takes componentHash (string) which identifies the component to check.
-// Takes propUsageExpr (ast_domain.Expression) which is the property usage to
-// check.
+// Takes propUsageExpr (ast_domain.Expression) which is the property usage to check.
 //
 // Returns bool which is true if the prop was changed at this boundary.
 func (v *pdsLinkerVisitor) didPropTransform(ctx context.Context, componentHash string, propUsageExpr ast_domain.Expression) bool {
@@ -383,23 +377,20 @@ func (v *pdsLinkerVisitor) didPropTransform(ctx context.Context, componentHash s
 	return propInfo.ShouldCoerce || propInfo.DefaultValue != nil || propInfo.FactoryFuncName != ""
 }
 
-// findNextLinkInChain finds the next expression and invocation info in
-// a prop data source chain by looking up the invoker node and mapping
-// the Go field name to the HTML prop name in the next invocation.
+// findNextLinkInChain finds the next expression and invocation info in a prop data source
+// chain by looking up the invoker node and mapping the Go field name to the HTML prop
+// name in the next invocation.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes currentPropExpr (ast_domain.Expression) which is the current
-// prop expression being traced.
-// Takes currentPInfo (*ast_domain.PartialInvocationInfo) which is the
-// current invocation context.
-// Takes invocationMap
-// (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
+// Takes currentPropExpr (ast_domain.Expression) which is the current prop expression
+// being traced.
+// Takes currentPInfo (*ast_domain.PartialInvocationInfo) which is the current invocation
+// context.
+// Takes invocationMap (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
 // which maps template nodes to their invocation info.
 //
-// Returns ast_domain.Expression which is the next expression in
-// the chain.
-// Returns *ast_domain.PartialInvocationInfo which is the next
-// invocation context.
+// Returns ast_domain.Expression which is the next expression in the chain.
+// Returns *ast_domain.PartialInvocationInfo which is the next invocation context.
 // Returns bool which is false if the chain cannot be extended.
 func (v *pdsLinkerVisitor) findNextLinkInChain(
 	ctx context.Context,
@@ -432,14 +423,13 @@ func (v *pdsLinkerVisitor) findNextLinkInChain(
 	return nextPassedProp.Expression, nextPInfo, true
 }
 
-// getValidPropsForComponent retrieves the valid properties for a component,
-// caching results to avoid repeated lookups.
+// getValidPropsForComponent retrieves the valid properties for a component, caching
+// results to avoid repeated lookups.
 //
 // Takes ctx (context.Context) which carries the session logger.
 // Takes hashedName (string) which identifies the component by its hash.
 //
-// Returns map[string]validPropInfo which contains the valid properties for
-// the component.
+// Returns map[string]validPropInfo which contains the valid properties for the component.
 // Returns error when the component cannot be found in the virtual module.
 func (v *pdsLinkerVisitor) getValidPropsForComponent(ctx context.Context, hashedName string) (map[string]validPropInfo, error) {
 	if v.validPropInfoCache == nil {
@@ -481,8 +471,8 @@ func (v *pdsLinkerVisitor) getValidPropsForComponent(ctx context.Context, hashed
 // Takes ctx (context.Context) which carries the session logger.
 // Takes hashedName (string) which identifies the component by its hash.
 //
-// Returns map[string]string which maps Go struct field names to prop names,
-// or nil when the component's valid props cannot be determined.
+// Returns map[string]string which maps Go struct field names to prop names, or nil when
+// the component's valid props cannot be determined.
 func (v *pdsLinkerVisitor) getPropMapForComponent(ctx context.Context, hashedName string) map[string]string {
 	if props, exists := v.propMapsByHash[hashedName]; exists {
 		return props
@@ -501,17 +491,17 @@ func (v *pdsLinkerVisitor) getPropMapForComponent(ctx context.Context, hashedNam
 	return goFieldToPropName
 }
 
-// LinkAllPropDataSources links all PropDataSource annotations in an annotated
-// AST. It runs two passes to trace data flow from each use back to its origin.
+// LinkAllPropDataSources links all PropDataSource annotations in an annotated AST. It
+// runs two passes to trace data flow from each use back to its origin.
 //
 // Takes ctx (context.Context) which carries the session logger.
 // Takes tree (*ast_domain.TemplateAST) which is the annotated AST to process.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides module
-// context for the linking process.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides module context for
+// the linking process.
 // Takes typeResolver (*TypeResolver) which resolves types during linking.
 //
-// Returns []*ast_domain.Diagnostic which contains any problems found during
-// the linking passes, or nil if tree is nil.
+// Returns []*ast_domain.Diagnostic which contains any problems found during the linking
+// passes, or nil if tree is nil.
 func LinkAllPropDataSources(ctx context.Context, tree *ast_domain.TemplateAST, virtualModule *annotator_dto.VirtualModule, typeResolver *TypeResolver) []*ast_domain.Diagnostic {
 	ctx, l := logger_domain.From(ctx, log)
 	if tree == nil {
@@ -550,16 +540,15 @@ func LinkAllPropDataSources(ctx context.Context, tree *ast_domain.TemplateAST, v
 	return diagnostics
 }
 
-// findInvokerNodeForComponentHash searches the invocation map for the
-// template node whose partial package name matches the target hash.
+// findInvokerNodeForComponentHash searches the invocation map for the template node whose
+// partial package name matches the target hash.
 //
 // Takes targetHash (string) which is the hashed component name to find.
-// Takes invocationMap
-// (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
+// Takes invocationMap (map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo)
 // which maps template nodes to their invocation info.
 //
-// Returns *ast_domain.TemplateNode which is the matching node, or
-// nil if no match is found.
+// Returns *ast_domain.TemplateNode which is the matching node, or nil if no match is
+// found.
 func findInvokerNodeForComponentHash(targetHash string, invocationMap map[*ast_domain.TemplateNode]*ast_domain.PartialInvocationInfo) *ast_domain.TemplateNode {
 	for node, pInfo := range invocationMap {
 		if pInfo.PartialPackageName == targetHash {
@@ -580,8 +569,8 @@ func visitNodeExpressions(node *ast_domain.TemplateNode, visit func(ast_domain.E
 	visitAttributeLikeExpressions(node, visit)
 }
 
-// visitStructuralDirectives calls the visit function for each structural
-// directive expression in the given template node.
+// visitStructuralDirectives calls the visit function for each structural directive
+// expression in the given template node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes visit (func(...)) which is called for each directive expression found.
@@ -600,8 +589,8 @@ func visitStructuralDirectives(node *ast_domain.TemplateNode, visit func(ast_dom
 	}
 }
 
-// visitContentDirectives walks through content directives in a template node
-// and calls the visit function for each expression found.
+// visitContentDirectives walks through content directives in a template node and calls
+// the visit function for each expression found.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes visit (func(...)) which is called for each content expression found.
@@ -625,8 +614,8 @@ func visitBindingDirectives(node *ast_domain.TemplateNode, visit func(ast_domain
 	visitCustomEventDirectives(node, visit)
 }
 
-// visitModelDirective checks a template node for a p-model directive and calls
-// the visit function with its expression if one is found.
+// visitModelDirective checks a template node for a p-model directive and calls the visit
+// function with its expression if one is found.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes visit (func(...)) which is called with the model expression if found.
@@ -639,8 +628,7 @@ func visitModelDirective(node *ast_domain.TemplateNode, visit func(ast_domain.Ex
 // visitBindDirectives processes all p-bind directives on a template node.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the bind directives.
-// Takes visit (func(...)) which is called for each bind expression that is
-// not nil.
+// Takes visit (func(...)) which is called for each bind expression that is not nil.
 func visitBindDirectives(node *ast_domain.TemplateNode, visit func(ast_domain.Expression)) {
 	for _, bind := range node.Binds {
 		if bind != nil && bind.Expression != nil {
@@ -651,8 +639,7 @@ func visitBindDirectives(node *ast_domain.TemplateNode, visit func(ast_domain.Ex
 
 // visitEventDirectives processes all standard event directives (p-on:*).
 //
-// Takes node (*ast_domain.TemplateNode) which holds the event bindings to
-// process.
+// Takes node (*ast_domain.TemplateNode) which holds the event bindings to process.
 // Takes visit (func(...)) which is called for each expression found.
 func visitEventDirectives(node *ast_domain.TemplateNode, visit func(ast_domain.Expression)) {
 	for _, events := range node.OnEvents {
@@ -664,8 +651,8 @@ func visitEventDirectives(node *ast_domain.TemplateNode, visit func(ast_domain.E
 	}
 }
 
-// visitCustomEventDirectives calls the visit function for each expression in
-// the custom event directives on a node.
+// visitCustomEventDirectives calls the visit function for each expression in the custom
+// event directives on a node.
 //
 // Takes node (*ast_domain.TemplateNode) which holds the custom events to check.
 // Takes visit (func(...)) which is called for each expression that is not nil.
@@ -679,9 +666,9 @@ func visitCustomEventDirectives(node *ast_domain.TemplateNode, visit func(ast_do
 	}
 }
 
-// visitAttributeLikeExpressions walks through a template node and calls the
-// visit function for each attribute-like expression it finds. These include
-// class directives, style directives, dynamic attributes, and rich text.
+// visitAttributeLikeExpressions walks through a template node and calls the visit
+// function for each attribute-like expression it finds. These include class directives,
+// style directives, dynamic attributes, and rich text.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to walk.
 // Takes visit (func(...)) which is called for each expression found.
@@ -704,15 +691,14 @@ func visitAttributeLikeExpressions(node *ast_domain.TemplateNode, visit func(ast
 	}
 }
 
-// visitExpression walks an expression tree and calls the visitor function on
-// each node.
+// visitExpression walks an expression tree and calls the visitor function on each node.
 //
 // When expression is nil or the visitor returns false, the walk stops. The visitor
 // function controls whether to continue into child nodes.
 //
 // Takes expression (ast_domain.Expression) which is the root expression to visit.
-// Takes visitor (func(...)) which is called for each node and returns whether
-// to continue.
+// Takes visitor (func(...)) which is called for each node and returns whether to
+// continue.
 func visitExpression(expression ast_domain.Expression, visitor func(ast_domain.Expression) bool) {
 	if expression == nil || !visitor(expression) {
 		return
@@ -740,11 +726,10 @@ func visitExpression(expression ast_domain.Expression, visitor func(ast_domain.E
 	}
 }
 
-// visitCompositeLiteralExpression walks through a composite literal expression
-// and calls the visitor function on each nested expression it finds.
+// visitCompositeLiteralExpression walks through a composite literal expression and calls
+// the visitor function on each nested expression it finds.
 //
-// Takes expression (ast_domain.Expression) which is the composite
-// literal to visit.
+// Takes expression (ast_domain.Expression) which is the composite literal to visit.
 // Takes visitor (func(...)) which is called for each nested expression.
 func visitCompositeLiteralExpression(expression ast_domain.Expression, visitor func(ast_domain.Expression) bool) {
 	switch n := expression.(type) {
@@ -765,8 +750,8 @@ func visitCompositeLiteralExpression(expression ast_domain.Expression, visitor f
 	}
 }
 
-// visitControlFlowExpression walks through a control flow expression and calls
-// the visitor function on each child expression.
+// visitControlFlowExpression walks through a control flow expression and calls the
+// visitor function on each child expression.
 //
 // Takes expression (ast_domain.Expression) which is the expression to walk.
 // Takes visitor (func(...)) which is called for each child expression.
@@ -778,8 +763,8 @@ func visitControlFlowExpression(expression ast_domain.Expression, visitor func(a
 	}
 }
 
-// getRootIdentifier finds the base identifier of an expression by walking
-// through member access, index, and call expressions.
+// getRootIdentifier finds the base identifier of an expression by walking through member
+// access, index, and call expressions.
 //
 // Takes expression (ast_domain.Expression) which is the expression to examine.
 //
@@ -803,13 +788,13 @@ func getRootIdentifier(expression ast_domain.Expression) (*ast_domain.Identifier
 	}
 }
 
-// getPropertyNameFromMemberExpr returns the property name from a member
-// expression when the property is an identifier.
+// getPropertyNameFromMemberExpr returns the property name from a member expression when
+// the property is an identifier.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns string which is the property name, or an empty string if the
-// expression is not a member expression or the property is not an identifier.
+// Returns string which is the property name, or an empty string if the expression is not
+// a member expression or the property is not an identifier.
 func getPropertyNameFromMemberExpr(expression ast_domain.Expression) string {
 	if mem, ok := expression.(*ast_domain.MemberExpression); ok {
 		if prop, isIdent := mem.Property.(*ast_domain.Identifier); isIdent {
@@ -829,8 +814,8 @@ func isPropUsage(expression ast_domain.Expression) bool {
 	return ok && identifier.Name == "props"
 }
 
-// isPartialInvocationNode checks whether the given node represents a partial
-// template invocation.
+// isPartialInvocationNode checks whether the given node represents a partial template
+// invocation.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 //

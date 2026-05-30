@@ -18,12 +18,12 @@
 
 // Package inspector contains shared dto types and protobuf-to-dto extractors.
 //
-// The dto types and extractors are used by both the CLI describe / get / info
-// commands and the TUI panels. The package exists so the two front-ends agree
-// on what the data shape is for each inspector domain (providers, DLQ, rate
-// limiter, health, build/runtime/memory/process, watchdog) without each side
-// re-implementing the gRPC to field-list mapping.
+// The dto types and extractors are used by both the CLI describe / get / info commands
+// and the TUI panels. The package exists so the two front-ends agree on what the data
+// shape is for each inspector domain (providers, DLQ, rate limiter, health,
+// build/runtime/memory/process, watchdog) without each side re-implementing the gRPC to
+// field-list mapping.
 //
-// Extractors return DetailBody values; renderers in the CLI (Printer)
-// and TUI (RenderDetailBody) adapt those into stdout or pane output.
+// Extractors return DetailBody values; renderers in the CLI (Printer) and TUI
+// (RenderDetailBody) adapt those into stdout or pane output.
 package inspector

@@ -54,8 +54,7 @@ func Register(
 
 // registerEmailProvider creates and registers the SES email provider.
 //
-// Takes emailService (email_domain.Service) which handles provider
-// registration.
+// Takes emailService (email_domain.Service) which handles provider registration.
 // Takes arguments (SESProviderArgs) which holds the SES settings.
 //
 // Returns error when the provider cannot be created or registered.

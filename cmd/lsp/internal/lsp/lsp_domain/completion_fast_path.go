@@ -25,21 +25,21 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// tryFastPathCompletion attempts to provide completions using the existing
-// document's cached analysis data, without waiting for a new analysis cycle.
-// This enables immediate feedback for member access completions (e.g.,
-// "state.", "props.", "item.") while the full analysis runs in the background.
+// tryFastPathCompletion attempts to provide completions using the existing document's
+// cached analysis data, without waiting for a new analysis cycle. This enables immediate
+// feedback for member access completions (e.g., "state.", "props.", "item.") while the
+// full analysis runs in the background.
 //
-// The key insight is that when a document becomes dirty, its previous
-// AnalysisMap and TypeInspector remain valid for type resolution. We can
-// reuse this existing data instead of waiting for a rebuild.
+// The key insight is that when a document becomes dirty, its previous AnalysisMap and
+// TypeInspector remain valid for type resolution. We can reuse this existing data instead
+// of waiting for a rebuild.
 //
-// Takes params (*protocol.CompletionParams) which specifies the completion
-// request parameters.
+// Takes params (*protocol.CompletionParams) which specifies the completion request
+// parameters.
 //
-// Returns *protocol.CompletionList which contains the completions if the
-// fast-path succeeded, or nil if the fast-path is not available and the
-// caller should fall back to the normal path.
+// Returns *protocol.CompletionList which contains the completions if the fast-path
+// succeeded, or nil if the fast-path is not available and the caller should fall back to
+// the normal path.
 func (s *Server) tryFastPathCompletion(ctx context.Context, params *protocol.CompletionParams) *protocol.CompletionList {
 	_, l := logger_domain.From(ctx, log)
 
@@ -70,13 +70,12 @@ func (s *Server) tryFastPathCompletion(ctx context.Context, params *protocol.Com
 	return s.handleFastPathTrigger(ctx, document, uri, position, triggerCtx)
 }
 
-// getDocumentForFastPath retrieves a document that is ready for fast-path
-// completion.
+// getDocumentForFastPath retrieves a document that is ready for fast-path completion.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document.
 //
-// Returns *document which is the document if it exists and has the needed
-// analysis data, or nil otherwise.
+// Returns *document which is the document if it exists and has the needed analysis data,
+// or nil otherwise.
 func (s *Server) getDocumentForFastPath(ctx context.Context, uri protocol.DocumentURI) *document {
 	_, l := logger_domain.From(ctx, log)
 
@@ -96,16 +95,16 @@ func (s *Server) getDocumentForFastPath(ctx context.Context, uri protocol.Docume
 	return document
 }
 
-// handleFastPathTrigger dispatches to the appropriate completion handler based
-// on the trigger kind.
+// handleFastPathTrigger dispatches to the appropriate completion handler based on the
+// trigger kind.
 //
 // Takes document (*document) which is the document with cached analysis data.
 // Takes uri (protocol.DocumentURI) which identifies the document for logging.
 // Takes position (protocol.Position) which is the cursor position.
 // Takes triggerCtx (completionContext) which describes the completion trigger.
 //
-// Returns *protocol.CompletionList which contains completions, or nil if the
-// trigger kind is not supported by the fast path.
+// Returns *protocol.CompletionList which contains completions, or nil if the trigger kind
+// is not supported by the fast path.
 func (s *Server) handleFastPathTrigger(
 	ctx context.Context,
 	document *document,
@@ -123,17 +122,16 @@ func (s *Server) handleFastPathTrigger(
 	}
 }
 
-// handleMemberAccessFastPath handles member access completions
-// (e.g., "state.").
+// handleMemberAccessFastPath handles member access completions (e.g., "state.").
 //
 // Takes document (*document) which contains the parsed document state.
 // Takes uri (protocol.DocumentURI) which identifies the document location.
 // Takes position (protocol.Position) which specifies the cursor position.
-// Takes triggerCtx (completionContext) which provides the completion context
-// including base expression and prefix.
+// Takes triggerCtx (completionContext) which provides the completion context including
+// base expression and prefix.
 //
-// Returns *protocol.CompletionList which contains the completion items, or nil
-// when member resolution fails.
+// Returns *protocol.CompletionList which contains the completion items, or nil when
+// member resolution fails.
 func (*Server) handleMemberAccessFastPath(
 	ctx context.Context,
 	document *document,
@@ -163,17 +161,16 @@ func (*Server) handleMemberAccessFastPath(
 	return result
 }
 
-// handleDirectiveValueFastPath handles directive value completions
-// (e.g., p-if="").
+// handleDirectiveValueFastPath handles directive value completions (e.g., p-if="").
 //
 // Takes document (*document) which contains the parsed document state.
 // Takes uri (protocol.DocumentURI) which identifies the document being edited.
 // Takes position (protocol.Position) which specifies the cursor position.
-// Takes triggerCtx (completionContext) which provides the completion trigger
-// context including the prefix.
+// Takes triggerCtx (completionContext) which provides the completion trigger context
+// including the prefix.
 //
-// Returns *protocol.CompletionList which contains matching scope symbols, or
-// nil when no completions are found.
+// Returns *protocol.CompletionList which contains matching scope symbols, or nil when no
+// completions are found.
 func (*Server) handleDirectiveValueFastPath(
 	ctx context.Context,
 	document *document,
@@ -200,9 +197,9 @@ func (*Server) handleDirectiveValueFastPath(
 	return result
 }
 
-// analyseCompletionContextFromContent finds the completion context from raw
-// content bytes without needing a full document. This is used for fast-path
-// completion to detect member access triggers from the current text.
+// analyseCompletionContextFromContent finds the completion context from raw content bytes
+// without needing a full document. This is used for fast-path completion to detect member
+// access triggers from the current text.
 //
 // Takes content ([]byte) which is the raw document content.
 // Takes position (protocol.Position) which specifies the cursor position.

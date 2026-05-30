@@ -24,9 +24,8 @@ import (
 	"time"
 )
 
-// MockDeadLetterPort is a test double for DeadLetterPort that uses overridable
-// function fields. Nil fields return zero values, and call counts are tracked
-// for assertions.
+// MockDeadLetterPort is a test double for DeadLetterPort that uses overridable function
+// fields. Nil fields return zero values, and call counts are tracked for assertions.
 type MockDeadLetterPort[T any] struct {
 	// AddFunc is the mock implementation for adding a dead letter entry.
 	AddFunc func(ctx context.Context, entry T) error
@@ -46,34 +45,34 @@ type MockDeadLetterPort[T any] struct {
 	// GetOlderThanFunc is the mock function for GetOlderThan.
 	GetOlderThanFunc func(ctx context.Context, duration time.Duration) ([]T, error)
 
-	// AddCallCount tracks the number of times Add was called. Use
-	// atomic.LoadInt64 to read safely from concurrent goroutines.
-	AddCallCount int64
+	// AddCallCount tracks the number of times Add was called. Use atomic.LoadInt64 to read
+	// safely from concurrent goroutines.
+	AddCallCount atomic.Int64
 
 	// GetCallCount tracks the number of times Get was called.
-	GetCallCount int64
+	GetCallCount atomic.Int64
 
 	// RemoveCallCount tracks the number of times Remove was called.
-	RemoveCallCount int64
+	RemoveCallCount atomic.Int64
 
 	// CountCallCount tracks the number of times Count was called.
-	CountCallCount int64
+	CountCallCount atomic.Int64
 
 	// ClearCallCount tracks the number of times Clear was called.
-	ClearCallCount int64
+	ClearCallCount atomic.Int64
 
 	// GetOlderThanCallCount tracks the number of times GetOlderThan was called.
-	GetOlderThanCallCount int64
+	GetOlderThanCallCount atomic.Int64
 }
 
 // Add adds a failed item to the dead letter queue.
 //
 // Takes entry (T) which is the failed item to store.
 //
-// Returns error when AddFunc is set and returns an error. Returns nil if
-// AddFunc is nil.
+// Returns error when AddFunc is set and returns an error.
+// Returns nil if AddFunc is nil.
 func (m *MockDeadLetterPort[T]) Add(ctx context.Context, entry T) error {
-	atomic.AddInt64(&m.AddCallCount, 1)
+	m.AddCallCount.Add(1)
 	if m.AddFunc != nil {
 		return m.AddFunc(ctx, entry)
 	}
@@ -87,7 +86,7 @@ func (m *MockDeadLetterPort[T]) Add(ctx context.Context, entry T) error {
 // Returns []T which contains the retrieved items, or nil if GetFunc is nil.
 // Returns error when the underlying GetFunc returns an error.
 func (m *MockDeadLetterPort[T]) Get(ctx context.Context, limit int) ([]T, error) {
-	atomic.AddInt64(&m.GetCallCount, 1)
+	m.GetCallCount.Add(1)
 	if m.GetFunc != nil {
 		return m.GetFunc(ctx, limit)
 	}
@@ -98,9 +97,10 @@ func (m *MockDeadLetterPort[T]) Get(ctx context.Context, limit int) ([]T, error)
 //
 // Takes entries ([]T) which contains the entries to remove.
 //
-// Returns error when RemoveFunc fails. Returns nil if RemoveFunc is nil.
+// Returns error when RemoveFunc fails.
+// Returns nil if RemoveFunc is nil.
 func (m *MockDeadLetterPort[T]) Remove(ctx context.Context, entries []T) error {
-	atomic.AddInt64(&m.RemoveCallCount, 1)
+	m.RemoveCallCount.Add(1)
 	if m.RemoveFunc != nil {
 		return m.RemoveFunc(ctx, entries)
 	}
@@ -112,7 +112,7 @@ func (m *MockDeadLetterPort[T]) Remove(ctx context.Context, entries []T) error {
 // Returns int which is the count of entries, or zero if CountFunc is nil.
 // Returns error when the count operation fails.
 func (m *MockDeadLetterPort[T]) Count(ctx context.Context) (int, error) {
-	atomic.AddInt64(&m.CountCallCount, 1)
+	m.CountCallCount.Add(1)
 	if m.CountFunc != nil {
 		return m.CountFunc(ctx)
 	}
@@ -121,25 +121,25 @@ func (m *MockDeadLetterPort[T]) Count(ctx context.Context) (int, error) {
 
 // Clear removes all entries from the dead letter queue.
 //
-// Returns error when ClearFunc is set and returns an error. Returns nil if
-// ClearFunc is nil.
+// Returns error when ClearFunc is set and returns an error.
+// Returns nil if ClearFunc is nil.
 func (m *MockDeadLetterPort[T]) Clear(ctx context.Context) error {
-	atomic.AddInt64(&m.ClearCallCount, 1)
+	m.ClearCallCount.Add(1)
 	if m.ClearFunc != nil {
 		return m.ClearFunc(ctx)
 	}
 	return nil
 }
 
-// GetOlderThan retrieves entries older than the specified duration. If
-// GetOlderThanFunc is nil, returns (nil, nil).
+// GetOlderThan retrieves entries older than the specified duration. If GetOlderThanFunc
+// is nil, returns (nil, nil).
 //
 // Takes duration (time.Duration) which specifies the age threshold.
 //
 // Returns []T which contains entries older than the specified duration.
 // Returns error when the retrieval fails.
 func (m *MockDeadLetterPort[T]) GetOlderThan(ctx context.Context, duration time.Duration) ([]T, error) {
-	atomic.AddInt64(&m.GetOlderThanCallCount, 1)
+	m.GetOlderThanCallCount.Add(1)
 	if m.GetOlderThanFunc != nil {
 		return m.GetOlderThanFunc(ctx, duration)
 	}

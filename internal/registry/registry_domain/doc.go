@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package registry_domain defines the core business logic for the
-// artefact registry.
+// Package registry_domain defines the core business logic for the artefact registry.
 //
-// It contains the service layer and port interfaces for managing
-// artefacts, their variants, and blob storage. The service handles
-// creation, updates, deletion, and variant management with
-// content-addressable blob deduplication and reference counting.
+// It contains the service layer and port interfaces for managing artefacts, their
+// variants, and blob storage. The service handles creation, updates, deletion, and
+// variant management with content-addressable blob deduplication and reference counting.
 //
-// Lifecycle events are published via the event bus when artefacts are
-// created, updated, or deleted.
+// Lifecycle events are published via the event bus when artefacts are created, updated,
+// or deleted.
 //
 // The service implementation is safe for concurrent use.
 package registry_domain

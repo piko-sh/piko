@@ -27,37 +27,35 @@ import (
 )
 
 const (
-	// maxPoolSize caps the number of browser instances to avoid excessive memory
-	// usage (~100-300 MB per Chrome process).
+	// maxPoolSize caps the number of browser instances to avoid excessive memory usage
+	// (~100-300 MB per Chrome process).
 	maxPoolSize = 16
 
-	// defaultPagesPerBrowser is the default maximum number of concurrent pages
-	// allowed per browser instance, applied when MaxConcurrentPages is not set.
+	// defaultPagesPerBrowser is the default maximum number of concurrent pages allowed per
+	// browser instance, applied when MaxConcurrentPages is not set.
 	defaultPagesPerBrowser = 12
 )
 
 // BrowserPoolConfig configures optional behaviour of a BrowserPool.
 type BrowserPoolConfig struct {
-	// MaxConcurrentPages limits the number of pages that can be active
-	// simultaneously across all pool members. When the limit is reached,
-	// NewIncognitoPage blocks until an existing page is closed.
+	// MaxConcurrentPages limits the number of pages that can be active simultaneously across
+	// all pool members. When the limit is reached, NewIncognitoPage blocks until an existing
+	// page is closed.
 	//
-	// Defaults to poolSize * MaxPagesPerBrowser when zero or unset.
-	// Set to -1 for unlimited.
+	// Defaults to poolSize * MaxPagesPerBrowser when zero or unset. Set to -1 for unlimited.
 	MaxConcurrentPages int
 
-	// MaxPagesPerBrowser limits the number of concurrent pages per browser
-	// instance. Used to compute the default MaxConcurrentPages as
-	// poolSize * MaxPagesPerBrowser when MaxConcurrentPages is not set.
+	// MaxPagesPerBrowser limits the number of concurrent pages per browser instance. Used to
+	// compute the default MaxConcurrentPages as poolSize * MaxPagesPerBrowser when
+	// MaxConcurrentPages is not set.
 	//
 	// Defaults to 12 when zero or unset. Set to -1 for unlimited.
 	MaxPagesPerBrowser int
 }
 
-// BrowserPool manages multiple Browser instances and distributes page creation
-// across them via round-robin. This enables genuine multi-process parallelism
-// by spreading work across separate Chrome processes, each of which can
-// utilise its own CPU core.
+// BrowserPool manages multiple Browser instances and distributes page creation across
+// them via round-robin. This enables genuine multi-process parallelism by spreading work
+// across separate Chrome processes, each of which can utilise its own CPU core.
 //
 // Safe for concurrent use.
 type BrowserPool struct {
@@ -71,14 +69,13 @@ type BrowserPool struct {
 	index atomic.Uint64
 }
 
-// NewBrowserPool creates a pool of size browser instances in parallel sharing
-// the same options, closing any successfully started browsers and returning
-// the first error if any browser fails to start.
+// NewBrowserPool creates a pool of size browser instances in parallel sharing the same
+// options, closing any successfully started browsers and returning the first error if any
+// browser fails to start.
 //
-// An optional BrowserPoolConfig may be provided to limit the number of
-// concurrent active pages. When MaxConcurrentPages is set, NewIncognitoPage
-// blocks until a slot is available and releases it automatically when the
-// page is closed.
+// An optional BrowserPoolConfig may be provided to limit the number of concurrent active
+// pages. When MaxConcurrentPages is set, NewIncognitoPage blocks until a slot is
+// available and releases it automatically when the page is closed.
 //
 // Takes opts (BrowserOptions) which specifies the browser settings.
 // Takes size (int) which is the number of browser instances to create.
@@ -113,13 +110,12 @@ func NewBrowserPool(opts BrowserOptions, size int, config ...BrowserPoolConfig) 
 	}, nil
 }
 
-// NewIncognitoPage creates a new isolated browser page, distributing across
-// pool members via round-robin. Each call selects the next browser in the
-// pool, ensuring even load distribution.
+// NewIncognitoPage creates a new isolated browser page, distributing across pool members
+// via round-robin. Each call selects the next browser in the pool, ensuring even load
+// distribution.
 //
-// When MaxConcurrentPages is configured, blocks until a slot is available (or
-// ctx is cancelled) and automatically releases it when the returned page is
-// closed.
+// When MaxConcurrentPages is configured, blocks until a slot is available (or ctx is
+// cancelled) and automatically releases it when the returned page is closed.
 //
 // Takes ctx (context.Context) which controls the semaphore wait timeout.
 //
@@ -168,29 +164,28 @@ func (bp *BrowserPool) Close() {
 	}
 }
 
-// ExclusiveBrowserPool manages a pool of Browser instances where each browser
-// is checked out to at most one consumer at a time. This guarantees that only
-// a single tab is active per Chrome process, which is required for tests that
-// depend on browser-level focus, blur, or mouse-capture semantics.
+// ExclusiveBrowserPool manages a pool of Browser instances where each browser is checked
+// out to at most one consumer at a time. This guarantees that only a single tab is active
+// per Chrome process, which is required for tests that depend on browser-level focus,
+// blur, or mouse-capture semantics.
 //
 // Safe for concurrent use.
 type ExclusiveBrowserPool struct {
-	// avail is a buffered channel acting as a semaphore. Browsers are sent
-	// back into the channel when released.
+	// avail is a buffered channel acting as a semaphore. Browsers are sent back into the
+	// channel when released.
 	avail chan *Browser
 
 	// all holds every browser for cleanup.
 	all []*Browser
 }
 
-// NewExclusiveBrowserPool creates a pool of size browser instances in parallel.
-// All browsers are initially available for checkout via Acquire.
+// NewExclusiveBrowserPool creates a pool of size browser instances in parallel. All
+// browsers are initially available for checkout via Acquire.
 //
 // Takes opts (BrowserOptions) which specifies the browser settings.
 // Takes size (int) which is the number of browser instances to create.
 //
-// Returns *ExclusiveBrowserPool which is ready for exclusive browser
-// checkout.
+// Returns *ExclusiveBrowserPool which is ready for exclusive browser checkout.
 // Returns error when any browser instance fails to start.
 func NewExclusiveBrowserPool(opts BrowserOptions, size int) (*ExclusiveBrowserPool, error) {
 	browsers, err := startBrowsers(opts, size)
@@ -209,9 +204,8 @@ func NewExclusiveBrowserPool(opts BrowserOptions, size int) (*ExclusiveBrowserPo
 	}, nil
 }
 
-// Acquire checks out a browser for exclusive use, blocking until a browser
-// is available or ctx is cancelled, where the caller must call Release when
-// done.
+// Acquire checks out a browser for exclusive use, blocking until a browser is available
+// or ctx is cancelled, where the caller must call Release when done.
 //
 // Returns *Browser which the caller has exclusive access to.
 // Returns error when ctx is cancelled before a browser becomes available.
@@ -224,8 +218,8 @@ func (ep *ExclusiveBrowserPool) Acquire(ctx context.Context) (*Browser, error) {
 	}
 }
 
-// Release returns a browser to the pool, making it available for other callers.
-// Must be called exactly once for each successful Acquire.
+// Release returns a browser to the pool, making it available for other callers. Must be
+// called exactly once for each successful Acquire.
 //
 // Takes b (*Browser) which is the browser to return to the pool.
 func (ep *ExclusiveBrowserPool) Release(b *Browser) {
@@ -248,10 +242,9 @@ func (ep *ExclusiveBrowserPool) Close() {
 	}
 }
 
-// DefaultPoolSize returns a sensible default number of browsers based on
-// available CPU cores, capped at maxPoolSize and floored at 1. Uses half
-// the CPU count so that a shared pool and an exclusive pool can each claim
-// half of the available cores.
+// DefaultPoolSize returns a sensible default number of browsers based on available CPU
+// cores, capped at maxPoolSize and floored at 1. Uses half the CPU count so that a shared
+// pool and an exclusive pool can each claim half of the available cores.
 //
 // Returns int which is the recommended pool size for the current machine.
 func DefaultPoolSize() int {
@@ -265,18 +258,15 @@ func DefaultPoolSize() int {
 	return n
 }
 
-// startBrowsers launches size Chrome processes in parallel and returns them.
-// If any browser fails to start, successfully started ones are closed and
-// the first error is returned.
+// startBrowsers launches size Chrome processes in parallel, each in its own goroutine,
+// and waits for all to complete before returning. If any browser fails to start,
+// successfully started ones are closed and the first error is returned.
 //
 // Takes opts (BrowserOptions) which specifies the browser launch settings.
 // Takes size (int) which is the number of browsers to start.
 //
 // Returns []*Browser which contains the started browser instances.
 // Returns error when any browser fails to start.
-//
-// Safe for concurrent use. Launches each browser in its own goroutine and
-// waits for all to complete before returning.
 func startBrowsers(opts BrowserOptions, size int) ([]*Browser, error) {
 	if size < 1 {
 		size = 1
@@ -286,14 +276,12 @@ func startBrowsers(opts BrowserOptions, size int) ([]*Browser, error) {
 	errs := make([]error, size)
 
 	var wg sync.WaitGroup
-	wg.Add(size)
 	for i := range size {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			b, err := NewBrowser(opts)
 			browsers[i] = b
 			errs[i] = err
-		}()
+		})
 	}
 	wg.Wait()
 

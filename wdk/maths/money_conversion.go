@@ -25,9 +25,9 @@ import (
 
 // RateMatrix holds currency exchange rates relative to a base currency.
 type RateMatrix struct {
-	// Rates maps source currency codes to target currency codes to exchange
-	// rates. Each outer key is a source currency, and each inner key is a
-	// target currency with its conversion rate.
+	// Rates maps source currency codes to target currency codes to exchange rates. Each
+	// outer key is a source currency, and each inner key is a target currency with its
+	// conversion rate.
 	Rates map[string]map[string]Decimal
 
 	// BaseCurrency is the currency code used as the base for all conversions.
@@ -55,11 +55,10 @@ func (b *rateMatrixBuilder) ensureMap(key string) {
 	}
 }
 
-// initialiseIdentityRates sets the identity rate (1) for each currency to
-// itself.
+// initialiseIdentityRates sets the identity rate (1) for each currency to itself.
 //
-// Takes currencies (map[string]struct{}) which specifies the set of currencies
-// to initialise.
+// Takes currencies (map[string]struct{}) which specifies the set of currencies to
+// initialise.
 func (b *rateMatrixBuilder) initialiseIdentityRates(currencies map[string]struct{}) {
 	for currency := range currencies {
 		b.ensureMap(currency)
@@ -67,12 +66,12 @@ func (b *rateMatrixBuilder) initialiseIdentityRates(currencies map[string]struct
 	}
 }
 
-// setBaseRates populates rates from the base currency to other currencies,
-// including inverse rates.
+// setBaseRates populates rates from the base currency to other currencies, including
+// inverse rates.
 //
 // Takes baseCurrency (string) which specifies the source currency code.
-// Takes baseRates (map[string]Decimal) which maps target currencies to their
-// exchange rates from the base currency.
+// Takes baseRates (map[string]Decimal) which maps target currencies to their exchange
+// rates from the base currency.
 //
 // Returns error when a rate is zero or the inverse rate calculation fails.
 func (b *rateMatrixBuilder) setBaseRates(baseCurrency string, baseRates map[string]Decimal) error {
@@ -90,11 +89,11 @@ func (b *rateMatrixBuilder) setBaseRates(baseCurrency string, baseRates map[stri
 	return nil
 }
 
-// setOverrideRates applies direct rate overrides between currency pairs,
-// including inverse rates.
+// setOverrideRates applies direct rate overrides between currency pairs, including
+// inverse rates.
 //
-// Takes overrides (map[string]map[string]Decimal) which maps source currencies
-// to target currencies with their exchange rates.
+// Takes overrides (map[string]map[string]Decimal) which maps source currencies to target
+// currencies with their exchange rates.
 //
 // Returns error when a rate is zero or the inverse rate cannot be calculated.
 func (b *rateMatrixBuilder) setOverrideRates(overrides map[string]map[string]Decimal) error {
@@ -125,15 +124,15 @@ func NewMatrixConverter(matrix RateMatrix) *MatrixConverter {
 
 // Convert returns the source value transformed into the target currency.
 //
-// Attempts direct conversion first using the rate matrix. If no direct rate
-// exists, triangulates through the base currency. When the source currency
-// matches the target, returns the original value unchanged.
+// Attempts direct conversion first using the rate matrix. If no direct rate exists,
+// triangulates through the base currency. When the source currency matches the target,
+// returns the original value unchanged.
 //
 // Takes source (Money) which is the monetary value to convert.
 // Takes targetCode (string) which is the ISO 4217 code of the target currency.
 //
-// Returns Money which contains the converted amount, or an error if the source
-// has an error, no conversion path exists, or a calculation fails.
+// Returns Money which contains the converted amount, or an error if the source has an
+// error, no conversion path exists, or a calculation fails.
 func (c *MatrixConverter) Convert(source Money, targetCode string) Money {
 	if source.err != nil {
 		return source
@@ -198,8 +197,7 @@ func (c *MatrixConverter) ConvertAll(sources []Money, targetCode string) ([]Mone
 	return results, nil
 }
 
-// Supports reports whether the given currency code exists in the exchange rate
-// matrix.
+// Supports reports whether the given currency code exists in the exchange rate matrix.
 //
 // Takes code (string) which is the currency code to check.
 //
@@ -262,10 +260,10 @@ func NewConverter(rates ExchangeRates) *Converter {
 // Takes source (Money) which is the money value to convert.
 // Takes targetCode (string) which is the ISO currency code for the target.
 //
-// Returns Money which holds the converted amount in the target currency.
-// If source already has an error, it is returned unchanged. If the source
-// and target currencies match, the original value is returned. Any errors
-// during conversion are stored in the returned Money's error field.
+// Returns Money which holds the converted amount in the target currency. If source
+// already has an error, it is returned unchanged. If the source and target currencies
+// match, the original value is returned. Any errors during conversion are stored in the
+// returned Money's error field.
 func (c *Converter) Convert(source Money, targetCode string) Money {
 	if source.err != nil {
 		return source
@@ -295,17 +293,17 @@ func (c *Converter) Convert(source Money, targetCode string) Money {
 	return NewMoneyFromDecimal(convertedAmount, targetCode)
 }
 
-// NewRateMatrix creates a currency exchange rate matrix from base rates and
-// optional overrides.
+// NewRateMatrix creates a currency exchange rate matrix from base rates and optional
+// overrides.
 //
-// The matrix allows conversion between any pair of currencies. Inverse rates
-// are calculated automatically for each defined rate.
+// The matrix allows conversion between any pair of currencies. Inverse rates are
+// calculated automatically for each defined rate.
 //
 // Takes baseCurrency (string) which is the reference currency for base rates.
-// Takes baseRates (map[string]Decimal) which maps currencies to their exchange
-// rates relative to the base currency.
-// Takes overrides (map[string]map[string]Decimal) which provides direct rates
-// between specific currency pairs, bypassing base rate calculation.
+// Takes baseRates (map[string]Decimal) which maps currencies to their exchange rates
+// relative to the base currency.
+// Takes overrides (map[string]map[string]Decimal) which provides direct rates between
+// specific currency pairs, bypassing base rate calculation.
 //
 // Returns RateMatrix which contains the complete conversion matrix.
 // Returns error when any rate is zero or inverse calculation fails.
@@ -328,11 +326,11 @@ func NewRateMatrix(baseCurrency string, baseRates map[string]Decimal, overrides 
 	}, nil
 }
 
-// NewExchangeRates creates an ExchangeRates with the given base currency and
-// rate mappings.
+// NewExchangeRates creates an ExchangeRates with the given base currency and rate
+// mappings.
 //
-// The base currency rate is set to 1 if not in the rates map. If present, it
-// must equal 1.
+// The base currency rate is set to 1 if not in the rates map. If present, it must equal
+// 1.
 //
 // Takes baseCurrency (string) which is the currency code for the base rate.
 // Takes rates (map[string]Decimal) which maps currency codes to their rates.
@@ -367,10 +365,9 @@ func NewExchangeRates(baseCurrency string, rates map[string]Decimal) (ExchangeRa
 // Takes original (ExchangeRates) which contains the rates to convert.
 // Takes newBaseCurrency (string) which specifies the new base currency code.
 //
-// Returns ExchangeRates which contains the recalculated rates relative to the
-// new base.
-// Returns error when the new base currency is not found in the original rates
-// or when a rate calculation fails.
+// Returns ExchangeRates which contains the recalculated rates relative to the new base.
+// Returns error when the new base currency is not found in the original rates or when a
+// rate calculation fails.
 func InvertRates(original ExchangeRates, newBaseCurrency string) (ExchangeRates, error) {
 	oldBaseToNewBaseRate, ok := original.Rates[newBaseCurrency]
 	if !ok {
@@ -398,8 +395,7 @@ func newRateMatrixBuilder() *rateMatrixBuilder {
 	}
 }
 
-// collectAllCurrencies gathers all currency codes from base rates and
-// overrides.
+// collectAllCurrencies gathers all currency codes from base rates and overrides.
 //
 // Takes baseCurrency (string) which is the primary currency to include.
 // Takes baseRates (map[string]Decimal) which contains the standard rates.

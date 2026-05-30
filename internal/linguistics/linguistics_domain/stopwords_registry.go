@@ -18,34 +18,36 @@
 
 package linguistics_domain
 
-// StopWordsProviderFactory creates a stop words provider for a given language.
-// Each language adapter registers its own factory under the language name.
+// StopWordsProviderFactory creates a stop words provider for a given language. Each
+// language adapter registers its own factory under the language name.
 type StopWordsProviderFactory = factoryFunc[StopWordsProviderPort]
 
-// stopWordsProviderRegistry holds the registered stop words provider factories
-// keyed by language.
-var stopWordsProviderRegistry = newRegistry[StopWordsProviderPort]("stop words provider")
+var (
+	// stopWordsProviderRegistry holds the registered stop words provider factories keyed by
+	// language.
+	stopWordsProviderRegistry = newRegistry[StopWordsProviderPort]("stop words provider")
+)
 
-// RegisterStopWordsProviderFactory registers a stop words provider factory for
-// a language. This should be called explicitly at application startup to
-// register the providers needed for the application.
+// RegisterStopWordsProviderFactory registers a stop words provider factory for a
+// language. This should be called explicitly at application startup to register the
+// providers needed for the application.
 //
-// Takes language (string) which is the language this factory provides
-// (e.g., "english", "french").
+// Takes language (string) which is the language this factory provides (e.g., "english",
+// "french").
 // Takes factory (StopWordsProviderFactory) which creates providers.
 func RegisterStopWordsProviderFactory(language string, factory StopWordsProviderFactory) {
 	stopWordsProviderRegistry.register(language, factory)
 }
 
-// CreateStopWordsProvider creates a stop words provider for the specified
-// language. If no factory is registered for the language or creation fails, a
-// NoOpStopWordsProvider is returned instead.
+// CreateStopWordsProvider creates a stop words provider for the specified language. If no
+// factory is registered for the language or creation fails, a NoOpStopWordsProvider is
+// returned instead.
 //
-// Takes language (string) which is the language to create a provider for
-// (e.g., "english", "french").
+// Takes language (string) which is the language to create a provider for (e.g.,
+// "english", "french").
 //
-// Returns StopWordsProviderPort which is the created provider, or a
-// NoOpStopWordsProvider if no factory is registered for the language.
+// Returns StopWordsProviderPort which is the created provider, or a NoOpStopWordsProvider
+// if no factory is registered for the language.
 func CreateStopWordsProvider(language string) StopWordsProviderPort {
 	factory, ok := getStopWordsProviderFactory(language)
 	if !ok {
@@ -60,18 +62,17 @@ func CreateStopWordsProvider(language string) StopWordsProviderPort {
 	return provider
 }
 
-// RegisteredStopWordsProviderFactories returns the names of all languages that
-// have registered stop words provider factories. Use it for debugging and
-// checking what is available.
+// RegisteredStopWordsProviderFactories returns the names of all languages that have
+// registered stop words provider factories. Use it for debugging and checking what is
+// available.
 //
-// Returns []string which contains the language names of all registered
-// factories.
+// Returns []string which contains the language names of all registered factories.
 func RegisteredStopWordsProviderFactories() []string {
 	return stopWordsProviderRegistry.registeredNames()
 }
 
-// getStopWordsProviderFactory retrieves a registered stop words provider
-// factory for the given language.
+// getStopWordsProviderFactory retrieves a registered stop words provider factory for the
+// given language.
 //
 // Takes language (string) which is the language code to look up.
 //

@@ -50,8 +50,7 @@ type StagedEnvironment struct {
 // from srcDir to a new staged directory.
 //
 // Takes t (*testing.T) which is the test context for reporting failures.
-// Takes testCaseDir (string) which is the root directory containing source
-// files.
+// Takes testCaseDir (string) which is the root directory containing source files.
 //
 // Returns *StagedEnvironment which provides access to the staged test files.
 func NewStagedEnvironment(t *testing.T, testCaseDir string) *StagedEnvironment {

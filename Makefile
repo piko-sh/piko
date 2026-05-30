@@ -113,6 +113,12 @@ test-coverage-report: ## Generate full coverage report
 test-profile: ## Profile a package (PKG=internal/ast)
 	@$(HACK_DIR)/test/profile.sh $(PKG)
 
+##@ Benchmark
+
+.PHONY: bench-full
+bench-full: ## Run the full cross-language benchmark sweep (one process per cell, JSONL output). Override knobs with ARGS='--resume cpython_20_invert_binary_tree --runs 20'
+	@$(HACK_DIR)/bench/full.sh $(ARGS)
+
 ##@ Lint
 
 .PHONY: lint
@@ -286,9 +292,15 @@ plugin-idea-clean: ## Clean IntelliJ plugin build artefacts
 
 .PHONY: check
 check: ## Run local validation (vet, lint, tests) before pushing
-	$(GO) vet -tags "vips integration ffmpeg" piko.sh/piko/...
+	$(GO) vet -tags "vips integration ffmpeg" -unsafeptr=false piko.sh/piko/internal/interp/...
+	$(GO) vet -tags "vips integration ffmpeg" $$($(GO) list -tags "vips integration ffmpeg" piko.sh/piko/... | grep -v '^piko.sh/piko/internal/interp')
 	@$(MAKE) lint-go-all
 	$(GO) test -race -count=1 -shuffle=on piko.sh/piko/... -short
+
+.PHONY: check-arm64
+check-arm64: ## Run interp arm64 cross-arch tests under Docker+QEMU
+	$(GO) test -tags=integration -count=1 -timeout=10m -run TestCrossArch -v ./internal/interp/interp_domain/
+	$(GO) test -tags=integration -count=1 -timeout=10m -run TestCrossArchEvalParity -v ./internal/interp/interp_test/snippets/
 
 ##@ Development
 

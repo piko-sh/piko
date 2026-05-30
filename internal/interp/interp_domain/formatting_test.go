@@ -33,14 +33,12 @@ func TestOpcodeString(t *testing.T) {
 		expected string
 		opcode   opcode
 	}{
-		{name: "nop", opcode: opNop, expected: "NOP"},
+		{name: "drill_tier1", opcode: opDrillTier1, expected: "DRILL_TIER1"},
 		{name: "add_int", opcode: opAddInt, expected: "ADD_INT"},
 		{name: "call", opcode: opCall, expected: "CALL"},
-		{name: "return", opcode: opReturn, expected: "RETURN"},
-		{name: "jump", opcode: opJump, expected: "JUMP"},
+
 		{name: "eq_int", opcode: opEqInt, expected: "EQ_INT"},
-		{name: "load_nil", opcode: opLoadNil, expected: "LOAD_NIL"},
-		{name: "unknown", opcode: opcode(255), expected: "UNKNOWN"},
+		{name: "load_int_const", opcode: opLoadIntConst, expected: "LOAD_INT_CONST"},
 	}
 
 	for _, tt := range tests {
@@ -100,7 +98,7 @@ func TestInstructionSignedOffset(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			instr := makeInstruction(opJump, 0, tt.b, tt.c)
+			instr := makeInstruction(opDrillTier1, uint8(subOpJump), tt.b, tt.c)
 			require.Equal(t, tt.expected, instr.signedOffset())
 		})
 	}

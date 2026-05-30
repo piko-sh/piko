@@ -27,30 +27,35 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// Pgx-specific constants used throughout the emitter for identifier names
-// and import paths in the generated code.
 const (
+	// identDBTX is the generated DBTX interface identifier.
 	identDBTX = "DBTX"
 
+	// identPgx is the imported pgx package alias used in generated source.
 	identPgx = "pgx"
 
+	// identPgconn is the imported pgconn package alias used in generated source.
 	identPgconn = "pgconn"
 
+	// importPgx is the canonical pgx/v5 module import path.
 	importPgx = "github.com/jackc/pgx/v5"
 
+	// importPgconn is the canonical pgconn module import path.
 	importPgconn = "github.com/jackc/pgx/v5/pgconn"
 
-	// maxPostgresBindVariables is the maximum number of bind variables
-	// PostgreSQL supports in a single prepared statement (int16 range).
+	// maxPostgresBindVariables is the maximum number of bind variables PostgreSQL supports
+	// in a single prepared statement (int16 range).
 	maxPostgresBindVariables = 32767
 )
 
-// PgxEmitter implements CodeEmitterPort by generating Go source code targeting
-// the pgx/v5 runtime. All code generation uses go/ast node construction for
-// deterministic, syntactically valid output.
+// PgxEmitter implements CodeEmitterPort by generating Go source code targeting the pgx/v5
+// runtime. All code generation uses go/ast node construction for deterministic,
+// syntactically valid output.
 type PgxEmitter struct{}
 
-var _ querier_domain.CodeEmitterPort = (*PgxEmitter)(nil)
+var (
+	_ querier_domain.CodeEmitterPort = (*PgxEmitter)(nil)
+)
 
 // NewPgxEmitter creates a new pgx code emitter.
 //
@@ -59,15 +64,13 @@ func NewPgxEmitter() *PgxEmitter {
 	return &PgxEmitter{}
 }
 
-// EmitQueries generates Go source code for query methods, parameter structs,
-// result structs, and SQL constants from analysed queries. Queries are grouped
-// by source filename, producing one .sql.go file per source SQL file.
+// EmitQueries generates Go source code for query methods, parameter structs, result
+// structs, and SQL constants from analysed queries. Queries are grouped by source
+// filename, producing one .sql.go file per source SQL file.
 //
 // Takes packageName (string) which is the Go package name for generated files.
-// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked
-// queries.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
 // Returns []querier_dto.GeneratedFile which contains the query source files.
 // Returns error when code emission fails.
@@ -79,8 +82,8 @@ func (*PgxEmitter) EmitQueries(
 	return emitter_shared.EmitQueries(packageName, queries, mappings, &pgxStrategy{}, &pgxBatchHandler{})
 }
 
-// EmitOTel generates the otel.go file containing the QueryNameResolver
-// function that maps SQL query constant text to human-readable operation names.
+// EmitOTel generates the otel.go file containing the QueryNameResolver function that maps
+// SQL query constant text to human-readable operation names.
 //
 // Takes packageName (string) which is the Go package name.
 // Takes queries ([]*querier_dto.AnalysedQuery) which provide query names.
@@ -91,18 +94,26 @@ func (*PgxEmitter) EmitOTel(packageName string, queries []*querier_dto.AnalysedQ
 	return emitter_shared.EmitOTel(packageName, queries)
 }
 
-// pgxStrategy implements emitter_shared.MethodStrategy for the pgx/v5 runtime
-// target. It provides pgx-specific method names (Query, QueryRow, Exec) and a
-// single "db" connection field.
+// pgxStrategy implements emitter_shared.MethodStrategy for the pgx/v5 runtime target. It
+// provides pgx-specific method names (Query, QueryRow, Exec) and a single "db" connection
+// field.
 type pgxStrategy struct{}
 
-// ConnectionField always returns "db" for pgx, since the Queries struct uses
-// a single DBTX field.
+// ConnectionField always returns "db" for pgx, since the Queries struct uses a single
+// DBTX field.
+//
+// Returns string which is the connection field name.
 func (*pgxStrategy) ConnectionField(_ *querier_dto.AnalysedQuery) string {
 	return emitter_shared.IdentDB
 }
 
 // DBCall constructs queries.{field}.{method}(args...) for a pgx call.
+//
+// Takes field (string) which selects the receiver field name.
+// Takes method (string) which is the pgx method to invoke.
+// Takes args ([]ast.Expr) which carries the call arguments.
+//
+// Returns *ast.CallExpr which is the constructed call expression.
 func (*pgxStrategy) DBCall(field string, method string, args []ast.Expr) *ast.CallExpr {
 	return goastutil.CallExpr(
 		goastutil.SelectorExprFrom(
@@ -114,34 +125,52 @@ func (*pgxStrategy) DBCall(field string, method string, args []ast.Expr) *ast.Ca
 }
 
 // QueryMethod returns "Query" for pgx.
+//
+// Returns string which is the multi-row query method name.
 func (*pgxStrategy) QueryMethod() string { return "Query" }
 
 // QueryRowMethod returns "QueryRow" for pgx.
+//
+// Returns string which is the single-row query method name.
 func (*pgxStrategy) QueryRowMethod() string { return "QueryRow" }
 
 // ExecMethod returns "Exec" for pgx.
+//
+// Returns string which is the execute method name.
 func (*pgxStrategy) ExecMethod() string { return "Exec" }
 
 // QueriesReceiver returns the standard *Queries receiver field list.
+//
+// Returns *ast.FieldList which is the receiver field list.
 func (*pgxStrategy) QueriesReceiver() *ast.FieldList {
 	return goastutil.FieldList(
 		goastutil.Field(emitter_shared.IdentQueriesReceiver, goastutil.StarExpr(goastutil.CachedIdent(emitter_shared.IdentQueries))),
 	)
 }
 
-// ExecResultReturnType returns pgconn.CommandTag as the return type for
-// :execresult methods.
+// ExecResultReturnType returns pgconn.CommandTag as the return type for :execresult
+// methods.
+//
+// Returns ast.Expr which is the pgconn.CommandTag selector.
 func (*pgxStrategy) ExecResultReturnType() ast.Expr {
 	return goastutil.SelectorExpr(identPgconn, "CommandTag")
 }
 
 // ExecResultImport adds the pgconn import path to the import tracker.
+//
+// Takes tracker (*emitter_shared.ImportTracker) which collects the imports required by
+// the emitted source.
 func (*pgxStrategy) ExecResultImport(tracker *emitter_shared.ImportTracker) {
 	tracker.AddImport(importPgconn)
 }
 
 // BuildExecRowsBody constructs the :execrows body for pgx where
 // pgconn.CommandTag.RowsAffected() returns int64 directly (no error).
+//
+// Takes queryArgs ([]ast.Expr) which are the Exec call arguments.
+// Takes field (string) which selects the connection field name.
+//
+// Returns []ast.Stmt which is the method body statement list.
 func (s *pgxStrategy) BuildExecRowsBody(queryArgs []ast.Expr, field string) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.DefineStmtMulti(
@@ -158,8 +187,10 @@ func (s *pgxStrategy) BuildExecRowsBody(queryArgs []ast.Expr, field string) []as
 	}
 }
 
-// BuilderQueryCall constructs builder.q.db.Query(ctx, query,
-// builder.whereArgs...) for the runtime builder's All() method.
+// BuilderQueryCall constructs builder.q.db.Query(ctx, query, builder.whereArgs...) for
+// the runtime builder's All() method.
+//
+// Returns *ast.CallExpr which is the builder Query call expression.
 func (*pgxStrategy) BuilderQueryCall() *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: goastutil.SelectorExprFrom(
@@ -178,8 +209,10 @@ func (*pgxStrategy) BuilderQueryCall() *ast.CallExpr {
 	}
 }
 
-// BuilderQueryRowCall constructs builder.q.db.QueryRow(ctx, query,
-// builder.whereArgs...) for the runtime builder's One() method.
+// BuilderQueryRowCall constructs builder.q.db.QueryRow(ctx, query, builder.whereArgs...)
+// for the runtime builder's One() method.
+//
+// Returns *ast.CallExpr which is the builder QueryRow call.
 func (*pgxStrategy) BuilderQueryRowCall() *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: goastutil.SelectorExprFrom(
@@ -198,52 +231,89 @@ func (*pgxStrategy) BuilderQueryRowCall() *ast.CallExpr {
 	}
 }
 
-// RuntimeBuilderImports is a no-op for pgx since it does not need
-// database/sql.
+// RuntimeBuilderImports is a no-op for pgx since it does not need database/sql.
 func (*pgxStrategy) RuntimeBuilderImports(_ *emitter_shared.ImportTracker) {}
 
+// NeedsSliceExpansion reports whether slice arguments must be expanded manually.
+//
+// Returns bool which is false because pgx supports slice parameters.
 func (*pgxStrategy) NeedsSliceExpansion() bool { return false }
 
+// MaxBindVariables returns the PostgreSQL prepared-statement limit.
+//
+// Returns int which is the maximum bind variable count per statement.
 func (*pgxStrategy) MaxBindVariables() int { return maxPostgresBindVariables }
 
+// UsesNumberedParams reports whether placeholders are positional.
+//
+// Returns bool which is true because PostgreSQL uses $1, $2, ... .
 func (*pgxStrategy) UsesNumberedParams() bool { return true }
 
-// pgxBatchHandler implements emitter_shared.BatchCopyFromHandler for pgx,
-// delegating to the existing buildBatchMethod and buildCopyFromMethod
-// functions.
+// pgxBatchHandler implements emitter_shared.BatchCopyFromHandler for pgx, delegating to
+// the existing buildBatchMethod and buildCopyFromMethod functions.
 type pgxBatchHandler struct{}
 
 // BuildBatchMethod constructs a :batch method declaration using pgx.
+//
+// Takes query (*querier_dto.AnalysedQuery) which defines the query.
+// Takes mappings (*querier_dto.TypeMappingTable) which provides type resolution.
+// Takes tracker (*emitter_shared.ImportTracker) which collects imports.
+//
+// Returns ast.Decl which is the batch method declaration.
 func (*pgxBatchHandler) BuildBatchMethod(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *emitter_shared.ImportTracker) ast.Decl {
 	return buildBatchMethod(query, mappings, tracker)
 }
 
 // BuildCopyFromMethod constructs a :copyfrom method declaration using pgx.
+//
+// Takes query (*querier_dto.AnalysedQuery) which defines the query.
+// Takes mappings (*querier_dto.TypeMappingTable) which provides type resolution.
+// Takes tracker (*emitter_shared.ImportTracker) which collects imports.
+//
+// Returns ast.Decl which is the copyfrom method declaration.
 func (*pgxBatchHandler) BuildCopyFromMethod(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *emitter_shared.ImportTracker) ast.Decl {
 	return buildCopyFromMethod(query, mappings, tracker)
 }
 
 // BatchImportPath returns the pgx import path.
+//
+// Returns string which is the pgx/v5 module path.
 func (*pgxBatchHandler) BatchImportPath() string { return importPgx }
 
 // CopyFromImportPath returns the pgx import path.
+//
+// Returns string which is the pgx/v5 module path.
 func (*pgxBatchHandler) CopyFromImportPath() string { return importPgx }
 
-// NeedsCopyFromParamsStruct reports whether the copyfrom command needs a
-// separate params struct declaration.
+// NeedsCopyFromParamsStruct reports whether the copyfrom command needs a separate params
+// struct declaration.
+//
+// Returns bool which is true because pgx CopyFrom takes typed rows.
 func (*pgxBatchHandler) NeedsCopyFromParamsStruct() bool { return true }
 
-// BuildCopyFromParamsStruct constructs the params struct declaration for
-// copyfrom queries.
+// BuildCopyFromParamsStruct constructs the params struct declaration for copyfrom
+// queries.
+//
+// Takes query (*querier_dto.AnalysedQuery) which defines the query.
+// Takes mappings (*querier_dto.TypeMappingTable) which resolves field types.
+// Takes tracker (*emitter_shared.ImportTracker) which collects imports.
+//
+// Returns ast.Decl which is the params struct declaration.
 func (*pgxBatchHandler) BuildCopyFromParamsStruct(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *emitter_shared.ImportTracker) ast.Decl {
 	return emitter_shared.BuildFieldStruct(query.Name+"Params", query.Parameters, mappings, tracker)
 }
 
+// EmitHelperFile returns nil because pgx needs no helper companion file.
+//
+// Returns *querier_dto.GeneratedFile which is always nil.
 func (*pgxBatchHandler) EmitHelperFile(_ string) *querier_dto.GeneratedFile { return nil }
 
-// queriesReceiver returns the standard *Queries receiver field list. This is a
-// package-level helper used by files that have not been moved to emitter_shared
-// (e.g. emitter_querier.go, emitter_batch.go, emitter_copyfrom.go).
+// queriesReceiver returns the standard *Queries receiver field list.
+//
+// Package-level helper used by files that have not been moved to emitter_shared (e.g.
+// emitter_querier.go, emitter_batch.go, emitter_copyfrom.go).
+//
+// Returns *ast.FieldList which is the receiver field list.
 func queriesReceiver() *ast.FieldList {
 	return goastutil.FieldList(
 		goastutil.Field(emitter_shared.IdentQueriesReceiver, goastutil.StarExpr(goastutil.CachedIdent(emitter_shared.IdentQueries))),

@@ -31,6 +31,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestDiscoverFiltersRegisteredStdlib(t *testing.T) {
@@ -71,20 +73,20 @@ func TestDiscoverSurfacesUnregisteredStdlib(t *testing.T) {
 package main
 
 import (
-	"net/http"
-	"encoding/xml"
+	"expvar"
+	"log/syslog"
 )
 
-var _ = http.MethodGet
-var _ = xml.Name{}
+var _ = expvar.Do
+var _ = syslog.LOG_INFO
 </script>`,
 	})
 
 	result, err := Discover(context.Background(), DiscoverOptions{Root: root})
 	require.NoError(t, err)
-	require.Contains(t, result.RequiredImports, "net/http",
+	require.Contains(t, result.RequiredImports, "expvar",
 		"unregistered stdlib must surface so user can register it")
-	require.Contains(t, result.RequiredImports, "encoding/xml",
+	require.Contains(t, result.RequiredImports, "log/syslog",
 		"unregistered stdlib must surface so user can register it")
 }
 
@@ -253,10 +255,13 @@ func TestReadBoundedFileRejectsOversize(t *testing.T) {
 	t.Parallel()
 
 	tmp := t.TempDir()
-	path := filepath.Join(tmp, "huge.pk")
-	require.NoError(t, os.WriteFile(path, make([]byte, 2048), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(tmp, "huge.pk"), make([]byte, 2048), 0o644))
 
-	_, err := readBoundedFile(path, 1024)
+	sandbox, err := safedisk.NewSandbox(tmp, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, sandbox.Close()) }()
+
+	_, err = readBoundedFile(sandbox, "huge.pk", 1024)
 	require.ErrorIs(t, err, errPKFileTooLarge)
 }
 
@@ -264,11 +269,14 @@ func TestReadBoundedFileAcceptsUnderLimit(t *testing.T) {
 	t.Parallel()
 
 	tmp := t.TempDir()
-	path := filepath.Join(tmp, "ok.pk")
 	payload := []byte("hello world")
-	require.NoError(t, os.WriteFile(path, payload, 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(tmp, "ok.pk"), payload, 0o644))
 
-	got, err := readBoundedFile(path, 1024)
+	sandbox, err := safedisk.NewSandbox(tmp, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, sandbox.Close()) }()
+
+	got, err := readBoundedFile(sandbox, "ok.pk", 1024)
 	require.NoError(t, err)
 	require.Equal(t, payload, got)
 }

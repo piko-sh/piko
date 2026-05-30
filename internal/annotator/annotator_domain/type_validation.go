@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Pure validation functions for type checking in expressions. These functions
-// are stateless and return validation results that can be unit tested without
-// requiring full analysis context or TypeResolver infrastructure.
+// Pure validation functions for type checking in expressions. These functions are
+// stateless and return validation results that can be unit tested without requiring full
+// analysis context or TypeResolver infrastructure.
 
 import (
 	"fmt"
@@ -38,8 +38,7 @@ type ValidationResult struct {
 	Valid bool
 }
 
-// ValidateOrderingComparison checks if types support ordering operators
-// (<, >, <=, >=).
+// ValidateOrderingComparison checks if types support ordering operators (<, >, <=, >=).
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the left operand type.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the right operand type.
@@ -58,14 +57,12 @@ func ValidateOrderingComparison(left, right *ast_domain.ResolvedTypeInfo, operat
 	}
 }
 
-// ValidateEqualityComparison checks if types support equality operators (==,
-// !=, ===, !==).
+// ValidateEqualityComparison checks if types support equality operators (==, !=, ===,
+// !==).
 //
 // Takes operator (ast_domain.BinaryOp) which is the equality operator.
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 // Takes strict (bool) which indicates whether strict equality semantics apply.
 //
 // Returns ValidationResult which indicates whether the comparison is valid.
@@ -85,11 +82,9 @@ func ValidateEqualityComparison(operator ast_domain.BinaryOp, left, right *ast_d
 	}
 }
 
-// ValidateLogicalAndLeftOperand checks if the left operand of a logical AND is
-// boolean.
+// ValidateLogicalAndLeftOperand checks if the left operand of a logical AND is boolean.
 //
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
 //
 // Returns ValidationResult which indicates whether the left operand is valid.
 func ValidateLogicalAndLeftOperand(left *ast_domain.ResolvedTypeInfo) ValidationResult {
@@ -103,11 +98,9 @@ func ValidateLogicalAndLeftOperand(left *ast_domain.ResolvedTypeInfo) Validation
 	}
 }
 
-// ValidateLogicalAndRightOperand checks if the right operand of a logical AND
-// is boolean.
+// ValidateLogicalAndRightOperand checks if the right operand of a logical AND is boolean.
 //
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 //
 // Returns ValidationResult which indicates whether the right operand is valid.
 func ValidateLogicalAndRightOperand(right *ast_domain.ResolvedTypeInfo) ValidationResult {
@@ -176,8 +169,7 @@ func ValidateBooleanCondition(typeInfo *ast_domain.ResolvedTypeInfo) ValidationR
 
 // ValidateUnaryNot checks if the operand of a logical NOT is boolean.
 //
-// Takes operand (*ast_domain.ResolvedTypeInfo) which is the type of the
-// operand.
+// Takes operand (*ast_domain.ResolvedTypeInfo) which is the type of the operand.
 //
 // Returns ValidationResult which indicates whether the NOT operation is valid.
 func ValidateUnaryNot(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
@@ -193,11 +185,9 @@ func ValidateUnaryNot(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 
 // ValidateUnaryNeg checks if the operand of a numeric negation is arithmetic.
 //
-// Takes operand (*ast_domain.ResolvedTypeInfo) which is the type of the
-// operand.
+// Takes operand (*ast_domain.ResolvedTypeInfo) which is the type of the operand.
 //
-// Returns ValidationResult which indicates whether the negation operation is
-// valid.
+// Returns ValidationResult which indicates whether the negation operation is valid.
 func ValidateUnaryNeg(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if getNumericFamily(operand) != familyNone {
 		return ValidationResult{Valid: true}
@@ -209,13 +199,11 @@ func ValidateUnaryNeg(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 	}
 }
 
-// ValidateArithmeticOperator checks if types support arithmetic operators (+,
-// -, *, /, %).
+// ValidateArithmeticOperator checks if types support arithmetic operators (+, -, *, /,
+// %).
 //
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 // Takes operator (ast_domain.BinaryOp) which is the arithmetic operator.
 //
 // Returns ValidationResult which indicates whether the operation is valid.
@@ -239,10 +227,8 @@ func ValidateArithmeticOperator(left, right *ast_domain.ResolvedTypeInfo, operat
 
 // ValidateTernaryBranches checks if ternary branches have compatible types.
 //
-// Takes consequent (*ast_domain.ResolvedTypeInfo) which is the true
-// branch type.
-// Takes alternate (*ast_domain.ResolvedTypeInfo) which is the false
-// branch type.
+// Takes consequent (*ast_domain.ResolvedTypeInfo) which is the true branch type.
+// Takes alternate (*ast_domain.ResolvedTypeInfo) which is the false branch type.
 //
 // Returns ValidationResult which indicates whether the branches are compatible.
 func ValidateTernaryBranches(consequent, alternate *ast_domain.ResolvedTypeInfo) ValidationResult {
@@ -258,13 +244,10 @@ func ValidateTernaryBranches(consequent, alternate *ast_domain.ResolvedTypeInfo)
 	}
 }
 
-// ValidateMoneyAddSub checks if Money addition or subtraction operands are
-// valid.
+// ValidateMoneyAddSub checks if Money addition or subtraction operands are valid.
 //
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 // Takes isLeftMoney (bool) which indicates if the left operand is Money.
 // Takes isRightMoney (bool) which indicates if the right operand is Money.
 //
@@ -293,8 +276,7 @@ func ValidateMoneyAddSub(left, right *ast_domain.ResolvedTypeInfo, isLeftMoney, 
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the right operand type.
 // Takes isLeftMoney (bool) which indicates if the left operand is Money.
 // Takes isRightMoney (bool) which indicates if the right operand is Money.
-// Takes expressionString (string) which is the expression string for
-// error messages.
+// Takes expressionString (string) which is the expression string for error messages.
 //
 // Returns ValidationResult which indicates whether the operation is valid.
 func ValidateMoneyMulDiv(left, right *ast_domain.ResolvedTypeInfo, isLeftMoney, isRightMoney bool, expressionString string) ValidationResult {

@@ -34,13 +34,13 @@ const (
 	// telemetryOverviewTimeout caps the combined health + traces fetch.
 	telemetryOverviewTimeout = 5 * time.Second
 
-	// telemetryOverviewSpanLimit is the maximum number of recent
-	// spans pulled from the traces provider for the overview tile.
+	// telemetryOverviewSpanLimit is the maximum number of recent spans pulled from the
+	// traces provider for the overview tile.
 	telemetryOverviewSpanLimit = 200
 )
 
-// telemetryOverviewMessage carries combined health/error counts back
-// to the overview panel.
+// telemetryOverviewMessage carries combined health/error counts back to the overview
+// panel.
 type telemetryOverviewMessage struct {
 	// livenessErr is the error returned by the liveness probe, or nil.
 	livenessErr error
@@ -64,8 +64,8 @@ type telemetryOverviewMessage struct {
 	errorSpans int
 }
 
-// TelemetryOverviewPanel renders the at-a-glance Telemetry overview:
-// liveness/readiness summary plus span counts. Implements Panel.
+// TelemetryOverviewPanel renders the at-a-glance Telemetry overview: liveness/readiness
+// summary plus span counts. Implements Panel.
 type TelemetryOverviewPanel struct {
 	// lastRefresh records when the panel last received a payload.
 	lastRefresh time.Time
@@ -84,21 +84,22 @@ type TelemetryOverviewPanel struct {
 
 	BasePanel
 
-	// stateMutex guards last / lastRefresh / hasData for safe
-	// concurrent reads.
+	// stateMutex guards last / lastRefresh / hasData for safe concurrent reads.
 	stateMutex sync.RWMutex
 
 	// hasData reports whether at least one refresh has completed.
 	hasData bool
 }
 
-var _ Panel = (*TelemetryOverviewPanel)(nil)
+var (
+	_ Panel = (*TelemetryOverviewPanel)(nil)
+)
 
 // NewTelemetryOverviewPanel constructs the panel.
 //
-// Takes health (HealthProvider), traces (TracesProvider) which may
-// each be nil; missing providers fall back to placeholder rows.
-// Takes c (clock.Clock); nil falls back to the real clock.
+// Takes health (HealthProvider), traces (TracesProvider) which may each be nil; missing
+// providers fall back to placeholder rows. Takes c (clock.Clock); nil falls back to the
+// real clock.
 //
 // Returns *TelemetryOverviewPanel ready to register with the group.
 func NewTelemetryOverviewPanel(health HealthProvider, traces TracesProvider, c clock.Clock) *TelemetryOverviewPanel {
@@ -143,8 +144,8 @@ func (p *TelemetryOverviewPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// View renders the centre as a compact at-a-glance tile: liveness,
-// readiness, span totals. The full breakdown lives in DetailView.
+// View renders the centre as a compact at-a-glance tile: liveness, readiness, span
+// totals. The full breakdown lives in DetailView.
 //
 // Takes width (int) which is the allocated panel width.
 // Takes height (int) which is the allocated panel height.
@@ -156,8 +157,7 @@ func (p *TelemetryOverviewPanel) View(width, height int) string {
 	return p.RenderFrame(body)
 }
 
-// DetailView renders the right-pane detail with the full per-probe
-// breakdown.
+// DetailView renders the right-pane detail with the full per-probe breakdown.
 //
 // Takes width (int) which is the detail pane width.
 // Takes height (int) which is the detail pane height.
@@ -167,9 +167,8 @@ func (p *TelemetryOverviewPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, p.detailBody(), width, height)
 }
 
-// tileBody renders the centre-pane tile summary. Skips the timestamp
-// and per-probe error breakdown so the tile stays scannable; those
-// details surface in the detail pane.
+// tileBody renders the centre-pane tile summary. Skips the timestamp and per-probe error
+// breakdown so the tile stays scannable; those details surface in the detail pane.
 //
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 //
@@ -250,8 +249,8 @@ func (p *TelemetryOverviewPanel) detailBody() inspector.DetailBody {
 	}
 }
 
-// refresh returns a Cmd that probes liveness, readiness, and traces
-// concurrently and posts a telemetryOverviewMessage.
+// refresh returns a Cmd that probes liveness, readiness, and traces concurrently and
+// posts a telemetryOverviewMessage.
 //
 // Returns tea.Cmd which delivers the combined telemetry overview message.
 func (p *TelemetryOverviewPanel) refresh() tea.Cmd {
@@ -276,8 +275,8 @@ func (p *TelemetryOverviewPanel) refresh() tea.Cmd {
 	}
 }
 
-// telemetryProbeLiveness fetches the liveness probe and stores the
-// result into the per-field slot on msg.
+// telemetryProbeLiveness fetches the liveness probe and stores the result into the
+// per-field slot on msg.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes health (HealthProvider) which supplies the liveness call.
@@ -291,8 +290,8 @@ func telemetryProbeLiveness(ctx context.Context, health HealthProvider, msg *tel
 	msg.liveness = liveness
 }
 
-// telemetryProbeReadiness fetches the readiness probe and stores the
-// result into the per-field slot on msg.
+// telemetryProbeReadiness fetches the readiness probe and stores the result into the
+// per-field slot on msg.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes health (HealthProvider) which supplies the readiness call.
@@ -306,8 +305,7 @@ func telemetryProbeReadiness(ctx context.Context, health HealthProvider, msg *te
 	msg.readiness = readiness
 }
 
-// telemetryProbeTraces counts recent and error spans, writing the
-// totals to msg.
+// telemetryProbeTraces counts recent and error spans, writing the totals to msg.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes traces (TracesProvider) which supplies the recent-spans call.

@@ -23,13 +23,15 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// pkcTopLevelSections is the expected number of top-level SFC sections
-// (script, style, template) used to pre-allocate the symbols slice.
-const pkcTopLevelSections = 3
+const (
 
-// getPKCDocumentSymbols returns a hierarchical outline of a PKC file's
-// structure, showing state properties, functions, and CSS classes grouped
-// under their SFC block sections.
+	// pkcTopLevelSections is the expected number of top-level SFC sections (script, style,
+	// template) used to pre-allocate the symbols slice.
+	pkcTopLevelSections = 3
+)
+
+// getPKCDocumentSymbols returns a hierarchical outline of a PKC file's structure, showing
+// state properties, functions, and CSS classes grouped under their SFC block sections.
 //
 // Returns []any which contains the document symbols.
 // Returns error which is always nil.
@@ -59,15 +61,17 @@ func (d *document) getPKCDocumentSymbols() ([]any, error) {
 	return result, nil
 }
 
-// zeroRange is a zero-valued range used for container symbols that do not have
-// meaningful source positions.
-var zeroRange = protocol.Range{
-	Start: protocol.Position{Line: 0, Character: 0},
-	End:   protocol.Position{Line: 0, Character: 0},
-}
+var (
+	// zeroRange is a zero-valued range used for container symbols that do not have
+	// meaningful source positions.
+	zeroRange = protocol.Range{
+		Start: protocol.Position{Line: 0, Character: 0},
+		End:   protocol.Position{Line: 0, Character: 0},
+	}
+)
 
-// buildPKCScriptSymbol creates the <script> section symbol with state
-// properties and functions as children.
+// buildPKCScriptSymbol creates the <script> section symbol with state properties and
+// functions as children.
 //
 // Takes meta (*pkcMetadata) which provides the extracted script metadata.
 //
@@ -107,8 +111,7 @@ func (*document) buildPKCScriptSymbol(meta *pkcMetadata) *protocol.DocumentSymbo
 	}
 }
 
-// buildPKCStyleSymbol creates the <style> section symbol with CSS classes as
-// children.
+// buildPKCStyleSymbol creates the <style> section symbol with CSS classes as children.
 //
 // Takes meta (*pkcMetadata) which provides the extracted style metadata.
 //

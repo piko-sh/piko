@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package captcha provides the public API for captcha verification in
-// Piko.
+// Package captcha provides the public API for captcha verification in Piko.
 //
-// This is a facade that re-exports types from internal packages,
-// providing a stable import path for application developers.
+// This is a facade that re-exports types from internal packages, providing a stable
+// import path for application developers.
 //
 // # Usage
 //
@@ -31,9 +30,8 @@
 //
 // # Providers
 //
-// A built-in HMAC challenge provider is included for development and
-// testing. External providers are available in the captcha_provider_*
-// sub-packages:
+// A built-in HMAC challenge provider is included for development and testing. External
+// providers are available in the captcha_provider_* sub-packages:
 //
 //   - [captcha_provider_turnstile]: Cloudflare Turnstile
 //   - [captcha_provider_recaptcha_v3]: Google reCAPTCHA v3
@@ -61,8 +59,7 @@
 //
 // # Reading scores in an action
 //
-// After verification, inspect the normalised score to decide how to
-// proceed:
+// After verification, inspect the normalised score to decide how to proceed:
 //
 //	service := captcha.GetDefaultService()
 //	response, err := service.Verify(ctx, captcha.VerifyRequest{

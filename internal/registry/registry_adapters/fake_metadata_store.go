@@ -28,10 +28,12 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-var _ registry_domain.MetadataStore = (*MockMetadataStore)(nil)
+var (
+	_ registry_domain.MetadataStore = (*MockMetadataStore)(nil)
+)
 
-// MockMetadataStore is a thread-safe, in-memory implementation of MetadataStore
-// and MetadataDAL for testing. It does not save data to disk.
+// MockMetadataStore is a thread-safe, in-memory implementation of MetadataStore and
+// MetadataDAL for testing. It does not save data to disk.
 type MockMetadataStore struct {
 	// artefacts maps artefact IDs to their metadata.
 	artefacts map[string]*registry_dto.ArtefactMeta
@@ -51,8 +53,8 @@ type blobRefData struct {
 	// Metadata holds the blob reference details including the last referenced time.
 	Metadata registry_domain.BlobReference
 
-	// RefCount tracks how many manifests reference this blob; when it reaches
-	// zero the blob may be deleted.
+	// RefCount tracks how many manifests reference this blob; when it reaches zero the blob
+	// may be deleted.
 	RefCount int
 }
 
@@ -128,15 +130,15 @@ func (m *MockMetadataStore) ListAllArtefactIDs(_ context.Context) ([]string, err
 	return ids, nil
 }
 
-// SearchArtefacts searches for artefacts matching the given query.
-// This mock implementation returns all artefacts regardless of query.
+// SearchArtefacts searches for artefacts matching the given query. This mock
+// implementation returns all artefacts regardless of query.
 //
-// Returns []*registry_dto.ArtefactMeta which contains cloned copies of all
-// stored artefacts.
+// Returns []*registry_dto.ArtefactMeta which contains cloned copies of all stored
+// artefacts.
 // Returns error which is always nil in this mock implementation.
 //
-// Safe for concurrent use. Uses a read lock to protect access to the
-// internal artefacts map.
+// Safe for concurrent use. Uses a read lock to protect access to the internal artefacts
+// map.
 func (m *MockMetadataStore) SearchArtefacts(_ context.Context, _ registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -149,8 +151,8 @@ func (m *MockMetadataStore) SearchArtefacts(_ context.Context, _ registry_domain
 	return result, nil
 }
 
-// SearchArtefactsByTagValues searches for artefacts with variants matching
-// the given tag key and values.
+// SearchArtefactsByTagValues searches for artefacts with variants matching the given tag
+// key and values.
 //
 // Takes tagKey (string) which specifies the metadata tag name to match.
 // Takes tagValues ([]string) which lists the acceptable values for the tag.
@@ -187,8 +189,8 @@ func (m *MockMetadataStore) SearchArtefactsByTagValues(_ context.Context, tagKey
 // Takes storageKey (string) which identifies the variant to look up.
 //
 // Returns *registry_dto.ArtefactMeta which is a clone of the matching artefact.
-// Returns error when no variant exists with the given key or when the internal
-// index is corrupted.
+// Returns error when no variant exists with the given key or when the internal index is
+// corrupted.
 //
 // Safe for concurrent use.
 func (m *MockMetadataStore) FindArtefactByVariantStorageKey(_ context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
@@ -208,8 +210,8 @@ func (m *MockMetadataStore) FindArtefactByVariantStorageKey(_ context.Context, s
 	return cloneArtefactMeta(artefact), nil
 }
 
-// PopGCHints returns and removes garbage collection hints.
-// This mock implementation always returns an empty slice.
+// PopGCHints returns and removes garbage collection hints. This mock implementation
+// always returns an empty slice.
 //
 // Returns []registry_dto.GCHint which is always empty in this mock.
 // Returns error which is always nil in this mock.
@@ -219,8 +221,7 @@ func (*MockMetadataStore) PopGCHints(_ context.Context, _ int) ([]registry_dto.G
 
 // AtomicUpdate performs a batch of atomic operations on the store.
 //
-// Takes actions ([]registry_dto.AtomicAction) which specifies the operations
-// to perform.
+// Takes actions ([]registry_dto.AtomicAction) which specifies the operations to perform.
 //
 // Returns error when an unknown action type is encountered.
 //
@@ -261,8 +262,7 @@ func (m *MockMetadataStore) AtomicUpdate(_ context.Context, actions []registry_d
 
 // IncrementBlobRefCount increments the reference count for a blob.
 //
-// Takes blob (registry_domain.BlobReference) which identifies the blob to
-// increment.
+// Takes blob (registry_domain.BlobReference) which identifies the blob to increment.
 //
 // Returns int which is the new reference count after incrementing.
 // Returns error when the operation fails.
@@ -333,8 +333,7 @@ func (m *MockMetadataStore) GetBlobRefCount(_ context.Context, storageKey string
 	return ref.RefCount, nil
 }
 
-// Close releases resources held by this store.
-// This mock implementation is a no-op.
+// Close releases resources held by this store. This mock implementation is a no-op.
 //
 // Returns error which is always nil in this mock.
 func (*MockMetadataStore) Close() error {
@@ -343,26 +342,24 @@ func (*MockMetadataStore) Close() error {
 
 // RunAtomic executes fn within a transaction.
 //
-// For the mock store, this passes itself as the transaction store.
-// Each method already guards its own access, so no additional lock
-// is needed here.
+// For the mock store, this passes itself as the transaction store. Each method already
+// guards its own access, so no additional lock is needed here.
 //
-// Takes fn (func(ctx context.Context,
-// transactionStore MetadataStore) error) which receives the
-// store to use within the transaction.
+// Takes fn (func(ctx context.Context, transactionStore MetadataStore) error) which
+// receives the store to use within the transaction.
 //
 // Returns error when fn returns an error.
 func (m *MockMetadataStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	return fn(ctx, m)
 }
 
-// cloneArtefactMeta creates a deep copy of artefact metadata to prevent
-// external modifications.
+// cloneArtefactMeta creates a deep copy of artefact metadata to prevent external
+// modifications.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which is the metadata to clone.
 //
-// Returns *registry_dto.ArtefactMeta which is an independent copy of the input,
-// or nil if the input is nil.
+// Returns *registry_dto.ArtefactMeta which is an independent copy of the input, or nil if
+// the input is nil.
 func cloneArtefactMeta(artefact *registry_dto.ArtefactMeta) *registry_dto.ArtefactMeta {
 	if artefact == nil {
 		return nil

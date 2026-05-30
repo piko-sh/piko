@@ -25,7 +25,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testTime = time.Date(2024, 1, 15, 14, 30, 45, 0, time.UTC)
+var (
+	testTime = time.Date(2024, 1, 15, 14, 30, 45, 0, time.UTC)
+)
 
 func TestFormatDateTime_EnglishUK(t *testing.T) {
 	tests := []struct {

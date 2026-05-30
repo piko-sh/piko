@@ -34,13 +34,12 @@ const (
 	TransportSSE Transport = "sse"
 )
 
-// Action is the base interface that all actions must satisfy.
-// Actions implement this implicitly by embedding ActionMetadata and
-// having a Call method (with any signature).
+// Action is the base interface that all actions must satisfy. Actions implement this
+// implicitly by embedding ActionMetadata and having a Call method (with any signature).
 //
-// The actual Call method signature is not part of the contract because it varies
-// per action. The parser and code generator handle signature validation and
-// wrapper generation.
+// The actual Call method signature is not part of the contract because it varies per
+// action. The parser and code generator handle signature validation and wrapper
+// generation.
 type Action interface {
 	// Ctx returns the request context.
 	Ctx() any
@@ -52,9 +51,8 @@ type Action interface {
 	Response() *daemon_dto.ResponseWriter
 }
 
-// ResourceLimitable is an interface that actions can implement to configure
-// resource limits for protection against denial-of-service and resource
-// exhaustion.
+// ResourceLimitable is an interface that actions can implement to configure resource
+// limits for protection against denial-of-service and resource exhaustion.
 type ResourceLimitable interface {
 	// ResourceLimits returns the resource limit configuration for this action.
 	ResourceLimits() *ResourceLimits
@@ -62,40 +60,38 @@ type ResourceLimitable interface {
 
 // ResourceLimits defines resource constraints for an action.
 type ResourceLimits struct {
-	// MaxRequestBodySize is the maximum request body size in bytes.
-	// A value of 0 uses the default limit.
+	// MaxRequestBodySize is the maximum request body size in bytes. A value of 0 uses the
+	// default limit.
 	MaxRequestBodySize int64
 
-	// MaxResponseSize is the maximum response size in bytes.
-	// A value of 0 means no limit.
+	// MaxResponseSize is the maximum response size in bytes. A value of 0 means no limit.
 	MaxResponseSize int64
 
-	// Timeout is the maximum execution time for the action.
-	// A value of 0 uses the default timeout.
+	// Timeout is the maximum execution time for the action. A value of 0 uses the default
+	// timeout.
 	Timeout time.Duration
 
-	// SlowThreshold is the duration after which a request is logged as slow.
-	// A value of 0 uses the default threshold.
+	// SlowThreshold is the duration after which a request is logged as slow. A value of 0
+	// uses the default threshold.
 	SlowThreshold time.Duration
 
-	// MaxConcurrent is the maximum concurrent executions of this action.
-	// A value of 0 means no limit.
+	// MaxConcurrent is the maximum concurrent executions of this action. A value of 0 means
+	// no limit.
 	MaxConcurrent int
 
-	// MaxMemoryUsage is the maximum memory usage in bytes (advisory).
-	// A value of 0 means no limit.
+	// MaxMemoryUsage is the maximum memory usage in bytes (advisory). A value of 0 means no
+	// limit.
 	MaxMemoryUsage int64
 
-	// SSE-specific limits
-	// MaxSSEDuration is the maximum SSE connection duration.
+	// SSE-specific limits MaxSSEDuration is the maximum SSE connection duration.
 	MaxSSEDuration time.Duration
 
 	// SSEHeartbeatInterval is the interval between SSE heartbeat messages.
 	SSEHeartbeatInterval time.Duration
 }
 
-// Cacheable is an interface that actions can implement to configure
-// response caching behaviour.
+// Cacheable is an interface that actions can implement to configure response caching
+// behaviour.
 type Cacheable interface {
 	// CacheConfig returns the caching configuration for this action.
 	CacheConfig() *CacheConfig
@@ -103,20 +99,20 @@ type Cacheable interface {
 
 // CacheConfig defines caching behaviour for an action's responses.
 type CacheConfig struct {
-	// KeyFunc is an optional function to generate custom cache keys.
-	// If nil, the default key is based on action name and arguments.
+	// KeyFunc is an optional function to generate custom cache keys. If nil, the default key
+	// is based on action name and arguments.
 	KeyFunc func(request *daemon_dto.RequestMetadata, arguments map[string]any) string
 
-	// VaryHeaders lists headers that affect the cache key.
-	// Different header values result in different cache entries.
+	// VaryHeaders lists headers that affect the cache key. Different header values result in
+	// different cache entries.
 	VaryHeaders []string
 
 	// TTL is the cache time-to-live duration.
 	TTL time.Duration
 }
 
-// RateLimitable is an interface that actions can implement to configure
-// rate limiting for the action.
+// RateLimitable is an interface that actions can implement to configure rate limiting for
+// the action.
 type RateLimitable interface {
 	// RateLimit returns the rate limit configuration for this action.
 	RateLimit() *RateLimit
@@ -124,8 +120,8 @@ type RateLimitable interface {
 
 // RateLimit defines rate limiting configuration for an action.
 type RateLimit struct {
-	// KeyFunc determines the rate limit key (e.g., by IP, user, or custom).
-	// If nil, defaults to rate limiting by IP address.
+	// KeyFunc determines the rate limit key (e.g., by IP, user, or custom). If nil, defaults
+	// to rate limiting by IP address.
 	KeyFunc RateLimitKeyFunc
 
 	// RequestsPerMinute is the maximum requests allowed per minute.
@@ -161,43 +157,40 @@ var (
 	}
 )
 
-// CaptchaProtected is an interface that actions can implement to require
-// captcha verification before execution.
+// CaptchaProtected is an interface that actions can implement to require captcha
+// verification before execution.
 type CaptchaProtected interface {
-	// CaptchaConfig returns the captcha verification configuration for this
-	// action.
+	// CaptchaConfig returns the captcha verification configuration for this action.
 	CaptchaConfig() *CaptchaConfig
 }
 
 // CaptchaConfig defines captcha verification behaviour for an action.
 type CaptchaConfig struct {
-	// Provider overrides the default captcha provider for this action, falling
-	// back to the service's default when empty and requiring that the named
-	// provider has been registered via piko.WithCaptchaProvider.
+	// Provider overrides the default captcha provider for this action, falling back to the
+	// service's default when empty and requiring that the named provider has been registered
+	// via piko.WithCaptchaProvider.
 	Provider string
 
-	// Action is an optional action name sent to the captcha provider for
-	// analytics. If empty, the Piko action name is used.
+	// Action is an optional action name sent to the captcha provider for analytics. If
+	// empty, the Piko action name is used.
 	Action string
 
-	// ScoreThreshold overrides the default score threshold for score-based
-	// providers. A value of 0 uses the service default.
+	// ScoreThreshold overrides the default score threshold for score-based providers. A
+	// value of 0 uses the service default.
 	ScoreThreshold float64
 }
 
-// SpamProtected is an interface that actions can implement to enable
-// schema-based spam detection before execution. The returned schema
-// declares which form fields to analyse and what detection signals
-// apply to each field.
+// SpamProtected is an interface that actions can implement to enable schema-based spam
+// detection before execution. The returned schema declares which form fields to analyse
+// and what detection signals apply to each field.
 type SpamProtected interface {
-	// SpamSchema returns the spam detection schema for this action. The
-	// schema defines which form argument keys to extract and which
-	// detectors should analyse each field.
+	// SpamSchema returns the spam detection schema for this action. The schema defines which
+	// form argument keys to extract and which detectors should analyse each field.
 	SpamSchema() *spamdetect_dto.Schema
 }
 
-// SpamConfigurable is optionally implemented alongside SpamProtected
-// to override service-level spam detection settings per action.
+// SpamConfigurable is optionally implemented alongside SpamProtected to override
+// service-level spam detection settings per action.
 type SpamConfigurable interface {
 	// SpamConfig returns the per-action spam detection configuration.
 	SpamConfig() *SpamConfig
@@ -205,8 +198,8 @@ type SpamConfigurable interface {
 
 // SpamConfig defines per-action spam detection behaviour.
 type SpamConfig struct {
-	// ScoreThreshold overrides the schema and service default threshold
-	// for this action. A value of 0 uses the schema or service default.
+	// ScoreThreshold overrides the schema and service default threshold for this action. A
+	// value of 0 uses the schema or service default.
 	ScoreThreshold float64
 }
 

@@ -35,9 +35,9 @@ import (
 )
 
 var (
-	// globalState holds the package-level shared state including logging handlers
-	// and shutdown hooks. Access is protected by mux and the sync.Once fields for
-	// thread-safe initialisation.
+	// globalState holds the package-level shared state including logging handlers and
+	// shutdown hooks. Access is protected by mux and the sync.Once fields for thread-safe
+	// initialisation.
 	globalState struct {
 		destinationHandlers    []slog.Handler
 		wrapperFactories       []func(slog.Handler) slog.Handler
@@ -48,8 +48,8 @@ var (
 		isDefaultHandlerActive bool
 	}
 
-	// getSharedHTTPClient returns a lazily initialised HTTP client configured
-	// with optimised connection pooling and timeouts.
+	// getSharedHTTPClient returns a lazily initialised HTTP client configured with optimised
+	// connection pooling and timeouts.
 	getSharedHTTPClient = sync.OnceValue(func() *http.Client {
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.MaxIdleConns = 100
@@ -68,18 +68,16 @@ var (
 	})
 )
 
-// GetSharedHTTPClient returns a shared HTTP client for use across the logger
-// package.
+// GetSharedHTTPClient returns a shared HTTP client for use across the logger package.
 //
-// Returns *http.Client which is a singleton client configured with optimised
-// connection pooling and timeouts.
+// Returns *http.Client which is a singleton client configured with optimised connection
+// pooling and timeouts.
 func GetSharedHTTPClient() *http.Client {
 	return getSharedHTTPClient()
 }
 
-// ClearAllHandlers removes all registered log handlers and resets the logging
-// state. It shuts down any active closers and clears all handler and wrapper
-// registrations.
+// ClearAllHandlers removes all registered log handlers and resets the logging state. It
+// shuts down any active closers and clears all handler and wrapper registrations.
 //
 // Safe for concurrent use by multiple goroutines.
 func ClearAllHandlers() {
@@ -96,8 +94,8 @@ func ClearAllHandlers() {
 	applyHandlerSet()
 }
 
-// AddHandler registers a new slog.Handler to receive log records. Adding a
-// handler replaces any default handlers that were active.
+// AddHandler registers a new slog.Handler to receive log records. Adding a handler
+// replaces any default handlers that were active.
 //
 // Takes handler (slog.Handler) which receives log records.
 // Takes closer (io.Closer) which is closed during logger shutdown, or nil.
@@ -124,13 +122,12 @@ func AddHandler(handler slog.Handler, closer io.Closer) {
 	applyHandlerSet()
 }
 
-// AddWrapper registers a handler wrapper factory that will be applied to the
-// composed handler. Wrappers are applied in the order they are registered,
-// allowing for chained middleware such as notification handlers or filtering
-// handlers.
+// AddWrapper registers a handler wrapper factory that will be applied to the composed
+// handler. Wrappers are applied in the order they are registered, allowing for chained
+// middleware such as notification handlers or filtering handlers.
 //
-// Takes wrapperFactory (func(slog.Handler) slog.Handler) which creates a
-// wrapped handler from the given base handler.
+// Takes wrapperFactory (func(slog.Handler) slog.Handler) which creates a wrapped handler
+// from the given base handler.
 //
 // Safe for concurrent use by multiple goroutines.
 func AddWrapper(wrapperFactory func(slog.Handler) slog.Handler) {
@@ -141,21 +138,18 @@ func AddWrapper(wrapperFactory func(slog.Handler) slog.Handler) {
 	applyHandlerSet()
 }
 
-// GetSentryInitOnce returns the sync.Once that guards single initialisation
-// of Sentry. This is used by the Sentry integration to prevent multiple
-// initialisations.
+// GetSentryInitOnce returns the sync.Once that guards single initialisation of Sentry.
+// This is used by the Sentry integration to prevent multiple initialisations.
 //
 // Returns *sync.Once which guards Sentry initialisation across all callers.
 func GetSentryInitOnce() *sync.Once {
 	return &globalState.sentryInitOnce
 }
 
-// AddShutdownHook registers a function to be called during logger shutdown.
-// Hooks are executed in the order they were registered when GetShutdownFunc
-// is called.
+// AddShutdownHook registers a function to be called during logger shutdown. Hooks are
+// executed in the order they were registered when GetShutdownFunc is called.
 //
-// Takes hook (func(context.Context) error) which is the function to call
-// during shutdown.
+// Takes hook (func(context.Context) error) which is the function to call during shutdown.
 //
 // Safe for concurrent use by multiple goroutines.
 func AddShutdownHook(hook func(context.Context) error) {
@@ -164,14 +158,12 @@ func AddShutdownHook(hook func(context.Context) error) {
 	globalState.shutdownHooks = append(globalState.shutdownHooks, hook)
 }
 
-// GetShutdownFunc returns a function that performs graceful shutdown of the
-// logging system. It closes all active closers and executes all registered
-// shutdown hooks.
+// GetShutdownFunc returns a function that performs graceful shutdown of the logging
+// system. It closes all active closers and executes all registered shutdown hooks.
 //
 // Returns func(context.Context) error which performs the shutdown when called.
 //
-// Safe for concurrent use. The returned function acquires a mutex lock during
-// shutdown.
+// Safe for concurrent use. The returned function acquires a mutex lock during shutdown.
 func GetShutdownFunc() func(context.Context) error {
 	return func(ctx context.Context) error {
 		globalState.mux.Lock()
@@ -180,9 +172,8 @@ func GetShutdownFunc() func(context.Context) error {
 	}
 }
 
-// ResetState resets the logging system to its default configuration.
-// It shuts down the current state and reinitialises with a default pretty
-// handler on stdout.
+// ResetState resets the logging system to its default configuration. It shuts down the
+// current state and reinitialises with a default pretty handler on stdout.
 //
 // Safe for concurrent use by multiple goroutines.
 func ResetState() {
@@ -191,8 +182,8 @@ func ResetState() {
 	doResetState()
 }
 
-// HasExplicitHandlers reports whether handlers have been explicitly added
-// via AddHandler or AddPrettyOutput, rather than just the default handler.
+// HasExplicitHandlers reports whether handlers have been explicitly added via AddHandler
+// or AddPrettyOutput, rather than just the default handler.
 //
 // Returns bool which is true if explicit handlers are configured.
 //
@@ -203,16 +194,14 @@ func HasExplicitHandlers() bool {
 	return len(globalState.destinationHandlers) > 0 && !globalState.isDefaultHandlerActive
 }
 
-// EnableNotificationPort is a helper for notification facade packages
-// (Discord, Slack, PagerDuty, etc.). It registers a notification port that
-// wraps the current global logger.
+// EnableNotificationPort is a helper for notification facade packages (Discord, Slack,
+// PagerDuty, etc.). It registers a notification port that wraps the current global
+// logger.
 //
 // Takes name (string) which identifies this notification handler.
 // Takes typeName (string) which specifies the notification service type.
-// Takes notificationPort (logger_domain.NotificationPort) which sends
-// notifications.
-// Takes minLevel (slog.Level) which sets the minimum log level for
-// notifications.
+// Takes notificationPort (logger_domain.NotificationPort) which sends notifications.
+// Takes minLevel (slog.Level) which sets the minimum log level for notifications.
 func EnableNotificationPort(name, typeName string, notificationPort logger_domain.NotificationPort, minLevel slog.Level) {
 	log := logger_domain.GetLogger("logger")
 	log.Info("Enabling notifications",
@@ -255,13 +244,13 @@ func applyHandlerSet() {
 	logger_domain.InitDefaultFactory(newLogger)
 }
 
-// shutdownCurrentState closes all active closers and runs shutdown hooks. The
-// supplied ctx is honoured between iterations so callers can bound the total
-// shutdown time; once ctx is cancelled the remaining closers and hooks are
-// skipped and the cancellation cause is included in the returned error.
+// shutdownCurrentState closes all active closers and runs shutdown hooks. The supplied
+// ctx is honoured between iterations so callers can bound the total shutdown time; once
+// ctx is cancelled the remaining closers and hooks are skipped and the cancellation cause
+// is included in the returned error.
 //
-// Returns error when any closer or shutdown hook fails. Multiple errors are
-// joined via errors.Join so callers can use errors.Is or errors.As.
+// Returns error when any closer or shutdown hook fails. Multiple errors are joined via
+// errors.Join so callers can use errors.Is or errors.As.
 func shutdownCurrentState(ctx context.Context) error {
 	var allErrors []error
 	for _, closer := range globalState.activeClosers {
@@ -285,14 +274,12 @@ func shutdownCurrentState(ctx context.Context) error {
 	return joinShutdownErrors(allErrors)
 }
 
-// joinShutdownErrors collapses a slice of errors into a single wrapped error
-// suitable for callers using errors.Is or errors.As. Returns nil for an empty
-// slice.
+// joinShutdownErrors collapses a slice of errors into a single wrapped error suitable for
+// callers using errors.Is or errors.As. Returns nil for an empty slice.
 //
 // Takes allErrors ([]error) which holds the errors collected during shutdown.
 //
-// Returns error which wraps the joined errors, or nil when allErrors is
-// empty.
+// Returns error which wraps the joined errors, or nil when allErrors is empty.
 func joinShutdownErrors(allErrors []error) error {
 	if len(allErrors) == 0 {
 		return nil

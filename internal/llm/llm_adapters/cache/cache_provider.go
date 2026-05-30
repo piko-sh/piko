@@ -27,25 +27,22 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// FactoryBlueprintName is the registered name for the LLM cache entry factory
-// blueprint.
-const FactoryBlueprintName = "llm-cache-entry"
+const (
+	// FactoryBlueprintName is the registered name for the LLM cache entry factory blueprint.
+	FactoryBlueprintName = "llm-cache-entry"
+)
 
-// createCacheEntryCache is the factory function for creating typed LLM cache
-// entry caches. It type-asserts the options and delegates to the Otter provider
-// factory.
+// createCacheEntryCache is the factory function for creating typed LLM cache entry
+// caches. It type-asserts the options and delegates to the Otter provider factory.
 //
-// This pattern enables: 1. Full type safety - Cache[string, *CacheEntry] with
-// no runtime assertions 2. Resource sharing - Uses namespace pattern on the
-// shared provider 3. Zero circular dependencies - LLM adapters import
-// cache_domain, not vice versa
+// This pattern enables: 1. Full type safety - Cache[string, *CacheEntry] with no runtime
+// assertions 2. Resource sharing - Uses namespace pattern on the shared provider 3. Zero
+// circular dependencies - LLM adapters import cache_domain, not vice versa
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *llm_dto.CacheEntry].
+// Takes options (any) which must be cache_dto.Options[string, *llm_dto.CacheEntry].
 //
 // Returns any which is the created cache instance.
-// Returns error when the options type is wrong or cache creation
-// fails.
+// Returns error when the options type is wrong or cache creation fails.
 func createCacheEntryCache(
 	_ cache_domain.Service,
 	_ string,

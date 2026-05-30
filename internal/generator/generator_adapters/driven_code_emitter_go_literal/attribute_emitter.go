@@ -29,17 +29,16 @@ import (
 )
 
 const (
-	// actionModifierName is the modifier name for server-side action calls
-	// using the action.namespace.Name() syntax. Must match the
-	// actionCallModifier value in annotator_domain/transform.go.
+	// actionModifierName is the modifier name for server-side action calls using the
+	// action.namespace.Name() syntax. Must match the actionCallModifier value in
+	// annotator_domain/transform.go.
 	actionModifierName = "action"
 
-	// helperModifierName is the modifier name for helper actions in event
-	// handlers.
+	// helperModifierName is the modifier name for helper actions in event handlers.
 	helperModifierName = "helper"
 
-	// directWriterMethodSetName is the method name used to set the attribute name
-	// on a direct writer.
+	// directWriterMethodSetName is the method name used to set the attribute name on a
+	// direct writer.
 	directWriterMethodSetName = "SetName"
 )
 
@@ -48,34 +47,32 @@ const (
 type decomposeContext uint8
 
 const (
-	// decomposeContextAttribute marks a standard HTML attribute context. Dynamic
-	// strings are escaped to prevent cross-site scripting attacks.
+	// decomposeContextAttribute marks a standard HTML attribute context. Dynamic strings are
+	// escaped to prevent cross-site scripting attacks.
 	decomposeContextAttribute decomposeContext = iota
 
-	// decomposeContextPKey indicates a p-key attribute context where dynamic
-	// strings, floats, and unknown types are FNV-32 hashed. This produces bounded
-	// output length (8 chars), avoids HTML escaping issues, and handles float
-	// precision problems.
+	// decomposeContextPKey indicates a p-key attribute context where dynamic strings,
+	// floats, and unknown types are FNV-32 hashed. This produces bounded output length (8
+	// chars), avoids HTML escaping issues, and handles float precision problems.
 	decomposeContextPKey
 )
 
-// AttributeEmitter is the interface for emitting HTML attributes.
-// It enables mocking and testing of attribute emission logic.
+// AttributeEmitter is the interface for emitting HTML attributes. It enables mocking and
+// testing of attribute emission logic.
 type AttributeEmitter interface {
 	// emit generates Go AST statements for the given template node.
 	//
-	// Takes nodeVar (*goast.Ident) which identifies the variable representing the
-	// current node.
+	// Takes nodeVar (*goast.Ident) which identifies the variable representing the current
+	// node.
 	// Takes node (*ast_domain.TemplateNode) which is the template node to emit.
 	//
 	// Returns []goast.Stmt which contains the generated statements.
-	// Returns []*ast_domain.Diagnostic which contains any issues found during
-	// emission.
+	// Returns []*ast_domain.Diagnostic which contains any issues found during emission.
 	emit(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic)
 
-	// emitDynamicAttributesOnly emits only the dynamic attributes that are sent
-	// to AttributeWriters. This is used when static attributes are hoisted; it
-	// skips Attributes emission but still emits to DirectWriters.
+	// emitDynamicAttributesOnly emits only the dynamic attributes that are sent to
+	// AttributeWriters. This is used when static attributes are hoisted; it skips Attributes
+	// emission but still emits to DirectWriters.
 	//
 	// Takes nodeVar (*goast.Ident) which is the variable for the template node.
 	// Takes node (*ast_domain.TemplateNode) which is the node to process.
@@ -94,17 +91,18 @@ type attributeEmitter struct {
 	expressionEmitter ExpressionEmitter
 }
 
-var _ AttributeEmitter = (*attributeEmitter)(nil)
+var (
+	_ AttributeEmitter = (*attributeEmitter)(nil)
+)
 
-// emit generates all attribute statements for a template node. This is the
-// main entry point for this emitter.
+// emit generates all attribute statements for a template node. This is the main entry
+// point for this emitter.
 //
 // Takes nodeVar (*goast.Ident) which is the variable that refers to the node.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
 //
 // Returns []goast.Stmt which contains the generated attribute statements.
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// generation.
+// Returns []*ast_domain.Diagnostic which contains any issues found during generation.
 func (ae *attributeEmitter) emit(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	estimatedCapacity := len(node.Attributes) + len(node.Binds) + AttributeCapacityBuffer
 	statements := make([]goast.Stmt, 0, estimatedCapacity)
@@ -141,11 +139,10 @@ func (ae *attributeEmitter) emit(nodeVar *goast.Ident, node *ast_domain.Template
 	return statements, allDiags
 }
 
-// emitStaticAttributes builds code for all fixed HTML attributes.
-// It skips class and style attributes as these are handled separately.
+// emitStaticAttributes builds code for all fixed HTML attributes. It skips class and
+// style attributes as these are handled separately.
 //
-// Takes attributeSliceExpression (goast.Expr) which is the slice to
-// add attributes to.
+// Takes attributeSliceExpression (goast.Expr) which is the slice to add attributes to.
 // Takes node (*ast_domain.TemplateNode) which holds the attributes to write.
 //
 // Returns []goast.Stmt which holds the append statements for each attribute.
@@ -170,12 +167,11 @@ func (*attributeEmitter) emitStaticAttributes(attributeSliceExpression goast.Exp
 	return statements
 }
 
-// emitDynamicAttributes creates code for all dynamic attributes (p-bind
-// and :).
+// emitDynamicAttributes creates code for all dynamic attributes (p-bind and :).
 //
 // Takes nodeVar (*goast.Ident) which is the variable for the node.
-// Takes attributeSliceExpression (goast.Expr) which is the expression
-// for the attribute slice.
+// Takes attributeSliceExpression (goast.Expr) which is the expression for the attribute
+// slice.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
 //
 // Returns []goast.Stmt which holds the created statements.
@@ -220,9 +216,9 @@ func (ae *attributeEmitter) emitDynamicAttributes(
 }
 
 // emitDynamicAttributesOnly emits only the dynamic attributes that go to
-// AttributeWriters. This is used when static attributes are hoisted - we skip
-// Attributes emission but still need DirectWriters for non-boolean dynamic
-// attributes, class, and style.
+// AttributeWriters. This is used when static attributes are hoisted - we skip Attributes
+// emission but still need DirectWriters for non-boolean dynamic attributes, class, and
+// style.
 //
 // Takes nodeVar (*goast.Ident) which is the node variable.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
@@ -251,8 +247,8 @@ func (ae *attributeEmitter) emitDynamicAttributesOnly(
 	return statements, allDiags
 }
 
-// emitBindAttributes processes bind directives for a template node.
-// It skips boolean types and delegates non-boolean attributes to DirectWriters.
+// emitBindAttributes processes bind directives for a template node. It skips boolean
+// types and delegates non-boolean attributes to DirectWriters.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
 // Takes node (*ast_domain.TemplateNode) which contains the bind directives.
@@ -281,17 +277,14 @@ func (ae *attributeEmitter) emitBindAttributes(
 	return statements, diagnostics
 }
 
-// emitNonClassStyleDynamicAttrs processes dynamic attributes, skipping class,
-// style, and boolean attributes.
+// emitNonClassStyleDynamicAttrs processes dynamic attributes, skipping class, style, and
+// boolean attributes.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// process.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to process.
 //
-// Returns []goast.Stmt which contains the generated statements for the
-// attributes.
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// processing.
+// Returns []goast.Stmt which contains the generated statements for the attributes.
+// Returns []*ast_domain.Diagnostic which contains any issues found during processing.
 func (ae *attributeEmitter) emitNonClassStyleDynamicAttrs(
 	nodeVar *goast.Ident,
 	node *ast_domain.TemplateNode,
@@ -313,17 +306,13 @@ func (ae *attributeEmitter) emitNonClassStyleDynamicAttrs(
 	return statements, diagnostics
 }
 
-// emitDynamicClassAndStyle emits class and style attributes if they have
-// dynamic content.
+// emitDynamicClassAndStyle emits class and style attributes if they have dynamic content.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// process.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to process.
 //
-// Returns []goast.Stmt which contains the generated statements for dynamic
-// attributes.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// processing.
+// Returns []goast.Stmt which contains the generated statements for dynamic attributes.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from processing.
 func (ae *attributeEmitter) emitDynamicClassAndStyle(
 	nodeVar *goast.Ident,
 	node *ast_domain.TemplateNode,
@@ -347,9 +336,9 @@ func (ae *attributeEmitter) emitDynamicClassAndStyle(
 	return statements, diagnostics
 }
 
-// emitNonBooleanDynamicAttribute writes a single non-boolean dynamic attribute
-// using DirectWriter. It handles special cases for asset source path resolution
-// and standard dynamic attribute writers.
+// emitNonBooleanDynamicAttribute writes a single non-boolean dynamic attribute using
+// DirectWriter. It handles special cases for asset source path resolution and standard
+// dynamic attribute writers.
 //
 // Takes nodeVar (*goast.Ident) which is the node variable for the output.
 // Takes dynAttr (*ast_domain.DynamicAttribute) which is the attribute to write.
@@ -374,16 +363,15 @@ func (ae *attributeEmitter) emitNonBooleanDynamicAttribute(
 	return ae.emitDynamicAttributeWriter(nodeVar, dynAttr.Name, dynAttr.Expression, ann)
 }
 
-// emitKeyAttribute generates code for the p-key attribute if present.
-// Uses HTMLAttribute for static keys to avoid pool overhead, and DirectWriter
-// for dynamic keys to allow rendering without copying.
+// emitKeyAttribute generates code for the p-key attribute if present. Uses HTMLAttribute
+// for static keys to avoid pool overhead, and DirectWriter for dynamic keys to allow
+// rendering without copying.
 //
 // Takes nodeVar (*goast.Ident) which identifies the variable for the node.
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// check.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to check.
 //
-// Returns []goast.Stmt which contains the generated statements, or nil if no
-// key attribute is present.
+// Returns []goast.Stmt which contains the generated statements, or nil if no key
+// attribute is present.
 // Returns []*ast_domain.Diagnostic which contains any issues found.
 func (ae *attributeEmitter) emitKeyAttribute(
 	nodeVar *goast.Ident,
@@ -411,8 +399,8 @@ func (ae *attributeEmitter) emitKeyAttribute(
 // Takes node (*ast_domain.TemplateNode) which holds the p-ref directive.
 //
 // Returns []goast.Stmt which holds the generated attribute statements.
-// Returns []*ast_domain.Diagnostic which is always nil as validation occurs
-// in the annotator.
+// Returns []*ast_domain.Diagnostic which is always nil as validation occurs in the
+// annotator.
 func (ae *attributeEmitter) emitRefAttribute(
 	nodeVar *goast.Ident,
 	node *ast_domain.TemplateNode,
@@ -448,12 +436,12 @@ func (ae *attributeEmitter) emitRefAttribute(
 	return statements, nil
 }
 
-// emitSingleDynamicAttribute generates code for one dynamic attribute binding
-// (e.g., `:title="expr"`).
+// emitSingleDynamicAttribute generates code for one dynamic attribute binding (e.g.,
+// `:title="expr"`).
 //
-// Uses DirectWriter to render without memory use and with smart HTML escaping.
-// Boolean attributes get special handling and are only output when truthy.
-// Asset element src attributes use module path resolution.
+// Uses DirectWriter to render without memory use and with smart HTML escaping. Boolean
+// attributes get special handling and are only output when truthy. Asset element src
+// attributes use module path resolution.
 //
 // Takes nodeVar (*goast.Ident) which is the variable pointing to the DOM node.
 // Takes attributeSlice (goast.Expr) which is the slice to append attributes to.
@@ -484,18 +472,17 @@ func (ae *attributeEmitter) emitSingleDynamicAttribute(
 	return ae.emitDynamicAttributeWriter(nodeVar, dynAttr.Name, dynAttr.Expression, ann)
 }
 
-// emitBooleanAttribute generates code for boolean attributes that are added
-// only when a condition is true. Boolean attributes appear in HTML when the
-// value is true and are absent when false (e.g., <input disabled>).
+// emitBooleanAttribute generates code for boolean attributes that are added only when a
+// condition is true. Boolean attributes appear in HTML when the value is true and are
+// absent when false (e.g., <input disabled>).
 //
 // Takes attributeSlice (goast.Expr) which is the slice to append the attribute to.
-// Takes dynAttr (*ast_domain.DynamicAttribute) which provides the attribute
-// name and boolean expression.
+// Takes dynAttr (*ast_domain.DynamicAttribute) which provides the attribute name and
+// boolean expression.
 //
-// Returns []goast.Stmt which contains the setup statements and the conditional
-// append.
-// Returns []*ast_domain.Diagnostic which contains any issues found when
-// processing the expression.
+// Returns []goast.Stmt which contains the setup statements and the conditional append.
+// Returns []*ast_domain.Diagnostic which contains any issues found when processing the
+// expression.
 func (ae *attributeEmitter) emitBooleanAttribute(
 	attributeSlice goast.Expr,
 	dynAttr *ast_domain.DynamicAttribute,
@@ -516,12 +503,11 @@ func (ae *attributeEmitter) emitBooleanAttribute(
 	return append(prereqStmts, ifStmt), expressionDiagnostics
 }
 
-// emitAssetSrcAttribute generates code for src attributes on asset elements
-// (piko:svg, piko:img, pml-img).
+// emitAssetSrcAttribute generates code for src attributes on asset elements (piko:svg,
+// piko:img, pml-img).
 //
-// The generated code handles module path resolution for @/ alias support and
-// uses DirectWriter via AttributeWriters for zero-allocation rendering with
-// HTML escaping.
+// The generated code handles module path resolution for @/ alias support and uses
+// DirectWriter via AttributeWriters for zero-allocation rendering with HTML escaping.
 //
 // Takes nodeVar (*goast.Ident) which represents the node variable.
 // Takes dynAttr (*ast_domain.DynamicAttribute) which defines the attribute.
@@ -566,14 +552,13 @@ func (ae *attributeEmitter) emitAssetSrcAttribute(
 	return statements, diagnostics
 }
 
-// emitStaticKeyAttribute generates code for a static key attribute using a
-// simple HTMLAttribute struct. This avoids pool overhead for keys that are
-// compile-time constants by generating a direct append to node.Attributes.
+// emitStaticKeyAttribute generates code for a static key attribute using a simple
+// HTMLAttribute struct. This avoids pool overhead for keys that are compile-time
+// constants by generating a direct append to node.Attributes.
 //
-// Takes nodeVar (*goast.Ident) which is the AST identifier for the node
-// variable to append the attribute to.
-// Takes keyValue (string) which is the static key value to embed in the
-// generated code.
+// Takes nodeVar (*goast.Ident) which is the AST identifier for the node variable to
+// append the attribute to.
+// Takes keyValue (string) which is the static key value to embed in the generated code.
 //
 // Returns []goast.Stmt which contains the append statement for the attribute.
 func (*attributeEmitter) emitStaticKeyAttribute(nodeVar *goast.Ident, keyValue string) []goast.Stmt {
@@ -588,18 +573,16 @@ func (*attributeEmitter) emitStaticKeyAttribute(nodeVar *goast.Ident, keyValue s
 	return []goast.Stmt{appendToSlice(attributeSliceExpression, attributeLiteral)}
 }
 
-// buildDirectWriterBlock creates an if-statement that initialises a
-// DirectWriter, sets its attribute name, appends a value from a buffer,
-// and adds it to the node's AttributeWriters slice.
+// buildDirectWriterBlock creates an if-statement that initialises a DirectWriter, sets
+// its attribute name, appends a value from a buffer, and adds it to the node's
+// AttributeWriters slice.
 //
-// Takes nodeVar (*goast.Ident) which identifies the node to receive the
-// attribute writer.
-// Takes attributeName (string) which specifies the name to assign to the
-// DirectWriter.
-// Takes bufferPointerIdent (*goast.Ident) which points to the buffer containing
-// the value to append.
-// Takes appendMethodName (string) which specifies the method to use for
-// appending the buffer value.
+// Takes nodeVar (*goast.Ident) which identifies the node to receive the attribute writer.
+// Takes attributeName (string) which specifies the name to assign to the DirectWriter.
+// Takes bufferPointerIdent (*goast.Ident) which points to the buffer containing the value
+// to append.
+// Takes appendMethodName (string) which specifies the method to use for appending the
+// buffer value.
 //
 // Returns *goast.IfStmt which wraps the DirectWriter setup in a nil check.
 func (ae *attributeEmitter) buildDirectWriterBlock(
@@ -662,13 +645,13 @@ func isBindBooleanType(directive *ast_domain.Directive) bool {
 	return ann != nil && ann.ResolvedType != nil && isBoolType(ann.ResolvedType.TypeExpression)
 }
 
-// shouldSkipDynAttrForWriter returns true if the dynamic attribute should not
-// be emitted as a writer.
+// shouldSkipDynAttrForWriter returns true if the dynamic attribute should not be emitted
+// as a writer.
 //
 // Takes dynAttr (*ast_domain.DynamicAttribute) which is the attribute to check.
 //
-// Returns bool which is true when the attribute is a class or style attribute,
-// or when it has a resolved boolean type annotation.
+// Returns bool which is true when the attribute is a class or style attribute, or when it
+// has a resolved boolean type annotation.
 func shouldSkipDynAttrForWriter(dynAttr *ast_domain.DynamicAttribute) bool {
 	if strings.EqualFold(dynAttr.Name, attributeNameClass) || strings.EqualFold(dynAttr.Name, attributeNameStyle) {
 		return true

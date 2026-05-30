@@ -29,23 +29,22 @@ type embeddedFontState struct {
 	// usedGlyphs maps glyph ID to the Unicode string the glyph represents.
 	usedGlyphs map[uint16]string
 
-	// widthOverrides maps glyph ID to advance width in font design units.
-	// Non-nil for variable font instances where hmtx only contains
-	// default-instance widths; the overrides come from go-text's
-	// variation-aware HorizontalAdvance method.
+	// widthOverrides maps glyph ID to advance width in font design units. Non-nil for
+	// variable font instances where hmtx only contains default-instance widths; the
+	// overrides come from go-text's variation-aware HorizontalAdvance method.
 	widthOverrides map[uint16]int
 
-	// instanceKey uniquely identifies this font instance. For static fonts
-	// this is derived from data length; for variable fonts it encodes
-	// family/weight/style so each variation instance gets its own PDF font.
+	// instanceKey uniquely identifies this font instance. For static fonts this is derived
+	// from data length; for variable fonts it encodes family/weight/style so each variation
+	// instance gets its own PDF font.
 	instanceKey string
 
 	// rawData holds the original TTF font bytes before subsetting.
 	rawData []byte
 }
 
-// FontEmbedder orchestrates glyph tracking, font subsetting, and PDF
-// object generation for embedded TrueType fonts.
+// FontEmbedder orchestrates glyph tracking, font subsetting, and PDF object generation
+// for embedded TrueType fonts.
 type FontEmbedder struct {
 	// fonts maps resource names (F1, F2, ...) to their font state.
 	fonts map[string]*embeddedFontState
@@ -64,17 +63,16 @@ func NewFontEmbedder() *FontEmbedder {
 	}
 }
 
-// RegisterFont registers a font for embedding and returns its PDF
-// resource name (e.g. "F1", "F2").
+// RegisterFont registers a font for embedding and returns its PDF resource name (e.g.
+// "F1", "F2").
 //
-// If a font with the same instance key has already been registered, the
-// existing resource name is returned without creating a duplicate entry.
+// If a font with the same instance key has already been registered, the existing resource
+// name is returned without creating a duplicate entry.
 //
 // Takes rawData ([]byte) which is the raw TTF font bytes.
-// Takes instanceKey (string) which uniquely identifies this font
-// instance. For static fonts pass "" to use data-length-based identity;
-// for variable font instances pass a key encoding family, weight, and
-// style so each variation gets its own PDF font object.
+// Takes instanceKey (string) which uniquely identifies this font instance. For static
+// fonts pass "" to use data-length-based identity; for variable font instances pass a key
+// encoding family, weight, and style so each variation gets its own PDF font object.
 //
 // Returns string which is the PDF font resource name.
 func (embedder *FontEmbedder) RegisterFont(rawData []byte, instanceKey string) string {
@@ -99,15 +97,13 @@ func (embedder *FontEmbedder) RegisterFont(rawData []byte, instanceKey string) s
 	return resourceName
 }
 
-// RecordGlyph tracks that a glyph was used in the document, needed for
-// subsetting and ToUnicode CMap generation.
+// RecordGlyph tracks that a glyph was used in the document, needed for subsetting and
+// ToUnicode CMap generation.
 //
-// Takes resourceName (string) which is the font's resource name from
-// RegisterFont.
+// Takes resourceName (string) which is the font's resource name from RegisterFont.
 // Takes glyphID (uint16) which is the glyph ID.
-// Takes characters (string) which is the Unicode string the glyph
-// represents. For simple glyphs this is a single character; for
-// ligatures it is the full cluster (e.g. "fi").
+// Takes characters (string) which is the Unicode string the glyph represents. For simple
+// glyphs this is a single character; for ligatures it is the full cluster (e.g. "fi").
 func (embedder *FontEmbedder) RecordGlyph(resourceName string, glyphID uint16, characters string) {
 	state, exists := embedder.fonts[resourceName]
 	if !exists {
@@ -116,9 +112,8 @@ func (embedder *FontEmbedder) RecordGlyph(resourceName string, glyphID uint16, c
 	state.usedGlyphs[glyphID] = characters
 }
 
-// RecordGlyphWidth stores a variation-aware advance width for a glyph,
-// overriding the default hmtx value in the PDF width array. Used for
-// variable font instances.
+// RecordGlyphWidth stores a variation-aware advance width for a glyph, overriding the
+// default hmtx value in the PDF width array. Used for variable font instances.
 //
 // Takes resourceName (string) which is the font resource name.
 // Takes glyphID (uint16) which is the glyph ID.
@@ -141,15 +136,14 @@ func (embedder *FontEmbedder) HasFonts() bool {
 	return len(embedder.fonts) > 0
 }
 
-// WriteObjects writes all font-related PDF objects (FontFile2 stream,
-// FontDescriptor, CIDFont, ToUnicode CMap, Type0 font) for each registered
-// font and returns the font resource dictionary entries.
+// WriteObjects writes all font-related PDF objects (FontFile2 stream, FontDescriptor,
+// CIDFont, ToUnicode CMap, Type0 font) for each registered font and returns the font
+// resource dictionary entries.
 //
-// Takes writer (*PdfDocumentWriter) which is the PDF writer to emit
-// objects to.
+// Takes writer (*PdfDocumentWriter) which is the PDF writer to emit objects to.
 //
-// Returns a string like "/F1 5 0 R /F2 10 0 R" for inclusion in the
-// page's /Resources /Font dictionary.
+// Returns a string like "/F1 5 0 R /F2 10 0 R" for inclusion in the page's /Resources
+// /Font dictionary.
 func (embedder *FontEmbedder) WriteObjects(writer *PdfDocumentWriter) string {
 	sortedNames := make([]string, 0, len(embedder.fonts))
 	for name := range embedder.fonts {
@@ -182,17 +176,14 @@ func (embedder *FontEmbedder) WriteObjects(writer *PdfDocumentWriter) string {
 	return entries.String()
 }
 
-// prepareFontForEmbedding extracts descriptor info, optionally subsets
-// the font, and returns the font data, PostScript name, and descriptor.
+// prepareFontForEmbedding extracts descriptor info, optionally subsets the font, and
+// returns the font data, PostScript name, and descriptor.
 //
-// Takes state (*embeddedFontState) which holds the raw font data and
-// used glyph set.
+// Takes state (*embeddedFontState) which holds the raw font data and used glyph set.
 //
-// Returns []byte which is the potentially subsetted font
-// data.
+// Returns []byte which is the potentially subsetted font data.
 // Returns string which is the sanitised PostScript name.
-// Returns *FontDescriptorInfo which holds the descriptor
-// metrics, or nil on error.
+// Returns *FontDescriptorInfo which holds the descriptor metrics, or nil on error.
 func prepareFontForEmbedding(state *embeddedFontState) ([]byte, string, *FontDescriptorInfo) {
 	fontData := state.rawData
 	descriptorInfo, descriptorError := ExtractFontDescriptor(fontData)
@@ -231,15 +222,15 @@ func buildSingleRuneMap(state *embeddedFontState) map[uint16]rune {
 	return glyphs
 }
 
-// resolveFontStream returns the object number for the FontFile2 stream,
-// deduplicating for variable fonts.
+// resolveFontStream returns the object number for the FontFile2 stream, deduplicating for
+// variable fonts.
 //
 // Takes writer (*PdfDocumentWriter) which receives the stream object.
-// Takes state (*embeddedFontState) which holds the raw font data for
-// variable font identity checks.
+// Takes state (*embeddedFontState) which holds the raw font data for variable font
+// identity checks.
 // Takes fontData ([]byte) which is the potentially subsetted font bytes.
-// Takes cache (map[string]int) which maps data identities to existing
-// stream object numbers for deduplication.
+// Takes cache (map[string]int) which maps data identities to existing stream object
+// numbers for deduplication.
 //
 // Returns int which is the FontFile2 stream object number.
 func resolveFontStream(
@@ -285,12 +276,11 @@ type fontObjectParams struct {
 	fontStreamNumber int
 }
 
-// writeFontObjects emits the FontDescriptor, CIDFont, ToUnicode, and Type0
-// PDF objects for one font.
+// writeFontObjects emits the FontDescriptor, CIDFont, ToUnicode, and Type0 PDF objects
+// for one font.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
-// Takes entries (*strings.Builder) which accumulates resource dictionary
-// entries.
+// Takes entries (*strings.Builder) which accumulates resource dictionary entries.
 // Takes p (fontObjectParams) which holds all parameters for this font.
 func writeFontObjects(
 	writer *PdfDocumentWriter,
@@ -338,15 +328,12 @@ func writeFontObjects(
 	fmt.Fprintf(entries, " /%s %s", p.resourceName, FormatReference(type0Number))
 }
 
-// buildPDFWidthArray constructs the PDF /W array string for a CIDFont,
-// mapping each used glyph ID to its scaled advance width.
+// buildPDFWidthArray constructs the PDF /W array string for a CIDFont, mapping each used
+// glyph ID to its scaled advance width.
 //
-// Takes state (*embeddedFontState) which holds the used glyphs and
-// width overrides.
-// Takes rawFont ([]byte) which is the raw font data for reading hmtx
-// widths.
-// Takes unitsPerEm (int) which is the font design units per em for
-// scaling.
+// Takes state (*embeddedFontState) which holds the used glyphs and width overrides.
+// Takes rawFont ([]byte) which is the raw font data for reading hmtx widths.
+// Takes unitsPerEm (int) which is the font design units per em for scaling.
 //
 // Returns string which is the formatted PDF width array.
 func buildPDFWidthArray(state *embeddedFontState, rawFont []byte, unitsPerEm int) string {
@@ -367,8 +354,8 @@ func buildPDFWidthArray(state *embeddedFontState, rawFont []byte, unitsPerEm int
 	return result.String()
 }
 
-// resolveGlyphWidth returns the advance width for a glyph, preferring
-// the variation override if present.
+// resolveGlyphWidth returns the advance width for a glyph, preferring the variation
+// override if present.
 //
 // Takes state (*embeddedFontState) which holds the width overrides map.
 // Takes rawFont ([]byte) which is the raw font data for hmtx lookup.

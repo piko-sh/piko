@@ -18,7 +18,9 @@
 
 package registry_dto
 
-import "time"
+import (
+	"time"
+)
 
 // VariantStatus represents the current processing state of a variant.
 type VariantStatus string
@@ -30,7 +32,7 @@ const (
 	// VariantStatusStale indicates the variant needs reprocessing.
 	VariantStatusStale VariantStatus = "STALE"
 
-	// VariantStatusPending indicates the variant is awaiting processing.
+	// VariantStatusPending indicates the variant is queued for processing.
 	VariantStatusPending VariantStatus = "PENDING"
 
 	// PriorityNeed means the profile must be processed before the content is served.
@@ -43,9 +45,8 @@ const (
 // ProfilePriority indicates whether a profile is required or optional.
 type ProfilePriority string
 
-// DesiredProfile defines how to generate a variant from a source image.
-// It specifies the output format, priority, and any dependencies on other
-// profiles.
+// DesiredProfile defines how to generate a variant from a source image. It specifies the
+// output format, priority, and any dependencies on other profiles.
 type DesiredProfile struct {
 	// Priority specifies the task scheduling priority level.
 	Priority ProfilePriority `json:"priority"`
@@ -63,8 +64,8 @@ type DesiredProfile struct {
 	DependsOn Dependencies `json:"dependsOn"`
 }
 
-// NamedProfile pairs a profile name with its settings.
-// Used in ArtefactMeta.DesiredProfiles slice.
+// NamedProfile pairs a profile name with its settings. Used in
+// ArtefactMeta.DesiredProfiles slice.
 type NamedProfile struct {
 	// Name identifies this profile for lookup and matching.
 	Name string `json:"name"`
@@ -103,11 +104,11 @@ type VariantChunk struct {
 	SequenceNumber int `json:"sequenceNumber"`
 }
 
-// Variant represents a processed version of an artefact, such as a resized
-// image or minified JavaScript file.
+// Variant represents a processed version of an artefact, such as a resized image or
+// minified JavaScript file.
 type Variant struct {
-	// MetadataTags holds key-value metadata about the variant, such as MIME type,
-	// ETag, and content encoding.
+	// MetadataTags holds key-value metadata about the variant, such as MIME type, ETag, and
+	// content encoding.
 	MetadataTags Tags `json:"metadataTags"`
 
 	// CreatedAt is when the variant was created.
@@ -131,10 +132,9 @@ type Variant struct {
 	// ContentHash is the SHA256 hash of the blob content.
 	ContentHash string `json:"contentHash,omitempty"`
 
-	// SRIHash is the SHA-384 Subresource Integrity hash of the uncompressed
-	// variant content, in the format "sha384-<base64>". Populated at
-	// registration time for variants whose content may be referenced in
-	// HTML script or link tags.
+	// SRIHash is the SHA-384 Subresource Integrity hash of the uncompressed variant content,
+	// in the format "sha384-<base64>". Populated at registration time for variants whose
+	// content may be referenced in HTML script or link tags.
 	SRIHash string `json:"sriHash,omitempty"`
 
 	// Chunks holds the blob chunks that form this variant.
@@ -144,8 +144,8 @@ type Variant struct {
 	SizeBytes int64 `json:"sizeBytes"`
 }
 
-// ArtefactMeta holds the metadata for a registered artefact in the registry.
-// It tracks the artefact's variants, desired profiles, and storage details.
+// ArtefactMeta holds the metadata for a registered artefact in the registry. It tracks
+// the artefact's variants, desired profiles, and storage details.
 type ArtefactMeta struct {
 	// CreatedAt is the time when the artefact was first created.
 	CreatedAt time.Time `json:"createdAt"`
@@ -173,8 +173,8 @@ type ArtefactMeta struct {
 //
 // Takes name (string) which specifies the profile name to look up.
 //
-// Returns DesiredProfile which contains the profile data if found, or an empty
-// profile if not found.
+// Returns DesiredProfile which contains the profile data if found, or an empty profile if
+// not found.
 // Returns bool which is true if the profile was found, false otherwise.
 func (a *ArtefactMeta) GetProfile(name string) (DesiredProfile, bool) {
 	for i := range a.DesiredProfiles {
@@ -187,8 +187,7 @@ func (a *ArtefactMeta) GetProfile(name string) (DesiredProfile, bool) {
 
 // SetProfile sets a profile by name.
 //
-// If a profile with this name exists, it is updated. Otherwise, a new
-// profile is added.
+// If a profile with this name exists, it is updated. Otherwise, a new profile is added.
 //
 // Takes name (string) which identifies the profile to set.
 // Takes profile (*DesiredProfile) which specifies the profile settings.
@@ -221,8 +220,8 @@ func (a *ArtefactMeta) HasProfile(name string) bool {
 
 // ComputeStatus determines artefact status based on variants.
 //
-// Returns VariantStatus which is PENDING if no variants exist, READY if any
-// variant is ready, or STALE otherwise.
+// Returns VariantStatus which is PENDING if no variants exist, READY if any variant is
+// ready, or STALE otherwise.
 func (a *ArtefactMeta) ComputeStatus() VariantStatus {
 	if len(a.ActualVariants) == 0 {
 		return VariantStatusPending

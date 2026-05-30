@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -505,7 +504,7 @@ func TestShutdown_ShutsDownMainServer(t *testing.T) {
 
 	_ = service.shutdown(context.Background())
 
-	if atomic.LoadInt64(&mockServer.ShutdownCallCount) == 0 {
+	if mockServer.ShutdownCallCount.Load() == 0 {
 		t.Error("Expected Shutdown to be called on main server")
 	}
 }
@@ -523,7 +522,7 @@ func TestShutdown_ShutsDownHealthServer(t *testing.T) {
 
 	_ = service.shutdown(context.Background())
 
-	if atomic.LoadInt64(&mockHealthServer.ShutdownCallCount) == 0 {
+	if mockHealthServer.ShutdownCallCount.Load() == 0 {
 		t.Error("Expected Shutdown to be called on health server")
 	}
 }
@@ -1291,7 +1290,7 @@ func TestShutdown_SignalsDrainBeforeShuttingDown(t *testing.T) {
 	drainSignaller := &MockDrainSignaller{}
 	mockServer := &MockServerAdapter{
 		ShutdownFunc: func(_ context.Context) error {
-			if atomic.LoadInt64(&drainSignaller.SignalDrainCallCount) == 0 {
+			if drainSignaller.SignalDrainCallCount.Load() == 0 {
 				t.Error("Expected drain to be signalled before main server shutdown")
 			}
 			record("main_shutdown")
@@ -1308,7 +1307,7 @@ func TestShutdown_SignalsDrainBeforeShuttingDown(t *testing.T) {
 
 	_ = service.shutdown(context.Background())
 
-	assert.Greater(t, atomic.LoadInt64(&drainSignaller.SignalDrainCallCount), int64(0))
+	assert.Greater(t, drainSignaller.SignalDrainCallCount.Load(), int64(0))
 }
 
 func TestShutdown_WaitsDrainDelay(t *testing.T) {
@@ -1397,7 +1396,7 @@ func TestShutdown_SkipsDrainDelay_WhenZero(t *testing.T) {
 	elapsed := time.Since(start)
 
 	assert.Less(t, elapsed, 50*time.Millisecond, "expected no drain delay when set to 0")
-	assert.Greater(t, atomic.LoadInt64(&drainSignaller.SignalDrainCallCount), int64(0))
+	assert.Greater(t, drainSignaller.SignalDrainCallCount.Load(), int64(0))
 }
 
 func TestShutdown_NoPanic_WhenDrainSignallerNil(t *testing.T) {

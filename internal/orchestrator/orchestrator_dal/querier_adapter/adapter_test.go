@@ -125,4 +125,6 @@ func TestQuerierAdapter_RollbackPropagatesNonErrTxDone(t *testing.T) {
 		"deferred rollback must call the driver when commit was not reached")
 }
 
-var _ orchestrator_domain.TaskStore = (*Adapter)(nil)
+var (
+	_ orchestrator_domain.TaskStore = (*Adapter)(nil)
+)

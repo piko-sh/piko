@@ -56,8 +56,8 @@ type outputConfig struct {
 	noColour bool
 }
 
-// resolveLevel returns the effective log level, reading from LOG_LEVEL env
-// var if not explicitly set.
+// resolveLevel returns the effective log level, reading from LOG_LEVEL env var if not
+// explicitly set.
 //
 // Returns slog.Level which is the configured level or the environment default.
 func (config *outputConfig) resolveLevel() slog.Level {
@@ -67,9 +67,8 @@ func (config *outputConfig) resolveLevel() slog.Level {
 	return logger_dto.ParseLogLevel(os.Getenv("LOG_LEVEL"), slog.LevelInfo)
 }
 
-// WithLevel explicitly sets the minimum log level for this output. If not
-// specified, the level defaults to the LOG_LEVEL environment variable, or INFO
-// if LOG_LEVEL is not set.
+// WithLevel explicitly sets the minimum log level for this output. If not specified, the
+// level defaults to the LOG_LEVEL environment variable, or INFO if LOG_LEVEL is not set.
 //
 // Takes level (slog.Level) which specifies the minimum severity for log output.
 //
@@ -82,16 +81,14 @@ func WithLevel(level slog.Level) OutputOption {
 
 // WithJSON configures the output to use JSON format instead of text/pretty.
 //
-// Returns OutputOption which applies JSON formatting to the output
-// configuration.
+// Returns OutputOption which applies JSON formatting to the output configuration.
 func WithJSON() OutputOption {
 	return func(config *outputConfig) {
 		config.asJSON = true
 	}
 }
 
-// WithNoColour disables colour output (useful for file outputs or CI
-// environments).
+// WithNoColour disables colour output (useful for file outputs or CI environments).
 //
 // Returns OutputOption which configures the output to suppress colour codes.
 func WithNoColour() OutputOption {
@@ -100,9 +97,8 @@ func WithNoColour() OutputOption {
 	}
 }
 
-// ResetAndApplyConfig resets the logger to its default state and applies
-// the provided configuration. It is a convenience function for
-// reconfiguring the logger.
+// ResetAndApplyConfig resets the logger to its default state and applies the provided
+// configuration. It is a convenience function for reconfiguring the logger.
 func ResetAndApplyConfig(_ logger_dto.Config) {
 	ResetLogger()
 }
@@ -111,8 +107,8 @@ func ResetAndApplyConfig(_ logger_dto.Config) {
 //
 // Takes opts (...OutputOption) which configures the output behaviour.
 //
-// By default, it uses the LOG_LEVEL environment variable (or INFO if not set).
-// Use WithLevel() to explicitly override the level.
+// By default, it uses the LOG_LEVEL environment variable (or INFO if not set). Use
+// WithLevel() to explicitly override the level.
 //
 // Examples:
 //
@@ -136,11 +132,11 @@ func AddPrettyOutput(opts ...OutputOption) {
 
 // AddJSONOutput adds a JSON-formatted console output to stdout.
 //
-// Takes opts (...OutputOption) which provides optional configuration for the
-// output handler.
+// Takes opts (...OutputOption) which provides optional configuration for the output
+// handler.
 //
-// By default, it uses the LOG_LEVEL environment variable (or INFO if not set).
-// Use WithLevel() to explicitly override the level.
+// By default, it uses the LOG_LEVEL environment variable (or INFO if not set). Use
+// WithLevel() to explicitly override the level.
 func AddJSONOutput(opts ...OutputOption) {
 	config := &outputConfig{}
 	for _, opt := range opts {
@@ -157,15 +153,15 @@ func AddJSONOutput(opts ...OutputOption) {
 	logger_domain.GetLogger("logger").Info("Added JSON console output.", slog.String("level", level.String()))
 }
 
-// AddFileOutput adds a file output with rotation support. By default, it uses
-// the LOG_LEVEL environment variable, or INFO if not set.
+// AddFileOutput adds a file output with rotation support. By default, it uses the
+// LOG_LEVEL environment variable, or INFO if not set.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background
-// rotation goroutine.
+// Takes ctx (context.Context) which controls the lifetime of the background rotation
+// goroutine.
 // Takes name (string) which identifies this output for logging purposes.
 // Takes path (string) which specifies the file path for log output.
-// Takes opts (...OutputOption) which provides optional settings such as
-// WithLevel() to override the log level, or WithJSON() for JSON format.
+// Takes opts (...OutputOption) which provides optional settings such as WithLevel() to
+// override the log level, or WithJSON() for JSON format.
 //
 // Examples:
 //
@@ -206,16 +202,14 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 	logger_domain.GetLogger("logger").Info("Added file output.", slog.String("name", name), slog.String("path", path), slog.String("level", level.String()))
 }
 
-// AddFileOutputOnly clears all existing handlers and adds only a
-// file output, bypassing normal handler management to ensure no
-// console output for use cases like LSP where stdout/stderr must
-// remain clean.
+// AddFileOutputOnly clears all existing handlers and adds only a file output, bypassing
+// normal handler management to ensure no console output for use cases like LSP where
+// stdout/stderr must remain clean.
 //
-// Takes ctx (context.Context) which controls the background cleanup
-// goroutine lifetime.
+// Takes ctx (context.Context) which controls the background cleanup goroutine lifetime.
 // Takes path (string) which specifies the file path for log output.
-// Takes opts (...OutputOption) which provides optional settings such as
-// WithLevel() to override the log level, or WithJSON() for JSON format.
+// Takes opts (...OutputOption) which provides optional settings such as WithLevel() to
+// override the log level, or WithJSON() for JSON format.
 func AddFileOutputOnly(ctx context.Context, _, path string, opts ...OutputOption) {
 	config := &outputConfig{noColour: true}
 	for _, opt := range opts {

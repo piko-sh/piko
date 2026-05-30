@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Analyses operator expressions in templates by validating operand types and determining result types for binary and unary operations.
-// Handles arithmetic, comparison, logical, and string concatenation operators whilst ensuring type compatibility and correctness.
+// Analyses operator expressions in templates by validating operand types and determining
+// result types for binary and unary operations. Handles arithmetic, comparison, logical,
+// and string concatenation operators whilst ensuring type compatibility and correctness.
 
 import (
 	"context"
@@ -35,11 +36,10 @@ import (
 
 // resolveBinaryExpression finds the result type of a binary expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to resolve.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the result type, or a
-// fallback value if either operand cannot be resolved.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the result type, or a fallback
+// value if either operand cannot be resolved.
 func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n *ast_domain.BinaryExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveBinaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -68,11 +68,11 @@ func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n 
 	return ann
 }
 
-// createBinaryFallbackAnnotation returns a fallback annotation for binary
-// expressions when type resolution fails.
+// createBinaryFallbackAnnotation returns a fallback annotation for binary expressions
+// when type resolution fails.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains an "any" type with
-// no stringability.
+// Returns *ast_domain.GoGeneratorAnnotation which contains an "any" type with no
+// stringability.
 func (a *typeExpressionAnalyser) createBinaryFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -106,18 +106,16 @@ func (a *typeExpressionAnalyser) createBinaryFallbackAnnotation() *ast_domain.Go
 
 // resolveBinaryOperator resolves the result type of a binary expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to analyse.
-// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which is the
-// annotation for
-// the left operand.
-// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// for the right operand.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to analyse.
+// Takes leftAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the left
+// operand.
+// Takes rightAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the
+// right operand.
 //
 // Returns goast.Expr which is the Go type expression for the result.
 // Returns string which is an optional type name hint.
-// Returns *ast_domain.GoGeneratorAnnotation which is the propagated annotation
-// for coalesce operators.
+// Returns *ast_domain.GoGeneratorAnnotation which is the propagated annotation for
+// coalesce operators.
 func (a *typeExpressionAnalyser) resolveBinaryOperator(n *ast_domain.BinaryExpression, leftAnn, rightAnn *ast_domain.GoGeneratorAnnotation) (goast.Expr, string, *ast_domain.GoGeneratorAnnotation) {
 	leftTypeInfo, rightTypeInfo := leftAnn.ResolvedType, rightAnn.ResolvedType
 
@@ -153,15 +151,14 @@ func (a *typeExpressionAnalyser) resolveBinaryOperator(n *ast_domain.BinaryExpre
 	return goast.NewIdent(typeAny), "", nil
 }
 
-// validateOrderingComparison checks that an ordering comparison uses types
-// that support ordering operators such as <, >, <=, and >=.
+// validateOrderingComparison checks that an ordering comparison uses types that support
+// ordering operators such as <, >, <=, and >=.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the comparison
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the
-// left operand.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of
-// the right operand.
+// Takes n (*ast_domain.BinaryExpression) which is the comparison expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the left
+// operand.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the right
+// operand.
 func (a *typeExpressionAnalyser) validateOrderingComparison(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) {
 	result := ValidateOrderingComparison(leftTypeInfo, rightTypeInfo, n.Operator)
 	if !result.Valid {
@@ -169,15 +166,12 @@ func (a *typeExpressionAnalyser) validateOrderingComparison(n *ast_domain.Binary
 	}
 }
 
-// validateEqualityComparison checks that two types can be compared for
-// equality and reports an error if they cannot.
+// validateEqualityComparison checks that two types can be compared for equality and
+// reports an error if they cannot.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// left side.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// right side.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the left side.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the right side.
 // Takes strict (bool) which sets whether to use strict comparison rules.
 func (a *typeExpressionAnalyser) validateEqualityComparison(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo, strict bool) {
 	result := ValidateEqualityComparison(n.Operator, leftTypeInfo, rightTypeInfo, strict)
@@ -186,15 +180,14 @@ func (a *typeExpressionAnalyser) validateEqualityComparison(n *ast_domain.Binary
 	}
 }
 
-// resolveArithmeticOperator determines the result type for an arithmetic
-// binary expression.
+// resolveArithmeticOperator determines the result type for an arithmetic binary
+// expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to analyse.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left
-// operand type.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right
-// operand type.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to analyse.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left operand
+// type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right operand
+// type.
 //
 // Returns goast.Expr which is the result type expression.
 // Returns string which is the package alias for the result type.
@@ -224,15 +217,14 @@ func (a *typeExpressionAnalyser) resolveArithmeticOperator(
 	return goast.NewIdent(typeAny), "", nil
 }
 
-// validateCoalesceOperator checks that the null coalescing operator has
-// operand types that work together.
+// validateCoalesceOperator checks that the null coalescing operator has operand types
+// that work together.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left
-// operand type.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right
-// operand type.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left operand
+// type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right operand
+// type.
 func (a *typeExpressionAnalyser) validateCoalesceOperator(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) {
 	result := ValidateCoalesceOperator(leftTypeInfo, rightTypeInfo)
 	if !result.Valid {
@@ -240,15 +232,14 @@ func (a *typeExpressionAnalyser) validateCoalesceOperator(n *ast_domain.BinaryEx
 	}
 }
 
-// validateLogicalAndOperands checks that both sides of a logical AND
-// expression have boolean types.
+// validateLogicalAndOperands checks that both sides of a logical AND expression have
+// boolean types.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of
-// the left side.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of
-// the right side.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the left
+// side.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the right
+// side.
 func (a *typeExpressionAnalyser) validateLogicalAndOperands(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) {
 	leftResult := ValidateLogicalAndLeftOperand(leftTypeInfo)
 	if !leftResult.Valid {
@@ -260,15 +251,14 @@ func (a *typeExpressionAnalyser) validateLogicalAndOperands(n *ast_domain.Binary
 	}
 }
 
-// validateOrOperator checks that both sides of a logical OR expression have
-// types that can work together and reports an error if they do not.
+// validateOrOperator checks that both sides of a logical OR expression have types that
+// can work together and reports an error if they do not.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of
-// the left side.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of
-// the right side.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the left
+// side.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which holds the type of the right
+// side.
 func (a *typeExpressionAnalyser) validateOrOperator(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) {
 	result := ValidateOrOperator(leftTypeInfo, rightTypeInfo)
 	if !result.Valid {
@@ -276,16 +266,13 @@ func (a *typeExpressionAnalyser) validateOrOperator(n *ast_domain.BinaryExpressi
 	}
 }
 
-// createBinaryResultAnnotation builds an annotation for a binary expression
-// result type.
+// createBinaryResultAnnotation builds an annotation for a binary expression result type.
 //
-// Takes resultTypeExpr (goast.Expr) which is the AST expression for the result
-// type.
-// Takes resultPackageAlias (string) which is the package alias for the
-// result type.
+// Takes resultTypeExpr (goast.Expr) which is the AST expression for the result type.
+// Takes resultPackageAlias (string) which is the package alias for the result type.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the annotation with
-// stringability details worked out from the result type.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the annotation with stringability
+// details worked out from the result type.
 func (a *typeExpressionAnalyser) createBinaryResultAnnotation(resultTypeExpr goast.Expr, resultPackageAlias string) *ast_domain.GoGeneratorAnnotation {
 	resultTypeInfo := newSimpleTypeInfoWithAlias(resultTypeExpr, resultPackageAlias)
 	stringability, isPointer := a.typeResolver.determineStringability(a.ctx, resultTypeInfo)
@@ -321,16 +308,14 @@ func (a *typeExpressionAnalyser) createBinaryResultAnnotation(resultTypeExpr goa
 
 // resolveMoneyArithmetic handles arithmetic operations on Money types.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to resolve.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// left operand.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// right operand.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to resolve.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the left
+// operand.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the right
+// operand.
 //
 // Returns goast.Expr which is the resolved Go AST expression.
-// Returns string which is the result type name, or empty when there is an
-// error.
+// Returns string which is the result type name, or empty when there is an error.
 func (a *typeExpressionAnalyser) resolveMoneyArithmetic(n *ast_domain.BinaryExpression, leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) (goast.Expr, string) {
 	isLeftMoney, isRightMoney := isMoneyType(leftTypeInfo), isMoneyType(rightTypeInfo)
 	isLeftDecimal := getNumericFamily(leftTypeInfo) == familyDecimal
@@ -347,23 +332,21 @@ func (a *typeExpressionAnalyser) resolveMoneyArithmetic(n *ast_domain.BinaryExpr
 	return goast.NewIdent(typeAny), ""
 }
 
-// resolveMoneyAddSub resolves the result type for addition or subtraction
-// involving Money types.
+// resolveMoneyAddSub resolves the result type for addition or subtraction involving Money
+// types.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to analyse.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left
-// operand type.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right
-// operand type.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to analyse.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left operand
+// type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right operand
+// type.
 // Takes isLeftMoney (bool) which indicates if the left operand is Money.
 // Takes isRightMoney (bool) which indicates if the right operand is Money.
 // Takes isLeftDecimal (bool) which indicates if the left operand is Decimal.
 // Takes isRightDecimal (bool) which indicates if the right operand is Decimal.
 //
 // Returns goast.Expr which is the resolved type expression.
-// Returns string which is the package alias, or empty if the operation is
-// invalid.
+// Returns string which is the package alias, or empty if the operation is invalid.
 func (a *typeExpressionAnalyser) resolveMoneyAddSub(
 	n *ast_domain.BinaryExpression,
 	leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo,
@@ -382,15 +365,13 @@ func (a *typeExpressionAnalyser) resolveMoneyAddSub(
 	return goast.NewIdent(typeAny), ""
 }
 
-// resolveMoneyMulDiv finds the result type for Money multiply or divide
-// operations.
+// resolveMoneyMulDiv finds the result type for Money multiply or divide operations.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to check.
-// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// left operand.
-// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the
-// right operand.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to check.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the left
+// operand.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which is the type of the right
+// operand.
 // Takes isLeftMoney (bool) which shows if the left operand is Money.
 // Takes isRightMoney (bool) which shows if the right operand is Money.
 //
@@ -420,8 +401,8 @@ func (a *typeExpressionAnalyser) resolveMoneyMulDiv(n *ast_domain.BinaryExpressi
 //
 // Takes n (*ast_domain.UnaryExpression) which is the unary expression to analyse.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information, or a fallback annotation when the operand cannot be resolved.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
+// or a fallback annotation when the operand cannot be resolved.
 func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *ast_domain.UnaryExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveUnaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -436,7 +417,7 @@ func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *
 	var resultTypeExpr goast.Expr
 	var resultPackageAlias string
 
-	switch n.Operator {
+	switch n.Operator { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ast_domain.OpNot:
 		if !isBoolLike(rightAnn.ResolvedType) {
 			rightType := goastutil.ASTToTypeString(rightAnn.ResolvedType.TypeExpression, rightAnn.ResolvedType.PackageAlias)
@@ -473,11 +454,9 @@ func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *
 
 // resolveTernaryExpression finds the type of a ternary expression.
 //
-// Takes n (*ast_domain.TernaryExpression) which is the ternary
-// expression to check.
+// Takes n (*ast_domain.TernaryExpression) which is the ternary expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the type from the true
-// branch.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the type from the true branch.
 func (a *typeExpressionAnalyser) resolveTernaryExpression(ctx context.Context, n *ast_domain.TernaryExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTernaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 	conditionAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Condition, a.location, a.depth+1)
@@ -496,17 +475,17 @@ func (a *typeExpressionAnalyser) resolveTernaryExpression(ctx context.Context, n
 	return consequentAnn
 }
 
-// validateBooleanCondition checks that a condition expression has a boolean
-// type and reports an error if it does not.
+// validateBooleanCondition checks that a condition expression has a boolean type and
+// reports an error if it does not.
 //
-// Takes conditionAnn (*ast_domain.GoGeneratorAnnotation) which is the resolved
-// annotation for the condition expression.
-// Takes conditionExpr (ast_domain.Expression) which is the condition expression
-// used to show the error location.
-// Takes parentExpr (ast_domain.Expression) which is the parent expression where
-// the error is added.
-// Takes parentAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// to add the error to.
+// Takes conditionAnn (*ast_domain.GoGeneratorAnnotation) which is the resolved annotation
+// for the condition expression.
+// Takes conditionExpr (ast_domain.Expression) which is the condition expression used to
+// show the error location.
+// Takes parentExpr (ast_domain.Expression) which is the parent expression where the error
+// is added.
+// Takes parentAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation to add the
+// error to.
 func (a *typeExpressionAnalyser) validateBooleanCondition(
 	conditionAnn *ast_domain.GoGeneratorAnnotation,
 	conditionExpr, parentExpr ast_domain.Expression,

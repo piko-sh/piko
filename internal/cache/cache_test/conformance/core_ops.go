@@ -133,8 +133,8 @@ func runCoreOpsTests(t *testing.T, config StringConfig) {
 	}
 }
 
-// testGetIfPresentMissing verifies that GetIfPresent returns false for a
-// non-existent key.
+// testGetIfPresentMissing verifies that GetIfPresent returns false for a non-existent
+// key.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory for the test.
@@ -266,8 +266,8 @@ func testSetWithTags(t *testing.T, config StringConfig) {
 	}
 }
 
-// testGetWithLoader tests that the cache correctly invokes a loader function
-// when retrieving a value.
+// testGetWithLoader tests that the cache correctly invokes a loader function when
+// retrieving a value.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -295,8 +295,8 @@ func testGetWithLoader(t *testing.T, config StringConfig) {
 	}
 }
 
-// testGetWithLoaderCached verifies that a cached value is returned without
-// calling the loader again.
+// testGetWithLoaderCached verifies that a cached value is returned without calling the
+// loader again.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -350,8 +350,8 @@ func testGetWithLoaderError(t *testing.T, config StringConfig) {
 	}
 }
 
-// testInvalidateExisting verifies that invalidating an existing key removes it
-// from the cache.
+// testInvalidateExisting verifies that invalidating an existing key removes it from the
+// cache.
 //
 // Takes t (*testing.T) which provides testing utilities.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -386,8 +386,8 @@ func testInvalidateExisting(t *testing.T, config StringConfig) {
 	}
 }
 
-// testInvalidateMissing verifies that invalidating a non-existent key does not
-// cause an error.
+// testInvalidateMissing verifies that invalidating a non-existent key does not cause an
+// error.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.

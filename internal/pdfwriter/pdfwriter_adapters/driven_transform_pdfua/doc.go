@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_pdfua adds PDF/UA (Universal Accessibility)
-// structural metadata as a post-processing transformer.
+// Package driven_transform_pdfua adds PDF/UA (Universal Accessibility) structural
+// metadata as a post-processing transformer.
 //
-// All enhancements are additive: they add missing entries to the document
-// catalog but never overwrite existing ones. This includes marking the PDF
-// as tagged, adding a minimal structure tree root, setting a default
-// document language, displaying the document title in viewer preferences,
-// and adding a title entry to the document info dictionary.
+// All enhancements are additive: they add missing entries to the document catalog but
+// never overwrite existing ones. This includes marking the PDF as tagged, adding a
+// minimal structure tree root, setting a default document language, displaying the
+// document title in viewer preferences, and adding a title entry to the document info
+// dictionary.
 package driven_transform_pdfua

@@ -23,8 +23,8 @@ import (
 	"time"
 )
 
-// BatchResult holds the result of a batch operation, with details for each
-// item processed.
+// BatchResult holds the result of a batch operation, with details for each item
+// processed.
 type BatchResult struct {
 	// SuccessfulKeys contains the keys that were processed without errors.
 	SuccessfulKeys []string
@@ -69,16 +69,16 @@ func (r *BatchResult) HasErrors() bool {
 
 // IsPartialSuccess returns true if some operations succeeded and some failed.
 //
-// Returns bool which is true when both successful and failed counts are
-// greater than zero.
+// Returns bool which is true when both successful and failed counts are greater than
+// zero.
 func (r *BatchResult) IsPartialSuccess() bool {
 	return r.TotalSuccessful > 0 && r.TotalFailed > 0
 }
 
 // formatSummary returns a short text summary of the batch result.
 //
-// Returns string which shows the success count, failure count, and how long
-// processing took.
+// Returns string which shows the success count, failure count, and how long processing
+// took.
 func (r *BatchResult) formatSummary() string {
 	if !r.HasErrors() {
 		return fmt.Sprintf("All %d operations succeeded in %v", r.TotalRequested, r.ProcessingTime)

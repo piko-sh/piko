@@ -24,6 +24,14 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCreateFunction parses a CREATE FUNCTION or CREATE PROCEDURE statement and produces
+// a corresponding catalogue mutation.
+//
+// Takes engine (*MySQLEngine) which provides hooks used when parsing the argument and
+// return types.
+//
+// Returns *querier_dto.CatalogueMutation which describes the function creation.
+// Returns error when the schema-qualified name or argument list cannot be parsed.
 func (p *parser) parseCreateFunction(engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -60,6 +68,11 @@ func (p *parser) parseCreateFunction(engine *MySQLEngine) (*querier_dto.Catalogu
 	}, nil
 }
 
+// parseDropFunction parses a DROP FUNCTION or DROP PROCEDURE statement and produces a
+// corresponding catalogue mutation.
+//
+// Returns *querier_dto.CatalogueMutation which describes the function removal.
+// Returns error when the schema-qualified name cannot be parsed.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordFUNCTION, keywordPROCEDURE)
@@ -85,6 +98,14 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseFunctionArgumentList parses the parenthesised argument list of a CREATE FUNCTION
+// or CREATE PROCEDURE statement.
+//
+// Takes engine (*MySQLEngine) which provides hooks used when parsing argument types.
+//
+// Returns []querier_dto.FunctionArgument which is the parsed argument list, or nil when
+// the argument list is absent.
+// Returns error which is currently always nil.
 func (p *parser) parseFunctionArgumentList(engine *MySQLEngine) ([]querier_dto.FunctionArgument, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil
@@ -107,6 +128,11 @@ func (p *parser) parseFunctionArgumentList(engine *MySQLEngine) ([]querier_dto.F
 	return arguments, nil
 }
 
+// parseFunctionArgument parses a single argument from a CREATE FUNCTION argument list.
+//
+// Takes engine (*MySQLEngine) which provides hooks used when parsing the argument type.
+//
+// Returns querier_dto.FunctionArgument which describes the parsed argument.
 func (p *parser) parseFunctionArgument(engine *MySQLEngine) querier_dto.FunctionArgument {
 	p.matchKeyword("IN")
 	p.matchKeyword("OUT")
@@ -130,6 +156,11 @@ func (p *parser) parseFunctionArgument(engine *MySQLEngine) querier_dto.Function
 	}
 }
 
+// parseFunctionReturnsClause parses an optional RETURNS clause and assigns the resulting
+// type to the signature.
+//
+// Takes engine (*MySQLEngine) which provides hooks used when parsing the return type.
+// Takes signature (*querier_dto.FunctionSignature) which receives the parsed return type.
 func (p *parser) parseFunctionReturnsClause(engine *MySQLEngine, signature *querier_dto.FunctionSignature) {
 	if !p.matchKeyword(keywordRETURNS) {
 		return
@@ -137,6 +168,11 @@ func (p *parser) parseFunctionReturnsClause(engine *MySQLEngine, signature *quer
 	signature.ReturnType = p.parseColumnType(engine)
 }
 
+// parseFunctionAttributes consumes the routine characteristic clauses that follow a
+// function signature.
+//
+// Takes signature (*querier_dto.FunctionSignature) which is updated as attributes are
+// recognised.
 func (p *parser) parseFunctionAttributes(signature *querier_dto.FunctionSignature) {
 	for !p.atEnd() && p.current().kind != tokenEOF {
 		upper := strings.ToUpper(p.current().value)
@@ -149,6 +185,12 @@ func (p *parser) parseFunctionAttributes(signature *querier_dto.FunctionSignatur
 	}
 }
 
+// parseSingleFunctionAttribute consumes one routine characteristic clause.
+//
+// Takes signature (*querier_dto.FunctionSignature) which is updated when a data-access
+// clause is recognised.
+//
+// Returns bool reporting whether an attribute was consumed.
 func (p *parser) parseSingleFunctionAttribute(signature *querier_dto.FunctionSignature) bool {
 	if p.matchKeyword(keywordDETERMINISTIC) {
 		if signature.DataAccess == querier_dto.DataAccessUnknown {
@@ -184,6 +226,13 @@ func (p *parser) parseSingleFunctionAttribute(signature *querier_dto.FunctionSig
 	return p.parseFunctionMetaAttribute(signature)
 }
 
+// parseFunctionMetaAttribute consumes LANGUAGE, SECURITY, COMMENT and SQL SECURITY
+// routine characteristic clauses.
+//
+// Takes signature (*querier_dto.FunctionSignature) which is updated when a LANGUAGE
+// clause is recognised.
+//
+// Returns bool reporting whether an attribute was consumed.
 func (p *parser) parseFunctionMetaAttribute(signature *querier_dto.FunctionSignature) bool {
 	if p.matchKeyword(keywordLANGUAGE) {
 		if !p.atEnd() {
@@ -213,6 +262,11 @@ func (p *parser) parseFunctionMetaAttribute(signature *querier_dto.FunctionSigna
 	return false
 }
 
+// parseFunctionBodyCapture extracts the routine body as a raw SQL string from a
+// BEGIN...END block or a RETURN expression.
+//
+// Takes signature (*querier_dto.FunctionSignature) which receives the captured body and
+// inferred language.
 func (p *parser) parseFunctionBodyCapture(signature *querier_dto.FunctionSignature) {
 	if p.atEnd() {
 		return
@@ -236,6 +290,10 @@ func (p *parser) parseFunctionBodyCapture(signature *querier_dto.FunctionSignatu
 	}
 }
 
+// captureBeginEndBlock consumes tokens up to the matching END keyword and returns the
+// captured body as a space-joined string.
+//
+// Returns string which is the joined body source.
 func (p *parser) captureBeginEndBlock() string {
 	var builder strings.Builder
 	depth := 1

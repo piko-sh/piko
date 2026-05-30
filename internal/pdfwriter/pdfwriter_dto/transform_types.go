@@ -18,29 +18,27 @@
 
 package pdfwriter_dto
 
-// TransformerType categorises PDF transformers into groups that determine
-// their role in the transformation pipeline.
+// TransformerType categorises PDF transformers into groups that determine their role in
+// the transformation pipeline.
 type TransformerType string
 
 const (
-	// TransformerContent applies content-level mutations such as redaction,
-	// flattening, and watermarking.
+	// TransformerContent applies content-level mutations such as redaction, flattening, and
+	// watermarking.
 	TransformerContent TransformerType = "content"
 
-	// TransformerCompliance applies compliance conversions such as PDF/A
-	// and PDF/UA.
+	// TransformerCompliance applies compliance conversions such as PDF/A and PDF/UA.
 	TransformerCompliance TransformerType = "compliance"
 
-	// TransformerDelivery applies delivery optimisations such as
-	// linearisation and object stream compression.
+	// TransformerDelivery applies delivery optimisations such as linearisation and object
+	// stream compression.
 	TransformerDelivery TransformerType = "delivery"
 
-	// TransformerSecurity applies security operations such as encryption
-	// and digital signatures.
+	// TransformerSecurity applies security operations such as encryption and digital
+	// signatures.
 	TransformerSecurity TransformerType = "security"
 
-	// TransformerCompression applies byte-level compression to the final
-	// PDF output. This should run after all other transformers since the
-	// output is no longer a valid PDF.
+	// TransformerCompression applies byte-level compression to the final PDF output. This
+	// should run after all other transformers since the output is no longer a valid PDF.
 	TransformerCompression TransformerType = "compression"
 )

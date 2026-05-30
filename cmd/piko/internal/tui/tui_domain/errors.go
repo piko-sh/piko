@@ -18,14 +18,15 @@
 
 package tui_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrProviderNotReady indicates the provider is not yet connected or initialised.
 	ErrProviderNotReady = errors.New("provider not ready")
 
-	// ErrProviderClosed is returned when an operation is attempted on a closed
-	// provider.
+	// ErrProviderClosed is returned when an operation is attempted on a closed provider.
 	ErrProviderClosed = errors.New("provider closed")
 
 	// ErrResourceNotFound is returned when the requested resource does not exist.

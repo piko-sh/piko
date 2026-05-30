@@ -24,11 +24,10 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// defaultServiceRegistrar returns a registrar that registers all standard
-// monitoring gRPC services based on available dependencies.
+// defaultServiceRegistrar returns a registrar that registers all standard monitoring gRPC
+// services based on available dependencies.
 //
-// Returns serviceRegistrar which registers health, metrics, and inspector
-// services.
+// Returns serviceRegistrar which registers health, metrics, and inspector services.
 func defaultServiceRegistrar() serviceRegistrar {
 	return func(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
 		pb.RegisterHealthServiceServer(server, NewHealthService(deps.HealthProbeService))
@@ -37,13 +36,12 @@ func defaultServiceRegistrar() serviceRegistrar {
 	}
 }
 
-// registerMetricsService registers the metrics gRPC service when at least one
-// telemetry provider is available.
+// registerMetricsService registers the metrics gRPC service when at least one telemetry
+// provider is available.
 //
-// Takes server (*grpc.Server) which is the gRPC server to register the service
-// on.
-// Takes deps (monitoring_domain.MonitoringDeps) which provides the telemetry,
-// system stats, resource, and render cache dependencies.
+// Takes server (*grpc.Server) which is the gRPC server to register the service on.
+// Takes deps (monitoring_domain.MonitoringDeps) which provides the telemetry, system
+// stats, resource, and render cache dependencies.
 func registerMetricsService(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
 	if deps.TelemetryProvider != nil || deps.SystemStatsProvider != nil || deps.ResourceProvider != nil {
 		pb.RegisterMetricsServiceServer(server, NewMetricsService(
@@ -55,13 +53,12 @@ func registerMetricsService(server *grpc.Server, deps monitoring_domain.Monitori
 	}
 }
 
-// registerInspectorServices registers all optional inspector gRPC services
-// that have non-nil dependencies.
+// registerInspectorServices registers all optional inspector gRPC services that have
+// non-nil dependencies.
 //
-// Takes server (*grpc.Server) which is the gRPC server to register the
-// services on.
-// Takes deps (monitoring_domain.MonitoringDeps) which provides the optional
-// inspector dependencies checked for nil before registration.
+// Takes server (*grpc.Server) which is the gRPC server to register the services on.
+// Takes deps (monitoring_domain.MonitoringDeps) which provides the optional inspector
+// dependencies checked for nil before registration.
 func registerInspectorServices(server *grpc.Server, deps monitoring_domain.MonitoringDeps) {
 	if deps.OrchestratorInspector != nil {
 		pb.RegisterOrchestratorInspectorServiceServer(server, NewOrchestratorInspectorService(deps.OrchestratorInspector))

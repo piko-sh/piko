@@ -287,7 +287,9 @@ func generateCommentBlock(builder *strings.Builder, depth, itemIndex, maxDepth, 
 	builder.WriteString(`</ul>`)
 }
 
-var TemplateGiga = GenerateGigaTemplate()
+var (
+	TemplateGiga = GenerateGigaTemplate()
+)
 
 func MustParseTemplate(source string) *ast_domain.TemplateAST {
 	ast, err := ast_domain.ParseAndTransform(context.Background(), source, "benchmark")

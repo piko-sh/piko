@@ -24,11 +24,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// propagateDataAccess iterates the function call graph to
-// propagate data access levels from callees to callers.
+// propagateDataAccess iterates the function call graph to propagate data access levels
+// from callees to callers.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state with function signatures to update.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state with function
+// signatures to update.
 func propagateDataAccess(catalogue *querier_dto.Catalogue) {
 	signatures := collectAllSignatures(catalogue)
 	signatureIndex := buildSignatureIndex(catalogue)
@@ -52,14 +52,13 @@ func propagateDataAccess(catalogue *querier_dto.Catalogue) {
 	}
 }
 
-// collectAllSignatures gathers every function signature
-// from all schemas in the catalogue.
+// collectAllSignatures gathers every function signature from all schemas in the
+// catalogue.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state.
 //
-// Returns []*querier_dto.FunctionSignature which contains
-// all function signatures across all schemas.
+// Returns []*querier_dto.FunctionSignature which contains all function signatures across
+// all schemas.
 func collectAllSignatures(catalogue *querier_dto.Catalogue) []*querier_dto.FunctionSignature {
 	var result []*querier_dto.FunctionSignature
 	for _, schema := range catalogue.Schemas {
@@ -70,14 +69,13 @@ func collectAllSignatures(catalogue *querier_dto.Catalogue) []*querier_dto.Funct
 	return result
 }
 
-// buildSignatureIndex builds a lookup map from lowercase
-// function names to their signature overloads.
+// buildSignatureIndex builds a lookup map from lowercase function names to their
+// signature overloads.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state.
 //
-// Returns map[string][]*querier_dto.FunctionSignature which
-// maps lowercase function names to their overloads.
+// Returns map[string][]*querier_dto.FunctionSignature which maps lowercase function names
+// to their overloads.
 func buildSignatureIndex(catalogue *querier_dto.Catalogue) map[string][]*querier_dto.FunctionSignature {
 	index := make(map[string][]*querier_dto.FunctionSignature)
 	for _, schema := range catalogue.Schemas {
@@ -95,16 +93,14 @@ func buildSignatureIndex(catalogue *querier_dto.Catalogue) map[string][]*querier
 	return index
 }
 
-// resolveCalledAccess looks up the data access level for a
-// called function name in the signature index.
+// resolveCalledAccess looks up the data access level for a called function name in the
+// signature index.
 //
-// Takes calledName (string) which is the lowercase function
-// name to look up.
-// Takes index (map[string][]*querier_dto.FunctionSignature)
-// which is the signature lookup map.
+// Takes calledName (string) which is the lowercase function name to look up.
+// Takes index (map[string][]*querier_dto.FunctionSignature) which is the signature lookup
+// map.
 //
-// Returns querier_dto.FunctionDataAccess which is the
-// resolved data access level.
+// Returns querier_dto.FunctionDataAccess which is the resolved data access level.
 func resolveCalledAccess(
 	calledName string,
 	index map[string][]*querier_dto.FunctionSignature,

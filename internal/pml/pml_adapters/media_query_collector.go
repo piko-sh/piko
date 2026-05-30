@@ -28,31 +28,32 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// mediaQueryCollector implements the pml_domain.MediaQueryCollector
-// interface. It tracks CSS classes that need responsive media queries and
-// generates the final CSS.
+// mediaQueryCollector implements the pml_domain.MediaQueryCollector interface. It tracks
+// CSS classes that need responsive media queries and generates the final CSS.
 //
-// The collector is thread-safe to support potential concurrent transformations
-// in the future. It automatically deduplicates classes, so multiple columns
-// with "pml-col-50" only generate one media query entry.
+// The collector is thread-safe to support concurrent transformations. It automatically
+// deduplicates classes, so multiple columns with "pml-col-50" only generate one media
+// query entry.
 type mediaQueryCollector struct {
-	// classes maps class names to mobile styles for standard responsive classes
-	// such as column widths.
+	// classes maps class names to mobile styles for standard responsive classes such as
+	// column widths.
 	classes map[string]string
 
-	// fluidClasses maps class names to mobile styles for classes that need
-	// fluid behaviour on mobile, such as full-width images.
+	// fluidClasses maps class names to mobile styles for classes that need fluid behaviour
+	// on mobile, such as full-width images.
 	fluidClasses map[string]string
 
 	// mu guards concurrent access to the class maps.
 	mu sync.RWMutex
 }
 
-var _ pml_domain.MediaQueryCollector = (*mediaQueryCollector)(nil)
+var (
+	_ pml_domain.MediaQueryCollector = (*mediaQueryCollector)(nil)
+)
 
-// RegisterClass adds a CSS class that needs a mobile-stacking media query.
-// If the same class name is registered more than once, only one entry is kept,
-// which provides automatic deduplication.
+// RegisterClass adds a CSS class that needs a mobile-stacking media query. If the same
+// class name is registered more than once, only one entry is kept, which provides
+// automatic deduplication.
 //
 // Takes className (string) which is the CSS class name to register.
 // Takes mobileStyles (string) which contains the mobile-specific CSS rules.
@@ -69,11 +70,10 @@ func (m *mediaQueryCollector) RegisterClass(className string, mobileStyles strin
 	m.classes[className] = mobileStyles
 }
 
-// RegisterFluidClass adds a CSS class for fluid-on-mobile images and
-// elements.
+// RegisterFluidClass adds a CSS class for fluid-on-mobile images and elements.
 //
-// This is the same as RegisterClass but kept separate for clarity. Used by
-// <pml-img> for the "pml-fluid-mobile" class.
+// This is the same as RegisterClass but kept separate for clarity. Used by <pml-img> for
+// the "pml-fluid-mobile" class.
 //
 // Takes className (string) which specifies the CSS class name to register.
 // Takes mobileStyles (string) which provides the CSS styles for mobile view.
@@ -92,11 +92,11 @@ func (m *mediaQueryCollector) RegisterFluidClass(className string, mobileStyles 
 
 // GenerateCSS produces the final style block with all media queries.
 //
-// Takes breakpoint (string) which sets the max-width for mobile targeting
-// (e.g. "480px"). Defaults to "480px" if empty.
+// Takes breakpoint (string) which sets the max-width for mobile targeting (e.g. "480px").
+// Defaults to "480px" if empty.
 //
-// Returns string which contains the generated CSS media query block. Returns
-// an empty string if no classes have been registered.
+// Returns string which contains the generated CSS media query block.
+// Returns an empty string if no classes have been registered.
 //
 // The generated CSS follows this pattern:
 //
@@ -107,8 +107,8 @@ func (m *mediaQueryCollector) RegisterFluidClass(className string, mobileStyles 
 //
 // Classes are sorted alphabetically for deterministic output.
 //
-// Safe for concurrent use with RegisterClass and RegisterFluidClass.
-// Protected by a read lock on the collector's mutex.
+// Safe for concurrent use with RegisterClass and RegisterFluidClass. Protected by a read
+// lock on the collector's mutex.
 func (m *mediaQueryCollector) GenerateCSS(breakpoint string) string {
 	breakpoint = cmp.Or(breakpoint, "480px")
 
@@ -159,11 +159,11 @@ func (m *mediaQueryCollector) GenerateCSS(breakpoint string) string {
 	return builder.String()
 }
 
-// NewMediaQueryCollector creates a new, empty MediaQueryCollector.
-// This should be called once at the start of a transformation pass.
+// NewMediaQueryCollector creates a new, empty MediaQueryCollector. This should be called
+// once at the start of a transformation pass.
 //
-// Returns pml_domain.MediaQueryCollector which is ready to collect media
-// queries during transformation.
+// Returns pml_domain.MediaQueryCollector which is ready to collect media queries during
+// transformation.
 func NewMediaQueryCollector() pml_domain.MediaQueryCollector {
 	return &mediaQueryCollector{
 		classes:      make(map[string]string),

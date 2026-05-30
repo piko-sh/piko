@@ -1,0 +1,5 @@
+{
+  "description": "Main panics while a goroutine is blocked on an unbuffered channel send. ExecuteEntrypoint must surface the main panic and not deadlock on the orphaned goroutine.",
+  "shouldError": true,
+  "errorContains": "main panic"
+}

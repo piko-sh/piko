@@ -33,8 +33,7 @@ const (
 	// defaultMultipartConcurrency is the number of parts to upload at once.
 	defaultMultipartConcurrency = 5
 
-	// defaultMultipartMaxRetries is the default number of retries for a failed
-	// part.
+	// defaultMultipartMaxRetries is the default number of retries for a failed part.
 	defaultMultipartMaxRetries = 3
 
 	// bytesPerMB is the number of bytes in one megabyte (1024 x 1024).
@@ -51,8 +50,7 @@ const (
 )
 
 // TransformConfig configures stream transformations for Put and Get operations.
-// Transformations are applied in priority order: ascending for Put, descending
-// for Get.
+// Transformations are applied in priority order: ascending for Put, descending for Get.
 type TransformConfig struct {
 	// TransformerOptions maps transformer names to their settings.
 	TransformerOptions map[string]any
@@ -61,22 +59,21 @@ type TransformConfig struct {
 	EnabledTransformers []string
 }
 
-// MultipartUploadConfig holds configuration for multipart uploads. Multipart
-// uploads improve reliability and performance for large files by uploading
-// parts concurrently, enabling retry of individual failed parts rather than
-// the entire file, and supporting resume of interrupted uploads.
+// MultipartUploadConfig holds configuration for multipart uploads. Multipart uploads
+// improve reliability and performance for large files by uploading parts concurrently,
+// enabling retry of individual failed parts rather than the entire file, and supporting
+// resume of interrupted uploads.
 type MultipartUploadConfig struct {
-	// PartSize is the size of each part in bytes, with a minimum of 5 MB and a
-	// maximum of 5 GB. Default is 100 MB.
+	// PartSize is the size of each part in bytes, with a minimum of 5 MB and a maximum of 5
+	// GB. Default is 100 MB.
 	PartSize int64
 
-	// Concurrency is the number of parts to upload simultaneously.
-	// Default: 5
-	// Recommended: 5-10 for optimal throughput without overwhelming the network.
+	// Concurrency is the number of parts to upload simultaneously. Default: 5 Recommended:
+	// 5-10 for optimal throughput without overwhelming the network.
 	Concurrency int
 
-	// EnableChecksum enables integrity verification for each part after upload.
-	// Default is true, which is recommended for data integrity.
+	// EnableChecksum enables integrity verification for each part after upload. Default is
+	// true, which is recommended for data integrity.
 	EnableChecksum bool
 
 	// MaxRetries is the number of retries per part upload. Default is 3.
@@ -91,8 +88,7 @@ type PutParams struct {
 	// MultipartConfig sets the multipart upload behaviour for large files.
 	MultipartConfig *MultipartUploadConfig
 
-	// TransformConfig holds settings for stream transformations; nil uses
-	// defaults.
+	// TransformConfig holds settings for stream transformations; nil uses defaults.
 	TransformConfig *TransformConfig
 
 	// Metadata holds custom key-value pairs to store with the object.
@@ -101,16 +97,15 @@ type PutParams struct {
 	// Key is the unique identifier for the object within the repository.
 	Key string
 
-	// ContentType is the MIME type of the object; must be a valid, non-empty
-	// value.
+	// ContentType is the MIME type of the object; must be a valid, non-empty value.
 	ContentType string
 
-	// HashAlgorithm specifies which hash algorithm to use for content
-	// verification. Defaults to "sha256" if empty.
+	// HashAlgorithm specifies which hash algorithm to use for content verification. Defaults
+	// to "sha256" if empty.
 	HashAlgorithm string
 
-	// ExpectedHash is the hash value to check against after upload. If set, the
-	// actual hash must match or the upload fails with an error.
+	// ExpectedHash is the hash value to check against after upload. If set, the actual hash
+	// must match or the upload fails with an error.
 	ExpectedHash string
 
 	// Repository identifies the storage location for the content.
@@ -123,23 +118,21 @@ type PutParams struct {
 	UseContentAddressing bool
 }
 
-// ByteRange specifies a byte range for partial object reads.
-// This enables efficient partial downloads for use cases like video streaming,
-// resuming interrupted downloads, or reading file metadata without fetching
-// the entire file.
+// ByteRange specifies a byte range for partial object reads. This enables efficient
+// partial downloads for use cases like video streaming, resuming interrupted downloads,
+// or reading file metadata without fetching the entire file.
 type ByteRange struct {
-	// Start is the byte position where the range begins (0-based, inclusive).
-	// Must be zero or greater.
+	// Start is the byte position where the range begins (0-based, inclusive). Must be zero
+	// or greater.
 	Start int64
 
-	// End is the inclusive ending byte position, or -1 to read to the end of the
-	// file. When not -1, must be >= Start.
+	// End is the inclusive ending byte position, or -1 to read to the end of the file. When
+	// not -1, must be >= Start.
 	End int64
 }
 
-// GetParams holds parameters for operations that target a single existing
-// object. It is used by Get, Stat, Remove, and GetHash operations across all
-// storage providers.
+// GetParams holds parameters for operations that target a single existing object. It is
+// used by Get, Stat, Remove, and GetHash operations across all storage providers.
 type GetParams struct {
 	// ByteRange specifies a byte range for partial object reads.
 	ByteRange *ByteRange
@@ -154,9 +147,8 @@ type GetParams struct {
 	Repository string
 }
 
-// CopyParams holds parameters for copying an object from a source to a
-// destination. The source and destination can be in the same or different
-// repositories.
+// CopyParams holds parameters for copying an object from a source to a destination. The
+// source and destination can be in the same or different repositories.
 type CopyParams struct {
 	// SourceKey is the object key in the source repository to copy from.
 	SourceKey string
@@ -171,8 +163,8 @@ type CopyParams struct {
 	DestinationRepository string
 }
 
-// RemoveManyParams holds parameters for bulk deletion of objects within a
-// single repository.
+// RemoveManyParams holds parameters for bulk deletion of objects within a single
+// repository.
 type RemoveManyParams struct {
 	// Repository identifies the storage location containing the objects.
 	Repository string
@@ -180,17 +172,17 @@ type RemoveManyParams struct {
 	// Keys is the list of storage keys to remove.
 	Keys []string
 
-	// Concurrency controls parallel deletes for providers without native batching.
-	// Default is 10.
+	// Concurrency controls parallel deletes for providers without native batching. Default
+	// is 10.
 	Concurrency int
 
-	// ContinueOnError determines whether the batch continues after individual
-	// failures. Default: true.
+	// ContinueOnError determines whether the batch continues after individual failures.
+	// Default: true.
 	ContinueOnError bool
 }
 
-// PutManyParams holds parameters for batch upload operations. It enables
-// efficient bulk uploads with partial success handling via MultiError.
+// PutManyParams holds parameters for batch upload operations. It enables efficient bulk
+// uploads with partial success handling via MultiError.
 type PutManyParams struct {
 	// TransformConfig sets the options for stream changes like compression.
 	TransformConfig *TransformConfig
@@ -223,8 +215,8 @@ type PutObjectSpec struct {
 	Size int64
 }
 
-// PresignParams holds the settings for creating a presigned URL.
-// A presigned URL gives direct, time-limited access for client-side uploads.
+// PresignParams holds the settings for creating a presigned URL. A presigned URL gives
+// direct, time-limited access for client-side uploads.
 type PresignParams struct {
 	// Key is the object path within the storage bucket.
 	Key string
@@ -239,8 +231,8 @@ type PresignParams struct {
 	ExpiresIn time.Duration
 }
 
-// PresignDownloadParams holds settings for creating a presigned download URL.
-// A presigned download URL gives direct, time-limited read access to an object.
+// PresignDownloadParams holds settings for creating a presigned download URL. A presigned
+// download URL gives direct, time-limited read access to an object.
 type PresignDownloadParams struct {
 	// Key is the object path within the storage bucket.
 	Key string
@@ -258,8 +250,8 @@ type PresignDownloadParams struct {
 	ExpiresIn time.Duration
 }
 
-// DefaultTransformConfig returns an empty transform configuration with no
-// transformations enabled.
+// DefaultTransformConfig returns an empty transform configuration with no transformations
+// enabled.
 //
 // Returns TransformConfig which is ready for use with empty transformer lists.
 func DefaultTransformConfig() TransformConfig {
@@ -271,8 +263,8 @@ func DefaultTransformConfig() TransformConfig {
 
 // DefaultMultipartConfig returns sensible defaults for multipart uploads.
 //
-// Returns MultipartUploadConfig which contains the default settings for part
-// size, concurrency, checksum checking, and retry behaviour.
+// Returns MultipartUploadConfig which contains the default settings for part size,
+// concurrency, checksum checking, and retry behaviour.
 func DefaultMultipartConfig() MultipartUploadConfig {
 	return MultipartUploadConfig{
 		PartSize:       defaultMultipartPartSizeMB * bytesPerMB,

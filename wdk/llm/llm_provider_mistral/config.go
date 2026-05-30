@@ -18,31 +18,35 @@
 
 package llm_provider_mistral
 
-import "errors"
+import (
+	"errors"
+)
 
-// DefaultBaseURL is the default Mistral API endpoint.
-const DefaultBaseURL = "https://api.mistral.ai"
+const (
+
+	// DefaultBaseURL is the default Mistral API endpoint.
+	DefaultBaseURL = "https://api.mistral.ai"
+)
 
 // Config holds configuration for the Mistral provider.
 type Config struct {
 	// APIKey is the Mistral API key. Required.
 	APIKey string
 
-	// BaseURL specifies a custom API endpoint for self-hosted deployments or proxy
-	// services. Leave empty to use the default Mistral endpoint.
+	// BaseURL specifies a custom API endpoint for self-hosted deployments or proxy services.
+	// Leave empty to use the default Mistral endpoint.
 	BaseURL string
 
-	// DefaultModel is the model to use when not specified in requests.
-	// Defaults to "mistral-large-latest" if empty.
+	// DefaultModel is the model to use when not specified in requests. Defaults to
+	// "mistral-large-latest" if empty.
 	DefaultModel string
 
-	// DefaultEmbeddingModel is the embedding model to use when not specified
-	// in a request. Defaults to "mistral-embed" if empty.
+	// DefaultEmbeddingModel is the embedding model to use when not specified in a request.
+	// Defaults to "mistral-embed" if empty.
 	DefaultEmbeddingModel string
 
-	// EmbeddingDimensions overrides the default vector dimension for the
-	// configured embedding model. When zero, the dimension is resolved from
-	// a built-in lookup table.
+	// EmbeddingDimensions overrides the default vector dimension for the configured
+	// embedding model. When zero, the dimension is resolved from a built-in lookup table.
 	EmbeddingDimensions int
 }
 
@@ -56,11 +60,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// mistralEmbeddingDimensions maps known Mistral embedding models to their
-// default vector dimensions.
-var mistralEmbeddingDimensions = map[string]int{
-	"mistral-embed": 1024,
-}
+var (
+	// mistralEmbeddingDimensions maps known Mistral embedding models to their default vector
+	// dimensions.
+	mistralEmbeddingDimensions = map[string]int{
+		"mistral-embed": 1024,
+	}
+)
 
 // WithDefaults returns a copy of the config with default values applied.
 //

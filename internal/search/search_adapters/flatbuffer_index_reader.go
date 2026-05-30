@@ -39,15 +39,14 @@ var (
 	// errIndexDataEmpty is returned when index data has zero length.
 	errIndexDataEmpty = errors.New("index data is empty")
 
-	// errSearchSchemaVersionMismatch indicates the search index was serialised with
-	// a different schema version. This typically occurs when upgrading Piko and
-	// requires index regeneration.
+	// errSearchSchemaVersionMismatch indicates the search index was serialised with a
+	// different schema version. This typically occurs when upgrading Piko and requires index
+	// regeneration.
 	errSearchSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
 )
 
-// FlatBufferIndexReader implements IndexReaderPort for zero-copy access to
-// FlatBuffer indexes. All data access is direct from the embedded binary blob
-// with no allocations.
+// FlatBufferIndexReader implements IndexReaderPort for zero-copy access to FlatBuffer
+// indexes. All data access is direct from the embedded binary blob with no allocations.
 type FlatBufferIndexReader struct {
 	// index is the root accessor for the FlatBuffer search index.
 	index *search_fb.SearchIndex
@@ -67,13 +66,13 @@ func NewFlatBufferIndexReader() *FlatBufferIndexReader {
 //
 // Takes data ([]byte) which contains the serialised FlatBuffer index.
 //
-// Returns error when the data is empty or was built with a different
-// schema version (ErrSearchSchemaVersionMismatch).
+// Returns error when the data is empty or was built with a different schema version
+// (ErrSearchSchemaVersionMismatch).
 //
-// SAFETY: Returned data from methods like GetDocMetadata, GetLanguage,
-// etc. contains strings that reference 'data' directly via mem.String.
-// Go's GC keeps 'data' alive through these string references. The caller
-// must not modify 'data' while the reader is in use.
+// SAFETY: Returned data from methods like GetDocMetadata, GetLanguage, etc. contains
+// strings that reference 'data' directly via mem.String. Go's GC keeps 'data' alive
+// through these string references. The caller must not modify 'data' while the reader is
+// in use.
 func (r *FlatBufferIndexReader) LoadIndex(data []byte) error {
 	if len(data) == 0 {
 		return errIndexDataEmpty
@@ -90,8 +89,8 @@ func (r *FlatBufferIndexReader) LoadIndex(data []byte) error {
 	return nil
 }
 
-// GetTermPostings returns the posting list for a term using binary search.
-// This is the critical path for search performance - must be zero-copy.
+// GetTermPostings returns the posting list for a term using binary search. This is the
+// critical path for search performance - must be zero-copy.
 //
 // Takes term (string) which is the search term to look up.
 //
@@ -139,8 +138,7 @@ func (r *FlatBufferIndexReader) GetTermPostings(term string) ([]search_domain.Po
 // Takes documentID (uint32) which is the document identifier to look up.
 //
 // Returns search_domain.DocMetadataInfo which contains the document metadata.
-// Returns error when the index is not loaded or the document ID is out of
-// range.
+// Returns error when the index is not loaded or the document ID is out of range.
 func (r *FlatBufferIndexReader) GetDocMetadata(documentID uint32) (search_domain.DocMetadataInfo, error) {
 	if r.index == nil {
 		return search_domain.DocMetadataInfo{}, errIndexNotLoaded
@@ -165,9 +163,9 @@ func (r *FlatBufferIndexReader) GetDocMetadata(documentID uint32) (search_domain
 
 // GetCorpusStats returns corpus-wide statistics.
 //
-// Returns search_domain.CorpusStats which contains document count, average
-// field length, and vocabulary size. Returns an empty CorpusStats when the
-// index is nil.
+// Returns search_domain.CorpusStats which contains document count, average field length,
+// and vocabulary size.
+// Returns an empty CorpusStats when the index is nil.
 func (r *FlatBufferIndexReader) GetCorpusStats() search_domain.CorpusStats {
 	if r.index == nil {
 		return search_domain.CorpusStats{}
@@ -182,8 +180,7 @@ func (r *FlatBufferIndexReader) GetCorpusStats() search_domain.CorpusStats {
 
 // GetMode returns the search mode this index was built with.
 //
-// Returns search_fb.SearchMode which indicates the mode used when building
-// the index.
+// Returns search_fb.SearchMode which indicates the mode used when building the index.
 func (r *FlatBufferIndexReader) GetMode() search_fb.SearchMode {
 	if r.index == nil {
 		return search_fb.SearchModeFast
@@ -193,8 +190,7 @@ func (r *FlatBufferIndexReader) GetMode() search_fb.SearchMode {
 
 // GetLanguage returns the language this index was built with.
 //
-// Returns string which is the language name, defaulting to "english" if the
-// index is nil.
+// Returns string which is the language name, defaulting to "english" if the index is nil.
 func (r *FlatBufferIndexReader) GetLanguage() string {
 	if r.index == nil {
 		return "english"
@@ -244,8 +240,8 @@ func (r *FlatBufferIndexReader) FindPhoneticTerms(phoneticCode string) ([]string
 	return terms, nil
 }
 
-// GetAllTerms returns all terms in the index for debugging or analysis.
-// This is not zero-copy as it builds a slice of strings.
+// GetAllTerms returns all terms in the index for debugging or analysis. This is not
+// zero-copy as it builds a slice of strings.
 //
 // Returns []string which contains all terms in the index.
 // Returns error when the index is not loaded or a term cannot be accessed.
@@ -268,13 +264,12 @@ func (r *FlatBufferIndexReader) GetAllTerms() ([]string, error) {
 	return terms, nil
 }
 
-// GetTermStats returns statistics about a specific term for analysis and
-// debugging.
+// GetTermStats returns statistics about a specific term for analysis and debugging.
 //
 // Takes term (string) which specifies the term to look up in the index.
 //
-// Returns *search_domain.TermStats which contains the term's document count,
-// total occurrences, and IDF score.
+// Returns *search_domain.TermStats which contains the term's document count, total
+// occurrences, and IDF score.
 // Returns error when the index is not loaded or the term is not found.
 func (r *FlatBufferIndexReader) GetTermStats(term string) (*search_domain.TermStats, error) {
 	if r.index == nil {
@@ -309,8 +304,8 @@ func (r *FlatBufferIndexReader) GetTermStats(term string) (*search_domain.TermSt
 	}, nil
 }
 
-// FindTermsWithPrefix returns all terms starting with the given prefix.
-// Useful for autocomplete functionality.
+// FindTermsWithPrefix returns all terms starting with the given prefix. Useful for
+// autocomplete functionality.
 //
 // Takes prefix (string) which specifies the prefix to match against terms.
 //
@@ -356,8 +351,8 @@ func (r *FlatBufferIndexReader) FindTermsWithPrefix(prefix string) ([]string, er
 
 // GetIndexMetadata returns metadata about the index for debugging.
 //
-// Returns map[string]any which contains index statistics and parameters, or a
-// minimal map indicating the index is not loaded if the index is nil.
+// Returns map[string]any which contains index statistics and parameters, or a minimal map
+// indicating the index is not loaded if the index is nil.
 func (r *FlatBufferIndexReader) GetIndexMetadata() map[string]any {
 	if r.index == nil {
 		return map[string]any{

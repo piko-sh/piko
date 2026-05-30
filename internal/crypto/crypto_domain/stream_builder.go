@@ -24,9 +24,9 @@ import (
 	"io"
 )
 
-// StreamEncryptBuilder provides a fluent interface for streaming encryption.
-// It is designed for encrypting large files without loading them entirely into
-// memory, keeping memory usage constant regardless of stream size.
+// StreamEncryptBuilder provides a fluent interface for streaming encryption. It is
+// designed for encrypting large files without loading them entirely into memory, keeping
+// memory usage constant regardless of stream size.
 type StreamEncryptBuilder struct {
 	// service provides encryption operations for building streams.
 	service CryptoServicePort
@@ -48,8 +48,8 @@ func (b *StreamEncryptBuilder) Output(output io.Writer) *StreamEncryptBuilder {
 	return b
 }
 
-// KeyID sets the specific key ID to use for encryption.
-// If not set, the service's active key will be used.
+// KeyID sets the specific key ID to use for encryption. If not set, the service's active
+// key will be used.
 //
 // Takes keyID (string) which identifies the encryption key to use.
 //
@@ -61,8 +61,8 @@ func (b *StreamEncryptBuilder) KeyID(keyID string) *StreamEncryptBuilder {
 
 // Stream executes the streaming encryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) which controls the operation lifecycle.
 //
@@ -75,8 +75,8 @@ func (b *StreamEncryptBuilder) Stream(ctx context.Context) (io.WriteCloser, erro
 	return b.service.EncryptStream(ctx, b.output, b.keyID)
 }
 
-// StreamDecryptBuilder provides a fluent interface for streaming decryption.
-// It decrypts large files without loading them fully into memory.
+// StreamDecryptBuilder provides a fluent interface for streaming decryption. It decrypts
+// large files without loading them fully into memory.
 type StreamDecryptBuilder struct {
 	// service provides the cryptographic operations for stream decryption.
 	service CryptoServicePort
@@ -97,8 +97,8 @@ func (b *StreamDecryptBuilder) Input(input io.Reader) *StreamDecryptBuilder {
 
 // Stream executes the streaming decryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns io.ReadCloser which provides plaintext data as it is decrypted.
 // Returns error when decryption setup fails.

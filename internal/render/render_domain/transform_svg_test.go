@@ -189,6 +189,33 @@ func TestRenderPikoSvg_HandlesErrors(t *testing.T) {
 		output := buffer.String()
 		assert.Contains(t, output, "<!--")
 	})
+
+	t.Run("nil registry writes error comment instead of panicking", func(t *testing.T) {
+
+		rctx := NewTestRenderContextBuilder().Build()
+		rctx.registry = nil
+
+		node := &ast_domain.TemplateNode{
+			TagName: "piko:svg",
+			Attributes: []ast_domain.HTMLAttribute{
+				{Name: "src", Value: "icon-x"},
+			},
+		}
+
+		var buffer bytes.Buffer
+		qw := qt.AcquireWriter(&buffer)
+		defer qt.ReleaseWriter(qw)
+
+		ro := NewTestOrchestratorBuilder().Build()
+		ro.registry = nil
+
+		err := renderPikoSvg(ro, node, qw, rctx)
+		require.NoError(t, err)
+
+		output := buffer.String()
+		assert.Contains(t, output, "<!--")
+		assert.Contains(t, output, "no asset provider")
+	})
 }
 
 func TestRenderPikoSvg_MergesAttributes(t *testing.T) {

@@ -16,24 +16,22 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package collection_adapters implements the driven ports for the collection
-// hexagon, covering encoding, persistence, and provider interfaces defined
-// in collection_domain. Driver adapters for specific providers live in
-// sub-packages.
+// Package collection_adapters implements the driven ports for the collection hexagon,
+// covering encoding, persistence, and provider interfaces defined in collection_domain.
+// Driver adapters for specific providers live in sub-packages.
 //
 // # Design decisions
 //
-// FlatBuffer encoding enables zero-copy access at runtime. Collections are
-// sorted by URL to allow binary search lookups without decoding the entire
-// blob. The encoded data can be embedded directly into compiled binaries
-// via //go:embed.
+// FlatBuffer encoding enables zero-copy access at runtime. Collections are sorted by URL
+// to allow binary search lookups without decoding the entire blob. The encoded data can
+// be embedded directly into compiled binaries via //go:embed.
 //
-// Disk persistence uses atomic writes (temp file + rename) to prevent
-// corruption during process termination. The JSON format aids debugging
-// whilst Base64 encoding preserves binary blob integrity.
+// Disk persistence uses atomic writes (temp file + rename) to prevent corruption during
+// process termination. The JSON format aids debugging whilst Base64 encoding preserves
+// binary blob integrity.
 //
 // # Thread safety
 //
-// diskHybridCache is safe for concurrent use. FlatBufferEncoder is stateless
-// and can be shared freely between goroutines.
+// diskHybridCache is safe for concurrent use. FlatBufferEncoder is stateless and can be
+// shared freely between goroutines.
 package collection_adapters

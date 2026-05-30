@@ -71,14 +71,14 @@ type walInspectResult struct {
 	// FileSize is the total size of the WAL file in bytes.
 	FileSize int `json:"fileSize"`
 
-	// OriginalEntryCount is the pre-filter entry count; omitted when
-	// the --effective flag is not used.
+	// OriginalEntryCount is the pre-filter entry count; omitted when the --effective flag is
+	// not used.
 	OriginalEntryCount int `json:"originalEntryCount,omitempty"`
 }
 
-// effectiveWALResult reduces a full WAL result to only the entries
-// that would be effective after replay by discarding everything before
-// the last CLEAR and keeping only the last operation per key.
+// effectiveWALResult reduces a full WAL result to only the entries that would be
+// effective after replay by discarding everything before the last CLEAR and keeping only
+// the last operation per key.
 //
 // Entries retain their original index for cross-referencing.
 //
@@ -118,9 +118,9 @@ func effectiveWALResult(full walInspectResult) walInspectResult {
 	}
 }
 
-// parseWALValues attempts to parse string values as JSON objects or arrays,
-// embedding them directly in the output. Values that are not valid JSON (or are
-// scalars like numbers/strings/booleans) are left as plain strings.
+// parseWALValues attempts to parse string values as JSON objects or arrays, embedding
+// them directly in the output. Values that are not valid JSON (or are scalars like
+// numbers/strings/booleans) are left as plain strings.
 //
 // Takes result (walInspectResult) which is the result to transform.
 //
@@ -201,9 +201,8 @@ func formatRawEntry(raw wal_domain.RawEntry, index int) walInspectEntry {
 	return entry
 }
 
-// displayBytes returns a human-readable representation of raw bytes.
-// Valid UTF-8 is returned as a string; otherwise it is hex-encoded with a
-// "0x" prefix.
+// displayBytes returns a human-readable representation of raw bytes. Valid UTF-8 is
+// returned as a string; otherwise it is hex-encoded with a "0x" prefix.
 //
 // Takes b ([]byte) which is the raw data to display.
 //
@@ -218,8 +217,7 @@ func displayBytes(b []byte) string {
 	return "0x" + hex.EncodeToString(b)
 }
 
-// formatNanoTimestamp converts a Unix nanosecond timestamp to RFC3339Nano
-// format in UTC.
+// formatNanoTimestamp converts a Unix nanosecond timestamp to RFC3339Nano format in UTC.
 //
 // Takes nanos (int64) which is the Unix nanosecond timestamp.
 //

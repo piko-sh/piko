@@ -18,9 +18,9 @@
 
 package bootstrap
 
-// deref returns the value pointed to by ptr, or fallback if ptr is nil.
-// This is used by the config conversion layer to safely extract values from
-// pointer-based ServerConfig fields into value-typed domain config structs.
+// deref returns the value pointed to by ptr, or fallback if ptr is nil. This is used by
+// the config conversion layer to safely extract values from pointer-based ServerConfig
+// fields into value-typed domain config structs.
 //
 // Takes ptr (*T) which is the pointer to dereference.
 // Takes fallback (T) which is the default value returned when ptr is nil.

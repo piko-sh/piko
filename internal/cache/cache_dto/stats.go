@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// StatsRecorder defines a provider-agnostic interface for recording cache
-// statistics. It tracks hits, misses, evictions, and load timing metrics.
+// StatsRecorder defines a provider-agnostic interface for recording cache statistics. It
+// tracks hits, misses, evictions, and load timing metrics.
 type StatsRecorder interface {
 	// RecordHits records the given number of cache hits.
 	//
@@ -44,8 +44,7 @@ type StatsRecorder interface {
 
 	// RecordLoadFailure records a failed load operation with its duration.
 	//
-	// Takes loadTime (time.Duration) which is how long the load took before it
-	// failed.
+	// Takes loadTime (time.Duration) which is how long the load took before it failed.
 	RecordLoadFailure(loadTime time.Duration)
 
 	// RecordEviction records that an item was removed from the cache.

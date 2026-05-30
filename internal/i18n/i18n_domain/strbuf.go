@@ -38,8 +38,8 @@ const (
 	zeroString = "0"
 )
 
-// StrBuf is a buffer for building strings without memory allocation.
-// It implements fmt.Stringer.
+// StrBuf is a buffer for building strings without memory allocation. It implements
+// fmt.Stringer.
 type StrBuf struct {
 	// buffer holds the underlying byte slice for building strings.
 	buffer []byte
@@ -102,9 +102,8 @@ func (b *StrBuf) WriteFloatPrec(f float64, prec int) {
 	b.buffer = strconv.AppendFloat(b.buffer, f, 'f', prec, bits64)
 }
 
-// WriteFloatWithLocale appends a float64 to the buffer using locale-specific
-// formatting. This uses the locale's decimal separator and thousand grouping
-// conventions.
+// WriteFloatWithLocale appends a float64 to the buffer using locale-specific formatting.
+// This uses the locale's decimal separator and thousand grouping conventions.
 //
 // Takes f (float64) which is the value to format and append.
 // Takes locale (string) which specifies the locale for number formatting.
@@ -135,9 +134,9 @@ func (b *StrBuf) WriteDecimal(d maths.Decimal) {
 	b.WriteString(d.MustString())
 }
 
-// WriteDecimalWithLocale appends a Decimal to the buffer using locale-specific
-// formatting with the locale's decimal separator and thousand grouping
-// conventions. Full precision is preserved; no rounding occurs.
+// WriteDecimalWithLocale appends a Decimal to the buffer using locale-specific formatting
+// with the locale's decimal separator and thousand grouping conventions. Full precision
+// is preserved; no rounding occurs.
 //
 // Takes d (maths.Decimal) which is the decimal value to format and append.
 // Takes locale (string) which specifies the locale for formatting conventions.
@@ -165,12 +164,12 @@ func (b *StrBuf) WriteMoney(m maths.Money) {
 }
 
 // WriteMoneyWithLocale appends a formatted money value to the buffer using
-// locale-specific settings. It formats currency symbols, decimal separators,
-// and digit grouping based on the given locale.
+// locale-specific settings. It formats currency symbols, decimal separators, and digit
+// grouping based on the given locale.
 //
 // Takes m (maths.Money) which is the money value to format.
-// Takes locale (string) which sets the locale for formatting; if empty, uses
-// the default format.
+// Takes locale (string) which sets the locale for formatting; if empty, uses the default
+// format.
 func (b *StrBuf) WriteMoneyWithLocale(m maths.Money, locale string) {
 	if m.Err() != nil {
 		b.WriteString(zeroString)
@@ -243,30 +242,28 @@ func (b *StrBuf) Cap() int {
 	return cap(b.buffer)
 }
 
-// Bytes returns the buffer contents as a byte slice.
-// The returned slice is only valid until the next write or reset.
+// Bytes returns the buffer contents as a byte slice. The returned slice is only valid
+// until the next write or reset.
 //
 // Returns []byte which contains the current buffer contents.
 func (b *StrBuf) Bytes() []byte {
 	return b.buffer
 }
 
-// String returns the buffer contents as a string.
-// This allocates a new string.
+// String returns the buffer contents as a string. This allocates a new string.
 //
 // Returns string which contains the buffer's contents.
 func (b *StrBuf) String() string {
 	return string(b.buffer)
 }
 
-// UnsafeString returns the buffer contents as a string without allocation.
-// In safe mode, this falls back to an allocating copy (identical to String()).
+// UnsafeString returns the buffer contents as a string without allocation. In safe mode,
+// this falls back to an allocating copy (identical to String()).
 //
 // Returns string which contains the buffer contents.
 //
-// WARNING: The returned string is only valid until the buffer is modified
-// or reset. Use only when you know the buffer will not be modified before
-// the string is used.
+// WARNING: The returned string is only valid until the buffer is modified or reset. Use
+// only when you know the buffer will not be modified before the string is used.
 func (b *StrBuf) UnsafeString() string {
 	return mem.String(b.buffer)
 }
@@ -311,8 +308,8 @@ func (p *StrBufPool) Put(buffer *StrBuf) {
 	p.pool.Put(buffer)
 }
 
-// formatAny formats any value as a string.
-// This is a fallback for types not handled elsewhere and causes allocation.
+// formatAny formats any value as a string. This is a fallback for types not handled
+// elsewhere and causes allocation.
 //
 // Takes v (any) which is the value to format.
 //

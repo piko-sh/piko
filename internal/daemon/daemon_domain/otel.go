@@ -31,8 +31,7 @@ var (
 	// meter is the OpenTelemetry meter for the daemon_domain package.
 	meter = otel.Meter("piko/internal/daemon/daemon_domain")
 
-	// fileEventsProcessed counts the number of file system events processed by the
-	// watcher.
+	// fileEventsProcessed counts the number of file system events processed by the watcher.
 	fileEventsProcessed metric.Int64Counter
 
 	// http2ProtocolErrors counts HTTP/2 protocol-level errors by type.

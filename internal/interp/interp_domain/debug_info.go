@@ -18,45 +18,42 @@
 
 package interp_domain
 
-// sourcePosition records the source file location for a single
-// bytecode instruction. Used by the debugger to map program counters
-// back to source lines.
+// sourcePosition records the source file location for a single bytecode instruction. Used
+// by the debugger to map program counters back to source lines.
 type sourcePosition struct {
-	// line is the 1-based source line number, where 0 means unknown
-	// or synthetic (e.g. NOP inserted by the optimiser).
+	// line is the 1-based source line number, where 0 means unknown or synthetic (e.g. NOP
+	// inserted by the optimiser).
 	line int32
 
 	// column is the 1-based source column number. 0 means unknown.
 	column int16
 
-	// fileID is an index into sourceMap.files, identifying which
-	// source file this instruction came from.
+	// fileID is an index into sourceMap.files, identifying which source file this
+	// instruction came from.
 	fileID uint16
 }
 
-// sourceMap maps program counter offsets to source file positions.
-// The positions slice is parallel to CompiledFunction.body - each
-// entry corresponds to the instruction at the same index.
+// sourceMap maps program counter offsets to source file positions. The positions slice is
+// parallel to CompiledFunction.body - each entry corresponds to the instruction at the
+// same index.
 type sourceMap struct {
-	// files points to the shared file table mapping fileID indices
-	// to source file paths. Shared via pointer across functions
-	// compiled from the same compilation unit so that appends from
-	// any sub-compiler are visible to all.
+	// files points to the shared file table mapping fileID indices to source file paths.
+	// Shared via pointer across functions compiled from the same compilation unit so that
+	// appends from any sub-compiler are visible to all.
 	files *[]string
 
-	// positions is parallel to CompiledFunction.body. positions[pc]
-	// gives the source position for body[pc].
+	// positions is parallel to CompiledFunction.body. positions[pc] gives the source
+	// position for body[pc].
 	positions []sourcePosition
 }
 
-// SourcePosition returns the file path, line, and column for the
-// given program counter.
+// SourcePosition returns the file path, line, and column for the given program counter.
 //
 // Takes pc (int) which is the program counter to look up.
 //
-// Returns the file path, line number, and column number. Returns
-// empty string and zeros when the source map is nil, pc is out of
-// range, or the position is synthetic.
+// Returns the file path, line number, and column number.
+// Returns empty string and zeros when the source map is nil, pc is out of range, or the
+// position is synthetic.
 func (sm *sourceMap) SourcePosition(pc int) (file string, line int, column int) {
 	if sm == nil || pc < 0 || pc >= len(sm.positions) {
 		return "", 0, 0
@@ -78,8 +75,7 @@ func (cf *CompiledFunction) HasDebugSourceMap() bool {
 	return cf.debugSourceMap != nil
 }
 
-// DebugSourcePosition returns the source position for the given
-// program counter.
+// DebugSourcePosition returns the source position for the given program counter.
 //
 // Takes pc (int) which is the program counter to look up.
 //
@@ -98,9 +94,8 @@ func (cf *CompiledFunction) HasDebugVarTable() bool {
 	return cf.debugVarTable != nil
 }
 
-// debugVarEntry records debug information for a single variable
-// declaration, mapping a variable name to its runtime location
-// and the bytecode range where it is live.
+// debugVarEntry records debug information for a single variable declaration, mapping a
+// variable name to its runtime location and the bytecode range where it is live.
 type debugVarEntry struct {
 	// name is the source-level variable name.
 	name string
@@ -108,30 +103,25 @@ type debugVarEntry struct {
 	// location is the register or upvalue location at runtime.
 	location varLocation
 
-	// startPC is the first instruction (inclusive) where this
-	// variable is in scope.
+	// startPC is the first instruction (inclusive) where the variable is in scope.
 	startPC int
 
-	// endPC is the first instruction (exclusive) past this
-	// variable's scope. 0 means end-of-function.
+	// endPC is the first instruction (exclusive) past the variable's scope. 0 means
+	// end-of-function.
 	endPC int
 }
 
-// debugVarTable holds variable debug information for a single
-// compiled function.
+// debugVarTable holds variable debug information for a single compiled function.
 type debugVarTable struct {
-	// entries holds all variable declarations with their liveness
-	// ranges.
+	// entries holds all variable declarations with their liveness ranges.
 	entries []debugVarEntry
 }
 
-// LiveVariables returns the variable entries that are live at the
-// given program counter.
+// LiveVariables returns the variable entries that are live at the given program counter.
 //
 // Takes pc (int) which is the program counter to check liveness at.
 //
-// Returns a slice of debugVarEntry for variables whose scope
-// contains the given pc.
+// Returns a slice of debugVarEntry for variables whose scope contains the given pc.
 func (dvt *debugVarTable) LiveVariables(pc int) []debugVarEntry {
 	if dvt == nil {
 		return nil

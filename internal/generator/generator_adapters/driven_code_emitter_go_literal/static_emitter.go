@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	// scopeSeparator is the separator used to join multiple scope IDs in
-	// a scope chain for CSS scoping.
+	// scopeSeparator is the separator used to join multiple scope IDs in a scope chain for
+	// CSS scoping.
 	scopeSeparator = " "
 
 	// argTypeStatic marks an argument as a static literal value.
@@ -44,35 +44,33 @@ const (
 	// templateNodeTypeName is the type name for template nodes in generated code.
 	templateNodeTypeName = "TemplateNode"
 
-	// initialStatementCapacity is the pre-allocation size for statement slices
-	// (typically: init, NodeType, and optional content).
+	// initialStatementCapacity is the pre-allocation size for statement slices (typically:
+	// init, NodeType, and optional content).
 	initialStatementCapacity = 3
 )
 
-// StaticEmitter provides methods for hoisting and managing static AST nodes.
-// It enables mocking and testing of static node handling.
+// StaticEmitter provides methods for hoisting and managing static AST nodes. It enables
+// mocking and testing of static node handling.
 type StaticEmitter interface {
-	// registerStaticNode registers a static template node in the cross-reference
-	// system.
+	// registerStaticNode registers a static template node in the cross-reference system.
 	//
 	// Takes node (*ast_domain.TemplateNode) which is the static node to register.
-	// Takes partialScopeID (string) which is the current partial's HashedName for
-	// CSS scoping.
+	// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+	// scoping.
 	//
 	// Returns *goast.Ident which is the identifier for the registered node.
-	// Returns []*ast_domain.Diagnostic which contains any issues found during
-	// registration.
+	// Returns []*ast_domain.Diagnostic which contains any issues found during registration.
 	registerStaticNode(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (*goast.Ident, []*ast_domain.Diagnostic)
 
-	// registerStaticAttributes registers a static attribute slice and returns the
-	// variable name. If an identical attribute set was already registered, returns
-	// the existing variable name (deduplication).
+	// registerStaticAttributes registers a static attribute slice and returns the variable
+	// name. If an identical attribute set was already registered, returns the existing
+	// variable name (deduplication).
 	//
 	// Takes node (*ast_domain.TemplateNode) which provides the attributes.
 	// Takes partialScopeID (string) which is the current partial's HashedName.
 	//
-	// Returns string which is the variable name for the static attribute slice,
-	// or empty string if there are no attributes.
+	// Returns string which is the variable name for the static attribute slice, or empty
+	// string if there are no attributes.
 	registerStaticAttributes(node *ast_domain.TemplateNode, partialScopeID string) string
 
 	// buildDeclarations builds and returns the AST declarations.
@@ -86,9 +84,8 @@ type StaticEmitter interface {
 	buildInitFunction() goast.Decl
 }
 
-// staticEmitter creates static code declarations and init functions. It
-// implements StaticEmitter and stores a mapping of node hashes to variable
-// names.
+// staticEmitter creates static code declarations and init functions. It implements
+// StaticEmitter and stores a mapping of node hashes to variable names.
 type staticEmitter struct {
 	// emitter provides variable naming and source mapping helpers.
 	emitter *emitter
@@ -96,42 +93,40 @@ type staticEmitter struct {
 	// staticNodeCache maps node hashes to their root variable names.
 	staticNodeCache map[string]string
 
-	// staticAttrCache maps attribute content hashes to variable names.
-	// This avoids duplicating attribute sets across nodes.
+	// staticAttrCache maps attribute content hashes to variable names. This avoids
+	// duplicating attribute sets across nodes.
 	staticAttrCache map[string]string
 
 	// allStaticVarDecls maps variable names to their ValueSpec for the var block.
 	allStaticVarDecls map[string]*goast.ValueSpec
 
-	// staticAttrVarDecls maps variable names to their ValueSpec for attribute
-	// slices.
+	// staticAttrVarDecls maps variable names to their ValueSpec for attribute slices.
 	staticAttrVarDecls map[string]*goast.ValueSpec
 
-	// mainComponentScope is the hashed name of the main component being built.
-	// It is used to tell slotted content apart from nested partial content.
+	// mainComponentScope is the hashed name of the main component being built. It is used to
+	// tell slotted content apart from nested partial content.
 	mainComponentScope string
 
 	// initFunctionStatements holds the statements to add to the init() function.
 	initFunctionStatements []goast.Stmt
 }
 
-var _ StaticEmitter = (*staticEmitter)(nil)
+var (
+	_ StaticEmitter = (*staticEmitter)(nil)
+)
 
-// registerStaticNode registers a template node for static use. It checks a
-// cache to avoid repeated work and then starts the recursive process to build
-// the node.
+// registerStaticNode registers a template node for static use. It checks a cache to avoid
+// repeated work and then starts the recursive process to build the node.
 //
-// If the node is fully prerenderable and a prerenderer is available, the HTML
-// is rendered at generation time and stored as bytes for zero-copy output at
-// runtime.
+// If the node is fully prerenderable and a prerenderer is available, the HTML is rendered
+// at generation time and stored as bytes for zero-copy output at runtime.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to register.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns *goast.Ident which is the identifier for the registered static node.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from building
-// the node.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from building the node.
 func (se *staticEmitter) registerStaticNode(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (*goast.Ident, []*ast_domain.Diagnostic) {
 	nodeHash := ast_domain.SerialiseNodeString(node) + ":" + partialScopeID
 
@@ -160,12 +155,12 @@ func (se *staticEmitter) registerStaticNode(ctx context.Context, node *ast_domai
 	return cachedIdent(rootVarName), diagnostics
 }
 
-// registerPrerenderedNode registers a node that will use prerendered HTML
-// bytes. This generates a minimal TemplateNode with only PrerenderedHTML set.
+// registerPrerenderedNode registers a node that will use prerendered HTML bytes. This
+// generates a minimal TemplateNode with only PrerenderedHTML set.
 //
-// Before prerendering, this deep-clones the entire subtree and injects
-// `partial` and `p-key` attributes into every element node. This provides CSS
-// scoping and hydration work correctly for prerendered content.
+// Before prerendering, this deep-clones the entire subtree and injects `partial` and
+// `p-key` attributes into every element node. This provides CSS scoping and hydration
+// work correctly for prerendered content.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to prerender.
 // Takes nodeHash (string) which is the cache key for this node.
@@ -198,16 +193,15 @@ func (se *staticEmitter) registerPrerenderedNode(ctx context.Context, node *ast_
 	return cachedIdent(rootVarName), nil
 }
 
-// registerStaticNodeFallback registers a static node without prerendering.
-// Used when prerendering fails for any reason.
+// registerStaticNodeFallback registers a static node without prerendering. Used when
+// prerendering fails for any reason.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to register.
 // Takes nodeHash (string) which is the unique hash identifying the node.
 // Takes partialScopeID (string) which is the scope identifier for the partial.
 //
 // Returns *goast.Ident which is the identifier for the cached static node.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from building
-// the node.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from building the node.
 func (se *staticEmitter) registerStaticNodeFallback(ctx context.Context, node *ast_domain.TemplateNode, nodeHash, partialScopeID string) (*goast.Ident, []*ast_domain.Diagnostic) {
 	StaticNodeHoistedCount.Add(ctx, 1)
 
@@ -220,8 +214,8 @@ func (se *staticEmitter) registerStaticNodeFallback(ctx context.Context, node *a
 	return cachedIdent(rootVarName), diagnostics
 }
 
-// buildPrerenderedNodeStatements generates statements for a prerendered node.
-// Creates a minimal TemplateNode with only PrerenderedHTML set.
+// buildPrerenderedNodeStatements generates statements for a prerendered node. Creates a
+// minimal TemplateNode with only PrerenderedHTML set.
 //
 // Takes node (*ast_domain.TemplateNode) which provides source mapping info.
 // Takes varName (string) which is the variable name for this node.
@@ -259,14 +253,14 @@ func (se *staticEmitter) buildPrerenderedNodeStatements(node *ast_domain.Templat
 	return statements
 }
 
-// buildStaticNodeRecursive generates Go statements for a static template node
-// by delegating to specialised helpers for declaration, initialisation, and
-// population of the node and its children.
+// buildStaticNodeRecursive generates Go statements for a static template node by
+// delegating to specialised helpers for declaration, initialisation, and population of
+// the node and its children.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
 // Takes varName (string) which is the variable name to use for this node.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns []goast.Stmt which contains the generated statements.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics encountered.
@@ -294,8 +288,7 @@ func (se *staticEmitter) buildStaticNodeRecursive(ctx context.Context, node *ast
 	return statements, allDiags
 }
 
-// registerStaticVarDecl creates and registers a variable declaration for a
-// static node.
+// registerStaticVarDecl creates and registers a variable declaration for a static node.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the source mapping.
 // Takes varName (string) which names the variable in the declaration map.
@@ -308,8 +301,7 @@ func (se *staticEmitter) registerStaticVarDecl(node *ast_domain.TemplateNode, va
 	}
 }
 
-// createNodeInitialisation creates the initialisation statement for a static
-// node.
+// createNodeInitialisation creates the initialisation statement for a static node.
 //
 // Takes varName (string) which specifies the variable name for the node.
 //
@@ -322,13 +314,12 @@ func (*staticEmitter) createNodeInitialisation(varName string) goast.Stmt {
 	return assignExpression(varName, initExpr)
 }
 
-// setBasicNodeProperties sets the basic runtime properties on a node variable.
-// These properties are NodeType, TagName, and TextContent.
+// setBasicNodeProperties sets the basic runtime properties on a node variable. These
+// properties are NodeType, TagName, and TextContent.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the source node data.
 // Takes nodeVarIdent (*goast.Ident) which identifies the target variable.
-// Takes statements (*[]goast.Stmt) which collects the generated assignment
-// statements.
+// Takes statements (*[]goast.Stmt) which collects the generated assignment statements.
 func (*staticEmitter) setBasicNodeProperties(node *ast_domain.TemplateNode, nodeVarIdent *goast.Ident, statements *[]goast.Stmt) {
 	addStmt := func(leftHandSide string, rightHandSide goast.Expr) {
 		*statements = append(*statements, &goast.AssignStmt{
@@ -356,21 +347,16 @@ func (*staticEmitter) isContainerNode(node *ast_domain.TemplateNode) bool {
 	return node.NodeType == ast_domain.NodeElement || node.NodeType == ast_domain.NodeFragment
 }
 
-// buildStaticAttributes generates code for static attributes including partial
-// and key attributes. Uses collectAttributeEntries as the single source of
-// truth for which attributes to emit.
+// buildStaticAttributes generates code for static attributes including partial and key
+// attributes. Uses collectAttributeEntries as the single source of truth for which
+// attributes to emit.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the attributes
-// to emit.
-// Takes nodeVarIdent (*goast.Ident) which identifies the Go variable
-// for the node.
-// Takes partialScopeID (string) which is the scope identifier for
-// partial rendering.
+// Takes node (*ast_domain.TemplateNode) which provides the attributes to emit.
+// Takes nodeVarIdent (*goast.Ident) which identifies the Go variable for the node.
+// Takes partialScopeID (string) which is the scope identifier for partial rendering.
 //
-// Returns []goast.Stmt which contains the attribute assignment
-// statements.
-// Returns []*ast_domain.Diagnostic which contains any issues found
-// during emission.
+// Returns []goast.Stmt which contains the attribute assignment statements.
+// Returns []*ast_domain.Diagnostic which contains any issues found during emission.
 func (se *staticEmitter) buildStaticAttributes(node *ast_domain.TemplateNode, nodeVarIdent *goast.Ident, _ string, partialScopeID string) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	effectiveKey := getEffectiveKeyExpression(node)
 	if effectiveKey != nil {
@@ -405,14 +391,13 @@ func (se *staticEmitter) buildStaticAttributes(node *ast_domain.TemplateNode, no
 	return statements, nil
 }
 
-// calculateAttributeCapacity works out the required capacity for the
-// attributes slice.
+// calculateAttributeCapacity works out the required capacity for the attributes slice.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the template to check.
-// Takes effectiveKey (ast_domain.Expression) which is the optional key
-// directive expression.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes effectiveKey (ast_domain.Expression) which is the optional key directive
+// expression.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns int which is the total capacity needed for all attributes.
 func (se *staticEmitter) calculateAttributeCapacity(node *ast_domain.TemplateNode, effectiveKey ast_domain.Expression, partialScopeID string) int {
@@ -449,8 +434,8 @@ func (se *staticEmitter) hasPartialInfo(node *ast_domain.TemplateNode) bool {
 	return ok
 }
 
-// hasPartialQueryProps checks whether a public partial node has query-bound
-// primitive props that require a partial_props attribute.
+// hasPartialQueryProps checks whether a public partial node has query-bound primitive
+// props that require a partial_props attribute.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -469,21 +454,21 @@ func (se *staticEmitter) hasPartialQueryProps(node *ast_domain.TemplateNode) boo
 
 // buildStaticChildren creates code to build child nodes for a parent node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the parent node whose
-// children will be built.
-// Takes nodeVarIdent (*goast.Ident) which is the identifier for the parent
-// node variable in the generated code.
+// Takes node (*ast_domain.TemplateNode) which is the parent node whose children will be
+// built.
+// Takes nodeVarIdent (*goast.Ident) which is the identifier for the parent node variable
+// in the generated code.
 // Takes varName (string) which is the base name for child variable names.
-// Takes partialScopeID (string) which is the current partial's hashed name
-// for CSS scoping.
+// Takes partialScopeID (string) which is the current partial's hashed name for CSS
+// scoping.
 //
-// Returns []goast.Stmt which contains the generated statements for building
-// all child nodes.
-// Returns []*ast_domain.Diagnostic which contains any problems found while
-// building child nodes.
+// Returns []goast.Stmt which contains the generated statements for building all child
+// nodes.
+// Returns []*ast_domain.Diagnostic which contains any problems found while building child
+// nodes.
 //
-// Only creates the Children slice when there are children. This saves 24 bytes
-// per node by not creating empty slice headers.
+// Only creates the Children slice when there are children. This saves 24 bytes per node
+// by not creating empty slice headers.
 func (se *staticEmitter) buildStaticChildren(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -521,12 +506,12 @@ func (se *staticEmitter) buildStaticChildren(
 	return statements, diagnostics
 }
 
-// registerStaticAttributes registers a static attribute slice and returns the
-// variable name. If an identical attribute set was already registered, returns
-// the existing variable name (deduplication).
+// registerStaticAttributes registers a static attribute slice and returns the variable
+// name. If an identical attribute set was already registered, returns the existing
+// variable name (deduplication).
 //
-// This reuses the same attribute building logic as buildStaticAttributes but
-// creates a package-level composite literal instead of init-time statements.
+// This reuses the same attribute building logic as buildStaticAttributes but creates a
+// package-level composite literal instead of init-time statements.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the attributes.
 // Takes partialScopeID (string) which is the current partial's HashedName.
@@ -584,8 +569,8 @@ type attributeEntry struct {
 	Value string
 }
 
-// collectAttributeEntries builds the list of attributes for a node.
-// This is the single source of truth for which attributes a static node has.
+// collectAttributeEntries builds the list of attributes for a node. This is the single
+// source of truth for which attributes a static node has.
 //
 // Order: partial info attrs, key attr, ref attr, regular attrs, event attrs.
 //
@@ -609,16 +594,14 @@ func (se *staticEmitter) collectAttributeEntries(node *ast_domain.TemplateNode, 
 	return attrs
 }
 
-// appendPartialInfoAttrs adds partial scope or info attributes based on the
-// node context.
+// appendPartialInfoAttrs adds partial scope or info attributes based on the node context.
 //
 // Takes attrs ([]attributeEntry) which is the existing attribute list to extend.
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
-// Takes partialScopeID (string) which is the scope identifier for partial
-// elements.
+// Takes partialScopeID (string) which is the scope identifier for partial elements.
 //
-// Returns []attributeEntry which contains the original attributes plus any added
-// partial attributes.
+// Returns []attributeEntry which contains the original attributes plus any added partial
+// attributes.
 func (se *staticEmitter) appendPartialInfoAttrs(attrs []attributeEntry, node *ast_domain.TemplateNode, partialScopeID string) []attributeEntry {
 	if se.hasPartialInfo(node) {
 		pInfo := node.GoAnnotations.PartialInfo
@@ -645,8 +628,7 @@ func (se *staticEmitter) appendPartialInfoAttrs(attrs []attributeEntry, node *as
 // Takes attrs ([]attributeEntry) which is the existing attribute list to extend.
 // Takes node (*ast_domain.TemplateNode) which provides the directive reference.
 //
-// Returns []attributeEntry which is the attribute list with reference attributes
-// added.
+// Returns []attributeEntry which is the attribute list with reference attributes added.
 func (se *staticEmitter) appendRefAttrs(attrs []attributeEntry, node *ast_domain.TemplateNode) []attributeEntry {
 	if node.DirRef == nil || node.DirRef.RawExpression == "" {
 		return attrs
@@ -658,11 +640,11 @@ func (se *staticEmitter) appendRefAttrs(attrs []attributeEntry, node *ast_domain
 	return attrs
 }
 
-// buildDeclarations creates the top-level var block for all static nodes and
-// static attribute slices. It sorts variable names to ensure consistent output.
+// buildDeclarations creates the top-level var block for all static nodes and static
+// attribute slices. It sorts variable names to ensure consistent output.
 //
-// Returns goast.Decl which is the generated declaration block, or nil if there
-// are no static variable declarations.
+// Returns goast.Decl which is the generated declaration block, or nil if there are no
+// static variable declarations.
 func (se *staticEmitter) buildDeclarations() goast.Decl {
 	totalDecls := len(se.allStaticVarDecls) + len(se.staticAttrVarDecls)
 	if totalDecls == 0 {
@@ -694,11 +676,11 @@ func (se *staticEmitter) buildDeclarations() goast.Decl {
 	}
 }
 
-// buildInitFunction creates the init function that holds all setup statements
-// for the static nodes.
+// buildInitFunction creates the init function that holds all setup statements for the
+// static nodes.
 //
-// Returns goast.Decl which is the init function declaration, or nil if there
-// are no setup statements.
+// Returns goast.Decl which is the init function declaration, or nil if there are no setup
+// statements.
 func (se *staticEmitter) buildInitFunction() goast.Decl {
 	if len(se.initFunctionStatements) == 0 {
 		return nil
@@ -711,9 +693,9 @@ func (se *staticEmitter) buildInitFunction() goast.Decl {
 	}
 }
 
-// appendStaticEventAttrs adds static event attributes (p-on:*, p-event:*) to
-// the attribute list. Only processes events where IsStaticEvent == true and the
-// emission rules dictate that an HTML attribute should be generated.
+// appendStaticEventAttrs adds static event attributes (p-on:*, p-event:*) to the
+// attribute list. Only processes events where IsStaticEvent == true and the emission
+// rules dictate that an HTML attribute should be generated.
 //
 // Takes attrs ([]attributeEntry) which is the existing attribute list to extend.
 // Takes node (*ast_domain.TemplateNode) which provides the event directives.
@@ -726,15 +708,14 @@ func (se *staticEmitter) appendStaticEventAttrs(attrs []attributeEntry, node *as
 	return attrs
 }
 
-// appendStaticEventsFromMap processes a single event map (OnEvents or
-// CustomEvents) and adds static event attributes with pre-encoded payloads.
+// appendStaticEventsFromMap processes a single event map (OnEvents or CustomEvents) and
+// adds static event attributes with pre-encoded payloads.
 //
 // Takes attrs ([]attributeEntry) which is the existing attribute list to extend.
-// Takes events (map[string][]ast_domain.Directive) which is the event map to
-// process.
+// Takes events (map[string][]ast_domain.Directive) which is the event map to process.
 // Takes prefix (string) which is the attribute prefix ("p-on:" or "p-event:").
-// Takes node (*ast_domain.TemplateNode) which is the parent node for client
-// script lookup.
+// Takes node (*ast_domain.TemplateNode) which is the parent node for client script
+// lookup.
 //
 // Returns []attributeEntry which contains the original attributes plus any event
 // attributes.
@@ -779,18 +760,17 @@ func (se *staticEmitter) appendStaticEventsFromMap(
 	return attrs
 }
 
-// resolveStaticEventEmission determines if a static event should produce an
-// HTML attribute and returns the attribute name.
+// resolveStaticEventEmission determines if a static event should produce an HTML
+// attribute and returns the attribute name.
 //
-// Uses the same emission rules as
-// attribute_emitter_actions.resolveEventHandlerEmission to ensure consistency
-// between static and dynamic emission paths.
+// Uses the same emission rules as attribute_emitter_actions.resolveEventHandlerEmission
+// to ensure consistency between static and dynamic emission paths.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes eventName (string) which is the event name for the attribute key.
 // Takes prefix (string) which is the attribute prefix ("p-on:" or "p-event:").
-// Takes node (*ast_domain.TemplateNode) which is the parent node for client
-// script lookup.
+// Takes node (*ast_domain.TemplateNode) which is the parent node for client script
+// lookup.
 //
 // Returns string which is the attribute name (e.g., "p-on:click").
 // Returns bool which is true if the directive should produce an HTML attribute.
@@ -815,13 +795,12 @@ func (se *staticEmitter) resolveStaticEventEmission(
 	}
 }
 
-// staticDirectiveHasClientScript checks whether a directive comes from a
-// component with a client-side script. This is the static emitter's version of
-// the same check in attributeEmitter.
+// staticDirectiveHasClientScript checks whether a directive comes from a component with a
+// client-side script. This is the static emitter's version of the same check in
+// attributeEmitter.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
-// Takes node (*ast_domain.TemplateNode) which is the parent node for fallback
-// lookup.
+// Takes node (*ast_domain.TemplateNode) which is the parent node for fallback lookup.
 //
 // Returns bool which is true if the directive's source has a client script.
 func (se *staticEmitter) staticDirectiveHasClientScript(d *ast_domain.Directive, node *ast_domain.TemplateNode) bool {
@@ -848,13 +827,12 @@ func (se *staticEmitter) staticDirectiveHasClientScript(d *ast_domain.Directive,
 	return config.HasClientScript
 }
 
-// buildStaticEventPayload extracts static argument values from a directive
-// expression and encodes them as a base64 JSON payload string.
+// buildStaticEventPayload extracts static argument values from a directive expression and
+// encodes them as a base64 JSON payload string.
 //
 // Takes d (*ast_domain.Directive) which contains the event handler expression.
 //
-// Returns string which is the base64-encoded payload, or empty if encoding
-// fails.
+// Returns string which is the base64-encoded payload, or empty if encoding fails.
 func (*staticEmitter) buildStaticEventPayload(d *ast_domain.Directive) string {
 	callExpr := staticNormaliseToCallExpr(d.Expression)
 	if callExpr == nil {
@@ -879,8 +857,8 @@ func (*staticEmitter) buildStaticEventPayload(d *ast_domain.Directive) string {
 	return generator_helpers.EncodeStaticActionPayload(payload)
 }
 
-// countStaticEventAttributes counts the number of static event attributes that
-// will be emitted for a node.
+// countStaticEventAttributes counts the number of static event attributes that will be
+// emitted for a node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -892,12 +870,12 @@ func (se *staticEmitter) countStaticEventAttributes(node *ast_domain.TemplateNod
 	return count
 }
 
-// countStaticEventsInMap counts the number of static events in an event map
-// that will produce HTML attributes.
+// countStaticEventsInMap counts the number of static events in an event map that will
+// produce HTML attributes.
 //
 // Takes events (map[string][]ast_domain.Directive) which is the event map.
-// Takes node (*ast_domain.TemplateNode) which is the parent node for client
-// script lookup.
+// Takes node (*ast_domain.TemplateNode) which is the parent node for client script
+// lookup.
 //
 // Returns int which is the count of emittable static events.
 func (se *staticEmitter) countStaticEventsInMap(events map[string][]ast_domain.Directive, node *ast_domain.TemplateNode) int {
@@ -920,8 +898,7 @@ func (se *staticEmitter) countStaticEventsInMap(events map[string][]ast_domain.D
 // newStaticEmitter creates a new static emitter with empty caches.
 //
 // Takes emitter (*emitter) which provides the base emitter functions.
-// Takes mainComponentScope (string) which sets the scope for the main
-// component.
+// Takes mainComponentScope (string) which sets the scope for the main component.
 //
 // Returns *staticEmitter which is ready for use.
 func newStaticEmitter(emitter *emitter, mainComponentScope string) *staticEmitter {
@@ -936,8 +913,8 @@ func newStaticEmitter(emitter *emitter, mainComponentScope string) *staticEmitte
 	}
 }
 
-// byteLit creates a Go AST expression for a byte slice literal from bytes.
-// Uses string literal conversion for readability: []byte("content").
+// byteLit creates a Go AST expression for a byte slice literal from bytes. Uses string
+// literal conversion for readability: []byte("content").
 //
 // Takes b ([]byte) which provides the bytes to convert to a literal.
 //
@@ -949,23 +926,21 @@ func byteLit(b []byte) goast.Expr {
 	}
 }
 
-// getEffectivePartialScopeID finds the correct scope ID for a node based on
-// its link to the main component and parent scope.
+// getEffectivePartialScopeID finds the correct scope ID for a node based on its link to
+// the main component and parent scope.
 //
-// When a node has its own OriginalPackageAlias from a nested partial, this returns
-// a combined scope with both the parent scope and the node scope, letting
-// parent CSS style elements in nested partials using the [partial~=xxx]
-// selector.
+// When a node has its own OriginalPackageAlias from a nested partial, this returns a
+// combined scope with both the parent scope and the node scope, letting parent CSS style
+// elements in nested partials using the [partial~=name] selector.
 //
-// Slotted content (content passed from the main component to a child partial's
-// slot) does not inherit the receiver's scope. Slotted content has its
-// OriginalPackageAlias equal to the main component scope.
+// Slotted content (content passed from the main component to a child partial's slot) does
+// not inherit the receiver's scope. Slotted content has its OriginalPackageAlias equal to
+// the main component scope.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node to check for its own
-// scope.
+// Takes node (*ast_domain.TemplateNode) which is the node to check for its own scope.
 // Takes parentScopeID (string) which is the scope from the parent context.
-// Takes mainComponentScope (string) which is the HashedName of the main
-// component being built.
+// Takes mainComponentScope (string) which is the HashedName of the main component being
+// built.
 //
 // Returns string which is the scope ID to use for this node.
 func getEffectivePartialScopeID(node *ast_domain.TemplateNode, parentScopeID, mainComponentScope string) string {
@@ -1002,8 +977,7 @@ func getEffectivePartialScopeID(node *ast_domain.TemplateNode, parentScopeID, ma
 //
 // Takes scopeChain (string) which is the list of scope IDs separated by spaces.
 //
-// Returns string which is the first scope, or an empty string if the chain is
-// empty.
+// Returns string which is the first scope, or an empty string if the chain is empty.
 func getFirstScope(scopeChain string) string {
 	if scopeChain == "" {
 		return ""
@@ -1032,11 +1006,10 @@ func containsScope(scopeChain, scope string) bool {
 // appendKeyAttr adds the p-key attribute if the key is a string literal.
 //
 // Takes attrs ([]attributeEntry) which holds the current list of attributes.
-// Takes effectiveKey (ast_domain.Expression) which is the key expression to
-// check.
+// Takes effectiveKey (ast_domain.Expression) which is the key expression to check.
 //
-// Returns []attributeEntry which is the attribute list, with p-key added if the
-// key was a string literal.
+// Returns []attributeEntry which is the attribute list, with p-key added if the key was a
+// string literal.
 func appendKeyAttr(attrs []attributeEntry, effectiveKey ast_domain.Expression) []attributeEntry {
 	if effectiveKey == nil {
 		return attrs
@@ -1047,12 +1020,12 @@ func appendKeyAttr(attrs []attributeEntry, effectiveKey ast_domain.Expression) [
 	return attrs
 }
 
-// appendRegularAttrs adds standard HTML attributes to the given slice, skipping
-// dynamic class and style attributes.
+// appendRegularAttrs adds standard HTML attributes to the given slice, skipping dynamic
+// class and style attributes.
 //
 // Takes attrs ([]attributeEntry) which is the slice to add attributes to.
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// read attributes from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to read
+// attributes from.
 //
 // Returns []attributeEntry which contains the original entries plus any standard
 // attributes from the node, with values escaped for HTML.
@@ -1069,8 +1042,8 @@ func appendRegularAttrs(attrs []attributeEntry, node *ast_domain.TemplateNode) [
 	return attrs
 }
 
-// shouldSkipDynamicAttr reports whether an attribute should be skipped because
-// it is handled dynamically.
+// shouldSkipDynamicAttr reports whether an attribute should be skipped because it is
+// handled dynamically.
 //
 // Takes name (string) which is the attribute name to check.
 // Takes skipClass (bool) which is true when class attributes are skipped.
@@ -1100,17 +1073,16 @@ func computeAttrHash(attrs []attributeEntry) string {
 	return builder.String()
 }
 
-// staticNormaliseToCallExpr converts an expression to a CallExpr.
-// Uses the same logic as attribute_emitter_actions.normaliseToCallExpr.
+// staticNormaliseToCallExpr converts an expression to a CallExpr. Uses the same logic as
+// attribute_emitter_actions.normaliseToCallExpr.
 //
-// When the expression is a bare Identifier, wraps it with an implicit $event
-// argument, making bare handler equivalent to handler($event).
+// When the expression is a bare Identifier, wraps it with an implicit $event argument,
+// making bare handler equivalent to handler($event).
 //
 // Takes expression (ast_domain.Expression) which is the expression to convert.
 //
-// Returns *ast_domain.CallExpression which is the converted call
-// expression, or nil if the expression is not a CallExpr or
-// Identifier.
+// Returns *ast_domain.CallExpression which is the converted call expression, or nil if
+// the expression is not a CallExpr or Identifier.
 func staticNormaliseToCallExpr(expression ast_domain.Expression) *ast_domain.CallExpression {
 	if ce, isCall := expression.(*ast_domain.CallExpression); isCall {
 		return ce
@@ -1128,8 +1100,7 @@ func staticNormaliseToCallExpr(expression ast_domain.Expression) *ast_domain.Cal
 
 // extractStaticArgs converts a slice of expressions into action arguments.
 //
-// Takes exprs ([]ast_domain.Expression) which contains the expressions to
-// convert.
+// Takes exprs ([]ast_domain.Expression) which contains the expressions to convert.
 //
 // Returns []templater_dto.ActionArgument which holds the converted arguments.
 // Returns bool which is true if all arguments are static.
@@ -1186,12 +1157,11 @@ func extractStaticArg(expression ast_domain.Expression) (templater_dto.ActionArg
 	}
 }
 
-// extractStaticValue extracts a static value from an expression, returning the
-// raw Go value rather than an ActionArgument. Used for recursively
-// extracting nested object and array literal contents.
+// extractStaticValue extracts a static value from an expression, returning the raw Go
+// value rather than an ActionArgument. Used for recursively extracting nested object and
+// array literal contents.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to extract from.
+// Takes expression (ast_domain.Expression) which is the expression to extract from.
 //
 // Returns any which is the extracted value.
 // Returns bool which is true if the expression is a static literal.
@@ -1214,11 +1184,10 @@ func extractStaticValue(expression ast_domain.Expression) (any, bool) {
 	}
 }
 
-// extractStaticObject recursively extracts all key-value pairs from an object
-// literal into a map[string]any. All values must be static literals.
+// extractStaticObject recursively extracts all key-value pairs from an object literal
+// into a map[string]any. All values must be static literals.
 //
-// Takes objectLiteral (*ast_domain.ObjectLiteral) which is the object
-// literal to extract.
+// Takes objectLiteral (*ast_domain.ObjectLiteral) which is the object literal to extract.
 //
 // Returns map[string]any which holds the extracted key-value pairs.
 // Returns bool which is true if all values are static literals.
@@ -1234,8 +1203,8 @@ func extractStaticObject(objectLiteral *ast_domain.ObjectLiteral) (map[string]an
 	return result, true
 }
 
-// extractStaticArray recursively extracts all elements from an array literal
-// into a []any. All elements must be static literals.
+// extractStaticArray recursively extracts all elements from an array literal into a
+// []any. All elements must be static literals.
 //
 // Takes arr (*ast_domain.ArrayLiteral) which is the array literal to extract.
 //
@@ -1253,12 +1222,12 @@ func extractStaticArray(arr *ast_domain.ArrayLiteral) ([]any, bool) {
 	return result, true
 }
 
-// preprocessEventsForPrerendering walks the node tree and encodes all static
-// event directives as base64 JSON. This makes the prerendered HTML ready for
-// the client-side JavaScript to parse.
+// preprocessEventsForPrerendering walks the node tree and encodes all static event
+// directives as base64 JSON. This makes the prerendered HTML ready for the client-side
+// JavaScript to parse.
 //
-// Takes node (*ast_domain.TemplateNode) which is the root node to process.
-// The node and its children are changed in place.
+// Takes node (*ast_domain.TemplateNode) which is the root node to process. The node and
+// its children are changed in place.
 func preprocessEventsForPrerendering(node *ast_domain.TemplateNode) {
 	if node == nil {
 		return
@@ -1270,11 +1239,11 @@ func preprocessEventsForPrerendering(node *ast_domain.TemplateNode) {
 	}
 }
 
-// encodeEventMap encodes the RawExpression of each static event directive in
-// the map to a base64 JSON payload.
+// encodeEventMap encodes the RawExpression of each static event directive in the map to a
+// base64 JSON payload.
 //
-// Takes events (map[string][]ast_domain.Directive) which contains the event
-// directives to encode.
+// Takes events (map[string][]ast_domain.Directive) which contains the event directives to
+// encode.
 func encodeEventMap(events map[string][]ast_domain.Directive) {
 	for eventName := range events {
 		directives := events[eventName]
@@ -1291,15 +1260,13 @@ func encodeEventMap(events map[string][]ast_domain.Directive) {
 	}
 }
 
-// encodeDirectivePayload extracts static argument values from a directive
-// expression and encodes them as a base64 JSON payload string. This is a
-// standalone version of buildStaticEventPayload for use during prerendering
-// preprocessing.
+// encodeDirectivePayload extracts static argument values from a directive expression and
+// encodes them as a base64 JSON payload string. This is a standalone version of
+// buildStaticEventPayload for use during prerendering preprocessing.
 //
 // Takes d (*ast_domain.Directive) which contains the event handler expression.
 //
-// Returns string which is the base64-encoded payload, or empty if encoding
-// fails.
+// Returns string which is the base64-encoded payload, or empty if encoding fails.
 func encodeDirectivePayload(d *ast_domain.Directive) string {
 	callExpr := staticNormaliseToCallExpr(d.Expression)
 	if callExpr == nil {

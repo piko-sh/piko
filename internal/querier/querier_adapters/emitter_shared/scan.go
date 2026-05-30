@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// BuildMethodParams constructs the parameter field list for a query method.
-// Always starts with ctx context.Context.
+// BuildMethodParams constructs the parameter field list for a query method. Always starts
+// with ctx context.Context.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the parameters.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
@@ -69,8 +69,7 @@ func BuildMethodParams(
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the parameters.
 //
-// Returns []ast.Expr which contains ctx, sql constant, and parameter
-// expressions.
+// Returns []ast.Expr which contains ctx, sql constant, and parameter expressions.
 func BuildQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	arguments := []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
@@ -92,8 +91,8 @@ func BuildQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	return arguments
 }
 
-// BuildScanArgs constructs &row.Field expressions for rows.Scan calls.
-// When embeds are present, embedded columns scan into &row.Embed.Field.
+// BuildScanArgs constructs &row.Field expressions for rows.Scan calls. When embeds are
+// present, embedded columns scan into &row.Embed.Field.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the output columns.
 //
@@ -122,13 +121,13 @@ func BuildScanArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	return scanArguments
 }
 
-// BuildEmbedPreAllocStatements generates allocation statements for outer-join
-// embed pointers before scanning (e.g. row.User = &GetOrderUser{}).
+// BuildEmbedPreAllocStatements generates allocation statements for outer-join embed
+// pointers before scanning (e.g. row.User = &GetOrderUser{}).
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the output columns.
 //
-// Returns []ast.Stmt which contains the allocation statements, or nil when
-// there are no outer-join embeds.
+// Returns []ast.Stmt which contains the allocation statements, or nil when there are no
+// outer-join embeds.
 func BuildEmbedPreAllocStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	if !HasEmbeddedColumns(query) {
 		return nil
@@ -154,17 +153,15 @@ func BuildEmbedPreAllocStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return statements
 }
 
-// BuildEmbedNilCheckStatements generates nil checks for
-// outer-join embeds after scanning.
+// BuildEmbedNilCheckStatements generates nil checks for outer-join embeds after scanning.
 //
-// When the first column of the embed is nil, the embed
-// pointer is set to nil (e.g. if row.User.Id == nil then
-// row.User = nil).
+// When the first column of the embed is nil, the embed pointer is set to nil (e.g. if
+// row.User.Id == nil then row.User = nil).
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the output columns.
 //
-// Returns []ast.Stmt which contains the nil-check statements, or nil when
-// there are no outer-join embeds.
+// Returns []ast.Stmt which contains the nil-check statements, or nil when there are no
+// outer-join embeds.
 func BuildEmbedNilCheckStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	if !HasEmbeddedColumns(query) {
 		return nil
@@ -204,8 +201,7 @@ func BuildEmbedNilCheckStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 
 // BuildErrCheck constructs an if err != nil { return ..., err } statement.
 //
-// Takes zeroValues ([]ast.Expr) which are the zero values to return alongside
-// the error.
+// Takes zeroValues ([]ast.Expr) which are the zero values to return alongside the error.
 //
 // Returns *ast.IfStmt which is the error check statement.
 func BuildErrCheck(zeroValues ...ast.Expr) *ast.IfStmt {
@@ -225,8 +221,8 @@ func BuildErrCheck(zeroValues ...ast.Expr) *ast.IfStmt {
 	}
 }
 
-// ConnectionField returns the DBTX field name to use for a query, selecting
-// the reader for read-only queries and the writer otherwise.
+// ConnectionField returns the DBTX field name to use for a query, selecting the reader
+// for read-only queries and the writer otherwise.
 //
 // Takes query (*querier_dto.AnalysedQuery) which is the query to inspect.
 //

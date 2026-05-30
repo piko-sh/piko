@@ -16,18 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics provides text processing utilities for search and
-// natural language processing.
+// Package linguistics provides text processing utilities for search and natural language
+// processing.
 //
-// The analysis pipeline covers tokenisation, normalisation, stemming,
-// phonetic encoding, stop word filtering, string similarity metrics,
-// and fuzzy matching. It supports multiple languages and is designed
-// for use with Piko's zero-copy search system.
+// The analysis pipeline covers tokenisation, normalisation, stemming, phonetic encoding,
+// stop word filtering, string similarity metrics, and fuzzy matching. It supports
+// multiple languages and is designed for use with Piko's zero-copy search system.
 //
-// Stemmers, phonetic encoders, and stop words providers use a factory
-// registry pattern. Language-specific implementations live in separate
-// sub-packages and self-register via init functions, so a blank import
-// is enough to make a language available:
+// Stemmers, phonetic encoders, and stop words providers use a factory registry pattern.
+// Language-specific implementations live in separate sub-packages and self-register via
+// init functions, so a blank import is enough to make a language available:
 //
 //	import _ "piko.sh/piko/wdk/linguistics/linguistics_language_english"
 //
@@ -36,12 +34,10 @@
 //	    linguistics.WithStemmer(stemmer),
 //	)
 //
-// For multi-language applications, create a separate [Analyser] per
-// language.
+// For multi-language applications, create a separate [Analyser] per language.
 //
 // # Thread safety
 //
-// [Normaliser] is safe for concurrent use. [Analyser], [Tokeniser],
-// [Stemmer], and [PhoneticEncoder] instances should not be shared
-// between goroutines.
+// [Normaliser] is safe for concurrent use. [Analyser], [Tokeniser], [Stemmer], and
+// [PhoneticEncoder] instances should not be shared between goroutines.
 package linguistics

@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pml_dto holds configuration structs for the PikoML templating
-// engine.
+// Package pml_dto holds configuration structs for the PikoML templating engine.
 //
-// These structs are populated programmatically by the framework's bootstrap
-// pipeline and control how PikoML templates are parsed, validated, and
-// rendered.
+// These structs are populated programmatically by the framework's bootstrap pipeline and
+// control how PikoML templates are parsed, validated, and rendered.
 package pml_dto

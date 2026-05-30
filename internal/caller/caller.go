@@ -18,9 +18,9 @@
 
 package caller
 
-// PC represents a program counter, which identifies a specific location in the
-// executing binary's code. A PC can be resolved to a function name, file path,
-// and line number using the [PC.NameFileLine] method.
+// PC represents a program counter, which identifies a specific location in the executing
+// binary's code. A PC can be resolved to a function name, file path, and line number
+// using the PC.NameFileLine method.
 //
 // PC values are only meaningful within the same binary where they were captured.
 type PC uintptr

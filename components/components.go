@@ -22,8 +22,10 @@ import (
 	"piko.sh/piko/internal/component/component_dto"
 )
 
-// modulePath is the Go module path for the built-in components package.
-const modulePath = "piko.sh/piko/components"
+const (
+	// modulePath is the Go module path for the built-in components package.
+	modulePath = "piko.sh/piko/components"
+)
 
 var (
 	// m3eAssets lists module-root-relative directories whose files should be

@@ -18,8 +18,10 @@
 
 package ast_domain
 
-// Provides FNV-1a 32-bit hashing utilities for generating stable, HTML-safe keys from strings, floats, and arbitrary values.
-// Uses pooled hashers and fast hex encoding to produce consistent 8-character identifiers for p-key values without allocation overhead.
+// Provides FNV-1a 32-bit hashing utilities for generating stable, HTML-safe keys from
+// strings, floats, and arbitrary values. Uses pooled hashers and fast hex encoding to
+// produce consistent 8-character identifiers for p-key values without allocation
+// overhead.
 
 import (
 	"encoding/binary"
@@ -62,17 +64,17 @@ const (
 )
 
 var (
-	// fnvPool reuses FNV-1a 32-bit hashers to reduce allocation overhead.
-	// FNV-32 produces 8 hex characters, which is a good balance between
-	// key length and collision resistance for p-key values.
+	// fnvPool reuses FNV-1a 32-bit hashers to reduce allocation overhead. FNV-32 produces 8
+	// hex characters, which is a good balance between key length and collision resistance
+	// for p-key values.
 	fnvPool = sync.Pool{
 		New: func() any {
 			return fnv.New32a()
 		},
 	}
 
-	// fnvHexBufPool reuses fixed-size byte buffers to reduce allocation pressure
-	// during FNV hex encoding.
+	// fnvHexBufPool reuses fixed-size byte buffers to reduce allocation pressure during FNV
+	// hex encoding.
 	fnvHexBufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, fnvHexBufSize))
@@ -83,8 +85,8 @@ var (
 	hexTable = [16]byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 )
 
-// FNVHexBuf wraps a pooled buffer for FNV hex output.
-// Use Bytes to get the buffer contents, then call Release when done.
+// FNVHexBuf wraps a pooled buffer for FNV hex output. Use Bytes to get the buffer
+// contents, then call Release when done.
 type FNVHexBuf struct {
 	// ptr holds the pooled byte slice; nil when released.
 	ptr *[]byte
@@ -108,12 +110,11 @@ func (b *FNVHexBuf) Release() {
 	}
 }
 
-// AppendFNVString hashes a string using FNV-1a 32-bit and appends the
-// 8-character hex-encoded result to the buffer.
+// AppendFNVString hashes a string using FNV-1a 32-bit and appends the 8-character
+// hex-encoded result to the buffer.
 //
-// This is used for p-key values where the string content is untrusted or
-// could contain problematic characters (HTML special chars, very long
-// strings, etc.).
+// This is used for p-key values where the string content is untrusted or could contain
+// problematic characters (HTML special chars, very long strings, etc.).
 //
 // The FNV hash provides:
 //   - Consistent 8-character output regardless of input length
@@ -132,14 +133,13 @@ func AppendFNVString(buffer []byte, s string) []byte {
 	return appendHex32(buffer, sum)
 }
 
-// AppendFNVFloat hashes a float64 using its binary representation via FNV-1a
-// 32-bit and appends the result to the buffer.
+// AppendFNVFloat hashes a float64 using its binary representation via FNV-1a 32-bit and
+// appends the result to the buffer.
 //
-// This avoids confusion with key path delimiters (floats contain '.') and
-// precision issues like 0.1 + 0.2 = 0.30000000000000004. The binary
-// representation provides consistent hashing regardless of decimal
-// representation, correct handling of NaN and Infinity, and no floating-point
-// precision surprises in keys.
+// This avoids confusion with key path delimiters (floats contain '.') and precision
+// issues like 0.1 + 0.2 = 0.30000000000000004. The binary representation provides
+// consistent hashing regardless of decimal representation, correct handling of NaN and
+// Infinity, and no floating-point precision surprises in keys.
 //
 // Takes buffer ([]byte) which is the buffer to append the hash to.
 // Takes f (float64) which is the value to hash.
@@ -156,11 +156,11 @@ func AppendFNVFloat(buffer []byte, f float64) []byte {
 	return appendHex32(buffer, sum)
 }
 
-// AppendFNVAny hashes an arbitrary value using its fmt.Stringer
-// representation (or fmt.Sprint fallback) via FNV-1a 32-bit.
+// AppendFNVAny hashes an arbitrary value using its fmt.Stringer representation (or
+// fmt.Sprint fallback) via FNV-1a 32-bit.
 //
-// This is the fallback for unknown types that cannot be optimised at
-// generation time. The hash provides:
+// This is the fallback for unknown types that cannot be optimised at generation time. The
+// hash provides:
 //   - Bounded output length (8 chars) for any input
 //   - Safe for HTML attributes (hex-only output)
 //
@@ -191,8 +191,8 @@ func AppendFNVAny(buffer []byte, v any) []byte {
 	return appendHex32(buffer, sum)
 }
 
-// GetFNVStringBuf computes the FNV-1a hash of a string and returns a pooled
-// buffer with the 8-character hex result.
+// GetFNVStringBuf computes the FNV-1a hash of a string and returns a pooled buffer with
+// the 8-character hex result.
 //
 // The caller MUST call Release() on the returned buffer when done.
 //
@@ -213,15 +213,14 @@ func GetFNVStringBuf(s string) FNVHexBuf {
 	return FNVHexBuf{ptr: bufferPointer}
 }
 
-// GetFNVFloatBuf computes the FNV-1a hash of a float64 and returns a pooled
-// buffer containing the 8-character hex result.
+// GetFNVFloatBuf computes the FNV-1a hash of a float64 and returns a pooled buffer
+// containing the 8-character hex result.
 //
 // The caller MUST call Release() on the returned buffer when done.
 //
 // Takes f (float64) which is the value to hash.
 //
-// Returns FNVHexBuf which wraps a pooled buffer containing the hex-encoded
-// hash.
+// Returns FNVHexBuf which wraps a pooled buffer containing the hex-encoded hash.
 func GetFNVFloatBuf(f float64) FNVHexBuf {
 	h := getFNVHasher()
 	bits := math.Float64bits(f)
@@ -239,16 +238,15 @@ func GetFNVFloatBuf(f float64) FNVHexBuf {
 	return FNVHexBuf{ptr: bufferPointer}
 }
 
-// GetFNVAnyBuf computes the FNV-1a hash of any value and returns a pooled
-// buffer containing the 8-character hex result.
+// GetFNVAnyBuf computes the FNV-1a hash of any value and returns a pooled buffer
+// containing the 8-character hex result.
 //
-// The caller MUST call Release() on the returned buffer when done. When v is
-// nil, returns an empty FNVHexBuf (Bytes() returns nil, Release() is a no-op).
+// The caller MUST call Release() on the returned buffer when done. When v is nil, returns
+// an empty FNVHexBuf (Bytes() returns nil, Release() is a no-op).
 //
 // Takes v (any) which is the value to hash.
 //
-// Returns FNVHexBuf which wraps a pooled buffer containing the hex-encoded
-// hash.
+// Returns FNVHexBuf which wraps a pooled buffer containing the hex-encoded hash.
 func GetFNVAnyBuf(v any) FNVHexBuf {
 	if v == nil {
 		return FNVHexBuf{}
@@ -276,8 +274,8 @@ func GetFNVAnyBuf(v any) FNVHexBuf {
 	return FNVHexBuf{ptr: bufferPointer}
 }
 
-// ResetFNVPool resets the FNV hasher pool to its initial state.
-// Call this via t.Cleanup(ResetFNVPool) in tests to ensure test isolation.
+// ResetFNVPool resets the FNV hasher pool to its initial state. Call this via
+// t.Cleanup(ResetFNVPool) in tests to ensure test isolation.
 func ResetFNVPool() {
 	fnvPool = sync.Pool{
 		New: func() any {
@@ -288,8 +286,8 @@ func ResetFNVPool() {
 
 // getFNVHasher returns a FNV-32a hasher from the pool.
 //
-// Returns hash.Hash32 which is a reset hasher from the pool, or a new one if
-// the pool is empty.
+// Returns hash.Hash32 which is a reset hasher from the pool, or a new one if the pool is
+// empty.
 func getFNVHasher() hash.Hash32 {
 	h, ok := fnvPool.Get().(hash.Hash32)
 	if !ok {
@@ -306,8 +304,8 @@ func putFNVHasher(h hash.Hash32) {
 	fnvPool.Put(h)
 }
 
-// appendHex32 appends an 8-character hex string of a uint32 to a buffer.
-// Uses a lookup table for fast encoding without memory allocation.
+// appendHex32 appends an 8-character hex string of a uint32 to a buffer. Uses a lookup
+// table for fast encoding without memory allocation.
 //
 // Takes buffer ([]byte) which is the buffer to append to.
 // Takes sum (uint32) which is the value to encode as hex.
@@ -326,8 +324,8 @@ func appendHex32(buffer []byte, sum uint32) []byte {
 	)
 }
 
-// writeHex32ToBuf writes a uint32 value as an 8-character hex string into a
-// buffer. The buffer must be at least 8 bytes long.
+// writeHex32ToBuf writes a uint32 value as an 8-character hex string into a buffer. The
+// buffer must be at least 8 bytes long.
 //
 // Takes buffer ([]byte) which is the target buffer to write into.
 // Takes sum (uint32) which is the value to convert to hex.

@@ -1,0 +1,5 @@
+{
+  "description": "main reads an exported fixed-size byte-array var initialised via Must(Parse(...)) - mirrors github.com/google/uuid's NameSpaceURL pattern",
+  "modulePath": "testpkg",
+  "expected": "b0=6b b4=9d b15=c8 first=true"
+}

@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// storageError represents a failure for a single storage operation on a
-// specific object. It implements the error interface.
+// storageError represents a failure for a single storage operation on a specific object.
+// It implements the error interface.
 type storageError struct {
 	// Err is the underlying error that caused the storage failure.
 	Err error
@@ -45,10 +45,9 @@ func (e *storageError) Error() string {
 	return fmt.Sprintf("storage error for key '%s' in repository '%s': %v", e.Key, e.Repository, e.Err)
 }
 
-// multiError collects multiple storageError instances, typically from a bulk
-// operation. It implements the error interface and allows for partial success,
-// where an operation can complete for some objects while returning detailed
-// errors for those that failed.
+// multiError collects multiple storageError instances, typically from a bulk operation.
+// It implements the error interface and allows for partial success, where an operation
+// can complete for some objects while returning detailed errors for those that failed.
 type multiError struct {
 	// Errors holds the list of storage errors found during validation.
 	Errors []*storageError
@@ -74,12 +73,11 @@ func (me *multiError) HasErrors() bool {
 	return len(me.Errors) > 0
 }
 
-// Error implements the standard error interface, providing a summary of all
-// contained errors.
+// Error implements the standard error interface, providing a summary of all contained
+// errors.
 //
-// Returns string which contains "no storage errors" when empty, the single
-// error message when only one error exists, or a formatted summary of all
-// errors joined by semicolons.
+// Returns string which contains "no storage errors" when empty, the single error message
+// when only one error exists, or a formatted summary of all errors joined by semicolons.
 func (me *multiError) Error() string {
 	if !me.HasErrors() {
 		return "no storage errors"
@@ -99,23 +97,21 @@ func (me *multiError) Error() string {
 
 // newMultiError creates a new multiError.
 //
-// Returns *multiError which is an empty error collection ready to gather
-// errors.
+// Returns *multiError which is an empty error collection ready to gather errors.
 func newMultiError() *multiError {
 	return &multiError{
 		Errors: make([]*storageError, 0),
 	}
 }
 
-// batchResultToMultiError converts a BatchResult to a multiError for use with
-// existing error handling code.
+// batchResultToMultiError converts a BatchResult to a multiError for use with existing
+// error handling code.
 //
 // Takes repo (string) which identifies the repository for error messages.
-// Takes result (*storage_dto.BatchResult) which holds the batch operation
-// outcome.
+// Takes result (*storage_dto.BatchResult) which holds the batch operation outcome.
 //
-// Returns *multiError which collects all errors from failed batch keys, or nil
-// when result is nil or has no errors.
+// Returns *multiError which collects all errors from failed batch keys, or nil when
+// result is nil or has no errors.
 func batchResultToMultiError(repo string, result *storage_dto.BatchResult) *multiError {
 	if result == nil || !result.HasErrors() {
 		return nil

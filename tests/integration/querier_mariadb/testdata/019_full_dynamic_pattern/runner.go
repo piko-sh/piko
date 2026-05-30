@@ -66,8 +66,8 @@ func main() {
 
 	result := map[string]any{
 		"no_filter_price_desc": noFilterPriceDesc,
-		"fruit_name_asc":      fruitNameAsc,
-		"defaults":            defaults,
+		"fruit_name_asc":       fruitNameAsc,
+		"defaults":             defaults,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

@@ -34,7 +34,7 @@ func buildIntBinaryOp(op opcode, a, b int64) *CompiledFunction {
 	bb.emit(opLoadIntConst, 1, 0, 0)
 	bb.emit(opLoadIntConst, 2, 1, 0)
 	bb.emit(op, 0, 1, 2)
-	bb.emit(opReturn, 1, 0, 0)
+	bb.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 	return bb.build()
 }
 
@@ -46,7 +46,7 @@ func buildFloatBinaryOp(op opcode, a, b float64) *CompiledFunction {
 	bb.emit(opLoadFloatConst, 1, 0, 0)
 	bb.emit(opLoadFloatConst, 2, 1, 0)
 	bb.emit(op, 0, 1, 2)
-	bb.emit(opReturn, 1, 0, 0)
+	bb.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 	return bb.build()
 }
 
@@ -62,7 +62,7 @@ func buildFloatComparisonOp(op opcode, a, b float64) *CompiledFunction {
 	bb.emit(opLoadFloatConst, 0, 0, 0)
 	bb.emit(opLoadFloatConst, 1, 1, 0)
 	bb.emit(op, 0, 0, 1)
-	bb.emit(opReturn, 1, 0, 0)
+	bb.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 	return bb.build()
 }
 
@@ -122,8 +122,8 @@ func TestOpcodeHandlersArithmetic(t *testing.T) {
 		b.addIntConst(42)
 		b.intRegisters(2).returnInt()
 		b.emit(opLoadIntConst, 1, 0, 0)
-		b.emit(opNegInt, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpNegInt), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(-42))
 	})
 	t.Run("opIncInt", func(t *testing.T) {
@@ -132,8 +132,8 @@ func TestOpcodeHandlersArithmetic(t *testing.T) {
 		b.addIntConst(41)
 		b.intRegisters(1).returnInt()
 		b.emit(opLoadIntConst, 0, 0, 0)
-		b.emit(opIncInt, 0, 0, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncInt), 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 	t.Run("opDecInt", func(t *testing.T) {
@@ -142,8 +142,8 @@ func TestOpcodeHandlersArithmetic(t *testing.T) {
 		b.addIntConst(43)
 		b.intRegisters(1).returnInt()
 		b.emit(opLoadIntConst, 0, 0, 0)
-		b.emit(opDecInt, 0, 0, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DecInt), 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 }
@@ -173,8 +173,8 @@ func TestOpcodeHandlersFloat(t *testing.T) {
 		b.addFloatConst(42.0)
 		b.floatRegisters(2).returnFloat()
 		b.emit(opLoadFloatConst, 1, 0, 0)
-		b.emit(opNegFloat, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpNegFloat), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), float64(-42.0))
 	})
 }
@@ -202,9 +202,9 @@ func TestOpcodeHandlersBitwise(t *testing.T) {
 		t.Parallel()
 		b := newBytecodeBuilder()
 		b.intRegisters(2).returnInt()
-		b.emit(opLoadIntConstSmall, 1, 0, 0)
-		b.emit(opBitNot, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpLoadIntConstSmall), 1, 0)
+		b.emit(opDrillTier1, uint8(subOpBitNot), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(-1))
 	})
 	t.Run("opShiftLeft", func(t *testing.T) {
@@ -260,18 +260,18 @@ func TestOpcodeHandlersComparisons(t *testing.T) {
 		t.Parallel()
 		b := newBytecodeBuilder()
 		b.intRegisters(2).returnInt()
-		b.emit(opLoadBool, 1, 1, 0)
-		b.emit(opNot, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 1)
+		b.emit(opDrillTier1, uint8(subOpNot), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(0))
 	})
 	t.Run("opNot_false", func(t *testing.T) {
 		t.Parallel()
 		b := newBytecodeBuilder()
 		b.intRegisters(2).returnInt()
-		b.emit(opLoadBool, 1, 0, 0)
-		b.emit(opNot, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 0)
+		b.emit(opDrillTier1, uint8(subOpNot), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(1))
 	})
 
@@ -308,47 +308,47 @@ func TestOpcodeHandlersComparisons(t *testing.T) {
 func TestOpcodeHandlersMath(t *testing.T) {
 	t.Parallel()
 
-	buildMathUnary := func(op opcode, input float64) *CompiledFunction {
+	buildMathUnary := func(subOp subOpcode, input float64) *CompiledFunction {
 		b := newBytecodeBuilder()
 		b.addFloatConst(input)
 		b.floatRegisters(2).returnFloat()
 		b.emit(opLoadFloatConst, 1, 0, 0)
-		b.emit(op, 0, 1, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOp), 0, 1)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		return b.build()
 	}
 
 	t.Run("opMathSqrt", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathSqrt, 16.0), float64(4.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathSqrt, 16.0), float64(4.0))
 	})
 	t.Run("opMathAbs_positive", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathAbs, 42.0), float64(42.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathAbs, 42.0), float64(42.0))
 	})
 	t.Run("opMathAbs_negative", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathAbs, -42.0), float64(42.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathAbs, -42.0), float64(42.0))
 	})
 	t.Run("opMathFloor", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathFloor, 3.7), float64(3.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathFloor, 3.7), float64(3.0))
 	})
 	t.Run("opMathCeil", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathCeil, 3.2), float64(4.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathCeil, 3.2), float64(4.0))
 	})
 	t.Run("opMathTrunc", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathTrunc, 3.7), float64(3.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathTrunc, 3.7), float64(3.0))
 	})
 	t.Run("opMathRound", func(t *testing.T) {
 		t.Parallel()
-		requireSyntheticResult(t, buildMathUnary(opMathRound, 3.5), float64(4.0))
+		requireSyntheticResult(t, buildMathUnary(subOpMathRound, 3.5), float64(4.0))
 	})
 	t.Run("opMathSqrt_NaN", func(t *testing.T) {
 		t.Parallel()
-		result, err := execSynthetic(t, buildMathUnary(opMathSqrt, -1.0))
+		result, err := execSynthetic(t, buildMathUnary(subOpMathSqrt, -1.0))
 		require.NoError(t, err)
 		require.True(t, math.IsNaN(result.(float64)))
 	})
@@ -363,8 +363,8 @@ func TestOpcodeHandlersConversions(t *testing.T) {
 		b.addIntConst(42)
 		b.intRegisters(1).floatRegisters(1).returnFloat()
 		b.emit(opLoadIntConst, 0, 0, 0)
-		b.emit(opIntToFloat, 0, 0, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpIntToFloat), 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), float64(42.0))
 	})
 	t.Run("opFloatToInt", func(t *testing.T) {
@@ -373,8 +373,8 @@ func TestOpcodeHandlersConversions(t *testing.T) {
 		b.addFloatConst(42.9)
 		b.intRegisters(1).floatRegisters(1).returnInt()
 		b.emit(opLoadFloatConst, 0, 0, 0)
-		b.emit(opFloatToInt, 0, 0, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpFloatToInt), 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 	t.Run("opIntToFloat_negative", func(t *testing.T) {
@@ -383,8 +383,8 @@ func TestOpcodeHandlersConversions(t *testing.T) {
 		b.addIntConst(-42)
 		b.intRegisters(1).floatRegisters(1).returnFloat()
 		b.emit(opLoadIntConst, 0, 0, 0)
-		b.emit(opIntToFloat, 0, 0, 0)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpIntToFloat), 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), float64(-42.0))
 	})
 }
@@ -400,7 +400,7 @@ func TestOpcodeHandlersSuperinstructions(t *testing.T) {
 		b.intRegisters(2).returnInt()
 		b.emit(opLoadIntConst, 1, 0, 0)
 		b.emit(opAddIntConst, 0, 1, 1)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 	t.Run("opSubIntConst", func(t *testing.T) {
@@ -411,7 +411,7 @@ func TestOpcodeHandlersSuperinstructions(t *testing.T) {
 		b.intRegisters(2).returnInt()
 		b.emit(opLoadIntConst, 1, 0, 0)
 		b.emit(opSubIntConst, 0, 1, 1)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 	t.Run("opMulIntConst", func(t *testing.T) {
@@ -422,7 +422,7 @@ func TestOpcodeHandlersSuperinstructions(t *testing.T) {
 		b.intRegisters(2).returnInt()
 		b.emit(opLoadIntConst, 1, 0, 0)
 		b.emit(opMulIntConst, 0, 1, 1)
-		b.emit(opReturn, 1, 0, 0)
+		b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 		requireSyntheticResult(t, b.build(), int64(42))
 	})
 }

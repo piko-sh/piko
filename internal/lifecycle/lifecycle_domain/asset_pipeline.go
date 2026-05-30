@@ -35,19 +35,17 @@ import (
 )
 
 const (
-	// defaultImageQuality is the default JPEG quality setting used when no quality
-	// value is given.
+	// defaultImageQuality is the default JPEG quality setting used when no quality value is
+	// given.
 	defaultImageQuality = 80
 
 	// defaultStorageBackendID is the storage backend identifier for asset storage.
 	defaultStorageBackendID = "local_disk_cache"
 
-	// imageProfileNamePrefix is the prefix for generated image variant profile
-	// names.
+	// imageProfileNamePrefix is the prefix for generated image variant profile names.
 	imageProfileNamePrefix = "image"
 
-	// imageVariantTypeTag is the tag value that marks a profile as an image
-	// variant.
+	// imageVariantTypeTag is the tag value that marks a profile as an image variant.
 	imageVariantTypeTag = "image-variant"
 
 	// imageCapabilityName is the name used for image transform profiles.
@@ -71,21 +69,19 @@ const (
 	// percentMax is the value used for percentage calculations.
 	percentMax = 100
 
-	// paramPlaceholder is the parameter key for enabling placeholder generation.
+	// paramPlaceholder is the parameter key that enables LQIP generation.
 	paramPlaceholder = "placeholder"
 
-	// paramPlaceholderWidth is the parameter key for the placeholder image width.
+	// paramPlaceholderWidth is the parameter key for the LQIP image width.
 	paramPlaceholderWidth = "placeholder-width"
 
-	// paramPlaceholderHeight is the parameter name for the placeholder image
-	// height.
+	// paramPlaceholderHeight is the parameter name for the LQIP image height.
 	paramPlaceholderHeight = "placeholder-height"
 
-	// paramPlaceholderQuality is the parameter name for placeholder image quality.
+	// paramPlaceholderQuality is the parameter name for LQIP image quality.
 	paramPlaceholderQuality = "placeholder-quality"
 
-	// paramPlaceholderBlur is the parameter name for placeholder image blur
-	// radius.
+	// paramPlaceholderBlur is the parameter name for LQIP image blur radius.
 	paramPlaceholderBlur = "placeholder-blur"
 
 	// videoProfileNamePrefix is the prefix used in video variant profile names.
@@ -97,19 +93,18 @@ const (
 	// videoCapabilityName is the capability name for video transcoding.
 	videoCapabilityName = capabilities_dto.CapabilityVideoTranscode
 
-	// fallbackVideoSegmentDuration is the fallback HLS segment duration when not
-	// configured.
+	// fallbackVideoSegmentDuration is the fallback HLS segment duration when not configured.
 	fallbackVideoSegmentDuration = 10
 )
 
 var (
-	// standardViewportWidths defines viewport widths used to resolve 'vw' units
-	// into concrete pixel values.
+	// standardViewportWidths defines viewport widths used to resolve 'vw' units into
+	// concrete pixel values.
 	standardViewportWidths = []int{320, 640, 768, 1024, 1280, 1536, 1920}
 
 	// defaultScreens defines standard responsive breakpoints for converting
-	// viewport-relative sizes (like "sm:50vw") to concrete pixel widths. These
-	// match common CSS framework conventions.
+	// viewport-relative sizes (like "sm:50vw") to concrete pixel widths. These match common
+	// CSS framework conventions.
 	defaultScreens = map[string]int{
 		"sm":  640,
 		"md":  768,
@@ -120,8 +115,7 @@ var (
 
 	_ = defaultScreens
 
-	// fallbackVideoQualities defines the fallback quality levels when not
-	// configured.
+	// fallbackVideoQualities defines the fallback quality levels when not configured.
 	fallbackVideoQualities = []string{"1080p", "720p", "480p"}
 
 	// videoQualityConfigs maps quality names to their encoding settings.
@@ -133,24 +127,24 @@ var (
 	}
 )
 
-// AssetPipelineOrchestrator translates high-level asset requirements from a
-// build manifest into detailed processing instructions for the registry. It
-// implements AssetPipelinePort, acting as the bridge between the annotator's
-// output and the orchestrator's input.
+// AssetPipelineOrchestrator translates high-level asset requirements from a build
+// manifest into detailed processing instructions for the registry. It implements
+// AssetPipelinePort, acting as the bridge between the annotator's output and the
+// orchestrator's input.
 type AssetPipelineOrchestrator struct {
 	// registryService stores and updates artefacts in the registry.
 	registryService registry_domain.RegistryService
 
-	// assetsConfig holds asset profiles and video defaults. Separate from
-	// ServerConfig because assets are configured programmatically.
+	// assetsConfig holds asset profiles and video defaults. Separate from ServerConfig
+	// because assets are configured programmatically.
 	assetsConfig *config.AssetsConfig
 }
 
 // NewAssetPipelineOrchestrator creates a new asset pipeline orchestrator.
 //
 // Takes registry (RegistryService) which provides access to registry services.
-// Takes assetsConfig (*AssetsConfig) which holds asset profiles and video
-// defaults; may be nil for default behaviour.
+// Takes assetsConfig (*AssetsConfig) which holds asset profiles and video defaults; may
+// be nil for default behaviour.
 //
 // Returns *AssetPipelineOrchestrator which is ready for use.
 func NewAssetPipelineOrchestrator(registry registry_domain.RegistryService, assetsConfig *config.AssetsConfig) *AssetPipelineOrchestrator {
@@ -160,15 +154,15 @@ func NewAssetPipelineOrchestrator(registry registry_domain.RegistryService, asse
 	}
 }
 
-// ProcessBuildResult is the main entry point for asset processing. It iterates
-// through the final asset manifest from a build, generates the necessary
-// DesiredProfiles for each asset, and upserts them into the registry.
+// ProcessBuildResult is the main entry point for asset processing. It iterates through
+// the final asset manifest from a build, generates the necessary DesiredProfiles for each
+// asset, and upserts them into the registry.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// build output including the final asset manifest to process.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the build output
+// including the final asset manifest to process.
 //
-// Returns error when processing fails, though individual asset failures are
-// logged and do not halt the pipeline.
+// Returns error when processing fails, though individual asset failures are logged and do
+// not halt the pipeline.
 func (p *AssetPipelineOrchestrator) ProcessBuildResult(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) error {
 	ctx, span, l := log.Span(ctx, "AssetPipelineOrchestrator.ProcessBuildResult")
 	defer span.End()
@@ -220,12 +214,11 @@ func (p *AssetPipelineOrchestrator) ProcessBuildResult(ctx context.Context, resu
 
 // imageProfileConfig holds parsed configuration for generating image profiles.
 type imageProfileConfig struct {
-	// standardParams holds standard transformation parameters such as fit and
-	// aspectratio.
+	// standardParams holds standard transformation parameters such as fit and aspectratio.
 	standardParams map[string]string
 
-	// modifiers are provider-specific passthrough modifiers (greyscale, blur,
-	// sharpen, etc.).
+	// modifiers are provider-specific passthrough modifiers (greyscale, blur, sharpen,
+	// etc.).
 	modifiers map[string]string
 
 	// requiredWidths is the list of pixel widths to generate.
@@ -238,15 +231,15 @@ type imageProfileConfig struct {
 	quality int
 }
 
-// generateImageProfiles handles piko:img assets by parsing rich transformation
-// parameters (sizes, densities, formats) and generating NamedProfiles for
-// every required image variant.
+// generateImageProfiles handles piko:img assets by parsing rich transformation parameters
+// (sizes, densities, formats) and generating NamedProfiles for every required image
+// variant.
 //
-// Takes asset (*annotator_dto.FinalAssetDependency) which provides the asset
-// metadata and transformation parameters to process.
+// Takes asset (*annotator_dto.FinalAssetDependency) which provides the asset metadata and
+// transformation parameters to process.
 //
-// Returns []registry_dto.NamedProfile which contains all generated image
-// variant profiles, including placeholder if configured.
+// Returns []registry_dto.NamedProfile which contains all generated image variant
+// profiles, including placeholder if configured.
 func (p *AssetPipelineOrchestrator) generateImageProfiles(asset *annotator_dto.FinalAssetDependency) []registry_dto.NamedProfile {
 	params := asset.TransformationParams
 	imageConfig := p.parseImageConfig(params, asset.SourcePath)
@@ -262,15 +255,14 @@ func (p *AssetPipelineOrchestrator) generateImageProfiles(asset *annotator_dto.F
 	return profiles
 }
 
-// parseImageConfig extracts all configuration needed for image profile
-// generation.
+// parseImageConfig extracts all configuration needed for image profile generation.
 //
-// Takes params (map[string][]string) which contains the image parameters such
-// as sizes, densities, quality, and format settings.
+// Takes params (map[string][]string) which contains the image parameters such as sizes,
+// densities, quality, and format settings.
 // Takes sourcePath (string) which is the path to the source image file.
 //
-// Returns imageProfileConfig which contains the parsed configuration including
-// required widths, quality settings, formats, and modifiers.
+// Returns imageProfileConfig which contains the parsed configuration including required
+// widths, quality settings, formats, and modifiers.
 func (p *AssetPipelineOrchestrator) parseImageConfig(params map[string][]string, sourcePath string) imageProfileConfig {
 	return imageProfileConfig{
 		requiredWidths: p.calculateRequiredWidths(params["sizes"], params["densities"]),
@@ -281,14 +273,13 @@ func (p *AssetPipelineOrchestrator) parseImageConfig(params map[string][]string,
 	}
 }
 
-// generateVariantProfiles creates a NamedProfile for each width/format
-// combination.
+// generateVariantProfiles creates a NamedProfile for each width/format combination.
 //
-// Takes imageConfig (imageProfileConfig) which specifies the required widths and
-// formats for variant generation.
+// Takes imageConfig (imageProfileConfig) which specifies the required widths and formats
+// for variant generation.
 //
-// Returns []registry_dto.NamedProfile which contains the generated profiles
-// for all width/format combinations.
+// Returns []registry_dto.NamedProfile which contains the generated profiles for all
+// width/format combinations.
 func (*AssetPipelineOrchestrator) generateVariantProfiles(imageConfig imageProfileConfig) []registry_dto.NamedProfile {
 	profiles := make([]registry_dto.NamedProfile, 0, len(imageConfig.formats)*len(imageConfig.requiredWidths))
 	for _, width := range imageConfig.requiredWidths {
@@ -299,13 +290,12 @@ func (*AssetPipelineOrchestrator) generateVariantProfiles(imageConfig imageProfi
 	return profiles
 }
 
-// shouldGeneratePlaceholder checks if placeholder generation is enabled in
-// the params.
+// shouldGeneratePlaceholder reports whether LQIP generation is enabled in the params.
 //
 // Takes params (map[string][]string) which contains the request parameters.
 //
-// Returns bool which is true when placeholder generation is explicitly enabled
-// via values like "true", "yes", "1", or "enabled".
+// Returns bool which is true when LQIP generation is explicitly enabled via values like
+// "true", "yes", "1", or "enabled".
 func (*AssetPipelineOrchestrator) shouldGeneratePlaceholder(params map[string][]string) bool {
 	if placeholderValues, ok := params[paramPlaceholder]; ok && len(placeholderValues) > 0 {
 		value := strings.ToLower(placeholderValues[0])
@@ -314,18 +304,16 @@ func (*AssetPipelineOrchestrator) shouldGeneratePlaceholder(params map[string][]
 	return false
 }
 
-// generatePlaceholderProfile creates a profile for generating a LQIP
-// (Low Quality Image Placeholder). The unnamed parameters are reserved
-// for future use when placeholder quality and modifiers are
-// customisable.
+// generatePlaceholderProfile creates a profile for generating a low-quality image preview
+// variant.
 //
-// Takes params (map[string][]string) which provides the query
-// parameters for placeholder configuration.
-// Takes standardParams (map[string]string) which provides standard
-// rendering parameters to include in the profile.
+// Takes params (map[string][]string) which provides the query parameters that drive
+// variant sizing, quality, and blur radius.
+// Takes standardParams (map[string]string) which provides standard rendering parameters
+// to include in the profile.
 //
-// Returns *registry_dto.NamedProfile which is the configured
-// placeholder profile ready for image processing.
+// Returns *registry_dto.NamedProfile which is the configured low-quality preview profile
+// ready for image processing.
 func (*AssetPipelineOrchestrator) generatePlaceholderProfile(
 	params map[string][]string,
 	_ int,
@@ -390,13 +378,13 @@ func (*AssetPipelineOrchestrator) generatePlaceholderProfile(
 	}
 }
 
-// extractStandardParams extracts known standard transformation parameters that
-// should be passed to every variant, such as fit mode and aspect ratio.
+// extractStandardParams extracts known standard transformation parameters that should be
+// passed to every variant, such as fit mode and aspect ratio.
 //
 // Takes params (map[string][]string) which contains the raw query parameters.
 //
-// Returns map[string]string which contains the first value for each known
-// standard parameter key.
+// Returns map[string]string which contains the first value for each known standard
+// parameter key.
 func (*AssetPipelineOrchestrator) extractStandardParams(params map[string][]string) map[string]string {
 	standard := make(map[string]string)
 
@@ -414,8 +402,8 @@ func (*AssetPipelineOrchestrator) extractStandardParams(params map[string][]stri
 	return standard
 }
 
-// calculateRequiredWidths parses size and density values to produce a sorted
-// list of unique pixel widths that need to be generated.
+// calculateRequiredWidths parses size and density values to produce a sorted list of
+// unique pixel widths that need to be generated.
 //
 // Takes sizes ([]string) which contains the size values to parse.
 // Takes densities ([]string) which contains the density multipliers to apply.
@@ -435,8 +423,8 @@ func (*AssetPipelineOrchestrator) calculateRequiredWidths(sizes, densities []str
 //
 // Takes qualityValues ([]string) which contains quality settings to parse.
 //
-// Returns int which is the parsed quality value, or a default if parsing
-// fails or the value is outside the valid range.
+// Returns int which is the parsed quality value, or a default if parsing fails or the
+// value is outside the valid range.
 func (*AssetPipelineOrchestrator) parseQuality(qualityValues []string) int {
 	if len(qualityValues) > 0 {
 		q, err := strconv.Atoi(qualityValues[0])
@@ -450,11 +438,10 @@ func (*AssetPipelineOrchestrator) parseQuality(qualityValues []string) int {
 // parseFormats determines which output formats to use.
 //
 // Takes formatValues ([]string) which specifies the desired output formats.
-// Takes sourcePath (string) which provides the original file path for its
-// extension.
+// Takes sourcePath (string) which provides the original file path for its extension.
 //
-// Returns []string which contains the output formats. When formatValues is
-// empty, returns webp, avif, and the original file format.
+// Returns []string which contains the output formats. When formatValues is empty, returns
+// webp, avif, and the original file format.
 func (*AssetPipelineOrchestrator) parseFormats(formatValues []string, sourcePath string) []string {
 	if len(formatValues) > 0 {
 		return formatValues
@@ -463,18 +450,18 @@ func (*AssetPipelineOrchestrator) parseFormats(formatValues []string, sourcePath
 	return []string{"webp", "avif", originalExt}
 }
 
-// getPassthroughModifiers collects extra image parameters that are not part
-// of the standard sizing or format settings, so they can be passed directly to
-// the image transformer.
+// getPassthroughModifiers collects extra image parameters that are not part of the
+// standard sizing or format settings, so they can be passed directly to the image
+// transformer.
 //
-// This excludes all standard parameters and placeholder parameters, leaving
-// only provider-specific image modifiers such as greyscale, blur, or sharpen.
+// This excludes all standard parameters and placeholder parameters, leaving only
+// provider-specific image modifiers such as greyscale, blur, or sharpen.
 //
-// Takes params (map[string][]string) which contains all query parameters from
-// the request.
+// Takes params (map[string][]string) which contains all query parameters from the
+// request.
 //
-// Returns map[string]string which contains only the provider-specific
-// modifiers, with each key mapped to its first value.
+// Returns map[string]string which contains only the provider-specific modifiers, with
+// each key mapped to its first value.
 func (*AssetPipelineOrchestrator) getPassthroughModifiers(params map[string][]string) map[string]string {
 	modifiers := make(map[string]string)
 
@@ -512,8 +499,8 @@ func (*AssetPipelineOrchestrator) getPassthroughModifiers(params map[string][]st
 
 // videoQualityConfig holds the encoding settings for a video quality level.
 type videoQualityConfig struct {
-	// resolution specifies the video dimensions in "WIDTHxHEIGHT" format,
-	// for example "1920x1080".
+	// resolution specifies the video dimensions in "WIDTHxHEIGHT" format, for example
+	// "1920x1080".
 	resolution string
 
 	// bitrate specifies the video encoding bit rate, for example "5000k".
@@ -523,14 +510,14 @@ type videoQualityConfig struct {
 	bandwidth int
 }
 
-// generateVideoProfiles handles piko:video assets by parsing quality parameters
-// and generating NamedProfiles for every required HLS variant.
+// generateVideoProfiles handles piko:video assets by parsing quality parameters and
+// generating NamedProfiles for every required HLS variant.
 //
-// Takes asset (*annotator_dto.FinalAssetDependency) which provides the asset
-// metadata and transformation parameters to process.
+// Takes asset (*annotator_dto.FinalAssetDependency) which provides the asset metadata and
+// transformation parameters to process.
 //
-// Returns []registry_dto.NamedProfile which contains all generated video
-// variant profiles.
+// Returns []registry_dto.NamedProfile which contains all generated video variant
+// profiles.
 func (p *AssetPipelineOrchestrator) generateVideoProfiles(
 	asset *annotator_dto.FinalAssetDependency,
 ) []registry_dto.NamedProfile {
@@ -574,8 +561,8 @@ func (p *AssetPipelineOrchestrator) parseVideoQualities(
 //
 // Takes params (map[string][]string) which holds the video parameters.
 //
-// Returns int which is the segment duration in seconds, using the config
-// default or a fallback value if not specified.
+// Returns int which is the segment duration in seconds, using the config default or a
+// fallback value if not specified.
 func (p *AssetPipelineOrchestrator) parseSegmentDuration(
 	params map[string][]string,
 ) int {
@@ -632,15 +619,15 @@ func (*AssetPipelineOrchestrator) buildVideoProfiles(
 	return profiles
 }
 
-// createVariantProfile builds a single image variant profile for the given
-// width and format.
+// createVariantProfile builds a single image variant profile for the given width and
+// format.
 //
 // Takes width (int) which sets the target image width in pixels.
 // Takes format (string) which sets the output image format.
 // Takes imageConfig (imageProfileConfig) which provides the profile settings.
 //
-// Returns registry_dto.NamedProfile which contains the configured variant
-// profile ready for registration.
+// Returns registry_dto.NamedProfile which contains the configured variant profile ready
+// for registration.
 func createVariantProfile(width int, format string, imageConfig imageProfileConfig) registry_dto.NamedProfile {
 	profileName := fmt.Sprintf("%s_w%d_%s", imageProfileNamePrefix, width, format)
 
@@ -670,8 +657,7 @@ func createVariantProfile(width int, format string, imageConfig imageProfileConf
 //
 // Takes width (int) which sets the target width in pixels.
 // Takes format (string) which sets the output image format.
-// Takes imageConfig (imageProfileConfig) which provides
-// quality and extra settings.
+// Takes imageConfig (imageProfileConfig) which provides quality and extra settings.
 //
 // Returns registry_dto.ProfileParams which holds the assembled parameters.
 func buildVariantParams(width int, format string, imageConfig imageProfileConfig) registry_dto.ProfileParams {
@@ -693,8 +679,8 @@ func buildVariantParams(width int, format string, imageConfig imageProfileConfig
 //
 // Takes sizes ([]string) which contains the size specifications to parse.
 //
-// Returns map[int]struct{} which contains the unique pixel widths from the
-// size specifications.
+// Returns map[int]struct{} which contains the unique pixel widths from the size
+// specifications.
 func parseSizesToWidths(sizes []string) map[int]struct{} {
 	widthSet := make(map[int]struct{})
 	for _, size := range sizes {
@@ -704,11 +690,11 @@ func parseSizesToWidths(sizes []string) map[int]struct{} {
 	return widthSet
 }
 
-// extractSizeValue gets the size value from a string that may have a prefix.
-// For example, "sm:50vw" returns "50vw", and "400px" returns "400px".
+// extractSizeValue gets the size value from a string that may have a prefix. For example,
+// "sm:50vw" returns "50vw", and "400px" returns "400px".
 //
-// Takes size (string) which is the size string, possibly with a breakpoint
-// prefix separated by a colon.
+// Takes size (string) which is the size string, possibly with a breakpoint prefix
+// separated by a colon.
 //
 // Returns string which is the size value with any whitespace removed.
 func extractSizeValue(size string) string {
@@ -719,8 +705,7 @@ func extractSizeValue(size string) string {
 	return strings.TrimSpace(parts[0])
 }
 
-// addWidthsForSizeValue parses a size value and adds the resulting widths to
-// the set.
+// addWidthsForSizeValue parses a size value and adds the resulting widths to the set.
 //
 // Takes sizeValue (string) which is a size ending in "px" or "vw".
 // Takes widthSet (map[int]struct{}) which collects the resulting widths.
@@ -745,8 +730,8 @@ func addPixelWidth(pxValue string, widthSet map[int]struct{}) {
 	}
 }
 
-// addViewportWidths calculates pixel widths from a viewport width percentage
-// across standard screen widths.
+// addViewportWidths calculates pixel widths from a viewport width percentage across
+// standard screen widths.
 //
 // Takes vwValue (string) which is the viewport width as a percentage.
 // Takes widthSet (map[int]struct{}) which collects the calculated widths.
@@ -768,8 +753,8 @@ func addViewportWidths(vwValue string, widthSet map[int]struct{}) {
 // Takes baseWidths (map[int]struct{}) which holds the starting width values.
 // Takes densities ([]string) which lists density factors such as "2x" or "3x".
 //
-// Returns map[int]struct{} which holds all widths, including the original
-// values and any new widths created by applying the density factors.
+// Returns map[int]struct{} which holds all widths, including the original values and any
+// new widths created by applying the density factors.
 func applyDensitiesToWidths(baseWidths map[int]struct{}, densities []string) map[int]struct{} {
 	finalWidthSet := make(map[int]struct{}, len(baseWidths))
 	for w := range baseWidths {
@@ -786,8 +771,8 @@ func applyDensitiesToWidths(baseWidths map[int]struct{}, densities []string) map
 	return finalWidthSet
 }
 
-// applyDensityMultiplier scales each base width by the given multiplier and
-// adds the result to the final width set.
+// applyDensityMultiplier scales each base width by the given multiplier and adds the
+// result to the final width set.
 //
 // Takes baseWidths (map[int]struct{}) which contains the original widths.
 // Takes finalWidthSet (map[int]struct{}) which stores the scaled widths.
@@ -801,8 +786,7 @@ func applyDensityMultiplier(baseWidths, finalWidthSet map[int]struct{}, multipli
 	}
 }
 
-// widthSetToSortedSlice converts a width set to a sorted slice for
-// consistent output.
+// widthSetToSortedSlice converts a width set to a sorted slice for consistent output.
 //
 // Takes widthSet (map[int]struct{}) which contains the widths to convert.
 //
@@ -819,8 +803,7 @@ func widthSetToSortedSlice(widthSet map[int]struct{}) []int {
 	return sortedWidths
 }
 
-// parseDensity converts a density string (e.g. "x1", "2x", "3") into a float
-// multiplier.
+// parseDensity converts a density string (e.g. "x1", "2x", "3") into a float multiplier.
 //
 // Takes density (string) which is the density value to parse.
 //

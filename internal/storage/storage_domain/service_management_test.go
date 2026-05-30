@@ -292,9 +292,9 @@ func TestService_GetStats(t *testing.T) {
 
 	stats := service.GetStats(ctx)
 
-	assert.Equal(t, int64(1), stats.TotalOperations, "should have one total operation")
-	assert.Equal(t, int64(1), stats.SuccessfulOperations, "should have one successful operation")
-	assert.Equal(t, int64(0), stats.FailedOperations, "should have zero failed operations")
+	assert.Equal(t, int64(1), stats.TotalOperations.Load(), "should have one total operation")
+	assert.Equal(t, int64(1), stats.SuccessfulOperations.Load(), "should have one successful operation")
+	assert.Equal(t, int64(0), stats.FailedOperations.Load(), "should have zero failed operations")
 	assert.False(t, stats.StartTime.IsZero(), "start time should be set")
 }
 

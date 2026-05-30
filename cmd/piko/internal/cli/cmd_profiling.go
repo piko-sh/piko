@@ -39,20 +39,20 @@ const (
 	// profilingMaxDuration is the longest a profiling session may remain enabled.
 	profilingMaxDuration = 24 * time.Hour
 
-	// profilingMaxCaptureSecs is the maximum capture duration in seconds for
-	// duration-based profiles such as CPU and trace.
+	// profilingMaxCaptureSecs is the maximum capture duration in seconds for duration-based
+	// profiles such as CPU and trace.
 	profilingMaxCaptureSecs = 300
 
-	// maxClientProfileBytes is the maximum size of profile data the client will
-	// accumulate before aborting (64 MiB).
+	// maxClientProfileBytes is the maximum size of profile data the client will accumulate
+	// before aborting (64 MiB).
 	maxClientProfileBytes = 64 * 1024 * 1024
 
-	// profilingCaptureFilePerms is the file permission used when writing
-	// captured profile files.
+	// profilingCaptureFilePerms is the file permission used when writing captured profile
+	// files.
 	profilingCaptureFilePerms = 0o600
 
-	// profilingCaptureTimeoutBuffer is the additional time added to the capture
-	// duration when deriving the context timeout.
+	// profilingCaptureTimeoutBuffer is the additional time added to the capture duration
+	// when deriving the context timeout.
 	profilingCaptureTimeoutBuffer = 60 * time.Second
 
 	// bytesPerKiB is the number of bytes in a kibibyte.
@@ -62,20 +62,24 @@ const (
 	bytesPerMiB = bytesPerKiB * bytesPerKiB
 )
 
-// profilingSubcommands maps subcommand names to their handler functions.
-var profilingSubcommands = map[string]func(ctx context.Context, cc *CommandContext, arguments []string) error{
-	"enable":  profilingEnable,
-	"disable": profilingDisable,
-	"status":  profilingStatus,
-	"capture": profilingCapture,
-}
+var (
+	// profilingSubcommands maps subcommand names to their handler functions.
+	profilingSubcommands = map[string]func(ctx context.Context, cc *CommandContext, arguments []string) error{
+		"enable":  profilingEnable,
+		"disable": profilingDisable,
+		"status":  profilingStatus,
+		"capture": profilingCapture,
+	}
+)
+var (
 
-// profilingSubcommandList is a pre-built display string of available
-// subcommands used in error messages.
-var profilingSubcommandList = buildResourceList(profilingSubcommands)
+	// profilingSubcommandList is a pre-built display string of available subcommands used in
+	// error messages.
+	profilingSubcommandList = buildResourceList(profilingSubcommands)
+)
 
-// runProfiling dispatches to the appropriate profiling subcommand based on
-// the first positional argument.
+// runProfiling dispatches to the appropriate profiling subcommand based on the first
+// positional argument.
 //
 // Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
 // Takes arguments ([]string) which are the remaining command-line tokens.
@@ -96,8 +100,8 @@ func runProfiling(ctx context.Context, cc *CommandContext, arguments []string) e
 	return handler(ctx, cc, arguments[1:])
 }
 
-// profilingEnable parses flags and sends an EnableProfiling RPC to start
-// runtime profiling for the requested duration.
+// profilingEnable parses flags and sends an EnableProfiling RPC to start runtime
+// profiling for the requested duration.
 //
 // Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
 // Takes arguments ([]string) which contain the duration positional and flags.
@@ -135,8 +139,7 @@ func profilingEnable(ctx context.Context, cc *CommandContext, arguments []string
 	return printEnableResponse(cc, response)
 }
 
-// profilingEnableUsage returns a usage function for the profiling enable
-// flag set.
+// profilingEnableUsage returns a usage function for the profiling enable flag set.
 //
 // Takes fs (*flag.FlagSet) which provides the registered flags for defaults output.
 // Takes cc (*CommandContext) which supplies the stderr writer.
@@ -165,8 +168,7 @@ Examples:
 	}
 }
 
-// parseEnableDuration extracts and validates the duration argument from
-// the flag set.
+// parseEnableDuration extracts and validates the duration argument from the flag set.
 //
 // Takes fs (*flag.FlagSet) which holds the parsed positional arguments.
 //
@@ -231,8 +233,7 @@ func printEnableResponse(cc *CommandContext, response *pb.EnableProfilingRespons
 	return nil
 }
 
-// profilingDisable sends a DisableProfiling RPC and prints whether profiling
-// was active.
+// profilingDisable sends a DisableProfiling RPC and prints whether profiling was active.
 //
 // Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
 //
@@ -252,8 +253,8 @@ func profilingDisable(ctx context.Context, cc *CommandContext, _ []string) error
 	return nil
 }
 
-// profilingStatus queries and displays the current profiling state, including
-// expiry, rates, and available profile types.
+// profilingStatus queries and displays the current profiling state, including expiry,
+// rates, and available profile types.
 //
 // Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
 //
@@ -316,8 +317,8 @@ type captureResult struct {
 	SizeBytes int `json:"sizeBytes"`
 }
 
-// profilingCapture captures a Go runtime profile via a streaming RPC and
-// writes the result to a local file.
+// profilingCapture captures a Go runtime profile via a streaming RPC and writes the
+// result to a local file.
 //
 // Takes cc (*CommandContext) which supplies the gRPC connection and IO streams.
 // Takes arguments ([]string) which contain the profile type, duration, and flags.
@@ -367,8 +368,7 @@ func profilingCapture(ctx context.Context, cc *CommandContext, arguments []strin
 	return displayCaptureResult(cc, profileType, filePath, profileData, warning)
 }
 
-// profilingCaptureUsage returns a usage function for the profiling capture
-// flag set.
+// profilingCaptureUsage returns a usage function for the profiling capture flag set.
 //
 // Takes fs (*flag.FlagSet) which provides the registered flags for defaults output.
 // Takes cc (*CommandContext) which supplies the stderr writer.
@@ -406,11 +406,11 @@ Examples:
 	}
 }
 
-// parseCaptureArguments extracts and validates the profile type and optional
-// duration from positional arguments.
+// parseCaptureArguments extracts and validates the profile type and optional duration
+// from positional arguments.
 //
-// Takes positional ([]string) which contains the profile type and optional
-// duration string.
+// Takes positional ([]string) which contains the profile type and optional duration
+// string.
 //
 // Returns string which is the validated profile type.
 // Returns int32 which is the capture duration in seconds, or zero for snapshots.
@@ -444,8 +444,8 @@ func parseCaptureArguments(positional []string) (string, int32, error) {
 	return profileType, durationSeconds, nil
 }
 
-// deriveCaptureContext creates a context with a timeout derived from the
-// capture duration plus a buffer for network overhead.
+// deriveCaptureContext creates a context with a timeout derived from the capture duration
+// plus a buffer for network overhead.
 //
 // Takes parent (context.Context) which is the parent context to derive from.
 // Takes durationSeconds (int32) which is the requested capture duration.
@@ -458,8 +458,8 @@ func deriveCaptureContext(parent context.Context, durationSeconds int32) (contex
 		fmt.Errorf("profile capture exceeded %s timeout", captureTimeout))
 }
 
-// readProfileStream opens a capture stream and reads all chunks into a single
-// byte slice. It also captures any server-side warning from the first chunk.
+// readProfileStream opens a capture stream and reads all chunks into a single byte slice.
+// It also captures any server-side warning from the first chunk.
 //
 // Takes cc (*CommandContext) which provides the gRPC connection.
 // Takes profileType (string) which identifies the profile to capture.
@@ -512,8 +512,8 @@ func readProfileStream(
 	return profileData, warning, nil
 }
 
-// writeProfileFile writes the captured profile data to a timestamped file
-// in the specified output directory.
+// writeProfileFile writes the captured profile data to a timestamped file in the
+// specified output directory.
 //
 // Takes cc (*CommandContext) which provides the safedisk factory.
 // Takes profileType (string) which determines the file extension.
@@ -587,8 +587,8 @@ func displayCaptureResult(
 	return nil
 }
 
-// formatMemProfileRate returns a human-readable string for the memory profile
-// sampling rate, using KiB or MiB units where appropriate.
+// formatMemProfileRate returns a human-readable string for the memory profile sampling
+// rate, using KiB or MiB units where appropriate.
 //
 // Takes rate (int) which is the sampling interval in bytes.
 //
@@ -606,22 +606,23 @@ func formatMemProfileRate(rate int) string {
 	return fmt.Sprintf("%d bytes", rate)
 }
 
-// maxCaptureDuration returns profilingMaxCaptureSecs as a time.Duration for
-// use in error messages.
+// maxCaptureDuration returns profilingMaxCaptureSecs as a time.Duration for use in error
+// messages.
 //
 // Returns time.Duration which is the hard upper bound on capture duration.
 func maxCaptureDuration() time.Duration {
 	return time.Duration(profilingMaxCaptureSecs) * time.Second
 }
 
-// validProfileTypes is the set of recognised Go runtime profile names.
-var validProfileTypes = map[string]struct{}{
-	"heap": {}, "goroutine": {}, "allocs": {},
-	"cpu": {}, "trace": {}, "block": {}, "mutex": {},
-}
+var (
+	// validProfileTypes is the set of recognised Go runtime profile names.
+	validProfileTypes = map[string]struct{}{
+		"heap": {}, "goroutine": {}, "allocs": {},
+		"cpu": {}, "trace": {}, "block": {}, "mutex": {},
+	}
+)
 
-// isValidProfileType reports whether profileType is a recognised Go runtime
-// profile name.
+// isValidProfileType reports whether profileType is a recognised Go runtime profile name.
 //
 // Takes profileType (string) which is the caller-supplied profile name.
 //

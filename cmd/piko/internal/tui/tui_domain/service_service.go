@@ -32,8 +32,7 @@ import (
 )
 
 const (
-	// placeholderMinWidth is the smallest width needed to centre the placeholder
-	// text.
+	// placeholderMinWidth is the smallest width needed to centre the welcome message text.
 	placeholderMinWidth = 60
 )
 
@@ -52,12 +51,10 @@ type Service struct {
 	// tracesProviders holds trace data sources for the traces and routes panels.
 	tracesProviders []TracesProvider
 
-	// resourceProviders holds the providers for registry, storage, and
-	// orchestrator panels.
+	// resourceProviders holds the providers for registry, storage, and orchestrator panels.
 	resourceProviders []ResourceProvider
 
-	// healthProviders holds the health monitoring providers used for status
-	// checks.
+	// healthProviders holds the health monitoring providers used for status checks.
 	healthProviders []HealthProvider
 
 	// systemProviders holds providers for system metrics like CPU and memory.
@@ -66,9 +63,9 @@ type Service struct {
 	// fdsProviders holds the file descriptor providers for resource monitoring.
 	fdsProviders []FDsProvider
 
-	// watchdogProviders holds providers that surface runtime anomaly
-	// detector state, profiles, history, and live events. The first
-	// configured provider drives the watchdog panel set.
+	// watchdogProviders holds providers that surface runtime anomaly detector state,
+	// profiles, history, and live events. The first configured provider drives the watchdog
+	// panel set.
 	watchdogProviders []WatchdogProvider
 
 	// providersInspectors backs the Content -> Providers panel.
@@ -83,8 +80,8 @@ type Service struct {
 	// profilingInspectors backs the Runtime -> Profiling panel.
 	profilingInspectors []ProfilingInspector
 
-	// eventDispatcher fans live watchdog events to subscribed panels.
-	// Created when at least one watchdog provider is configured.
+	// eventDispatcher fans live watchdog events to subscribed panels. Created when at least
+	// one watchdog provider is configured.
 	eventDispatcher *EventDispatcher
 
 	// customPanels holds panels provided by the user to add during setup.
@@ -139,14 +136,12 @@ func NewService(config *tui_dto.Config, providers *Providers) (*Service, error) 
 	return s, nil
 }
 
-// Run starts the TUI. Blocks until the user exits or the context is
-// cancelled.
+// Run starts the TUI. Blocks until the user exits or the context is cancelled.
 //
-// Returns error when the TUI encounters a fatal error or the context is
-// cancelled.
+// Returns error when the TUI encounters a fatal error or the context is cancelled.
 //
-// Spawns a goroutine to run the TUI program. The goroutine exits when the
-// program finishes or the context is cancelled.
+// Spawns a goroutine to run the TUI program. The goroutine exits when the program
+// finishes or the context is cancelled.
 func (s *Service) Run(ctx context.Context) error {
 	s.program = tea.NewProgram(s.model)
 
@@ -184,12 +179,12 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 }
 
-// Close releases resources held by the service. Every registered close
-// function runs even when an earlier one fails so no resource is left
-// dangling; the joined error reports every failure to the caller.
+// Close releases resources held by the service. Every registered close function runs even
+// when an earlier one fails so no resource is left dangling; the joined error reports
+// every failure to the caller.
 //
-// Returns error when one or more close functions fail; the result is
-// the joined set of errors via errors.Join.
+// Returns error when one or more close functions fail; the result is the joined set of
+// errors via errors.Join.
 func (s *Service) Close() error {
 	errs := make([]error, 0, len(s.closeFuncs))
 
@@ -202,9 +197,8 @@ func (s *Service) Close() error {
 	return errors.Join(errs...)
 }
 
-// registerProviders adds close functions for all provider types.
-// The facade creates and injects providers through configuration before this
-// runs.
+// registerProviders adds close functions for all provider types. The facade creates and
+// injects providers through configuration before this runs.
 func (s *Service) registerProviders() {
 	for _, p := range s.metricsProviders {
 		s.registerNamedProvider(p.Name(), p.Close)
@@ -244,8 +238,7 @@ func (s *Service) registerProviders() {
 // registerNamedProvider registers a provider for status tracking and cleanup.
 //
 // Takes name (string) which identifies the provider.
-// Takes closeFunction (func() error) which releases provider
-// resources on shutdown.
+// Takes closeFunction (func() error) which releases provider resources on shutdown.
 func (s *Service) registerNamedProvider(name string, closeFunction func() error) {
 	s.model.providerInfo[name] = &ProviderInfo{
 		LastRefresh:  time.Time{},
@@ -268,11 +261,11 @@ func (s *Service) initialisePanels() {
 	s.initialiseGroups()
 }
 
-// initialiseGroups assembles the four PanelGroups from the panels
-// already added to the model and registers them with the GroupedView.
+// initialiseGroups assembles the four PanelGroups from the panels already added to the
+// model and registers them with the GroupedView.
 //
-// Groups whose providers are missing report Visible() == false and are
-// filtered from the tab bar at render time.
+// Groups whose providers are missing report Visible() == false and are filtered from the
+// tab bar at render time.
 func (s *Service) initialiseGroups() {
 	if s.model == nil {
 		return
@@ -324,9 +317,9 @@ func (s *Service) initialiseGroups() {
 	s.model.SetGroups(groups)
 }
 
-// initialiseWatchdogPanels adds the four watchdog panels (Overview,
-// Events, Profiles, History) when a watchdog provider is configured.
-// The event dispatcher is created here and started later in Run.
+// initialiseWatchdogPanels adds the four watchdog panels (Overview, Events, Profiles,
+// History) when a watchdog provider is configured. The event dispatcher is created here
+// and started later in Run.
 func (s *Service) initialiseWatchdogPanels() {
 	if len(s.watchdogProviders) == 0 {
 		return
@@ -344,8 +337,8 @@ func (s *Service) initialiseWatchdogPanels() {
 	s.model.AddPanel(NewWatchdogDiagnosticPanel(provider, clk))
 }
 
-// initialiseResourcePanels adds resource-related panels (Registry, Storage,
-// Orchestrator) plus the inspector-driven Content panels (Providers, DLQ).
+// initialiseResourcePanels adds resource-related panels (Registry, Storage, Orchestrator)
+// plus the inspector-driven Content panels (Providers, DLQ).
 func (s *Service) initialiseResourcePanels() {
 	if len(s.resourceProviders) > 0 {
 		s.model.AddPanel(NewRegistryPanel())
@@ -368,8 +361,7 @@ func (s *Service) initialiseResourcePanels() {
 	}
 }
 
-// initialiseObservabilityPanels adds panels to the model for each configured
-// provider.
+// initialiseObservabilityPanels adds panels to the model for each configured provider.
 func (s *Service) initialiseObservabilityPanels() {
 	clk := s.config.GetClock()
 	if len(s.metricsProviders) > 0 {
@@ -424,8 +416,8 @@ func (s *Service) initialisePlaceholderIfNeeded() {
 	}
 }
 
-// placeholderPanel implements Panel as a simple display when no other panels
-// are available.
+// placeholderPanel implements Panel as a simple display when no other panels are
+// available.
 type placeholderPanel struct {
 	// id is the unique identifier for this placeholder panel.
 	id string
@@ -462,12 +454,11 @@ func (p *placeholderPanel) Update(_ tea.Msg) (Panel, tea.Cmd) {
 
 // View renders the placeholder panel welcome message.
 //
-// Takes width (int) which specifies the panel width in characters
-// for centring the message.
-// Takes _ (int) which is the unused panel height.
+// Takes width (int) which specifies the panel width in characters for centring the
+// message. Takes _ (int) which is the unused panel height.
 //
-// Returns string which contains the welcome message with
-// instructions for configuring providers.
+// Returns string which contains the welcome message with instructions for configuring
+// providers.
 func (*placeholderPanel) View(width, _ int) string {
 	message := "Welcome to Piko TUI!\n\n"
 	message += "Configure providers to see data:\n"
@@ -499,15 +490,14 @@ func (p *placeholderPanel) SetFocused(focused bool) { p.focused = focused }
 // Returns []KeyBinding which is always nil for placeholder panels.
 func (*placeholderPanel) KeyMap() []KeyBinding { return nil }
 
-// DetailView returns the empty string so the composer falls back to
-// its placeholder hint; the placeholder panel itself is already a
-// "nothing to see" body.
+// DetailView returns the empty string so the composer falls back to its placeholder hint;
+// the placeholder panel itself is already a "nothing to see" body.
 //
 // Returns string which is always empty.
 func (*placeholderPanel) DetailView(_, _ int) string { return "" }
 
-// Selection returns the empty Selection because the placeholder panel
-// has no selectable rows.
+// Selection returns the empty Selection because the placeholder panel has no selectable
+// rows.
 //
 // Returns Selection which is always the zero value.
 func (*placeholderPanel) Selection() Selection { return Selection{} }

@@ -57,8 +57,7 @@ func (s *registryService) GetArtefact(ctx context.Context, artefactID string) (*
 	return s.loadArtefactFromStore(ctx, span, artefactID)
 }
 
-// tryGetFromCache attempts to retrieve an artefact from cache and records
-// metrics.
+// tryGetFromCache attempts to retrieve an artefact from cache and records metrics.
 //
 // Takes artefactID (string) which identifies the artefact to retrieve.
 //
@@ -85,8 +84,8 @@ func (s *registryService) tryGetFromCache(ctx context.Context, artefactID string
 	return nil, false
 }
 
-// loadArtefactFromStore loads an artefact from the metadata store using
-// singleflight to prevent duplicate requests for the same artefact.
+// loadArtefactFromStore loads an artefact from the metadata store using singleflight to
+// prevent duplicate requests for the same artefact.
 //
 // Takes span (trace.Span) which records tracing data for the operation.
 // Takes artefactID (string) which identifies the artefact to load.
@@ -130,11 +129,9 @@ func (s *registryService) loadArtefactFromStore(
 	return artefact, nil
 }
 
-// logArtefactLoadError logs the right error message when an artefact fails to
-// load.
+// logArtefactLoadError logs the right error message when an artefact fails to load.
 //
-// Takes span (trace.Span) which provides the tracing context for error
-// reporting.
+// Takes span (trace.Span) which provides the tracing context for error reporting.
 // Takes err (error) which is the error that happened during loading.
 // Takes artefactID (string) which identifies the artefact that failed to load.
 func (*registryService) logArtefactLoadError(ctx context.Context, span trace.Span, err error, artefactID string) {
@@ -146,13 +143,13 @@ func (*registryService) logArtefactLoadError(ctx context.Context, span trace.Spa
 	}
 }
 
-// GetMultipleArtefacts retrieves multiple artefacts by IDs, using cache for
-// hits and batch-fetching misses.
+// GetMultipleArtefacts retrieves multiple artefacts by IDs, using cache for hits and
+// batch-fetching misses.
 //
 // Takes artefactIDs ([]string) which specifies the artefact IDs to retrieve.
 //
-// Returns []*registry_dto.ArtefactMeta which contains the retrieved artefacts
-// in the same order as the input IDs.
+// Returns []*registry_dto.ArtefactMeta which contains the retrieved artefacts in the same
+// order as the input IDs.
 // Returns error when loading from cache or store fails.
 func (s *registryService) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
 	startTime := time.Now()
@@ -187,8 +184,8 @@ func (s *registryService) GetMultipleArtefacts(ctx context.Context, artefactIDs 
 	return orderedResults, nil
 }
 
-// loadMultipleFromStoreWithoutCache loads artefacts straight from the store
-// when no cache is set up.
+// loadMultipleFromStoreWithoutCache loads artefacts straight from the store when no cache
+// is set up.
 //
 // Takes span (trace.Span) which provides tracing context.
 // Takes artefactIDs ([]string) which lists the artefacts to fetch.
@@ -212,8 +209,8 @@ func (s *registryService) loadMultipleFromStoreWithoutCache(
 	return artefacts, nil
 }
 
-// loadMultipleWithCache loads artefacts using cache hits and fetches misses
-// from the store.
+// loadMultipleWithCache loads artefacts using cache hits and fetches misses from the
+// store.
 //
 // Takes span (trace.Span) which provides tracing context for the operation.
 // Takes artefactIDs ([]string) which lists the artefact IDs to load.
@@ -242,8 +239,8 @@ func (s *registryService) loadMultipleWithCache(
 	return append(hits, fetchedArts...), nil
 }
 
-// fetchMissingArtefacts fetches artefacts not found in cache from the store
-// via singleflight.
+// fetchMissingArtefacts fetches artefacts not found in cache from the store via
+// singleflight.
 //
 // Takes span (trace.Span) which receives tracing events for the operation.
 // Takes misses ([]string) which contains the artefact identifiers to fetch.
@@ -345,8 +342,8 @@ func (*registryService) logSearchQuery(ctx context.Context, query SearchQuery) {
 	}
 }
 
-// SearchArtefactsByTagValues finds artefacts that match a tag key and any of
-// the given tag values.
+// SearchArtefactsByTagValues finds artefacts that match a tag key and any of the given
+// tag values.
 //
 // Takes tagKey (string) which specifies the metadata tag to search by.
 // Takes tagValues ([]string) which contains the values to match against.
@@ -380,8 +377,7 @@ func (s *registryService) SearchArtefactsByTagValues(ctx context.Context, tagKey
 	return artefacts, nil
 }
 
-// FindArtefactByVariantStorageKey finds an artefact by one of its variant's
-// storage key.
+// FindArtefactByVariantStorageKey finds an artefact by one of its variant's storage key.
 //
 // Takes storageKey (string) which identifies the variant to look up.
 //
@@ -397,15 +393,13 @@ func (s *registryService) FindArtefactByVariantStorageKey(ctx context.Context, s
 	return s.loadArtefactByStorageKey(ctx, span, storageKey)
 }
 
-// loadArtefactByStorageKey loads an artefact by its storage key via
-// singleflight.
+// loadArtefactByStorageKey loads an artefact by its storage key via singleflight.
 //
 // Takes span (trace.Span) which records tracing information for the lookup.
 // Takes storageKey (string) which identifies the artefact variant in storage.
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
-// Returns error when the lookup fails or the singleflight returns an
-// unexpected type.
+// Returns error when the lookup fails or the singleflight returns an unexpected type.
 func (s *registryService) loadArtefactByStorageKey(
 	ctx context.Context,
 	span trace.Span,
@@ -443,11 +437,9 @@ func (s *registryService) loadArtefactByStorageKey(
 	return artefact, nil
 }
 
-// logStorageKeyLookupError logs an error that occurred during storage key
-// lookup.
+// logStorageKeyLookupError logs an error that occurred during storage key lookup.
 //
-// Takes span (trace.Span) which provides the tracing context for error
-// reporting.
+// Takes span (trace.Span) which provides the tracing context for error reporting.
 // Takes err (error) which is the error to log.
 func (*registryService) logStorageKeyLookupError(ctx context.Context, span trace.Span, err error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -458,8 +450,8 @@ func (*registryService) logStorageKeyLookupError(ctx context.Context, span trace
 	}
 }
 
-// deduplicateAndSort removes duplicate strings from a slice and returns the
-// unique values in sorted order. Uses a pooled map to reduce memory allocation.
+// deduplicateAndSort removes duplicate strings from a slice and returns the unique values
+// in sorted order. Uses a pooled map to reduce memory allocation.
 //
 // Takes items ([]string) which contains the strings to process.
 //
@@ -481,15 +473,14 @@ func deduplicateAndSort(items []string) []string {
 	return unique
 }
 
-// orderArtefactsByIDs orders artefacts to match the original ID request order.
-// Uses a pooled map to reduce allocations.
+// orderArtefactsByIDs orders artefacts to match the original ID request order. Uses a
+// pooled map to reduce allocations.
 //
-// Takes artefacts ([]*registry_dto.ArtefactMeta) which are the artefacts to
-// reorder.
+// Takes artefacts ([]*registry_dto.ArtefactMeta) which are the artefacts to reorder.
 // Takes requestedIDs ([]string) which specifies the desired order by ID.
 //
-// Returns []*registry_dto.ArtefactMeta which contains only the artefacts that
-// match the requested IDs, in the order specified.
+// Returns []*registry_dto.ArtefactMeta which contains only the artefacts that match the
+// requested IDs, in the order specified.
 func orderArtefactsByIDs(artefacts []*registry_dto.ArtefactMeta, requestedIDs []string) []*registry_dto.ArtefactMeta {
 	resultsMap := getOrderingMap()
 	defer putOrderingMap(resultsMap)

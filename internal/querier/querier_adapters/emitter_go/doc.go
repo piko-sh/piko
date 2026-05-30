@@ -16,7 +16,6 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package emitter_go provides backwards-compatible access to the
-// database/sql code emitter via GoEmitter. New code should use
-// emitter_go_sql.NewSQLEmitter() directly.
+// Package emitter_go provides backwards-compatible access to the database/sql code
+// emitter via GoEmitter. New code should use emitter_go_sql.NewSQLEmitter() directly.
 package emitter_go

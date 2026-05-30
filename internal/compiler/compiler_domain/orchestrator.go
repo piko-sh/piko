@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// compilerOrchestrator coordinates the SFC compilation pipeline.
-// It implements CompilerService.
+// compilerOrchestrator coordinates the SFC compilation pipeline. It implements
+// CompilerService.
 type compilerOrchestrator struct {
 	// inputReader reads SFC source data by identifier.
 	inputReader InputReaderPort
@@ -37,25 +37,24 @@ type compilerOrchestrator struct {
 	// sfcCompiler converts raw SFC bytes into compiled artefacts.
 	sfcCompiler SFCCompiler
 
-	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
-	// module path. Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted module path.
+	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 
-	// cssPreProcessor resolves CSS @import statements before CSS is embedded
-	// into compiled output. When nil, raw CSS is used as-is.
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded into compiled
+	// output. When nil, raw CSS is used as-is.
 	cssPreProcessor CSSPreProcessorPort
 
-	// transformSteps holds the ordered list of transformations to apply to
-	// compiled artefacts.
+	// transformSteps holds the ordered list of transformations to apply to compiled
+	// artefacts.
 	transformSteps []TransformationPort
 }
 
-// OrchestratorOption is a functional option for configuring the compiler
-// orchestrator.
+// OrchestratorOption is a functional option for configuring the compiler orchestrator.
 type OrchestratorOption func(*compilerOrchestrator)
 
-// CompileSingle compiles a single SFC by reading it from the input reader
-// using the given source ID.
+// CompileSingle compiles a single SFC by reading it from the input reader using the given
+// source ID.
 //
 // Takes sourceID (string) which identifies the SFC to compile.
 //
@@ -93,14 +92,13 @@ func (o *compilerOrchestrator) CompileSingle(ctx context.Context, sourceID strin
 	return o.CompileSFCBytes(ctx, sourceID, rawData)
 }
 
-// CompileSFCBytes compiles raw SFC bytes into a compiled artefact with the
-// given source ID.
+// CompileSFCBytes compiles raw SFC bytes into a compiled artefact with the given source
+// ID.
 //
 // Takes sourceID (string) which identifies the source of the SFC content.
 // Takes rawSFC ([]byte) which contains the raw single-file component bytes.
 //
-// Returns *compiler_dto.CompiledArtefact which is the compiled and transformed
-// artefact.
+// Returns *compiler_dto.CompiledArtefact which is the compiled and transformed artefact.
 // Returns error when compilation or any transformation step fails.
 func (o *compilerOrchestrator) CompileSFCBytes(ctx context.Context, sourceID string, rawSFC []byte) (*compiler_dto.CompiledArtefact, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -137,8 +135,7 @@ func (o *compilerOrchestrator) CompileSFCBytes(ctx context.Context, sourceID str
 	return artefact, nil
 }
 
-// applyTransformationSteps applies all registered transformation steps
-// to the artefact.
+// applyTransformationSteps applies all registered transformation steps to the artefact.
 //
 // Takes span (trace.Span) which is the parent span for tracing.
 // Takes artefact (*compiler_dto.CompiledArtefact) which will be transformed.
@@ -176,49 +173,48 @@ func (o *compilerOrchestrator) applyTransformationSteps(ctx context.Context, spa
 	return artefact, nil
 }
 
-// WithSFCCompiler sets a custom SFCCompiler for the orchestrator. This is
-// useful for testing with mock compilers.
+// WithSFCCompiler sets a custom SFCCompiler for the orchestrator. This is useful for
+// testing with mock compilers.
 //
 // Takes c (SFCCompiler) which provides the compiler to use.
 //
-// Returns OrchestratorOption which sets up the orchestrator to use the given
-// compiler.
+// Returns OrchestratorOption which sets up the orchestrator to use the given compiler.
 func WithSFCCompiler(c SFCCompiler) OrchestratorOption {
 	return func(o *compilerOrchestrator) {
 		o.sfcCompiler = c
 	}
 }
 
-// WithOrchestratorModuleName sets the Go module name for @/ alias resolution.
-// The module name should come from the resolver's GetModuleName() method.
+// WithOrchestratorModuleName sets the Go module name for @/ alias resolution. The module
+// name should come from the resolver's GetModuleName() method.
 //
-// Takes moduleName (string) which is the Go module name, for example a
-// GitHub-hosted module path.
+// Takes moduleName (string) which is the Go module name, for example a GitHub-hosted
+// module path.
 //
-// Returns OrchestratorOption which configures the orchestrator to use the
-// given module name for path resolution.
+// Returns OrchestratorOption which configures the orchestrator to use the given module
+// name for path resolution.
 func WithOrchestratorModuleName(moduleName string) OrchestratorOption {
 	return func(o *compilerOrchestrator) {
 		o.moduleName = moduleName
 	}
 }
 
-// WithOrchestratorCSSPreProcessor sets an optional CSS pre-processor that
-// resolves @import statements before CSS is embedded into compiled output.
-// When not set, raw CSS from style blocks is used as-is.
+// WithOrchestratorCSSPreProcessor sets an optional CSS pre-processor that resolves
+// @import statements before CSS is embedded into compiled output. When not set, raw CSS
+// from style blocks is used as-is.
 //
 // Takes p (CSSPreProcessorPort) which resolves @import statements in CSS.
 //
-// Returns OrchestratorOption which configures the orchestrator to use the
-// given pre-processor.
+// Returns OrchestratorOption which configures the orchestrator to use the given
+// pre-processor.
 func WithOrchestratorCSSPreProcessor(p CSSPreProcessorPort) OrchestratorOption {
 	return func(o *compilerOrchestrator) {
 		o.cssPreProcessor = p
 	}
 }
 
-// NewCompilerOrchestrator creates a new compiler orchestrator with the given
-// input reader and transformation steps.
+// NewCompilerOrchestrator creates a new compiler orchestrator with the given input reader
+// and transformation steps.
 //
 // Takes inputReader (InputReaderPort) which provides the source input.
 // Takes transformSteps ([]TransformationPort) which defines the pipeline.

@@ -1,0 +1,5 @@
+{
+  "description": "main package fmt.Sprintf-formats a type defined in lib via its String() method - exercises cross-package method dispatch through the native fmt path",
+  "modulePath": "testpkg",
+  "expected": "tag=<alpha>"
+}

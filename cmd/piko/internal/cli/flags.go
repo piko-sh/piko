@@ -43,16 +43,16 @@ type GlobalOptions struct {
 	// Output is the output format: "table", "wide", or "json".
 	Output string
 
-	// CertsDir is the path to a certificate directory for TLS connections.
-	// When set, expects an opinionated layout: ca.pem (required), and
-	// optionally client.pem + client-key.pem for mTLS.
+	// CertsDir is the path to a certificate directory for TLS connections. When set, expects
+	// an opinionated layout: ca.pem (required), and optionally client.pem + client-key.pem
+	// for mTLS.
 	CertsDir string
 
 	// Timeout is the connection and request timeout.
 	Timeout time.Duration
 
-	// Limit is the maximum number of items to return. Zero means the handler
-	// should use its own default.
+	// Limit is the maximum number of items to return. Zero means the handler should use its
+	// own default.
 	Limit int
 
 	// NoColour disables coloured output.
@@ -80,9 +80,9 @@ var (
 	}
 )
 
-// parseGlobalFlags parses global flags from the argument list, returning
-// the options and the remaining unparsed arguments. Global flags may appear
-// anywhere in the argument list, interspersed with positional arguments.
+// parseGlobalFlags parses global flags from the argument list, returning the options and
+// the remaining unparsed arguments. Global flags may appear anywhere in the argument
+// list, interspersed with positional arguments.
 //
 // Takes arguments ([]string) which contains the raw command-line arguments.
 //
@@ -118,8 +118,8 @@ func parseGlobalFlags(arguments []string) (*GlobalOptions, []string) {
 	return opts, remaining
 }
 
-// separateGlobalFlags extracts known global flags from anywhere in arguments.
-// Flags can therefore be interspersed with positional arguments.
+// separateGlobalFlags extracts known global flags from anywhere in arguments. Flags can
+// therefore be interspersed with positional arguments.
 //
 // Takes arguments ([]string) which contains the raw command-line arguments.
 //
@@ -153,13 +153,11 @@ func separateGlobalFlags(arguments []string) (globalArgs, remaining []string) {
 	return globalArgs, remaining
 }
 
-// isGlobalEqualsFlag reports whether arg is a --flag=value form of a known
-// global flag.
+// isGlobalEqualsFlag reports whether arg is a --flag=value form of a known global flag.
 //
 // Takes arg (string) which is a single command-line argument.
 //
-// Returns bool which is true when the argument matches a global flag in
-// equals form.
+// Returns bool which is true when the argument matches a global flag in equals form.
 func isGlobalEqualsFlag(arg string) bool {
 	if !strings.HasPrefix(arg, "-") {
 		return false

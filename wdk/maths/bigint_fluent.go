@@ -24,8 +24,8 @@ import (
 
 // Abs returns the absolute value of the BigInt.
 //
-// Returns BigInt which is the absolute value, or the original value if an
-// error is present.
+// Returns BigInt which is the absolute value, or the original value if an error is
+// present.
 func (b BigInt) Abs() BigInt {
 	if b.err != nil {
 		return b
@@ -47,8 +47,8 @@ func (b BigInt) Negate() BigInt {
 	return NewBigIntFromApd(*result)
 }
 
-// Round returns the BigInt unchanged as it is already an integer. It is
-// included for API consistency.
+// Round returns the BigInt unchanged as it is already an integer. It is included for API
+// consistency.
 //
 // Returns BigInt which is the receiver unchanged.
 func (b BigInt) Round(_ int32) BigInt {
@@ -58,8 +58,8 @@ func (b BigInt) Round(_ int32) BigInt {
 	return b
 }
 
-// Ceil returns the BigInt unchanged as integers have no fractional part.
-// It is included for API consistency with other numeric types.
+// Ceil returns the BigInt unchanged as integers have no fractional part. It is included
+// for API consistency with other numeric types.
 //
 // Returns BigInt which is the receiver value unmodified.
 func (b BigInt) Ceil() BigInt {
@@ -69,8 +69,8 @@ func (b BigInt) Ceil() BigInt {
 	return b
 }
 
-// Floor returns the BigInt unchanged, as integers have no decimal part.
-// Provided for API consistency with other numeric types.
+// Floor returns the BigInt unchanged, as integers have no decimal part. Provided for API
+// consistency with other numeric types.
 //
 // Returns BigInt which is the receiver unchanged.
 func (b BigInt) Floor() BigInt {
@@ -80,8 +80,8 @@ func (b BigInt) Floor() BigInt {
 	return b
 }
 
-// Truncate is a no-op for BigInt as it is already an integer. It is included
-// for API consistency.
+// Truncate is a no-op for BigInt as it is already an integer. It is included for API
+// consistency.
 //
 // Returns BigInt which is the receiver unchanged.
 func (b BigInt) Truncate() BigInt {
@@ -91,8 +91,8 @@ func (b BigInt) Truncate() BigInt {
 	return b
 }
 
-// AddPercent adds a percentage to the bigint value.
-// It returns a Decimal because the result may have a fractional part.
+// AddPercent adds a percentage to the bigint value. It returns a Decimal because the
+// result may have a fractional part.
 //
 // Takes p (Decimal) which specifies the percentage to add.
 //
@@ -128,8 +128,8 @@ func (b BigInt) AddPercentFloat(i float64) Decimal {
 	return b.AddPercent(NewDecimalFromFloat(i))
 }
 
-// SubtractPercent removes a percentage from the BigInt value.
-// It returns a Decimal because the result may have a fractional part.
+// SubtractPercent removes a percentage from the BigInt value. It returns a Decimal
+// because the result may have a fractional part.
 //
 // Takes p (Decimal) which specifies the percentage to subtract.
 //
@@ -165,8 +165,8 @@ func (b BigInt) SubtractPercentFloat(i float64) Decimal {
 	return b.SubtractPercent(NewDecimalFromFloat(i))
 }
 
-// GetPercent returns the specified percentage of the BigInt value.
-// The result is a Decimal because it may have a fractional part.
+// GetPercent returns the specified percentage of the BigInt value. The result is a
+// Decimal because it may have a fractional part.
 //
 // Takes p (Decimal) which specifies the percentage to calculate.
 //
@@ -220,8 +220,7 @@ func (b BigInt) AsPercentOfInt(i int64) Decimal {
 	return b.AsPercentOf(NewBigIntFromInt(i))
 }
 
-// AsPercentOfString calculates what percentage this value is of the given
-// string value.
+// AsPercentOfString calculates what percentage this value is of the given string value.
 //
 // Takes i (string) which is the divisor value as a numeric string.
 //
@@ -230,8 +229,8 @@ func (b BigInt) AsPercentOfString(i string) Decimal {
 	return b.AsPercentOf(NewBigIntFromString(i))
 }
 
-// When applies the function callback if the given condition is true, enabling
-// conditional logic within a fluent chain.
+// When applies the function callback if the given condition is true, enabling conditional
+// logic within a fluent chain.
 //
 // Takes condition (bool) which determines whether to apply the function.
 // Takes callback (func(BigInt) BigInt) which transforms the value when applied.
@@ -247,8 +246,7 @@ func (b BigInt) When(condition bool, callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenZero applies the function callback if the BigInt is valid and its value is
-// zero.
+// WhenZero applies the function callback if the BigInt is valid and its value is zero.
 //
 // Takes callback (func(BigInt) BigInt) which transforms the zero value.
 //
@@ -260,13 +258,12 @@ func (b BigInt) WhenZero(callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenPositive applies the function callback if the BigInt is valid and its value
-// is positive.
+// WhenPositive applies the function callback if the BigInt is valid and its value is
+// positive.
 //
 // Takes callback (func(BigInt) BigInt) which transforms the positive value.
 //
-// Returns BigInt which is the result of callback if positive, or
-// the original value.
+// Returns BigInt which is the result of callback if positive, or the original value.
 func (b BigInt) WhenPositive(callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsPositive() {
 		return callback(b)
@@ -274,13 +271,12 @@ func (b BigInt) WhenPositive(callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenNegative applies the function callback if the BigInt is valid and its value
-// is negative.
+// WhenNegative applies the function callback if the BigInt is valid and its value is
+// negative.
 //
 // Takes callback (func(BigInt) BigInt) which transforms the negative value.
 //
-// Returns BigInt which is the result of callback if negative, or
-// the original value.
+// Returns BigInt which is the result of callback if negative, or the original value.
 func (b BigInt) WhenNegative(callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsNegative() {
 		return callback(b)
@@ -288,9 +284,8 @@ func (b BigInt) WhenNegative(callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenInteger applies the function callback if the BigInt is valid.
-// It is included for API consistency and always executes if the BigInt is
-// valid.
+// WhenInteger applies the function callback if the BigInt is valid. It is included for
+// API consistency and always executes if the BigInt is valid.
 //
 // Takes callback (func(BigInt) BigInt) which transforms the BigInt value.
 //
@@ -302,15 +297,15 @@ func (b BigInt) WhenInteger(callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenBetween applies the function callback if the BigInt is valid
-// and between minVal and maxVal (inclusive).
+// WhenBetween applies the function callback if the BigInt is valid and between minVal and
+// maxVal (inclusive).
 //
 // Takes minVal (BigInt) which specifies the lower bound of the range.
 // Takes maxVal (BigInt) which specifies the upper bound of the range.
 // Takes callback (func(BigInt) BigInt) which transforms the value when in range.
 //
-// Returns BigInt which is the transformed value if in range, or the original
-// value otherwise.
+// Returns BigInt which is the transformed value if in range, or the original value
+// otherwise.
 func (b BigInt) WhenBetween(minVal, maxVal BigInt, callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsBetween(minVal, maxVal) {
 		return callback(b)
@@ -322,8 +317,7 @@ func (b BigInt) WhenBetween(minVal, maxVal BigInt, callback func(BigInt) BigInt)
 //
 // Takes callback (func(BigInt) BigInt) which transforms the value when even.
 //
-// Returns BigInt which is the transformed value if even, or the original
-// value unchanged.
+// Returns BigInt which is the transformed value if even, or the original value unchanged.
 func (b BigInt) WhenEven(callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsEven() {
 		return callback(b)
@@ -335,8 +329,7 @@ func (b BigInt) WhenEven(callback func(BigInt) BigInt) BigInt {
 //
 // Takes callback (func(BigInt) BigInt) which transforms the value when odd.
 //
-// Returns BigInt which is the transformed value if odd, or the original value
-// otherwise.
+// Returns BigInt which is the transformed value if odd, or the original value otherwise.
 func (b BigInt) WhenOdd(callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsOdd() {
 		return callback(b)
@@ -344,14 +337,13 @@ func (b BigInt) WhenOdd(callback func(BigInt) BigInt) BigInt {
 	return b
 }
 
-// WhenMultipleOf applies the function callback if the BigInt is a
-// valid multiple of the other BigInt.
+// WhenMultipleOf applies the function callback if the BigInt is a valid multiple of the
+// other BigInt.
 //
 // Takes other (BigInt) which is the divisor to check against.
 // Takes callback (func(BigInt) BigInt) which is applied when b is a multiple.
 //
-// Returns BigInt which is the result of callback if b is a
-// multiple, or b unchanged.
+// Returns BigInt which is the result of callback if b is a multiple, or b unchanged.
 func (b BigInt) WhenMultipleOf(other BigInt, callback func(BigInt) BigInt) BigInt {
 	if b.CheckIsMultipleOf(other) {
 		return callback(b)

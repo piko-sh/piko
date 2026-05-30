@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package healthprobe_adapters implements the healthprobe_domain ports
-// for probe registration ([InMemoryRegistry]) and HTTP endpoint serving
-// ([HTTPHandlerAdapter]). It supports Kubernetes-style liveness and
-// readiness checks.
+// Package healthprobe_adapters implements the healthprobe_domain ports for probe
+// registration ([InMemoryRegistry]) and HTTP endpoint serving ([HTTPHandlerAdapter]). It
+// supports Kubernetes-style liveness and readiness checks.
 //
 // # Thread safety
 //
-// [InMemoryRegistry] is safe for concurrent use. All register and retrieve
-// operations are protected by a read-write mutex.
+// [InMemoryRegistry] is safe for concurrent use. All register and retrieve operations are
+// protected by a read-write mutex.
 package healthprobe_adapters

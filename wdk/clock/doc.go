@@ -18,10 +18,9 @@
 
 // Package clock provides a time abstraction for testability.
 //
-// Enables dependency injection of time operations, allowing production code to
-// use the real system clock whilst tests can control time deterministically.
-// Essential for testing time-sensitive logic such as caching, expiration, and
-// scheduling.
+// Enables dependency injection of time operations, allowing production code to use the
+// real system clock whilst tests can control time deterministically. Essential for
+// testing time-sensitive logic such as caching, expiration, and scheduling.
 //
 // # Production usage
 //
@@ -40,12 +39,11 @@
 //	mock.Advance(25 * time.Hour)
 //	// Now service.CheckExpiration() sees an expired token
 //
-// The mock clock fires timers and tickers when [MockClock.Advance] is called,
-// so tests can exercise time-dependent behaviour deterministically.
+// The mock clock fires timers and tickers when [MockClock.Advance] is called, so tests
+// can exercise time-dependent behaviour deterministically.
 //
 // # Thread safety
 //
-// All Clock implementations are safe for concurrent use. The [MockClock] type
-// uses internal synchronisation to protect its state during Advance and timer
-// operations.
+// All Clock implementations are safe for concurrent use. The [MockClock] type uses
+// internal synchronisation to protect its state during Advance and timer operations.
 package clock

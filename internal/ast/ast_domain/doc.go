@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ast_domain defines the core Abstract Syntax Tree types and
-// operations for Piko templates.
+// Package ast_domain defines the core Abstract Syntax Tree types and operations for Piko
+// templates.
 //
-// It contains the data structures for representing parsed HTML templates
-// (element nodes, text content, directives, expressions), the parser,
-// expression evaluator, tree traversal utilities, CSS selector query
-// engine, serialisation to Go source, and a pooled arena allocator for
-// high-throughput rendering. Cache port interfaces for adapter packages
-// are also defined here.
+// It contains the data structures for representing parsed HTML templates (element nodes,
+// text content, directives, expressions), the parser, expression evaluator, tree
+// traversal utilities, CSS selector query engine, serialisation to Go source, and a
+// pooled arena allocator for high-throughput rendering. Cache port interfaces for adapter
+// packages are also defined here.
 //
 // # Usage
 //
@@ -58,10 +57,8 @@
 //
 // # Thread safety
 //
-// [TemplateAST] and [TemplateNode] instances are not safe for
-// concurrent modification. Use DeepClone to create independent copies
-// for concurrent processing. The parallel walk methods (ParallelWalk)
-// are safe for read-only traversal. [RenderArena] instances must not
-// be shared between goroutines; acquire one per request from the
-// global pool.
+// [TemplateAST] and [TemplateNode] instances are not safe for concurrent modification.
+// Use DeepClone to create independent copies for concurrent processing. The parallel walk
+// methods (ParallelWalk) are safe for read-only traversal. [RenderArena] instances must
+// not be shared between goroutines; acquire one per request from the global pool.
 package ast_domain

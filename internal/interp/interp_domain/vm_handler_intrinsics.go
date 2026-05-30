@@ -22,21 +22,24 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// maxUTF8RuneBytes is the maximum number of bytes a single UTF-8 rune can occupy.
-const maxUTF8RuneBytes = 4
+const (
+	// maxUTF8RuneBytes is the maximum number of bytes a single UTF-8 rune can occupy.
+	maxUTF8RuneBytes = 4
+)
 
-// stringSliceType holds the reflect.Type for []string, used
-// to construct string slices via reflection in string intrinsics.
-var stringSliceType = reflect.TypeFor[[]string]()
+var (
+	// stringSliceType holds the reflect.Type for []string, used to construct string slices
+	// via reflection in string intrinsics.
+	stringSliceType = reflect.TypeFor[[]string]()
+)
 
-// handleStrContainsRune handles the opStrContainsRune instruction by
-// checking if a string contains the specified rune.
+// handleStrContainsRune handles the opStrContainsRune instruction by checking if a string
+// contains the specified rune.
 //
 // Takes registers (*Registers) which holds the string and rune operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -47,8 +50,8 @@ func handleStrContainsRune(_ *VM, _ *callFrame, registers *Registers, instructio
 	return opContinue
 }
 
-// handleStrContains handles the opStrContains instruction by checking
-// if a string contains the specified substring.
+// handleStrContains handles the opStrContains instruction by checking if a string
+// contains the specified substring.
 //
 // Takes registers (*Registers) which holds the string operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -59,8 +62,8 @@ func handleStrContains(_ *VM, _ *callFrame, registers *Registers, instruction in
 	return opContinue
 }
 
-// handleStrHasPrefix handles the opStrHasPrefix instruction by checking
-// if a string starts with the specified prefix.
+// handleStrHasPrefix handles the opStrHasPrefix instruction by checking if a string
+// starts with the specified prefix.
 //
 // Takes registers (*Registers) which holds the string and prefix operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -71,8 +74,8 @@ func handleStrHasPrefix(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleStrHasSuffix handles the opStrHasSuffix instruction by checking
-// if a string ends with the specified suffix.
+// handleStrHasSuffix handles the opStrHasSuffix instruction by checking if a string ends
+// with the specified suffix.
 //
 // Takes registers (*Registers) which holds the string and suffix operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -83,8 +86,8 @@ func handleStrHasSuffix(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleStrEqualFold handles the opStrEqualFold instruction by
-// performing a case-insensitive string comparison.
+// handleStrEqualFold handles the opStrEqualFold instruction by performing a
+// case-insensitive string comparison.
 //
 // Takes registers (*Registers) which holds the two string operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -95,8 +98,8 @@ func handleStrEqualFold(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleStrIndex handles the opStrIndex instruction by finding the
-// index of the first occurrence of a substring within a string.
+// handleStrIndex handles the opStrIndex instruction by finding the index of the first
+// occurrence of a substring within a string.
 //
 // Takes registers (*Registers) which holds the string and substring operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -107,8 +110,8 @@ func handleStrIndex(_ *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleStrCount handles the opStrCount instruction by counting the
-// non-overlapping occurrences of a substring within a string.
+// handleStrCount handles the opStrCount instruction by counting the non-overlapping
+// occurrences of a substring within a string.
 //
 // Takes registers (*Registers) which holds the string and substring operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -119,8 +122,8 @@ func handleStrCount(_ *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleStrToUpper handles the opStrToUpper instruction by converting
-// all characters in a string to uppercase.
+// handleStrToUpper handles the opStrToUpper instruction by converting all characters in a
+// string to uppercase.
 //
 // Takes registers (*Registers) which holds the source string and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -131,8 +134,8 @@ func handleStrToUpper(_ *VM, _ *callFrame, registers *Registers, instruction ins
 	return opContinue
 }
 
-// handleStrToLower handles the opStrToLower instruction by converting
-// all characters in a string to lowercase.
+// handleStrToLower handles the opStrToLower instruction by converting all characters in a
+// string to lowercase.
 //
 // Takes registers (*Registers) which holds the source string and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -143,8 +146,8 @@ func handleStrToLower(_ *VM, _ *callFrame, registers *Registers, instruction ins
 	return opContinue
 }
 
-// handleStrTrimSpace handles the opStrTrimSpace instruction by
-// removing leading and trailing whitespace from a string.
+// handleStrTrimSpace handles the opStrTrimSpace instruction by removing leading and
+// trailing whitespace from a string.
 //
 // Takes registers (*Registers) which holds the source string and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -155,8 +158,8 @@ func handleStrTrimSpace(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleStrTrimPrefix handles the opStrTrimPrefix instruction by
-// removing the specified prefix from a string if present.
+// handleStrTrimPrefix handles the opStrTrimPrefix instruction by removing the specified
+// prefix from a string if present.
 //
 // Takes registers (*Registers) which holds the string and prefix operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -167,8 +170,8 @@ func handleStrTrimPrefix(_ *VM, _ *callFrame, registers *Registers, instruction 
 	return opContinue
 }
 
-// handleStrTrimSuffix handles the opStrTrimSuffix instruction by
-// removing the specified suffix from a string if present.
+// handleStrTrimSuffix handles the opStrTrimSuffix instruction by removing the specified
+// suffix from a string if present.
 //
 // Takes registers (*Registers) which holds the string and suffix operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -179,8 +182,8 @@ func handleStrTrimSuffix(_ *VM, _ *callFrame, registers *Registers, instruction 
 	return opContinue
 }
 
-// handleStrTrim handles the opStrTrim instruction by removing leading
-// and trailing characters in a cutset from a string.
+// handleStrTrim handles the opStrTrim instruction by removing leading and trailing
+// characters in a cutset from a string.
 //
 // Takes registers (*Registers) which holds the string and cutset operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -191,8 +194,8 @@ func handleStrTrim(_ *VM, _ *callFrame, registers *Registers, instruction instru
 	return opContinue
 }
 
-// handleStrIndexRune handles the opStrIndexRune instruction by finding
-// the index of the first occurrence of a rune within a string.
+// handleStrIndexRune handles the opStrIndexRune instruction by finding the index of the
+// first occurrence of a rune within a string.
 //
 // Takes registers (*Registers) which holds the string and rune operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -203,8 +206,8 @@ func handleStrIndexRune(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleMathAbs handles the opMathAbs instruction by computing the
-// absolute value of a float register.
+// handleMathAbs handles the opMathAbs instruction by computing the absolute value of a
+// float register.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -215,8 +218,8 @@ func handleMathAbs(_ *VM, _ *callFrame, registers *Registers, instruction instru
 	return opContinue
 }
 
-// handleMathSqrt handles the opMathSqrt instruction by computing the
-// square root of a float register.
+// handleMathSqrt handles the opMathSqrt instruction by computing the square root of a
+// float register.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -227,8 +230,8 @@ func handleMathSqrt(_ *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleMathFloor handles the opMathFloor instruction by computing
-// the floor of a float register value.
+// handleMathFloor handles the opMathFloor instruction by computing the floor of a float
+// register value.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -239,8 +242,8 @@ func handleMathFloor(_ *VM, _ *callFrame, registers *Registers, instruction inst
 	return opContinue
 }
 
-// handleMathCeil handles the opMathCeil instruction by computing the
-// ceiling of a float register value.
+// handleMathCeil handles the opMathCeil instruction by computing the ceiling of a float
+// register value.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -251,8 +254,8 @@ func handleMathCeil(_ *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleMathRound handles the opMathRound instruction by rounding a
-// float register value to the nearest integer.
+// handleMathRound handles the opMathRound instruction by rounding a float register value
+// to the nearest integer.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -263,20 +266,8 @@ func handleMathRound(_ *VM, _ *callFrame, registers *Registers, instruction inst
 	return opContinue
 }
 
-// handleStrconvItoa handles the opStrconvItoa instruction by converting
-// an integer to its decimal string representation.
-//
-// Takes registers (*Registers) which holds the integer source and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleStrconvItoa(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.strings[instruction.a] = strconv.Itoa(int(registers.ints[instruction.b]))
-	return opContinue
-}
-
-// handleMathPow handles the opMathPow instruction by computing base
-// raised to the exponent power from two float registers.
+// handleMathPow handles the opMathPow instruction by computing base raised to the
+// exponent power from two float registers.
 //
 // Takes registers (*Registers) which holds the base, exponent and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -287,68 +278,8 @@ func handleMathPow(_ *VM, _ *callFrame, registers *Registers, instruction instru
 	return opContinue
 }
 
-// handleMathExp handles the opMathExp instruction by computing the
-// natural exponential of a float register value.
-//
-// Takes registers (*Registers) which holds the source float and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleMathExp(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.floats[instruction.a] = math.Exp(registers.floats[instruction.b])
-	return opContinue
-}
-
-// handleMathSin handles the opMathSin instruction by computing the
-// sine of a float register value in radians.
-//
-// Takes registers (*Registers) which holds the source float and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleMathSin(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.floats[instruction.a] = math.Sin(registers.floats[instruction.b])
-	return opContinue
-}
-
-// handleMathCos handles the opMathCos instruction by computing the
-// cosine of a float register value in radians.
-//
-// Takes registers (*Registers) which holds the source float and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleMathCos(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.floats[instruction.a] = math.Cos(registers.floats[instruction.b])
-	return opContinue
-}
-
-// handleMathTan handles the opMathTan instruction by computing the
-// tangent of a float register value in radians.
-//
-// Takes registers (*Registers) which holds the source float and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleMathTan(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.floats[instruction.a] = math.Tan(registers.floats[instruction.b])
-	return opContinue
-}
-
-// handleMathMod handles the opMathMod instruction by computing the
-// floating-point remainder of two float register values.
-//
-// Takes registers (*Registers) which holds the two float operands.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleMathMod(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.floats[instruction.a] = math.Mod(registers.floats[instruction.b], registers.floats[instruction.c])
-	return opContinue
-}
-
-// handleMathTrunc handles the opMathTrunc instruction by truncating a
-// float register value toward zero.
+// handleMathTrunc handles the opMathTrunc instruction by truncating a float register
+// value toward zero.
 //
 // Takes registers (*Registers) which holds the source float and destination.
 // Takes instruction (instruction) which encodes the register indices.
@@ -359,44 +290,33 @@ func handleMathTrunc(_ *VM, _ *callFrame, registers *Registers, instruction inst
 	return opContinue
 }
 
-// handleStrconvFormatBool handles the opStrconvFormatBool instruction
-// by converting a boolean to its string representation.
+// handleStrRepeat handles the opStrRepeat instruction by repeating a string the specified
+// number of times. A negative count or a result that would exceed the configured
+// string-size limit raises an interpreted panic instead of crashing the host.
 //
-// Takes registers (*Registers) which holds the boolean source and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleStrconvFormatBool(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.strings[instruction.a] = strconv.FormatBool(registers.bools[instruction.b])
-	return opContinue
-}
-
-// handleStrconvFormatInt handles the opStrconvFormatInt instruction by
-// formatting an integer in the specified base as a string.
-//
-// Takes registers (*Registers) which holds the integer, base and destination.
-// Takes instruction (instruction) which encodes the register indices.
-//
-// Returns opResult indicating the next execution step.
-func handleStrconvFormatInt(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.strings[instruction.a] = strconv.FormatInt(registers.ints[instruction.b], int(registers.ints[instruction.c]))
-	return opContinue
-}
-
-// handleStrRepeat handles the opStrRepeat instruction by repeating a
-// string the specified number of times.
-//
+// Takes vm (*VM) which provides the string-size limit.
 // Takes registers (*Registers) which holds the string, count and destination.
 // Takes instruction (instruction) which encodes the register indices.
 //
 // Returns opResult indicating the next execution step.
-func handleStrRepeat(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
-	registers.strings[instruction.a] = strings.Repeat(registers.strings[instruction.b], int(registers.ints[instruction.c]))
+func handleStrRepeat(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
+	source := registers.strings[instruction.b]
+	count := int(registers.ints[instruction.c])
+	if count < 0 {
+		vm.evalError = newRuntimePanicError("strings: negative Repeat count")
+		return opPanicError
+	}
+	if vm.limits.maxStringSize > 0 && len(source) > 0 && count > vm.limits.maxStringSize/len(source) {
+		vm.evalError = fmt.Errorf("%w: repeat result exceeds limit %d",
+			errStringLimit, vm.limits.maxStringSize)
+		return opPanicError
+	}
+	registers.strings[instruction.a] = strings.Repeat(source, count)
 	return opContinue
 }
 
-// handleStrLastIndex handles the opStrLastIndex instruction by finding
-// the index of the last occurrence of a substring within a string.
+// handleStrLastIndex handles the opStrLastIndex instruction by finding the index of the
+// last occurrence of a substring within a string.
 //
 // Takes registers (*Registers) which holds the string and substring operands.
 // Takes instruction (instruction) which encodes the register indices.
@@ -407,8 +327,8 @@ func handleStrLastIndex(_ *VM, _ *callFrame, registers *Registers, instruction i
 	return opContinue
 }
 
-// handleConcatRuneString handles the opConcatRuneString instruction by
-// concatenating a string with a rune using arena-based allocation.
+// handleConcatRuneString handles the opConcatRuneString instruction by concatenating a
+// string with a rune using arena-based allocation.
 //
 // Takes vm (*VM) which provides the arena for string allocation.
 // Takes registers (*Registers) which holds the string, rune and destination.
@@ -426,8 +346,8 @@ func handleConcatRuneString(vm *VM, _ *callFrame, registers *Registers, instruct
 	return opContinue
 }
 
-// handleStrJoin handles the opStrJoin instruction by joining a slice
-// of strings with the specified separator.
+// handleStrJoin handles the opStrJoin instruction by joining a slice of strings with the
+// specified separator.
 //
 // Takes vm (*VM) which provides the arena for string materialisation.
 // Takes registers (*Registers) which holds the slice and separator.
@@ -436,6 +356,13 @@ func handleConcatRuneString(vm *VM, _ *callFrame, registers *Registers, instruct
 // Returns opResult indicating the next execution step.
 func handleStrJoin(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
 	slice := registers.general[instruction.b]
+	if slice.IsValid() && slice.Kind() == reflect.Interface && !slice.IsNil() {
+		slice = slice.Elem()
+	}
+	if !slice.IsValid() || (slice.Kind() != reflect.Slice && slice.Kind() != reflect.Array) {
+		vm.evalError = newRuntimePanicError("strings: Join called on non-slice value")
+		return opPanicError
+	}
 	sep := materialiseString(vm.arena, registers.strings[instruction.c])
 	n := slice.Len()
 	parts := make([]string, n)
@@ -446,8 +373,8 @@ func handleStrJoin(vm *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleStrSplit handles the opStrSplit instruction by splitting a
-// string around each occurrence of the specified separator.
+// handleStrSplit handles the opStrSplit instruction by splitting a string around each
+// occurrence of the specified separator.
 //
 // Takes registers (*Registers) which holds the string and separator.
 // Takes instruction (instruction) which encodes the register indices.
@@ -463,8 +390,8 @@ func handleStrSplit(_ *VM, _ *callFrame, registers *Registers, instruction instr
 	return opContinue
 }
 
-// handleStrReplaceAll handles the opStrReplaceAll instruction by
-// replacing all occurrences of a substring with a replacement string.
+// handleStrReplaceAll handles the opStrReplaceAll instruction by replacing all
+// occurrences of a substring with a replacement string.
 //
 // Takes frame (*callFrame) which provides the replacement extension word.
 // Takes registers (*Registers) which holds the string and replacement values.

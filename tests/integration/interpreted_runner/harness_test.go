@@ -34,7 +34,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
@@ -51,10 +50,13 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/logger"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testCase struct {
 	Name string
@@ -235,7 +237,9 @@ func loadTestSpec(t *testing.T, tc testCase) TemplaterTestSpec {
 	return spec
 }
 
-var csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+var (
+	csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+)
 
 func normaliseHTML(html []byte) []byte {
 	return csrfTokenRegex.ReplaceAll(html, []byte(`<meta name="csrf-$1" content="[NORMALIZED]">`))

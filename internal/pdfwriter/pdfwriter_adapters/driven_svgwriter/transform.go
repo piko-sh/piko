@@ -29,8 +29,8 @@ const (
 	// degreesToRadiansTransform holds the conversion factor from degrees to radians.
 	degreesToRadiansTransform = math.Pi / 180
 
-	// rotateWithCentreArgCount holds the expected argument
-	// count for a rotate transform with centre coordinates.
+	// rotateWithCentreArgCount holds the expected argument count for a rotate transform with
+	// centre coordinates.
 	rotateWithCentreArgCount = 3
 
 	// matrixArgCount holds the expected argument count for a full affine matrix transform.
@@ -155,8 +155,8 @@ func (m Matrix) IsIdentity() bool {
 	return m.A == 1 && m.B == 0 && m.C == 0 && m.D == 1 && m.E == 0 && m.F == 0
 }
 
-// ParseTransform parses an SVG transform attribute such as
-// "translate(10,20) rotate(45) scale(2)" into a combined matrix.
+// ParseTransform parses an SVG transform attribute such as "translate(10,20) rotate(45)
+// scale(2)" into a combined matrix.
 //
 // Takes s (string) which specifies the SVG transform attribute value.
 //
@@ -193,14 +193,12 @@ func ParseTransform(s string) Matrix {
 	return result
 }
 
-// parseTransformArgs parses a comma-or-space-separated
-// list of numeric arguments from a transform function.
+// parseTransformArgs parses a comma-or-space-separated list of numeric arguments from a
+// transform function.
 //
-// Takes s (string) which holds the raw argument string
-// from inside the parentheses.
+// Takes s (string) which holds the raw argument string from inside the parentheses.
 //
-// Returns []float64 which holds the parsed numeric
-// arguments.
+// Returns []float64 which holds the parsed numeric arguments.
 func parseTransformArgs(s string) []float64 {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -219,11 +217,10 @@ func parseTransformArgs(s string) []float64 {
 	return result
 }
 
-// applyTransformFunc dispatches a named SVG transform
-// function to the corresponding matrix constructor.
+// applyTransformFunc dispatches a named SVG transform function to the corresponding
+// matrix constructor.
 //
-// Takes name (string) which specifies the transform
-// function name.
+// Takes name (string) which specifies the transform function name.
 // Takes args ([]float64) which holds the numeric arguments.
 //
 // Returns Matrix which holds the resulting transformation.
@@ -259,11 +256,10 @@ func applyTransformFunc(name string, args []float64) Matrix {
 	}
 }
 
-// applyTranslate builds a translation matrix from the
-// given argument list, defaulting missing values to zero.
+// applyTranslate builds a translation matrix from the given argument list, defaulting
+// missing values to zero.
 //
-// Takes args ([]float64) which holds the translate
-// arguments.
+// Takes args ([]float64) which holds the translate arguments.
 //
 // Returns Matrix which holds the resulting translation.
 func applyTranslate(args []float64) Matrix {
@@ -277,9 +273,8 @@ func applyTranslate(args []float64) Matrix {
 	return Translate(tx, ty)
 }
 
-// applyScale builds a scaling matrix from the given
-// argument list, using uniform scaling when only one
-// argument is provided.
+// applyScale builds a scaling matrix from the given argument list, using uniform scaling
+// when only one argument is provided.
 //
 // Takes args ([]float64) which holds the scale arguments.
 //
@@ -296,11 +291,10 @@ func applyScale(args []float64) Matrix {
 	return Scale(sx, sy)
 }
 
-// applyRotate builds a rotation matrix from the given
-// argument list, supporting optional centre-point rotation.
+// applyRotate builds a rotation matrix from the given argument list, supporting optional
+// centre-point rotation.
 //
-// Takes args ([]float64) which holds the rotation
-// arguments.
+// Takes args ([]float64) which holds the rotation arguments.
 //
 // Returns Matrix which holds the resulting rotation.
 func applyRotate(args []float64) Matrix {

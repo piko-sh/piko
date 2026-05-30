@@ -41,27 +41,28 @@ const (
 	// logKeyHybridCollection is the log key for the hybrid collection name.
 	logKeyHybridCollection = "collection"
 
-	// defaultHybridCacheMaxEntries is the maximum number of hybrid collections
-	// that can be cached. This is a generous default; most applications have
-	// far fewer hybrid collections.
+	// defaultHybridCacheMaxEntries is the maximum number of hybrid collections that can be
+	// cached. This is a generous default; most applications have far fewer hybrid
+	// collections.
 	defaultHybridCacheMaxEntries = 10_000
 )
 
-// hybridRevalidationGroup deduplicates concurrent revalidation triggers
-// for the same hybrid collection key. Without it, every render that
-// observes a stale-while-revalidate state would spawn its own
-// goroutine + channel pair via cache.Refresh, multiplying allocations
-// linearly with concurrency at every TTL boundary.
-var hybridRevalidationGroup singleflight.Group
+var (
+	// hybridRevalidationGroup deduplicates concurrent revalidation triggers for the same
+	// hybrid collection key. Without it, every render that observes a stale-while-revalidate
+	// state would spawn its own goroutine + channel pair via cache.Refresh, multiplying
+	// allocations linearly with concurrency at every TTL boundary.
+	hybridRevalidationGroup singleflight.Group
+)
 
-// HybridCacheValue holds the runtime state for a single hybrid collection.
-// Exported so the bootstrap layer can reference the cache type parameter.
+// HybridCacheValue holds the runtime state for a single hybrid collection. Exported so
+// the bootstrap layer can reference the cache type parameter.
 type HybridCacheValue struct {
 	// LastRevalidated is when the cache entry was last checked for freshness.
 	LastRevalidated time.Time
 
-	// CurrentBlob holds the current FlatBuffer blob, which may differ from
-	// the embedded version after revalidation.
+	// CurrentBlob holds the current FlatBuffer blob, which may differ from the embedded
+	// version after revalidation.
 	CurrentBlob []byte
 
 	// SnapshotBlob is the original blob saved at build time.
@@ -84,19 +85,19 @@ type HybridCacheValue struct {
 }
 
 var (
-	// defaultHybridClock is the package-level clock used by global functions. It
-	// defaults to RealClock but can be overridden for testing via setHybridClock.
+	// defaultHybridClock is the package-level clock used by global functions. It defaults to
+	// RealClock but can be overridden for testing via setHybridClock.
 	defaultHybridClock clock.Clock = clock.RealClock()
 
 	_ HybridRegistryPort = (*defaultHybridRegistry)(nil)
 
-	// hybridCache stores all hybrid collection entries, initialised eagerly so
-	// that generated init() functions can call RegisterHybridSnapshot before
-	// the application bootstrap runs.
+	// hybridCache stores all hybrid collection entries, initialised eagerly so that
+	// generated init() functions can call RegisterHybridSnapshot before the application
+	// bootstrap runs.
 	hybridCache cache_domain.Cache[string, HybridCacheValue]
 
-	// defaultHybridRegistryInstance is the package-level default hybrid registry.
-	// Used by global functions for backward compatibility.
+	// defaultHybridRegistryInstance is the package-level default hybrid registry. Used by
+	// global functions for backward compatibility.
 	defaultHybridRegistryInstance = newDefaultHybridRegistry()
 )
 
@@ -108,13 +109,12 @@ func init() {
 	hybridCache = c
 }
 
-// newDefaultHybridCache builds a fresh hybrid cache instance using the
-// otter provider factory.
+// newDefaultHybridCache builds a fresh hybrid cache instance using the otter provider
+// factory.
 //
 // Takes namespace (string) which identifies the cache instance for telemetry.
 //
-// Returns cache_domain.Cache[string, HybridCacheValue] which is the
-// constructed cache.
+// Returns cache_domain.Cache[string, HybridCacheValue] which is the constructed cache.
 // Returns error which wraps any factory failure.
 func newDefaultHybridCache(namespace string) (cache_domain.Cache[string, HybridCacheValue], error) {
 	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
@@ -127,9 +127,9 @@ func newDefaultHybridCache(namespace string) (cache_domain.Cache[string, HybridC
 	return c, nil
 }
 
-// InitHybridCache replaces the startup hybrid cache with a fully configured
-// instance from the bootstrap layer. Existing entries registered during init()
-// are migrated to the new cache.
+// InitHybridCache replaces the startup hybrid cache with a fully configured instance from
+// the bootstrap layer. Existing entries registered during init() are migrated to the new
+// cache.
 //
 // Takes c (cache_domain.Cache) which is the new cache instance.
 func InitHybridCache(c cache_domain.Cache[string, HybridCacheValue]) {
@@ -148,9 +148,8 @@ func InitHybridCache(c cache_domain.Cache[string, HybridCacheValue]) {
 	}
 }
 
-// defaultHybridRegistry implements HybridRegistryPort with injectable
-// dependencies. It wraps the package-level cache while allowing
-// dependencies to be injected for testing.
+// defaultHybridRegistry implements HybridRegistryPort with injectable dependencies. It
+// wraps the package-level cache while allowing dependencies to be injected for testing.
 //
 // Thread-safety: All operations are safe for concurrent use.
 type defaultHybridRegistry struct {
@@ -164,15 +163,14 @@ type defaultHybridRegistry struct {
 	clock clock.Clock
 }
 
-// hybridRegistryOption is a functional option for configuring
-// defaultHybridRegistry.
+// hybridRegistryOption is a functional option for configuring defaultHybridRegistry.
 type hybridRegistryOption func(*defaultHybridRegistry)
 
-// Register stores a hybrid snapshot for the given provider and collection.
-// Implements HybridRegistryPort.
+// Register stores a hybrid snapshot for the given provider and collection. Implements
+// HybridRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which specifies the collection to register.
 // Takes blob ([]byte) which contains the snapshot data.
@@ -184,32 +182,30 @@ func (*defaultHybridRegistry) Register(ctx context.Context, providerName, collec
 
 // GetBlob implements HybridRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes providerName (string) which identifies the provider to query.
 // Takes collectionName (string) which specifies the collection to retrieve.
 //
 // Returns blob ([]byte) which contains the retrieved data.
-// Returns needsRevalidation (bool) which indicates whether the data should be
-// refreshed.
+// Returns needsRevalidation (bool) which indicates whether the data should be refreshed.
 func (*defaultHybridRegistry) GetBlob(ctx context.Context, providerName, collectionName string) (blob []byte, needsRevalidation bool) {
 	return GetHybridBlob(ctx, providerName, collectionName)
 }
 
-// GetETag returns the ETag for the specified provider and collection.
-// Implements HybridRegistryPort.
+// GetETag returns the ETag for the specified provider and collection. Implements
+// HybridRegistryPort.
 //
 // Takes providerName (string) which identifies the data provider.
-// Takes collectionName (string) which identifies the collection within the
-// provider.
+// Takes collectionName (string) which identifies the collection within the provider.
 //
 // Returns string which is the computed ETag value.
 func (*defaultHybridRegistry) GetETag(providerName, collectionName string) string {
 	return GetHybridETag(providerName, collectionName)
 }
 
-// Has reports whether a hybrid collection exists for the given provider and
-// collection. Implements HybridRegistryPort.
+// Has reports whether a hybrid collection exists for the given provider and collection.
+// Implements HybridRegistryPort.
 //
 // Takes providerName (string) which identifies the provider to check.
 // Takes collectionName (string) which identifies the collection to check.
@@ -223,15 +219,14 @@ func (*defaultHybridRegistry) Has(providerName, collectionName string) bool {
 //
 // Implements HybridRegistryPort.
 //
-// Returns []string which contains the names of all registered hybrid
-// collections.
+// Returns []string which contains the names of all registered hybrid collections.
 func (*defaultHybridRegistry) List() []string {
 	return ListHybridCollections()
 }
 
-// TriggerRevalidation implements HybridRegistryPort. It triggers background
-// revalidation via the cache hexagon's Refresh mechanism, which handles
-// deduplication of concurrent revalidation requests.
+// TriggerRevalidation implements HybridRegistryPort. It triggers background revalidation
+// via the cache hexagon's Refresh mechanism, which handles deduplication of concurrent
+// revalidation requests.
 //
 // Takes providerName (string) which identifies the provider to check again.
 // Takes collectionName (string) which specifies the collection to check again.
@@ -259,8 +254,7 @@ func (h *defaultHybridRegistry) TriggerRevalidation(ctx context.Context, provide
 	})
 }
 
-// hybridCapableProvider defines the interface for providers that support
-// hybrid mode.
+// hybridCapableProvider defines the interface for providers that support hybrid mode.
 type hybridCapableProvider interface {
 	// ValidateETag checks whether the expected ETag matches the current state.
 	ValidateETag(ctx context.Context, collectionName, expectedETag string) (string, bool, error)
@@ -294,8 +288,8 @@ type hybridLoader struct {
 	clock clock.Clock
 }
 
-// Load is not used because hybrid entries are pre-registered via
-// RegisterHybridSnapshot, never loaded on demand.
+// Load is not used because hybrid entries are pre-registered via RegisterHybridSnapshot,
+// never loaded on demand.
 //
 // Returns HybridCacheValue which is always zero-valued.
 // Returns error which is always non-nil.
@@ -303,11 +297,11 @@ func (*hybridLoader) Load(_ context.Context, _ string) (HybridCacheValue, error)
 	return HybridCacheValue{}, &hybridError{message: "hybrid entries are pre-registered, not loaded on demand"}
 }
 
-// Reload performs the revalidation by checking the ETag against the provider,
-// fetching fresh content if changed, and returning the updated value.
+// Reload performs the revalidation by checking the ETag against the provider, fetching
+// fresh content if changed, and returning the updated value.
 //
-// Takes oldValue (HybridCacheValue) which is the current cached state to
-// revalidate against.
+// Takes oldValue (HybridCacheValue) which is the current cached state to revalidate
+// against.
 //
 // Returns HybridCacheValue which is the updated cache entry.
 // Returns error which is nil on success.
@@ -316,9 +310,9 @@ func (l *hybridLoader) Reload(ctx context.Context, _ string, oldValue HybridCach
 	return applyRevalidationResult(ctx, oldValue, result, l.encoder)
 }
 
-// RegisterHybridSnapshot registers a build-time snapshot for runtime use.
-// Called from generated init() functions to register the embedded FlatBuffer
-// blob and its ETag for hybrid mode operation.
+// RegisterHybridSnapshot registers a build-time snapshot for runtime use. Called from
+// generated init() functions to register the embedded FlatBuffer blob and its ETag for
+// hybrid mode operation.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the data provider.
@@ -356,8 +350,7 @@ func RegisterHybridSnapshot(
 		logger_domain.Int("blob_size", len(blob)))
 }
 
-// GetHybridBlob returns the current FlatBuffer blob and whether revalidation
-// is needed.
+// GetHybridBlob returns the current FlatBuffer blob and whether revalidation is needed.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the data provider.
@@ -380,8 +373,8 @@ func GetHybridBlob(ctx context.Context, providerName, collectionName string) (bl
 	return val.CurrentBlob, shouldRevalidate(val, defaultHybridClock)
 }
 
-// TriggerHybridRevalidation triggers background revalidation for a hybrid
-// collection, returning immediately while concurrent calls are deduplicated.
+// TriggerHybridRevalidation triggers background revalidation for a hybrid collection,
+// returning immediately while concurrent calls are deduplicated.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the provider to revalidate.
@@ -426,12 +419,11 @@ func ListHybridCollections() []string {
 	return slices.Collect(hybridCache.Keys())
 }
 
-// ResetHybridRegistry clears the hybrid registry for test isolation by closing
-// the current cache and creating a fresh one.
+// ResetHybridRegistry clears the hybrid registry for test isolation by closing the
+// current cache and creating a fresh one.
 //
-// On failure the previous cache instance is retained and the error is logged
-// but not surfaced; callers that need to react to the failure should use
-// TryResetHybridRegistry.
+// On failure the previous cache instance is retained and the error is logged but not
+// surfaced; callers that need to react to the failure should use TryResetHybridRegistry.
 func ResetHybridRegistry() {
 	if err := TryResetHybridRegistry(); err != nil {
 		_, l := logger_domain.From(context.Background(), log)
@@ -439,13 +431,12 @@ func ResetHybridRegistry() {
 	}
 }
 
-// TryResetHybridRegistry clears the hybrid registry for test isolation by
-// closing the current cache and creating a fresh one. It is the error-aware
-// sibling of ResetHybridRegistry.
+// TryResetHybridRegistry clears the hybrid registry for test isolation by closing the
+// current cache and creating a fresh one. It is the error-aware sibling of
+// ResetHybridRegistry.
 //
-// Returns error which wraps the underlying provider failure when the
-// replacement cache cannot be created. The previous cache instance is
-// retained on failure.
+// Returns error which wraps the underlying provider failure when the replacement cache
+// cannot be created. The previous cache instance is retained on failure.
 func TryResetHybridRegistry() error {
 	ctx := context.Background()
 
@@ -521,8 +512,8 @@ func makeHybridKey(providerName, collectionName string) string {
 	return providerName + ":" + collectionName
 }
 
-// shouldRevalidate checks if a hybrid cache value needs to be checked again
-// based on its TTL configuration.
+// shouldRevalidate checks if a hybrid cache value needs to be checked again based on its
+// TTL configuration.
 //
 // Takes val (HybridCacheValue) which is the cached entry to inspect.
 // Takes c (clock.Clock) which provides the current time.
@@ -536,13 +527,13 @@ func shouldRevalidate(val HybridCacheValue, c clock.Clock) bool {
 	return c.Now().Sub(val.LastRevalidated) > val.Config.RevalidationTTL
 }
 
-// revalidateCollection performs the actual revalidation work by validating the
-// ETag against the provider and fetching new content if changed.
+// revalidateCollection performs the actual revalidation work by validating the ETag
+// against the provider and fetching new content if changed.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes val (HybridCacheValue) which is the current cached state.
-// Takes runtimeRegistry (RuntimeProviderRegistryPort) which provides access
-// to runtime providers.
+// Takes runtimeRegistry (RuntimeProviderRegistryPort) which provides access to runtime
+// providers.
 // Takes c (clock.Clock) which provides the current time for timestamps.
 //
 // Returns *HybridRevalidationResult which describes what changed.
@@ -566,16 +557,14 @@ func revalidateCollection(
 	return validateAndFetchIfChanged(ctx, hybridProvider, val, result)
 }
 
-// getHybridCapableProviderFromRegistry retrieves a provider and asserts it
-// implements the hybridCapableProvider interface.
+// getHybridCapableProviderFromRegistry retrieves a provider and asserts it implements the
+// hybridCapableProvider interface.
 //
 // Takes providerName (string) which identifies the provider to look up.
-// Takes runtimeRegistry (RuntimeProviderRegistryPort) which holds runtime
-// providers.
+// Takes runtimeRegistry (RuntimeProviderRegistryPort) which holds runtime providers.
 //
 // Returns hybridCapableProvider which is the resolved provider.
-// Returns error which is non-nil if the provider is missing or not hybrid
-// capable.
+// Returns error which is non-nil if the provider is missing or not hybrid capable.
 func getHybridCapableProviderFromRegistry(
 	providerName string,
 	runtimeRegistry RuntimeProviderRegistryPort,
@@ -593,12 +582,10 @@ func getHybridCapableProviderFromRegistry(
 	return hybridProvider, nil
 }
 
-// validateAndFetchIfChanged checks the ETag and fetches new content if it has
-// changed.
+// validateAndFetchIfChanged checks the ETag and fetches new content if it has changed.
 //
 // Takes ctx (context.Context) which carries logging context.
-// Takes provider (hybridCapableProvider) which is the source to validate
-// against.
+// Takes provider (hybridCapableProvider) which is the source to validate against.
 // Takes val (HybridCacheValue) which holds the current ETag and metadata.
 // Takes result (*HybridRevalidationResult) which accumulates the outcome.
 //
@@ -671,14 +658,12 @@ func fetchFreshContent(
 	return result
 }
 
-// applyRevalidationResult creates an updated HybridCacheValue from the
-// revalidation outcome, always updating LastRevalidated to prevent rapid
-// retries.
+// applyRevalidationResult creates an updated HybridCacheValue from the revalidation
+// outcome, always updating LastRevalidated to prevent rapid retries.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes oldValue (HybridCacheValue) which is the previous cached state.
-// Takes result (*HybridRevalidationResult) which describes the revalidation
-// outcome.
+// Takes result (*HybridRevalidationResult) which describes the revalidation outcome.
 // Takes encoder (CollectionEncoderPort) which serialises updated items.
 //
 // Returns HybridCacheValue which is the updated cache entry.
@@ -751,8 +736,8 @@ func errProviderNotFound(name string) error {
 	return &hybridError{message: "hybrid provider not found: " + name}
 }
 
-// errProviderNotHybridCapable returns an error for a provider that does not
-// support hybrid mode.
+// errProviderNotHybridCapable returns an error for a provider that does not support
+// hybrid mode.
 //
 // Takes name (string) which identifies the incapable provider.
 //

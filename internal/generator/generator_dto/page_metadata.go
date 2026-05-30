@@ -25,10 +25,10 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// PageMetadata is a flattened, serialisable representation of a compiled
-// component. It contains all information required by the manifest emitter to
-// create the final project manifest, serving as the data contract between the
-// main generator service and the manifest emission adapter.
+// PageMetadata is a flattened, serialisable representation of a compiled component. It
+// contains all information required by the manifest emitter to create the final project
+// manifest, serving as the data contract between the main generator service and the
+// manifest emission adapter.
 type PageMetadata struct {
 	// PropsTypeExpression is the AST expression for the component's props type.
 	PropsTypeExpression ast.Expr
@@ -42,15 +42,14 @@ type PageMetadata struct {
 	// PackagePath is the full import path of the package.
 	PackagePath string
 
-	// OriginalFsPathForDisplay is the original file system path
-	// for display purposes.
+	// OriginalFsPathForDisplay is the original file system path for display purposes.
 	OriginalFsPathForDisplay string
 
 	// RoutePatterns maps locale codes to their matching route patterns.
 	RoutePatterns map[string]string
 
-	// I18nStrategy specifies the URL strategy for multiple languages; valid values
-	// are "prefix", "prefix_except_default", "query-only", or "disabled".
+	// I18nStrategy specifies the URL strategy for multiple languages; valid values are
+	// "prefix", "prefix_except_default", "query-only", or "disabled".
 	I18nStrategy string
 
 	// RenderFuncName is the name of the function that renders this page.
@@ -68,12 +67,11 @@ type PageMetadata struct {
 	// MiddlewaresFuncName is the name of the function that provides middleware.
 	MiddlewaresFuncName string
 
-	// SupportedLocalesFuncName is the name of the function
-	// returning supported locales.
+	// SupportedLocalesFuncName is the name of the function returning supported locales.
 	SupportedLocalesFuncName string
 
-	// AuthPolicyFuncName is the name of the function that declares auth
-	// requirements for this page.
+	// AuthPolicyFuncName is the name of the function that declares auth requirements for
+	// this page.
 	AuthPolicyFuncName string
 
 	// OriginalPath is the file path before any processing.

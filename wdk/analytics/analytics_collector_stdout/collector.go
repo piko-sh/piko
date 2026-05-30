@@ -31,20 +31,22 @@ const (
 	// collectorName identifies this collector in logs and metrics.
 	collectorName = "stdout"
 
-	// maxFields is the maximum number of log fields an event can
-	// produce (4 required + 10 optional + headroom for properties).
+	// maxFields is the maximum number of log fields an event can produce (4 required + 10
+	// optional + headroom for properties).
 	maxFields = 30
 )
 
-// log is the package-level logger for the analytics_collector_stdout package.
-var log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_stdout")
+var (
+	// log is the package-level logger for the analytics_collector_stdout package.
+	log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_stdout")
+)
 
-// Collector logs analytics events to the structured logger. It does
-// not buffer or batch; each event is logged immediately in Collect.
+// Collector logs analytics events to the structured logger. It does not buffer or batch;
+// each event is logged immediately in Collect.
 type Collector struct{}
 
-// NewCollector creates an analytics collector that prints events to
-// the structured logger at INFO level.
+// NewCollector creates an analytics collector that prints events to the structured logger
+// at INFO level.
 //
 // Returns analytics.Collector which logs events to stdout.
 func NewCollector() analytics.Collector {
@@ -101,8 +103,7 @@ func appendCoreFields(fields []logger_domain.Attr, event *analytics_dto.Event) [
 	)
 }
 
-// appendOptionalFields adds non-empty string fields and computed
-// values.
+// appendOptionalFields adds non-empty string fields and computed values.
 //
 // Takes fields ([]logger_domain.Attr) which is the target slice.
 // Takes event (*analytics_dto.Event) which provides the data.
@@ -139,8 +140,8 @@ func appendOptionalFields(fields []logger_domain.Attr, event *analytics_dto.Even
 	return fields
 }
 
-// appendPropertyFields adds custom properties as individual log
-// fields with a "prop." prefix.
+// appendPropertyFields adds custom properties as individual log fields with a "prop."
+// prefix.
 //
 // Takes fields ([]logger_domain.Attr) which is the target slice.
 // Takes event (*analytics_dto.Event) which provides the data.

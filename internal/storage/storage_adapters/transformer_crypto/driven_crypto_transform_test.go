@@ -35,7 +35,9 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-var _ storage_domain.StreamTransformerPort = (*CryptoTransformer)(nil)
+var (
+	_ storage_domain.StreamTransformerPort = (*CryptoTransformer)(nil)
+)
 
 type stubCryptoService struct {
 	encryptStreamFunc func(ctx context.Context, output io.Writer, keyID string) (io.WriteCloser, error)
@@ -123,7 +125,9 @@ func (s *stubCryptoService) ListProviders(context.Context) []provider_domain.Pro
 
 func (s *stubCryptoService) Close(context.Context) error { return nil }
 
-var _ crypto_domain.CryptoServicePort = (*stubCryptoService)(nil)
+var (
+	_ crypto_domain.CryptoServicePort = (*stubCryptoService)(nil)
+)
 
 type passthroughWriteCloser struct {
 	writer io.Writer
@@ -457,4 +461,6 @@ func (r *errorReader) Read([]byte) (int, error) {
 	return 0, r.err
 }
 
-var _ io.Reader = (*errorReader)(nil)
+var (
+	_ io.Reader = (*errorReader)(nil)
+)

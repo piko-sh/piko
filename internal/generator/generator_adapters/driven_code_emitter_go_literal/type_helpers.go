@@ -55,8 +55,8 @@ func isStringType(expression goast.Expr) bool {
 
 // isNillableType checks if a type expression represents a type that can be nil.
 //
-// Nillable types include pointers, slices, maps, functions, channels, and
-// interfaces. Arrays are not nillable, but slices are.
+// Nillable types include pointers, slices, maps, functions, channels, and interfaces.
+// Arrays are not nillable, but slices are.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
@@ -75,9 +75,8 @@ func isNillableType(typeExpr goast.Expr) bool {
 	}
 }
 
-// isBasicGoType checks if a type expression is a built-in Go type that does
-// not need an import (such as string, int, bool). This helps avoid adding
-// imports for basic types.
+// isBasicGoType checks if a type expression is a built-in Go type that does not need an
+// import (such as string, int, bool). This helps avoid adding imports for basic types.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
@@ -103,11 +102,9 @@ func isBasicGoType(typeExpr goast.Expr) bool {
 
 // isNumeric reports whether the given type is a numeric primitive.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to check.
 //
-// Returns bool which is true when the type is numeric, such as int, float, or
-// byte.
+// Returns bool which is true when the type is numeric, such as int, float, or byte.
 func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return false
@@ -122,11 +119,11 @@ func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
-// isExpressionStringType checks whether the given resolved type info
-// represents a string type. This is the type-info version of isStringType.
+// isExpressionStringType checks whether the given resolved type info represents a string
+// type. This is the type-info version of isStringType.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
+// check.
 //
 // Returns bool which is true if the type is a string, or false otherwise.
 func isExpressionStringType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -139,15 +136,15 @@ func isExpressionStringType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
-// shouldSkipEscaping checks if HTML escaping can be skipped for a value based
-// on its type. Primitive non-string types like int and bool do not need HTML
-// escaping because they cannot contain HTML special characters.
+// shouldSkipEscaping checks if HTML escaping can be skipped for a value based on its
+// type. Primitive non-string types like int and bool do not need HTML escaping because
+// they cannot contain HTML special characters.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type information
-// for the value being checked.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type information for the
+// value being checked.
 //
-// Returns bool which is true when the value's type is a safe primitive that
-// does not require HTML escaping.
+// Returns bool which is true when the value's type is a safe primitive that does not
+// require HTML escaping.
 func shouldSkipEscaping(ann *ast_domain.GoGeneratorAnnotation) bool {
 	if ann == nil || ann.ResolvedType == nil {
 		return false
@@ -168,8 +165,7 @@ func shouldSkipEscaping(ann *ast_domain.GoGeneratorAnnotation) bool {
 
 // isSyntheticAnnotation checks whether an annotation contains a synthetic type.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// to check.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation to check.
 //
 // Returns bool which is true if the annotation's resolved type is synthetic.
 func isSyntheticAnnotation(ann *ast_domain.GoGeneratorAnnotation) bool {
@@ -181,8 +177,7 @@ func isSyntheticAnnotation(ann *ast_domain.GoGeneratorAnnotation) bool {
 
 // getSyntheticTypeName returns a type name suitable for error messages.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides
-// the synthetic type.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the synthetic type.
 //
 // Returns string containing the type name for error reporting.
 func getSyntheticTypeName(typeInfo *ast_domain.ResolvedTypeInfo) string {

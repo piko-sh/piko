@@ -23,7 +23,8 @@ import (
 	"testing"
 )
 
-const testHTMLPDF = `<!DOCTYPE html>
+const (
+	testHTMLPDF = `<!DOCTYPE html>
 <html>
 <head><title>PDF Test</title></head>
 <body>
@@ -33,6 +34,7 @@ const testHTMLPDF = `<!DOCTYPE html>
 <p>And some more content for testing.</p>
 </body>
 </html>`
+)
 
 func TestPrintToPDF(t *testing.T) {
 	t.Parallel()

@@ -25,8 +25,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// HelpOverlay is a centred modal listing the global key bindings and any
-// bindings advertised by the active panel.
+// HelpOverlay is a centred modal listing the global key bindings and any bindings
+// advertised by the active panel.
 type HelpOverlay struct {
 	// theme drives the overlay's frame and text colours.
 	theme *Theme
@@ -51,12 +51,12 @@ type HelpOverlay struct {
 //
 // Takes theme (*Theme) which sets the overlay's frame and text styles.
 // Takes globalKeys ([]KeyBinding) which are the global key bindings.
-// Takes panelTitle (string) which names the active panel; empty string
-// suppresses the panel-specific section.
-// Takes panelKeys ([]KeyBinding) which are the panel's bindings; empty
-// slice suppresses the panel-specific section.
-// Takes commands ([]Command) which are the available command-palette
-// entries; nil or empty suppresses the section.
+// Takes panelTitle (string) which names the active panel; empty string suppresses the
+// panel-specific section.
+// Takes panelKeys ([]KeyBinding) which are the panel's bindings; empty slice suppresses
+// the panel-specific section.
+// Takes commands ([]Command) which are the available command-palette entries; nil or
+// empty suppresses the section.
 //
 // Returns *HelpOverlay ready to push onto the OverlayManager stack.
 func NewHelpOverlay(theme *Theme, globalKeys []KeyBinding, panelTitle string, panelKeys []KeyBinding, commands []Command) *HelpOverlay {
@@ -98,9 +98,8 @@ func (*HelpOverlay) KeyMap() []KeyBinding {
 // Returns bool which is true after Esc/?/q.
 func (h *HelpOverlay) Dismiss() bool { return h.dismissed }
 
-// Update consumes input intended for the help overlay. ?, Esc, and q each
-// dismiss the overlay; other keys are ignored so they do not propagate to
-// the underlying panel.
+// Update consumes input intended for the help overlay. ?, Esc, and q each dismiss the
+// overlay; other keys are ignored so they do not propagate to the underlying panel.
 //
 // Takes msg (tea.Msg) which is the message to handle.
 //
@@ -182,8 +181,7 @@ func (h *HelpOverlay) sectionHeader(label string, width int) string {
 	return PadRightANSI(heading, width)
 }
 
-// bindingRows renders one row per binding with a key column and a
-// description column.
+// bindingRows renders one row per binding with a key column and a description column.
 //
 // Takes bindings ([]KeyBinding) which is the list to render.
 // Takes width (int) which is the available width.
@@ -208,8 +206,8 @@ func (h *HelpOverlay) bindingRows(bindings []KeyBinding, width int) []string {
 	return rows
 }
 
-// commandRows renders one row per palette command with a `:name` column
-// and a description column. Aliases are appended to the name column.
+// commandRows renders one row per palette command with a `:name` column and a description
+// column. Aliases are appended to the name column.
 //
 // Takes commands ([]Command) which is the list to render.
 // Takes width (int) which is the available width.
@@ -278,8 +276,8 @@ func (h *HelpOverlay) dim(text string, width int) string {
 	return PadRightANSI(text, width)
 }
 
-// paneFrameTitleStyle returns the theme's panel-title style, falling back
-// to the legacy global when no theme is supplied.
+// paneFrameTitleStyle returns the theme's panel-title style, falling back to the legacy
+// global when no theme is supplied.
 //
 // Takes theme (*Theme) which is the active theme; may be nil.
 //

@@ -21,7 +21,6 @@ package collection_domain
 import (
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +37,7 @@ func TestMockProviderRegistry_Register(t *testing.T) {
 		err := m.Register(&MockCollectionProvider{})
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RegisterCallCount))
+		assert.Equal(t, int64(1), m.RegisterCallCount.Load())
 	})
 
 	t.Run("delegates to RegisterFunc", func(t *testing.T) {
@@ -82,7 +81,7 @@ func TestMockProviderRegistry_Get(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.False(t, ok)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("delegates to GetFunc", func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestMockProviderRegistry_List(t *testing.T) {
 		got := m.List()
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ListCallCount))
+		assert.Equal(t, int64(1), m.ListCallCount.Load())
 	})
 
 	t.Run("delegates to ListFunc", func(t *testing.T) {
@@ -139,7 +138,7 @@ func TestMockProviderRegistry_Has(t *testing.T) {
 		got := m.Has("md")
 
 		assert.False(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.HasCallCount))
+		assert.Equal(t, int64(1), m.HasCallCount.Load())
 	})
 
 	t.Run("delegates to HasFunc", func(t *testing.T) {
@@ -194,8 +193,8 @@ func TestMockProviderRegistry_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RegisterCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ListCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.HasCallCount))
+	assert.Equal(t, int64(goroutines), m.RegisterCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ListCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.HasCallCount.Load())
 }

@@ -18,8 +18,8 @@
 
 package linguistics_domain
 
-// Analyser combines tokenisation, normalisation, stemming, and phonetic encoding
-// into a single pipeline for text analysis.
+// Analyser combines tokenisation, normalisation, stemming, and phonetic encoding into a
+// single pipeline for text analysis.
 //
 // Fields use interfaces to enable dependency injection and test mocking.
 type Analyser struct {
@@ -36,15 +36,13 @@ type Analyser struct {
 	config AnalyserConfig
 }
 
-// NewAnalyser creates a new text analyser with the given settings. Use options
-// to configure custom implementations.
+// NewAnalyser creates a new text analyser with the given settings. Use options to
+// configure custom implementations.
 //
-// Without options, stemming is a no-op (words pass through unchanged). This
-// allows the core linguistics package to have no hard dependencies on external
-// stemming libraries.
+// Without options, stemming is a no-op (words pass through unchanged). This allows the
+// core linguistics package to have no hard dependencies on external stemming libraries.
 //
-// Takes config (AnalyserConfig) which specifies the language and analysis
-// settings.
+// Takes config (AnalyserConfig) which specifies the language and analysis settings.
 // Takes opts (...Option) which are optional configuration functions.
 //
 // Returns *Analyser which is ready to tokenise, stem, and encode text.
@@ -77,20 +75,17 @@ func NewAnalyser(config AnalyserConfig, opts ...Option) *Analyser {
 	return NewAnalyserWithDeps(tokeniser, stemmer, phonetic, config)
 }
 
-// NewAnalyserWithDeps creates a new analyser with injected dependencies.
-// This constructor enables dependency injection for testing and custom
-// implementations.
+// NewAnalyserWithDeps creates a new analyser with injected dependencies. This constructor
+// enables dependency injection for testing and custom implementations.
 //
-// Use this in tests to inject mocks:
-// analyser := NewAnalyserWithDeps(
+// Use this in tests to inject mocks: analyser := NewAnalyserWithDeps(
 //
 //	mockTokeniser,
 //	mockStemmer,
 //	mockPhonetic,
 //	config,
 //
-// )
-// For production code, use NewAnalyser which uses real implementations.
+// ) For production code, use NewAnalyser which uses real implementations.
 //
 // Takes tokeniser (TokeniserPort) which splits text into tokens.
 // Takes stemmer (StemmerPort) which reduces words to their root form.
@@ -116,8 +111,8 @@ func NewAnalyserWithDeps(
 //
 // Takes text (string) which is the input to analyse.
 //
-// Returns []Token which contains tokens with their normalised, stemmed, and/or
-// phonetic forms populated depending on the analysis mode.
+// Returns []Token which contains tokens with their normalised, stemmed, and/or phonetic
+// forms populated depending on the analysis mode.
 func (a *Analyser) Analyse(text string) []Token {
 	tokens := a.tokeniser.Tokenise(text)
 
@@ -146,8 +141,8 @@ func (a *Analyser) AnalyseToStrings(text string) []string {
 	return result
 }
 
-// AnalyseToStemmed returns the stemmed forms of tokens (Smart mode only).
-// Falls back to normalised tokens if not in Smart mode.
+// AnalyseToStemmed returns the stemmed forms of tokens (Smart mode only). Falls back to
+// normalised tokens if not in Smart mode.
 //
 // Takes text (string) which is the input text to analyse.
 //
@@ -169,8 +164,7 @@ func (a *Analyser) AnalyseToStemmed(text string) []string {
 //
 // Takes text (string) which is the input to analyse for phonetic codes.
 //
-// Returns []string which contains the phonetic codes, or nil if not in Smart
-// mode.
+// Returns []string which contains the phonetic codes, or nil if not in Smart mode.
 func (a *Analyser) AnalyseToPhonetic(text string) []string {
 	if a.config.Mode != AnalysisModeSmart {
 		return nil
@@ -205,8 +199,8 @@ func (a *Analyser) GetMode() AnalysisMode {
 	return a.config.Mode
 }
 
-// AnalyserPool provides a pool of analysers for concurrent use when
-// processing many documents in parallel during indexing.
+// AnalyserPool provides a pool of analysers for concurrent use when processing many
+// documents in parallel during indexing.
 //
 // Fields ordered for optimal memory alignment.
 type AnalyserPool struct {
@@ -223,10 +217,10 @@ type AnalyserPool struct {
 // NewAnalyserPool creates a pool of analysers with the given configuration.
 //
 // Takes config (AnalyserConfig) which specifies the analyser settings.
-// Takes poolSize (int) which sets the number of analysers in the pool.
-// If poolSize is zero or negative, it defaults to one.
-// Takes opts (...Option) which are optional configuration functions passed to
-// each analyser in the pool.
+// Takes poolSize (int) which sets the number of analysers in the pool. If poolSize is
+// zero or negative, it defaults to one.
+// Takes opts (...Option) which are optional configuration functions passed to each
+// analyser in the pool.
 //
 // Returns *AnalyserPool which is a ready-to-use pool of analysers.
 func NewAnalyserPool(config AnalyserConfig, poolSize int, opts ...Option) *AnalyserPool {
@@ -249,8 +243,8 @@ func NewAnalyserPool(config AnalyserConfig, poolSize int, opts ...Option) *Analy
 
 // Get retrieves an analyser from the pool.
 //
-// Returns *Analyser which is a ready-to-use analyser. If the pool is empty,
-// a new analyser is created using the pool's configuration and options.
+// Returns *Analyser which is a ready-to-use analyser. If the pool is empty, a new
+// analyser is created using the pool's configuration and options.
 func (p *AnalyserPool) Get() *Analyser {
 	select {
 	case analyser := <-p.analysers:

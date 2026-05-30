@@ -25,12 +25,13 @@ import (
 	core "piko.sh/piko/wdk/asmgen/asmgen_arch_amd64"
 )
 
-// mnemonicColumnWidth is the standard column width for amd64 Plan 9
-// assembly mnemonics.
-const mnemonicColumnWidth = 8
+const (
+	// mnemonicColumnWidth is the standard column width for amd64 Plan 9 assembly mnemonics.
+	mnemonicColumnWidth = 8
+)
 
-// VectormathsAMD64Arch extends the core AMD64Arch with SIMD
-// vectormaths operations for dot product and euclidean distance.
+// VectormathsAMD64Arch extends the core AMD64Arch with SIMD vectormaths operations for
+// dot product and euclidean distance.
 type VectormathsAMD64Arch struct {
 	core.AMD64Arch
 }
@@ -42,9 +43,8 @@ func New() *VectormathsAMD64Arch {
 	return &VectormathsAMD64Arch{}
 }
 
-// inst emits a tab-indented instruction line with the mnemonic padded
-// to mnemonicColumnWidth columns (the standard alignment for amd64
-// Plan 9 assembly).
+// inst emits a tab-indented instruction line with the mnemonic padded to
+// mnemonicColumnWidth columns (the standard alignment for amd64 Plan 9 assembly).
 //
 // Takes e (*asmgen.Emitter) which receives the formatted instruction line.
 // Takes mnemonic (string) which is the assembly mnemonic to emit.
@@ -76,4 +76,37 @@ func (*VectormathsAMD64Arch) EmitEuclideanDistanceSquared(e *asmgen.Emitter, var
 // Takes variant (string) which selects the SIMD variant ("SSE" or "AVX2").
 func (*VectormathsAMD64Arch) EmitNormalise(e *asmgen.Emitter, variant string) {
 	(&amd64VectormathsOps{}).EmitNormalise(e, variant)
+}
+
+// EmitSum implements VectormathsArchitecturePort.
+//
+// Takes e (*asmgen.Emitter) which receives the generated assembly instructions.
+// Takes variant (string) which must be "SSE" or "AVX2".
+func (*VectormathsAMD64Arch) EmitSum(e *asmgen.Emitter, variant string) {
+	(&amd64VectormathsOps{}).EmitSum(e, variant)
+}
+
+// EmitAdd implements VectormathsArchitecturePort. Phase E placeholder for the float64
+// pointwise add kernel.
+//
+// Takes e (*asmgen.Emitter) which receives the generated assembly instructions.
+// Takes variant (string) which must be "SSE" or "AVX2".
+func (*VectormathsAMD64Arch) EmitAdd(e *asmgen.Emitter, variant string) {
+	(&amd64VectormathsOps{}).EmitAdd(e, variant)
+}
+
+// EmitDotF64 implements VectormathsArchitecturePort.
+//
+// Takes e (*asmgen.Emitter) which receives the generated assembly instructions.
+// Takes variant (string) which selects the SIMD variant ("SSE" or "AVX2").
+func (*VectormathsAMD64Arch) EmitDotF64(e *asmgen.Emitter, variant string) {
+	(&amd64VectormathsOps{}).EmitDotF64(e, variant)
+}
+
+// EmitScaleF64 implements VectormathsArchitecturePort.
+//
+// Takes e (*asmgen.Emitter) which receives the generated assembly instructions.
+// Takes variant (string) which selects the SIMD variant ("SSE" or "AVX2").
+func (*VectormathsAMD64Arch) EmitScaleF64(e *asmgen.Emitter, variant string) {
+	(&amd64VectormathsOps{}).EmitScaleF64(e, variant)
 }

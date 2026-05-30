@@ -18,10 +18,11 @@
 
 package driver_asset_registrar
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
 var (
-	// log is the package-level logger for the collection asset registrar
-	// adapter.
+	// log is the package-level logger for the collection asset registrar adapter.
 	log = logger_domain.GetLogger("piko/internal/collection/collection_adapters/driver_asset_registrar")
 )

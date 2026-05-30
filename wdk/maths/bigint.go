@@ -32,16 +32,15 @@ const (
 	// Value10 is the integer value ten, used in TenBigInt and TenDecimal.
 	Value10 = 10
 
-	// Value100 is the integer value one hundred, used in HundredBigInt and
-	// HundredDecimal.
+	// Value100 is the integer value one hundred, used in HundredBigInt and HundredDecimal.
 	Value100 = 100
 )
 
 // BigInt represents a high-precision integer value.
 //
-// It implements fmt.Stringer, json.Marshaler, json.Unmarshaler, sql.Scanner,
-// and driver.Valuer. It uses a fluent API and keeps track of the first error
-// that occurs in a chain of operations.
+// It implements fmt.Stringer, json.Marshaler, json.Unmarshaler, sql.Scanner, and
+// driver.Valuer. It uses a fluent API and keeps track of the first error that occurs in a
+// chain of operations.
 type BigInt struct {
 	// err holds the first error from a chain of operations; nil if no error.
 	err error
@@ -50,13 +49,13 @@ type BigInt struct {
 	value apd.BigInt
 }
 
-// NewBigIntFromString creates a BigInt by parsing a base-10 number string.
-// An empty string is treated as zero.
+// NewBigIntFromString creates a BigInt by parsing a base-10 number string. An empty
+// string is treated as zero.
 //
 // Takes s (string) which is the number string to parse.
 //
-// Returns BigInt which holds the parsed value, or an error state if the
-// string is not valid.
+// Returns BigInt which holds the parsed value, or an error state if the string is not
+// valid.
 func NewBigIntFromString(s string) BigInt {
 	if s == "" {
 		return ZeroBigInt()
@@ -68,8 +67,8 @@ func NewBigIntFromString(s string) BigInt {
 	return NewBigIntFromApd(*b)
 }
 
-// NewBigIntFromApd creates a BigInt from an existing apd.BigInt.
-// This is an internal helper.
+// NewBigIntFromApd creates a BigInt from an existing apd.BigInt. This is an internal
+// helper.
 //
 // Takes value (apd.BigInt) which provides the value to wrap.
 //
@@ -94,8 +93,8 @@ func (b BigInt) Err() error {
 	return b.err
 }
 
-// Must returns the BigInt if valid, or panics if in an error state.
-// Use this in setup code or tests where an error means a bug in the program.
+// Must returns the BigInt if valid, or panics if in an error state. Use this in setup
+// code or tests where an error means a bug in the program.
 //
 // Returns BigInt which is the validated value.
 //
@@ -107,8 +106,8 @@ func (b BigInt) Must() BigInt {
 	return b
 }
 
-// ToDecimal converts the BigInt to a Decimal type.
-// This is the main way to change a BigInt for use with fractions.
+// ToDecimal converts the BigInt to a Decimal type. This is the main way to change a
+// BigInt for use with fractions.
 //
 // Returns Decimal which holds the same numeric value as a decimal type.
 func (b BigInt) ToDecimal() Decimal {
@@ -126,8 +125,8 @@ func (b BigInt) ToDecimal() Decimal {
 //
 // Takes b2 (BigInt) which is the value to add to the receiver.
 //
-// Returns BigInt which is the sum. If either operand has an error, returns
-// that operand unchanged.
+// Returns BigInt which is the sum. If either operand has an error, returns that operand
+// unchanged.
 func (b BigInt) Add(b2 BigInt) BigInt {
 	if b.err != nil {
 		return b
@@ -168,8 +167,8 @@ func (b BigInt) AddString(i string) BigInt {
 //
 // Takes b2 (BigInt) which is the value to subtract from the receiver.
 //
-// Returns BigInt which is the result, or an error-carrying BigInt if either
-// operand has an error.
+// Returns BigInt which is the result, or an error-carrying BigInt if either operand has
+// an error.
 func (b BigInt) Subtract(b2 BigInt) BigInt {
 	if b.err != nil {
 		return b
@@ -251,7 +250,8 @@ func (b BigInt) MultiplyString(i string) BigInt {
 //
 // Takes b2 (BigInt) which is the value to divide by.
 //
-// Returns BigInt which is the quotient. Returns an error value when b2 is zero.
+// Returns BigInt which is the quotient.
+// Returns an error value when b2 is zero.
 func (b BigInt) Divide(b2 BigInt) BigInt {
 	if b.err != nil {
 		return b
@@ -283,8 +283,7 @@ func (b BigInt) DivideInt(i int64) BigInt {
 //
 // Takes i (string) which is the divisor as a decimal string.
 //
-// Returns BigInt which is the quotient, or the receiver unchanged if it
-// holds an error.
+// Returns BigInt which is the quotient, or the receiver unchanged if it holds an error.
 func (b BigInt) DivideString(i string) BigInt {
 	if b.err != nil {
 		return b
@@ -292,14 +291,13 @@ func (b BigInt) DivideString(i string) BigInt {
 	return b.Divide(NewBigIntFromString(i))
 }
 
-// Modulus computes the modulus of b and b2, returning a result with the same
-// sign as the divisor (b2) or zero. This differs from Remainder, where the
-// result takes the sign of the dividend (b).
+// Modulus computes the modulus of b and b2, returning a result with the same sign as the
+// divisor (b2) or zero. This differs from Remainder, where the result takes the sign of
+// the dividend (b).
 //
 // Takes b2 (BigInt) which is the divisor for the modulus operation.
 //
-// Returns BigInt which is the modulus result, or an error value when b2 is
-// zero.
+// Returns BigInt which is the modulus result, or an error value when b2 is zero.
 func (b BigInt) Modulus(b2 BigInt) BigInt {
 	if b.err != nil {
 		return b
@@ -319,8 +317,8 @@ func (b BigInt) Modulus(b2 BigInt) BigInt {
 //
 // Takes i (int64) which is the divisor.
 //
-// Returns BigInt which contains the remainder, or the original value if it
-// holds an error.
+// Returns BigInt which contains the remainder, or the original value if it holds an
+// error.
 func (b BigInt) ModulusInt(i int64) BigInt {
 	if b.err != nil {
 		return b
@@ -328,13 +326,12 @@ func (b BigInt) ModulusInt(i int64) BigInt {
 	return b.Modulus(NewBigIntFromInt(i))
 }
 
-// ModulusString returns the remainder of dividing the value by the given
-// string-encoded number.
+// ModulusString returns the remainder of dividing the value by the given string-encoded
+// number.
 //
 // Takes i (string) which is the divisor as a decimal string.
 //
-// Returns BigInt which is the modulus result, or the original value if an
-// error exists.
+// Returns BigInt which is the modulus result, or the original value if an error exists.
 func (b BigInt) ModulusString(i string) BigInt {
 	if b.err != nil {
 		return b
@@ -362,13 +359,11 @@ func (b BigInt) Remainder(b2 BigInt) BigInt {
 	return NewBigIntFromApd(*result)
 }
 
-// RemainderInt returns the remainder of dividing this BigInt by the given
-// integer.
+// RemainderInt returns the remainder of dividing this BigInt by the given integer.
 //
 // Takes i (int64) which is the divisor.
 //
-// Returns BigInt which contains the remainder, or the original value if an
-// error exists.
+// Returns BigInt which contains the remainder, or the original value if an error exists.
 func (b BigInt) RemainderInt(i int64) BigInt {
 	if b.err != nil {
 		return b
@@ -380,8 +375,7 @@ func (b BigInt) RemainderInt(i int64) BigInt {
 //
 // Takes i (string) which is the divisor as a decimal string.
 //
-// Returns BigInt which contains the remainder, or the original value if b has
-// an error.
+// Returns BigInt which contains the remainder, or the original value if b has an error.
 func (b BigInt) RemainderString(i string) BigInt {
 	if b.err != nil {
 		return b
@@ -455,8 +449,8 @@ func (b BigInt) AddFloat(f float64) Decimal {
 	return b.ToDecimal().AddFloat(f)
 }
 
-// SubtractDecimal promotes the BigInt to a Decimal before subtracting,
-// returning a Decimal.
+// SubtractDecimal promotes the BigInt to a Decimal before subtracting, returning a
+// Decimal.
 //
 // Takes d (Decimal) which is the value to subtract from this BigInt.
 //
@@ -465,8 +459,7 @@ func (b BigInt) SubtractDecimal(d Decimal) Decimal {
 	return b.ToDecimal().Subtract(d)
 }
 
-// SubtractFloat promotes the BigInt to a Decimal before subtracting,
-// returning a Decimal.
+// SubtractFloat promotes the BigInt to a Decimal before subtracting, returning a Decimal.
 //
 // Takes f (float64) which is the value to subtract from the BigInt.
 //
@@ -493,8 +486,8 @@ func (b BigInt) MultiplyFloat(f float64) Decimal {
 	return b.ToDecimal().MultiplyFloat(f)
 }
 
-// DivideDecimal promotes the BigInt to a Decimal before dividing.
-// This performs precise division, preserving any fractional part.
+// DivideDecimal promotes the BigInt to a Decimal before dividing. This performs precise
+// division, preserving any fractional part.
 //
 // Takes d (Decimal) which is the divisor.
 //
@@ -503,8 +496,8 @@ func (b BigInt) DivideDecimal(d Decimal) Decimal {
 	return b.ToDecimal().Divide(d)
 }
 
-// DivideFloat promotes the BigInt to a Decimal before dividing.
-// This performs precise division, preserving any fractional part.
+// DivideFloat promotes the BigInt to a Decimal before dividing. This performs precise
+// division, preserving any fractional part.
 //
 // Takes f (float64) which is the divisor.
 //
@@ -524,8 +517,8 @@ func (b BigInt) PowerDecimal(exponent Decimal) Decimal {
 	return b.ToDecimal().Power(exponent)
 }
 
-// PowerFloat promotes the BigInt to a Decimal before raising it to the power
-// of the exponent.
+// PowerFloat promotes the BigInt to a Decimal before raising it to the power of the
+// exponent.
 //
 // Takes exponent (float64) which specifies the power to raise the value to.
 //

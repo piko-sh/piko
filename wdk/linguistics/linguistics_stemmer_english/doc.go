@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_stemmer_english provides English word stemming
-// using the Snowball algorithm.
+// Package linguistics_stemmer_english provides English word stemming using the Snowball
+// algorithm.
 //
-// It self-registers via an init function so that a blank import is
-// sufficient to make English stemming available through the registry.
+// It self-registers via an init function so that a blank import is sufficient to make
+// English stemming available through the registry.
 //
 // [Stemmer] is stateless and safe for concurrent use.
 package linguistics_stemmer_english

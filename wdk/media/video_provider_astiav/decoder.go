@@ -30,16 +30,15 @@ import (
 	"piko.sh/piko/wdk/media"
 )
 
-// createDecoderForStream creates and sets up a decoder for the given video
-// stream.
+// createDecoderForStream creates and sets up a decoder for the given video stream.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides the input format
-// context that contains the streams.
+// Takes inputCtx (*astiav.FormatContext) which provides the input format context that
+// contains the streams.
 // Takes streamIndex (int) which specifies which stream to decode.
 //
 // Returns *astiav.CodecContext which is the set up decoder ready for use.
-// Returns error when the stream index is invalid, the decoder cannot be found,
-// or the decoder fails to set up.
+// Returns error when the stream index is invalid, the decoder cannot be found, or the
+// decoder fails to set up.
 func (*Provider) createDecoderForStream(ctx context.Context, inputCtx *astiav.FormatContext, streamIndex int) (*astiav.CodecContext, error) {
 	ctx, l := logger.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "createDecoderForStream",

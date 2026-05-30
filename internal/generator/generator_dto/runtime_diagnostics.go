@@ -37,8 +37,8 @@ const (
 
 // String returns the lowercase string representation of the severity level.
 //
-// Returns string which is the severity name such as "debug", "info",
-// "warning", "error", or "unknown" for unrecognised values.
+// Returns string which is the severity name such as "debug", "info", "warning", "error",
+// or "unknown" for unrecognised values.
 func (s Severity) String() string {
 	switch s {
 	case Debug:
@@ -56,8 +56,8 @@ func (s Severity) String() string {
 
 // CodeString returns the Go code representation of the severity constant.
 //
-// Returns string which is the constant name (e.g. "Debug", "Info") or
-// "unknown" for invalid values.
+// Returns string which is the constant name (e.g. "Debug", "Info") or "unknown" for
+// invalid values.
 func (s Severity) CodeString() string {
 	switch s {
 	case Debug:
@@ -73,9 +73,8 @@ func (s Severity) CodeString() string {
 	}
 }
 
-// RuntimeDiagnostic holds details about a warning or error that occurred while
-// rendering a template. It records the message, location, and severity of the
-// issue.
+// RuntimeDiagnostic holds details about a warning or error that occurred while rendering
+// a template. It records the message, location, and severity of the issue.
 type RuntimeDiagnostic struct {
 	// Message is the human-readable description of the diagnostic.
 	Message string
@@ -86,8 +85,8 @@ type RuntimeDiagnostic struct {
 	// Expression is the source code text that caused the diagnostic.
 	Expression string
 
-	// Code is a stable diagnostic code for documentation and suppression
-	// (e.g. "R001" for a render error).
+	// Code is a stable diagnostic code for documentation and suppression (e.g. "R001" for a
+	// render error).
 	Code string
 
 	// Severity is the level of the diagnostic, such as error or warning.

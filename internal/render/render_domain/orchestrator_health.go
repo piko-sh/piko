@@ -26,22 +26,22 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// Name returns the orchestrator's identifier for health probe registration.
-// Implements the healthprobe_domain.Probe interface.
+// Name returns the orchestrator's identifier for health probe registration. Implements
+// the healthprobe_domain.Probe interface.
 //
 // Returns string which is the constant "RenderService".
 func (*RenderOrchestrator) Name() string {
 	return "RenderService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies the rendering pipeline is functional.
+// Check implements the healthprobe_domain.Probe interface. It verifies the rendering
+// pipeline is functional.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
-// Returns healthprobe_dto.Status which indicates the health state of the
-// rendering pipeline.
+// Returns healthprobe_dto.Status which indicates the health state of the rendering
+// pipeline.
 func (ro *RenderOrchestrator) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 	if checkType == healthprobe_dto.CheckTypeLiveness {
@@ -74,13 +74,12 @@ func (ro *RenderOrchestrator) checkLiveness(startTime time.Time) healthprobe_dto
 
 // checkReadiness performs a readiness health check including dependencies.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes startTime (time.Time) which marks when the check began for duration
-// calculation.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes startTime (time.Time) which marks when the check began for duration calculation.
 //
-// Returns healthprobe_dto.Status which contains the overall health state,
-// message, and dependency statuses.
+// Returns healthprobe_dto.Status which contains the overall health state, message, and
+// dependency statuses.
 func (ro *RenderOrchestrator) checkReadiness(ctx context.Context, checkType healthprobe_dto.CheckType, startTime time.Time) healthprobe_dto.Status {
 	dependencies := make([]*healthprobe_dto.Status, 0)
 	overallState := healthprobe_dto.StateHealthy
@@ -103,18 +102,17 @@ func (ro *RenderOrchestrator) checkReadiness(ctx context.Context, checkType heal
 	}
 }
 
-// checkRegistryHealth checks if the registry implements the health probe
-// interface and collects its status.
+// checkRegistryHealth checks if the registry implements the health probe interface and
+// collects its status.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes dependencies (*[]*healthprobe_dto.Status) which accumulates the
-// collected health statuses.
-// Takes currentState (healthprobe_dto.State) which is the current aggregate
-// health state.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes dependencies (*[]*healthprobe_dto.Status) which accumulates the collected health
+// statuses.
+// Takes currentState (healthprobe_dto.State) which is the current aggregate health state.
 //
-// Returns healthprobe_dto.State which is the updated health state based on
-// the registry check result.
+// Returns healthprobe_dto.State which is the updated health state based on the registry
+// check result.
 func (ro *RenderOrchestrator) checkRegistryHealth(
 	ctx context.Context,
 	checkType healthprobe_dto.CheckType,
@@ -143,8 +141,8 @@ func (ro *RenderOrchestrator) checkRegistryHealth(
 
 // addTransformPipelineStatus adds the transform pipeline status to the list.
 //
-// Takes dependencies (*[]*healthprobe_dto.Status) which receives the new
-// status entry for the transform pipeline.
+// Takes dependencies (*[]*healthprobe_dto.Status) which receives the new status entry for
+// the transform pipeline.
 func (ro *RenderOrchestrator) addTransformPipelineStatus(dependencies *[]*healthprobe_dto.Status) {
 	*dependencies = append(*dependencies, &healthprobe_dto.Status{
 		Name:         "TransformPipeline",

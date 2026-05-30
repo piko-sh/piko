@@ -18,7 +18,9 @@
 
 package route_pattern
 
-import "strings"
+import (
+	"strings"
+)
 
 // TrailingSegment describes the structure of a parsed trailing parameter.
 type TrailingSegment struct {
@@ -30,30 +32,27 @@ type TrailingSegment struct {
 
 	// Regex is the segment after the colon (e.g. ".+", "[a-z]+").
 	//
-	// Empty when the original pattern had no colon or the regex itself was
-	// empty.
+	// Empty when the original pattern had no colon or the regex itself was empty.
 	Regex string
 
 	// HasRegex is true when the original pattern contained a colon.
 	HasRegex bool
 
-	// Found is true when the route pattern ends with a `{...}` segment whose
-	// brace structure is well-formed and whose name is non-empty.
+	// Found is true when the route pattern ends with a `{...}` segment whose brace structure
+	// is well-formed and whose name is non-empty.
 	Found bool
 }
 
 // ParseTrailing parses a route pattern's trailing named-parameter segment.
 //
-// Patterns such as "/blog/{slug}", "/docs/{slug:.+}" and
-// "/files/{path:[a-zA-Z0-9/_-]+}" are recognised. Patterns without a trailing
-// `{...}` segment, or whose brace structure is malformed (unbalanced, nested,
-// empty name) are returned with Found=false.
+// Patterns such as "/blog/{slug}", "/docs/{slug:.+}" and "/files/{path:[a-zA-Z0-9/_-]+}"
+// are recognised. Patterns without a trailing `{...}` segment, or whose brace structure
+// is malformed (unbalanced, nested, empty name) are returned with Found=false.
 //
-// Brace nesting is handled by scanning right-to-left and counting closing
-// braces relative to opens, so a regex such as "{name:a{2,4}}" is parsed
-// correctly. Empty-regex segments such as "{name:}" are still treated as
-// having a regex (HasRegex=true, Regex="") so the chi translator can decide
-// whether to accept them.
+// Brace nesting is handled by scanning right-to-left and counting closing braces relative
+// to opens, so a regex such as "{name:a{2,4}}" is parsed correctly. Empty-regex segments
+// such as "{name:}" are still treated as having a regex (HasRegex=true, Regex="") so the
+// chi translator can decide whether to accept them.
 //
 // Takes pattern (string) which is the route pattern to inspect.
 //

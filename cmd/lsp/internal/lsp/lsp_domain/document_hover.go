@@ -24,17 +24,16 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// GetHoverInfo finds the AST node at the given position and returns hover
-// information for the symbol at that location.
+// GetHoverInfo finds the AST node at the given position and returns hover information for
+// the symbol at that location.
 //
-// It uses the AnalysisMap to get the semantic context at that location. It also
-// provides PK-specific hover information for handlers, partials, and refs.
+// It uses the AnalysisMap to get the semantic context at that location. It also provides
+// PK-specific hover information for handlers, partials, and refs.
 //
-// Takes position (protocol.Position) which specifies the cursor location in the
-// document.
+// Takes position (protocol.Position) which specifies the cursor location in the document.
 //
-// Returns *protocol.Hover which contains the formatted hover contents and
-// range, or nil if no hover information is available.
+// Returns *protocol.Hover which contains the formatted hover contents and range, or nil
+// if no hover information is available.
 // Returns error when hover lookup fails.
 func (d *document) GetHoverInfo(ctx context.Context, position protocol.Position) (*protocol.Hover, error) {
 	if pkHover, err := d.GetPKHoverInfo(ctx, position); err == nil && pkHover != nil {

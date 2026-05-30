@@ -56,11 +56,11 @@ type JSONSchemaDefinition struct {
 	Schema JSONSchema
 }
 
-// JSONSchema represents a JSON Schema definition for structured output.
-// This is a simplified representation supporting the most common schema features.
+// JSONSchema represents a JSON Schema definition for structured output. This is a
+// simplified representation supporting the most common schema features.
 type JSONSchema struct {
-	// Type is the JSON type: "string", "number", "integer", "boolean", "array",
-	// "object", or "null".
+	// Type is the JSON type: "string", "number", "integer", "boolean", "array", "object", or
+	// "null".
 	Type string `json:"type,omitempty"`
 
 	// Description provides context about this schema element.
@@ -78,8 +78,8 @@ type JSONSchema struct {
 	// Enum restricts the value to one of the listed values.
 	Enum []any `json:"enum,omitempty"`
 
-	// AdditionalProperties controls whether extra properties are allowed for
-	// object types. Set to false for strict schemas.
+	// AdditionalProperties controls whether extra properties are allowed for object types.
+	// Set to false for strict schemas.
 	AdditionalProperties *bool `json:"additionalProperties,omitempty"`
 
 	// Minimum specifies the minimum value for number or integer types.
@@ -110,8 +110,8 @@ type JSONSchema struct {
 	AnyOf []*JSONSchema `json:"anyOf,omitempty"`
 }
 
-// DeepCopy returns an independent copy of the schema with all nested
-// pointers, maps, and slices duplicated.
+// DeepCopy returns an independent copy of the schema with all nested pointers, maps, and
+// slices duplicated.
 //
 // Returns JSONSchema which is a deep copy of the receiver.
 func (s JSONSchema) DeepCopy() JSONSchema {
@@ -162,8 +162,8 @@ func (s JSONSchema) DeepCopy() JSONSchema {
 	return cp
 }
 
-// ResponseFormatJSON returns a ResponseFormat for JSON object output.
-// The model will output valid JSON but without schema constraints.
+// ResponseFormatJSON returns a ResponseFormat for JSON object output. The model will
+// output valid JSON but without schema constraints.
 //
 // Returns *ResponseFormat which is set up for JSON object output.
 func ResponseFormatJSON() *ResponseFormat {
@@ -217,8 +217,7 @@ func BooleanSchema() JSONSchema {
 
 // ArraySchema returns a JSONSchema for an array with the given item type.
 //
-// Takes items (JSONSchema) which defines the schema for each element in the
-// array.
+// Takes items (JSONSchema) which defines the schema for each element in the array.
 //
 // Returns JSONSchema which is set up for array values.
 func ArraySchema(items JSONSchema) JSONSchema {
@@ -230,12 +229,10 @@ func ArraySchema(items JSONSchema) JSONSchema {
 
 // ObjectSchema returns a JSONSchema for an object with the given properties.
 //
-// Takes properties (map[string]*JSONSchema) which maps property names to their
-// schemas.
+// Takes properties (map[string]*JSONSchema) which maps property names to their schemas.
 // Takes required ([]string) which lists the names of required properties.
 //
-// Returns JSONSchema set up for object values with additional properties
-// disabled.
+// Returns JSONSchema set up for object values with additional properties disabled.
 func ObjectSchema(properties map[string]*JSONSchema, required []string) JSONSchema {
 	return JSONSchema{
 		Type:                 "object",
@@ -275,8 +272,7 @@ func NullableSchema(schema JSONSchema) JSONSchema {
 	}
 }
 
-// copyPtr returns a pointer to a copy of the value, or nil if the
-// input is nil.
+// copyPtr returns a pointer to a copy of the value, or nil if the input is nil.
 //
 // Takes p (*T) which is the pointer to copy.
 //

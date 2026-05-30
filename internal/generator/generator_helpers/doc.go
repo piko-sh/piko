@@ -16,16 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package generator_helpers provides runtime utility functions called
-// by generated Go code from Piko templates.
+// Package generator_helpers provides runtime utility functions called by generated Go
+// code from Piko templates.
 //
-// The code generator emits calls to these functions for runtime
-// concerns that cannot be resolved at generation time: dynamic value
-// evaluation, class/style merging, type coercion, action payload
-// encoding, and truthiness checks. The package also includes AST
+// The code generator emits calls to these functions for runtime concerns that cannot be
+// resolved at generation time: dynamic value evaluation, class/style merging, type
+// coercion, action payload encoding, and truthiness checks. The package also includes AST
 // traversal utilities used by the generator itself.
 //
-// All exported functions are safe for concurrent use. Internal pooled
-// resources use sync.Pool for thread-safe reuse. Arena-aware variants
-// use per-request arenas that must not be shared between goroutines.
+// All exported functions are safe for concurrent use. Internal pooled resources use
+// sync.Pool for thread-safe reuse. Arena-aware variants use per-request arenas that must
+// not be shared between goroutines.
 package generator_helpers

@@ -18,12 +18,11 @@
 
 package linguistics_domain
 
-// Option sets up an Analyser during creation.
-// Use the With* functions to create options.
+// Option sets up an Analyser during creation. Use the With* functions to create options.
 type Option func(*analyserOptions)
 
-// analyserOptions holds optional configuration for Analyser construction.
-// Fields that are nil after applying options will use default implementations.
+// analyserOptions holds optional configuration for Analyser construction. Fields that are
+// nil after applying options will use default implementations.
 type analyserOptions struct {
 	// stemmer is a custom stemmer to use. If nil, NoOpStemmer is used.
 	stemmer StemmerPort
@@ -31,17 +30,17 @@ type analyserOptions struct {
 	// tokeniser is a custom tokeniser to use. If nil, the default tokeniser is used.
 	tokeniser TokeniserPort
 
-	// phonetic is a custom phonetic encoder to use. If nil, the default
-	// PhoneticEncoder is used.
+	// phonetic is a custom phonetic encoder to use. If nil, the default PhoneticEncoder is
+	// used.
 	phonetic PhoneticEncoderPort
 
-	// stopWordsProvider is a custom stop words provider.
-	// If nil, the config's stop words are used directly.
+	// stopWordsProvider is a custom stop words provider. If nil, the config's stop words are
+	// used directly.
 	stopWordsProvider StopWordsProviderPort
 }
 
-// WithStemmer sets a custom stemmer for word processing.
-// If not called, a NoOpStemmer is used that returns words unchanged.
+// WithStemmer sets a custom stemmer for word processing. If not called, a NoOpStemmer is
+// used that returns words unchanged.
 //
 // Takes stemmer (StemmerPort) which is the stemmer to use.
 //
@@ -52,8 +51,8 @@ func WithStemmer(stemmer StemmerPort) Option {
 	}
 }
 
-// WithTokeniser sets a custom tokeniser for the analyser.
-// If not called, the default Tokeniser is used.
+// WithTokeniser sets a custom tokeniser for the analyser. If not called, the default
+// Tokeniser is used.
 //
 // Takes tokeniser (TokeniserPort) which is the tokeniser to use.
 //
@@ -64,8 +63,8 @@ func WithTokeniser(tokeniser TokeniserPort) Option {
 	}
 }
 
-// WithPhoneticEncoder sets a custom phonetic encoder for the analyser.
-// If not called, the default PhoneticEncoder is used.
+// WithPhoneticEncoder sets a custom phonetic encoder for the analyser. If not called, the
+// default PhoneticEncoder is used.
 //
 // Takes encoder (PhoneticEncoderPort) which is the encoder to use.
 //
@@ -76,32 +75,29 @@ func WithPhoneticEncoder(encoder PhoneticEncoderPort) Option {
 	}
 }
 
-// WithStopWordsProvider sets a custom stop words provider.
-// When set, the analyser will use this provider to get stop words for the
-// configured language instead of using the stop words from the config.
+// WithStopWordsProvider sets a custom stop words provider. When set, the analyser will
+// use this provider to get stop words for the configured language instead of using the
+// stop words from the config.
 //
 // Takes provider (StopWordsProviderPort) which is the provider to use.
 //
-// Returns Option which configures the analyser to use the given stop words
-// provider.
+// Returns Option which configures the analyser to use the given stop words provider.
 func WithStopWordsProvider(provider StopWordsProviderPort) Option {
 	return func(o *analyserOptions) {
 		o.stopWordsProvider = provider
 	}
 }
 
-// WithLanguage configures the analyser with stemmer, phonetic encoder,
-// and stop words provider for the specified language.
+// WithLanguage configures the analyser with stemmer, phonetic encoder, and stop words
+// provider for the specified language.
 //
-// This is a convenience function that looks up all three components from
-// their respective registries. If a component is not registered for the
-// language, a no-op implementation is used.
+// This is a convenience function that looks up all three components from their respective
+// registries. If a component is not registered for the language, a no-op implementation
+// is used.
 //
-// Takes language (string) which is the language code (e.g., "english",
-// "french").
+// Takes language (string) which is the language code (e.g., "english", "french").
 //
-// Returns Option which configures the analyser with all
-// language-specific components.
+// Returns Option which configures the analyser with all language-specific components.
 func WithLanguage(language string) Option {
 	return func(o *analyserOptions) {
 		o.stemmer = CreateStemmer(language)

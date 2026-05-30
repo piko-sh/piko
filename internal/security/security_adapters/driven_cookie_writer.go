@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/security/security_domain"
 )
 
-// SecureCookieWriter implements security_domain.SecureCookieWriter with
-// configurable security defaults for HTTP cookies. It enforces security flags
-// to protect against session hijacking and CSRF attacks.
+// SecureCookieWriter implements security_domain.SecureCookieWriter with configurable
+// security defaults for HTTP cookies. It enforces security flags to protect against
+// session hijacking and CSRF attacks.
 type SecureCookieWriter struct {
 	// config holds the security settings for cookies.
 	config CookieSecurityValues
@@ -37,14 +37,13 @@ type SecureCookieWriter struct {
 
 // SetCookie writes a cookie to the response with security flags applied.
 //
-// The original cookie is modified in place with the following rules:
-// HttpOnly is forced if ForceHTTPOnly is enabled; Secure is forced if
-// ForceSecureOnHTTPS is enabled and serving over HTTPS; SameSite defaults
-// to DefaultSameSite if not already set.
+// The original cookie is modified in place with the following rules: HttpOnly is forced
+// if ForceHTTPOnly is enabled; Secure is forced if ForceSecureOnHTTPS is enabled and
+// serving over HTTPS; SameSite defaults to DefaultSameSite if not already set.
 //
 // Takes rw (http.ResponseWriter) which receives the cookie header.
 // Takes cookie (*http.Cookie) which is modified in place with security flags.
-func (w *SecureCookieWriter) SetCookie(rw http.ResponseWriter, cookie *http.Cookie) {
+func (w *SecureCookieWriter) SetCookie(rw http.ResponseWriter, cookie *http.Cookie) { //nolint:gosec // secure attributes are enforced below based on config
 	if w.config.ForceHTTPOnly {
 		cookie.HttpOnly = true
 	}
@@ -67,15 +66,13 @@ func (w *SecureCookieWriter) IsHTTPS() bool {
 	return w.isHTTPS
 }
 
-// NewSecureCookieWriter creates a new secure cookie writer with the given
-// configuration.
+// NewSecureCookieWriter creates a new secure cookie writer with the given configuration.
 //
-// Takes config (CookieSecurityValues) which specifies the cookie security
-// settings.
+// Takes config (CookieSecurityValues) which specifies the cookie security settings.
 // Takes isHTTPS (bool) which indicates whether the connection uses HTTPS.
 //
-// Returns security_domain.SecureCookieWriter which is the configured writer
-// ready for use.
+// Returns security_domain.SecureCookieWriter which is the configured writer ready for
+// use.
 func NewSecureCookieWriter(config CookieSecurityValues, isHTTPS bool) security_domain.SecureCookieWriter {
 	return &SecureCookieWriter{
 		config:  config,
@@ -87,8 +84,8 @@ func NewSecureCookieWriter(config CookieSecurityValues, isHTTPS bool) security_d
 //
 // Takes s (string) which is the mode name: "Strict", "None", or "Lax".
 //
-// Returns http.SameSite which is the matching constant. Defaults to
-// SameSiteLaxMode for unknown values.
+// Returns http.SameSite which is the matching constant. Defaults to SameSiteLaxMode for
+// unknown values.
 func parseSameSite(s string) http.SameSite {
 	switch s {
 	case "Strict":

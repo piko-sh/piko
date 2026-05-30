@@ -30,13 +30,11 @@ import (
 )
 
 const (
-	// processHistorySize bounds the per-metric history kept for the
-	// detail-pane chart.
+	// processHistorySize bounds the per-metric history kept for the detail-pane chart.
 	processHistorySize = 900
 
-	// processChartSeriesCap is the maximum number of distinct chart
-	// series the detail-pane composer ever allocates (RSS, FDs,
-	// Threads).
+	// processChartSeriesCap is the maximum number of distinct chart series the detail-pane
+	// composer ever allocates (RSS, FDs, Threads).
 	processChartSeriesCap = 3
 )
 
@@ -71,10 +69,11 @@ type ProcessPanel struct {
 	stateMutex sync.RWMutex
 }
 
-var _ Panel = (*ProcessPanel)(nil)
+var (
+	_ Panel = (*ProcessPanel)(nil)
+)
 
-// NewProcessPanel constructs a ProcessPanel sharing the supplied
-// SystemProvider.
+// NewProcessPanel constructs a ProcessPanel sharing the supplied SystemProvider.
 //
 // Takes provider (SystemProvider) which supplies system statistics.
 // Takes c (clock.Clock) for testing; nil falls back to the real clock.
@@ -165,11 +164,10 @@ func (p *ProcessPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(nil, body, series, "Process history", width, height)
 }
 
-// processSnapshot bundles all values rendered together so they can be
-// read under a single lock acquisition.
+// processSnapshot bundles all values rendered together so they can be read under a single
+// lock acquisition.
 type processSnapshot struct {
-	// stats is the most recent SystemStats payload, or nil before any
-	// refresh has succeeded.
+	// stats is the most recent SystemStats payload, or nil before any refresh has succeeded.
 	stats *SystemStats
 
 	// err is the most recent refresh error, or nil after success.
@@ -185,8 +183,8 @@ type processSnapshot struct {
 	rss []float64
 }
 
-// snapshot reads stats, err, and all history rings under stateMutex
-// so renders cannot race against concurrent handleStats writes.
+// snapshot reads stats, err, and all history rings under stateMutex so renders cannot
+// race against concurrent handleStats writes.
 //
 // Returns processSnapshot containing a coherent view of the state.
 func (p *ProcessPanel) snapshot() processSnapshot {
@@ -201,8 +199,8 @@ func (p *ProcessPanel) snapshot() processSnapshot {
 	}
 }
 
-// handleStats applies an incoming systemStatsMessage to the panel
-// state, updating the rolling history rings and the last-error.
+// handleStats applies an incoming systemStatsMessage to the panel state, updating the
+// rolling history rings and the last-error.
 //
 // Takes msg (systemStatsMessage) which carries the fresh stats and any error.
 //
@@ -223,8 +221,7 @@ func (p *ProcessPanel) handleStats(msg systemStatsMessage) {
 	}
 }
 
-// renderBody renders the centre-pane tile body for the supplied stats
-// and error.
+// renderBody renders the centre-pane tile body for the supplied stats and error.
 //
 // Takes stats (*SystemStats) which is the latest stats snapshot.
 // Takes err (error) which is the latest refresh error.
@@ -243,8 +240,8 @@ func (p *ProcessPanel) renderBody(stats *SystemStats, err error) string {
 	return RenderDetailBody(nil, body.WithoutHeader(), p.ContentWidth(), p.ContentHeight())
 }
 
-// detailBody composes the detail-pane inspector.DetailBody from stats and any
-// refresh error.
+// detailBody composes the detail-pane inspector.DetailBody from stats and any refresh
+// error.
 //
 // Takes stats (*SystemStats) which is the latest stats snapshot.
 // Takes err (error) which is the latest refresh error.
@@ -277,8 +274,7 @@ func (*ProcessPanel) detailBody(stats *SystemStats, err error) inspector.DetailB
 	}
 }
 
-// refresh returns a command that fetches fresh SystemStats from the
-// configured provider.
+// refresh returns a command that fetches fresh SystemStats from the configured provider.
 //
 // Returns tea.Cmd which delivers a systemStatsMessage.
 func (p *ProcessPanel) refresh() tea.Cmd { return refreshSystemStatsCmd(p.provider) }

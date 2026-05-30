@@ -29,9 +29,9 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect func(t *testing.T, compiledFunction *CompiledFunction)
 		name   string
 		code   string
-		expect func(t *testing.T, compiledFunction *CompiledFunction)
 	}{
 		{
 			name: "integer_literal_loads_constant",
@@ -40,7 +40,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 				t.Helper()
 
 				hasLoad := findOpcode(compiledFunction, opLoadIntConst) >= 0 ||
-					findOpcode(compiledFunction, opLoadIntConstSmall) >= 0
+					findTier1SubOp(compiledFunction, subOpLoadIntConstSmall) >= 0
 				require.True(t, hasLoad, "expected int load in:\n%s", compiledFunction.Disassemble())
 			},
 		},
@@ -49,7 +49,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			code: "5",
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
-				requireContainsOpcode(t, compiledFunction, opLoadIntConstSmall)
+				requireContainsTier1SubOp(t, compiledFunction, subOpLoadIntConstSmall)
 			},
 		},
 		{
@@ -136,8 +136,8 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			code: `sum := 0; for i := 0; i < 10; i++ { sum += i }; sum`,
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
-				hasJump := findOpcode(compiledFunction, opJump) >= 0 ||
-					findOpcode(compiledFunction, opIncIntJumpLt) >= 0
+				hasJump := findTier1SubOp(compiledFunction, subOpJump) >= 0 ||
+					findTier1SubOp(compiledFunction, subOpIncIntJumpLt) >= 0
 				require.True(t, hasJump, "expected loop jump in:\n%s", compiledFunction.Disassemble())
 			},
 		},
@@ -146,7 +146,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			code: `x := true; !x`,
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
-				requireContainsOpcode(t, compiledFunction, opNot)
+				requireContainsTier1SubOp(t, compiledFunction, subOpNot)
 			},
 		},
 		{
@@ -162,7 +162,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			code: `x := 42; -x`,
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
-				requireContainsOpcode(t, compiledFunction, opNegInt)
+				requireContainsTier1SubOp(t, compiledFunction, subOpNegInt)
 			},
 		},
 		{
@@ -170,7 +170,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			code: `x := 3.14; -x`,
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
-				requireContainsOpcode(t, compiledFunction, opNegFloat)
+				requireContainsTier1SubOp(t, compiledFunction, subOpNegFloat)
 			},
 		},
 		{
@@ -179,7 +179,7 @@ func TestCompilerBytecodePatterns(t *testing.T) {
 			expect: func(t *testing.T, compiledFunction *CompiledFunction) {
 				t.Helper()
 				require.NotEmpty(t, compiledFunction.functions)
-				requireContainsOpcode(t, compiledFunction.functions[0], opReturn)
+				requireContainsTier2SubOp(t, compiledFunction.functions[0], subOpTier2Return)
 			},
 		},
 		{

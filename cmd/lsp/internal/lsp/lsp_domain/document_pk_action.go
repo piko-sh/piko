@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	// openParenLiteral is the open-parenthesis character used to delimit action
-	// call arguments.
+	// openParenLiteral is the open-parenthesis character used to delimit action call
+	// arguments.
 	openParenLiteral = "("
 
 	// minActionSegments is the minimum number of dot-separated segments for a
@@ -39,8 +39,8 @@ const (
 	minActionSegments = 3
 )
 
-// actionSegmentInfo holds the parsed segments and cursor position within an
-// action expression like "action.email.Contact($form)".
+// actionSegmentInfo holds the parsed segments and cursor position within an action
+// expression like "action.email.Contact($form)".
 type actionSegmentInfo struct {
 	// segments holds the dot-separated parts, e.g. ["action", "email", "Contact"].
 	segments []string
@@ -48,25 +48,25 @@ type actionSegmentInfo struct {
 	// segmentIndex is the index of the segment the cursor falls on.
 	segmentIndex int
 
-	// segmentStart is the absolute character offset in the line where the
-	// current segment begins.
+	// segmentStart is the absolute character offset in the line where the current segment
+	// begins.
 	segmentStart int
 
-	// segmentEnd is the absolute character offset in the line where the
-	// current segment ends.
+	// segmentEnd is the absolute character offset in the line where the current segment
+	// ends.
 	segmentEnd int
 }
 
-// checkActionHoverContext checks if the cursor is on an action expression
-// inside a quoted attribute value. It parses the expression into segments
-// and determines which segment the cursor falls on.
+// checkActionHoverContext checks if the cursor is on an action expression inside a quoted
+// attribute value. It parses the expression into segments and determines which segment
+// the cursor falls on.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context if the cursor is on
-// an action expression, or nil if no action context is found.
+// Returns *PKHoverContext which provides hover context if the cursor is on an action
+// expression, or nil if no action context is found.
 func (*document) checkActionHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	info := findActionSegmentAtCursor(line, cursor)
 	if info == nil {
@@ -96,8 +96,8 @@ func (*document) checkActionHoverContext(line string, cursor int, position proto
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKDefinitionContext which provides definition context if the cursor
-// is on an action name, or nil if no action context is found.
+// Returns *PKDefinitionContext which provides definition context if the cursor is on an
+// action name, or nil if no action context is found.
 func (*document) checkActionDefinitionContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	info := findActionSegmentAtCursor(line, cursor)
 	if info == nil {
@@ -116,8 +116,8 @@ func (*document) checkActionDefinitionContext(line string, cursor int, position 
 	}
 }
 
-// getActionHover returns hover information for an action expression.
-// The content varies based on which segment the cursor is on.
+// getActionHover returns hover information for an action expression. The content varies
+// based on which segment the cursor is on.
 //
 // Takes ctx (*PKHoverContext) which provides the hover context.
 //
@@ -156,11 +156,10 @@ func (*document) getActionRootHover(ctx *PKHoverContext) (*protocol.Hover, error
 	}, nil
 }
 
-// getActionNamespaceHover returns hover for an action namespace segment
-// like "email" in action.email.Contact. Lists all actions in that namespace.
+// getActionNamespaceHover returns hover for an action namespace segment like "email" in
+// action.email.Contact. Lists all actions in that namespace.
 //
-// Takes ctx (*PKHoverContext) which provides the hover context including the
-// action name.
+// Takes ctx (*PKHoverContext) which provides the hover context including the action name.
 //
 // Returns *protocol.Hover which contains the namespace summary.
 // Returns error when the hover cannot be built.
@@ -191,8 +190,8 @@ func (d *document) getActionNamespaceHover(ctx *PKHoverContext) (*protocol.Hover
 	}, nil
 }
 
-// getActionNameHover returns rich hover for an action name like "Contact".
-// Shows the full signature, input/output types, and a link to the source file.
+// getActionNameHover returns rich hover for an action name like "Contact". Shows the full
+// signature, input/output types, and a link to the source file.
 //
 // Takes ctx (*PKHoverContext) which provides the hover context.
 //
@@ -262,11 +261,9 @@ func (*document) appendActionCapabilities(b *strings.Builder, action *annotator_
 
 // findActionDefinition finds the Go source file location for an action name.
 //
-// Takes actionName (string) which is the dot-notation action name (e.g.
-// "email.Contact").
+// Takes actionName (string) which is the dot-notation action name (e.g. "email.Contact").
 //
-// Returns []protocol.Location which points to the action struct in the Go
-// file.
+// Returns []protocol.Location which points to the action struct in the Go file.
 // Returns error when the lookup fails.
 func (d *document) findActionDefinition(actionName string) ([]protocol.Location, error) {
 	action := d.lookupAction(actionName)
@@ -317,8 +314,8 @@ func (d *document) lookupAction(name string) *annotator_dto.ActionDefinition {
 	return nil
 }
 
-// resolveActionFilePath resolves a relative action file path to an absolute
-// path using the resolver's base directory.
+// resolveActionFilePath resolves a relative action file path to an absolute path using
+// the resolver's base directory.
 //
 // Takes relativePath (string) which is the path relative to the project root.
 //
@@ -330,8 +327,8 @@ func (d *document) resolveActionFilePath(relativePath string) string {
 	return filepath.Join(d.Resolver.GetBaseDir(), relativePath)
 }
 
-// findActionsInNamespace returns all actions whose name starts with the
-// given namespace prefix.
+// findActionsInNamespace returns all actions whose name starts with the given namespace
+// prefix.
 //
 // Takes namespace (string) which is the package namespace to filter by.
 //
@@ -357,18 +354,18 @@ func (d *document) findActionsInNamespace(namespace string) []annotator_dto.Acti
 	return result
 }
 
-// checkActionParamKeyHoverContext checks if the cursor is on an object literal
-// key inside the argument list of an action call.
+// checkActionParamKeyHoverContext checks if the cursor is on an object literal key inside
+// the argument list of an action call.
 //
-// For example, in action.blueprint.FieldDelete({environment_id: state.X}),
-// hovering over "environment_id" triggers this context.
+// For example, in action.blueprint.FieldDelete({environment_id: state.X}), hovering over
+// "environment_id" triggers this context.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context if the cursor is on an
-// action param key, or nil if no match.
+// Returns *PKHoverContext which provides hover context if the cursor is on an action
+// param key, or nil if no match.
 func (*document) checkActionParamKeyHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	valueStart, valueEnd := findQuotedValueBounds(line, cursor)
 	if valueStart == -1 {
@@ -413,12 +410,11 @@ func (*document) checkActionParamKeyHoverContext(line string, cursor int, positi
 	}
 }
 
-// getActionParamKeyHover returns hover information for an action call parameter
-// key. Shows the field's Go type, TypeScript type, validation rules, and
-// description.
+// getActionParamKeyHover returns hover information for an action call parameter key.
+// Shows the field's Go type, TypeScript type, validation rules, and description.
 //
-// Takes ctx (*PKHoverContext) which provides the hover context with the
-// combined action name and key name.
+// Takes ctx (*PKHoverContext) which provides the hover context with the combined action
+// name and key name.
 //
 // Returns *protocol.Hover which contains the formatted field information.
 // Returns error when the hover cannot be built.
@@ -468,14 +464,14 @@ func (d *document) getActionParamKeyHover(ctx *PKHoverContext) (*protocol.Hover,
 	}, nil
 }
 
-// findActionSegmentAtCursor locates an action expression in a quoted attribute
-// value and determines which segment the cursor is on.
+// findActionSegmentAtCursor locates an action expression in a quoted attribute value and
+// determines which segment the cursor is on.
 //
 // Takes line (string) which is the text to search.
 // Takes cursor (int) which is the cursor position within the line.
 //
-// Returns *actionSegmentInfo describing the segment, or nil if the cursor is
-// not on an action expression.
+// Returns *actionSegmentInfo describing the segment, or nil if the cursor is not on an
+// action expression.
 func findActionSegmentAtCursor(line string, cursor int) *actionSegmentInfo {
 	valueStart, valueEnd := findQuotedValueBounds(line, cursor)
 	if valueStart == -1 {
@@ -538,15 +534,15 @@ func findActionSegmentAtCursor(line string, cursor int) *actionSegmentInfo {
 	return nil
 }
 
-// findQuotedValueBounds finds the start and end positions of the quoted
-// attribute value that the cursor is within.
+// findQuotedValueBounds finds the start and end positions of the quoted attribute value
+// that the cursor is within.
 //
 // Takes line (string) which is the text to search.
 // Takes cursor (int) which is the cursor position within the line.
 //
 // Returns int which is the start position of the value, excluding the quote.
-// Returns int which is the end position of the value, excluding the quote.
-// Both values are -1 if the cursor is not inside a quoted value.
+// Returns int which is the end position of the value, excluding the quote. Both values
+// are -1 if the cursor is not inside a quoted value.
 func findQuotedValueBounds(line string, cursor int) (start int, end int) {
 	if cursor > len(line) {
 		return -1, -1
@@ -595,8 +591,8 @@ func actionSegmentToKind(info *actionSegmentInfo) PKDefinitionKind {
 	}
 }
 
-// buildActionName constructs the full dot-notation action name from segments.
-// For "action.email.Contact", this returns "email.Contact".
+// buildActionName constructs the full dot-notation action name from segments. For
+// "action.email.Contact", this returns "email.Contact".
 //
 // Takes info (*actionSegmentInfo) which contains the parsed segments.
 //
@@ -608,9 +604,9 @@ func buildActionName(info *actionSegmentInfo) string {
 	return strings.Join(info.segments[1:], ".")
 }
 
-// extractNamespaceFromActionName extracts the namespace portion from a
-// dot-notation action name. For "email.Contact" it returns "email", and for
-// "email" it returns "email" unchanged.
+// extractNamespaceFromActionName extracts the namespace portion from a dot-notation
+// action name. For "email.Contact" it returns "email", and for "email" it returns "email"
+// unchanged.
 //
 // Takes actionName (string) which is the full action name in dot notation.
 //
@@ -622,11 +618,10 @@ func extractNamespaceFromActionName(actionName string) string {
 	return actionName
 }
 
-// buildActionDisplaySignature builds a human-readable signature for an action
-// using the dot-notation name used in templates.
+// buildActionDisplaySignature builds a human-readable signature for an action using the
+// dot-notation name used in templates.
 //
-// Takes action (*annotator_dto.ActionDefinition) which provides the action
-// definition.
+// Takes action (*annotator_dto.ActionDefinition) which provides the action definition.
 //
 // Returns string which is the formatted signature.
 func buildActionDisplaySignature(action *annotator_dto.ActionDefinition) string {
@@ -646,8 +641,8 @@ func buildActionDisplaySignature(action *annotator_dto.ActionDefinition) string 
 	return action.Name + openParenLiteral + params + "): ActionBuilder<void>"
 }
 
-// findObjectKeyAtCursor finds the identifier at the cursor position and
-// verifies it is an object literal key (followed by a colon).
+// findObjectKeyAtCursor finds the identifier at the cursor position and verifies it is an
+// object literal key (followed by a colon).
 //
 // Takes line (string) which is the source text to scan.
 // Takes cursor (int) which is the character position to check.
@@ -692,11 +687,9 @@ func findObjectKeyAtCursor(line string, cursor int) (key string, start int, end 
 	return line[start:end], start, end
 }
 
-// splitActionParamKey splits a combined "actionName:keyName" string into its
-// two parts.
+// splitActionParamKey splits a combined "actionName:keyName" string into its two parts.
 //
-// Takes combined (string) which holds the action name and key name separated
-// by a colon.
+// Takes combined (string) which holds the action name and key name separated by a colon.
 //
 // Returns string which is the action name portion.
 // Returns string which is the key name portion.
@@ -705,15 +698,14 @@ func splitActionParamKey(combined string) (actionName string, keyName string) {
 	return actionName, keyName
 }
 
-// findActionFieldByJSONName searches the action's call parameters for a field
-// whose JSON name matches the given key.
+// findActionFieldByJSONName searches the action's call parameters for a field whose JSON
+// name matches the given key.
 //
-// Takes params ([]annotator_dto.ActionTypeInfo) which holds the action's
-// parameter type information.
+// Takes params ([]annotator_dto.ActionTypeInfo) which holds the action's parameter type
+// information.
 // Takes jsonName (string) which is the JSON field name to look up.
 //
-// Returns *annotator_dto.ActionFieldInfo for the matching field, or nil if
-// not found.
+// Returns *annotator_dto.ActionFieldInfo for the matching field, or nil if not found.
 func findActionFieldByJSONName(params []annotator_dto.ActionTypeInfo, jsonName string) *annotator_dto.ActionFieldInfo {
 	for i := range params {
 		for j := range params[i].Fields {
@@ -727,8 +719,8 @@ func findActionFieldByJSONName(params []annotator_dto.ActionTypeInfo, jsonName s
 
 // buildActionParamList builds a comma-separated list of parameter type names.
 //
-// When preferName is true, it uses the Go type name, falling back to TSType.
-// When preferName is false, it uses TSType, falling back to Name.
+// When preferName is true, it uses the Go type name, falling back to TSType. When
+// preferName is false, it uses TSType, falling back to Name.
 //
 // Takes params ([]annotator_dto.ActionTypeInfo) which are the call parameters.
 // Takes preferName (bool) which controls whether to prefer Name over TSType.

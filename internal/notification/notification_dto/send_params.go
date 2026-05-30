@@ -18,21 +18,20 @@
 
 package notification_dto
 
-// SendParams holds the data needed to send a notification to one or more
-// providers.
+// SendParams holds the data needed to send a notification to one or more providers.
 type SendParams struct {
 	// Content holds the message data including title, message text, and fields.
 	Content NotificationContent `json:"content"`
 
-	// ProviderOptions contains provider-specific configuration
-	// (e.g. Slack channel, Discord webhook URL).
+	// ProviderOptions contains provider-specific configuration (e.g. Slack channel, Discord
+	// webhook URL).
 	ProviderOptions map[string]any `json:"provider_options,omitempty"`
 
-	// Context holds metadata about the notification source, such as priority,
-	// environment, service name, and trace ID.
+	// Context holds metadata about the notification source, such as priority, environment,
+	// service name, and trace ID.
 	Context NotificationContext `json:"context"`
 
-	// Providers lists the provider names for sending to multiple providers.
-	// If empty, the default provider is used.
+	// Providers lists the provider names for sending to multiple providers. If empty, the
+	// default provider is used.
 	Providers []string `json:"providers,omitempty"`
 }

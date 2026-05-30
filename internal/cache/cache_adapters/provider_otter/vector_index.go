@@ -31,27 +31,27 @@ type VectorHit[K comparable] struct {
 	// Key is the cache key of the matched entry.
 	Key K
 
-	// Score is the similarity score (higher is more similar). For cosine
-	// similarity this is in [-1, 1]; for euclidean, in [0, 1].
+	// Score is the similarity score (higher is more similar). For cosine similarity this is
+	// in [-1, 1]; for euclidean, in [0, 1].
 	Score float32
 }
 
-// VectorIndex provides approximate nearest-neighbour search using an HNSW
-// graph. It wraps hnsw.Graph and converts between distance (lower is better)
-// and similarity (higher is better).
+// VectorIndex provides approximate nearest-neighbour search using an HNSW graph. It wraps
+// hnsw.Graph and converts between distance (lower is better) and similarity (higher is
+// better).
 //
-// Thread-safe for concurrent read/write access (the underlying HNSW graph
-// handles its own synchronisation).
+// Thread-safe for concurrent read/write access (the underlying HNSW graph handles its own
+// synchronisation).
 type VectorIndex[K comparable] struct {
-	// graph is the HNSW graph structure for approximate nearest neighbour search.
-	// When dimension is 0 (auto-detect), graph is nil until the first Add call.
+	// graph is the HNSW graph structure for approximate nearest neighbour search. When
+	// dimension is 0 (auto-detect), graph is nil until the first Add call.
 	graph *hnsw.Graph[K]
 
 	// metric specifies the distance function used for similarity search.
 	metric vectormaths.Metric
 
-	// dimension is the number of elements in each vector. Zero means
-	// auto-detect from the first vector added.
+	// dimension is the number of elements in each vector. Zero means auto-detect from the
+	// first vector added.
 	dimension int
 
 	// maxVectors limits the number of vectors in the index. Zero means unlimited.
@@ -61,8 +61,8 @@ type VectorIndex[K comparable] struct {
 	mu sync.Mutex
 }
 
-// Add indexes a vector for the given key. If the key already exists, its
-// vector is replaced.
+// Add indexes a vector for the given key. If the key already exists, its vector is
+// replaced.
 //
 // Takes key (K) which identifies the cache entry.
 // Takes vector ([]float32) which is the vector to index.
@@ -80,13 +80,13 @@ func (idx *VectorIndex[K]) Add(key K, vector []float32) {
 	_ = idx.graph.Insert(key, vector)
 }
 
-// initialiseOnce lazily initialises the HNSW graph on the first Add call when
-// dimension was set to 0 (auto-detect).
+// initialiseOnce lazily initialises the HNSW graph on the first Add call when dimension
+// was set to 0 (auto-detect).
 //
 // Takes dim (int) which specifies the vector dimension for the graph.
 //
-// Safe for concurrent use. Uses double-checked locking to ensure the graph
-// is initialised exactly once.
+// Safe for concurrent use. Uses double-checked locking to ensure the graph is initialised
+// exactly once.
 func (idx *VectorIndex[K]) initialiseOnce(dim int) {
 	if idx.graph != nil {
 		return
@@ -110,13 +110,13 @@ func (idx *VectorIndex[K]) Remove(key K) {
 	idx.graph.Delete(key)
 }
 
-// Search finds the nearest vectors to the query and returns them as scored
-// hits. Results are sorted by score descending (most similar first).
+// Search finds the nearest vectors to the query and returns them as scored hits. Results
+// are sorted by score descending (most similar first).
 //
 // Takes query ([]float32) which is the vector to search for.
 // Takes topK (int) which is the maximum number of results.
-// Takes minScore (*float32) which filters out results below this threshold.
-// Pass nil to disable the threshold.
+// Takes minScore (*float32) which filters out results below this threshold. Pass nil to
+// disable the threshold.
 //
 // Returns []VectorHit[K] sorted by score descending.
 func (idx *VectorIndex[K]) Search(query []float32, topK int, minScore *float32) []VectorHit[K] {
@@ -154,8 +154,8 @@ func (idx *VectorIndex[K]) Clear() {
 
 // NewVectorIndex creates a new HNSW-backed vector index.
 //
-// Takes dimension (int) which is the expected vector dimensionality.
-// Pass 0 to auto-detect the dimension from the first vector added.
+// Takes dimension (int) which is the expected vector dimensionality. Pass 0 to
+// auto-detect the dimension from the first vector added.
 // Takes metric (vectormaths.Metric) which selects the distance function.
 //
 // Returns *VectorIndex[K] ready for use.

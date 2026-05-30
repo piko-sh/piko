@@ -30,9 +30,8 @@ import (
 	"piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
-// jsonIndexReader implements IndexReaderPort for JSON-based indexes.
-// This is primarily for debugging and development; production should use
-// FlatBuffers.
+// jsonIndexReader implements IndexReaderPort for JSON-based indexes. This is primarily
+// for debugging and development; production should use FlatBuffers.
 type jsonIndexReader struct {
 	// index holds the parsed search index data; nil until LoadIndex is called.
 	index *search_dto.JSONSearchIndex
@@ -116,9 +115,9 @@ func (r *jsonIndexReader) GetDocMetadata(documentID uint32) (search_domain.DocMe
 
 // GetCorpusStats returns corpus-wide statistics.
 //
-// Returns search_domain.CorpusStats which contains the total document count,
-// average field length, and vocabulary size. Returns an empty CorpusStats if
-// the index is nil.
+// Returns search_domain.CorpusStats which contains the total document count, average
+// field length, and vocabulary size.
+// Returns an empty CorpusStats if the index is nil.
 func (r *jsonIndexReader) GetCorpusStats() search_domain.CorpusStats {
 	if r.index == nil {
 		return search_domain.CorpusStats{}
@@ -148,8 +147,7 @@ func (r *jsonIndexReader) GetMode() search_schema_gen.SearchMode {
 
 // GetLanguage returns the language this index was built with.
 //
-// Returns string which is the language name, defaulting to "english" if the
-// index is nil.
+// Returns string which is the language name, defaulting to "english" if the index is nil.
 func (r *jsonIndexReader) GetLanguage() string {
 	if r.index == nil {
 		return "english"

@@ -24,21 +24,19 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// Probe is a driven port that allows components to be monitored for health.
-// Any component or adapter that needs health checking must implement this
-// interface.
+// Probe is a driven port that allows components to be monitored for health. Any
+// component or adapter that needs health checking must implement Probe.
 type Probe interface {
 	// Name returns the unique, human-readable name of the component being checked.
 	Name() string
 
-	// Check performs the actual health check and returns a status. The context
-	// should be used to enforce timeouts.
+	// Check performs the actual health check and returns a status. The context should be
+	// used to enforce timeouts.
 	//
-	// Takes checkType (healthprobe_dto.CheckType) which indicates whether this is
-	// a liveness or readiness check, allowing the probe to return different status.
+	// Takes checkType (healthprobe_dto.CheckType) which indicates whether this is a liveness
+	// or readiness check, allowing the probe to return different status.
 	//
-	// Returns healthprobe_dto.Status which indicates the health state of the
-	// component.
+	// Returns healthprobe_dto.Status which indicates the health state of the component.
 	Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status
 }
 
@@ -54,19 +52,19 @@ type Registry interface {
 	GetAll() []Probe
 }
 
-// Service is the main entry point for health checks in the domain.
-// It runs all registered probes and collects their results.
+// Service is the main entry point for health checks in the domain. It runs all registered
+// probes and collects their results.
 type Service interface {
-	// CheckLiveness runs all liveness health probes at the same time and combines
-	// their results into a single status report.
+	// CheckLiveness runs all liveness health probes at the same time and combines their
+	// results into a single status report.
 	//
 	// Returns healthprobe_dto.Status which contains the combined health status.
 	CheckLiveness(ctx context.Context) healthprobe_dto.Status
 
-	// CheckReadiness runs all readiness health probes at the same time and
-	// combines their results into a single status report.
+	// CheckReadiness runs all readiness health probes at the same time and combines their
+	// results into a single status report.
 	//
-	// Returns healthprobe_dto.Status which contains the combined result of all
-	// readiness probes.
+	// Returns healthprobe_dto.Status which contains the combined result of all readiness
+	// probes.
 	CheckReadiness(ctx context.Context) healthprobe_dto.Status
 }

@@ -29,12 +29,11 @@ import (
 )
 
 const (
-	// DefaultMockPromptTokens is the default number of prompt tokens in mock
-	// responses.
+	// DefaultMockPromptTokens is the default number of prompt tokens in mock responses.
 	DefaultMockPromptTokens = 10
 
-	// DefaultMockCompletionTokens is the default number of completion tokens in
-	// mock responses.
+	// DefaultMockCompletionTokens is the default number of completion tokens in mock
+	// responses.
 	DefaultMockCompletionTokens = 5
 
 	// DefaultMockTotalTokens is the default total token count for mock responses.
@@ -43,13 +42,12 @@ const (
 	// DefaultMockContextWindow is the default context window size for mock models.
 	DefaultMockContextWindow = 8192
 
-	// DefaultMockMaxOutputTokens is the default maximum output tokens for mock
-	// models.
+	// DefaultMockMaxOutputTokens is the default maximum output tokens for mock models.
 	DefaultMockMaxOutputTokens = 4096
 )
 
-// MockProvider is a test double that implements LLMProviderPort. It allows
-// tests to set responses, errors, and check which methods were called.
+// MockProvider is a test double that implements LLMProviderPort. It allows tests to set
+// responses, errors, and check which methods were called.
 type MockProvider struct {
 	// clock provides time operations for timestamps and delays.
 	clock clock.Clock
@@ -81,45 +79,45 @@ type MockProvider struct {
 	// streamChunks holds the chunks to return during streaming responses.
 	streamChunks []llm_dto.StreamChunk
 
-	// responseDelay is the time to wait before returning responses; 0 means no
-	// delay.
+	// responseDelay is the time to wait before returning responses; 0 means no delay.
 	responseDelay time.Duration
 
 	// mu guards concurrent access to the provider's mutable state.
 	mu sync.RWMutex
 
-	// supportsStreaming indicates whether the mock provider reports streaming
-	// capability in model listings.
+	// supportsStreaming indicates whether the mock provider reports streaming capability in
+	// model listings.
 	supportsStreaming bool
 
-	// supportsStructuredOutput indicates whether the mock provider supports
-	// structured output in responses.
+	// supportsStructuredOutput indicates whether the mock provider supports structured
+	// output in responses.
 	supportsStructuredOutput bool
 
 	// supportsTools indicates whether the mock provider supports tool calling.
 	supportsTools bool
 
-	// supportsPenalties indicates whether the mock provider supports frequency
-	// and presence penalties.
+	// supportsPenalties indicates whether the mock provider supports frequency and presence
+	// penalties.
 	supportsPenalties bool
 
-	// supportsSeed indicates whether the mock provider supports deterministic
-	// seed.
+	// supportsSeed indicates whether the mock provider supports deterministic seed.
 	supportsSeed bool
 
-	// supportsParallelToolCalls indicates whether the mock provider supports
-	// parallel tool calls.
+	// supportsParallelToolCalls indicates whether the mock provider supports parallel tool
+	// calls.
 	supportsParallelToolCalls bool
 
-	// supportsMessageName indicates whether the mock provider supports the
-	// name field on messages.
+	// supportsMessageName indicates whether the mock provider supports the name field on
+	// messages.
 	supportsMessageName bool
 
 	// closed indicates whether the provider has been shut down.
 	closed bool
 }
 
-var _ llm_domain.LLMProviderPort = (*MockProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*MockProvider)(nil)
+)
 
 // MockProviderOption is a function that sets up a MockProvider.
 type MockProviderOption func(*MockProvider)
@@ -256,8 +254,7 @@ func (m *MockProvider) SetSupportsSeed(supported bool) {
 	m.supportsSeed = supported
 }
 
-// SetSupportsParallelToolCalls configures the parallel tool calls capability
-// flag.
+// SetSupportsParallelToolCalls configures the parallel tool calls capability flag.
 //
 // Takes supported (bool) which is whether parallel tool calls are supported.
 //
@@ -331,8 +328,7 @@ func (m *MockProvider) Reset() {
 
 // Complete implements LLMProviderPort.Complete.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters.
 //
 // Returns *llm_dto.CompletionResponse which contains the mock response.
 // Returns error when context is cancelled or a configured error is set.
@@ -386,11 +382,10 @@ type streamState struct {
 
 // Stream implements LLMProviderPort.Stream.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// request to stream.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion request to
+// stream.
 //
-// Returns <-chan llm_dto.StreamEvent which yields stream events as they
-// become available.
+// Returns <-chan llm_dto.StreamEvent which yields stream events as they become available.
 // Returns error when the stream cannot be started.
 //
 // Spawns a goroutine to run the stream loop until the context is cancelled.
@@ -416,8 +411,8 @@ func (m *MockProvider) SupportsStreaming() bool {
 	return m.supportsStreaming
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output. Implements LLMProviderPort.SupportsStructuredOutput.
+// SupportsStructuredOutput reports whether the provider supports structured output.
+// Implements LLMProviderPort.SupportsStructuredOutput.
 //
 // Returns bool which is true if structured output is supported.
 //
@@ -463,8 +458,7 @@ func (m *MockProvider) SupportsSeed() bool {
 
 // SupportsParallelToolCalls implements LLMProviderPort.SupportsParallelToolCalls.
 //
-// Returns bool which indicates whether the provider supports parallel tool
-// calls.
+// Returns bool which indicates whether the provider supports parallel tool calls.
 //
 // Safe for concurrent use.
 func (m *MockProvider) SupportsParallelToolCalls() bool {
@@ -486,8 +480,7 @@ func (m *MockProvider) SupportsMessageName() bool {
 
 // ListModels implements LLMProviderPort.ListModels.
 //
-// Returns []llm_dto.ModelInfo which contains the configured mock models or
-// defaults.
+// Returns []llm_dto.ModelInfo which contains the configured mock models or defaults.
 // Returns error when a mock error has been set.
 //
 // Safe for concurrent use. Uses a read lock to protect access to mock state.
@@ -544,11 +537,11 @@ func (m *MockProvider) DefaultModel() string {
 
 // captureStreamState captures the current provider state for stream execution.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the
-// completion request to record.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion request to
+// record.
 //
-// Returns streamState which contains the captured chunks, error, delay, and
-// clock for stream processing.
+// Returns streamState which contains the captured chunks, error, delay, and clock for
+// stream processing.
 //
 // Safe for concurrent use; protects access with a mutex lock.
 func (m *MockProvider) captureStreamState(request *llm_dto.CompletionRequest) streamState {
@@ -563,8 +556,7 @@ func (m *MockProvider) captureStreamState(request *llm_dto.CompletionRequest) st
 	}
 }
 
-// runStreamLoop executes the main stream loop, emitting events until
-// completion.
+// runStreamLoop executes the main stream loop, emitting events until completion.
 //
 // Takes events (chan<- llm_dto.StreamEvent) which receives the stream events.
 // Takes state (streamState) which holds the current streaming state.
@@ -589,8 +581,7 @@ func (m *MockProvider) runStreamLoop(ctx context.Context, events chan<- llm_dto.
 
 // handleStreamDelay waits for the configured delay before continuing.
 //
-// Takes events (chan<- llm_dto.StreamEvent) which receives error events on
-// cancellation.
+// Takes events (chan<- llm_dto.StreamEvent) which receives error events on cancellation.
 // Takes state (streamState) which provides the delay duration and clock.
 //
 // Returns bool which is true if the context was cancelled, false otherwise.
@@ -679,8 +670,8 @@ func (m *MockProvider) emitDoneEvent(events chan<- llm_dto.StreamEvent) {
 	events <- llm_dto.NewDoneEvent(response)
 }
 
-// WithMockClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithMockClock sets the clock used for time operations. If not set, clock.RealClock() is
+// used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -691,11 +682,11 @@ func WithMockClock(c clock.Clock) MockProviderOption {
 	}
 }
 
-// New creates a new MockProvider with default settings.
-// By default, all capabilities are enabled and a simple response is set.
+// New creates a new MockProvider with default settings. By default, all capabilities are
+// enabled and a simple response is set.
 //
-// Takes opts (...MockProviderOption) which are optional functions to change
-// the default settings.
+// Takes opts (...MockProviderOption) which are optional functions to change the default
+// settings.
 //
 // Returns *MockProvider which is ready for use in tests.
 func New(opts ...MockProviderOption) *MockProvider {

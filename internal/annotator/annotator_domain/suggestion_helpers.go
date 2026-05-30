@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Provides suggestion helpers for generating helpful error messages with spelling corrections and similar term recommendations.
-// Uses fuzzy matching and canonical term mapping to suggest corrections when users reference undefined variables or properties.
+// Provides suggestion helpers for generating helpful error messages with spelling
+// corrections and similar term recommendations. Uses fuzzy matching and canonical term
+// mapping to suggest corrections when users reference undefined variables or properties.
 
 import (
 	"strings"
@@ -28,9 +29,8 @@ import (
 )
 
 var (
-	// commonSynonymGroups is a curated list of common synonyms for actions in our
-	// domain. The first word in each group is considered the canonical or
-	// preferred term.
+	// commonSynonymGroups is a curated list of common synonyms for actions in our domain.
+	// The first word in each group is considered the canonical or preferred term.
 	commonSynonymGroups = [][]string{
 		{"Create", "Add", "New", "Insert", "Make", "Build"},
 		{"Delete", "Remove", "Erase", "Destroy", "Drop", "Purge"},
@@ -66,19 +66,17 @@ var (
 		{"Split", "Separate"},
 	}
 
-	// synonymMap maps any synonym to the canonical term for its group.
-	// It is a pre-processed map for fast lookups, initialised once by init.
+	// synonymMap maps any synonym to the canonical term for its group. It is a pre-processed
+	// map for fast lookups, initialised once by init.
 	synonymMap map[string]string
 )
 
-// getCanonicalTerm returns the preferred term for a given word if it is a
-// known synonym. If the word is not a known synonym, it returns the original
-// word unchanged.
+// getCanonicalTerm returns the preferred term for a given word if it is a known synonym.
+// If the word is not a known synonym, it returns the original word unchanged.
 //
 // Takes word (string) which is the term to look up in the synonym map.
 //
-// Returns string which is the preferred term if found, or the original word
-// if not.
+// Returns string which is the preferred term if found, or the original word if not.
 func getCanonicalTerm(word string) string {
 	canonical, ok := synonymMap[strings.ToLower(word)]
 	if ok {
@@ -111,9 +109,8 @@ func findClosestMatch(input string, candidates []string) string {
 
 // findClosestTypo finds the closest spelling match for a misspelt word.
 //
-// It uses Levenshtein distance to compare the input against a list of valid
-// words. A match is only returned if it falls within a threshold based on
-// the input length.
+// It uses Levenshtein distance to compare the input against a list of valid words. A
+// match is only returned if it falls within a threshold based on the input length.
 //
 // Takes input (string) which is the misspelt word to correct.
 // Takes candidates ([]string) which contains valid words to match against.
@@ -148,8 +145,8 @@ func findClosestTypo(input string, candidates []string) string {
 	return ""
 }
 
-// levenshteinDistance counts the fewest single-character edits needed to turn
-// one string into another. It is used to find typos and suggest similar words.
+// levenshteinDistance counts the fewest single-character edits needed to turn one string
+// into another. It is used to find typos and suggest similar words.
 //
 // Takes source (string) which is the starting string.
 // Takes target (string) which is the string to match against.
@@ -192,14 +189,14 @@ func levenshteinDistance(source, target string) int {
 	return currentRow[targetLen]
 }
 
-// findSynonymMatch checks if the input term has a known synonym that matches
-// any of the candidates.
+// findSynonymMatch checks if the input term has a known synonym that matches any of the
+// candidates.
 //
 // Takes input (string) which is the term to check for synonyms.
 // Takes candidates ([]string) which contains possible standard matches.
 //
-// Returns string which is the matching candidate, or an empty string if no
-// match is found.
+// Returns string which is the matching candidate, or an empty string if no match is
+// found.
 func findSynonymMatch(input string, candidates []string) string {
 	inputAction, inputSubject := splitActionAndSubject(input)
 	if inputAction == "" {
@@ -221,11 +218,10 @@ func findSynonymMatch(input string, candidates []string) string {
 	return ""
 }
 
-// splitActionAndSubject splits a CamelCase name into its first word and the
-// rest.
+// splitActionAndSubject splits a CamelCase name into its first word and the rest.
 //
-// It handles names like "RemoveUser" or "URLShortener", finding where the
-// action word ends and the subject starts.
+// It handles names like "RemoveUser" or "URLShortener", finding where the action word
+// ends and the subject starts.
 //
 // Takes identifier (string) which is the CamelCase name to split.
 //

@@ -28,19 +28,18 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// RenderStaticNode renders a fully-static template node subtree to HTML bytes.
-// Implements generator_domain.StaticPrerenderer for generation-time use,
-// enabling precomputation of HTML for static subtrees.
+// RenderStaticNode renders a fully-static template node subtree to HTML bytes. Implements
+// generator_domain.StaticPrerenderer for generation-time use, enabling precomputation of
+// HTML for static subtrees.
 //
-// The node must have IsFullyPrerenderable=true, meaning its entire subtree
-// contains no piko:svg, piko:img, piko:a, or piko:video tags that require
-// runtime processing.
+// The node must have IsFullyPrerenderable=true, meaning its entire subtree contains no
+// piko:svg, piko:img, piko:a, or piko:video tags that require runtime processing.
 //
-// Uses a minimal render context with no registry, CSRF service, or HTTP
-// request/response, since those are not needed for static content.
+// Uses a minimal render context with no registry, CSRF service, or HTTP request/response,
+// since those are not needed for static content.
 //
-// Takes node (*ast_domain.TemplateNode) which is the root of the static
-// subtree to render.
+// Takes node (*ast_domain.TemplateNode) which is the root of the static subtree to
+// render.
 //
 // Returns []byte which contains the rendered HTML.
 // Returns error when rendering fails or the buffer cannot be flushed.

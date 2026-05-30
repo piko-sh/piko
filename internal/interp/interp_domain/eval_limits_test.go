@@ -225,7 +225,9 @@ func TestAtomicCancellationTimeout(t *testing.T) {
 	service.UseSymbols(newOSSymbols())
 
 	_, err := service.Eval(context.Background(), `
-import "os"
+import (
+	"os"
+)
 x := 0
 for {
 	x++

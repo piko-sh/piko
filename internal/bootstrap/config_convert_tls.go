@@ -25,14 +25,14 @@ import (
 	"piko.sh/piko/internal/tlscert"
 )
 
-// NewTLSValues converts the pointer-based TLSConfig into a value-type
-// TLSValues for the daemon service.
+// NewTLSValues converts the pointer-based TLSConfig into a value-type TLSValues for the
+// daemon service.
 //
-// Takes tlsConfig (*config.TLSConfig) which provides the TLS configuration values
-// to convert.
+// Takes tlsConfig (*config.TLSConfig) which provides the TLS configuration values to
+// convert.
 //
-// Returns tlscert.TLSValues which contains the resolved TLS
-// configuration with defaults applied.
+// Returns tlscert.TLSValues which contains the resolved TLS configuration with defaults
+// applied.
 func NewTLSValues(tlsConfig *config.TLSConfig) tlscert.TLSValues {
 	if !deref(tlsConfig.Enabled, false) {
 		return tlscert.TLSValues{Mode: tlscert.TLSModeOff}
@@ -49,14 +49,14 @@ func NewTLSValues(tlsConfig *config.TLSConfig) tlscert.TLSValues {
 	}
 }
 
-// NewHealthTLSValues converts the pointer-based HealthTLSConfig into a
-// value-type TLSValues for the health probe server.
+// NewHealthTLSValues converts the pointer-based HealthTLSConfig into a value-type
+// TLSValues for the health probe server.
 //
-// Takes tlsConfig (*config.HealthTLSConfig) which provides the health TLS
-// configuration values to convert.
+// Takes tlsConfig (*config.HealthTLSConfig) which provides the health TLS configuration
+// values to convert.
 //
-// Returns tlscert.TLSValues which contains the resolved health
-// TLS configuration with defaults applied.
+// Returns tlscert.TLSValues which contains the resolved health TLS configuration with
+// defaults applied.
 func NewHealthTLSValues(tlsConfig *config.HealthTLSConfig) tlscert.TLSValues {
 	if !deref(tlsConfig.Enabled, false) {
 		return tlscert.TLSValues{Mode: tlscert.TLSModeOff}
@@ -73,8 +73,8 @@ func NewHealthTLSValues(tlsConfig *config.HealthTLSConfig) tlscert.TLSValues {
 // parseTLSClientAuth maps a string client auth type to the corresponding
 // tls.ClientAuthType constant.
 //
-// Takes s (string) which is one of "none", "request", "require", "verify",
-// or "require_and_verify".
+// Takes s (string) which is one of "none", "request", "require", "verify", or
+// "require_and_verify".
 //
 // Returns tls.ClientAuthType which is the corresponding Go TLS constant.
 func parseTLSClientAuth(s string) tls.ClientAuthType {
@@ -92,8 +92,7 @@ func parseTLSClientAuth(s string) tls.ClientAuthType {
 	}
 }
 
-// parseTLSMinVersion maps a version string to the corresponding TLS version
-// constant.
+// parseTLSMinVersion maps a version string to the corresponding TLS version constant.
 //
 // Takes s (string) which is either "1.2" or "1.3".
 //

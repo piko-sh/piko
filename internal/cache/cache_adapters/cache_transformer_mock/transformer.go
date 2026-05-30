@@ -28,9 +28,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// MockCacheTransformer is a test double that implements CacheTransformerPort.
-// It adds "MOCK:<name>:" at the start of values on Transform and removes it on
-// Reverse.
+// MockCacheTransformer is a test double that implements CacheTransformerPort. It adds
+// "MOCK:<name>:" at the start of values on Transform and removes it on Reverse.
 type MockCacheTransformer struct {
 	// name identifies this transformer for logging and prefix generation.
 	name string
@@ -39,7 +38,9 @@ type MockCacheTransformer struct {
 	priority int
 }
 
-var _ cache_domain.CacheTransformerPort = (*MockCacheTransformer)(nil)
+var (
+	_ cache_domain.CacheTransformerPort = (*MockCacheTransformer)(nil)
+)
 
 // NewMockCacheTransformer creates a new mock cache transformer.
 //
@@ -63,8 +64,7 @@ func (m *MockCacheTransformer) Name() string {
 
 // Type returns the transformer type.
 //
-// Returns cache_dto.TransformerType which identifies this as a custom
-// transformer.
+// Returns cache_dto.TransformerType which identifies this as a custom transformer.
 func (*MockCacheTransformer) Type() cache_dto.TransformerType {
 	return cache_dto.TransformerCustom
 }
@@ -81,8 +81,7 @@ func (m *MockCacheTransformer) Priority() int {
 // Takes input ([]byte) which contains the data to transform.
 //
 // Returns []byte which contains the prefixed data.
-// Returns error which is always nil for this mock
-// implementation.
+// Returns error which is always nil for this mock implementation.
 func (m *MockCacheTransformer) Transform(ctx context.Context, input []byte, _ any) ([]byte, error) {
 	_, l := logger_domain.From(ctx, log)
 	prefix := fmt.Appendf(nil, "MOCK:%s:", m.name)
@@ -100,8 +99,7 @@ func (m *MockCacheTransformer) Transform(ctx context.Context, input []byte, _ an
 
 // Reverse strips the "MOCK:<name>:" prefix from the input bytes.
 //
-// Takes input ([]byte) which contains the prefixed data to
-// reverse.
+// Takes input ([]byte) which contains the prefixed data to reverse.
 //
 // Returns []byte which contains the data with the prefix removed.
 // Returns error when the expected prefix is not found.

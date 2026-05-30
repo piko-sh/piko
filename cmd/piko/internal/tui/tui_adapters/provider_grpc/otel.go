@@ -46,8 +46,8 @@ var (
 	GRPCCallCount metric.Int64Counter
 )
 
-// instrumentedCall wraps a gRPC call with timing and error metrics.
-// It records the call duration and increments appropriate counters.
+// instrumentedCall wraps a gRPC call with timing and error metrics. It records the call
+// duration and increments appropriate counters.
 //
 // Takes operation (func() error) which is the gRPC call to execute.
 //
@@ -69,16 +69,16 @@ func instrumentedCall(ctx context.Context, operation func() error) error {
 	return err
 }
 
-// refreshProvider is a generic helper that fetches data via gRPC, converts it,
-// and stores the result under a mutex. It eliminates structural duplication
-// across provider Refresh methods.
+// refreshProvider is a generic helper that fetches data via gRPC, converts it, and stores
+// the result under a mutex. It eliminates structural duplication across provider Refresh
+// methods.
 //
 // Takes ctx (context.Context) which carries tracing and cancellation values.
-// Takes fetch (func(context.Context) (T, error)) which performs the gRPC call
-// and converts the response.
+// Takes fetch (func(context.Context) (T, error)) which performs the gRPC call and
+// converts the response.
 // Takes store (func(T)) which persists the converted data under a lock.
-// Takes resourceName (string) which identifies the resource for logging and
-// error wrapping.
+// Takes resourceName (string) which identifies the resource for logging and error
+// wrapping.
 //
 // Returns error when the gRPC call fails.
 func refreshProvider[T any](ctx context.Context, fetch func(context.Context) (T, error), store func(T), resourceName string) error {

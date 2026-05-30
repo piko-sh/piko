@@ -36,14 +36,15 @@ const (
 	mockDirPermission fs.FileMode = 0755
 )
 
-var _ FileSystem = (*MockFileSystem)(nil)
+var (
+	_ FileSystem = (*MockFileSystem)(nil)
+)
 
-// MockFileSystem is an in-memory implementation of the filesystem interface for
-// testing, allowing tests to simulate filesystem operations without touching the
-// real filesystem.
+// MockFileSystem is an in-memory implementation of the filesystem interface for testing,
+// allowing tests to simulate filesystem operations without touching the real filesystem.
 //
-// Map access is guarded by a sync.RWMutex because tests may populate
-// files during setup while parallel subtests read concurrently.
+// Map access is guarded by a sync.RWMutex because tests may populate files during setup
+// while parallel subtests read concurrently.
 type MockFileSystem struct {
 	// files maps cleaned file paths to their mock file data.
 	files map[string]*mockFile
@@ -115,8 +116,7 @@ func (m *MockFileSystem) AddDir(path string) {
 // WalkDir walks the file tree rooted at root.
 //
 // Takes root (string) which specifies the starting directory path.
-// Takes walkFunction (fs.WalkDirFunc) which handles each file or
-// directory visited.
+// Takes walkFunction (fs.WalkDirFunc) which handles each file or directory visited.
 //
 // Returns error when the root path does not exist.
 //
@@ -238,8 +238,8 @@ func (m *MockFileSystem) rootExists(cleanRoot string) bool {
 //
 // Takes cleanRoot (string) which specifies the root path to search under.
 //
-// Returns []string which contains all file and directory paths that start
-// with the given root.
+// Returns []string which contains all file and directory paths that start with the given
+// root.
 func (m *MockFileSystem) collectEntriesUnder(cleanRoot string) []string {
 	var entries []string
 	for path := range m.files {
@@ -278,8 +278,8 @@ func (m *MockFileSystem) walkEntries(entries []string, walkFunction fs.WalkDirFu
 //
 // Takes path (string) which specifies the file or directory path to look up.
 //
-// Returns fs.DirEntry which is the directory entry, or nil if the path does
-// not exist in the mock file system.
+// Returns fs.DirEntry which is the directory entry, or nil if the path does not exist in
+// the mock file system.
 func (m *MockFileSystem) makeDirEntry(path string) fs.DirEntry {
 	if _, isDir := m.dirs[path]; isDir {
 		return &mockDirEntry{name: filepath.Base(path), isDir: true, mode: fs.ModeDir, size: 0}
@@ -321,8 +321,8 @@ func (r *mockReadCloser) Read(p []byte) (n int, err error) {
 
 // Close implements io.Closer.
 //
-// Returns error when the close operation fails. Always returns nil in this
-// mock implementation.
+// Returns error when the close operation fails. Always returns nil in this mock
+// implementation.
 func (*mockReadCloser) Close() error {
 	return nil
 }

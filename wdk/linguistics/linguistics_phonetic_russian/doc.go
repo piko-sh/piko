@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_russian provides a Russian phonetic
-// encoder for the linguistics package.
+// Package linguistics_phonetic_russian provides a Russian phonetic encoder for the
+// linguistics package.
 //
-// The encoder converts Russian words (in Cyrillic script) into
-// phonetic codes that enable "sounds-like" matching, handling
-// Russian-specific patterns such as final devoicing, iotated vowels,
-// and consonant cluster simplification. It self-registers via an
-// init function so that a blank import is sufficient to make it
-// available through the registry.
+// The encoder converts Russian words (in Cyrillic script) into phonetic codes that enable
+// "sounds-like" matching, handling Russian-specific patterns such as final devoicing,
+// iotated vowels, and consonant cluster simplification. It self-registers via an init
+// function so that a blank import is sufficient to make it available through the
+// registry.
 //
 // [Encoder] is safe for concurrent use.
 package linguistics_phonetic_russian

@@ -18,10 +18,12 @@
 
 package i18n_domain
 
-import "strings"
+import (
+	"strings"
+)
 
-// pluralCategory represents a CLDR plural category used to select the correct
-// plural form when formatting localised text.
+// pluralCategory represents a CLDR plural category used to select the correct plural form
+// when formatting localised text.
 //
 // See https://cldr.unicode.org/index/cldr-spec/plural-rules
 type pluralCategory uint8
@@ -42,8 +44,8 @@ const (
 	// pluralMany is the plural category for large quantities in certain languages.
 	pluralMany
 
-	// pluralOther is the default plural category for quantities that do not match
-	// other specific plural rules.
+	// pluralOther is the default plural category for quantities that do not match other
+	// specific plural rules.
 	pluralOther
 )
 
@@ -63,8 +65,8 @@ const (
 	// slavicFewEnd is the upper bound for the few plural category in Slavic rules.
 	slavicFewEnd = 4
 
-	// slavicMod12 is the lower bound for the mod 100 range that excludes the few
-	// plural form in Slavic languages.
+	// slavicMod12 is the lower bound for the mod 100 range that excludes the few plural form
+	// in Slavic languages.
 	slavicMod12 = 12
 
 	// slavicMod14 is the upper bound for the mod100 range check in Slavic plurals.
@@ -95,8 +97,8 @@ const (
 //
 // Returns []string which contains the separated plural forms.
 //
-// For example: "one item|{count} items" returns ["one item", "{count} items"].
-// Escaped pipes (||) are preserved as literal pipes.
+// For example: "one item|{count} items" returns ["one item", "{count} items"]. Escaped
+// pipes (||) are preserved as literal pipes.
 func SplitPluralForms(template string) []string {
 	if len(template) == 0 {
 		return nil
@@ -129,8 +131,8 @@ func SplitPluralForms(template string) []string {
 
 // HasPluralForms reports whether the template contains plural forms.
 //
-// Plural forms are indicated by unescaped pipe (|) separators. Escaped
-// pipes (||) are not counted as plural form separators.
+// Plural forms are indicated by unescaped pipe (|) separators. Escaped pipes (||) are not
+// counted as plural form separators.
 //
 // Takes template (string) which is the template string to check.
 //
@@ -148,8 +150,8 @@ func HasPluralForms(template string) bool {
 	return false
 }
 
-// SelectPluralForm selects the appropriate plural form based on count and
-// locale. It uses simplified CLDR rules for common locales.
+// SelectPluralForm selects the appropriate plural form based on count and locale. It uses
+// simplified CLDR rules for common locales.
 //
 // Takes count (int) which specifies the number to determine plural form for.
 // Takes locale (string) which identifies the language rules to apply.
@@ -168,9 +170,8 @@ func SelectPluralForm(count int, locale string, forms []string) string {
 	return forms[index]
 }
 
-// selectPluralFormIndex returns the index of the correct plural form based on
-// count and locale. This is used for zero-allocation access to pre-parsed
-// plural forms.
+// selectPluralFormIndex returns the index of the correct plural form based on count and
+// locale. This is used for zero-allocation access to pre-parsed plural forms.
 //
 // When formCount is zero or one, returns zero straight away.
 //
@@ -232,15 +233,15 @@ func getPluralCategory(count int, locale string) pluralCategory {
 	}
 }
 
-// getSimplePlural returns the plural category for languages with simple
-// one/other rules. This covers English, German, Dutch, Swedish, Danish,
-// Norwegian, Finnish, Estonian, Hungarian, Italian, Spanish, Portuguese,
-// Greek, Hebrew, Bulgarian, Turkish, and many others.
+// getSimplePlural returns the plural category for languages with simple one/other rules.
+// This covers English, German, Dutch, Swedish, Danish, Norwegian, Finnish, Estonian,
+// Hungarian, Italian, Spanish, Portuguese, Greek, Hebrew, Bulgarian, Turkish, and many
+// others.
 //
 // Takes count (int) which is the number to check for plurality.
 //
-// Returns pluralCategory which is pluralOne when count equals 1, or
-// pluralOther for all other values.
+// Returns pluralCategory which is pluralOne when count equals 1, or pluralOther for all
+// other values.
 func getSimplePlural(count int) pluralCategory {
 	if count == 1 {
 		return pluralOne
@@ -248,13 +249,12 @@ func getSimplePlural(count int) pluralCategory {
 	return pluralOther
 }
 
-// getSlavicPlural returns the plural category for Slavic languages such as
-// Russian.
+// getSlavicPlural returns the plural category for Slavic languages such as Russian.
 //
 // Takes count (int) which is the number to find the plural form for.
 //
-// Returns pluralCategory which is one of pluralOne, pluralFew, or pluralMany
-// based on Slavic plural rules.
+// Returns pluralCategory which is one of pluralOne, pluralFew, or pluralMany based on
+// Slavic plural rules.
 func getSlavicPlural(count int) pluralCategory {
 	abs := count
 	if abs < 0 {
@@ -301,8 +301,8 @@ func getPolishPlural(count int) pluralCategory {
 //
 // Takes count (int) which is the number to categorise.
 //
-// Returns pluralCategory which indicates the plural form to use based on
-// Arabic plural rules.
+// Returns pluralCategory which indicates the plural form to use based on Arabic plural
+// rules.
 func getArabicPlural(count int) pluralCategory {
 	abs := count
 	if abs < 0 {
@@ -329,8 +329,8 @@ func getArabicPlural(count int) pluralCategory {
 	return pluralOther
 }
 
-// categoryToIndex maps a plural category to an array index based on the
-// number of available forms.
+// categoryToIndex maps a plural category to an array index based on the number of
+// available forms.
 //
 // Takes category (pluralCategory) which is the CLDR plural category to map.
 // Takes formCount (int) which is the number of plural forms available.

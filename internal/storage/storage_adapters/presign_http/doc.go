@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package presign_http implements HTTP handlers for presigned storage
-// operations and public file serving.
+// Package presign_http implements HTTP handlers for presigned storage operations and
+// public file serving.
 //
-// It handles file uploads via HMAC-signed presigned URLs, file
-// downloads via presigned download tokens, and unauthenticated access
-// to public repositories. The handlers validate tokens, enforce rate
-// limits and size constraints, manage HTTP caching (ETag,
-// If-None-Match, If-Modified-Since), and stream content to and from
-// the underlying storage provider.
+// It handles file uploads via HMAC-signed presigned URLs, file downloads via presigned
+// download tokens, and unauthenticated access to public repositories. The handlers
+// validate tokens, enforce rate limits and size constraints, manage HTTP caching (ETag,
+// If-None-Match, If-Modified-Since), and stream content to and from the underlying
+// storage provider.
 //
 // All handler types are safe for concurrent use once constructed.
 package presign_http

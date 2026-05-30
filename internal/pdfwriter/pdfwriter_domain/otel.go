@@ -39,16 +39,14 @@ var (
 	// meter is the OpenTelemetry meter for PDF writer domain metrics.
 	meter = otel.Meter("piko/internal/pdfwriter/pdfwriter_domain")
 
-	// transformDuration tracks the duration of individual PDF
-	// transformations run by the transformer chain.
+	// transformDuration tracks the duration of individual PDF transformations run by the
+	// transformer chain.
 	transformDuration metric.Float64Histogram
 
-	// transformsTotal tracks the total number of PDF transformations by
-	// name.
+	// transformsTotal tracks the total number of PDF transformations by name.
 	transformsTotal metric.Int64Counter
 
-	// transformErrorsTotal tracks the total number of failed PDF
-	// transformations.
+	// transformErrorsTotal tracks the total number of failed PDF transformations.
 	transformErrorsTotal metric.Int64Counter
 )
 

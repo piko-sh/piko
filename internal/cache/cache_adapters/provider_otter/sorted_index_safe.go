@@ -22,9 +22,8 @@ package provider_otter
 
 import "fmt"
 
-// keyTiebreak provides a deterministic ordering for B-tree items when values
-// and typed keys compare equal. It uses string representation as a stable
-// tiebreaker.
+// keyTiebreak provides a deterministic ordering for B-tree items when values and typed
+// keys compare equal. It uses string representation as a stable tiebreaker.
 //
 // This is the safe (allocating) version used when building with -tags safe.
 //

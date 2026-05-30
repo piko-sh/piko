@@ -28,7 +28,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
-	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/crypto/crypto_domain"
 	"piko.sh/piko/internal/email/email_domain"
@@ -40,32 +39,32 @@ import (
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/querier/querier_domain"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
 )
 
 var (
-	// errNotInitialised is returned when a service is accessed before the framework
-	// has been initialised via piko.New().
+	// errNotInitialised is returned when a service is accessed before the framework has been
+	// initialised via piko.New().
 	errNotInitialised = errors.New("piko: service accessed before framework initialisation; " +
 		"ensure piko.New() has been called and the server is running")
 
 	// globalContainer stores a reference to the initialised container.
 	//
-	// It is set by initialiseGlobalServices after piko.New() and subsequent
-	// initialisation. Access is coordinated via atomic operations to ensure
-	// memory visibility across goroutines.
+	// It is set by initialiseGlobalServices after piko.New() and subsequent initialisation.
+	// Access is coordinated via atomic operations to ensure memory visibility across
+	// goroutines.
 	globalContainer atomic.Pointer[Container]
 
-	// initialiseOnce guards single execution of initialiseGlobalServices,
-	// even if called concurrently from multiple goroutines.
+	// initialiseOnce guards single execution of initialiseGlobalServices, even if called
+	// concurrently from multiple goroutines.
 	initialiseOnce sync.Once
 )
 
 // GetEmailService returns the global email service instance.
 //
 // Returns email_domain.Service which is the configured email service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetEmailService() (email_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -74,12 +73,11 @@ func GetEmailService() (email_domain.Service, error) {
 	return container.GetEmailService()
 }
 
-// GetI18nService returns the global internationalisation service instance. This
-// function is concurrency-safe and can be called from multiple goroutines.
+// GetI18nService returns the global internationalisation service instance. Safe to
+// call from multiple goroutines.
 //
 // Returns i18n_domain.Service which is the configured i18n service.
-// Returns error when the framework is not initialised or the service cannot be
-// created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetI18nService() (i18n_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -91,8 +89,7 @@ func GetI18nService() (i18n_domain.Service, error) {
 // GetStorageService returns the global storage service instance.
 //
 // Returns storage_domain.Service which is the configured storage service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetStorageService() (storage_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -104,8 +101,7 @@ func GetStorageService() (storage_domain.Service, error) {
 // GetCacheService returns the global cache service instance.
 //
 // Returns cache_domain.Service which is the configured cache service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetCacheService() (cache_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -114,13 +110,11 @@ func GetCacheService() (cache_domain.Service, error) {
 	return container.GetCacheService()
 }
 
-// GetCryptoService returns the global crypto service instance.
-// It is safe to call from multiple goroutines.
+// GetCryptoService returns the global crypto service instance. It is safe to call from
+// multiple goroutines.
 //
-// Returns crypto_domain.CryptoServicePort which is the configured crypto
-// service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns crypto_domain.CryptoServicePort which is the configured crypto service.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetCryptoService() (crypto_domain.CryptoServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -129,13 +123,11 @@ func GetCryptoService() (crypto_domain.CryptoServicePort, error) {
 	return container.GetCryptoService()
 }
 
-// GetCaptchaService returns the global captcha service instance.
-// It is safe to call from multiple goroutines.
+// GetCaptchaService returns the global captcha service instance. It is safe to call from
+// multiple goroutines.
 //
-// Returns captcha_domain.CaptchaServicePort which is the configured captcha
-// service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns captcha_domain.CaptchaServicePort which is the configured captcha service.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetCaptchaService() (captcha_domain.CaptchaServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -144,13 +136,12 @@ func GetCaptchaService() (captcha_domain.CaptchaServicePort, error) {
 	return container.GetCaptchaService()
 }
 
-// GetSpamDetectService returns the global spam detection service instance.
-// It is safe to call from multiple goroutines.
+// GetSpamDetectService returns the global spam detection service instance. It is safe to
+// call from multiple goroutines.
 //
-// Returns spamdetect_domain.SpamDetectServicePort which is the configured
-// spam detection service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns spamdetect_domain.SpamDetectServicePort which is the configured spam detection
+// service.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetSpamDetectService() (spamdetect_domain.SpamDetectServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -162,8 +153,7 @@ func GetSpamDetectService() (spamdetect_domain.SpamDetectServicePort, error) {
 // GetLLMService returns the global LLM service instance.
 //
 // Returns llm_domain.Service which is the configured LLM service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetLLMService() (llm_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -174,10 +164,8 @@ func GetLLMService() (llm_domain.Service, error) {
 
 // GetSearchService returns the global search service instance.
 //
-// Returns collection_domain.SearchServicePort which is the configured
-// search service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns collection_domain.SearchServicePort which is the configured search service.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetSearchService() (collection_domain.SearchServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -189,8 +177,7 @@ func GetSearchService() (collection_domain.SearchServicePort, error) {
 // GetImageService returns the global image service instance.
 //
 // Returns image_domain.Service which is the configured image service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetImageService() (image_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -199,12 +186,12 @@ func GetImageService() (image_domain.Service, error) {
 	return container.GetImageService()
 }
 
-// GetImagePredefinedVariants returns the map of predefined image variants.
-// Safe to call from multiple goroutines.
+// GetImagePredefinedVariants returns the map of predefined image variants. Safe to call
+// from multiple goroutines.
 //
-// Returns map[string]image_dto.TransformationSpec which maps variant names
-// to their transformation settings. Returns nil if the framework is not
-// initialised or no variants are configured.
+// Returns map[string]image_dto.TransformationSpec which maps variant names to their
+// transformation settings.
+// Returns nil if the framework is not initialised or no variants are configured.
 func GetImagePredefinedVariants() map[string]image_dto.TransformationSpec {
 	container := globalContainer.Load()
 	if container == nil {
@@ -216,8 +203,7 @@ func GetImagePredefinedVariants() map[string]image_dto.TransformationSpec {
 // GetEventsProvider returns the global events provider instance.
 //
 // Returns events_domain.Provider which is the configured events provider.
-// Returns error when the framework is not initialised or the provider
-// cannot be created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetEventsProvider() (events_domain.Provider, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -226,13 +212,11 @@ func GetEventsProvider() (events_domain.Provider, error) {
 	return container.GetEventsProvider()
 }
 
-// GetEventsRouter returns the Watermill Router configured by Piko.
-// Users can add their own handlers to this router for custom event
-// processing.
+// GetEventsRouter returns the Watermill Router configured by Piko. Users can add their
+// own handlers to this router for custom event processing.
 //
 // Returns *message.Router which is the configured events router.
-// Returns error when the framework is not initialised or the provider
-// cannot be created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetEventsRouter() (*message.Router, error) {
 	provider, err := GetEventsProvider()
 	if err != nil {
@@ -241,12 +225,11 @@ func GetEventsRouter() (*message.Router, error) {
 	return provider.Router(), nil
 }
 
-// GetEventsPublisher returns the Watermill Publisher configured by Piko.
-// Users can use this publisher to send their own messages.
+// GetEventsPublisher returns the Watermill Publisher configured by Piko. Users can use
+// this publisher to send their own messages.
 //
 // Returns message.Publisher which is the configured events publisher.
-// Returns error when the framework is not initialised or the provider
-// cannot be created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetEventsPublisher() (message.Publisher, error) {
 	provider, err := GetEventsProvider()
 	if err != nil {
@@ -255,12 +238,11 @@ func GetEventsPublisher() (message.Publisher, error) {
 	return provider.Publisher(), nil
 }
 
-// GetEventsSubscriber returns the Watermill Subscriber set up by Piko.
-// Users can use this to create their own subscriptions.
+// GetEventsSubscriber returns the Watermill Subscriber set up by Piko. Users can use this
+// to create their own subscriptions.
 //
 // Returns message.Subscriber which is the configured events subscriber.
-// Returns error when the framework is not set up or the provider cannot be
-// created.
+// Returns error when the framework is not set up or the provider cannot be created.
 func GetEventsSubscriber() (message.Subscriber, error) {
 	provider, err := GetEventsProvider()
 	if err != nil {
@@ -269,9 +251,8 @@ func GetEventsSubscriber() (message.Subscriber, error) {
 	return provider.Subscriber(), nil
 }
 
-// IsEventsRunning reports whether the events router has been started and is
-// running. Use this to check if the events system is ready before adding
-// handlers.
+// IsEventsRunning reports whether the events router has been started and is running. Use
+// this to check if the events system is ready before adding handlers.
 //
 // Returns bool which is true if the events router is running, false otherwise.
 func IsEventsRunning() bool {
@@ -290,10 +271,8 @@ func IsEventsRunning() bool {
 
 // GetPdfWriterService returns the global PDF writer service instance.
 //
-// Returns pdfwriter_domain.PdfWriterService which is the configured PDF writer
-// service.
-// Returns error when the framework is not initialised or the service
-// is not available.
+// Returns pdfwriter_domain.PdfWriterService which is the configured PDF writer service.
+// Returns error when the framework is not initialised or the service is not available.
 func GetPdfWriterService() (pdfwriter_domain.PdfWriterService, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -306,13 +285,11 @@ func GetPdfWriterService() (pdfwriter_domain.PdfWriterService, error) {
 	return svc, nil
 }
 
-// GetNotificationService returns the global notification service instance. This
-// function is concurrency-safe and can be called from multiple goroutines.
+// GetNotificationService returns the global notification service instance. Safe to
+// call from multiple goroutines.
 //
-// Returns notification_domain.Service which is the configured notification
-// service.
-// Returns error when the framework is not initialised or the service cannot be
-// created.
+// Returns notification_domain.Service which is the configured notification service.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetNotificationService() (notification_domain.Service, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -321,14 +298,13 @@ func GetNotificationService() (notification_domain.Service, error) {
 	return container.GetNotificationService()
 }
 
-// GetDatabaseConnection returns the *sql.DB for a named database registered
-// via AddDatabase during bootstrap. Concurrency-safe.
+// GetDatabaseConnection returns the *sql.DB for a named database registered via
+// AddDatabase during bootstrap. Concurrency-safe.
 //
 // Takes name (string) which identifies the database.
 //
 // Returns *sql.DB which is the open database connection.
-// Returns error when the framework is not initialised or the database is not
-// registered.
+// Returns error when the framework is not initialised or the database is not registered.
 func GetDatabaseConnection(name string) (*sql.DB, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -337,15 +313,14 @@ func GetDatabaseConnection(name string) (*sql.DB, error) {
 	return container.GetDatabaseConnection(name)
 }
 
-// GetDatabaseReader returns the DBTX for reading from a named database
-// registered via AddDatabase during bootstrap, where replicas are balanced via
-// round-robin when configured or the primary connection is returned otherwise.
+// GetDatabaseReader returns the DBTX for reading from a named database registered via
+// AddDatabase during bootstrap, where replicas are balanced via round-robin when
+// configured or the primary connection is returned otherwise.
 //
 // Takes name (string) which identifies the database.
 //
 // Returns DBTX which can execute read queries.
-// Returns error when the framework is not initialised or the database is not
-// registered.
+// Returns error when the framework is not initialised or the database is not registered.
 func GetDatabaseReader(name string) (DBTX, error) {
 	container, containerError := getContainer()
 	if containerError != nil {
@@ -354,16 +329,14 @@ func GetDatabaseReader(name string) (DBTX, error) {
 	return container.GetDatabaseReader(name)
 }
 
-// GetDatabaseWriter returns the DBTX for writing to a named database
-// registered via AddDatabase during bootstrap. When EnableOTel is set on the
-// registration, the returned DBTX is wrapped with OpenTelemetry spans and
-// metrics.
+// GetDatabaseWriter returns the DBTX for writing to a named database registered via
+// AddDatabase during bootstrap. When EnableOTel is set on the registration, the returned
+// DBTX is wrapped with OpenTelemetry spans and metrics.
 //
 // Takes name (string) which identifies the database.
 //
 // Returns DBTX which can execute write queries.
-// Returns error when the framework is not initialised or the database is not
-// registered.
+// Returns error when the framework is not initialised or the database is not registered.
 func GetDatabaseWriter(name string) (DBTX, error) {
 	container, containerError := getContainer()
 	if containerError != nil {
@@ -372,15 +345,14 @@ func GetDatabaseWriter(name string) (DBTX, error) {
 	return container.GetDatabaseWriter(name)
 }
 
-// GetMigrationService returns the migration service for a named database
-// registered via AddDatabase during bootstrap. Concurrency-safe.
+// GetMigrationService returns the migration service for a named database registered via
+// AddDatabase during bootstrap. Concurrency-safe.
 //
 // Takes name (string) which identifies the database.
 //
-// Returns querier_domain.MigrationServicePort which can apply and roll back
-// migrations.
-// Returns error when the framework is not initialised, the database is not
-// registered, or no migration filesystem was configured.
+// Returns querier_domain.MigrationServicePort which can apply and roll back migrations.
+// Returns error when the framework is not initialised, the database is not registered, or
+// no migration filesystem was configured.
 func GetMigrationService(name string) (querier_domain.MigrationServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -395,8 +367,8 @@ func GetMigrationService(name string) (querier_domain.MigrationServicePort, erro
 // Takes name (string) which identifies the database.
 //
 // Returns querier_domain.SeedServicePort which can apply and inspect seeds.
-// Returns error when the framework is not initialised, the database is not
-// registered, or no seed filesystem was configured.
+// Returns error when the framework is not initialised, the database is not registered, or
+// no seed filesystem was configured.
 func GetSeedService(name string) (querier_domain.SeedServicePort, error) {
 	container, err := getContainer()
 	if err != nil {
@@ -405,14 +377,13 @@ func GetSeedService(name string) (querier_domain.SeedServicePort, error) {
 	return container.GetQuerierSeedService(name)
 }
 
-// initialiseGlobalServices stores the container reference for global service
-// access.
+// initialiseGlobalServices stores the container reference for global service access.
 //
-// This is called after the container is fully set up. It is safe to call this
-// function more than once; only the first call will have any effect.
+// Called after the container is fully set up. Safe to call more than once; only the
+// first call has any effect.
 //
-// Takes container (*Container) which is the fully set up service container to
-// store for global access.
+// Takes container (*Container) which is the fully set up service container to store for
+// global access.
 func initialiseGlobalServices(container *Container) {
 	initialiseOnce.Do(func() {
 		globalContainer.Store(container)

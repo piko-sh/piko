@@ -36,42 +36,41 @@ const (
 	// DefaultTokenLimit is the token limit used when none is specified.
 	DefaultTokenLimit = 4000
 
-	// DefaultSummaryBufferSize is the number of messages to store before a summary
-	// is created.
+	// DefaultSummaryBufferSize is the number of messages to store before a summary is
+	// created.
 	DefaultSummaryBufferSize = 10
 
-	// TokenOverheadPerMessage is the estimated token count added per message for
-	// role and structure metadata.
+	// TokenOverheadPerMessage is the estimated token count added per message for role and
+	// structure metadata.
 	TokenOverheadPerMessage = 4
 
-	// CharactersPerToken is the average number of characters per token used to
-	// estimate token counts from text length.
+	// CharactersPerToken is the average number of characters per token used to estimate
+	// token counts from text length.
 	CharactersPerToken = 4
 
 	// ImageTokenEstimateLowDetail is the estimated token count for low detail images.
 	ImageTokenEstimateLowDetail = 85
 
-	// errFmtLoadingConversation is the format string used when a conversation
-	// cannot be loaded from the memory store.
+	// errFmtLoadingConversation is the format string used when a conversation cannot be
+	// loaded from the memory store.
 	errFmtLoadingConversation = "loading conversation %q: %w"
 )
 
-// Summariser is a minimal interface for LLM completion used by SummaryMemory.
-// It allows testing without requiring a full Service implementation.
+// Summariser is a minimal interface for LLM completion used by SummaryMemory. It allows
+// testing without requiring a full Service implementation.
 type Summariser interface {
 	// Complete sends a completion request to generate a summary.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.CompletionRequest) which
-	// contains the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns *llm_dto.CompletionResponse containing the model's response.
 	// Returns error when the request fails.
 	Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 }
 
-// MemoryStorePort defines the interface for conversation memory persistence.
-// It is a driven port in the hexagonal architecture pattern.
+// MemoryStorePort defines the interface for conversation memory persistence. It is a
+// driven port in the hexagonal architecture pattern.
 type MemoryStorePort interface {
 	// Load retrieves the conversation state for the given ID.
 	//
@@ -128,8 +127,8 @@ type Memory interface {
 	// Returns error when the message cannot be added.
 	AddMessage(ctx context.Context, conversationID string, message llm_dto.Message) error
 
-	// GetMessages retrieves the messages for a conversation.
-	// The messages returned may be filtered or summarised based on the memory type.
+	// GetMessages retrieves the messages for a conversation. The messages returned may be
+	// filtered or summarised based on the memory type.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
@@ -152,11 +151,11 @@ var (
 	ErrConversationNotFound = errors.New("conversation not found")
 )
 
-// BufferMemoryOption is a functional option for configuring [BufferMemory].
+// BufferMemoryOption is a functional option for configuring BufferMemory.
 type BufferMemoryOption func(*BufferMemory)
 
-// BufferMemory implements the Memory interface using a fixed-size buffer.
-// It stores the last N messages and removes older ones when the buffer is full.
+// BufferMemory implements the Memory interface using a fixed-size buffer. It stores the
+// last N messages and removes older ones when the buffer is full.
 type BufferMemory struct {
 	// store provides persistent storage for conversation state.
 	store MemoryStorePort
@@ -171,8 +170,8 @@ type BufferMemory struct {
 // NewBufferMemory creates a new BufferMemory.
 //
 // Takes store (MemoryStorePort) which handles persistence.
-// Takes opts (...BufferMemoryOption) which configure the memory behaviour.
-// When no [WithBufferSize] option is provided, [DefaultBufferSize] is used.
+// Takes opts (...BufferMemoryOption) which configure the memory behaviour. When no
+// WithBufferSize option is provided, DefaultBufferSize is used.
 //
 // Returns *BufferMemory ready for use.
 func NewBufferMemory(store MemoryStorePort, opts ...BufferMemoryOption) *BufferMemory {
@@ -201,8 +200,7 @@ func (m *BufferMemory) Load(ctx context.Context, conversationID string) (*llm_dt
 	return m.store.Load(ctx, conversationID)
 }
 
-// AddMessage adds a message to the conversation, trimming old messages if
-// necessary.
+// AddMessage adds a message to the conversation, trimming old messages if necessary.
 //
 // Takes conversationID (string) which identifies the conversation to update.
 // Takes message (llm_dto.Message) which is the message to add.
@@ -259,12 +257,12 @@ func (m *BufferMemory) Clear(ctx context.Context, conversationID string) error {
 	return m.store.Delete(ctx, conversationID)
 }
 
-// WindowMemoryOption is a functional option for configuring [WindowMemory].
+// WindowMemoryOption is a functional option for configuring WindowMemory.
 type WindowMemoryOption func(*WindowMemory)
 
-// WindowMemory implements Memory using a sliding window based on token count.
-// It keeps recent messages that fit within the token limit and removes older
-// messages when the limit is reached.
+// WindowMemory implements Memory using a sliding window based on token count. It keeps
+// recent messages that fit within the token limit and removes older messages when the
+// limit is reached.
 type WindowMemory struct {
 	// store provides persistent storage for conversation state.
 	store MemoryStorePort
@@ -279,8 +277,8 @@ type WindowMemory struct {
 // NewWindowMemory creates a new WindowMemory.
 //
 // Takes store (MemoryStorePort) which handles persistence.
-// Takes opts (...WindowMemoryOption) which configure the memory behaviour.
-// When no [WithTokenLimit] option is provided, [DefaultTokenLimit] is used.
+// Takes opts (...WindowMemoryOption) which configure the memory behaviour. When no
+// WithTokenLimit option is provided, DefaultTokenLimit is used.
 //
 // Returns *WindowMemory ready for use.
 func NewWindowMemory(store MemoryStorePort, opts ...WindowMemoryOption) *WindowMemory {
@@ -309,8 +307,8 @@ func (m *WindowMemory) Load(ctx context.Context, conversationID string) (*llm_dt
 	return m.store.Load(ctx, conversationID)
 }
 
-// AddMessage adds a message to the conversation, trimming old messages if the
-// token limit is exceeded.
+// AddMessage adds a message to the conversation, trimming old messages if the token limit
+// is exceeded.
 //
 // Takes conversationID (string) which identifies the conversation to update.
 // Takes message (llm_dto.Message) which is the message to add.
@@ -341,8 +339,8 @@ func (m *WindowMemory) AddMessage(ctx context.Context, conversationID string, me
 //
 // Takes conversationID (string) which identifies the conversation to retrieve.
 //
-// Returns []llm_dto.Message which contains a copy of all messages in the
-// conversation window.
+// Returns []llm_dto.Message which contains a copy of all messages in the conversation
+// window.
 // Returns error when the underlying store fails to load the conversation.
 //
 // Safe for concurrent use; protected by a read lock.
@@ -365,8 +363,7 @@ func (m *WindowMemory) Clear(ctx context.Context, conversationID string) error {
 	return m.store.Delete(ctx, conversationID)
 }
 
-// trimToTokenLimit removes old messages until the token count is within the
-// limit.
+// trimToTokenLimit removes old messages until the token count is within the limit.
 //
 // Takes state (*llm_dto.ConversationState) which holds the messages to trim.
 func (m *WindowMemory) trimToTokenLimit(state *llm_dto.ConversationState) {
@@ -378,9 +375,8 @@ func (m *WindowMemory) trimToTokenLimit(state *llm_dto.ConversationState) {
 	state.TokenCount = tokenCount
 }
 
-// estimateTokens provides a rough estimate of token count for messages.
-// This uses a simple heuristic of approximately CharactersPerToken characters
-// per token.
+// estimateTokens provides a rough estimate of token count for messages. This uses a
+// simple heuristic of approximately CharactersPerToken characters per token.
 //
 // Takes messages ([]llm_dto.Message) which contains the messages to estimate.
 //
@@ -389,9 +385,8 @@ func (*WindowMemory) estimateTokens(messages []llm_dto.Message) int {
 	return estimateMessageTokens(messages)
 }
 
-// SummaryMemory implements the Memory interface using LLM summarisation.
-// It keeps recent messages in a buffer and summarises older messages when
-// the buffer grows too large.
+// SummaryMemory implements the Memory interface using LLM summarisation. It keeps recent
+// messages in a buffer and summarises older messages when the buffer grows too large.
 type SummaryMemory struct {
 	// store holds conversation state via the MemoryStorePort interface.
 	store MemoryStorePort
@@ -399,8 +394,8 @@ type SummaryMemory struct {
 	// summariser generates summaries of conversation history.
 	summariser Summariser
 
-	// config holds the memory settings including buffer size, summary prompt,
-	// and model for generating conversation summaries.
+	// config holds the memory settings including buffer size, summary prompt, and model for
+	// generating conversation summaries.
 	config llm_dto.MemoryConfig
 
 	// mu guards concurrent access to the underlying store.
@@ -443,8 +438,7 @@ func (m *SummaryMemory) Load(ctx context.Context, conversationID string) (*llm_d
 	return m.store.Load(ctx, conversationID)
 }
 
-// AddMessage adds a message to the conversation, potentially triggering
-// summarisation.
+// AddMessage adds a message to the conversation, potentially triggering summarisation.
 //
 // Takes conversationID (string) which identifies the conversation to update.
 // Takes message (llm_dto.Message) which is the message to add.
@@ -480,8 +474,8 @@ func (m *SummaryMemory) AddMessage(ctx context.Context, conversationID string, m
 	return m.store.Save(ctx, state)
 }
 
-// GetMessages retrieves the messages for a conversation.
-// If a summary exists, it is prepended as a system message.
+// GetMessages retrieves the messages for a conversation. If a summary exists, it is
+// prepended as a system message.
 //
 // Takes conversationID (string) which identifies the conversation to retrieve.
 //
@@ -528,8 +522,7 @@ func (m *SummaryMemory) Clear(ctx context.Context, conversationID string) error 
 
 // summariseOldMessages summarises older messages and keeps recent ones.
 //
-// Takes state (*llm_dto.ConversationState) which contains the messages to
-// process.
+// Takes state (*llm_dto.ConversationState) which contains the messages to process.
 //
 // Returns error when the LLM summarisation request fails.
 func (m *SummaryMemory) summariseOldMessages(ctx context.Context, state *llm_dto.ConversationState) error {
@@ -587,7 +580,7 @@ func (m *SummaryMemory) summariseOldMessages(ctx context.Context, state *llm_dto
 }
 
 // WithBufferSize sets the maximum number of messages to keep. When omitted,
-// [DefaultBufferSize] (20) is used.
+// DefaultBufferSize (20) is used.
 //
 // Takes size (int) which specifies the maximum buffer capacity.
 //
@@ -602,7 +595,7 @@ func WithBufferSize(size int) BufferMemoryOption {
 
 // WithTokenLimit sets the maximum number of tokens to keep in the window.
 //
-// When omitted, [DefaultTokenLimit] (4000) is used.
+// When omitted, DefaultTokenLimit (4000) is used.
 //
 // Takes limit (int) which specifies the maximum number of tokens to retain.
 //
@@ -636,8 +629,8 @@ func loadMessagesFromStore(ctx context.Context, store MemoryStorePort, conversat
 	return messages, nil
 }
 
-// estimateMessageTokens provides a rough estimate of token count for messages.
-// This is a package-level helper to reduce receiver usage.
+// estimateMessageTokens provides a rough estimate of token count for messages. This is a
+// package-level helper to reduce receiver usage.
 //
 // Takes messages ([]llm_dto.Message) which contains the messages to estimate.
 //

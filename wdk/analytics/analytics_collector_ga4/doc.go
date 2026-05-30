@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_ga4 provides an analytics collector
-// that sends events to the Google Analytics 4 Measurement Protocol.
+// Package analytics_collector_ga4 provides an analytics collector that sends events to
+// the Google Analytics 4 Measurement Protocol.
 //
-// This collector is ideal for server-side conversion tracking,
-// purchase events, and enriching GA4 with backend-only data.
-// Events are batched (up to 25 per request per the GA4 protocol
-// limit) and POSTed as JSON.
+// This collector is ideal for server-side conversion tracking, purchase events, and
+// enriching GA4 with backend-only data. Events are batched (up to 25 per request per the
+// GA4 protocol limit) and POSTed as JSON.
 //
 // # Usage
 //

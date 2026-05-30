@@ -22,19 +22,20 @@ import (
 	"strings"
 )
 
-// breadcrumbSeparator is the chevron-style separator between breadcrumb
-// segments. Drawn from the Unicode "right-pointing single guillemet" so it
-// renders without a Nerd Font.
-const breadcrumbSeparator = " › "
+const (
+	// breadcrumbSeparator is the chevron-style separator between breadcrumb segments. Drawn
+	// from the Unicode "right-pointing single guillemet" so it renders without a Nerd Font.
+	breadcrumbSeparator = " › "
 
-// watchIndicatorActive marks an active live data feed.
-const watchIndicatorActive = "◉"
+	// watchIndicatorActive marks an active live data feed.
+	watchIndicatorActive = "◉"
 
-// watchIndicatorIdle marks a stalled or unconnected feed.
-const watchIndicatorIdle = "◌"
+	// watchIndicatorIdle marks a stalled or unconnected feed.
+	watchIndicatorIdle = "◌"
+)
 
-// Breadcrumb describes the chrome line above the layout area showing the
-// user's current location and global context.
+// Breadcrumb describes the chrome line above the layout area showing the user's current
+// location and global context.
 type Breadcrumb struct {
 	// Title is the leading label rendered on the left side.
 	Title string
@@ -52,8 +53,8 @@ type Breadcrumb struct {
 	Watch bool
 }
 
-// Render produces the breadcrumb line sized to width. Long inputs are
-// truncated; SGR sequences are preserved.
+// Render produces the breadcrumb line sized to width. Long inputs are truncated; SGR
+// sequences are preserved.
 //
 // Takes theme (*Theme) which provides the breadcrumb styles.
 // Takes width (int) which is the terminal width.
@@ -138,8 +139,7 @@ func (b *Breadcrumb) renderRight(theme *Theme) string {
 	return strings.Join(parts, SingleSpace)
 }
 
-// dimStyleFor returns the theme's dim style with a fallback for nil
-// themes.
+// dimStyleFor returns the theme's dim style with a fallback for nil themes.
 //
 // Takes theme (*Theme) which is the active theme; may be nil.
 //

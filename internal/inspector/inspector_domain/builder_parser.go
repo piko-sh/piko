@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file provides a high-performance, concurrent parser for transforming
-// a map of source code into a map of Abstract Syntax Trees (ASTs).
+// This file provides a high-performance, concurrent parser for transforming a map of
+// source code into a map of Abstract Syntax Trees (ASTs).
 
 import (
 	"context"
@@ -33,15 +33,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// parseSourceContents parses all source files into ASTs using a pool of
-// workers.
+// parseSourceContents parses all source files into ASTs using a pool of workers.
 //
 // This is the core logic for the default builderSourceParser implementation.
 //
 // When the source contents map is empty, returns an empty map without error.
 //
-// Takes sourceContents (map[string][]byte) which maps file paths to their
-// contents.
+// Takes sourceContents (map[string][]byte) which maps file paths to their contents.
 // Takes maxWorkers (int) which sets the maximum number of parsing workers.
 //
 // Returns map[string]*goast.File which maps file paths to their parsed ASTs.
@@ -78,12 +76,11 @@ func parseSourceContents(sourceContents map[string][]byte, maxWorkers int) (map[
 
 // determineWorkerCount works out how many workers to use for a pool.
 //
-// Takes maxWorkersConfig (int) which sets the maximum workers, or 0 for no
-// limit.
+// Takes maxWorkersConfig (int) which sets the maximum workers, or 0 for no limit.
 // Takes numJobs (int) which is the total number of jobs to process.
 //
-// Returns int which is the worker count, limited by CPU cores, config, and the
-// number of jobs.
+// Returns int which is the worker count, limited by CPU cores, config, and the number of
+// jobs.
 func determineWorkerCount(maxWorkersConfig, numJobs int) int {
 	numWorkers := runtime.NumCPU()
 
@@ -102,15 +99,15 @@ func determineWorkerCount(maxWorkersConfig, numJobs int) int {
 	return numWorkers
 }
 
-// parsingWorker processes file paths from a jobs channel and parses each file
-// into an AST. It pulls paths from the channel, parses them, and writes the
-// resulting AST to the shared results map until the channel is empty.
+// parsingWorker processes file paths from a jobs channel and parses each file into an
+// AST. It pulls paths from the channel, parses them, and writes the resulting AST to the
+// shared results map until the channel is empty.
 //
 // Takes jobs (<-chan string) which provides file paths to parse.
-// Takes sourceContents (map[string][]byte) which holds the source code for
-// each file path.
-// Takes allScriptBlocks (map[string]*goast.File) which stores the parsed AST
-// for each file.
+// Takes sourceContents (map[string][]byte) which holds the source code for each file
+// path.
+// Takes allScriptBlocks (map[string]*goast.File) which stores the parsed AST for each
+// file.
 // Takes mu (*sync.Mutex) which protects concurrent writes to allScriptBlocks.
 //
 // Returns error when a file fails to parse.

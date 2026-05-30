@@ -31,10 +31,14 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// hoursPerDay is the number of hours in a day for age formatting.
-const hoursPerDay = 24
+const (
+	// hoursPerDay is the number of hours in a day for age formatting.
+	hoursPerDay = 24
+)
 
-var _ provider_domain.ResourceDescriptor = (*spamDetectService)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*spamDetectService)(nil)
+)
 
 // ResourceType returns the resource name for the spam detection hexagon.
 //
@@ -43,8 +47,7 @@ func (*spamDetectService) ResourceType() string {
 	return "spamdetect"
 }
 
-// ResourceListColumns returns column definitions for the detector list
-// table.
+// ResourceListColumns returns column definitions for the detector list table.
 //
 // Returns []provider_domain.ColumnDefinition which defines the table columns.
 func (*spamDetectService) ResourceListColumns() []provider_domain.ColumnDefinition {
@@ -93,8 +96,7 @@ func (s *spamDetectService) ResourceListProviders(ctx context.Context) []provide
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a named
-// detector.
+// ResourceDescribeProvider returns detailed information for a named detector.
 //
 // Takes name (string) which identifies the detector.
 //
@@ -140,8 +142,8 @@ func (s *spamDetectService) ResourceDescribeProvider(ctx context.Context, name s
 // Takes infos ([]provider_domain.ProviderInfo) which is the list.
 // Takes name (string) which identifies the detector.
 //
-// Returns provider_domain.ProviderInfo which is the matching entry,
-// or a zero-value entry with the given name if not found.
+// Returns provider_domain.ProviderInfo which is the matching entry, or a zero-value entry
+// with the given name if not found.
 func findDetectorInfo(infos []provider_domain.ProviderInfo, name string) provider_domain.ProviderInfo {
 	for _, info := range infos {
 		if info.Name == name {
@@ -151,8 +153,7 @@ func findDetectorInfo(infos []provider_domain.ProviderInfo, name string) provide
 	return provider_domain.ProviderInfo{Name: name}
 }
 
-// buildMetadataSection creates an InfoSection from a detector's
-// metadata.
+// buildMetadataSection creates an InfoSection from a detector's metadata.
 //
 // Takes detector (any) which may implement ProviderMetadata.
 //
@@ -186,8 +187,7 @@ func buildMetadataSection(detector any) (provider_domain.InfoSection, bool) {
 	}, true
 }
 
-// formatRegisteredAge formats a registration timestamp as a
-// human-readable age.
+// formatRegisteredAge formats a registration timestamp as a human-readable age.
 //
 // Takes registeredAt (time.Time) which is the registration timestamp.
 //

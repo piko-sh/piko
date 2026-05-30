@@ -31,12 +31,12 @@ var (
 	// Meter is the package-level meter for OpenTelemetry metrics.
 	Meter = otel.Meter("piko/email/email_provider_ses")
 
-	// SendTotal tracks the total number of email send attempts.
-	// Labels: status (success|error), send_type (single|bulk).
+	// SendTotal tracks the total number of email send attempts. Labels: status
+	// (success|error), send_type (single|bulk).
 	SendTotal metric.Int64Counter
 
-	// SendDuration tracks how long email send operations take in milliseconds.
-	// Labels: status (success|error), send_type (single|bulk).
+	// SendDuration tracks how long email send operations take in milliseconds. Labels:
+	// status (success|error), send_type (single|bulk).
 	SendDuration metric.Float64Histogram
 )
 

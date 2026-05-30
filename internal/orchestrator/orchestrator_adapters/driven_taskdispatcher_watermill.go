@@ -51,15 +51,17 @@ const (
 	payloadKeyDeduplicationKey = "deduplicationKey"
 )
 
-var _ orchestrator_domain.TaskDispatcher = (*watermillTaskDispatcher)(nil)
+var (
+	_ orchestrator_domain.TaskDispatcher = (*watermillTaskDispatcher)(nil)
 
-// errDispatcherAlreadyStarted is returned when Start is called on a
-// dispatcher that has already been started.
-var errDispatcherAlreadyStarted = errors.New("dispatcher already started")
+	// errDispatcherAlreadyStarted is returned when Start is called on a dispatcher that has
+	// already been started.
+	errDispatcherAlreadyStarted = errors.New("dispatcher already started")
+)
 
-// watermillTaskDispatcher implements TaskDispatcher using Watermill for
-// distributed task processing. Tasks are published to priority-specific topics
-// and processed by handlers with competing-consumer semantics.
+// watermillTaskDispatcher implements TaskDispatcher using Watermill for distributed task
+// processing. Tasks are published to priority-specific topics and processed by handlers
+// with competing-consumer semantics.
 //
 // Architecture:
 //   - Watermill topics per priority level (task.dispatch.high/normal/low)
@@ -67,9 +69,8 @@ var errDispatcherAlreadyStarted = errors.New("dispatcher already started")
 //   - EventBus provides Ack/Nack semantics via SubscribeWithHandler
 //   - TaskStore used for persistence, deduplication, and crash recovery
 //
-// This enables distributed task processing across multiple instances whilst
-// maintaining the same code path for single-node deployments (GoChannel
-// backend).
+// This enables distributed task processing across multiple instances whilst maintaining
+// the same code path for single-node deployments (GoChannel backend).
 type watermillTaskDispatcher struct {
 	// core provides shared task processing logic.
 	*orchestrator_domain.TaskProcessingCore
@@ -87,17 +88,16 @@ type watermillTaskDispatcher struct {
 	wg sync.WaitGroup
 
 	// pendingTasks counts tasks that have been sent but not yet handled.
-	pendingTasks int64
+	pendingTasks atomic.Int64
 
 	// activeHandlers counts handlers that are processing tasks at this moment.
-	activeHandlers int32
+	activeHandlers atomic.Int32
 
 	// started indicates whether the dispatcher is running.
 	started atomic.Bool
 }
 
-// watermillDispatcherOption configures a watermillTaskDispatcher during
-// creation.
+// watermillDispatcherOption configures a watermillTaskDispatcher during creation.
 type watermillDispatcherOption func(*watermillTaskDispatcher)
 
 // RegisterExecutor adds a task executor with the given name.
@@ -110,17 +110,16 @@ func (d *watermillTaskDispatcher) RegisterExecutor(ctx context.Context, name str
 	orchestrator_domain.ExecutorRegistrationCount.Add(ctx, 1)
 }
 
-// Dispatch queues a task for processing by publishing it to the topic that
-// matches its priority.
+// Dispatch queues a task for processing by publishing it to the topic that matches its
+// priority.
 //
-// If the task has a DeduplicationKey set, it is saved with a check to prevent
-// duplicates before publishing. This keeps only one active task per key
-// exists across all instances.
+// If the task has a DeduplicationKey set, it is saved with a check to prevent duplicates
+// before publishing. This keeps only one active task per key exists across all instances.
 //
 // Takes task (*orchestrator_domain.Task) which specifies the task to dispatch.
 //
-// Returns error when the task is nil, validation fails, a duplicate exists, or
-// publishing fails.
+// Returns error when the task is nil, validation fails, a duplicate exists, or publishing
+// fails.
 func (d *watermillTaskDispatcher) Dispatch(ctx context.Context, task *orchestrator_domain.Task) error {
 	if task == nil {
 		ctx, l := logger_domain.From(ctx, log)
@@ -169,8 +168,8 @@ func (d *watermillTaskDispatcher) Dispatch(ctx context.Context, task *orchestrat
 		return fmt.Errorf("publishing task to topic %s: %w", topic, err)
 	}
 
-	atomic.AddInt64(&d.TasksDispatched, 1)
-	atomic.AddInt64(&d.pendingTasks, 1)
+	d.TasksDispatched.Add(1)
+	d.pendingTasks.Add(1)
 	orchestrator_domain.TaskDispatchedCount.Add(ctx, 1)
 
 	l.Trace("Task published to topic",
@@ -232,14 +231,12 @@ func (d *watermillTaskDispatcher) DispatchDelayed(ctx context.Context, task *orc
 	return nil
 }
 
-// Start begins processing tasks from Watermill topics.
+// Start begins processing tasks from Watermill topics, spawning background goroutines for
+// the recovery loop and delayed publisher. Blocks until the context is cancelled, then
+// waits for all goroutines to complete before releasing in-flight tasks and recovery
+// leases.
 //
 // Returns error when the dispatcher fails to start.
-//
-// Concurrent goroutines are spawned for the recovery loop and delayed
-// publisher. Blocks until the context is cancelled, then waits for all
-// goroutines to complete before releasing in-flight tasks and recovery
-// leases.
 func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 	if d.started.Swap(true) {
 		return errDispatcherAlreadyStarted
@@ -263,8 +260,7 @@ func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 	d.DelayedPublisher.Start(d.runCtx)
 
 	if d.Config.RecoveryInterval > 0 {
-		d.wg.Add(1)
-		go d.runRecoveryLoop()
+		d.wg.Go(d.runRecoveryLoop)
 	}
 
 	l.Internal("Watermill task dispatcher started")
@@ -298,8 +294,8 @@ func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 
 // Stats returns current dispatcher statistics.
 //
-// Returns orchestrator_domain.DispatcherStats which contains queue lengths,
-// worker counts, and task processing metrics.
+// Returns orchestrator_domain.DispatcherStats which contains queue lengths, worker
+// counts, and task processing metrics.
 func (d *watermillTaskDispatcher) Stats() orchestrator_domain.DispatcherStats {
 	ps := d.TaskProcessingCore.Stats()
 
@@ -307,7 +303,7 @@ func (d *watermillTaskDispatcher) Stats() orchestrator_domain.DispatcherStats {
 		HighQueueLen:     0,
 		NormalQueueLen:   0,
 		LowQueueLen:      0,
-		ActiveWorkers:    atomic.LoadInt32(&d.activeHandlers),
+		ActiveWorkers:    d.activeHandlers.Load(),
 		TotalWorkers:     d.Config.WatermillHighHandlers + d.Config.WatermillNormalHandlers + d.Config.WatermillLowHandlers,
 		TasksDispatched:  ps.Dispatched,
 		TasksCompleted:   ps.Completed,
@@ -319,10 +315,10 @@ func (d *watermillTaskDispatcher) Stats() orchestrator_domain.DispatcherStats {
 
 // IsIdle returns true when the dispatcher has no work remaining.
 //
-// Returns bool which is true when there are no pending tasks, no tasks in
-// flight, no delayed tasks, and all dispatched tasks have completed or failed.
+// Returns bool which is true when there are no pending tasks, no currently executing
+// tasks, no delayed tasks, and all dispatched tasks have completed or failed.
 func (d *watermillTaskDispatcher) IsIdle() bool {
-	pending := atomic.LoadInt64(&d.pendingTasks)
+	pending := d.pendingTasks.Load()
 	if pending > 0 {
 		return false
 	}
@@ -339,11 +335,11 @@ func (d *watermillTaskDispatcher) IsIdle() bool {
 	return d.InFlightCount() == 0
 }
 
-// FailedTasks queries the task store for all tasks in the FAILED state and
-// returns a summary of each for user-facing error reporting.
+// FailedTasks queries the task store for all tasks in the FAILED state and returns a
+// summary of each for user-facing error reporting.
 //
-// Returns []orchestrator_domain.FailedTaskSummary which contains details of
-// every failed task.
+// Returns []orchestrator_domain.FailedTaskSummary which contains details of every failed
+// task.
 // Returns error when the store query fails.
 func (d *watermillTaskDispatcher) FailedTasks(ctx context.Context) ([]orchestrator_domain.FailedTaskSummary, error) {
 	if d.TaskStore == nil {
@@ -374,12 +370,10 @@ func (d *watermillTaskDispatcher) FailedTasks(ctx context.Context) ([]orchestrat
 	return summaries, nil
 }
 
-// persistOrUpdateTask handles persisting new tasks or updating existing
-// retries.
+// persistOrUpdateTask handles persisting new tasks or updating existing retries.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
-// Takes task (*orchestrator_domain.Task) which is the task to persist or
-// update.
+// Takes task (*orchestrator_domain.Task) which is the task to persist or update.
 //
 // Returns error when persistence fails or deduplication blocks the task.
 func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
@@ -411,18 +405,17 @@ func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task 
 
 // subscribeHandlers sets up a single subscription per priority topic.
 //
-// Each topic receives one Watermill subscription, processed sequentially by
-// the message processor goroutine. The Watermill GoChannel pub/sub broadcasts
-// every message to every subscriber on a topic, so creating N subscriptions
-// per topic causes the same message to be delivered N times and processed
-// N times concurrently. The compiler's Put-then-Rename pattern is not safe
-// under that fanout: after the first Rename, subsequent Renames fail with
-// ENOENT because the temporary blob has already been moved.
+// Each topic receives one Watermill subscription, processed sequentially by the message
+// processor goroutine. The Watermill GoChannel pub/sub broadcasts every message to every
+// subscriber on a topic, so creating N subscriptions per topic causes the same message to
+// be delivered N times and processed N times concurrently. The compiler's Put-then-Rename
+// pattern is not safe under that fanout: after the first Rename, subsequent Renames fail
+// with ENOENT because the temporary blob has already been moved.
 //
-// The configured WatermillHighHandlers/Normal/Low values are recorded for
-// observability but only one handler runs per topic. True competing-consumer
-// concurrency requires either a pub/sub backend that supports it natively or
-// an in-process worker pool that drains a single subscription channel.
+// The configured WatermillHighHandlers/Normal/Low values are recorded for observability
+// but only one handler runs per topic. True competing-consumer concurrency requires
+// either a pub/sub backend that supports it natively or an in-process worker pool that
+// drains a single subscription channel.
 //
 // Returns error when subscribing to any priority topic fails.
 func (d *watermillTaskDispatcher) subscribeHandlers() error {
@@ -459,17 +452,17 @@ func (d *watermillTaskDispatcher) subscribeHandlers() error {
 // Takes event (orchestrator_domain.Event) which contains the task payload.
 // Takes handlerID (int) which identifies the handler processing this task.
 //
-// Returns error when processing fails, though malformed tasks are
-// acknowledged to prevent infinite redelivery.
+// Returns error when processing fails, though malformed tasks are acknowledged to prevent
+// infinite redelivery.
 //
-// The deserialisation step is wrapped in a recover so a malformed payload
-// that triggers a panic during reflective parsing does not crash the
-// process; recovered panics are logged and the message is dropped.
+// The deserialisation step is wrapped in a recover so a malformed payload that triggers a
+// panic during reflective parsing does not crash the process; recovered panics are logged
+// and the message is dropped.
 func (d *watermillTaskDispatcher) handleTaskEvent(ctx context.Context, event orchestrator_domain.Event, handlerID int) error {
 	ctx, l := logger_domain.From(ctx, log)
-	atomic.AddInt32(&d.activeHandlers, 1)
-	defer atomic.AddInt32(&d.activeHandlers, -1)
-	defer atomic.AddInt64(&d.pendingTasks, -1)
+	d.activeHandlers.Add(1)
+	defer d.activeHandlers.Add(-1)
+	defer d.pendingTasks.Add(-1)
 	defer goroutine.RecoverPanic(ctx, "orchestrator.watermillTaskDispatcher.handleTaskEvent")
 
 	task, err := d.taskFromPayload(event.Payload)
@@ -534,7 +527,6 @@ func (d *watermillTaskDispatcher) processTask(ctx context.Context, task *orchest
 
 // runRecoveryLoop checks for stale tasks at regular intervals.
 func (d *watermillTaskDispatcher) runRecoveryLoop() {
-	defer d.wg.Done()
 	defer goroutine.RecoverPanic(d.runCtx, "orchestrator.runRecoveryLoop")
 
 	ticker := d.Clock.NewTicker(d.Config.RecoveryInterval)
@@ -550,9 +542,8 @@ func (d *watermillTaskDispatcher) runRecoveryLoop() {
 	}
 }
 
-// runRecoverySweep performs one stale-task recovery pass and logs the
-// outcome. Errors are logged but not returned because the recovery loop
-// retries on the next tick.
+// runRecoverySweep performs one stale-task recovery pass and logs the outcome. Errors are
+// logged but not returned because the recovery loop retries on the next tick.
 func (d *watermillTaskDispatcher) runRecoverySweep() {
 	recovered, err := d.RecoverStaleTasks(d.runCtx)
 	_, l := logger_domain.From(d.runCtx, log)
@@ -680,11 +671,9 @@ func (*watermillTaskDispatcher) parseTaskConfig(configMap map[string]any) orches
 // newWatermillTaskDispatcher creates a new Watermill-based task dispatcher.
 //
 // Takes config (DispatcherConfig) which specifies the dispatcher settings.
-// Takes eventBus (EventBus) which handles pub/sub for task
-// distribution.
+// Takes eventBus (EventBus) which handles pub/sub for task distribution.
 // Takes taskStore (TaskStore) which provides persistence and crash recovery.
-// Takes opts (...watermillDispatcherOption) which provides optional
-// configuration.
+// Takes opts (...watermillDispatcherOption) which provides optional configuration.
 //
 // Returns *watermillTaskDispatcher which is ready to have executors registered.
 func newWatermillTaskDispatcher(
@@ -701,8 +690,6 @@ func newWatermillTaskDispatcher(
 		runCtx:             nil,
 		cancel:             nil,
 		wg:                 sync.WaitGroup{},
-		pendingTasks:       0,
-		activeHandlers:     0,
 		started:            atomic.Bool{},
 	}
 
@@ -713,8 +700,7 @@ func newWatermillTaskDispatcher(
 	return d
 }
 
-// withWatermillDelayedPublisher sets a custom DelayedPublisher for the
-// dispatcher.
+// withWatermillDelayedPublisher sets a custom DelayedPublisher for the dispatcher.
 //
 // Takes dp (DelayedPublisher) which provides delayed message publishing.
 //
@@ -741,8 +727,8 @@ func withWatermillClock(c clockpkg.Clock) watermillDispatcherOption {
 // Takes payload (map[string]any) which contains the data to search.
 // Takes key (string) which identifies the value to extract.
 //
-// Returns string which is the value if found, or empty string if the key is
-// missing or the value is not a string.
+// Returns string which is the value if found, or empty string if the key is missing or
+// the value is not a string.
 func payloadString(payload map[string]any, key string) string {
 	if v, ok := payload[key].(string); ok {
 		return v
@@ -755,8 +741,8 @@ func payloadString(payload map[string]any, key string) string {
 // Takes payload (map[string]any) which is the source map to extract from.
 // Takes key (string) which is the key to look up in the payload.
 //
-// Returns map[string]any which is the extracted map, or nil if the key does
-// not exist or the value is not a map.
+// Returns map[string]any which is the extracted map, or nil if the key does not exist or
+// the value is not a map.
 func payloadMap(payload map[string]any, key string) map[string]any {
 	if v, ok := payload[key].(map[string]any); ok {
 		return v
@@ -766,16 +752,15 @@ func payloadMap(payload map[string]any, key string) map[string]any {
 
 // payloadTime extracts a time.Time value from a payload map.
 //
-// JSON-bus round-tripping converts time.Time to an RFC3339 string, so this
-// helper accepts both. RFC3339Nano is tried first to preserve sub-second
-// precision, then RFC3339 as a fallback. Other types and unparseable
-// strings yield zero time and a logged warning.
+// JSON-bus round-tripping converts time.Time to an RFC3339 string, so this helper accepts
+// both. RFC3339Nano is tried first to preserve sub-second precision, then RFC3339 as a
+// fallback. Other types and unparseable strings yield zero time and a logged warning.
 //
 // Takes payload (map[string]any) which contains the data to search.
 // Takes key (string) which identifies the value to extract.
 //
-// Returns time.Time which is the extracted value, or zero time if the key
-// is missing, an unsupported type, or an unparseable string.
+// Returns time.Time which is the extracted value, or zero time if the key is missing, an
+// unsupported type, or an unparseable string.
 func payloadTime(payload map[string]any, key string) time.Time {
 	value, exists := payload[key]
 	if !exists || value == nil {
@@ -826,8 +811,7 @@ func parseTaskStatusField(payload map[string]any, task *orchestrator_domain.Task
 // parseTaskAttemptField parses the attempt field from payload into task.
 //
 // Takes payload (map[string]any) which contains the raw task data.
-// Takes task (*orchestrator_domain.Task) which receives the parsed attempt
-// value.
+// Takes task (*orchestrator_domain.Task) which receives the parsed attempt value.
 func parseTaskAttemptField(payload map[string]any, task *orchestrator_domain.Task) {
 	if attempt, ok := payload[attributeKeyAttempt].(int); ok {
 		task.Attempt = attempt

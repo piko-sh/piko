@@ -61,22 +61,22 @@ const (
 	// defaultTimeout is the longest time to wait for the dispatcher to become idle.
 	defaultTimeout = 5 * time.Minute
 
-	// pipelineFlushTimeout is the longest time to wait for the bridge to
-	// process all artefact events published by the registry (Phase 1). If the
-	// bridge has not caught up within this window, it likely indicates a lost
-	// event or infrastructure failure.
+	// pipelineFlushTimeout is the longest time to wait for the bridge to process all
+	// artefact events published by the registry during the pipeline-flush stage. If the
+	// bridge has not caught up within this window, it likely indicates a lost event or
+	// infrastructure failure.
 	pipelineFlushTimeout = 2 * time.Minute
 
 	// localDiskCacheSource is the origin label for artefacts loaded from disk.
 	localDiskCacheSource = "local_disk_cache"
 
-	// gcHintDrainBatchSize is the number of GC hints to pop per iteration when
-	// draining hints after a build.
+	// gcHintDrainBatchSize is the number of GC hints to pop per iteration when draining
+	// hints after a build.
 	gcHintDrainBatchSize = 100
 )
 
-// buildService implements lifecycle_domain.BuilderAdapter to manage the build
-// process using configuration, registry, and orchestrator services.
+// buildService implements lifecycle_domain.BuilderAdapter to manage the build process
+// using configuration, registry, and orchestrator services.
 type buildService struct {
 	// registryService handles storing and fetching build artefacts.
 	registryService registry_domain.RegistryService
@@ -96,14 +96,13 @@ type buildService struct {
 	// resolver provides module name lookup for building artefact IDs.
 	resolver resolver_domain.ResolverPort
 
-	// sandboxFactory creates sandboxes for filesystem access within the build
-	// service.
+	// sandboxFactory creates sandboxes for filesystem access within the build service.
 	sandboxFactory safedisk.Factory
 
-	// externalSandboxFactory creates sandboxes scoped to resolved external
-	// module directories. It is built lazily by seedExternalComponentFiles
-	// from the module roots discovered by the resolver, so external .pkc
-	// and asset files get a real sandbox rather than falling back to NoOp.
+	// externalSandboxFactory creates sandboxes scoped to resolved external module
+	// directories. It is built lazily by seedExternalComponentFiles from the module roots
+	// discovered by the resolver, so external .pkc and asset files get a real sandbox rather
+	// than falling back to NoOp.
 	externalSandboxFactory safedisk.Factory
 
 	// websiteConfig provides theme/font/favicon metadata for theme building.
@@ -116,14 +115,13 @@ type buildService struct {
 	externalComponents []component_dto.ComponentDefinition
 }
 
-// RunBuild executes a full production build, processing all assets and
-// waiting for completion.
+// RunBuild executes a full production build, processing all assets and waiting for
+// completion.
 //
-// Returns *lifecycle_domain.BuildResult which holds task counts and failure
-// details. This is nil when an infrastructure error prevents the build from
-// completing.
-// Returns error when an infrastructure failure prevents the build from
-// completing (context cancelled, flush timeout, theme build failure).
+// Returns *lifecycle_domain.BuildResult which holds task counts and failure details. This
+// is nil when an infrastructure error prevents the build from completing.
+// Returns error when an infrastructure failure prevents the build from completing
+// (context cancelled, flush timeout, theme build failure).
 func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildResult, error) {
 	ctx, span, l := log.Span(ctx, "runBuild")
 	defer span.End()
@@ -205,8 +203,7 @@ func (bs *buildService) buildThemeArtefact(ctx context.Context) error {
 	return nil
 }
 
-// processFilesInPipeline walks directories and processes files using a worker
-// pool.
+// processFilesInPipeline walks directories and processes files using a worker pool.
 //
 // Returns int64 which is the total number of files processed.
 // Returns error when the directory walk or file processing fails.
@@ -238,12 +235,11 @@ func (bs *buildService) processFilesInPipeline(ctx context.Context) (int64, erro
 	return fileCount.Load(), nil
 }
 
-// startFileProcessingWorkers starts the specified number of worker
-// goroutines to process file events.
+// startFileProcessingWorkers starts the specified number of worker goroutines to process
+// file events.
 //
 // Takes numWorkers (int) which specifies how many goroutines to spawn.
-// Takes fileEvents (<-chan lifecycle_dto.FileEvent) which provides the events
-// to process.
+// Takes fileEvents (<-chan lifecycle_dto.FileEvent) which provides the events to process.
 // Takes wg (*sync.WaitGroup) which tracks worker completion.
 func (bs *buildService) startFileProcessingWorkers(
 	ctx context.Context,
@@ -268,8 +264,8 @@ func (bs *buildService) startFileProcessingWorkers(
 
 // walkAndStreamFiles walks directories and streams file events to the channel.
 //
-// Takes fileEvents (chan<- lifecycle_dto.FileEvent) which receives file events
-// for each file found during the walk.
+// Takes fileEvents (chan<- lifecycle_dto.FileEvent) which receives file events for each
+// file found during the walk.
 // Takes fileCount (*atomic.Int64) which is incremented for each file streamed.
 //
 // Returns error when a directory walk fails.
@@ -310,13 +306,13 @@ func (bs *buildService) walkAndStreamFiles(
 
 // waitUntilIdle waits until all work is complete using state polling.
 //
-// This uses a two-phase approach to avoid race conditions:
+// This uses a two-stage approach to avoid race conditions:
 //
-// Phase 1 (Pipeline Flush): Wait until the bridge has processed all artefact
-// events published by the registry. This means all tasks have been sent.
+// Pipeline flush: Wait until the bridge has processed all artefact events published by
+// the registry. This means all tasks have been sent.
 //
-// Phase 2 (Work Completion): Poll the dispatcher until it reports idle state:
-// all tasks completed, all queues empty, no pending retries.
+// Work completion: Poll the dispatcher until it reports idle state: all tasks completed,
+// all queues empty, no pending retries.
 //
 // Returns error when the pipeline flush or dispatcher idle wait fails.
 func (bs *buildService) waitUntilIdle(ctx context.Context) error {
@@ -339,11 +335,10 @@ func (bs *buildService) waitUntilIdle(ctx context.Context) error {
 	return nil
 }
 
-// waitForPipelineFlush waits until the bridge has processed all artefact
-// events sent by the registry.
+// waitForPipelineFlush waits until the bridge has processed all artefact events sent by
+// the registry.
 //
-// Takes startTime (time.Time) which marks when the build started for timeout
-// checks.
+// Takes startTime (time.Time) which marks when the build started for timeout checks.
 //
 // Returns error when the context is cancelled or the flush times out.
 func (bs *buildService) waitForPipelineFlush(ctx context.Context, startTime time.Time) error {
@@ -386,8 +381,7 @@ func (bs *buildService) waitForPipelineFlush(ctx context.Context, startTime time
 
 // waitForDispatcherIdle polls the dispatcher until it reports idle state.
 //
-// Takes startTime (time.Time) which marks when the build started for timeout
-// checks.
+// Takes startTime (time.Time) which marks when the build started for timeout checks.
 // Takes span (trace.Span) which receives tracing events for observability.
 //
 // Returns error when the context is cancelled or the build times out.
@@ -420,11 +414,11 @@ func (bs *buildService) waitForDispatcherIdle(
 	}
 }
 
-// isBuildIdle checks if the dispatcher has finished all build work, ignoring
-// delayed tasks that should not block build completion.
+// isBuildIdle checks if the dispatcher has finished all build work, ignoring delayed
+// tasks that should not block build completion.
 //
-// Takes dispatcher (orchestrator_domain.TaskDispatcher) which provides the
-// current task statistics.
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which provides the current task
+// statistics.
 //
 // Returns bool which is true when all dispatched tasks have completed or failed.
 func isBuildIdle(dispatcher orchestrator_domain.TaskDispatcher) bool {
@@ -437,8 +431,8 @@ func isBuildIdle(dispatcher orchestrator_domain.TaskDispatcher) bool {
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes startTime (time.Time) which is when the build started.
-// Takes dispatcher (orchestrator_domain.TaskDispatcher) which gives task queue
-// details for error reporting.
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which gives task queue details
+// for error reporting.
 // Takes span (trace.Span) which is the tracing span for error reporting.
 //
 // Returns error when the time since startTime is more than the default timeout.
@@ -485,15 +479,14 @@ func (*buildService) logDispatcherIdle(
 		logger_domain.Int64("tasksFailed", stats.TasksFailed))
 }
 
-// buildResult collects dispatcher statistics and any failure details into a
-// BuildResult struct for the caller to inspect and format.
+// buildResult collects dispatcher statistics and any failure details into a BuildResult
+// struct for the caller to inspect and format.
 //
-// Takes ctx (context.Context) which is passed to the dispatcher for querying
-// failed tasks.
+// Takes ctx (context.Context) which is passed to the dispatcher for querying failed
+// tasks.
 // Takes buildStartTime (time.Time) which marks when the build started.
-// Takes startStats (orchestrator_domain.DispatcherStats) which holds the
-// counter snapshot taken at the beginning of the build so that only the
-// delta for this run is reported.
+// Takes startStats (orchestrator_domain.DispatcherStats) which holds the counter snapshot
+// taken at the beginning of the build so that only the delta for this run is reported.
 //
 // Returns *lifecycle_domain.BuildResult which holds the build outcome.
 func (bs *buildService) buildResult(
@@ -536,8 +529,8 @@ func (bs *buildService) buildResult(
 	return result
 }
 
-// logDispatcherProgress logs the dispatcher progress at most once per second
-// to prevent excessive log output.
+// logDispatcherProgress logs the dispatcher progress at most once per second to prevent
+// excessive log output.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes lastLogTime (*time.Time) which tracks when the last log was written.
@@ -566,8 +559,8 @@ func (*buildService) logDispatcherProgress(
 
 // handleFileEvent processes a file system event and updates the artefact store.
 //
-// Takes event (lifecycle_dto.FileEvent) which contains the file path and event
-// type to process.
+// Takes event (lifecycle_dto.FileEvent) which contains the file path and event type to
+// process.
 func (bs *buildService) handleFileEvent(ctx context.Context, event lifecycle_dto.FileEvent) {
 	ctx, span, l := log.Span(ctx, "handleFileEvent",
 		logger_domain.String("path", event.Path),
@@ -592,18 +585,16 @@ func (bs *buildService) handleFileEvent(ctx context.Context, event lifecycle_dto
 	bs.upsertFileArtefact(ctx, artefactID, relPath, fileData, span)
 }
 
-// computeArtefactID computes the module-absolute artefact ID and relative path
-// from a file path. This keeps artefact IDs matching what templates specify
-// (e.g., "mymodule/lib/icons/arrow.svg").
+// computeArtefactID computes the module-absolute artefact ID and relative path from a
+// file path. This keeps artefact IDs matching what templates specify (e.g.,
+// "mymodule/lib/icons/arrow.svg").
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes filePath (string) which is the absolute path to the file.
 // Takes span (trace.Span) which records errors for tracing.
 //
-// Returns artefactID (string) which is the module-prefixed artefact
-// ID.
-// Returns relPath (string) which is the project-relative path for
-// use as sourcePath.
+// Returns artefactID (string) which is the module-prefixed artefact ID.
+// Returns relPath (string) which is the project-relative path for use as sourcePath.
 // Returns error when the relative path cannot be computed.
 func (bs *buildService) computeArtefactID(
 	ctx context.Context,
@@ -623,8 +614,8 @@ func (bs *buildService) computeArtefactID(
 	return moduleName + "/" + relPathSlash, relPathSlash, nil
 }
 
-// sandboxedFile wraps a file handle and its sandbox, ensuring both are closed
-// when the file is closed.
+// sandboxedFile wraps a file handle and its sandbox, ensuring both are closed when the
+// file is closed.
 type sandboxedFile struct {
 	// file is the underlying file handle for read operations.
 	file io.ReadCloser
@@ -664,8 +655,7 @@ func (sf *sandboxedFile) Close() error {
 // Takes parentSpan (trace.Span) which receives error status on failure.
 //
 // Returns io.ReadCloser which provides access to the file contents.
-// Returns error when the sandbox cannot be created or the file cannot be
-// opened.
+// Returns error when the sandbox cannot be created or the file cannot be opened.
 func (bs *buildService) openFileForProcessing(
 	ctx context.Context,
 	filePath string,
@@ -759,8 +749,8 @@ func (bs *buildService) upsertFileArtefact(
 
 // getDirectories returns the list of source directories to watch for changes.
 //
-// Returns []string which contains the full paths for assets and components
-// directories based on the current settings.
+// Returns []string which contains the full paths for assets and components directories
+// based on the current settings.
 func (bs *buildService) getDirectories() []string {
 	_, span, l := log.Span(context.Background(), "getDirectories")
 	defer span.End()
@@ -788,10 +778,10 @@ func (bs *buildService) getDirectories() []string {
 	return dirs
 }
 
-// seedExternalComponentFiles resolves external component module directories
-// and seeds their .pkc files into the registry with module-path-based artefact
-// IDs. This mirrors the lifecycle service's seeding but uses the build
-// service's direct file access instead of the filesystem abstraction.
+// seedExternalComponentFiles resolves external component module directories and seeds
+// their .pkc files into the registry with module-path-based artefact IDs. This mirrors
+// the lifecycle service's seeding but uses the build service's direct file access instead
+// of the filesystem abstraction.
 //
 // Returns error when directory resolution fails fatally.
 func (bs *buildService) seedExternalComponentFiles(ctx context.Context) error {
@@ -820,15 +810,15 @@ func (bs *buildService) seedExternalComponentFiles(ctx context.Context) error {
 	return nil
 }
 
-// buildExternalSandboxFactory creates a sandbox factory scoped to the resolved
-// external module directories. This gives external component and asset files
-// a proper sandbox backed by os.Root, without needing the project's sandbox
-// factory (which is scoped to the project's source directory).
+// buildExternalSandboxFactory creates a sandbox factory scoped to the resolved external
+// module directories. This gives external component and asset files a proper sandbox
+// backed by os.Root, without needing the project's sandbox factory (which is scoped to
+// the project's source directory).
 //
-// Takes componentDirs (map[string]string) which maps absolute directory paths
-// to their external component module identifiers.
-// Takes assetDirs (map[string]string) which maps absolute directory paths to
-// their external asset module identifiers.
+// Takes componentDirs (map[string]string) which maps absolute directory paths to their
+// external component module identifiers.
+// Takes assetDirs (map[string]string) which maps absolute directory paths to their
+// external asset module identifiers.
 //
 // Returns error when the sandbox factory cannot be created.
 func (bs *buildService) buildExternalSandboxFactory(
@@ -871,12 +861,11 @@ func (bs *buildService) buildExternalSandboxFactory(
 	return nil
 }
 
-// resolveExternalComponentDirs returns a map of absolute directory paths to
-// their module paths by resolving each unique ModulePath in the external
-// component definitions.
+// resolveExternalComponentDirs returns a map of absolute directory paths to their module
+// paths by resolving each unique ModulePath in the external component definitions.
 //
-// Returns map[string]string where keys are absolute directories and values are
-// the original module paths.
+// Returns map[string]string where keys are absolute directories and values are the
+// original module paths.
 func (bs *buildService) resolveExternalComponentDirs(ctx context.Context) map[string]string {
 	if len(bs.externalComponents) == 0 || bs.resolver == nil {
 		return nil
@@ -924,8 +913,8 @@ func (bs *buildService) resolveExternalComponentDirs(ctx context.Context) map[st
 	return result
 }
 
-// walkSeedParams groups the parameters that differ between directory-seeding
-// call sites, keeping the shared walkAndSeedDirectory method's signature short.
+// walkSeedParams groups the parameters that differ between directory-seeding call sites,
+// keeping the shared walkAndSeedDirectory method's signature short.
 type walkSeedParams struct {
 	// spanName is the OpenTelemetry span identifier.
 	spanName string
@@ -946,12 +935,12 @@ type walkSeedParams struct {
 	statusMessage string
 }
 
-// walkAndSeedDirectory walks a single directory and seeds its entries into the
-// registry, using the callback and labelling provided by the given parameters.
+// walkAndSeedDirectory walks a single directory and seeds its entries into the registry,
+// using the callback and labelling provided by the given parameters.
 //
 // Takes absDir (string) which is the absolute path to walk.
-// Takes parameters (walkSeedParams) which configures span names, labels, walk
-// callback, and log messages.
+// Takes parameters (walkSeedParams) which configures span names, labels, walk callback,
+// and log messages.
 //
 // Returns error when the directory walk itself fails fatally.
 func (*buildService) walkAndSeedDirectory(
@@ -977,8 +966,8 @@ func (*buildService) walkAndSeedDirectory(
 	return nil
 }
 
-// walkAndSeedExternalDir walks a single external directory and seeds .pkc
-// files into the registry with artefact IDs prefixed by the module path.
+// walkAndSeedExternalDir walks a single external directory and seeds .pkc files into the
+// registry with artefact IDs prefixed by the module path.
 //
 // Takes absDir (string) which is the absolute path to walk.
 // Takes modulePath (string) which provides the artefact ID prefix.
@@ -1000,9 +989,8 @@ func (bs *buildService) walkAndSeedExternalDir(
 	})
 }
 
-// seedExternalComponentEntry processes a single directory entry during
-// an external component directory walk, seeding .pkc files into the
-// registry.
+// seedExternalComponentEntry processes a single directory entry during an external
+// component directory walk, seeding .pkc files into the registry.
 //
 // Takes absDir (string) which is the root directory being walked.
 // Takes modulePath (string) which provides the artefact ID prefix.
@@ -1064,8 +1052,8 @@ func (bs *buildService) seedExternalComponentEntry(
 	return nil
 }
 
-// externalAssetKey identifies a unique (moduleBase, assetPath) pair for
-// external asset directory deduplication.
+// externalAssetKey identifies a unique (moduleBase, assetPath) pair for external asset
+// directory deduplication.
 type externalAssetKey struct {
 	// moduleBase is the Go module path prefix for the external component.
 	moduleBase string
@@ -1074,11 +1062,11 @@ type externalAssetKey struct {
 	assetPath string
 }
 
-// resolveExternalAssetDirs collects unique (moduleBase, assetPath) pairs from
-// external component definitions and resolves them to absolute directories.
+// resolveExternalAssetDirs collects unique (moduleBase, assetPath) pairs from external
+// component definitions and resolves them to absolute directories.
 //
-// Returns map[string]string which maps absolute asset directory paths to their
-// artefact ID prefixes (e.g. "piko.sh/piko/lib/icons").
+// Returns map[string]string which maps absolute asset directory paths to their artefact
+// ID prefixes (e.g. "piko.sh/piko/lib/icons").
 func (bs *buildService) resolveExternalAssetDirs(ctx context.Context) map[string]string {
 	if len(bs.externalComponents) == 0 || bs.resolver == nil {
 		return nil
@@ -1090,8 +1078,8 @@ func (bs *buildService) resolveExternalAssetDirs(ctx context.Context) map[string
 	return bs.resolveAssetPairsToDirectories(ctx, l, pairs)
 }
 
-// collectExternalAssetPairs builds a deduplicated list of (moduleBase,
-// assetPath) pairs from the external component definitions.
+// collectExternalAssetPairs builds a deduplicated list of (moduleBase, assetPath) pairs
+// from the external component definitions.
 //
 // Returns []externalAssetKey which contains the unique pairs.
 func (bs *buildService) collectExternalAssetPairs(ctx context.Context) []externalAssetKey {
@@ -1118,14 +1106,13 @@ func (bs *buildService) collectExternalAssetPairs(ctx context.Context) []externa
 	return pairs
 }
 
-// resolveAssetPairsToDirectories resolves each (moduleBase, assetPath) pair to
-// an absolute directory and its artefact ID prefix.
+// resolveAssetPairsToDirectories resolves each (moduleBase, assetPath) pair to an
+// absolute directory and its artefact ID prefix.
 //
 // Takes l (logger_domain.Logger) which provides structured logging.
 // Takes pairs ([]externalAssetKey) which contains the pairs to resolve.
 //
-// Returns map[string]string which maps absolute directories to artefact
-// prefixes.
+// Returns map[string]string which maps absolute directories to artefact prefixes.
 func (bs *buildService) resolveAssetPairsToDirectories(ctx context.Context, l logger_domain.Logger, pairs []externalAssetKey) map[string]string {
 	result := make(map[string]string, len(pairs))
 	for _, p := range pairs {
@@ -1147,12 +1134,12 @@ func (bs *buildService) resolveAssetPairsToDirectories(ctx context.Context, l lo
 	return result
 }
 
-// walkAndSeedExternalAssetDir walks a single external asset directory and seeds
-// all files into the registry with artefact IDs prefixed by artefactPrefix.
+// walkAndSeedExternalAssetDir walks a single external asset directory and seeds all files
+// into the registry with artefact IDs prefixed by artefactPrefix.
 //
 // Takes absDir (string) which is the absolute path to walk.
-// Takes artefactPrefix (string) which provides the artefact ID prefix
-// (e.g. "piko.sh/piko/lib/icons").
+// Takes artefactPrefix (string) which provides the artefact ID prefix (e.g.
+// "piko.sh/piko/lib/icons").
 //
 // Returns error when the directory walk itself fails fatally.
 func (bs *buildService) walkAndSeedExternalAssetDir(
@@ -1171,8 +1158,8 @@ func (bs *buildService) walkAndSeedExternalAssetDir(
 	})
 }
 
-// seedExternalAssetEntry processes a single directory entry during an external
-// asset directory walk, seeding files into the registry.
+// seedExternalAssetEntry processes a single directory entry during an external asset
+// directory walk, seeding files into the registry.
 //
 // Takes absDir (string) which is the root directory being walked.
 // Takes artefactPrefix (string) which provides the artefact ID prefix.
@@ -1232,15 +1219,14 @@ func (bs *buildService) seedExternalAssetEntry(
 	return nil
 }
 
-// createExternalSandbox creates a read-only sandbox for an external module
-// path using the externalSandboxFactory. Falls back to NoOpSandbox when no
-// external factory is available.
+// createExternalSandbox creates a read-only sandbox for an external module path using the
+// externalSandboxFactory. Falls back to NoOpSandbox when no external factory is
+// available.
 //
 // Takes purpose (string) which describes the sandbox's intended use.
 // Takes path (string) which is the directory to sandbox.
 //
-// Returns safedisk.Sandbox which is the read-only sandbox scoped to the given
-// path.
+// Returns safedisk.Sandbox which is the read-only sandbox scoped to the given path.
 // Returns error when sandbox creation fails.
 func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sandbox, error) {
 	if bs.externalSandboxFactory != nil {
@@ -1251,26 +1237,23 @@ func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sa
 
 // NewBuildService creates a new build service for running full builds.
 //
-// Takes websiteConfig (*config.WebsiteConfig) which provides theme/font/
-// favicon metadata for theme building.
-// Takes pathsConfig (lifecycle_domain.LifecyclePathsConfig) which holds the
-// resolved path settings for filesystem operations.
-// Takes registry (registry_domain.RegistryService) which manages component
-// registration.
-// Takes orchestratorService (orchestrator_domain.OrchestratorService) which
-// coordinates build operations.
-// Takes bridge (lifecycle_domain.BridgeWithCounter) which handles lifecycle
-// transitions.
+// Takes websiteConfig (*config.WebsiteConfig) which provides theme/font/ favicon metadata
+// for theme building.
+// Takes pathsConfig (lifecycle_domain.LifecyclePathsConfig) which holds the resolved path
+// settings for filesystem operations.
+// Takes registry (registry_domain.RegistryService) which manages component registration.
+// Takes orchestratorService (orchestrator_domain.OrchestratorService) which coordinates
+// build operations.
+// Takes bridge (lifecycle_domain.BridgeWithCounter) which handles lifecycle transitions.
 // Takes eventBus (orchestrator_domain.EventBus) which dispatches build events.
 // Takes renderer (render_domain.RenderService) which handles output rendering.
 // Takes resolver (resolver_domain.ResolverPort) which resolves dependencies.
-// Takes externalComponents ([]component_dto.ComponentDefinition) which holds
-// component definitions needing module resolution.
-// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for
-// filesystem access.
+// Takes externalComponents ([]component_dto.ComponentDefinition) which holds component
+// definitions needing module resolution.
+// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
-// Returns lifecycle_domain.BuilderAdapter which is the configured build service
-// ready for use.
+// Returns lifecycle_domain.BuilderAdapter which is the configured build service ready for
+// use.
 //
 //nolint:revive // DI constructor
 func NewBuildService(
@@ -1299,9 +1282,9 @@ func NewBuildService(
 	}
 }
 
-// drainGCHints synchronously pops all queued GC hints and deletes the
-// corresponding blobs. Called after the build dispatcher is idle so that
-// blobs from replaced variants are cleaned up before the build exits.
+// drainGCHints synchronously pops all queued GC hints and deletes the corresponding
+// blobs. Called after the build dispatcher is idle so that blobs from replaced variants
+// are cleaned up before the build exits.
 func (bs *buildService) drainGCHints(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	totalDeleted := 0

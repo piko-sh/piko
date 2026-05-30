@@ -31,78 +31,77 @@ import (
 )
 
 const (
-	// defaultPriorityCompression is the default priority
-	// for compression transformers.
+	// defaultPriorityCompression is the default priority for compression transformers.
 	defaultPriorityCompression = 100
 
-	// DefaultMaxDecompressedBytes is the default cap on bytes returned from a
-	// decompression stream.
+	// DefaultMaxDecompressedBytes is the default cap on bytes returned from a decompression
+	// stream.
 	//
-	// Set high (256 MiB) so legitimate workloads are unaffected while still
-	// preventing pathological decompression bombs from dominating memory in
-	// callers that buffer the stream. Override with WithMaxDecompressedBytes
-	// for stricter or more relaxed limits.
+	// Set high (256 MiB) so legitimate workloads are unaffected while still preventing
+	// pathological decompression bombs from dominating memory in callers that buffer the
+	// stream. Override with WithMaxDecompressedBytes for stricter or more relaxed limits.
 	DefaultMaxDecompressedBytes int64 = 256 * 1024 * 1024
 )
 
-// ErrDecompressedTooLarge is returned by the reader produced by Reverse when
-// the decompressed payload exceeds the configured maximum decompressed size.
-// Callers can use errors.Is to distinguish this from a normal io.EOF.
-var ErrDecompressedTooLarge = errors.New("storage_transformer_zstd: decompressed payload exceeds maximum allowed size")
+var (
+	// ErrDecompressedTooLarge is returned by the reader produced by Reverse when the
+	// decompressed payload exceeds the configured maximum decompressed size. Callers can use
+	// errors.Is to distinguish this from a normal io.EOF.
+	ErrDecompressedTooLarge = errors.New("storage_transformer_zstd: decompressed payload exceeds maximum allowed size")
 
-var _ io.ReadCloser = (*decoderReadCloser)(nil)
+	_ io.ReadCloser = (*decoderReadCloser)(nil)
+)
 
-// ZstdTransformer implements StreamTransformerPort for Zstandard compression.
-// Zstandard offers good compression with fast decompression, well suited
-// for storage.
+// ZstdTransformer implements StreamTransformerPort for Zstandard compression. Zstandard
+// offers good compression with fast decompression, well suited for storage.
 type ZstdTransformer struct {
 	// name is the unique identifier for this transformer.
 	name string
 
-	// priority is the execution order for this
-	// transformer; lower values run first.
+	// priority is the execution order for this transformer; lower values run first.
 	priority int
 
 	// level specifies the zstd compression level; 0 uses the default.
 	level zstd.EncoderLevel
 
-	// maxDecompressedBytes caps the bytes returned from Reverse, preventing
-	// decompression bombs from exhausting memory in downstream consumers.
+	// maxDecompressedBytes caps the bytes returned from Reverse, preventing decompression
+	// bombs from exhausting memory in downstream consumers.
 	maxDecompressedBytes int64
 }
 
-var _ storage.StreamTransformerPort = (*ZstdTransformer)(nil)
+var (
+	_ storage.StreamTransformerPort = (*ZstdTransformer)(nil)
+)
 
 // Config holds settings for the zstd transformer.
 type Config struct {
 	// Name is the identifier for this transformer instance. Default: "zstd".
 	Name string
 
-	// Priority determines execution order; lower values run first on writes.
-	// Recommended range is 100-199 for compression transformers; defaults to 100.
+	// Priority determines execution order; lower values run first on writes. Recommended
+	// range is 100-199 for compression transformers; defaults to 100.
 	Priority int
 
-	// Level sets the compression level, ranging from
-	// SpeedFastest (1) through SpeedDefault (3) and
-	// SpeedBetterCompression (5) to SpeedBestCompression (11),
-	// defaulting to SpeedDefault (3).
+	// Level sets the compression level, ranging from SpeedFastest (1) through SpeedDefault
+	// (3) and SpeedBetterCompression (5) to SpeedBestCompression (11), defaulting to
+	// SpeedDefault (3).
 	Level zstd.EncoderLevel
 
 	// MaxDecompressedBytes caps the decompressed output size in bytes.
 	//
-	// When zero, DefaultMaxDecompressedBytes is used. Negative values disable
-	// the cap (not recommended for untrusted input).
+	// When zero, DefaultMaxDecompressedBytes is used. Negative values disable the cap (not
+	// recommended for untrusted input).
 	MaxDecompressedBytes int64
 }
 
 // Option configures a ZstdTransformer at construction time.
 type Option func(*ZstdTransformer)
 
-// WithMaxDecompressedBytes sets the maximum number of decompressed bytes that
-// can flow through the reader returned by Reverse.
+// WithMaxDecompressedBytes sets the maximum number of decompressed bytes that can flow
+// through the reader returned by Reverse.
 //
-// Reads beyond this cap surface ErrDecompressedTooLarge. Pass a non-positive
-// value to disable the cap (only safe for fully trusted input streams).
+// Reads beyond this cap surface ErrDecompressedTooLarge. Pass a non-positive value to
+// disable the cap (only safe for fully trusted input streams).
 //
 // Takes maxBytes (int64) which is the cap in bytes; non-positive disables.
 //
@@ -115,10 +114,10 @@ func WithMaxDecompressedBytes(maxBytes int64) Option {
 
 // NewZstdTransformer creates a new zstd compression transformer.
 //
-// Takes config (Config) which sets the transformer name, priority, and
-// compression level. Missing values use sensible defaults.
-// Takes options (...Option) which override settings on the constructed
-// transformer (e.g. WithMaxDecompressedBytes).
+// Takes config (Config) which sets the transformer name, priority, and compression level.
+// Missing values use sensible defaults.
+// Takes options (...Option) which override settings on the constructed transformer (e.g.
+// WithMaxDecompressedBytes).
 //
 // Returns *ZstdTransformer which is the configured transformer ready for use.
 // Returns error when the configuration is not valid.
@@ -159,8 +158,7 @@ func (z *ZstdTransformer) Name() string {
 
 // Type returns the transformer type (compression).
 //
-// Returns storage.TransformerType which identifies this as a compression
-// transformer.
+// Returns storage.TransformerType which identifies this as a compression transformer.
 func (*ZstdTransformer) Type() storage.TransformerType {
 	return storage.TransformerCompression
 }
@@ -175,14 +173,14 @@ func (z *ZstdTransformer) Priority() int {
 // Transform compresses the input stream using zstd.
 //
 // Takes input (io.Reader) which provides the data to compress.
-// Takes options (any) which can optionally override the default compression
-// level as map[string]any{"level": int}.
+// Takes options (any) which can optionally override the default compression level as
+// map[string]any{"level": int}.
 //
 // Returns io.Reader which provides compressed data as the input is read.
 // Returns error when the transformer cannot be initialised.
 //
-// Safe for concurrent use. Spawns a goroutine that compresses data into
-// a pipe; errors propagate through the returned reader.
+// Safe for concurrent use. Spawns a goroutine that compresses data into a pipe; errors
+// propagate through the returned reader.
 func (z *ZstdTransformer) Transform(ctx context.Context, input io.Reader, options any) (io.Reader, error) {
 	ctx, l := logger.From(ctx, log)
 
@@ -226,10 +224,9 @@ func (z *ZstdTransformer) Transform(ctx context.Context, input io.Reader, option
 	return pr, nil
 }
 
-// Reverse decompresses the input stream using zstd. The returned reader caps
-// the decompressed bytes at the configured maximum (see
-// WithMaxDecompressedBytes); reading beyond the cap yields
-// ErrDecompressedTooLarge.
+// Reverse decompresses the input stream using zstd. The returned reader caps the
+// decompressed bytes at the configured maximum (see WithMaxDecompressedBytes); reading
+// beyond the cap yields ErrDecompressedTooLarge.
 //
 // Takes input (io.Reader) which provides the compressed data to decompress.
 //
@@ -251,13 +248,11 @@ func (z *ZstdTransformer) Reverse(ctx context.Context, input io.Reader, _ any) (
 }
 
 // newCappedReader wraps a zstd decoder so that reads beyond maxBytes surface
-// ErrDecompressedTooLarge instead of allowing unbounded decompressed output.
-// When maxBytes is non-positive, the cap is disabled and the reader behaves
-// transparently.
+// ErrDecompressedTooLarge instead of allowing unbounded decompressed output. When
+// maxBytes is non-positive, the cap is disabled and the reader behaves transparently.
 //
 // Takes decoder (*zstd.Decoder) which produces decompressed bytes.
-// Takes maxBytes (int64) which caps the byte count; non-positive disables the
-// cap.
+// Takes maxBytes (int64) which caps the byte count; non-positive disables the cap.
 //
 // Returns *decoderReadCloser which wraps the decoder with the configured cap.
 func newCappedReader(decoder *zstd.Decoder, maxBytes int64) *decoderReadCloser {
@@ -274,31 +269,29 @@ func newCappedReader(decoder *zstd.Decoder, maxBytes int64) *decoderReadCloser {
 
 // decoderReadCloser wraps a zstd decoder to ensure proper cleanup when closed.
 //
-// It enforces a configurable cap on the total decompressed bytes returned to
-// callers, so a malicious payload cannot inflate to terabytes via a small
-// upload. It implements io.ReadCloser.
+// It enforces a configurable cap on the total decompressed bytes returned to callers, so
+// a malicious payload cannot inflate to terabytes via a small upload. It implements
+// io.ReadCloser.
 type decoderReadCloser struct {
-	// source is the bounded byte source actually read by callers; it is
-	// either the zstd decoder directly (when no cap is set) or a
-	// LimitReader wrapping it.
+	// source is the bounded byte source actually read by callers; it is either the zstd
+	// decoder directly (when no cap is set) or a LimitReader wrapping it.
 	source io.Reader
 
 	// decoder is the zstd decompressor for reading compressed data.
 	decoder *zstd.Decoder
 
-	// readBytes is the running count of decompressed bytes returned. The
-	// running count is used to detect when the cap has been hit so the
-	// sentinel ErrDecompressedTooLarge can be surfaced to the caller.
+	// readBytes is the running count of decompressed bytes returned. The running count is
+	// used to detect when the cap has been hit so the sentinel ErrDecompressedTooLarge can
+	// be surfaced to the caller.
 	readBytes int64
 
-	// maxBytes is the cap on decompressed bytes; non-positive disables the
-	// cap entirely.
+	// maxBytes is the cap on decompressed bytes; non-positive disables the cap entirely.
 	maxBytes int64
 }
 
-// Read reads decompressed data from the zstd decoder, enforcing the
-// configured maximum decompressed byte limit. When the limit is reached, the
-// read returns ErrDecompressedTooLarge.
+// Read reads decompressed data from the zstd decoder, enforcing the configured maximum
+// decompressed byte limit. When the limit is reached, the read returns
+// ErrDecompressedTooLarge.
 //
 // Takes p ([]byte) which is the buffer to read decompressed data into.
 //

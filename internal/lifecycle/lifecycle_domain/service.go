@@ -34,9 +34,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/component/component_domain"
 	"piko.sh/piko/internal/component/component_dto"
-	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/goroutine"
@@ -52,54 +52,50 @@ const (
 	// themeArtefactPath is the artefact path for the generated theme CSS file.
 	themeArtefactPath = "theme.css"
 
-	// fileEventChannelBuffer is the buffer size for the file event channel during
-	// asset seeding.
+	// fileEventChannelBuffer is the buffer size for the file event channel during asset
+	// seeding.
 	fileEventChannelBuffer = 1000
 
-	// gcDelayAfterStartup is the delay before forcing garbage collection after
-	// initial tasks.
+	// gcDelayAfterStartup is the delay before forcing garbage collection after initial
+	// tasks.
 	gcDelayAfterStartup = 30 * time.Second
 
-	// concurrencyMultiplier is the multiplier for NumCPU to determine worker pool
-	// size.
+	// concurrencyMultiplier is the multiplier for NumCPU to determine worker pool size.
 	concurrencyMultiplier = 4
 
-	// initialTaskErrChanBuffer is the buffer size for the error channel during
-	// initial task execution.
+	// initialTaskErrChanBuffer is the buffer size for the error channel during initial task
+	// execution.
 	initialTaskErrChanBuffer = 3
 
 	// fieldPath is the logging field name for file paths.
 	fieldPath = "path"
 
-	// rebuildDrainTimeout bounds how long Stop waits for in-flight targeted
-	// rebuild goroutines to complete before reporting a drain error.
+	// rebuildDrainTimeout bounds how long Stop waits for in-flight targeted rebuild
+	// goroutines to complete before reporting a drain error.
 	rebuildDrainTimeout = 30 * time.Second
 )
 
-// lifecycleService is the core domain service for build-to-runtime lifecycle
-// management. It implements LifecycleService, handling file watching, build
-// notifications, asset pipeline orchestration, and router hot-reload.
+// lifecycleService is the core domain service for build-to-runtime lifecycle management.
+// It implements LifecycleService, handling file watching, build notifications, asset
+// pipeline orchestration, and router hot-reload.
 type lifecycleService struct {
-	// gcTimer holds the post-startup GC timer so it can be stopped during
-	// shutdown.
+	// gcTimer holds the post-startup GC timer so it can be stopped during shutdown.
 	gcTimer clock.Timer
 
-	// componentRegistry holds the PKC component registry for deterministic tag
-	// lookup.
+	// componentRegistry holds the PKC component registry for deterministic tag lookup.
 	componentRegistry component_domain.ComponentRegistry
 
 	// templaterService swaps the template runner for interpreted mode.
 	templaterService TemplaterRunnerSwapper
 
-	// coordinatorService handles build coordination; nil disables rebuild
-	// requests.
+	// coordinatorService handles build coordination; nil disables rebuild requests.
 	coordinatorService coordinator_domain.CoordinatorService
 
 	// resolver provides module path lookup; nil when path lookup is not available.
 	resolver resolver_domain.ResolverPort
 
-	// renderRegistryPort provides access to the render registry for clearing
-	// SVG and component caches; nil disables cache clearing.
+	// renderRegistryPort provides access to the render registry for clearing SVG and
+	// component caches; nil disables cache clearing.
 	renderRegistryPort render_domain.RegistryPort
 
 	// renderer builds CSS and other rendered assets; nil if rendering is disabled.
@@ -114,12 +110,11 @@ type lifecycleService struct {
 	// routerManager notifies the router to reload routes after manifest changes.
 	routerManager RouterReloadNotifier
 
-	// captchaService provides access to captcha providers for seeding init
-	// scripts. Nil when captcha is not configured.
+	// captchaService provides access to captcha providers for seeding init scripts. Nil when
+	// captcha is not configured.
 	captchaService captcha_domain.CaptchaServicePort
 
-	// interpretedOrchestrator manages builds and runner lifecycle in interpreted
-	// mode.
+	// interpretedOrchestrator manages builds and runner lifecycle in interpreted mode.
 	interpretedOrchestrator InterpretedBuildOrchestrator
 
 	// registryService handles storage and retrieval of artefacts.
@@ -131,31 +126,30 @@ type lifecycleService struct {
 	// assetPipeline processes asset manifests from build results.
 	assetPipeline AssetPipelinePort
 
-	// buildCacheInvalidator clears the JIT build cache when core source files
-	// change; nil means cache clearing is disabled.
+	// buildCacheInvalidator clears the JIT build cache when core source files change; nil
+	// means cache clearing is disabled.
 	buildCacheInvalidator BuildCacheInvalidator
 
-	// devEventNotifier broadcasts build-complete events to connected browsers
-	// via SSE. Nil in production mode.
+	// devEventNotifier broadcasts build-complete events to connected browsers via SSE. Nil
+	// in production mode.
 	devEventNotifier DevEventNotifier
 
-	// unsubscribe cancels the build notification subscription; nil if not
-	// subscribed.
+	// unsubscribe cancels the build notification subscription; nil if not subscribed.
 	unsubscribe func()
 
 	// stopChan signals goroutines to stop; closed by Stop.
 	stopChan chan struct{}
 
-	// pathsConfig holds the resolved source directory paths for this lifecycle
-	// instance. All fields are value types; pointer-to-value conversion is
-	// performed in the bootstrap layer.
+	// pathsConfig holds the resolved source directory paths for this lifecycle instance. All
+	// fields are value types; pointer-to-value conversion is performed in the bootstrap
+	// layer.
 	pathsConfig LifecyclePathsConfig
 
 	// entryPoints holds the discovered package entry points; protected by mu.
 	entryPoints []annotator_dto.EntryPoint
 
-	// externalComponents holds component definitions from WithComponents() that
-	// need module resolution at build time.
+	// externalComponents holds component definitions from WithComponents() that need module
+	// resolution at build time.
 	externalComponents []component_dto.ComponentDefinition
 
 	// websiteConfig provides theme/font/favicon metadata for theme building.
@@ -164,16 +158,15 @@ type lifecycleService struct {
 	// mu guards access to entryPoints for safe concurrent reads and writes.
 	mu sync.RWMutex
 
-	// rebuildWG tracks in-flight targeted rebuild goroutines so Stop can wait
-	// for them to drain before returning.
+	// rebuildWG tracks in-flight targeted rebuild goroutines so Stop can wait for them to
+	// drain before returning.
 	rebuildWG sync.WaitGroup
 
 	// stopOnce guards single execution of Stop.
 	stopOnce sync.Once
 }
 
-// LifecycleServiceDeps contains all dependencies needed to create a
-// LifecycleService.
+// LifecycleServiceDeps contains all dependencies needed to create a LifecycleService.
 type LifecycleServiceDeps struct {
 	// WatcherAdapter watches the file system for changes.
 	WatcherAdapter FileSystemWatcher
@@ -187,8 +180,7 @@ type LifecycleServiceDeps struct {
 	// Clock provides time functions; nil uses the real system clock.
 	Clock clock.Clock
 
-	// Resolver provides module path and directory resolution for
-	// lifecycle operations.
+	// Resolver provides module path and directory resolution for lifecycle operations.
 	Resolver resolver_domain.ResolverPort
 
 	// RenderRegistryPort gives access to the render registry.
@@ -212,44 +204,42 @@ type LifecycleServiceDeps struct {
 	// BuildCacheInvalidator clears stored build files when content changes.
 	BuildCacheInvalidator BuildCacheInvalidator
 
-	// DevEventNotifier broadcasts build-complete events to connected browsers.
-	// Nil in production mode.
+	// DevEventNotifier broadcasts build-complete events to connected browsers. Nil in
+	// production mode.
 	DevEventNotifier DevEventNotifier
 
 	// FileSystem provides filesystem operations; nil uses the OS filesystem.
 	FileSystem FileSystem
 
-	// ComponentRegistry holds the PKC component registry for auto-discovery.
-	// If nil, component auto-discovery is disabled.
+	// ComponentRegistry holds the PKC component registry for auto-discovery. If nil,
+	// component auto-discovery is disabled.
 	ComponentRegistry component_domain.ComponentRegistry
 
-	// CaptchaService provides access to captcha providers for seeding init
-	// scripts into the registry. Nil when captcha is not configured.
+	// CaptchaService provides access to captcha providers for seeding init scripts into the
+	// registry. Nil when captcha is not configured.
 	CaptchaService captcha_domain.CaptchaServicePort
 
-	// PathsConfig holds the resolved source directory paths. All fields are
-	// value types; the bootstrap layer converts pointer config fields before
-	// passing this in.
+	// PathsConfig holds the resolved source directory paths. All fields are value types; the
+	// bootstrap layer converts pointer config fields before passing this in.
 	PathsConfig LifecyclePathsConfig
 
-	// ExternalComponents holds component definitions from WithComponents() that
-	// require module resolution. The lifecycle service resolves their ModulePath
-	// to disk directories and discovers .pkc files there.
+	// ExternalComponents holds component definitions from WithComponents() that require
+	// module resolution. The lifecycle service resolves their ModulePath to disk directories
+	// and discovers .pkc files there.
 	ExternalComponents []component_dto.ComponentDefinition
 
-	// WebsiteConfig provides theme/font/favicon metadata for the lifecycle
-	// service's theme rebuild step.
+	// WebsiteConfig provides theme/font/favicon metadata for the lifecycle service's theme
+	// rebuild step.
 	WebsiteConfig config.WebsiteConfig
 }
 
-// Start begins the lifecycle management: file watching and build
-// notification handling.
+// Start begins the lifecycle management: file watching and build notification handling.
 //
-// Returns error when initial entry point discovery fails or the file watcher
-// cannot be started.
+// Returns error when initial entry point discovery fails or the file watcher cannot be
+// started.
 //
-// Safe for concurrent use. Spawns background goroutines for the watch loop
-// and build notification handling that run until Stop is called.
+// Safe for concurrent use. Spawns background goroutines for the watch loop and build
+// notification handling that run until Stop is called.
 func (ls *lifecycleService) Start(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "LifecycleService.Start")
 	defer span.End()
@@ -294,15 +284,14 @@ func (ls *lifecycleService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop shuts down the lifecycle service and releases its resources. It waits
-// for any in-flight targeted rebuilds to drain, bounded by
-// rebuildDrainTimeout, before returning.
+// Stop shuts down the lifecycle service and releases its resources. It waits for any
+// in-flight targeted rebuilds to drain, bounded by rebuildDrainTimeout, before returning.
 //
-// Returns error when the file watcher fails to close or when outstanding
-// rebuilds do not drain within the timeout.
+// Returns error when the file watcher fails to close or when outstanding rebuilds do not
+// drain within the timeout.
 //
-// Concurrency: idempotent via sync.Once; awaits the rebuild WaitGroup under
-// a context-bounded drain timeout.
+// Concurrency: idempotent via sync.Once; awaits the rebuild WaitGroup under a
+// context-bounded drain timeout.
 func (ls *lifecycleService) Stop(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "LifecycleService.Stop")
 	defer span.End()
@@ -347,13 +336,13 @@ func (ls *lifecycleService) Stop(ctx context.Context) error {
 	return stopErr
 }
 
-// RunInitialTasks runs one-time startup tasks such as asset seeding and
-// configuration loading.
+// RunInitialTasks runs one-time startup tasks such as asset seeding and configuration
+// loading.
 //
 // Returns error when any critical task fails during startup.
 //
-// Spawns goroutines for each startup task and waits for them to complete.
-// Schedules a garbage collection after the initial build period.
+// Spawns goroutines for each startup task and waits for them to complete. Schedules a
+// garbage collection after the initial build period.
 func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "RunInitialTasks")
 	defer span.End()
@@ -410,8 +399,7 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 
 // GetEntryPoints returns the current set of discovered entry points.
 //
-// Returns []annotator_dto.EntryPoint which is a copy of the internal entry
-// points slice.
+// Returns []annotator_dto.EntryPoint which is a copy of the internal entry points slice.
 //
 // Safe for concurrent use. Returns a defensive copy to prevent data races.
 func (ls *lifecycleService) GetEntryPoints() []annotator_dto.EntryPoint {
@@ -427,8 +415,8 @@ func (ls *lifecycleService) GetEntryPoints() []annotator_dto.EntryPoint {
 //
 // Takes causationID (string) which identifies the cause of the rebuild request.
 //
-// Safe for concurrent use. Acquires a read lock to access entry points and
-// action providers before delegating to the coordinator service.
+// Safe for concurrent use. Acquires a read lock to access entry points and action
+// providers before delegating to the coordinator service.
 func (ls *lifecycleService) RequestRebuild(ctx context.Context, causationID string) {
 	if ls.coordinatorService == nil {
 		return
@@ -444,8 +432,8 @@ func (ls *lifecycleService) RequestRebuild(ctx context.Context, causationID stri
 
 // getAssetSourceDirs returns the full paths to all source directories.
 //
-// Returns []string which contains paths to configured source directories,
-// including assets, pages, components, partials, and i18n.
+// Returns []string which contains paths to configured source directories, including
+// assets, pages, components, partials, and i18n.
 func (ls *lifecycleService) getAssetSourceDirs() []string {
 	var dirs []string
 	paths := &ls.pathsConfig
@@ -471,8 +459,7 @@ func (ls *lifecycleService) getAssetSourceDirs() []string {
 
 // seedAllAssets finds all asset files and adds them to the registry.
 //
-// Takes limiter (chan struct{}) which controls how many files are processed at
-// once.
+// Takes limiter (chan struct{}) which controls how many files are processed at once.
 func (ls *lifecycleService) seedAllAssets(ctx context.Context, limiter chan struct{}) {
 	ctx, span, l := log.Span(ctx, "seedAllAssets")
 	defer span.End()
@@ -527,8 +514,7 @@ func (ls *lifecycleService) discoverAssetFiles(ctx context.Context, assetDirs []
 	return allFiles
 }
 
-// walkAssetDir walks a single directory and sends matching files to the
-// channel.
+// walkAssetDir walks a single directory and sends matching files to the channel.
 //
 // Takes ctx (context.Context) which carries the logger and cancellation.
 // Takes directory (string) which specifies the directory path to walk.
@@ -577,16 +563,13 @@ func (ls *lifecycleService) processWalkedFile(ctx context.Context, path string, 
 	}
 }
 
-// processFilesWithLimiter processes files simultaneously with a
-// semaphore limiter, spawning one task per file.
+// processFilesWithLimiter processes files simultaneously with a semaphore limiter,
+// spawning one task per file.
 //
-// Takes files ([]lifecycle_dto.FileEvent) which contains the file
-// events to process.
-// Takes limiter (chan struct{}) which controls throughput by
-// acting as a semaphore.
+// Takes files ([]lifecycle_dto.FileEvent) which contains the file events to process.
+// Takes limiter (chan struct{}) which controls throughput by acting as a semaphore.
 //
-// Concurrent goroutines are spawned per file, bounded by the
-// semaphore limiter.
+// Concurrent goroutines are spawned per file, bounded by the semaphore limiter.
 func (ls *lifecycleService) processFilesWithLimiter(ctx context.Context, files []lifecycle_dto.FileEvent, limiter chan struct{}) {
 	var seedWg sync.WaitGroup
 	for _, fileEvent := range files {
@@ -641,10 +624,9 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 	return nil
 }
 
-// seedCaptchaInitScripts registers captcha provider init scripts as artefacts
-// in the registry. Each cloud provider's init script is a static JavaScript
-// file that uses data-attribute selectors to find and initialise captcha
-// widgets on the page.
+// seedCaptchaInitScripts registers captcha provider init scripts as artefacts in the
+// registry. Each cloud provider's init script is a static JavaScript file that uses
+// data-attribute selectors to find and initialise captcha widgets on the page.
 //
 // Returns error when an init script cannot be registered.
 func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
@@ -706,11 +688,9 @@ func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
 	return nil
 }
 
-// entryPointDiscoveryConfig holds context for discovering entry points in a
-// directory.
+// entryPointDiscoveryConfig holds context for discovering entry points in a directory.
 type entryPointDiscoveryConfig struct {
-	// baseDir is the root directory used to calculate relative paths for entry
-	// points.
+	// baseDir is the root directory used to calculate relative paths for entry points.
 	baseDir string
 
 	// moduleName is the Go module path used to build relative import paths.
@@ -723,13 +703,12 @@ type entryPointDiscoveryConfig struct {
 	isPublic bool
 }
 
-// discoverInitialEntryPoints walks configured directories to find all .pk
-// files.
+// discoverInitialEntryPoints walks configured directories to find all .pk files.
 //
-// Returns []annotator_dto.EntryPoint which contains the discovered entry points
-// from pages and partials directories.
-// Returns error when no resolver is provided or the pages source directory does
-// not exist.
+// Returns []annotator_dto.EntryPoint which contains the discovered entry points from
+// pages and partials directories.
+// Returns error when no resolver is provided or the pages source directory does not
+// exist.
 func (ls *lifecycleService) discoverInitialEntryPoints(ctx context.Context) ([]annotator_dto.EntryPoint, error) {
 	if ls.resolver == nil {
 		return nil, errors.New("cannot discover entry points: no resolver provided")
@@ -763,11 +742,11 @@ func (ls *lifecycleService) discoverInitialEntryPoints(ctx context.Context) ([]a
 	return entryPoints, nil
 }
 
-// discoverAndRegisterComponents walks the components directory and registers
-// all .pkc files in the component registry for deterministic tag lookup.
+// discoverAndRegisterComponents walks the components directory and registers all .pkc
+// files in the component registry for deterministic tag lookup.
 //
-// Component tag names are derived from the filename (without the .pkc
-// extension). For example, "my-button.pkc" registers as tag name "my-button".
+// Component tag names are derived from the filename (without the .pkc extension). For
+// example, "my-button.pkc" registers as tag name "my-button".
 //
 // Returns error when the directory cannot be walked.
 func (ls *lifecycleService) discoverAndRegisterComponents(ctx context.Context) error {
@@ -866,12 +845,11 @@ func (ls *lifecycleService) walkAndRegisterLocalComponents(ctx context.Context, 
 //
 // Takes directory (string) which is the relative path to search within the base
 // directory.
-// Takes discoveryConfig (entryPointDiscoveryConfig) which
-// provides discovery settings including the base directory
-// path.
+// Takes discoveryConfig (entryPointDiscoveryConfig) which provides discovery settings
+// including the base directory path.
 //
-// Returns []annotator_dto.EntryPoint which contains all discovered entry
-// points from matching files.
+// Returns []annotator_dto.EntryPoint which contains all discovered entry points from
+// matching files.
 // Returns error when the directory walk fails.
 func (ls *lifecycleService) discoverEntryPointsInDir(ctx context.Context, directory string, discoveryConfig entryPointDiscoveryConfig) ([]annotator_dto.EntryPoint, error) {
 	if directory == "" {
@@ -903,16 +881,15 @@ func (ls *lifecycleService) discoverEntryPointsInDir(ctx context.Context, direct
 	return entryPoints, nil
 }
 
-// tryCreateEntryPoint checks if a directory entry is a valid .pk file and
-// creates an entry point.
+// tryCreateEntryPoint checks if a directory entry is a valid .pk file and creates an
+// entry point.
 //
 // Takes absPath (string) which is the absolute path to the file.
 // Takes d (fs.DirEntry) which is the directory entry to check.
-// Takes discoveryConfig (entryPointDiscoveryConfig) which
-// provides discovery settings.
+// Takes discoveryConfig (entryPointDiscoveryConfig) which provides discovery settings.
 //
-// Returns *annotator_dto.EntryPoint which is the created entry point, or nil
-// if the entry is a directory or not a valid .pk file.
+// Returns *annotator_dto.EntryPoint which is the created entry point, or nil if the entry
+// is a directory or not a valid .pk file.
 func (ls *lifecycleService) tryCreateEntryPoint(absPath string, d fs.DirEntry, discoveryConfig entryPointDiscoveryConfig) *annotator_dto.EntryPoint {
 	if d.IsDir() || !isValidPKFile(d.Name()) {
 		return nil
@@ -935,8 +912,8 @@ func (ls *lifecycleService) tryCreateEntryPoint(absPath string, d fs.DirEntry, d
 
 // getStaticWatchDirs finds the folders to watch for file changes.
 //
-// Returns []string which holds full paths to source folders, or nil if no
-// resolver is set.
+// Returns []string which holds full paths to source folders, or nil if no resolver is
+// set.
 func (ls *lifecycleService) getStaticWatchDirs() []string {
 	if ls.resolver == nil {
 		return nil
@@ -972,12 +949,10 @@ func (ls *lifecycleService) getStaticWatchDirs() []string {
 	return dirs
 }
 
-// NewLifecycleService creates a new lifecycle service with the provided
-// dependencies.
+// NewLifecycleService creates a new lifecycle service with the provided dependencies.
 //
-// Takes deps (*LifecycleServiceDeps) which provides all required service
-// dependencies. If FileSystem is nil, defaults to OS filesystem. If Clock is
-// nil, defaults to real clock.
+// Takes deps (*LifecycleServiceDeps) which provides all required service dependencies. If
+// FileSystem is nil, defaults to OS filesystem. If Clock is nil, defaults to real clock.
 //
 // Returns LifecycleService which is ready to manage lifecycle operations.
 func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
@@ -1023,8 +998,8 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 //
 // Takes name (string) which is the filename to check.
 //
-// Returns bool which is true if the file has a .pk extension and does not
-// start with an underscore.
+// Returns bool which is true if the file has a .pk extension and does not start with an
+// underscore.
 func isValidPKFile(name string) bool {
 	return strings.HasSuffix(strings.ToLower(name), ".pk") && !strings.HasPrefix(name, "_")
 }

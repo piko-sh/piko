@@ -22,6 +22,6 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
-// Exporter is the interface that all metrics exporters must implement.
-// Implement it to create custom or mock exporters.
+// Exporter is the interface that all metrics exporters must implement. Implement it to
+// create custom or mock exporters.
 type Exporter = monitoring_domain.MetricsExporter

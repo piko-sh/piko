@@ -28,23 +28,22 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// SandboxFactory creates a sandbox for a given directory with the specified
-// access mode. When nil is passed as a factory to NewServerAdapterFromTLSConfig,
-// the default safedisk.NewNoOpSandbox is used.
+// SandboxFactory creates a sandbox for a given directory with the specified access mode.
+// When nil is passed as a factory to NewServerAdapterFromTLSConfig, the default
+// safedisk.NewNoOpSandbox is used.
 type SandboxFactory func(name, baseDir string, mode safedisk.Mode) (safedisk.Sandbox, error)
 
-// NewServerAdapterFromTLSConfig creates the appropriate ServerAdapter based
-// on the resolved TLS configuration.
+// NewServerAdapterFromTLSConfig creates the appropriate ServerAdapter based on the
+// resolved TLS configuration.
 //
-// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS
-// settings.
+// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS settings.
 // Takes purpose (serverPurpose) which identifies the server role for logging.
-// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading
-// client CA files. When nil, a default no-op sandbox is used.
+// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading client CA
+// files. When nil, a default no-op sandbox is used.
 //
 // Returns daemon_domain.ServerAdapter which is the configured adapter.
-// Returns func() error which is a cleanup callback that releases
-// TLS resources when called.
+// Returns func() error which is a cleanup callback that releases TLS resources when
+// called.
 // Returns error when certificate loading fails.
 func NewServerAdapterFromTLSConfig(
 	ctx context.Context,
@@ -71,17 +70,15 @@ func NewServerAdapterFromTLSConfig(
 	return adapter, cleanup, nil
 }
 
-// buildTLSAdapterConfig constructs the TLSAdapterConfig from resolved TLS
-// values, handling certificate loading and client CA setup.
+// buildTLSAdapterConfig constructs the TLSAdapterConfig from resolved TLS values,
+// handling certificate loading and client CA setup.
 //
-// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS
-// settings.
-// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading
-// CA files.
+// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS settings.
+// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading CA files.
 //
 // Returns *TLSAdapterConfig which is the constructed config.
-// Returns func() error which is a cleanup callback that releases
-// allocated resources when called.
+// Returns func() error which is a cleanup callback that releases allocated resources when
+// called.
 // Returns error when certificate or CA loading fails.
 func buildTLSAdapterConfig(ctx context.Context, tlsValues tlscert.TLSValues, sandboxFactory SandboxFactory) (*TLSAdapterConfig, func() error, error) {
 	switch tlsValues.Mode {
@@ -95,14 +92,13 @@ func buildTLSAdapterConfig(ctx context.Context, tlsValues tlscert.TLSValues, san
 
 // buildCertFileTLSConfig creates a TLS config from certificate files.
 //
-// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS
-// settings.
-// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading
-// CA files. When nil, falls back to safedisk.NewNoOpSandbox.
+// Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS settings.
+// Takes sandboxFactory (SandboxFactory) which creates sandboxes for loading CA files.
+// When nil, falls back to safedisk.NewNoOpSandbox.
 //
 // Returns *TLSAdapterConfig which is the constructed TLS config.
-// Returns func() error which closes the certificate loader when
-// called to release TLS resources.
+// Returns func() error which closes the certificate loader when called to release TLS
+// resources.
 // Returns error when certificate or CA loading fails.
 func buildCertFileTLSConfig(ctx context.Context, tlsValues tlscert.TLSValues, sandboxFactory SandboxFactory) (*TLSAdapterConfig, func() error, error) {
 	loader, err := newCertificateLoader(ctx, tlsValues.CertFile, tlsValues.KeyFile, tlsValues.HotReload)

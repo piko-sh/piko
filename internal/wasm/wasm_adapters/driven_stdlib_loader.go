@@ -26,10 +26,12 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 
-var _ wasm_domain.StdlibLoaderPort = (*stdlibLoader)(nil)
+var (
+	_ wasm_domain.StdlibLoaderPort = (*stdlibLoader)(nil)
+)
 
-// stdlibLoader loads standard library type data from an embedded FlatBuffer.
-// It implements StdlibLoaderPort.
+// stdlibLoader loads standard library type data from an embedded FlatBuffer. It
+// implements StdlibLoaderPort.
 type stdlibLoader struct {
 	// data holds the cached stdlib type information; nil until Load is called.
 	data *inspector_dto.TypeData
@@ -49,10 +51,9 @@ type StdlibLoaderOption func(*stdlibLoader)
 
 // Load returns the pre-bundled stdlib TypeData.
 //
-// Returns *inspector_dto.TypeData which contains the standard library type
-// information.
-// Returns error when no load function is configured, no decoder is configured,
-// or loading or decoding fails.
+// Returns *inspector_dto.TypeData which contains the standard library type information.
+// Returns error when no load function is configured, no decoder is configured, or loading
+// or decoding fails.
 func (l *stdlibLoader) Load() (*inspector_dto.TypeData, error) {
 	if l.data != nil {
 		return l.data, nil
@@ -92,13 +93,12 @@ func (l *stdlibLoader) GetPackageList() []string {
 	return l.packageList
 }
 
-// WithLoadFunc sets a custom function to load the raw stdlib data. Use it
-// for testing or when using a different data source.
+// WithLoadFunc sets a custom function to load the raw stdlib data. Use it for testing or
+// when using a different data source.
 //
 // Takes loadFunction (func() ([]byte, error)) which provides the raw stdlib data.
 //
-// Returns StdlibLoaderOption which sets up the loader to use the custom load
-// function.
+// Returns StdlibLoaderOption which sets up the loader to use the custom load function.
 func WithLoadFunc(loadFunction func() ([]byte, error)) StdlibLoaderOption {
 	return func(l *stdlibLoader) {
 		l.loadFunc = loadFunction
@@ -109,8 +109,7 @@ func WithLoadFunc(loadFunction func() ([]byte, error)) StdlibLoaderOption {
 //
 // Takes decodeFunction (func(...)) which converts raw bytes into type data.
 //
-// Returns StdlibLoaderOption which configures the loader to use the custom
-// decoder.
+// Returns StdlibLoaderOption which configures the loader to use the custom decoder.
 func WithDecoder(decodeFunction func([]byte) (*inspector_dto.TypeData, error)) StdlibLoaderOption {
 	return func(l *stdlibLoader) {
 		l.decoder = decodeFunction
@@ -121,8 +120,7 @@ func WithDecoder(decodeFunction func([]byte) (*inspector_dto.TypeData, error)) S
 //
 // Takes opts (...StdlibLoaderOption) which configures the loader behaviour.
 //
-// Returns wasm_domain.StdlibLoaderPort which is the configured loader ready for
-// use.
+// Returns wasm_domain.StdlibLoaderPort which is the configured loader ready for use.
 func NewStdlibLoader(opts ...StdlibLoaderOption) wasm_domain.StdlibLoaderPort {
 	l := &stdlibLoader{}
 

@@ -36,17 +36,17 @@ import (
 )
 
 const (
-	// defaultHybridCacheMaxBytes caps the weight-based bound on the
-	// hybrid-collections cache.
+	// defaultHybridCacheMaxBytes caps the weight-based bound on the hybrid-collections
+	// cache.
 	defaultHybridCacheMaxBytes uint64 = 1 << 30
 
-	// defaultHybridCacheWriteExpiration is the safety-net write expiration on
-	// the hybrid-collections cache.
+	// defaultHybridCacheWriteExpiration is the safety-net write expiration on the
+	// hybrid-collections cache.
 	defaultHybridCacheWriteExpiration = 1 * time.Hour
 )
 
-// createCollectionService creates and sets up the collection service with
-// its providers. Call this once during bootstrap.
+// createCollectionService creates and sets up the collection service with its providers.
+// Call this once during bootstrap.
 //
 // The collection service handles:
 //   - Processing GetCollection() calls found by the type resolver
@@ -55,8 +55,8 @@ const (
 //
 // Takes c (*Container) which gives access to settings and dependencies.
 //
-// Returns collection_domain.CollectionService which is the ready service for
-// processing collection requests.
+// Returns collection_domain.CollectionService which is the ready service for processing
+// collection requests.
 // Returns error when sandbox creation fails or provider setup fails.
 func createCollectionService(c *Container) (collection_domain.CollectionService, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
@@ -121,9 +121,9 @@ func createCollectionService(c *Container) (collection_domain.CollectionService,
 	return collectionService, nil
 }
 
-// initHybridCache swaps the hybrid collection cache from the startup otter
-// instance (created during package init) to a service-managed instance so it
-// appears in the dev widget's cache panel.
+// initHybridCache swaps the hybrid collection cache from the startup otter instance
+// (created during package init) to a service-managed instance so it appears in the dev
+// widget's cache panel.
 //
 // Takes c (*Container) which provides access to the cache service.
 func initHybridCache(c *Container) {
@@ -153,15 +153,15 @@ func initHybridCache(c *Container) {
 	l.Internal("Hybrid collection cache migrated to cache service")
 }
 
-// hybridCacheValueWeigher returns the byte cost of a hybrid cache
-// entry as the sum of key, blob, and ETag lengths.
+// hybridCacheValueWeigher returns the byte cost of a hybrid cache entry as the sum of
+// key, blob, and ETag lengths.
 //
 // Takes key (string) which is the cache key.
-// Takes value (collection_domain.HybridCacheValue) which holds the
-// blobs and ETag metadata for a hybrid collection.
+// Takes value (collection_domain.HybridCacheValue) which holds the blobs and ETag
+// metadata for a hybrid collection.
 //
-// Returns uint32 which is the entry weight in bytes, clamped to the
-// maximum uint32 value when the total would overflow.
+// Returns uint32 which is the entry weight in bytes, clamped to the maximum uint32 value
+// when the total would overflow.
 func hybridCacheValueWeigher(key string, value collection_domain.HybridCacheValue) uint32 {
 	total := len(key) + len(value.CurrentBlob) + len(value.SnapshotBlob) +
 		len(value.CurrentETag) + len(value.SnapshotETag)
@@ -171,8 +171,8 @@ func hybridCacheValueWeigher(key string, value collection_domain.HybridCacheValu
 	return uint32(total)
 }
 
-// resolveHybridCacheMaxBytes returns the operator-supplied byte cap
-// on the hybrid-collections cache.
+// resolveHybridCacheMaxBytes returns the operator-supplied byte cap on the
+// hybrid-collections cache.
 //
 // Returns uint64 which is the resolved byte cap.
 func (c *Container) resolveHybridCacheMaxBytes() uint64 {
@@ -182,8 +182,8 @@ func (c *Container) resolveHybridCacheMaxBytes() uint64 {
 	return defaultHybridCacheMaxBytes
 }
 
-// resolveHybridCacheWriteExpiration returns the operator-supplied
-// write expiration on the hybrid-collections cache.
+// resolveHybridCacheWriteExpiration returns the operator-supplied write expiration on the
+// hybrid-collections cache.
 //
 // Returns time.Duration which is the resolved expiration.
 func (c *Container) resolveHybridCacheWriteExpiration() time.Duration {

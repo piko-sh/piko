@@ -43,7 +43,9 @@ type testEnv struct {
 	cleanup          func()
 }
 
-var globalEnv *testEnv
+var (
+	globalEnv *testEnv
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

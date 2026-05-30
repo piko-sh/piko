@@ -32,34 +32,30 @@ const (
 	// defaultPriority is the execution order for the PDF/A transformer.
 	defaultPriority = 200
 
-	// defaultLevel is the PDF/A conformance level used when the option is
-	// empty.
+	// defaultLevel is the PDF/A conformance level used when the option is empty.
 	defaultLevel = "1b"
 
 	// outputIntentSubtype is the PDF output intent subtype for PDF/A.
 	outputIntentSubtype = "GTS_PDFA1"
 
-	// sRGBProfileName is the human-readable name for the sRGB colour
-	// profile used in the output intent.
+	// sRGBProfileName is the human-readable name for the sRGB colour profile used in the
+	// output intent.
 	sRGBProfileName = "sRGB IEC61966-2.1"
 
-	// xmpPacketBegin is the XML processing instruction that opens an XMP
-	// packet.
+	// xmpPacketBegin is the XML processing instruction that opens an XMP packet.
 	xmpPacketBegin = "<?xpacket begin=\"\xEF\xBB\xBF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>"
 
-	// xmpPacketEnd is the XML processing instruction that closes an XMP
-	// packet.
+	// xmpPacketEnd is the XML processing instruction that closes an XMP packet.
 	xmpPacketEnd = "<?xpacket end=\"w\"?>"
 )
 
-// PdfATransformer converts a PDF document to conform to a specified PDF/A
-// archival standard level. It adds XMP metadata declaring the conformance
-// level, inserts an sRGB output intent, and removes features that are
-// prohibited under the target level (additional actions, JavaScript, and
-// transparency groups for PDF/A-1b).
+// PdfATransformer converts a PDF document to conform to a specified PDF/A archival
+// standard level. It adds XMP metadata declaring the conformance level, inserts an sRGB
+// output intent, and removes features that are prohibited under the target level
+// (additional actions, JavaScript, and transparency groups for PDF/A-1b).
 //
-// Supported levels are "1b" (PDF/A-1b), "2b" (PDF/A-2b), and "3b"
-// (PDF/A-3b). An empty level defaults to "1b".
+// Supported levels are "1b" (PDF/A-1b), "2b" (PDF/A-2b), and "3b" (PDF/A-3b). An empty
+// level defaults to "1b".
 type PdfATransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -68,7 +64,9 @@ type PdfATransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*PdfATransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*PdfATransformer)(nil)
+)
 
 // New creates a new PDF/A transformer with default name and priority.
 //
@@ -87,8 +85,8 @@ func (t *PdfATransformer) Name() string { return t.name }
 
 // Type returns TransformerCompliance.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a
-// compliance transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a compliance
+// transformer.
 func (*PdfATransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerCompliance
 }
@@ -98,8 +96,8 @@ func (*PdfATransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *PdfATransformer) Priority() int { return t.priority }
 
-// Transform applies PDF/A conformance modifications to the PDF. Options
-// must be PdfAOptions or *PdfAOptions.
+// Transform applies PDF/A conformance modifications to the PDF. Options must be
+// PdfAOptions or *PdfAOptions.
 //
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be PdfAOptions or *PdfAOptions.
@@ -177,11 +175,10 @@ func castOptions(options any) (pdfwriter_dto.PdfAOptions, error) {
 	}
 }
 
-// parseLevel splits a level string like "1b" into a numeric part and a
-// conformance letter.
+// parseLevel splits a level string like "1b" into a numeric part and a conformance
+// letter.
 //
-// Takes level (string) which specifies the PDF/A level such as "1b", "2b",
-// or "3b".
+// Takes level (string) which specifies the PDF/A level such as "1b", "2b", or "3b".
 //
 // Returns part (string) which is the numeric part of the level.
 // Returns conformance (string) which is the uppercase conformance letter.
@@ -199,8 +196,8 @@ func parseLevel(level string) (part string, conformance string, err error) {
 	}
 }
 
-// getCatalog locates the document catalog object from the writer's trailer
-// and returns its object number and dictionary.
+// getCatalog locates the document catalog object from the writer's trailer and returns
+// its object number and dictionary.
 //
 // Takes writer (*pdfparse.Writer) which provides access to the PDF objects.
 //
@@ -223,12 +220,12 @@ func getCatalog(writer *pdfparse.Writer) (int, pdfparse.Dict, error) {
 	return rootRef.Number, catalogDict, nil
 }
 
-// addXMPMetadata creates an XMP metadata stream declaring PDF/A
-// conformance and sets the catalog's /Metadata entry to reference it.
+// addXMPMetadata creates an XMP metadata stream declaring PDF/A conformance and sets the
+// catalog's /Metadata entry to reference it.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer for adding objects.
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// update with the metadata reference.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to update with the
+// metadata reference.
 // Takes part (string) which is the numeric PDF/A part.
 // Takes conformance (string) which is the uppercase conformance letter.
 func addXMPMetadata(writer *pdfparse.Writer, catalogDict *pdfparse.Dict, part, conformance string) {
@@ -243,8 +240,8 @@ func addXMPMetadata(writer *pdfparse.Writer, catalogDict *pdfparse.Dict, part, c
 	catalogDict.Set("Metadata", pdfparse.RefObj(metaObjNum, 0))
 }
 
-// buildXMPPacket constructs the XMP XML payload with the pdfaid namespace
-// declaring the given part and conformance values.
+// buildXMPPacket constructs the XMP XML payload with the pdfaid namespace declaring the
+// given part and conformance values.
 //
 // Takes part (string) which is the numeric PDF/A part.
 // Takes conformance (string) which is the uppercase conformance letter.
@@ -264,12 +261,12 @@ func buildXMPPacket(part, conformance string) string {
 		xmpPacketEnd
 }
 
-// addOutputIntent adds an sRGB output intent to the catalog's
-// /OutputIntents array if one is not already present.
+// addOutputIntent adds an sRGB output intent to the catalog's /OutputIntents array if one
+// is not already present.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer for adding objects.
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// update with the output intent.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to update with the
+// output intent.
 func addOutputIntent(writer *pdfparse.Writer, catalogDict *pdfparse.Dict) {
 	intentDict := pdfparse.Dict{Pairs: []pdfparse.DictPair{
 		{Key: "Type", Value: pdfparse.Name("OutputIntent")},
@@ -283,12 +280,10 @@ func addOutputIntent(writer *pdfparse.Writer, catalogDict *pdfparse.Dict) {
 	catalogDict.Set("OutputIntents", pdfparse.Arr(pdfparse.RefObj(intentObjNum, 0)))
 }
 
-// removeProhibitedFromCatalog removes entries from the catalog that are
-// prohibited under all PDF/A levels: /AA (additional actions) and
-// /JavaScript from the /Names dictionary.
+// removeProhibitedFromCatalog removes entries from the catalog that are prohibited under
+// all PDF/A levels: /AA (additional actions) and /JavaScript from the /Names dictionary.
 //
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// sanitise.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to sanitise.
 func removeProhibitedFromCatalog(catalogDict *pdfparse.Dict) {
 	catalogDict.Remove("AA")
 
@@ -308,9 +303,9 @@ func removeProhibitedFromCatalog(catalogDict *pdfparse.Dict) {
 
 // removePagesProhibited removes prohibited entries from each page dictionary.
 //
-// For PDF/A-1b, this includes /AA (additional actions) and transparency groups
-// (/Group with /S /Transparency). For levels 2b and 3b, only /AA is removed
-// since transparency is permitted.
+// For PDF/A-1b, this includes /AA (additional actions) and transparency groups (/Group
+// with /S /Transparency). For levels 2b and 3b, only /AA is removed since transparency is
+// permitted.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer for mutations.
 // Takes pageRefs ([]int) which holds the page object numbers to process.
@@ -337,8 +332,8 @@ func removePagesProhibited(writer *pdfparse.Writer, pageRefs []int, level string
 	}
 }
 
-// removeTransparencyGroup removes a /Group entry from a page dictionary
-// if it has /S /Transparency.
+// removeTransparencyGroup removes a /Group entry from a page dictionary if it has /S
+// /Transparency.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to inspect.
 //
@@ -361,8 +356,8 @@ func removeTransparencyGroup(pageDict *pdfparse.Dict) bool {
 	return false
 }
 
-// collectPageRefs walks the page tree and returns object numbers for all
-// leaf Page objects in document order.
+// collectPageRefs walks the page tree and returns object numbers for all leaf Page
+// objects in document order.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -393,8 +388,7 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 	return walkPageTree(doc, pagesRef.Number)
 }
 
-// walkPageTree recursively collects leaf Page object numbers from a Pages
-// tree node.
+// walkPageTree recursively collects leaf Page object numbers from a Pages tree node.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the object number of the current tree node.

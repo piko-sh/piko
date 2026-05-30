@@ -18,8 +18,8 @@
 
 package ast_domain
 
-// Contains accessor methods for TemplateNode including text extraction,
-// attribute manipulation, class handling, and DOM-like traversal methods.
+// Contains accessor methods for TemplateNode including text extraction, attribute
+// manipulation, class handling, and DOM-like traversal methods.
 
 import (
 	"context"
@@ -29,13 +29,13 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// RawText returns the concatenated raw text content of a node and its
-// descendants, including the raw string of any expressions.
+// RawText returns the concatenated raw text content of a node and its descendants,
+// including the raw string of any expressions.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 //
-// Returns string which contains the trimmed raw text, or an empty string if
-// the node is nil.
+// Returns string which contains the trimmed raw text, or an empty string if the node is
+// nil.
 func (n *TemplateNode) RawText(ctx context.Context) string {
 	if n == nil {
 		return ""
@@ -46,13 +46,13 @@ func (n *TemplateNode) RawText(ctx context.Context) string {
 	return strings.TrimSpace(builder.String())
 }
 
-// Text returns the concatenated user-visible text content of a node and its
-// descendants, excluding expressions, comments, and tags.
+// Text returns the concatenated user-visible text content of a node and its descendants,
+// excluding expressions, comments, and tags.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 //
-// Returns string which contains the trimmed text content, or an empty string
-// if the node is nil.
+// Returns string which contains the trimmed text content, or an empty string if the node
+// is nil.
 func (n *TemplateNode) Text(ctx context.Context) string {
 	if n == nil {
 		return ""
@@ -65,11 +65,11 @@ func (n *TemplateNode) Text(ctx context.Context) string {
 
 // GetAttribute returns the value of an attribute by name.
 //
-// The parser makes all attribute names lowercase, so the input name is also
-// made lowercase before comparison.
+// The parser makes all attribute names lowercase, so the input name is also made
+// lowercase before comparison.
 //
-// It first checks static Attributes, then falls back to dynamic
-// AttributeWriters. Static attributes take priority and are faster.
+// It first checks static Attributes, then falls back to dynamic AttributeWriters. Static
+// attributes take priority and are faster.
 //
 // Takes name (string) which specifies the attribute name to look up.
 //
@@ -97,12 +97,12 @@ func (n *TemplateNode) GetAttribute(name string) (string, bool) {
 	return "", false
 }
 
-// GetAttributeWriter returns the DirectWriter for a dynamic attribute by name.
-// Parser lowercases all attribute names, so the input name is lowercased
-// for consistent comparison.
+// GetAttributeWriter returns the DirectWriter for a dynamic attribute by name. Parser
+// lowercases all attribute names, so the input name is lowercased for consistent
+// comparison.
 //
-// Callers can then access dynamic attributes that may contain multiple parts
-// or require lazy evaluation.
+// Callers can then access dynamic attributes that may contain multiple parts or require
+// lazy evaluation.
 //
 // Takes name (string) which specifies the attribute name to look up.
 //
@@ -121,8 +121,7 @@ func (n *TemplateNode) GetAttributeWriter(name string) (*DirectWriter, bool) {
 	return nil, false
 }
 
-// HasAttribute checks for the existence of a static attribute by name
-// (case-insensitive).
+// HasAttribute checks for the existence of a static attribute by name (case-insensitive).
 //
 // Takes name (string) which specifies the attribute name to search for.
 //
@@ -135,8 +134,7 @@ func (n *TemplateNode) HasAttribute(name string) bool {
 	return found
 }
 
-// SetAttribute sets the value of a static attribute, adding it if it does not
-// exist.
+// SetAttribute sets the value of a static attribute, adding it if it does not exist.
 //
 // Takes name (string) which specifies the attribute name to set.
 // Takes value (string) which specifies the attribute value.
@@ -160,8 +158,8 @@ func (n *TemplateNode) SetAttribute(name, value string) {
 	})
 }
 
-// RemoveAttribute removes a static attribute by name. The name is lowercased
-// for matching because the parser stores all attribute names in lowercase.
+// RemoveAttribute removes a static attribute by name. The name is lowercased for matching
+// because the parser stores all attribute names in lowercase.
 //
 // Takes name (string) which specifies the attribute name to remove.
 func (n *TemplateNode) RemoveAttribute(name string) {
@@ -181,8 +179,8 @@ func (n *TemplateNode) RemoveAttribute(name string) {
 
 // Classes returns a slice of class names from the 'class' attribute.
 //
-// Returns []string which contains the space-separated class names, or nil if
-// the attribute is missing or empty.
+// Returns []string which contains the space-separated class names, or nil if the
+// attribute is missing or empty.
 func (n *TemplateNode) Classes() []string {
 	value, found := n.GetAttribute(attributeNameClass)
 	if !found || value == "" {
@@ -212,8 +210,8 @@ func (n *TemplateNode) HasClass(className string) bool {
 	return false
 }
 
-// AddClass adds one or more class names to the node's class list.
-// Duplicate class names are ignored.
+// AddClass adds one or more class names to the node's class list. Duplicate class names
+// are ignored.
 //
 // Takes names (...string) which specifies the class names to add.
 func (n *TemplateNode) AddClass(names ...string) {
@@ -246,8 +244,8 @@ func (n *TemplateNode) AddClass(names ...string) {
 
 // FirstElementChild returns the first child of the node that is an element.
 //
-// Returns *TemplateNode which is the first element child, or nil if no element
-// child exists or the receiver is nil.
+// Returns *TemplateNode which is the first element child, or nil if no element child
+// exists or the receiver is nil.
 func (n *TemplateNode) FirstElementChild() *TemplateNode {
 	if n == nil {
 		return nil
@@ -262,14 +260,13 @@ func (n *TemplateNode) FirstElementChild() *TemplateNode {
 
 // LastElementChild returns the last child of the node that is an element.
 //
-// Returns *TemplateNode which is the last element child, or nil if the
-// receiver is nil or no element children exist.
+// Returns *TemplateNode which is the last element child, or nil if the receiver is nil or
+// no element children exist.
 func (n *TemplateNode) LastElementChild() *TemplateNode {
 	if n == nil {
 		return nil
 	}
-	for i := len(n.Children) - 1; i >= 0; i-- {
-		child := n.Children[i]
+	for _, child := range slices.Backward(n.Children) {
 		if child.NodeType == NodeElement {
 			return child
 		}
@@ -293,18 +290,16 @@ func (n *TemplateNode) ChildElementCount() int {
 	return count
 }
 
-// ShouldFormatInline returns true if this node was originally formatted
-// inline. Returns false if the node should be formatted as block or if no hint
-// is set (FormatAuto).
+// ShouldFormatInline returns true if this node was originally formatted inline. Returns
+// false if the node should be formatted as block or if no hint is set (FormatAuto).
 //
 // Returns bool which indicates whether the node prefers inline formatting.
 func (n *TemplateNode) ShouldFormatInline() bool {
 	return n != nil && n.PreferredFormat == FormatInline
 }
 
-// ShouldFormatBlock returns true if this node was explicitly marked for block
-// formatting. Returns false if the node should be formatted inline or if no
-// hint is set (FormatAuto).
+// ShouldFormatBlock returns true if this node was explicitly marked for block formatting.
+// Returns false if the node should be formatted inline or if no hint is set (FormatAuto).
 //
 // Returns bool which indicates whether block formatting is preferred.
 func (n *TemplateNode) ShouldFormatBlock() bool {
@@ -346,9 +341,9 @@ func walkText(ctx context.Context, node *TemplateNode, builder *strings.Builder)
 
 // walkTextRaw walks a template tree and gathers raw text content.
 //
-// This is the recursive helper for RawText. It visits each node and adds any
-// text content to the builder. Element and fragment nodes are walked in turn.
-// Comment nodes are skipped.
+// This is the recursive helper for RawText. It visits each node and adds any text content
+// to the builder. Element and fragment nodes are walked in turn. Comment nodes are
+// skipped.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes node (*TemplateNode) which is the current node to process.
@@ -403,9 +398,9 @@ func extractPlainTextContent(node *TemplateNode) string {
 
 // extractRawTextContent builds the raw text content of a template node.
 //
-// When the node has no rich text parts, returns the plain text content.
-// Otherwise, rebuilds the original template string by joining literal text
-// and wrapping expressions in template markers.
+// When the node has no rich text parts, returns the plain text content. Otherwise,
+// rebuilds the original template string by joining literal text and wrapping expressions
+// in template markers.
 //
 // Takes node (*TemplateNode) which contains the text or rich text parts.
 //
@@ -428,8 +423,8 @@ func extractRawTextContent(node *TemplateNode) string {
 	return richSb.String()
 }
 
-// appendNormalisedText appends text to the builder with whitespace normalised.
-// It splits content into words and joins them with single spaces.
+// appendNormalisedText appends text to the builder with whitespace normalised. It splits
+// content into words and joins them with single spaces.
 //
 // Takes builder (*strings.Builder) which receives the output.
 // Takes content (string) which is the text to normalise and append.

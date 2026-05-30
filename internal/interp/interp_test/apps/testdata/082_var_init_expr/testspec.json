@@ -1,0 +1,5 @@
+{
+  "description": "main reads a var whose initialiser depends on a same-package func that itself reads another package-level var across files",
+  "modulePath": "testpkg",
+  "expected": "greeting=hello world len=11"
+}

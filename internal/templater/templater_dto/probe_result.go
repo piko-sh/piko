@@ -22,12 +22,12 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 )
 
-// PageProbeResult holds metadata from probing a page without full rendering.
-// It is used to extract Link headers for preloading resources and to carry
-// pre-fetched data to the render phase.
+// PageProbeResult holds metadata from probing a page without full rendering. It is used
+// to extract Link headers for preloading resources and to carry pre-fetched data to the
+// render phase.
 type PageProbeResult struct {
-	// ProbeData holds pre-fetched component metadata from the probe phase.
-	// When non-nil, the render phase reuses it instead of re-fetching.
+	// ProbeData holds pre-fetched component metadata from the probe phase. When non-nil, the
+	// render phase reuses it instead of re-fetching.
 	ProbeData *render_dto.ProbeData
 
 	// LinkHeaders contains HTTP Link headers for early hints in HTTP/2+ requests.

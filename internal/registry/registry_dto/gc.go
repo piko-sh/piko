@@ -18,9 +18,9 @@
 
 package registry_dto
 
-// GCHint provides information needed to garbage collect an orphaned blob.
-// When variants are replaced or deleted, their storage keys are recorded as hints
-// for background cleanup processes.
+// GCHint provides information needed to garbage collect an orphaned blob. When variants
+// are replaced or deleted, their storage keys are recorded as hints for background
+// cleanup processes.
 type GCHint struct {
 	// BackendID is the storage backend where the blob is stored.
 	BackendID string

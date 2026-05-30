@@ -24,17 +24,15 @@ import (
 )
 
 var (
-	// errResolverNil is returned when a nil resolver is provided during
-	// registration.
+	// errResolverNil is returned when a nil resolver is provided during registration.
 	errResolverNil = errors.New("resolver cannot be nil")
 
-	// errResolverPrefixEmpty is returned when a resolver with an empty prefix
-	// is registered.
+	// errResolverPrefixEmpty is returned when a resolver with an empty prefix is registered.
 	errResolverPrefixEmpty = errors.New("resolver prefix cannot be empty")
 )
 
-// ResolverRegistry holds a set of resolvers that config services can share.
-// Services may use resolvers from the global registry and add their own.
+// ResolverRegistry holds a set of resolvers that config services can share. Services may
+// use resolvers from the global registry and add their own.
 type ResolverRegistry struct {
 	// resolvers maps prefix strings to their registered Resolver instances.
 	resolvers map[string]Resolver
@@ -51,8 +49,8 @@ var (
 	globalRegistryOnce sync.Once
 )
 
-// Register adds a resolver to the registry.
-// If a resolver with the same prefix already exists, it will be replaced.
+// Register adds a resolver to the registry. If a resolver with the same prefix already
+// exists, it will be replaced.
 //
 // Takes resolver (Resolver) which provides the resolution logic for a prefix.
 //
@@ -108,8 +106,8 @@ func (rr *ResolverRegistry) Get(prefix string) Resolver {
 	return rr.resolvers[prefix]
 }
 
-// GetAll returns a slice of all registered resolvers.
-// The returned slice is a copy and can be safely modified by the caller.
+// GetAll returns a slice of all registered resolvers. The returned slice is a copy and
+// can be safely modified by the caller.
 //
 // Returns []Resolver which contains copies of all registered resolvers.
 //
@@ -156,8 +154,7 @@ func (rr *ResolverRegistry) Has(prefix string) bool {
 	return exists
 }
 
-// Clear removes all resolvers from the registry.
-// This is primarily for testing purposes.
+// Clear removes all resolvers from the registry. This is primarily for testing purposes.
 //
 // Safe for concurrent use.
 func (rr *ResolverRegistry) Clear() {
@@ -181,8 +178,8 @@ func (rr *ResolverRegistry) Count() int {
 
 // GetGlobalResolverRegistry returns the shared resolver registry.
 //
-// The registry is created on first call and the same instance is returned for
-// all later calls.
+// The registry is created on first call and the same instance is returned for all later
+// calls.
 //
 // Returns *ResolverRegistry which is the shared registry instance.
 func GetGlobalResolverRegistry() *ResolverRegistry {
@@ -195,15 +192,15 @@ func GetGlobalResolverRegistry() *ResolverRegistry {
 	return globalRegistry
 }
 
-// ResetGlobalResolverRegistry clears the global resolver registry singleton.
-// This is used in tests to ensure test cases do not affect each other.
+// ResetGlobalResolverRegistry clears the global resolver registry singleton. This is used
+// in tests to ensure test cases do not affect each other.
 func ResetGlobalResolverRegistry() {
 	globalRegistryOnce = sync.Once{}
 	globalRegistry = nil
 }
 
-// newResolverRegistry creates a new, empty resolver registry.
-// Use it in tests that need a separate registry.
+// newResolverRegistry creates a new, empty resolver registry. Use it in tests that need a
+// separate registry.
 //
 // Returns *ResolverRegistry which is ready to have resolvers added.
 func newResolverRegistry() *ResolverRegistry {

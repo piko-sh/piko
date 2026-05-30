@@ -1,0 +1,4 @@
+{
+  "description": "Plugin registration pattern: registry map declared in one file, init() in other files registers handlers",
+  "expected": "json=[ok-json] yaml=[ok-yaml] xml=[ok-xml] count=3"
+}

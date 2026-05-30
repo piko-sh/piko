@@ -466,7 +466,7 @@ Chainable methods: `.withDebounce(ms)`, `.withLoading(selector|element)`, `.with
 Reload reconciliation is configured per call, not via attributes on the partial root.
 
 ```typescript
-// Defaults to mode: 'merge' — server-emitted root attrs overwrite their live
+// Defaults to mode: 'merge' - server-emitted root attrs overwrite their live
 // counterparts; live-only attrs survive; children are morphed.
 await piko.partials.reload('cart');
 

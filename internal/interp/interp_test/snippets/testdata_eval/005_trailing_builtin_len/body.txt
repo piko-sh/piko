@@ -1,0 +1,2 @@
+s := make([]int, 3)
+len(s)

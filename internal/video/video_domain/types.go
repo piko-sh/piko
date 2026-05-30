@@ -18,29 +18,31 @@
 
 package video_domain
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	// defaultMaxVideoWidth is the maximum allowed video width in pixels, set to
-	// 3840 for 4K resolution support.
+	// defaultMaxVideoWidth is the maximum allowed video width in pixels, set to 3840 for 4K
+	// resolution support.
 	defaultMaxVideoWidth = 3840
 
 	// defaultMaxVideoHeight is the maximum video height in pixels (2160 for 4K).
 	defaultMaxVideoHeight = 2160
 
-	// defaultMaxVideoPixels is the largest total pixel count allowed for video
-	// processing (3840 x 2160 = 8,294,400 pixels, which is 4K resolution).
+	// defaultMaxVideoPixels is the largest total pixel count allowed for video processing
+	// (3840 x 2160 = 8,294,400 pixels, which is 4K resolution).
 	defaultMaxVideoPixels = 8_294_400
 
 	// defaultMaxFileSizeBytes is the largest allowed input file size (500 MB).
 	defaultMaxFileSizeBytes = 500 * 1024 * 1024
 
-	// defaultTranscodeTimeout is the maximum time allowed for a video transcode
-	// operation, set to five minutes.
+	// defaultTranscodeTimeout is the maximum time allowed for a video transcode operation,
+	// set to five minutes.
 	defaultTranscodeTimeout = 5 * time.Minute
 
-	// defaultMaxBitrate is the maximum allowed video bitrate in bits per second,
-	// set to 20 Mbps.
+	// defaultMaxBitrate is the maximum allowed video bitrate in bits per second, set to 20
+	// Mbps.
 	defaultMaxBitrate = 20_000_000
 
 	// defaultMaxFramerate is the highest frame rate allowed, in frames per second.
@@ -67,12 +69,10 @@ type qualityPreset struct {
 	// Description is a short text that explains what this quality preset does.
 	Description string
 
-	// EncodingSpeed is a relative encoding speed where higher values mean
-	// faster encoding.
+	// EncodingSpeed is a relative encoding speed where higher values mean faster encoding.
 	EncodingSpeed int
 
-	// QualityScore is a relative quality score where higher values indicate
-	// better quality.
+	// QualityScore is a relative quality score where higher values indicate better quality.
 	QualityScore int
 }
 
@@ -84,8 +84,7 @@ var (
 		Description: "H.264 Baseline profile for maximum compatibility",
 	}
 
-	// h264ProfileMain is an H.264 codec profile for balanced compatibility and
-	// quality.
+	// h264ProfileMain is an H.264 codec profile for balanced compatibility and quality.
 	h264ProfileMain = codecProfile{
 		Name:        "main",
 		Level:       "4.0",
@@ -129,8 +128,7 @@ var (
 		Description:   "Fast encoding, moderate quality",
 	}
 
-	// presetMedium is a balanced quality preset with moderate encoding speed and
-	// quality.
+	// presetMedium is a balanced quality preset with moderate encoding speed and quality.
 	presetMedium = qualityPreset{
 		Name:          "medium",
 		EncodingSpeed: 50,

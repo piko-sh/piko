@@ -18,10 +18,16 @@
 
 package db_engine_duckdb
 
-import "piko.sh/piko/wdk/db"
+import (
+	"piko.sh/piko/wdk/db"
+)
 
-// DuckDB returns an EngineConfig for DuckDB databases. DuckDB is currently
-// a codegen-only engine; the MigrationDialect is zero-valued.
+// DuckDB returns an EngineConfig for DuckDB databases.
+//
+// DuckDB is a codegen-only engine, so the MigrationDialect on the returned config is
+// zero-valued.
+//
+// Returns db.EngineConfig which carries the DuckDB driver name and a fresh DuckDBEngine.
 func DuckDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName: "duckdb",

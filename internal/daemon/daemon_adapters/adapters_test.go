@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -156,12 +155,12 @@ func Test_artefactMetadataCache_GetOrLoad_CachesResult(t *testing.T) {
 
 	artefact1, err1 := c.GetOrLoad(ctx, "cached-artefact")
 	require.NoError(t, err1)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&registryService.GetArtefactCallCount), "First call should hit registry")
+	assert.Equal(t, int64(1), registryService.GetArtefactCallCount.Load(), "First call should hit registry")
 	assert.Equal(t, expectedArtefact.ID, artefact1.ID)
 
 	artefact2, err2 := c.GetOrLoad(ctx, "cached-artefact")
 	require.NoError(t, err2)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&registryService.GetArtefactCallCount), "Second call should use cache, not hit registry again")
+	assert.Equal(t, int64(1), registryService.GetArtefactCallCount.Load(), "Second call should use cache, not hit registry again")
 	assert.Equal(t, expectedArtefact.ID, artefact2.ID)
 }
 
@@ -1852,7 +1851,7 @@ func TestGenerateBackgroundVariant_CallsGenerator(t *testing.T) {
 
 	generateBackgroundVariant(context.Background(), mockGen, artefact, "test_profile")
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mockGen.GenerateVariantCallCount), "Should call generator once")
+	assert.Equal(t, int64(1), mockGen.GenerateVariantCallCount.Load(), "Should call generator once")
 }
 
 func TestGenerateBackgroundVariant_LogsWarning_OnError(t *testing.T) {
@@ -1867,7 +1866,7 @@ func TestGenerateBackgroundVariant_LogsWarning_OnError(t *testing.T) {
 
 	generateBackgroundVariant(context.Background(), mockGen, artefact, "test_profile")
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mockGen.GenerateVariantCallCount), "Should call generator once")
+	assert.Equal(t, int64(1), mockGen.GenerateVariantCallCount.Load(), "Should call generator once")
 }
 
 func TestSetupBrotliCompressor_ReturnsWriter(t *testing.T) {

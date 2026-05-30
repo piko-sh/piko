@@ -18,21 +18,13 @@
 
 package interp_domain
 
-var TestNewVM = newVM
+var (
+	TestNewDebugState = newDebugState
+)
 
-var TestVMExecute = (*VM).execute
-
-var TestNewGlobalStore = newGlobalStore
-
-var TestVMRun = (*VM).run
-
-var TestVMPushFrame = (*VM).pushFrame
-
-var TestMakeInstruction = makeInstruction
-
-var TestNewDebugState = newDebugState
-
-var TestErrDebuggerStop = ErrDebuggerStop
+var (
+	TestErrDebuggerStop = ErrDebuggerStop
+)
 
 func ExportSourceMapOf(cf *CompiledFunction) *sourceMap { return cf.debugSourceMap }
 
@@ -54,10 +46,6 @@ func ExportDebugStateSetBreakpoint(ds any, file string, line int) {
 	ds.(*debugState).breakpoints[breakpointKey{file: file, line: line}] = true
 }
 
-func ExportReadVariable(frame any, entry any) any {
-	return readVariable(frame.(*callFrame), entry.(debugVarEntry))
-}
-
 func ExportNewCompiledFunctionWithSourceMap(name string, bodyLen int, positions []sourcePosition, files []string) *CompiledFunction {
 	filesCopy := make([]string, len(files))
 	copy(filesCopy, files)
@@ -73,3 +61,8 @@ func ExportNewCompiledFunctionWithSourceMap(name string, bodyLen int, positions 
 }
 
 type ExportSourcePosition = sourcePosition
+
+func ResetGlobals() {
+	resetTypeIsPointerFreeCacheForTest()
+	resetSafeTypeRegistryForTest()
+}

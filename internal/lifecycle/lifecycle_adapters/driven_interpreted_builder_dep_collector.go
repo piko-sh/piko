@@ -28,14 +28,14 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 )
 
-// collectDependencies creates a dependency collector and returns all
-// dependencies for a component.
+// collectDependencies creates a dependency collector and returns all dependencies for a
+// component.
 //
-// Takes targetRelativePath (string) which specifies the component to collect
-// dependencies for.
+// Takes targetRelativePath (string) which specifies the component to collect dependencies
+// for.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the component
-// and all its transitive dependencies.
+// Returns []*generator_dto.GeneratedArtefact which contains the component and all its
+// transitive dependencies.
 // Returns error when dependency collection fails.
 func (o *InterpretedBuildOrchestrator) collectDependencies(
 	targetRelativePath string,
@@ -50,8 +50,7 @@ func (o *InterpretedBuildOrchestrator) collectDependencies(
 
 // dependencyCollector holds the state for gathering build dependencies.
 type dependencyCollector struct {
-	// orchestrator holds a reference to the parent build orchestrator's shared
-	// state.
+	// orchestrator holds a reference to the parent build orchestrator's shared state.
 	orchestrator *InterpretedBuildOrchestrator
 
 	// visited tracks paths already processed to prevent collecting them twice.
@@ -63,11 +62,10 @@ type dependencyCollector struct {
 
 // collect recursively collects a component and its dependencies.
 //
-// Takes relativePath (string) which specifies the relative path to the
-// component.
+// Takes relativePath (string) which specifies the relative path to the component.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the collected
-// component and all its dependencies.
+// Returns []*generator_dto.GeneratedArtefact which contains the collected component and
+// all its dependencies.
 // Returns error when recursive collection fails.
 func (collector *dependencyCollector) collect(relativePath string) ([]*generator_dto.GeneratedArtefact, error) {
 	if err := collector.collectRecursive(relativePath); err != nil {
@@ -80,8 +78,7 @@ func (collector *dependencyCollector) collect(relativePath string) ([]*generator
 //
 // Takes relativePath (string) which specifies the path to collect.
 //
-// Returns error when the artefact cannot be found or dependencies fail to
-// collect.
+// Returns error when the artefact cannot be found or dependencies fail to collect.
 func (collector *dependencyCollector) collectRecursive(relativePath string) error {
 	if collector.visited[relativePath] {
 		return nil
@@ -103,12 +100,10 @@ func (collector *dependencyCollector) collectRecursive(relativePath string) erro
 
 // findArtefactByRelativePath finds an artefact by its relative path.
 //
-// Takes relativePath (string) which specifies the path relative to the project
-// root.
+// Takes relativePath (string) which specifies the path relative to the project root.
 //
 // Returns *generator_dto.GeneratedArtefact which is the matching artefact.
-// Returns *annotator_dto.VirtualComponent which is the main component of the
-// artefact.
+// Returns *annotator_dto.VirtualComponent which is the main component of the artefact.
 // Returns error when no artefact matches the given relative path.
 func (collector *dependencyCollector) findArtefactByRelativePath(
 	relativePath string,
@@ -132,12 +127,10 @@ func (collector *dependencyCollector) findArtefactByRelativePath(
 	return nil, nil, fmt.Errorf("could not find artefact for component: %s", relativePath)
 }
 
-// collectImportDependencies collects all dependencies from a component's piko
-// imports.
+// collectImportDependencies collects all dependencies from a component's piko imports.
 //
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which provides the
-// component whose
-// imports should be processed.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which provides the component
+// whose imports should be processed.
 //
 // Returns error when recursive dependency collection fails.
 func (collector *dependencyCollector) collectImportDependencies(virtualComponent *annotator_dto.VirtualComponent) error {
@@ -157,8 +150,7 @@ func (collector *dependencyCollector) collectImportDependencies(virtualComponent
 //
 // Takes importPath (string) which is the piko import path to resolve.
 //
-// Returns string which is the relative path, or empty if the import cannot be
-// resolved.
+// Returns string which is the relative path, or empty if the import cannot be resolved.
 func (collector *dependencyCollector) resolveImportToRelativePath(importPath string) string {
 	importRelativePath := collector.orchestrator.extractImportRelativePath(importPath)
 
@@ -183,8 +175,8 @@ func (collector *dependencyCollector) resolveImportToRelativePath(importPath str
 //
 // Takes importRelativePath (string) which is the relative path to search for.
 //
-// Returns *generator_dto.GeneratedArtefact which is the matching artefact, or
-// nil if no match is found.
+// Returns *generator_dto.GeneratedArtefact which is the matching artefact, or nil if no
+// match is found.
 func (collector *dependencyCollector) findArtefactByImportPath(
 	importRelativePath string,
 ) *generator_dto.GeneratedArtefact {

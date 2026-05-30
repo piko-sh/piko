@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// Type aliases expose internal types to the adapter layer for
-// bytecode serialisation without duplicating struct definitions.
+// Type aliases expose internal types to the adapter layer for bytecode serialisation
+// without duplicating struct definitions.
 type (
 	// RegisterKindValue is the exported alias for registerKind.
 	RegisterKindValue = registerKind
@@ -33,12 +33,10 @@ type (
 	// InstructionValue is the exported alias for instruction.
 	InstructionValue = instruction
 
-	// GeneralConstantDescriptorInternal is the exported alias for
-	// generalConstantDescriptor.
+	// GeneralConstantDescriptorInternal is the exported alias for generalConstantDescriptor.
 	GeneralConstantDescriptorInternal = generalConstantDescriptor
 
-	// TypeDescriptorInternal is the exported alias for
-	// typeDescriptor.
+	// TypeDescriptorInternal is the exported alias for typeDescriptor.
 	TypeDescriptorInternal = typeDescriptor
 
 	// CallSiteInternal is the exported alias for callSite.
@@ -48,8 +46,8 @@ type (
 	VarLocationInternal = varLocation
 )
 
-// InstructionData is a serialisation-safe representation of a single
-// bytecode instruction.
+// InstructionData is a serialisation-safe representation of a single bytecode
+// instruction.
 type InstructionData struct {
 	// Operation is the opcode byte.
 	Operation uint8
@@ -64,8 +62,7 @@ type InstructionData struct {
 	C uint8
 }
 
-// UpvalueDescriptorData is a serialisation-safe representation of an
-// upvalue descriptor.
+// UpvalueDescriptorData is a serialisation-safe representation of an upvalue descriptor.
 type UpvalueDescriptorData struct {
 	// Index is the register index in the enclosing scope.
 	Index uint8
@@ -73,16 +70,54 @@ type UpvalueDescriptorData struct {
 	// Kind is the register bank of the captured variable.
 	Kind uint8
 
-	// IsLocal is true when the upvalue captures directly from the
-	// enclosing function.
+	// OriginalKind names the typed register bank the variable had before heap promotion.
+	// Only meaningful when IsIndirect is true.
+	OriginalKind uint8
+
+	// IsLocal is true when the upvalue captures directly from the enclosing function.
 	IsLocal bool
+
+	// IsIndirect is true when the captured variable is heap-promoted in the enclosing scope.
+	// Preserved across pack/unpack so the runtime dereferences the *T heap pointer instead
+	// of copying it untouched into the closure body's register.
+	IsIndirect bool
 }
 
-// VarLocationData is a serialisation-safe representation of a
-// variable's storage location.
+// StructFieldLayoutData is a serialisation-safe representation of a compile-time-resolved
+// struct field layout entry, mirroring the internal structFieldLayout type with public
+// fields suitable for FlatBuffers packing.
+type StructFieldLayoutData struct {
+	// Offset is the byte offset of the leaf field within the deref'd struct.
+	Offset uint32
+
+	// TypeIndex is the typeTable index of the deref'd struct type.
+	TypeIndex uint16
+
+	// Path is the field-index walk from the struct root to the leaf, with PathLength entries
+	// used.
+	Path [structFieldLayoutMaxPathDepth]uint8
+
+	// PathLength is the number of valid entries in Path.
+	PathLength uint8
+
+	// Kind is the reflect.Kind of the leaf field.
+	Kind uint8
+
+	// RegisterKind is the registerKind of the leaf field.
+	RegisterKind uint8
+
+	// Flags carries metadata about the layout (see structFieldLayoutFlag* constants).
+	Flags uint8
+
+	// FieldTypeIndex is the typeTable index of the LEAF field's reflect.Type. Required for
+	// general-bank tier-0 store handlers; zero for scalar leaves.
+	FieldTypeIndex uint16
+}
+
+// VarLocationData is a serialisation-safe representation of a variable's storage
+// location.
 type VarLocationData struct {
-	// UpvalueIndex is the index into the upvalue table when
-	// IsUpvalue is true.
+	// UpvalueIndex is the index into the upvalue table when IsUpvalue is true.
 	UpvalueIndex int32
 
 	// Register is the register index within the bank.
@@ -107,31 +142,26 @@ type VarLocationData struct {
 	SpillSlot uint16
 }
 
-// CallSiteData is a serialisation-safe representation of a function
-// call site's static metadata.
+// CallSiteData is a serialisation-safe representation of a function call site's static
+// metadata.
 type CallSiteData struct {
-	// Arguments records where each argument lives in the caller's
-	// frame.
+	// Arguments records where each argument lives in the caller's frame.
 	Arguments []VarLocationData
 
-	// Returns records where to store each return value in the
-	// caller's frame.
+	// Returns records where to store each return value in the caller's frame.
 	Returns []VarLocationData
 
-	// FuncIndex is the index into the enclosing function's child
-	// functions slice for the callee.
+	// FuncIndex is the index into the enclosing function's child functions slice for the
+	// callee.
 	FuncIndex uint16
 
-	// ClosureRegister is the general register holding the closure
-	// value.
+	// ClosureRegister is the general register holding the closure value.
 	ClosureRegister uint8
 
-	// NativeRegister is the general register holding the native
-	// function value.
+	// NativeRegister is the general register holding the native function value.
 	NativeRegister uint8
 
-	// IsClosure is true when the callee is a closure stored in a
-	// general register.
+	// IsClosure is true when the callee is a closure stored in a general register.
 	IsClosure bool
 
 	// IsNative is true when the callee is a native Go function.
@@ -140,13 +170,15 @@ type CallSiteData struct {
 	// IsMethod is true when the callee is a bound method.
 	IsMethod bool
 
-	// MethodRecvReg is the general register holding the method
-	// receiver.
-	MethodRecvReg uint8
+	// MethodReceiverRegister is the general register holding the method receiver.
+	MethodReceiverRegister uint8
+
+	// IsEllipsisSpread is true when the source call used the `...` spread syntax, meaning
+	// the trailing argument is already a slice to forward as-is rather than pack.
+	IsEllipsisSpread bool
 }
 
-// TypeDescriptorData is a serialisation-safe representation of a
-// reflect.Type descriptor.
+// TypeDescriptorData is a serialisation-safe representation of a reflect.Type descriptor.
 type TypeDescriptorData struct {
 	// PackagePath is the import path for named types.
 	PackagePath string
@@ -154,8 +186,7 @@ type TypeDescriptorData struct {
 	// Name is the type name for named types.
 	Name string
 
-	// Elem is the element type for pointers, slices, arrays, and
-	// channels.
+	// Elem is the element type for pointers, slices, arrays, and channels.
 	Elem *TypeDescriptorData
 
 	// Key is the key type for maps.
@@ -189,8 +220,8 @@ type TypeDescriptorData struct {
 	IsVariadic bool
 }
 
-// TypeDescFieldData is a serialisation-safe representation of a
-// struct field within a type descriptor.
+// TypeDescFieldData is a serialisation-safe representation of a struct field within a
+// type descriptor.
 type TypeDescFieldData struct {
 	// Name is the field name.
 	Name string
@@ -205,27 +236,23 @@ type TypeDescFieldData struct {
 	Typ TypeDescriptorData
 }
 
-// GeneralConstantDescriptorData is a serialisation-safe
-// representation of a general constant descriptor.
+// GeneralConstantDescriptorData is a serialisation-safe representation of a general
+// constant descriptor.
 type GeneralConstantDescriptorData struct {
-	// PackagePath is the import path of the package containing the
-	// symbol or type.
+	// PackagePath is the import path of the package containing the symbol or type.
 	PackagePath string
 
-	// SymbolName is the name of the symbol or type within its
-	// package.
+	// SymbolName is the name of the symbol or type within its package.
 	SymbolName string
 
-	// TypeDesc describes the composite type for composite zero
-	// values.
+	// TypeDesc describes the composite type for composite zero values.
 	TypeDesc TypeDescriptorData
 
 	// Kind identifies the source of the general constant.
 	Kind uint8
 }
 
-// TypeNameData holds a type name entry paired with its type
-// descriptor for serialisation.
+// TypeNameData holds a type name entry paired with its type descriptor for serialisation.
 type TypeNameData struct {
 	// Name is the string name associated with the type.
 	Name string
@@ -236,29 +263,27 @@ type TypeNameData struct {
 
 // Root returns the root function container.
 //
-// Returns *CompiledFunction which holds all compiled functions from
-// every source file.
+// Returns *CompiledFunction which holds all compiled functions from every source file.
 func (cfs *CompiledFileSet) Root() *CompiledFunction { return cfs.root }
 
-// VariableInitFunction returns the package-level variable
-// initialisation function.
+// VariableInitFunction returns the package-level variable initialisation function.
 //
-// Returns *CompiledFunction which holds the bytecode for
-// package-level variable initialisers, or nil if none exist.
+// Returns *CompiledFunction which holds the bytecode for package-level variable
+// initialisers, or nil if none exist.
 func (cfs *CompiledFileSet) VariableInitFunction() *CompiledFunction {
 	return cfs.variableInitFunction
 }
 
 // Entrypoints returns the entrypoint name-to-index mapping.
 //
-// Returns map[string]uint16 which maps function names to their
-// indices in the root function's child functions slice.
+// Returns map[string]uint16 which maps function names to their indices in the root
+// function's child functions slice.
 func (cfs *CompiledFileSet) Entrypoints() map[string]uint16 { return cfs.entrypoints }
 
 // InitFuncs returns the init function indices in source order.
 //
-// Returns []uint16 which holds the indices of init() functions in
-// the root function's child functions slice.
+// Returns []uint16 which holds the indices of init() functions in the root function's
+// child functions slice.
 func (cfs *CompiledFileSet) InitFuncs() []uint16 { return cfs.initFunctionIndices }
 
 // ExportName returns the function name for serialisation.
@@ -273,32 +298,70 @@ func (cf *CompiledFunction) ExportSourceFile() string { return cf.sourceFile }
 
 // ExportIsVariadic reports whether variadic arguments are accepted.
 //
-// Returns bool which is true when the function's last parameter is
-// variadic.
+// Returns bool which is true when the function's last parameter is variadic.
 func (cf *CompiledFunction) ExportIsVariadic() bool { return cf.isVariadic }
+
+// ExportIsPointerReceiver reports whether the function is a method with a pointer
+// receiver. Used by the bytecode packer to round-trip CompiledFunction.isPointerReceiver.
+//
+// Returns bool which is true for pointer-receiver methods.
+func (cf *CompiledFunction) ExportIsPointerReceiver() bool { return cf.isPointerReceiver }
 
 // NumRegistersSlice returns the per-bank register counts as a slice.
 //
-// Returns []uint32 which holds the peak register usage for each
-// register bank.
+// Returns []uint32 which holds the peak register usage for each register bank.
 func (cf *CompiledFunction) NumRegistersSlice() []uint32 { return cf.numRegisters[:] }
 
 // ParamKinds returns the parameter register kinds as uint8 values.
 //
-// Returns []uint8 where each element is a registerKind cast to
-// uint8.
+// Returns []uint8 where each element is a registerKind cast to uint8.
 func (cf *CompiledFunction) ParamKinds() []uint8 {
-	result := make([]uint8, len(cf.paramKinds))
-	for i, kind := range cf.paramKinds {
+	result := make([]uint8, len(cf.parameterKinds))
+	for i, kind := range cf.parameterKinds {
 		result[i] = uint8(kind)
+	}
+	return result
+}
+
+// ParamRegisters returns the per-parameter destination register slot table assigned by
+// the compiler.
+//
+// Returns []uint8 where each element is the register index in the parameter's bank that
+// the caller must write the argument into. Empty when the compiler did not record
+// explicit slots.
+func (cf *CompiledFunction) ParamRegisters() []uint8 {
+	if len(cf.parameterRegisters) == 0 {
+		return nil
+	}
+	result := make([]uint8, len(cf.parameterRegisters))
+	copy(result, cf.parameterRegisters)
+	return result
+}
+
+// TypeTableInterfaceMethods returns the per-type-table-entry sets of interface method
+// names recorded by the compiler.
+//
+// Returns [][]string aligned with the typeTable; nil entries correspond to type-table
+// slots that are not derived from a non-empty interface.
+func (cf *CompiledFunction) TypeTableInterfaceMethods() [][]string {
+	if len(cf.typeTableInterfaceMethods) == 0 {
+		return nil
+	}
+	result := make([][]string, len(cf.typeTableInterfaceMethods))
+	for i, methods := range cf.typeTableInterfaceMethods {
+		if len(methods) == 0 {
+			continue
+		}
+		copied := make([]string, len(methods))
+		copy(copied, methods)
+		result[i] = copied
 	}
 	return result
 }
 
 // ResultKinds returns the result register kinds as uint8 values.
 //
-// Returns []uint8 where each element is a registerKind cast to
-// uint8.
+// Returns []uint8 where each element is a registerKind cast to uint8.
 func (cf *CompiledFunction) ResultKinds() []uint8 {
 	result := make([]uint8, len(cf.resultKinds))
 	for i, kind := range cf.resultKinds {
@@ -320,59 +383,52 @@ func (cf *CompiledFunction) Body() []InstructionData {
 
 // BoolConstants returns the bool constant pool.
 //
-// Returns []bool which holds all boolean constants referenced by
-// bytecode.
+// Returns []bool which holds all boolean constants referenced by bytecode.
 func (cf *CompiledFunction) BoolConstants() []bool { return cf.boolConstants }
 
 // IntConstants returns the int64 constant pool.
 //
-// Returns []int64 which holds all integer constants referenced by
-// bytecode.
+// Returns []int64 which holds all integer constants referenced by bytecode.
 func (cf *CompiledFunction) IntConstants() []int64 { return cf.intConstants }
 
 // FloatConstants returns the float64 constant pool.
 //
-// Returns []float64 which holds all floating-point constants
-// referenced by bytecode.
+// Returns []float64 which holds all floating-point constants referenced by bytecode.
 func (cf *CompiledFunction) FloatConstants() []float64 { return cf.floatConstants }
 
 // UintConstants returns the uint64 constant pool.
 //
-// Returns []uint64 which holds all unsigned integer constants
-// referenced by bytecode.
+// Returns []uint64 which holds all unsigned integer constants referenced by bytecode.
 func (cf *CompiledFunction) UintConstants() []uint64 { return cf.uintConstants }
 
 // ComplexConstants returns the complex128 constant pool.
 //
-// Returns []complex128 which holds all complex number constants
-// referenced by bytecode.
+// Returns []complex128 which holds all complex number constants referenced by bytecode.
 func (cf *CompiledFunction) ComplexConstants() []complex128 { return cf.complexConstants }
 
 // StringConstants returns the string constant pool.
 //
-// Returns []string which holds all string constants referenced by
-// bytecode.
+// Returns []string which holds all string constants referenced by bytecode.
 func (cf *CompiledFunction) StringConstants() []string { return cf.stringConstants }
 
 // ExportFunctions returns the child functions for serialisation.
 //
-// Returns []*CompiledFunction which holds the nested function
-// definitions.
+// Returns []*CompiledFunction which holds the nested function definitions.
 func (cf *CompiledFunction) ExportFunctions() []*CompiledFunction { return cf.functions }
 
 // VariableInitFunction returns the variable initialisation function.
 //
-// Returns *CompiledFunction which holds the bytecode for local
-// variable initialisers, or nil if none exist.
+// Returns *CompiledFunction which holds the bytecode for local variable initialisers, or
+// nil if none exist.
 func (cf *CompiledFunction) VariableInitFunction() *CompiledFunction {
 	return cf.variableInitFunction
 }
 
-// GeneralConstantDescriptors returns the general constant
-// descriptors as serialisation-safe data.
+// GeneralConstantDescriptors returns the general constant descriptors as
+// serialisation-safe data.
 //
-// Returns []GeneralConstantDescriptorData which describes how to
-// reconstruct each general constant from its serialised form.
+// Returns []GeneralConstantDescriptorData which describes how to reconstruct each general
+// constant from its serialised form.
 func (cf *CompiledFunction) GeneralConstantDescriptors() []GeneralConstantDescriptorData {
 	result := make([]GeneralConstantDescriptorData, len(cf.generalConstantDescriptors))
 	for i := range cf.generalConstantDescriptors {
@@ -381,11 +437,10 @@ func (cf *CompiledFunction) GeneralConstantDescriptors() []GeneralConstantDescri
 	return result
 }
 
-// TypeTableDescriptors returns the type table descriptors as
-// serialisation-safe data.
+// TypeTableDescriptors returns the type table descriptors as serialisation-safe data.
 //
-// Returns []TypeDescriptorData which describes how to reconstruct
-// each type in the type table.
+// Returns []TypeDescriptorData which describes how to reconstruct each type in the type
+// table.
 func (cf *CompiledFunction) TypeTableDescriptors() []TypeDescriptorData {
 	result := make([]TypeDescriptorData, len(cf.typeTableDescriptors))
 	for i := range cf.typeTableDescriptors {
@@ -396,8 +451,8 @@ func (cf *CompiledFunction) TypeTableDescriptors() []TypeDescriptorData {
 
 // TypeNames returns the type names map as serialisation-safe data.
 //
-// Returns map[reflect.Type]TypeNameData which pairs each type with
-// its string name and serialisable descriptor.
+// Returns map[reflect.Type]TypeNameData which pairs each type with its string name and
+// serialisable descriptor.
 func (cf *CompiledFunction) TypeNames() map[reflect.Type]TypeNameData {
 	if len(cf.typeNames) == 0 {
 		return nil
@@ -418,63 +473,69 @@ func (cf *CompiledFunction) TypeNames() map[reflect.Type]TypeNameData {
 
 // CallSites returns the call sites as serialisation-safe data.
 //
-// Returns []CallSiteData which holds the static metadata for each
-// function call in the bytecode.
+// Returns []CallSiteData which holds the static metadata for each function call in the
+// bytecode.
 func (cf *CompiledFunction) CallSites() []CallSiteData {
 	result := make([]CallSiteData, len(cf.callSites))
 	for i := range cf.callSites {
-		result[i] = exportCallSite(cf.callSites[i])
+		result[i] = exportCallSite(&cf.callSites[i])
 	}
 	return result
 }
 
-// UpvalueDescriptors returns the upvalue descriptors as
-// serialisation-safe data.
+// UpvalueDescriptors returns the upvalue descriptors as serialisation-safe data.
 //
-// Returns []UpvalueDescriptorData which describes how each upvalue
-// is captured.
+// Returns []UpvalueDescriptorData which describes how each upvalue is captured.
 func (cf *CompiledFunction) UpvalueDescriptors() []UpvalueDescriptorData {
 	result := make([]UpvalueDescriptorData, len(cf.upvalueDescriptors))
 	for i, descriptor := range cf.upvalueDescriptors {
 		result[i] = UpvalueDescriptorData{
-			Index:   descriptor.index,
-			Kind:    uint8(descriptor.kind),
-			IsLocal: descriptor.isLocal,
+			Index:        descriptor.index,
+			Kind:         uint8(descriptor.kind),
+			OriginalKind: uint8(descriptor.originalKind),
+			IsLocal:      descriptor.isLocal,
+			IsIndirect:   descriptor.isIndirect,
 		}
 	}
 	return result
 }
 
-// NamedResultLocs returns the named result locations as
-// serialisation-safe data.
+// NamedResultLocations returns the named result locations as serialisation-safe data.
 //
-// Returns []VarLocationData which describes where each named result
-// is stored.
-func (cf *CompiledFunction) NamedResultLocs() []VarLocationData {
-	return exportVarLocations(cf.namedResultLocs)
+// Returns []VarLocationData which describes where each named result is stored.
+func (cf *CompiledFunction) NamedResultLocations() []VarLocationData {
+	return exportVarLocations(cf.namedResultLocations)
 }
 
-// MethodTable returns the method table mapping method names to
-// function indices.
+// MethodTable returns the method table mapping method names to function indices.
 //
-// Returns map[string]uint16 which maps method names to their indices
-// in the child functions slice.
+// Returns map[string]uint16 which maps method names to their indices in the child
+// functions slice.
 func (cf *CompiledFunction) MethodTable() map[string]uint16 { return cf.methodTable }
 
-// NewCompiledFileSetFromData constructs a CompiledFileSet from
-// serialisation-safe data. Used by the unpack adapter to rebuild
-// after deserialisation.
+// StructLayoutTable returns the struct-field layout table as serialisation-safe data.
+// Each entry encodes a compile-time-resolved struct field reference (offset, kind, path)
+// used by the opGet/SetStructField* fast-path opcodes.
 //
-// Takes root (*CompiledFunction) which is the root function
-// container.
-// Takes variableInitFunction (*CompiledFunction) which is the
-// variable initialiser.
-// Takes entrypoints (map[string]uint16) which maps function names
-// to indices.
+// Returns []StructFieldLayoutData with one entry per layoutTable slot in declaration
+// order.
+func (cf *CompiledFunction) StructLayoutTable() []StructFieldLayoutData {
+	result := make([]StructFieldLayoutData, len(cf.structLayoutTable))
+	for i, layout := range cf.structLayoutTable {
+		result[i] = StructFieldLayoutData(layout)
+	}
+	return result
+}
+
+// NewCompiledFileSetFromData constructs a CompiledFileSet from serialisation-safe data.
+// Used by the unpack adapter to rebuild after deserialisation.
+//
+// Takes root (*CompiledFunction) which is the root function container.
+// Takes variableInitFunction (*CompiledFunction) which is the variable initialiser.
+// Takes entrypoints (map[string]uint16) which maps function names to indices.
 // Takes initFunctionIndices ([]uint16) which holds init function indices.
 //
-// Returns *CompiledFileSet which is the reconstructed compiled file
-// set.
+// Returns *CompiledFileSet which is the reconstructed compiled file set.
 func NewCompiledFileSetFromData(
 	root *CompiledFunction,
 	variableInitFunction *CompiledFunction,
@@ -489,118 +550,158 @@ func NewCompiledFileSetFromData(
 	}
 }
 
-// CompiledFunctionData holds serialisation-safe fields for
-// constructing a CompiledFunction. Used by the unpack adapter
-// to rebuild after deserialisation.
+// NewCompiledFileSetFromDataWithVars builds a CompiledFileSet.
+//
+// Restores SlotAllocation and PackageVariableMetadata captured by Service.PackageModule.
+// The unpack adapter calls this overload after deserialising a bundle that includes the
+// new fields; legacy callers continue to use NewCompiledFileSetFromData for backwards
+// compatibility (the allocation is zero and the var list is empty in that case).
+//
+// Takes root (*CompiledFunction) which is the root function.
+// Takes variableInitFunction (*CompiledFunction) which is the package-level variable
+// initialiser, or nil.
+// Takes entrypoints (map[string]uint16) which maps entrypoint names to function indices.
+// Takes initFunctionIndices ([]uint16) which lists init function indices in declaration
+// order.
+// Takes slotAllocation (SlotAllocation) which records the package's global slot layout.
+// Takes packageVariables ([]PackageVariableMetadata) which describes the package-level
+// variables.
+//
+// Returns *CompiledFileSet which is the populated file set.
+func NewCompiledFileSetFromDataWithVars(
+	root *CompiledFunction,
+	variableInitFunction *CompiledFunction,
+	entrypoints map[string]uint16,
+	initFunctionIndices []uint16,
+	slotAllocation SlotAllocation,
+	packageVariables []PackageVariableMetadata,
+) *CompiledFileSet {
+	return &CompiledFileSet{
+		root:                 root,
+		variableInitFunction: variableInitFunction,
+		entrypoints:          entrypoints,
+		initFunctionIndices:  initFunctionIndices,
+		slotAllocation:       slotAllocation,
+		packageVariables:     packageVariables,
+	}
+}
+
+// CompiledFunctionData holds serialisation-safe fields for constructing a
+// CompiledFunction. Used by the unpack adapter to rebuild after deserialisation.
 type CompiledFunctionData struct {
-	// VariableInitFunction is the package-level variable
-	// initialisation function, or nil if none exists.
+	// VariableInitFunction is the package-level variable initialisation function, or nil if
+	// none exists.
 	VariableInitFunction *CompiledFunction
 
-	// MethodTable is the mapping of method names to their
-	// indices in the child functions slice.
+	// MethodTable is the mapping of method names to their indices in the child functions
+	// slice.
 	MethodTable map[string]uint16
 
-	// TypeNames is the mapping of reflect types to their
-	// string names.
+	// TypeNames is the mapping of reflect types to their string names.
 	TypeNames map[reflect.Type]string
 
 	// Name is the qualified name of the function.
 	Name string
 
-	// SourceFile is the source file path where the function
-	// was defined.
+	// SourceFile is the source file path where the function was defined.
 	SourceFile string
-
-	// StringConstants is the string constant pool referenced
-	// by bytecode.
-	StringConstants []string
-
-	// GeneralConstantDescriptors is the slice of descriptors
-	// that describe how to reconstruct general constants.
-	GeneralConstantDescriptors []generalConstantDescriptor
-
-	// BoolConstants is the boolean constant pool referenced
-	// by bytecode.
-	BoolConstants []bool
-
-	// IntConstants is the int64 constant pool referenced by
-	// bytecode.
-	IntConstants []int64
-
-	// FloatConstants is the float64 constant pool referenced
-	// by bytecode.
-	FloatConstants []float64
-
-	// UintConstants is the uint64 constant pool referenced by
-	// bytecode.
-	UintConstants []uint64
-
-	// ComplexConstants is the complex128 constant pool
-	// referenced by bytecode.
-	ComplexConstants []complex128
 
 	// ResultKinds is the register bank for each return value.
 	ResultKinds []registerKind
 
-	// GeneralConstants is the general constant pool holding
-	// reflect values referenced by bytecode.
-	GeneralConstants []reflect.Value
-
-	// Body is the slice of bytecode instructions forming the
-	// function body.
+	// Body is the slice of bytecode instructions forming the function body.
 	Body []instruction
 
-	// TypeTable is the slice of reflect types used by the
-	// function.
+	// BoolConstants is the boolean constant pool referenced by bytecode.
+	BoolConstants []bool
+
+	// IntConstants is the int64 constant pool referenced by bytecode.
+	IntConstants []int64
+
+	// FloatConstants is the float64 constant pool referenced by bytecode.
+	FloatConstants []float64
+
+	// UintConstants is the uint64 constant pool referenced by bytecode.
+	UintConstants []uint64
+
+	// ComplexConstants is the complex128 constant pool referenced by bytecode.
+	ComplexConstants []complex128
+
+	// StringConstants is the string constant pool referenced by bytecode.
+	StringConstants []string
+
+	// GeneralConstants is the general constant pool holding reflect values referenced by
+	// bytecode.
+	GeneralConstants []reflect.Value
+
+	// GeneralConstantDescriptors is the slice of descriptors that describe how to
+	// reconstruct general constants.
+	GeneralConstantDescriptors []generalConstantDescriptor
+
+	// TypeTable is the slice of reflect types used by the function.
 	TypeTable []reflect.Type
 
-	// TypeTableDescriptors is the slice of type descriptors
-	// for serialising the type table.
+	// TypeTableDescriptors is the slice of type descriptors for serialising the type table.
 	TypeTableDescriptors []typeDescriptor
+
+	// TypeTableInterfaceMethods records, aligned with TypeTable, the method-name set for
+	// each entry whose source-level type was a non-empty interface. Empty entries (nil or
+	// zero-length) mark non-interface or empty-interface slots.
+	TypeTableInterfaceMethods [][]string
 
 	// ParamKinds is the register bank for each parameter.
 	ParamKinds []registerKind
 
-	// CallSites is the slice of call site metadata for each
-	// function call in the bytecode.
+	// ParamRegisters records the destination register slot for each parameter as the
+	// compiler assigned it. Empty when the compiler did not record explicit slots (older
+	// bytecode bundles); the runtime then falls back to a per-bank counter.
+	ParamRegisters []uint8
+
+	// CallSites is the slice of call site metadata for each function call in the bytecode.
 	CallSites []callSite
 
-	// UpvalueDescriptors is the slice of upvalue descriptors
-	// that describe captured variables.
+	// UpvalueDescriptors is the slice of upvalue descriptors that describe captured
+	// variables.
 	UpvalueDescriptors []UpvalueDescriptor
 
 	// Functions is the slice of child function definitions.
 	Functions []*CompiledFunction
 
-	// NamedResultLocs is the slice of variable locations for
-	// named return values.
-	NamedResultLocs []varLocation
+	// NamedResultLocations is the slice of variable locations for named return values.
+	NamedResultLocations []varLocation
+
+	// StructLayoutTable is the slice of compile-time-resolved struct field layout entries
+	// referenced by the opGet/SetStructField fast-path opcodes.
+	StructLayoutTable []StructFieldLayoutData
 
 	// NumRegisters is the per-bank peak register usage counts.
 	NumRegisters [NumRegisterKinds]uint32
 
-	// IsVariadic is true when the function's last parameter is
-	// variadic.
+	// IsVariadic is true when the function's last parameter is variadic.
 	IsVariadic bool
+
+	// IsPointerReceiver is true for a method whose declared receiver is a pointer. The VM
+	// consults this when applying Go's method-set rule during stdlib-interface adapter
+	// selection (see methodReceiverSatisfiesValueIn).
+	IsPointerReceiver bool
 }
 
-// NewCompiledFunctionFromData constructs a CompiledFunction from
-// serialisation-safe data. Used by the unpack adapter to rebuild
-// after deserialisation.
+// NewCompiledFunctionFromData constructs a CompiledFunction from serialisation-safe data.
+// Used by the unpack adapter to rebuild after deserialisation.
 //
-// Takes d (*CompiledFunctionData) which holds all the fields
-// needed to reconstruct the compiled function.
+// Takes d (*CompiledFunctionData) which holds all the fields needed to reconstruct the
+// compiled function.
 //
-// Returns *CompiledFunction which is the reconstructed compiled
-// function.
+// Returns *CompiledFunction which is the reconstructed compiled function.
 func NewCompiledFunctionFromData(d *CompiledFunctionData) *CompiledFunction {
 	return &CompiledFunction{
 		name:                       d.Name,
 		sourceFile:                 d.SourceFile,
 		isVariadic:                 d.IsVariadic,
+		isPointerReceiver:          d.IsPointerReceiver,
 		numRegisters:               d.NumRegisters,
-		paramKinds:                 d.ParamKinds,
+		parameterKinds:             d.ParamKinds,
+		parameterRegisters:         d.ParamRegisters,
 		resultKinds:                d.ResultKinds,
 		body:                       d.Body,
 		boolConstants:              d.BoolConstants,
@@ -613,14 +714,35 @@ func NewCompiledFunctionFromData(d *CompiledFunctionData) *CompiledFunction {
 		generalConstantDescriptors: d.GeneralConstantDescriptors,
 		typeTable:                  d.TypeTable,
 		typeTableDescriptors:       d.TypeTableDescriptors,
+		typeTableInterfaceMethods:  d.TypeTableInterfaceMethods,
 		typeNames:                  d.TypeNames,
 		callSites:                  d.CallSites,
 		upvalueDescriptors:         d.UpvalueDescriptors,
 		functions:                  d.Functions,
-		namedResultLocs:            d.NamedResultLocs,
+		namedResultLocations:       d.NamedResultLocations,
 		methodTable:                d.MethodTable,
 		variableInitFunction:       d.VariableInitFunction,
+		structLayoutTable:          makeStructLayoutTableFromData(d.StructLayoutTable),
 	}
+}
+
+// makeStructLayoutTableFromData reconstructs the in-memory layout table from its
+// serialisable representation.
+//
+// Takes data ([]StructFieldLayoutData) which is the round-trip data.
+//
+// Returns []structFieldLayout suitable for assignment to
+// CompiledFunction.structLayoutTable.
+// Returns nil for empty input.
+func makeStructLayoutTableFromData(data []StructFieldLayoutData) []structFieldLayout {
+	if len(data) == 0 {
+		return nil
+	}
+	result := make([]structFieldLayout, len(data))
+	for i, entry := range data {
+		result[i] = structFieldLayout(entry)
+	}
+	return result
 }
 
 // MakeInstruction creates an instruction from raw operand bytes.
@@ -640,11 +762,9 @@ func MakeInstruction(operation, a, b, c uint8) instruction { //nolint:revive // 
 // Returns registerKind which is the typed register bank value.
 func MakeRegisterKind(value uint8) registerKind { return registerKind(value) } //nolint:revive // bridges domain/adapter boundary
 
-// MakeVarLocation creates a varLocation from serialisation-safe
-// data.
+// MakeVarLocation creates a varLocation from serialisation-safe data.
 //
-// Takes data (VarLocationData) which holds the variable location
-// fields.
+// Takes data (VarLocationData) which holds the variable location fields.
 //
 // Returns varLocation which is the internal variable location.
 func MakeVarLocation(data VarLocationData) varLocation { //nolint:revive // bridges domain/adapter boundary
@@ -660,19 +780,18 @@ func MakeVarLocation(data VarLocationData) varLocation { //nolint:revive // brid
 	}
 }
 
-// MakeUpvalueDescriptor creates an UpvalueDescriptor from
-// serialisation-safe data.
+// MakeUpvalueDescriptor creates an UpvalueDescriptor from serialisation-safe data.
 //
-// Takes data (UpvalueDescriptorData) which holds the upvalue
-// descriptor fields.
+// Takes data (UpvalueDescriptorData) which holds the upvalue descriptor fields.
 //
-// Returns UpvalueDescriptor which is the internal upvalue
-// descriptor.
+// Returns UpvalueDescriptor which is the internal upvalue descriptor.
 func MakeUpvalueDescriptor(data UpvalueDescriptorData) UpvalueDescriptor { //nolint:revive // unexported fields
 	return UpvalueDescriptor{
-		index:   data.Index,
-		kind:    registerKind(data.Kind),
-		isLocal: data.IsLocal,
+		index:        data.Index,
+		kind:         registerKind(data.Kind),
+		originalKind: registerKind(data.OriginalKind),
+		isLocal:      data.IsLocal,
+		isIndirect:   data.IsIndirect,
 	}
 }
 
@@ -691,23 +810,23 @@ func MakeCallSite(data CallSiteData) callSite { //nolint:revive // bridges domai
 		returns[i] = MakeVarLocation(returnLocation)
 	}
 	return callSite{
-		arguments:       arguments,
-		returns:         returns,
-		funcIndex:       data.FuncIndex,
-		closureRegister: data.ClosureRegister,
-		nativeRegister:  data.NativeRegister,
-		isClosure:       data.IsClosure,
-		isNative:        data.IsNative,
-		isMethod:        data.IsMethod,
-		methodRecvReg:   data.MethodRecvReg,
+		arguments:              arguments,
+		returns:                returns,
+		funcIndex:              data.FuncIndex,
+		closureRegister:        data.ClosureRegister,
+		nativeRegister:         data.NativeRegister,
+		isClosure:              data.IsClosure,
+		isNative:               data.IsNative,
+		isMethod:               data.IsMethod,
+		methodReceiverRegister: data.MethodReceiverRegister,
+		isEllipsisSpread:       data.IsEllipsisSpread,
 	}
 }
 
-// ImportTypeDescriptor converts serialisation-safe TypeDescriptorData
-// back to an internal typeDescriptor.
+// ImportTypeDescriptor converts serialisation-safe TypeDescriptorData back to an internal
+// typeDescriptor.
 //
-// Takes data (TypeDescriptorData) which holds the serialised type
-// descriptor fields.
+// Takes data (TypeDescriptorData) which holds the serialised type descriptor fields.
 //
 // Returns typeDescriptor which is the internal type descriptor.
 func ImportTypeDescriptor(data TypeDescriptorData) typeDescriptor { //nolint:revive,dupl // bridges domain/adapter boundary; mirrors export
@@ -755,14 +874,13 @@ func ImportTypeDescriptor(data TypeDescriptorData) typeDescriptor { //nolint:rev
 	return descriptor
 }
 
-// ImportGeneralConstantDescriptor converts serialisation-safe data
-// back to an internal generalConstantDescriptor.
+// ImportGeneralConstantDescriptor converts serialisation-safe data back to an internal
+// generalConstantDescriptor.
 //
-// Takes data (GeneralConstantDescriptorData) which holds the
-// serialised descriptor fields.
+// Takes data (GeneralConstantDescriptorData) which holds the serialised descriptor
+// fields.
 //
-// Returns generalConstantDescriptor which is the internal
-// descriptor.
+// Returns generalConstantDescriptor which is the internal descriptor.
 func ImportGeneralConstantDescriptor(data GeneralConstantDescriptorData) generalConstantDescriptor { //nolint:revive // bridges domain/adapter boundary
 	return generalConstantDescriptor{
 		packagePath: data.PackagePath,
@@ -772,11 +890,11 @@ func ImportGeneralConstantDescriptor(data GeneralConstantDescriptorData) general
 	}
 }
 
-// ReconstructGeneralConstant rebuilds a reflect.Value from a
-// serialisation-safe descriptor using the SymbolRegistry.
+// ReconstructGeneralConstant rebuilds a reflect.Value from a serialisation-safe
+// descriptor using the SymbolRegistry.
 //
-// Takes descriptor (GeneralConstantDescriptorData) which describes
-// the constant to reconstruct.
+// Takes descriptor (GeneralConstantDescriptorData) which describes the constant to
+// reconstruct.
 // Takes registry (*SymbolRegistry) which provides symbol lookups.
 //
 // Returns reflect.Value which is the reconstructed runtime value.
@@ -785,13 +903,11 @@ func ReconstructGeneralConstant(descriptor GeneralConstantDescriptorData, regist
 	return reconstructGeneralConstant(ImportGeneralConstantDescriptor(descriptor), registry)
 }
 
-// DescriptorToReflectType reconstructs a reflect.Type from
-// serialisation-safe descriptor data using the SymbolRegistry.
+// DescriptorToReflectType reconstructs a reflect.Type from serialisation-safe descriptor
+// data using the SymbolRegistry.
 //
-// Takes descriptor (TypeDescriptorData) which describes the type to
-// reconstruct.
-// Takes registry (*SymbolRegistry) which provides named type
-// lookups.
+// Takes descriptor (TypeDescriptorData) which describes the type to reconstruct.
+// Takes registry (*SymbolRegistry) which provides named type lookups.
 //
 // Returns reflect.Type which is the reconstructed runtime type.
 // Returns error when a named type cannot be found.
@@ -799,14 +915,12 @@ func DescriptorToReflectType(descriptor TypeDescriptorData, registry *SymbolRegi
 	return descriptorToReflectType(ImportTypeDescriptor(descriptor), registry)
 }
 
-// exportTypeDescriptor converts an internal typeDescriptor to
-// serialisation-safe TypeDescriptorData.
+// exportTypeDescriptor converts an internal typeDescriptor to serialisation-safe
+// TypeDescriptorData.
 //
-// Takes descriptor (typeDescriptor) which is the internal type
-// descriptor to convert.
+// Takes descriptor (typeDescriptor) which is the internal type descriptor to convert.
 //
-// Returns TypeDescriptorData which is the serialisation-safe
-// representation.
+// Returns TypeDescriptorData which is the serialisation-safe representation.
 func exportTypeDescriptor(descriptor typeDescriptor) TypeDescriptorData { //nolint:revive,dupl // dispatch table; mirrors import
 	data := TypeDescriptorData{
 		PackagePath: descriptor.packagePath,
@@ -852,14 +966,13 @@ func exportTypeDescriptor(descriptor typeDescriptor) TypeDescriptorData { //noli
 	return data
 }
 
-// exportGeneralConstantDescriptor converts an internal
-// generalConstantDescriptor to serialisation-safe data.
+// exportGeneralConstantDescriptor converts an internal generalConstantDescriptor to
+// serialisation-safe data.
 //
-// Takes descriptor (generalConstantDescriptor) which is the
-// internal descriptor to convert.
+// Takes descriptor (generalConstantDescriptor) which is the internal descriptor to
+// convert.
 //
-// Returns GeneralConstantDescriptorData which is the
-// serialisation-safe representation.
+// Returns GeneralConstantDescriptorData which is the serialisation-safe representation.
 func exportGeneralConstantDescriptor(descriptor generalConstantDescriptor) GeneralConstantDescriptorData {
 	return GeneralConstantDescriptorData{
 		PackagePath: descriptor.packagePath,
@@ -869,36 +982,32 @@ func exportGeneralConstantDescriptor(descriptor generalConstantDescriptor) Gener
 	}
 }
 
-// exportCallSite converts an internal callSite to
-// serialisation-safe data.
+// exportCallSite converts an internal callSite to serialisation-safe data.
 //
-// Takes site (callSite) which is the internal call site to
-// convert.
+// Takes site (callSite) which is the internal call site to convert.
 //
-// Returns CallSiteData which is the serialisation-safe
-// representation.
-func exportCallSite(site callSite) CallSiteData {
+// Returns CallSiteData which is the serialisation-safe representation.
+func exportCallSite(site *callSite) CallSiteData {
 	return CallSiteData{
-		Arguments:       exportVarLocations(site.arguments),
-		Returns:         exportVarLocations(site.returns),
-		FuncIndex:       site.funcIndex,
-		ClosureRegister: site.closureRegister,
-		NativeRegister:  site.nativeRegister,
-		IsClosure:       site.isClosure,
-		IsNative:        site.isNative,
-		IsMethod:        site.isMethod,
-		MethodRecvReg:   site.methodRecvReg,
+		Arguments:              exportVarLocations(site.arguments),
+		Returns:                exportVarLocations(site.returns),
+		FuncIndex:              site.funcIndex,
+		ClosureRegister:        site.closureRegister,
+		NativeRegister:         site.nativeRegister,
+		IsClosure:              site.isClosure,
+		IsNative:               site.isNative,
+		IsMethod:               site.isMethod,
+		MethodReceiverRegister: site.methodReceiverRegister,
+		IsEllipsisSpread:       site.isEllipsisSpread,
 	}
 }
 
-// exportVarLocations converts a slice of internal varLocation to
-// serialisation-safe data.
+// exportVarLocations converts a slice of internal varLocation to serialisation-safe data.
 //
-// Takes locations ([]varLocation) which is the slice of internal
-// variable locations to convert.
+// Takes locations ([]varLocation) which is the slice of internal variable locations to
+// convert.
 //
-// Returns []VarLocationData which holds the serialisation-safe
-// representations.
+// Returns []VarLocationData which holds the serialisation-safe representations.
 func exportVarLocations(locations []varLocation) []VarLocationData {
 	if len(locations) == 0 {
 		return nil

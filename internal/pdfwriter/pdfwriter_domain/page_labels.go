@@ -46,8 +46,8 @@ const (
 	LabelNone PageLabelStyle = ""
 )
 
-// PageLabelRange defines a page label range starting at a given page index.
-// All pages from PageIndex until the next range use this label configuration.
+// PageLabelRange defines a page label range starting at a given page index. All pages
+// from PageIndex until the next range use this label configuration.
 type PageLabelRange struct {
 	// Style is the numbering style for this range.
 	Style PageLabelStyle
@@ -58,19 +58,19 @@ type PageLabelRange struct {
 	// PageIndex is the zero-based page index where this range begins.
 	PageIndex int
 
-	// Start is the numeric value of the first page label in this range.
-	// Defaults to 1 if zero or negative.
+	// Start is the numeric value of the first page label in this range. Defaults to 1 if
+	// zero or negative.
 	Start int
 }
 
-// buildPageLabelsDict writes the /PageLabels number tree as a PDF object
-// and returns the catalogue entry string.
+// buildPageLabelsDict writes the /PageLabels number tree as a PDF object and returns the
+// catalogue entry string.
 //
 // Takes ranges ([]PageLabelRange) which defines the page label ranges.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 //
-// Returns string which is the catalogue entry (e.g. " /PageLabels 5 0 R"),
-// or an empty string if ranges is nil or empty.
+// Returns string which is the catalogue entry (e.g. " /PageLabels 5 0 R"), or an empty
+// string if ranges is nil or empty.
 func buildPageLabelsDict(ranges []PageLabelRange, writer *PdfDocumentWriter) string {
 	if len(ranges) == 0 {
 		return ""

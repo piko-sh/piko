@@ -60,8 +60,7 @@ func (d Decimal) Float64() (float64, error) {
 // Int64 returns the whole number value of the decimal as an int64.
 //
 // Returns int64 which is the whole number value.
-// Returns error when the decimal is in an error state or has a
-// fractional part.
+// Returns error when the decimal is in an error state or has a fractional part.
 func (d Decimal) Int64() (int64, error) {
 	if d.err != nil {
 		return 0, d.err
@@ -117,12 +116,11 @@ func (d Decimal) MustInt64() int64 {
 	return i
 }
 
-// MarshalJSON implements the json.Marshaler interface.
-// It marshals the decimal as a JSON string to preserve precision.
+// MarshalJSON implements the json.Marshaler interface. It marshals the decimal as a JSON
+// string to preserve precision.
 //
 // Returns []byte which contains the JSON-encoded string representation.
-// Returns error when the decimal is in an error state or string conversion
-// fails.
+// Returns error when the decimal is in an error state or string conversion fails.
 func (d Decimal) MarshalJSON() ([]byte, error) {
 	if d.err != nil {
 		return nil, d.err
@@ -134,13 +132,13 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// It can unmarshal from a JSON string or a JSON number.
+// UnmarshalJSON implements the json.Unmarshaler interface. It can unmarshal from a JSON
+// string or a JSON number.
 //
 // Takes data ([]byte) which contains the JSON-encoded value to parse.
 //
-// Returns error when the receiver is nil or the data is not a valid JSON
-// string or number.
+// Returns error when the receiver is nil or the data is not a valid JSON string or
+// number.
 func (d *Decimal) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.New("maths: UnmarshalJSON on nil Decimal pointer")
@@ -170,9 +168,8 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	return errors.New("maths: decimal must be a JSON string or number")
 }
 
-// Value implements the driver.Valuer interface for database serialisation.
-// It returns the decimal as a string for storage in a high-precision
-// database column.
+// Value implements the driver.Valuer interface for database serialisation. It returns the
+// decimal as a string for storage in a high-precision database column.
 //
 // Returns driver.Value which contains the decimal as a string.
 // Returns error when the decimal holds a previous error.
@@ -185,9 +182,8 @@ func (d Decimal) Value() (driver.Value, error) {
 
 // Scan implements the sql.Scanner interface for database deserialisation.
 //
-// Takes source (interface{}) which is the database value to scan; accepts string,
-// []byte, int64, float64, nil, or any type implementing fmt.Stringer
-// (for example duckdb.Decimal).
+// Takes source (any) which is the database value to scan; accepts string, []byte, int64,
+// float64, nil, or any type implementing fmt.Stringer (for example duckdb.Decimal).
 //
 // Returns error when d is nil or source is an unsupported type.
 func (d *Decimal) Scan(source any) error {
@@ -222,9 +218,9 @@ func (d *Decimal) Scan(source any) error {
 	return d.err
 }
 
-// stringerFromReflect attempts to call a String() string method on source,
-// including pointer-receiver methods that a type switch cannot reach when
-// the value is stored in an interface.
+// stringerFromReflect attempts to call a String() string method on source, including
+// pointer-receiver methods that a type switch cannot reach when the value is stored in an
+// interface.
 //
 // Takes source (any) which is the value to try calling String() on.
 //
@@ -259,56 +255,51 @@ func stringerFromReflect(source any) (string, bool) {
 	return result[0].String(), true
 }
 
-// NumberLocale defines the formatting rules for displaying numbers in a
-// specific locale.
+// NumberLocale defines the formatting rules for displaying numbers in a specific locale.
 type NumberLocale struct {
-	// DecimalSep is the character that separates the whole number from the
-	// decimal part (e.g., "." or ",").
+	// DecimalSep is the character that separates the whole number from the decimal part
+	// (e.g., "." or ",").
 	DecimalSep string
 
-	// ThousandSep is the character used to separate groups of digits
-	// (e.g. ",", ".", "'", or " "); an empty string means no grouping.
+	// ThousandSep is the character used to separate groups of digits (e.g. ",", ".", "'", or
+	// " "); an empty string means no grouping.
 	ThousandSep string
 
-	// GroupSize is the number of digits in the primary (rightmost) group;
-	// typically 3.
+	// GroupSize is the number of digits in the primary (rightmost) group; typically 3.
 	GroupSize int
 
-	// SecondaryGroupSize is the number of digits in groups after the first.
-	// Set to 0 to use GroupSize for all groups (Western-style), or 2 for
-	// Indian-style grouping (e.g., 1,23,45,678).
+	// SecondaryGroupSize is the number of digits in groups after the first. Set to 0 to use
+	// GroupSize for all groups (Western-style), or 2 for Indian-style grouping (e.g.,
+	// 1,23,45,678).
 	SecondaryGroupSize int
 }
 
 var (
-	// LocaleEnGB uses "." for decimal and "," for thousands (e.g., 1,234.56).
-	// Used by: en-GB, en-AU, en-NZ, en-IE, en-ZA, ja, zh, ko, th.
+	// LocaleEnGB uses "." for decimal and "," for thousands (e.g., 1,234.56). Used by:
+	// en-GB, en-AU, en-NZ, en-IE, en-ZA, ja, zh, ko, th.
 	LocaleEnGB = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3}
 
-	// LocaleEnUS uses "." for decimal and "," for thousands (e.g., 1,234.56).
-	// Identical to LocaleEnGB but kept separate for semantic clarity.
+	// LocaleEnUS uses "." for decimal and "," for thousands (e.g., 1,234.56). Identical to
+	// LocaleEnGB but kept separate for semantic clarity.
 	LocaleEnUS = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3}
 
-	// LocaleDeDe uses "," for decimal and "." for thousands (e.g., 1.234,56).
-	// Used by: de, es, it, pt, nl, el, tr, hr, ro, sr, sl, vi, id.
+	// LocaleDeDe uses "," for decimal and "." for thousands (e.g., 1.234,56). Used by: de,
+	// es, it, pt, nl, el, tr, hr, ro, sr, sl, vi, id.
 	LocaleDeDe = NumberLocale{DecimalSep: ",", ThousandSep: ".", GroupSize: 3}
 
-	// LocaleFrFr uses "," for decimal and narrow no-break space (U+202F) for
-	// thousands (e.g., 1 234,56).
-	// Used by: fr, sv, nb, nn, da, fi, pl, ru, uk, be, cs, sk, bg, hu.
+	// LocaleFrFr uses "," for decimal and narrow no-break space (U+202F) for thousands
+	// (e.g., 1 234,56). Used by: fr, sv, nb, nn, da, fi, pl, ru, uk, be, cs, sk, bg, hu.
 	LocaleFrFr = NumberLocale{DecimalSep: ",", ThousandSep: "\u202f", GroupSize: 3}
 
-	// LocaleSwiss uses "." for decimal and apostrophe "'" for thousands
-	// (e.g., 1'234.56).
+	// LocaleSwiss uses "." for decimal and apostrophe "'" for thousands (e.g., 1'234.56).
 	// Used by: de-CH, fr-CH, it-CH, rm-CH.
 	LocaleSwiss = NumberLocale{DecimalSep: ".", ThousandSep: "'", GroupSize: 3}
 
 	// LocaleIndian defines Indian number formatting with lakh and crore grouping.
 	//
-	// The first group from the right has 3 digits, subsequent groups have
-	// 2 digits (e.g., 1,23,45,678.90). Uses "." for decimals and "," for
-	// thousands. Supported locales: en-IN, hi, bn, ta, te, mr, gu, kn, ml,
-	// pa, or, as, ne.
+	// The first group from the right has 3 digits, subsequent groups have 2 digits (e.g.,
+	// 1,23,45,678.90). Uses "." for decimals and "," for thousands. Supported locales:
+	// en-IN, hi, bn, ta, te, mr, gu, kn, ml, pa, or, as, ne.
 	LocaleIndian = NumberLocale{
 		DecimalSep:         ".",
 		ThousandSep:        ",",
@@ -316,12 +307,12 @@ var (
 		SecondaryGroupSize: 2,
 	}
 
-	// LocaleRaw uses no thousand separator and "." for decimal.
-	// Useful for machine-readable output or when no formatting is desired.
+	// LocaleRaw uses no thousand separator and "." for decimal. Useful for machine-readable
+	// output or when no formatting is desired.
 	LocaleRaw = NumberLocale{DecimalSep: ".", ThousandSep: "", GroupSize: 0}
 
-	// localeMap maps locale strings to NumberLocale settings.
-	// Organised by number format family for clarity.
+	// localeMap maps locale strings to NumberLocale settings. Organised by number format
+	// family for clarity.
 	localeMap = map[string]NumberLocale{
 		"en":    LocaleEnGB,
 		"en-GB": LocaleEnGB, // English (Traditional)
@@ -461,21 +452,16 @@ var (
 	}
 )
 
-// Format returns the decimal as a string with locale-specific formatting.
-// This keeps full precision while using the correct separators for the locale.
+// Format returns the decimal as a string with locale-specific formatting. This keeps full
+// precision while using the correct separators for the locale.
 //
-// Takes locale (string) which specifies the locale code (e.g. "de-DE",
-// "en-GB").
+// Takes locale (string) which specifies the locale code (e.g. "de-DE", "en-GB").
 //
-// Returns string which is the formatted decimal with locale-specific
-// separators.
-// Returns error when the decimal has a previous error or cannot be converted
-// to a string.
+// Returns string which is the formatted decimal with locale-specific separators.
+// Returns error when the decimal has a previous error or cannot be converted to a string.
 //
-// Example:
-// d := NewDecimalFromString("1234567.89012345")
-// d.Format("de-DE") // Returns "1.234.567,89012345"
-// d.Format("en-GB") // Returns "1,234,567.89012345"
+// Example: d := NewDecimalFromString("1234567.89012345") d.Format("de-DE") // Returns
+// "1.234.567,89012345" d.Format("en-GB") // Returns "1,234,567.89012345"
 func (d Decimal) Format(locale string) (string, error) {
 	if d.err != nil {
 		return "", d.err
@@ -504,13 +490,13 @@ func (d Decimal) MustFormat(locale string) string {
 	return s
 }
 
-// GetNumberLocale returns the number formatting rules for a given locale.
-// Falls back to LocaleEnGB if the locale is not found.
+// GetNumberLocale returns the number formatting rules for a given locale. Falls back to
+// LocaleEnGB if the locale is not found.
 //
 // Takes locale (string) which specifies the locale identifier to look up.
 //
-// Returns NumberLocale which contains the number formatting rules for the
-// requested locale.
+// Returns NumberLocale which contains the number formatting rules for the requested
+// locale.
 func GetNumberLocale(locale string) NumberLocale {
 	if l, ok := localeMap[locale]; ok {
 		return l
@@ -518,15 +504,13 @@ func GetNumberLocale(locale string) NumberLocale {
 	return LocaleEnGB
 }
 
-// FormatNumberString applies locale formatting to a number string. It
-// preserves full precision while adding thousand separators and the correct
-// decimal separator.
+// FormatNumberString applies locale formatting to a number string. It preserves full
+// precision while adding thousand separators and the correct decimal separator.
 //
 // Takes s (string) which is the number string to format.
 // Takes locale (NumberLocale) which specifies the formatting rules.
 //
-// Returns string which is the formatted number with locale-specific
-// separators.
+// Returns string which is the formatted number with locale-specific separators.
 func FormatNumberString(s string, locale NumberLocale) string {
 	if s == "" {
 		return s
@@ -561,8 +545,7 @@ func FormatNumberString(s string, locale NumberLocale) string {
 	return result
 }
 
-// indexOf returns the index of the first occurrence of char in s, or -1 if
-// not found.
+// indexOf returns the index of the first occurrence of char in s, or -1 if not found.
 //
 // Takes s (string) which is the string to search.
 // Takes char (byte) which is the character to find.
@@ -577,21 +560,18 @@ func indexOf(s string, char byte) int {
 	return -1
 }
 
-// addThousandSeparators inserts separators into a number string to improve
-// readability. Supports variable group sizes for Indian-style lakh and crore
-// grouping.
+// addThousandSeparators inserts separators into a number string to improve readability.
+// Supports variable group sizes for Indian-style lakh and crore grouping.
 //
 // Takes s (string) which is the number string to format.
 // Takes sep (string) which is the separator to insert between groups.
-// Takes primaryGroupSize (int) which is the number of digits in the rightmost
-// group.
-// Takes secondaryGroupSize (int) which is the number of digits in later
-// groups. If 0, uses primaryGroupSize for all groups (standard Western style).
+// Takes primaryGroupSize (int) which is the number of digits in the rightmost group.
+// Takes secondaryGroupSize (int) which is the number of digits in later groups. If 0,
+// uses primaryGroupSize for all groups (standard Western style).
 //
 // Returns string which is the formatted string with separators added.
 //
-// Examples:
-// addThousandSeparators("1234567", ",", 3, 0) returns "1,234,567"
+// Examples: addThousandSeparators("1234567", ",", 3, 0) returns "1,234,567"
 // addThousandSeparators("1234567", ",", 3, 2) returns "12,34,567" (Indian)
 func addThousandSeparators(s, sep string, primaryGroupSize, secondaryGroupSize int) string {
 	n := len(s)

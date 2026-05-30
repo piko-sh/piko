@@ -45,10 +45,10 @@ const (
 	// presignSecretMinLength is the minimum required secret key length.
 	presignSecretMinLength = 32
 
-	// presignMaxTokenLength caps the encoded token length before any base64
-	// or JSON decoding work is performed. Legitimate presign tokens are well
-	// under 1 KiB; this 4 KiB ceiling rejects pathological inputs while
-	// staying clear of any plausible legitimate growth in the payload.
+	// presignMaxTokenLength caps the encoded token length before any base64 or JSON decoding
+	// work is performed. Legitimate presign tokens are well under 1 KiB; this 4 KiB ceiling
+	// rejects pathological inputs while staying clear of any plausible legitimate growth in
+	// the payload.
 	presignMaxTokenLength = 4096
 )
 
@@ -65,14 +65,14 @@ var (
 	// ErrPresignSecretTooShort indicates the signing secret is too short.
 	ErrPresignSecretTooShort = errors.New("presign: secret must be at least 32 bytes")
 
-	// ErrPresignTokenTooLarge indicates the encoded token length exceeds the
-	// configured maximum (presignMaxTokenLength). Oversized inputs are
-	// rejected before any expensive base64 or JSON decoding work is done.
+	// ErrPresignTokenTooLarge indicates the encoded token length exceeds the configured
+	// maximum (presignMaxTokenLength). Oversized inputs are rejected before any expensive
+	// base64 or JSON decoding work is done.
 	ErrPresignTokenTooLarge = errors.New("presign: token exceeds maximum allowed size")
 )
 
-// PresignTokenData holds the payload for a presigned upload token.
-// The struct uses short JSON field names to minimise token size.
+// PresignTokenData holds the payload for a presigned upload token. The struct uses short
+// JSON field names to minimise token size.
 type PresignTokenData struct {
 	// TempKey is the storage key where the upload will be written.
 	TempKey string `json:"k"`
@@ -100,8 +100,8 @@ func (d *PresignTokenData) IsExpired() bool {
 	return time.Now().Unix() > d.ExpiresAt
 }
 
-// PresignDownloadTokenData holds the payload for a presigned download token.
-// The struct uses short JSON field names to minimise token size.
+// PresignDownloadTokenData holds the payload for a presigned download token. The struct
+// uses short JSON field names to minimise token size.
 type PresignDownloadTokenData struct {
 	// Key is the storage object path to download.
 	Key string `json:"k"`
@@ -139,8 +139,8 @@ type presignTokenPayload interface {
 
 // GeneratePresignToken creates a signed token from the given data.
 //
-// The token format is: {base64url_payload}.{base64url_signature}
-// The signature is an HMAC-SHA256 hash shortened to 16 bytes.
+// The token format is: {base64url_payload}.{base64url_signature} The signature is an
+// HMAC-SHA256 hash shortened to 16 bytes.
 //
 // Takes secret ([]byte) which is the HMAC signing key (at least 32 bytes).
 // Takes data (PresignTokenData) which holds the token payload.
@@ -178,16 +178,15 @@ func GeneratePresignToken(secret []byte, data PresignTokenData) (string, error) 
 // Takes token (string) which is the token to verify.
 //
 // Returns *PresignTokenData which contains the validated payload.
-// Returns error when the token is malformed, signature is invalid, or token
-// is expired.
+// Returns error when the token is malformed, signature is invalid, or token is expired.
 func ParseAndVerifyPresignToken(secret []byte, token string) (*PresignTokenData, error) {
 	return parseAndVerifyPresignTokenGeneric[PresignTokenData](secret, token, "presign upload")
 }
 
 // GeneratePresignDownloadToken creates a signed download token.
 //
-// The token format is: {base64url_payload}.{base64url_signature}
-// The signature is an HMAC-SHA256 hash truncated to 16 bytes.
+// The token format is: {base64url_payload}.{base64url_signature} The signature is an
+// HMAC-SHA256 hash truncated to 16 bytes.
 //
 // Takes secret ([]byte) which is the HMAC signing key (minimum 32 bytes).
 // Takes data (PresignDownloadTokenData) which contains the token payload.
@@ -214,8 +213,7 @@ func GeneratePresignDownloadToken(secret []byte, data PresignDownloadTokenData) 
 	return payloadEncoded + presignTokenDelimiter + signature, nil
 }
 
-// ParseAndVerifyPresignDownloadToken validates a download token and extracts
-// its payload.
+// ParseAndVerifyPresignDownloadToken validates a download token and extracts its payload.
 //
 // Verification includes:
 //   - Structure validation (payload.signature format)
@@ -226,8 +224,7 @@ func GeneratePresignDownloadToken(secret []byte, data PresignDownloadTokenData) 
 // Takes token (string) which is the token to verify.
 //
 // Returns *PresignDownloadTokenData which contains the validated payload.
-// Returns error when the token is malformed, signature is invalid, or token
-// is expired.
+// Returns error when the token is malformed, signature is invalid, or token is expired.
 func ParseAndVerifyPresignDownloadToken(secret []byte, token string) (*PresignDownloadTokenData, error) {
 	return parseAndVerifyPresignTokenGeneric[PresignDownloadTokenData](secret, token, "presign download")
 }
@@ -244,16 +241,16 @@ func GeneratePresignRID() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(ridBytes), nil
 }
 
-// parseAndVerifyPresignTokenGeneric parses a presign token, verifies its
-// signature, and returns the decoded payload.
+// parseAndVerifyPresignTokenGeneric parses a presign token, verifies its signature, and
+// returns the decoded payload.
 //
 // Takes secret ([]byte) which is the signing key for verification.
 // Takes token (string) which is the encoded token to parse and verify.
 // Takes tokenType (string) which identifies the token type for error messages.
 //
 // Returns P which is the decoded and verified payload.
-// Returns error when the secret is too short, the token format is invalid,
-// the signature does not match, or the token has expired.
+// Returns error when the secret is too short, the token format is invalid, the signature
+// does not match, or the token has expired.
 func parseAndVerifyPresignTokenGeneric[T any, P interface {
 	*T
 	presignTokenPayload
@@ -304,8 +301,8 @@ func parseAndVerifyPresignTokenGeneric[T any, P interface {
 
 // signPresignPayload computes an HMAC-SHA256 signature for the payload.
 //
-// The signature is truncated to 16 bytes (128 bits) for compactness while
-// maintaining security. This matches the CSRF token pattern.
+// The signature is truncated to 16 bytes (128 bits) for compactness while maintaining
+// security. This matches the CSRF token pattern.
 //
 // Takes payload ([]byte) which is the data to sign.
 // Takes secret ([]byte) which is the HMAC key.

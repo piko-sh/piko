@@ -18,7 +18,9 @@
 
 package layouter_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestApplyTextTransform(t *testing.T) {
 	tests := []struct {

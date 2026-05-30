@@ -53,8 +53,7 @@ const (
 	latinAlphabetSize = 26
 )
 
-// isFollowingChar checks if the character at position+1 matches any in the chars
-// string.
+// isFollowingChar checks if the character at position+1 matches any in the chars string.
 //
 // Takes word (string) which is the string to check within.
 // Takes position (int) which is the position before the character to check.
@@ -74,15 +73,15 @@ func isFollowingChar(word string, position int, chars string) bool {
 	return false
 }
 
-// isPrecedingChar checks if the character at position-1 matches any character in
-// the chars string.
+// isPrecedingChar checks if the character at position-1 matches any character in the
+// chars string.
 //
 // Takes word (string) which is the string to check within.
 // Takes position (int) which is the position whose preceding character to check.
 // Takes chars (string) which contains the characters to match against.
 //
-// Returns bool which is true if the preceding character matches any in chars,
-// or false if position is 0 or no match is found.
+// Returns bool which is true if the preceding character matches any in chars, or false if
+// position is 0 or no match is found.
 func isPrecedingChar(word string, position int, chars string) bool {
 	if position == 0 {
 		return false
@@ -96,9 +95,8 @@ func isPrecedingChar(word string, position int, chars string) bool {
 	return false
 }
 
-// isCHardContext reports whether C should encode as 4 (hard sound) at the
-// given position. C encodes as 4 before A, H, K, O, Q, U, X, or before L and R
-// at word onset only.
+// isCHardContext reports whether C should encode as 4 (hard sound) at the given position.
+// C encodes as 4 before A, H, K, O, Q, U, X, or before L and R at word onset only.
 //
 // Takes word (string) which is the word being analysed.
 // Takes position (int) which is the position of C in the word.

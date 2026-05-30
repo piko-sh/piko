@@ -43,62 +43,64 @@ import (
 )
 
 const (
-	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
-	// even when the caller does not supply a per-request deadline. It is
-	// generous enough to allow long-running completions but prevents stuck
-	// connections from leaking goroutines indefinitely.
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests even when
+	// the caller does not supply a per-request deadline. It is generous enough to allow
+	// long-running completions but prevents stuck connections from leaking goroutines
+	// indefinitely.
 	httpClientTimeout = 30 * time.Minute
 )
 
 // geminiProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Google Gemini.
 type geminiProvider struct {
-	// closeContext is the provider-level context whose cancellation signals
-	// background stream goroutines to exit.
+	// closeContext is the provider-level context whose cancellation signals background
+	// stream goroutines to exit.
 	closeContext context.Context
 
 	// client is the Gemini API client for making requests.
 	client *genai.Client
 
-	// httpClient is the underlying *http.Client injected into the Gemini SDK;
-	// retained so tests can verify the configured top-level timeout and idle
-	// connections can be released on Close.
+	// httpClient is the underlying *http.Client injected into the Gemini SDK; retained so
+	// tests can verify the configured top-level timeout and idle connections can be released
+	// on Close.
 	httpClient *http.Client
 
-	// closeCancel cancels closeContext on Close to signal in-flight stream
-	// goroutines to wind down.
+	// closeCancel cancels closeContext on Close to signal in-flight stream goroutines to
+	// wind down.
 	closeCancel context.CancelCauseFunc
 
 	// defaultModel is the model name to use when none is specified.
 	defaultModel string
 
-	// defaultEmbeddingModel is the embedding model name to use when not
-	// specified in a request.
+	// defaultEmbeddingModel is the embedding model name to use when not specified in a
+	// request.
 	defaultEmbeddingModel string
 
 	// config holds the Gemini provider settings.
 	config Config
 
-	// streamWaitGroup tracks active streaming goroutines so Close can wait for
-	// them to drain.
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for them to
+	// drain.
 	streamWaitGroup sync.WaitGroup
 
-	// embeddingDimensions is the default vector dimension for the configured
-	// embedding model.
+	// embeddingDimensions is the default vector dimension for the configured embedding
+	// model.
 	embeddingDimensions int
 
 	// closeOnce guards Close so it is idempotent.
 	closeOnce sync.Once
 }
 
-var _ llm_domain.LLMProviderPort = (*geminiProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*geminiProvider)(nil)
 
-var _ llm_domain.EmbeddingProviderPort = (*geminiProvider)(nil)
+	_ llm_domain.EmbeddingProviderPort = (*geminiProvider)(nil)
+)
 
 // Complete sends a completion request to Gemini.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model, messages, and generation settings.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model, messages, and generation settings.
 //
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the Gemini API call fails.
@@ -135,15 +137,14 @@ func (p *geminiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	return p.convertResponse(response, modelName), nil
 }
 
-// sanitiseGeminiError wraps Gemini errors carrying user-visible 4xx semantics
-// in a safeerror so HTTP edges can sanitise them. The Gemini SDK does not
-// expose structured status codes in a portable way, so we treat Authentication
-// and InvalidArgument substrings as user-facing and pass everything else
-// through unchanged for retry classification.
+// sanitiseGeminiError wraps Gemini errors carrying user-visible 4xx semantics in a
+// safeerror so HTTP edges can sanitise them. The Gemini SDK does not expose structured
+// status codes in a portable way, so we treat Authentication and InvalidArgument
+// substrings as user-facing and pass everything else through unchanged for retry
+// classification.
 //
 // Takes err (error) which is the error to inspect.
-// Takes safeMessage (string) which is shown to end users for user-facing
-// errors.
+// Takes safeMessage (string) which is shown to end users for user-facing errors.
 //
 // Returns error which is wrapped when err looks like a 4xx.
 func sanitiseGeminiError(err error, safeMessage string) error {
@@ -159,8 +160,8 @@ func sanitiseGeminiError(err error, safeMessage string) error {
 	return err
 }
 
-// containsFold reports whether substr is contained in s using a
-// case-insensitive comparison.
+// containsFold reports whether substr is contained in s using a case-insensitive
+// comparison.
 //
 // Takes s (string) which is the string to search.
 // Takes substr (string) which is the substring to look for.
@@ -177,8 +178,7 @@ func (*geminiProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output.
+// SupportsStructuredOutput reports whether the provider supports structured output.
 //
 // Returns bool which is true if structured output is supported.
 func (*geminiProvider) SupportsStructuredOutput() bool {
@@ -192,8 +192,8 @@ func (*geminiProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is true if penalties are supported.
 func (*geminiProvider) SupportsPenalties() bool { return true }
@@ -203,14 +203,12 @@ func (*geminiProvider) SupportsPenalties() bool { return true }
 // Returns bool which is true if seed is supported.
 func (*geminiProvider) SupportsSeed() bool { return true }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
 // Returns bool which is false as Gemini does not support parallel tool calls.
 func (*geminiProvider) SupportsParallelToolCalls() bool { return false }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is false as Gemini does not support message names.
 func (*geminiProvider) SupportsMessageName() bool { return false }
@@ -243,14 +241,13 @@ func (p *geminiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 	return models, nil
 }
 
-// Close releases resources held by the provider, cancelling any in-flight
-// stream goroutines and waiting for them to drain within a bounded timeout.
+// Close releases resources held by the provider, cancelling any in-flight stream
+// goroutines and waiting for them to drain within a bounded timeout.
 //
 // Returns error when the close drain exceeds its bounded wait.
 //
-// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
-// signal active stream goroutines, then waits on streamWaitGroup before
-// returning.
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to signal
+// active stream goroutines, then waits on streamWaitGroup before returning.
 func (p *geminiProvider) Close(ctx context.Context) error {
 	var closeErr error
 	p.closeOnce.Do(func() {
@@ -291,15 +288,12 @@ func (p *geminiProvider) DefaultModel() string {
 	return p.defaultModel
 }
 
-// Embed generates embeddings for the given input texts via the Gemini
-// embedding API.
+// Embed generates embeddings for the given input texts via the Gemini embedding API.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the generated
-// embeddings.
+// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
 func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Embed")
@@ -379,22 +373,21 @@ func (p *geminiProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.Mod
 	return models, nil
 }
 
-// EmbeddingDimensions returns the default vector dimension for the configured
-// embedding model.
+// EmbeddingDimensions returns the default vector dimension for the configured embedding
+// model.
 //
 // Returns int which is the vector dimension.
 func (p *geminiProvider) EmbeddingDimensions() int {
 	return p.embeddingDimensions
 }
 
-// buildGenerateContentConfig creates a GenerateContentConfig from a
-// completion request.
+// buildGenerateContentConfig creates a GenerateContentConfig from a completion request.
 //
-// Takes request (*llm_dto.CompletionRequest) which provides the configuration
-// values including system instruction, temperature, max tokens, and tools.
+// Takes request (*llm_dto.CompletionRequest) which provides the configuration values
+// including system instruction, temperature, max tokens, and tools.
 //
-// Returns *genai.GenerateContentConfig which is the configured generation
-// settings for the Gemini API.
+// Returns *genai.GenerateContentConfig which is the configured generation settings for
+// the Gemini API.
 func (p *geminiProvider) buildGenerateContentConfig(request *llm_dto.CompletionRequest) *genai.GenerateContentConfig {
 	config := &genai.GenerateContentConfig{}
 
@@ -439,19 +432,19 @@ func (p *geminiProvider) buildGenerateContentConfig(request *llm_dto.CompletionR
 	return config
 }
 
-// applyResponseFormat configures the response MIME type and optional
-// JSON schema on the generation config.
+// applyResponseFormat configures the response MIME type and optional JSON schema on the
+// generation config.
 //
-// Takes config (*genai.GenerateContentConfig) which is the
-// generation config to modify in place.
-// Takes rf (*llm_dto.ResponseFormat) which specifies the desired
-// response format; nil is a no-op.
+// Takes config (*genai.GenerateContentConfig) which is the generation config to modify in
+// place.
+// Takes rf (*llm_dto.ResponseFormat) which specifies the desired response format; nil is
+// a no-op.
 func (p *geminiProvider) applyResponseFormat(config *genai.GenerateContentConfig, rf *llm_dto.ResponseFormat) {
 	if rf == nil {
 		return
 	}
 
-	switch rf.Type {
+	switch rf.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case llm_dto.ResponseFormatJSONObject:
 		config.ResponseMIMEType = "application/json"
 	case llm_dto.ResponseFormatJSONSchema:
@@ -464,11 +457,10 @@ func (p *geminiProvider) applyResponseFormat(config *genai.GenerateContentConfig
 
 // buildContents converts the message history to Gemini content format.
 //
-// Takes messages ([]llm_dto.Message) which contains the conversation history
-// to convert.
+// Takes messages ([]llm_dto.Message) which contains the conversation history to convert.
 //
-// Returns []*genai.Content which holds the converted messages, excluding
-// system messages (handled via SystemInstruction in config).
+// Returns []*genai.Content which holds the converted messages, excluding system messages
+// (handled via SystemInstruction in config).
 func (p *geminiProvider) buildContents(messages []llm_dto.Message) []*genai.Content {
 	result := make([]*genai.Content, 0, len(messages))
 	for _, message := range messages {
@@ -480,15 +472,13 @@ func (p *geminiProvider) buildContents(messages []llm_dto.Message) []*genai.Cont
 	return result
 }
 
-// convertHistory converts llm_dto.Message history to Gemini format,
-// excluding system messages and the last user message.
+// convertHistory converts llm_dto.Message history to Gemini format, excluding system
+// messages and the last user message.
 //
-// Takes messages ([]llm_dto.Message) which contains the conversation history
-// to convert.
+// Takes messages ([]llm_dto.Message) which contains the conversation history to convert.
 //
-// Returns []*genai.Content which holds the converted messages, excluding
-// system messages (handled via SystemInstruction) and the last user message
-// (sent separately).
+// Returns []*genai.Content which holds the converted messages, excluding system messages
+// (handled via SystemInstruction) and the last user message (sent separately).
 func (p *geminiProvider) convertHistory(messages []llm_dto.Message) []*genai.Content {
 	result := make([]*genai.Content, 0, len(messages))
 	lastIndex := len(messages) - 1
@@ -548,8 +538,7 @@ func (p *geminiProvider) convertMessage(message llm_dto.Message) *genai.Content 
 
 // convertContentParts converts multimodal content parts to Gemini part format.
 //
-// Takes parts ([]llm_dto.ContentPart) which contains the content parts to
-// convert.
+// Takes parts ([]llm_dto.ContentPart) which contains the content parts to convert.
 //
 // Returns []*genai.Part which contains the converted parts for the Gemini API.
 func (*geminiProvider) convertContentParts(parts []llm_dto.ContentPart) []*genai.Part {
@@ -564,11 +553,10 @@ func (*geminiProvider) convertContentParts(parts []llm_dto.ContentPart) []*genai
 
 // convertTools converts tool definitions to Gemini format.
 //
-// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions
-// to convert.
+// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions to convert.
 //
-// Returns []*genai.FunctionDeclaration which contains the converted function
-// declarations ready for use with the Gemini API.
+// Returns []*genai.FunctionDeclaration which contains the converted function declarations
+// ready for use with the Gemini API.
 func (p *geminiProvider) convertTools(tools []llm_dto.ToolDefinition) []*genai.FunctionDeclaration {
 	result := make([]*genai.FunctionDeclaration, len(tools))
 	for i, tool := range tools {
@@ -590,8 +578,7 @@ func (p *geminiProvider) convertTools(tools []llm_dto.ToolDefinition) []*genai.F
 //
 // Takes schema (*llm_dto.JSONSchema) which is the schema to convert.
 //
-// Returns *genai.Schema which is the converted Gemini schema, or nil if the
-// input is nil.
+// Returns *genai.Schema which is the converted Gemini schema, or nil if the input is nil.
 func (p *geminiProvider) convertSchema(schema *llm_dto.JSONSchema) *genai.Schema {
 	if schema == nil {
 		return nil
@@ -635,8 +622,8 @@ func (p *geminiProvider) convertSchema(schema *llm_dto.JSONSchema) *genai.Schema
 //
 // Takes t (string) which is the JSON Schema type name to convert.
 //
-// Returns genai.Type which is the corresponding Gemini type, or
-// genai.TypeUnspecified if the type is not recognised.
+// Returns genai.Type which is the corresponding Gemini type, or genai.TypeUnspecified if
+// the type is not recognised.
 func (*geminiProvider) convertSchemaType(t string) genai.Type {
 	switch t {
 	case "string":
@@ -658,12 +645,12 @@ func (*geminiProvider) convertSchemaType(t string) genai.Type {
 
 // convertResponse converts Gemini's response to llm_dto.CompletionResponse.
 //
-// Takes response (*genai.GenerateContentResponse) which is the raw Gemini API
-// response to convert.
+// Takes response (*genai.GenerateContentResponse) which is the raw Gemini API response to
+// convert.
 // Takes model (string) which identifies the model name for the response.
 //
-// Returns *llm_dto.CompletionResponse which contains the converted response
-// with choices, usage metadata, and a generated unique ID.
+// Returns *llm_dto.CompletionResponse which contains the converted response with choices,
+// usage metadata, and a generated unique ID.
 func (p *geminiProvider) convertResponse(response *genai.GenerateContentResponse, model string) *llm_dto.CompletionResponse {
 	choices := make([]llm_dto.Choice, 0, len(response.Candidates))
 
@@ -779,14 +766,12 @@ func isGeminiEmbeddingModel(m *genai.Model) bool {
 	return slices.Contains(m.SupportedActions, "embedContent")
 }
 
-// convertSingleContentPart converts a single content part to a
-// Gemini Part.
+// convertSingleContentPart converts a single content part to a Gemini Part.
 //
-// Takes part (llm_dto.ContentPart) which is the content part to
-// convert.
+// Takes part (llm_dto.ContentPart) which is the content part to convert.
 //
-// Returns *genai.Part which is the converted part, or nil when the
-// part cannot be converted.
+// Returns *genai.Part which is the converted part, or nil when the part cannot be
+// converted.
 func convertSingleContentPart(part llm_dto.ContentPart) *genai.Part {
 	switch part.Type {
 	case llm_dto.ContentPartTypeText:
@@ -811,12 +796,10 @@ func convertSingleContentPart(part llm_dto.ContentPart) *genai.Part {
 	return nil
 }
 
-// inferImageMIMEType infers the MIME type from an image URL based on its file
-// extension. Returns "image/jpeg" as a fallback when the extension is not
-// recognised.
+// inferImageMIMEType infers the MIME type from an image URL based on its file extension.
+// Returns "image/jpeg" as a fallback when the extension is not recognised.
 //
-// Takes imageURL (string) which is the URL whose file extension determines
-// the MIME type.
+// Takes imageURL (string) which is the URL whose file extension determines the MIME type.
 //
 // Returns string which is the inferred MIME type, defaulting to "image/jpeg".
 func inferImageMIMEType(imageURL string) string {

@@ -56,30 +56,29 @@ const (
 	// levelBLTA is the PAdES B-LTA (Long-Term Archival) conformance level.
 	levelBLTA = "b-lta"
 
-	// signatureContentsSizeBB is the number of bytes reserved for the
-	// hex-encoded CMS signature in the /Contents placeholder for B-B.
-	// 8192 bytes of DER becomes 16384 hex characters, sufficient for
-	// most certificate chains.
+	// signatureContentsSizeBB is the number of bytes reserved for the hex-encoded CMS
+	// signature in the /Contents placeholder for B-B. 8192 bytes of DER becomes 16384 hex
+	// characters, sufficient for most certificate chains.
 	signatureContentsSizeBB = 8192
 
-	// signatureContentsSizeBT is the larger reservation for B-T and
-	// above. The embedded timestamp token adds 3-5 KB of DER.
+	// signatureContentsSizeBT is the larger reservation for B-T and above. The embedded
+	// timestamp token adds 3-5 KB of DER.
 	signatureContentsSizeBT = 16384
 
-	// contentsPlaceholderTag is the marker used to locate the /Contents
-	// hex string placeholder in the serialised PDF so that the byte
-	// range can be computed and the signature inserted.
+	// contentsPlaceholderTag is the marker used to locate the /Contents hex-string
+	// reservation in the serialised PDF so that the byte range can be computed and the
+	// signature inserted.
 	contentsPlaceholderTag = "/Contents <"
 
 	// annotsKey is the PDF dictionary key for page annotations.
 	annotsKey = "Annots"
 
-	// annotFlagHiddenPrint is the annotation flags bitmask for an
-	// invisible signature widget (Hidden + Print = 128 + 4 = 132).
+	// annotFlagHiddenPrint is the annotation flags bitmask for an invisible signature widget
+	// (Hidden + Print = 128 + 4 = 132).
 	annotFlagHiddenPrint = 132
 
-	// sigFlagsValue is the /SigFlags bitmask for signature fields:
-	// SignaturesExist (1) | AppendOnly (2) = 3.
+	// sigFlagsValue is the /SigFlags bitmask for signature fields: SignaturesExist (1) |
+	// AppendOnly (2) = 3.
 	sigFlagsValue = 3
 
 	// byteRangeSize is the number of elements in a /ByteRange array.
@@ -91,12 +90,12 @@ const (
 	// asn1TagSet is the ASN.1 tag byte for SET.
 	asn1TagSet = 0x31
 
-	// asn1TagImplicitConstructed0 is the ASN.1 tag byte for IMPLICIT
-	// [0] CONSTRUCTED context-specific.
+	// asn1TagImplicitConstructed0 is the ASN.1 tag byte for IMPLICIT [0] CONSTRUCTED
+	// context-specific.
 	asn1TagImplicitConstructed0 = 0xa0
 
-	// asn1TagImplicitConstructed1 is the ASN.1 tag byte for IMPLICIT
-	// [1] CONSTRUCTED context-specific (unsigned attributes).
+	// asn1TagImplicitConstructed1 is the ASN.1 tag byte for IMPLICIT [1] CONSTRUCTED
+	// context-specific (unsigned attributes).
 	asn1TagImplicitConstructed1 = 0xa1
 )
 
@@ -125,23 +124,22 @@ var (
 	// oidSHA256WithRSA is the OID for sha256WithRSAEncryption.
 	oidSHA256WithRSA = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
 
-	// oidTimeStampToken is the id-smime-aa-timeStampToken OID used to
-	// embed an RFC 3161 timestamp token as an unsigned attribute in CMS
-	// SignerInfo (RFC 5816).
+	// oidTimeStampToken is the id-smime-aa-timeStampToken OID used to embed an RFC 3161
+	// timestamp token as an unsigned attribute in CMS SignerInfo (RFC 5816).
 	oidTimeStampToken = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 16, 2, 14}
 )
 
 var (
-	// errSignatureDictNotFound is returned when the signature dictionary
-	// object cannot be located in the serialised PDF.
+	// errSignatureDictNotFound is returned when the signature dictionary object cannot be
+	// located in the serialised PDF.
 	errSignatureDictNotFound = errors.New("signature dictionary object not found")
 
-	// errContentsPlaceholderNotFound is returned when the /Contents hex
-	// placeholder cannot be found in the signature dictionary.
+	// errContentsPlaceholderNotFound is returned when the /Contents hex-string reservation
+	// cannot be found in the signature dictionary.
 	errContentsPlaceholderNotFound = errors.New("/Contents placeholder not found in signature dictionary")
 
-	// errContentsHexNotTerminated is returned when the /Contents hex string
-	// is missing its closing angle bracket.
+	// errContentsHexNotTerminated is returned when the /Contents hex string is missing its
+	// closing angle bracket.
 	errContentsHexNotTerminated = errors.New("/Contents hex string not terminated")
 )
 
@@ -154,10 +152,11 @@ type PadesTransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*PadesTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*PadesTransformer)(nil)
+)
 
-// New creates a new PAdES signature transformer with default name and
-// priority.
+// New creates a new PAdES signature transformer with default name and priority.
 //
 // Returns *PadesTransformer which is the initialised transformer.
 func New() *PadesTransformer {
@@ -174,8 +173,7 @@ func (t *PadesTransformer) Name() string { return t.name }
 
 // Type returns TransformerSecurity.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a
-// security transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a security transformer.
 func (*PadesTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerSecurity
 }
@@ -188,19 +186,17 @@ func (t *PadesTransformer) Priority() int { return t.priority }
 // Transform applies a PAdES digital signature to the PDF. Options must be
 // PadesSignOptions or *PadesSignOptions.
 //
-// The implementation follows the PAdES B-B profile: it adds a signature
-// dictionary with /SubFilter /ETSI.CAdES.detached, reserves space for
-// the CMS signature, computes the SHA-256 hash over the byte ranges
-// (everything except the /Contents hex string value), constructs a CMS
-// SignedData structure, and embeds the DER-encoded signature.
+// The implementation follows the PAdES B-B profile: it adds a signature dictionary with
+// /SubFilter /ETSI.CAdES.detached, reserves space for the CMS signature, computes the
+// SHA-256 hash over the byte ranges (everything except the /Contents hex string value),
+// constructs a CMS SignedData structure, and embeds the DER-encoded signature.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be PadesSignOptions or *PadesSignOptions.
 //
 // Returns []byte which is the signed PDF.
-// Returns error when validation fails, the PDF cannot be parsed, or
-// signing fails.
+// Returns error when validation fails, the PDF cannot be parsed, or signing fails.
 func (*PadesTransformer) Transform(ctx context.Context, pdf []byte, options any) ([]byte, error) {
 	opts, err := castOptions(options)
 	if err != nil {
@@ -223,8 +219,8 @@ func (*PadesTransformer) Transform(ctx context.Context, pdf []byte, options any)
 	}
 }
 
-// contentsSize returns the appropriate /Contents reservation size for
-// the given conformance level.
+// contentsSize returns the appropriate /Contents reservation size for the given
+// conformance level.
 //
 // Takes level (string) which specifies the PAdES conformance level.
 //
@@ -240,15 +236,14 @@ func contentsSize(level string) int {
 
 // signPDFWithDocTimestamp performs the B-LTA signing operation.
 //
-// It first signs the PDF at B-LT level (CMS signature with timestamp
-// and DSS), then appends a document timestamp as an incremental
-// update. The document timestamp covers the entire signed document
-// including the DSS data, ensuring long-term archival validity.
+// It first signs the PDF at B-LT level (CMS signature with timestamp and DSS), then
+// appends a document timestamp as an incremental update. The document timestamp covers
+// the entire signed document including the DSS data, ensuring long-term archival
+// validity.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing
-// configuration.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
 // Returns []byte which is the signed PDF with document timestamp.
 // Returns error when signing or timestamping fails.
@@ -266,14 +261,13 @@ func signPDFWithDocTimestamp(ctx context.Context, pdf []byte, opts *pdfwriter_dt
 	return result, nil
 }
 
-// signPDF performs the PAdES signing operation: parsing, adding
-// signature structure (and DSS for B-LT), serialising, hashing,
-// signing, optionally timestamping, and embedding the CMS signature.
+// signPDF performs the PAdES signing operation: parsing, adding signature structure (and
+// DSS for B-LT), serialising, hashing, signing, optionally timestamping, and embedding
+// the CMS signature.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing
-// configuration.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
 // Returns []byte which is the signed PDF.
 // Returns error when any step of the signing pipeline fails.
@@ -304,12 +298,11 @@ func signPDF(ctx context.Context, pdf []byte, opts *pdfwriter_dto.PadesSignOptio
 	return embedSignature(pdfBytes, cmsData, contentsStart, contentsEnd)
 }
 
-// preparePDFStructure parses the PDF, adds the signature dictionary
-// and optionally a DSS dictionary, then serialises.
+// preparePDFStructure parses the PDF, adds the signature dictionary and optionally a DSS
+// dictionary, then serialises.
 //
 // Takes pdf ([]byte) which is the input PDF document.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing
-// configuration.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
 // Returns []byte which is the serialised PDF with signature structure.
 // Returns int which is the signature dictionary object number.
@@ -344,14 +337,14 @@ func preparePDFStructure(pdf []byte, opts *pdfwriter_dto.PadesSignOptions) ([]by
 	return pdfBytes, sigDictObjNum, nil
 }
 
-// buildSignatureWithTimestamp creates the CMS SignedData, optionally
-// requesting a timestamp from the TSA and rebuilding the CMS with the
-// timestamp token as an unsigned attribute.
+// buildSignatureWithTimestamp creates the CMS SignedData, optionally requesting a
+// timestamp from the TSA and rebuilding the CMS with the timestamp token as an unsigned
+// attribute.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes digest ([]byte) which is the SHA-256 hash of the byte ranges.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing
-// configuration including the TSA URL.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration
+// including the TSA URL.
 // Takes certs ([]*x509.Certificate) which is the parsed certificate chain.
 //
 // Returns []byte which is the DER-encoded CMS ContentInfo.
@@ -385,16 +378,16 @@ func buildSignatureWithTimestamp(
 	return cmsData, nil
 }
 
-// extractSignatureValue extracts the raw signature bytes from a
-// DER-encoded CMS ContentInfo.
+// extractSignatureValue extracts the raw signature bytes from a DER-encoded CMS
+// ContentInfo.
 //
-// It navigates the ASN.1 structure: ContentInfo -> SignedData ->
-// SignerInfos -> first SignerInfo -> signature field.
+// It navigates the ASN.1 structure: ContentInfo -> SignedData -> SignerInfos -> first
+// SignerInfo -> signature field.
 //
 // Takes cmsData ([]byte) which is the DER-encoded CMS ContentInfo.
 //
-// Returns []byte which holds the raw signature value, or the original
-// cmsData if the structure cannot be parsed.
+// Returns []byte which holds the raw signature value, or the original cmsData if the
+// structure cannot be parsed.
 func extractSignatureValue(cmsData []byte) []byte {
 	var ci struct {
 		ContentType asn1.ObjectIdentifier
@@ -439,8 +432,8 @@ func extractSignatureValue(cmsData []byte) []byte {
 	return cmsData
 }
 
-// extractLastOctetString walks ASN.1 elements and returns the last
-// OCTET STRING value found.
+// extractLastOctetString walks ASN.1 elements and returns the last OCTET STRING value
+// found.
 //
 // Takes data ([]byte) which is the raw ASN.1 bytes to search.
 //
@@ -463,8 +456,7 @@ func extractLastOctetString(data []byte) []byte {
 
 // castOptions extracts PadesSignOptions from the generic options.
 //
-// Takes options (any) which must be PadesSignOptions or
-// *PadesSignOptions.
+// Takes options (any) which must be PadesSignOptions or *PadesSignOptions.
 //
 // Returns pdfwriter_dto.PadesSignOptions which is the extracted value.
 // Returns error when the type assertion fails or the pointer is nil.
@@ -482,11 +474,10 @@ func castOptions(options any) (pdfwriter_dto.PadesSignOptions, error) {
 	}
 }
 
-// validateOptions checks that required fields are present for the
-// requested conformance level.
+// validateOptions checks that required fields are present for the requested conformance
+// level.
 //
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the options
-// to validate.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the options to validate.
 //
 // Returns error when required fields are missing for the requested level.
 func validateOptions(opts *pdfwriter_dto.PadesSignOptions) error {
@@ -521,16 +512,15 @@ func validateOptions(opts *pdfwriter_dto.PadesSignOptions) error {
 
 // applyDefaults fills zero-value fields with sensible defaults.
 //
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the options
-// to populate with defaults.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the options to populate with
+// defaults.
 func applyDefaults(opts *pdfwriter_dto.PadesSignOptions) {
 	if opts.Level == "" {
 		opts.Level = levelBB
 	}
 }
 
-// parseCertificateChain decodes DER-encoded certificates into x509
-// certificate objects.
+// parseCertificateChain decodes DER-encoded certificates into x509 certificate objects.
 //
 // Takes chain ([][]byte) which holds the DER-encoded certificates.
 //
@@ -548,12 +538,11 @@ func parseCertificateChain(chain [][]byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// addSignatureStructure creates the signature dictionary, widget
-// annotation, and AcroForm entry in the PDF writer.
+// addSignatureStructure creates the signature dictionary, widget annotation, and AcroForm
+// entry in the PDF writer.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing
-// configuration.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
 // Returns int which is the signature dictionary object number.
 // Returns error when the annotation or AcroForm cannot be added.
@@ -576,13 +565,12 @@ func addSignatureStructure(writer *pdfparse.Writer, opts *pdfwriter_dto.PadesSig
 	return sigDictObjNum, nil
 }
 
-// buildBaseSigDict creates the common fields shared by all signature
-// dictionaries.
+// buildBaseSigDict creates the common fields shared by all signature dictionaries.
 //
 // Takes typeName (string) which specifies the /Type value.
 // Takes subFilter (string) which specifies the /SubFilter value.
-// Takes placeholderHex (string) which is the hex placeholder for
-// /Contents.
+// Takes placeholderHex (string) which is the reserved hex string written into /Contents
+// and overwritten later with the real signature.
 //
 // Returns pdfparse.Dict which holds the base signature dictionary.
 func buildBaseSigDict(typeName, subFilter, placeholderHex string) pdfparse.Dict {
@@ -599,13 +587,12 @@ func buildBaseSigDict(typeName, subFilter, placeholderHex string) pdfparse.Dict 
 	}}
 }
 
-// buildSigDict creates the PDF signature dictionary with the appropriate
-// PAdES fields.
+// buildSigDict creates the PDF signature dictionary with the appropriate PAdES fields.
 //
-// Takes placeholderHex (string) which is the hex placeholder for
-// /Contents.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds optional
-// reason, location, and contact info.
+// Takes placeholderHex (string) which is the reserved hex string written into /Contents
+// and overwritten later with the real signature.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which holds optional reason, location, and
+// contact info.
 //
 // Returns pdfparse.Dict which holds the complete signature dictionary.
 func buildSigDict(placeholderHex string, opts *pdfwriter_dto.PadesSignOptions) pdfparse.Dict {
@@ -624,14 +611,13 @@ func buildSigDict(placeholderHex string, opts *pdfwriter_dto.PadesSignOptions) p
 	return sigDict
 }
 
-// addWidgetAnnotation creates an invisible widget annotation for a
-// signature field and adds it to the writer.
+// addWidgetAnnotation creates an invisible widget annotation for a signature field and
+// adds it to the writer.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
-// Takes sigDictObjNum (int) which is the object number of the signature
-// dictionary.
-// Takes fieldName (string) which distinguishes the primary signature
-// from the document timestamp.
+// Takes sigDictObjNum (int) which is the object number of the signature dictionary.
+// Takes fieldName (string) which distinguishes the primary signature from the document
+// timestamp.
 //
 // Returns int which is the widget annotation object number.
 func addWidgetAnnotation(writer *pdfparse.Writer, sigDictObjNum int, fieldName string) int {
@@ -649,14 +635,13 @@ func addWidgetAnnotation(writer *pdfparse.Writer, sigDictObjNum int, fieldName s
 	return writer.AddObject(pdfparse.DictObj(widgetDict))
 }
 
-// addAnnotToFirstPage appends a widget annotation reference to the first
-// page's /Annots array.
+// addAnnotToFirstPage appends a widget annotation reference to the first page's /Annots
+// array.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
 // Takes widgetObjNum (int) which is the widget annotation object number.
 //
-// Returns error when the PDF structure cannot be traversed to locate
-// the first page.
+// Returns error when the PDF structure cannot be traversed to locate the first page.
 func addAnnotToFirstPage(writer *pdfparse.Writer, widgetObjNum int) error {
 	trailer := writer.Trailer()
 	rootRef := trailer.GetRef("Root")
@@ -717,15 +702,14 @@ func addAnnotToFirstPage(writer *pdfparse.Writer, widgetObjNum int) error {
 	return nil
 }
 
-// ensureAcroForm adds or updates the /AcroForm dictionary in the document
-// catalog to include the signature field and set the /SigFlags.
+// ensureAcroForm adds or updates the /AcroForm dictionary in the document catalog to
+// include the signature field and set the /SigFlags.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
-// Takes widgetObjNum (int) which is the widget annotation object number
-// to add to the /Fields array.
+// Takes widgetObjNum (int) which is the widget annotation object number to add to the
+// /Fields array.
 //
-// Returns error when the catalog cannot be located or is not a
-// dictionary.
+// Returns error when the catalog cannot be located or is not a dictionary.
 func ensureAcroForm(writer *pdfparse.Writer, widgetObjNum int) error {
 	trailer := writer.Trailer()
 	rootRef := trailer.GetRef("Root")
@@ -757,19 +741,17 @@ func ensureAcroForm(writer *pdfparse.Writer, widgetObjNum int) error {
 	return nil
 }
 
-// locateContentsPlaceholder finds the /Contents hex string in the
-// serialised PDF and returns the byte range array values along with the
-// start and end offsets of the hex string (including angle brackets).
+// locateContentsPlaceholder finds the /Contents hex string in the serialised PDF and
+// returns the byte range array values along with the start and end offsets of the hex
+// string (including angle brackets).
 //
 // Takes pdf ([]byte) which is the serialised PDF bytes.
-// Takes sigDictObjNum (int) which is the signature dictionary object
-// number.
+// Takes sigDictObjNum (int) which is the signature dictionary object number.
 //
 // Returns [byteRangeSize]int64 which holds the computed byte range.
 // Returns int which is the start offset of the hex string.
 // Returns int which is the end offset of the hex string.
-// Returns error when the signature dictionary or placeholder cannot
-// be found.
+// Returns error when the signature dictionary or reserved hex string cannot be found.
 func locateContentsPlaceholder(pdf []byte, sigDictObjNum int) (
 	byteRange [byteRangeSize]int64, contentsStart int, contentsEnd int, err error,
 ) {
@@ -802,12 +784,11 @@ func locateContentsPlaceholder(pdf []byte, sigDictObjNum int) (
 	return byteRange, hexStart, hexEnd, nil
 }
 
-// patchByteRange replaces the /ByteRange array in the serialised PDF with
-// the actual computed values.
+// patchByteRange replaces the /ByteRange array in the serialised PDF with the actual
+// computed values.
 //
 // Takes pdf ([]byte) which is the serialised PDF bytes.
-// Takes byteRange ([byteRangeSize]int64) which holds the computed byte
-// range values.
+// Takes byteRange ([byteRangeSize]int64) which holds the computed byte range values.
 //
 // Returns []byte which is the PDF with the patched /ByteRange array.
 func patchByteRange(pdf []byte, byteRange [byteRangeSize]int64) []byte {
@@ -835,8 +816,8 @@ func patchByteRange(pdf []byte, byteRange [byteRangeSize]int64) []byte {
 	return result
 }
 
-// computeByteRangeDigest computes the SHA-256 hash over the byte ranges
-// defined by the /ByteRange array.
+// computeByteRangeDigest computes the SHA-256 hash over the byte ranges defined by the
+// /ByteRange array.
 //
 // Takes pdf ([]byte) which is the serialised PDF bytes.
 // Takes byteRange ([byteRangeSize]int64) which defines the ranges to hash.
@@ -849,8 +830,8 @@ func computeByteRangeDigest(pdf []byte, byteRange [byteRangeSize]int64) []byte {
 	return h.Sum(nil)
 }
 
-// embedSignature inserts the DER-encoded CMS signature into the /Contents
-// hex string placeholder.
+// embedSignature inserts the DER-encoded CMS signature into the /Contents hex string
+// placeholder.
 //
 // Takes pdf ([]byte) which is the serialised PDF bytes.
 // Takes cmsData ([]byte) which is the DER-encoded CMS signature.
@@ -881,8 +862,8 @@ func embedSignature(pdf, cmsData []byte, contentsStart, contentsEnd int) ([]byte
 // Takes signer (crypto.Signer) which is the private key.
 // Takes certs ([]*x509.Certificate) which is the certificate chain.
 // Takes signingTime (time.Time) which is the signing timestamp.
-// Takes timestampToken ([]byte) which is an optional DER-encoded
-// RFC 3161 TimeStampToken. Nil for B-B.
+// Takes timestampToken ([]byte) which is an optional DER-encoded RFC 3161 TimeStampToken.
+// Nil for B-B.
 //
 // Returns []byte which is the DER-encoded CMS ContentInfo.
 // Returns error when signing or ASN.1 encoding fails.
@@ -947,8 +928,7 @@ func buildCMSSignedData(
 	return asn1.Marshal(ci)
 }
 
-// buildSignedAttributes constructs the DER-encoded signed attributes SET
-// for CMS.
+// buildSignedAttributes constructs the DER-encoded signed attributes SET for CMS.
 //
 // Takes digest ([]byte) which is the SHA-256 message digest.
 // Takes signingTime (time.Time) which is the signing timestamp.
@@ -1007,8 +987,7 @@ func buildSignedAttributes(digest []byte, signingTime time.Time) ([]byte, error)
 // Takes cert (*x509.Certificate) which identifies the signer.
 // Takes signedAttrs ([]byte) which is the DER-encoded signed attributes.
 // Takes signature ([]byte) which is the raw signature value.
-// Takes timestampToken ([]byte) which is an optional DER-encoded
-// timestamp token.
+// Takes timestampToken ([]byte) which is an optional DER-encoded timestamp token.
 //
 // Returns []byte which is the DER-encoded SignerInfo.
 // Returns error when ASN.1 encoding fails.
@@ -1056,11 +1035,10 @@ func buildSignerInfo(
 	return asn1.Marshal(si)
 }
 
-// buildUnsignedAttributes constructs the DER-encoded unsigned
-// attributes for a SignerInfo.
+// buildUnsignedAttributes constructs the DER-encoded unsigned attributes for a
+// SignerInfo.
 //
-// Takes timestampToken ([]byte) which is the DER-encoded timestamp
-// token to embed.
+// Takes timestampToken ([]byte) which is the DER-encoded timestamp token to embed.
 //
 // Returns []byte which is the DER-encoded unsigned attributes.
 // Returns error when ASN.1 encoding fails.
@@ -1089,8 +1067,8 @@ func buildUnsignedAttributes(timestampToken []byte) ([]byte, error) {
 	return encoded, nil
 }
 
-// sigAlgorithmOID returns the appropriate signature algorithm OID based
-// on the certificate's public key algorithm.
+// sigAlgorithmOID returns the appropriate signature algorithm OID based on the
+// certificate's public key algorithm.
 //
 // Takes cert (*x509.Certificate) which provides the public key algorithm.
 //
@@ -1127,9 +1105,8 @@ type contentInfo struct {
 	Content asn1.RawValue `asn1:"explicit,tag:0"`
 }
 
-// signedDataContent is the CMS SignedData structure (RFC 5652 s5.1).
-// Field order matches the ASN.1 SEQUENCE definition and must not be
-// reordered.
+// signedDataContent is the CMS SignedData structure (RFC 5652 s5.1). Field order matches
+// the ASN.1 SEQUENCE definition and must not be reordered.
 //
 //nolint:govet // ASN.1 field order
 type signedDataContent struct {
@@ -1149,15 +1126,15 @@ type signedDataContent struct {
 	SignerInfos []asn1.RawValue `asn1:"set"`
 }
 
-// encapContentInfo is the CMS EncapsulatedContentInfo (RFC 5652 s5.2).
-// For detached signatures, eContent is absent.
+// encapContentInfo is the CMS EncapsulatedContentInfo (RFC 5652 s5.2). For detached
+// signatures, eContent is absent.
 type encapContentInfo struct {
 	// ContentType holds the OID identifying the encapsulated content type.
 	ContentType asn1.ObjectIdentifier
 }
 
-// issuerAndSerial identifies a certificate by issuer name and serial
-// number (RFC 5652 s10.2.4).
+// issuerAndSerial identifies a certificate by issuer name and serial number (RFC 5652
+// s10.2.4).
 type issuerAndSerial struct {
 	// Issuer holds the DER-encoded issuer distinguished name.
 	Issuer asn1.RawValue
@@ -1166,9 +1143,8 @@ type issuerAndSerial struct {
 	Serial asn1.RawValue
 }
 
-// cmsSignerInfo is the CMS SignerInfo structure (RFC 5652 s5.3).
-// Field order matches the ASN.1 SEQUENCE definition and must not be
-// reordered.
+// cmsSignerInfo is the CMS SignerInfo structure (RFC 5652 s5.3). Field order matches the
+// ASN.1 SEQUENCE definition and must not be reordered.
 //
 //nolint:govet // ASN.1 field order
 type cmsSignerInfo struct {

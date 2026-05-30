@@ -22,13 +22,15 @@ import (
 	"testing"
 )
 
-const testHTMLHeaders = `<!DOCTYPE html>
-<html>
-<head><title>Headers Test</title></head>
-<body>
-<div id="content">Headers Test Page</div>
-</body>
-</html>`
+const (
+	testHTMLHeaders = `<!DOCTYPE html>
+	<html>
+	<head><title>Headers Test</title></head>
+	<body>
+	<div id="content">Headers Test Page</div>
+	</body>
+	</html>`
+)
 
 func TestSetExtraHTTPHeaders(t *testing.T) {
 	t.Parallel()

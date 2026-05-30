@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_pades adds PAdES (PDF Advanced Electronic
-// Signatures) digital signatures as a post-processing transformer.
+// Package driven_transform_pades adds PAdES (PDF Advanced Electronic Signatures) digital
+// signatures as a post-processing transformer.
 //
-// It creates a CMS/PKCS#7 signature conforming to PAdES profiles, reserves
-// space for the SignedData structure, computes the hash over the byte
-// ranges excluding the signature contents, signs with the provided private
-// key, and embeds the DER-encoded signature into the PDF. Conformance
-// levels from B-B (basic) through B-LTA (long-term archival) are
-// supported.
+// It creates a CMS/PKCS#7 signature conforming to PAdES profiles, reserves space for the
+// SignedData structure, computes the hash over the byte ranges excluding the signature
+// contents, signs with the provided private key, and embeds the DER-encoded signature
+// into the PDF. Conformance levels from B-B (basic) through B-LTA (long-term archival)
+// are supported.
 package driven_transform_pades

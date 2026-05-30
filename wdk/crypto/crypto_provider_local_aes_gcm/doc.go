@@ -16,18 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crypto_provider_local_aes_gcm provides a local AES-256-GCM
-// encryption provider.
+// Package crypto_provider_local_aes_gcm provides a local AES-256-GCM encryption provider.
 //
-// This provider performs encryption and decryption entirely on the
-// local machine without any external service dependencies. It is
-// suitable for development, testing, single-server deployments, and
-// scenarios where network latency to a KMS is unacceptable.
+// This provider performs encryption and decryption entirely on the local machine without
+// any external service dependencies. It is suitable for development, testing,
+// single-server deployments, and scenarios where network latency to a KMS is
+// unacceptable.
 //
-// It uses AES-256-GCM with a random 96-bit IV per encryption and a
-// 128-bit authentication tag for tamper detection. The encryption
-// key is held in memory, so it should be loaded from environment
-// variables or a secrets manager rather than committed to version
+// It uses AES-256-GCM with a random 96-bit IV per encryption and a 128-bit authentication
+// tag for tamper detection. The encryption key is held in memory, so it should be loaded
+// from environment variables or a secrets manager rather than committed to version
 // control.
 //
 // # Thread safety

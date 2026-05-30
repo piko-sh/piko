@@ -30,10 +30,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// grokProvider implements llm_domain.LLMProviderPort for xAI Grok.
-// It delegates OpenAI-compatible wire protocol handling to an internal
-// OpenAI provider instance and overrides provider-specific concerns
-// (model filtering, error wrapping, observability).
+// grokProvider implements llm_domain.LLMProviderPort for xAI Grok. It delegates
+// OpenAI-compatible wire protocol handling to an internal OpenAI provider instance and
+// overrides provider-specific concerns (model filtering, error wrapping, observability).
 type grokProvider struct {
 	// inner is the OpenAI provider configured with the Grok base URL.
 	inner llm_domain.LLMProviderPort
@@ -42,7 +41,9 @@ type grokProvider struct {
 	config Config
 }
 
-var _ llm_domain.LLMProviderPort = (*grokProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*grokProvider)(nil)
+)
 
 // Complete sends a completion request to Grok.
 //
@@ -79,8 +80,7 @@ func (p *grokProvider) Complete(ctx context.Context, request *llm_dto.Completion
 // Takes request (*llm_dto.CompletionRequest) which specifies the prompt and model
 // settings.
 //
-// Returns <-chan llm_dto.StreamEvent which delivers incremental response
-// chunks.
+// Returns <-chan llm_dto.StreamEvent which delivers incremental response chunks.
 // Returns error when the streaming connection cannot be established.
 func (p *grokProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	_, l := logger.From(ctx, log)
@@ -107,8 +107,7 @@ func (*grokProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output.
+// SupportsStructuredOutput reports whether the provider supports structured output.
 //
 // Returns bool which is true if structured output is supported.
 func (*grokProvider) SupportsStructuredOutput() bool {
@@ -122,8 +121,8 @@ func (*grokProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is true if penalties are supported.
 func (*grokProvider) SupportsPenalties() bool { return true }
@@ -133,14 +132,12 @@ func (*grokProvider) SupportsPenalties() bool { return true }
 // Returns bool which is true if seed is supported.
 func (*grokProvider) SupportsSeed() bool { return true }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
 // Returns bool which is true if parallel tool calls are supported.
 func (*grokProvider) SupportsParallelToolCalls() bool { return true }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is true if message names are supported.
 func (*grokProvider) SupportsMessageName() bool { return true }
@@ -196,8 +193,7 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 
 // grokModels returns the known Grok chat models.
 //
-// Returns []llm_dto.ModelInfo which contains the statically
-// defined Grok model list.
+// Returns []llm_dto.ModelInfo which contains the statically defined Grok model list.
 func grokModels() []llm_dto.ModelInfo {
 	ids := []string{
 		"grok-3",

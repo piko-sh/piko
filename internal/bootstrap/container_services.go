@@ -18,8 +18,8 @@
 
 package bootstrap
 
-// This file contains various service accessors: SEO, I18n, Image,
-// CSRF, PML, Render, Validator, HealthProbe, and Frontend modules.
+// This file contains various service accessors: SEO, I18n, Image, CSRF, PML, Render,
+// Validator, HealthProbe, and Frontend modules.
 
 import (
 	"fmt"
@@ -50,8 +50,8 @@ import (
 
 // GetCSRFService returns the CSRF token service, creating it if needed.
 //
-// Returns security_domain.CSRFTokenService which provides CSRF token
-// creation and validation.
+// Returns security_domain.CSRFTokenService which provides CSRF token creation and
+// validation.
 func (c *Container) GetCSRFService() security_domain.CSRFTokenService {
 	c.csrfOnce.Do(func() {
 		_, l := logger_domain.From(c.GetAppContext(), log)
@@ -65,8 +65,7 @@ func (c *Container) GetCSRFService() security_domain.CSRFTokenService {
 	return c.csrfService
 }
 
-// createDefaultCSRFService sets up the CSRF token service with default
-// settings.
+// createDefaultCSRFService sets up the CSRF token service with default settings.
 func (c *Container) createDefaultCSRFService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CSRFService with cookie source...")
@@ -97,8 +96,8 @@ func (c *Container) createDefaultCSRFService() {
 	}
 }
 
-// SetCSRFCookieSource sets a custom CSRF cookie source adapter. Use it with
-// custom session management systems.
+// SetCSRFCookieSource sets a custom CSRF cookie source adapter. Use it with custom
+// session management systems.
 //
 // Takes source (CSRFCookieSourceAdapter) which provides CSRF cookie handling.
 func (c *Container) SetCSRFCookieSource(source security_domain.CSRFCookieSourceAdapter) {
@@ -106,21 +105,20 @@ func (c *Container) SetCSRFCookieSource(source security_domain.CSRFCookieSourceA
 	c.csrfCookieSource = source
 }
 
-// GetCSRFCookieSource returns the CSRF cookie source adapter. This is
-// typically used internally but may be useful for custom CSRF handling.
+// GetCSRFCookieSource returns the CSRF cookie source adapter. This is typically used
+// internally but may be useful for custom CSRF handling.
 //
-// Returns security_domain.CSRFCookieSourceAdapter which provides access to
-// CSRF cookie operations.
+// Returns security_domain.CSRFCookieSourceAdapter which provides access to CSRF cookie
+// operations.
 func (c *Container) GetCSRFCookieSource() security_domain.CSRFCookieSourceAdapter {
 	_ = c.GetCSRFService()
 	return c.csrfCookieSource
 }
 
-// SetCSPConfig sets the Content-Security-Policy builder configuration. This
-// allows programmatic CSP configuration via piko.WithCSP().
+// SetCSPConfig sets the Content-Security-Policy builder configuration. This allows
+// programmatic CSP configuration via piko.WithCSP().
 //
-// Takes builder (*security_domain.CSPBuilder) which is the configured CSP
-// builder.
+// Takes builder (*security_domain.CSPBuilder) which is the configured CSP builder.
 func (c *Container) SetCSPConfig(builder *security_domain.CSPBuilder) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	c.cspBuilder = builder
@@ -129,8 +127,8 @@ func (c *Container) SetCSPConfig(builder *security_domain.CSPBuilder) {
 		logger_domain.Bool("uses_request_tokens", builder.UsesRequestTokens()))
 }
 
-// SetCSPPolicyString sets a raw CSP policy string directly, bypassing the
-// builder pattern. An empty string turns off the CSP header.
+// SetCSPPolicyString sets a raw CSP policy string directly, bypassing the builder
+// pattern. An empty string turns off the CSP header.
 //
 // Takes policy (string) which is the raw CSP header value.
 func (c *Container) SetCSPPolicyString(policy string) {
@@ -144,13 +142,12 @@ func (c *Container) SetCSPPolicyString(policy string) {
 	}
 }
 
-// SetCrossOriginResourcePolicy sets the Cross-Origin-Resource-Policy header
-// value. This controls which origins can load resources from this server.
+// SetCrossOriginResourcePolicy sets the Cross-Origin-Resource-Policy header value. This
+// controls which origins can load resources from this server.
 //
-// Takes policy (string) which specifies the CORP policy value:
-//   - "same-origin" (default): Only same-origin requests can load resources
-//   - "same-site": Same-site requests can load resources
-//   - "cross-origin": Any origin can load resources (required for headless CMS)
+// Takes policy (string) which specifies the CORP policy value: - "same-origin" (default):
+// Only same-origin requests can load resources - "same-site": Same-site requests can load
+// resources - "cross-origin": Any origin can load resources (required for headless CMS)
 func (c *Container) SetCrossOriginResourcePolicy(policy string) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	c.crossOriginResourcePolicy = policy
@@ -174,19 +171,19 @@ func (c *Container) GetCSPConfig() *security_domain.CSPBuilder {
 	return c.cspBuilder
 }
 
-// GetCSPPolicyString returns the raw CSP policy string, if set.
-// This takes precedence over the builder if both are set.
+// GetCSPPolicyString returns the raw CSP policy string, if set. This takes precedence
+// over the builder if both are set.
 //
-// Returns (string, bool) where the string is the policy and the bool indicates
-// whether a raw policy string was explicitly set via SetCSPPolicyString.
+// Returns (string, bool) where the string is the policy and the bool indicates whether a
+// raw policy string was explicitly set via SetCSPPolicyString.
 func (c *Container) GetCSPPolicyString() (string, bool) {
 	return c.cspPolicyString, c.cspPolicyStringSet
 }
 
-// GetCSPPolicy returns the effective Content Security Policy string to use.
-// It checks sources in priority order: raw policy string set via
-// WithCSPString (which allows disabling with an empty string), then builder
-// via WithCSP, then config file value, and finally Piko defaults.
+// GetCSPPolicy returns the effective Content Security Policy string to use. It checks
+// sources in priority order: raw policy string set via WithCSPString (which allows
+// disabling with an empty string), then builder via WithCSP, then config file value, and
+// finally Piko defaults.
 //
 // Returns string which is the CSP header value to use.
 func (c *Container) GetCSPPolicy() string {
@@ -205,11 +202,11 @@ func (c *Container) GetCSPPolicy() string {
 	return security_domain.NewCSPBuilder().WithPikoDefaults().Build()
 }
 
-// SetReportingEndpoints sets the reporting endpoints for the
-// Reporting-Endpoints HTTP header.
+// SetReportingEndpoints sets the reporting endpoints for the Reporting-Endpoints HTTP
+// header.
 //
-// Takes endpoints ([]config.ReportingEndpoint) which lists the named endpoints
-// to include in the header.
+// Takes endpoints ([]config.ReportingEndpoint) which lists the named endpoints to include
+// in the header.
 func (c *Container) SetReportingEndpoints(endpoints []config.ReportingEndpoint) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	c.reportingEndpoints = endpoints
@@ -217,12 +214,10 @@ func (c *Container) SetReportingEndpoints(endpoints []config.ReportingEndpoint) 
 		logger_domain.Int("endpoint_count", len(endpoints)))
 }
 
-// GetReportingConfig returns the effective reporting configuration for the
-// middleware. Endpoints set via WithReportingEndpoints take priority over
-// config file values.
+// GetReportingConfig returns the effective reporting configuration for the middleware.
+// Endpoints set via WithReportingEndpoints take priority over config file values.
 //
-// Returns config.ReportingConfig which contains the enabled state and
-// endpoints.
+// Returns config.ReportingConfig which contains the enabled state and endpoints.
 func (c *Container) GetReportingConfig() config.ReportingConfig {
 	if len(c.reportingEndpoints) > 0 {
 		return config.ReportingConfig{
@@ -234,8 +229,7 @@ func (c *Container) GetReportingConfig() config.ReportingConfig {
 	return c.serverConfig.Security.Reporting
 }
 
-// GetPMLTransformer returns the PikoMarkupLanguage transformer, creating it
-// if needed.
+// GetPMLTransformer returns the PikoMarkupLanguage transformer, creating it if needed.
 //
 // Returns pml_domain.Transformer which is the configured transformer instance.
 func (c *Container) GetPMLTransformer() pml_domain.Transformer {
@@ -251,8 +245,8 @@ func (c *Container) GetPMLTransformer() pml_domain.Transformer {
 	return c.pmlTransformer
 }
 
-// createDefaultPMLTransformer sets up the default PML transformer with
-// built-in components and collectors.
+// createDefaultPMLTransformer sets up the default PML transformer with built-in
+// components and collectors.
 func (c *Container) createDefaultPMLTransformer() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default PML Transformer...")
@@ -276,8 +270,8 @@ func (c *Container) createDefaultPMLTransformer() {
 
 // SetPMLTransformer sets a custom PML transformer for the container.
 //
-// Takes transformer (pml_domain.Transformer) which provides the custom
-// transformation logic.
+// Takes transformer (pml_domain.Transformer) which provides the custom transformation
+// logic.
 func (c *Container) SetPMLTransformer(transformer pml_domain.Transformer) {
 	c.pmlTransformerOverride = transformer
 	c.pmlTransformer = transformer
@@ -328,8 +322,7 @@ func (c *Container) createDefaultRenderer() {
 	)
 }
 
-// GetI18nService returns the internationalisation service, creating it if
-// necessary.
+// GetI18nService returns the internationalisation service, creating it if necessary.
 //
 // Returns i18n_domain.Service which provides translation and localisation.
 // Returns error when the service cannot be created.
@@ -346,9 +339,8 @@ func (c *Container) GetI18nService() (i18n_domain.Service, error) {
 	return c.i18nService, c.i18nErr
 }
 
-// createDefaultI18nService sets up the default translation service.
-// It creates a read-only sandbox for translation file operations and loads
-// the translations.
+// createDefaultI18nService sets up the default translation service. It creates a
+// read-only sandbox for translation file operations and loads the translations.
 func (c *Container) createDefaultI18nService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default I18nService...")
@@ -366,8 +358,7 @@ func (c *Container) createDefaultI18nService() {
 	)
 }
 
-// GetImageService returns the image service, creating a default one if none
-// was set.
+// GetImageService returns the image service, creating a default one if none was set.
 //
 // Returns image_domain.Service which is the image service instance.
 // Returns error when creating the default service fails.
@@ -386,8 +377,8 @@ func (c *Container) GetImageService() (image_domain.Service, error) {
 
 // SetImageService sets a custom image service implementation.
 //
-// If the service has a shutdown method (Close, Shutdown, or Stop), it will be
-// registered for graceful shutdown.
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown.
 //
 // Takes service (image_domain.Service) which provides the image service to use.
 func (c *Container) SetImageService(service image_domain.Service) {
@@ -396,8 +387,8 @@ func (c *Container) SetImageService(service image_domain.Service) {
 	registerCloseableForShutdown(c.GetAppContext(), "ImageService", service)
 }
 
-// createDefaultImageService sets up the default image service with the
-// registered transformers.
+// createDefaultImageService sets up the default image service with the registered
+// transformers.
 func (c *Container) createDefaultImageService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	if len(c.imageTransformers) == 0 {
@@ -426,8 +417,7 @@ func (c *Container) createDefaultImageService() {
 	c.imageService, c.imageErr = image_domain.NewService(transformers, c.defaultImageTransformer, imageConfig)
 }
 
-// GetVideoService returns the video service, creating a default one if none
-// was provided.
+// GetVideoService returns the video service, creating a default one if none was provided.
 //
 // Returns video_domain.Service which is the video service instance.
 // Returns error when the default service creation fails.
@@ -446,8 +436,8 @@ func (c *Container) GetVideoService() (video_domain.Service, error) {
 
 // SetVideoService sets a custom video service implementation.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// registered for graceful shutdown.
 //
 // Takes service (video_domain.Service) which provides the video service to use.
 func (c *Container) SetVideoService(service video_domain.Service) {
@@ -458,11 +448,11 @@ func (c *Container) SetVideoService(service video_domain.Service) {
 
 // AddImageTransformer registers a named image transformer for image processing.
 //
-// If the transformer implements a shutdown interface (Close, Shutdown, or
-// Stop), it will be automatically registered for graceful shutdown.
+// If the transformer implements a shutdown interface (Close, Shutdown, or Stop), it will
+// be automatically registered for graceful shutdown.
 //
-// The first transformer registered becomes the default unless
-// SetDefaultImageTransformer is called.
+// The first transformer registered becomes the default unless SetDefaultImageTransformer
+// is called.
 //
 // Takes name (string) which identifies the transformer for later retrieval.
 // Takes transformer (TransformerPort) which handles image transformations.
@@ -477,20 +467,19 @@ func (c *Container) AddImageTransformer(name string, transformer image_domain.Tr
 	registerCloseableForShutdown(c.GetAppContext(), "ImageTransformer-"+name, transformer)
 }
 
-// SetDefaultImageTransformer sets the name of the transformer to use as
-// default.
+// SetDefaultImageTransformer sets the name of the transformer to use as default.
 //
 // Takes name (string) which is the transformer name to use as the default.
 func (c *Container) SetDefaultImageTransformer(name string) {
 	c.defaultImageTransformer = name
 }
 
-// SetImageConfig applies the given image configuration to the container.
-// This is the recommended way to configure image processing with full control
-// using the builder pattern.
+// SetImageConfig applies the given image configuration to the container. This is the
+// recommended way to configure image processing with full control using the builder
+// pattern.
 //
-// Takes imageConfig (*image_domain.ImageConfig) which contains the complete
-// settings including providers, predefined variants, and service options.
+// Takes imageConfig (*image_domain.ImageConfig) which contains the complete settings
+// including providers, predefined variants, and service options.
 // Returns without making changes when imageConfig is nil.
 func (c *Container) SetImageConfig(imageConfig *image_domain.ImageConfig) {
 	if imageConfig == nil {
@@ -518,19 +507,19 @@ func (c *Container) SetImageConfig(imageConfig *image_domain.ImageConfig) {
 
 // GetImagePredefinedVariants returns the map of predefined variant specs.
 //
-// Returns map[string]image_dto.TransformationSpec which maps variant names
-// to their transformation specifications.
+// Returns map[string]image_dto.TransformationSpec which maps variant names to their
+// transformation specifications.
 func (c *Container) GetImagePredefinedVariants() map[string]image_dto.TransformationSpec {
 	return c.imagePredefinedVariants
 }
 
 // AddVideoTranscoder registers a named video transcoder for video processing.
 //
-// If the transcoder implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the transcoder implements a shutdown interface (Close, Shutdown, or Stop), it will
+// be automatically registered for graceful shutdown.
 //
-// The first transcoder registered becomes the default unless
-// SetDefaultVideoTranscoder is called.
+// The first transcoder registered becomes the default unless SetDefaultVideoTranscoder is
+// called.
 //
 // Takes name (string) which identifies the transcoder for later retrieval.
 // Takes transcoder (TranscoderPort) which handles video transcoding.
@@ -552,8 +541,7 @@ func (c *Container) SetDefaultVideoTranscoder(name string) {
 	c.defaultVideoTranscoder = name
 }
 
-// createDefaultVideoService sets up the video service with registered
-// transcoders.
+// createDefaultVideoService sets up the video service with registered transcoders.
 //
 // Sets videoService to nil if no transcoders are configured. Otherwise creates the
 // service with all registered transcoders and adds a "default" alias.
@@ -580,12 +568,11 @@ func (c *Container) createDefaultVideoService() {
 	c.videoService, c.videoErr = video_domain.NewService(transcoders, c.defaultVideoTranscoder, videoConfig)
 }
 
-// GetSEOService returns the SEO service, initialising a default one if none
-// was provided. The SEO service is optional - if configuration is disabled or
-// dependencies fail, it returns nil.
+// GetSEOService returns the SEO service, initialising a default one if none was provided.
+// The SEO service is optional - if configuration is disabled or dependencies fail, it
+// returns nil.
 //
-// Returns seo_domain.SEOService which provides SEO functionality, or nil if
-// disabled.
+// Returns seo_domain.SEOService which provides SEO functionality, or nil if disabled.
 // Returns error when the default SEO service could not be created.
 func (c *Container) GetSEOService() (seo_domain.SEOService, error) {
 	c.seoOnce.Do(func() {
@@ -600,9 +587,9 @@ func (c *Container) GetSEOService() (seo_domain.SEOService, error) {
 	return c.seoService, c.seoErr
 }
 
-// createDefaultSEOService sets up the default SEO service for the container.
-// Sets c.seoService to nil if no SEO config was provided, or sets c.seoErr if
-// setup fails unexpectedly.
+// createDefaultSEOService sets up the default SEO service for the container. Sets
+// c.seoService to nil if no SEO config was provided, or sets c.seoErr if setup fails
+// unexpectedly.
 func (c *Container) createDefaultSEOService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default SEOService...")
@@ -658,8 +645,8 @@ func (c *Container) createDefaultSEOService() {
 	l.Internal("SEO service created successfully")
 }
 
-// SetSEOConfig stores the SEO configuration for use when creating the default
-// SEO service. Must be called before GetSEOService.
+// SetSEOConfig stores the SEO configuration for use when creating the default SEO
+// service. Must be called before GetSEOService.
 //
 // Takes seoConfig (config.SEOConfig) which specifies the SEO settings.
 func (c *Container) SetSEOConfig(seoConfig config.SEOConfig) {
@@ -670,11 +657,11 @@ func (c *Container) SetSEOConfig(seoConfig config.SEOConfig) {
 		logger_domain.Bool("enabled", seoConfig.Enabled))
 }
 
-// SetAssetsConfig stores the assets configuration for use when creating the
-// annotator service. Must be called before build/annotation starts.
+// SetAssetsConfig stores the assets configuration for use when creating the annotator
+// service. Must be called before build/annotation starts.
 //
-// Takes assetsConfig (config.AssetsConfig) which specifies the asset profiles
-// and responsive image settings.
+// Takes assetsConfig (config.AssetsConfig) which specifies the asset profiles and
+// responsive image settings.
 func (c *Container) SetAssetsConfig(assetsConfig config.AssetsConfig) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	c.assetsConfigOverride = &assetsConfig
@@ -683,19 +670,17 @@ func (c *Container) SetAssetsConfig(assetsConfig config.AssetsConfig) {
 		logger_domain.Int("video_profiles", len(assetsConfig.Video.Profiles)))
 }
 
-// GetAssetsConfig returns the assets configuration, or nil if none was
-// provided.
+// GetAssetsConfig returns the assets configuration, or nil if none was provided.
 //
 // Returns *config.AssetsConfig which contains the asset profiles, or nil.
 func (c *Container) GetAssetsConfig() *config.AssetsConfig {
 	return c.assetsConfigOverride
 }
 
-// SetSEOService allows builders to provide a pre-configured SEO service to
-// the container.
+// SetSEOService allows builders to provide a pre-configured SEO service to the container.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes service (seo_domain.SEOService) which is the SEO service to use.
 func (c *Container) SetSEOService(service seo_domain.SEOService) {
@@ -704,12 +689,12 @@ func (c *Container) SetSEOService(service seo_domain.SEOService) {
 	registerCloseableForShutdown(c.GetAppContext(), "SEOService", service)
 }
 
-// GetValidator returns the validator instance, or nil if no validator was
-// provided via [WithValidator] in which case the caller must handle a nil
-// validator by skipping validation.
+// GetValidator returns the validator instance, or nil if no validator was provided via
+// WithValidator in which case the caller must handle a nil validator by skipping
+// validation.
 //
-// To supply a validator, use the validation_provider_playground WDK module
-// or any type that implements [StructValidator].
+// To supply a validator, use the validation_provider_playground WDK module or any type
+// that implements StructValidator.
 //
 // Returns StructValidator which is the configured validator, or nil.
 func (c *Container) GetValidator() StructValidator {
@@ -725,8 +710,8 @@ func (c *Container) GetValidator() StructValidator {
 	return c.validator
 }
 
-// SetValidator sets a custom validator implementation.
-// This completely replaces any previously configured validator.
+// SetValidator sets a custom validator implementation. This completely replaces any
+// previously configured validator.
 //
 // Takes v (StructValidator) which is the custom validator to use.
 func (c *Container) SetValidator(v StructValidator) {
@@ -734,8 +719,7 @@ func (c *Container) SetValidator(v StructValidator) {
 	c.validator = v
 }
 
-// GetHealthProbeService returns the singleton HealthProbe service, creating
-// it if needed.
+// GetHealthProbeService returns the singleton HealthProbe service, creating it if needed.
 //
 // Returns healthprobe_domain.Service which provides health probe operations.
 // Returns error when service creation fails.
@@ -746,8 +730,8 @@ func (c *Container) GetHealthProbeService() (healthprobe_domain.Service, error) 
 	return c.healthProbeService, c.healthProbeErr
 }
 
-// createDefaultHealthProbeService creates and assigns the default health probe
-// service to the container.
+// createDefaultHealthProbeService creates and assigns the default health probe service to
+// the container.
 func (c *Container) createDefaultHealthProbeService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default HealthProbeService...")
@@ -760,12 +744,11 @@ func (c *Container) createDefaultHealthProbeService() {
 	c.healthProbeService = service
 }
 
-// AddCustomHealthProbe registers a custom health probe with the health check
-// system. Applications can add their own health checks that will be included
-// in the /live and /ready endpoints.
+// AddCustomHealthProbe registers a custom health probe with the health check system.
+// Applications can add their own health checks that will be included in the /live and
+// /ready endpoints.
 //
-// Takes probe (healthprobe_domain.Probe) which is the health probe to
-// register.
+// Takes probe (healthprobe_domain.Probe) which is the health probe to register.
 //
 // The probe is registered when the HealthProbeService starts.
 func (c *Container) AddCustomHealthProbe(probe healthprobe_domain.Probe) {
@@ -774,17 +757,16 @@ func (c *Container) AddCustomHealthProbe(probe healthprobe_domain.Probe) {
 	l.Internal("Custom health probe registered", logger_domain.String("probe_name", probe.Name()))
 }
 
-// SetMarkdownParser sets the markdown parser implementation used by the
-// collection service for processing markdown content.
+// SetMarkdownParser sets the markdown parser implementation used by the collection
+// service for processing markdown content.
 //
-// Takes parser (markdown_domain.MarkdownParserPort) which provides the
-// markdown parsing implementation.
+// Takes parser (markdown_domain.MarkdownParserPort) which provides the markdown parsing
+// implementation.
 func (c *Container) SetMarkdownParser(parser markdown_domain.MarkdownParserPort) {
 	c.markdownParser = parser
 }
 
-// GetMarkdownParser returns the configured markdown parser, or nil if none
-// has been set.
+// GetMarkdownParser returns the configured markdown parser, or nil if none has been set.
 //
 // Returns markdown_domain.MarkdownParserPort which is the active parser.
 func (c *Container) GetMarkdownParser() markdown_domain.MarkdownParserPort {
@@ -798,21 +780,20 @@ func (c *Container) SetHighlighter(h highlight_domain.Highlighter) {
 	c.highlighter = h
 }
 
-// GetHighlighter returns the configured syntax highlighter, or nil if none is
-// set.
+// GetHighlighter returns the configured syntax highlighter, or nil if none is set.
 //
 // Returns highlight_domain.Highlighter which provides syntax highlighting.
 func (c *Container) GetHighlighter() highlight_domain.Highlighter {
 	return c.highlighter
 }
 
-// AddFrontendModule enables a built-in frontend module to be loaded across
-// all sites. Duplicate modules are silently ignored.
+// AddFrontendModule enables a built-in frontend module to be loaded across all sites.
+// Duplicate modules are silently ignored.
 //
 // Takes module (FrontendModule) which specifies the module to enable.
-// Takes moduleConfig (any) which provides optional configuration; use a typed
-// config struct (AnalyticsConfig, ModalsConfig, ToastsConfig) for built-in
-// modules, or nil if not needed.
+// Takes moduleConfig (any) which provides optional configuration; use a typed config
+// struct (AnalyticsConfig, ModalsConfig, ToastsConfig) for built-in modules, or nil if
+// not needed.
 func (c *Container) AddFrontendModule(module daemon_frontend.FrontendModule, moduleConfig any) {
 	for _, existing := range c.frontendModules {
 		if existing.Module == module {
@@ -827,23 +808,23 @@ func (c *Container) AddFrontendModule(module daemon_frontend.FrontendModule, mod
 	l.Internal("Frontend module enabled", logger_domain.String("module", module.String()))
 }
 
-// AddExternalComponents appends additional external component definitions to
-// the container, which must be called before the lifecycle service is created
-// (i.e. before the daemon builder runs) for the components to be discovered.
+// AddExternalComponents appends additional external component definitions to the
+// container, which must be called before the lifecycle service is created (i.e. before
+// the daemon builder runs) for the components to be discovered.
 //
-// Takes defs (...component_dto.ComponentDefinition) which are the component
-// definitions to register.
+// Takes defs (...component_dto.ComponentDefinition) which are the component definitions
+// to register.
 func (c *Container) AddExternalComponents(defs ...component_dto.ComponentDefinition) {
 	c.externalComponents = append(c.externalComponents, defs...)
 }
 
-// AddCustomFrontendModule registers a custom frontend JavaScript module.
-// The module will be served at /_piko/dist/ppframework.{name}.min.js.
+// AddCustomFrontendModule registers a custom frontend JavaScript module. The module will
+// be served at /_piko/dist/ppframework.{name}.min.js.
 //
 // Takes name (string) which specifies the module name.
 // Takes content ([]byte) which provides the JavaScript source code.
-// Takes moduleConfig (map[string]any) which provides optional settings for the
-// module (can be nil).
+// Takes moduleConfig (map[string]any) which provides optional settings for the module
+// (can be nil).
 func (c *Container) AddCustomFrontendModule(name string, content []byte, moduleConfig map[string]any) {
 	if c.customFrontendModules == nil {
 		c.customFrontendModules = make(map[string]*daemon_frontend.CustomFrontendModule)
@@ -855,8 +836,8 @@ func (c *Container) AddCustomFrontendModule(name string, content []byte, moduleC
 		logger_domain.Int("size", len(content)))
 }
 
-// GetFrontendModules returns the list of enabled built-in frontend modules
-// with their configs.
+// GetFrontendModules returns the list of enabled built-in frontend modules with their
+// configs.
 //
 // Returns []daemon_frontend.ModuleEntry which contains the module entries.
 func (c *Container) GetFrontendModules() []daemon_frontend.ModuleEntry {
@@ -865,18 +846,17 @@ func (c *Container) GetFrontendModules() []daemon_frontend.ModuleEntry {
 
 // GetCustomFrontendModules returns the map of custom frontend modules.
 //
-// Returns map[string]*daemon_frontend.CustomFrontendModule which maps module
-// names to their custom frontend module definitions.
+// Returns map[string]*daemon_frontend.CustomFrontendModule which maps module names to
+// their custom frontend module definitions.
 func (c *Container) GetCustomFrontendModules() map[string]*daemon_frontend.CustomFrontendModule {
 	return c.customFrontendModules
 }
 
-// createSandbox creates a sandboxed filesystem for safe file operations.
-// This extracts the common sandbox creation pattern used across multiple
-// services.
+// createSandbox creates a sandboxed filesystem for safe file operations. This extracts
+// the common sandbox creation pattern used across multiple services.
 //
-// If a custom SandboxFactory has been injected via WithSandboxFactory, it is
-// used instead of the default factory, enabling testing with mock sandboxes.
+// If a custom SandboxFactory has been injected via WithSandboxFactory, it is used instead
+// of the default factory, enabling testing with mock sandboxes.
 //
 // Takes name (string) which identifies the sandbox instance.
 // Takes baseDir (string) which specifies the root directory for the sandbox.
@@ -904,11 +884,9 @@ func (c *Container) createSandbox(name, baseDir string, mode safedisk.Mode) (saf
 	return sandbox, nil
 }
 
-// SetRegistryMetadataCacheConfig configures the Registry service's metadata
-// cache.
+// SetRegistryMetadataCacheConfig configures the Registry service's metadata cache.
 //
-// Takes cacheConfig (RegistryMetadataCacheConfig) which specifies
-// the cache settings.
+// Takes cacheConfig (RegistryMetadataCacheConfig) which specifies the cache settings.
 func (c *Container) SetRegistryMetadataCacheConfig(cacheConfig RegistryMetadataCacheConfig) {
 	c.registryMetadataCacheConfig = &cacheConfig
 }

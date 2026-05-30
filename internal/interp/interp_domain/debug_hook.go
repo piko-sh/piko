@@ -22,12 +22,10 @@ package interp_domain
 type DebugEvent uint8
 
 const (
-	// DebugEventStep fires when the VM reaches a new source line
-	// during single-stepping.
+	// DebugEventStep fires when the VM reaches a new source line during single-stepping.
 	DebugEventStep DebugEvent = iota
 
-	// DebugEventBreakpoint fires when the VM hits a registered
-	// breakpoint.
+	// DebugEventBreakpoint fires when the VM hits a registered breakpoint.
 	DebugEventBreakpoint
 
 	// DebugEventEntry fires when the VM enters a new function.
@@ -41,34 +39,31 @@ const (
 type DebugAction uint8
 
 const (
-	// DebugActionContinue resumes execution until the next
-	// breakpoint or program termination.
+	// DebugActionContinue resumes execution until the next breakpoint or program
+	// termination.
 	DebugActionContinue DebugAction = iota
 
-	// DebugActionStepIn advances to the next source line, entering
-	// function calls.
+	// DebugActionStepIn advances to the next source line, entering function calls.
 	DebugActionStepIn
 
-	// DebugActionStepOver advances to the next source line at the
-	// same or shallower call depth, skipping into function calls.
+	// DebugActionStepOver advances to the next source line at the same or shallower call
+	// depth, skipping into function calls.
 	DebugActionStepOver
 
-	// DebugActionStepOut runs until the current function returns,
-	// then pauses in the caller.
+	// DebugActionStepOut runs until the current function returns, then pauses in the caller.
 	DebugActionStepOut
 
 	// DebugActionStop terminates execution immediately.
 	DebugActionStop
 )
 
-// DebugContext provides the debug hook with information about the
-// current execution state.
+// DebugContext provides the debug hook with information about the current execution
+// state.
 type DebugContext struct {
 	// Function is the compiled function currently executing.
 	Function *CompiledFunction
 
-	// ProgramCounter is the current instruction offset within the
-	// function's body.
+	// ProgramCounter is the current instruction offset within the function's body.
 	ProgramCounter int
 
 	// FramePointer is the current call stack frame index.
@@ -78,9 +73,9 @@ type DebugContext struct {
 	Event DebugEvent
 }
 
-// DebugHook is a callback invoked by the VM at debug-relevant
-// points during execution. It receives context about the current
-// state and returns an action telling the VM how to proceed.
+// DebugHook is a callback invoked by the VM at debug-relevant points during execution. It
+// receives context about the current state and returns an action telling the VM how to
+// proceed.
 type DebugHook func(ctx DebugContext) DebugAction
 
 // DebugSnapshot captures the execution state at a debug pause point.

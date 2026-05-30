@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/typegen/typegen_dto"
 )
 
-// jsonManifest is the JSON form of ActionManifest.
-// It uses camelCase field names for TypeScript and JavaScript use.
+// jsonManifest is the JSON form of ActionManifest. It uses camelCase field names for
+// TypeScript and JavaScript use.
 type jsonManifest struct {
 	// Actions holds the list of action entries for JSON serialisation.
 	Actions []jsonAction `json:"actions"`
@@ -119,8 +119,7 @@ type jsonType struct {
 
 // MarshalJSON serialises an ActionManifest to JSON bytes.
 //
-// Takes manifest (*typegen_dto.ActionManifest) which is the manifest to
-// serialise.
+// Takes manifest (*typegen_dto.ActionManifest) which is the manifest to serialise.
 //
 // Returns []byte which contains the indented JSON representation.
 // Returns error when JSON marshalling fails.

@@ -22,5 +22,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_domain"
 )
 
-var _ TypeInspectorPort = (*inspector_domain.TypeQuerier)(nil)
-var _ TypeInspectorPort = (*inspector_domain.MockTypeQuerier)(nil)
+var (
+	_ TypeInspectorPort = (*inspector_domain.TypeQuerier)(nil)
+	_ TypeInspectorPort = (*inspector_domain.MockTypeQuerier)(nil)
+)

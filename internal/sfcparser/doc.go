@@ -18,11 +18,10 @@
 
 // Package sfcparser provides parsing for Piko Single File Components (SFC).
 //
-// It extracts template, script, style, and internationalisation blocks
-// from .pk files, handling both raw text elements (script and style)
-// which cannot be nested, and nestable elements (template and i18n)
-// which support arbitrary HTML content. It sits between file loading
-// and the AST parser in the processing pipeline.
+// It extracts template, script, style, and internationalisation blocks from .pk files,
+// handling both raw text elements (script and style) which cannot be nested, and nestable
+// elements (template and i18n) which support arbitrary HTML content. It sits between file
+// loading and the AST parser in the processing pipeline.
 //
 // # Usage
 //
@@ -55,6 +54,6 @@
 //
 // # Thread safety
 //
-// The Parse function is safe for concurrent use. Each call creates its own
-// parser instance with no shared state.
+// The Parse function is safe for concurrent use. Each call creates its own parser
+// instance with no shared state.
 package sfcparser

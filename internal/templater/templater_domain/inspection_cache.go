@@ -26,9 +26,8 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// InspectionResult holds cached inspection data for a PK component.
-// It stores the parsed component, its dependencies, and the script hash used
-// as the cache key.
+// InspectionResult holds cached inspection data for a PK component. It stores the parsed
+// component, its dependencies, and the script hash used as the cache key.
 type InspectionResult struct {
 	// Component is the virtual component from the annotator.
 	Component *annotator_dto.VirtualComponent
@@ -40,12 +39,11 @@ type InspectionResult struct {
 	ScriptHash string
 }
 
-// InspectionCache provides a thread-safe cache for component inspection
-// results. Results are keyed by file path and script hash, which allows reuse
-// when scripts have not changed.
+// InspectionCache provides a thread-safe cache for component inspection results. Results
+// are keyed by file path and script hash, which allows reuse when scripts have not
+// changed.
 type InspectionCache interface {
-	// Get retrieves a cached inspection result if it exists and matches the
-	// script hash.
+	// Get retrieves a cached inspection result if it exists and matches the script hash.
 	//
 	// Takes path (string) which identifies the cached item.
 	// Takes scriptHash (string) which must match the stored hash for a valid hit.
@@ -63,8 +61,7 @@ type InspectionCache interface {
 
 	// Remove deletes all cached results for a specific file path.
 	//
-	// Takes path (string) which identifies the file whose cached results should be
-	// removed.
+	// Takes path (string) which identifies the file whose cached results should be removed.
 	Remove(path string)
 
 	// Clear removes all cached inspection results.
@@ -91,8 +88,8 @@ type InspectionCacheStats struct {
 	Evictions int64
 }
 
-// inMemoryInspectionCache implements InspectionCache using an in-memory store.
-// It uses a two-level map: file path to script hash to result.
+// inMemoryInspectionCache implements InspectionCache using an in-memory store. It uses a
+// two-level map: file path to script hash to result.
 type inMemoryInspectionCache struct {
 	// cache is a two-level map: path to script hash to result.
 	cache map[string]map[string]*InspectionResult
@@ -216,8 +213,8 @@ func (c *inMemoryInspectionCache) Stats() InspectionCacheStats {
 
 // NewInMemoryInspectionCache creates a new in-memory inspection cache.
 //
-// Returns InspectionCache which provides safe caching of inspection results
-// for use by multiple goroutines at the same time.
+// Returns InspectionCache which provides safe caching of inspection results for use by
+// multiple goroutines at the same time.
 func NewInMemoryInspectionCache() InspectionCache {
 	return &inMemoryInspectionCache{
 		mu:    sync.RWMutex{},

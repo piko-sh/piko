@@ -64,8 +64,8 @@ func ValidateRequestForProvider(request *llm_dto.CompletionRequest, provider LLM
 	return validateMessageNames(request, provider)
 }
 
-// validateProviderCapabilities checks that the request's features are
-// supported by the provider.
+// validateProviderCapabilities checks that the request's features are supported by the
+// provider.
 //
 // Takes request (*llm_dto.CompletionRequest) which is the request to check.
 // Takes provider (LLMProviderPort) which is the provider to check against.
@@ -93,8 +93,8 @@ func validateProviderCapabilities(request *llm_dto.CompletionRequest, provider L
 	return nil
 }
 
-// validateMessageNames checks that no messages use the Name field when the
-// provider does not support it.
+// validateMessageNames checks that no messages use the Name field when the provider does
+// not support it.
 //
 // Takes request (*llm_dto.CompletionRequest) which contains the messages to check.
 // Takes provider (LLMProviderPort) which is the provider to check against.

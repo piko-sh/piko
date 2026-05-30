@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// SearchQuery holds the settings for finding artefacts in the registry.
-// It allows both simple tag-based lookups and raw RediSearch queries.
+// SearchQuery holds the settings for finding artefacts in the registry. It allows both
+// simple tag-based lookups and raw RediSearch queries.
 type SearchQuery struct {
 	// SimpleTagQuery maps tag names to their values for basic filtering.
 	SimpleTagQuery map[string]string
@@ -36,9 +36,8 @@ type SearchQuery struct {
 	RawRediSearchQuery string
 }
 
-// BlobReference represents metadata about a stored blob for reference counting.
-// It tracks shared blobs across multiple artefacts to enable safe content
-// deduplication.
+// BlobReference represents metadata about a stored blob for reference counting. It tracks
+// shared blobs across multiple artefacts to enable safe content deduplication.
 type BlobReference struct {
 	// CreatedAt is when the blob reference was created.
 	CreatedAt time.Time
@@ -62,9 +61,8 @@ type BlobReference struct {
 	SizeBytes int64
 }
 
-// MetadataStore defines the interface for persisting and querying artefact
-// metadata. Implementations handle storage of artefact records and blob
-// reference counting.
+// MetadataStore defines the interface for persisting and querying artefact metadata.
+// Implementations handle storage of artefact records and blob reference counting.
 type MetadataStore interface {
 	// GetArtefact retrieves metadata for the specified artefact.
 	//
@@ -78,8 +76,8 @@ type MetadataStore interface {
 	//
 	// Takes artefactIDs ([]string) which contains the IDs of artefacts to fetch.
 	//
-	// Returns []*registry_dto.ArtefactMeta which contains the metadata for each
-	// found artefact.
+	// Returns []*registry_dto.ArtefactMeta which contains the metadata for each found
+	// artefact.
 	// Returns error when the retrieval fails.
 	GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error)
 
@@ -97,8 +95,8 @@ type MetadataStore interface {
 	// Returns error when the search fails.
 	SearchArtefacts(ctx context.Context, query SearchQuery) ([]*registry_dto.ArtefactMeta, error)
 
-	// SearchArtefactsByTagValues retrieves artefacts that match any of the given
-	// tag values for a specific tag key.
+	// SearchArtefactsByTagValues retrieves artefacts that match any of the given tag values
+	// for a specific tag key.
 	//
 	// Takes tagKey (string) which identifies the tag to search by.
 	// Takes tagValues ([]string) which lists the values to match against.
@@ -107,8 +105,8 @@ type MetadataStore interface {
 	// Returns error when the search operation fails.
 	SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error)
 
-	// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant
-	// storage key.
+	// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant storage
+	// key.
 	//
 	// Takes storageKey (string) which identifies the variant in storage.
 	//
@@ -126,14 +124,14 @@ type MetadataStore interface {
 
 	// AtomicUpdate applies a set of actions as a single atomic operation.
 	//
-	// Takes actions ([]registry_dto.AtomicAction) which specifies the operations
-	// to perform atomically.
+	// Takes actions ([]registry_dto.AtomicAction) which specifies the operations to perform
+	// atomically.
 	//
 	// Returns error when any action fails, rolling back all changes.
 	AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error
 
-	// IncrementBlobRefCount atomically increments the reference count for a blob.
-	// If the blob does not exist, it creates it with a reference count of one.
+	// IncrementBlobRefCount atomically increments the reference count for a blob. If the
+	// blob does not exist, it creates it with a reference count of one.
 	//
 	// Takes blob (BlobReference) which identifies the blob to increment.
 	//
@@ -156,18 +154,13 @@ type MetadataStore interface {
 
 	// RunAtomic executes fn within a transaction.
 	//
-	// The provided MetadataStore is scoped to the
-	// transaction; all reads and writes through it are
-	// atomic. If fn returns an error (or panics), all
-	// mutations are rolled back.
+	// The provided MetadataStore is scoped to the transaction; all reads and writes through
+	// it are atomic. If fn returns an error (or panics), all mutations are rolled back.
 	//
-	// Takes fn which receives a transactional
-	// MetadataStore. The caller MUST use this
-	// transactional store for all operations that should
-	// be atomic.
+	// Takes fn which receives a transactional MetadataStore. The caller MUST use this
+	// transactional store for all operations that should be atomic.
 	//
-	// Returns error when fn returns an error or the
-	// transaction fails to commit.
+	// Returns error when fn returns an error or the transaction fails to commit.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore MetadataStore) error) error
 
 	// Close releases resources held by this store.
@@ -176,8 +169,8 @@ type MetadataStore interface {
 	Close() error
 }
 
-// MetadataCache provides an in-memory cache for artefact metadata.
-// It gives fast access to metadata that is used often.
+// MetadataCache provides an in-memory cache for artefact metadata. It gives fast access
+// to metadata that is used often.
 type MetadataCache interface {
 	// Get retrieves the metadata for an artefact by its identifier.
 	//
@@ -191,21 +184,20 @@ type MetadataCache interface {
 	//
 	// Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 	//
-	// Returns hits ([]*registry_dto.ArtefactMeta) which contains the found
-	// artefact metadata.
+	// Returns hits ([]*registry_dto.ArtefactMeta) which contains the found artefact
+	// metadata.
 	// Returns misses ([]string) which lists the IDs that were not found.
 	GetMultiple(ctx context.Context, artefactIDs []string) (hits []*registry_dto.ArtefactMeta, misses []string)
 
 	// Set stores the given artefact metadata.
 	//
-	// Takes artefact (*registry_dto.ArtefactMeta) which contains the metadata to
-	// store.
+	// Takes artefact (*registry_dto.ArtefactMeta) which contains the metadata to store.
 	Set(ctx context.Context, artefact *registry_dto.ArtefactMeta)
 
 	// SetMultiple stores several artefact metadata entries at once.
 	//
-	// Takes artefacts ([]*registry_dto.ArtefactMeta) which holds the metadata
-	// entries to store.
+	// Takes artefacts ([]*registry_dto.ArtefactMeta) which holds the metadata entries to
+	// store.
 	SetMultiple(ctx context.Context, artefacts []*registry_dto.ArtefactMeta)
 
 	// Delete removes the artefact with the given identifier.
@@ -215,16 +207,16 @@ type MetadataCache interface {
 
 	// Close releases resources held by this object.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	//
 	// Returns error when the close operation fails.
 	Close(ctx context.Context) error
 }
 
 // BlobStore defines the interface for storing and retrieving binary blob data.
-// Implementations handle storage of artefact variant content on disk, S3, or
-// other backends.
+// Implementations handle storage of artefact variant content on disk, S3, or other
+// backends.
 type BlobStore interface {
 	// Put stores data from the reader under the given key.
 	//
@@ -275,27 +267,25 @@ type BlobStore interface {
 	// Returns error when the check fails.
 	Exists(ctx context.Context, key string) (bool, error)
 
-	// ListKeys returns all storage keys present in this blob store.
-	// Used by garbage collection to detect orphaned blobs that are no longer
-	// referenced by any artefact.
+	// ListKeys returns all storage keys present in this blob store. Used by garbage
+	// collection to detect orphaned blobs that are no longer referenced by any artefact.
 	//
 	// Returns []string which contains all keys in the store.
 	// Returns error when the listing operation fails or is not supported.
 	ListKeys(ctx context.Context) ([]string, error)
 }
 
-// RegistryService defines the interface for the artefact registry service.
-// It provides operations for managing artefacts, variants, and blob storage.
+// RegistryService defines the interface for the artefact registry service. It provides
+// operations for managing artefacts, variants, and blob storage.
 type RegistryService interface {
-	// UpsertArtefact creates or updates an artefact with the given source data
-	// and profiles.
+	// UpsertArtefact creates or updates an artefact with the given source data and profiles.
 	//
 	// Takes artefactID (string) which identifies the artefact to create or update.
 	// Takes sourcePath (string) which specifies the path of the source file.
 	// Takes sourceData (io.Reader) which provides the content to store.
 	// Takes storageBackendID (string) which identifies the storage backend to use.
-	// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the
-	// profiles to apply.
+	// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
+	// apply.
 	//
 	// Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 	// Returns error when the operation fails.
@@ -334,11 +324,10 @@ type RegistryService interface {
 
 	// GetMultipleArtefacts retrieves metadata for multiple artefacts by their IDs.
 	//
-	// Takes artefactIDs ([]string) which specifies the artefact identifiers to
-	// look up.
+	// Takes artefactIDs ([]string) which specifies the artefact identifiers to look up.
 	//
-	// Returns []*registry_dto.ArtefactMeta which contains the metadata for each
-	// found artefact.
+	// Returns []*registry_dto.ArtefactMeta which contains the metadata for each found
+	// artefact.
 	// Returns error when the lookup fails.
 	GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error)
 
@@ -356,8 +345,8 @@ type RegistryService interface {
 	// Returns error when the search fails.
 	SearchArtefacts(ctx context.Context, query SearchQuery) ([]*registry_dto.ArtefactMeta, error)
 
-	// SearchArtefactsByTagValues retrieves artefacts that match any of the given
-	// tag values for a specific tag key.
+	// SearchArtefactsByTagValues retrieves artefacts that match any of the given tag values
+	// for a specific tag key.
 	//
 	// Takes tagKey (string) which identifies the tag to search by.
 	// Takes tagValues ([]string) which lists the values to match against.
@@ -366,8 +355,8 @@ type RegistryService interface {
 	// Returns error when the search fails.
 	SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error)
 
-	// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant
-	// storage key.
+	// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant storage
+	// key.
 	//
 	// Takes storageKey (string) which identifies the variant in storage.
 	//
@@ -418,16 +407,15 @@ type RegistryService interface {
 	// Returns error when the hints cannot be retrieved.
 	PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint, error)
 
-	// ListBlobStoreIDs returns the identifiers of all registered blob storage
-	// backends. Used by garbage collection to enumerate backends for orphan
-	// scanning.
+	// ListBlobStoreIDs returns the identifiers of all registered blob storage backends. Used
+	// by garbage collection to enumerate backends for orphan scanning.
 	//
 	// Returns []string which contains all backend IDs, sorted alphabetically.
 	ListBlobStoreIDs() []string
 
-	// ArtefactEventsPublished returns the number of artefact events published.
-	// Used for pipeline flush detection to check that all events are processed
-	// before the system is considered idle.
+	// ArtefactEventsPublished returns the number of artefact events published. Used for
+	// pipeline flush detection to check that all events are processed before the system is
+	// considered idle.
 	//
 	// Returns int64 which is the total count of published artefact events.
 	ArtefactEventsPublished() int64

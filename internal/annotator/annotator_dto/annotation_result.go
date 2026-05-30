@@ -23,43 +23,38 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// AnnotationResult holds the output of template annotation, including the
-// annotated AST, extracted styles, asset references, and analysis metadata
-// used by the LSP for context-aware intelligence features.
+// AnnotationResult holds the output of template annotation, including the annotated AST,
+// extracted styles, asset references, and analysis metadata used by the LSP for
+// context-aware intelligence features.
 type AnnotationResult struct {
 	// AnalysisMap links each TemplateNode to its active AnalysisContext.
 	//
-	// It enables the LSP to provide context-aware intelligence features
-	// (hover, completion, definition) by accessing the symbol table and
-	// type information at each template location. Uses any to avoid a
-	// circular dependency; the LSP type-asserts it to AnalysisContext
-	// from annotator_domain.
+	// It enables the LSP to provide context-aware intelligence features (hover, completion,
+	// definition) by accessing the symbol table and type information at each template
+	// location. Uses any to avoid a circular dependency; the LSP type-asserts it to
+	// AnalysisContext from annotator_domain.
 	AnalysisMap any
 
-	// EntryPointStyleBlocks contains the style blocks from the entry
-	// point component being analysed (the file being edited), with
-	// their original position information for LSP colour picker
-	// ranges.
+	// EntryPointStyleBlocks contains the style blocks from the entry point component being
+	// analysed (the file being edited), with their original position information for LSP
+	// colour picker ranges.
 	//
-	// Only populated for the entry point component, not for imported
-	// partials.
+	// Only populated for the entry point component, not for imported partials.
 	EntryPointStyleBlocks any
 
-	// AnnotatedAST is the parsed template with type and code generation
-	// annotations applied.
+	// AnnotatedAST is the parsed template with type and code generation annotations applied.
 	AnnotatedAST *ast_domain.TemplateAST
 
-	// VirtualModule holds the complete Go module structure. It provides access to
-	// the component graph and hash mappings needed for dependency lookups.
+	// VirtualModule holds the complete Go module structure. It provides access to the
+	// component graph and hash mappings needed for dependency lookups.
 	VirtualModule *VirtualModule
 
 	// StyleBlock is the combined CSS content from the component tree.
 	StyleBlock string
 
-	// ClientScript contains the client-side JavaScript/TypeScript
-	// code extracted from the PK file's <script> block (without
-	// type="application/go"), transpiled and served separately for
-	// client-side interactivity.
+	// ClientScript contains the client-side JavaScript/TypeScript code extracted from the PK
+	// file's <script> block (without type="application/go"), transpiled and served
+	// separately for client-side interactivity.
 	//
 	// Empty if no client script block is present.
 	ClientScript string
@@ -70,14 +65,13 @@ type AnnotationResult struct {
 	// CustomTags lists the names of custom tags that this component may use.
 	CustomTags []string
 
-	// UniqueInvocations holds the partial invocations found during
-	// template expansion.
+	// UniqueInvocations holds the partial invocations found during template expansion.
 	UniqueInvocations []*PartialInvocation
 
 	// AssetDependencies lists the static assets that this component needs.
 	AssetDependencies []*StaticAssetDependency
 
-	// UsesCaptcha indicates the template contains a piko:captcha element
-	// and needs captcha provider scripts loaded at runtime.
+	// UsesCaptcha indicates the template contains a piko:captcha element and needs captcha
+	// provider scripts loaded at runtime.
 	UsesCaptcha bool
 }

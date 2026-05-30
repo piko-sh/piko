@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package layouter_adapters provides adapter implementations for the layout
-// engine's driven ports. This includes CSS resolution (wrapping the existing
-// premailer and esbuild infrastructure), mock font metrics for testing, and
-// mock image resolution for testing.
+// Package layouter_adapters provides adapter implementations for the layout engine's
+// driven ports. This includes CSS resolution (wrapping the existing premailer and esbuild
+// infrastructure), mock font metrics for testing, and mock image resolution for testing.
 package layouter_adapters

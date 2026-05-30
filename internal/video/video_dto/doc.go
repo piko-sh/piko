@@ -18,19 +18,18 @@
 
 // Package video_dto defines data transfer objects for the video module.
 //
-// It contains specification types for transcoding, thumbnail extraction,
-// and adaptive streaming (HLS and DASH) workflows, plus result types
-// that carry output data between the domain layer and adapters.
+// It contains specification types for transcoding, thumbnail extraction, and adaptive
+// streaming (HLS and DASH) workflows, plus result types that carry output data between
+// the domain layer and adapters.
 //
 // # Parsing
 //
-// The package provides helpers for constructing specs from raw
-// parameter maps and time strings:
+// The package provides helpers for constructing specs from raw parameter maps and time
+// strings:
 //
-//   - [ParseTranscodeSpec]: Builds a TranscodeSpec from a
-//     map[string]string of capability parameters
-//   - [ParseThumbnailTime]: Parses time strings in Go duration,
-//     MM:SS, or HH:MM:SS format
+//   - [ParseTranscodeSpec]: Builds a TranscodeSpec from a map[string]string of capability
+//     parameters
+//   - [ParseThumbnailTime]: Parses time strings in Go duration, MM:SS, or HH:MM:SS format
 //
 // # Usage
 //

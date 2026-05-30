@@ -44,8 +44,7 @@ const (
 	// profileFilePerms is the file permission used when writing profile output files.
 	profileFilePerms = 0o640
 
-	// profileGoroutineReadBufSize is the buffer size for reading
-	// goroutine snapshot headers.
+	// profileGoroutineReadBufSize is the buffer size for reading goroutine snapshot headers.
 	profileGoroutineReadBufSize = 256
 
 	// profileBaselineName identifies the baseline load test phase.
@@ -66,27 +65,25 @@ const (
 	// profileErrorChBuffer is the buffer size for the error channel.
 	profileErrorChBuffer = 10000
 
-	// profileMetricsIntervalMs is the metrics emission interval
-	// in milliseconds for TUI mode.
+	// profileMetricsIntervalMs is the metrics emission interval in milliseconds for TUI
+	// mode.
 	profileMetricsIntervalMs = 200
 
-	// profileMaxBodyBytes caps the bytes accepted from a pprof or
-	// profiler-status HTTP body.
+	// profileMaxBodyBytes caps the bytes accepted from a pprof or profiler-status HTTP body.
 	profileMaxBodyBytes = 256 * 1024 * 1024
 )
 
-// readAndDrainBody reads up to profileMaxBodyBytes from response.Body
-// using io.LimitReader, then drains and closes the body so the
-// underlying connection can be reused. Returns ErrProfileBodyTooLarge
-// when the cap is exactly hit (an indication the response was likely
-// truncated and should not be trusted).
+// readAndDrainBody reads up to profileMaxBodyBytes from response.Body using
+// io.LimitReader, then drains and closes the body so the underlying connection can be
+// reused. Returns ErrProfileBodyTooLarge when the cap is exactly hit (an indication the
+// response was likely truncated and should not be trusted).
 //
-// Takes body (io.ReadCloser) which is the HTTP response body; the caller still
-// owns Close (only drains here, the deferred Close in the caller still runs).
+// Takes body (io.ReadCloser) which is the HTTP response body; the caller still owns Close
+// (only drains here, the deferred Close in the caller still runs).
 //
 // Returns []byte with the body bytes (possibly truncated to the cap).
-// Returns error wrapping ErrProfileBodyTooLarge when the body is at
-// least profileMaxBodyBytes.
+// Returns error wrapping ErrProfileBodyTooLarge when the body is at least
+// profileMaxBodyBytes.
 func readAndDrainBody(body io.Reader) ([]byte, error) {
 	limited := io.LimitReader(body, profileMaxBodyBytes+1)
 	data, err := io.ReadAll(limited)
@@ -99,10 +96,9 @@ func readAndDrainBody(body io.Reader) ([]byte, error) {
 	return data, nil
 }
 
-// drainAndClose drains any remaining bytes on body and closes it so
-// the HTTP transport can reuse the underlying connection. Errors are
-// silently ignored because callers are typically already on an error
-// path.
+// drainAndClose drains any remaining bytes on body and closes it so the HTTP transport
+// can reuse the underlying connection. Errors are silently ignored because callers are
+// typically already on an error path.
 //
 // Takes body (io.ReadCloser) which is the HTTP response body to drain.
 func drainAndClose(body io.ReadCloser) {
@@ -110,9 +106,11 @@ func drainAndClose(body io.ReadCloser) {
 	_ = body.Close()
 }
 
-// ErrProfileBodyTooLarge is returned when an HTTP response from a
-// pprof or profiler-status endpoint exceeds profileMaxBodyBytes.
-var ErrProfileBodyTooLarge = errors.New("pprof response exceeded byte budget")
+var (
+	// ErrProfileBodyTooLarge is returned when an HTTP response from a pprof or
+	// profiler-status endpoint exceeds profileMaxBodyBytes.
+	ErrProfileBodyTooLarge = errors.New("pprof response exceeded byte budget")
+)
 
 // headerFlag implements flag.Value for repeatable --header flags.
 type headerFlag struct {
@@ -159,8 +157,8 @@ type profileFlags struct {
 	// output is the directory for .pprof files and the report.
 	output string
 
-	// cookie is an optional Cookie header value (convenience shorthand for
-	// --header "Cookie: ...").
+	// cookie is an optional Cookie header value (convenience shorthand for --header "Cookie:
+	// ...").
 	cookie string
 
 	// focus is an optional regex filter for function names.
@@ -182,8 +180,7 @@ type profileFlags struct {
 	tui bool
 }
 
-// mergedHeaders returns a map combining --header flags and the --cookie
-// convenience flag.
+// mergedHeaders returns a map combining --header flags and the --cookie convenience flag.
 //
 // Returns map[string]string which contains all merged headers.
 func (f *profileFlags) mergedHeaders() map[string]string {
@@ -195,14 +192,14 @@ func (f *profileFlags) mergedHeaders() map[string]string {
 	return h
 }
 
-// pipelineConfig holds the shared configuration for a profiling pipeline,
-// used by both TUI and non-TUI modes.
+// pipelineConfig holds the shared configuration for a profiling pipeline, used by both
+// TUI and non-TUI modes.
 type pipelineConfig struct {
 	// factory creates sandboxes for filesystem access.
 	factory safedisk.Factory
 
-	// interrupt is checked between phases; if non-nil and cancelled, the
-	// pipeline stops early. Used for signal handling in non-TUI mode.
+	// interrupt is checked between phases; if non-nil and cancelled, the pipeline stops
+	// early. Used for signal handling in non-TUI mode.
 	interrupt context.Context
 
 	// stdout receives normal output messages.
@@ -238,8 +235,7 @@ type pipelineConfig struct {
 
 // profileSpec describes a single pprof profile to capture.
 type profileSpec struct {
-	// name is the human-readable profile name used for file naming
-	// and report headings.
+	// name is the human-readable profile name used for file naming and report headings.
 	name string
 
 	// endpoint is the pprof HTTP endpoint path (e.g. "profile", "heap").
@@ -251,9 +247,9 @@ type profileSpec struct {
 	// durationBased is true when the endpoint accepts a ?seconds= parameter.
 	durationBased bool
 
-	// delta is true when the profile should be captured as a before/after
-	// delta rather than a single snapshot. This isolates only the allocations
-	// (or other sample values) that occurred during the load window.
+	// delta is true when the profile should be captured as a before/after delta rather than
+	// a single snapshot. This isolates only the allocations (or other sample values) that
+	// occurred during the load window.
 	delta bool
 }
 
@@ -267,8 +263,8 @@ func (pipeline pipelineConfig) emitPhase(name string, status phaseStatus) {
 	}
 }
 
-// buildLoadConfig creates a loadConfig for a given phase, including TUI
-// metrics channels when configured.
+// buildLoadConfig creates a loadConfig for a given phase, including TUI metrics channels
+// when configured.
 //
 // Takes phase (string) which names the pipeline phase.
 // Takes errorCh (chan<- loadErrorRecord) which receives error records.
@@ -395,8 +391,8 @@ type profileCLIParams struct {
 	profilerRoot string
 }
 
-// runProfileCLI executes the non-TUI profile pipeline, collecting goroutine
-// counts before and after, then printing the summary.
+// runProfileCLI executes the non-TUI profile pipeline, collecting goroutine counts before
+// and after, then printing the summary.
 //
 // Takes params (profileCLIParams) which groups all pipeline configuration.
 //
@@ -431,8 +427,7 @@ func runProfileCLI(ctx context.Context, params profileCLIParams) int {
 //
 // Takes pattern (string) which is the regex to compile.
 //
-// Returns *regexp.Regexp which is the compiled regex, or nil
-// when pattern is empty.
+// Returns *regexp.Regexp which is the compiled regex, or nil when pattern is empty.
 // Returns error when the pattern is invalid.
 func compileFocusRegex(pattern string) (*regexp.Regexp, error) {
 	if pattern == "" {
@@ -441,8 +436,8 @@ func compileFocusRegex(pattern string) (*regexp.Regexp, error) {
 	return regexp.Compile(pattern)
 }
 
-// warnShortDuration prints a warning when the profile duration
-// is below the recommended minimum.
+// warnShortDuration prints a warning when the profile duration is below the recommended
+// minimum.
 //
 // Takes duration (int) which is the phase duration in seconds.
 // Takes stderr (io.Writer) which receives the warning message.
@@ -456,15 +451,13 @@ func warnShortDuration(duration int, stderr io.Writer) {
 	}
 }
 
-// printProfileHeader writes the profiling session header to
-// stdout.
+// printProfileHeader writes the profiling session header to stdout.
 //
 // Takes stdout (io.Writer) which receives the header output.
 // Takes url (string) which is the target URL being profiled.
 // Takes pprofBase (string) which is the pprof base URL.
 // Takes flags (*profileFlags) which holds parsed CLI flags.
-// Takes headers (map[string]string) which contains HTTP
-// headers.
+// Takes headers (map[string]string) which contains HTTP headers.
 func printProfileHeader(stdout io.Writer, url, pprofBase string, flags *profileFlags, headers map[string]string) {
 	_, _ = fmt.Fprint(stdout, "Starting live server profiling session...\n")
 	_, _ = fmt.Fprint(stdout, "--------------------------------------------------\n")
@@ -482,13 +475,11 @@ func printProfileHeader(stdout io.Writer, url, pprofBase string, flags *profileF
 	_, _ = fmt.Fprint(stdout, "--------------------------------------------------\n\n")
 }
 
-// printProfileSummary writes the profiling completion summary
-// to stdout.
+// printProfileSummary writes the profiling completion summary to stdout.
 //
 // Takes stdout (io.Writer) which receives the summary output.
 // Takes flags (*profileFlags) which holds parsed CLI flags.
-// Takes startGoroutines (int) which is the count at session
-// start.
+// Takes startGoroutines (int) which is the count at session start.
 // Takes endGoroutines (int) which is the count at session end.
 func printProfileSummary(stdout io.Writer, flags *profileFlags, startGoroutines, endGoroutines int) {
 	_, _ = fmt.Fprint(stdout, "========================================================================\n")
@@ -528,8 +519,8 @@ func printProfileSummary(stdout io.Writer, flags *profileFlags, startGoroutines,
 //
 // Returns error when sandbox or report file creation fails.
 //
-// Spawns a goroutine that writes error log entries to disk.
-// The goroutine runs until the error channel is closed.
+// Spawns a goroutine that writes error log entries to disk. The goroutine runs until the
+// error channel is closed.
 func runPipeline(ctx context.Context, pipeline pipelineConfig) error {
 	outputSandbox, err := pipeline.factory.Create("profile-output", pipeline.flags.output, safedisk.ModeReadWrite)
 	if err != nil {
@@ -577,9 +568,8 @@ func runPipeline(ctx context.Context, pipeline pipelineConfig) error {
 	return nil
 }
 
-// runBaseline executes the baseline load test phase, writes its
-// report and statistics to the output sandbox, and snapshots
-// goroutines.
+// runBaseline executes the baseline load test phase, writes its report and statistics to
+// the output sandbox, and snapshots goroutines.
 //
 // Takes pipeline (pipelineConfig) which holds pipeline settings.
 // Takes reportFile (io.Writer) which receives the report output.
@@ -614,14 +604,14 @@ func runBaseline(
 	pipeline.emitPhase(profileBaselineName, phaseDone)
 }
 
-// captureProfilerMetadata fetches the profiler server status from
-// the remote endpoint and writes it as JSON to the output sandbox.
+// captureProfilerMetadata fetches the profiler server status from the remote endpoint and
+// writes it as JSON to the output sandbox.
 //
 // Takes pipeline (pipelineConfig) which holds pipeline settings.
 // Takes outputSandbox (safedisk.Sandbox) which writes output files.
 //
-// Returns *profiler.ServerStatus which is the fetched status, or nil
-// if the profiler is unavailable.
+// Returns *profiler.ServerStatus which is the fetched status, or nil if the profiler is
+// unavailable.
 func captureProfilerMetadata(
 	ctx context.Context,
 	pipeline pipelineConfig,
@@ -664,13 +654,13 @@ func captureProfilerMetadata(
 	return status
 }
 
-// captureRollingTrace downloads the rolling trace snapshot from the
-// profiler server and saves it to the output sandbox.
+// captureRollingTrace downloads the rolling trace snapshot from the profiler server and
+// saves it to the output sandbox.
 //
 // Takes pipeline (pipelineConfig) which holds pipeline settings.
 // Takes outputSandbox (safedisk.Sandbox) which writes output files.
-// Takes status (*profiler.ServerStatus) which provides the download path; if
-// nil or tracing is disabled, returns immediately.
+// Takes status (*profiler.ServerStatus) which provides the download path; if nil or
+// tracing is disabled, returns immediately.
 func captureRollingTrace(
 	ctx context.Context,
 	pipeline pipelineConfig,
@@ -700,14 +690,14 @@ func captureRollingTrace(
 	)
 }
 
-// fetchProfilerStatus sends an HTTP GET to the profiler status
-// endpoint and deserialises the JSON response.
+// fetchProfilerStatus sends an HTTP GET to the profiler status endpoint and deserialises
+// the JSON response.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes profilerRoot (string) which is the base URL of the profiler server.
 //
-// Returns *profiler.ServerStatus which is the decoded status, or
-// nil when the endpoint returns 404.
+// Returns *profiler.ServerStatus which is the decoded status, or nil when the endpoint
+// returns 404.
 // Returns error which wraps network or deserialisation failures.
 func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.ServerStatus, error) {
 	reqCtx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
@@ -745,8 +735,8 @@ func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.Se
 	return &status, nil
 }
 
-// fetchProfilerBinary performs an HTTP GET for binary profiler data
-// such as trace snapshots.
+// fetchProfilerBinary performs an HTTP GET for binary profiler data such as trace
+// snapshots.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes url (string) which is the full URL to fetch.
@@ -782,8 +772,8 @@ func fetchProfilerBinary(ctx context.Context, url string, timeout time.Duration)
 	return data, nil
 }
 
-// capturePhase runs continuous load, fetches a pprof profile, saves
-// it to disk, generates report sections, and snapshots goroutines.
+// capturePhase runs continuous load, fetches a pprof profile, saves it to disk, generates
+// report sections, and snapshots goroutines.
 //
 // Takes pipeline (pipelineConfig) which holds pipeline settings.
 // Takes reportFile (io.Writer) which receives the report output.
@@ -793,8 +783,8 @@ func fetchProfilerBinary(ctx context.Context, url string, timeout time.Duration)
 //
 // Returns error when fetching or writing the profile fails.
 //
-// Spawns a goroutine that runs the load generator in the
-// background while the profile is being captured.
+// Spawns a goroutine that runs the load generator in the background while the profile is
+// being captured.
 func capturePhase(
 	ctx context.Context,
 	pipeline pipelineConfig,
@@ -893,11 +883,10 @@ func fetchProfile(ctx context.Context, pprofBase, endpoint string, durationSecs 
 	return data, nil
 }
 
-// fetchProfileData fetches profile data according to the spec's
-// capture mode.
+// fetchProfileData fetches profile data according to the spec's capture mode.
 //
-// When the spec is duration-based, it passes the seconds parameter.
-// When the spec is delta-based, it takes before/after snapshots.
+// When the spec is duration-based, it passes the seconds parameter. When the spec is
+// delta-based, it takes before/after snapshots.
 //
 // Takes spec (profileSpec) which describes the capture mode.
 // Takes pprofBase (string) which is the pprof base URL.
@@ -937,8 +926,8 @@ func fetchProfileData(ctx context.Context, spec profileSpec, pprofBase string, d
 	return fetchProfile(ctx, pprofBase, spec.endpoint, 0)
 }
 
-// buildProfileSpecs returns the list of profiles to capture and their
-// associated report configurations.
+// buildProfileSpecs returns the list of profiles to capture and their associated report
+// configurations.
 //
 // Takes flags (*profileFlags) which provides topN and focus settings.
 // Takes focusRegex (*regexp.Regexp) which optionally filters functions.
@@ -956,10 +945,8 @@ func buildProfileSpecs(flags *profileFlags, focusRegex *regexp.Regexp) []profile
 
 // buildCPUSpec returns the CPU profile spec.
 //
-// Takes topN (int) which is the number of top entries to
-// report.
-// Takes focusRegex (*regexp.Regexp) which optionally filters
-// function names.
+// Takes topN (int) which is the number of top entries to report.
+// Takes focusRegex (*regexp.Regexp) which optionally filters function names.
 //
 // Returns profileSpec which describes CPU profile capture.
 func buildCPUSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
@@ -978,16 +965,12 @@ func buildCPUSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 	}
 }
 
-// buildAllocsSpec returns the allocation churn (delta)
-// profile spec.
+// buildAllocsSpec returns the allocation churn (delta) profile spec.
 //
-// Takes topN (int) which is the number of top entries to
-// report.
-// Takes focusRegex (*regexp.Regexp) which optionally filters
-// function names.
+// Takes topN (int) which is the number of top entries to report.
+// Takes focusRegex (*regexp.Regexp) which optionally filters function names.
 //
-// Returns profileSpec which describes allocation delta
-// capture.
+// Returns profileSpec which describes allocation delta capture.
 func buildAllocsSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 	return profileSpec{
 		name:     "allocs",
@@ -1014,10 +997,8 @@ func buildAllocsSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 
 // buildHeapSpec returns the heap (in-use space) profile spec.
 //
-// Takes topN (int) which is the number of top entries to
-// report.
-// Takes focusRegex (*regexp.Regexp) which optionally filters
-// function names.
+// Takes topN (int) which is the number of top entries to report.
+// Takes focusRegex (*regexp.Regexp) which optionally filters function names.
 //
 // Returns profileSpec which describes heap snapshot capture.
 func buildHeapSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
@@ -1036,14 +1017,11 @@ func buildHeapSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 	}
 }
 
-// buildContSpec returns a duration-based contention profile
-// spec (mutex or block).
+// buildContSpec returns a duration-based contention profile spec (mutex or block).
 //
 // Takes name (string) which identifies the contention type.
-// Takes topN (int) which is the number of top entries to
-// report.
-// Takes focusRegex (*regexp.Regexp) which optionally filters
-// function names.
+// Takes topN (int) which is the number of top entries to report.
+// Takes focusRegex (*regexp.Regexp) which optionally filters function names.
 //
 // Returns profileSpec which describes contention capture.
 func buildContSpec(name string, topN int, focusRegex *regexp.Regexp) profileSpec {
@@ -1062,8 +1040,7 @@ func buildContSpec(name string, topN int, focusRegex *regexp.Regexp) profileSpec
 	}
 }
 
-// parseProfileFlags parses the command-line flags for the profile
-// subcommand.
+// parseProfileFlags parses the command-line flags for the profile subcommand.
 //
 // Takes arguments ([]string) which contains the raw command-line arguments.
 // Takes stderr (io.Writer) which receives error and usage output.
@@ -1107,8 +1084,8 @@ func parseProfileFlags(arguments []string, stderr io.Writer) (*profileFlags, str
 	return flags, url, true
 }
 
-// extractProfileURL scans arguments for a URL and returns it separately
-// from the remaining flag arguments.
+// extractProfileURL scans arguments for a URL and returns it separately from the
+// remaining flag arguments.
 //
 // Takes arguments ([]string) which contains the raw command-line arguments.
 //
@@ -1164,9 +1141,8 @@ Examples:
 `)
 }
 
-// fetchGoroutineCount fetches the current goroutine count from a pprof
-// endpoint by requesting /goroutine?debug=1 and parsing the "total N"
-// from the first line.
+// fetchGoroutineCount fetches the current goroutine count from a pprof endpoint by
+// requesting /goroutine?debug=1 and parsing the "total N" from the first line.
 //
 // Takes pprofBase (string) which is the pprof endpoint base URL.
 //
@@ -1200,10 +1176,9 @@ func fetchGoroutineCount(ctx context.Context, pprofBase string) int {
 	return count
 }
 
-// snapshotGoroutines fetches the full goroutine stack dump from pprof
-// (debug=2 gives full stacks with state) and writes it to disk alongside
-// the profile files. This lets you diff goroutines between phases to
-// identify leaks.
+// snapshotGoroutines fetches the full goroutine stack dump from pprof (debug=2 gives full
+// stacks with state) and writes it to disk alongside the profile files. This lets you
+// diff goroutines between phases to identify leaks.
 //
 // Takes stdout (io.Writer) which receives progress messages.
 // Takes stderr (io.Writer) which receives warning messages.

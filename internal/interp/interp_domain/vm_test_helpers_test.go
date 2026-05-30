@@ -20,10 +20,7 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func newTestVM(t *testing.T) *VM {
@@ -31,32 +28,8 @@ func newTestVM(t *testing.T) *VM {
 	return newVM(context.Background(), newGlobalStore(), NewSymbolRegistry(nil))
 }
 
-func newTestVMWithContext(ctx context.Context, t *testing.T) *VM {
-	t.Helper()
-	return newVM(ctx, newGlobalStore(), NewSymbolRegistry(nil))
-}
-
-func newTestVMWithSymbols(t *testing.T, exports SymbolExports) *VM {
-	t.Helper()
-	return newVM(context.Background(), newGlobalStore(), NewSymbolRegistry(exports))
-}
-
 func executeTestBytecode(t *testing.T, compiledFunction *CompiledFunction) (any, error) {
 	t.Helper()
 	vm := newTestVM(t)
 	return vm.execute(compiledFunction)
-}
-
-func executeTestBytecodeExpect(t *testing.T, compiledFunction *CompiledFunction, expect any) {
-	t.Helper()
-	result, err := executeTestBytecode(t, compiledFunction)
-	require.NoError(t, err)
-	require.Equal(t, expect, result)
-}
-
-func executeTestBytecodeExpectError(t *testing.T, compiledFunction *CompiledFunction, target error) {
-	t.Helper()
-	_, err := executeTestBytecode(t, compiledFunction)
-	require.Error(t, err)
-	require.True(t, errors.Is(err, target), "expected error %v, got %v", target, err)
 }

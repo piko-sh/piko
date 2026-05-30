@@ -36,11 +36,10 @@ type loadTestSpecConfig struct {
 	sandboxFactory safedisk.Factory
 }
 
-// WithTestSpecSandboxFactory sets a factory for creating sandboxes when
-// loading a test spec file.
+// WithTestSpecSandboxFactory sets a factory for creating sandboxes when loading a test
+// spec file.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
 // Returns LoadTestSpecOption which configures the sandbox factory.
 func WithTestSpecSandboxFactory(factory safedisk.Factory) LoadTestSpecOption {
@@ -63,8 +62,7 @@ type TestSpec struct {
 	// RequestURL is the starting URL path to visit (e.g., "/main").
 	RequestURL string `json:"requestURL"`
 
-	// ErrorContains is a substring expected in the error
-	// message when ShouldError is true.
+	// ErrorContains is a substring expected in the error message when ShouldError is true.
 	ErrorContains string `json:"errorContains,omitempty"`
 
 	// BrowserSteps is a list of browser actions to run in order.
@@ -76,28 +74,28 @@ type TestSpec struct {
 	// NetworkMocks defines mock network responses for specific endpoints.
 	NetworkMocks []NetworkMock `json:"networkMocks,omitempty"`
 
-	// ExpectedStatus is the expected HTTP status code for initial page load.
-	// Defaults to 200.
+	// ExpectedStatus is the expected HTTP status code for initial page load. Defaults to
+	// 200.
 	ExpectedStatus int `json:"expectedStatus,omitempty"`
 
 	// ShouldError indicates whether loading the page should fail.
 	ShouldError bool `json:"shouldError,omitempty"`
 
-	// TLS indicates that the server under test uses TLS/HTTPS. When true,
-	// the test harness uses an https:// base URL and launches Chrome with
-	// --ignore-certificate-errors to accept self-signed certificates.
+	// TLS indicates that the server under test uses TLS/HTTPS. When true, the test harness
+	// uses an https:// base URL and launches Chrome with --ignore-certificate-errors to
+	// accept self-signed certificates.
 	TLS bool `json:"tls,omitempty"`
 
-	// RequiresMarkdown indicates that the test needs the markdown collection
-	// provider. When true, the harness configures piko.WithMarkdownParser
-	// during both code generation and server execution.
+	// RequiresMarkdown indicates that the test needs the markdown collection provider. When
+	// true, the harness configures piko.WithMarkdownParser during both code generation and
+	// server execution.
 	RequiresMarkdown bool `json:"requiresMarkdown,omitempty"`
 }
 
 // BrowserStep defines a single browser action to execute within a test.
 type BrowserStep struct {
-	// Expected is the expected value for check actions. It can be a string,
-	// number, or object.
+	// Expected is the expected value for check actions. It can be a string, number, or
+	// object.
 	Expected any `json:"expected,omitempty"`
 
 	// EventDetail is the data sent with dispatchEvent.
@@ -121,23 +119,21 @@ type BrowserStep struct {
 	// Value holds the input for fill, setValue, wait, and type actions.
 	Value string `json:"value,omitempty"`
 
-	// Key is the key or key combination for press action
-	// (e.g., "Enter", "Shift+Enter", "Control+b").
+	// Key is the key or key combination for press action (e.g., "Enter", "Shift+Enter",
+	// "Control+b").
 	Key string `json:"key,omitempty"`
 
 	// GoldenFile is the name of the golden file for the captureDOM action.
 	GoldenFile string `json:"goldenFile,omitempty"`
 
-	// ReloadMode selects the partial reload reconciliation strategy: "merge"
-	// (default), "replace", "children-only", or "attrs-only".
+	// ReloadMode selects the partial reload reconciliation strategy: "merge" (default),
+	// "replace", "children-only", or "attrs-only".
 	ReloadMode string `json:"reloadMode,omitempty"`
 
-	// Name is the attribute or property name for
-	// checkAttribute or checkStyle actions.
+	// Name is the attribute or property name for checkAttribute or checkStyle actions.
 	Name string `json:"name,omitempty"`
 
-	// Message is the expected message text for
-	// checkConsoleMessage (partial match).
+	// Message is the expected message text for checkConsoleMessage (partial match).
 	Message string `json:"message,omitempty"`
 
 	// Contains specifies a substring to match in checkAttribute actions.
@@ -146,20 +142,19 @@ type BrowserStep struct {
 	// Attribute is an alias for Name, used by the checkAttribute action.
 	Attribute string `json:"attribute,omitempty"`
 
-	// Level is the console log level for
-	// checkConsoleMessage (e.g., "error", "warn", "log").
+	// Level is the console log level for checkConsoleMessage (e.g., "error", "warn", "log").
 	Level string `json:"level,omitempty"`
 
-	// Files is a list of file paths for setFiles action, relative to the test
-	// source directory.
+	// Files is a list of file paths for setFiles action, relative to the test source
+	// directory.
 	Files []string `json:"files,omitempty"`
 
-	// ReloadPreserveAttrs lists root attributes that must never be touched
-	// during the reload.
+	// ReloadPreserveAttrs lists root attributes that must never be touched during the
+	// reload.
 	ReloadPreserveAttrs []string `json:"reloadPreserveAttrs,omitempty"`
 
-	// ReloadOwnedAttrs restricts which root attributes the server may set on
-	// the partial root.
+	// ReloadOwnedAttrs restricts which root attributes the server may set on the partial
+	// root.
 	ReloadOwnedAttrs []string `json:"reloadOwnedAttrs,omitempty"`
 
 	// Stage is the step number for the applyStage action.
@@ -183,21 +178,20 @@ type BrowserStep struct {
 	// Height is the viewport height in pixels for the setViewport action.
 	Height int `json:"height,omitempty"`
 
-	// ToEnd indicates whether to collapse selection to the end (true) or
-	// to the start (false).
+	// ToEnd indicates whether to collapse selection to the end (true) or to the start
+	// (false).
 	ToEnd bool `json:"toEnd,omitempty"`
 
-	// ExcludeShadowRoots disables serialisation of shadow DOM content in
-	// captureDOM actions, where shadow roots are otherwise included as
-	// <template shadowrootmode="open"> elements and setting this to true
-	// captures only the light DOM.
+	// ExcludeShadowRoots disables serialisation of shadow DOM content in captureDOM actions,
+	// where shadow roots are otherwise included as <template shadowrootmode="open"> elements
+	// and setting this to true captures only the light DOM.
 	ExcludeShadowRoots bool `json:"excludeShadowRoots,omitempty"`
 }
 
 // ExpectedString returns the expected value as a string.
 //
-// Returns string which contains the expected value formatted as text, or an
-// empty string if no expected value is set.
+// Returns string which contains the expected value formatted as text, or an empty string
+// if no expected value is set.
 func (s *BrowserStep) ExpectedString() string {
 	if s.Expected == nil {
 		return ""
@@ -210,8 +204,8 @@ func (s *BrowserStep) ExpectedString() string {
 
 // ExpectedInt returns the expected value as an integer.
 //
-// Returns int which is the expected value converted to an integer, or zero if
-// the value is nil or cannot be converted.
+// Returns int which is the expected value converted to an integer, or zero if the value
+// is nil or cannot be converted.
 func (s *BrowserStep) ExpectedInt() int {
 	if s.Expected == nil {
 		return 0
@@ -232,8 +226,8 @@ func (s *BrowserStep) ExpectedInt() int {
 
 // ExpectedMap returns the expected value as a map.
 //
-// Returns map[string]any which contains the expected value, or nil if
-// Expected is nil or not a map type.
+// Returns map[string]any which contains the expected value, or nil if Expected is nil or
+// not a map type.
 func (s *BrowserStep) ExpectedMap() map[string]any {
 	if s.Expected == nil {
 		return nil
@@ -244,8 +238,7 @@ func (s *BrowserStep) ExpectedMap() map[string]any {
 	return nil
 }
 
-// AttributeName returns the attribute name, preferring Attribute over Name
-// for clarity.
+// AttributeName returns the attribute name, preferring Attribute over Name for clarity.
 //
 // Returns string which is the attribute identifier for this step.
 func (s *BrowserStep) AttributeName() string {
@@ -300,11 +293,10 @@ type NetworkMock struct {
 // LoadTestSpec reads and parses a testspec.json file for E2E browser tests.
 //
 // Takes path (string) which specifies the file path to the testspec.json file.
-// Takes opts (...LoadTestSpecOption) which provides optional configuration
-// such as WithTestSpecSandboxFactory.
+// Takes opts (...LoadTestSpecOption) which provides optional configuration such as
+// WithTestSpecSandboxFactory.
 //
-// Returns *TestSpec which contains the parsed test specification with defaults
-// applied.
+// Returns *TestSpec which contains the parsed test specification with defaults applied.
 // Returns error when the file cannot be read or the JSON is invalid.
 func LoadTestSpec(path string, opts ...LoadTestSpecOption) (*TestSpec, error) {
 	var cfg loadTestSpecConfig

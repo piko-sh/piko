@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -289,7 +288,7 @@ func TestFallbackRouter_Execute_WithModelMapping(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "anthropic", result.UsedProvider)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CompleteCallCount))
+	assert.Equal(t, int64(1), mock.CompleteCallCount.Load())
 	assert.Equal(t, "claude-3-5-sonnet-20241022", capturedModel)
 }
 
@@ -449,7 +448,7 @@ func TestFallbackRouter_Execute_NonRetryableErrorStopsFallback(t *testing.T) {
 	require.NotNil(t, result)
 
 	assert.Len(t, result.AttemptedProviders, 1)
-	assert.Equal(t, int64(0), atomic.LoadInt64(&neverCalledProvider.CompleteCallCount))
+	assert.Equal(t, int64(0), neverCalledProvider.CompleteCallCount.Load())
 }
 
 func TestFallbackRouter_Execute_WithRetryPolicy(t *testing.T) {

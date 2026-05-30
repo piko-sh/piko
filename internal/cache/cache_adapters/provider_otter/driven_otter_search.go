@@ -28,16 +28,16 @@ import (
 )
 
 const (
-	// defaultSearchLimit is the default number of results to return when no limit
-	// is specified.
+	// defaultSearchLimit is the default number of results to return when no limit is
+	// specified.
 	defaultSearchLimit = 10
 
-	// keyWithValuePoolMaxCap is the maximum capacity for pooled slices. Slices
-	// larger than this won't be returned to the pool to prevent memory bloat.
+	// keyWithValuePoolMaxCap is the maximum capacity for pooled slices. Slices larger than
+	// this won't be returned to the pool to prevent memory bloat.
 	keyWithValuePoolMaxCap = 10000
 
-	// initialKeyWithValueCapacity is the starting capacity for pooled keyWithValue
-	// slices. Sized to handle typical sort operations without reallocation.
+	// initialKeyWithValueCapacity is the starting capacity for pooled keyWithValue slices.
+	// Sized to handle typical sort operations without reallocation.
 	initialKeyWithValueCapacity = 128
 )
 
@@ -50,13 +50,15 @@ type keyWithValue[K comparable] struct {
 	value any
 }
 
-// keyWithValuePool reuses keyWithValue slices to reduce allocation pressure
-// during search result sorting.
-var keyWithValuePool = sync.Pool{
-	New: func() any {
-		return new(make([]keyWithValue[any], 0, 128))
-	},
-}
+var (
+	// keyWithValuePool reuses keyWithValue slices to reduce allocation pressure during
+	// search result sorting.
+	keyWithValuePool = sync.Pool{
+		New: func() any {
+			return new(make([]keyWithValue[any], 0, 128))
+		},
+	}
+)
 
 // indexDocument adds a value to the search indexes if search is enabled.
 //
@@ -148,13 +150,12 @@ func (a *OtterAdapter[K, V]) indexDocumentsBatch(items map[K]V) {
 	a.batchIndexVectorFields(items)
 }
 
-// batchIndexTextFields indexes text fields for the inverted index with a
-// single lock.
+// batchIndexTextFields indexes text fields for the inverted index with a single lock.
 //
 // Takes items (map[K]V) which contains the key-value pairs to index.
 //
-// Safe for concurrent use. Acquires the inverted index lock for the entire
-// batch operation.
+// Safe for concurrent use. Acquires the inverted index lock for the entire batch
+// operation.
 func (a *OtterAdapter[K, V]) batchIndexTextFields(items map[K]V) {
 	if a.invertedIndex == nil {
 		return
@@ -175,8 +176,8 @@ func (a *OtterAdapter[K, V]) batchIndexTextFields(items map[K]V) {
 //
 // Takes items (map[K]V) which contains the key-value pairs to index.
 //
-// Safe for concurrent use. Each sorted index is locked individually during
-// updates to allow concurrent indexing of different fields.
+// Safe for concurrent use. Each sorted index is locked individually during updates to
+// allow concurrent indexing of different fields.
 func (a *OtterAdapter[K, V]) batchIndexSortableFields(items map[K]V) {
 	if a.sortedIndexes == nil {
 		return
@@ -197,8 +198,8 @@ func (a *OtterAdapter[K, V]) batchIndexSortableFields(items map[K]V) {
 //
 // Takes items (map[K]V) which contains the key-value pairs to index.
 //
-// The HNSW graph handles its own internal locking, so no external
-// synchronisation is needed here.
+// The HNSW graph handles its own internal locking, so no external synchronisation is
+// needed here.
 func (a *OtterAdapter[K, V]) batchIndexVectorFields(items map[K]V) {
 	if a.vectorIndexes == nil {
 		return
@@ -213,8 +214,7 @@ func (a *OtterAdapter[K, V]) batchIndexVectorFields(items map[K]V) {
 	}
 }
 
-// clearAllIndexes resets all secondary indexes (tags, inverted, sorted,
-// vector).
+// clearAllIndexes resets all secondary indexes (tags, inverted, sorted, vector).
 func (a *OtterAdapter[K, V]) clearAllIndexes() {
 	a.tagIndex.Clear()
 	if a.invertedIndex != nil {
@@ -232,19 +232,15 @@ func (a *OtterAdapter[K, V]) clearAllIndexes() {
 	}
 }
 
-// Search performs full-text search across indexed TEXT fields.
-// When a text analyser is configured, results are scored using
-// BM25 relevance ranking.
+// Search performs full-text search across indexed TEXT fields. When a text analyser is
+// configured, results are scored using BM25 relevance ranking.
 //
-// Takes query (string) which is the search query to tokenise and
-// match.
-// Takes opts (*cache_dto.SearchOptions) which configures
-// pagination, sorting, and filters.
+// Takes query (string) which is the search query to tokenise and match.
+// Takes opts (*cache_dto.SearchOptions) which configures pagination, sorting, and
+// filters.
 //
-// Returns cache_dto.SearchResult[K, V] which contains matched
-// entries with metadata.
-// Returns error when no schema is configured
-// (ErrSearchNotSupported).
+// Returns cache_dto.SearchResult[K, V] which contains matched entries with metadata.
+// Returns error when no schema is configured (ErrSearchNotSupported).
 func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache_dto.SearchOptions) (cache_dto.SearchResult[K, V], error) {
 	if a.schema == nil {
 		return cache_dto.SearchResult[K, V]{}, cache_domain.ErrSearchNotSupported
@@ -300,16 +296,12 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 	return a.buildSearchResultWithScores(sortedKeys, keyScores, opts.Offset, opts.Limit)
 }
 
-// Query performs structured filtering, sorting, and pagination
-// without full-text search.
+// Query performs structured filtering, sorting, and pagination without full-text search.
 //
-// Takes opts (*cache_dto.QueryOptions) which specifies filters,
-// sorting, and pagination.
+// Takes opts (*cache_dto.QueryOptions) which specifies filters, sorting, and pagination.
 //
-// Returns cache_dto.SearchResult[K, V] which contains matched
-// entries.
-// Returns error when no schema is configured
-// (ErrSearchNotSupported).
+// Returns cache_dto.SearchResult[K, V] which contains matched entries.
+// Returns error when no schema is configured (ErrSearchNotSupported).
 func (a *OtterAdapter[K, V]) Query(_ context.Context, opts *cache_dto.QueryOptions) (cache_dto.SearchResult[K, V], error) {
 	if a.schema == nil {
 		return cache_dto.SearchResult[K, V]{}, cache_domain.ErrSearchNotSupported
@@ -364,9 +356,9 @@ func (a *OtterAdapter[K, V]) getAllKeys() []K {
 
 // applyFiltersWithTrust filters keys based on the provided filter conditions.
 //
-// When trustKeys is true, skips existence validation as keys from InvertedIndex
-// are trusted. Optimises range filters by using SortedIndex B-tree range
-// queries when available.
+// When trustKeys is true, skips existence validation as keys from InvertedIndex are
+// trusted. Optimises range filters by using SortedIndex B-tree range queries when
+// available.
 //
 // Takes keys ([]K) which specifies the keys to filter.
 // Takes filters ([]cache_dto.Filter) which provides the filter conditions.
@@ -398,14 +390,13 @@ func (a *OtterAdapter[K, V]) applyFiltersWithTrust(keys []K, filters []cache_dto
 	return result
 }
 
-// tryRangeQueryFilter attempts to use B-tree range queries for efficient
-// filtering.
+// tryRangeQueryFilter attempts to use B-tree range queries for efficient filtering.
 //
-// Takes filter (cache_dto.Filter) which specifies the field, operation, and
-// value(s) to filter by.
+// Takes filter (cache_dto.Filter) which specifies the field, operation, and value(s) to
+// filter by.
 //
-// Returns []K which contains the matching keys, or nil if the optimisation
-// cannot be applied.
+// Returns []K which contains the matching keys, or nil if the optimisation cannot be
+// applied.
 func (a *OtterAdapter[K, V]) tryRangeQueryFilter(filter cache_dto.Filter) []K {
 	if a.sortedIndexes == nil {
 		return nil
@@ -450,12 +441,11 @@ func (a *OtterAdapter[K, V]) matchesAllFilters(value V, filters []cache_dto.Filt
 	return true
 }
 
-// matchesFilter checks if a value matches a single filter condition. Uses
-// zero-alloc direct comparison when possible (avoids boxing).
+// matchesFilter checks if a value matches a single filter condition. Uses zero-alloc
+// direct comparison when possible (avoids boxing).
 //
 // Takes value (V) which is the value to check against the filter.
-// Takes filter (cache_dto.Filter) which specifies the filter condition to
-// apply.
+// Takes filter (cache_dto.Filter) which specifies the filter condition to apply.
 //
 // Returns bool which is true if the value matches the filter condition.
 func (a *OtterAdapter[K, V]) matchesFilter(value V, filter cache_dto.Filter) bool {
@@ -502,8 +492,8 @@ func (a *OtterAdapter[K, V]) matchesFilter(value V, filter cache_dto.Filter) boo
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
-// Returns bool which is true if the values are equal by direct comparison or
-// by their string form.
+// Returns bool which is true if the values are equal by direct comparison or by their
+// string form.
 func (*OtterAdapter[K, V]) compareEqual(a, b any) bool {
 	if a == b {
 		return true
@@ -516,9 +506,8 @@ func (*OtterAdapter[K, V]) compareEqual(a, b any) bool {
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
-// Returns int which is -1, 0, or 1 showing whether a is less than, equal to,
-// or greater than b. Falls back to string comparison if values cannot be
-// converted to numbers.
+// Returns int which is -1, 0, or 1 showing whether a is less than, equal to, or greater
+// than b. Falls back to string comparison if values cannot be converted to numbers.
 func (*OtterAdapter[K, V]) compareNumeric(a, b any) int {
 	aNum, aOk := toFloat64(a)
 	bNum, bOk := toFloat64(b)
@@ -575,11 +564,10 @@ func (*OtterAdapter[K, V]) matchesPrefix(fieldVal, prefix any) bool {
 //
 // Takes keys ([]K) which contains the keys to sort.
 // Takes sortBy (string) which specifies the field name to sort by.
-// Takes sortOrder (cache_dto.SortOrder) which specifies ascending or
-// descending.
+// Takes sortOrder (cache_dto.SortOrder) which specifies ascending or descending.
 //
-// Returns []K which contains the sorted keys, or the original keys if sortBy
-// is empty or keys is empty.
+// Returns []K which contains the sorted keys, or the original keys if sortBy is empty or
+// keys is empty.
 func (a *OtterAdapter[K, V]) sortKeys(keys []K, sortBy string, sortOrder cache_dto.SortOrder) []K {
 	if sortBy == "" || len(keys) == 0 {
 		return keys
@@ -596,8 +584,8 @@ func (a *OtterAdapter[K, V]) sortKeys(keys []K, sortBy string, sortOrder cache_d
 	return a.sortKeysByField(keys, sortBy, ascending)
 }
 
-// sortKeysByField sorts keys by extracting field values and comparing.
-// Uses a sync.Pool to reduce allocations.
+// sortKeysByField sorts keys by extracting field values and comparing. Uses a sync.Pool
+// to reduce allocations.
 //
 // Takes keys ([]K) which contains the keys to sort.
 // Takes fieldName (string) which specifies the field to extract for comparison.
@@ -647,28 +635,26 @@ func (a *OtterAdapter[K, V]) sortKeysByField(keys []K, fieldName string, ascendi
 	return result
 }
 
-// buildSearchResult creates a SearchResult with pagination
-// applied and flat scoring (1.0 for all hits).
+// buildSearchResult creates a SearchResult with pagination applied and flat scoring (1.0
+// for all hits).
 //
-// Takes keys ([]K) which contains the matched keys in display
-// order.
+// Takes keys ([]K) which contains the matched keys in display order.
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
 //
-// Returns cache_dto.SearchResult[K, V] which contains the
-// paginated results with flat scores.
+// Returns cache_dto.SearchResult[K, V] which contains the paginated results with flat
+// scores.
 // Returns error which is always nil.
 func (a *OtterAdapter[K, V]) buildSearchResult(keys []K, offset, limit int) (cache_dto.SearchResult[K, V], error) {
 	return a.buildSearchResultWithScores(keys, nil, offset, limit)
 }
 
-// buildSearchResultWithScores creates a SearchResult with pagination applied.
-// When scores is non-nil, each hit uses the score from the map; otherwise a
-// flat score of 1.0 is used.
+// buildSearchResultWithScores creates a SearchResult with pagination applied. When scores
+// is non-nil, each hit uses the score from the map; otherwise a flat score of 1.0 is
+// used.
 //
 // Takes keys ([]K) which contains the matched keys in display order.
-// Takes scores (map[K]float64) which maps keys to relevance scores (may be
-// nil).
+// Takes scores (map[K]float64) which maps keys to relevance scores (may be nil).
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
 //
@@ -706,13 +692,13 @@ func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]
 	}, nil
 }
 
-// vectorSearch performs vector similarity search with optional text fusion.
-// When a text query is provided, results are combined using Reciprocal Rank
-// Fusion (RRF) to merge semantic and lexical relevance signals.
+// vectorSearch performs vector similarity search with optional text fusion. When a text
+// query is provided, results are combined using Reciprocal Rank Fusion (RRF) to merge
+// semantic and lexical relevance signals.
 //
 // Takes query (string) which is an optional text query for hybrid search.
-// Takes opts (*cache_dto.SearchOptions) which provides the vector, filters,
-// and pagination parameters.
+// Takes opts (*cache_dto.SearchOptions) which provides the vector, filters, and
+// pagination parameters.
 //
 // Returns SearchResult with items sorted by score (highest first).
 func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOptions) (cache_dto.SearchResult[K, V], error) {
@@ -745,11 +731,10 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 	return a.buildVectorSearchResult(hits, nil, opts.Filters, opts.Offset, opts.Limit)
 }
 
-// vectorQuery performs vector similarity search with filters but no text
-// search.
+// vectorQuery performs vector similarity search with filters but no text search.
 //
-// Takes opts (*cache_dto.QueryOptions) which provides the vector, filters,
-// and pagination parameters.
+// Takes opts (*cache_dto.QueryOptions) which provides the vector, filters, and pagination
+// parameters.
 //
 // Returns SearchResult with items sorted by similarity score (highest first).
 func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dto.SearchResult[K, V], error) {
@@ -775,11 +760,10 @@ func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dt
 	return a.buildVectorSearchResult(hits, nil, opts.Filters, opts.Offset, opts.Limit)
 }
 
-// resolveVectorField returns the explicit vector field name if provided, or
-// defaults to the first vector field in the schema.
+// resolveVectorField returns the explicit vector field name if provided, or defaults to
+// the first vector field in the schema.
 //
-// Takes explicit (string) which is the caller-specified field name (may be
-// empty).
+// Takes explicit (string) which is the caller-specified field name (may be empty).
 //
 // Returns string which is the resolved vector field name.
 func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
@@ -793,13 +777,13 @@ func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
 	return ""
 }
 
-// buildVectorSearchResult constructs a SearchResult from vector hits, applying
-// optional text key intersection, metadata filters, and pagination.
+// buildVectorSearchResult constructs a SearchResult from vector hits, applying optional
+// text key intersection, metadata filters, and pagination.
 //
-// Takes hits ([]VectorHit[K]) which are the vector search results sorted by
-// score descending.
-// Takes textKeys (map[K]struct{}) which limits results to text-matched keys.
-// Nil means no text filtering.
+// Takes hits ([]VectorHit[K]) which are the vector search results sorted by score
+// descending.
+// Takes textKeys (map[K]struct{}) which limits results to text-matched keys. Nil means no
+// text filtering.
 // Takes filters ([]cache_dto.Filter) which are additional metadata filters.
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
@@ -847,8 +831,8 @@ func (a *OtterAdapter[K, V]) buildVectorSearchResult(
 	}, nil
 }
 
-// applyPagination applies offset and limit to a slice, returning the paginated
-// slice and the resolved limit.
+// applyPagination applies offset and limit to a slice, returning the paginated slice and
+// the resolved limit.
 //
 // Takes items ([]T) which is the slice to paginate.
 // Takes offset (int) which specifies the number of items to skip.

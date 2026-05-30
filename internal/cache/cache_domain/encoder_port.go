@@ -18,7 +18,9 @@
 
 package cache_domain
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // EncoderPort defines the contract for encoding and decoding a specific type V.
 // Implementations handle conversion between Go values and byte representations.
@@ -42,12 +44,11 @@ type EncoderPort[V any] interface {
 
 // AnyEncoder provides a type-agnostic interface for encoding.
 //
-// All typed encoders can be converted to AnyEncoder, so different encoders can
-// be stored together in a registry. Links compile-time type safety with
-// runtime flexibility.
+// All typed encoders can be converted to AnyEncoder, so different encoders can be stored
+// together in a registry. Links compile-time type safety with runtime flexibility.
 type AnyEncoder interface {
-	// MarshalAny takes a value of any type, checks if it matches the
-	// encoder's type, and marshals it.
+	// MarshalAny takes a value of any type, checks if it matches the encoder's type, and
+	// marshals it.
 	//
 	// Takes value (any) which is the value to marshal.
 	//
@@ -55,12 +56,12 @@ type AnyEncoder interface {
 	// Returns error when the type is incompatible or marshalling fails.
 	MarshalAny(value any) ([]byte, error)
 
-	// UnmarshalAny takes a byte slice and unmarshals it into a zero value of the
-	// encoder's target type. The caller must type-assert the returned value.
+	// UnmarshalAny takes a byte slice and unmarshals it into a zero value of the encoder's
+	// target type. The caller must type-assert the returned value.
 	UnmarshalAny(data []byte) (any, error)
 
-	// HandlesType returns the reflect.Type that this encoder handles.
-	// This lets the registry match values to the correct encoder at runtime.
+	// HandlesType returns the reflect.Type that this encoder handles. This lets the registry
+	// match values to the correct encoder at runtime.
 	//
 	// Returns reflect.Type which is the type this encoder can process.
 	HandlesType() reflect.Type

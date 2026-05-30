@@ -18,8 +18,8 @@
 
 package lifecycle_domain
 
-// This file contains external component and asset directory resolution,
-// walking, and seeding for the lifecycle service.
+// This file contains external component and asset directory resolution, walking, and
+// seeding for the lifecycle service.
 
 import (
 	"context"
@@ -32,12 +32,11 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// resolveExternalComponentDirs resolves unique ModulePath values from external
-// component definitions to absolute filesystem directories using the module
-// resolver.
+// resolveExternalComponentDirs resolves unique ModulePath values from external component
+// definitions to absolute filesystem directories using the module resolver.
 //
-// Returns map[string]string which maps absolute directory paths to their
-// original module paths (needed for artefact ID computation during seeding).
+// Returns map[string]string which maps absolute directory paths to their original module
+// paths (needed for artefact ID computation during seeding).
 func (ls *lifecycleService) resolveExternalComponentDirs(ctx context.Context) map[string]string {
 	if ls.resolver == nil || len(ls.externalComponents) == 0 {
 		return nil
@@ -85,9 +84,8 @@ func (ls *lifecycleService) resolveExternalComponentDirs(ctx context.Context) ma
 	return result
 }
 
-// seedExternalComponentFiles resolves external component module directories
-// and seeds their .pkc files into the registry blob store using module-path-
-// based artefact IDs.
+// seedExternalComponentFiles resolves external component module directories and seeds
+// their .pkc files into the registry blob store using module-path- based artefact IDs.
 //
 // Takes limiter (chan struct{}) which controls concurrency.
 func (ls *lifecycleService) seedExternalComponentFiles(ctx context.Context, limiter chan struct{}) {
@@ -108,8 +106,8 @@ func (ls *lifecycleService) seedExternalComponentFiles(ctx context.Context, limi
 	}
 }
 
-// walkAndSeedExternalDir walks a single external directory and seeds .pkc
-// files into the registry with artefact IDs prefixed by the module path.
+// walkAndSeedExternalDir walks a single external directory and seeds .pkc files into the
+// registry with artefact IDs prefixed by the module path.
 //
 // Takes absDir (string) which is the absolute path to walk.
 // Takes modulePath (string) which provides the artefact ID prefix.
@@ -156,11 +154,11 @@ func (ls *lifecycleService) walkAndSeedExternalDir(
 	}
 }
 
-// resolveExternalAssetDirs collects unique (moduleBase, assetPath) pairs from
-// external component definitions and resolves them to absolute directories.
+// resolveExternalAssetDirs collects unique (moduleBase, assetPath) pairs from external
+// component definitions and resolves them to absolute directories.
 //
-// Returns map[string]string which maps absolute asset directory paths to their
-// artefact ID prefixes (e.g. "piko.sh/piko/lib/icons").
+// Returns map[string]string which maps absolute asset directory paths to their artefact
+// ID prefixes (e.g. "piko.sh/piko/lib/icons").
 func (ls *lifecycleService) resolveExternalAssetDirs(ctx context.Context) map[string]string {
 	if ls.resolver == nil || len(ls.externalComponents) == 0 {
 		return nil
@@ -198,8 +196,8 @@ type externalAssetPair struct {
 	assetPath string
 }
 
-// collectExternalAssetPairs deduplicates (moduleBase, assetPath) pairs from
-// external component definitions by resolving each module boundary.
+// collectExternalAssetPairs deduplicates (moduleBase, assetPath) pairs from external
+// component definitions by resolving each module boundary.
 //
 // Takes ctx (context.Context) which carries tracing and cancellation.
 //
@@ -229,12 +227,12 @@ func (ls *lifecycleService) collectExternalAssetPairs(ctx context.Context) []ext
 	return pairs
 }
 
-// walkAndSeedExternalAssetDir walks a single external asset directory and seeds
-// all files into the registry with artefact IDs prefixed by artefactPrefix.
+// walkAndSeedExternalAssetDir walks a single external asset directory and seeds all files
+// into the registry with artefact IDs prefixed by artefactPrefix.
 //
 // Takes absDir (string) which is the absolute path to walk.
-// Takes artefactPrefix (string) which provides the artefact ID prefix
-// (e.g. "piko.sh/piko/lib/icons").
+// Takes artefactPrefix (string) which provides the artefact ID prefix (e.g.
+// "piko.sh/piko/lib/icons").
 // Takes limiter (chan struct{}) which controls concurrency.
 func (ls *lifecycleService) walkAndSeedExternalAssetDir(
 	ctx context.Context,
@@ -275,9 +273,9 @@ func (ls *lifecycleService) walkAndSeedExternalAssetDir(
 	}
 }
 
-// seedArtefactAsync opens, reads, and upserts a single file into the registry in a
-// new goroutine. The caller must have already incremented wg and sent to limiter
-// before invoking it.
+// seedArtefactAsync opens, reads, and upserts a single file into the registry in a new
+// goroutine. The caller must have already incremented wg and sent to limiter before
+// invoking it.
 //
 // Takes ctx (context.Context) which is the operation context.
 // Takes wg (*sync.WaitGroup) which tracks the goroutine's completion.
@@ -285,8 +283,8 @@ func (ls *lifecycleService) walkAndSeedExternalAssetDir(
 // Takes filePath (string) which is the absolute file path to read.
 // Takes artefactID (string) which is the artefact identifier.
 // Takes sourcePath (string) which is the source-relative path.
-// Takes kind (string) which describes the artefact type for log
-// messages (e.g. "component" or "asset").
+// Takes kind (string) which describes the artefact type for log messages (e.g.
+// "component" or "asset").
 func (ls *lifecycleService) seedArtefactAsync(
 	ctx context.Context,
 	wg *sync.WaitGroup,

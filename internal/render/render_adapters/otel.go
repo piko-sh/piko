@@ -55,7 +55,8 @@ var (
 	// svgLoaderErrorCount tracks the number of SVG loader errors.
 	svgLoaderErrorCount metric.Int64Counter
 
-	// svgLoaderItemFailureCount tracks the number of individual SVG items that failed to load.
+	// svgLoaderItemFailureCount tracks the number of individual SVG items that failed to
+	// load.
 	svgLoaderItemFailureCount metric.Int64Counter
 
 	// componentLoadDuration records the duration of component load operations.

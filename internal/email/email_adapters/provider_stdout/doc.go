@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_stdout implements an email provider that writes
-// emails to stdout as human-readable blocks for development use.
+// Package provider_stdout implements an email provider that writes emails to stdout as
+// human-readable blocks for development use.
 //
-// It is the default development provider, useful for verifying
-// integration wiring without external email infrastructure. Each
-// email is formatted with metadata, body content, and attachment
-// summaries.
+// It is the default development provider, useful for verifying integration wiring without
+// external email infrastructure. Each email is formatted with metadata, body content, and
+// attachment summaries.
 //
 // All methods are safe for concurrent use.
 package provider_stdout

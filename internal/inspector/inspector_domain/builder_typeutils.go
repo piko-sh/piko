@@ -19,8 +19,8 @@
 package inspector_domain
 
 // This file provides a collection of pure helper functions for deeply inspecting,
-// transforming, and encoding `go/types.Type` objects, central to the type
-// encoding process.
+// transforming, and encoding `go/types.Type` objects, central to the type encoding
+// process.
 
 import (
 	"bytes"
@@ -30,15 +30,15 @@ import (
 )
 
 var (
-	// internedBasicTypes holds pre-computed string representations of all
-	// basic Go types (bool, int, string, etc.). These are returned directly
-	// from encodeTypeName without touching the buffer pool.
+	// internedBasicTypes holds pre-computed string representations of all basic Go types
+	// (bool, int, string, etc.). These are returned directly from encodeTypeName without
+	// touching the buffer pool.
 	internedBasicTypes [types.UntypedNil + 1]string
 
-	// byteBufferPool is a pool of bytes.Buffer instances to reduce allocations
-	// in hot paths like encodeTypeName. Unlike strings.Builder, bytes.Buffer
-	// keeps its capacity across Reset() calls, so pooled buffers stabilise at
-	// their high-water mark and stop allocating.
+	// byteBufferPool is a pool of bytes.Buffer instances to reduce allocations in hot paths
+	// like encodeTypeName. Unlike strings.Builder, bytes.Buffer keeps its capacity across
+	// Reset() calls, so pooled buffers stabilise at their high-water mark and stop
+	// allocating.
 	byteBufferPool = sync.Pool{
 		New: func() any {
 			return &bytes.Buffer{}
@@ -57,8 +57,7 @@ var (
 	// BaseNamedPackagePathForTest exposes the base named package path for testing.
 	BaseNamedPackagePathForTest = baseNamedPackagePath
 
-	// ResolveAliasesWithinPackageForTest exposes resolveAliasesWithinPackage for
-	// testing.
+	// ResolveAliasesWithinPackageForTest exposes resolveAliasesWithinPackage for testing.
 	ResolveAliasesWithinPackageForTest = resolveAliasesWithinPackage
 )
 
@@ -76,8 +75,8 @@ type typeTransformFunc func(types.Type) types.Type
 // Takes tparams (*types.TypeParamList) which holds the type parameters.
 // Takes targs (*types.TypeList) which holds the matching type arguments.
 //
-// Returns map[*types.TypeParam]types.Type which pairs each type parameter with
-// its type argument.
+// Returns map[*types.TypeParam]types.Type which pairs each type parameter with its type
+// argument.
 func makeSubstMap(tparams *types.TypeParamList, targs *types.TypeList) map[*types.TypeParam]types.Type {
 	smap := make(map[*types.TypeParam]types.Type)
 	for i := range tparams.Len() {
@@ -86,15 +85,15 @@ func makeSubstMap(tparams *types.TypeParamList, targs *types.TypeList) map[*type
 	return smap
 }
 
-// subst replaces type parameters in a type with their concrete type arguments.
-// It is the main dispatcher for the substitution logic.
+// subst replaces type parameters in a type with their concrete type arguments. It is the
+// main dispatcher for the substitution logic.
 //
 // Takes typ (types.Type) which is the type to transform.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is the type with all replacements applied, or the
-// original type if no replacements were needed.
+// Returns types.Type which is the type with all replacements applied, or the original
+// type if no replacements were needed.
 func subst(typ types.Type, smap map[*types.TypeParam]types.Type) types.Type {
 	if tp, ok := typ.(*types.TypeParam); ok {
 		if replacement, ok := smap[tp]; ok {
@@ -128,11 +127,11 @@ func subst(typ types.Type, smap map[*types.TypeParam]types.Type) types.Type {
 // substPointer handles type substitution for pointer types.
 //
 // Takes p (*types.Pointer) which is the pointer type to process.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is a new pointer with the substituted element type,
-// or the original pointer if no substitution was needed.
+// Returns types.Type which is a new pointer with the substituted element type, or the
+// original pointer if no substitution was needed.
 func substPointer(p *types.Pointer, smap map[*types.TypeParam]types.Type) types.Type {
 	element := subst(p.Elem(), smap)
 	if element != p.Elem() {
@@ -144,11 +143,11 @@ func substPointer(p *types.Pointer, smap map[*types.TypeParam]types.Type) types.
 // substSlice replaces type parameters with concrete types in a slice type.
 //
 // Takes s (*types.Slice) which is the slice type to process.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is a new slice with the replaced element type, or
-// the original slice if no replacement was needed.
+// Returns types.Type which is a new slice with the replaced element type, or the original
+// slice if no replacement was needed.
 func substSlice(s *types.Slice, smap map[*types.TypeParam]types.Type) types.Type {
 	element := subst(s.Elem(), smap)
 	if element != s.Elem() {
@@ -160,11 +159,11 @@ func substSlice(s *types.Slice, smap map[*types.TypeParam]types.Type) types.Type
 // substArray performs type parameter substitution for array types.
 //
 // Takes a (*types.Array) which is the array type to process.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is a new array with the substituted element type,
-// or the original array if no substitution occurred.
+// Returns types.Type which is a new array with the substituted element type, or the
+// original array if no substitution occurred.
 func substArray(a *types.Array, smap map[*types.TypeParam]types.Type) types.Type {
 	element := subst(a.Elem(), smap)
 	if element != a.Elem() {
@@ -176,11 +175,11 @@ func substArray(a *types.Array, smap map[*types.TypeParam]types.Type) types.Type
 // substMap replaces type parameters in a map type with their actual types.
 //
 // Takes m (*types.Map) which is the map type to process.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their replacement types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// replacement types.
 //
-// Returns types.Type which is a new map with replaced key and element types,
-// or the original map if no changes were needed.
+// Returns types.Type which is a new map with replaced key and element types, or the
+// original map if no changes were needed.
 func substMap(m *types.Map, smap map[*types.TypeParam]types.Type) types.Type {
 	key := subst(m.Key(), smap)
 	element := subst(m.Elem(), smap)
@@ -193,11 +192,11 @@ func substMap(m *types.Map, smap map[*types.TypeParam]types.Type) types.Type {
 // substChan handles type parameter substitution for channel types.
 //
 // Takes c (*types.Chan) which is the channel type to process.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is a new channel with the substituted element type,
-// or the original channel if no substitution was needed.
+// Returns types.Type which is a new channel with the substituted element type, or the
+// original channel if no substitution was needed.
 func substChan(c *types.Chan, smap map[*types.TypeParam]types.Type) types.Type {
 	element := subst(c.Elem(), smap)
 	if element != c.Elem() {
@@ -206,16 +205,15 @@ func substChan(c *types.Chan, smap map[*types.TypeParam]types.Type) types.Type {
 	return c
 }
 
-// substNamed handles type parameter substitution for named types.
-// It supports generic definitions, generic instantiations, and regular
-// non-generic types.
+// substNamed handles type parameter substitution for named types. It supports generic
+// definitions, generic instantiations, and regular non-generic types.
 //
 // Takes named (*types.Named) which is the named type to substitute.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their replacement types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// replacement types.
 //
-// Returns types.Type which is the substituted type, or the original if no
-// changes were needed.
+// Returns types.Type which is the substituted type, or the original if no changes were
+// needed.
 func substNamed(named *types.Named, smap map[*types.TypeParam]types.Type) types.Type {
 	if named.TypeParams().Len() == 0 && named.TypeArgs().Len() == 0 {
 		return named
@@ -261,11 +259,11 @@ func substNamed(named *types.Named, smap map[*types.TypeParam]types.Type) types.
 // substSignature applies type substitution to a function signature.
 //
 // Takes sig (*types.Signature) which is the function signature to update.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns types.Type which is the original signature if nothing changed, or a
-// new signature with the substituted parameter and result types.
+// Returns types.Type which is the original signature if nothing changed, or a new
+// signature with the substituted parameter and result types.
 func substSignature(sig *types.Signature, smap map[*types.TypeParam]types.Type) types.Type {
 	newParams, paramsChanged := substTuple(sig.Params(), smap)
 	newResults, resultsChanged := substTuple(sig.Results(), smap)
@@ -277,15 +275,15 @@ func substSignature(sig *types.Signature, smap map[*types.TypeParam]types.Type) 
 	return types.NewSignatureType(sig.Recv(), nil, nil, newParams, newResults, sig.Variadic())
 }
 
-// transformTuple applies a type transformation function to all variables in a
-// tuple. This is a shared helper used by both substTuple and cleanAnnotatedTuple.
+// transformTuple applies a type transformation function to all variables in a tuple. This
+// is a shared helper used by both substTuple and cleanAnnotatedTuple.
 //
 // Takes tuple (*types.Tuple) which is the tuple of variables to transform.
-// Takes transform (typeTransformFunc) which is the function to apply to each
-// variable's type.
+// Takes transform (typeTransformFunc) which is the function to apply to each variable's
+// type.
 //
-// Returns *types.Tuple which is the original tuple if unchanged, or a new tuple
-// with transformed types.
+// Returns *types.Tuple which is the original tuple if unchanged, or a new tuple with
+// transformed types.
 // Returns bool which indicates whether any type was changed.
 func transformTuple(tuple *types.Tuple, transform typeTransformFunc) (*types.Tuple, bool) {
 	if tuple == nil || tuple.Len() == 0 {
@@ -313,11 +311,11 @@ func transformTuple(tuple *types.Tuple, transform typeTransformFunc) (*types.Tup
 // substTuple replaces type parameters with their mapped types in a tuple.
 //
 // Takes tuple (*types.Tuple) which is the tuple to transform.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 //
-// Returns *types.Tuple which is the new tuple if changes were made, or the
-// original tuple if unchanged.
+// Returns *types.Tuple which is the new tuple if changes were made, or the original tuple
+// if unchanged.
 // Returns bool which is true when any replacement was made.
 func substTuple(tuple *types.Tuple, smap map[*types.TypeParam]types.Type) (*types.Tuple, bool) {
 	return transformTuple(tuple, func(t types.Type) types.Type {
@@ -327,8 +325,8 @@ func substTuple(tuple *types.Tuple, smap map[*types.TypeParam]types.Type) (*type
 
 // resolveType returns the type unchanged, keeping named aliases intact.
 //
-// TypeString output therefore shows the declared type name rather than the
-// underlying type.
+// TypeString output therefore shows the declared type name rather than the underlying
+// type.
 //
 // Takes typ (types.Type) which is the type to process.
 //
@@ -337,13 +335,13 @@ func resolveType(typ types.Type) types.Type {
 	return typ
 }
 
-// resolveUnderlyingType resolves a type to its basic underlying type by
-// following type aliases and named types.
+// resolveUnderlyingType resolves a type to its basic underlying type by following type
+// aliases and named types.
 //
 // Takes typ (types.Type) which is the type to resolve.
 //
-// Returns types.Type which is the resolved underlying type, or the original
-// type if the recursion limit is reached.
+// Returns types.Type which is the resolved underlying type, or the original type if the
+// recursion limit is reached.
 func resolveUnderlyingType(typ types.Type) types.Type {
 	current := typ
 	for range resolveTypeRecursionGuard {
@@ -364,10 +362,10 @@ func resolveUnderlyingType(typ types.Type) types.Type {
 	return current
 }
 
-// resolveAliasesDeep returns a copy of typ where user-defined types.Alias
-// encountered are replaced by their RHS recursively. It preserves predeclared
-// aliases like 'any' and 'comparable', named types, and the overall shape
-// (pointers, maps, arrays, chans, slices).
+// resolveAliasesDeep returns a copy of typ where user-defined types.Alias encountered are
+// replaced by their RHS recursively. It preserves predeclared aliases like 'any' and
+// 'comparable', named types, and the overall shape (pointers, maps, arrays, chans,
+// slices).
 //
 // Takes typ (types.Type) which is the type to resolve aliases within.
 //
@@ -394,14 +392,14 @@ func resolveAliasesDeep(typ types.Type) types.Type {
 	}
 }
 
-// resolveAliasesWithinPackage unwraps aliases only when the alias is declared
-// in the same package as ownerPackagePath; otherwise, it preserves the alias to
-// avoid losing identity of external types. Recursively processes composite
-// types such as pointers, slices, arrays, maps, and channels.
+// resolveAliasesWithinPackage unwraps aliases only when the alias is declared in the same
+// package as ownerPackagePath; otherwise, it preserves the alias to avoid losing identity
+// of external types. Recursively processes composite types such as pointers, slices,
+// arrays, maps, and channels.
 //
 // Takes typ (types.Type) which is the type to process for alias resolution.
-// Takes ownerPackagePath (string) which identifies the package whose aliases
-// should be unwrapped.
+// Takes ownerPackagePath (string) which identifies the package whose aliases should be
+// unwrapped.
 //
 // Returns types.Type which is the type with same-package aliases resolved.
 func resolveAliasesWithinPackage(typ types.Type, ownerPackagePath string) types.Type {
@@ -433,8 +431,8 @@ func resolveAliasesWithinPackage(typ types.Type, ownerPackagePath string) types.
 	}
 }
 
-// encodeTypeName converts a Go type into its string form.
-// Uses a pooled builder to reduce memory allocations.
+// encodeTypeName converts a Go type into its string form. Uses a pooled builder to reduce
+// memory allocations.
 //
 // Takes typ (types.Type) which is the type to convert.
 // Takes qualifier (types.Qualifier) which controls how package names appear.
@@ -459,8 +457,8 @@ func encodeTypeName(typ types.Type, qualifier types.Qualifier) string {
 	return buf.String()
 }
 
-// encodeTypeNameTo writes the string form of a Go type to a builder. This is
-// the main function for turning types into strings without extra memory use.
+// encodeTypeNameTo writes the string form of a Go type to a builder. This is the main
+// function for turning types into strings without extra memory use.
 //
 // Takes builder (*strings.Builder) which receives the type string.
 // Takes typ (types.Type) which is the Go type to write.
@@ -529,8 +527,8 @@ func encodeSignatureTypeTo(builder *bytes.Buffer, sig *types.Signature, qualifie
 	}
 }
 
-// encodeSignatureParamsTo writes the parameter list of a function signature
-// to the string builder.
+// encodeSignatureParamsTo writes the parameter list of a function signature to the string
+// builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes sig (*types.Signature) which provides the function signature.
@@ -568,8 +566,8 @@ func encodeSignatureParamsTo(builder *bytes.Buffer, sig *types.Signature, qualif
 	}
 }
 
-// encodeSignatureResultsTo writes the return types from a function signature
-// to the builder.
+// encodeSignatureResultsTo writes the return types from a function signature to the
+// builder.
 //
 // Takes builder (*strings.Builder) which receives the output.
 // Takes sig (*types.Signature) which provides the function signature to read.
@@ -643,10 +641,10 @@ func encodeChanTypeTo(builder *bytes.Buffer, chanType *types.Chan, qualifier typ
 
 // encodeAliasTypeTo writes an alias type to the string builder.
 //
-// For built-in aliases like 'any' and 'comparable', it writes the alias name
-// directly. For user-defined aliases, it writes the qualified name with the
-// package prefix (e.g., "pkg.Alias"). For generic aliases with type arguments,
-// it includes them in brackets (e.g., "pkg.Alias[T]").
+// For built-in aliases like 'any' and 'comparable', it writes the alias name directly.
+// For user-defined aliases, it writes the qualified name with the package prefix (e.g.,
+// "pkg.Alias"). For generic aliases with type arguments, it includes them in brackets
+// (e.g., "pkg.Alias[T]").
 //
 // Takes builder (*strings.Builder) which receives the type string output.
 // Takes alias (*types.Alias) which is the alias type to write.
@@ -795,8 +793,8 @@ func encodeNamedTypeTo(builder *bytes.Buffer, named *types.Named, qualifier type
 	}
 }
 
-// encodeInstantiatedNamedTypeTo writes a generic type with its type arguments
-// to the builder. For example, List[int] or Map[string, bool].
+// encodeInstantiatedNamedTypeTo writes a generic type with its type arguments to the
+// builder. For example, List[int] or Map[string, bool].
 //
 // Takes builder (*strings.Builder) which receives the type string output.
 // Takes t (*types.Named) which is the generic type to write.
@@ -852,8 +850,8 @@ func encodeGenericNamedTypeTo(builder *bytes.Buffer, t *types.Named, qualifier t
 	_ = builder.WriteByte(']')
 }
 
-// baseNamedPackagePath finds the import path of the main named type within a
-// composite type.
+// baseNamedPackagePath finds the import path of the main named type within a composite
+// type.
 //
 // Takes typ (types.Type) which is the type to examine.
 //
@@ -863,9 +861,9 @@ func baseNamedPackagePath(typ types.Type) string {
 	return path
 }
 
-// findBasePath is the recursive worker that finds the package path of a base
-// type. It dispatches to helper functions based on the type kind, managing the
-// recursion depth and visited set to prevent infinite loops.
+// findBasePath is the recursive worker that finds the package path of a base type. It
+// dispatches to helper functions based on the type kind, managing the recursion depth and
+// visited set to prevent infinite loops.
 //
 // Takes typ (types.Type) which is the type to examine.
 // Takes seen (map[types.Type]bool) which tracks visited types to prevent cycles.
@@ -958,8 +956,7 @@ func findBasePathInChan(t *types.Chan, seen map[types.Type]bool, depth int) stri
 // It checks the map's value type first, then falls back to the key type.
 //
 // Takes t (*types.Map) which is the map type to search.
-// Takes seen (map[types.Type]bool) which tracks visited types to prevent
-// cycles.
+// Takes seen (map[types.Type]bool) which tracks visited types to prevent cycles.
 // Takes depth (int) which is the current recursion depth.
 //
 // Returns string which is the import path if found, or empty if not.
@@ -972,9 +969,9 @@ func findBasePathInMap(t *types.Map, seen map[types.Type]bool, depth int) string
 
 // findBasePathInAlias gets the package path from a type alias.
 //
-// It looks at the type that the alias points to and finds the deepest named
-// type's package path. If that type has no package (such as basic types like
-// int or string), it uses the alias's own package path instead.
+// It looks at the type that the alias points to and finds the deepest named type's
+// package path. If that type has no package (such as basic types like int or string), it
+// uses the alias's own package path instead.
 //
 // Takes t (*types.Alias) which is the type alias to check.
 // Takes seen (map[types.Type]bool) which tracks visited types to stop loops.
@@ -1000,16 +997,15 @@ func findBasePathInAlias(t *types.Alias, seen map[types.Type]bool, depth int) st
 
 // findBasePathInNamed extracts the base package path from a named type.
 //
-// It first checks type arguments for generic types, then falls back to the
-// type's own package path.
+// It first checks type arguments for generic types, then falls back to the type's own
+// package path.
 //
 // Takes t (*types.Named) which is the named type to examine.
-// Takes seen (map[types.Type]bool) which tracks visited types to prevent
-// cycles.
+// Takes seen (map[types.Type]bool) which tracks visited types to prevent cycles.
 // Takes depth (int) which limits how deep the search goes.
 //
-// Returns string which is the package path, or empty if the type is built-in
-// or no path is found.
+// Returns string which is the package path, or empty if the type is built-in or no path
+// is found.
 func findBasePathInNamed(t *types.Named, seen map[types.Type]bool, depth int) string {
 	if t.TypeArgs() != nil && t.TypeArgs().Len() > 0 {
 		for argType := range t.TypeArgs().Types() {
@@ -1038,8 +1034,8 @@ func findBasePathInNamed(t *types.Named, seen map[types.Type]bool, depth int) st
 	return ""
 }
 
-// findBasePathInSignature searches for a base import path within a function
-// signature by checking its return values and parameters.
+// findBasePathInSignature searches for a base import path within a function signature by
+// checking its return values and parameters.
 //
 // Takes t (*types.Signature) which is the function signature to search.
 // Takes seen (map[types.Type]bool) which tracks visited types to prevent loops.
@@ -1075,16 +1071,16 @@ func isBuiltin(t *types.Named) bool {
 	return t.Obj().Pkg() == nil && t.Obj().Name() == "error"
 }
 
-// extractPackageFromSignature extracts the package path from the first named
-// type found in a function signature's parameters or return values.
+// extractPackageFromSignature extracts the package path from the first named type found
+// in a function signature's parameters or return values.
 //
-// Unlike declaringPackagePath, does not recurse into type arguments of generics,
-// as it is intended to find the package where the container type itself is declared.
+// Unlike declaringPackagePath, does not recurse into type arguments of generics, as it is
+// intended to find the package where the container type itself is declared.
 //
 // Takes sig (*types.Signature) which is the function signature to examine.
 //
-// Returns string which is the package path of the first named type found, or
-// an empty string if no named type is present.
+// Returns string which is the package path of the first named type found, or an empty
+// string if no named type is present.
 func extractPackageFromSignature(sig *types.Signature) string {
 	if sig.Params() != nil {
 		for v := range sig.Params().Variables() {
@@ -1109,8 +1105,8 @@ func extractPackageFromSignature(sig *types.Signature) string {
 //
 // Takes typ (types.Type) which is the type to find the package for.
 //
-// Returns string which is the package path, or an empty string if the type
-// has no linked package (such as built-in types or maps).
+// Returns string which is the package path, or an empty string if the type has no linked
+// package (such as built-in types or maps).
 func declaringPackagePath(typ types.Type) string {
 	current := typ
 	for range resolveTypeRecursionGuard {

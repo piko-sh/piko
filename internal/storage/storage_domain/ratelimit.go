@@ -28,9 +28,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// ProviderRateLimiter wraps rate limiting functionality for storage providers.
-// It uses the centralised token bucket algorithm to control the rate of
-// operations.
+// ProviderRateLimiter wraps rate limiting functionality for storage providers. It uses
+// the centralised token bucket algorithm to control the rate of operations.
 type ProviderRateLimiter struct {
 	// limiter is the centralised rate limiter; nil disables rate limiting.
 	limiter *ratelimiter_domain.Limiter
@@ -39,23 +38,23 @@ type ProviderRateLimiter struct {
 	config ratelimiter_dto.TokenBucketConfig
 }
 
-// bucketKey is the fixed key used for the single bucket within each
-// provider's InMemoryTokenBucketStore instance.
-const bucketKey = "default"
+const (
+	// bucketKey is the fixed key used for the single bucket within each provider's
+	// InMemoryTokenBucketStore instance.
+	bucketKey = "default"
+)
 
-// ProviderRateLimitConfig holds rate limiting configuration for a storage
-// provider.
+// ProviderRateLimitConfig holds rate limiting configuration for a storage provider.
 type ProviderRateLimitConfig struct {
-	// Clock provides time operations for testing determinism; nil uses
-	// RealClock().
+	// Clock provides time operations for testing determinism; nil uses RealClock().
 	Clock clock.Clock
 
-	// CallsPerSecond is the maximum operations per second.
-	// A value of 0 or less disables rate limiting.
+	// CallsPerSecond is the maximum operations per second. A value of 0 or less disables
+	// rate limiting.
 	CallsPerSecond float64
 
-	// Burst is the maximum number of calls allowed in a short burst, letting
-	// brief spikes go above the rate limit. If 0, defaults to CallsPerSecond.
+	// Burst is the maximum number of calls allowed in a short burst, letting brief spikes go
+	// above the rate limit. If 0, defaults to CallsPerSecond.
 	Burst int
 }
 
@@ -63,11 +62,11 @@ type ProviderRateLimitConfig struct {
 //
 // When config has CallsPerSecond <= 0, returns nil (no rate limiting).
 //
-// Takes config (ProviderRateLimitConfig) which specifies the rate limit
-// settings including calls per second and burst size.
+// Takes config (ProviderRateLimitConfig) which specifies the rate limit settings
+// including calls per second and burst size.
 //
-// Returns *ProviderRateLimiter which is the configured limiter, or nil if
-// rate limiting is disabled.
+// Returns *ProviderRateLimiter which is the configured limiter, or nil if rate limiting
+// is disabled.
 func NewProviderRateLimiter(config ProviderRateLimitConfig) *ProviderRateLimiter {
 	if config.CallsPerSecond <= 0 {
 		return nil
@@ -119,8 +118,7 @@ func (r *ProviderRateLimiter) Wait(ctx context.Context) error {
 
 // Allow checks if an operation is currently allowed without blocking.
 //
-// Returns bool which is true if allowed, false if the rate limit would be
-// exceeded.
+// Returns bool which is true if allowed, false if the rate limit would be exceeded.
 func (r *ProviderRateLimiter) Allow() bool {
 	if r == nil || r.limiter == nil {
 		return true
@@ -140,8 +138,7 @@ type ProviderOptions struct {
 
 // WithRateLimit sets the rate limiting configuration for a provider.
 //
-// Takes callsPerSecond (float64) which specifies the maximum operations per
-// second.
+// Takes callsPerSecond (float64) which specifies the maximum operations per second.
 // Takes burst (int) which specifies the maximum burst size allowed.
 //
 // Returns ProviderOption which configures rate limiting on a provider.
@@ -168,13 +165,11 @@ func WithUnlimitedRate() ProviderOption {
 	}
 }
 
-// ApplyProviderOptions applies functional options to create a rate limiter.
-// This is used by provider constructors to initialise rate limiting.
+// ApplyProviderOptions applies functional options to create a rate limiter. This is used
+// by provider constructors to initialise rate limiting.
 //
-// Takes defaults (ProviderRateLimitConfig) which specifies the base rate limit
-// settings.
-// Takes opts (...ProviderOption) which provides optional overrides to the
-// defaults.
+// Takes defaults (ProviderRateLimitConfig) which specifies the base rate limit settings.
+// Takes opts (...ProviderOption) which provides optional overrides to the defaults.
 //
 // Returns *ProviderRateLimiter which is configured with the merged options.
 func ApplyProviderOptions(defaults ProviderRateLimitConfig, opts ...ProviderOption) *ProviderRateLimiter {

@@ -31,8 +31,8 @@ import (
 
 // BuildPanel surfaces the server's build metadata and Go runtime config.
 //
-// It is the TUI counterpart of `piko info build` and `piko info runtime`,
-// rendered as a read-only key/value list. Implements Panel.
+// It is the TUI counterpart of `piko info build` and `piko info runtime`, rendered as a
+// read-only key/value list. Implements Panel.
 type BuildPanel struct {
 	// lastRefresh records when the panel last received a stats payload.
 	lastRefresh time.Time
@@ -55,7 +55,9 @@ type BuildPanel struct {
 	stateMutex sync.RWMutex
 }
 
-var _ Panel = (*BuildPanel)(nil)
+var (
+	_ Panel = (*BuildPanel)(nil)
+)
 
 // NewBuildPanel constructs a BuildPanel sharing the supplied SystemProvider.
 //
@@ -120,11 +122,10 @@ func (p *BuildPanel) View(width, height int) string {
 	return p.RenderFrame(body)
 }
 
-// DetailView renders the right-pane body, a denser key/value table than
-// the centre summary so users can copy values out of the detail.
+// DetailView renders the right-pane body, a denser key/value table than the centre
+// summary so users can copy values out of the detail.
 //
-// Takes width (int) and height (int) which are the inner detail-pane
-// dimensions.
+// Takes width (int) and height (int) which are the inner detail-pane dimensions.
 //
 // Returns string with the rendered body sized to width x height.
 func (p *BuildPanel) DetailView(width, height int) string {

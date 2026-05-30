@@ -16,20 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package security_domain defines the core security abstractions, services,
-// and policies for the Piko framework.
+// Package security_domain defines the core security abstractions, services, and policies
+// for the Piko framework.
 //
-// It handles CSRF protection using the Double Submit Cookie pattern,
-// request rate limiting, and a fluent Content-Security-Policy builder.
-// Port interfaces define the contracts that adapters must satisfy.
+// It handles CSRF protection using the Double Submit Cookie pattern, request rate
+// limiting, and a fluent Content-Security-Policy builder. Port interfaces define the
+// contracts that adapters must satisfy.
 //
 // # CSRF protection
 //
-// The CSRF implementation uses the Double Submit Cookie pattern where
-// tokens are bound to a browser session cookie rather than
-// timestamp-based expiry. This provides strong protection while
-// allowing framework users to integrate with their own session
-// systems via [CSRFCookieSourceAdapter].
+// The CSRF implementation uses the Double Submit Cookie pattern where tokens are bound to
+// a browser session cookie rather than timestamp-based expiry. This provides strong
+// protection while allowing framework users to integrate with their own session systems
+// via [CSRFCookieSourceAdapter].
 //
 //	service, err := security_domain.NewCSRFTokenService(
 //	    config, binder, cookieSource,
@@ -39,9 +38,8 @@
 //
 // # Content-Security-Policy
 //
-// The [CSPBuilder] provides a fluent API for constructing CSP headers
-// with type-safe [Directive] and [Source] constants. Preset policies
-// are available for common use cases:
+// The [CSPBuilder] provides a fluent API for constructing CSP headers with type-safe
+// [Directive] and [Source] constants. Preset policies are available for common use cases:
 //
 //	policy := security_domain.NewCSPBuilder().
 //	    WithPikoDefaults().
@@ -53,9 +51,8 @@
 //
 // # Thread safety
 //
-// All service methods are safe for concurrent use. The CSRF service
-// uses pooled HMAC instances and builders internally to minimise
-// allocations under high concurrency. [CSPBuilder] instances are not
-// safe for concurrent use; call [CSPBuilder.Clone] or build separate
-// instances per goroutine.
+// All service methods are safe for concurrent use. The CSRF service uses pooled HMAC
+// instances and builders internally to minimise allocations under high concurrency.
+// [CSPBuilder] instances are not safe for concurrent use; call [CSPBuilder.Clone] or
+// build separate instances per goroutine.
 package security_domain

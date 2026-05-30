@@ -27,22 +27,24 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// Row represents a row container in PikoML for the <pml-row> tag.
-// It implements pml_domain.Component to create table structure and handle
-// full-width backgrounds with Outlook VML fallbacks.
+// Row represents a row container in PikoML for the <pml-row> tag. It implements
+// pml_domain.Component to create table structure and handle full-width backgrounds with
+// Outlook VML fallbacks.
 type Row struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*Row)(nil)
+var (
+	_ pml_domain.Component = (*Row)(nil)
+)
 
 const (
 	// bgSizeAuto is the default value for VML background size.
 	bgSizeAuto = "auto"
 )
 
-// NewSection creates a new Row component instance. A Row is the main row
-// container in PikoML for building table structures.
+// NewSection creates a new Row component instance. A Row is the main row container in
+// PikoML for building table structures.
 //
 // Returns *Row which is an empty row container ready for use.
 func NewSection() *Row {
@@ -67,8 +69,8 @@ func (*Row) AllowedParents() []string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute names mapped to their definitions.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute names
+// mapped to their definitions.
 func (*Row) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		CSSBackgroundColor:      NewAttributeDefinition(pml_domain.TypeColor),
@@ -99,8 +101,8 @@ func (*Row) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	}
 }
 
-// DefaultAttributes returns the default attribute values for pml-row.
-// These provide sensible built-in defaults for the row component.
+// DefaultAttributes returns the default attribute values for pml-row. These provide
+// sensible built-in defaults for the row component.
 //
 // Returns map[string]string which contains the default attribute values.
 func (*Row) DefaultAttributes() map[string]string {
@@ -117,8 +119,8 @@ func (*Row) DefaultAttributes() map[string]string {
 
 // GetStyleTargets returns the style targets for this row.
 //
-// Returns []pml_domain.StyleTarget which lists the CSS properties and their
-// target elements that can be styled on a row.
+// Returns []pml_domain.StyleTarget which lists the CSS properties and their target
+// elements that can be styled on a row.
 func (*Row) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: CSSBackgroundColor, Target: TargetContainer},
@@ -136,13 +138,11 @@ func (*Row) GetStyleTargets() []pml_domain.StyleTarget {
 // Transform converts the <pml-row> node into its final HTML table structure.
 //
 // Takes node (*ast_domain.TemplateNode) which is the row node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation state and settings.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation state
+// and settings.
 //
-// Returns *ast_domain.TemplateNode which is the transformed HTML table
-// structure.
-// Returns []*pml_domain.Error which contains any diagnostics from the
-// transformation.
+// Returns *ast_domain.TemplateNode which is the transformed HTML table structure.
+// Returns []*pml_domain.Error which contains any diagnostics from the transformation.
 func (c *Row) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 	isFullWidth, _ := styles.Get(AttrFullWidth)
@@ -189,19 +189,18 @@ func (c *Row) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Transform
 	return rootNode, ctx.Diagnostics()
 }
 
-// renderFullWidth creates the layout for a section where the background
-// spans the full width of the viewport.
+// renderFullWidth creates the layout for a section where the background spans the full
+// width of the viewport.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the styling rules.
 // Takes children ([]*ast_domain.TemplateNode) which contains the row content.
-// Takes ctx (*pml_domain.TransformationContext) which provides layout context
-// with reduced ContainerWidth for column sizing.
-// Takes outerContainerWidth (float64) which is the original parent container
-// width used for the wrapper div max-width and Outlook conditional table,
-// before any padding reduction.
+// Takes ctx (*pml_domain.TransformationContext) which provides layout context with
+// reduced ContainerWidth for column sizing.
+// Takes outerContainerWidth (float64) which is the original parent container width used
+// for the wrapper div max-width and Outlook conditional table, before any padding
+// reduction.
 //
-// Returns *ast_domain.TemplateNode which is the outer table wrapping the
-// full-width row.
+// Returns *ast_domain.TemplateNode which is the outer table wrapping the full-width row.
 func (c *Row) renderFullWidth(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext, outerContainerWidth float64) *ast_domain.TemplateNode {
 	containerWidth := outerContainerWidth
 	direction := getStyleWithDefault(styles, AttrDirection, defaultRowDirection)
@@ -225,16 +224,15 @@ func (c *Row) renderFullWidth(styles *pml_domain.StyleManager, children []*ast_d
 // renderBoxed creates the structure for a standard "boxed" section.
 //
 // Takes styles (*pml_domain.StyleManager) which provides style configuration.
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes
-// to render.
-// Takes ctx (*pml_domain.TransformationContext) which provides the rendering
-// context with reduced ContainerWidth for column sizing.
-// Takes outerContainerWidth (float64) which is the original parent container
-// width used for the wrapper div max-width and Outlook conditional table,
-// before any padding reduction.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes to render.
+// Takes ctx (*pml_domain.TransformationContext) which provides the rendering context with
+// reduced ContainerWidth for column sizing.
+// Takes outerContainerWidth (float64) which is the original parent container width used
+// for the wrapper div max-width and Outlook conditional table, before any padding
+// reduction.
 //
-// Returns *ast_domain.TemplateNode which is a fragment containing the boxed
-// row with Outlook conditional comments.
+// Returns *ast_domain.TemplateNode which is a fragment containing the boxed row with
+// Outlook conditional comments.
 func (c *Row) renderBoxed(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext, outerContainerWidth float64) *ast_domain.TemplateNode {
 	containerWidth := outerContainerWidth
 	direction := getStyleWithDefault(styles, AttrDirection, defaultRowDirection)
@@ -253,18 +251,17 @@ func (c *Row) renderBoxed(styles *pml_domain.StyleManager, children []*ast_domai
 	return NewFragmentNode([]*ast_domain.TemplateNode{outlookTableStart, wrapperDiv, outlookTableEnd})
 }
 
-// renderWrappedChildren iterates through the children, which should be
-// transformed pml-col nodes, and wraps each one in the necessary Outlook
-// conditional td structure. It also wraps the entire column group in an
-// Outlook table and tr structure for proper layout.
+// renderWrappedChildren iterates through the children, which should be transformed
+// pml-col nodes, and wraps each one in the necessary Outlook conditional td structure. It
+// also wraps the entire column group in an Outlook table and tr structure for proper
+// layout.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// wrap.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation context.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to wrap.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation
+// context.
 //
-// Returns []*ast_domain.TemplateNode which contains the wrapped children with
-// Outlook conditional comments.
+// Returns []*ast_domain.TemplateNode which contains the wrapped children with Outlook
+// conditional comments.
 func (*Row) renderWrappedChildren(children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) []*ast_domain.TemplateNode {
 	wrappedChildren := make([]*ast_domain.TemplateNode, 0, len(children)*2+2)
 
@@ -285,23 +282,23 @@ func (*Row) renderWrappedChildren(children []*ast_domain.TemplateNode, ctx *pml_
 	return wrappedChildren
 }
 
-// renderStackedChildren wraps each child section in its own tr and td elements
-// for vertical stacking.
+// renderStackedChildren wraps each child section in its own tr and td elements for
+// vertical stacking.
 //
-// This is the behaviour of pml-container. Each child section gets a
-// full-width tr instead of being side-by-side in one tr.
+// This is the behaviour of pml-container. Each child section gets a full-width tr instead
+// of being side-by-side in one tr.
 //
-// Each child is wrapped in Outlook-conditional tr and td elements, there is
-// no shared tr wrapper (unlike renderWrappedChildren for columns), and
-// children stack vertically instead of horizontally.
+// Each child is wrapped in Outlook-conditional tr and td elements, there is no shared tr
+// wrapper (unlike renderWrappedChildren for columns), and children stack vertically
+// instead of horizontally.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// wrap for vertical stacking.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation context including container width.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to wrap for
+// vertical stacking.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation context
+// including container width.
 //
-// Returns []*ast_domain.TemplateNode which contains the wrapped children
-// ready for vertical stacking.
+// Returns []*ast_domain.TemplateNode which contains the wrapped children ready for
+// vertical stacking.
 func (*Row) renderStackedChildren(children []*ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) []*ast_domain.TemplateNode {
 	wrappedChildren := make([]*ast_domain.TemplateNode, 0, len(children)*2)
 
@@ -319,12 +316,11 @@ func (*Row) renderStackedChildren(children []*ast_domain.TemplateNode, ctx *pml_
 // renderVML builds VML markup for Outlook background image support.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the background styles.
-// Takes content (*ast_domain.TemplateNode) which is the content to wrap with
-// VML.
+// Takes content (*ast_domain.TemplateNode) which is the content to wrap with VML.
 // Takes containerWidth (float64) which sets the width for the VML rectangle.
 //
-// Returns *ast_domain.TemplateNode which wraps the content with VML start and
-// end markers.
+// Returns *ast_domain.TemplateNode which wraps the content with VML start and end
+// markers.
 func (c *Row) renderVML(styles *pml_domain.StyleManager, content *ast_domain.TemplateNode, containerWidth float64) *ast_domain.TemplateNode {
 	bgURL := mustGetStyle(styles, "background-url")
 	bgColor := getStyleWithDefault(styles, "background-color", "#ffffff")
@@ -397,13 +393,11 @@ type vmlParams struct {
 	aspect string
 }
 
-// parseBackgroundPosition parses the background position attributes.
-// It first checks for override attributes (background-position-x and
-// background-position-y), then falls back to parsing the unified
-// background-position attribute.
+// parseBackgroundPosition parses the background position attributes. It first checks for
+// override attributes (background-position-x and background-position-y), then falls back
+// to parsing the unified background-position attribute.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to style
-// attributes.
+// Takes styles (*pml_domain.StyleManager) which provides access to style attributes.
 //
 // Returns x (string) which is the horizontal position value.
 // Returns y (string) which is the vertical position value.
@@ -439,8 +433,8 @@ func (*Row) parseBackgroundPosition(styles *pml_domain.StyleManager) (x, y strin
 	return x, y
 }
 
-// getVMLPosition calculates VML position values from a CSS position string.
-// This handles the VML position calculation for Outlook backgrounds.
+// getVMLPosition calculates VML position values from a CSS position string. This handles
+// the VML position calculation for Outlook backgrounds.
 //
 // Takes pos (string) which is the CSS position value (percentage or keyword).
 // Takes isRepeat (bool) which indicates if the background repeats.
@@ -486,16 +480,13 @@ func (*Row) getVMLPosition(pos string, isRepeat bool) (origin, position string) 
 	return ValueHalf, ValueHalf
 }
 
-// getRowColumnsWithWrappers returns the child columns wrapped in Outlook
-// conditional structures. Uses stack-children flag to determine horizontal or
-// vertical layout.
+// getRowColumnsWithWrappers returns the child columns wrapped in Outlook conditional
+// structures. Uses stack-children flag to determine horizontal or vertical layout.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the column nodes to
-// wrap.
-// Takes styles (*pml_domain.StyleManager) which provides access to style
-// attributes.
-// Takes ctx (*pml_domain.TransformationContext) which holds the current
-// transformation state.
+// Takes children ([]*ast_domain.TemplateNode) which are the column nodes to wrap.
+// Takes styles (*pml_domain.StyleManager) which provides access to style attributes.
+// Takes ctx (*pml_domain.TransformationContext) which holds the current transformation
+// state.
 //
 // Returns []*ast_domain.TemplateNode which contains the wrapped column nodes.
 func (c *Row) getRowColumnsWithWrappers(children []*ast_domain.TemplateNode, styles *pml_domain.StyleManager, ctx *pml_domain.TransformationContext) []*ast_domain.TemplateNode {
@@ -506,9 +497,9 @@ func (c *Row) getRowColumnsWithWrappers(children []*ast_domain.TemplateNode, sty
 	return c.renderWrappedChildren(children, ctx)
 }
 
-// shouldWrapChild checks if a child node should be wrapped with Outlook TD
-// tags. It matches both untransformed pml-* elements and transformed column
-// divs that carry data-pml-outlook-width attributes.
+// shouldWrapChild checks if a child node should be wrapped with Outlook TD tags. It
+// matches both untransformed pml-* elements and transformed column divs that carry
+// data-pml-outlook-width attributes.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -528,14 +519,13 @@ func shouldWrapChild(child *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// wrapChildWithOutlookTD wraps a child node with Outlook conditional TD tags.
-// It reads width and vertical-align from data-pml-outlook-* attributes set by
-// the column component, falling back to StyleManager lookup for untransformed
-// nodes.
+// wrapChildWithOutlookTD wraps a child node with Outlook conditional TD tags. It reads
+// width and vertical-align from data-pml-outlook-* attributes set by the column
+// component, falling back to StyleManager lookup for untransformed nodes.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to wrap.
-// Takes ctx (*pml_domain.TransformationContext) which provides the registry and
-// settings for style resolution.
+// Takes ctx (*pml_domain.TransformationContext) which provides the registry and settings
+// for style resolution.
 //
 // Returns []*ast_domain.TemplateNode which contains the wrapped child with
 // Outlook-specific opening and closing conditional comments.
@@ -571,10 +561,10 @@ func wrapChildWithOutlookTD(child *ast_domain.TemplateNode, ctx *pml_domain.Tran
 
 // calculateChildWidth returns the width in pixels for a child element.
 //
-// Takes styleManager (*pml_domain.StyleManager) which provides access to the
-// element's style attributes.
-// Takes ctx (*pml_domain.TransformationContext) which holds the current
-// transformation state including parent dimensions.
+// Takes styleManager (*pml_domain.StyleManager) which provides access to the element's
+// style attributes.
+// Takes ctx (*pml_domain.TransformationContext) which holds the current transformation
+// state including parent dimensions.
 //
 // Returns float64 which is the calculated width in pixels.
 func calculateChildWidth(styleManager *pml_domain.StyleManager, ctx *pml_domain.TransformationContext) float64 {
@@ -590,14 +580,14 @@ func calculateChildWidth(styleManager *pml_domain.StyleManager, ctx *pml_domain.
 	return float64(mustParsePixels(widthAttr))
 }
 
-// calculateEqualDistributionWidth works out the width for a child element when
-// no explicit width is set.
+// calculateEqualDistributionWidth works out the width for a child element when no
+// explicit width is set.
 //
-// Takes ctx (*pml_domain.TransformationContext) which provides the container
-// width and sibling count for distribution.
+// Takes ctx (*pml_domain.TransformationContext) which provides the container width and
+// sibling count for distribution.
 //
-// Returns float64 which is the container width divided equally among siblings,
-// or the full container width if there are no siblings.
+// Returns float64 which is the container width divided equally among siblings, or the
+// full container width if there are no siblings.
 func calculateEqualDistributionWidth(ctx *pml_domain.TransformationContext) float64 {
 	if ctx.SiblingCount > 0 {
 		return ctx.ContainerWidth / float64(ctx.SiblingCount)
@@ -605,15 +595,14 @@ func calculateEqualDistributionWidth(ctx *pml_domain.TransformationContext) floa
 	return ctx.ContainerWidth
 }
 
-// calculatePercentageWidth converts a percentage width string to an absolute
-// width value.
+// calculatePercentageWidth converts a percentage width string to an absolute width value.
 //
 // Takes widthAttr (string) which contains the width as a percentage string.
-// Takes ctx (*pml_domain.TransformationContext) which provides the container
-// width and sibling count for the calculation.
+// Takes ctx (*pml_domain.TransformationContext) which provides the container width and
+// sibling count for the calculation.
 //
-// Returns float64 which is the calculated width in absolute units. When parsing
-// fails, the width is split equally among siblings.
+// Returns float64 which is the calculated width in absolute units. When parsing fails,
+// the width is split equally among siblings.
 func calculatePercentageWidth(widthAttr string, ctx *pml_domain.TransformationContext) float64 {
 	var percent float64
 	if _, err := fmt.Sscanf(strings.TrimSuffix(widthAttr, FormatPercent), "%f", &percent); err != nil {
@@ -642,15 +631,15 @@ func buildOutlookTDTag(align, cssClass, verticalAlign string, widthPx float64) s
 	return startTag
 }
 
-// wrapChildWithOutlookTR wraps a child node with Outlook-specific TR/TD tags
-// for vertical stacking in email layouts.
+// wrapChildWithOutlookTR wraps a child node with Outlook-specific TR/TD tags for vertical
+// stacking in email layouts.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to wrap.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation context including the registry and settings.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation context
+// including the registry and settings.
 //
-// Returns []*ast_domain.TemplateNode which contains the wrapped nodes in order:
-// start comment, child, and end comment.
+// Returns []*ast_domain.TemplateNode which contains the wrapped nodes in order: start
+// comment, child, and end comment.
 func wrapChildWithOutlookTR(child *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) []*ast_domain.TemplateNode {
 	childComp, _ := ctx.Registry.Get(child.TagName)
 	childStyleManager := pml_domain.NewStyleManager(child, childComp, ctx.Config)
@@ -665,8 +654,8 @@ func wrapChildWithOutlookTR(child *ast_domain.TemplateNode, ctx *pml_domain.Tran
 	return []*ast_domain.TemplateNode{startComment, child, endComment}
 }
 
-// buildOutlookTRTDTag builds the opening TR/TD tag wrapped in an Outlook
-// conditional comment for email stacking layouts.
+// buildOutlookTRTDTag builds the opening TR/TD tag wrapped in an Outlook conditional
+// comment for email stacking layouts.
 //
 // Takes align (string) which sets the cell alignment attribute.
 // Takes cssClass (string) which sets the CSS class prefix for Outlook.
@@ -685,8 +674,8 @@ func buildOutlookTRTDTag(align, cssClass string, containerWidth float64) string 
 	return startTag
 }
 
-// calculateVMLAspectAndSize works out VML aspect and size attributes from a
-// CSS background-size value.
+// calculateVMLAspectAndSize works out VML aspect and size attributes from a CSS
+// background-size value.
 //
 // Takes bgSize (string) which specifies the CSS background-size value.
 //
@@ -712,8 +701,7 @@ func calculateVMLAspectAndSize(bgSize string) (vmlAspect, vmlSize string) {
 	return vmlAspect, vmlSize
 }
 
-// calculateVMLType determines the VML fill type based on repeat and size
-// settings.
+// calculateVMLType determines the VML fill type based on repeat and size settings.
 //
 // Takes bgRepeat (string) which specifies the background repeat mode.
 // Takes bgSize (string) which specifies the background size setting.
@@ -728,10 +716,8 @@ func calculateVMLType(bgRepeat, bgSize string) string {
 
 // buildRowVMLRectStyle builds the VML rect style string for row backgrounds.
 //
-// Takes isFullWidth (bool) which indicates whether the row spans the full
-// width.
-// Takes containerWidth (float64) which specifies the width in pixels when not
-// full width.
+// Takes isFullWidth (bool) which indicates whether the row spans the full width.
+// Takes containerWidth (float64) which specifies the width in pixels when not full width.
 //
 // Returns string which is the VML style attribute value.
 func buildRowVMLRectStyle(isFullWidth bool, containerWidth float64) string {
@@ -761,10 +747,9 @@ func buildRowVMLString(params vmlParams) string {
 	return vmlString
 }
 
-// getBackgroundShorthand builds the CSS background shorthand property for
-// modern email clients. Both the shorthand and separate properties are emitted
-// because Yahoo does not support shorthand, but other modern clients work
-// better with it.
+// getBackgroundShorthand builds the CSS background shorthand property for modern email
+// clients. Both the shorthand and separate properties are emitted because Yahoo does not
+// support shorthand, but other modern clients work better with it.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
 //
@@ -796,23 +781,22 @@ func getBackgroundShorthand(styles *pml_domain.StyleManager) string {
 	return strings.Join(parts, ValueSpace)
 }
 
-// buildFullWidthRowStyles builds all style maps needed to render a full-width
-// row.
+// buildFullWidthRowStyles builds all style maps needed to render a full-width row.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the source styles.
 // Takes containerWidth (float64) which sets the maximum width in pixels.
 // Takes direction (string) which sets the text direction for the row.
-// Takes hasBackgroundURL (bool) which controls whether background image styles
-// are included.
+// Takes hasBackgroundURL (bool) which controls whether background image styles are
+// included.
 //
-// Returns outerTableStyles (map[string]string) which holds styles for the
-// outer table wrapper, including background settings.
-// Returns innerTableStyles (map[string]string) which holds styles for the
-// inner table, including border collapse settings.
-// Returns divStyles (map[string]string) which holds styles for the div
-// wrapper, including max-width and overflow settings.
-// Returns tdStyles (map[string]string) which holds styles for the table cell,
-// including padding and alignment.
+// Returns outerTableStyles (map[string]string) which holds styles for the outer table
+// wrapper, including background settings.
+// Returns innerTableStyles (map[string]string) which holds styles for the inner table,
+// including border collapse settings.
+// Returns divStyles (map[string]string) which holds styles for the div wrapper, including
+// max-width and overflow settings.
+// Returns tdStyles (map[string]string) which holds styles for the table cell, including
+// padding and alignment.
 func buildFullWidthRowStyles(
 	styles *pml_domain.StyleManager,
 	containerWidth float64,
@@ -854,10 +838,10 @@ func buildFullWidthRowStyles(
 // Takes direction (string) which sets the text direction for the row.
 // Takes hasBackgroundURL (bool) which indicates if a background image is set.
 //
-// Returns tableStyles (map[string]string) which holds the table element styles
-// including background settings.
-// Returns divStyles (map[string]string) which holds the wrapper div styles
-// including max-width and border radius overflow handling.
+// Returns tableStyles (map[string]string) which holds the table element styles including
+// background settings.
+// Returns divStyles (map[string]string) which holds the wrapper div styles including
+// max-width and border radius overflow handling.
 // Returns tdStyles (map[string]string) which holds the table cell styles.
 func buildBoxedRowStyles(
 	styles *pml_domain.StyleManager,
@@ -892,15 +876,12 @@ func buildBoxedRowStyles(
 	return tableStyles, divStyles, tdStyles
 }
 
-// buildRowTdStyles constructs the TD style map shared by both full-width and
-// boxed modes.
+// buildRowTdStyles constructs the TD style map shared by both full-width and boxed modes.
 //
-// Takes styles (*pml_domain.StyleManager) which provides the source styles to
-// copy from.
+// Takes styles (*pml_domain.StyleManager) which provides the source styles to copy from.
 // Takes direction (string) which specifies the text direction if not empty.
 //
-// Returns map[string]string which contains the CSS properties for the TD
-// element.
+// Returns map[string]string which contains the CSS properties for the TD element.
 func buildRowTdStyles(styles *pml_domain.StyleManager, direction string) map[string]string {
 	tdStyles := map[string]string{
 		CSSLineHeight:        ValueZeroPx,
@@ -927,8 +908,8 @@ func buildRowTdStyles(styles *pml_domain.StyleManager, direction string) map[str
 	return tdStyles
 }
 
-// createRowInnerTable builds the inner table structure for a row layout,
-// producing a nested table > tbody > tr > td hierarchy.
+// createRowInnerTable builds the inner table structure for a row layout, producing a
+// nested table > tbody > tr > td hierarchy.
 //
 // Takes tableStyles (map[string]string) which sets CSS styles for the table.
 // Takes tdStyles (map[string]string) which sets CSS styles for the td cell.
@@ -963,15 +944,14 @@ func createRowInnerTable(tableStyles, tdStyles map[string]string, direction stri
 
 // createRowWrapperDiv creates a wrapper div element around the given content.
 //
-// When hasBackgroundURL is true, the content is first wrapped in an inner div
-// with line-height and font-size set to zero. This inner div supports
-// background images.
+// When hasBackgroundURL is true, the content is first wrapped in an inner div with
+// line-height and font-size set to zero. This inner div supports background images.
 //
 // Takes content (*ast_domain.TemplateNode) which is the content to wrap.
-// Takes divStyles (map[string]string) which specifies the styles for the
-// outer wrapper div.
-// Takes hasBackgroundURL (bool) which indicates whether to add an inner div
-// for background image support.
+// Takes divStyles (map[string]string) which specifies the styles for the outer wrapper
+// div.
+// Takes hasBackgroundURL (bool) which indicates whether to add an inner div for
+// background image support.
 //
 // Returns *ast_domain.TemplateNode which is the wrapper div element.
 func createRowWrapperDiv(content *ast_domain.TemplateNode, divStyles map[string]string, hasBackgroundURL bool) *ast_domain.TemplateNode {
@@ -997,14 +977,14 @@ func createRowWrapperDiv(content *ast_domain.TemplateNode, divStyles map[string]
 
 // buildOutlookConditionalNodes creates the Outlook conditional comment nodes.
 //
-// Takes styles (*pml_domain.StyleManager) which provides CSS class and
-// background colour values for the Outlook table.
+// Takes styles (*pml_domain.StyleManager) which provides CSS class and background colour
+// values for the Outlook table.
 // Takes containerWidth (float64) which sets the fixed width for the table.
 //
-// Returns startNode (*ast_domain.TemplateNode) which opens the Outlook
-// conditional table structure.
-// Returns endNode (*ast_domain.TemplateNode) which closes the conditional
-// table structure.
+// Returns startNode (*ast_domain.TemplateNode) which opens the Outlook conditional table
+// structure.
+// Returns endNode (*ast_domain.TemplateNode) which closes the conditional table
+// structure.
 func buildOutlookConditionalNodes(
 	styles *pml_domain.StyleManager,
 	containerWidth float64,
@@ -1028,21 +1008,19 @@ func buildOutlookConditionalNodes(
 	return startNode, endNode
 }
 
-// createFullWidthOuterTable creates the outer table structure for full-width
-// mode.
+// createFullWidthOuterTable creates the outer table structure for full-width mode.
 //
-// Takes outerTableStyles (map[string]string) which provides inline CSS styles
-// for the outer table element.
+// Takes outerTableStyles (map[string]string) which provides inline CSS styles for the
+// outer table element.
 // Takes styles (*pml_domain.StyleManager) which manages CSS class lookups.
-// Takes outlookStart (*ast_domain.TemplateNode) which contains the Outlook
-// conditional comment opening.
-// Takes wrapperDiv (*ast_domain.TemplateNode) which holds the inner content
-// wrapper.
-// Takes outlookEnd (*ast_domain.TemplateNode) which contains the Outlook
-// conditional comment closing.
+// Takes outlookStart (*ast_domain.TemplateNode) which contains the Outlook conditional
+// comment opening.
+// Takes wrapperDiv (*ast_domain.TemplateNode) which holds the inner content wrapper.
+// Takes outlookEnd (*ast_domain.TemplateNode) which contains the Outlook conditional
+// comment closing.
 //
-// Returns *ast_domain.TemplateNode which is the complete outer table element
-// with nested tbody, tr, and td structure.
+// Returns *ast_domain.TemplateNode which is the complete outer table element with nested
+// tbody, tr, and td structure.
 func createFullWidthOuterTable(outerTableStyles map[string]string, styles *pml_domain.StyleManager, outlookStart, wrapperDiv, outlookEnd *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	outerTableAttrs := []ast_domain.HTMLAttribute{
 		NewHTMLAttribute(AttrAlign, ValueCentre),
@@ -1067,19 +1045,16 @@ func createFullWidthOuterTable(outerTableStyles map[string]string, styles *pml_d
 	return NewElementNode(ElementTable, sortHTMLAttributes(outerTableAttrs), []*ast_domain.TemplateNode{outerTbody})
 }
 
-// createBoxedRowTable creates the main table for boxed mode with an optional
-// background attribute.
-//
-// Takes tableStyles (map[string]string) which specifies CSS styles for the
-// table element.
-// Takes tdStyles (map[string]string) which specifies CSS styles for the cell.
-// Takes direction (string) which sets the text direction attribute if not
-// empty.
-// Takes bgURL (string) which provides the background image URL.
-// Takes hasBackgroundURL (bool) which indicates whether to add the background
+// createBoxedRowTable creates the main table for boxed mode with an optional background
 // attribute.
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes
-// to place inside the table cell.
+//
+// Takes tableStyles (map[string]string) which specifies CSS styles for the table element.
+// Takes tdStyles (map[string]string) which specifies CSS styles for the cell.
+// Takes direction (string) which sets the text direction attribute if not empty.
+// Takes bgURL (string) which provides the background image URL.
+// Takes hasBackgroundURL (bool) which indicates whether to add the background attribute.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes to place
+// inside the table cell.
 //
 // Returns *ast_domain.TemplateNode which is the constructed table element.
 func createBoxedRowTable(tableStyles, tdStyles map[string]string, direction, bgURL string, hasBackgroundURL bool, children []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
@@ -1110,11 +1085,11 @@ func createBoxedRowTable(tableStyles, tdStyles map[string]string, direction, bgU
 	return NewElementNode(ElementTable, sortHTMLAttributes(tableAttrs), []*ast_domain.TemplateNode{tbody})
 }
 
-// createBoxedRowWrapperDiv creates the wrapper div for boxed mode with an
-// optional CSS class.
+// createBoxedRowWrapperDiv creates the wrapper div for boxed mode with an optional CSS
+// class.
 //
-// When a background image is used, it wraps the table in an inner div with
-// styles that reset line height and font size.
+// When a background image is used, it wraps the table in an inner div with styles that
+// reset line height and font size.
 //
 // Takes table (*ast_domain.TemplateNode) which is the table element to wrap.
 // Takes divStyles (map[string]string) which sets the wrapper div styles.

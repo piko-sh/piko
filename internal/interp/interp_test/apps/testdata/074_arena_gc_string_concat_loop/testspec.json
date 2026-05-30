@@ -1,0 +1,5 @@
+{
+  "description": "Drives heavy string concatenation in a loop so the byte slab grows past the GC threshold and at least one MinorGC cycle executes. Final value remains correct because the live string is reachable from the result.",
+  "expected": "final_len=1000000 last5=YYYYY"
+
+}

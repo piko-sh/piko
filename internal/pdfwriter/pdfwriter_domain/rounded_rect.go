@@ -18,23 +18,25 @@
 
 package pdfwriter_domain
 
-// Provides helpers for emitting rounded rectangle paths to a PDF
-// content stream using cubic Bezier curves for the corner arcs.
+// Provides helpers for emitting rounded rectangle paths to a PDF content stream using
+// cubic Bezier curves for the corner arcs.
 
-import "math"
+import (
+	"math"
+)
 
-// kappa is the control-point distance for approximating a
-// quarter-circle arc with a cubic Bezier curve. Equal to
-// 4/3 * (sqrt(2) - 1).
-const kappa = 0.5522847498
+const (
+	// kappa is the control-point distance for approximating a quarter-circle arc with a
+	// cubic Bezier curve. Equal to 4/3 * (sqrt(2) - 1).
+	kappa = 0.5522847498
+)
 
-// emitRoundedRectPath builds a closed rounded rectangle path on the
-// given content stream.
+// emitRoundedRectPath builds a closed rounded rectangle path on the given content stream.
 //
-// All coordinates are in PDF space (origin at bottom-left, Y increasing
-// upward). The rectangle has its lower-left corner at (x, y) with the
-// given width and height. Radii are clamped per the CSS spec so that
-// adjacent radii never exceed half the shared edge length.
+// All coordinates are in PDF space (origin at bottom-left, Y increasing upward). The
+// rectangle has its lower-left corner at (x, y) with the given width and height. Radii
+// are clamped per the CSS spec so that adjacent radii never exceed half the shared edge
+// length.
 //
 // Takes stream (*ContentStream) which receives the path operators.
 // Takes x, y (float64) which define the lower-left corner position.
@@ -90,8 +92,8 @@ func emitRoundedRectPath(stream *ContentStream, x, y, width, height, tlr, trr, b
 	stream.ClosePath()
 }
 
-// clampRadii scales border radii so that adjacent radii never exceed
-// half the length of the shared edge, per the CSS border-radius spec.
+// clampRadii scales border radii so that adjacent radii never exceed half the length of
+// the shared edge, per the CSS border-radius spec.
 //
 // Takes width, height (float64) which are the rectangle dimensions.
 // Takes tlr, trr, brr, blr (float64) which are the four corner radii.

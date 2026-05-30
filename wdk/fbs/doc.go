@@ -16,13 +16,12 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package fbs provides public access to the FlatBuffer versioning
-// utilities used across Piko.
+// Package fbs provides public access to the FlatBuffer versioning utilities used across
+// Piko.
 //
-// All serialised FlatBuffer files in Piko are prefixed with a
-// 32-byte SHA-256 hash of the schema file that produced them. This
-// package re-exports the core types and functions needed to compute,
-// validate, and unpack these versioned binary payloads. Use the
-// domain-specific sub-packages (collection, i18n, manifest, search)
-// to work with individual FlatBuffer schemas.
+// All serialised FlatBuffer files in Piko are prefixed with a 32-byte SHA-256 hash of the
+// schema file that produced them. Package fbs re-exports the core types and functions
+// needed to compute, validate, and unpack these versioned binary payloads. Use the
+// domain-specific sub-packages (collection, i18n, manifest, search) to work with
+// individual FlatBuffer schemas.
 package fbs

@@ -18,16 +18,18 @@
 
 package asmgen
 
-import "bytes"
+import (
+	"bytes"
+	"strings"
+)
 
-// Emitter writes Plan 9 assembly text to an internal buffer. It
-// provides convenience methods for common assembly formatting patterns
-// but performs no validation or transformation; callers are responsible
-// for producing correctly formatted text.
+// Emitter writes Plan 9 assembly text to an internal buffer. It provides convenience
+// methods for common assembly formatting patterns but performs no validation or
+// transformation; callers are responsible for producing correctly formatted text.
 //
-// The emitter intentionally has no formatting intelligence. It writes
-// exactly what it is told. This is critical for character-by-character
-// matching against existing hand-written assembly files.
+// The emitter intentionally has no formatting intelligence. It writes exactly what it is
+// told. This is critical for character-by-character matching against existing
+// hand-written assembly files.
 type Emitter struct {
 	// buf accumulates the emitted assembly text.
 	buf bytes.Buffer
@@ -40,13 +42,12 @@ func NewEmitter() *Emitter {
 	return &Emitter{}
 }
 
-// Instruction emits a tab-indented instruction line. The parts are joined
-// with no separator and terminated with a newline.
+// Instruction emits a tab-indented instruction line. The parts are joined with no
+// separator and terminated with a newline.
 //
-// Example: e.Instruction("MOVQ    DX, AX") produces "\tMOVQ    DX, AX\n".
+// Example: e.Instruction("MOVQ DX, AX") produces "\tMOVQ DX, AX\n".
 //
-// Takes parts (...string) which are concatenated to form the
-// instruction text.
+// Takes parts (...string) which are concatenated to form the instruction text.
 func (e *Emitter) Instruction(parts ...string) {
 	_ = e.buf.WriteByte('\t')
 	for _, part := range parts {
@@ -67,13 +68,24 @@ func (e *Emitter) Label(name string) {
 
 // Comment emits a non-indented comment line.
 //
-// Example: e.Comment("Data movement handlers.") produces
-// "// Data movement handlers.\n".
+// Example: e.Comment("Data movement handlers.") produces "// Data movement handlers.\n".
 //
 // Takes text (string) which is the comment body.
 func (e *Emitter) Comment(text string) {
-	_, _ = e.buf.WriteString("// ")
-	_, _ = e.buf.WriteString(text)
+	for i, line := range strings.Split(text, "\n") {
+		if i > 0 {
+			_ = e.buf.WriteByte('\n')
+		}
+		switch {
+		case line == "":
+			_, _ = e.buf.WriteString("//")
+		case strings.HasPrefix(line, "//"):
+			_, _ = e.buf.WriteString(line)
+		default:
+			_, _ = e.buf.WriteString("// ")
+			_, _ = e.buf.WriteString(line)
+		}
+	}
 	_ = e.buf.WriteByte('\n')
 }
 

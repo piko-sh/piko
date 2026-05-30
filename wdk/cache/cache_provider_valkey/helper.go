@@ -29,8 +29,7 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// createValkeyCache creates a Valkey cache for the given namespace using type
-// assertions.
+// createValkeyCache creates a Valkey cache for the given namespace using type assertions.
 //
 // Takes p (*ValkeyProvider) which provides the Valkey connection.
 // Takes namespace (string) which identifies the cache namespace.
@@ -64,20 +63,16 @@ func createValkeyCache(p *ValkeyProvider, namespace string, optionsAny any) (any
 	}
 }
 
-// createNamespaceGeneric is a helper that handles the type-specific Valkey
-// cache creation.
+// createNamespaceGeneric is a helper that handles the type-specific Valkey cache
+// creation.
 //
-// Takes p (*ValkeyProvider) which supplies the Valkey client and
-// configuration.
-// Takes namespace (string) which identifies the cache namespace to
-// create or reuse.
-// Takes options (cache.Options[K, V]) which provides per-namespace
-// settings such as expiry and search schema.
+// Takes p (*ValkeyProvider) which supplies the Valkey client and configuration.
+// Takes namespace (string) which identifies the cache namespace to create or reuse.
+// Takes options (cache.Options[K, V]) which provides per-namespace settings such as
+// expiry and search schema.
 //
-// Returns cache.Cache[K, V] which is the created or reused cache
-// instance.
-// Returns error when the namespace already exists with incompatible
-// types.
+// Returns cache.Cache[K, V] which is the created or reused cache instance.
+// Returns error when the namespace already exists with incompatible types.
 //
 // Safe for concurrent use. Access is serialised by the provider mutex.
 func createNamespaceGeneric[K comparable, V any](p *ValkeyProvider, namespace string, options cache.Options[K, V]) (cache.Cache[K, V], error) {

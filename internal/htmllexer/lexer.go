@@ -56,9 +56,9 @@ const (
 	// lineFeed holds the newline byte used for line tracking.
 	lineFeed byte = '\n'
 
-	// utf8ContinuationMask and utf8ContinuationValue identify UTF-8
-	// continuation bytes (10xxxxxx), used by advanceOne to avoid
-	// incrementing the column counter for non-leading bytes.
+	// utf8ContinuationMask and utf8ContinuationValue identify UTF-8 continuation bytes
+	// (10xxxxxx), used by advanceOne to avoid incrementing the column counter for
+	// non-leading bytes.
 	utf8ContinuationMask byte = 0xC0
 
 	// utf8ContinuationValue holds the bit pattern that identifies a UTF-8 continuation byte.
@@ -85,9 +85,8 @@ const (
 	doctypeKeywordLength = 7
 )
 
-// rawTextKind identifies the type of raw text element the lexer is currently
-// inside. Raw text elements consume their content verbatim until the matching
-// closing tag.
+// rawTextKind identifies the type of raw text element the lexer is currently inside. Raw
+// text elements consume their content verbatim until the matching closing tag.
 type rawTextKind uint8
 
 const (
@@ -180,30 +179,29 @@ const (
 	rawTagPlaintext
 )
 
-// rawTextTagNames maps each rawTextKind to its tag name bytes for closing tag
-// matching.
-var rawTextTagNames = [...][]byte{
-	rawTextNone:      nil,
-	rawTextScript:    []byte("script"),
-	rawTextStyle:     []byte("style"),
-	rawTextTextarea:  []byte("textarea"),
-	rawTextTitle:     []byte("title"),
-	rawTextXmp:       []byte("xmp"),
-	rawTextIframe:    []byte("iframe"),
-	rawTextPlaintext: []byte("plaintext"),
-}
+var (
+	// rawTextTagNames maps each rawTextKind to its tag name bytes for closing tag matching.
+	rawTextTagNames = [...][]byte{
+		rawTextNone:      nil,
+		rawTextScript:    []byte("script"),
+		rawTextStyle:     []byte("style"),
+		rawTextTextarea:  []byte("textarea"),
+		rawTextTitle:     []byte("title"),
+		rawTextXmp:       []byte("xmp"),
+		rawTextIframe:    []byte("iframe"),
+		rawTextPlaintext: []byte("plaintext"),
+	}
+)
 
-// Lexer tokenises HTML source into a stream of tokens. It is a streaming,
-// single-pass tokeniser that returns one token per call to Next().
+// Lexer tokenises HTML source into a stream of tokens. It is a streaming, single-pass
+// tokeniser that returns one token per call to Next().
 //
-// The lexer never modifies the source buffer. All byte slices returned by
-// Text() and AttrVal() are sub-slices of the original source. Callers must
-// not mutate these slices.
+// The lexer never modifies the source buffer. All byte slices returned by Text() and
+// AttrVal() are sub-slices of the original source. Callers must not mutate these slices.
 type Lexer struct {
-	// Pointer-containing fields grouped first to minimise GC scan region.
-	// The error interface (2 pointer words) is placed between slices so that
-	// the last pointer word falls at offset 88 rather than 104, reducing GC
-	// scan from 112 to 96 bytes.
+	// Pointer-containing fields grouped first to minimise GC scan region. The error
+	// interface (2 pointer words) is placed between slices so that the last pointer word
+	// falls at offset 88 rather than 104, reducing GC scan from 112 to 96 bytes.
 	source []byte
 
 	// newlineOffsets holds the byte offsets of all newline characters in the source.
@@ -252,8 +250,8 @@ type Lexer struct {
 	rawTextTag rawTextKind
 }
 
-// NewLexer creates a lexer for the given HTML source. The source byte slice
-// is retained by reference and must not be modified during lexing.
+// NewLexer creates a lexer for the given HTML source. The source byte slice is retained
+// by reference and must not be modified during lexing.
 //
 // Takes source ([]byte) which is the HTML content to tokenise.
 //
@@ -264,12 +262,11 @@ func NewLexer(source []byte) *Lexer {
 	return l
 }
 
-// Init prepares an already-allocated Lexer to tokenise source from the
-// start.
+// Init prepares an already-allocated Lexer to tokenise source from the start.
 //
-// This is the value-type entry point: callers can stack-allocate a Lexer
-// (`var l Lexer; l.Init(data)`) instead of going through NewLexer's heap
-// allocation. The newline index is precomputed during Init.
+// This is the value-type entry point: callers can stack-allocate a Lexer (`var l Lexer;
+// l.Init(data)`) instead of going through NewLexer's heap allocation. The newline index
+// is precomputed during Init.
 //
 // Takes source ([]byte) which is the HTML content to tokenise.
 func (l *Lexer) Init(source []byte) {
@@ -277,13 +274,13 @@ func (l *Lexer) Init(source []byte) {
 	l.initAt(source, offsets, 0)
 }
 
-// buildNewlineIndex precomputes the byte offsets of every line-feed in
-// source so PositionAt can resolve line/column in O(log n).
+// buildNewlineIndex precomputes the byte offsets of every line-feed in source so
+// PositionAt can resolve line/column in O(log n).
 //
 // Takes source ([]byte) which is the content to scan.
 //
-// Returns []int which is the sorted list of newline byte offsets, or nil
-// when source contains no newlines.
+// Returns []int which is the sorted list of newline byte offsets, or nil when source
+// contains no newlines.
 func buildNewlineIndex(source []byte) []int {
 	count := bytes.Count(source, []byte{lineFeed})
 	if count == 0 {
@@ -298,15 +295,14 @@ func buildNewlineIndex(source []byte) []int {
 	return offsets
 }
 
-// computeLineColumn converts a byte offset to a 1-based (line, column)
-// position using a precomputed newline-offset index. Column is measured in
-// Unicode runes.
+// computeLineColumn converts a byte offset to a 1-based (line, column) position using a
+// precomputed newline-offset index. Column is measured in Unicode runes.
 //
 // Takes source ([]byte) which is the full source buffer.
-// Takes newlineOffsets ([]int) which is the precomputed sorted list of
-// line-feed byte offsets.
-// Takes offset (int) which is the byte offset to convert; assumed to be in
-// range and on a rune boundary.
+// Takes newlineOffsets ([]int) which is the precomputed sorted list of line-feed byte
+// offsets.
+// Takes offset (int) which is the byte offset to convert; assumed to be in range and on a
+// rune boundary.
 //
 // Returns line (int) which is the 1-based line number.
 // Returns column (int) which is the 1-based column in runes.
@@ -322,9 +318,8 @@ func computeLineColumn(source []byte, newlineOffsets []int, offset int) (line, c
 	return line, column
 }
 
-// Next advances the lexer to the next token and returns its type. Token data
-// is available via the accessor methods (Text, AttrVal, etc.) until the next
-// call to Next().
+// Next advances the lexer to the next token and returns its type. Token data is available
+// via the accessor methods (Text, AttrVal, etc.) until the next call to Next().
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) Next() TokenType {
@@ -343,9 +338,9 @@ func (l *Lexer) Next() TokenType {
 
 // Text returns the tag name, attribute key, or comment content for the current token.
 //
-// For CommentToken, returns the inner content without delimiters. For
-// SVGToken/MathToken, returns the entire foreign block. The returned slice
-// is a sub-slice of the source and must not be mutated.
+// For CommentToken, returns the inner content without delimiters. For SVGToken/MathToken,
+// returns the entire foreign block. The returned slice is a sub-slice of the source and
+// must not be mutated.
 //
 // Returns []byte which holds the text content associated with the current token.
 func (l *Lexer) Text() []byte {
@@ -361,8 +356,7 @@ func (l *Lexer) AttrVal() []byte {
 	return l.attributeValue
 }
 
-// TokenStart returns the byte offset in the source where the current token
-// begins.
+// TokenStart returns the byte offset in the source where the current token begins.
 //
 // Returns int which holds the starting byte offset of the current token.
 func (l *Lexer) TokenStart() int {
@@ -376,8 +370,7 @@ func (l *Lexer) TokenEnd() int {
 	return l.tokenEndOffset
 }
 
-// TokenLine returns the 1-based line number at the start of the current
-// token.
+// TokenLine returns the 1-based line number at the start of the current token.
 //
 // Returns int which holds the line number where the current token begins.
 func (l *Lexer) TokenLine() int {
@@ -391,18 +384,17 @@ func (l *Lexer) TokenCol() int {
 	return l.tokenColumn
 }
 
-// AttrValStart returns the byte offset where the attribute value begins in
-// the source.
+// AttrValStart returns the byte offset where the attribute value begins in the source.
 //
-// Returns int which holds the byte offset of the attribute value, or -1 when
-// the current token has no attribute value.
+// Returns int which holds the byte offset of the attribute value, or -1 when the current
+// token has no attribute value.
 func (l *Lexer) AttrValStart() int {
 	return l.attributeValueStart
 }
 
-// PositionAt converts an arbitrary byte offset in the source to a 1-based
-// line and column position, measured in Unicode runes using a precomputed
-// newline index for O(log n) lookup.
+// PositionAt converts an arbitrary byte offset in the source to a 1-based line and column
+// position, measured in Unicode runes using a precomputed newline index for O(log n)
+// lookup.
 //
 // Takes offset (int) which is the byte offset to convert.
 //
@@ -418,8 +410,8 @@ func (l *Lexer) PositionAt(offset int) (line int, column int) {
 	return computeLineColumn(l.source, l.newlineOffsets, offset)
 }
 
-// SourceBytes returns the full source buffer. This allows consumers to slice
-// raw content by byte offsets obtained from TokenStart() and TokenEnd().
+// SourceBytes returns the full source buffer. This allows consumers to slice raw content
+// by byte offsets obtained from TokenStart() and TokenEnd().
 //
 // Returns []byte which holds the complete HTML source passed to NewLexer.
 func (l *Lexer) SourceBytes() []byte {
@@ -428,16 +420,16 @@ func (l *Lexer) SourceBytes() []byte {
 
 // Err returns the lexer's error state.
 //
-// Returns error which is io.EOF when all input is consumed, or nil when no
-// error has occurred.
+// Returns error which is io.EOF when all input is consumed, or nil when no error has
+// occurred.
 func (l *Lexer) Err() error {
 	return l.err
 }
 
 // ResumeAfterRawText repositions the lexer past a raw-text closing tag.
 //
-// Takes endOffset (int) which is the byte offset immediately after the
-// closing tag (i.e. the position where normal tokenisation should resume).
+// Takes endOffset (int) which is the byte offset immediately after the closing tag (i.e.
+// the position where normal tokenisation should resume).
 func (l *Lexer) ResumeAfterRawText(endOffset int) {
 	if endOffset < 0 {
 		endOffset = 0
@@ -451,15 +443,14 @@ func (l *Lexer) ResumeAfterRawText(endOffset int) {
 	l.initAt(l.source, l.newlineOffsets, endOffset)
 }
 
-// initAt sets every Lexer field to its initial value at the given byte
-// offset, reusing a precomputed newline-offset index. All mode flags,
-// token buffers, and per-token state default to their zero values, so
-// adding a new field to Lexer is automatically safe; no field-by-field
-// reset is needed elsewhere.
+// initAt sets every Lexer field to its initial value at the given byte offset, reusing a
+// precomputed newline-offset index. All mode flags, token buffers, and per-token state
+// default to their zero values, so adding a new field to Lexer is automatically safe; no
+// field-by-field reset is needed elsewhere.
 //
 // Takes source ([]byte) which is the HTML content to tokenise.
-// Takes newlineOffsets ([]int) which is the precomputed sorted list of
-// line-feed byte offsets in source.
+// Takes newlineOffsets ([]int) which is the precomputed sorted list of line-feed byte
+// offsets in source.
 // Takes offset (int) which is the cursor position to start at.
 func (l *Lexer) initAt(source []byte, newlineOffsets []int, offset int) {
 	line, column := computeLineColumn(source, newlineOffsets, offset)
@@ -490,8 +481,8 @@ func (l *Lexer) resetTokenState() {
 	l.attributeValueStart = -1
 }
 
-// recordTokenPosition captures the current cursor position as the start of
-// a new token, computing line and column from the incremental tracking state.
+// recordTokenPosition captures the current cursor position as the start of a new token,
+// computing line and column from the incremental tracking state.
 func (l *Lexer) recordTokenPosition() {
 	l.tokenStartOffset = l.cursor
 	l.tokenLine = l.currentLine
@@ -503,13 +494,13 @@ func (l *Lexer) finaliseToken() {
 	l.tokenEndOffset = l.cursor
 }
 
-// advanceCursor moves the cursor forward by n bytes, updating the incremental
-// line and column tracking.
+// advanceCursor moves the cursor forward by n bytes, updating the incremental line and
+// column tracking.
 //
 // Takes n (int) which specifies the number of bytes to advance.
 //
-// For single-byte advances, prefer advanceOne which avoids slice creation
-// and bytes.Count overhead.
+// For single-byte advances, prefer advanceOne which avoids slice creation and bytes.Count
+// overhead.
 func (l *Lexer) advanceCursor(n int) {
 	end := min(l.cursor+n, len(l.source))
 
@@ -528,13 +519,12 @@ func (l *Lexer) advanceCursor(n int) {
 	l.cursor = end
 }
 
-// advanceOne moves the cursor forward by exactly one byte with minimal
-// overhead. Unlike advanceCursor(1), it avoids slice creation, bytes.Count,
-// and utf8.RuneCount calls.
+// advanceOne moves the cursor forward by exactly one byte with minimal overhead. Unlike
+// advanceCursor(1), it avoids slice creation, bytes.Count, and utf8.RuneCount calls.
 //
-// For multi-byte UTF-8 sequences, only the leading byte increments the
-// column counter; continuation bytes (10xxxxxx) are skipped. This correctly
-// counts columns in runes rather than bytes.
+// For multi-byte UTF-8 sequences, only the leading byte increments the column counter;
+// continuation bytes (10xxxxxx) are skipped. This correctly counts columns in runes
+// rather than bytes.
 func (l *Lexer) advanceOne() {
 	if l.cursor >= len(l.source) {
 		return
@@ -569,8 +559,8 @@ func (l *Lexer) atEnd() bool {
 	return l.cursor >= len(l.source)
 }
 
-// peek returns the byte at the given offset from the cursor, or 0 if the
-// offset is out of bounds.
+// peek returns the byte at the given offset from the cursor, or 0 if the offset is out of
+// bounds.
 //
 // Takes offset (int) which specifies the distance from the cursor in bytes.
 //
@@ -584,16 +574,16 @@ func (l *Lexer) peek(offset int) byte {
 	return l.source[pos]
 }
 
-// skipWhitespace advances the cursor past any HTML whitespace characters
-// (space, tab, newline, carriage return, form feed).
+// skipWhitespace advances the cursor past any HTML whitespace characters (space, tab,
+// newline, carriage return, form feed).
 func (l *Lexer) skipWhitespace() {
 	for !l.atEnd() && isHTMLWhitespace(l.source[l.cursor]) {
 		l.advanceOne()
 	}
 }
 
-// nextInsideTag handles the state where the lexer is inside a start tag,
-// reading attributes or the tag close.
+// nextInsideTag handles the state where the lexer is inside a start tag, reading
+// attributes or the tag close.
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) nextInsideTag() TokenType {
@@ -620,13 +610,12 @@ func (l *Lexer) nextInsideTag() TokenType {
 	return l.parseAttribute()
 }
 
-// nextRawText handles the state where the lexer is inside a raw text element
-// and must consume content until the matching closing tag.
+// nextRawText handles the state where the lexer is inside a raw text element and must
+// consume content until the matching closing tag.
 //
-// All raw-text elements (script, style, textarea, title, xmp, iframe) share
-// opaque scanning: only `</tagname` followed by a valid HTML5 end-tag
-// boundary character ends the block. plaintext is special: it has no
-// closing tag and consumes to EOF.
+// All raw-text elements (script, style, textarea, title, xmp, iframe) share opaque
+// scanning: only `</tagname` followed by a valid HTML5 end-tag boundary character ends
+// the block. plaintext is special: it has no closing tag and consumes to EOF.
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) nextRawText() TokenType {
@@ -645,8 +634,7 @@ func (l *Lexer) nextRawText() TokenType {
 	return l.parseRawText(contentStart)
 }
 
-// nextContent handles the default state: scanning text and detecting tag
-// openings.
+// nextContent handles the default state: scanning text and detecting tag openings.
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) nextContent() TokenType {

@@ -16,33 +16,30 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_domain coordinates the distribution of backend
-// analytics events to pluggable collector backends.
+// Package analytics_domain coordinates the distribution of backend analytics events to
+// pluggable collector backends.
 //
-// It defines the [Collector] port interface that third-party analytics
-// adapters can implement, and a fanout [Service] that distributes events
-// to all registered collectors via buffered channels and background workers.
+// It defines the [Collector] port interface that third-party analytics adapters can
+// implement, and a fanout [Service] that distributes events to all registered collectors
+// via buffered channels and background workers.
 //
 // # Collector interface
 //
-// Adapters implement the [Collector] interface with four methods:
-// Collect receives events, Flush sends any buffered batch, Close
-// releases resources, and Name returns a human-readable identifier
-// for logging and metrics.
+// Adapters implement the [Collector] interface with four methods: Collect receives
+// events, Flush sends any buffered batch, Close releases resources, and Name returns a
+// human-readable identifier for logging and metrics.
 //
 // # Fanout service
 //
-// The [Service] owns one buffered channel and goroutine per collector.
-// Track sends events to all collectors via non-blocking channel
-// sends. When a channel is full the event is dropped and an OTEL
-// counter is incremented, ensuring analytics never affects request
-// latency. Start launches the worker goroutines and Close drains the
-// channels, flushes, and closes each collector.
+// The [Service] owns one buffered channel and goroutine per collector. Track sends events
+// to all collectors via non-blocking channel sends. When a channel is full the event is
+// dropped and an OTEL counter is incremented, ensuring analytics never affects request
+// latency. Start launches the worker goroutines and Close drains the channels, flushes,
+// and closes each collector.
 //
 // # Thread safety
 //
-// The [Service] is safe for concurrent use. Each collector receives
-// events on its own buffered channel, drained by a dedicated
-// goroutine. Events are dropped (not blocked) when a channel is full,
-// preventing analytics from affecting request latency.
+// The [Service] is safe for concurrent use. Each collector receives events on its own
+// buffered channel, drained by a dedicated goroutine. Events are dropped (not blocked)
+// when a channel is full, preventing analytics from affecting request latency.
 package analytics_domain

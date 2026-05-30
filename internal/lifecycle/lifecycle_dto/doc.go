@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lifecycle_dto contains event types and enumerations for
-// communicating lifecycle events, particularly file system change
-// notifications for hot-reload functionality.
+// Package lifecycle_dto contains event types and enumerations for communicating lifecycle
+// events, particularly file system change notifications for hot-reload functionality.
 package lifecycle_dto

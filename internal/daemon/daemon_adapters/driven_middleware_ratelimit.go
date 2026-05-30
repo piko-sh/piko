@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"strconv"
@@ -41,14 +42,18 @@ const (
 	// headerRateLimitReset is the canonical MIME form of X-RateLimit-Reset.
 	headerRateLimitReset = "X-Ratelimit-Reset"
 
-	// headerRetryAfter is the HTTP header name that tells clients how long to wait
-	// before sending another request after being rate limited.
+	// headerRetryAfter is the HTTP header name that tells clients how long to wait before
+	// sending another request after being rate limited.
 	headerRetryAfter = "Retry-After"
+
+	// defaultActionKeySuffix is the rate-limit key suffix used for generic action requests
+	// without an action-specific override.
+	defaultActionKeySuffix = "action"
 )
 
-// rateLimitMiddleware limits HTTP requests based on client IP address.
-// It reads the client IP from the request context, which should be set by
-// the RealIP middleware earlier in the chain.
+// rateLimitMiddleware limits HTTP requests based on client IP address. It reads the
+// client IP from the request context, which should be set by the RealIP middleware
+// earlier in the chain.
 type rateLimitMiddleware struct {
 	// clock provides time functions for rate limit window calculations.
 	clock clock.Clock
@@ -63,9 +68,9 @@ type rateLimitMiddleware struct {
 // rateLimitMiddlewareOption sets options for a rate limit middleware.
 type rateLimitMiddlewareOption func(*rateLimitMiddleware)
 
-// Handler returns the middleware handler function for use with chi or other
-// routers. The client IP is read from the request context, which should be
-// set by the RealIP middleware.
+// Handler returns the middleware handler function for use with chi or other routers. The
+// client IP is read from the request context, which should be set by the RealIP
+// middleware.
 //
 // Takes next (http.Handler) which is the next handler in the chain to call.
 //
@@ -96,21 +101,19 @@ func (m *rateLimitMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// ActionHandler applies rate limiting for a specific action and writes a 429
-// response if the limit is exceeded.
+// ActionHandler applies rate limiting for a specific action and writes a 429 response if
+// the limit is exceeded.
 //
-// Call this within an action handler to apply per-action limits. The client IP
-// is read from request context.
+// Call this within an action handler to apply per-action limits. The client IP is read
+// from request context.
 //
-// Takes w (http.ResponseWriter) which receives rate limit headers and error
-// responses.
-// Takes r (*http.Request) which provides the request context containing the
-// client IP.
-// Takes override (*security_dto.RateLimitOverride) which allows customising the
-// rate limit settings for this action, or nil to use defaults.
+// Takes w (http.ResponseWriter) which receives rate limit headers and error responses.
+// Takes r (*http.Request) which provides the request context containing the client IP.
+// Takes override (*security_dto.RateLimitOverride) which allows customising the rate
+// limit settings for this action, or nil to use defaults.
 //
-// Returns bool which is true if the request is allowed, or false if rate
-// limited and a 429 response was written.
+// Returns bool which is true if the request is allowed, or false if rate limited and a
+// 429 response was written.
 func (m *rateLimitMiddleware) ActionHandler(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -119,7 +122,7 @@ func (m *rateLimitMiddleware) ActionHandler(
 	clientIP := security_dto.ClientIPFromRequest(r)
 
 	tierConfig := m.config.Actions
-	keySuffix := "action"
+	keySuffix := defaultActionKeySuffix
 
 	if override != nil {
 		if override.RequestsPerMinute > 0 {
@@ -128,9 +131,7 @@ func (m *rateLimitMiddleware) ActionHandler(
 		if override.BurstSize > 0 {
 			tierConfig.BurstSize = override.BurstSize
 		}
-		if override.KeySuffix != "" {
-			keySuffix = override.KeySuffix
-		}
+		keySuffix = cmp.Or(override.KeySuffix, defaultActionKeySuffix)
 	}
 
 	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
@@ -149,14 +150,13 @@ func (m *rateLimitMiddleware) ActionHandler(
 	return true
 }
 
-// CheckActionAllowed checks whether an action request is within its rate limit
-// without writing headers or a response body. Use this for batch action paths
-// where per-action HTTP responses are not written to the client directly.
+// CheckActionAllowed checks whether an action request is within its rate limit without
+// writing headers or a response body. Use this for batch action paths where per-action
+// HTTP responses are not written to the client directly.
 //
-// Takes r (*http.Request) which provides the request context containing the
-// client IP.
-// Takes override (*security_dto.RateLimitOverride) which allows customising the
-// rate limit settings for this action, or nil to use defaults.
+// Takes r (*http.Request) which provides the request context containing the client IP.
+// Takes override (*security_dto.RateLimitOverride) which allows customising the rate
+// limit settings for this action, or nil to use defaults.
 //
 // Returns bool which is true if the request is allowed.
 func (m *rateLimitMiddleware) CheckActionAllowed(
@@ -166,7 +166,7 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 	clientIP := security_dto.ClientIPFromRequest(r)
 
 	tierConfig := m.config.Actions
-	keySuffix := "action"
+	keySuffix := defaultActionKeySuffix
 
 	if override != nil {
 		if override.RequestsPerMinute > 0 {
@@ -175,28 +175,24 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 		if override.BurstSize > 0 {
 			tierConfig.BurstSize = override.BurstSize
 		}
-		if override.KeySuffix != "" {
-			keySuffix = override.KeySuffix
-		}
+		keySuffix = cmp.Or(override.KeySuffix, defaultActionKeySuffix)
 	}
 
 	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
 	return result.Allowed
 }
 
-// checkRateLimit checks if a request is within the rate limit for a given key
-// and tier.
+// checkRateLimit checks if a request is within the rate limit for a given key and tier.
 //
-// Takes ctx (context.Context) which carries cancellation through to the
-// underlying counter store call.
+// Takes ctx (context.Context) which carries cancellation through to the underlying
+// counter store call.
 // Takes clientIP (string) which identifies the client making the request.
 // Takes keySuffix (string) which specifies the rate limit bucket name.
-// Takes tier (security_dto.RateLimitTierValues) which defines the limit
-// settings.
+// Takes tier (security_dto.RateLimitTierValues) which defines the limit settings.
 //
-// Returns ratelimiter_dto.Result which contains the limit decision and
-// remaining quota. If the service returns an error, the request is denied (fail
-// closed) to prevent rate limit bypass during backend outages.
+// Returns ratelimiter_dto.Result which contains the limit decision and remaining quota.
+// If the service returns an error, the request is denied (fail closed) to prevent rate
+// limit bypass during backend outages.
 func (m *rateLimitMiddleware) checkRateLimit(
 	ctx context.Context,
 	clientIP string,
@@ -223,8 +219,7 @@ func (m *rateLimitMiddleware) checkRateLimit(
 // setRateLimitHeaders adds rate limit headers to the HTTP response.
 //
 // Takes w (http.ResponseWriter) which receives the rate limit headers.
-// Takes result (ratelimiter_dto.Result) which holds the current rate
-// limit state.
+// Takes result (ratelimiter_dto.Result) which holds the current rate limit state.
 func (*rateLimitMiddleware) setRateLimitHeaders(w http.ResponseWriter, result ratelimiter_dto.Result) {
 	h := w.Header()
 	h[headerRateLimitLimit] = []string{strconv.Itoa(result.Limit)}
@@ -250,8 +245,8 @@ func (m *rateLimitMiddleware) isExemptPath(path string) bool {
 	return false
 }
 
-// withRateLimitClock sets a custom clock for time operations. This is used
-// mainly for testing to make timing predictable.
+// withRateLimitClock sets a custom clock for time operations. This is used mainly for
+// testing to make timing predictable.
 //
 // Takes c (clock.Clock) which provides the time source for rate limiting.
 //
@@ -262,14 +257,12 @@ func withRateLimitClock(c clock.Clock) rateLimitMiddlewareOption {
 	}
 }
 
-// newRateLimitMiddleware creates a new rate limit middleware instance. The
-// middleware reads client IPs from request context, set by RealIP middleware.
+// newRateLimitMiddleware creates a new rate limit middleware instance. The middleware
+// reads client IPs from request context, set by RealIP middleware.
 //
-// Takes config (security_dto.RateLimitValues) which specifies the rate limiting
-// rules.
+// Takes config (security_dto.RateLimitValues) which specifies the rate limiting rules.
 // Takes service (security_domain.RateLimitService) which tracks request rates.
-// Takes opts (...rateLimitMiddlewareOption) which provides optional behaviour
-// controls.
+// Takes opts (...rateLimitMiddlewareOption) which provides optional behaviour controls.
 //
 // Returns *rateLimitMiddleware which is configured and ready for use.
 func newRateLimitMiddleware(

@@ -28,16 +28,18 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 )
 
-// Image represents the <pml-img> tag and implements the Component interface.
-// It renders a responsive image that works well across different email clients.
+// Image represents the <pml-img> tag and implements the Component interface. It renders a
+// responsive image that works well across different email clients.
 type Image struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*Image)(nil)
+var (
+	_ pml_domain.Component = (*Image)(nil)
+)
 
-// NewImage creates a new Image component. An Image renders a responsive image
-// with good cross-client support.
+// NewImage creates a new Image component. An Image renders a responsive image with good
+// cross-client support.
 //
 // Returns *Image which is the configured component ready for use.
 func NewImage() *Image {
@@ -55,24 +57,23 @@ func (*Image) TagName() string {
 
 // IsEndingTag returns whether this is a void element.
 //
-// Returns bool which is always true as Image is a void element and cannot
-// contain children.
+// Returns bool which is always true as Image is a void element and cannot contain
+// children.
 func (*Image) IsEndingTag() bool {
 	return true
 }
 
 // AllowedParents returns the list of valid parent components for this component.
 //
-// Returns []string which contains the component names that may contain this
-// image.
+// Returns []string which contains the component names that may contain this image.
 func (*Image) AllowedParents() []string {
 	return []string{"pml-col", "pml-hero"}
 }
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which maps attribute names
-// to their type definitions.
+// Returns map[string]pml_domain.AttributeDefinition which maps attribute names to their
+// type definitions.
 func (*Image) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		AttrSrc:                      NewAttributeDefinition(pml_domain.TypeString),
@@ -111,8 +112,8 @@ func (*Image) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 
 // DefaultAttributes returns the default attribute values for this component.
 //
-// Returns map[string]string which contains the default values for all
-// supported image attributes such as alt text, alignment, and dimensions.
+// Returns map[string]string which contains the default values for all supported image
+// attributes such as alt text, alignment, and dimensions.
 func (*Image) DefaultAttributes() map[string]string {
 	return map[string]string{
 		AttrAlt:     defaultImageAlt,
@@ -127,8 +128,8 @@ func (*Image) DefaultAttributes() map[string]string {
 
 // GetStyleTargets returns the list of style targets for this component.
 //
-// Returns []pml_domain.StyleTarget which maps style properties to their
-// target elements, distinguishing between container and image targets.
+// Returns []pml_domain.StyleTarget which maps style properties to their target elements,
+// distinguishing between container and image targets.
 func (*Image) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: AttrWidth, Target: TargetContainer},
@@ -144,59 +145,49 @@ func (*Image) GetStyleTargets() []pml_domain.StyleTarget {
 
 // Transform converts a <pml-img> node into its final, email-safe HTML structure.
 //
-// A simple <img> tag is not sufficient for reliable rendering in all email
-// clients. Instead, a table-based structure is generated to control alignment,
-// spacing, and responsive behaviour.
+// A simple <img> tag is not sufficient for reliable rendering in all email clients.
+// Instead, a table-based structure is generated to control alignment, spacing, and
+// responsive behaviour.
 //
 // The transformation implements the following patterns:
 //
-//  1. Table-based Structure for Alignment and Padding:
-//     The <img> tag is wrapped in a <table><tr><td>...</td></tr></table>
-//     structure. The align attribute from <pml-img> is applied to the outer
-//     <table>, which reliably centres or aligns the image block within its
-//     parent column. The padding attributes are applied to the <td>, creating
-//     consistent spacing around the image. The width attribute is applied to
-//     the <td> to enforce the container size, especially in Outlook. The
-//     container-background-colour attribute applies a background colour to the
-//     <td> element.
+//  1. Table-based Structure for Alignment and Padding: The <img> tag is wrapped in a
+//     <table><tr><td>...</td></tr></table> structure. The align attribute from <pml-img>
+//     is applied to the outer <table>, which reliably centres or aligns the image block
+//     within its parent column. The padding attributes are applied to the <td>, creating
+//     consistent spacing around the image. The width attribute is applied to the <td> to
+//     enforce the container size, especially in Outlook. The container-background-colour
+//     attribute applies a background colour to the <td> element.
 //
-//  2. Responsive Image Behaviour:
-//     The <img> tag itself is given style="width: 100%; height: auto;
-//     display: block;". This makes the image fluid, causing it to scale to
-//     the width of its containing <td>. The width attribute on the <img> tag
-//     is set to the calculated pixel width (without the "px" unit), which
-//     acts as a necessary fallback for Outlook.
+//  2. Responsive Image Behaviour: The <img> tag itself is given style="width: 100%;
+//     height: auto; display: block;". This makes the image fluid, causing it to scale to
+//     the width of its containing <td>. The width attribute on the <img> tag is set to
+//     the calculated pixel width (without the "px" unit), which acts as a necessary
+//     fallback for Outlook.
 //
-//  3. Fluid on Mobile Feature:
-//     If fluid-on-mobile="true", a special CSS class (pml-fluid-mobile) is
-//     added to the wrapping <table> and <td>. A corresponding media query is
-//     generated in the document <head> to override any fixed desktop width on
+//  3. Fluid on Mobile Feature: If fluid-on-mobile="true", a special CSS class
+//     (pml-fluid-mobile) is added to the wrapping <table> and <td>. A corresponding media
+//     query is generated in the document <head> to override any fixed desktop width on
 //     mobile devices.
 //
-//  4. Full Width Mode:
-//     If full-width="true", the image stretches to fill its container
-//     completely, ignoring the specified width. In this mode, min-width and
-//     max-width of 100% are applied to the <img> tag and <table> element.
+//  4. Full Width Mode: If full-width="true", the image stretches to fill its container
+//     completely, ignoring the specified width. In this mode, min-width and max-width of
+//     100% are applied to the <img> tag and <table> element.
 //
-//  5. Border Styling:
-//     Supports both unified border and directional border properties for
+//  5. Border Styling: Supports both unified border and directional border properties for
 //     granular control over image borders.
 //
-//  6. Linking:
-//     If an href attribute is present, the <img> tag is wrapped in an <a>
-//     tag with all relevant link attributes applied.
+//  6. Linking: If an href attribute is present, the <img> tag is wrapped in an <a> tag
+//     with all relevant link attributes applied.
 //
-//  7. Piko Directive Preservation:
-//     All p-* directives from the <pml-img> tag are transferred to the
-//     outermost <table> element.
+//  7. Piko Directive Preservation: All p-* directives from the <pml-img> tag are
+//     transferred to the outermost <table> element.
 //
-// Takes node (*ast_domain.TemplateNode) which is the <pml-img> node to
-// transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation context including style manager and container width.
+// Takes node (*ast_domain.TemplateNode) which is the <pml-img> node to transform.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation context
+// including style manager and container width.
 //
-// Returns *ast_domain.TemplateNode which is the transformed table-based HTML
-// structure.
+// Returns *ast_domain.TemplateNode which is the transformed table-based HTML structure.
 // Returns []*pml_domain.Error which contains any diagnostics collected during
 // transformation.
 func (c *Image) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
@@ -226,11 +217,10 @@ func (c *Image) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Transfo
 	return tableNode, ctx.Diagnostics()
 }
 
-// getContentWidth returns the image width, choosing the smaller of the width
-// attribute and the container width.
+// getContentWidth returns the image width, choosing the smaller of the width attribute
+// and the container width.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to the width
-// attribute.
+// Takes styles (*pml_domain.StyleManager) which provides access to the width attribute.
 // Takes containerWidth (float64) which specifies the available space.
 //
 // Returns string which is the width in pixels with "px" suffix.
@@ -253,10 +243,8 @@ func (*Image) getContentWidth(styles *pml_domain.StyleManager, containerWidth fl
 
 // getTableStyles builds the CSS style map for an image table element.
 //
-// Takes contentWidth (string) which specifies the width value for full-width
-// tables.
-// Takes isFullWidth (bool) which controls whether full-width styles are
-// applied.
+// Takes contentWidth (string) which specifies the width value for full-width tables.
+// Takes isFullWidth (bool) which controls whether full-width styles are applied.
 //
 // Returns map[string]string which contains the CSS property-value pairs.
 func (*Image) getTableStyles(contentWidth string, isFullWidth bool) map[string]string {
@@ -322,19 +310,17 @@ func (*Image) getImgStyles(styles *pml_domain.StyleManager, isFullWidth bool) ma
 	return imgStyles
 }
 
-// handleEmailAssetRegistration handles the registration of email assets and
-// CID conversion. For email contexts, local assets (non-http/https) are
-// registered with the EmailAssetRegistry and converted to CID (Content-ID)
-// references for inline embedding.
+// handleEmailAssetRegistration handles the registration of email assets and CID
+// conversion. For email contexts, local assets (non-http/https) are registered with the
+// EmailAssetRegistry and converted to CID (Content-ID) references for inline embedding.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to style
-// attributes including source path, profile, and density settings.
+// Takes styles (*pml_domain.StyleManager) which provides access to style attributes
+// including source path, profile, and density settings.
 // Takes widthPx (int) which specifies the computed display width in pixels.
-// Takes ctx (*pml_domain.TransformationContext) which contains the email
-// context and asset registry.
+// Takes ctx (*pml_domain.TransformationContext) which contains the email context and
+// asset registry.
 //
-// Returns string which is the original source path or a CID reference for
-// email contexts.
+// Returns string which is the original source path or a CID reference for email contexts.
 func handleEmailAssetRegistration(styles *pml_domain.StyleManager, widthPx int, ctx *pml_domain.TransformationContext) string {
 	originalSrc := mustGetStyle(styles, AttrSrc)
 	finalSrc := originalSrc
@@ -368,18 +354,17 @@ func handleEmailAssetRegistration(styles *pml_domain.StyleManager, widthPx int, 
 	return ValueCidPrefix + cid
 }
 
-// resolveAssetDensity determines the request width and density descriptor for
-// asset registration. If a densities attribute is set, the highest density is
-// selected and the width is scaled by its multiplier.
+// resolveAssetDensity determines the request width and density descriptor for asset
+// registration. If a densities attribute is set, the highest density is selected and the
+// width is scaled by its multiplier.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to the
-// densities attribute.
+// Takes styles (*pml_domain.StyleManager) which provides access to the densities
+// attribute.
 // Takes widthPx (int) which is the base display width in pixels.
 //
-// Returns requestWidth (int) which is the width scaled by the density
-// multiplier.
-// Returns requestDensity (string) which is the selected density descriptor, or
-// empty if none is configured.
+// Returns requestWidth (int) which is the width scaled by the density multiplier.
+// Returns requestDensity (string) which is the selected density descriptor, or empty if
+// none is configured.
 func resolveAssetDensity(styles *pml_domain.StyleManager, widthPx int) (requestWidth int, requestDensity string) {
 	requestWidth = widthPx
 
@@ -403,18 +388,18 @@ func resolveAssetDensity(styles *pml_domain.StyleManager, widthPx int) (requestW
 	return requestWidth, requestDensity
 }
 
-// buildImageAttributes constructs all HTML attributes for the <img> element.
-// This includes src, alt, width, style, and optional attributes like title,
-// srcset, sizes, and usemap.
+// buildImageAttributes constructs all HTML attributes for the <img> element. This
+// includes src, alt, width, style, and optional attributes like title, srcset, sizes, and
+// usemap.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style lookups for
-// attribute values.
+// Takes styles (*pml_domain.StyleManager) which provides style lookups for attribute
+// values.
 // Takes finalSrc (string) which is the resolved image source URL.
 // Takes widthPx (int) which specifies the image width in pixels.
 // Takes imgStyles (map[string]string) which contains inline CSS styles.
 //
-// Returns []ast_domain.HTMLAttribute which contains the sorted attributes
-// ready for rendering.
+// Returns []ast_domain.HTMLAttribute which contains the sorted attributes ready for
+// rendering.
 func buildImageAttributes(styles *pml_domain.StyleManager, finalSrc string, widthPx int, imgStyles map[string]string) []ast_domain.HTMLAttribute {
 	attrs := []ast_domain.HTMLAttribute{
 		NewHTMLAttribute(AttrSrc, finalSrc),
@@ -444,8 +429,8 @@ func buildImageAttributes(styles *pml_domain.StyleManager, finalSrc string, widt
 // Takes imgNode (*ast_domain.TemplateNode) which is the image node to wrap.
 // Takes styles (*pml_domain.StyleManager) which provides the link settings.
 //
-// Returns *ast_domain.TemplateNode which is the anchor node if a link exists,
-// or the original image node if no link is set.
+// Returns *ast_domain.TemplateNode which is the anchor node if a link exists, or the
+// original image node if no link is set.
 func wrapImageInAnchor(imgNode *ast_domain.TemplateNode, styles *pml_domain.StyleManager) *ast_domain.TemplateNode {
 	href, ok := styles.Get(AttrHref)
 	if !ok || href == "" {
@@ -470,24 +455,23 @@ func wrapImageInAnchor(imgNode *ast_domain.TemplateNode, styles *pml_domain.Styl
 	return NewElementNode(ElementA, sortHTMLAttributes(anchorAttrs), []*ast_domain.TemplateNode{imgNode})
 }
 
-// buildTableAndTdAttributes constructs the attributes for the table and td
-// elements. This includes data-pml-* attributes for parent components to read,
-// and fluid-on-mobile classes.
+// buildTableAndTdAttributes constructs the attributes for the table and td elements. This
+// includes data-pml-* attributes for parent components to read, and fluid-on-mobile
+// classes.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style values for
-// data attributes.
-// Takes tableStyles (map[string]string) which contains inline styles for the
-// table element.
-// Takes tdStyles (map[string]string) which contains inline styles for the td
+// Takes styles (*pml_domain.StyleManager) which provides style values for data
+// attributes.
+// Takes tableStyles (map[string]string) which contains inline styles for the table
 // element.
+// Takes tdStyles (map[string]string) which contains inline styles for the td element.
 // Takes isFluidOnMobile (bool) which enables fluid width classes for mobile.
-// Takes ctx (*pml_domain.TransformationContext) which provides the media query
-// collector for registering fluid classes.
+// Takes ctx (*pml_domain.TransformationContext) which provides the media query collector
+// for registering fluid classes.
 //
-// Returns tableAttrs ([]ast_domain.HTMLAttribute) which contains the sorted
-// attributes for the table element.
-// Returns tdAttrs ([]ast_domain.HTMLAttribute) which contains the sorted
-// attributes for the td element.
+// Returns tableAttrs ([]ast_domain.HTMLAttribute) which contains the sorted attributes
+// for the table element.
+// Returns tdAttrs ([]ast_domain.HTMLAttribute) which contains the sorted attributes for
+// the td element.
 func buildTableAndTdAttributes(
 	styles *pml_domain.StyleManager,
 	tableStyles, tdStyles map[string]string,
@@ -538,15 +522,15 @@ func buildTableAndTdAttributes(
 	return sortHTMLAttributes(tableAttrs), sortHTMLAttributes(tdAttrs)
 }
 
-// createImageTableStructure creates the complete table wrapper structure for
-// an image. Structure: <table><tbody><tr><td>content</td></tr></tbody></table>.
+// createImageTableStructure creates the complete table wrapper structure for an image.
+// Structure: <table><tbody><tr><td>content</td></tr></tbody></table>.
 //
-// Takes tableAttrs ([]ast_domain.HTMLAttribute) which specifies attributes for
-// the outer table element.
-// Takes tdAttrs ([]ast_domain.HTMLAttribute) which specifies attributes for
-// the inner td cell element.
-// Takes content (*ast_domain.TemplateNode) which is the node to wrap inside
-// the table cell.
+// Takes tableAttrs ([]ast_domain.HTMLAttribute) which specifies attributes for the outer
+// table element.
+// Takes tdAttrs ([]ast_domain.HTMLAttribute) which specifies attributes for the inner td
+// cell element.
+// Takes content (*ast_domain.TemplateNode) which is the node to wrap inside the table
+// cell.
 //
 // Returns *ast_domain.TemplateNode which is the constructed table structure.
 func createImageTableStructure(
@@ -562,13 +546,13 @@ func createImageTableStructure(
 // selectHighestDensity picks the highest pixel density from a list of density
 // descriptors. For email rendering, the best quality variant is always chosen.
 //
-// Input examples: ["x1", "x2", "x3"], ["1x", "2x"], ["x2", "x1", "x3"]
-// Returns: "x3", "x2", "x3" respectively.
+// Input examples: ["x1", "x2", "x3"], ["1x", "2x"], ["x2", "x1", "x3"] Returns: "x3",
+// "x2", "x3" respectively.
 //
 // Takes densities ([]string) which contains density descriptors to compare.
 //
-// Returns string which is the highest density value in normalised form, or an
-// empty string if the input slice is empty.
+// Returns string which is the highest density value in normalised form, or an empty
+// string if the input slice is empty.
 func selectHighestDensity(densities []string) string {
 	if len(densities) == 0 {
 		return ""
@@ -588,8 +572,8 @@ func selectHighestDensity(densities []string) string {
 	return normaliseDensity(highestDensity)
 }
 
-// parseDensityMultiplier converts a density string to a number.
-// It handles formats such as "x1", "1x", "x2", "2x", "x3", "3x".
+// parseDensityMultiplier converts a density string to a number. It handles formats such
+// as "x1", "1x", "x2", "2x", "x3", "3x".
 //
 // Takes density (string) which is the density string to parse.
 //
@@ -606,8 +590,8 @@ func parseDensityMultiplier(density string) float64 {
 	return 1.0
 }
 
-// normaliseDensity converts a density descriptor to the standard "xN" format.
-// Input examples: "x1", "1x", "2x", "x3" become "x1", "x1", "x2", "x3".
+// normaliseDensity converts a density descriptor to the standard "xN" format. Input
+// examples: "x1", "1x", "2x", "x3" become "x1", "x1", "x2", "x3".
 //
 // Takes density (string) which is the density descriptor to convert.
 //

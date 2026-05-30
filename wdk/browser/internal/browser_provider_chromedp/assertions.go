@@ -28,8 +28,7 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 )
 
-// AssertionError represents a failed assertion and implements the error
-// interface.
+// AssertionError represents a failed assertion and implements the error interface.
 type AssertionError struct {
 	// Selector is the AST path where the assertion failed.
 	Selector string
@@ -46,8 +45,8 @@ type AssertionError struct {
 
 // Error returns the formatted error message for the assertion failure.
 //
-// Returns string which contains the message, selector, and expected and actual
-// values when they are set.
+// Returns string which contains the message, selector, and expected and actual values
+// when they are set.
 func (e *AssertionError) Error() string {
 	if e.Expected != "" && e.Actual != "" {
 		return fmt.Sprintf("%s: expected %q, got %q (selector: %s)", e.Message, e.Expected, e.Actual, e.Selector)
@@ -58,55 +57,57 @@ func (e *AssertionError) Error() string {
 // assertionHandler is a function type that runs an assertion step.
 type assertionHandler func(ctx *ActionContext, step *BrowserStep) error
 
-// assertionHandlers maps assertion action names to their handlers.
-var assertionHandlers = map[string]assertionHandler{
-	"checkText": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckText(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkTextContains": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckTextContains(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkTextNotContains": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckTextNotContains(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkValue": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckValue(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkAttribute":            executeCheckAttribute,
-	"checkAttributeContains":    executeCheckAttributeContains,
-	"checkAttributeNotContains": executeCheckAttributeNotContains,
-	"checkClass": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckClass(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkStyle": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckStyle(ctx, step.Selector, step.Name, step.ExpectedString())
-	},
-	"checkFocused":    func(ctx *ActionContext, step *BrowserStep) error { return CheckFocused(ctx, step.Selector) },
-	"checkNotFocused": func(ctx *ActionContext, step *BrowserStep) error { return CheckNotFocused(ctx, step.Selector) },
-	"checkVisible":    func(ctx *ActionContext, step *BrowserStep) error { return CheckVisible(ctx, step.Selector) },
-	"checkHidden":     func(ctx *ActionContext, step *BrowserStep) error { return CheckHidden(ctx, step.Selector) },
-	"checkEnabled":    func(ctx *ActionContext, step *BrowserStep) error { return CheckEnabled(ctx, step.Selector) },
-	"checkDisabled":   func(ctx *ActionContext, step *BrowserStep) error { return CheckDisabled(ctx, step.Selector) },
-	"checkChecked":    func(ctx *ActionContext, step *BrowserStep) error { return CheckChecked(ctx, step.Selector) },
-	"checkUnchecked":  func(ctx *ActionContext, step *BrowserStep) error { return CheckUnchecked(ctx, step.Selector) },
-	"checkElementCount": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckElementCount(ctx, step.Selector, step.ExpectedInt())
-	},
-	"checkHTML": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckHTML(ctx, step.Selector, step.ExpectedString())
-	},
-	"checkFormData": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckFormData(ctx, step.Selector, step.ExpectedMap())
-	},
-	"checkConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckConsoleMessage(ctx, step.Level, step.Message)
-	},
-	"checkNoConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
-		return CheckNoConsoleMessage(ctx, step.Level, step.Message)
-	},
-	"checkNoConsoleErrors":   func(ctx *ActionContext, _ *BrowserStep) error { return CheckNoConsoleErrors(ctx) },
-	"checkNoConsoleWarnings": func(ctx *ActionContext, _ *BrowserStep) error { return CheckNoConsoleWarnings(ctx) },
-}
+var (
+	// assertionHandlers maps assertion action names to their handlers.
+	assertionHandlers = map[string]assertionHandler{
+		"checkText": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckText(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkTextContains": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckTextContains(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkTextNotContains": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckTextNotContains(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkValue": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckValue(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkAttribute":            executeCheckAttribute,
+		"checkAttributeContains":    executeCheckAttributeContains,
+		"checkAttributeNotContains": executeCheckAttributeNotContains,
+		"checkClass": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckClass(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkStyle": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckStyle(ctx, step.Selector, step.Name, step.ExpectedString())
+		},
+		"checkFocused":    func(ctx *ActionContext, step *BrowserStep) error { return CheckFocused(ctx, step.Selector) },
+		"checkNotFocused": func(ctx *ActionContext, step *BrowserStep) error { return CheckNotFocused(ctx, step.Selector) },
+		"checkVisible":    func(ctx *ActionContext, step *BrowserStep) error { return CheckVisible(ctx, step.Selector) },
+		"checkHidden":     func(ctx *ActionContext, step *BrowserStep) error { return CheckHidden(ctx, step.Selector) },
+		"checkEnabled":    func(ctx *ActionContext, step *BrowserStep) error { return CheckEnabled(ctx, step.Selector) },
+		"checkDisabled":   func(ctx *ActionContext, step *BrowserStep) error { return CheckDisabled(ctx, step.Selector) },
+		"checkChecked":    func(ctx *ActionContext, step *BrowserStep) error { return CheckChecked(ctx, step.Selector) },
+		"checkUnchecked":  func(ctx *ActionContext, step *BrowserStep) error { return CheckUnchecked(ctx, step.Selector) },
+		"checkElementCount": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckElementCount(ctx, step.Selector, step.ExpectedInt())
+		},
+		"checkHTML": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckHTML(ctx, step.Selector, step.ExpectedString())
+		},
+		"checkFormData": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckFormData(ctx, step.Selector, step.ExpectedMap())
+		},
+		"checkConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckConsoleMessage(ctx, step.Level, step.Message)
+		},
+		"checkNoConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
+			return CheckNoConsoleMessage(ctx, step.Level, step.Message)
+		},
+		"checkNoConsoleErrors":   func(ctx *ActionContext, _ *BrowserStep) error { return CheckNoConsoleErrors(ctx) },
+		"checkNoConsoleWarnings": func(ctx *ActionContext, _ *BrowserStep) error { return CheckNoConsoleWarnings(ctx) },
+	}
+)
 
 // DeviceParams holds the settings for device emulation in a browser.
 type DeviceParams struct {
@@ -168,8 +169,8 @@ func CheckText(ctx *ActionContext, selector, expected string) error {
 // Takes selector (string) which identifies the element to inspect.
 // Takes substring (string) which specifies the text to search for.
 //
-// Returns error when the element does not contain the substring within the
-// default timeout.
+// Returns error when the element does not contain the substring within the default
+// timeout.
 func CheckTextContains(ctx *ActionContext, selector, substring string) error {
 	var actualText string
 
@@ -235,8 +236,8 @@ func CheckTextNotContains(ctx *ActionContext, selector, substring string) error 
 // Takes selector (string) which identifies the input element to check.
 // Takes expected (string) which is the value to match against.
 //
-// Returns error when the element value does not match the expected value
-// within the default assertion timeout.
+// Returns error when the element value does not match the expected value within the
+// default assertion timeout.
 func CheckValue(ctx *ActionContext, selector, expected string) error {
 	var actualValue string
 
@@ -273,8 +274,8 @@ func CheckValue(ctx *ActionContext, selector, expected string) error {
 // Takes attributeName (string) which specifies the attribute name to verify.
 // Takes expected (string) which is the expected attribute value.
 //
-// Returns error when the element cannot be found, the attribute cannot be
-// read, or the attribute value does not match the expected value.
+// Returns error when the element cannot be found, the attribute cannot be read, or the
+// attribute value does not match the expected value.
 func CheckAttribute(ctx *ActionContext, selector, attributeName, expected string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -319,16 +320,15 @@ func CheckAttribute(ctx *ActionContext, selector, attributeName, expected string
 	return nil
 }
 
-// CheckAttributeContains verifies that an element's attribute contains a
-// substring.
+// CheckAttributeContains verifies that an element's attribute contains a substring.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the check.
 // Takes selector (string) which identifies the element to inspect.
 // Takes attributeName (string) which specifies the attribute to examine.
 // Takes substring (string) which is the expected substring to find.
 //
-// Returns error when the element cannot be found, the attribute does not exist,
-// or the attribute value does not contain the expected substring.
+// Returns error when the element cannot be found, the attribute does not exist, or the
+// attribute value does not contain the expected substring.
 func CheckAttributeContains(ctx *ActionContext, selector, attributeName, substring string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -361,16 +361,16 @@ func CheckAttributeContains(ctx *ActionContext, selector, attributeName, substri
 	return nil
 }
 
-// CheckAttributeNotContains verifies that an element's attribute does NOT
-// contain a substring.
+// CheckAttributeNotContains verifies that an element's attribute does NOT contain a
+// substring.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the check.
 // Takes selector (string) which identifies the element to inspect.
 // Takes attributeName (string) which specifies the attribute to examine.
 // Takes substring (string) which is the substring that should NOT be present.
 //
-// Returns error when the element cannot be found, or the attribute value
-// contains the unexpected substring.
+// Returns error when the element cannot be found, or the attribute value contains the
+// unexpected substring.
 func CheckAttributeNotContains(ctx *ActionContext, selector, attributeName, substring string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -404,8 +404,8 @@ func CheckAttributeNotContains(ctx *ActionContext, selector, attributeName, subs
 // Takes selector (string) which identifies the element to check.
 // Takes className (string) which is the CSS class to look for.
 //
-// Returns error when the element cannot be found, the class attribute cannot
-// be read, or the element does not have the given class.
+// Returns error when the element cannot be found, the class attribute cannot be read, or
+// the element does not have the given class.
 func CheckClass(ctx *ActionContext, selector, className string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -441,8 +441,8 @@ func CheckClass(ctx *ActionContext, selector, className string) error {
 // Takes property (string) which specifies the CSS property name to check.
 // Takes expected (string) which is the expected computed value of the property.
 //
-// Returns error when the element cannot be found, the style cannot be read,
-// or the actual computed value does not match the expected value.
+// Returns error when the element cannot be found, the style cannot be read, or the actual
+// computed value does not match the expected value.
 func CheckStyle(ctx *ActionContext, selector, property, expected string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -475,8 +475,8 @@ func CheckStyle(ctx *ActionContext, selector, property, expected string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, the focus check fails,
-// or the element does not have focus.
+// Returns error when the element cannot be found, the focus check fails, or the element
+// does not have focus.
 func CheckFocused(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -505,8 +505,8 @@ func CheckFocused(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, the focus check fails, or
-// the element has focus.
+// Returns error when the element cannot be found, the focus check fails, or the element
+// has focus.
 func CheckNotFocused(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -530,13 +530,12 @@ func CheckNotFocused(ctx *ActionContext, selector string) error {
 	return nil
 }
 
-// CheckElementCount verifies the number of elements matching a selector.
-// Use expected = -1 to check for "at least one element exists".
+// CheckElementCount verifies the number of elements matching a selector. Use expected =
+// -1 to check for "at least one element exists".
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which specifies the CSS selector to match.
-// Takes expected (int) which is the expected element count, or -1 for at least
-// one.
+// Takes expected (int) which is the expected element count, or -1 for at least one.
 //
 // Returns error when the element count does not match within the timeout.
 func CheckElementCount(ctx *ActionContext, selector string, expected int) error {
@@ -566,8 +565,8 @@ func CheckElementCount(ctx *ActionContext, selector string, expected int) error 
 // Takes selector (string) which identifies the element to check.
 // Takes expected (string) which specifies the expected HTML content.
 //
-// Returns error when the element cannot be found, the HTML cannot be read,
-// or the HTML does not match the expected value.
+// Returns error when the element cannot be found, the HTML cannot be read, or the HTML
+// does not match the expected value.
 func CheckHTML(ctx *ActionContext, selector, expected string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -595,11 +594,10 @@ func CheckHTML(ctx *ActionContext, selector, expected string) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context for evaluation.
 // Takes selector (string) which identifies the form element to check.
-// Takes expectedFields (map[string]any) which specifies the expected field
-// values.
+// Takes expectedFields (map[string]any) which specifies the expected field values.
 //
-// Returns error when the form element cannot be found, the form data cannot be
-// read, or any field value does not match the expected value.
+// Returns error when the form element cannot be found, the form data cannot be read, or
+// any field value does not match the expected value.
 func CheckFormData(ctx *ActionContext, selector string, expectedFields map[string]any) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -633,8 +631,7 @@ func CheckFormData(ctx *ActionContext, selector string, expectedFields map[strin
 
 // CheckExists verifies that an element matching the given selector exists.
 //
-// Takes ctx (*ActionContext) which provides the browser context for element
-// lookup.
+// Takes ctx (*ActionContext) which provides the browser context for element lookup.
 // Takes selector (string) which specifies the CSS selector to find.
 //
 // Returns error when no element matches the selector.
@@ -675,8 +672,8 @@ func CheckNotExists(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, visibility cannot be
-// checked, or the element is not visible.
+// Returns error when the element cannot be found, visibility cannot be checked, or the
+// element is not visible.
 func CheckVisible(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -734,8 +731,8 @@ func CheckHidden(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, when the enabled state
-// cannot be checked, or when the element is not enabled.
+// Returns error when the element cannot be found, when the enabled state cannot be
+// checked, or when the element is not enabled.
 func CheckEnabled(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -764,8 +761,8 @@ func CheckEnabled(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, its enabled state cannot be
-// determined, or the element is enabled when it should be disabled.
+// Returns error when the element cannot be found, its enabled state cannot be determined,
+// or the element is enabled when it should be disabled.
 func CheckDisabled(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -794,8 +791,8 @@ func CheckDisabled(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the element to verify.
 //
-// Returns error when the element cannot be found, its checked state cannot be
-// read, or the element is not checked.
+// Returns error when the element cannot be found, its checked state cannot be read, or
+// the element is not checked.
 func CheckChecked(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -824,8 +821,8 @@ func CheckChecked(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context for the check.
 // Takes selector (string) which identifies the element to check.
 //
-// Returns error when the element cannot be found, its state cannot be read, or
-// the element is selected when it should not be.
+// Returns error when the element cannot be found, its state cannot be read, or the
+// element is selected when it should not be.
 func CheckUnchecked(ctx *ActionContext, selector string) error {
 	_, err := FindElement(ctx.Ctx, selector)
 	if err != nil {
@@ -851,17 +848,14 @@ func CheckUnchecked(ctx *ActionContext, selector string) error {
 
 // CheckConsoleMessage verifies that a console message was logged.
 //
-// If level is empty, matches any level. If messageContains is empty,
-// matches any message.
+// If level is empty, matches any level. If messageContains is empty, matches any message.
 //
 // Takes ctx (*ActionContext) which provides access to the page helper.
-// Takes level (string) which specifies the log level to match, or empty
-// for any level.
-// Takes messageContains (string) which specifies a substring to find in
-// the message, or empty for any message.
+// Takes level (string) which specifies the log level to match, or empty for any level.
+// Takes messageContains (string) which specifies a substring to find in the message, or
+// empty for any message.
 //
-// Returns error when no matching console message is found or the page
-// helper is nil.
+// Returns error when no matching console message is found or the page helper is nil.
 func CheckConsoleMessage(ctx *ActionContext, level, messageContains string) error {
 	if ctx.PageHelper == nil {
 		return errors.New("checkConsoleMessage requires PageHelper in ActionContext")
@@ -886,19 +880,17 @@ func CheckConsoleMessage(ctx *ActionContext, level, messageContains string) erro
 	}
 }
 
-// CheckNoConsoleMessage checks that no console message matches the given
-// criteria.
+// CheckNoConsoleMessage checks that no console message matches the given criteria.
 //
-// When level is empty, checks all levels. When messageContains is empty,
-// checks all messages.
+// When level is empty, checks all levels. When messageContains is empty, checks all
+// messages.
 //
 // Takes ctx (*ActionContext) which provides the page helper for console access.
 // Takes level (string) which filters by log level, or empty for all levels.
-// Takes messageContains (string) which filters by message content, or empty
-// for all messages.
+// Takes messageContains (string) which filters by message content, or empty for all
+// messages.
 //
-// Returns error when a matching console message is found or when PageHelper
-// is nil.
+// Returns error when a matching console message is found or when PageHelper is nil.
 func CheckNoConsoleMessage(ctx *ActionContext, level, messageContains string) error {
 	if ctx.PageHelper == nil {
 		return errors.New("checkNoConsoleMessage requires PageHelper in ActionContext")
@@ -923,8 +915,7 @@ func CheckNoConsoleMessage(ctx *ActionContext, level, messageContains string) er
 	return nil
 }
 
-// CheckNoConsoleErrors verifies that no error-level console messages were
-// logged.
+// CheckNoConsoleErrors verifies that no error-level console messages were logged.
 //
 // Takes ctx (*ActionContext) which provides the browser context to check.
 //
@@ -933,8 +924,7 @@ func CheckNoConsoleErrors(ctx *ActionContext) error {
 	return CheckNoConsoleMessage(ctx, "error", "")
 }
 
-// CheckNoConsoleWarnings verifies that no warning-level console messages were
-// logged.
+// CheckNoConsoleWarnings verifies that no warning-level console messages were logged.
 //
 // Takes ctx (*ActionContext) which provides the browser context to check.
 //
@@ -963,8 +953,8 @@ func ExecuteAssertion(ctx *ActionContext, step *BrowserStep) error {
 //
 // Returns bool which is true if the action is an assertion action.
 //
-// Note: The captureDOM action is not included here as it requires special
-// handling by test harnesses for golden file comparison.
+// Note: The captureDOM action is not included here as it requires special handling by
+// test harnesses for golden file comparison.
 func IsAssertionAction(action string) bool {
 	switch action {
 	case "checkText", "checkTextNotContains", "checkTextContains",
@@ -985,9 +975,9 @@ func IsAssertionAction(action string) bool {
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the target element using CSS syntax.
-// Takes includeShadowRoots (bool) which, when true, serialises shadow DOM
-// content as <template shadowrootmode="open"> elements inside the captured
-// HTML using the browser's getHTML API.
+// Takes includeShadowRoots (bool) which, when true, serialises shadow DOM content as
+// <template shadowrootmode="open"> elements inside the captured HTML using the browser's
+// getHTML API.
 //
 // Returns string which contains the outer HTML of the matched element.
 // Returns error when the selector times out or the DOM capture fails.
@@ -1047,8 +1037,8 @@ func ScreenshotElement(ctx *ActionContext, selector string) ([]byte, error) {
 
 // ScreenshotViewport captures a PNG screenshot of the current viewport.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// screenshot operation.
+// Takes ctx (*ActionContext) which provides the browser context for the screenshot
+// operation.
 //
 // Returns []byte which contains the PNG image data.
 // Returns error when the screenshot cannot be captured.
@@ -1064,11 +1054,10 @@ func ScreenshotViewport(ctx *ActionContext) ([]byte, error) {
 	return buffer, nil
 }
 
-// ScreenshotFull captures a PNG screenshot of the entire page, scrolling if
-// necessary.
+// ScreenshotFull captures a PNG screenshot of the entire page, scrolling if necessary.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// screenshot operation.
+// Takes ctx (*ActionContext) which provides the browser context for the screenshot
+// operation.
 //
 // Returns []byte which contains the PNG image data.
 // Returns error when the screenshot operation fails.
@@ -1132,8 +1121,7 @@ func EmulateDevice(ctx *ActionContext, params DeviceParams) error {
 
 // ResetEmulation resets device emulation to defaults.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// operation.
+// Takes ctx (*ActionContext) which provides the browser context for the operation.
 //
 // Returns error when the emulation reset fails.
 func ResetEmulation(ctx *ActionContext) error {
@@ -1176,8 +1164,8 @@ func tryGetElementValue(ctx *ActionContext, selector string) (string, bool) {
 	return value, true
 }
 
-// elementCountMatches checks if the element count matches the expected value.
-// A value of -1 for expected means at least one element exists.
+// elementCountMatches checks if the element count matches the expected value. A value of
+// -1 for expected means at least one element exists.
 //
 // Takes count (int) which is the actual number of elements found.
 // Takes expected (int) which is the required count, or -1 for at least one.
@@ -1214,8 +1202,7 @@ func newElementCountError(selector string, expected, actual int) *AssertionError
 	}
 }
 
-// executeCheckAttribute handles the checkAttribute action with conditional
-// logic.
+// executeCheckAttribute handles the checkAttribute action with conditional logic.
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
 // Takes step (*BrowserStep) which defines the attribute check to perform.
@@ -1238,8 +1225,8 @@ func executeCheckAttributeContains(ctx *ActionContext, step *BrowserStep) error 
 	return CheckAttributeContains(ctx, step.Selector, step.AttributeName(), step.ExpectedString())
 }
 
-// executeCheckAttributeNotContains checks that an element attribute does not
-// contain a given substring.
+// executeCheckAttributeNotContains checks that an element attribute does not contain a
+// given substring.
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
 // Takes step (*BrowserStep) which defines the attribute check to perform.

@@ -29,10 +29,10 @@ func TestEdgeCaseRangeClosureCapture(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "map_range_closure_capture",
@@ -169,10 +169,10 @@ func TestEdgeCaseRecursiveClosures(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "recursive_closure_variable",
@@ -233,10 +233,10 @@ func TestEdgeCaseTypeSwitch(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "multi_types_per_case",
@@ -319,10 +319,10 @@ func TestEdgeCaseCompositeNesting(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "map_of_slices",
@@ -406,10 +406,10 @@ func TestEdgeCaseDeferNamedReturns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "defer_multi_named_return",
@@ -470,10 +470,10 @@ func TestEdgeCaseSelectChannel(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "select_nil_channel_default",
@@ -531,10 +531,10 @@ func TestEdgeCaseGoroutines(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "goroutine_loop_capture",
@@ -597,14 +597,14 @@ func TestEdgeCaseNumeric(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 
-			name: "uint_max_plus_one_no_subword_mask",
+			name: "uint8_wraps_modulo_256",
 			source: `package main
 
 func run() uint8 {
@@ -616,7 +616,7 @@ func run() uint8 {
 func main() {}
 `,
 			entrypoint: "run",
-			expect:     uint64(256),
+			expect:     uint64(0),
 		},
 		{
 			name: "float_div_zero_inf",
@@ -666,10 +666,10 @@ func TestEdgeCasePointers(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "pointer_to_pointer_deref",
@@ -721,10 +721,10 @@ func TestEdgeCaseInterfaceMethod(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "interface_reassignment",
@@ -806,10 +806,10 @@ func TestEdgeCaseScopeVariable(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "short_var_redecl",

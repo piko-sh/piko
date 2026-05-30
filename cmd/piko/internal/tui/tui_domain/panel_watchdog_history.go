@@ -59,12 +59,14 @@ const (
 	historyFilterRunning
 )
 
-// historyFilterCount is the number of distinct history filters cycled
-// through by the `f` key.
-const historyFilterCount = 4
+const (
+	// historyFilterCount is the number of distinct history filters cycled through by the `f`
+	// key.
+	historyFilterCount = 4
+)
 
-// historySnapshotMsg carries a refreshed history list. Err is non-nil
-// when either RPC failed; the panel surfaces it as a banner.
+// historySnapshotMsg carries a refreshed history list. Err is non-nil when either RPC
+// failed; the panel surfaces it as a banner.
 type historySnapshotMsg struct {
 	// Status is the latest watchdog status snapshot.
 	Status *WatchdogStatus
@@ -76,8 +78,8 @@ type historySnapshotMsg struct {
 	Entries []WatchdogStartupEntry
 }
 
-// WatchdogHistoryPanel renders the startup-history ring including a
-// crash-loop indicator derived from the current watchdog status.
+// WatchdogHistoryPanel renders the startup-history ring including a crash-loop indicator
+// derived from the current watchdog status.
 type WatchdogHistoryPanel struct {
 	// provider supplies startup-history and status snapshots.
 	provider WatchdogProvider
@@ -197,8 +199,7 @@ func (p *WatchdogHistoryPanel) View(width, height int) string {
 	return p.RenderFrame(body)
 }
 
-// composeBody arranges the crash-loop banner, header, table, and
-// footer.
+// composeBody arranges the crash-loop banner, header, table, and footer.
 //
 // Takes width (int) which is the body width.
 // Takes height (int) which is the body height.
@@ -239,9 +240,8 @@ func (p *WatchdogHistoryPanel) renderHeaderRow(width int) string {
 	return PadRightANSI(left+strings.Repeat(" ", gap)+right, width)
 }
 
-// renderCrashLoopRow shows the crash-loop indicator. Detected when the
-// number of unclean entries within CrashLoopWindow meets the configured
-// threshold from the watchdog status.
+// renderCrashLoopRow shows the crash-loop indicator. Detected when the number of unclean
+// entries within CrashLoopWindow meets the configured threshold from the watchdog status.
 //
 // Takes width (int) which is the row width.
 //
@@ -265,8 +265,8 @@ func (p *WatchdogHistoryPanel) renderCrashLoopRow(width int) string {
 	return PadRightANSI(p.healthyStyle().Render(body), width)
 }
 
-// renderTableHeader returns the PID / STARTED / STOPPED / DURATION /
-// REASON / VERSION header row.
+// renderTableHeader returns the PID / STARTED / STOPPED / DURATION / REASON / VERSION
+// header row.
 //
 // Takes width (int) which is the row width.
 //
@@ -393,13 +393,12 @@ func (*WatchdogHistoryPanel) composeColumns(cells []string, widths []int) string
 
 // visibleEntries returns the filtered history entries, newest-first.
 //
-// Returns []WatchdogStartupEntry which is the filtered slice in
-// newest-first order.
+// Returns []WatchdogStartupEntry which is the filtered slice in newest-first order.
 func (p *WatchdogHistoryPanel) visibleEntries() []WatchdogStartupEntry {
 	all := p.snapshotEntries()
 	out := make([]WatchdogStartupEntry, 0, len(all))
 	for _, entry := range all {
-		switch p.filter {
+		switch p.filter { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case historyFilterClean:
 			if entry.Reason != "clean" {
 				continue
@@ -435,11 +434,9 @@ func (p *WatchdogHistoryPanel) snapshotEntries() []WatchdogStartupEntry {
 	return out
 }
 
-// snapshotStatus returns the cached watchdog status, used for the
-// crash-loop banner.
+// snapshotStatus returns the cached watchdog status, used for the crash-loop banner.
 //
-// Returns *WatchdogStatus which is the cached snapshot, or nil when
-// none is available.
+// Returns *WatchdogStatus which is the cached snapshot, or nil when none is available.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogHistoryPanel) snapshotStatus() *WatchdogStatus {
@@ -489,8 +486,8 @@ func (p *WatchdogHistoryPanel) filterLabel() string {
 
 // fetchCmd asks the provider for fresh history and status snapshots.
 //
-// Returns tea.Cmd which produces a historySnapshotMsg, or nil when no
-// provider is configured.
+// Returns tea.Cmd which produces a historySnapshotMsg, or nil when no provider is
+// configured.
 func (p *WatchdogHistoryPanel) fetchCmd() tea.Cmd {
 	if p.provider == nil {
 		return nil
@@ -529,8 +526,7 @@ func (p *WatchdogHistoryPanel) handleKey(message tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// cycleFilter advances the filter through (all, clean, unclean,
-// running, all).
+// cycleFilter advances the filter through (all, clean, unclean, running, all).
 func (p *WatchdogHistoryPanel) cycleFilter() {
 	p.filter = (p.filter + 1) % historyFilterCount
 }

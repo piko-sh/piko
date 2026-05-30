@@ -27,11 +27,11 @@ import (
 	"strings"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/json"
 )
 
 type ExpectedSpec struct {

@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file holds the shared logic for recursively walking and transforming
-// type hierarchies, such as applying generic type substitutions.
+// This file holds the shared logic for recursively walking and transforming type
+// hierarchies, such as applying generic type substitutions.
 
 import (
 	"go/ast"
@@ -33,15 +33,15 @@ type typeWalker struct {
 	querier *TypeQuerier
 }
 
-// applyGenericSubstitutions replaces generic type parameters in an AST node.
-// It sends composite types to dedicated helper functions.
+// applyGenericSubstitutions replaces generic type parameters in an AST node. It sends
+// composite types to dedicated helper functions.
 //
 // Takes typeAST (ast.Expr) which is the type expression to transform.
-// Takes substMap (map[string]ast.Expr) which maps type parameter names to
-// their concrete replacements.
+// Takes substMap (map[string]ast.Expr) which maps type parameter names to their concrete
+// replacements.
 //
-// Returns ast.Expr which is the transformed type with substitutions applied,
-// or the original if no substitution was needed.
+// Returns ast.Expr which is the transformed type with substitutions applied, or the
+// original if no substitution was needed.
 func applyGenericSubstitutions(typeAST ast.Expr, substMap map[string]ast.Expr) ast.Expr {
 	if typeAST == nil || len(substMap) == 0 {
 		return typeAST
@@ -69,11 +69,11 @@ func applyGenericSubstitutions(typeAST ast.Expr, substMap map[string]ast.Expr) a
 // substituteInStarExpr applies type substitutions to a pointer type.
 //
 // Takes t (*ast.StarExpr) which is the pointer type to process.
-// Takes substMap (map[string]ast.Expr) which maps type names to their
-// replacement expressions.
+// Takes substMap (map[string]ast.Expr) which maps type names to their replacement
+// expressions.
 //
-// Returns ast.Expr which is a new StarExpr with the substituted inner type,
-// or the original expression if no change was needed.
+// Returns ast.Expr which is a new StarExpr with the substituted inner type, or the
+// original expression if no change was needed.
 func substituteInStarExpr(t *ast.StarExpr, substMap map[string]ast.Expr) ast.Expr {
 	newX := applyGenericSubstitutions(t.X, substMap)
 	if newX != t.X {
@@ -85,11 +85,11 @@ func substituteInStarExpr(t *ast.StarExpr, substMap map[string]ast.Expr) ast.Exp
 // substituteInArrayType replaces type parameters in an array or slice type.
 //
 // Takes t (*ast.ArrayType) which is the array or slice type to process.
-// Takes substMap (map[string]ast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]ast.Expr) which maps type parameter names to their concrete
+// types.
 //
-// Returns ast.Expr which is a new array type with substitutions applied, or
-// the original type if no changes were needed.
+// Returns ast.Expr which is a new array type with substitutions applied, or the original
+// type if no changes were needed.
 func substituteInArrayType(t *ast.ArrayType, substMap map[string]ast.Expr) ast.Expr {
 	newElt := applyGenericSubstitutions(t.Elt, substMap)
 	if newElt != t.Elt {
@@ -98,15 +98,14 @@ func substituteInArrayType(t *ast.ArrayType, substMap map[string]ast.Expr) ast.E
 	return t
 }
 
-// substituteInMapType applies type substitutions to a map's key and value
-// types.
+// substituteInMapType applies type substitutions to a map's key and value types.
 //
 // Takes t (*ast.MapType) which is the map type to transform.
-// Takes substMap (map[string]ast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]ast.Expr) which maps type parameter names to their concrete
+// types.
 //
-// Returns ast.Expr which is a new map type with substitutions applied, or the
-// original if no changes were needed.
+// Returns ast.Expr which is a new map type with substitutions applied, or the original if
+// no changes were needed.
 func substituteInMapType(t *ast.MapType, substMap map[string]ast.Expr) ast.Expr {
 	newKey := applyGenericSubstitutions(t.Key, substMap)
 	newVal := applyGenericSubstitutions(t.Value, substMap)
@@ -119,11 +118,11 @@ func substituteInMapType(t *ast.MapType, substMap map[string]ast.Expr) ast.Expr 
 // substituteInIndexExpr applies type substitutions to an index expression.
 //
 // Takes t (*ast.IndexExpr) which is the index expression to change.
-// Takes substMap (map[string]ast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]ast.Expr) which maps type parameter names to their concrete
+// types.
 //
-// Returns ast.Expr which is the updated expression, or the original if no
-// substitutions were made.
+// Returns ast.Expr which is the updated expression, or the original if no substitutions
+// were made.
 func substituteInIndexExpr(t *ast.IndexExpr, substMap map[string]ast.Expr) ast.Expr {
 	newX := applyGenericSubstitutions(t.X, substMap)
 	newIndex := applyGenericSubstitutions(t.Index, substMap)
@@ -133,15 +132,15 @@ func substituteInIndexExpr(t *ast.IndexExpr, substMap map[string]ast.Expr) ast.E
 	return t
 }
 
-// substituteInIndexListExpr applies type substitutions to a generic type that
-// has more than one type argument.
+// substituteInIndexListExpr applies type substitutions to a generic type that has more
+// than one type argument.
 //
 // Takes t (*ast.IndexListExpr) which is the generic type expression to process.
 // Takes substMap (map[string]ast.Expr) which maps type parameter names to their
 // replacement expressions.
 //
-// Returns ast.Expr which is a new expression with substitutions applied, or
-// the original if no changes were needed.
+// Returns ast.Expr which is a new expression with substitutions applied, or the original
+// if no changes were needed.
 func substituteInIndexListExpr(t *ast.IndexListExpr, substMap map[string]ast.Expr) ast.Expr {
 	newX := applyGenericSubstitutions(t.X, substMap)
 	changed := newX != t.X
@@ -161,14 +160,13 @@ func substituteInIndexListExpr(t *ast.IndexListExpr, substMap map[string]ast.Exp
 	return t
 }
 
-// extractGenericTypeArguments gets the type arguments from a generic type
-// AST node (for example, Box[T] or Map[K, V]).
+// extractGenericTypeArguments gets the type arguments from a generic type AST node (for
+// example, Box[T] or Map[K, V]).
 //
-// Takes expression (ast.Expr) which is the expression to get type
-// arguments from.
+// Takes expression (ast.Expr) which is the expression to get type arguments from.
 //
-// Returns []ast.Expr which holds the type arguments, or nil if the
-// expression is not a generic type.
+// Returns []ast.Expr which holds the type arguments, or nil if the expression is not a
+// generic type.
 func extractGenericTypeArguments(expression ast.Expr) []ast.Expr {
 	currentExpr := expression
 	if star, ok := currentExpr.(*ast.StarExpr); ok {
@@ -185,16 +183,15 @@ func extractGenericTypeArguments(expression ast.Expr) []ast.Expr {
 	}
 }
 
-// findDirectMethodForValue finds a method in the value receiver method set.
-// It skips methods that only have a pointer receiver.
+// findDirectMethodForValue finds a method in the value receiver method set. It skips
+// methods that only have a pointer receiver.
 //
 // Takes namedType (*inspector_dto.Type) which contains the methods to search.
 // Takes searcher (*methodSearcher) which specifies the method name to find.
 //
-// Returns *inspector_dto.FunctionSignature which is the matching method
-// signature, or nil if not found.
-// Returns *inspector_dto.Method which is the matching method, or nil if not
-// found.
+// Returns *inspector_dto.FunctionSignature which is the matching method signature, or nil
+// if not found.
+// Returns *inspector_dto.Method which is the matching method, or nil if not found.
 func findDirectMethodForValue(namedType *inspector_dto.Type, searcher *methodSearcher) (*inspector_dto.FunctionSignature, *inspector_dto.Method) {
 	for _, method := range namedType.Methods {
 		if method.Name != searcher.exportedMethodName {
@@ -211,16 +208,15 @@ func findDirectMethodForValue(namedType *inspector_dto.Type, searcher *methodSea
 	return nil, nil
 }
 
-// findDirectMethodForPointer finds a method in the full method set, which
-// includes both value and pointer receivers.
+// findDirectMethodForPointer finds a method in the full method set, which includes both
+// value and pointer receivers.
 //
 // Takes namedType (*inspector_dto.Type) which holds the methods to search.
 // Takes searcher (*methodSearcher) which gives the method name to find.
 //
-// Returns *inspector_dto.FunctionSignature which is the matching method's
-// signature, or nil if not found.
-// Returns *inspector_dto.Method which is the matching method, or nil if not
-// found.
+// Returns *inspector_dto.FunctionSignature which is the matching method's signature, or
+// nil if not found.
+// Returns *inspector_dto.Method which is the matching method, or nil if not found.
 func findDirectMethodForPointer(namedType *inspector_dto.Type, searcher *methodSearcher) (*inspector_dto.FunctionSignature, *inspector_dto.Method) {
 	for _, method := range namedType.Methods {
 		if method.Name == searcher.exportedMethodName {

@@ -24,22 +24,30 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// PostgresFunctionResolver implements FunctionResolverPort for polymorphic
-// PostgreSQL functions whose return types depend on their argument types.
+// PostgresFunctionResolver implements FunctionResolverPort for polymorphic PostgreSQL
+// functions whose return types depend on their argument types.
 type PostgresFunctionResolver struct{}
 
 // NewPostgresFunctionResolver creates a new PostgreSQL function resolver.
+//
+// Returns *PostgresFunctionResolver which is the new resolver.
 func NewPostgresFunctionResolver() *PostgresFunctionResolver {
 	return &PostgresFunctionResolver{}
 }
 
-// ResolveFunctionCall resolves a polymorphic PostgreSQL function call that the
-// standard overload resolution could not match. It inspects the argument types
-// to compute the correct return type for array, JSON, aggregate, conditional,
-// and type-introspection functions.
+// ResolveFunctionCall resolves a polymorphic PostgreSQL function call.
 //
-// Returns nil, nil for non-polymorphic functions so the caller falls back to
-// the standard catalogue lookup.
+// Inspects argument types to compute the correct return type for array, JSON, aggregate,
+// conditional, and type-introspection functions when the standard overload resolution
+// could not match. Returns nil, nil for non-polymorphic functions so the caller falls
+// back to the standard catalogue lookup.
+//
+// Takes name (string) which is the function name.
+// Takes argumentTypes ([]querier_dto.SQLType) which is the list of argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// polymorphic rule applies.
+// Returns error when resolution fails.
 func (*PostgresFunctionResolver) ResolveFunctionCall(
 	_ *querier_dto.Catalogue,
 	name string,
@@ -78,6 +86,14 @@ func (*PostgresFunctionResolver) ResolveFunctionCall(
 	}
 }
 
+// resolveArrayAgg returns the array_agg signature, producing an array whose element type
+// matches the first argument's type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -96,6 +112,14 @@ func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}, nil
 }
 
+// resolveUnnest returns the unnest signature whose return type is the element type of the
+// first argument's array type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -125,6 +149,15 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 	}, nil
 }
 
+// resolveArrayPassthrough returns the signature for array functions whose return type
+// matches the array argument at arrayArgumentIndex.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+// Takes arrayArgumentIndex (int) which is the index of the array argument.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when
+// not enough arguments were provided.
+// Returns error when resolution fails.
 func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentIndex int) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) <= arrayArgumentIndex {
 		return nil, nil
@@ -136,6 +169,15 @@ func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentI
 	}, nil
 }
 
+// resolvePopulateRecord returns the signature for json_populate_record and its
+// set-returning variant, mapping the return type to the first argument's row type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+// Takes returnsSet (bool) which signals the set-returning form.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolvePopulateRecord(argumentTypes []querier_dto.SQLType, returnsSet bool) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -148,6 +190,13 @@ func resolvePopulateRecord(argumentTypes []querier_dto.SQLType, returnsSet bool)
 	}, nil
 }
 
+// resolveToRecord returns the signature for json_to_record and json_to_recordset, both of
+// which return a generic record type.
+//
+// Takes returnsSet (bool) which signals the set-returning form.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature.
+// Returns error when resolution fails.
 func resolveToRecord(returnsSet bool) (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: "record"},
@@ -156,6 +205,14 @@ func resolveToRecord(returnsSet bool) (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveIdentityAggregate returns the signature for MIN and MAX whose return type
+// matches the first argument's type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -168,6 +225,14 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 	}, nil
 }
 
+// resolveSum returns the SUM signature, widening small integers to int8 and other
+// numerics to numeric or float8 per Postgres rules.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -196,6 +261,14 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	}, nil
 }
 
+// resolveAvg returns the AVG signature, producing float8 for floating inputs and numeric
+// otherwise.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature, or nil when no
+// argument was provided.
+// Returns error when resolution fails.
 func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -218,6 +291,13 @@ func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	}, nil
 }
 
+// resolveCoalesce returns the COALESCE signature, using the first known argument type as
+// the result type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which is the call's argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature.
+// Returns error when resolution fails.
 func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	for index := range argumentTypes {
 		if argumentTypes[index].Category != querier_dto.TypeCategoryUnknown {
@@ -234,6 +314,10 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}, nil
 }
 
+// resolvePgTypeof returns the pg_typeof signature, which always reports text.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature.
+// Returns error when resolution fails.
 func resolvePgTypeof() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
@@ -241,6 +325,12 @@ func resolvePgTypeof() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// isSmallInteger reports whether engineName names a small Postgres integer (int2 or int4)
+// that SUM widens to int8.
+//
+// Takes engineName (string) which is the Postgres type's engine name.
+//
+// Returns bool which is true for int2 or int4.
 func isSmallInteger(engineName string) bool {
 	switch engineName {
 	case "int2", "int4":

@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// collectionPropInfo holds details about a Props struct field that should be
-// populated from collection frontmatter metadata.
+// collectionPropInfo holds details about a Props struct field that should be populated
+// from collection frontmatter metadata.
 type collectionPropInfo struct {
 	// TypeExpr is the Go AST expression for the field type.
 	TypeExpr goast.Expr
@@ -41,30 +41,31 @@ type collectionPropInfo struct {
 	// PropTagName is the metadata key to look up in __metadata.
 	PropTagName string
 
-	// NestedProps holds sub-field mappings when the field is a struct type.
-	// nil for scalar fields.
+	// NestedProps holds sub-field mappings when the field is a struct type. nil for scalar
+	// fields.
 	NestedProps []collectionPropInfo
 
 	// IsPointer indicates whether the field type is a pointer.
 	IsPointer bool
 }
 
-// metadataVarName is the variable name for the collection metadata map in generated
-// code. Declared by generateCollectionDataPopulation before buildInitialRenderCall
-// runs.
-const metadataVarName = "__metadata"
+const (
+	// metadataVarName is the variable name for the collection metadata map in generated
+	// code. Declared by generateCollectionDataPopulation before buildInitialRenderCall runs.
+	metadataVarName = "__metadata"
 
-// okVarBase is the base prefix for the ok-flag variable used in type assertions
-// and map lookups in generated code.
-const okVarBase = "__ok"
+	// okVarBase is the base prefix for the ok-flag variable used in type assertions and map
+	// lookups in generated code.
+	okVarBase = "__ok"
 
-// valueVarBase is the base prefix for the temporary value variable used in
-// metadata lookups in generated code.
-const valueVarBase = "__v"
+	// valueVarBase is the base prefix for the temporary value variable used in metadata
+	// lookups in generated code.
+	valueVarBase = "__v"
+)
 
-// depthVar produces a unique variable name for a given nesting depth,
-// avoiding shadowed declarations in the generated code. At depth 0 it
-// returns "__v0", at depth 1 "__v1", and so on.
+// depthVar produces a unique variable name for a given nesting depth, avoiding shadowed
+// declarations in the generated code. At depth 0 it returns "__v0", at depth 1 "__v1",
+// and so on.
 //
 // Takes base (string) which is the variable name prefix.
 // Takes depth (int) which is the nesting depth appended to the prefix.
@@ -74,22 +75,21 @@ func depthVar(base string, depth int) string {
 	return fmt.Sprintf("%s%d", base, depth)
 }
 
-// buildCollectionPropsFallbacks creates statements that populate Props fields
-// from collection frontmatter metadata. The generated code reads from
-// __metadata (a map[string]any) and assigns matching values to props fields
-// using their prop tag names as lookup keys, with case-insensitive fallback
-// via pikoruntime.MetadataGet.
+// buildCollectionPropsFallbacks creates statements that populate Props fields from
+// collection frontmatter metadata. The generated code reads from __metadata (a
+// map[string]any) and assigns matching values to props fields using their prop tag names
+// as lookup keys, with case-insensitive fallback via pikoruntime.MetadataGet.
 //
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// component's AST for reading props metadata.
-// Takes collectionName (string) which identifies the collection. When empty,
-// no fallbacks are generated.
-// Takes propsTypeExpr (goast.Expr) which is the resolved props type expression
-// from extractPropsTypeFromComponent. Used to skip NoProps components without
-// re-walking the AST.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the component's
+// AST for reading props metadata.
+// Takes collectionName (string) which identifies the collection. When empty, no fallbacks
+// are generated.
+// Takes propsTypeExpr (goast.Expr) which is the resolved props type expression from
+// extractPropsTypeFromComponent. Used to skip NoProps components without re-walking the
+// AST.
 //
-// Returns []goast.Stmt which contains the mapping statements to add after
-// props type assertion, wrapped in an `if __metadata != nil { ... }` guard.
+// Returns []goast.Stmt which contains the mapping statements to add after props type
+// assertion, wrapped in an `if __metadata != nil { ... }` guard.
 func buildCollectionPropsFallbacks(mainComponent *annotator_dto.VirtualComponent, collectionName string, propsTypeExpr goast.Expr) []goast.Stmt {
 	if collectionName == "" || mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
 		return nil
@@ -121,13 +121,12 @@ func buildCollectionPropsFallbacks(mainComponent *annotator_dto.VirtualComponent
 	return []goast.Stmt{guard}
 }
 
-// extractCollectionPropsFromAST finds Props struct fields with prop tags from
-// parsed Go source code.
+// extractCollectionPropsFromAST finds Props struct fields with prop tags from parsed Go
+// source code.
 //
 // Takes file (*goast.File) which contains the parsed Go source to search.
 //
-// Returns []collectionPropInfo which contains the collection property details
-// found.
+// Returns []collectionPropInfo which contains the collection property details found.
 func extractCollectionPropsFromAST(file *goast.File) []collectionPropInfo {
 	propsStruct := findPropsStruct(file)
 	if propsStruct == nil {
@@ -138,14 +137,13 @@ func extractCollectionPropsFromAST(file *goast.File) []collectionPropInfo {
 	return extractCollectionPropsFromStruct(file, propsStruct, visited)
 }
 
-// extractCollectionPropsFromStruct gets collection property details from a
-// struct type.
+// extractCollectionPropsFromStruct gets collection property details from a struct type.
 //
-// Takes file (*goast.File) which is the full source file for resolving nested
-// struct types.
+// Takes file (*goast.File) which is the full source file for resolving nested struct
+// types.
 // Takes structType (*goast.StructType) which is the struct to analyse.
-// Takes visited (map[string]bool) which tracks already-visited type names to
-// prevent infinite recursion on circular struct definitions.
+// Takes visited (map[string]bool) which tracks already-visited type names to prevent
+// infinite recursion on circular struct definitions.
 //
 // Returns []collectionPropInfo which contains the properties found.
 func extractCollectionPropsFromStruct(file *goast.File, structType *goast.StructType, visited map[string]bool) []collectionPropInfo {
@@ -161,16 +159,15 @@ func extractCollectionPropsFromStruct(file *goast.File, structType *goast.Struct
 	return result
 }
 
-// parseFieldForCollection extracts collection binding details from a struct
-// field.
+// parseFieldForCollection extracts collection binding details from a struct field.
 //
 // Takes file (*goast.File) which is the source file for resolving nested types.
 // Takes field (*goast.Field) which is the struct field to check for prop tags.
-// Takes visited (map[string]bool) which tracks already-visited type names to
-// prevent infinite recursion on circular struct definitions.
+// Takes visited (map[string]bool) which tracks already-visited type names to prevent
+// infinite recursion on circular struct definitions.
 //
-// Returns *collectionPropInfo which holds the prop tag name, type, and nested
-// props. Returns nil if the field has no prop tag.
+// Returns *collectionPropInfo which holds the prop tag name, type, and nested props.
+// Returns nil if the field has no prop tag.
 func parseFieldForCollection(file *goast.File, field *goast.Field, visited map[string]bool) *collectionPropInfo {
 	if field.Tag == nil {
 		return nil
@@ -184,8 +181,8 @@ func parseFieldForCollection(file *goast.File, field *goast.Field, visited map[s
 		return nil
 	}
 
-	if commaIndex := strings.IndexByte(propName, ','); commaIndex >= 0 {
-		propName = propName[:commaIndex]
+	if name, _, ok := strings.Cut(propName, ","); ok {
+		propName = name
 	}
 
 	typeExpr := field.Type
@@ -217,16 +214,14 @@ func parseFieldForCollection(file *goast.File, field *goast.Field, visited map[s
 	return info
 }
 
-// resolveStructType attempts to find a struct type definition for a type
-// expression. It handles both inline struct types and named types defined
-// in the same file.
+// resolveStructType attempts to find a struct type definition for a type expression. It
+// handles both inline struct types and named types defined in the same file.
 //
-// Takes file (*goast.File) which is the source file containing type
-// definitions.
+// Takes file (*goast.File) which is the source file containing type definitions.
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 //
-// Returns *goast.StructType which is the resolved struct, or nil if the
-// type is not a struct.
+// Returns *goast.StructType which is the resolved struct, or nil if the type is not a
+// struct.
 func resolveStructType(file *goast.File, typeExpr goast.Expr) *goast.StructType {
 	if structType, ok := typeExpr.(*goast.StructType); ok {
 		return structType
@@ -244,8 +239,7 @@ func resolveStructType(file *goast.File, typeExpr goast.Expr) *goast.StructType 
 // Takes file (*goast.File) which is the parsed Go source to search.
 // Takes name (string) which is the type name to find.
 //
-// Returns *goast.StructType which is the struct type if found, or nil if not
-// present.
+// Returns *goast.StructType which is the struct type if found, or nil if not present.
 func findStructByName(file *goast.File, name string) *goast.StructType {
 	for _, declaration := range file.Decls {
 		genDecl, ok := declaration.(*goast.GenDecl)
@@ -268,16 +262,15 @@ func findStructByName(file *goast.File, name string) *goast.StructType {
 	return nil
 }
 
-// buildMetadataAssignments generates AST statements that extract values from a
-// metadata map and assign them to props fields. Handles scalar types, nested
-// structs, and pointer types.
+// buildMetadataAssignments generates AST statements that extract values from a metadata
+// map and assign them to props fields. Handles scalar types, nested structs, and pointer
+// types.
 //
 // Takes props ([]collectionPropInfo) which describes the fields to map.
-// Takes sourceMap (goast.Expr) which is the metadata map expression to read
-// from.
+// Takes sourceMap (goast.Expr) which is the metadata map expression to read from.
 // Takes targetStruct (goast.Expr) which is the struct expression to assign to.
-// Takes depth (int) which is the current nesting depth, used for generating
-// unique variable names.
+// Takes depth (int) which is the current nesting depth, used for generating unique
+// variable names.
 //
 // Returns []goast.Stmt which contains the generated assignment statements.
 func buildMetadataAssignments(props []collectionPropInfo, sourceMap goast.Expr, targetStruct goast.Expr, depth int) []goast.Stmt {
@@ -304,8 +297,8 @@ func buildMetadataAssignments(props []collectionPropInfo, sourceMap goast.Expr, 
 	return statements
 }
 
-// buildScalarMetadataAssignment generates an if statement that extracts a
-// scalar value from a metadata map and assigns it to a props field.
+// buildScalarMetadataAssignment generates an if statement that extracts a scalar value
+// from a metadata map and assigns it to a props field.
 //
 // The generated pattern varies by type:
 //
@@ -330,8 +323,7 @@ func buildMetadataAssignments(props []collectionPropInfo, sourceMap goast.Expr, 
 // Takes fieldAccess (*goast.SelectorExpr) which is the target field.
 // Takes depth (int) which is the nesting depth for variable name generation.
 //
-// Returns goast.Stmt which is the generated if statement, or nil for
-// unsupported types.
+// Returns goast.Stmt which is the generated if statement, or nil for unsupported types.
 func buildScalarMetadataAssignment(prop collectionPropInfo, sourceMap goast.Expr, fieldAccess *goast.SelectorExpr, depth int) goast.Stmt {
 	baseType := getBaseTypeName(prop.TypeExpr)
 
@@ -373,8 +365,8 @@ func buildScalarMetadataAssignment(prop collectionPropInfo, sourceMap goast.Expr
 	return wrapInMetadataLookup(sourceMap, prop.PropTagName, innerAssignment, depth)
 }
 
-// buildNestedStructAssignment generates code that extracts a nested map from
-// metadata and recursively maps its fields to a nested struct.
+// buildNestedStructAssignment generates code that extracts a nested map from metadata and
+// recursively maps its fields to a nested struct.
 //
 // Generated pattern:
 //
@@ -423,8 +415,8 @@ func buildNestedStructAssignment(prop collectionPropInfo, sourceMap goast.Expr, 
 	return wrapInMetadataLookup(sourceMap, prop.PropTagName, mapAssertStmt, depth)
 }
 
-// buildDirectTypeAssertAssignment generates an if statement that type-asserts
-// a value and assigns the result.
+// buildDirectTypeAssertAssignment generates an if statement that type-asserts a value and
+// assigns the result.
 //
 // Generated pattern:
 //
@@ -434,8 +426,7 @@ func buildNestedStructAssignment(prop collectionPropInfo, sourceMap goast.Expr, 
 //
 // Takes fieldAccess (*goast.SelectorExpr) which is the target field.
 // Takes typeName (string) which is the Go type to assert.
-// Takes isPointer (bool) which indicates whether to take the address of the
-// result.
+// Takes isPointer (bool) which indicates whether to take the address of the result.
 // Takes depth (int) which is the nesting depth for variable name generation.
 //
 // Returns goast.Stmt which is the generated if statement.
@@ -473,8 +464,8 @@ func buildDirectTypeAssertAssignment(fieldAccess *goast.SelectorExpr, typeName s
 	}
 }
 
-// buildCoercionAssignment generates an if statement that calls a runtime
-// coercion function and assigns the result.
+// buildCoercionAssignment generates an if statement that calls a runtime coercion
+// function and assigns the result.
 //
 // Generated pattern:
 //
@@ -484,8 +475,7 @@ func buildDirectTypeAssertAssignment(fieldAccess *goast.SelectorExpr, typeName s
 //
 // Takes fieldAccess (*goast.SelectorExpr) which is the target field.
 // Takes coerceFunc (string) which is the runtime function name to call.
-// Takes isPointer (bool) which indicates whether to take the address of the
-// result.
+// Takes isPointer (bool) which indicates whether to take the address of the result.
 // Takes depth (int) which is the nesting depth for variable name generation.
 //
 // Returns goast.Stmt which is the generated if statement.
@@ -526,9 +516,8 @@ func buildCoercionAssignment(fieldAccess *goast.SelectorExpr, coerceFunc string,
 	}
 }
 
-// buildGenericCoercionAssignment generates an if statement that calls a
-// generic runtime coercion function with a type parameter and assigns the
-// result.
+// buildGenericCoercionAssignment generates an if statement that calls a generic runtime
+// coercion function with a type parameter and assigns the result.
 //
 // Generated pattern:
 //
@@ -539,8 +528,7 @@ func buildCoercionAssignment(fieldAccess *goast.SelectorExpr, coerceFunc string,
 // Takes fieldAccess (*goast.SelectorExpr) which is the target field.
 // Takes coerceFunc (string) which is the runtime function name to call.
 // Takes typeParam (string) which is the Go type name for the generic parameter.
-// Takes isPointer (bool) which indicates whether to take the address of the
-// result.
+// Takes isPointer (bool) which indicates whether to take the address of the result.
 // Takes depth (int) which is the nesting depth for variable name generation.
 //
 // Returns goast.Stmt which is the generated if statement.
@@ -584,8 +572,8 @@ func buildGenericCoercionAssignment(fieldAccess *goast.SelectorExpr, coerceFunc 
 	}
 }
 
-// wrapInMetadataLookup wraps an inner statement in a case-insensitive metadata
-// map lookup via pikoruntime.MetadataGet.
+// wrapInMetadataLookup wraps an inner statement in a case-insensitive metadata map lookup
+// via pikoruntime.MetadataGet.
 //
 // Generated pattern:
 //
@@ -595,8 +583,7 @@ func buildGenericCoercionAssignment(fieldAccess *goast.SelectorExpr, coerceFunc 
 //
 // Takes sourceMap (goast.Expr) which is the map to search.
 // Takes key (string) which is the map key to look up.
-// Takes innerStatement (goast.Stmt) which is the statement to run when the
-// key exists.
+// Takes innerStatement (goast.Stmt) which is the statement to run when the key exists.
 // Takes depth (int) which is the nesting depth for variable name generation.
 //
 // Returns *goast.IfStmt which is the wrapping if statement.

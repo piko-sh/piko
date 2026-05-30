@@ -72,8 +72,7 @@ func hasPrefix(word string, position int, prefix string) bool {
 	return true
 }
 
-// isSoftVowel reports whether the vowel causes softening of a preceding
-// consonant.
+// isSoftVowel reports whether the vowel causes softening of a preceding consonant.
 //
 // Takes character (byte) which is the character to check.
 //

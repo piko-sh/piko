@@ -29,8 +29,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// infoCategoryList is the formatted list of available category names.
-const infoCategoryList = "system, build, runtime, memory, gc, process"
+const (
+	// infoCategoryList is the formatted list of available category names.
+	infoCategoryList = "system, build, runtime, memory, gc, process"
+)
 
 var (
 	// infoCategoryOrder defines the display order for the overview.
@@ -91,7 +93,8 @@ var (
 		{Header: "OS/ARCH"},
 	}
 
-	// runtimeOverviewColumns defines the table column layout for the runtime overview section.
+	// runtimeOverviewColumns defines the table column layout for the runtime overview
+	// section.
 	runtimeOverviewColumns = []Column{
 		{Header: "GOGC"},
 		{Header: "GOMEMLIMIT"},
@@ -106,8 +109,8 @@ var (
 		{Header: "HEAP OBJECTS"},
 	}
 
-	// gcOverviewColumns defines the table column layout for the
-	// garbage collection overview section.
+	// gcOverviewColumns defines the table column layout for the garbage collection overview
+	// section.
 	gcOverviewColumns = []Column{
 		{Header: "CYCLES"},
 		{Header: "LAST PAUSE"},
@@ -115,7 +118,8 @@ var (
 		{Header: "NEXT GC"},
 	}
 
-	// processOverviewColumns defines the table column layout for the process overview section.
+	// processOverviewColumns defines the table column layout for the process overview
+	// section.
 	processOverviewColumns = []Column{
 		{Header: "PID"},
 		{Header: "THREADS"},
@@ -125,14 +129,13 @@ var (
 	}
 )
 
-// runInfo displays system information, optionally filtered to a single
-// category.
+// runInfo displays system information, optionally filtered to a single category.
 //
 // Takes cc (*CommandContext) which provides the connection and output options.
 // Takes arguments ([]string) which specifies the optional category to filter by.
 //
-// Returns error when the output format is invalid, the gRPC call fails, or the
-// category is unknown.
+// Returns error when the output format is invalid, the gRPC call fails, or the category
+// is unknown.
 func runInfo(ctx context.Context, cc *CommandContext, arguments []string) error {
 	if err := validateOutputFormat(cc.Opts.Output, "info", infoFormats); err != nil {
 		return err
@@ -166,11 +169,9 @@ func runInfo(ctx context.Context, cc *CommandContext, arguments []string) error 
 
 // infoOverview prints a compact summary table for each category.
 //
-// Takes response (*pb.GetSystemStatsResponse) which provides the
-// system stats data.
+// Takes response (*pb.GetSystemStatsResponse) which provides the system stats data.
 // Takes p (*Printer) which formats and outputs the table rows.
-// Takes w (io.Writer) which receives the category headers and
-// footer text.
+// Takes w (io.Writer) which receives the category headers and footer text.
 func infoOverview(response *pb.GetSystemStatsResponse, p *Printer, w io.Writer) {
 	for i, cat := range infoCategoryOrder {
 		if i > 0 {
@@ -185,11 +186,10 @@ func infoOverview(response *pb.GetSystemStatsResponse, p *Printer, w io.Writer) 
 	_, _ = fmt.Fprint(w, "Use \"piko info <category>\" for full details.\n")
 }
 
-// infoSystemOverview prints system overview data including uptime, CPU usage,
-// goroutine count, and CGO calls.
+// infoSystemOverview prints system overview data including uptime, CPU usage, goroutine
+// count, and CGO calls.
 //
-// Takes response (*pb.GetSystemStatsResponse) which provides the
-// system statistics.
+// Takes response (*pb.GetSystemStatsResponse) which provides the system statistics.
 // Takes p (*Printer) which outputs the formatted data.
 func infoSystemOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 	cpuString := fmt.Sprintf("%.1f / %d CPUs", response.GetCpuMillicores(), response.GetNumCpu())
@@ -279,8 +279,7 @@ func infoGCOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 
 // infoProcessOverview prints a summary of process information from the stats.
 //
-// Takes response (*pb.GetSystemStatsResponse) which contains the
-// system statistics.
+// Takes response (*pb.GetSystemStatsResponse) which contains the system statistics.
 // Takes p (*Printer) which handles the formatted output.
 func infoProcessOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 	proc := response.GetProcess()
@@ -300,8 +299,7 @@ func infoProcessOverview(response *pb.GetSystemStatsResponse, p *Printer) {
 
 // infoSystem prints system statistics from the response to the printer.
 //
-// Takes response (*pb.GetSystemStatsResponse) which contains the
-// system stats data.
+// Takes response (*pb.GetSystemStatsResponse) which contains the system stats data.
 // Takes p (*Printer) which outputs the formatted information.
 func infoSystem(response *pb.GetSystemStatsResponse, p *Printer) {
 	rows := [][]string{
@@ -357,8 +355,7 @@ func infoMemory(response *pb.GetSystemStatsResponse, p *Printer) {
 
 // infoGC prints garbage collection statistics from the system stats response.
 //
-// Takes response (*pb.GetSystemStatsResponse) which contains the
-// GC stats to display.
+// Takes response (*pb.GetSystemStatsResponse) which contains the GC stats to display.
 // Takes p (*Printer) which handles the formatted output.
 func infoGC(response *pb.GetSystemStatsResponse, p *Printer) {
 	gc := response.GetGc()
@@ -380,10 +377,10 @@ func infoProcess(response *pb.GetSystemStatsResponse, p *Printer) {
 	p.PrintResource(infoDetailColumns, detailRowsToTable(inspector.BuildProcessDetailRows(proc)))
 }
 
-// detailRowsToTable converts a slice of inspector.DetailRow into the
-// two-column [][]string layout expected by Printer.PrintResource. The
-// helper exists so each info<X> function can lift its rows from the
-// shared inspector package without restating the conversion.
+// detailRowsToTable converts a slice of inspector.DetailRow into the two-column
+// [][]string layout expected by Printer.PrintResource. The helper exists so each info<X>
+// function can lift its rows from the shared inspector package without restating the
+// conversion.
 //
 // Takes rows ([]inspector.DetailRow) which is the inspector row set.
 //

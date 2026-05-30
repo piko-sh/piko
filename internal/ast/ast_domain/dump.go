@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Provides debugging utilities for formatting AST structures into human-readable text representations.
-// Outputs detailed node information including elements, attributes, directives, annotations, and expressions with proper indentation for inspection.
+// Provides debugging utilities for formatting AST structures into human-readable text
+// representations. Outputs detailed node information including elements, attributes,
+// directives, annotations, and expressions with proper indentation for inspection.
 
 import (
 	"cmp"
@@ -34,8 +35,10 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// dumpIndentUnit is the indent string for each nesting level when dumping.
-const dumpIndentUnit = "  "
+const (
+	// dumpIndentUnit is the indent string for each nesting level when dumping.
+	dumpIndentUnit = "  "
+)
 
 // DumpAST returns a text version of the AST for debugging.
 //
@@ -197,8 +200,8 @@ func getNodePackageAlias(node *TemplateNode) string {
 	return ""
 }
 
-// dumpAttributes writes the node's attributes to the string builder in sorted
-// order by name.
+// dumpAttributes writes the node's attributes to the string builder in sorted order by
+// name.
 //
 // Takes builder (*strings.Builder) which receives the formatted attribute output.
 // Takes node (*TemplateNode) which provides the attributes to write.
@@ -210,13 +213,13 @@ func dumpAttributes(builder *strings.Builder, node *TemplateNode) {
 	}
 }
 
-// dumpDynamicAttributes writes the dynamic attributes of a template node to the
-// string builder in sorted order.
+// dumpDynamicAttributes writes the dynamic attributes of a template node to the string
+// builder in sorted order.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which provides the dynamic attributes to write.
-// Takes nodePackageAlias (string) which is the package alias used to filter origin
-// notes that match the owning package from the output.
+// Takes nodePackageAlias (string) which is the package alias used to filter origin notes
+// that match the owning package from the output.
 func dumpDynamicAttributes(builder *strings.Builder, node *TemplateNode, nodePackageAlias string) {
 	dynAttrs := node.DynamicAttributes
 	slices.SortFunc(dynAttrs, func(a, b DynamicAttribute) int { return cmp.Compare(a.Name, b.Name) })
@@ -243,13 +246,13 @@ func dumpDynamicAttributes(builder *strings.Builder, node *TemplateNode, nodePac
 	}
 }
 
-// dumpDirectives writes all directives from a template node to a string
-// builder in a format that is easy to read.
+// dumpDirectives writes all directives from a template node to a string builder in a
+// format that is easy to read.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which holds the directives to write.
-// Takes nodePackageAlias (string) which excludes directives with the owning
-// package alias from the detailed output.
+// Takes nodePackageAlias (string) which excludes directives with the owning package alias
+// from the detailed output.
 func dumpDirectives(builder *strings.Builder, node *TemplateNode, nodePackageAlias string) {
 	dumpDirective := func(d *Directive, name string) {
 		if d == nil {
@@ -312,16 +315,14 @@ func dumpEvents(builder *strings.Builder, node *TemplateNode, nodePackageAlias s
 	eventKeys := collectEventKeys(node)
 
 	for _, key := range eventKeys {
-		parts := strings.SplitN(key, ":", 2)
-		prefix, event := parts[0], parts[1]
+		prefix, event, _ := strings.Cut(key, ":")
 		dirs := getDirectivesForEvent(node, prefix, event)
 		writeEventDirectives(builder, dirs, prefix, event, nodePackageAlias)
 	}
 	builder.WriteString("]")
 }
 
-// collectEventKeys gathers all event keys from a node's event maps and sorts
-// them.
+// collectEventKeys gathers all event keys from a node's event maps and sorts them.
 //
 // Takes node (*TemplateNode) which holds the OnEvents and CustomEvents maps.
 //
@@ -341,8 +342,8 @@ func collectEventKeys(node *TemplateNode) []string {
 // getDirectivesForEvent returns the directives for a given event.
 //
 // Takes node (*TemplateNode) which holds the template's event handlers.
-// Takes prefix (string) which specifies the event type ("on" for standard
-// events, or other values for custom events).
+// Takes prefix (string) which specifies the event type ("on" for standard events, or
+// other values for custom events).
 // Takes event (string) which is the event name to look up.
 //
 // Returns []Directive which contains the matching directives for the event.
@@ -373,8 +374,8 @@ func writeEventDirectives(builder *strings.Builder, dirs []Directive, prefix, ev
 // Takes d (*Directive) which is the directive to format.
 // Takes nodePackageAlias (string) which is the package alias for the current node.
 //
-// Returns string which contains the formatted details, or an empty string if
-// there are no details to show.
+// Returns string which contains the formatted details, or an empty string if there are no
+// details to show.
 func formatDirectiveDetails(d *Directive, nodePackageAlias string) string {
 	var detailParts []string
 	if d.Expression != nil {
@@ -389,12 +390,10 @@ func formatDirectiveDetails(d *Directive, nodePackageAlias string) string {
 	return fmt.Sprintf(" {%s}", strings.Join(detailParts, ", "))
 }
 
-// hasNonLocalPackageOrigin checks whether a directive came from a different
-// package.
+// hasNonLocalPackageOrigin checks whether a directive came from a different package.
 //
 // Takes d (*Directive) which is the directive to check.
-// Takes nodePackageAlias (string) which is the local package alias to compare
-// against.
+// Takes nodePackageAlias (string) which is the local package alias to compare against.
 //
 // Returns bool which is true if the directive came from another package.
 func hasNonLocalPackageOrigin(d *Directive, nodePackageAlias string) bool {
@@ -403,8 +402,8 @@ func hasNonLocalPackageOrigin(d *Directive, nodePackageAlias string) bool {
 		*d.GoAnnotations.OriginalPackageAlias != nodePackageAlias
 }
 
-// dumpAnnotations writes Go annotations from a template node to a string
-// builder in a format that is easy to read when debugging.
+// dumpAnnotations writes Go annotations from a template node to a string builder in a
+// format that is easy to read when debugging.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which holds the annotations to write.
@@ -467,8 +466,8 @@ func escapeString(s string) string {
 //
 // Takes expression (goast.Expr) which is the expression to convert.
 //
-// Returns string which is the printed form of the expression, or a
-// placeholder if the expression is nil or cannot be printed.
+// Returns string which is the printed form of the expression, or a placeholder if the
+// expression is nil or cannot be printed.
 func expressionToString(expression goast.Expr) string {
 	if expression == nil {
 		return "<nil>"

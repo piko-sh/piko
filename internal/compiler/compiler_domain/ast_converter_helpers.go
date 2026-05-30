@@ -76,8 +76,7 @@ func (c *ASTConverter) convertBIdentifier(b *js_ast.BIdentifier) (parsejs.IBindi
 // Takes b (*js_ast.BArray) which is the array binding pattern to convert.
 //
 // Returns parsejs.IBinding which is the converted array binding.
-// Returns error when any element binding or default expression fails to
-// convert.
+// Returns error when any element binding or default expression fails to convert.
 func (c *ASTConverter) convertBArray(b *js_ast.BArray) (parsejs.IBinding, error) {
 	elements := make([]parsejs.BindingElement, 0, len(b.Items))
 	for _, item := range b.Items {
@@ -134,13 +133,13 @@ func (c *ASTConverter) convertBObject(b *js_ast.BObject) (parsejs.IBinding, erro
 	return &parsejs.BindingObject{List: props}, nil
 }
 
-// convertBindingPropertyKey converts an AST expression for a property key into
-// a PropertyName.
+// convertBindingPropertyKey converts an AST expression for a property key into a
+// PropertyName.
 //
 // Takes key (js_ast.Expr) which is the AST expression for the property key.
 //
-// Returns *parsejs.PropertyName which is the converted property name, or nil
-// if the key type is not supported. Handles identifier and string expressions.
+// Returns *parsejs.PropertyName which is the converted property name, or nil if the key
+// type is not supported. Handles identifier and string expressions.
 func (c *ASTConverter) convertBindingPropertyKey(key js_ast.Expr) *parsejs.PropertyName {
 	if identifier, ok := key.Data.(*js_ast.EIdentifier); ok {
 		name := c.resolveRef(identifier.Ref)
@@ -258,8 +257,8 @@ func (c *ASTConverter) convertProperty(prop js_ast.Property) (*parsejs.Property,
 //
 // Takes prop (js_ast.Property) which is the property to convert.
 //
-// Returns *parsejs.Property which is the converted property, or nil if the
-// property is not a shorthand property or cannot be converted.
+// Returns *parsejs.Property which is the converted property, or nil if the property is
+// not a shorthand property or cannot be converted.
 func (c *ASTConverter) tryConvertShorthandProperty(prop js_ast.Property) *parsejs.Property {
 	if !prop.Flags.Has(js_ast.PropertyWasShorthand) {
 		return nil
@@ -465,41 +464,55 @@ func (c *ASTConverter) convertClassField(prop js_ast.Property, elemName parsejs.
 
 var (
 	// esbuildBinaryOpToTdewolff maps esbuild binary operators to tdewolff tokens.
-	esbuildBinaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{
-		js_ast.BinOpAdd:               parsejs.AddToken,
-		js_ast.BinOpSub:               parsejs.SubToken,
-		js_ast.BinOpMul:               parsejs.MulToken,
-		js_ast.BinOpDiv:               parsejs.DivToken,
-		js_ast.BinOpRem:               parsejs.ModToken,
-		js_ast.BinOpPow:               parsejs.ExpToken,
-		js_ast.BinOpStrictEq:          parsejs.EqEqEqToken,
-		js_ast.BinOpStrictNe:          parsejs.NotEqEqToken,
-		js_ast.BinOpLooseEq:           parsejs.EqEqToken,
-		js_ast.BinOpLooseNe:           parsejs.NotEqToken,
-		js_ast.BinOpLt:                parsejs.LtToken,
-		js_ast.BinOpGt:                parsejs.GtToken,
-		js_ast.BinOpLe:                parsejs.LtEqToken,
-		js_ast.BinOpGe:                parsejs.GtEqToken,
-		js_ast.BinOpLogicalAnd:        parsejs.AndToken,
-		js_ast.BinOpLogicalOr:         parsejs.OrToken,
-		js_ast.BinOpAssign:            parsejs.EqToken,
-		js_ast.BinOpAddAssign:         parsejs.AddEqToken,
-		js_ast.BinOpSubAssign:         parsejs.SubEqToken,
-		js_ast.BinOpMulAssign:         parsejs.MulEqToken,
-		js_ast.BinOpDivAssign:         parsejs.DivEqToken,
-		js_ast.BinOpNullishCoalescing: parsejs.NullishToken,
-		js_ast.BinOpBitwiseAnd:        parsejs.BitAndToken,
-		js_ast.BinOpBitwiseOr:         parsejs.BitOrToken,
-		js_ast.BinOpBitwiseXor:        parsejs.BitXorToken,
-		js_ast.BinOpShl:               parsejs.LtLtToken,
-		js_ast.BinOpShr:               parsejs.GtGtToken,
-		js_ast.BinOpUShr:              parsejs.GtGtGtToken,
-		js_ast.BinOpIn:                parsejs.InToken,
-		js_ast.BinOpInstanceof:        parsejs.InstanceofToken,
+	// js_ast.OpCode is a unified enum mixing unary and binary operators; the unary values
+	// are handled by esbuildUnaryOpToTdewolff so this map intentionally omits them.
+	esbuildBinaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{ //nolint:exhaustive // unary OpCodes handled by esbuildUnaryOpToTdewolff
+		js_ast.BinOpAdd:                     parsejs.AddToken,
+		js_ast.BinOpSub:                     parsejs.SubToken,
+		js_ast.BinOpMul:                     parsejs.MulToken,
+		js_ast.BinOpDiv:                     parsejs.DivToken,
+		js_ast.BinOpRem:                     parsejs.ModToken,
+		js_ast.BinOpPow:                     parsejs.ExpToken,
+		js_ast.BinOpStrictEq:                parsejs.EqEqEqToken,
+		js_ast.BinOpStrictNe:                parsejs.NotEqEqToken,
+		js_ast.BinOpLooseEq:                 parsejs.EqEqToken,
+		js_ast.BinOpLooseNe:                 parsejs.NotEqToken,
+		js_ast.BinOpLt:                      parsejs.LtToken,
+		js_ast.BinOpGt:                      parsejs.GtToken,
+		js_ast.BinOpLe:                      parsejs.LtEqToken,
+		js_ast.BinOpGe:                      parsejs.GtEqToken,
+		js_ast.BinOpLogicalAnd:              parsejs.AndToken,
+		js_ast.BinOpLogicalOr:               parsejs.OrToken,
+		js_ast.BinOpAssign:                  parsejs.EqToken,
+		js_ast.BinOpAddAssign:               parsejs.AddEqToken,
+		js_ast.BinOpSubAssign:               parsejs.SubEqToken,
+		js_ast.BinOpMulAssign:               parsejs.MulEqToken,
+		js_ast.BinOpDivAssign:               parsejs.DivEqToken,
+		js_ast.BinOpRemAssign:               parsejs.ModEqToken,
+		js_ast.BinOpPowAssign:               parsejs.ExpEqToken,
+		js_ast.BinOpShlAssign:               parsejs.LtLtEqToken,
+		js_ast.BinOpShrAssign:               parsejs.GtGtEqToken,
+		js_ast.BinOpUShrAssign:              parsejs.GtGtGtEqToken,
+		js_ast.BinOpBitwiseOrAssign:         parsejs.BitOrEqToken,
+		js_ast.BinOpBitwiseAndAssign:        parsejs.BitAndEqToken,
+		js_ast.BinOpBitwiseXorAssign:        parsejs.BitXorEqToken,
+		js_ast.BinOpNullishCoalescingAssign: parsejs.NullishEqToken,
+		js_ast.BinOpLogicalOrAssign:         parsejs.OrEqToken,
+		js_ast.BinOpLogicalAndAssign:        parsejs.AndEqToken,
+		js_ast.BinOpNullishCoalescing:       parsejs.NullishToken,
+		js_ast.BinOpBitwiseAnd:              parsejs.BitAndToken,
+		js_ast.BinOpBitwiseOr:               parsejs.BitOrToken,
+		js_ast.BinOpBitwiseXor:              parsejs.BitXorToken,
+		js_ast.BinOpShl:                     parsejs.LtLtToken,
+		js_ast.BinOpShr:                     parsejs.GtGtToken,
+		js_ast.BinOpUShr:                    parsejs.GtGtGtToken,
+		js_ast.BinOpIn:                      parsejs.InToken,
+		js_ast.BinOpInstanceof:              parsejs.InstanceofToken,
+		js_ast.BinOpComma:                   parsejs.CommaToken,
 	}
 
 	// esbuildUnaryOpToTdewolff maps esbuild unary operators to tdewolff tokens.
-	esbuildUnaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{
+	esbuildUnaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		js_ast.UnOpNeg:     parsejs.SubToken,
 		js_ast.UnOpPos:     parsejs.AddToken,
 		js_ast.UnOpNot:     parsejs.NotToken,
@@ -513,40 +526,52 @@ var (
 		js_ast.UnOpPostDec: parsejs.PostDecrToken,
 	}
 
-	// esbuildOpPrecedence is the operator precedence table for esbuild operators
-	// where higher values mean tighter binding, based on esbuild's js_ast.L*
-	// constants.
-	esbuildOpPrecedence = map[js_ast.OpCode]int{
-		js_ast.BinOpAssign:            1,
-		js_ast.BinOpAddAssign:         1,
-		js_ast.BinOpSubAssign:         1,
-		js_ast.BinOpMulAssign:         1,
-		js_ast.BinOpDivAssign:         1,
-		js_ast.BinOpNullishCoalescing: 2,
-		js_ast.BinOpLogicalOr:         3,
-		js_ast.BinOpLogicalAnd:        4,
-		js_ast.BinOpBitwiseOr:         5,
-		js_ast.BinOpBitwiseXor:        6,
-		js_ast.BinOpBitwiseAnd:        7,
-		js_ast.BinOpLooseEq:           8,
-		js_ast.BinOpLooseNe:           8,
-		js_ast.BinOpStrictEq:          8,
-		js_ast.BinOpStrictNe:          8,
-		js_ast.BinOpLt:                9,
-		js_ast.BinOpLe:                9,
-		js_ast.BinOpGt:                9,
-		js_ast.BinOpGe:                9,
-		js_ast.BinOpIn:                9,
-		js_ast.BinOpInstanceof:        9,
-		js_ast.BinOpShl:               10,
-		js_ast.BinOpShr:               10,
-		js_ast.BinOpUShr:              10,
-		js_ast.BinOpAdd:               11,
-		js_ast.BinOpSub:               11,
-		js_ast.BinOpMul:               12,
-		js_ast.BinOpDiv:               12,
-		js_ast.BinOpRem:               12,
-		js_ast.BinOpPow:               13,
+	// esbuildOpPrecedence is the operator precedence table for esbuild operators where
+	// higher values mean tighter binding, based on esbuild's js_ast.L* constants. BinOpComma
+	// carries precedence 0 to match esbuild's LComma which is the loosest binding.
+	esbuildOpPrecedence = map[js_ast.OpCode]int{ //nolint:exhaustive // unary OpCodes carry precedence in esbuild's unary tables, not this binary-op precedence table
+		js_ast.BinOpComma:                   0,
+		js_ast.BinOpAssign:                  1,
+		js_ast.BinOpAddAssign:               1,
+		js_ast.BinOpSubAssign:               1,
+		js_ast.BinOpMulAssign:               1,
+		js_ast.BinOpDivAssign:               1,
+		js_ast.BinOpRemAssign:               1,
+		js_ast.BinOpPowAssign:               1,
+		js_ast.BinOpShlAssign:               1,
+		js_ast.BinOpShrAssign:               1,
+		js_ast.BinOpUShrAssign:              1,
+		js_ast.BinOpBitwiseOrAssign:         1,
+		js_ast.BinOpBitwiseAndAssign:        1,
+		js_ast.BinOpBitwiseXorAssign:        1,
+		js_ast.BinOpNullishCoalescingAssign: 1,
+		js_ast.BinOpLogicalOrAssign:         1,
+		js_ast.BinOpLogicalAndAssign:        1,
+		js_ast.BinOpNullishCoalescing:       2,
+		js_ast.BinOpLogicalOr:               3,
+		js_ast.BinOpLogicalAnd:              4,
+		js_ast.BinOpBitwiseOr:               5,
+		js_ast.BinOpBitwiseXor:              6,
+		js_ast.BinOpBitwiseAnd:              7,
+		js_ast.BinOpLooseEq:                 8,
+		js_ast.BinOpLooseNe:                 8,
+		js_ast.BinOpStrictEq:                8,
+		js_ast.BinOpStrictNe:                8,
+		js_ast.BinOpLt:                      9,
+		js_ast.BinOpLe:                      9,
+		js_ast.BinOpGt:                      9,
+		js_ast.BinOpGe:                      9,
+		js_ast.BinOpIn:                      9,
+		js_ast.BinOpInstanceof:              9,
+		js_ast.BinOpShl:                     10,
+		js_ast.BinOpShr:                     10,
+		js_ast.BinOpUShr:                    10,
+		js_ast.BinOpAdd:                     11,
+		js_ast.BinOpSub:                     11,
+		js_ast.BinOpMul:                     12,
+		js_ast.BinOpDiv:                     12,
+		js_ast.BinOpRem:                     12,
+		js_ast.BinOpPow:                     13,
 	}
 )
 
@@ -554,22 +579,22 @@ var (
 //
 // Takes op (js_ast.OpCode) which specifies the esbuild binary operator.
 //
-// Returns parsejs.TokenType which is the matching tdewolff token, or AddToken
-// if no mapping exists.
-func convertBinaryOp(op js_ast.OpCode) parsejs.TokenType {
+// Returns parsejs.TokenType which is the matching tdewolff token.
+// Returns error when the operator is not in the mapping, since silently returning a
+// default token would miscompile user source.
+func convertBinaryOp(op js_ast.OpCode) (parsejs.TokenType, error) {
 	if token, ok := esbuildBinaryOpToTdewolff[op]; ok {
-		return token
+		return token, nil
 	}
-	return parsejs.AddToken
+	return 0, fmt.Errorf("unsupported JS binary operator %v", op)
 }
 
 // convertUnaryOp converts an esbuild unary operator to a tdewolff token type.
 //
-// Takes op (js_ast.OpCode) which specifies the esbuild unary operator to
-// convert.
+// Takes op (js_ast.OpCode) which specifies the esbuild unary operator to convert.
 //
-// Returns parsejs.TokenType which is the matching tdewolff token, or
-// parsejs.NotToken if no mapping exists.
+// Returns parsejs.TokenType which is the matching tdewolff token, or parsejs.NotToken if
+// no mapping exists.
 func convertUnaryOp(op js_ast.OpCode) parsejs.TokenType {
 	if token, ok := esbuildUnaryOpToTdewolff[op]; ok {
 		return token

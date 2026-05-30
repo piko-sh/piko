@@ -64,8 +64,8 @@ type DialogInfo struct {
 
 // DialogHandler handles JavaScript dialog boxes in the browser.
 type DialogHandler struct {
-	// lastDialog stores the most recently recorded dialog; nil if none has
-	// occurred or has been cleared.
+	// lastDialog stores the most recently recorded dialog; nil if none has occurred or has
+	// been cleared.
 	lastDialog *DialogInfo
 
 	// dialogChan receives dialog events for WaitForDialog consumers.
@@ -113,13 +113,13 @@ func NewDialogHandler() *DialogHandler {
 // Enable enables automatic dialog handling.
 //
 // Takes ctx (*ActionContext) which provides the Chrome DevTools context.
-// Takes autoAccept (bool) which when true accepts dialogues automatically;
-// otherwise they are dismissed.
+// Takes autoAccept (bool) which when true accepts dialogues automatically; otherwise they
+// are dismissed.
 //
 // Returns error when enabling fails.
 //
-// Safe for concurrent use. Registers a target listener that handles dialog
-// events in the background until the context is cancelled.
+// Safe for concurrent use. Registers a target listener that handles dialog events in the
+// background until the context is cancelled.
 func (dh *DialogHandler) Enable(ctx *ActionContext, autoAccept bool) error {
 	dh.mu.Lock()
 	defer dh.mu.Unlock()
@@ -140,8 +140,8 @@ func (dh *DialogHandler) Enable(ctx *ActionContext, autoAccept bool) error {
 
 // Disable disables automatic dialog handling.
 //
-// Safe for concurrent use. Waits up to two seconds for any in-flight
-// goroutines to complete before returning.
+// Safe for concurrent use. Waits up to two seconds for any in-flight goroutines to
+// complete before returning.
 func (dh *DialogHandler) Disable() {
 	dh.mu.Lock()
 	if dh.enabled && !dh.closed {
@@ -175,8 +175,8 @@ func (dh *DialogHandler) SetPromptText(text string) {
 
 // GetLastDialog returns information about the last dialog that appeared.
 //
-// Returns *DialogInfo which contains details of the most recent dialog, or nil
-// if no dialog has appeared.
+// Returns *DialogInfo which contains details of the most recent dialog, or nil if no
+// dialog has appeared.
 //
 // Safe for concurrent use.
 func (dh *DialogHandler) GetLastDialog() *DialogInfo {
@@ -229,8 +229,7 @@ func (dh *DialogHandler) handleTargetEvent(ctx *ActionContext, ev any) {
 
 // isStopped checks if the handler has been stopped.
 //
-// Returns bool which is true if the stop channel is closed or the handler is
-// disabled.
+// Returns bool which is true if the stop channel is closed or the handler is disabled.
 //
 // Safe for concurrent use. Uses a read lock to check the enabled state.
 func (dh *DialogHandler) isStopped() bool {
@@ -249,13 +248,13 @@ func (dh *DialogHandler) isStopped() bool {
 
 // recordDialog records dialog info and sends to channel.
 //
-// Takes dialog (*page.EventJavascriptDialogOpening) which provides the dialog
-// event data to record.
+// Takes dialog (*page.EventJavascriptDialogOpening) which provides the dialog event data
+// to record.
 //
 // Returns DialogInfo which contains the recorded dialog details.
 //
-// Safe for concurrent use. Sends to the dialog channel without blocking if the
-// channel buffer is full.
+// Safe for concurrent use. Sends to the dialog channel without blocking if the channel
+// buffer is full.
 func (dh *DialogHandler) recordDialog(dialog *page.EventJavascriptDialogOpening) DialogInfo {
 	dh.mu.Lock()
 	info := DialogInfo{
@@ -277,11 +276,11 @@ func (dh *DialogHandler) recordDialog(dialog *page.EventJavascriptDialogOpening)
 	return info
 }
 
-// autoHandleDialog spawns a background task to handle the
-// dialog, checking enabled state under the read lock first.
+// autoHandleDialog spawns a background task to handle the dialog, checking enabled state
+// under the read lock first.
 //
-// Takes ctx (*ActionContext) which provides the browser context
-// for dispatching the dialog response.
+// Takes ctx (*ActionContext) which provides the browser context for dispatching the
+// dialog response.
 //
 // Safe for concurrent use. Spawns a goroutine to dispatch the dialog response
 // asynchronously, tracked by the handler's WaitGroup.
@@ -291,11 +290,9 @@ func (dh *DialogHandler) autoHandleDialog(ctx *ActionContext, _ DialogInfo) {
 		dh.mu.RUnlock()
 		return
 	}
-	dh.wg.Add(1)
 	dh.mu.RUnlock()
 
-	go func() {
-		defer dh.wg.Done()
+	dh.wg.Go(func() {
 		select {
 		case <-ctx.Ctx.Done():
 			return
@@ -306,7 +303,7 @@ func (dh *DialogHandler) autoHandleDialog(ctx *ActionContext, _ DialogInfo) {
 		_ = chromedp.Run(timedCtx, chromedp.ActionFunc(func(ctx2 context.Context) error {
 			return page.HandleJavaScriptDialog(dh.autoAccept).WithPromptText(dh.autoText).Do(ctx2)
 		}))
-	}()
+	})
 }
 
 // DialogAutoHandler provides a way to stop automatic dialog handling.
@@ -326,8 +323,8 @@ type DialogAutoHandler struct {
 
 // Stop stops the automatic dialog handling and waits for cleanup.
 //
-// Safe for concurrent use. Waits up to two seconds for in-flight goroutines
-// to complete before returning.
+// Safe for concurrent use. Waits up to two seconds for in-flight goroutines to complete
+// before returning.
 func (h *DialogAutoHandler) Stop() {
 	h.mu.Lock()
 	if !h.stopped {
@@ -358,8 +355,8 @@ func HandleAlert(ctx *ActionContext) error {
 	return handleDialog(ctx, true, "")
 }
 
-// HandleConfirm handles a confirm dialog.
-// If accept is true, clicks OK; otherwise clicks Cancel.
+// HandleConfirm handles a confirm dialog. If accept is true, clicks OK; otherwise clicks
+// Cancel.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes accept (bool) which determines whether to click OK or Cancel.
@@ -400,12 +397,11 @@ func AcceptDialog(ctx *ActionContext) error {
 	return handleDialog(ctx, true, "")
 }
 
-// SetupDialogAutoAccept sets up automatic acceptance of all dialogues. This is
-// useful when you expect dialogues but do not need to inspect them.
+// SetupDialogAutoAccept sets up automatic acceptance of all dialogues. This is useful
+// when you expect dialogues but do not need to inspect them.
 //
 // Takes ctx (*ActionContext) which provides the browser context for listening.
-// Takes promptText (string) which specifies the text to enter for prompt
-// dialogues.
+// Takes promptText (string) which specifies the text to enter for prompt dialogues.
 //
 // Returns *DialogAutoHandler which can be used to stop the automatic handling.
 func SetupDialogAutoAccept(ctx *ActionContext, promptText string) *DialogAutoHandler {
@@ -479,8 +475,8 @@ func SetupDialogAutoDismiss(ctx *ActionContext) *DialogAutoHandler {
 	return handler
 }
 
-// TriggerAlert triggers an alert dialog via JavaScript.
-// Useful for testing dialog handling.
+// TriggerAlert triggers an alert dialog via JavaScript. Useful for testing dialog
+// handling.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes message (string) which specifies the text to display in the alert.

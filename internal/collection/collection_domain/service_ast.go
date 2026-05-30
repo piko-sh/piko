@@ -33,17 +33,16 @@ import (
 
 // buildSliceLiteral generates a Go AST slice literal from content items.
 //
-// This creates an ast.CompositeLit representing a slice of the target type,
-// with each element populated from the ContentItem metadata.
+// This creates an ast.CompositeLit representing a slice of the target type, with each
+// element populated from the ContentItem metadata.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes targetType (ast.Expr) which specifies the element type for the slice.
-// Takes items ([]collection_dto.ContentItem) which provides the data for each
-// slice element.
+// Takes items ([]collection_dto.ContentItem) which provides the data for each slice
+// element.
 //
-// Returns ast.Expr which is the constructed slice literal as a composite
-// literal node.
+// Returns ast.Expr which is the constructed slice literal as a composite literal node.
 // Returns error when building an individual item literal fails.
 func (s *collectionService) buildSliceLiteral(
 	ctx context.Context,
@@ -82,31 +81,32 @@ func (s *collectionService) buildSliceLiteral(
 	return sliceLiteral, nil
 }
 
-// internalMetadataKeys contains metadata keys that are internal to the framework
-// and should not be encoded into user-defined target structs.
-var internalMetadataKeys = map[string]bool{
-	collection_dto.MetaKeyDraft:      true,
-	collection_dto.MetaKeyWordCount:  true,
-	collection_dto.MetaKeySections:   true,
-	collection_dto.MetaKeyNavigation: true,
-}
+var (
+	// internalMetadataKeys contains metadata keys that are internal to the framework and
+	// should not be encoded into user-defined target structs.
+	internalMetadataKeys = map[string]bool{
+		collection_dto.MetaKeyDraft:      true,
+		collection_dto.MetaKeyWordCount:  true,
+		collection_dto.MetaKeySections:   true,
+		collection_dto.MetaKeyNavigation: true,
+	}
+)
 
 // buildItemLiteral generates a composite literal for a single ContentItem.
 //
-// This maps the ContentItem's metadata to struct field initialisers.
-// Field names are capitalised to match Go's exported field naming convention.
+// This maps the ContentItem's metadata to struct field initialisers. Field names are
+// capitalised to match Go's exported field naming convention.
 //
 // The function encodes:
 //   - User-defined metadata from the Metadata map (excluding internal keys)
 //   - Slug from ContentItem if not already in metadata
 //   - URL from ContentItem (always added as it's computed, not in frontmatter)
 //
-// Internal metadata keys (Draft, WordCount, Sections, Navigation) are excluded
-// because they are framework-internal and not typically part of user-defined
-// target structs.
+// Internal metadata keys (Draft, WordCount, Sections, Navigation) are excluded because
+// they are framework-internal and not typically part of user-defined target structs.
 //
-// Takes item (*collection_dto.ContentItem) which provides the content metadata
-// to convert.
+// Takes item (*collection_dto.ContentItem) which provides the content metadata to
+// convert.
 //
 // Returns ast.Expr which is the composite literal representing the item.
 // Returns error when a metadata value cannot be converted to an AST expression.
@@ -154,8 +154,8 @@ func (s *collectionService) buildItemLiteral(ctx context.Context, item *collecti
 
 // valueToASTExpr converts a Go value to an AST expression.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes value (any) which is the Go value to convert.
 //
 // Returns ast.Expr which is the corresponding AST expression.
@@ -187,8 +187,8 @@ func (s *collectionService) valueToASTExpr(ctx context.Context, value any) (ast.
 
 // createSliceLit creates an AST slice literal.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes v ([]any) which contains the elements to include in the slice.
 //
 // Returns ast.Expr which is the composite literal representing the slice.
@@ -220,8 +220,8 @@ func (s *collectionService) createSliceLit(ctx context.Context, v []any) (ast.Ex
 //
 // Keys are sorted for deterministic output order.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes v (map[string]any) which contains the key-value pairs to convert.
 //
 // Returns ast.Expr which is the constructed map composite literal.
@@ -256,11 +256,11 @@ func (s *collectionService) createMapLit(ctx context.Context, v map[string]any) 
 	}, nil
 }
 
-// createFallbackStringLit creates a fallback string literal for types that
-// cannot be directly converted to an AST node.
+// createFallbackStringLit creates a fallback string literal for types that cannot be
+// directly converted to an AST node.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes v (any) which is the value to convert to a string literal.
 //
 // Returns *ast.BasicLit which contains the string form of the value.
@@ -332,8 +332,8 @@ func createBoolIdent(v bool) *ast.Ident {
 	return &ast.Ident{NamePos: 0, Name: fmt.Sprintf("%t", v), Obj: nil}
 }
 
-// capitalise converts the first letter of a string to uppercase.
-// Converts metadata keys to Go exported field names.
+// capitalise converts the first letter of a string to uppercase. Converts metadata keys
+// to Go exported field names.
 //
 // Takes str (string) which is the text to capitalise.
 //

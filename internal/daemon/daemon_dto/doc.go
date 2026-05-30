@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package daemon_dto contains request/response types, typed action
-// errors, and shared dependencies used by HTTP handlers in the daemon
-// module. It includes action metadata, cookie helpers, file upload
-// handling, and batch action support.
+// Package daemon_dto contains request/response types, typed action errors, and shared
+// dependencies used by HTTP handlers in the daemon module. It includes action metadata,
+// cookie helpers, file upload handling, and batch action support.
 //
 // # Cookie management
 //
@@ -37,9 +36,8 @@
 //	// Clear a cookie on logout
 //	cookie := daemon_dto.ClearCookie("session")
 //
-// All cookies default to HttpOnly, Secure, and SameSite=Lax for
-// security. Use the Insecure variants only for local development
-// without HTTPS.
+// All cookies default to HttpOnly, Secure, and SameSite=Lax for security. Use the
+// Insecure variants only for local development without HTTPS.
 //
 // # Action errors
 //

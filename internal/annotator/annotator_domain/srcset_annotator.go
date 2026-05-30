@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Annotates image elements with srcset attributes for responsive images by generating density-based variants.
-// Processes piko:img elements, applies transformation profiles, and creates srcset markup for optimised image delivery across devices.
+// Annotates image elements with srcset attributes for responsive images by generating
+// density-based variants. Processes piko:img elements, applies transformation profiles,
+// and creates srcset markup for optimised image delivery across devices.
 
 import (
 	"cmp"
@@ -34,18 +35,18 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// AnnotateSrcsetForWebImages performs a final pass on the AST after the asset
-// manifest is built. For each <piko:img> tag with responsive attributes, it
-// finds all generated variants in the manifest and attaches srcset metadata to
-// the AST node for use by the code generator.
+// AnnotateSrcsetForWebImages performs a final pass on the AST after the asset manifest is
+// built. For each <piko:img> tag with responsive attributes, it finds all generated
+// variants in the manifest and attaches srcset metadata to the AST node for use by the
+// code generator.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to
-// annotate with srcset metadata.
-// Takes assetDependencies ([]*annotator_dto.StaticAssetDependency) which
-// contains the static asset manifest with generated image variants.
-// Takes pathsConfig (AnnotatorPathsConfig) which provides path settings for
-// URL generation.
+// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to annotate
+// with srcset metadata.
+// Takes assetDependencies ([]*annotator_dto.StaticAssetDependency) which contains the
+// static asset manifest with generated image variants.
+// Takes pathsConfig (AnnotatorPathsConfig) which provides path settings for URL
+// generation.
 func AnnotateSrcsetForWebImages(
 	ctx context.Context,
 	templateAST *ast_domain.TemplateAST,
@@ -81,13 +82,13 @@ func AnnotateSrcsetForWebImages(
 	})
 }
 
-// processPikoImgNode handles a single piko:img node by adding srcset data when
-// there are image variants for its source.
+// processPikoImgNode handles a single piko:img node by adding srcset data when there are
+// image variants for its source.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes variantsBySource (map[string][]*annotator_dto.StaticAssetDependency)
-// which maps source paths to their image variants.
+// Takes variantsBySource (map[string][]*annotator_dto.StaticAssetDependency) which maps
+// source paths to their image variants.
 // Takes pathsConfig (AnnotatorPathsConfig) which provides path settings.
 //
 // Returns bool which shows whether processing should continue.
@@ -129,16 +130,16 @@ func processPikoImgNode(
 	return true
 }
 
-// buildSrcsetMetadata constructs srcset metadata from asset dependencies.
-// It extracts width, density, and transformation parameters for each variant.
+// buildSrcsetMetadata constructs srcset metadata from asset dependencies. It extracts
+// width, density, and transformation parameters for each variant.
 //
-// Takes variants ([]*annotator_dto.StaticAssetDependency) which provides the
-// asset variants to process.
-// Takes pathsConfig (AnnotatorPathsConfig) which specifies the path settings for
-// URL generation.
+// Takes variants ([]*annotator_dto.StaticAssetDependency) which provides the asset
+// variants to process.
+// Takes pathsConfig (AnnotatorPathsConfig) which specifies the path settings for URL
+// generation.
 //
-// Returns []ast_domain.ResponsiveVariantMetadata which contains the processed
-// metadata sorted by width, then by density.
+// Returns []ast_domain.ResponsiveVariantMetadata which contains the processed metadata
+// sorted by width, then by density.
 func buildSrcsetMetadata(
 	variants []*annotator_dto.StaticAssetDependency,
 	pathsConfig AnnotatorPathsConfig,
@@ -189,15 +190,15 @@ func buildSrcsetMetadata(
 	return metadata
 }
 
-// generateVariantKey creates a unique key for a variant that matches the
-// registry's naming pattern. This key is used in the URL query parameter to
-// request a specific variant.
+// generateVariantKey creates a unique key for a variant that matches the registry's
+// naming pattern. This key is used in the URL query parameter to request a specific
+// variant.
 //
-// Takes variant (*annotator_dto.StaticAssetDependency) which contains the
-// width and format settings for the image variant.
+// Takes variant (*annotator_dto.StaticAssetDependency) which contains the width and
+// format settings for the image variant.
 //
-// Returns string which is the variant key in format "image_w{width}_{format}"
-// matching the asset_pipeline.go profile naming pattern.
+// Returns string which is the variant key in format "image_w{width}_{format}" matching
+// the asset_pipeline.go profile naming pattern.
 func generateVariantKey(variant *annotator_dto.StaticAssetDependency) string {
 	width := variant.TransformationParams["width"]
 	format := cmp.Or(variant.TransformationParams["format"], "webp")
@@ -206,12 +207,12 @@ func generateVariantKey(variant *annotator_dto.StaticAssetDependency) string {
 	return fmt.Sprintf("image_w%s_%s", width, format)
 }
 
-// generateAssetURL creates the URL for serving a specific variant of an asset.
-// The URL format is: {servePath}/{artefactID}?v={profileName}, so the asset
-// server can look up the artefact and serve the correct variant.
+// generateAssetURL creates the URL for serving a specific variant of an asset. The URL
+// format is: {servePath}/{artefactID}?v={profileName}, so the asset server can look up
+// the artefact and serve the correct variant.
 //
-// Takes variant (*annotator_dto.StaticAssetDependency) which specifies the
-// asset variant to create a URL for.
+// Takes variant (*annotator_dto.StaticAssetDependency) which specifies the asset variant
+// to create a URL for.
 // Takes pathsConfig (AnnotatorPathsConfig) which provides the asset serving path.
 //
 // Returns string which is the complete URL for serving the asset variant.

@@ -31,39 +31,38 @@ var (
 	// meter is the OpenTelemetry meter for resolver adapter instrumentation.
 	meter = otel.Meter("piko/internal/resolver/resolver_adapters")
 
-	// moduleDetectionCount is a counter metric that tracks how many Go modules
-	// are found during analysis.
+	// moduleDetectionCount is a counter metric that tracks how many Go modules are found
+	// during analysis.
 	moduleDetectionCount metric.Int64Counter
 
 	// moduleDetectionDuration records how long it takes to detect Go modules.
 	moduleDetectionDuration metric.Float64Histogram
 
-	// moduleDetectionErrorCount tracks the number of errors that occur during
-	// module detection.
+	// moduleDetectionErrorCount tracks the number of errors that occur during module
+	// detection.
 	moduleDetectionErrorCount metric.Int64Counter
 
-	// pathResolutionCount is a metric counter that tracks how many times path
-	// resolution is done.
+	// pathResolutionCount is a metric counter that tracks how many times path resolution is
+	// done.
 	pathResolutionCount metric.Int64Counter
 
-	// pathResolutionErrorCount is a metric counter that tracks errors when
-	// resolving paths during documentation processing.
+	// pathResolutionErrorCount is a metric counter that tracks errors when resolving paths
+	// during documentation processing.
 	pathResolutionErrorCount metric.Int64Counter
 
-	// goModuleCacheResolutionCount tracks the number of Go module cache
-	// resolution attempts for metrics reporting.
+	// goModuleCacheResolutionCount tracks the number of Go module cache resolution attempts
+	// for metrics reporting.
 	goModuleCacheResolutionCount metric.Int64Counter
 
-	// goModuleCacheResolutionDuration records how long it takes to resolve Go
-	// module paths from the module cache.
+	// goModuleCacheResolutionDuration records how long it takes to resolve Go module paths
+	// from the module cache.
 	goModuleCacheResolutionDuration metric.Float64Histogram
 
-	// goModuleCacheResolutionErrorCount tracks the number of failed attempts to
-	// resolve paths from the Go module cache.
+	// goModuleCacheResolutionErrorCount tracks the number of failed attempts to resolve
+	// paths from the Go module cache.
 	goModuleCacheResolutionErrorCount metric.Int64Counter
 
-	// goModuleCacheHitCount tracks the number of cache hits when resolving Go
-	// module paths.
+	// goModuleCacheHitCount tracks the number of cache hits when resolving Go module paths.
 	goModuleCacheHitCount metric.Int64Counter
 
 	// goModuleCacheMissCount is a metric counter that tracks Go module cache misses.

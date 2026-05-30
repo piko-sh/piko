@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package templates provides embedded template files and scaffolding logic
-// for creating new Piko projects.
+// Package templates provides embedded template files and scaffolding logic for creating
+// new Piko projects.
 //
-// This package contains the embedded filesystem assets (READMEs,
-// configuration files, Go source templates, Piko markup templates, and
-// end-to-end test templates) along with the orchestration logic that
-// validates a destination, creates the standard directory structure, and
-// renders each template into a fully functional starter project.
+// This package contains the embedded filesystem assets (READMEs, configuration files, Go
+// source templates, Piko markup templates, and end-to-end test templates) along with the
+// orchestration logic that validates a destination, creates the standard directory
+// structure, and renders each template into a fully functional starter project.
 //
 // # Usage
 //
@@ -36,6 +35,6 @@
 // # Integration
 //
 // This package is consumed by the Piko CLI's "new" command. It depends on
-// [piko.sh/piko/wdk/safedisk] for sandboxed filesystem operations during
-// project creation.
+// [piko.sh/piko/wdk/safedisk] for sandboxed filesystem operations during project
+// creation.
 package templates

@@ -35,9 +35,9 @@ import (
 )
 
 const (
-	// formattedFilePermission is the file permission mode used when writing
-	// formatted files. It allows the owner to read and write, the group to read,
-	// and others to have no access.
+	// formattedFilePermission is the file permission mode used when writing formatted files.
+	// It allows the owner to read and write, the group to read, and others to have no
+	// access.
 	formattedFilePermission = 0o640
 )
 
@@ -60,8 +60,8 @@ type formatFlags struct {
 	// recursive enables processing of subdirectories.
 	recursive bool
 
-	// dryRun enables preview mode, showing which files would be formatted
-	// without making changes.
+	// dryRun enables preview mode, showing which files would be formatted without making
+	// changes.
 	dryRun bool
 
 	// check enables check mode; exits with code 1 if any files need formatting.
@@ -174,8 +174,8 @@ func processAllPaths(ctx context.Context, stats *Statistics, paths []string, fla
 	return exitCode
 }
 
-// printSummaryAndGetExitCode prints the appropriate summary message and
-// returns the final exit code.
+// printSummaryAndGetExitCode prints the appropriate summary message and returns the final
+// exit code.
 //
 // Takes stats (*Statistics) which contains the formatting statistics.
 // Takes flags (*formatFlags) which specifies the output mode.
@@ -207,11 +207,10 @@ func printSummaryAndGetExitCode(stats *Statistics, flags *formatFlags, currentEx
 // printCheckSummary prints the check mode summary and returns the exit code.
 //
 // Takes stats (*Statistics) which holds the formatting results to summarise.
-// Takes currentExitCode (int) which is the exit code to return if all files
-// are properly formatted.
+// Takes currentExitCode (int) which is the exit code to return if all files are properly
+// formatted.
 //
-// Returns int which is 1 if any files need formatting, otherwise
-// currentExitCode.
+// Returns int which is 1 if any files need formatting, otherwise currentExitCode.
 func printCheckSummary(stats *Statistics, currentExitCode int) int {
 	if stats.needsFormatting > 0 {
 		_, _ = fmt.Fprintf(stats.stderr, "\nCheck failed: %d file(s) need formatting\n", stats.needsFormatting)
@@ -236,8 +235,8 @@ func printWriteSummary(stats *Statistics, currentExitCode int) int {
 	return currentExitCode
 }
 
-// processPath handles a file or directory path by passing it to the right
-// processor based on whether it is a file or directory.
+// processPath handles a file or directory path by passing it to the right processor based
+// on whether it is a file or directory.
 //
 // Takes ctx (context.Context) which carries cancellation signals for formatting
 // operations.
@@ -273,8 +272,8 @@ func processPath(ctx context.Context, stats *Statistics, path string, flags *for
 // operations.
 // Takes stats (*Statistics) which tracks formatting results.
 // Takes directory (string) which specifies the directory path to process.
-// Takes flags (*formatFlags) which controls formatting behaviour including
-// recursive mode.
+// Takes flags (*formatFlags) which controls formatting behaviour including recursive
+// mode.
 //
 // Returns error when the directory cannot be read or walked.
 func processDirectory(ctx context.Context, stats *Statistics, directory string, flags *formatFlags) error {
@@ -309,8 +308,7 @@ func processDirectoryRecursive(ctx context.Context, stats *Statistics, directory
 	})
 }
 
-// processDirectoryFlat processes .pk files in a single directory without
-// recursion.
+// processDirectoryFlat processes .pk files in a single directory without recursion.
 //
 // Takes ctx (context.Context) which carries cancellation signals for formatting
 // operations.
@@ -346,8 +344,8 @@ func processDirectoryFlat(ctx context.Context, stats *Statistics, directory stri
 
 // processFile formats a single .pk file and updates statistics.
 //
-// Takes ctx (context.Context) which carries cancellation signals for the
-// formatting operation.
+// Takes ctx (context.Context) which carries cancellation signals for the formatting
+// operation.
 // Takes stats (*Statistics) which tracks formatting progress and results.
 // Takes path (string) which specifies the file path to format.
 // Takes flags (*formatFlags) which controls the output mode.
@@ -380,8 +378,8 @@ func processFile(ctx context.Context, stats *Statistics, path string, flags *for
 // Takes opener (sandboxOpener) which creates the sandbox for reading.
 //
 // Returns []byte which contains the file content.
-// Returns error when the sandbox cannot be created, the file is not found,
-// or the file cannot be read.
+// Returns error when the sandbox cannot be created, the file is not found, or the file
+// cannot be read.
 func readFileContent(path string, opener sandboxOpener) ([]byte, error) {
 	parentDir := filepath.Dir(path)
 	fileName := filepath.Base(path)
@@ -476,11 +474,9 @@ func outputListMode(stdout io.Writer, path string, changed bool) error {
 // Takes stats (*Statistics) which tracks formatting statistics.
 // Takes path (string) which specifies the file path to write to.
 // Takes formatted ([]byte) which contains the formatted file content.
-// Takes changed (bool) which indicates whether the content differs from the
-// original.
+// Takes changed (bool) which indicates whether the content differs from the original.
 //
-// Returns error when the write sandbox cannot be created or the file cannot
-// be written.
+// Returns error when the write sandbox cannot be created or the file cannot be written.
 func outputWriteMode(stats *Statistics, path string, formatted []byte, changed bool) error {
 	if !changed {
 		return nil

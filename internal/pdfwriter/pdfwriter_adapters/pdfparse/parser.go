@@ -29,77 +29,78 @@ import (
 	"strings"
 )
 
-// xrefSearchWindow is the maximum number of bytes from the end of the file
-// to scan when searching for the startxref marker.
-const xrefSearchWindow = 1024
+const (
+	// xrefSearchWindow is the maximum number of bytes from the end of the file to scan when
+	// searching for the startxref marker.
+	xrefSearchWindow = 1024
 
-// defaultMaxDecompressedStreamBytes is the default cap on the size of a
-// single decompressed FlateDecode stream (64 MiB). The cap exists to
-// guard against zip-bomb PDFs that decompress to terabytes.
-const defaultMaxDecompressedStreamBytes int64 = 64 << 20
+	// defaultMaxDecompressedStreamBytes is the default cap on the size of a single
+	// decompressed FlateDecode stream (64 MiB). The cap exists to guard against zip-bomb
+	// PDFs that decompress to terabytes.
+	defaultMaxDecompressedStreamBytes int64 = 64 << 20
 
-// maxXRefDepth caps the number of /Prev cross-reference sections the
-// parser will follow before giving up. Traditional PDFs rarely chain
-// more than a handful of incremental updates; this cap stops malformed
-// chains from exhausting the stack even in the absence of cycles.
-const maxXRefDepth = 64
+	// maxXRefDepth caps the number of /Prev cross-reference sections the parser will follow
+	// before giving up. Traditional PDFs rarely chain more than a handful of incremental
+	// updates; this cap stops malformed chains from exhausting the stack even in the absence
+	// of cycles.
+	maxXRefDepth = 64
 
-// maxParseDepth caps the recursion depth of parseToken/parseDictionary/parseArray.
+	// maxParseDepth caps the recursion depth of parseToken/parseDictionary/parseArray.
+	//
+	// Legitimate PDFs nest dictionaries and arrays for resources, fonts, and form fields,
+	// but rarely beyond a few dozen levels. The cap rejects malicious payloads engineered to
+	// blow the stack while leaving genuine documents untouched. The value is deliberately
+	// set above downstream transformer nesting caps (e.g. the 256-level encrypt cap) so
+	// those layers can still produce their own targeted errors before the parser-level
+	// backstop fires.
+	maxParseDepth = 512
+)
+
+var (
+	// ErrXRefStreamsUnsupported is returned when the parser encounters a cross-reference
+	// stream instead of a traditional xref table.
+	ErrXRefStreamsUnsupported = errors.New("xref streams not yet supported; only traditional xref tables are handled")
+
+	// ErrFlateStreamTooLarge is returned when a FlateDecode stream decompresses to more
+	// bytes than the configured cap, indicating a likely zip-bomb attack rather than a
+	// legitimate document.
+	ErrFlateStreamTooLarge = errors.New("FlateDecode stream exceeds maximum decompressed size")
+
+	// ErrXRefCycle is returned when the parser detects a cycle in the /Prev chain of
+	// cross-reference sections. Following a cycle would recurse forever and exhaust the
+	// stack.
+	ErrXRefCycle = errors.New("xref /Prev chain contains a cycle")
+
+	// ErrXRefDepthExceeded is returned when the /Prev chain is longer than maxXRefDepth
+	// sections. The cap defends against pathological chains that, while not strictly cyclic,
+	// are deep enough to threaten the stack.
+	ErrXRefDepthExceeded = errors.New("xref /Prev chain exceeds maximum depth")
+
+	// ErrParseDepthExceeded is returned when nested dictionaries or arrays exceed
+	// maxParseDepth levels of recursion.
+	ErrParseDepthExceeded = errors.New("parser recursion depth exceeded")
+
+	// ErrInvalidObjectOffset is returned when a cross-reference entry points to a byte
+	// offset that lies outside the file content.
+	ErrInvalidObjectOffset = errors.New("xref offset outside file bounds")
+
+	// ErrMalformedStreamLength is returned when a stream's /Length exceeds the bytes
+	// remaining in the file, indicating a truncated or hostile stream rather than a
+	// legitimate document.
+	ErrMalformedStreamLength = errors.New("stream /Length exceeds remaining file bytes")
+
+	// maxDecompressedStreamBytes holds the active cap on FlateDecode decompression output.
+	// It defaults to defaultMaxDecompressedStreamBytes and may be overridden via
+	// SetMaxDecompressedStreamBytes.
+	maxDecompressedStreamBytes = defaultMaxDecompressedStreamBytes
+)
+
+// SetMaxDecompressedStreamBytes sets the cap on the size of a single decompressed
+// FlateDecode stream. Callers may raise this for trusted inputs but should not lower it
+// below the largest legitimate stream they expect to encounter.
 //
-// Legitimate PDFs nest dictionaries and arrays for resources, fonts, and
-// form fields, but rarely beyond a few dozen levels. The cap rejects
-// malicious payloads engineered to blow the stack while leaving genuine
-// documents untouched. The value is deliberately set above downstream
-// transformer nesting caps (e.g. the 256-level encrypt cap) so those
-// layers can still produce their own targeted errors before the
-// parser-level backstop fires.
-const maxParseDepth = 512
-
-// ErrXRefStreamsUnsupported is returned when the parser encounters a
-// cross-reference stream instead of a traditional xref table.
-var ErrXRefStreamsUnsupported = errors.New("xref streams not yet supported; only traditional xref tables are handled")
-
-// ErrFlateStreamTooLarge is returned when a FlateDecode stream
-// decompresses to more bytes than the configured cap, indicating a
-// likely zip-bomb attack rather than a legitimate document.
-var ErrFlateStreamTooLarge = errors.New("FlateDecode stream exceeds maximum decompressed size")
-
-// ErrXRefCycle is returned when the parser detects a cycle in the
-// /Prev chain of cross-reference sections. Following a cycle would
-// recurse forever and exhaust the stack.
-var ErrXRefCycle = errors.New("xref /Prev chain contains a cycle")
-
-// ErrXRefDepthExceeded is returned when the /Prev chain is longer
-// than [maxXRefDepth] sections. The cap defends against pathological
-// chains that, while not strictly cyclic, are deep enough to threaten
-// the stack.
-var ErrXRefDepthExceeded = errors.New("xref /Prev chain exceeds maximum depth")
-
-// ErrParseDepthExceeded is returned when nested dictionaries or
-// arrays exceed [maxParseDepth] levels of recursion.
-var ErrParseDepthExceeded = errors.New("parser recursion depth exceeded")
-
-// ErrInvalidObjectOffset is returned when a cross-reference entry
-// points to a byte offset that lies outside the file content.
-var ErrInvalidObjectOffset = errors.New("xref offset outside file bounds")
-
-// ErrMalformedStreamLength is returned when a stream's /Length
-// exceeds the bytes remaining in the file, indicating a truncated or
-// hostile stream rather than a legitimate document.
-var ErrMalformedStreamLength = errors.New("stream /Length exceeds remaining file bytes")
-
-// maxDecompressedStreamBytes holds the active cap on FlateDecode
-// decompression output. It defaults to defaultMaxDecompressedStreamBytes
-// and may be overridden via [SetMaxDecompressedStreamBytes].
-var maxDecompressedStreamBytes = defaultMaxDecompressedStreamBytes
-
-// SetMaxDecompressedStreamBytes sets the cap on the size of a single
-// decompressed FlateDecode stream. Callers may raise this for trusted
-// inputs but should not lower it below the largest legitimate stream
-// they expect to encounter.
-//
-// Takes limit (int64) which is the new cap in bytes. Values <= 0 are
-// ignored to keep the existing limit safe.
+// Takes limit (int64) which is the new cap in bytes. Values <= 0 are ignored to keep the
+// existing limit safe.
 func SetMaxDecompressedStreamBytes(limit int64) {
 	if limit <= 0 {
 		return
@@ -107,8 +108,7 @@ func SetMaxDecompressedStreamBytes(limit int64) {
 	maxDecompressedStreamBytes = limit
 }
 
-// MaxDecompressedStreamBytes returns the active cap on FlateDecode
-// decompression output.
+// MaxDecompressedStreamBytes returns the active cap on FlateDecode decompression output.
 //
 // Returns int64 which is the active cap in bytes.
 func MaxDecompressedStreamBytes() int64 { return maxDecompressedStreamBytes }
@@ -125,9 +125,8 @@ type xrefEntry struct {
 	inUse bool
 }
 
-// Document represents a parsed PDF document. It holds the raw bytes, the
-// cross-reference table, the trailer dictionary, and a cache of parsed
-// objects.
+// Document represents a parsed PDF document. It holds the raw bytes, the cross-reference
+// table, the trailer dictionary, and a cache of parsed objects.
 type Document struct {
 	// xref maps object numbers to their cross-reference entries.
 	xref map[int]xrefEntry
@@ -142,8 +141,8 @@ type Document struct {
 	trailer Dict
 }
 
-// Parse reads a PDF document from raw bytes and returns a Document that
-// can be used to inspect and modify objects.
+// Parse reads a PDF document from raw bytes and returns a Document that can be used to
+// inspect and modify objects.
 //
 // Takes data ([]byte) which is the complete PDF file bytes.
 //
@@ -193,8 +192,8 @@ func (d *Document) ObjectNumbers() []int {
 	return numbers
 }
 
-// GetObject returns the parsed object for the given object number. Objects
-// are cached after the first parse.
+// GetObject returns the parsed object for the given object number. Objects are cached
+// after the first parse.
 //
 // Takes number (int) which is the object number to retrieve.
 //
@@ -219,8 +218,8 @@ func (d *Document) GetObject(number int) (Object, error) {
 	return obj, nil
 }
 
-// Resolve follows an indirect reference to its target object. If the input
-// is not a reference, it is returned unchanged.
+// Resolve follows an indirect reference to its target object. If the input is not a
+// reference, it is returned unchanged.
 //
 // Takes obj (Object) which may be a reference or a direct object.
 //
@@ -242,9 +241,8 @@ func (d *Document) Resolve(obj Object) (Object, error) {
 // Returns []byte which holds the raw file content.
 func (d *Document) Raw() []byte { return d.raw }
 
-// DecodeStream decompresses a stream object's data if it uses FlateDecode.
-// If the stream has no filter or an unsupported filter, the raw data is
-// returned.
+// DecodeStream decompresses a stream object's data if it uses FlateDecode. If the stream
+// has no filter or an unsupported filter, the raw data is returned.
 //
 // Takes obj (Object) which must be an ObjectStream.
 //
@@ -267,8 +265,8 @@ func DecodeStream(obj Object) ([]byte, error) {
 	return obj.StreamData, nil
 }
 
-// FindStartXRefOffset returns the byte offset recorded in the last
-// startxref marker of a PDF.
+// FindStartXRefOffset returns the byte offset recorded in the last startxref marker of a
+// PDF.
 //
 // Takes data ([]byte) which holds the complete PDF file bytes.
 //
@@ -278,8 +276,8 @@ func FindStartXRefOffset(data []byte) (int64, error) {
 	return findXRefOffset(data)
 }
 
-// findXRefOffset locates the byte offset of the xref table by reading the
-// startxref marker near the end of the file.
+// findXRefOffset locates the byte offset of the xref table by reading the startxref
+// marker near the end of the file.
 //
 // Takes data ([]byte) which holds the complete PDF file bytes.
 //
@@ -311,15 +309,13 @@ func findXRefOffset(data []byte) (int64, error) {
 	return offset, nil
 }
 
-// parseXRef parses the cross-reference table and trailer starting at the
-// given byte offset.
+// parseXRef parses the cross-reference table and trailer starting at the given byte
+// offset.
 //
-// The visited map records every offset that has already been entered so
-// that a cyclic /Prev chain (e.g. one that points back to the section
-// that originally referenced it) is detected before it can blow the
-// stack. depth is incremented per recursion and capped by
-// [maxXRefDepth] as belt-and-braces against pathological non-cyclic
-// chains.
+// The visited map records every offset that has already been entered so that a cyclic
+// /Prev chain (e.g. one that points back to the section that originally referenced it) is
+// detected before it can blow the stack. depth is incremented per recursion and capped by
+// maxXRefDepth as belt-and-braces against pathological non-cyclic chains.
 //
 // Takes offset (int64) which specifies the byte position of the xref section.
 // Takes visited (map[int64]struct{}) which records xref offsets already entered.
@@ -375,8 +371,7 @@ func (d *Document) parseTraditionalXRef(pos int, visited map[int64]struct{}, dep
 	return d.parseTrailerAndFollowPrev(sc, visited, depth)
 }
 
-// parseXRefSubsection parses one "startObj count" subsection of the xref
-// table.
+// parseXRefSubsection parses one "startObj count" subsection of the xref table.
 //
 // Takes sc (*scanner) which provides token-level reading of the xref data.
 //
@@ -418,16 +413,16 @@ func (d *Document) parseXRefSubsection(sc *scanner) error {
 	return nil
 }
 
-// parseTrailerAndFollowPrev parses the trailer dictionary and follows any
-// /Prev link to earlier xref sections.
+// parseTrailerAndFollowPrev parses the trailer dictionary and follows any /Prev link to
+// earlier xref sections.
 //
-// Takes sc (*scanner) which provides token-level reading positioned at
-// the trailer keyword.
+// Takes sc (*scanner) which provides token-level reading positioned at the trailer
+// keyword.
 // Takes visited (map[int64]struct{}) which records xref offsets already entered.
 // Takes depth (int) which is the current /Prev chain depth.
 //
-// Returns error when the trailer dictionary is malformed or a /Prev link
-// cannot be followed.
+// Returns error when the trailer dictionary is malformed or a /Prev link cannot be
+// followed.
 func (d *Document) parseTrailerAndFollowPrev(sc *scanner, visited map[int64]struct{}, depth int) error {
 	sc.next()
 	trailerObj, err := d.parseObjectFromScanner(sc)
@@ -464,12 +459,10 @@ func parseXRefStream() error {
 	return ErrXRefStreamsUnsupported
 }
 
-// parseObjectAt parses an indirect object definition at the given byte
-// offset.
+// parseObjectAt parses an indirect object definition at the given byte offset.
 //
-// The offset is bounds-checked against the document length so that a
-// malformed xref entry pointing past EOF cannot trigger out-of-range
-// reads or silent data corruption.
+// The offset is bounds-checked against the document length so that a malformed xref entry
+// pointing past EOF cannot trigger out-of-range reads or silent data corruption.
 //
 // Takes offset (int64) which specifies the byte offset of the object header.
 //
@@ -513,30 +506,30 @@ func (d *Document) parseObjectAt(offset int64) (Object, error) {
 	return obj, nil
 }
 
-// parseObjectFromScanner parses a single PDF object value from the scanner
-// starting at depth zero.
+// parseObjectFromScanner parses a single PDF object value from the scanner starting at
+// depth zero.
 //
 // Takes sc (*scanner) which provides token-level reading of PDF content.
 //
 // Returns Object which is the parsed PDF object.
-// Returns error when the token sequence is invalid or the recursion
-// depth limit is exceeded.
+// Returns error when the token sequence is invalid or the recursion depth limit is
+// exceeded.
 func (d *Document) parseObjectFromScanner(sc *scanner) (Object, error) {
 	token := sc.next()
 	return d.parseToken(token, sc, 0)
 }
 
-// parseToken interprets a token and produces a PDF Object. depth tracks
-// the current nesting level so that cyclic or pathologically nested
-// dictionaries and arrays cannot exhaust the stack.
+// parseToken interprets a token and produces a PDF Object. depth tracks the current
+// nesting level so that cyclic or pathologically nested dictionaries and arrays cannot
+// exhaust the stack.
 //
 // Takes token (string) which is the initial token to interpret.
 // Takes sc (*scanner) which provides additional tokens if needed.
 // Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed PDF object.
-// Returns error when the token cannot be interpreted or the recursion
-// depth limit is exceeded.
+// Returns error when the token cannot be interpreted or the recursion depth limit is
+// exceeded.
 func (d *Document) parseToken(token string, sc *scanner, depth int) (Object, error) {
 	if depth >= maxParseDepth {
 		return Null(), fmt.Errorf("%w: depth %d", ErrParseDepthExceeded, depth)
@@ -565,13 +558,13 @@ func (d *Document) parseToken(token string, sc *scanner, depth int) (Object, err
 
 // parseDictionary parses key-value pairs until the closing >> delimiter.
 //
-// Takes sc (*scanner) which provides token-level reading positioned after
-// the opening << delimiter.
+// Takes sc (*scanner) which provides token-level reading positioned after the opening <<
+// delimiter.
 // Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed dictionary object.
-// Returns error when the dictionary content is malformed or the
-// recursion depth limit is exceeded.
+// Returns error when the dictionary content is malformed or the recursion depth limit is
+// exceeded.
 func (d *Document) parseDictionary(sc *scanner, depth int) (Object, error) {
 	if depth >= maxParseDepth {
 		return Null(), fmt.Errorf("%w: dictionary depth %d", ErrParseDepthExceeded, depth)
@@ -599,13 +592,13 @@ func (d *Document) parseDictionary(sc *scanner, depth int) (Object, error) {
 
 // parseArray parses array elements until the closing ] delimiter.
 //
-// Takes sc (*scanner) which provides token-level reading positioned after
-// the opening [ delimiter.
+// Takes sc (*scanner) which provides token-level reading positioned after the opening [
+// delimiter.
 // Takes depth (int) which is the current recursion depth.
 //
 // Returns Object which is the parsed array object.
-// Returns error when an array element cannot be parsed or the recursion
-// depth limit is exceeded.
+// Returns error when an array element cannot be parsed or the recursion depth limit is
+// exceeded.
 func (d *Document) parseArray(sc *scanner, depth int) (Object, error) {
 	if depth >= maxParseDepth {
 		return Null(), fmt.Errorf("%w: array depth %d", ErrParseDepthExceeded, depth)
@@ -625,12 +618,10 @@ func (d *Document) parseArray(sc *scanner, depth int) (Object, error) {
 	return Arr(items...), nil
 }
 
-// parseNumberOrRef parses a numeric token as an integer, real, or indirect
-// reference.
+// parseNumberOrRef parses a numeric token as an integer, real, or indirect reference.
 //
 // Takes token (string) which is the first numeric token.
-// Takes sc (*scanner) which provides look-ahead for "N G R" reference
-// syntax.
+// Takes sc (*scanner) which provides look-ahead for "N G R" reference syntax.
 //
 // Returns Object which is the parsed number or reference.
 // Returns error when the token is not a valid number or reference.
@@ -663,8 +654,7 @@ func parseNumberOrRef(token string, sc *scanner) (Object, error) {
 
 // readStreamData reads the raw stream bytes following a "stream" keyword.
 //
-// Takes sc (*scanner) which is positioned immediately after the "stream"
-// token.
+// Takes sc (*scanner) which is positioned immediately after the "stream" token.
 // Takes dict (Dict) which holds the stream dictionary containing /Length.
 //
 // Returns []byte which is the raw stream content.
@@ -715,14 +705,13 @@ func (d *Document) readStreamData(sc *scanner, dict Dict) ([]byte, error) {
 	return d.raw[streamStart:end], nil
 }
 
-// deflateDecode decompresses zlib-compressed data, enforcing the
-// active FlateDecode size cap to guard against zip-bomb PDFs.
+// deflateDecode decompresses zlib-compressed data, enforcing the active FlateDecode size
+// cap to guard against zip-bomb PDFs.
 //
 // Takes data ([]byte) which holds the compressed stream bytes.
 //
 // Returns []byte which is the decompressed content.
-// Returns error when decompression fails or the output exceeds the
-// configured cap.
+// Returns error when decompression fails or the output exceeds the configured cap.
 func deflateDecode(data []byte) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -780,8 +769,7 @@ func (s *scanner) skipWhitespaceAndComments() {
 
 // next returns the next token and advances the position.
 //
-// Returns string which is the next PDF token, or empty string at end of
-// data.
+// Returns string which is the next PDF token, or empty string at end of data.
 func (s *scanner) next() string {
 	s.skipWhitespaceAndComments()
 	if s.pos >= len(s.data) {
@@ -817,8 +805,7 @@ func (s *scanner) next() string {
 
 // peek returns the next token without advancing the position.
 //
-// Returns string which is the next PDF token, or empty string at end of
-// data.
+// Returns string which is the next PDF token, or empty string at end of data.
 func (s *scanner) peek() string {
 	saved := s.pos
 	token := s.next()
@@ -826,8 +813,8 @@ func (s *scanner) peek() string {
 	return token
 }
 
-// readAngleBracketToken reads a "<<" dictionary delimiter or a hex string
-// token starting with "<".
+// readAngleBracketToken reads a "<<" dictionary delimiter or a hex string token starting
+// with "<".
 //
 // Returns string which is the parsed angle bracket token.
 func (s *scanner) readAngleBracketToken() string {
@@ -847,8 +834,7 @@ func (s *scanner) readAngleBracketToken() string {
 	return string(s.data[start:s.pos])
 }
 
-// readCloseAngleBracketToken reads a ">>" dictionary delimiter or a
-// single ">" character.
+// readCloseAngleBracketToken reads a ">>" dictionary delimiter or a single ">" character.
 //
 // Returns string which is the parsed closing angle bracket token.
 func (s *scanner) readCloseAngleBracketToken() string {
@@ -860,8 +846,8 @@ func (s *scanner) readCloseAngleBracketToken() string {
 	return ">"
 }
 
-// readLiteralString reads a parenthesised PDF literal string, handling
-// nested parentheses and backslash escapes.
+// readLiteralString reads a parenthesised PDF literal string, handling nested parentheses
+// and backslash escapes.
 //
 // Returns string which is the raw literal string including parentheses.
 func (s *scanner) readLiteralString() string {
@@ -884,8 +870,8 @@ func (s *scanner) readLiteralString() string {
 	return string(s.data[start:s.pos])
 }
 
-// readName reads a PDF name token starting with "/" and extending until
-// the next whitespace or delimiter.
+// readName reads a PDF name token starting with "/" and extending until the next
+// whitespace or delimiter.
 //
 // Returns string which is the raw name token including the leading slash.
 func (s *scanner) readName() string {
@@ -931,8 +917,8 @@ func isInteger(s string) bool {
 	return err == nil
 }
 
-// decodeLiteralString decodes a PDF literal string token by stripping
-// outer parentheses and interpreting backslash escape sequences.
+// decodeLiteralString decodes a PDF literal string token by stripping outer parentheses
+// and interpreting backslash escape sequences.
 //
 // Takes token (string) which is the raw literal string token.
 //
@@ -968,8 +954,8 @@ func decodeLiteralString(token string) string {
 	return b.String()
 }
 
-// decodeHexString decodes a PDF hex string token by stripping angle
-// brackets and converting hex digit pairs to bytes.
+// decodeHexString decodes a PDF hex string token by stripping angle brackets and
+// converting hex digit pairs to bytes.
 //
 // Takes token (string) which is the raw hex string token.
 //

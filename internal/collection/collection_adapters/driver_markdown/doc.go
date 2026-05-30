@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driver_markdown implements a static collection provider for
-// markdown files.
+// Package driver_markdown implements a static collection provider for markdown files.
 //
-// This adapter discovers, parses, and processes markdown content from the
-// filesystem. It supports locale-aware path analysis, frontmatter
-// extraction, and translation linking between localised versions of the
-// same content. Content may be sourced from local directories or external
-// Go modules via the resolver system.
+// This adapter discovers, parses, and processes markdown content from the filesystem. It
+// supports locale-aware path analysis, frontmatter extraction, and translation linking
+// between localised versions of the same content. Content may be sourced from local
+// directories or external Go modules via the resolver system.
 //
 // # Directory structure
 //
@@ -38,7 +36,6 @@
 //
 // # Thread safety
 //
-// Provider instances are safe for concurrent use. Each call to
-// FetchStaticContent operates independently with no shared mutable
-// state.
+// Provider instances are safe for concurrent use. Each call to FetchStaticContent
+// operates independently with no shared mutable state.
 package driver_markdown

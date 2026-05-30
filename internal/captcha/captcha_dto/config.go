@@ -19,40 +19,39 @@
 package captcha_dto
 
 const (
-	// defaultScoreThreshold is the default minimum score for score-based
-	// captcha providers. A score of 0.5 balances false positives and false
-	// negatives for most applications.
+	// defaultScoreThreshold is the default minimum score for score-based captcha providers.
+	// A score of 0.5 balances false positives and false negatives for most applications.
 	defaultScoreThreshold = 0.5
 
-	// defaultVerifyRateLimit is the maximum number of captcha verification
-	// calls per IP per minute. Protects provider APIs from token-flooding.
+	// defaultVerifyRateLimit is the maximum number of captcha verification calls per IP per
+	// minute. Protects provider APIs from token-flooding.
 	defaultVerifyRateLimit = 20
 
-	// defaultChallengeRateLimit is the maximum number of HMAC challenge
-	// token generation calls per IP per minute.
+	// defaultChallengeRateLimit is the maximum number of HMAC challenge token generation
+	// calls per IP per minute.
 	defaultChallengeRateLimit = 30
 )
 
 // ServiceConfig holds configuration for the captcha service.
 type ServiceConfig struct {
-	// DefaultScoreThreshold is the minimum score (0.0-1.0) required for
-	// score-based providers like reCAPTCHA v3. Actions can override this
-	// with their own threshold via CaptchaConfig.ScoreThreshold.
+	// DefaultScoreThreshold is the minimum score (0.0-1.0) required for score-based
+	// providers like reCAPTCHA v3. Actions can override this with their own threshold via
+	// CaptchaConfig.ScoreThreshold.
 	DefaultScoreThreshold float64
 
-	// VerifyRateLimit is the maximum number of verification calls per IP
-	// per minute. Zero disables rate limiting.
+	// VerifyRateLimit is the maximum number of verification calls per IP per minute. Zero
+	// disables rate limiting.
 	VerifyRateLimit int
 
-	// ChallengeRateLimit is the maximum number of challenge token
-	// generation calls per IP per minute. Zero disables rate limiting.
+	// ChallengeRateLimit is the maximum number of challenge token generation calls per IP
+	// per minute. Zero disables rate limiting.
 	ChallengeRateLimit int
 }
 
 // DefaultServiceConfig returns a service config with sensible defaults.
 //
-// Returns *ServiceConfig which is set up with a 0.5 score threshold and
-// rate limits of 20 verifications and 30 challenges per IP per minute.
+// Returns *ServiceConfig which is set up with a 0.5 score threshold and rate limits of 20
+// verifications and 30 challenges per IP per minute.
 func DefaultServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		DefaultScoreThreshold: defaultScoreThreshold,

@@ -21,7 +21,6 @@ package collection_domain
 import (
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +38,7 @@ func TestMockCollectionItemsLoader_GetAllItems(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAllItemsCallCount))
+		assert.Equal(t, int64(1), m.GetAllItemsCallCount.Load())
 	})
 
 	t.Run("delegates to GetAllItemsFunc", func(t *testing.T) {
@@ -105,5 +104,5 @@ func TestMockCollectionItemsLoader_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetAllItemsCallCount))
+	assert.Equal(t, int64(goroutines), m.GetAllItemsCallCount.Load())
 }

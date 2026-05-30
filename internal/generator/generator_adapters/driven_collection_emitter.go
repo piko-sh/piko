@@ -30,18 +30,19 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// dirPermission is the default permission for directories created by generator
-// adapters. Uses 0750 to restrict access to owner and group only.
-const dirPermission = 0750
+const (
+	// dirPermission is the default permission for directories created by generator adapters.
+	// Uses 0750 to restrict access to owner and group only.
+	dirPermission = 0750
+)
 
 // DrivenCollectionEmitter implements CollectionEmitterPort.
 //
-// This adapter creates static collection files. It turns collection items into
-// FlatBuffer binary format, writes the binary to dist/collections/{name}/, and
-// creates a Go wrapper file with an embed directive. It uses ports for both
-// serialisation and file writing to keep the generator separate from the
-// FlatBuffers details. All file operations use a sandbox to prevent path
-// traversal attacks.
+// This adapter creates static collection files. It turns collection items into FlatBuffer
+// binary format, writes the binary to dist/collections/{name}/, and creates a Go wrapper
+// file with an embed directive. It uses ports for both serialisation and file writing to
+// keep the generator separate from the FlatBuffers details. All file operations use a
+// sandbox to prevent path traversal attacks.
 type DrivenCollectionEmitter struct {
 	// encoder converts collection items to binary format.
 	encoder collection_domain.CollectionEncoderPort
@@ -52,23 +53,21 @@ type DrivenCollectionEmitter struct {
 	// sandbox provides safe file path handling and file system operations.
 	sandbox safedisk.Sandbox
 
-	// moduleName is the Go module name from go.mod (e.g. a GitHub-hosted module
-	// path such as "example.com/user/project").
+	// moduleName is the Go module name from go.mod (e.g. a GitHub-hosted module path such as
+	// "example.com/user/project").
 	moduleName string
 }
 
 // NewDrivenCollectionEmitter creates a new collection emitter instance.
 //
-// Takes encoder (CollectionEncoderPort) which provides encoding
-// from the collection hexagon.
+// Takes encoder (CollectionEncoderPort) which provides encoding from the collection
+// hexagon.
 // Takes fsWriter (FSWriterPort) which handles filesystem write operations.
-// Takes sandbox (Sandbox) which provides sandboxed filesystem access for
-// directory operations.
-// Takes moduleName (string) which specifies the Go module name for import
-// paths.
+// Takes sandbox (Sandbox) which provides sandboxed filesystem access for directory
+// operations.
+// Takes moduleName (string) which specifies the Go module name for import paths.
 //
-// Returns *DrivenCollectionEmitter which is the configured emitter ready for
-// use.
+// Returns *DrivenCollectionEmitter which is the configured emitter ready for use.
 func NewDrivenCollectionEmitter(
 	encoder collection_domain.CollectionEncoderPort,
 	fsWriter generator_domain.FSWriterPort,
@@ -83,8 +82,7 @@ func NewDrivenCollectionEmitter(
 	}
 }
 
-// EmitCollection generates the binary and Go wrapper files for a static
-// collection.
+// EmitCollection generates the binary and Go wrapper files for a static collection.
 //
 // Workflow:
 //  1. Create output directory (dist/collections/{collectionName}/)
@@ -97,8 +95,7 @@ func NewDrivenCollectionEmitter(
 // Takes items ([]collection_dto.ContentItem) which contains the data to embed.
 // Takes outputDir (string) which specifies the base output directory.
 //
-// Returns string which is the full Go package path for the generated
-// collection.
+// Returns string which is the full Go package path for the generated collection.
 // Returns error when any step in the generation workflow fails.
 func (e *DrivenCollectionEmitter) EmitCollection(
 	ctx context.Context,
@@ -137,8 +134,8 @@ func (e *DrivenCollectionEmitter) EmitCollection(
 
 // generateGoWrapper creates the Go source code for the collection wrapper.
 //
-// Takes collectionName (string) which specifies the package name and registry
-// key for the generated code.
+// Takes collectionName (string) which specifies the package name and registry key for the
+// generated code.
 //
 // Returns string which contains the complete Go source file.
 //

@@ -29,24 +29,23 @@ import (
 	"piko.sh/piko/internal/esbuild/css_lexer"
 )
 
-// RuleSet holds the processed and categorised CSS rules, ready for application.
-// It is completely independent of the HTML AST.
+// RuleSet holds the processed and categorised CSS rules, ready for application. It is
+// completely independent of the HTML AST.
 type RuleSet struct {
 	// InlineableRules holds CSS style rules that can be applied as inline styles.
 	InlineableRules []styleRule
 
-	// LeftoverRules holds CSS rules that cannot be inlined into elements,
-	// such as media queries or rules with !important properties.
+	// LeftoverRules holds CSS rules that cannot be inlined into elements, such as media
+	// queries or rules with !important properties.
 	LeftoverRules []css_ast.Rule
 
-	// PseudoElementRules holds CSS rules for ::before and ::after
-	// pseudo-elements. These are only populated when the
-	// ResolvePseudoElements option is enabled.
+	// PseudoElementRules holds CSS rules for ::before and ::after pseudo-elements. These are
+	// only populated when the ResolvePseudoElements option is enabled.
 	PseudoElementRules []pseudoElementRule
 }
 
-// pseudoElementRule holds a CSS rule targeting a pseudo-element, with the
-// pseudo-element name separated from the base selector.
+// pseudoElementRule holds a CSS rule targeting a pseudo-element, with the pseudo-element
+// name separated from the base selector.
 type pseudoElementRule struct {
 	// properties maps CSS property names to their parsed values.
 	properties map[string]property
@@ -73,8 +72,7 @@ type styleRule struct {
 	specificity int
 }
 
-// property holds a single CSS property value and whether it has the !important
-// flag set.
+// property holds a single CSS property value and whether it has the !important flag set.
 type property struct {
 	// value is the CSS property value string.
 	value string
@@ -83,8 +81,8 @@ type property struct {
 	important bool
 }
 
-// ruleProcessingContext holds the data needed to process CSS rules.
-// It groups related parameters into a single struct for clarity.
+// ruleProcessingContext holds the data needed to process CSS rules. It groups related
+// parameters into a single struct for clarity.
 type ruleProcessingContext struct {
 	// options holds the CSS parsing settings.
 	options *Options
@@ -102,8 +100,8 @@ type ruleProcessingContext struct {
 	symbolMap ast.SymbolMap
 }
 
-// declarationContext holds the data needed to parse CSS declarations.
-// It groups related values to reduce the number of function parameters.
+// declarationContext holds the data needed to parse CSS declarations. It groups related
+// values to reduce the number of function parameters.
 type declarationContext struct {
 	// options holds the parser settings such as theme and shorthand expansion.
 	options *Options
@@ -111,8 +109,7 @@ type declarationContext struct {
 	// diagnostics collects diagnostic messages found during CSS variable resolution.
 	diagnostics *[]*ast_domain.Diagnostic
 
-	// sourcePath is the original CSS file path used for resolving relative
-	// imports.
+	// sourcePath is the original CSS file path used for resolving relative imports.
 	sourcePath string
 
 	// symbols holds the AST symbols used for variable resolution.
@@ -122,14 +119,14 @@ type declarationContext struct {
 	symbolMap ast.SymbolMap
 }
 
-// ProcessCSS transforms a parsed CSS AST into a RuleSet for inlining.
-// This is the primary entry point for all CSS processing logic, handling
-// categorisation, specificity calculation, and sorting.
+// ProcessCSS transforms a parsed CSS AST into a RuleSet for inlining. This is the primary
+// entry point for all CSS processing logic, handling categorisation, specificity
+// calculation, and sorting.
 //
 // Takes cssAST (css_ast.AST) which provides the parsed CSS tree to process.
 // Takes options (*Options) which controls processing behaviour.
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects warnings and errors
-// during processing such as undefined CSS variables.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects warnings and errors during
+// processing such as undefined CSS variables.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
 //
 // Returns *RuleSet which contains the processed rules sorted by specificity.
@@ -154,9 +151,8 @@ func ProcessCSS(cssAST css_ast.AST, options *Options, diagnostics *[]*ast_domain
 	return ruleSet
 }
 
-// processRule handles a single CSS rule by sorting it as inlineable, leftover,
-// or pseudo-element. It parses declarations and creates style rules for each
-// selector.
+// processRule handles a single CSS rule by sorting it as inlineable, leftover, or
+// pseudo-element. It parses declarations and creates style rules for each selector.
 //
 // Takes rule (css_ast.Rule) which is the CSS rule to process.
 // Takes ctx (*ruleProcessingContext) which holds shared state for processing.
@@ -216,11 +212,10 @@ func processRule(rule css_ast.Rule, ctx *ruleProcessingContext, ruleSet *RuleSet
 	addStyleRulesForSelectors(r.Selectors, properties, ctx.cssAST.Symbols, ctx.symbolMap, ruleSet)
 }
 
-// partitionPseudoElementSelectors splits selectors into those targeting
-// pseudo-elements (::before, ::after) and normal selectors.
+// partitionPseudoElementSelectors splits selectors into those targeting pseudo-elements
+// (::before, ::after) and normal selectors.
 //
-// Takes selectors ([]css_ast.ComplexSelector) which contains the selectors to
-// partition.
+// Takes selectors ([]css_ast.ComplexSelector) which contains the selectors to partition.
 //
 // Returns pseudoSelectors which contains selectors with pseudo-elements.
 // Returns normalSelectors which contains selectors without pseudo-elements.
@@ -254,16 +249,15 @@ type pseudoSelectorInfo struct {
 	originalSelector css_ast.ComplexSelector
 }
 
-// extractPseudoElement checks if the last compound selector in a complex
-// selector ends with a ::before or ::after pseudo-element. If so, it returns
-// the pseudo-element name, a copy of the selector with the pseudo-element
-// removed, and true.
+// extractPseudoElement checks if the last compound selector in a complex selector ends
+// with a ::before or ::after pseudo-element. If so, it returns the pseudo-element name, a
+// copy of the selector with the pseudo-element removed, and true.
 //
 // Takes sel (css_ast.ComplexSelector) which is the selector to inspect.
 //
 // Returns name (string) which is the pseudo-element name.
-// Returns stripped (css_ast.ComplexSelector) which is the selector without
-// the pseudo-element.
+// Returns stripped (css_ast.ComplexSelector) which is the selector without the
+// pseudo-element.
 // Returns ok (bool) which is true if a pseudo-element was found.
 func extractPseudoElement(sel css_ast.ComplexSelector) (string, css_ast.ComplexSelector, bool) {
 	if len(sel.Selectors) == 0 {
@@ -304,11 +298,11 @@ func extractPseudoElement(sel css_ast.ComplexSelector) (string, css_ast.ComplexS
 	return "", css_ast.ComplexSelector{}, false
 }
 
-// addPseudoElementRules creates pseudo-element rules from the given selectors
-// and properties.
+// addPseudoElementRules creates pseudo-element rules from the given selectors and
+// properties.
 //
-// Takes selectors ([]pseudoSelectorInfo) which contains the pseudo-element
-// selector information.
+// Takes selectors ([]pseudoSelectorInfo) which contains the pseudo-element selector
+// information.
 // Takes properties (map[string]property) which holds the CSS properties.
 // Takes symbols ([]ast.Symbol) which provides symbol references.
 // Takes symbolMap (ast.SymbolMap) which maps symbol references to names.
@@ -333,8 +327,7 @@ func addPseudoElementRules(
 
 // hasImportantProperties checks whether any property has the !important flag.
 //
-// Takes properties (map[string]property) which contains the CSS properties to
-// check.
+// Takes properties (map[string]property) which contains the CSS properties to check.
 //
 // Returns bool which is true if any property has the !important flag set.
 func hasImportantProperties(properties map[string]property) bool {
@@ -348,12 +341,10 @@ func hasImportantProperties(properties map[string]property) bool {
 
 // addStyleRulesForSelectors creates a style rule for each selector in the list.
 //
-// Takes selectors ([]css_ast.ComplexSelector) which contains the parsed CSS
-// selectors to process.
-// Takes properties (map[string]property) which holds the CSS properties for
-// the rule.
-// Takes symbols ([]ast.Symbol) which provides symbol references for selector
-// conversion.
+// Takes selectors ([]css_ast.ComplexSelector) which contains the parsed CSS selectors to
+// process.
+// Takes properties (map[string]property) which holds the CSS properties for the rule.
+// Takes symbols ([]ast.Symbol) which provides symbol references for selector conversion.
 // Takes symbolMap (ast.SymbolMap) which maps symbol references to their names.
 // Takes ruleSet (*RuleSet) which receives the created style rules.
 func addStyleRulesForSelectors(
@@ -385,9 +376,9 @@ func sortRulesBySpecificity(ruleSet *RuleSet) {
 	})
 }
 
-// parseDeclarations extracts CSS property declarations from a list of rules.
-// CSS variables are resolved first, then colours are converted, then shorthand
-// properties are expanded if enabled.
+// parseDeclarations extracts CSS property declarations from a list of rules. CSS
+// variables are resolved first, then colours are converted, then shorthand properties are
+// expanded if enabled.
 //
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to parse.
 // Takes ctx (*declarationContext) which provides options and variable context.
@@ -403,14 +394,12 @@ func parseDeclarations(rules []css_ast.Rule, ctx *declarationContext) map[string
 	return props
 }
 
-// processDeclaration handles a single CSS declaration and adds it to the
-// properties map. It resolves CSS variables, converts colour values, and
-// expands shorthand properties when enabled.
+// processDeclaration handles a single CSS declaration and adds it to the properties map.
+// It resolves CSS variables, converts colour values, and expands shorthand properties
+// when enabled.
 //
-// Takes declaration (*css_ast.RDeclaration) which is the CSS
-// declaration to process.
-// Takes ctx (*declarationContext) which provides the context for resolving
-// variables.
+// Takes declaration (*css_ast.RDeclaration) which is the CSS declaration to process.
+// Takes ctx (*declarationContext) which provides the context for resolving variables.
 // Takes props (map[string]property) which stores the resulting properties.
 func processDeclaration(declaration *css_ast.RDeclaration, ctx *declarationContext, props map[string]property) {
 	propName := declaration.KeyText
@@ -443,10 +432,10 @@ func processDeclaration(declaration *css_ast.RDeclaration, ctx *declarationConte
 
 // isInlineable checks if a CSS rule can be safely inlined into elements.
 //
-// It returns false if the rule contains non-structural pseudo-classes or
-// pseudo-elements. Structural pseudo-classes like :first-child can be
-// evaluated and are considered inlineable. Only RSelector rules are
-// candidates; @-rules such as @media or @font-face are not inlineable.
+// It returns false if the rule contains non-structural pseudo-classes or pseudo-elements.
+// Structural pseudo-classes like :first-child can be evaluated and are considered
+// inlineable. Only RSelector rules are candidates; @-rules such as @media or @font-face
+// are not inlineable.
 //
 // Takes rule (css_ast.Rule) which is the CSS rule to check.
 //
@@ -468,11 +457,11 @@ func isInlineable(rule css_ast.Rule) bool {
 
 // isComplexSelectorInlineable checks if a complex selector can be inlined.
 //
-// Takes selector (css_ast.ComplexSelector) which contains the compound
-// selectors to check.
+// Takes selector (css_ast.ComplexSelector) which contains the compound selectors to
+// check.
 //
-// Returns bool which is true if all compound selectors in the complex
-// selector can be inlined.
+// Returns bool which is true if all compound selectors in the complex selector can be
+// inlined.
 func isComplexSelectorInlineable(selector css_ast.ComplexSelector) bool {
 	for _, compoundSel := range selector.Selectors {
 		if !isCompoundSelectorInlineable(compoundSel) {
@@ -482,8 +471,8 @@ func isComplexSelectorInlineable(selector css_ast.ComplexSelector) bool {
 	return true
 }
 
-// isCompoundSelectorInlineable checks whether a compound selector can be
-// inlined into an element's style attribute.
+// isCompoundSelectorInlineable checks whether a compound selector can be inlined into an
+// element's style attribute.
 //
 // Takes selector (css_ast.CompoundSelector) which is the selector to check.
 //
@@ -502,16 +491,15 @@ func isCompoundSelectorInlineable(selector css_ast.CompoundSelector) bool {
 
 // isBodyTypeSelector checks whether a type selector targets the body element.
 //
-// Takes typeSelector (*css_ast.NamespacedName) which is the CSS type selector
-// to check.
+// Takes typeSelector (*css_ast.NamespacedName) which is the CSS type selector to check.
 //
 // Returns bool which is true if the selector targets the body element.
 func isBodyTypeSelector(typeSelector *css_ast.NamespacedName) bool {
 	return typeSelector != nil && typeSelector.Name.Text == "body"
 }
 
-// isUniversalSelector reports whether the given type selector is the universal
-// selector (*).
+// isUniversalSelector reports whether the given type selector is the universal selector
+// (*).
 //
 // Takes typeSelector (*css_ast.NamespacedName) which is the selector to check.
 //
@@ -520,14 +508,14 @@ func isUniversalSelector(typeSelector *css_ast.NamespacedName) bool {
 	return typeSelector != nil && typeSelector.Name.Text == "*"
 }
 
-// areSubclassSelectorsInlineable checks whether all subclass selectors in a
-// list can be inlined.
+// areSubclassSelectorsInlineable checks whether all subclass selectors in a list can be
+// inlined.
 //
-// Takes subclasses ([]css_ast.SubclassSelector) which is the list of subclass
-// selectors to check.
+// Takes subclasses ([]css_ast.SubclassSelector) which is the list of subclass selectors
+// to check.
 //
-// Returns bool which is true if all selectors can be inlined, or false if any
-// selector cannot be inlined.
+// Returns bool which is true if all selectors can be inlined, or false if any selector
+// cannot be inlined.
 func areSubclassSelectorsInlineable(subclasses []css_ast.SubclassSelector) bool {
 	for _, subClass := range subclasses {
 		if !isSubclassSelectorInlineable(subClass) {
@@ -537,8 +525,8 @@ func areSubclassSelectorsInlineable(subclasses []css_ast.SubclassSelector) bool 
 	return true
 }
 
-// isSubclassSelectorInlineable checks if a single subclass selector can be
-// used as an inline style.
+// isSubclassSelectorInlineable checks if a single subclass selector can be used as an
+// inline style.
 //
 // Takes subClass (SubclassSelector) which is the selector to check.
 //
@@ -561,13 +549,12 @@ func isSubclassSelectorInlineable(subClass css_ast.SubclassSelector) bool {
 
 // isStructuralPseudoClass checks if a pseudo-class is structural.
 //
-// Structural pseudo-classes depend only on DOM structure. They can be worked
-// out and inlined when the HTML is changed.
+// Structural pseudo-classes depend only on DOM structure. They can be worked out and
+// inlined when the HTML is changed.
 //
 // Takes pseudoClass (*css_ast.SSPseudoClass) which is the pseudo-class to check.
 //
-// Returns bool which is true if the pseudo-class is structural and can be
-// inlined.
+// Returns bool which is true if the pseudo-class is structural and can be inlined.
 func isStructuralPseudoClass(pseudoClass *css_ast.SSPseudoClass) bool {
 	if pseudoClass.IsElement {
 		return false
@@ -591,12 +578,11 @@ func isStructuralPseudoClass(pseudoClass *css_ast.SSPseudoClass) bool {
 	return structuralPseudoClasses[pseudoClass.Name]
 }
 
-// calculateSpecificityAST computes a numeric score for a CSS selector by
-// traversing its AST.
+// calculateSpecificityAST computes a numeric score for a CSS selector by traversing its
+// AST.
 //
-// This is far more accurate than regex-based approaches. The scoring is based
-// on the W3C standard: ID > class/attribute/pseudo-class >
-// element/pseudo-element.
+// This is far more accurate than regex-based approaches. The scoring is based on the W3C
+// standard: ID > class/attribute/pseudo-class > element/pseudo-element.
 //
 // Takes selector (css_ast.ComplexSelector) which is the parsed selector to score.
 //
@@ -628,8 +614,8 @@ func calculateSpecificityAST(selector css_ast.ComplexSelector) int {
 	return (a * specificityWeightID) + (b * specificityWeightClass) + (c * specificityWeightElement)
 }
 
-// tokensToString converts a list of CSS tokens into a string, replacing any
-// symbol references with their original names.
+// tokensToString converts a list of CSS tokens into a string, replacing any symbol
+// references with their original names.
 //
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to convert.
 // Takes symbols ([]ast.Symbol) which provides the symbol table.
@@ -667,11 +653,10 @@ func tokensToString(tokens []css_ast.Token, symbols []ast.Symbol, symbolMap ast.
 	return builder.String()
 }
 
-// complexSelectorToString converts a complex CSS selector AST back into a
-// string, replacing symbol references with their original names.
+// complexSelectorToString converts a complex CSS selector AST back into a string,
+// replacing symbol references with their original names.
 //
-// Takes selector (css_ast.ComplexSelector) which is the
-// complex selector to convert.
+// Takes selector (css_ast.ComplexSelector) which is the complex selector to convert.
 // Takes symbols ([]ast.Symbol) which provides the symbol definitions.
 // Takes symbolMap (ast.SymbolMap) which maps symbol references to definitions.
 //
@@ -695,15 +680,12 @@ func complexSelectorToString(selector css_ast.ComplexSelector, symbols []ast.Sym
 
 // compoundSelectorToString converts a compound selector to its string form.
 //
-// A compound selector is a single unit like "div.card" that combines a type
-// selector with zero or more subclass selectors.
+// A compound selector is a single unit like "div.card" that combines a type selector with
+// zero or more subclass selectors.
 //
-// Takes selector (css_ast.CompoundSelector) which is the compound selector to
-// convert.
-// Takes symbols ([]ast.Symbol) which provides symbol definitions for name
-// lookup.
-// Takes symbolMap (ast.SymbolMap) which maps symbol references to their
-// definitions.
+// Takes selector (css_ast.CompoundSelector) which is the compound selector to convert.
+// Takes symbols ([]ast.Symbol) which provides symbol definitions for name lookup.
+// Takes symbolMap (ast.SymbolMap) which maps symbol references to their definitions.
 //
 // Returns string which is the string form of the compound selector.
 func compoundSelectorToString(selector css_ast.CompoundSelector, symbols []ast.Symbol, symbolMap ast.SymbolMap) string {
@@ -717,8 +699,8 @@ func compoundSelectorToString(selector css_ast.CompoundSelector, symbols []ast.S
 	return builder.String()
 }
 
-// appendSubclassSelector writes a CSS subclass selector to the string builder.
-// It handles different selector types: hash, class, attribute, and pseudo-class.
+// appendSubclassSelector writes a CSS subclass selector to the string builder. It handles
+// different selector types: hash, class, attribute, and pseudo-class.
 //
 // Takes builder (*strings.Builder) which receives the formatted selector output.
 // Takes ss (css_ast.SubclassSelector) which is the selector to format.
@@ -755,8 +737,8 @@ func appendHashSelector(builder *strings.Builder, s *css_ast.SSHash, symbolMap a
 //
 // Takes builder (*strings.Builder) which receives the formatted selector string.
 // Takes s (*css_ast.SSClass) which provides the class selector to append.
-// Takes symbolMap (ast.SymbolMap) which resolves symbol references to their
-// original names.
+// Takes symbolMap (ast.SymbolMap) which resolves symbol references to their original
+// names.
 func appendClassSelector(builder *strings.Builder, s *css_ast.SSClass, symbolMap ast.SymbolMap) {
 	ref := ast.Ref{SourceIndex: 0, InnerIndex: s.Name.Ref.InnerIndex}
 	symbol := symbolMap.Get(ref)
@@ -778,9 +760,9 @@ func appendAttributeSelector(builder *strings.Builder, s *css_ast.SSAttribute) {
 	_ = builder.WriteByte(']')
 }
 
-// appendPseudoClassSelector writes a CSS pseudo-class or pseudo-element
-// selector to the string builder. It handles selectors like ":hover" for
-// pseudo-classes or "::before" for pseudo-elements.
+// appendPseudoClassSelector writes a CSS pseudo-class or pseudo-element selector to the
+// string builder. It handles selectors like ":hover" for pseudo-classes or "::before" for
+// pseudo-elements.
 //
 // Takes builder (*strings.Builder) which receives the formatted selector.
 // Takes s (*css_ast.SSPseudoClass) which contains the pseudo-class details.
@@ -800,15 +782,14 @@ func appendPseudoClassSelector(builder *strings.Builder, s *css_ast.SSPseudoClas
 	}
 }
 
-// appendPseudoClassWithSelectorList writes a functional pseudo-class to the
-// builder (e.g. ":is(.a, .b)").
+// appendPseudoClassWithSelectorList writes a functional pseudo-class to the builder (e.g.
+// ":is(.a, .b)").
 //
 // Takes builder (*strings.Builder) which collects the CSS output.
-// Takes s (*css_ast.SSPseudoClassWithSelectorList) which holds the
-// pseudo-class name and its list of selectors.
+// Takes s (*css_ast.SSPseudoClassWithSelectorList) which holds the pseudo-class name and
+// its list of selectors.
 // Takes symbols ([]ast.Symbol) which holds symbol definitions for lookups.
-// Takes symbolMap (ast.SymbolMap) which links symbol references to their
-// definitions.
+// Takes symbolMap (ast.SymbolMap) which links symbol references to their definitions.
 func appendPseudoClassWithSelectorList(builder *strings.Builder, s *css_ast.SSPseudoClassWithSelectorList, symbols []ast.Symbol, symbolMap ast.SymbolMap) {
 	_ = builder.WriteByte(':')
 	builder.WriteString(s.Kind.String())

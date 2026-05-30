@@ -30,18 +30,16 @@ import (
 )
 
 const (
-	// defaultPriorityEncryption is the default priority for encryption
-	// transformers. Recommended: 250 for encryption transformers (after
-	// compression at 100).
+	// defaultPriorityEncryption is the default priority for encryption transformers.
+	// Recommended: 250 for encryption transformers (after compression at 100).
 	defaultPriorityEncryption = 250
 )
 
-// CryptoTransformer implements StreamTransformerPort by delegating
-// encryption and decryption to the centralised crypto service.
+// CryptoTransformer implements StreamTransformerPort by delegating encryption and
+// decryption to the centralised crypto service.
 //
-// This implementation uses streaming encryption with constant memory usage
-// (O(chunk_size) ~64KB) regardless of file size, so it handles
-// multi-GB files efficiently.
+// This implementation uses streaming encryption with constant memory usage (O(chunk_size)
+// ~64KB) regardless of file size, so it handles multi-GB files efficiently.
 //
 // Features:
 //   - Constant memory footprint regardless of file size
@@ -60,20 +58,21 @@ type CryptoTransformer struct {
 	priority int
 }
 
-var _ storage_domain.StreamTransformerPort = (*CryptoTransformer)(nil)
+var (
+	_ storage_domain.StreamTransformerPort = (*CryptoTransformer)(nil)
+)
 
 // Config holds configuration for the crypto-service storage transformer.
 type Config struct {
 	// CryptoService is the cryptographic service to use. Required.
 	CryptoService crypto_domain.CryptoServicePort
 
-	// Name is the unique identifier for this transformer instance.
-	// Default: "crypto-service".
+	// Name is the unique identifier for this transformer instance. Default:
+	// "crypto-service".
 	Name string
 
-	// Priority determines execution order where lower values run first.
-	// Default is 250; recommended for encryption transformers (after compression
-	// at 100).
+	// Priority determines execution order where lower values run first. Default is 250;
+	// recommended for encryption transformers (after compression at 100).
 	Priority int
 }
 
@@ -86,8 +85,7 @@ func (t *CryptoTransformer) Name() string {
 
 // Type returns the transformer type (encryption).
 //
-// Returns storage_dto.TransformerType which identifies this as an encryption
-// transformer.
+// Returns storage_dto.TransformerType which identifies this as an encryption transformer.
 func (*CryptoTransformer) Type() storage_dto.TransformerType {
 	return storage_dto.TransformerEncryption
 }
@@ -99,24 +97,23 @@ func (t *CryptoTransformer) Priority() int {
 	return t.priority
 }
 
-// Transform encrypts the input stream using the crypto service. This is called
-// during upload operations.
+// Transform encrypts the input stream using the crypto service. This is called during
+// upload operations.
 //
-// Implementation: Uses streaming encryption with constant memory usage
-// (O(chunk_size) ~64KB) regardless of file size. This enables efficient
-// encryption of multi-GB files.
+// Implementation: Uses streaming encryption with constant memory usage (O(chunk_size)
+// ~64KB) regardless of file size. This enables efficient encryption of multi-GB files.
 //
-// The method uses an io.Pipe to bridge the WriteCloser streaming API to the
-// io.Reader interface required by the transformer port. Encryption happens
-// asynchronously in a goroutine as data is read from the returned reader.
+// The method uses an io.Pipe to bridge the WriteCloser streaming API to the io.Reader
+// interface required by the transformer port. Encryption happens asynchronously in a
+// goroutine as data is read from the returned reader.
 //
 // Takes input (io.Reader) which provides the plaintext data to encrypt.
 //
 // Returns io.Reader which provides the encrypted data stream.
 // Returns error when the encryption stream cannot be initialised.
 //
-// Safe for concurrent use. The spawned goroutine runs until all
-// input data has been encrypted or an error occurs.
+// Safe for concurrent use. The spawned goroutine runs until all input data has been
+// encrypted or an error occurs.
 func (t *CryptoTransformer) Transform(ctx context.Context, input io.Reader, _ any) (io.Reader, error) {
 	pipeReader, pipeWriter := io.Pipe()
 
@@ -145,15 +142,14 @@ func (t *CryptoTransformer) Transform(ctx context.Context, input io.Reader, _ an
 	return pipeReader, nil
 }
 
-// Reverse decrypts the input stream using the crypto service. This is called
-// during download/read operations.
+// Reverse decrypts the input stream using the crypto service. This is called during
+// download/read operations.
 //
-// Implementation: Uses streaming decryption with constant memory usage
-// (O(chunk_size) ~64KB) regardless of file size. This enables efficient
-// decryption of multi-GB files.
+// Implementation: Uses streaming decryption with constant memory usage (O(chunk_size)
+// ~64KB) regardless of file size. This enables efficient decryption of multi-GB files.
 //
-// The returned reader is actually an io.ReadCloser. Callers should close it
-// when done to release resources, though this is optional for read operations.
+// The returned reader is actually an io.ReadCloser. Callers should close it when done to
+// release resources, though this is optional for read operations.
 //
 // Takes input (io.Reader) which provides the encrypted data to decrypt.
 //
@@ -170,12 +166,11 @@ func (t *CryptoTransformer) Reverse(ctx context.Context, input io.Reader, _ any)
 
 // New creates a new crypto-service storage transformer.
 //
-// Takes cryptoService (CryptoServicePort) which provides encryption and
-// decryption operations. This parameter is required.
-// Takes name (string) which identifies the transformer. Defaults to
-// "crypto-service" if empty.
-// Takes priority (int) which sets the transformer priority. Defaults to 250
-// if zero.
+// Takes cryptoService (CryptoServicePort) which provides encryption and decryption
+// operations. This parameter is required.
+// Takes name (string) which identifies the transformer. Defaults to "crypto-service" if
+// empty.
+// Takes priority (int) which sets the transformer priority. Defaults to 250 if zero.
 //
 // Returns *CryptoTransformer which is ready for use with storage operations.
 func New(cryptoService crypto_domain.CryptoServicePort, name string, priority int) *CryptoTransformer {

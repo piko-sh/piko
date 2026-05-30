@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/wdk/media"
 )
 
-// Config holds configuration options for the vips provider.
-// When built without the "vips" tag, NewProvider returns an error.
+// Config holds configuration options for the vips provider. When built without the "vips"
+// tag, NewProvider returns an error.
 type Config struct {
 	// VipsConfig is unused in the stub; present for API compatibility.
 	VipsConfig any
@@ -42,8 +42,8 @@ type Config struct {
 	ConcurrencyLevel int
 }
 
-// Provider is a stub that satisfies the ImageTransformerPort interface
-// when built without the "vips" tag. All methods return errors.
+// Provider is a stub that satisfies the ImageTransformerPort interface when built without
+// the "vips" tag. All methods return errors.
 type Provider struct{}
 
 var _ media.ImageTransformerPort = (*Provider)(nil)
@@ -84,8 +84,7 @@ func (*Provider) GetSupportedModifiers() []string {
 	return nil
 }
 
-// GetDimensions returns an error indicating the vips provider
-// is not available.
+// GetDimensions returns an error indicating the vips provider is not available.
 //
 // Returns int which is the width, always 0.
 // Returns int which is the height, always 0.

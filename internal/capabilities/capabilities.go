@@ -29,8 +29,7 @@ import (
 	"piko.sh/piko/internal/video/video_domain"
 )
 
-// Service is the capability service interface for registering and executing
-// capabilities.
+// Service is the capability service interface for registering and executing capabilities.
 type Service = capabilities_domain.CapabilityService
 
 // capabilityFunc is a function type that provides a specific capability.
@@ -41,8 +40,7 @@ type dependencies struct {
 	// compiler provides component compilation; nil disables this feature.
 	compiler compiler_domain.CompilerService
 
-	// imageTransformer handles image transformations; nil disables this
-	// capability.
+	// imageTransformer handles image transformations; nil disables this capability.
 	imageTransformer image_domain.Service
 
 	// videoTranscoder provides video processing; nil disables video capabilities.
@@ -52,17 +50,18 @@ type dependencies struct {
 // Option configures dependencies using the functional options pattern.
 type Option func(*dependencies)
 
-// builtinCapabilities maps built-in capability types to their handler
-// functions.
-var builtinCapabilities = map[capabilities_dto.Capability]capabilityFunc{
-	capabilities_dto.CapabilityCompressGzip:        capabilities_functions.Gzip(),
-	capabilities_dto.CapabilityCompressBrotli:      capabilities_functions.Brotli(),
-	capabilities_dto.CapabilityCopyJS:              capabilities_functions.CopyJS(),
-	capabilities_dto.CapabilityMinifyCSS:           capabilities_functions.MinifyCSS(),
-	capabilities_dto.CapabilityMinifyJS:            capabilities_functions.MinifyJavascript(),
-	capabilities_dto.CapabilityMinifySVG:           capabilities_functions.MinifySVG(),
-	capabilities_dto.CapabilityTranspileTypeScript: capabilities_functions.TranspileTypeScript(),
-}
+var (
+	// builtinCapabilities maps built-in capability types to their handler functions.
+	builtinCapabilities = map[capabilities_dto.Capability]capabilityFunc{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		capabilities_dto.CapabilityCompressGzip:        capabilities_functions.Gzip(),
+		capabilities_dto.CapabilityCompressBrotli:      capabilities_functions.Brotli(),
+		capabilities_dto.CapabilityCopyJS:              capabilities_functions.CopyJS(),
+		capabilities_dto.CapabilityMinifyCSS:           capabilities_functions.MinifyCSS(),
+		capabilities_dto.CapabilityMinifyJS:            capabilities_functions.MinifyJavascript(),
+		capabilities_dto.CapabilityMinifySVG:           capabilities_functions.MinifySVG(),
+		capabilities_dto.CapabilityTranspileTypeScript: capabilities_functions.TranspileTypeScript(),
+	}
+)
 
 // WithCompiler is a functional option that sets the compiler service.
 //
@@ -97,14 +96,14 @@ func WithVideoProvider(service video_domain.Service) Option {
 	}
 }
 
-// NewServiceWithBuiltins creates a new CapabilityService, registers all
-// built-in capabilities, and applies any provided optional dependencies.
+// NewServiceWithBuiltins creates a new CapabilityService, registers all built-in
+// capabilities, and applies any provided optional dependencies.
 //
-// Takes opts (...Option) which configures optional dependencies such as
-// compiler and transformer.
+// Takes opts (...Option) which configures optional dependencies such as compiler and
+// transformer.
 //
-// Returns Service which is the configured capability service with all
-// built-in capabilities registered.
+// Returns Service which is the configured capability service with all built-in
+// capabilities registered.
 // Returns error when a capability fails to register.
 func NewServiceWithBuiltins(opts ...Option) (Service, error) {
 	deps := applyOptions(opts)
@@ -167,12 +166,10 @@ func registerBuiltins(service Service) error {
 	return nil
 }
 
-// registerOptionalCapabilities registers capabilities based on injected
-// dependencies.
+// registerOptionalCapabilities registers capabilities based on injected dependencies.
 //
 // Takes service (Service) which receives the capability registrations.
-// Takes deps (*dependencies) which provides optional capability
-// implementations.
+// Takes deps (*dependencies) which provides optional capability implementations.
 //
 // Returns error when a capability registration fails.
 func registerOptionalCapabilities(service Service, deps *dependencies) error {

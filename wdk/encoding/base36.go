@@ -19,14 +19,17 @@
 //nolint:dupl // parallel typed API per alphabet.
 package encoding
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var (
-	// base36Alphabet holds the character set for Base36 encoding (digits 0-9, uppercase A-Z).
+	// base36Alphabet holds the character set for Base36 encoding (digits 0-9, uppercase
+	// A-Z).
 	base36Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-	// Base36Encoding is a ready-to-use encoding using the standard Base36 alphabet
-	// (0-9, A-Z). It is safe for concurrent use.
+	// Base36Encoding is a ready-to-use encoding using the standard Base36 alphabet (0-9,
+	// A-Z). It is safe for concurrent use.
 	Base36Encoding *Encoding
 )
 
@@ -49,8 +52,8 @@ func DecodeBytesBase36(input string) ([]byte, error) {
 	return Base36Encoding.DecodeBytes(input)
 }
 
-// EncodeUint64Base36 encodes a uint64 value into a Base36 string,
-// producing short, URL-safe identifiers from database IDs.
+// EncodeUint64Base36 encodes a uint64 value into a Base36 string, producing short,
+// URL-safe identifiers from database IDs.
 //
 // Takes value (uint64) which is the number to encode.
 //

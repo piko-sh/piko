@@ -27,85 +27,71 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 )
 
-// MockRegistryPort is a test double for RegistryPort that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockRegistryPort is a test double for RegistryPort that returns zero values from nil
+// function fields and tracks call counts atomically.
 type MockRegistryPort struct {
-	// GetComponentMetadataFunc is the function called by
-	// GetComponentMetadata.
+	// GetComponentMetadataFunc is the function called by GetComponentMetadata.
 	GetComponentMetadataFunc func(ctx context.Context, componentType string) (*render_dto.ComponentMetadata, error)
 
-	// BulkGetComponentMetadataFunc is the function
-	// called by BulkGetComponentMetadata.
+	// BulkGetComponentMetadataFunc is the function called by BulkGetComponentMetadata.
 	BulkGetComponentMetadataFunc func(ctx context.Context, componentTypes []string) (map[string]*render_dto.ComponentMetadata, error)
 
-	// GetAssetRawSVGFunc is the function called by
-	// GetAssetRawSVG.
+	// GetAssetRawSVGFunc is the function called by GetAssetRawSVG.
 	GetAssetRawSVGFunc func(ctx context.Context, assetID string) (*ParsedSvgData, error)
 
-	// BulkGetAssetRawSVGFunc is the function called by
-	// BulkGetAssetRawSVG.
+	// BulkGetAssetRawSVGFunc is the function called by BulkGetAssetRawSVG.
 	BulkGetAssetRawSVGFunc func(ctx context.Context, assetIDs []string) (map[string]*ParsedSvgData, error)
 
 	// GetStatsFunc is the function called by GetStats.
 	GetStatsFunc func() RegistryAdapterStats
 
-	// ClearComponentCacheFunc is the function called by
-	// ClearComponentCache.
+	// ClearComponentCacheFunc is the function called by ClearComponentCache.
 	ClearComponentCacheFunc func(ctx context.Context, componentType string)
 
-	// ClearSvgCacheFunc is the function called by
-	// ClearSvgCache.
+	// ClearSvgCacheFunc is the function called by ClearSvgCache.
 	ClearSvgCacheFunc func(ctx context.Context, svgID string)
 
-	// GetArtefactServePathFunc is the function called by
-	// GetArtefactServePath.
+	// GetArtefactServePathFunc is the function called by GetArtefactServePath.
 	GetArtefactServePathFunc func(ctx context.Context, artefactID string) string
 
-	// UpsertArtefactFunc is the function called by
-	// UpsertArtefact.
+	// UpsertArtefactFunc is the function called by UpsertArtefact.
 	UpsertArtefactFunc func(
 		ctx context.Context, artefactID string, sourcePath string, sourceData io.Reader,
 		storageBackendID string, desiredProfiles []registry_dto.NamedProfile,
 	) (*registry_dto.ArtefactMeta, error)
 
-	// GetComponentMetadataCallCount tracks how many
-	// times GetComponentMetadata was called.
-	GetComponentMetadataCallCount int64
+	// GetComponentMetadataCallCount tracks how many times GetComponentMetadata was called.
+	GetComponentMetadataCallCount atomic.Int64
 
-	// BulkGetComponentMetadataCallCount tracks how many
-	// times BulkGetComponentMetadata was called.
-	BulkGetComponentMetadataCallCount int64
+	// BulkGetComponentMetadataCallCount tracks how many times BulkGetComponentMetadata was
+	// called.
+	BulkGetComponentMetadataCallCount atomic.Int64
 
-	// GetAssetRawSVGCallCount tracks how many times
-	// GetAssetRawSVG was called.
-	GetAssetRawSVGCallCount int64
+	// GetAssetRawSVGCallCount tracks how many times GetAssetRawSVG was called.
+	GetAssetRawSVGCallCount atomic.Int64
 
-	// BulkGetAssetRawSVGCallCount tracks how many times
-	// BulkGetAssetRawSVG was called.
-	BulkGetAssetRawSVGCallCount int64
+	// BulkGetAssetRawSVGCallCount tracks how many times BulkGetAssetRawSVG was called.
+	BulkGetAssetRawSVGCallCount atomic.Int64
 
-	// GetStatsCallCount tracks how many times GetStats
-	// was called.
-	GetStatsCallCount int64
+	// GetStatsCallCount tracks how many times GetStats was called.
+	GetStatsCallCount atomic.Int64
 
-	// ClearComponentCacheCallCount tracks how many
-	// times ClearComponentCache was called.
-	ClearComponentCacheCallCount int64
+	// ClearComponentCacheCallCount tracks how many times ClearComponentCache was called.
+	ClearComponentCacheCallCount atomic.Int64
 
-	// ClearSvgCacheCallCount tracks how many times
-	// ClearSvgCache was called.
-	ClearSvgCacheCallCount int64
+	// ClearSvgCacheCallCount tracks how many times ClearSvgCache was called.
+	ClearSvgCacheCallCount atomic.Int64
 
-	// GetArtefactServePathCallCount tracks how many times
-	// GetArtefactServePath was called.
-	GetArtefactServePathCallCount int64
+	// GetArtefactServePathCallCount tracks how many times GetArtefactServePath was called.
+	GetArtefactServePathCallCount atomic.Int64
 
-	// UpsertArtefactCallCount tracks how many times
-	// UpsertArtefact was called.
-	UpsertArtefactCallCount int64
+	// UpsertArtefactCallCount tracks how many times UpsertArtefact was called.
+	UpsertArtefactCallCount atomic.Int64
 }
 
-var _ RegistryPort = (*MockRegistryPort)(nil)
+var (
+	_ RegistryPort = (*MockRegistryPort)(nil)
+)
 
 // GetComponentMetadata delegates to GetComponentMetadataFunc if set.
 //
@@ -114,7 +100,7 @@ var _ RegistryPort = (*MockRegistryPort)(nil)
 //
 // Returns (nil, nil) if GetComponentMetadataFunc is nil.
 func (m *MockRegistryPort) GetComponentMetadata(ctx context.Context, componentType string) (*render_dto.ComponentMetadata, error) {
-	atomic.AddInt64(&m.GetComponentMetadataCallCount, 1)
+	m.GetComponentMetadataCallCount.Add(1)
 	if m.GetComponentMetadataFunc != nil {
 		return m.GetComponentMetadataFunc(ctx, componentType)
 	}
@@ -128,7 +114,7 @@ func (m *MockRegistryPort) GetComponentMetadata(ctx context.Context, componentTy
 //
 // Returns (nil, nil) if BulkGetComponentMetadataFunc is nil.
 func (m *MockRegistryPort) BulkGetComponentMetadata(ctx context.Context, componentTypes []string) (map[string]*render_dto.ComponentMetadata, error) {
-	atomic.AddInt64(&m.BulkGetComponentMetadataCallCount, 1)
+	m.BulkGetComponentMetadataCallCount.Add(1)
 	if m.BulkGetComponentMetadataFunc != nil {
 		return m.BulkGetComponentMetadataFunc(ctx, componentTypes)
 	}
@@ -142,7 +128,7 @@ func (m *MockRegistryPort) BulkGetComponentMetadata(ctx context.Context, compone
 //
 // Returns (nil, nil) if GetAssetRawSVGFunc is nil.
 func (m *MockRegistryPort) GetAssetRawSVG(ctx context.Context, assetID string) (*ParsedSvgData, error) {
-	atomic.AddInt64(&m.GetAssetRawSVGCallCount, 1)
+	m.GetAssetRawSVGCallCount.Add(1)
 	if m.GetAssetRawSVGFunc != nil {
 		return m.GetAssetRawSVGFunc(ctx, assetID)
 	}
@@ -156,7 +142,7 @@ func (m *MockRegistryPort) GetAssetRawSVG(ctx context.Context, assetID string) (
 //
 // Returns (nil, nil) if BulkGetAssetRawSVGFunc is nil.
 func (m *MockRegistryPort) BulkGetAssetRawSVG(ctx context.Context, assetIDs []string) (map[string]*ParsedSvgData, error) {
-	atomic.AddInt64(&m.BulkGetAssetRawSVGCallCount, 1)
+	m.BulkGetAssetRawSVGCallCount.Add(1)
 	if m.BulkGetAssetRawSVGFunc != nil {
 		return m.BulkGetAssetRawSVGFunc(ctx, assetIDs)
 	}
@@ -167,7 +153,7 @@ func (m *MockRegistryPort) BulkGetAssetRawSVG(ctx context.Context, assetIDs []st
 //
 // Returns the zero value if GetStatsFunc is nil.
 func (m *MockRegistryPort) GetStats() RegistryAdapterStats {
-	atomic.AddInt64(&m.GetStatsCallCount, 1)
+	m.GetStatsCallCount.Add(1)
 	if m.GetStatsFunc != nil {
 		return m.GetStatsFunc()
 	}
@@ -177,12 +163,11 @@ func (m *MockRegistryPort) GetStats() RegistryAdapterStats {
 // ClearComponentCache delegates to ClearComponentCacheFunc if set.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes componentType (string) which identifies the
-// component cache entry to clear.
+// Takes componentType (string) which identifies the component cache entry to clear.
 //
 // Does nothing if ClearComponentCacheFunc is nil.
 func (m *MockRegistryPort) ClearComponentCache(ctx context.Context, componentType string) {
-	atomic.AddInt64(&m.ClearComponentCacheCallCount, 1)
+	m.ClearComponentCacheCallCount.Add(1)
 	if m.ClearComponentCacheFunc != nil {
 		m.ClearComponentCacheFunc(ctx, componentType)
 	}
@@ -195,7 +180,7 @@ func (m *MockRegistryPort) ClearComponentCache(ctx context.Context, componentTyp
 //
 // Does nothing if ClearSvgCacheFunc is nil.
 func (m *MockRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
-	atomic.AddInt64(&m.ClearSvgCacheCallCount, 1)
+	m.ClearSvgCacheCallCount.Add(1)
 	if m.ClearSvgCacheFunc != nil {
 		m.ClearSvgCacheFunc(ctx, svgID)
 	}
@@ -208,7 +193,7 @@ func (m *MockRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 //
 // Returns empty string if GetArtefactServePathFunc is nil.
 func (m *MockRegistryPort) GetArtefactServePath(ctx context.Context, artefactID string) string {
-	atomic.AddInt64(&m.GetArtefactServePathCallCount, 1)
+	m.GetArtefactServePathCallCount.Add(1)
 	if m.GetArtefactServePathFunc != nil {
 		return m.GetArtefactServePathFunc(ctx, artefactID)
 	}
@@ -222,8 +207,8 @@ func (m *MockRegistryPort) GetArtefactServePath(ctx context.Context, artefactID 
 // Takes sourcePath (string) which is the original path of the source file.
 // Takes sourceData (io.Reader) which provides the source data to store.
 // Takes storageBackendID (string) which identifies the storage backend to use.
-// Takes desiredProfiles ([]registry_dto.NamedProfile)
-// which lists the processing profiles to apply.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the processing profiles
+// to apply.
 //
 // Returns (nil, nil) if UpsertArtefactFunc is nil.
 func (m *MockRegistryPort) UpsertArtefact(
@@ -231,7 +216,7 @@ func (m *MockRegistryPort) UpsertArtefact(
 	sourceData io.Reader, storageBackendID string,
 	desiredProfiles []registry_dto.NamedProfile,
 ) (*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.UpsertArtefactCallCount, 1)
+	m.UpsertArtefactCallCount.Add(1)
 	if m.UpsertArtefactFunc != nil {
 		return m.UpsertArtefactFunc(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
 	}

@@ -54,5 +54,7 @@ func (m *MockResponseWriter) WriteHeader(statusCode int) {
 	m.Called(statusCode)
 }
 
-var _ http.ResponseWriter = (*MockResponseWriter)(nil)
-var _ io.Writer = (*MockResponseWriter)(nil)
+var (
+	_ http.ResponseWriter = (*MockResponseWriter)(nil)
+	_ io.Writer = (*MockResponseWriter)(nil)
+)

@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package driven_system_symbols provides vendored Go standard
-// library symbol tables for the bytecode interpreter.
+// Package driven_system_symbols provides vendored Go standard library symbol tables for
+// the bytecode interpreter.
 //
-// Each gen_*.go file registers reflect.Value entries for one
-// stdlib package via an init function. For packages with generic
-// functions, dispatch wrappers coerce VM register types to the
-// concrete types expected by the stdlib.
+// Each gen_*.go file registers reflect.Value entries for one stdlib package via an init
+// function. For packages with generic functions, dispatch wrappers coerce VM register
+// types to the concrete types expected by the stdlib.
 package driven_system_symbols

@@ -18,18 +18,14 @@ package llm_provider_ollama
 
 import "os/exec"
 
-// configureManagedOllamaCommand is a no-op on non-Unix
-// platforms.
+// configureManagedOllamaCommand is a no-op on non-Unix platforms.
 //
-// Takes command (*exec.Cmd) which is the subprocess to
-// configure.
+// Takes command (*exec.Cmd) which is the subprocess to configure.
 func configureManagedOllamaCommand(command *exec.Cmd) {}
 
-// interruptManagedOllamaCommand sends an interrupt signal to
-// the managed process.
+// interruptManagedOllamaCommand sends an interrupt signal to the managed process.
 //
-// Takes command (*exec.Cmd) which is the subprocess to
-// interrupt.
+// Takes command (*exec.Cmd) which is the subprocess to interrupt.
 //
 // Returns error if the signal cannot be delivered.
 func interruptManagedOllamaCommand(command *exec.Cmd) error {
@@ -39,8 +35,7 @@ func interruptManagedOllamaCommand(command *exec.Cmd) error {
 	return command.Process.Signal(interruptSignal())
 }
 
-// killManagedOllamaCommand forcefully terminates the managed
-// process.
+// killManagedOllamaCommand forcefully terminates the managed process.
 //
 // Takes command (*exec.Cmd) which is the subprocess to kill.
 //

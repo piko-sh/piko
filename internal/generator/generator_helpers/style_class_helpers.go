@@ -33,12 +33,11 @@ const (
 	// classSpaceSeparator is the space used to join CSS class names together.
 	classSpaceSeparator = " "
 
-	// defaultStyleMapCapacity is the starting capacity for style maps. Most
-	// elements have fewer than 8 style properties.
+	// defaultStyleMapCapacity is the starting capacity for style maps. Most elements have
+	// fewer than 8 style properties.
 	defaultStyleMapCapacity = 8
 
-	// defaultClassMapCapacity is the starting capacity for class deduplication
-	// maps.
+	// defaultClassMapCapacity is the starting capacity for class deduplication maps.
 	defaultClassMapCapacity = 16
 
 	// defaultClassBufCapacity is the starting size for the class name buffer.
@@ -54,9 +53,8 @@ const (
 	hiddenStyleSuffix = "display:none !important;"
 )
 
-// stringTokeniser provides zero-allocation whitespace tokenisation.
-// It replaces strings.FieldsSeq to avoid iterator struct allocation on each
-// call.
+// stringTokeniser provides zero-allocation whitespace tokenisation. It replaces
+// strings.FieldsSeq to avoid iterator struct allocation on each call.
 type stringTokeniser struct {
 	// input is the input string to tokenise.
 	input string
@@ -83,9 +81,9 @@ func (t *stringTokeniser) next() (token string, ok bool) {
 	return t.input[start:t.position], true
 }
 
-// delimTokeniser provides zero-allocation single-byte delimiter tokenisation.
-// It replaces strings.SplitSeq to avoid the iterator/coroutine state escaping
-// to the heap (see GitHub issue golang/go#73524).
+// delimTokeniser provides zero-allocation single-byte delimiter tokenisation. It replaces
+// strings.SplitSeq to avoid the iterator/coroutine state escaping to the heap (see GitHub
+// issue golang/go#73524).
 type delimTokeniser struct {
 	// input is the input string to tokenise.
 	input string
@@ -99,27 +97,24 @@ type delimTokeniser struct {
 
 // next returns the next segment between delimiters.
 //
-// Returns segment (string) which is the raw text between delimiters (not
-// trimmed).
-// Returns ok (bool) which is true if a segment was found, false at end of
-// input.
+// Returns segment (string) which is the raw text between delimiters (not trimmed).
+// Returns ok (bool) which is true if a segment was found, false at end of input.
 func (t *delimTokeniser) next() (segment string, ok bool) {
 	if t.position > len(t.input) {
 		return "", false
 	}
 	start := t.position
-	index := strings.IndexByte(t.input[start:], t.delimiter)
-	if index < 0 {
+	before, _, found := strings.Cut(t.input[start:], string(t.delimiter))
+	if !found {
 		t.position = len(t.input) + 1
 		return t.input[start:], true
 	}
-	t.position = start + index + 1
-	return t.input[start : start+index], true
+	t.position = start + len(before) + 1
+	return before, true
 }
 
-// classBuilder holds pooled resources for building class strings. The map
-// tracks classes already added to avoid duplicates, while the buffer builds
-// the space-separated result.
+// classBuilder holds pooled resources for building class strings. The map tracks classes
+// already added to avoid duplicates, while the buffer builds the space-separated result.
 type classBuilder struct {
 	// seen tracks class names already added to prevent duplicates.
 	seen map[string]struct{}
@@ -129,9 +124,8 @@ type classBuilder struct {
 }
 
 var (
-	// classBuilderPool provides reusable classBuilder instances to reduce
-	// allocations. After warmup, buildClassString makes only one allocation (the
-	// final result string).
+	// classBuilderPool provides reusable classBuilder instances to reduce allocations. After
+	// warmup, buildClassString makes only one allocation (the final result string).
 	classBuilderPool = sync.Pool{
 		New: func() any {
 			return &classBuilder{
@@ -151,8 +145,8 @@ var (
 		},
 	}
 
-	// stringSlicePool provides reusable []string slices for collecting class
-	// strings without per-call allocations. Used by MergeClassesBytes.
+	// stringSlicePool provides reusable []string slices for collecting class strings without
+	// per-call allocations. Used by MergeClassesBytes.
 	stringSlicePool = sync.Pool{
 		New: func() any {
 			slice := make([]string, 0, defaultClassMapCapacity)
@@ -160,9 +154,9 @@ var (
 		},
 	}
 
-	// styleConcatPool provides reusable byte buffers for concatenating style
-	// string fragments. Avoids a make([]byte) allocation on every call to
-	// parseStylePartsToMap2/3/4 and the BuildStyleStringBytesV fallback path.
+	// styleConcatPool provides reusable byte buffers for concatenating style string
+	// fragments. Avoids a make([]byte) allocation on every call to parseStylePartsToMap2/3/4
+	// and the BuildStyleStringBytesV fallback path.
 	styleConcatPool = sync.Pool{
 		New: func() any {
 			buffer := make([]byte, 0, defaultClassBufCapacity)
@@ -171,8 +165,8 @@ var (
 	}
 )
 
-// styleBuilder holds pooled resources for building style strings.
-// It avoids creating a new map and keys slice on every call.
+// styleBuilder holds pooled resources for building style strings. It avoids creating a
+// new map and keys slice on every call.
 type styleBuilder struct {
 	// stylesMap holds CSS property-value pairs during style building.
 	stylesMap map[string]string
@@ -193,8 +187,7 @@ func (builder *classBuilder) reset() {
 	builder.buffer.Reset()
 }
 
-// ClassesFromString takes a raw class string and returns a clean, formatted
-// version.
+// ClassesFromString takes a raw class string and returns a clean, formatted version.
 //
 // Takes class (string) which is the raw class string to process.
 //
@@ -207,8 +200,7 @@ func ClassesFromString(class string) string {
 //
 // Takes classes ([]string) which contains the class names to combine.
 //
-// Returns string which is the combined class string, or empty if the slice
-// is empty.
+// Returns string which is the combined class string, or empty if the slice is empty.
 func ClassesFromSlice(classes []string) string {
 	if len(classes) == 0 {
 		return ""
@@ -216,15 +208,15 @@ func ClassesFromSlice(classes []string) string {
 	return buildClassString(strings.Join(classes, classSpaceSeparator))
 }
 
-// ClassesFromMapStringBool creates a class string from a map of class names
-// to boolean values. This is the direct helper for the most common format used
-// with conditional classes.
+// ClassesFromMapStringBool creates a class string from a map of class names to boolean
+// values. This is the direct helper for the most common format used with conditional
+// classes.
 //
-// Takes classes (map[string]bool) which maps class names to whether they
-// should be included.
+// Takes classes (map[string]bool) which maps class names to whether they should be
+// included.
 //
-// Returns string which contains the class names separated by spaces, sorted
-// for consistent output. Only class names with a true value are included.
+// Returns string which contains the class names separated by spaces, sorted for
+// consistent output. Only class names with a true value are included.
 func ClassesFromMapStringBool(classes map[string]bool) string {
 	if len(classes) == 0 {
 		return ""
@@ -255,8 +247,8 @@ func ClassesFromMapStringBool(classes map[string]bool) string {
 // MergeClasses combines class attributes from multiple values using reflection.
 //
 // The Piko emitter will try to call a more specific helper first (such as
-// MergeClassesFromMapStringBool) if the type is known at compile time. This
-// function is a fallback for dynamic types like any or interface{}.
+// MergeClassesFromMapStringBool) if the type is known at compile time. MergeClasses
+// is the fallback for dynamic types like any or interface{}.
 //
 // When values is empty, returns an empty string.
 //
@@ -275,33 +267,32 @@ func MergeClasses(values ...any) string {
 	return buildClassString(classStrings...)
 }
 
-// ClassesFromStringBytes is a version of ClassesFromString that avoids memory
-// allocation by returning a pooled byte buffer.
+// ClassesFromStringBytes is a version of ClassesFromString that avoids memory allocation
+// by returning a pooled byte buffer.
 //
-// The returned buffer must be passed to DirectWriter.AppendPooledBytes()
-// which will track it and release it back to the pool when Reset() is called.
+// The returned buffer must be passed to DirectWriter.AppendPooledBytes() which will track
+// it and release it back to the pool when Reset() is called.
 //
 // Takes class (string) which is the raw class string to process.
 //
-// Returns *[]byte which is a pooled buffer containing the processed class
-// string, or nil if the input is empty.
+// Returns *[]byte which is a pooled buffer containing the processed class string, or nil
+// if the input is empty.
 func ClassesFromStringBytes(class string) *[]byte {
 	return buildClassBytes(class)
 }
 
-// BuildClassBytesV builds a class string from variadic string parts without
-// intermediate string concatenation allocations. This is designed to replace
-// patterns like ClassesFromStringBytes("a " + x + " b") which allocate for
-// each + operator.
+// BuildClassBytesV builds a class string from variadic string parts without intermediate
+// string concatenation allocations. This is designed to replace patterns like
+// ClassesFromStringBytes("a " + x + " b") which allocate for each + operator.
 //
 // Takes parts (...string) which are class string fragments to combine.
 //
-// Returns *[]byte which is a pooled buffer containing the combined class
-// string with duplicates removed, or nil if empty.
+// Returns *[]byte which is a pooled buffer containing the combined class string with
+// duplicates removed, or nil if empty.
 //
-// Note: In large functions (like generated BuildAST), the variadic slice may
-// escape to heap. Use the fixed-arity variants (BuildClassBytes2,
-// BuildClassBytes4, etc.) for truly zero-allocation code generation.
+// Note: In large functions (like generated BuildAST), the variadic slice may escape to
+// heap. Use the fixed-arity variants (BuildClassBytes2, BuildClassBytes4, etc.) for truly
+// zero-allocation code generation.
 func BuildClassBytesV(parts ...string) *[]byte {
 	if len(parts) == 0 {
 		return nil
@@ -309,9 +300,8 @@ func BuildClassBytesV(parts ...string) *[]byte {
 	return buildClassBytes(parts...)
 }
 
-// BuildClassBytes2 builds a class string from exactly two parts without
-// allocation. Uses inline processing to avoid variadic slice heap escape in
-// large functions.
+// BuildClassBytes2 builds a class string from exactly two parts without allocation. Uses
+// inline processing to avoid variadic slice heap escape in large functions.
 //
 // Takes a (string) which is the first class string part.
 // Takes b (string) which is the second class string part.
@@ -324,9 +314,8 @@ func BuildClassBytes2(a, b string) *[]byte {
 	return releaseClassBuilderToBytes(builder)
 }
 
-// BuildClassBytes4 builds a class string from exactly four parts without
-// allocation. Uses inline processing to avoid variadic slice heap escape in
-// large functions.
+// BuildClassBytes4 builds a class string from exactly four parts without allocation. Uses
+// inline processing to avoid variadic slice heap escape in large functions.
 //
 // Takes a (string) which is the first class part.
 // Takes b (string) which is the second class part.
@@ -343,9 +332,8 @@ func BuildClassBytes4(a, b, c, d string) *[]byte {
 	return releaseClassBuilderToBytes(builder)
 }
 
-// BuildClassBytes6 builds a class string from exactly 6 parts without
-// allocation. Uses inline processing to avoid variadic slice heap escape in
-// large functions.
+// BuildClassBytes6 builds a class string from exactly 6 parts without allocation. Uses
+// inline processing to avoid variadic slice heap escape in large functions.
 //
 // Takes a (string) which is the first class part.
 // Takes b (string) which is the second class part.
@@ -366,9 +354,8 @@ func BuildClassBytes6(a, b, c, d, e, f string) *[]byte {
 	return releaseClassBuilderToBytes(builder)
 }
 
-// BuildClassBytes8 builds a class string from exactly 8 parts without
-// allocation. Uses inline processing to avoid variadic slice heap escape in
-// large functions.
+// BuildClassBytes8 builds a class string from exactly 8 parts without allocation. Uses
+// inline processing to avoid variadic slice heap escape in large functions.
 //
 // Takes a (string) which is the first class part.
 // Takes b (string) which is the second class part.
@@ -395,8 +382,8 @@ func BuildClassBytes8(a, b, c, d, e, f, g, h string) *[]byte {
 	return releaseClassBuilderToBytes(builder)
 }
 
-// ClassesFromSliceBytes returns a pooled byte buffer containing the combined
-// class names. This is a zero-allocation variant of ClassesFromSlice.
+// ClassesFromSliceBytes returns a pooled byte buffer containing the combined class names.
+// This is a zero-allocation variant of ClassesFromSlice.
 //
 // Takes classes ([]string) which contains the class names to combine.
 //
@@ -408,8 +395,8 @@ func ClassesFromSliceBytes(classes []string) *[]byte {
 	return buildClassBytes(strings.Join(classes, classSpaceSeparator))
 }
 
-// MergeClassesBytes is a zero-allocation version of MergeClasses that returns
-// a pooled byte buffer.
+// MergeClassesBytes is a zero-allocation version of MergeClasses that returns a pooled
+// byte buffer.
 //
 // Takes values (...any) which provides the class values to merge.
 //
@@ -428,8 +415,8 @@ func MergeClassesBytes(values ...any) *[]byte {
 	return result
 }
 
-// StylesFromString parses a raw style string and returns it in a clean,
-// consistent format.
+// StylesFromString parses a raw style string and returns it in a clean, consistent
+// format.
 //
 // Takes style (string) which is the raw style string to parse.
 //
@@ -440,26 +427,24 @@ func StylesFromString(style string) string {
 	return buildStyleString(stylesMap)
 }
 
-// StylesFromStringMap creates a CSS style string from a map of style names
-// to values.
+// StylesFromStringMap creates a CSS style string from a map of style names to values.
 //
-// Takes styles (map[string]string) which provides the style property-value
-// pairs to convert.
+// Takes styles (map[string]string) which provides the style property-value pairs to
+// convert.
 //
-// Returns string which contains the formatted style string with properties
-// in kebab-case and sorted order.
+// Returns string which contains the formatted style string with properties in kebab-case
+// and sorted order.
 func StylesFromStringMap(styles map[string]string) string {
 	targetMap := make(map[string]string, len(styles))
 	mergeStyleMapString(targetMap, styles)
 	return buildStyleString(targetMap)
 }
 
-// MergeStyles merges multiple style values into a single style string.
-// The Piko emitter will attempt to call a more specific, strongly-typed
-// helper first.
+// MergeStyles merges multiple style values into a single style string. The Piko emitter
+// will attempt to call a more specific, strongly-typed helper first.
 //
-// Takes values (...any) which are style values to merge. Each value can be
-// a string, map[string]string, or map[string]any.
+// Takes values (...any) which are style values to merge. Each value can be a string,
+// map[string]string, or map[string]any.
 //
 // Returns string which contains the merged style attributes.
 func MergeStyles(values ...any) string {
@@ -483,16 +468,16 @@ func MergeStyles(values ...any) string {
 	return buildStyleString(stylesMap)
 }
 
-// StylesFromStringBytes is a zero-allocation version of StylesFromString
-// that returns a pooled byte buffer.
+// StylesFromStringBytes is a zero-allocation version of StylesFromString that returns a
+// pooled byte buffer.
 //
-// The returned buffer must be passed to DirectWriter.AppendPooledBytes()
-// which will track it and release it back to the pool when Reset() is called.
+// The returned buffer must be passed to DirectWriter.AppendPooledBytes() which will track
+// it and release it back to the pool when Reset() is called.
 //
 // Takes style (string) which is the raw style string to parse and normalise.
 //
-// Returns *[]byte which is a pooled buffer containing the processed style
-// string, or nil if the input is empty or produces an empty result.
+// Returns *[]byte which is a pooled buffer containing the processed style string, or nil
+// if the input is empty or produces an empty result.
 func StylesFromStringBytes(style string) *[]byte {
 	builder, ok := styleBuilderPool.Get().(*styleBuilder)
 	if !ok {
@@ -510,14 +495,14 @@ func StylesFromStringBytes(style string) *[]byte {
 	return result
 }
 
-// StylesFromStringMapBytes converts a map of style properties to a byte
-// buffer. It uses a pooled buffer for better performance.
+// StylesFromStringMapBytes converts a map of style properties to a byte buffer. It uses a
+// pooled buffer for better performance.
 //
-// Takes styles (map[string]string) which provides the style property-value
-// pairs to convert.
+// Takes styles (map[string]string) which provides the style property-value pairs to
+// convert.
 //
-// Returns *[]byte which is a pooled buffer containing the formatted style
-// string, or nil if the map is empty.
+// Returns *[]byte which is a pooled buffer containing the formatted style string, or nil
+// if the map is empty.
 func StylesFromStringMapBytes(styles map[string]string) *[]byte {
 	builder, ok := styleBuilderPool.Get().(*styleBuilder)
 	if !ok {
@@ -535,14 +520,13 @@ func StylesFromStringMapBytes(styles map[string]string) *[]byte {
 	return result
 }
 
-// MergeStylesBytes is a zero-allocation variant of MergeStyles
-// that returns a pooled byte buffer.
+// MergeStylesBytes is a zero-allocation variant of MergeStyles that returns a pooled byte
+// buffer.
 //
-// Takes values (...any) which are style values to merge. Each value can be
-// a string, map[string]string, or map[string]any.
+// Takes values (...any) which are style values to merge. Each value can be a string,
+// map[string]string, or map[string]any.
 //
-// Returns *[]byte which is a pooled buffer containing the merged styles,
-// or nil if empty.
+// Returns *[]byte which is a pooled buffer containing the merged styles, or nil if empty.
 func MergeStylesBytes(values ...any) *[]byte {
 	if len(values) == 0 {
 		return nil
@@ -576,14 +560,13 @@ func MergeStylesBytes(values ...any) *[]byte {
 
 // AppendHiddenToStyleBytes appends "display:none !important;" to style bytes.
 //
-// Used for the p-show directive when the condition is false. CSS "last wins"
-// semantics ensure the element is hidden even if display was set earlier.
+// Used for the p-show directive when the condition is false. CSS "last wins" semantics
+// ensure the element is hidden even if display was set earlier.
 //
-// Takes bufferPointer (*[]byte) which is the existing style bytes from a *Bytes
-// helper.
+// Takes bufferPointer (*[]byte) which is the existing style bytes from a *Bytes helper.
 //
-// Returns *[]byte which is the modified buffer. Returns the same pointer if
-// input was non-nil, or a new pooled buffer if input was nil.
+// Returns *[]byte which is the modified buffer.
+// Returns the same pointer if input was non-nil, or a new pooled buffer if input was nil.
 func AppendHiddenToStyleBytes(bufferPointer *[]byte) *[]byte {
 	if bufferPointer == nil {
 		return StylesFromStringBytes(hiddenStyleSuffix)
@@ -592,8 +575,8 @@ func AppendHiddenToStyleBytes(bufferPointer *[]byte) *[]byte {
 	return bufferPointer
 }
 
-// BuildStyleStringBytes2 joins two string parts and parses them as a style.
-// This avoids the extra string allocation that happens with + joining.
+// BuildStyleStringBytes2 joins two string parts and parses them as a style. This avoids
+// the extra string allocation that happens with + joining.
 //
 // Takes a (string) which is the first part to join.
 // Takes b (string) which is the second part to join.
@@ -616,8 +599,8 @@ func BuildStyleStringBytes2(a, b string) *[]byte {
 	return result
 }
 
-// BuildStyleStringBytes3 joins three string parts and parses them as a style.
-// This avoids the extra string allocation that happens with + joining.
+// BuildStyleStringBytes3 joins three string parts and parses them as a style. This avoids
+// the extra string allocation that happens with + joining.
 //
 // Takes a (string) which is the first part to join.
 // Takes b (string) which is the second part to join.
@@ -641,8 +624,8 @@ func BuildStyleStringBytes3(a, b, c string) *[]byte {
 	return result
 }
 
-// BuildStyleStringBytes4 joins four string parts and parses them as a style.
-// This avoids the extra string allocation that happens with + joining.
+// BuildStyleStringBytes4 joins four string parts and parses them as a style. This avoids
+// the extra string allocation that happens with + joining.
 //
 // Takes a (string) which is the first part to join.
 // Takes b (string) which is the second part to join.
@@ -667,9 +650,8 @@ func BuildStyleStringBytes4(a, b, c, d string) *[]byte {
 	return result
 }
 
-// BuildStyleStringBytesV joins string parts and parses them as a style.
-// Uses fixed-arity helpers for up to four parts, and falls back to string
-// joining for more.
+// BuildStyleStringBytesV joins string parts and parses them as a style. Uses fixed-arity
+// helpers for up to four parts, and falls back to string joining for more.
 //
 // Takes parts (...string) which are the string parts to join.
 //
@@ -709,8 +691,7 @@ func BuildStyleStringBytesV(parts ...string) *[]byte {
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes values (...any) which contains the class values to merge.
 //
-// Returns *[]byte which contains the merged class bytes, or nil if values
-// is empty.
+// Returns *[]byte which contains the merged class bytes, or nil if values is empty.
 func MergeClassesBytesArena(arena *ast_domain.RenderArena, values ...any) *[]byte {
 	if len(values) == 0 {
 		return nil
@@ -725,14 +706,12 @@ func MergeClassesBytesArena(arena *ast_domain.RenderArena, values ...any) *[]byt
 	return result
 }
 
-// ClassesFromSliceBytesArena is the arena-aware version of
-// ClassesFromSliceBytes.
+// ClassesFromSliceBytesArena is the arena-aware version of ClassesFromSliceBytes.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes classes ([]string) which contains the CSS class names to join.
 //
-// Returns *[]byte which contains the joined classes, or nil if classes is
-// empty.
+// Returns *[]byte which contains the joined classes, or nil if classes is empty.
 func ClassesFromSliceBytesArena(arena *ast_domain.RenderArena, classes []string) *[]byte {
 	if len(classes) == 0 {
 		return nil
@@ -740,8 +719,7 @@ func ClassesFromSliceBytesArena(arena *ast_domain.RenderArena, classes []string)
 	return buildClassBytesArena(arena, strings.Join(classes, classSpaceSeparator))
 }
 
-// ClassesFromStringBytesArena is the arena-aware version of
-// ClassesFromStringBytes.
+// ClassesFromStringBytesArena is the arena-aware version of ClassesFromStringBytes.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes class (string) which specifies the CSS class string to convert.
@@ -788,8 +766,7 @@ func BuildClassBytes4Arena(arena *ast_domain.RenderArena, a, b, c, d string) *[]
 
 // BuildClassBytes6Arena is the arena-aware version of BuildClassBytes6.
 //
-// Takes arena (*ast_domain.RenderArena) which manages memory allocation for
-// the result.
+// Takes arena (*ast_domain.RenderArena) which manages memory allocation for the result.
 // Takes a (string) which is the first CSS class value.
 // Takes b (string) which is the second CSS class value.
 // Takes c (string) which is the third CSS class value.
@@ -797,8 +774,7 @@ func BuildClassBytes4Arena(arena *ast_domain.RenderArena, a, b, c, d string) *[]
 // Takes e (string) which is the fifth CSS class value.
 // Takes f (string) which is the sixth CSS class value.
 //
-// Returns *[]byte which contains the combined class string allocated from
-// the arena.
+// Returns *[]byte which contains the combined class string allocated from the arena.
 func BuildClassBytes6Arena(arena *ast_domain.RenderArena, a, b, c, d, e, f string) *[]byte {
 	builder := acquireClassBuilder()
 	processClassString(builder, a)
@@ -841,8 +817,7 @@ func BuildClassBytes8Arena(arena *ast_domain.RenderArena, a, b, c, d, e, f, g, h
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes parts (...string) which contains the class name segments to join.
 //
-// Returns *[]byte which contains the joined class bytes, or nil if parts is
-// empty.
+// Returns *[]byte which contains the joined class bytes, or nil if parts is empty.
 func BuildClassBytesVArena(arena *ast_domain.RenderArena, parts ...string) *[]byte {
 	if len(parts) == 0 {
 		return nil
@@ -850,14 +825,12 @@ func BuildClassBytesVArena(arena *ast_domain.RenderArena, parts ...string) *[]by
 	return buildClassBytesArena(arena, parts...)
 }
 
-// StylesFromStringBytesArena is the arena-aware version of
-// StylesFromStringBytes.
+// StylesFromStringBytesArena is the arena-aware version of StylesFromStringBytes.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes style (string) which contains the CSS style string to parse.
 //
-// Returns *[]byte which contains the rendered style bytes, or nil if style is
-// empty.
+// Returns *[]byte which contains the rendered style bytes, or nil if style is empty.
 func StylesFromStringBytesArena(arena *ast_domain.RenderArena, style string) *[]byte {
 	if style == "" {
 		return nil
@@ -870,14 +843,12 @@ func StylesFromStringBytesArena(arena *ast_domain.RenderArena, style string) *[]
 	return result
 }
 
-// StylesFromStringMapBytesArena is the arena-aware version of
-// StylesFromStringMapBytes.
+// StylesFromStringMapBytesArena is the arena-aware version of StylesFromStringMapBytes.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes styles (map[string]string) which contains the style key-value pairs.
 //
-// Returns *[]byte which contains the formatted style bytes, or nil if styles
-// is empty.
+// Returns *[]byte which contains the formatted style bytes, or nil if styles is empty.
 func StylesFromStringMapBytesArena(arena *ast_domain.RenderArena, styles map[string]string) *[]byte {
 	if len(styles) == 0 {
 		return nil
@@ -895,8 +866,7 @@ func StylesFromStringMapBytesArena(arena *ast_domain.RenderArena, styles map[str
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes values (...any) which contains style values to merge (strings or maps).
 //
-// Returns *[]byte which contains the merged style bytes, or nil if values is
-// empty.
+// Returns *[]byte which contains the merged style bytes, or nil if values is empty.
 func MergeStylesBytesArena(arena *ast_domain.RenderArena, values ...any) *[]byte {
 	if len(values) == 0 {
 		return nil
@@ -920,8 +890,7 @@ func MergeStylesBytesArena(arena *ast_domain.RenderArena, values ...any) *[]byte
 	return result
 }
 
-// BuildStyleStringBytes2Arena is the arena-aware version of
-// BuildStyleStringBytes2.
+// BuildStyleStringBytes2Arena is the arena-aware version of BuildStyleStringBytes2.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes a (string) which is the first style string to parse.
@@ -936,8 +905,7 @@ func BuildStyleStringBytes2Arena(arena *ast_domain.RenderArena, a, b string) *[]
 	return result
 }
 
-// BuildStyleStringBytes3Arena is the arena-aware version of
-// BuildStyleStringBytes3.
+// BuildStyleStringBytes3Arena is the arena-aware version of BuildStyleStringBytes3.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes a (string) which is the first style part to parse.
@@ -953,8 +921,7 @@ func BuildStyleStringBytes3Arena(arena *ast_domain.RenderArena, a, b, c string) 
 	return result
 }
 
-// BuildStyleStringBytes4Arena is the arena-aware version of
-// BuildStyleStringBytes4.
+// BuildStyleStringBytes4Arena is the arena-aware version of BuildStyleStringBytes4.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes a (string) which is the first style part.
@@ -971,14 +938,12 @@ func BuildStyleStringBytes4Arena(arena *ast_domain.RenderArena, a, b, c, d strin
 	return result
 }
 
-// BuildStyleStringBytesVArena is the arena-aware version of
-// BuildStyleStringBytesV.
+// BuildStyleStringBytesVArena is the arena-aware version of BuildStyleStringBytesV.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes parts (...string) which contains the style strings to combine.
 //
-// Returns *[]byte which contains the combined style bytes, or nil if parts
-// is empty.
+// Returns *[]byte which contains the combined style bytes, or nil if parts is empty.
 func BuildStyleStringBytesVArena(arena *ast_domain.RenderArena, parts ...string) *[]byte {
 	if len(parts) == 0 {
 		return nil
@@ -1041,14 +1006,12 @@ func putStringSlice(ptr *[]string) {
 	stringSlicePool.Put(ptr)
 }
 
-// acquireStyleConcatBuf retrieves a pooled byte buffer, grown to at least
-// minCap capacity.
+// acquireStyleConcatBuf retrieves a pooled byte buffer, grown to at least minCap
+// capacity.
 //
-// Takes minCap (int) which is the minimum capacity the returned buffer must
-// have.
+// Takes minCap (int) which is the minimum capacity the returned buffer must have.
 //
-// Returns *[]byte which is a pooled buffer with length zero and at least
-// minCap capacity.
+// Returns *[]byte which is a pooled buffer with length zero and at least minCap capacity.
 func acquireStyleConcatBuf(minCap int) *[]byte {
 	ptr, ok := styleConcatPool.Get().(*[]byte)
 	if !ok {
@@ -1096,9 +1059,9 @@ func releaseStyleBuilder(builder *styleBuilder) {
 
 // extractClassString converts a value to a CSS class string.
 //
-// Takes styleValue (any) which is the value to convert to class names.
-// Supported types are string, []string, map[string]bool, map[string]any, and
-// []any. Other types are handled by the default converter.
+// Takes styleValue (any) which is the value to convert to class names. Supported types
+// are string, []string, map[string]bool, map[string]any, and []any. Other types are
+// handled by the default converter.
 //
 // Returns string which contains space-separated CSS class names.
 func extractClassString(styleValue any) string {
@@ -1120,11 +1083,11 @@ func extractClassString(styleValue any) string {
 
 // classesFromMapStringAny converts a map of class names to a class string.
 //
-// Takes v (map[string]any) which maps class names to values checked for
-// truthiness to decide if they should be included.
+// Takes v (map[string]any) which maps class names to values checked for truthiness to
+// decide if they should be included.
 //
-// Returns string which contains the class names with truthy values, joined by
-// spaces and sorted for consistent output.
+// Returns string which contains the class names with truthy values, joined by spaces and
+// sorted for consistent output.
 func classesFromMapStringAny(v map[string]any) string {
 	if len(v) == 0 {
 		return ""
@@ -1172,8 +1135,8 @@ func classesFromSliceAny(v []any) string {
 //
 // Takes v (any) which is the default value to extract a class string from.
 //
-// Returns string which is the formatted default value, or empty if v is nil
-// or formats to an empty or "<nil>" string.
+// Returns string which is the formatted default value, or empty if v is nil or formats to
+// an empty or "<nil>" string.
 func classFromDefault(v any) string {
 	if v == nil {
 		return ""
@@ -1185,14 +1148,14 @@ func classFromDefault(v any) string {
 	return s
 }
 
-// buildClassString combines CSS class names from multiple input strings into a
-// single string with duplicates removed.
+// buildClassString combines CSS class names from multiple input strings into a single
+// string with duplicates removed.
 //
-// Takes inputs (...string) which are class strings that may contain duplicates
-// and extra whitespace.
+// Takes inputs (...string) which are class strings that may contain duplicates and extra
+// whitespace.
 //
-// Returns string which contains unique class names separated by spaces, keeping
-// the order in which each class first appears.
+// Returns string which contains unique class names separated by spaces, keeping the order
+// in which each class first appears.
 func buildClassString(inputs ...string) string {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
@@ -1223,8 +1186,8 @@ func buildClassString(inputs ...string) string {
 
 // acquireClassBuilder gets a classBuilder from the pool.
 //
-// Returns *classBuilder which is either a recycled instance from the pool or
-// a newly allocated one if the pool is empty.
+// Returns *classBuilder which is either a recycled instance from the pool or a newly
+// allocated one if the pool is empty.
 func acquireClassBuilder() *classBuilder {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
@@ -1235,8 +1198,7 @@ func acquireClassBuilder() *classBuilder {
 	return builder
 }
 
-// processClassString tokenises a class string and adds unique classes to the
-// builder.
+// processClassString tokenises a class string and adds unique classes to the builder.
 //
 // Takes builder (*classBuilder) which accumulates the unique class names.
 // Takes input (string) which contains space-separated class names to process.
@@ -1253,13 +1215,12 @@ func processClassString(builder *classBuilder, input string) {
 	}
 }
 
-// releaseClassBuilderToBytes extracts the result and returns the builder to
-// the pool.
+// releaseClassBuilderToBytes extracts the result and returns the builder to the pool.
 //
 // Takes builder (*classBuilder) which is the builder to release.
 //
-// Returns *[]byte which contains the copied buffer contents, or nil if the
-// buffer was empty.
+// Returns *[]byte which contains the copied buffer contents, or nil if the buffer was
+// empty.
 func releaseClassBuilderToBytes(builder *classBuilder) *[]byte {
 	if builder.buffer.Len() == 0 {
 		builder.reset()
@@ -1278,12 +1239,12 @@ func releaseClassBuilderToBytes(builder *classBuilder) *[]byte {
 
 // buildClassBytes combines CSS class strings and removes duplicates.
 //
-// Takes inputs (...string) which are class strings that may contain duplicates
-// and extra whitespace.
+// Takes inputs (...string) which are class strings that may contain duplicates and extra
+// whitespace.
 //
-// Returns *[]byte which is a pooled buffer with the cleaned class string, or
-// nil if the result is empty. The caller must pass this buffer to
-// DirectWriter.AppendPooledBytes() for proper memory handling.
+// Returns *[]byte which is a pooled buffer with the cleaned class string, or nil if the
+// result is empty. The caller must pass this buffer to DirectWriter.AppendPooledBytes()
+// for proper memory handling.
 func buildClassBytes(inputs ...string) *[]byte {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
@@ -1322,9 +1283,9 @@ func buildClassBytes(inputs ...string) *[]byte {
 
 // mergeStyleMapString copies entries from a source map into a target map.
 //
-// Keys are converted to kebab-case and values have leading and trailing spaces
-// removed. Non-empty values replace any existing entries. Empty values remove
-// the key from the target map.
+// Keys are converted to kebab-case and values have leading and trailing spaces removed.
+// Non-empty values replace any existing entries. Empty values remove the key from the
+// target map.
 //
 // Takes targetMap (map[string]string) which is the map to update.
 // Takes sourceMap (map[string]string) which provides the entries to copy.
@@ -1340,8 +1301,8 @@ func mergeStyleMapString(targetMap, sourceMap map[string]string) {
 	}
 }
 
-// mergeStyleMapAny merges styles from a map with any-typed values into a
-// string style map.
+// mergeStyleMapAny merges styles from a map with any-typed values into a string style
+// map.
 //
 // Takes targetMap (map[string]string) which is the destination style map.
 // Takes sourceMap (map[string]any) which provides the styles to merge.
@@ -1361,14 +1322,12 @@ func mergeStyleMapAny(targetMap map[string]string, sourceMap map[string]any) {
 	}
 }
 
-// parseStyleStringToMap parses a CSS style string into a map of key-value
-// pairs.
+// parseStyleStringToMap parses a CSS style string into a map of key-value pairs.
 //
-// Takes s (string) which contains style declarations separated by semicolons,
-// where each declaration has a property and value separated by a colon
-// (e.g. "color: red; font-size: 12px").
-// Takes targetMap (map[string]string) which receives the parsed property-value
-// pairs.
+// Takes s (string) which contains style declarations separated by semicolons, where each
+// declaration has a property and value separated by a colon (e.g. "color: red; font-size:
+// 12px").
+// Takes targetMap (map[string]string) which receives the parsed property-value pairs.
 func parseStyleStringToMap(s string, targetMap map[string]string) {
 	if s == "" {
 		return
@@ -1395,9 +1354,8 @@ func parseStyleStringToMap(s string, targetMap map[string]string) {
 //
 // Takes stylesMap (map[string]string) which holds CSS property-value pairs.
 //
-// Returns string which contains the style attribute value with entries joined
-// by semicolons. The output is sorted by property name to give the same result
-// each time.
+// Returns string which contains the style attribute value with entries joined by
+// semicolons. The output is sorted by property name to give the same result each time.
 func buildStyleString(stylesMap map[string]string) string {
 	if len(stylesMap) == 0 {
 		return ""
@@ -1421,8 +1379,8 @@ func buildStyleString(stylesMap map[string]string) string {
 	return string(buffer)
 }
 
-// toKebabCase converts a string from camelCase to kebab-case. This is used
-// to normalise style property names.
+// toKebabCase converts a string from camelCase to kebab-case. Normalises style
+// property names.
 //
 // Takes s (string) which is the input string to convert.
 //
@@ -1460,8 +1418,8 @@ func toKebabCase(s string) string {
 	return string(buffer)
 }
 
-// populateStyleBytes builds a deterministic, sorted, semicolon-delimited style
-// byte buffer from the given map.
+// populateStyleBytes builds a deterministic, sorted, semicolon-delimited style byte
+// buffer from the given map.
 //
 // Takes bufferPointer (*[]byte) which is the target buffer to populate.
 // Takes stylesMap (map[string]string) which contains CSS property-value pairs.
@@ -1486,14 +1444,13 @@ func populateStyleBytes(bufferPointer *[]byte, stylesMap map[string]string, keys
 	}
 }
 
-// buildStyleBytesFromBuilder builds a style byte buffer using a pooled
-// styleBuilder to avoid creating a new map and keys slice.
+// buildStyleBytesFromBuilder builds a style byte buffer using a pooled styleBuilder to
+// avoid creating a new map and keys slice.
 //
-// Takes builder (*styleBuilder) which contains the styles map and reusable keys
-// slice.
+// Takes builder (*styleBuilder) which contains the styles map and reusable keys slice.
 //
-// Returns *[]byte which is a pooled buffer containing the formatted style
-// string, or nil if the map is empty.
+// Returns *[]byte which is a pooled buffer containing the formatted style string, or nil
+// if the map is empty.
 func buildStyleBytesFromBuilder(builder *styleBuilder) *[]byte {
 	if len(builder.stylesMap) == 0 {
 		return nil
@@ -1510,8 +1467,7 @@ func buildStyleBytesFromBuilder(builder *styleBuilder) *[]byte {
 	return bufferPointer
 }
 
-// parseStylePartsToMap2 concatenates two parts and parses them as CSS into the
-// map.
+// parseStylePartsToMap2 concatenates two parts and parses them as CSS into the map.
 //
 // Takes a (string) which is the first CSS style part.
 // Takes b (string) which is the second CSS style part.
@@ -1524,8 +1480,7 @@ func parseStylePartsToMap2(a, b string, stylesMap map[string]string) {
 	releaseStyleConcatBuf(ptr)
 }
 
-// parseStylePartsToMap3 concatenates three parts and parses them as CSS into
-// the map.
+// parseStylePartsToMap3 concatenates three parts and parses them as CSS into the map.
 //
 // Takes a (string) which is the first CSS fragment.
 // Takes b (string) which is the second CSS fragment.
@@ -1540,8 +1495,8 @@ func parseStylePartsToMap3(a, b, c string, stylesMap map[string]string) {
 	releaseStyleConcatBuf(ptr)
 }
 
-// parseStylePartsToMap4 concatenates four style parts and parses them as CSS
-// into the given map.
+// parseStylePartsToMap4 concatenates four style parts and parses them as CSS into the
+// given map.
 //
 // Takes a (string) which is the first style part.
 // Takes b (string) which is the second style part.
@@ -1560,8 +1515,8 @@ func parseStylePartsToMap4(a, b, c, d string, stylesMap map[string]string) {
 
 // buildClassBytesArena combines CSS class strings using arena-managed buffers.
 //
-// Takes arena (*ast_domain.RenderArena) which provides memory management for
-// the output buffer.
+// Takes arena (*ast_domain.RenderArena) which provides memory management for the output
+// buffer.
 // Takes inputs (...string) which are the CSS class strings to combine.
 //
 // Returns *[]byte which contains the combined class string in arena memory.
@@ -1575,14 +1530,13 @@ func buildClassBytesArena(arena *ast_domain.RenderArena, inputs ...string) *[]by
 	return releaseClassBuilderToBytesArena(arena, builder)
 }
 
-// releaseClassBuilderToBytesArena releases a classBuilder and returns its
-// contents as bytes using the provided arena.
+// releaseClassBuilderToBytesArena releases a classBuilder and returns its contents as
+// bytes using the provided arena.
 //
 // Takes arena (*ast_domain.RenderArena) which provides memory allocation.
 // Takes builder (*classBuilder) which contains the class bytes to release.
 //
-// Returns *[]byte which contains the class bytes, or nil if the buffer is
-// empty.
+// Returns *[]byte which contains the class bytes, or nil if the buffer is empty.
 func releaseClassBuilderToBytesArena(arena *ast_domain.RenderArena, builder *classBuilder) *[]byte {
 	if builder.buffer.Len() == 0 {
 		builder.reset()
@@ -1599,14 +1553,13 @@ func releaseClassBuilderToBytesArena(arena *ast_domain.RenderArena, builder *cla
 	return bufferPointer
 }
 
-// buildStyleBytesFromBuilderArena extracts style bytes from a builder using
-// an arena for memory allocation.
+// buildStyleBytesFromBuilderArena extracts style bytes from a builder using an arena for
+// memory allocation.
 //
 // Takes arena (*ast_domain.RenderArena) which provides pooled byte buffers.
 // Takes builder (*styleBuilder) which contains the styles to extract.
 //
-// Returns *[]byte which contains the sorted style bytes, or nil if no styles
-// exist.
+// Returns *[]byte which contains the sorted style bytes, or nil if no styles exist.
 func buildStyleBytesFromBuilderArena(arena *ast_domain.RenderArena, builder *styleBuilder) *[]byte {
 	if len(builder.stylesMap) == 0 {
 		return nil

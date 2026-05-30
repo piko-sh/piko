@@ -28,11 +28,13 @@ import (
 	"piko.sh/piko/internal/notification/notification_dto"
 )
 
-var _ notification_domain.NotificationProviderPort = (*GoogleChatProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*GoogleChatProvider)(nil)
+)
 
 const (
-	// googleChatMaxMessageLength is the maximum number of characters allowed in a
-	// single Google Chat message.
+	// googleChatMaxMessageLength is the maximum number of characters allowed in a single
+	// Google Chat message.
 	googleChatMaxMessageLength = 4096
 )
 
@@ -93,8 +95,7 @@ type googleChatTextParagraph struct {
 	Text string `json:"text"`
 }
 
-// googleChatKeyValue represents a key-value pair widget for Google Chat
-// messages.
+// googleChatKeyValue represents a key-value pair widget for Google Chat messages.
 type googleChatKeyValue struct {
 	// TopLabel is the label shown above the value.
 	TopLabel string `json:"topLabel,omitempty"`
@@ -117,11 +118,11 @@ type GoogleChatProvider struct {
 
 // Send delivers a notification to Google Chat.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and recipient details.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// recipient details.
 //
-// Returns error when the payload cannot be formatted, the request fails, or
-// Google Chat returns a non-success status code.
+// Returns error when the payload cannot be formatted, the request fails, or Google Chat
+// returns a non-success status code.
 func (g *GoogleChatProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := g.formatGoogleChatPayload(params)
 	if err != nil {
@@ -133,8 +134,8 @@ func (g *GoogleChatProvider) Send(ctx context.Context, params *notification_dto.
 
 // SendBulk sends multiple notifications.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+// to send.
 //
 // Returns error when any notification fails to send.
 func (g *GoogleChatProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -148,16 +149,15 @@ func (g *GoogleChatProvider) SendBulk(ctx context.Context, notifications []*noti
 
 // SupportsBulkSending reports whether Google Chat supports bulk sending.
 //
-// Returns bool which is always false as Google Chat does not support bulk
-// sending.
+// Returns bool which is always false as Google Chat does not support bulk sending.
 func (*GoogleChatProvider) SupportsBulkSending() bool {
 	return false
 }
 
 // GetCapabilities returns the capabilities of the Google Chat provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features and limits for this provider.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// and limits for this provider.
 func (*GoogleChatProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: true,
@@ -176,11 +176,10 @@ func (*GoogleChatProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// formatGoogleChatPayload converts notification params to Google Chat Card v2
-// format.
+// formatGoogleChatPayload converts notification params to Google Chat Card v2 format.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to format.
 //
 // Returns []byte which is the JSON-encoded Google Chat card payload.
 // Returns error when JSON marshalling fails.
@@ -249,8 +248,8 @@ func (*GoogleChatProvider) formatGoogleChatPayload(params *notification_dto.Send
 // NewGoogleChatProvider creates a new Google Chat notification provider.
 //
 // Takes webhookURL (string) which specifies the Google Chat webhook endpoint.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.

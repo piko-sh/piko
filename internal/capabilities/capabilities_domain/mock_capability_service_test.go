@@ -24,7 +24,6 @@ import (
 	"errors"
 	"io"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,16 +37,14 @@ func TestMockCapabilityService_Register(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCapabilityService{
-			RegisterFunc:      nil,
-			ExecuteFunc:       nil,
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
+			RegisterFunc: nil,
+			ExecuteFunc:  nil,
 		}
 
 		err := mock.Register("compress", nil)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterCallCount))
+		assert.Equal(t, int64(1), mock.RegisterCallCount.Load())
 	})
 
 	t.Run("delegates to RegisterFunc", func(t *testing.T) {
@@ -66,9 +63,7 @@ func TestMockCapabilityService_Register(t *testing.T) {
 				capturedFunction = f
 				return nil
 			},
-			ExecuteFunc:       nil,
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
+			ExecuteFunc: nil,
 		}
 
 		err := mock.Register("minify", capabilityFunction)
@@ -76,7 +71,7 @@ func TestMockCapabilityService_Register(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "minify", capturedName)
 		assert.NotNil(t, capturedFunction)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterCallCount))
+		assert.Equal(t, int64(1), mock.RegisterCallCount.Load())
 	})
 
 	t.Run("propagates error from RegisterFunc", func(t *testing.T) {
@@ -86,16 +81,14 @@ func TestMockCapabilityService_Register(t *testing.T) {
 			RegisterFunc: func(_ string, _ CapabilityFunc) error {
 				return errors.New("registration failed")
 			},
-			ExecuteFunc:       nil,
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
+			ExecuteFunc: nil,
 		}
 
 		err := mock.Register("broken", nil)
 
 		require.Error(t, err)
 		assert.Equal(t, "registration failed", err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterCallCount))
+		assert.Equal(t, int64(1), mock.RegisterCallCount.Load())
 	})
 }
 
@@ -106,17 +99,15 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCapabilityService{
-			RegisterFunc:      nil,
-			ExecuteFunc:       nil,
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
+			RegisterFunc: nil,
+			ExecuteFunc:  nil,
 		}
 
 		reader, err := mock.Execute(context.Background(), "compress", nil, nil)
 
 		require.NoError(t, err)
 		assert.Nil(t, reader)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ExecuteCallCount))
+		assert.Equal(t, int64(1), mock.ExecuteCallCount.Load())
 	})
 
 	t.Run("delegates to ExecuteFunc", func(t *testing.T) {
@@ -136,8 +127,6 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 				capturedParams = params
 				return expectedOutput, nil
 			},
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
 		}
 
 		ctx := context.Background()
@@ -150,7 +139,7 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, "compress", capturedName)
 		assert.Equal(t, CapabilityParams{"level": "9"}, capturedParams)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ExecuteCallCount))
+		assert.Equal(t, int64(1), mock.ExecuteCallCount.Load())
 	})
 
 	t.Run("propagates error from ExecuteFunc", func(t *testing.T) {
@@ -161,8 +150,6 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 			ExecuteFunc: func(_ context.Context, _ string, _ io.Reader, _ CapabilityParams) (io.Reader, error) {
 				return nil, errors.New("execution failed")
 			},
-			RegisterCallCount: 0,
-			ExecuteCallCount:  0,
 		}
 
 		reader, err := mock.Execute(context.Background(), "missing", nil, nil)
@@ -170,7 +157,7 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "execution failed", err.Error())
 		assert.Nil(t, reader)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ExecuteCallCount))
+		assert.Equal(t, int64(1), mock.ExecuteCallCount.Load())
 	})
 }
 
@@ -186,18 +173,16 @@ func TestMockCapabilityService_ZeroValueIsUsable(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, reader)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ExecuteCallCount))
+	assert.Equal(t, int64(1), mock.RegisterCallCount.Load())
+	assert.Equal(t, int64(1), mock.ExecuteCallCount.Load())
 }
 
 func TestMockCapabilityService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockCapabilityService{
-		RegisterFunc:      nil,
-		ExecuteFunc:       nil,
-		RegisterCallCount: 0,
-		ExecuteCallCount:  0,
+		RegisterFunc: nil,
+		ExecuteFunc:  nil,
 	}
 
 	const goroutines = 50
@@ -218,6 +203,6 @@ func TestMockCapabilityService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.RegisterCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ExecuteCallCount))
+	assert.Equal(t, int64(goroutines), mock.RegisterCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ExecuteCallCount.Load())
 }

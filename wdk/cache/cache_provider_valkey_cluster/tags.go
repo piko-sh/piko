@@ -31,15 +31,14 @@ const (
 	// tagPrefix is the key prefix for tag metadata in Valkey Cluster.
 	tagPrefix = "tag:"
 
-	// keyTagsPrefix is the Valkey key prefix for storing the set of tags linked to
-	// a cache key.
+	// keyTagsPrefix is the Valkey key prefix for storing the set of tags linked to a cache
+	// key.
 	keyTagsPrefix = "keytags:"
 )
 
-// clusterHashTag wraps a tag name in hash tag braces to ensure same-slot
-// hashing in Valkey Cluster. Only the content within {...} is used for slot
-// calculation, which allows multi-key operations like SUNION to work within
-// a tag's scope.
+// clusterHashTag wraps a tag name in hash tag braces to ensure same-slot hashing in
+// Valkey Cluster. Only the content within {...} is used for slot calculation, which
+// allows multi-key operations like SUNION to work within a tag's scope.
 //
 // Takes tag (string) which is the tag name to wrap in hash braces.
 //
@@ -48,12 +47,12 @@ func clusterHashTag(tag string) string {
 	return fmt.Sprintf("{%s}", tag)
 }
 
-// addTagsToKey links a cache key to a set of tags in Valkey Cluster using sets.
-// It creates both forward (tag to keys) and reverse (key to tags) mappings
-// using DoMulti for efficiency.
+// addTagsToKey links a cache key to a set of tags in Valkey Cluster using sets. It
+// creates both forward (tag to keys) and reverse (key to tags) mappings using DoMulti for
+// efficiency.
 //
-// Tag operations use hash tags to ensure same-slot placement. The reverse index
-// (key to tags) is stored per-key and may be on different nodes.
+// Tag operations use hash tags to ensure same-slot placement. The reverse index (key to
+// tags) is stored per-key and may be on different nodes.
 //
 // Takes client (valkey.Client) which provides the Valkey cluster connection.
 // Takes key (string) which is the cache key to link with tags.
@@ -83,10 +82,9 @@ func addTagsToKey(ctx context.Context, client valkey.Client, namespace string, k
 	return nil
 }
 
-// getKeysByTags retrieves all unique keys associated with the given tags,
-// using individual SMEMBERS per tag key via DoMulti and deduplicating in Go
-// to avoid SUNION which would panic in cluster mode when tag keys hash to
-// different slots.
+// getKeysByTags retrieves all unique keys associated with the given tags, using
+// individual SMEMBERS per tag key via DoMulti and deduplicating in Go to avoid SUNION
+// which would panic in cluster mode when tag keys hash to different slots.
 //
 // Takes client (valkey.Client) which provides the Valkey cluster connection.
 // Takes tags ([]string) which specifies the tags to look up.
@@ -118,8 +116,8 @@ func getKeysByTags(ctx context.Context, client valkey.Client, namespace string, 
 	return slices.Collect(maps.Keys(seen)), nil
 }
 
-// performTagInvalidation removes all keys linked to the given tags and the
-// tags themselves. Uses DoMulti for efficiency.
+// performTagInvalidation removes all keys linked to the given tags and the tags
+// themselves. Uses DoMulti for efficiency.
 //
 // Takes client (valkey.Client) which provides the cluster connection.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
@@ -127,9 +125,9 @@ func getKeysByTags(ctx context.Context, client valkey.Client, namespace string, 
 // Returns int which is the number of keys that were removed.
 // Returns error when the pipeline execution fails.
 //
-// Cluster note: This operation deletes keys that may be spread across different
-// cluster nodes. DoMulti routes each DEL command to the correct node. Tag
-// set deletions go to the same node because of hash tags.
+// Cluster note: This operation deletes keys that may be spread across different cluster
+// nodes. DoMulti routes each DEL command to the correct node. Tag set deletions go to the
+// same node because of hash tags.
 func performTagInvalidation(ctx context.Context, client valkey.Client, namespace string, tags []string) (int, error) {
 	if len(tags) == 0 {
 		return 0, nil
@@ -168,8 +166,8 @@ func performTagInvalidation(ctx context.Context, client valkey.Client, namespace
 	return len(keys), nil
 }
 
-// removeKeyFromTags removes a key from all its linked tag sets.
-// This prevents memory leaks when keys are deleted directly via Invalidate.
+// removeKeyFromTags removes a key from all its linked tag sets. This prevents memory
+// leaks when keys are deleted directly via Invalidate.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
 // Takes key (string) which is the cache key to remove from tag sets.

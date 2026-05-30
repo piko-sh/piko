@@ -33,28 +33,28 @@ import (
 )
 
 const (
-	// csrfSecretFileName is the name of the file where the auto-generated CSRF
-	// secret is stored.
+	// csrfSecretFileName is the name of the file where the auto-generated CSRF secret is
+	// stored.
 	csrfSecretFileName = "piko_csrf_secret"
 
-	// csrfSecretLength is the number of random bytes to generate for the CSRF
-	// secret. 32 bytes = 256 bits of entropy, which is cryptographically secure.
+	// csrfSecretLength is the number of random bytes to generate for the CSRF secret. 32
+	// bytes = 256 bits of entropy, which is cryptographically secure.
 	csrfSecretLength = 32
 
-	// csrfSecretFilePermissions is the file permission mode for the CSRF secret
-	// file. Owner read/write only (0o600).
+	// csrfSecretFilePermissions is the file permission mode for the CSRF secret file. Owner
+	// read/write only (0o600).
 	csrfSecretFilePermissions = 0o600
 
-	// fallbackPIDShift is the bit shift applied to the process ID in fallback
-	// secret generation.
+	// fallbackPIDShift is the bit shift applied to the process ID in fallback secret
+	// generation.
 	fallbackPIDShift = 16
 
-	// fallbackRotateBits is the number of bits used for rotating the time value
-	// in fallback secret generation.
+	// fallbackRotateBits is the number of bits used for rotating the time value in fallback
+	// secret generation.
 	fallbackRotateBits = 63
 
-	// fallbackGoldenRatio is the golden ratio constant used to mix entropy in
-	// fallback generation. Derived from 2^32 / phi (the golden ratio).
+	// fallbackGoldenRatio is the golden ratio constant used to mix entropy in fallback
+	// generation. Derived from 2^32 / phi (the golden ratio).
 	fallbackGoldenRatio = 0x9E3779B9
 )
 
@@ -65,9 +65,9 @@ var (
 	// resolvedCSRFSecret holds the cached result of CSRF secret resolution.
 	resolvedCSRFSecret []byte
 
-	// testSandboxCreator is an optional test hook for sandbox creation that allows
-	// tests to inject a MockSandbox for error path testing. When set, it is called
-	// instead of createTempSandbox.
+	// testSandboxCreator is an optional test hook for sandbox creation that allows tests to
+	// inject a MockSandbox for error path testing. When set, it is called instead of
+	// createTempSandbox.
 	//
 	// WARNING: This is for testing only and should never be set in production.
 	testSandboxCreator func() (safedisk.Sandbox, error)
@@ -81,8 +81,8 @@ var (
 //  3. Create a new random secret, save it to the temp folder, and use it.
 //
 // The temp file method keeps the secret the same across restarts during local
-// development. Containers get fresh secrets each time they start, since /tmp
-// is usually cleared when a container stops.
+// development. Containers get fresh secrets each time they start, since /tmp is usually
+// cleared when a container stops.
 //
 // Takes configSecret (string) which is the value from settings, may be empty.
 //
@@ -95,12 +95,12 @@ func resolveCSRFSecret(configSecret string) []byte {
 	return resolvedCSRFSecret
 }
 
-// doResolveCSRFSecret performs the actual secret resolution logic.
-// This is separate from resolveCSRFSecret to allow testing without sync.Once.
+// doResolveCSRFSecret performs the actual secret resolution logic. This is separate from
+// resolveCSRFSecret to allow testing without sync.Once.
 //
-// When configSecret is not empty, it is used directly. Otherwise, the function
-// tries to read a saved secret from a temporary file. If that fails, it creates
-// a new secret and tries to save it for future use.
+// When configSecret is not empty, it is used directly. Otherwise, the function tries to
+// read a saved secret from a temporary file. If that fails, it creates a new secret and
+// tries to save it for future use.
 //
 // Takes configSecret (string) which specifies a secret to use directly.
 //
@@ -155,8 +155,8 @@ func doResolveCSRFSecret(configSecret string) []byte {
 	return secret
 }
 
-// createTempSandbox creates a sandboxed file system for the system temp folder.
-// This is used for reading and writing the CSRF secret file safely.
+// createTempSandbox creates a sandboxed file system for the system temp folder. This is
+// used for reading and writing the CSRF secret file safely.
 //
 // Returns safedisk.Sandbox which provides safe access to the temp folder.
 // Returns error when the sandbox factory cannot be created or started.
@@ -171,14 +171,12 @@ func getCSRFSecretPath() string {
 	return csrfSecretFileName
 }
 
-// readCSRFSecretFromSandbox reads and decodes a hex-encoded CSRF secret from
-// the sandbox.
+// readCSRFSecretFromSandbox reads and decodes a hex-encoded CSRF secret from the sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides sandboxed file access.
 //
 // Returns []byte which is the decoded secret.
-// Returns error when the file cannot be read, is empty, or contains invalid
-// hex data.
+// Returns error when the file cannot be read, is empty, or contains invalid hex data.
 func readCSRFSecretFromSandbox(sandbox safedisk.Sandbox) ([]byte, error) {
 	data, err := sandbox.ReadFile(csrfSecretFileName)
 	if err != nil {
@@ -199,8 +197,7 @@ func readCSRFSecretFromSandbox(sandbox safedisk.Sandbox) ([]byte, error) {
 	return secret, nil
 }
 
-// writeCSRFSecretToSandbox writes a CSRF secret to the sandbox as a hex-encoded
-// file.
+// writeCSRFSecretToSandbox writes a CSRF secret to the sandbox as a hex-encoded file.
 //
 // Takes sandbox (safedisk.Sandbox) which provides sandboxed file access.
 // Takes secret ([]byte) which contains the raw secret bytes to write.
@@ -231,12 +228,11 @@ func generateCSRFSecret() []byte {
 	return secret
 }
 
-// generateFallbackSecret creates a secret using a less secure method when
-// crypto/rand fails. This should never happen on modern systems.
+// generateFallbackSecret creates a secret using a less secure method when crypto/rand
+// fails. This should never happen on modern systems.
 //
-// Uses time-based entropy mixed with process ID. While not safe for
-// cryptographic use, it provides enough randomness across different runs
-// and processes.
+// Uses time-based entropy mixed with process ID. While not safe for cryptographic use, it
+// provides enough randomness across different runs and processes.
 //
 // Returns []byte which contains the generated fallback secret.
 func generateFallbackSecret() []byte {

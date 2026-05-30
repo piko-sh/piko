@@ -26,22 +26,21 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// Name returns the service identifier and implements the
-// healthprobe_domain.Probe interface.
+// Name returns the service identifier and implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the service name "OrchestratorService".
 func (*orchestratorService) Name() string {
 	return "OrchestratorService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies the orchestrator is running and can process tasks.
+// Check implements the healthprobe_domain.Probe interface. It verifies the orchestrator
+// is running and can process tasks.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
-// Returns healthprobe_dto.Status which indicates the health state of the
-// orchestrator.
+// Returns healthprobe_dto.Status which indicates the health state of the orchestrator.
 func (s *orchestratorService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -82,15 +81,14 @@ func (s *orchestratorService) checkLiveness(startTime time.Time) healthprobe_dto
 	}
 }
 
-// checkReadiness checks that executors are registered and the service is
-// ready.
+// checkReadiness checks that executors are registered and the service is ready.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to run.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// run.
 // Takes startTime (time.Time) which marks when the check began for timing.
 //
-// Returns healthprobe_dto.Status which holds the readiness state, message,
-// and dependency details.
+// Returns healthprobe_dto.Status which holds the readiness state, message, and dependency
+// details.
 //
 // Safe for concurrent use; acquires read locks on executors and stop state.
 func (s *orchestratorService) checkReadiness(ctx context.Context, checkType healthprobe_dto.CheckType, startTime time.Time) healthprobe_dto.Status {
@@ -115,9 +113,8 @@ func (s *orchestratorService) checkReadiness(ctx context.Context, checkType heal
 	}
 }
 
-// determineReadinessState determines the health state based on service status.
-// It delegates to the extracted pure function determineReadinessState for
-// testability.
+// determineReadinessState determines the health state based on service status. It
+// delegates to the extracted pure function determineReadinessState for testability.
 //
 // Takes stopped (bool) which indicates whether the service has been stopped.
 // Takes executorCount (int) which is the number of active executors.
@@ -133,17 +130,15 @@ func (*orchestratorService) determineReadinessState(stopped bool, executorCount 
 	return determineReadinessState(input)
 }
 
-// buildReadinessDependencies builds the list of dependencies for readiness
-// checks.
+// buildReadinessDependencies builds the list of dependencies for readiness checks.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes state (*healthprobe_dto.State) which receives the combined health
-// state.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes state (*healthprobe_dto.State) which receives the combined health state.
 // Takes message (*string) which receives any status message.
 //
-// Returns []*healthprobe_dto.Status which contains the dependency statuses,
-// including active tasks and task store health.
+// Returns []*healthprobe_dto.Status which contains the dependency statuses, including
+// active tasks and task store health.
 func (s *orchestratorService) buildReadinessDependencies(ctx context.Context, checkType healthprobe_dto.CheckType, state *healthprobe_dto.State, message *string) []*healthprobe_dto.Status {
 	var activeTasks int32
 	if s.taskDispatcher != nil {
@@ -163,16 +158,14 @@ func (s *orchestratorService) buildReadinessDependencies(ctx context.Context, ch
 	return dependencies
 }
 
-// aggregateTaskStoreHealth checks and aggregates task store health into the
-// overall status.
+// aggregateTaskStoreHealth checks and aggregates task store health into the overall
+// status.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes state (*healthprobe_dto.State) which receives the aggregated health
-// state.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes state (*healthprobe_dto.State) which receives the aggregated health state.
 // Takes message (*string) which receives a status message when unhealthy.
-// Takes dependencies (*[]*healthprobe_dto.Status) which collects dependency
-// statuses.
+// Takes dependencies (*[]*healthprobe_dto.Status) which collects dependency statuses.
 func (s *orchestratorService) aggregateTaskStoreHealth(
 	ctx context.Context,
 	checkType healthprobe_dto.CheckType,

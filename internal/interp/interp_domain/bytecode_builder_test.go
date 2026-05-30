@@ -18,23 +18,25 @@
 
 package interp_domain
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type bytecodeBuilder struct {
-	body             []instruction
-	intConstants     []int64
+	generalConstants []reflect.Value
+	callSites        []callSite
 	floatConstants   []float64
 	stringConstants  []string
 	boolConstants    []bool
 	uintConstants    []uint64
-	generalConstants []reflect.Value
+	typeTable        []reflect.Type
+	body             []instruction
+	intConstants     []int64
+	resultKinds      []registerKind
+	parameterKinds   []registerKind
+	functions        []*CompiledFunction
 	complexConstants []complex128
 	numRegisters     [NumRegisterKinds]uint32
-	resultKinds      []registerKind
-	paramKinds       []registerKind
-	functions        []*CompiledFunction
-	callSites        []callSite
-	typeTable        []reflect.Type
 }
 
 func newBytecodeBuilder() *bytecodeBuilder {
@@ -129,6 +131,31 @@ func (b *bytecodeBuilder) uintRegisters(n uint32) *bytecodeBuilder {
 	return b
 }
 
+func (b *bytecodeBuilder) sliceIntRegisters(n uint32) *bytecodeBuilder {
+	b.numRegisters[registerSliceInt] = n
+	return b
+}
+
+func (b *bytecodeBuilder) sliceFloatRegisters(n uint32) *bytecodeBuilder {
+	b.numRegisters[registerSliceFloat] = n
+	return b
+}
+
+func (b *bytecodeBuilder) sliceStringRegisters(n uint32) *bytecodeBuilder {
+	b.numRegisters[registerSliceString] = n
+	return b
+}
+
+func (b *bytecodeBuilder) sliceBoolRegisters(n uint32) *bytecodeBuilder {
+	b.numRegisters[registerSliceBool] = n
+	return b
+}
+
+func (b *bytecodeBuilder) sliceUintRegisters(n uint32) *bytecodeBuilder {
+	b.numRegisters[registerSliceUint] = n
+	return b
+}
+
 func (b *bytecodeBuilder) returnInt() *bytecodeBuilder {
 	b.resultKinds = []registerKind{registerInt}
 	return b
@@ -154,9 +181,9 @@ func (b *bytecodeBuilder) returnGeneral() *bytecodeBuilder {
 	return b
 }
 
-func (b *bytecodeBuilder) addCallSite(cs callSite) uint16 {
+func (b *bytecodeBuilder) addCallSite(cs *callSite) uint16 {
 	index := len(b.callSites)
-	b.callSites = append(b.callSites, cs)
+	b.callSites = append(b.callSites, *cs)
 	return uint16(index)
 }
 
@@ -183,7 +210,7 @@ func (b *bytecodeBuilder) build() *CompiledFunction {
 		complexConstants: b.complexConstants,
 		numRegisters:     b.numRegisters,
 		resultKinds:      b.resultKinds,
-		paramKinds:       b.paramKinds,
+		parameterKinds:   b.parameterKinds,
 		functions:        b.functions,
 		callSites:        b.callSites,
 		typeTable:        b.typeTable,

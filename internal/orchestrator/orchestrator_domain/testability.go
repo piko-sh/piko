@@ -37,12 +37,12 @@ const (
 	defaultLowQueueWeight = 2
 )
 
-// randFunc is a function type that returns a random integer from 0 to n-1.
-// Used for dependency injection in backoff calculation.
+// randFunc is a function type that returns a random integer from 0 to n-1. Used for
+// dependency injection in backoff calculation.
 type randFunc func(n int) int
 
-// completionEventData holds the data for a task completion event.
-// Makes the completion event schema explicit and testable.
+// completionEventData holds the data for a task completion event. Makes the completion
+// event schema explicit and testable.
 type completionEventData struct {
 	// CompletedAt is when the task finished.
 	CompletedAt time.Time
@@ -66,8 +66,8 @@ type completionEventData struct {
 	DurationMs int64
 }
 
-// healthCheckInput holds the state needed to check if a service is healthy.
-// This makes health logic testable without starting the service.
+// healthCheckInput holds the state needed to check if a service is healthy. This makes
+// health logic testable without starting the service.
 type healthCheckInput struct {
 	// IsStopped indicates whether the orchestrator service has been stopped.
 	IsStopped bool
@@ -79,9 +79,9 @@ type healthCheckInput struct {
 	ExecutorCount int
 }
 
-// queueSelector determines the order in which priority queues should be polled.
-// This implements weighted fair queuing where higher-weighted priorities
-// are checked more frequently.
+// queueSelector determines the order in which priority queues should be polled. This
+// implements weighted fair queuing where higher-weighted priorities are checked more
+// frequently.
 type queueSelector struct {
 	// HighWeight is how many times high priority tasks appear in the poll order.
 	HighWeight int
@@ -93,11 +93,10 @@ type queueSelector struct {
 	LowWeight int
 }
 
-// PollOrder returns the priorities in the order they should be polled based
-// on weights.
+// PollOrder returns the priorities in the order they should be polled based on weights.
 //
-// Each priority appears in the slice a number of times equal to its weight.
-// Use it to test the weighted fair queuing logic.
+// Each priority appears in the slice a number of times equal to its weight. Use it to
+// test the weighted fair queuing logic.
 //
 // Returns []TaskPriority which contains priorities repeated by their weights.
 func (qs queueSelector) PollOrder() []TaskPriority {
@@ -114,8 +113,8 @@ func (qs queueSelector) PollOrder() []TaskPriority {
 	return order
 }
 
-// PollAttempts returns the number of poll attempts for a given priority level.
-// This is used by the dispatcher's selectTask method.
+// PollAttempts returns the number of poll attempts for a given priority level. This is
+// used by the dispatcher's selectTask method.
 //
 // Takes priority (TaskPriority) which specifies the task priority level.
 //
@@ -133,13 +132,13 @@ func (qs queueSelector) PollAttempts(priority TaskPriority) int {
 
 // calculateRetryBackoff computes the delay before retrying a failed task.
 //
-// Uses exponential backoff with configurable jitter. The formula is:
-// base^attempt seconds + random jitter milliseconds, where base is 10 seconds.
+// Uses exponential backoff with configurable jitter. The formula is: base^attempt seconds
+// + random jitter milliseconds, where base is 10 seconds.
 //
-// Takes attempt (int) which is the current attempt number (1-indexed after
-// first failure).
-// Takes randFunction (randFunc) which returns a random int in [0, n). Pass nil
-// for no jitter.
+// Takes attempt (int) which is the current attempt number (1-indexed after first
+// failure).
+// Takes randFunction (randFunc) which returns a random int in [0, n). Pass nil for no
+// jitter.
 //
 // Returns time.Duration which is the calculated backoff delay.
 func calculateRetryBackoff(attempt int, randFunction randFunc) time.Duration {
@@ -153,8 +152,8 @@ func calculateRetryBackoff(attempt int, randFunction randFunc) time.Duration {
 	return backoff + jitter
 }
 
-// buildCompletionEventPayload constructs the payload map for task completion
-// events. This is a pure function that can be unit tested without an EventBus.
+// buildCompletionEventPayload constructs the payload map for task completion events. This
+// is a pure function that can be unit tested without an EventBus.
 //
 // Takes task (*Task) which provides the task details for the payload.
 // Takes taskErr (error) which indicates the task outcome; nil means success.
@@ -183,17 +182,16 @@ func buildCompletionEventPayload(task *Task, taskErr error, duration time.Durati
 	}
 }
 
-// shouldRetryTask determines whether a task should be retried based on
-// its current attempt count and configuration.
+// shouldRetryTask determines whether a task should be retried based on its current
+// attempt count and configuration.
 //
-// Takes attempt (int) which is the current attempt number after failed
-// execution.
-// Takes configMaxRetries (int) which is the task's configured max retries,
-// where 0 means use the default.
+// Takes attempt (int) which is the current attempt number after failed execution.
+// Takes configMaxRetries (int) which is the task's configured max retries, where 0 means
+// use the default.
 // Takes defaultMaxRetries (int) which is the system default max retries.
 //
-// Returns bool which is true if the task should be retried, false if it has
-// exhausted retries.
+// Returns bool which is true if the task should be retried, false if it has exhausted
+// retries.
 func shouldRetryTask(attempt, configMaxRetries, defaultMaxRetries int) bool {
 	maxRetries := configMaxRetries
 	if maxRetries <= 0 {
@@ -202,8 +200,8 @@ func shouldRetryTask(attempt, configMaxRetries, defaultMaxRetries int) bool {
 	return attempt < maxRetries
 }
 
-// determineLivenessState works out the liveness health state and message.
-// Liveness checks confirm the service is running and not stuck.
+// determineLivenessState works out the liveness health state and message. Liveness checks
+// confirm the service is running and not stuck.
 //
 // Takes input (healthCheckInput) which provides the current service status.
 //
@@ -219,8 +217,8 @@ func determineLivenessState(input healthCheckInput) (healthprobe_dto.State, stri
 	return healthprobe_dto.StateHealthy, "Orchestrator service is running"
 }
 
-// determineReadinessState works out the readiness health state and message.
-// Readiness checks confirm the service is ready to accept work.
+// determineReadinessState works out the readiness health state and message. Readiness
+// checks confirm the service is ready to accept work.
 //
 // Takes input (healthCheckInput) which provides the current service status.
 //

@@ -39,19 +39,17 @@ const (
 )
 
 const (
-	// stepChannelBufferSize is the buffer size for the channel that sends step
-	// updates to the TUI.
+	// stepChannelBufferSize is the buffer size for the channel that sends step updates to
+	// the TUI.
 	stepChannelBufferSize = 10
 
-	// stepDetailMaxDisplayLen is the maximum length for step details before
-	// truncation.
+	// stepDetailMaxDisplayLen is the maximum length for step details before truncation.
 	stepDetailMaxDisplayLen = 50
 
 	// truncationSuffixLen is the length of the "..." suffix used when truncating.
 	truncationSuffixLen = 3
 
-	// tuiSectionSeparator is a blank line used to separate sections in the TUI
-	// output.
+	// tuiSectionSeparator is a blank line used to separate sections in the TUI output.
 	tuiSectionSeparator = "\n\n"
 )
 
@@ -82,8 +80,7 @@ type tuiRunner struct {
 //
 // Returns error when initialisation fails.
 //
-// Safe for concurrent use. Spawns a goroutine that runs
-// the TUI until the program exits.
+// Safe for concurrent use. Spawns a goroutine that runs the TUI until the program exits.
 func (r *tuiRunner) Start(testName string) error {
 	r.testName = testName
 
@@ -211,8 +208,8 @@ var (
 	// tuiRunningStyle defines the Lip Gloss style for currently running step indicators.
 	tuiRunningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 
-	// tuiPendingStyle defines the Lip Gloss style for pending
-	// step indicators and secondary text.
+	// tuiPendingStyle defines the Lip Gloss style for pending step indicators and secondary
+	// text.
 	tuiPendingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
 	// tuiHelpStyle defines the Lip Gloss style for help text at the bottom of the TUI.
@@ -232,8 +229,7 @@ func (m tuiModel) Init() tea.Cmd {
 	return m.waitForStep()
 }
 
-// Update handles incoming messages and updates the model state.
-// Implements tea.Model.
+// Update handles incoming messages and updates the model state. Implements tea.Model.
 //
 // Takes message (tea.Msg) which is the message to process.
 //
@@ -436,8 +432,8 @@ func (tuiModel) stepIcon(state StepState) string {
 //
 // Takes step (Step) which contains the action, detail, state, and duration.
 //
-// Returns string which is the formatted description with shortened details and
-// duration shown for finished steps.
+// Returns string which is the formatted description with shortened details and duration
+// shown for finished steps.
 func (tuiModel) formatStepDescription(step Step) string {
 	detail := truncateRunes(step.Detail, stepDetailMaxDisplayLen-truncationSuffixLen)
 
@@ -464,8 +460,8 @@ func (m tuiModel) hasFailed() bool {
 
 // NewTUIRunner creates a new TUI-based interactive runner.
 //
-// Returns InteractiveRunner which is set up with buffered channels for step
-// processing, continuation signals, completion, and quit handling.
+// Returns InteractiveRunner which is set up with buffered channels for step processing,
+// continuation signals, completion, and quit handling.
 func NewTUIRunner() InteractiveRunner {
 	return &tuiRunner{
 		stepChan:     make(chan Step, stepChannelBufferSize),
@@ -484,8 +480,8 @@ func NewTUIRunner() InteractiveRunner {
 // Takes continueChan (chan struct{}) which signals when to continue.
 // Takes quitChan (chan struct{}) which signals when to quit.
 //
-// Returns tuiModel which is initialised in autoplay mode with a one second
-// gap between steps.
+// Returns tuiModel which is initialised in autoplay mode with a one second gap between
+// steps.
 func newTUIModel(testName string, stepChan chan Step, continueChan chan struct{}, quitChan chan struct{}) tuiModel {
 	return tuiModel{
 		stepChan:     stepChan,

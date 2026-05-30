@@ -24,11 +24,10 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// ResponseValidatorFunc validates the final LLM response before it is returned
-// to the caller. It runs after tool dispatch completes and before the response
-// is recorded to memory.
+// ResponseValidatorFunc validates the final LLM response before it is returned to the
+// caller. It runs after tool dispatch completes and before the response is recorded to
+// memory.
 //
-// Return nil to accept the response. Return a non-nil error to reject it -
-// Do() will return that error (wrapped) and the response will not be recorded
-// to memory.
+// Return nil to accept the response. Return a non-nil error to reject it - Do() will
+// return that error (wrapped) and the response will not be recorded to memory.
 type ResponseValidatorFunc func(ctx context.Context, response *llm_dto.CompletionResponse) error

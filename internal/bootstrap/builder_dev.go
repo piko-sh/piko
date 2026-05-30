@@ -43,8 +43,8 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// devDaemonBuilder encapsulates the state and logic required to assemble the
-// daemon in compiled development mode.
+// devDaemonBuilder encapsulates the state and logic required to assemble the daemon in
+// compiled development mode.
 type devDaemonBuilder struct {
 	// c is the dependency injection container for resolving services.
 	c *Container
@@ -79,19 +79,17 @@ type devDaemonBuilder struct {
 	// finalRouter is the HTTP handler that combines all routes for the dev server.
 	finalRouter http.Handler
 
-	// devEventBroadcaster sends build-complete events to connected browsers via
-	// SSE.
+	// devEventBroadcaster sends build-complete events to connected browsers via SSE.
 	devEventBroadcaster *daemon_adapters.DevEventBroadcaster
 
-	// devAPIHandler serves the /_piko/dev/api/* REST endpoints for the
-	// dev tools overlay widget.
+	// devAPIHandler serves the /_piko/dev/api/* REST endpoints for the dev tools overlay
+	// widget.
 	devAPIHandler *daemon_adapters.DevAPIHandler
 }
 
 // build runs the full assembly process by calling a set of helper methods.
 //
-// Returns daemon_domain.DaemonService which is the fully assembled daemon
-// ready for use.
+// Returns daemon_domain.DaemonService which is the fully assembled daemon ready for use.
 // Returns error when any build step fails.
 func (b *devDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonService, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -143,11 +141,10 @@ func (b *devDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonServi
 	return daemon, nil
 }
 
-// resolveServices populates the builder struct with all necessary service
-// dependencies by requesting them from the DI container.
+// resolveServices populates the builder struct with all necessary service dependencies by
+// requesting them from the DI container.
 //
-// Returns error when a required service cannot be fetched from the
-// container.
+// Returns error when a required service cannot be fetched from the container.
 func (b *devDaemonBuilder) resolveServices() (err error) {
 	b.orchestratorService, err = b.c.GetOrchestratorService()
 	if err != nil {
@@ -171,25 +168,25 @@ func (b *devDaemonBuilder) resolveServices() (err error) {
 	return nil
 }
 
-// wireMonitoringInspectors connects the orchestrator and registry inspectors
-// to the monitoring service if it is enabled, then starts the service.
+// wireMonitoringInspectors connects the orchestrator and registry inspectors to the
+// monitoring service if it is enabled, then starts the service.
 func (b *devDaemonBuilder) wireMonitoringInspectors() {
 	wireMonitoringInspectors(b.c, b.renderRegistry)
 }
 
-// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API
-// handler. Each provider is best-effort; failures are logged and the handler
-// gracefully degrades to returning {"available": false} for that endpoint.
+// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API handler.
+// Each provider is best-effort; failures are logged and the handler gracefully degrades
+// to returning {"available": false} for that endpoint.
 func (b *devDaemonBuilder) wireDevAPIOptionalDeps(ctx context.Context) {
 	wireDevAPIOptionalDeps(ctx, b.c, b.devAPIHandler, b.devEventBroadcaster)
 }
 
-// buildTemplater constructs the templating engine. In dev mode, this involves
-// loading the manifest from disk and setting up a non-caching compiled runner
-// to ensure changes are always reflected.
+// buildTemplater constructs the templating engine. In dev mode, this involves loading the
+// manifest from disk and setting up a non-caching compiled runner to ensure changes are
+// always reflected.
 //
-// Returns error when the manifest provider cannot be created or the manifest
-// fails to load.
+// Returns error when the manifest provider cannot be created or the manifest fails to
+// load.
 func (b *devDaemonBuilder) buildTemplater(ctx context.Context) error {
 	manifestProvider, err := createManifestProvider(ctx, b.c)
 	if err != nil {
@@ -258,12 +255,12 @@ func (b *devDaemonBuilder) buildRouter(ctx context.Context) error {
 	return nil
 }
 
-// buildFinalDaemon builds the final daemon service with all dev-specific
-// parts, including the file watcher and live-reloading services.
+// buildFinalDaemon builds the final daemon service with all dev-specific parts, including
+// the file watcher and live-reloading services.
 //
 // Returns daemon_domain.DaemonService which is the fully set up daemon.
-// Returns error when the file system watcher cannot be started or when
-// building dependencies fails.
+// Returns error when the file system watcher cannot be started or when building
+// dependencies fails.
 func (b *devDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain.DaemonService, error) {
 	factory, err := b.c.GetSandboxFactory()
 	if err != nil {
@@ -277,11 +274,11 @@ func (b *devDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain.
 
 // buildFinalDaemonDeps creates the daemon service dependencies' struct.
 //
-// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which monitors file
-// system changes for hot reloading.
+// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which monitors file system changes
+// for hot reloading.
 //
-// Returns *daemon_domain.DaemonServiceDeps which contains all dependencies
-// needed by the daemon service.
+// Returns *daemon_domain.DaemonServiceDeps which contains all dependencies needed by the
+// daemon service.
 // Returns error when the health probe server fails to initialise.
 func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher lifecycle_domain.FileSystemWatcher) (*daemon_domain.DaemonServiceDeps, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -340,17 +337,16 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 	}, nil
 }
 
-// buildLifecycleService constructs the lifecycle service wiring the
-// optional dev event broadcaster only when it has been created;
-// assigning a nil *DevEventBroadcaster straight into the
-// DevEventNotifier interface would produce a typed-nil that passes
-// `!= nil` checks and panics on first access.
+// buildLifecycleService constructs the lifecycle service wiring the optional dev event
+// broadcaster only when it has been created; assigning a nil *DevEventBroadcaster
+// straight into the DevEventNotifier interface would produce a typed-nil that passes `!=
+// nil` checks and panics on first access.
 //
-// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds
-// file-change events into the service.
+// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds file-change events
+// into the service.
 //
-// Returns lifecycle_domain.LifecycleService ready for Start, or an
-// error if creation fails.
+// Returns lifecycle_domain.LifecycleService ready for Start, or an error if creation
+// fails.
 func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
 	config := &lifecycleServiceConfig{
 		PathsConfig:    NewLifecyclePathsConfig(&b.c.serverConfig),
@@ -366,11 +362,10 @@ func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.File
 	return service, nil
 }
 
-// setupTLSServerAdapter creates the server adapter from TLS configuration and
-// registers the certificate loader for shutdown cleanup.
+// setupTLSServerAdapter creates the server adapter from TLS configuration and registers
+// the certificate loader for shutdown cleanup.
 //
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS
-// settings.
+// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS settings.
 //
 // Returns daemon_domain.ServerAdapter which is the configured server adapter.
 // Returns error when TLS initialisation fails.

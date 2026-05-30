@@ -24,12 +24,10 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Task or workflow rows show resource detail; otherwise an
-// overview of counts is rendered.
+// DetailView renders the detail-pane body for the row currently under the cursor. Task or
+// workflow rows show resource detail; otherwise an overview of counts is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *OrchestratorPanel) DetailView(width, height int) string {
@@ -37,8 +35,8 @@ func (p *OrchestratorPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target and active view mode.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target and active view mode.
 //
 // Returns inspector.DetailBody describing the selected resource or the overview.
 func (p *OrchestratorPanel) buildDetailBody() inspector.DetailBody {

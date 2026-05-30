@@ -24,18 +24,22 @@ import (
 	"piko.sh/piko/wdk/asmgen"
 )
 
-// mnemonicColumnWidth is the standard column width for arm64 Plan 9
-// assembly mnemonic alignment.
-const mnemonicColumnWidth = 5
+const (
+	// mnemonicColumnWidth is the standard column width for arm64 Plan 9 assembly mnemonic
+	// alignment.
+	mnemonicColumnWidth = 5
+)
 
-// ARM64Arch implements ArchitecturePort for ARM 64-bit Plan 9 assembly
-// generation. All methods are stateless text mappers.
+// ARM64Arch implements ArchitecturePort for ARM 64-bit Plan 9 assembly generation. All
+// methods are stateless text mappers.
 type ARM64Arch struct{}
 
-// scratchRegisters holds the general-purpose scratch registers for arm64.
-var scratchRegisters = []string{"R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10"}
+var (
+	// scratchRegisters holds the general-purpose scratch registers for arm64.
+	scratchRegisters = []string{"R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10"}
 
-var _ asmgen.ArchitecturePort = (*ARM64Arch)(nil)
+	_ asmgen.ArchitecturePort = (*ARM64Arch)(nil)
+)
 
 // New creates a new ARM64 architecture adapter.
 //
@@ -73,8 +77,8 @@ func (*ARM64Arch) FloatScratchRegisters() []string {
 	return []string{"F0", "F1", "F2", "F3"}
 }
 
-// DataTemporary returns the data temporary register for arm64, offset
-// past the given number of operand registers.
+// DataTemporary returns the data temporary register for arm64, offset past the given
+// number of operand registers.
 //
 // Takes afterOperands (int) which is the number of operand registers to skip.
 //
@@ -100,8 +104,7 @@ func (*ARM64Arch) Convention() asmgen.RegisterConvention {
 	}
 }
 
-// inst emits a tab-indented instruction with mnemonic padded to the
-// given column width.
+// inst emits a tab-indented instruction with mnemonic padded to the given column width.
 //
 // Takes e (*asmgen.Emitter) which is the output buffer.
 // Takes mnemonic (string) which is the assembly instruction name.

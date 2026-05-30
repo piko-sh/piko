@@ -18,14 +18,14 @@
 
 // Package shutdown provides graceful shutdown coordination for applications.
 //
-// It manages orderly cleanup when an application terminates, listening
-// for OS signals (SIGINT, SIGTERM) and executing registered cleanup
-// functions in LIFO order within a configurable timeout.
+// It manages orderly cleanup when an application terminates, listening for OS signals
+// (SIGINT, SIGTERM) and executing registered cleanup functions in LIFO order within a
+// configurable timeout.
 //
 // # Usage
 //
-// Register cleanup functions during initialisation. They execute in reverse
-// order (LIFO) during shutdown, similar to Go's defer semantics:
+// Register cleanup functions during initialisation. They execute in reverse order (LIFO)
+// during shutdown, similar to Go's defer semantics:
 //
 //	// Register cleanup for a database connection
 //	shutdown.Register(ctx, "database", func(ctx context.Context) error {

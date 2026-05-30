@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	// formatVersion is the binary format version for WAL entries. Increment when
-	// making breaking changes.
+	// formatVersion is the binary format version for WAL entries. Increment when making
+	// breaking changes.
 	formatVersion uint8 = 1
 
 	// lengthSize is the byte size of the length prefix in encoded entries.
@@ -48,16 +48,16 @@ const (
 	// uint16Size is the byte size of a uint16 value.
 	uint16Size = 2
 
-	// fixedPayloadSize is the size in bytes of fixed fields in the payload:
-	// version (1) + operation (1) + timestamp (8) + expiresAt (8) = 18 bytes.
+	// fixedPayloadSize is the size in bytes of fixed fields in the payload: version (1) +
+	// operation (1) + timestamp (8) + expiresAt (8) = 18 bytes.
 	fixedPayloadSize = 1 + 1 + uint64Size + uint64Size
 
 	// minPayloadSize is the minimum valid payload size in bytes, calculated as
 	// fixedPayloadSize + keyLen (4) + valueLen (4) + tagCount (2) = 28 bytes.
 	minPayloadSize = fixedPayloadSize + uint32Size + uint32Size + uint16Size
 
-	// maxEntrySize is the maximum allowed entry size (16MB).
-	// This prevents memory exhaustion from corrupted length fields.
+	// maxEntrySize is the maximum allowed entry size (16MB). This prevents memory exhaustion
+	// from corrupted length fields.
 	maxEntrySize = 16 * 1024 * 1024
 
 	// maxTagCount is the most tags that an entry may have.
@@ -67,8 +67,10 @@ const (
 	maxTagSize = 1024
 )
 
-// crcTable is the precomputed CRC32 table using IEEE polynomial.
-var crcTable = crc32.MakeTable(crc32.IEEE)
+var (
+	// crcTable is the precomputed CRC32 table using IEEE polynomial.
+	crcTable = crc32.MakeTable(crc32.IEEE)
+)
 
 // BinaryCodec implements the Codec interface using a binary format.
 //
@@ -78,10 +80,8 @@ var crcTable = crc32.MakeTable(crc32.IEEE)
 //	[KeyLen:4][Key:var][ValueLen:4][Value:var]
 //	[TagCount:2][Tags:var]
 //
-// Tags format:
-// For each tag: [TagLen:2][TagData:var]
-// The caller (WAL) wraps this with:
-// [TotalLen:4][CRC32:4][Payload]
+// Tags format: For each tag: [TagLen:2][TagData:var] The caller (WAL) wraps this with:
+// [TotalLen:4][CRC32:4]Payload
 type BinaryCodec[K comparable, V any] struct {
 	// keyCodec encodes and decodes keys for binary storage.
 	keyCodec wal_domain.KeyCodec[K]
@@ -98,8 +98,8 @@ type BinaryCodec[K comparable, V any] struct {
 
 // Encode serialises an entry to bytes.
 //
-// The output does NOT include length prefix or CRC32 - those are added
-// by the WAL implementation.
+// The output does NOT include length prefix or CRC32 - those are added by the WAL
+// implementation.
 //
 // Takes entry (wal_domain.Entry[K, V]) which is the entry to serialise.
 //
@@ -131,12 +131,12 @@ func (c *BinaryCodec[K, V]) Encode(entry wal_domain.Entry[K, V]) ([]byte, error)
 	return buffer, nil
 }
 
-// EncodePooled serialises an entry using a pooled buffer for zero-allocation
-// encoding. Uses FastKeyCodec and FastValueCodec if available, otherwise
-// falls back to the standard Encode method.
+// EncodePooled serialises an entry using a pooled buffer for zero-allocation encoding.
+// Uses FastKeyCodec and FastValueCodec if available, otherwise falls back to the standard
+// Encode method.
 //
-// The returned EncodeResult MUST have Release() called when the caller is done
-// with the data to return the buffer to the pool.
+// The returned EncodeResult MUST have Release() called when the caller is done with the
+// data to return the buffer to the pool.
 //
 // Takes entry (wal_domain.Entry[K, V]) which is the entry to serialise.
 //
@@ -236,8 +236,7 @@ func (c *BinaryCodec[K, V]) encodeValueFast(buffer []byte, offset int, entry wal
 // Takes data ([]byte) which contains the raw encoded entry payload.
 //
 // Returns wal_domain.Entry[K, V] which is the decoded entry.
-// Returns error when the payload is too short, the version is invalid,
-// or decoding fails.
+// Returns error when the payload is too short, the version is invalid, or decoding fails.
 func (c *BinaryCodec[K, V]) decodeSlow(data []byte) (wal_domain.Entry[K, V], error) {
 	var entry wal_domain.Entry[K, V]
 
@@ -368,8 +367,8 @@ func (*BinaryCodec[K, V]) decodeTags(data []byte, offset int) ([]string, error) 
 	return tags, nil
 }
 
-// EncodeResult holds the result of an encode operation.
-// The caller must call Release when done to return the buffer to the pool.
+// EncodeResult holds the result of an encode operation. The caller must call Release when
+// done to return the buffer to the pool.
 type EncodeResult struct {
 	// pool is the buffer pool for returning Data; nil means the buffer is not pooled.
 	pool *[]byte
@@ -378,8 +377,8 @@ type EncodeResult struct {
 	Data []byte
 }
 
-// Release returns the buffer to the pool. Safe to call multiple times, and is
-// a no-op if the buffer was not pooled.
+// Release returns the buffer to the pool. Safe to call multiple times, and is a no-op if
+// the buffer was not pooled.
 func (r *EncodeResult) Release() {
 	if r.pool != nil {
 		PutByteBuffer(r.pool, r.Data)
@@ -388,15 +387,15 @@ func (r *EncodeResult) Release() {
 	}
 }
 
-// EncodeWithLengthAndCRC encodes an entry with a length prefix and CRC32
-// checksum using a pooled buffer. This removes the need for the caller to
-// allocate a separate buffer for the length prefix.
+// EncodeWithLengthAndCRC encodes an entry with a length prefix and CRC32 checksum using a
+// pooled buffer. This removes the need for the caller to allocate a separate buffer for
+// the length prefix.
 //
-// The returned EncodeResult MUST have Release() called when the caller is done
-// with the data to return the buffer to the pool.
+// The returned EncodeResult MUST have Release() called when the caller is done with the
+// data to return the buffer to the pool.
 //
-// Format: [Length:4][CRC32:4][Payload]
-// Where Length is the size of CRC32+Payload (i.e., crcSize + payloadSize).
+// Format: [Length:4][CRC32:4]Payload Where Length is the size of CRC32+Payload (i.e.,
+// crcSize + payloadSize).
 //
 // Takes entry (wal_domain.Entry[K, V]) which is the entry to encode.
 //
@@ -430,14 +429,14 @@ func (c *BinaryCodec[K, V]) EncodeWithLengthAndCRC(entry wal_domain.Entry[K, V])
 
 // EncodeWithCRC encodes an entry with CRC32 checksum using a pooled buffer.
 //
-// The returned EncodeResult MUST have Release() called when the caller is done
-// with the data to return the buffer to the pool.
+// The returned EncodeResult MUST have Release() called when the caller is done with the
+// data to return the buffer to the pool.
 //
-// When FastKeyCodec and FastValueCodec are available, achieves zero allocations
-// by encoding directly into the pooled buffer. Otherwise, falls back to
-// allocating for the encode then copying into a pooled buffer.
+// When FastKeyCodec and FastValueCodec are available, achieves zero allocations by
+// encoding directly into the pooled buffer. Otherwise, falls back to allocating for the
+// encode then copying into a pooled buffer.
 //
-// Format: [CRC32:4][Payload]
+// Format: [CRC32:4]Payload
 //
 // Takes entry (wal_domain.Entry[K, V]) which is the entry to encode.
 //
@@ -506,15 +505,13 @@ func (c *BinaryCodec[K, V]) encodeWithCRCFast(entry wal_domain.Entry[K, V]) (Enc
 	return EncodeResult{Data: buffer, pool: pool}, nil
 }
 
-// encodeWithLengthAndCRCFast is the zero-allocation fast path for
-// EncodeWithLengthAndCRC.
+// encodeWithLengthAndCRCFast is the zero-allocation fast path for EncodeWithLengthAndCRC.
 //
-// Format: [Length:4][CRC32:4][Payload]
+// Format: [Length:4][CRC32:4]Payload
 //
 // Takes entry (wal_domain.Entry[K, V]) which is the WAL entry to encode.
 //
-// Returns EncodeResult which contains the encoded bytes with length prefix
-// and CRC.
+// Returns EncodeResult which contains the encoded bytes with length prefix and CRC.
 // Returns error when key or value encoding fails.
 func (c *BinaryCodec[K, V]) encodeWithLengthAndCRCFast(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
 	keySize := c.fastKeyCodec.KeySize(entry.Key)
@@ -553,12 +550,12 @@ func (c *BinaryCodec[K, V]) encodeWithLengthAndCRCFast(entry wal_domain.Entry[K,
 	return EncodeResult{Data: buffer, pool: pool}, nil
 }
 
-// DecodeResult holds the result of a decode operation.
-// The caller must call Release when done to return the tag slice to the pool.
+// DecodeResult holds the result of a decode operation. The caller must call Release when
+// done to return the tag slice to the pool.
 //
-// When using fast codecs, the Entry key, value, and tags may reference the
-// original input data buffer. The caller must ensure the data buffer outlives
-// the Entry, or copy values before the buffer is reused.
+// When using fast codecs, the Entry key, value, and tags may reference the original input
+// data buffer. The caller must ensure the data buffer outlives the Entry, or copy values
+// before the buffer is reused.
 type DecodeResult[K comparable, V any] struct {
 	// tagPool is the pool pointer used to return the tag slice when done.
 	tagPool *[]string
@@ -578,22 +575,21 @@ func (r *DecodeResult[K, V]) Release() {
 	}
 }
 
-// DecodeWithCRC decodes an entry with CRC validation using pooled resources.
-// The returned DecodeResult MUST have Release() called when the caller is done.
+// DecodeWithCRC decodes an entry with CRC validation using pooled resources. The returned
+// DecodeResult MUST have Release() called when the caller is done.
 //
-// When FastKeyCodec and FastValueCodec are available, achieves zero allocations
-// by using mem.String for string fields. Otherwise, falls back to standard
-// decoding which allocates.
+// When FastKeyCodec and FastValueCodec are available, achieves zero allocations by using
+// mem.String for string fields. Otherwise, falls back to standard decoding which
+// allocates.
 //
-// SAFETY: The decoded Entry may reference the input data buffer. The caller
-// must ensure the buffer outlives the Entry, or copy values if needed.
+// SAFETY: The decoded Entry may reference the input data buffer. The caller must ensure
+// the buffer outlives the Entry, or copy values if needed.
 //
-// Format: [CRC32:4][Payload]
+// Format: [CRC32:4]Payload
 //
 // Takes data ([]byte) which contains the CRC-prefixed encoded entry.
 //
-// Returns DecodeResult[K, V] which holds the decoded entry and pool
-// reference.
+// Returns DecodeResult[K, V] which holds the decoded entry and pool reference.
 // Returns error when the CRC check fails or decoding fails.
 func (c *BinaryCodec[K, V]) DecodeWithCRC(data []byte) (DecodeResult[K, V], error) {
 	if len(data) < crcSize+minPayloadSize {
@@ -612,22 +608,21 @@ func (c *BinaryCodec[K, V]) DecodeWithCRC(data []byte) (DecodeResult[K, V], erro
 	return c.Decode(payload)
 }
 
-// Decode deserialises bytes to an entry using pooled resources.
-// The returned DecodeResult MUST have Release() called when the caller is done.
+// Decode deserialises bytes to an entry using pooled resources. The returned DecodeResult
+// MUST have Release() called when the caller is done.
 //
-// The input does NOT include length prefix or CRC32 - those are stripped by
-// the WAL implementation before invocation.
+// The input does NOT include length prefix or CRC32 - those are stripped by the WAL
+// implementation before invocation.
 //
-// When FastKeyCodec and FastValueCodec are available, achieves zero
-// allocations. Otherwise, falls back to standard decoding.
+// When FastKeyCodec and FastValueCodec are available, achieves zero allocations.
+// Otherwise, falls back to standard decoding.
 //
-// SAFETY: The decoded Entry may reference the input data buffer. The caller
-// must ensure the buffer outlives the Entry, or copy values if needed.
+// SAFETY: The decoded Entry may reference the input data buffer. The caller must ensure
+// the buffer outlives the Entry, or copy values if needed.
 //
 // Takes data ([]byte) which contains the raw encoded entry payload.
 //
-// Returns DecodeResult[K, V] which holds the decoded entry and pool
-// reference.
+// Returns DecodeResult[K, V] which holds the decoded entry and pool reference.
 // Returns error when decoding fails.
 func (c *BinaryCodec[K, V]) Decode(data []byte) (DecodeResult[K, V], error) {
 	if c.fastKeyCodec != nil && c.fastValueCodec != nil {
@@ -640,15 +635,12 @@ func (c *BinaryCodec[K, V]) Decode(data []byte) (DecodeResult[K, V], error) {
 	return DecodeResult[K, V]{Entry: entry}, nil
 }
 
-// decodeFast is the zero-allocation fast path using fast codecs and
-// mem.String.
+// decodeFast is the zero-allocation fast path using fast codecs and mem.String.
 //
 // Takes data ([]byte) which contains the raw encoded entry payload.
 //
-// Returns DecodeResult[K, V] which holds the decoded entry and pool
-// reference.
-// Returns error when the payload is too short, the version is invalid,
-// or decoding fails.
+// Returns DecodeResult[K, V] which holds the decoded entry and pool reference.
+// Returns error when the payload is too short, the version is invalid, or decoding fails.
 func (c *BinaryCodec[K, V]) decodeFast(data []byte) (DecodeResult[K, V], error) {
 	var result DecodeResult[K, V]
 
@@ -724,8 +716,7 @@ func (c *BinaryCodec[K, V]) decodeValueFast(data []byte, offset int) (V, int, er
 	return decodeComponent(data, offset, "value", c.fastValueCodec.DecodeValueFrom)
 }
 
-// decodeTagsPooled decodes tags using a pooled slice and mem.String for
-// zero-copy.
+// decodeTagsPooled decodes tags using a pooled slice and mem.String for zero-copy.
 //
 // Takes data ([]byte) which contains the encoded binary data.
 // Takes offset (int) which specifies the position to start reading from.
@@ -772,13 +763,12 @@ func (*BinaryCodec[K, V]) decodeTagsPooled(data []byte, offset int) (*[]string, 
 	return tagPool, tags, nil
 }
 
-// NewBinaryCodec creates a new BinaryCodec with the provided key and value
-// codecs. If the codecs implement FastKeyCodec or FastValueCodec, those
-// interfaces will be used for zero-allocation encoding in the hot path.
+// NewBinaryCodec creates a new BinaryCodec with the provided key and value codecs. If the
+// codecs implement FastKeyCodec or FastValueCodec, those interfaces will be used for
+// zero-allocation encoding in the hot path.
 //
 // Takes keyCodec (wal_domain.KeyCodec[K]) which encodes and decodes keys.
-// Takes valueCodec (wal_domain.ValueCodec[V]) which encodes and decodes
-// values.
+// Takes valueCodec (wal_domain.ValueCodec[V]) which encodes and decodes values.
 //
 // Returns *BinaryCodec[K, V] which is the configured codec ready for use.
 func NewBinaryCodec[K comparable, V any](
@@ -801,8 +791,8 @@ func NewBinaryCodec[K comparable, V any](
 	return codec
 }
 
-// ValidateCRC checks if the CRC in the data is valid without decoding.
-// Use it to scan the WAL and find corruption points.
+// ValidateCRC checks if the CRC in the data is valid without decoding. Use it to scan the
+// WAL and find corruption points.
 //
 // Takes data ([]byte) which contains the CRC followed by the payload.
 //

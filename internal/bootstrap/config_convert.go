@@ -37,9 +37,8 @@ const (
 	// defaultRequestTimeoutSeconds is the default HTTP request timeout.
 	defaultRequestTimeoutSeconds = 60
 
-	// defaultMaxConcurrentRequests is the default limit on concurrent in-flight
-	// requests, high enough for normal deployments but preventing goroutine
-	// exhaustion under attack.
+	// defaultMaxConcurrentRequests is the default limit on concurrent in-flight requests,
+	// high enough for normal deployments but preventing goroutine exhaustion under attack.
 	defaultMaxConcurrentRequests = 10_000
 
 	// defaultGlobalRequestsPerMinute is the default global rate limit.
@@ -61,14 +60,13 @@ const (
 	fontWeightBold = 700
 )
 
-// NewDaemonConfig converts the pointer-based ServerConfig into a value-type
-// DaemonConfig for the daemon service.
+// NewDaemonConfig converts the pointer-based ServerConfig into a value-type DaemonConfig
+// for the daemon service.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
 //
-// Returns daemon_domain.DaemonConfig which contains the resolved
-// configuration values with defaults applied.
+// Returns daemon_domain.DaemonConfig which contains the resolved configuration values
+// with defaults applied.
 func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	return daemon_domain.DaemonConfig{
 		NetworkPort:         deref(sc.Network.Port, "8080"),
@@ -86,14 +84,13 @@ func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	}
 }
 
-// NewLifecyclePathsConfig converts the pointer-based ServerConfig into a
-// value-type LifecyclePathsConfig for the lifecycle service.
+// NewLifecyclePathsConfig converts the pointer-based ServerConfig into a value-type
+// LifecyclePathsConfig for the lifecycle service.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
 //
-// Returns lifecycle_domain.LifecyclePathsConfig which contains the
-// resolved source directory paths with defaults applied.
+// Returns lifecycle_domain.LifecyclePathsConfig which contains the resolved source
+// directory paths with defaults applied.
 func NewLifecyclePathsConfig(sc *ServerConfig) lifecycle_domain.LifecyclePathsConfig {
 	return lifecycle_domain.LifecyclePathsConfig{
 		BaseDir:             deref(sc.Paths.BaseDir, "."),
@@ -106,14 +103,13 @@ func NewLifecyclePathsConfig(sc *ServerConfig) lifecycle_domain.LifecyclePathsCo
 	}
 }
 
-// NewAnnotatorPathsConfig converts the pointer-based ServerConfig into a
-// value-type AnnotatorPathsConfig for the annotator service.
+// NewAnnotatorPathsConfig converts the pointer-based ServerConfig into a value-type
+// AnnotatorPathsConfig for the annotator service.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
 //
-// Returns annotator_domain.AnnotatorPathsConfig which contains the
-// resolved annotator paths with defaults applied.
+// Returns annotator_domain.AnnotatorPathsConfig which contains the resolved annotator
+// paths with defaults applied.
 func NewAnnotatorPathsConfig(sc *ServerConfig) annotator_domain.AnnotatorPathsConfig {
 	return annotator_domain.AnnotatorPathsConfig{
 		PagesSourceDir:    deref(sc.Paths.PagesSourceDir, "pages"),
@@ -127,14 +123,13 @@ func NewAnnotatorPathsConfig(sc *ServerConfig) annotator_domain.AnnotatorPathsCo
 	}
 }
 
-// NewGeneratorPathsConfig converts the pointer-based ServerConfig into a
-// value-type GeneratorPathsConfig for the generator service.
+// NewGeneratorPathsConfig converts the pointer-based ServerConfig into a value-type
+// GeneratorPathsConfig for the generator service.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
 //
-// Returns generator_domain.GeneratorPathsConfig which contains the
-// resolved generator paths with defaults applied.
+// Returns generator_domain.GeneratorPathsConfig which contains the resolved generator
+// paths with defaults applied.
 func NewGeneratorPathsConfig(sc *ServerConfig) generator_domain.GeneratorPathsConfig {
 	return generator_domain.GeneratorPathsConfig{
 		BaseDir:        deref(sc.Paths.BaseDir, "."),
@@ -147,11 +142,10 @@ func NewGeneratorPathsConfig(sc *ServerConfig) generator_domain.GeneratorPathsCo
 // NewOtelSetupConfig converts the pointer-based ServerConfig into a value-type
 // OtelSetupConfig for the OTEL setup.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
 //
-// Returns driver_handlers.OtelSetupConfig which contains the resolved
-// OpenTelemetry settings with defaults applied.
+// Returns driver_handlers.OtelSetupConfig which contains the resolved OpenTelemetry
+// settings with defaults applied.
 func NewOtelSetupConfig(sc *ServerConfig) driver_handlers.OtelSetupConfig {
 	return driver_handlers.OtelSetupConfig{
 		Enabled:         deref(sc.Otlp.Enabled, false),
@@ -163,20 +157,19 @@ func NewOtelSetupConfig(sc *ServerConfig) driver_handlers.OtelSetupConfig {
 	}
 }
 
-// NewRouterConfig converts a ServerConfig into a RouterConfig for the HTTP
-// router. The caller must supply pre-built security header values and the
-// reporting configuration separately, because the CORP override and reporting
-// source differ between build strategies.
+// NewRouterConfig converts a ServerConfig into a RouterConfig for the HTTP router. The
+// caller must supply pre-built security header values and the reporting configuration
+// separately, because the CORP override and reporting source differ between build
+// strategies.
 //
-// Takes sc (*ServerConfig) which provides the server configuration
-// values to convert.
-// Takes shValues (security_adapters.SecurityHeadersValues) which supplies
-// the pre-built security header values.
-// Takes reportingConfig (config.ReportingConfig) which supplies the
-// reporting endpoint configuration.
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
+// Takes shValues (security_adapters.SecurityHeadersValues) which supplies the pre-built
+// security header values.
+// Takes reportingConfig (config.ReportingConfig) which supplies the reporting endpoint
+// configuration.
 //
-// Returns *daemon_domain.RouterConfig which contains the resolved router
-// configuration with defaults applied.
+// Returns *daemon_domain.RouterConfig which contains the resolved router configuration
+// with defaults applied.
 func NewRouterConfig(
 	sc *ServerConfig,
 	shValues security_adapters.SecurityHeadersValues,
@@ -202,14 +195,14 @@ func NewRouterConfig(
 	}
 }
 
-// NewSecurityHeadersValues converts the pointer-based SecurityHeadersConfig
-// into a value-type SecurityHeadersValues for the security middleware.
+// NewSecurityHeadersValues converts the pointer-based SecurityHeadersConfig into a
+// value-type SecurityHeadersValues for the security middleware.
 //
-// Takes headersConfig (*config.SecurityHeadersConfig) which provides the security
-// header settings to convert.
+// Takes headersConfig (*config.SecurityHeadersConfig) which provides the security header
+// settings to convert.
 //
-// Returns security_adapters.SecurityHeadersValues which contains the
-// resolved security header values with defaults applied.
+// Returns security_adapters.SecurityHeadersValues which contains the resolved security
+// header values with defaults applied.
 func NewSecurityHeadersValues(headersConfig *config.SecurityHeadersConfig) security_adapters.SecurityHeadersValues {
 	return security_adapters.SecurityHeadersValues{
 		XFrameOptions:             deref(headersConfig.XFrameOptions, "DENY"),
@@ -226,14 +219,14 @@ func NewSecurityHeadersValues(headersConfig *config.SecurityHeadersConfig) secur
 	}
 }
 
-// NewCookieSecurityValues converts the pointer-based CookieSecurityConfig
-// into a value-type CookieSecurityValues for the secure cookie writer.
+// NewCookieSecurityValues converts the pointer-based CookieSecurityConfig into a
+// value-type CookieSecurityValues for the secure cookie writer.
 //
-// Takes cookieConfig (*config.CookieSecurityConfig) which provides the cookie
-// security settings to convert.
+// Takes cookieConfig (*config.CookieSecurityConfig) which provides the cookie security
+// settings to convert.
 //
-// Returns security_adapters.CookieSecurityValues which contains the
-// resolved cookie security values with defaults applied.
+// Returns security_adapters.CookieSecurityValues which contains the resolved cookie
+// security values with defaults applied.
 func NewCookieSecurityValues(cookieConfig *config.CookieSecurityConfig) security_adapters.CookieSecurityValues {
 	return security_adapters.CookieSecurityValues{
 		DefaultSameSite:    deref(cookieConfig.DefaultSameSite, "Lax"),
@@ -242,28 +235,28 @@ func NewCookieSecurityValues(cookieConfig *config.CookieSecurityConfig) security
 	}
 }
 
-// NewReportingValues converts a ReportingConfig into a pre-built
-// ReportingValues for the security middleware.
+// NewReportingValues converts a ReportingConfig into a pre-built ReportingValues for the
+// security middleware.
 //
-// Takes reportingConfig (*config.ReportingConfig) which provides the reporting
-// endpoint configuration to convert.
+// Takes reportingConfig (*config.ReportingConfig) which provides the reporting endpoint
+// configuration to convert.
 //
-// Returns security_adapters.ReportingValues which contains the
-// pre-built reporting header value.
+// Returns security_adapters.ReportingValues which contains the pre-built reporting header
+// value.
 func NewReportingValues(reportingConfig *config.ReportingConfig) security_adapters.ReportingValues {
 	return security_adapters.ReportingValues{
 		HeaderValue: reportingConfig.BuildHeader(),
 	}
 }
 
-// NewRateLimitValues converts the pointer-based RateLimitConfig into a
-// value-type RateLimitValues for the rate limiting middleware.
+// NewRateLimitValues converts the pointer-based RateLimitConfig into a value-type
+// RateLimitValues for the rate limiting middleware.
 //
-// Takes rateLimitConfig (*config.RateLimitConfig) which provides the rate limit
-// settings to convert.
+// Takes rateLimitConfig (*config.RateLimitConfig) which provides the rate limit settings
+// to convert.
 //
-// Returns security_adapters.RateLimitValues which contains the resolved
-// rate limit values with defaults applied.
+// Returns security_adapters.RateLimitValues which contains the resolved rate limit values
+// with defaults applied.
 func NewRateLimitValues(rateLimitConfig *config.RateLimitConfig) security_adapters.RateLimitValues {
 	return security_adapters.RateLimitValues{
 		Storage:        deref(rateLimitConfig.Storage, "memory"),

@@ -24,7 +24,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockBlobStore_Put(t *testing.T) {
 		err := m.Put(context.Background(), "key-1", strings.NewReader("data"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PutCallCount))
+		assert.Equal(t, int64(1), m.PutCallCount.Load())
 	})
 
 	t.Run("delegates to PutFunc", func(t *testing.T) {
@@ -57,7 +56,7 @@ func TestMockBlobStore_Put(t *testing.T) {
 		err := m.Put(context.Background(), "key-1", strings.NewReader("data"))
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PutCallCount))
+		assert.Equal(t, int64(1), m.PutCallCount.Load())
 	})
 
 	t.Run("propagates error from PutFunc", func(t *testing.T) {
@@ -86,7 +85,7 @@ func TestMockBlobStore_Get(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("delegates to GetFunc", func(t *testing.T) {
@@ -103,7 +102,7 @@ func TestMockBlobStore_Get(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("propagates error from GetFunc", func(t *testing.T) {
@@ -133,7 +132,7 @@ func TestMockBlobStore_RangeGet(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RangeGetCallCount))
+		assert.Equal(t, int64(1), m.RangeGetCallCount.Load())
 	})
 
 	t.Run("delegates to RangeGetFunc", func(t *testing.T) {
@@ -152,7 +151,7 @@ func TestMockBlobStore_RangeGet(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RangeGetCallCount))
+		assert.Equal(t, int64(1), m.RangeGetCallCount.Load())
 	})
 
 	t.Run("propagates error from RangeGetFunc", func(t *testing.T) {
@@ -181,7 +180,7 @@ func TestMockBlobStore_Delete(t *testing.T) {
 		err := m.Delete(context.Background(), "key-1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteCallCount))
+		assert.Equal(t, int64(1), m.DeleteCallCount.Load())
 	})
 
 	t.Run("delegates to DeleteFunc", func(t *testing.T) {
@@ -196,7 +195,7 @@ func TestMockBlobStore_Delete(t *testing.T) {
 		err := m.Delete(context.Background(), "key-1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteCallCount))
+		assert.Equal(t, int64(1), m.DeleteCallCount.Load())
 	})
 
 	t.Run("propagates error from DeleteFunc", func(t *testing.T) {
@@ -224,7 +223,7 @@ func TestMockBlobStore_Rename(t *testing.T) {
 		err := m.Rename(context.Background(), "temp-key", "final-key")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenameCallCount))
+		assert.Equal(t, int64(1), m.RenameCallCount.Load())
 	})
 
 	t.Run("delegates to RenameFunc", func(t *testing.T) {
@@ -240,7 +239,7 @@ func TestMockBlobStore_Rename(t *testing.T) {
 		err := m.Rename(context.Background(), "temp-key", "final-key")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RenameCallCount))
+		assert.Equal(t, int64(1), m.RenameCallCount.Load())
 	})
 
 	t.Run("propagates error from RenameFunc", func(t *testing.T) {
@@ -269,7 +268,7 @@ func TestMockBlobStore_Exists(t *testing.T) {
 
 		assert.False(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ExistsCallCount))
+		assert.Equal(t, int64(1), m.ExistsCallCount.Load())
 	})
 
 	t.Run("delegates to ExistsFunc", func(t *testing.T) {
@@ -285,7 +284,7 @@ func TestMockBlobStore_Exists(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ExistsCallCount))
+		assert.Equal(t, int64(1), m.ExistsCallCount.Load())
 	})
 
 	t.Run("propagates error from ExistsFunc", func(t *testing.T) {
@@ -358,10 +357,10 @@ func TestMockBlobStore_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PutCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RangeGetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DeleteCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RenameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ExistsCallCount))
+	assert.Equal(t, int64(goroutines), m.PutCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RangeGetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DeleteCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RenameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ExistsCallCount.Load())
 }

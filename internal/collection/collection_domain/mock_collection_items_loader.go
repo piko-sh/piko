@@ -18,22 +18,23 @@
 
 package collection_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockCollectionItemsLoader is a test double for CollectionItemsLoaderPort
-// that returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockCollectionItemsLoader is a test double for CollectionItemsLoaderPort that returns
+// zero values from nil function fields and tracks call counts atomically.
 type MockCollectionItemsLoader struct {
-	// GetAllItemsFunc is the function called by
-	// GetAllItems.
+	// GetAllItemsFunc is the function called by GetAllItems.
 	GetAllItemsFunc func(collectionName string) ([]map[string]any, error)
 
-	// GetAllItemsCallCount tracks how many times
-	// GetAllItems was called.
-	GetAllItemsCallCount int64
+	// GetAllItemsCallCount tracks how many times GetAllItems was called.
+	GetAllItemsCallCount atomic.Int64
 }
 
-var _ CollectionItemsLoaderPort = (*MockCollectionItemsLoader)(nil)
+var (
+	_ CollectionItemsLoaderPort = (*MockCollectionItemsLoader)(nil)
+)
 
 // GetAllItems delegates to GetAllItemsFunc if set.
 //
@@ -41,7 +42,7 @@ var _ CollectionItemsLoaderPort = (*MockCollectionItemsLoader)(nil)
 //
 // Returns (nil, nil) if GetAllItemsFunc is nil.
 func (m *MockCollectionItemsLoader) GetAllItems(collectionName string) ([]map[string]any, error) {
-	atomic.AddInt64(&m.GetAllItemsCallCount, 1)
+	m.GetAllItemsCallCount.Add(1)
 	if m.GetAllItemsFunc != nil {
 		return m.GetAllItemsFunc(collectionName)
 	}

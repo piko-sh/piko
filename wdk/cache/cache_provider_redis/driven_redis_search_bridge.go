@@ -25,16 +25,13 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// Search performs full-text search across indexed TEXT fields
-// using RediSearch.
+// Search performs full-text search across indexed TEXT fields using RediSearch.
 //
-// When no SearchSchema is configured, returns
-// ErrSearchNotSupported.
+// When no SearchSchema is configured, returns ErrSearchNotSupported.
 //
-// Takes query (string) which is the search query to match
-// against TEXT fields.
-// Takes opts (*cache.SearchOptions) which contains filters,
-// pagination, and sorting settings.
+// Takes query (string) which is the search query to match against TEXT fields.
+// Takes opts (*cache.SearchOptions) which contains filters, pagination, and sorting
+// settings.
 //
 // Returns the result containing matching items and total count.
 // Returns error if search is not supported or the search fails.
@@ -52,14 +49,12 @@ func (a *RedisAdapter[K, V]) Search(ctx context.Context, query string, opts *cac
 	return a.searchWithRediSearch(timeoutCtx, query, opts)
 }
 
-// Query performs structured filtering, sorting, and pagination
-// without full-text search.
+// Query performs structured filtering, sorting, and pagination without full-text search.
 //
-// When no SearchSchema is configured, returns
-// ErrSearchNotSupported.
+// When no SearchSchema is configured, returns ErrSearchNotSupported.
 //
-// Takes opts (*cache.QueryOptions) which contains filters,
-// pagination, and sorting settings.
+// Takes opts (*cache.QueryOptions) which contains filters, pagination, and sorting
+// settings.
 //
 // Returns the result containing matching items and total count.
 // Returns error if search is not supported or the query fails.
@@ -86,8 +81,8 @@ func (a *RedisAdapter[K, V]) SupportsSearch() bool {
 
 // GetSchema returns the search schema set for this cache.
 //
-// Returns *cache.SearchSchema which is the schema for this cache, or nil if
-// the cache does not support search.
+// Returns *cache.SearchSchema which is the schema for this cache, or nil if the cache
+// does not support search.
 func (a *RedisAdapter[K, V]) GetSchema() *cache.SearchSchema {
 	return a.schema
 }

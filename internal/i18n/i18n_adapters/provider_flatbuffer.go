@@ -30,14 +30,16 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// errI18nSchemaVersionMismatch indicates the i18n manifest was serialised with
-// a different schema version. This typically occurs when upgrading Piko and
-// requires recompilation.
-var errI18nSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
+var (
+	// errI18nSchemaVersionMismatch indicates the i18n manifest was serialised with a
+	// different schema version. This typically occurs when upgrading Piko and requires
+	// recompilation.
+	errI18nSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
+)
 
 // flatBufferProvider loads translations from a FlatBuffer binary file using
-// zero-allocation parsing via the mem package. All file operations are
-// sandboxed for security.
+// zero-allocation parsing via the mem package. All file operations are sandboxed for
+// security.
 type flatBufferProvider struct {
 	// sandbox provides safe file system access for reading translation files.
 	sandbox safedisk.Sandbox
@@ -45,21 +47,20 @@ type flatBufferProvider struct {
 	// filePath is the path to the FlatBuffer file, relative to the sandbox root.
 	filePath string
 
-	// data holds the raw file bytes. This must be kept alive as long as
-	// the Store points to strings within it (via mem.String).
+	// data holds the raw file bytes. This must be kept alive as long as the Store points to
+	// strings within it (via mem.String).
 	data []byte
 }
 
-// load reads the FlatBuffer file and populates the store with zero-allocation
-// parsing.
+// load reads the FlatBuffer file and populates the store with zero-allocation parsing.
 //
 // Returns *i18n_domain.Store which contains the parsed translation data.
-// Returns error when the file path is empty, the file cannot be read, or the
-// FlatBuffer data is corrupt or has a schema version mismatch.
+// Returns error when the file path is empty, the file cannot be read, or the FlatBuffer
+// data is corrupt or has a schema version mismatch.
 //
-// SAFETY: The returned Store contains strings that reference the file data
-// directly via mem.String. The provider keeps the data alive, and Go's GC
-// keeps the data alive through these string references.
+// SAFETY: The returned Store contains strings that reference the file data directly via
+// mem.String. The provider keeps the data alive, and Go's GC keeps the data alive through
+// these string references.
 func (p *flatBufferProvider) load() (*i18n_domain.Store, error) {
 	if p.filePath == "" {
 		return nil, errors.New("i18n FlatBuffer provider requires a valid file path")
@@ -85,16 +86,16 @@ func (p *flatBufferProvider) load() (*i18n_domain.Store, error) {
 	return unpackManifest(fbManifest), nil
 }
 
-// rawData returns the raw FlatBuffer data, keeping it alive when the Store
-// is passed around independently.
+// rawData returns the raw FlatBuffer data, keeping it alive when the Store is passed
+// around independently.
 //
 // Returns []byte which contains the underlying FlatBuffer bytes.
 func (p *flatBufferProvider) rawData() []byte {
 	return p.data
 }
 
-// newFlatBufferProvider creates a new provider for the given file path.
-// The filePath should be relative to the sandbox root.
+// newFlatBufferProvider creates a new provider for the given file path. The filePath
+// should be relative to the sandbox root.
 //
 // Takes sandbox (safedisk.Sandbox) which gives access to the file system.
 // Takes filePath (string) which sets the path relative to the sandbox root.
@@ -110,8 +111,7 @@ func newFlatBufferProvider(sandbox safedisk.Sandbox, filePath string) *flatBuffe
 
 // unpackManifest converts a FlatBuffers manifest into a domain store.
 //
-// Takes fb (*i18n_fb.I18nManifestFB) which is the serialised manifest to
-// unpack.
+// Takes fb (*i18n_fb.I18nManifestFB) which is the serialised manifest to unpack.
 //
 // Returns *i18n_domain.Store which holds all locale data from the manifest.
 func unpackManifest(fb *i18n_fb.I18nManifestFB) *i18n_domain.Store {
@@ -129,8 +129,7 @@ func unpackManifest(fb *i18n_fb.I18nManifestFB) *i18n_domain.Store {
 	return store
 }
 
-// unpackLocaleData extracts locale data from a FlatBuffer and adds it to the
-// store.
+// unpackLocaleData extracts locale data from a FlatBuffer and adds it to the store.
 //
 // Takes fb (*i18n_fb.LocaleDataFB) which contains the serialised locale data.
 // Takes store (*i18n_domain.Store) which receives the unpacked locale entries.
@@ -144,8 +143,8 @@ func unpackLocaleData(fb *i18n_fb.LocaleDataFB, store *i18n_domain.Store) {
 //
 // Takes fb (*i18n_fb.LocaleDataFB) which contains the serialised locale data.
 //
-// Returns map[string]*i18n_domain.Entry which maps keys to their entries, or
-// nil when there are no entries.
+// Returns map[string]*i18n_domain.Entry which maps keys to their entries, or nil when
+// there are no entries.
 func unpackEntries(fb *i18n_fb.LocaleDataFB) map[string]*i18n_domain.Entry {
 	entriesLen := fb.EntriesLength()
 	if entriesLen == 0 {
@@ -166,11 +165,10 @@ func unpackEntries(fb *i18n_fb.LocaleDataFB) map[string]*i18n_domain.Entry {
 
 // unpackEntry converts a FlatBuffer translation entry to a domain entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the serialised entry to
-// unpack.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the serialised entry to unpack.
 //
-// Returns *i18n_domain.Entry which contains the unpacked template, parts,
-// and plural forms.
+// Returns *i18n_domain.Entry which contains the unpacked template, parts, and plural
+// forms.
 func unpackEntry(fb *i18n_fb.TranslationEntryFB) *i18n_domain.Entry {
 	entry := &i18n_domain.Entry{
 		Template:    mem.String(fb.Template()),
@@ -192,14 +190,13 @@ func unpackEntry(fb *i18n_fb.TranslationEntryFB) *i18n_domain.Entry {
 	return entry
 }
 
-// unpackTemplateParts extracts template parts from a FlatBuffer translation
-// entry.
+// unpackTemplateParts extracts template parts from a FlatBuffer translation entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to
-// extract parts from.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to extract parts
+// from.
 //
-// Returns []i18n_domain.TemplatePart which contains the extracted template
-// parts, or nil if the entry has no parts.
+// Returns []i18n_domain.TemplatePart which contains the extracted template parts, or nil
+// if the entry has no parts.
 func unpackTemplateParts(fb *i18n_fb.TranslationEntryFB) []i18n_domain.TemplatePart {
 	partsLen := fb.PartsLength()
 	if partsLen == 0 {
@@ -240,8 +237,7 @@ func schemaToPartKind(kind i18n_fb.PartKind) i18n_domain.PartKind {
 
 // unpackPluralForms extracts plural forms from a FlatBuffer translation entry.
 //
-// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to
-// extract from.
+// Takes fb (*i18n_fb.TranslationEntryFB) which is the FlatBuffer entry to extract from.
 //
 // Returns []string which holds the plural forms, or nil if none exist.
 func unpackPluralForms(fb *i18n_fb.TranslationEntryFB) []string {

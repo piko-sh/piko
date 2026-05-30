@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Validates template structures and expressions against component contracts and Go type rules during semantic analysis.
-// Performs compile-time checks for type safety, required props, valid member access, and expression correctness across the AST.
+// Validates template structures and expressions against component contracts and Go type
+// rules during semantic analysis. Performs compile-time checks for type safety, required
+// props, valid member access, and expression correctness across the AST.
 
 import (
 	"fmt"
@@ -31,17 +32,17 @@ import (
 
 // validatePMLUsage checks if PikoML tags are used outside email templates.
 //
-// PikoML (pml-*) tags are built for HTML email rendering. They use table-based
-// layouts to work well in email clients. Using them in web pages causes layout
-// problems and is not supported.
+// PikoML (pml-*) tags are built for HTML email rendering. They use table-based layouts to
+// work well in email clients. Using them in web pages causes layout problems and is not
+// supported.
 //
 // When the component is an email template or has no template, returns nil.
 //
-// Takes component (*annotator_dto.ParsedComponent) which provides the parsed
-// template and metadata to check.
+// Takes component (*annotator_dto.ParsedComponent) which provides the parsed template and
+// metadata to check.
 //
-// Returns []*ast_domain.Diagnostic which contains warnings for each pml-* tag
-// found, or nil if there are no problems.
+// Returns []*ast_domain.Diagnostic which contains warnings for each pml-* tag found, or
+// nil if there are no problems.
 func validatePMLUsage(component *annotator_dto.ParsedComponent) []*ast_domain.Diagnostic {
 	if component.ComponentType == "email" || component.Template == nil {
 		return nil

@@ -33,15 +33,17 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-var _ resolver_domain.ResolverPort = (*LocalModuleResolver)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*LocalModuleResolver)(nil)
+)
 
-// LocalModuleResolver implements the ResolverPort interface as a driven adapter.
-// It resolves Piko component and asset import paths within the local project's
-// module by interacting with the file system and discovering Go module
-// information to enforce module-absolute imports.
+// LocalModuleResolver implements the ResolverPort interface as a driven adapter. It
+// resolves Piko component and asset import paths within the local project's module by
+// interacting with the file system and discovering Go module information to enforce
+// module-absolute imports.
 type LocalModuleResolver struct {
-	// sandboxFactory creates sandboxes when needed. When non-nil, this factory
-	// is used instead of safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when needed. When non-nil, this factory is used
+	// instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
 	// startDir is the directory where the search for go.mod starts.
@@ -56,11 +58,11 @@ type LocalModuleResolver struct {
 
 // NewLocalModuleResolver creates a new local module resolver.
 //
-// The startDir is the directory from which to begin searching for the go.mod
-// file, typically the project's root or current working directory.
+// The startDir is the directory from which to begin searching for the go.mod file,
+// typically the project's root or current working directory.
 //
-// Takes startDir (string) which specifies the directory to start searching
-// from for the go.mod file.
+// Takes startDir (string) which specifies the directory to start searching from for the
+// go.mod file.
 //
 // Returns *LocalModuleResolver which is ready to detect the local module.
 func NewLocalModuleResolver(startDir string) *LocalModuleResolver {
@@ -71,11 +73,11 @@ func NewLocalModuleResolver(startDir string) *LocalModuleResolver {
 	}
 }
 
-// NewLocalModuleResolverWithFactory creates a new local module resolver with
-// an optional sandbox factory.
+// NewLocalModuleResolverWithFactory creates a new local module resolver with an optional
+// sandbox factory.
 //
-// Takes startDir (string) which specifies the directory to start searching
-// from for the go.mod file.
+// Takes startDir (string) which specifies the directory to start searching from for the
+// go.mod file.
 // Takes factory (safedisk.Factory) which creates sandboxes when needed.
 //
 // Returns *LocalModuleResolver which is ready to detect the local module.
@@ -88,9 +90,9 @@ func NewLocalModuleResolverWithFactory(startDir string, factory safedisk.Factory
 	}
 }
 
-// DetectLocalModule finds the project's root by locating the go.mod file and
-// parsing it to determine the module's name and base directory. Must be called
-// before any resolution can occur.
+// DetectLocalModule finds the project's root by locating the go.mod file and parsing it
+// to determine the module's name and base directory. Must be called before any resolution
+// can occur.
 //
 // Returns error when the go.mod file cannot be found or parsed.
 func (lmr *LocalModuleResolver) DetectLocalModule(ctx context.Context) error {
@@ -148,31 +150,29 @@ func (lmr *LocalModuleResolver) GetModuleName() string {
 	return lmr.moduleName
 }
 
-// GetBaseDir returns the absolute path to the directory that contains the
-// go.mod file.
+// GetBaseDir returns the absolute path to the directory that contains the go.mod file.
 //
 // Returns string which is the base directory path.
 func (lmr *LocalModuleResolver) GetBaseDir() string {
 	return lmr.baseDir
 }
 
-// ConvertEntryPointPathToManifestKey implements the ResolverPort interface.
-// It strips the module name prefix from an entry point path to create a
-// project-relative manifest key.
+// ConvertEntryPointPathToManifestKey implements the ResolverPort interface. It strips the
+// module name prefix from an entry point path to create a project-relative manifest key.
 //
-// Acts as the authoritative converter between the two path formats used in
-// the Piko system:
+// Acts as the authoritative converter between the two path formats used in the Piko
+// system:
 //   - Build-time: module-absolute, for example a GitHub-style path such as
 //     "example.com/org/app/pages/index.pk"
 //   - Runtime: project-relative (e.g., "pages/index.pk")
 //
-// The conversion uses the actual module name from go.mod, making it reliable
-// against any valid Go module name format, including those with slashes.
+// The conversion uses the actual module name from go.mod, making it reliable against any
+// valid Go module name format, including those with slashes.
 //
 // Takes entryPointPath (string) which is the module-absolute path to convert.
 //
-// Returns string which is the project-relative manifest key, or the original
-// path if the module prefix does not match.
+// Returns string which is the project-relative manifest key, or the original path if the
+// module prefix does not match.
 func (lmr *LocalModuleResolver) ConvertEntryPointPathToManifestKey(entryPointPath string) string {
 	prefix := lmr.moduleName + "/"
 
@@ -183,24 +183,22 @@ func (lmr *LocalModuleResolver) ConvertEntryPointPathToManifestKey(entryPointPat
 	return entryPointPath
 }
 
-// ResolvePKPath resolves a Piko component import path to an absolute file
-// system path.
+// ResolvePKPath resolves a Piko component import path to an absolute file system path.
 //
-// It supports module-absolute paths and the @ alias. Relative paths and
-// project-relative paths are not supported.
+// It supports module-absolute paths and the @ alias. Relative paths and project-relative
+// paths are not supported.
 //
 // Resolution order:
 //  1. @ alias (e.g., "@/partials/card.pk") - expanded to module-absolute path
-//  2. Module-absolute (e.g., "mymodule/partials/card.pk") - resolved via
-//     module detection
+//  2. Module-absolute (e.g., "mymodule/partials/card.pk") - resolved via module detection
 //
 // Takes importPath (string) which is the import path to resolve.
-// Takes containingFilePath (string) which is the absolute path of the file
-// containing the import statement, used to resolve the @ alias.
+// Takes containingFilePath (string) which is the absolute path of the file containing the
+// import statement, used to resolve the @ alias.
 //
 // Returns string which is the absolute file system path to the component.
-// Returns error when the path format is invalid, the module cannot be
-// detected, or the resolved path is not a .pk file.
+// Returns error when the path format is invalid, the module cannot be detected, or the
+// resolved path is not a .pk file.
 func (lmr *LocalModuleResolver) ResolvePKPath(ctx context.Context, importPath string, containingFilePath string) (string, error) {
 	ctx, span, l := log.Span(ctx, "LocalModuleResolver.ResolvePKPath",
 		logger_domain.String(logKeyImportPath, importPath),
@@ -251,12 +249,12 @@ func (lmr *LocalModuleResolver) ResolvePKPath(ctx context.Context, importPath st
 	return resolvedPath, nil
 }
 
-// ResolveCSSPath resolves a CSS import path to an absolute file system path.
-// It supports relative paths, module-absolute paths, and the @ alias.
+// ResolveCSSPath resolves a CSS import path to an absolute file system path. It supports
+// relative paths, module-absolute paths, and the @ alias.
 //
 // Takes importPath (string) which specifies the CSS import to resolve.
-// Takes containingDir (string) which is the directory of the file containing
-// the @import statement, used for @ alias expansion.
+// Takes containingDir (string) which is the directory of the file containing the @import
+// statement, used for @ alias expansion.
 //
 // Returns string which is the absolute file system path to the CSS file.
 // Returns error when the path format is invalid or does not end with .css.
@@ -308,20 +306,18 @@ func (lmr *LocalModuleResolver) ResolveCSSPath(ctx context.Context, importPath s
 	return resolvedPath, nil
 }
 
-// ResolveAssetPath resolves an asset path to an absolute file system path.
-// It supports module-absolute paths and the @ alias for piko:svg, piko:img,
-// piko:video, and pml-img src attributes.
+// ResolveAssetPath resolves an asset path to an absolute file system path. It supports
+// module-absolute paths and the @ alias for piko:svg, piko:img, piko:video, and pml-img
+// src attributes.
 //
-// Takes importPath (string) which is the asset path to resolve, either as a
-// full module path (e.g. "mymodule/lib/icons/arrow.svg") or using the @ alias
-// (e.g. "@/lib/icons/arrow.svg").
-// Takes containingFilePath (string) which is the absolute path of the
-// component file containing the asset reference, used to resolve the @ alias
-// to the correct module.
+// Takes importPath (string) which is the asset path to resolve, either as a full module
+// path (e.g. "mymodule/lib/icons/arrow.svg") or using the @ alias (e.g.
+// "@/lib/icons/arrow.svg").
+// Takes containingFilePath (string) which is the absolute path of the component file
+// containing the asset reference, used to resolve the @ alias to the correct module.
 //
 // Returns string which is the absolute file system path to the asset.
-// Returns error when the module alias cannot be expanded or the path cannot
-// be resolved.
+// Returns error when the module alias cannot be expanded or the path cannot be resolved.
 func (lmr *LocalModuleResolver) ResolveAssetPath(ctx context.Context, importPath string, containingFilePath string) (string, error) {
 	ctx, span, l := log.Span(ctx, "LocalModuleResolver.ResolveAssetPath",
 		logger_domain.String(logKeyImportPath, importPath),
@@ -360,8 +356,8 @@ func (lmr *LocalModuleResolver) ResolveAssetPath(ctx context.Context, importPath
 	return resolvedPath, nil
 }
 
-// GetModuleDir returns an error as this resolver does not support external
-// modules. Use GoModuleCacheResolver for external module paths.
+// GetModuleDir returns an error as this resolver does not support external modules. Use
+// GoModuleCacheResolver for external module paths.
 //
 // Returns string which is always empty.
 // Returns error when called, as this resolver does not support this operation.
@@ -369,9 +365,8 @@ func (*LocalModuleResolver) GetModuleDir(_ context.Context, _ string) (string, e
 	return "", errors.New("local resolver does not support external module resolution; use GoModuleCacheResolver")
 }
 
-// FindModuleBoundary is not supported by the local resolver.
-// Module boundary detection requires the GoModuleCacheResolver which has
-// access to the full go.mod dependency list.
+// FindModuleBoundary is not supported by the local resolver. Module boundary detection
+// requires the GoModuleCacheResolver which has access to the full go.mod dependency list.
 //
 // Returns modulePath (string) which is always empty.
 // Returns subpath (string) which is always empty.
@@ -380,15 +375,14 @@ func (*LocalModuleResolver) FindModuleBoundary(_ context.Context, _ string) (mod
 	return "", "", errors.New("local resolver does not support module boundary detection; use GoModuleCacheResolver")
 }
 
-// resolveModulePathInternal is the shared core logic for resolving
-// module-absolute paths. It does not check file types, which is left to the
-// public methods.
+// resolveModulePathInternal is the shared core logic for resolving module-absolute paths.
+// It does not check file types, which is left to the public methods.
 //
 // Takes importPath (string) which is the module-absolute path to resolve.
 //
 // Returns string which is the resolved absolute file system path.
-// Returns error when module information is missing or the path does not belong
-// to the local module.
+// Returns error when module information is missing or the path does not belong to the
+// local module.
 func (lmr *LocalModuleResolver) resolveModulePathInternal(_ context.Context, importPath string) (string, error) {
 	if lmr.moduleName == "" || lmr.baseDir == "" {
 		return "", errors.New("cannot resolve path: module information is missing. Was DetectLocalModule called and did it succeed")
@@ -415,8 +409,8 @@ func (*LocalModuleResolver) isRemote(path string) bool {
 //
 // Takes url (string) which specifies the remote location to fetch from.
 //
-// Returns string which will contain the fetched content when implemented.
-// Returns error when called, as remote fetching is not yet supported.
+// Returns string which is always empty.
+// Returns error when called, since remote fetching has no implementation.
 func (*LocalModuleResolver) fetchRemotePK(ctx context.Context, url string) (string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	err := errors.New("remote component fetching is not yet implemented")
@@ -465,14 +459,13 @@ func findGoMod(start string) (string, error) {
 	}
 }
 
-// readModuleName reads a go.mod file and returns the module name from the
-// "module ..." line.
+// readModuleName reads a go.mod file and returns the module name from the "module ..."
+// line.
 //
 // Takes modFile (string) which is the path to the go.mod file.
 //
 // Returns string which is the module name found in the file.
-// Returns error when the file cannot be opened, read, or does not contain a
-// module line.
+// Returns error when the file cannot be opened, read, or does not contain a module line.
 func readModuleName(modFile string, factory safedisk.Factory) (string, error) {
 	modDir := filepath.Dir(modFile)
 	var sandbox safedisk.Sandbox

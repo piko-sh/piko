@@ -24,9 +24,9 @@ import (
 	"time"
 )
 
-// GroupedError represents a batched error entry with occurrence tracking.
-// Errors are grouped by a hash of their message and source location, allowing
-// the notification system to deduplicate identical errors and show counts.
+// GroupedError represents a batched error entry with occurrence tracking. Errors are
+// grouped by a hash of their message and source location, allowing the notification
+// system to deduplicate identical errors and show counts.
 type GroupedError struct {
 	// FirstSeen is when this error was first seen.
 	FirstSeen time.Time
@@ -47,8 +47,8 @@ type GroupedError struct {
 	Count int
 }
 
-// NotificationPort defines the logger's driven port for sending notifications.
-// The notification service implements the port through an adapter.
+// NotificationPort defines the logger's driven port for sending notifications. The
+// notification service implements the port through an adapter.
 type NotificationPort interface {
 	// SendGroupedErrors sends a batch of grouped errors as notifications.
 	//

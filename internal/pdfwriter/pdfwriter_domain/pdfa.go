@@ -18,11 +18,11 @@
 
 package pdfwriter_domain
 
-// Provides PDF/A-2b conformance support. Generates the sRGB IEC61966-2.1
-// ICC colour profile, XMP metadata stream, and output intent dictionary
-// required by the PDF/A standard. PDF/A-2b requires embedded fonts
-// (already handled by CIDFont Type2 embedding), an output intent with an
-// ICC profile, and XMP metadata with the pdfaid part/conformance fields.
+// Provides PDF/A-2b conformance support. Generates the sRGB IEC61966-2.1 ICC colour
+// profile, XMP metadata stream, and output intent dictionary required by the PDF/A
+// standard. PDF/A-2b requires embedded fonts (already handled by CIDFont Type2
+// embedding), an output intent with an ICC profile, and XMP metadata with the pdfaid
+// part/conformance fields.
 
 import (
 	"encoding/binary"
@@ -130,16 +130,16 @@ const (
 type PdfALevel int
 
 const (
-	// PdfA2B targets PDF/A-2b (basic conformance, PDF 1.7 based).
-	// Requires embedded fonts, ICC output intent, and XMP metadata.
+	// PdfA2B targets PDF/A-2b (basic conformance, PDF 1.7 based). Requires embedded fonts,
+	// ICC output intent, and XMP metadata.
 	PdfA2B PdfALevel = iota
 
-	// PdfA2U targets PDF/A-2u (Unicode conformance). Adds requirement
-	// that all text has Unicode mappings (CIDFont ToUnicode CMap).
+	// PdfA2U targets PDF/A-2u (Unicode conformance). Adds requirement that all text has
+	// Unicode mappings (CIDFont ToUnicode CMap).
 	PdfA2U
 
-	// PdfA2A targets PDF/A-2a (accessible conformance)
-	// which requires a tagged PDF structure tree.
+	// PdfA2A targets PDF/A-2a (accessible conformance) which requires a tagged PDF structure
+	// tree.
 	PdfA2A
 )
 
@@ -163,13 +163,12 @@ func (c *PdfAConfig) conformanceLetter() string {
 	}
 }
 
-// writePdfAObjects writes the XMP metadata, ICC profile,
-// and output intent objects for PDF/A conformance.
+// writePdfAObjects writes the XMP metadata, ICC profile, and output intent objects for
+// PDF/A conformance.
 //
-// Takes writer (*PdfDocumentWriter) which specifies
-// the document writer to emit objects to.
-// Takes config (*PdfAConfig) which specifies the target
-// PDF/A conformance level.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes config (*PdfAConfig) which specifies the target PDF/A conformance level.
 // Takes metadata (*PdfMetadata) which specifies the document metadata for XMP.
 // Takes now (time.Time) which specifies the creation/modification timestamp.
 //
@@ -198,18 +197,14 @@ func writePdfAObjects(
 		FormatReference(xmpNumber), FormatReference(intentNumber))
 }
 
-// buildXMPMetadata generates the XMP metadata XML packet
-// for PDF/A-2.
+// buildXMPMetadata generates the XMP metadata XML packet for PDF/A-2.
 //
-// Takes config (*PdfAConfig) which specifies the target
-// conformance level.
-// Takes metadata (*PdfMetadata) which specifies the
-// document metadata fields.
-// Takes now (time.Time) which specifies the creation and
-// modification timestamp.
+// Takes config (*PdfAConfig) which specifies the target conformance level.
+// Takes metadata (*PdfMetadata) which specifies the document metadata fields.
+// Takes now (time.Time) which specifies the creation and modification timestamp.
 //
-// Returns []byte which holds the complete XMP packet
-// including header, namespaces, and padding.
+// Returns []byte which holds the complete XMP packet including header, namespaces, and
+// padding.
 func buildXMPMetadata(config *PdfAConfig, metadata *PdfMetadata, now time.Time) []byte {
 	isoDate := now.UTC().Format("2006-01-02T15:04:05Z")
 
@@ -233,20 +228,17 @@ func buildXMPMetadata(config *PdfAConfig, metadata *PdfMetadata, now time.Time) 
 	return []byte(b.String())
 }
 
-// resolveXMPMetadata extracts title, author, subject, and
-// keywords from PdfMetadata with XML escaping.
+// resolveXMPMetadata extracts title, author, subject, and keywords from PdfMetadata with
+// XML escaping.
 //
-// Takes metadata (*PdfMetadata) which specifies the
-// source document metadata, or nil for defaults.
+// Takes metadata (*PdfMetadata) which specifies the source document metadata, or nil for
+// defaults.
 //
-// Returns title (string) which holds the XML-escaped
-// document title.
-// Returns author (string) which holds the XML-escaped
-// document author.
-// Returns subject (string) which holds the XML-escaped
-// document subject, or empty if unset.
-// Returns keywords (string) which holds the XML-escaped
-// keywords, or empty if unset.
+// Returns title (string) which holds the XML-escaped document title.
+// Returns author (string) which holds the XML-escaped document author.
+// Returns subject (string) which holds the XML-escaped document subject, or empty if
+// unset.
+// Returns keywords (string) which holds the XML-escaped keywords, or empty if unset.
 func resolveXMPMetadata(metadata *PdfMetadata) (title, author, subject, keywords string) {
 	title = "Untitled"
 	if metadata != nil && metadata.Title != "" {
@@ -352,12 +344,12 @@ type iccXYZ struct {
 	z int32
 }
 
-// buildSRGBICCProfile generates a minimal but valid sRGB
-// IEC61966-2.1 ICC v2.4.0 colour profile.
+// buildSRGBICCProfile generates a minimal but valid sRGB IEC61966-2.1 ICC v2.4.0 colour
+// profile.
 //
 // The profile contains 9 tags (profileDesc, mediaWhitePoint, redColourant,
-// greenColourant, blueColourant, redTRC, greenTRC, blueTRC, and copyright)
-// and is generated programmatically so the output is deterministic and auditable.
+// greenColourant, blueColourant, redTRC, greenTRC, blueTRC, and copyright) and is
+// generated programmatically so the output is deterministic and auditable.
 //
 // Returns []byte which holds the complete ICC profile data.
 func buildSRGBICCProfile() []byte {
@@ -483,8 +475,8 @@ func buildICCParaTrc() []byte {
 	return buf
 }
 
-// computeICCTagOffsets computes byte offsets for each tag,
-// deduplicating TRC tags to share one data block.
+// computeICCTagOffsets computes byte offsets for each tag, deduplicating TRC tags to
+// share one data block.
 //
 // Takes tags ([]iccTagData) which specifies the tag data blocks in profile order.
 // Takes dataOffset (int) which specifies the byte offset where tag data begins.
@@ -518,8 +510,8 @@ func computeICCTagOffsets(tags []iccTagData, dataOffset int) ([]iccTagEntry, int
 	return entries, currentOffset
 }
 
-// assembleICCProfile writes the header, tag table, and tag
-// data into a complete ICC profile byte slice.
+// assembleICCProfile writes the header, tag table, and tag data into a complete ICC
+// profile byte slice.
 //
 // Takes tags ([]iccTagData) which specifies the tag data blocks to write.
 // Takes entries ([]iccTagEntry) which specifies the computed tag offsets and sizes.
@@ -553,10 +545,9 @@ func assembleICCProfile(
 
 // writeICCHeader writes the 128-byte ICC profile header.
 //
-// Takes profile ([]byte) which specifies the
-// destination buffer to write the header into.
-// Takes profileSize (int) which specifies the total
-// profile byte length for the size field.
+// Takes profile ([]byte) which specifies the destination buffer to write the header into.
+// Takes profileSize (int) which specifies the total profile byte length for the size
+// field.
 // Takes white (iccXYZ) which specifies the media white point XYZ values for the header.
 func writeICCHeader(profile []byte, profileSize int, white iccXYZ) {
 	binary.BigEndian.PutUint32(profile[0:4], safeconv.IntToUint32(profileSize))
@@ -578,8 +569,8 @@ func writeICCHeader(profile []byte, profileSize int, white iccXYZ) {
 
 // writeICCTagTable writes the tag count and per-tag offset/size entries.
 //
-// Takes profile ([]byte) which specifies the
-// destination buffer to write the tag table into.
+// Takes profile ([]byte) which specifies the destination buffer to write the tag table
+// into.
 // Takes entries ([]iccTagEntry) which specifies the tag offset and size entries.
 // Takes tagCount (int) which specifies the number of tags to write.
 func writeICCTagTable(profile []byte, entries []iccTagEntry, tagCount int) {

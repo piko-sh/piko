@@ -27,9 +27,8 @@ import (
 // cookieAccumulatorKey is the context key for storing the CookieAccumulator.
 type cookieAccumulatorKey struct{}
 
-// CookieAccumulator collects response cookies during rendering. Both pages
-// and nested partials can add cookies through the shared accumulator in the
-// request context.
+// CookieAccumulator collects response cookies during rendering. Both pages and nested
+// partials can add cookies through the shared accumulator in the request context.
 //
 // Safe for concurrent use by multiple goroutines.
 type CookieAccumulator struct {
@@ -49,8 +48,7 @@ func NewCookieAccumulator() *CookieAccumulator {
 
 // Add appends a cookie to the accumulator.
 //
-// Takes cookie (*http.Cookie) which specifies the cookie to add to the
-// response.
+// Takes cookie (*http.Cookie) which specifies the cookie to add to the response.
 //
 // Safe for concurrent use.
 func (a *CookieAccumulator) Add(cookie *http.Cookie) {
@@ -75,8 +73,7 @@ func (a *CookieAccumulator) GetCookies() []*http.Cookie {
 	return result
 }
 
-// WithCookieAccumulator returns a new context with the given CookieAccumulator
-// attached.
+// WithCookieAccumulator returns a new context with the given CookieAccumulator attached.
 //
 // Takes ctx (context.Context) which is the parent context.
 // Takes acc (*CookieAccumulator) which is the accumulator to attach.
@@ -86,8 +83,8 @@ func WithCookieAccumulator(ctx context.Context, acc *CookieAccumulator) context.
 	return context.WithValue(ctx, cookieAccumulatorKey{}, acc)
 }
 
-// CookieAccumulatorFromContext retrieves the CookieAccumulator from the
-// context, or nil if none is present.
+// CookieAccumulatorFromContext retrieves the CookieAccumulator from the context, or nil
+// if none is present.
 //
 // Takes ctx (context.Context) which may contain a CookieAccumulator.
 //

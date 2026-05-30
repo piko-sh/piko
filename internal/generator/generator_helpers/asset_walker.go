@@ -26,15 +26,14 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// CollectAssetRefs walks a given AST and finds all asset references, such as
-// those defined in `<piko:svg src="...">` tags. It uses the modern
+// CollectAssetRefs walks a given AST and finds all asset references, such as those
+// defined in `<piko:svg src="...">` tags. It uses the modern
 // `ast_domain.TemplateAST.Walk` method for efficient traversal.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the template
-// tree to walk.
+// Takes templateAST (*ast_domain.TemplateAST) which is the template tree to walk.
 //
-// Returns []templater_dto.AssetRef which contains the deduplicated
-// asset references found.
+// Returns []templater_dto.AssetRef which contains the deduplicated asset references
+// found.
 func CollectAssetRefs(templateAST *ast_domain.TemplateAST, _ string) []templater_dto.AssetRef {
 	if templateAST == nil {
 		return nil
@@ -63,8 +62,8 @@ func CollectAssetRefs(templateAST *ast_domain.TemplateAST, _ string) []templater
 	return result
 }
 
-// extractSVGAssetRef checks if a node is a piko:svg element and extracts its
-// src attribute.
+// extractSVGAssetRef checks if a node is a piko:svg element and extracts its src
+// attribute.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //

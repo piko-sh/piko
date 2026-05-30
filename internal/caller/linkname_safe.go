@@ -24,8 +24,8 @@ import "runtime"
 
 // callers captures multiple stack frames into the provided slice.
 //
-// This is the safe version that uses runtime.Callers from the standard library.
-// It allocates a temporary []uintptr buffer per call.
+// This is the safe version that uses runtime.Callers from the standard library. It
+// allocates a temporary []uintptr buffer per call.
 //
 // Takes skip (int) which specifies the number of stack frames to skip.
 // Takes pcs ([]PC) which is the slice to store the captured program counters.
@@ -42,16 +42,14 @@ func callers(skip int, pcs []PC) int {
 
 // caller1 captures a single stack frame at the given skip depth.
 //
-// The safe version that uses runtime.Callers from the standard library.
-// Uses a stack-allocated buffer to minimise overhead.
+// The safe version that uses runtime.Callers from the standard library. Uses a
+// stack-allocated buffer to minimise overhead.
 //
-// The +2 skip accounts for both caller1 and [runtime.Callers] itself.
-// The public dispatch functions (Caller, Callers, CallersFill) are marked
-// //go:noinline in the safe build to guarantee a consistent frame layout,
-// so the skip arithmetic is always correct.
+// The +2 skip accounts for both caller1 and runtime.Callers itself. The public dispatch
+// functions (Caller, Callers, CallersFill) are marked //go:noinline in the safe build to
+// guarantee a consistent frame layout, so the skip arithmetic is always correct.
 //
-// Takes skip (int) which specifies the number of stack frames to skip
-// before capturing.
+// Takes skip (int) which specifies the number of stack frames to skip before capturing.
 // Takes pc (*PC) which receives the captured program counter value.
 //
 // Returns int which is 1 if a frame was captured, 0 otherwise.

@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_french provides a French phonetic
-// encoder for the linguistics package.
+// Package linguistics_phonetic_french provides a French phonetic encoder for the
+// linguistics package.
 //
-// The encoder converts French words into phonetic codes that enable
-// "sounds-like" matching, handling French-specific patterns such as
-// nasal vowels, silent endings, and digraphs. It self-registers via
-// an init function so that a blank import is sufficient to make it
-// available through the registry.
+// The encoder converts French words into phonetic codes that enable "sounds-like"
+// matching, handling French-specific patterns such as nasal vowels, silent endings, and
+// digraphs. It self-registers via an init function so that a blank import is sufficient
+// to make it available through the registry.
 //
 // [Encoder] is safe for concurrent use.
 package linguistics_phonetic_french

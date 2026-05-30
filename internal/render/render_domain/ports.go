@@ -40,8 +40,8 @@ type RegistryAdapterStats struct {
 	SVGCacheSize int
 }
 
-// TransformationPort defines the interface for artefact transformers in the
-// rendering pipeline.
+// TransformationPort defines the interface for artefact transformers in the rendering
+// pipeline.
 type TransformationPort interface {
 	// Transform applies a transformation to the given render artefact.
 	//
@@ -52,8 +52,8 @@ type TransformationPort interface {
 	Transform(ctx context.Context, artefact *render_dto.RenderArtefact) (*render_dto.RenderArtefact, error)
 }
 
-// RegistryPort defines the interface for accessing cached component metadata
-// and SVG assets. It implements render_domain.RegistryPort and
+// RegistryPort defines the interface for accessing cached component metadata and SVG
+// assets. It implements render_domain.RegistryPort and
 // lifecycle_domain.RenderRegistryCachePort.
 type RegistryPort interface {
 	// GetComponentMetadata retrieves metadata for the specified component type.
@@ -64,15 +64,14 @@ type RegistryPort interface {
 	// Returns error when the component type is not found or retrieval fails.
 	GetComponentMetadata(ctx context.Context, componentType string) (*render_dto.ComponentMetadata, error)
 
-	// BulkGetComponentMetadata retrieves metadata for multiple component types
-	// in a single batch operation. Cache hits are returned immediately; cache
-	// misses are fetched together via the bulk loader.
+	// BulkGetComponentMetadata retrieves metadata for multiple component types in a single
+	// batch operation. Cache hits are returned immediately; cache misses are fetched
+	// together via the bulk loader.
 	//
-	// Takes componentTypes ([]string) which lists the component types to look
-	// up.
+	// Takes componentTypes ([]string) which lists the component types to look up.
 	//
-	// Returns map[string]*render_dto.ComponentMetadata which maps each
-	// component type to its metadata.
+	// Returns map[string]*render_dto.ComponentMetadata which maps each component type to its
+	// metadata.
 	// Returns error when the batch retrieval fails.
 	BulkGetComponentMetadata(ctx context.Context, componentTypes []string) (map[string]*render_dto.ComponentMetadata, error)
 
@@ -84,21 +83,17 @@ type RegistryPort interface {
 	// Returns error when the asset cannot be found or retrieved.
 	GetAssetRawSVG(ctx context.Context, assetID string) (*ParsedSvgData, error)
 
-	// BulkGetAssetRawSVG retrieves multiple SVG assets in a single batch
-	// operation. Cache hits are returned immediately; cache misses are
-	// fetched together via the bulk loader.
+	// BulkGetAssetRawSVG retrieves multiple SVG assets in a single batch operation. Cache
+	// hits are returned immediately; cache misses are fetched together via the bulk loader.
 	//
-	// Takes assetIDs ([]string) which lists the SVG asset identifiers to
-	// look up.
+	// Takes assetIDs ([]string) which lists the SVG asset identifiers to look up.
 	//
-	// Returns map[string]*ParsedSvgData which maps each asset ID to its
-	// parsed SVG data.
+	// Returns map[string]*ParsedSvgData which maps each asset ID to its parsed SVG data.
 	// Returns error when the batch retrieval fails.
 	BulkGetAssetRawSVG(ctx context.Context, assetIDs []string) (map[string]*ParsedSvgData, error)
 
-	// GetArtefactServePath returns the URL path to serve a specific artefact,
-	// including the content hash for cache busting. Returns empty string if the
-	// artefact is not found.
+	// GetArtefactServePath returns the URL path to serve a specific artefact, including the
+	// content hash for cache busting. Returns empty string if the artefact is not found.
 	//
 	// Takes artefactID (string) which identifies the artefact.
 	//
@@ -125,10 +120,9 @@ type RegistryPort interface {
 	// Takes artefactID (string) which uniquely identifies the artefact.
 	// Takes sourcePath (string) which specifies the original file path.
 	// Takes sourceData (io.Reader) which provides the artefact content.
-	// Takes storageBackendID (string) which identifies where to store the
-	// artefact.
-	// Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the
-	// processing profiles to apply.
+	// Takes storageBackendID (string) which identifies where to store the artefact.
+	// Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the processing
+	// profiles to apply.
 	//
 	// Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 	// Returns error when the upsert operation fails.
@@ -142,9 +136,9 @@ type RegistryPort interface {
 	) (*registry_dto.ArtefactMeta, error)
 }
 
-// RenderService provides the main interface for rendering HTML from AST
-// structures. It handles web pages, emails, and plain text output, and also
-// builds theme CSS and collects metadata.
+// RenderService provides the main interface for rendering HTML from AST structures. It
+// handles web pages, emails, and plain text output, and also builds theme CSS and
+// collects metadata.
 type RenderService interface {
 	// BuildThemeCSS generates the CSS stylesheet for the website theme.
 	//
@@ -157,12 +151,11 @@ type RenderService interface {
 	// CollectMetadata gathers metadata from the request and site configuration.
 	//
 	// Takes request (*http.Request) which is the incoming HTTP request.
-	// Takes metadata (*templater_dto.InternalMetadata) which holds internal
-	// metadata to populate.
+	// Takes metadata (*templater_dto.InternalMetadata) which holds internal metadata to
+	// populate.
 	// Takes siteConfig (*config.WebsiteConfig) which provides site-specific settings.
 	//
-	// Returns []render_dto.LinkHeader which contains link headers for the
-	// response.
+	// Returns []render_dto.LinkHeader which contains link headers for the response.
 	// Returns error when metadata collection fails.
 	CollectMetadata(ctx context.Context, request *http.Request, metadata *templater_dto.InternalMetadata, siteConfig *config.WebsiteConfig) ([]render_dto.LinkHeader, *render_dto.ProbeData, error)
 
@@ -195,7 +188,6 @@ type RenderService interface {
 
 	// GetLastEmailAssetRequests returns the most recent email asset requests.
 	//
-	// Returns []*EmailAssetRequest which contains the last batch of asset
-	// requests.
+	// Returns []*EmailAssetRequest which contains the last batch of asset requests.
 	GetLastEmailAssetRequests() []*email_dto.EmailAssetRequest
 }

@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// MockCryptoService is a test double for crypto_domain.CryptoServicePort.
-// Nil function fields return zero values. Call counts are tracked atomically.
+// MockCryptoService is a test double for crypto_domain.CryptoServicePort. Nil function
+// fields return zero values. Call counts are tracked atomically.
 type MockCryptoService struct {
 	EncryptFunc func(ctx context.Context, plaintext string) (string, error)
 
@@ -76,60 +76,62 @@ type MockCryptoService struct {
 
 	CloseFunc func(ctx context.Context) error
 
-	EncryptCallCount int64
+	EncryptCallCount atomic.Int64
 
-	DecryptCallCount int64
+	DecryptCallCount atomic.Int64
 
-	EncryptWithKeyCallCount int64
+	EncryptWithKeyCallCount atomic.Int64
 
-	EncryptBatchCallCount int64
+	EncryptBatchCallCount atomic.Int64
 
-	DecryptBatchCallCount int64
+	DecryptBatchCallCount atomic.Int64
 
-	RotateKeyCallCount int64
+	RotateKeyCallCount atomic.Int64
 
-	GetActiveKeyIDCallCount int64
+	GetActiveKeyIDCallCount atomic.Int64
 
-	DecryptAndReEncryptCallCount int64
+	DecryptAndReEncryptCallCount atomic.Int64
 
-	HealthCheckCallCount int64
+	HealthCheckCallCount atomic.Int64
 
-	EncryptStreamCallCount int64
+	EncryptStreamCallCount atomic.Int64
 
-	DecryptStreamCallCount int64
+	DecryptStreamCallCount atomic.Int64
 
-	NewEncryptCallCount int64
+	NewEncryptCallCount atomic.Int64
 
-	NewDecryptCallCount int64
+	NewDecryptCallCount atomic.Int64
 
-	NewBatchEncryptCallCount int64
+	NewBatchEncryptCallCount atomic.Int64
 
-	NewBatchDecryptCallCount int64
+	NewBatchDecryptCallCount atomic.Int64
 
-	NewStreamEncryptCallCount int64
+	NewStreamEncryptCallCount atomic.Int64
 
-	NewStreamDecryptCallCount int64
+	NewStreamDecryptCallCount atomic.Int64
 
-	RegisterProviderCallCount int64
+	RegisterProviderCallCount atomic.Int64
 
-	SetDefaultProviderCallCount int64
+	SetDefaultProviderCallCount atomic.Int64
 
-	GetProvidersCallCount int64
+	GetProvidersCallCount atomic.Int64
 
-	HasProviderCallCount int64
+	HasProviderCallCount atomic.Int64
 
-	ListProvidersCallCount int64
+	ListProvidersCallCount atomic.Int64
 
-	CloseCallCount int64
+	CloseCallCount atomic.Int64
 }
 
-var _ crypto_domain.CryptoServicePort = (*MockCryptoService)(nil)
+var (
+	_ crypto_domain.CryptoServicePort = (*MockCryptoService)(nil)
+)
 
 // Encrypt delegates to EncryptFunc if set.
 //
 // Returns zero values if EncryptFunc is nil.
 func (m *MockCryptoService) Encrypt(ctx context.Context, plaintext string) (string, error) {
-	atomic.AddInt64(&m.EncryptCallCount, 1)
+	m.EncryptCallCount.Add(1)
 	if m.EncryptFunc != nil {
 		return m.EncryptFunc(ctx, plaintext)
 	}
@@ -140,7 +142,7 @@ func (m *MockCryptoService) Encrypt(ctx context.Context, plaintext string) (stri
 //
 // Returns zero values if DecryptFunc is nil.
 func (m *MockCryptoService) Decrypt(ctx context.Context, ciphertext string) (string, error) {
-	atomic.AddInt64(&m.DecryptCallCount, 1)
+	m.DecryptCallCount.Add(1)
 	if m.DecryptFunc != nil {
 		return m.DecryptFunc(ctx, ciphertext)
 	}
@@ -151,7 +153,7 @@ func (m *MockCryptoService) Decrypt(ctx context.Context, ciphertext string) (str
 //
 // Returns zero values if EncryptWithKeyFunc is nil.
 func (m *MockCryptoService) EncryptWithKey(ctx context.Context, plaintext string, keyID string) (string, error) {
-	atomic.AddInt64(&m.EncryptWithKeyCallCount, 1)
+	m.EncryptWithKeyCallCount.Add(1)
 	if m.EncryptWithKeyFunc != nil {
 		return m.EncryptWithKeyFunc(ctx, plaintext, keyID)
 	}
@@ -162,7 +164,7 @@ func (m *MockCryptoService) EncryptWithKey(ctx context.Context, plaintext string
 //
 // Returns zero values if EncryptBatchFunc is nil.
 func (m *MockCryptoService) EncryptBatch(ctx context.Context, plaintexts []string) ([]string, error) {
-	atomic.AddInt64(&m.EncryptBatchCallCount, 1)
+	m.EncryptBatchCallCount.Add(1)
 	if m.EncryptBatchFunc != nil {
 		return m.EncryptBatchFunc(ctx, plaintexts)
 	}
@@ -173,7 +175,7 @@ func (m *MockCryptoService) EncryptBatch(ctx context.Context, plaintexts []strin
 //
 // Returns zero values if DecryptBatchFunc is nil.
 func (m *MockCryptoService) DecryptBatch(ctx context.Context, ciphertexts []string) ([]string, error) {
-	atomic.AddInt64(&m.DecryptBatchCallCount, 1)
+	m.DecryptBatchCallCount.Add(1)
 	if m.DecryptBatchFunc != nil {
 		return m.DecryptBatchFunc(ctx, ciphertexts)
 	}
@@ -184,7 +186,7 @@ func (m *MockCryptoService) DecryptBatch(ctx context.Context, ciphertexts []stri
 //
 // Returns nil if RotateKeyFunc is nil.
 func (m *MockCryptoService) RotateKey(ctx context.Context, oldKeyID, newKeyID string) error {
-	atomic.AddInt64(&m.RotateKeyCallCount, 1)
+	m.RotateKeyCallCount.Add(1)
 	if m.RotateKeyFunc != nil {
 		return m.RotateKeyFunc(ctx, oldKeyID, newKeyID)
 	}
@@ -195,7 +197,7 @@ func (m *MockCryptoService) RotateKey(ctx context.Context, oldKeyID, newKeyID st
 //
 // Returns zero values if GetActiveKeyIDFunc is nil.
 func (m *MockCryptoService) GetActiveKeyID(ctx context.Context) (string, error) {
-	atomic.AddInt64(&m.GetActiveKeyIDCallCount, 1)
+	m.GetActiveKeyIDCallCount.Add(1)
 	if m.GetActiveKeyIDFunc != nil {
 		return m.GetActiveKeyIDFunc(ctx)
 	}
@@ -206,7 +208,7 @@ func (m *MockCryptoService) GetActiveKeyID(ctx context.Context) (string, error) 
 //
 // Returns zero values if DecryptAndReEncryptFunc is nil.
 func (m *MockCryptoService) DecryptAndReEncrypt(ctx context.Context, ciphertext string) (plaintext, newCiphertext string, wasReEncrypted bool, err error) {
-	atomic.AddInt64(&m.DecryptAndReEncryptCallCount, 1)
+	m.DecryptAndReEncryptCallCount.Add(1)
 	if m.DecryptAndReEncryptFunc != nil {
 		return m.DecryptAndReEncryptFunc(ctx, ciphertext)
 	}
@@ -217,7 +219,7 @@ func (m *MockCryptoService) DecryptAndReEncrypt(ctx context.Context, ciphertext 
 //
 // Returns nil if HealthCheckFunc is nil.
 func (m *MockCryptoService) HealthCheck(ctx context.Context) error {
-	atomic.AddInt64(&m.HealthCheckCallCount, 1)
+	m.HealthCheckCallCount.Add(1)
 	if m.HealthCheckFunc != nil {
 		return m.HealthCheckFunc(ctx)
 	}
@@ -228,7 +230,7 @@ func (m *MockCryptoService) HealthCheck(ctx context.Context) error {
 //
 // Returns zero values if EncryptStreamFunc is nil.
 func (m *MockCryptoService) EncryptStream(ctx context.Context, output io.Writer, keyID string) (io.WriteCloser, error) {
-	atomic.AddInt64(&m.EncryptStreamCallCount, 1)
+	m.EncryptStreamCallCount.Add(1)
 	if m.EncryptStreamFunc != nil {
 		return m.EncryptStreamFunc(ctx, output, keyID)
 	}
@@ -239,7 +241,7 @@ func (m *MockCryptoService) EncryptStream(ctx context.Context, output io.Writer,
 //
 // Returns zero values if DecryptStreamFunc is nil.
 func (m *MockCryptoService) DecryptStream(ctx context.Context, input io.Reader) (io.ReadCloser, error) {
-	atomic.AddInt64(&m.DecryptStreamCallCount, 1)
+	m.DecryptStreamCallCount.Add(1)
 	if m.DecryptStreamFunc != nil {
 		return m.DecryptStreamFunc(ctx, input)
 	}
@@ -250,7 +252,7 @@ func (m *MockCryptoService) DecryptStream(ctx context.Context, input io.Reader) 
 //
 // Returns nil if NewEncryptFunc is nil.
 func (m *MockCryptoService) NewEncrypt() *crypto_domain.EncryptBuilder {
-	atomic.AddInt64(&m.NewEncryptCallCount, 1)
+	m.NewEncryptCallCount.Add(1)
 	if m.NewEncryptFunc != nil {
 		return m.NewEncryptFunc()
 	}
@@ -261,7 +263,7 @@ func (m *MockCryptoService) NewEncrypt() *crypto_domain.EncryptBuilder {
 //
 // Returns nil if NewDecryptFunc is nil.
 func (m *MockCryptoService) NewDecrypt() *crypto_domain.DecryptBuilder {
-	atomic.AddInt64(&m.NewDecryptCallCount, 1)
+	m.NewDecryptCallCount.Add(1)
 	if m.NewDecryptFunc != nil {
 		return m.NewDecryptFunc()
 	}
@@ -272,7 +274,7 @@ func (m *MockCryptoService) NewDecrypt() *crypto_domain.DecryptBuilder {
 //
 // Returns nil if NewBatchEncryptFunc is nil.
 func (m *MockCryptoService) NewBatchEncrypt() *crypto_domain.BatchEncryptBuilder {
-	atomic.AddInt64(&m.NewBatchEncryptCallCount, 1)
+	m.NewBatchEncryptCallCount.Add(1)
 	if m.NewBatchEncryptFunc != nil {
 		return m.NewBatchEncryptFunc()
 	}
@@ -283,7 +285,7 @@ func (m *MockCryptoService) NewBatchEncrypt() *crypto_domain.BatchEncryptBuilder
 //
 // Returns nil if NewBatchDecryptFunc is nil.
 func (m *MockCryptoService) NewBatchDecrypt() *crypto_domain.BatchDecryptBuilder {
-	atomic.AddInt64(&m.NewBatchDecryptCallCount, 1)
+	m.NewBatchDecryptCallCount.Add(1)
 	if m.NewBatchDecryptFunc != nil {
 		return m.NewBatchDecryptFunc()
 	}
@@ -294,7 +296,7 @@ func (m *MockCryptoService) NewBatchDecrypt() *crypto_domain.BatchDecryptBuilder
 //
 // Returns nil if NewStreamEncryptFunc is nil.
 func (m *MockCryptoService) NewStreamEncrypt() *crypto_domain.StreamEncryptBuilder {
-	atomic.AddInt64(&m.NewStreamEncryptCallCount, 1)
+	m.NewStreamEncryptCallCount.Add(1)
 	if m.NewStreamEncryptFunc != nil {
 		return m.NewStreamEncryptFunc()
 	}
@@ -305,7 +307,7 @@ func (m *MockCryptoService) NewStreamEncrypt() *crypto_domain.StreamEncryptBuild
 //
 // Returns nil if NewStreamDecryptFunc is nil.
 func (m *MockCryptoService) NewStreamDecrypt() *crypto_domain.StreamDecryptBuilder {
-	atomic.AddInt64(&m.NewStreamDecryptCallCount, 1)
+	m.NewStreamDecryptCallCount.Add(1)
 	if m.NewStreamDecryptFunc != nil {
 		return m.NewStreamDecryptFunc()
 	}
@@ -316,7 +318,7 @@ func (m *MockCryptoService) NewStreamDecrypt() *crypto_domain.StreamDecryptBuild
 //
 // Returns nil if RegisterProviderFunc is nil.
 func (m *MockCryptoService) RegisterProvider(ctx context.Context, name string, provider crypto_domain.EncryptionProvider) error {
-	atomic.AddInt64(&m.RegisterProviderCallCount, 1)
+	m.RegisterProviderCallCount.Add(1)
 	if m.RegisterProviderFunc != nil {
 		return m.RegisterProviderFunc(ctx, name, provider)
 	}
@@ -327,7 +329,7 @@ func (m *MockCryptoService) RegisterProvider(ctx context.Context, name string, p
 //
 // Returns nil if SetDefaultProviderFunc is nil.
 func (m *MockCryptoService) SetDefaultProvider(name string) error {
-	atomic.AddInt64(&m.SetDefaultProviderCallCount, 1)
+	m.SetDefaultProviderCallCount.Add(1)
 	if m.SetDefaultProviderFunc != nil {
 		return m.SetDefaultProviderFunc(name)
 	}
@@ -338,7 +340,7 @@ func (m *MockCryptoService) SetDefaultProvider(name string) error {
 //
 // Returns nil if GetProvidersFunc is nil.
 func (m *MockCryptoService) GetProviders(ctx context.Context) []string {
-	atomic.AddInt64(&m.GetProvidersCallCount, 1)
+	m.GetProvidersCallCount.Add(1)
 	if m.GetProvidersFunc != nil {
 		return m.GetProvidersFunc(ctx)
 	}
@@ -349,7 +351,7 @@ func (m *MockCryptoService) GetProviders(ctx context.Context) []string {
 //
 // Returns false if HasProviderFunc is nil.
 func (m *MockCryptoService) HasProvider(name string) bool {
-	atomic.AddInt64(&m.HasProviderCallCount, 1)
+	m.HasProviderCallCount.Add(1)
 	if m.HasProviderFunc != nil {
 		return m.HasProviderFunc(name)
 	}
@@ -360,7 +362,7 @@ func (m *MockCryptoService) HasProvider(name string) bool {
 //
 // Returns nil if ListProvidersFunc is nil.
 func (m *MockCryptoService) ListProviders(ctx context.Context) []provider_domain.ProviderInfo {
-	atomic.AddInt64(&m.ListProvidersCallCount, 1)
+	m.ListProvidersCallCount.Add(1)
 	if m.ListProvidersFunc != nil {
 		return m.ListProvidersFunc(ctx)
 	}
@@ -371,7 +373,7 @@ func (m *MockCryptoService) ListProviders(ctx context.Context) []provider_domain
 //
 // Returns nil if CloseFunc is nil.
 func (m *MockCryptoService) Close(ctx context.Context) error {
-	atomic.AddInt64(&m.CloseCallCount, 1)
+	m.CloseCallCount.Add(1)
 	if m.CloseFunc != nil {
 		return m.CloseFunc(ctx)
 	}

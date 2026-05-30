@@ -26,7 +26,6 @@ import (
 	"strings"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -36,13 +35,18 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 )
 
-const useIsolatedCachesForDebugging = false
+const (
+	useIsolatedCachesForDebugging = false
+)
 
-var testLogger = logger_domain.GetLogger("test")
+var (
+	testLogger = logger_domain.GetLogger("test")
+)
 
 type testCase struct {
 	Name string
@@ -282,4 +286,6 @@ func (m *mockComponentCache) Clear(_ context.Context) {
 
 }
 
-var _ annotator_domain.ComponentCachePort = (*mockComponentCache)(nil)
+var (
+	_ annotator_domain.ComponentCachePort = (*mockComponentCache)(nil)
+)

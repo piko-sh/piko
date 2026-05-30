@@ -1,0 +1,4 @@
+{
+  "description": "Generic struct with pointer-receiver method split across files within a single package",
+  "expected": "values=[10 20 30] sum=60"
+}

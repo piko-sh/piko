@@ -18,8 +18,8 @@
 
 package templater_dto
 
-// PageDefinition holds the path and template details for a page.
-// It stores both the original and normalised paths for routing.
+// PageDefinition holds the path and template details for a page. It stores both the
+// original and normalised paths for routing.
 type PageDefinition struct {
 	// OriginalPath is the unmodified request path used for logging and error messages.
 	OriginalPath string

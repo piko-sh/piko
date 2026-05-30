@@ -22,9 +22,9 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/json"
 )
 
 func TestCreateEnvelopedCiphertext(t *testing.T) {

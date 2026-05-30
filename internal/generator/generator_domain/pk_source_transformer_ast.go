@@ -40,8 +40,8 @@ const (
 	// jsVarScopeElement is the JavaScript variable name for the scope element.
 	jsVarScopeElement = "s"
 
-	// jsVarInstances is the JavaScript variable name for the WeakMap that stores
-	// component instances keyed by their DOM elements.
+	// jsVarInstances is the JavaScript variable name for the WeakMap that stores component
+	// instances keyed by their DOM elements.
 	jsVarInstances = "__instances__"
 
 	// jsVarGetScope is the function name used to retrieve scope elements.
@@ -50,24 +50,24 @@ const (
 	// jsVarGetInstance is the function name used to retrieve a scoped instance.
 	jsVarGetInstance = "__getInstance__"
 
-	// jsVarCreateInst is the JavaScript variable name for the function that
-	// creates component instances.
+	// jsVarCreateInst is the JavaScript variable name for the function that creates
+	// component instances.
 	jsVarCreateInst = "__createInstance__"
 
 	// jsSelectorPageID is the CSS selector for elements with a page ID attribute.
 	jsSelectorPageID = "[data-pageid]"
 
-	// jsSelectorPartial is the CSS selector for partial template containers.
-	// We use [partial_name] not [partial] because [partial] is on ALL elements
-	// inside a partial (for CSS scoping), but only the container has [partial_name].
+	// jsSelectorPartial is the CSS selector for partial template containers. We use
+	// [partial_name] not [partial] because [partial] is on ALL elements inside a partial
+	// (for CSS scoping), but only the container has [partial_name].
 	jsSelectorPartial = "[partial_name]"
 
 	// jsNewline is the newline character used when building JavaScript output.
 	jsNewline = "\n"
 )
 
-// pkTransformBuilder creates transformed PK source code using AST
-// building. This is safer than string joining for making correct JavaScript.
+// pkTransformBuilder creates transformed PK source code using AST building. This is safer
+// than string joining for making correct JavaScript.
 type pkTransformBuilder struct {
 	// ast builds JavaScript AST nodes for code generation.
 	ast *jsASTBuilder
@@ -75,8 +75,7 @@ type pkTransformBuilder struct {
 
 // buildImportStmt creates the import statement for PK framework identifiers.
 //
-// Takes identifiers ([]string) which specifies the PK framework symbols to
-// import.
+// Takes identifiers ([]string) which specifies the PK framework symbols to import.
 //
 // Returns parsejs.IStmt which is the import statement for the PK framework.
 func (b *pkTransformBuilder) buildImportStmt(identifiers []string) parsejs.IStmt {
@@ -91,12 +90,12 @@ func (b *pkTransformBuilder) buildInstancesDecl() parsejs.IStmt {
 		b.ast.newNew(b.ast.newIdentifier("WeakMap")))
 }
 
-// buildGetScopeFunc creates the __getScope__ function that finds the scope
-// element for event handlers.
+// buildGetScopeFunc creates the __getScope__ function that finds the scope element for
+// event handlers.
 //
-// The generated function checks partial_name first (inner scope) before
-// data-pageid (outer scope) so that partials inside pages get the correct
-// partial scope. Falls back to document.body if no scope element is found.
+// The generated function checks partial_name first (inner scope) before data-pageid
+// (outer scope) so that partials inside pages get the correct partial scope. Falls back
+// to document.body if no scope element is found.
 //
 // Returns parsejs.IStmt which is the generated function statement.
 func (b *pkTransformBuilder) buildGetScopeFunc() parsejs.IStmt {
@@ -143,8 +142,8 @@ func (b *pkTransformBuilder) buildGetScopeFunc() parsejs.IStmt {
 	})
 }
 
-// buildGetInstanceFunc creates the async __getInstance__ function that
-// retrieves or creates a scoped instance.
+// buildGetInstanceFunc creates the async __getInstance__ function that retrieves or
+// creates a scoped instance.
 //
 // Generates:
 //
@@ -205,8 +204,7 @@ func (b *pkTransformBuilder) buildExportWrapper(functionName string) parsejs.ISt
 
 // buildSetExportsCall creates the PageContext registration call.
 //
-// Generates:
-// getGlobalPageContext().setExports({ fn1, fn2, ... });
+// Generates: getGlobalPageContext().setExports({ fn1, fn2, ... });
 //
 // Takes functionNames ([]string) which lists the function names to export.
 //
@@ -231,8 +229,8 @@ func (b *pkTransformBuilder) buildSetExportsCall(functionNames []string) parsejs
 //
 // Generates: return { fn1, fn2, ... };
 //
-// Takes functionNames ([]string) which lists the function names to include as
-// shorthand properties in the returned object.
+// Takes functionNames ([]string) which lists the function names to include as shorthand
+// properties in the returned object.
 //
 // Returns string which contains the rendered return statement.
 func (b *pkTransformBuilder) buildFactoryReturnObject(functionNames []string) string {
@@ -244,11 +242,10 @@ func (b *pkTransformBuilder) buildFactoryReturnObject(functionNames []string) st
 	return b.ast.renderStmt(returnStmt)
 }
 
-// renderExportFunc renders an export function statement, removing the extra
-// trailing semicolon that the library adds.
+// renderExportFunc renders an export function statement, removing the extra trailing
+// semicolon that the library adds.
 //
-// Takes statement (parsejs.IStmt) which is the export function
-// statement to render.
+// Takes statement (parsejs.IStmt) which is the export function statement to render.
 //
 // Returns string which is the rendered statement without a trailing semicolon.
 func (b *pkTransformBuilder) renderExportFunc(statement parsejs.IStmt) string {
@@ -256,26 +253,25 @@ func (b *pkTransformBuilder) renderExportFunc(statement parsejs.IStmt) string {
 	return strings.TrimSuffix(rendered, ";")
 }
 
-// buildActionImportStmt creates the import statement for the generated action
-// namespace.
+// buildActionImportStmt creates the import statement for the generated action namespace.
 //
-// Returns parsejs.IStmt which is the import statement for action from the
-// generated actions file.
+// Returns parsejs.IStmt which is the import statement for action from the generated
+// actions file.
 func (b *pkTransformBuilder) buildActionImportStmt() parsejs.IStmt {
 	return b.ast.newImport([]string{"action"}, PKActionsGenURL)
 }
 
-// buildEagerInit generates a self-invoking block that eagerly creates the
-// factory instance at module load time. This ensures that side-effect code
-// inside __createInstance__ (such as piko.hooks.on registrations) runs
-// immediately rather than waiting for the first event handler invocation.
+// buildEagerInit generates a self-invoking block that eagerly creates the factory
+// instance at module load time. This ensures that side-effect code inside
+// __createInstance__ (such as piko.hooks.on registrations) runs immediately rather than
+// waiting for the first event handler invocation.
 //
-// The scope element is resolved using the same partial/page/body fallback
-// chain as __getScope__. The instance is stored in the WeakMap so that
-// subsequent event-driven calls via __getInstance__ reuse it.
+// The scope element is resolved using the same partial/page/body fallback chain as
+// __getScope__. The instance is stored in the WeakMap so that subsequent event-driven
+// calls via __getInstance__ reuse it.
 //
-// Takes componentName (string) which identifies the component for partial
-// selector targeting. When empty, the generic partial selector is used.
+// Takes componentName (string) which identifies the component for partial selector
+// targeting. When empty, the generic partial selector is used.
 //
 // Returns string which contains the eager initialisation block.
 func (*pkTransformBuilder) buildEagerInit(componentName string) string {
@@ -289,18 +285,17 @@ func (*pkTransformBuilder) buildEagerInit(componentName string) string {
 		`.has(__s__))` + jsVarInstances + `.set(__s__,` + jsVarCreateInst + `(__s__));}`
 }
 
-// buildReinitExport generates an exported __reinit__ function that re-runs
-// scope resolution and instance creation for the current DOM.
+// buildReinitExport generates an exported __reinit__ function that re-runs scope
+// resolution and instance creation for the current DOM.
 //
-// ES module import() is idempotent  - the browser caches modules and does not
-// re-execute them on subsequent imports. During SPA navigation, the eager init
-// block (buildEagerInit) only runs once at first load. __reinit__ provides a
-// callable entry point that the framework invokes after each SPA navigation to
-// create fresh instances for new DOM elements, ensuring pk.onConnected and
-// other lifecycle hooks fire correctly.
+// ES module import() is idempotent - the browser caches modules and does not re-execute
+// them on subsequent imports. During SPA navigation, the eager init block
+// (buildEagerInit) only runs once at first load. __reinit__ provides a callable entry
+// point that the framework invokes after each SPA navigation to create fresh instances
+// for new DOM elements, ensuring pk.onConnected and other lifecycle hooks fire correctly.
 //
-// Takes componentName (string) which identifies the component for partial
-// selector targeting. When empty, the generic partial selector is used.
+// Takes componentName (string) which identifies the component for partial selector
+// targeting. When empty, the generic partial selector is used.
 //
 // Returns string which contains the exported __reinit__ function.
 func (*pkTransformBuilder) buildReinitExport(componentName string) string {
@@ -317,10 +312,10 @@ func (*pkTransformBuilder) buildReinitExport(componentName string) string {
 // buildFullTransform generates the complete transformed source code.
 //
 // Takes imports ([]string) which lists the modules to import.
-// Takes functions ([]exportedFunctionInfo) which describes the top-level
-// functions to wrap as exports.
-// Takes transformedUserSource (string) which is the user's source with export
-// keywords already stripped.
+// Takes functions ([]exportedFunctionInfo) which describes the top-level functions to
+// wrap as exports.
+// Takes transformedUserSource (string) which is the user's source with export keywords
+// already stripped.
 //
 // Returns string which is the fully assembled JavaScript module source.
 func (b *pkTransformBuilder) buildFullTransform(
@@ -376,8 +371,8 @@ func newPKTransformBuilder() *pkTransformBuilder {
 	return &pkTransformBuilder{ast: newJSASTBuilder()}
 }
 
-// filterFrameworkImports removes "action" from the imports list since it is
-// imported separately from actions.gen.js.
+// filterFrameworkImports removes "action" from the imports list since it is imported
+// separately from actions.gen.js.
 //
 // Takes imports ([]string) which is the list of import names to filter.
 //

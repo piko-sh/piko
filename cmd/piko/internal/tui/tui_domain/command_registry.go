@@ -28,9 +28,9 @@ import (
 
 // CommandHandler runs a registered command.
 //
-// The handler receives the arguments parsed from the input line and the
-// model so it can mutate state. Returning a non-nil tea.Cmd defers an
-// action to the bubbletea dispatch loop.
+// The handler receives the arguments parsed from the input line and the model so it can
+// mutate state. Returning a non-nil tea.Cmd defers an action to the bubbletea dispatch
+// loop.
 type CommandHandler func(args []string, model *Model) tea.Cmd
 
 // Command describes a single entry in the command palette.
@@ -48,8 +48,8 @@ type Command struct {
 	Aliases []string
 }
 
-// CommandRegistry stores commands keyed by name and alias for quick
-// lookup. It is safe for concurrent reads after initialisation.
+// CommandRegistry stores commands keyed by name and alias for quick lookup. It is safe
+// for concurrent reads after initialisation.
 type CommandRegistry struct {
 	// commands is the map of registered commands keyed by name and alias.
 	commands map[string]Command
@@ -65,8 +65,8 @@ func NewCommandRegistry() *CommandRegistry {
 	return &CommandRegistry{commands: make(map[string]Command)}
 }
 
-// Register stores cmd under its Name and every Alias. Duplicate
-// registrations panic to surface configuration errors at start-up.
+// Register stores cmd under its Name and every Alias. Duplicate registrations panic to
+// surface configuration errors at start-up.
 //
 // Takes cmd (Command) which is the entry to register.
 //
@@ -103,13 +103,12 @@ func (r *CommandRegistry) Lookup(name string) (Command, bool) {
 	return cmd, ok
 }
 
-// Complete returns commands whose names start with prefix, sorted
-// alphabetically by name. Aliases are not returned to avoid duplicates.
+// Complete returns commands whose names start with prefix, sorted alphabetically by name.
+// Aliases are not returned to avoid duplicates.
 //
 // Takes prefix (string) which is the typed prefix.
 //
-// Returns []Command which is the (possibly empty) sorted list of
-// candidates.
+// Returns []Command which is the (possibly empty) sorted list of candidates.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (r *CommandRegistry) Complete(prefix string) []Command {
@@ -149,8 +148,8 @@ func (r *CommandRegistry) Names() []string {
 	return names
 }
 
-// Commands returns the unique registered commands, sorted by canonical
-// name. Aliases are deduplicated so each command appears once.
+// Commands returns the unique registered commands, sorted by canonical name. Aliases are
+// deduplicated so each command appears once.
 //
 // Returns []Command which is the sorted list of unique commands.
 //
@@ -171,11 +170,11 @@ func (r *CommandRegistry) Commands() []Command {
 	return out
 }
 
-// ParseCommand splits an input line of the form ":name arg1 arg2" into
-// the command name and arguments.
+// ParseCommand splits an input line of the form ":name arg1 arg2" into the command name
+// and arguments.
 //
-// The leading colon is optional. Quoted arguments are not currently
-// supported; arguments are split on whitespace.
+// The leading colon is optional. Quoted arguments are not currently supported; arguments
+// are split on whitespace.
 //
 // Takes line (string) which is the user-typed input.
 //

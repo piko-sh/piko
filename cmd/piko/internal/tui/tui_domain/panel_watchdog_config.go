@@ -40,8 +40,8 @@ const (
 	WatchdogConfigPanelTitle = "Watchdog Config"
 )
 
-// configSection groups related fields into a labelled block. Sections
-// are rendered top-to-bottom and the cursor selects one for emphasis.
+// configSection groups related fields into a labelled block. Sections are rendered
+// top-to-bottom and the cursor selects one for emphasis.
 type configSection struct {
 	// Label is the section heading text.
 	Label string
@@ -50,8 +50,8 @@ type configSection struct {
 	Fields []configField
 }
 
-// configField is a single key-value row inside a section. The Value is
-// computed each render from the active status snapshot.
+// configField is a single key-value row inside a section. The Value is computed each
+// render from the active status snapshot.
 type configField struct {
 	// Value renders the field's value text from a status snapshot.
 	Value func(*WatchdogStatus) string
@@ -60,8 +60,8 @@ type configField struct {
 	Label string
 }
 
-// configSnapshotMsg carries a refreshed status snapshot. Err is non-nil
-// when the fetch failed; the panel surfaces it as a banner.
+// configSnapshotMsg carries a refreshed status snapshot. Err is non-nil when the fetch
+// failed; the panel surfaces it as a banner.
 type configSnapshotMsg struct {
 	// Status is the fetched watchdog status snapshot.
 	Status *WatchdogStatus
@@ -70,9 +70,9 @@ type configSnapshotMsg struct {
 	Err error
 }
 
-// WatchdogConfigPanel renders the watchdog configuration as a read-only
-// inspector. The watchdog is not live-reconfigurable; this panel exists
-// so operators can confirm what the running daemon is configured with.
+// WatchdogConfigPanel renders the watchdog configuration as a read-only inspector. The
+// watchdog is not live-reconfigurable; this panel exists so operators can confirm what
+// the running daemon is configured with.
 type WatchdogConfigPanel struct {
 	// provider supplies status snapshots used to populate the inspector.
 	provider WatchdogProvider
@@ -338,9 +338,9 @@ func configCaptureSection() configSection {
 	}
 }
 
-// renderSectionHeader renders the heading row for a section. The label
-// is always upper-cased; when active the row is wrapped in the cursor
-// style and prefixed with the section marker.
+// renderSectionHeader renders the heading row for a section. The label is always
+// upper-cased; when active the row is wrapped in the cursor style and prefixed with the
+// section marker.
 //
 // Takes label (string) which is the section heading text.
 // Takes width (int) which is the row width.
@@ -371,8 +371,7 @@ func (p *WatchdogConfigPanel) renderFieldRow(key, value string, width int) strin
 
 // snapshot returns the cached status under a read lock.
 //
-// Returns *WatchdogStatus which is the cached snapshot, or nil when none
-// is available.
+// Returns *WatchdogStatus which is the cached snapshot, or nil when none is available.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogConfigPanel) snapshot() *WatchdogStatus {
@@ -383,8 +382,8 @@ func (p *WatchdogConfigPanel) snapshot() *WatchdogStatus {
 
 // fetchCmd asks the provider for a fresh status.
 //
-// Returns tea.Cmd which produces a configSnapshotMsg, or nil when no
-// provider is configured.
+// Returns tea.Cmd which produces a configSnapshotMsg, or nil when no provider is
+// configured.
 func (p *WatchdogConfigPanel) fetchCmd() tea.Cmd {
 	if p.provider == nil {
 		return nil
@@ -466,8 +465,8 @@ func defaultDash(s string) string {
 	return s
 }
 
-// formatTimeOrDash returns the RFC3339 representation of t, or the em-dash
-// glyph when t is the zero value.
+// formatTimeOrDash returns the RFC3339 representation of t, or the em-dash glyph when t
+// is the zero value.
 //
 // Takes t (time.Time) which is the value to format.
 //

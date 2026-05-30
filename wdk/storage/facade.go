@@ -29,12 +29,12 @@ import (
 )
 
 const (
-	// StorageNameDefault is the name of the default storage provider used when no
-	// specific provider is specified.
+	// StorageNameDefault is the name of the default storage provider used when no specific
+	// provider is specified.
 	StorageNameDefault = storage_dto.StorageProviderDefault
 
-	// StorageNameSystem is the name of the system storage provider used for
-	// internal framework operations.
+	// StorageNameSystem is the name of the system storage provider used for internal
+	// framework operations.
 	StorageNameSystem = storage_dto.StorageProviderSystem
 
 	// StorageRepositoryDefault is the name of the default storage repository.
@@ -56,16 +56,16 @@ type Service = storage_domain.Service
 // ServiceOption is a functional option for setting up the storage service.
 type ServiceOption = storage_domain.ServiceOption
 
-// ProviderPort defines the interface that all storage providers must implement.
-// Implement it to create custom or mock providers.
+// ProviderPort defines the interface that all storage providers must implement. Implement
+// it to create custom or mock providers.
 type ProviderPort = storage_domain.StorageProviderPort
 
-// DispatcherPort defines the interface for storage dispatchers that handle
-// operations in the background.
+// DispatcherPort defines the interface for storage dispatchers that handle operations in
+// the background.
 type DispatcherPort = storage_domain.StorageDispatcherPort
 
-// StreamTransformerPort represents the interface for stream transformers
-// such as compression and encryption.
+// StreamTransformerPort represents the interface for stream transformers such as
+// compression and encryption.
 type StreamTransformerPort = storage_domain.StreamTransformerPort
 
 // PutParams holds all parameters needed to upload an object.
@@ -80,8 +80,7 @@ type CopyParams = storage_dto.CopyParams
 // PresignParams holds the parameters needed to create a presigned URL.
 type PresignParams = storage_dto.PresignParams
 
-// PresignDownloadParams holds all parameters needed to generate a presigned
-// download URL.
+// PresignDownloadParams holds all parameters needed to generate a presigned download URL.
 type PresignDownloadParams = storage_dto.PresignDownloadParams
 
 // PutManyParams holds parameters for batch upload operations.
@@ -93,8 +92,8 @@ type RemoveManyParams = storage_dto.RemoveManyParams
 // MigrateParams holds parameters for moving objects between storage providers.
 type MigrateParams = storage_dto.MigrateParams
 
-// BatchResult represents the result of a batch operation with per-object
-// success or failure details.
+// BatchResult represents the result of a batch operation with per-object success or
+// failure details.
 type BatchResult = storage_dto.BatchResult
 
 // ObjectInfo contains metadata about a stored object.
@@ -103,8 +102,7 @@ type ObjectInfo = storage_domain.ObjectInfo
 // DispatcherConfig holds settings for the background storage dispatcher.
 type DispatcherConfig = storage_domain.DispatcherConfig
 
-// DispatcherStats provides runtime statistics for monitoring the storage
-// dispatcher.
+// DispatcherStats provides runtime statistics for monitoring the storage dispatcher.
 type DispatcherStats = storage_domain.DispatcherStats
 
 // RetryConfig holds settings for retry behaviour.
@@ -113,8 +111,7 @@ type RetryConfig = storage_domain.RetryConfig
 // CircuitBreakerConfig holds settings for circuit breaker behaviour.
 type CircuitBreakerConfig = storage_domain.CircuitBreakerConfig
 
-// ProviderOption is a functional option for configuring provider-specific
-// settings.
+// ProviderOption is a functional option for configuring provider-specific settings.
 type ProviderOption = storage_domain.ProviderOption
 
 // UploadBuilder provides a builder for uploading new objects to storage.
@@ -126,8 +123,7 @@ type RequestBuilder = storage_domain.RequestBuilder
 // ProviderRateLimiter provides rate limiting for storage providers.
 type ProviderRateLimiter = storage_domain.ProviderRateLimiter
 
-// ProviderRateLimitConfig holds rate limiting configuration for a storage
-// provider.
+// ProviderRateLimitConfig holds rate limiting configuration for a storage provider.
 type ProviderRateLimitConfig = storage_domain.ProviderRateLimitConfig
 
 // ProviderOptions holds settings for storage providers.
@@ -160,12 +156,10 @@ var (
 
 	// ApplyProviderOptions applies functional options to create a rate limiter.
 	//
-	// Takes defaults (ProviderRateLimitConfig) which provides the base
-	// configuration.
+	// Takes defaults (ProviderRateLimitConfig) which provides the base configuration.
 	// Takes opts (...ProviderOption) which modifies the rate limiting settings.
 	//
-	// Returns *ProviderRateLimiter which is the configured rate limiter ready for
-	// use.
+	// Returns *ProviderRateLimiter which is the configured rate limiter ready for use.
 	ApplyProviderOptions = storage_domain.ApplyProviderOptions
 
 	// IsRetryableError checks whether an error is temporary and worth retrying.
@@ -178,8 +172,8 @@ var (
 
 // NewService creates a new storage service instance.
 //
-// Takes defaultProviderName (string) which specifies the provider to use when
-// none is specified.
+// Takes defaultProviderName (string) which specifies the provider to use when none is
+// specified.
 // Takes opts (...ServiceOption) which configures service limits and behaviour.
 //
 // Returns Service which is the configured storage service ready for use.
@@ -205,16 +199,13 @@ func GetDefaultService() (Service, error) {
 	return service, nil
 }
 
-// NewUploadBuilder creates an upload builder for composing and uploading
-// objects.
+// NewUploadBuilder creates an upload builder for composing and uploading objects.
 //
 // Takes service (Service) which is the storage service to use for uploads.
-// Takes reader (io.Reader) which provides the content to upload. The caller
-// retains ownership of the reader and is responsible for closing it after Do()
-// returns.
+// Takes reader (io.Reader) which provides the content to upload. The caller retains
+// ownership of the reader and is responsible for closing it after Do() returns.
 //
-// Returns *UploadBuilder which provides a fluent interface for uploading
-// objects.
+// Returns *UploadBuilder which provides a fluent interface for uploading objects.
 // Returns error when service or reader is nil.
 //
 // Example:
@@ -238,8 +229,8 @@ func NewUploadBuilder(service Service, reader io.Reader) (*UploadBuilder, error)
 	return service.NewUpload(reader), nil
 }
 
-// NewUploadBuilderFromDefault creates a new upload builder using the
-// framework's bootstrapped service.
+// NewUploadBuilderFromDefault creates a new upload builder using the framework's
+// bootstrapped service.
 //
 // Takes reader (io.Reader) which provides the content to upload.
 //
@@ -264,15 +255,13 @@ func NewUploadBuilderFromDefault(reader io.Reader) (*UploadBuilder, error) {
 	return NewUploadBuilder(service, reader)
 }
 
-// NewRequestBuilder creates a new request builder for operating on existing
-// objects.
+// NewRequestBuilder creates a new request builder for operating on existing objects.
 //
 // Takes service (Service) which is the storage service to use for operations.
 // Takes repository (string) which identifies the storage repository.
 // Takes key (string) which identifies the object within the repository.
 //
-// Returns *RequestBuilder which provides a fluent interface for object
-// operations.
+// Returns *RequestBuilder which provides a fluent interface for object operations.
 // Returns error when service is nil or repository/key is empty.
 func NewRequestBuilder(service Service, repository, key string) (*RequestBuilder, error) {
 	if service == nil {
@@ -287,15 +276,14 @@ func NewRequestBuilder(service Service, repository, key string) (*RequestBuilder
 	return service.NewRequest(repository, key), nil
 }
 
-// NewRequestBuilderFromDefault creates a new request builder using the
-// framework's bootstrapped service.
+// NewRequestBuilderFromDefault creates a new request builder using the framework's
+// bootstrapped service.
 //
 // Takes repository (string) which identifies the storage repository.
 // Takes key (string) which identifies the object within the repository.
 //
 // Returns *RequestBuilder which is the configured builder ready for use.
-// Returns error when the framework has not been bootstrapped or parameters
-// are invalid.
+// Returns error when the framework has not been bootstrapped or parameters are invalid.
 //
 // Example:
 //

@@ -24,6 +24,8 @@ import (
 )
 
 // MySQL returns an EngineConfig for MySQL databases.
+//
+// Returns db.EngineConfig which wires the MySQL engine and migration dialect.
 func MySQL() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "mysql",

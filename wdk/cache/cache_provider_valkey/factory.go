@@ -28,27 +28,24 @@ import (
 
 // Config holds all Valkey-specific configuration.
 type Config struct {
-	// KeyRegistry specifies an EncodingRegistry for complex key types such as
-	// structs. If nil, keys are encoded using fmt.Sprintf, which is suitable for
-	// primitive types.
+	// KeyRegistry specifies an EncodingRegistry for complex key types such as structs. If
+	// nil, keys are encoded using fmt.Sprintf, which is suitable for primitive types.
 	KeyRegistry *cache.EncodingRegistry
 
 	// Registry specifies the encoding registry for cache values; required.
 	Registry *cache.EncodingRegistry
 
-	// TLSConfig enables TLS connections to Valkey. If nil, plain connections
-	// are used.
+	// TLSConfig enables TLS connections to Valkey. If nil, plain connections are used.
 	TLSConfig *tls.Config
 
-	// Password is the Valkey authentication password; empty means no
-	// authentication.
+	// Password is the Valkey authentication password; empty means no authentication.
 	Password string
 
 	// Username is the Valkey ACL username; empty uses the default user.
 	Username string
 
-	// Namespace is a prefix added to all keys (e.g., "myapp:").
-	// Recommended for shared Valkey instances to prevent key collisions.
+	// Namespace is a prefix added to all keys (e.g., "myapp:"). Recommended for shared
+	// Valkey instances to prevent key collisions.
 	Namespace string
 
 	// Address is the Valkey server address (for example, "localhost:6379").
@@ -66,16 +63,16 @@ type Config struct {
 	// DB is the Valkey database number, ranging from 0 to 15.
 	DB int
 
-	// OperationTimeout specifies the timeout for standard Valkey operations.
-	// Default is 2 seconds.
+	// OperationTimeout specifies the timeout for standard Valkey operations. Default is 2
+	// seconds.
 	OperationTimeout time.Duration
 
-	// AtomicOperationTimeout is the maximum time allowed for atomic operations
-	// such as Compute functions. Default is 5 seconds.
+	// AtomicOperationTimeout is the maximum time allowed for atomic operations such as
+	// Compute functions. Default is 5 seconds.
 	AtomicOperationTimeout time.Duration
 
-	// BulkOperationTimeout is the maximum duration for bulk operations such as
-	// BulkGet and BulkSet. Default is 10 seconds.
+	// BulkOperationTimeout is the maximum duration for bulk operations such as BulkGet and
+	// BulkSet. Default is 10 seconds.
 	BulkOperationTimeout time.Duration
 
 	// FlushTimeout is the maximum time allowed for flush operations. Default is 30s.
@@ -84,25 +81,23 @@ type Config struct {
 	// SearchTimeout is the timeout for FT.SEARCH operations. Default is 5 seconds.
 	SearchTimeout time.Duration
 
-	// MaxComputeRetries is the maximum number of optimistic lock retries.
-	// Default is 10.
+	// MaxComputeRetries is the maximum number of optimistic lock retries. Default is 10.
 	MaxComputeRetries int
 
-	// AllowUnsafeFLUSHDB enables the use of FLUSHDB in InvalidateAll when
-	// Namespace is empty. WARNING: This deletes ALL keys in the database, not
-	// just cache keys.
+	// AllowUnsafeFLUSHDB enables the use of FLUSHDB in InvalidateAll when Namespace is
+	// empty. WARNING: This deletes ALL keys in the database, not just cache keys.
 	AllowUnsafeFLUSHDB bool
 
-	// DisableAutoPipelining disables valkey-go's automatic pipelining.
-	// This should almost never be used; it exists for debugging only.
+	// DisableAutoPipelining disables valkey-go's automatic pipelining. This should almost
+	// never be used; it exists for debugging only.
 	DisableAutoPipelining bool
 }
 
-// applyConfigDefaults sets sensible defaults for any zero-valued fields in the
-// given Config.
+// applyConfigDefaults sets sensible defaults for any zero-valued fields in the given
+// Config.
 //
-// Takes config (*Config) which is modified in place to fill any zero-valued fields
-// with sensible defaults.
+// Takes config (*Config) which is modified in place to fill any zero-valued fields with
+// sensible defaults.
 func applyConfigDefaults(config *Config) {
 	cache_domain.ApplyProviderDefaults(cache_domain.ProviderDefaultsParams{
 		DefaultTTL:             &config.DefaultTTL,

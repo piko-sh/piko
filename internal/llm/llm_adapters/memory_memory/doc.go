@@ -16,17 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package memory_memory implements [llm_domain.MemoryStorePort] using
-// in-memory storage suited for development, testing, and
-// single-instance deployments.
+// Package memory_memory implements [llm_domain.MemoryStorePort] using in-memory storage
+// suited for development, testing, and single-instance deployments.
 //
-// It persists LLM conversation state in a plain Go map where
-// durability across restarts is not required. All stored values are
-// deep-copied on read and write to prevent aliasing.
+// It persists LLM conversation state in a plain Go map where durability across restarts
+// is not required. All stored values are deep-copied on read and write to prevent
+// aliasing.
 //
 // # Thread safety
 //
-// All exported methods on [Store] are safe for concurrent use.
-// A sync.RWMutex guards the underlying map; reads acquire a shared
-// lock and writes acquire an exclusive lock.
+// All exported methods on [Store] are safe for concurrent use. A sync.RWMutex guards the
+// underlying map; reads acquire a shared lock and writes acquire an exclusive lock.
 package memory_memory

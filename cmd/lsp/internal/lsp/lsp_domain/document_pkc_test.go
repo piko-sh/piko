@@ -28,35 +28,37 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-const testPKCContent = `<template name="test-comp">
-<div class="wrapper">
-<span p-text="state.message"></span>
-<button p-on:click="handleClick">Click</button>
-<input _ref="myInput" />
-</div>
-</template>
+const (
+	testPKCContent = `<template name="test-comp">
+	<div class="wrapper">
+	<span p-text="state.message"></span>
+	<button p-on:click="handleClick">Click</button>
+	<input _ref="myInput" />
+	</div>
+	</template>
 
-<script lang="ts">
-const state = {
-  message: "hello" as string,
-  count: 0 as number,
-  active: true as boolean
-};
+	<script lang="ts">
+	const state = {
+	  message: "hello" as string,
+	  count: 0 as number,
+	  active: true as boolean
+	};
 
-function handleClick(event) {
-  state.count++;
-}
+	function handleClick(event) {
+	  state.count++;
+	}
 
-function reset() {
-  state.count = 0;
-}
-</script>
+	function reset() {
+	  state.count = 0;
+	}
+	</script>
 
-<style>
-.wrapper {
-  padding: 1rem;
-}
-</style>`
+	<style>
+	.wrapper {
+	  padding: 1rem;
+	}
+	</style>`
+)
 
 func newTestPKCDoc() *document {
 	return &document{

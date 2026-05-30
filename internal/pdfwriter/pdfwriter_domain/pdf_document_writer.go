@@ -18,9 +18,9 @@
 
 package pdfwriter_domain
 
-// Minimal PDF file writer. Produces a valid PDF 1.7 document by writing
-// the header, indirect objects with tracked byte offsets, a cross-reference
-// table, and the trailer. No external dependencies.
+// Minimal PDF file writer. Produces a valid PDF 1.7 document by writing the header,
+// indirect objects with tracked byte offsets, a cross-reference table, and the trailer.
+// No external dependencies.
 
 import (
 	"bytes"
@@ -43,8 +43,8 @@ type PdfDocumentWriter struct {
 	buffer bytes.Buffer
 }
 
-// AllocateObject reserves an object number and returns it. Object
-// numbers start at 1 (object 0 is the free-list head in the xref).
+// AllocateObject reserves an object number and returns it. Object numbers start at 1
+// (object 0 is the free-list head in the xref).
 //
 // Returns int which is the newly allocated object number.
 func (writer *PdfDocumentWriter) AllocateObject() int {
@@ -52,15 +52,15 @@ func (writer *PdfDocumentWriter) AllocateObject() int {
 	return len(writer.objects)
 }
 
-// WriteHeader writes the PDF file header including the binary
-// comment that marks this as a binary PDF.
+// WriteHeader writes the PDF file header including the binary comment that marks this as
+// a binary PDF.
 func (writer *PdfDocumentWriter) WriteHeader() {
 	_, _ = writer.buffer.WriteString("%PDF-1.7\n")
 	_, _ = writer.buffer.Write([]byte{'%', 0xe2, 0xe3, 0xcf, 0xd3, '\n'})
 }
 
-// WriteObject writes an indirect object with the given number and
-// body content. The byte offset is recorded for the xref table.
+// WriteObject writes an indirect object with the given number and body content. The byte
+// offset is recorded for the xref table.
 //
 // Takes number (int) which is the object number from AllocateObject.
 // Takes body (string) which is the PDF dictionary or value content.
@@ -72,17 +72,16 @@ func (writer *PdfDocumentWriter) WriteObject(number int, body string) {
 	fmt.Fprintf(&writer.buffer, "%d 0 obj\n%s\nendobj\n", number, body)
 }
 
-// WriteStreamObject writes an indirect object whose body is a
-// dictionary followed by a zlib-compressed stream.
+// WriteStreamObject writes an indirect object whose body is a dictionary followed by a
+// zlib-compressed stream.
 //
-// The /Length key is set automatically. If compression fails, the
-// content is written uncompressed as a fallback.
+// The /Length key is set automatically. If compression fails, the content is written
+// uncompressed as a fallback.
 //
 // Takes number (int) which is the object number from AllocateObject.
-// Takes dictionary (string) which holds additional dictionary entries
-// beyond /Filter and /Length.
-// Takes streamContent ([]byte) which is the raw bytes to compress and
-// write.
+// Takes dictionary (string) which holds additional dictionary entries beyond /Filter and
+// /Length.
+// Takes streamContent ([]byte) which is the raw bytes to compress and write.
 func (writer *PdfDocumentWriter) WriteStreamObject(number int, dictionary string, streamContent []byte) {
 	if number < 1 || number > len(writer.objects) {
 		return
@@ -107,16 +106,15 @@ func (writer *PdfDocumentWriter) WriteStreamObject(number int, dictionary string
 	_, _ = writer.buffer.WriteString("\nendstream\nendobj\n")
 }
 
-// WriteRawStreamObject writes an indirect object whose body is a
-// pre-formatted dictionary followed by a raw, uncompressed stream.
+// WriteRawStreamObject writes an indirect object whose body is a pre-formatted dictionary
+// followed by a raw, uncompressed stream.
 //
-// Unlike WriteStreamObject, the content is not compressed; the caller
-// is responsible for any encoding (e.g. DCTDecode for JPEG, or
-// pre-compressed FlateDecode data).
+// Unlike WriteStreamObject, the content is not compressed; the caller is responsible for
+// any encoding (e.g. DCTDecode for JPEG, or pre-compressed FlateDecode data).
 //
 // Takes number (int) which is the object number from AllocateObject.
-// Takes dictionary (string) which is the complete dictionary string
-// including angle brackets.
+// Takes dictionary (string) which is the complete dictionary string including angle
+// brackets.
 // Takes streamContent ([]byte) which is the raw bytes to write.
 func (writer *PdfDocumentWriter) WriteRawStreamObject(number int, dictionary string, streamContent []byte) {
 	if number < 1 || number > len(writer.objects) {
@@ -131,13 +129,12 @@ func (writer *PdfDocumentWriter) WriteRawStreamObject(number int, dictionary str
 	_, _ = writer.buffer.WriteString("\nendstream\nendobj\n")
 }
 
-// WriteTrailer writes the cross-reference table, trailer dictionary,
-// and the startxref footer.
+// WriteTrailer writes the cross-reference table, trailer dictionary, and the startxref
+// footer.
 //
-// Takes catalogueNumber (int) which is the object number of the
-// document catalogue.
-// Takes infoNumber (...int) which is the optional object number of
-// the document info dictionary; pass 0 to omit it.
+// Takes catalogueNumber (int) which is the object number of the document catalogue.
+// Takes infoNumber (...int) which is the optional object number of the document info
+// dictionary; pass 0 to omit it.
 func (writer *PdfDocumentWriter) WriteTrailer(catalogueNumber int, infoNumber ...int) {
 	crossReferenceOffset := writer.buffer.Len()
 
@@ -193,8 +190,8 @@ func FormatArray(items ...string) string {
 	return builder.String()
 }
 
-// FormatNumber formats a float64 as a PDF number, rendering as an
-// integer if whole or with two decimal places otherwise.
+// FormatNumber formats a float64 as a PDF number, rendering as an integer if whole or
+// with two decimal places otherwise.
 //
 // Takes value (float64) which is the number to format.
 //

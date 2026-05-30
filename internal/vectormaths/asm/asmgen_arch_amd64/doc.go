@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package asmgen_arch_amd64 provides the AMD64 assembly code
-// generation backend for SIMD vector mathematics operations.
+// Package asmgen_arch_amd64 provides the AMD64 assembly code generation backend for SIMD
+// vector mathematics operations.
 //
-// [VectormathsAMD64Arch] extends the core AMD64 architecture
-// with SSE and AVX2 implementations of dot product, squared
-// Euclidean distance, and L2 normalisation. All emitted
-// instructions use Plan 9 assembly syntax with standard
-// column-aligned formatting.
+// [VectormathsAMD64Arch] extends the core AMD64 architecture with SSE and AVX2
+// implementations of dot product, squared Euclidean distance, and L2 normalisation. All
+// emitted instructions use Plan 9 assembly syntax with standard column-aligned
+// formatting.
 package asmgen_arch_amd64

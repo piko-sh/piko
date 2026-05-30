@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package typegen_frontend bundles embedded TypeScript type definitions
-// for the Piko frontend framework.
+// Package typegen_frontend bundles embedded TypeScript type definitions for the Piko
+// frontend framework.
 //
-// The definitions are generated from TypeScript source by vite-plugin-dts
-// during the frontend build (npm run build in frontend/core) and embedded
-// into the Go binary via [embed.FS] so the daemon can copy them to a
-// project's dist/ts/ directory for IDE integration.
+// The definitions are generated from TypeScript source by vite-plugin-dts during the
+// frontend build (npm run build in frontend/core) and embedded into the Go binary via
+// [embed.FS] so the daemon can copy them to a project's dist/ts/ directory for IDE
+// integration.
 //
-// [typegen_adapters.NewTypeDefinitionService] reads from
-// [EmbeddedTypeDefinitions] to supply Piko framework types alongside
-// action stub types.
+// [typegen_adapters.NewTypeDefinitionService] reads from [EmbeddedTypeDefinitions] to
+// supply Piko framework types alongside action stub types.
 package typegen_frontend

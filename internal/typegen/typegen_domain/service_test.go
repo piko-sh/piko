@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-const testActionStubContent = "declare const actions: Record<string, unknown>;\n"
+const (
+	testActionStubContent = "declare const actions: Record<string, unknown>;\n"
+)
 
 func newTestTypeDefService() *TypeDefinitionService {
 	return NewTypeDefinitionService(typegen_frontend.EmbeddedTypeDefinitions, testActionStubContent)

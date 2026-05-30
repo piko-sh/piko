@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestFocusManagerInitialActive(t *testing.T) {
 	f := NewFocusManager()

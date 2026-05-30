@@ -23,7 +23,6 @@ import (
 	"errors"
 	"go/ast"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockCollectionProvider_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 
 	t.Run("delegates to NameFunc", func(t *testing.T) {
@@ -54,7 +53,7 @@ func TestMockCollectionProvider_Name(t *testing.T) {
 		got := m.Name()
 
 		assert.Equal(t, "markdown", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.NameCallCount))
+		assert.Equal(t, int64(1), m.NameCallCount.Load())
 	})
 }
 
@@ -68,7 +67,7 @@ func TestMockCollectionProvider_Type(t *testing.T) {
 		got := m.Type()
 
 		assert.Equal(t, ProviderType(""), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.TypeCallCount))
+		assert.Equal(t, int64(1), m.TypeCallCount.Load())
 	})
 
 	t.Run("delegates to TypeFunc", func(t *testing.T) {
@@ -80,7 +79,7 @@ func TestMockCollectionProvider_Type(t *testing.T) {
 		got := m.Type()
 
 		assert.Equal(t, ProviderType("static"), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.TypeCallCount))
+		assert.Equal(t, int64(1), m.TypeCallCount.Load())
 	})
 }
 
@@ -95,7 +94,7 @@ func TestMockCollectionProvider_DiscoverCollections(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DiscoverCollectionsCallCount))
+		assert.Equal(t, int64(1), m.DiscoverCollectionsCallCount.Load())
 	})
 
 	t.Run("delegates to DiscoverCollectionsFunc", func(t *testing.T) {
@@ -138,7 +137,7 @@ func TestMockCollectionProvider_ValidateTargetType(t *testing.T) {
 		err := m.ValidateTargetType(&ast.Ident{Name: "Post"})
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ValidateTargetTypeCallCount))
+		assert.Equal(t, int64(1), m.ValidateTargetTypeCallCount.Load())
 	})
 
 	t.Run("delegates to ValidateTargetTypeFunc", func(t *testing.T) {
@@ -182,7 +181,7 @@ func TestMockCollectionProvider_FetchStaticContent(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FetchStaticContentCallCount))
+		assert.Equal(t, int64(1), m.FetchStaticContentCallCount.Load())
 	})
 
 	t.Run("delegates to FetchStaticContentFunc", func(t *testing.T) {
@@ -227,7 +226,7 @@ func TestMockCollectionProvider_GenerateRuntimeFetcher(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GenerateRuntimeFetcherCallCount))
+		assert.Equal(t, int64(1), m.GenerateRuntimeFetcherCallCount.Load())
 	})
 
 	t.Run("delegates to GenerateRuntimeFetcherFunc", func(t *testing.T) {
@@ -272,7 +271,7 @@ func TestMockCollectionProvider_ComputeETag(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ComputeETagCallCount))
+		assert.Equal(t, int64(1), m.ComputeETagCallCount.Load())
 	})
 
 	t.Run("delegates to ComputeETagFunc", func(t *testing.T) {
@@ -316,7 +315,7 @@ func TestMockCollectionProvider_ValidateETag(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "", etag)
 		assert.False(t, changed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ValidateETagCallCount))
+		assert.Equal(t, int64(1), m.ValidateETagCallCount.Load())
 	})
 
 	t.Run("delegates to ValidateETagFunc", func(t *testing.T) {
@@ -360,7 +359,7 @@ func TestMockCollectionProvider_GenerateRevalidator(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GenerateRevalidatorCallCount))
+		assert.Equal(t, int64(1), m.GenerateRevalidatorCallCount.Load())
 	})
 
 	t.Run("delegates to GenerateRevalidatorFunc", func(t *testing.T) {
@@ -475,13 +474,13 @@ func TestMockCollectionProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.NameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.TypeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DiscoverCollectionsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ValidateTargetTypeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.FetchStaticContentCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GenerateRuntimeFetcherCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ComputeETagCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ValidateETagCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GenerateRevalidatorCallCount))
+	assert.Equal(t, int64(goroutines), m.NameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.TypeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DiscoverCollectionsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ValidateTargetTypeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.FetchStaticContentCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GenerateRuntimeFetcherCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ComputeETagCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ValidateETagCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GenerateRevalidatorCallCount.Load())
 }

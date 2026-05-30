@@ -30,44 +30,44 @@ func TestNamedReturns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"named_return_int", `
+		{name: "named_return_int", code: `
 func f() (result int) {
 	result = 42
 	return
 }
-f()`, int64(42)},
-		{"named_return_string", `
+f()`, expect: int64(42)},
+		{name: "named_return_string", code: `
 func f() (s string) {
 	s = "hello"
 	return
 }
-f()`, "hello"},
-		{"named_return_multiple", `
+f()`, expect: "hello"},
+		{name: "named_return_multiple", code: `
 func f() (a int, b int) {
 	a = 10
 	b = 20
 	return
 }
 x, y := f()
-x + y`, int64(30)},
-		{"named_return_modified", `
+x + y`, expect: int64(30)},
+		{name: "named_return_modified", code: `
 func f() (x int) {
 	x = 1
 	x += 9
 	return
 }
-f()`, int64(10)},
-		{"named_return_with_defer", `
+f()`, expect: int64(10)},
+		{name: "named_return_with_defer", code: `
 func f() (x int) {
 	defer func() { x = 99 }()
 	x = 1
 	return
 }
-f()`, int64(99)},
+f()`, expect: int64(99)},
 	}
 
 	for _, tt := range tests {
@@ -85,18 +85,18 @@ func TestImplicitReturns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"void_func", `
+		{name: "void_func", code: `
 func f() {}
 f()
-1`, int64(1)},
-		{"void_with_work", `
+1`, expect: int64(1)},
+		{name: "void_with_work", code: `
 func f() int { return 0 }
 f()
-1`, int64(1)},
+1`, expect: int64(1)},
 	}
 
 	for _, tt := range tests {
@@ -114,22 +114,22 @@ func TestTypeAssertions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"assert_int", `var x any = 42; x.(int)`, int(42)},
-		{"assert_string", `var x any = "hello"; x.(string)`, "hello"},
-		{"assert_float", `var x any = 3.14; x.(float64)`, float64(3.14)},
-		{"assert_bool", `var x any = true; x.(bool)`, true},
-		{"assert_comma_ok_true", `
+		{name: "assert_int", code: `var x any = 42; x.(int)`, expect: int(42)},
+		{name: "assert_string", code: `var x any = "hello"; x.(string)`, expect: "hello"},
+		{name: "assert_float", code: `var x any = 3.14; x.(float64)`, expect: float64(3.14)},
+		{name: "assert_bool", code: `var x any = true; x.(bool)`, expect: true},
+		{name: "assert_comma_ok_true", code: `
 var x any = 42
 _, ok := x.(int)
-ok`, true},
-		{"assert_comma_ok_false", `
+ok`, expect: true},
+		{name: "assert_comma_ok_false", code: `
 var x any = "hello"
 _, ok := x.(int)
-ok`, false},
+ok`, expect: false},
 	}
 
 	for _, tt := range tests {
@@ -147,30 +147,30 @@ func TestMultiReturnCopyPaths(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"two_ints", `
+		{name: "two_ints", code: `
 func f() (int, int) { return 10, 20 }
 a, b := f()
-a + b`, int64(30)},
-		{"int_and_string", `
+a + b`, expect: int64(30)},
+		{name: "int_and_string", code: `
 func f() (int, string) { return 42, "hello" }
 _, s := f()
-s`, "hello"},
-		{"three_values", `
+s`, expect: "hello"},
+		{name: "three_values", code: `
 func f() (int, int, int) { return 1, 2, 3 }
 a, b, c := f()
-a + b + c`, int64(6)},
-		{"bool_return", `
+a + b + c`, expect: int64(6)},
+		{name: "bool_return", code: `
 func f() (int, bool) { return 42, true }
 _, ok := f()
-ok`, true},
-		{"float_return", `
+ok`, expect: true},
+		{name: "float_return", code: `
 func f() (float64, float64) { return 1.5, 2.5 }
 a, b := f()
-a + b`, float64(4.0)},
+a + b`, expect: float64(4.0)},
 	}
 
 	for _, tt := range tests {
@@ -188,24 +188,24 @@ func TestUpvalueSync(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"capture_and_modify", `
+		{name: "capture_and_modify", code: `
 x := 10
 f := func() { x = 20 }
 f()
-x`, int64(20)},
-		{"capture_multiple", `
+x`, expect: int64(20)},
+		{name: "capture_multiple", code: `
 func f() int {
 	a := 1
 	b := 2
 	g := func() int { return a + b }
 	return g()
 }
-f()`, int64(3)},
-		{"counter_closure", `
+f()`, expect: int64(3)},
+		{name: "counter_closure", code: `
 func makeCounter() func() int {
 	n := 0
 	return func() int {
@@ -216,8 +216,8 @@ func makeCounter() func() int {
 c := makeCounter()
 c()
 c()
-c()`, int64(3)},
-		{"nested_capture", `
+c()`, expect: int64(3)},
+		{name: "nested_capture", code: `
 func f() int {
 	x := 42
 	g := func() func() int {
@@ -225,7 +225,7 @@ func f() int {
 	}
 	return g()()
 }
-f()`, int64(42)},
+f()`, expect: int64(42)},
 	}
 
 	for _, tt := range tests {
@@ -243,20 +243,20 @@ func TestReflectBinaryOps(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"interface_add", `
+		{name: "interface_add", code: `
 var x any = 10
 var y any = 20
-x.(int) + y.(int)`, int(30)},
-		{"interface_nil_check", `
+x.(int) + y.(int)`, expect: int(30)},
+		{name: "interface_nil_check", code: `
 var x any
-x == nil`, true},
-		{"interface_non_nil", `
+x == nil`, expect: true},
+		{name: "interface_non_nil", code: `
 var x any = "hello"
-x != nil`, true},
+x != nil`, expect: true},
 	}
 
 	for _, tt := range tests {
@@ -274,28 +274,28 @@ func TestTailCallPaths(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"simple_tail", `
+		{name: "simple_tail", code: `
 func f(n int) int {
 	if n <= 0 { return 0 }
 	return f(n - 1)
 }
-f(10)`, int64(0)},
-		{"tail_accumulator", `
+f(10)`, expect: int64(0)},
+		{name: "tail_accumulator", code: `
 func sum(n, acc int) int {
 	if n <= 0 { return acc }
 	return sum(n-1, acc+n)
 }
-sum(10, 0)`, int64(55)},
-		{"tail_with_string", `
+sum(10, 0)`, expect: int64(55)},
+		{name: "tail_with_string", code: `
 func repeat(s string, n int) string {
 	if n <= 0 { return s }
 	return repeat(s + "a", n-1)
 }
-len(repeat("", 5))`, int64(5)},
+len(repeat("", 5))`, expect: int64(5)},
 	}
 
 	for _, tt := range tests {
@@ -313,18 +313,18 @@ func TestDeferPaths(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"defer_modifies_named_return", `
+		{name: "defer_modifies_named_return", code: `
 func f() (x int) {
 	defer func() { x += 10 }()
 	x = 5
 	return
 }
-f()`, int64(15)},
-		{"defer_order_lifo", `
+f()`, expect: int64(15)},
+		{name: "defer_order_lifo", code: `
 func f() string {
 	result := ""
 	defer func() { result += "3" }()
@@ -332,22 +332,22 @@ func f() string {
 	defer func() { result += "1" }()
 	return result
 }
-f()`, ""},
-		{"recover_from_panic", `
+f()`, expect: ""},
+		{name: "recover_from_panic", code: `
 func f() string {
 	defer func() {
 		recover()
 	}()
 	panic("boom")
 }
-f()`, ""},
-		{"defer_runs_on_return", `
+f()`, expect: ""},
+		{name: "defer_runs_on_return", code: `
 func f() int {
 	x := 0
 	defer func() { x = 99 }()
 	return x
 }
-f()`, int64(0)},
+f()`, expect: int64(0)},
 	}
 
 	for _, tt := range tests {
@@ -365,16 +365,16 @@ func TestZeroTypedRegister(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"zero_int_var", `var x int; x`, int64(0)},
-		{"zero_float_var", `var f float64; f`, float64(0)},
-		{"zero_string_var", `var s string; s`, ""},
-		{"zero_bool_var", `var b bool; b`, false},
-		{"zero_slice_nil", `var s []int; s == nil`, true},
-		{"zero_map_nil", `var m map[string]int; m == nil`, true},
+		{name: "zero_int_var", code: `var x int; x`, expect: int64(0)},
+		{name: "zero_float_var", code: `var f float64; f`, expect: float64(0)},
+		{name: "zero_string_var", code: `var s string; s`, expect: ""},
+		{name: "zero_bool_var", code: `var b bool; b`, expect: false},
+		{name: "zero_slice_nil", code: `var s []int; s == nil`, expect: true},
+		{name: "zero_map_nil", code: `var m map[string]int; m == nil`, expect: true},
 	}
 
 	for _, tt := range tests {
@@ -392,9 +392,9 @@ func TestVMRangeOverTypedSlices(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "range_over_int_slice",
@@ -477,9 +477,9 @@ func TestVMRangeOverString(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 		{
 			name:   "range_over_string_with_index_and_rune",
@@ -503,9 +503,9 @@ func TestVMAppendFastPath(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 		{
 			name:   "append_int",
@@ -544,9 +544,9 @@ func TestVMMapOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "map_int_int",
@@ -644,9 +644,9 @@ func TestVMBuiltinPrint(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 		{
 			name:   "print_int",
@@ -695,9 +695,9 @@ func TestVMClosureCaptures(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "capture_int",
@@ -877,7 +877,9 @@ func TestVMNativeFastPathDispatch(t *testing.T) {
 
 	source := `package main
 
-import "fp"
+import (
+	"fp"
+)
 
 func run() int {
 	sum := 0
@@ -1012,10 +1014,10 @@ func TestVMNativeFunctionReturns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		fns    map[string]reflect.Value
-		source string
 		expect any
+		fns    map[string]reflect.Value
+		name   string
+		source string
 	}{
 		{
 			name: "native_returns_uint",
@@ -1024,7 +1026,9 @@ func TestVMNativeFunctionReturns(t *testing.T) {
 			},
 			source: `package main
 
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() uint64 { return testpkg.GetUint() }
 
@@ -1039,7 +1043,9 @@ func main() {}
 			},
 			source: `package main
 
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() complex128 { return testpkg.GetComplex() }
 
@@ -1054,7 +1060,9 @@ func main() {}
 			},
 			source: `package main
 
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() bool { return testpkg.GetBool() }
 
@@ -1163,7 +1171,9 @@ func TestVMNativeGoroutine(t *testing.T) {
 
 	source := `package main
 
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() int {
 	go testpkg.Send(42)
@@ -1191,7 +1201,9 @@ func TestVMNativeGoroutineCoercion(t *testing.T) {
 
 	source := `package main
 
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() int {
 	go testpkg.Send(42)
@@ -1212,9 +1224,9 @@ func TestVMDeferTypedArgs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "defer_with_float_arg",
@@ -1284,9 +1296,9 @@ func TestVMPrintUintComplex(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "print_uint",
@@ -1333,9 +1345,9 @@ func TestVMTypeAssertUintFloat(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "type_assert_to_uint",
@@ -1475,9 +1487,9 @@ func TestVMFunctionReturnsUintComplex(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "returns_uint",
@@ -1516,9 +1528,9 @@ func TestVMPanicRecover(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		source string
-		expect any
 	}{
 		{
 			name: "recover_in_called_function",
@@ -1585,10 +1597,10 @@ func TestVMMapNamedIntReflectFallback(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "named_int_map_get",
@@ -1653,10 +1665,10 @@ func TestVMTypeAssertionPaths(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "nil_interface_to_int_comma_ok",
@@ -1740,10 +1752,10 @@ func TestVMRangeUintAndComplexSlice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "range_uint_slice",
@@ -1809,7 +1821,7 @@ func main() {}
 	service := NewService()
 	result, err := service.EvalFile(context.Background(), source, "run")
 	require.NoError(t, err)
-	require.Equal(t, int64(42), result)
+	require.Equal(t, 42, result)
 }
 
 func TestVMIndexSetInterfaceSlice(t *testing.T) {

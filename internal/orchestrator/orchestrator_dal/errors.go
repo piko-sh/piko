@@ -18,7 +18,9 @@
 
 package orchestrator_dal
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrTaskNotFound is returned when a task with the given ID does not exist.
@@ -27,11 +29,11 @@ var (
 	// ErrWorkflowNotFound is returned when a workflow cannot be found by its ID.
 	ErrWorkflowNotFound = errors.New("workflow not found")
 
-	// ErrTransactionFailed is returned when a transaction cannot be committed or
-	// rolled back.
+	// ErrTransactionFailed is returned when a transaction cannot be committed or rolled
+	// back.
 	ErrTransactionFailed = errors.New("transaction failed")
 
-	// ErrDatabaseClosed is returned when operations are attempted on a closed
-	// database connection.
+	// ErrDatabaseClosed is returned when operations are attempted on a closed database
+	// connection.
 	ErrDatabaseClosed = errors.New("database connection is closed")
 )

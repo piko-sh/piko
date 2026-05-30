@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 // Package db_engine_sqlite implements the querier EnginePort for SQLite using a
-// hand-written recursive-descent parser. It converts SQLite DDL into catalogue
-// mutations and analyses DML queries to produce the raw query analysis that
-// the domain layer resolves into fully typed results.
+// hand-written recursive-descent parser. It converts SQLite DDL into catalogue mutations
+// and analyses DML queries to produce the raw query analysis that the domain layer
+// resolves into fully typed results.
 package db_engine_sqlite

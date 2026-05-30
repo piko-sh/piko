@@ -654,7 +654,7 @@ g.Greet("world")`,
 			code: `type Factory struct { Create func() any }
 f := Factory{Create: func() any { return 99 }}
 f.Create()`,
-			expect: int64(99),
+			expect: 99,
 		},
 		{
 			name: "func_field_in_map",

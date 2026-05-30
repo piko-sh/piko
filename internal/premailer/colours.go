@@ -179,18 +179,18 @@ var (
 		"yellowgreen":          0x9acd32ff,
 	}
 
-	// rgbRegex captures the R, G, and B components from rgb() and rgba() functions.
-	// It handles integers, percentages, and variations in whitespace and separators
-	// (comma or space).
+	// rgbRegex captures the R, G, and B components from rgb() and rgba() functions. It
+	// handles integers, percentages, and variations in whitespace and separators (comma or
+	// space).
 	rgbRegex = regexp.MustCompile(`(?i)rgba?\(\s*([\d.%]+)\s*[, ]?\s*([\d.%]+)\s*[, ]?\s*([\d.%]+)\s*(?:[, /]?\s*[\d.%]+)?\s*\)`)
 
-	// hslRegex captures the H, S, and L components from hsl() and hsla() functions.
-	// H is in degrees (0-360), S and L are percentages (0-100%).
+	// hslRegex captures the H, S, and L components from hsl() and hsla() functions. H is in
+	// degrees (0-360), S and L are percentages (0-100%).
 	hslRegex = regexp.MustCompile(`(?i)hsla?\(\s*([\d.]+)\s*[, ]?\s*([\d.%]+)\s*[, ]?\s*([\d.%]+)\s*(?:[, /]?\s*[\d.%]+)?\s*\)`)
 )
 
-// convertColorValues replaces colour names, rgb(), rgba(), hsl(), and hsla()
-// functions in a CSS property value with their six-digit hex forms.
+// convertColorValues replaces colour names, rgb(), rgba(), hsl(), and hsla() functions in
+// a CSS property value with their six-digit hex forms.
 //
 // Takes value (string) which is the CSS property value to convert.
 //
@@ -207,8 +207,7 @@ func convertColorValues(value string) string {
 //
 // Takes match (string) which is the colour string to convert.
 //
-// Returns string which is the hex colour code, or the original string if
-// parsing fails.
+// Returns string which is the hex colour code, or the original string if parsing fails.
 func convertHslMatch(match string) string {
 	parts := hslRegex.FindStringSubmatch(match)
 	if len(parts) < minRegexMatchParts {
@@ -241,13 +240,12 @@ func convertHslMatch(match string) string {
 
 // convertRgbMatch converts a single RGB or RGBA colour match to hex format.
 //
-// When the match does not have enough parts or any colour value is invalid,
-// returns the original match string unchanged.
+// When the match does not have enough parts or any colour value is invalid, returns the
+// original match string unchanged.
 //
 // Takes match (string) which is the RGB or RGBA colour string to convert.
 //
-// Returns string which is the hex colour code or the original match if
-// conversion fails.
+// Returns string which is the hex colour code or the original match if conversion fails.
 func convertRgbMatch(match string) string {
 	parts := rgbRegex.FindStringSubmatch(match)
 	if len(parts) < minRegexMatchParts {
@@ -278,13 +276,12 @@ func convertColorNames(value string) string {
 	return strings.Join(words, literalSpace)
 }
 
-// convertColorNameWord converts a word containing a colour name to its hex
-// value.
+// convertColorNameWord converts a word containing a colour name to its hex value.
 //
 // Takes word (string) which is the word to check for a colour name.
 //
-// Returns string which is the hex colour value if the word is a known colour
-// name, or the original word unchanged otherwise.
+// Returns string which is the hex colour value if the word is a known colour name, or the
+// original word unchanged otherwise.
 func convertColorNameWord(word string) string {
 	cleanWord := strings.TrimRight(word, ",;")
 	lowerWord := strings.ToLower(cleanWord)
@@ -355,15 +352,14 @@ func hslToRgb(hue, saturation, lightness float64) (red, green, blue int) {
 	return red, green, blue
 }
 
-// hueToRgb converts a hue value to an RGB colour component.
-// It is a helper function for HSL to RGB conversion.
+// hueToRgb converts a hue value to an RGB colour component. It is a helper function for
+// HSL to RGB conversion.
 //
 // Takes pValue (float64) which is the lower bound of the RGB range.
 // Takes qValue (float64) which is the upper bound of the RGB range.
 // Takes hueTemp (float64) which is the adjusted hue for this colour channel.
 //
-// Returns float64 which is the RGB colour component value between pValue and
-// qValue.
+// Returns float64 which is the RGB colour component value between pValue and qValue.
 func hueToRgb(pValue, qValue, hueTemp float64) float64 {
 	for hueTemp < 0 {
 		hueTemp += float64(colorMaxHue)
@@ -384,9 +380,8 @@ func hueToRgb(pValue, qValue, hueTemp float64) float64 {
 	return pValue
 }
 
-// parseColorComponent parses a colour component string into an integer value.
-// The input can be a plain number such as "255" or a percentage such as
-// "100%".
+// parseColorComponent parses a colour component string into an integer value. The input
+// can be a plain number such as "255" or a percentage such as "100%".
 //
 // Takes s (string) which is the colour component to parse.
 //

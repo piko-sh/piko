@@ -19,8 +19,8 @@
 package ast_domain
 
 // Provides streaming iteration over AST nodes with event-based traversal for
-// memory-efficient processing. Implements iterator patterns with pooled event
-// objects for element open/close, text nodes, and raw HTML content.
+// memory-efficient processing. Implements iterator patterns with pooled event objects for
+// element open/close, text nodes, and raw HTML content.
 
 import (
 	"sync"
@@ -49,8 +49,7 @@ const (
 
 // String returns the human-readable name of the AST event type.
 //
-// Returns string which is the event type name such as "ElementOpen" or
-// "Unknown".
+// Returns string which is the event type name such as "ElementOpen" or "Unknown".
 func (t astEventType) String() string {
 	switch t {
 	case elementOpen:
@@ -81,17 +80,19 @@ type astEvent struct {
 	isVoid bool
 }
 
-// astEventPool reuses astEvent instances to reduce allocation pressure during
-// AST streaming. Wrapped in atomic.Pointer so resetASTEventPool can swap the
-// underlying pool without racing concurrent Get/Put callers.
-var astEventPool atomic.Pointer[sync.Pool]
+var (
+	// astEventPool reuses astEvent instances to reduce allocation pressure during AST
+	// streaming. Wrapped in atomic.Pointer so resetASTEventPool can swap the underlying pool
+	// without racing concurrent Get/Put callers.
+	astEventPool atomic.Pointer[sync.Pool]
+)
 
 func init() {
 	astEventPool.Store(newASTEventPool())
 }
 
-// newASTEventPool builds a fresh sync.Pool whose New func returns a
-// zero-valued astEvent. Used by init and resetASTEventPool.
+// newASTEventPool builds a fresh sync.Pool whose New func returns a zero-valued astEvent.
+// Used by init and resetASTEventPool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newASTEventPool() *sync.Pool {
@@ -104,8 +105,8 @@ func newASTEventPool() *sync.Pool {
 
 // getASTEvent gets an astEvent from the sync.Pool.
 //
-// Returns *astEvent which is a reused event from the pool, or a new one if the
-// pool is empty.
+// Returns *astEvent which is a reused event from the pool, or a new one if the pool is
+// empty.
 func getASTEvent() *astEvent {
 	event, ok := astEventPool.Load().Get().(*astEvent)
 	if !ok {
@@ -131,8 +132,8 @@ func putASTEvent(event *astEvent) {
 	astEventPool.Load().Put(event)
 }
 
-// resetASTEventPool atomically swaps in a fresh AST event pool for test
-// isolation. Safe to call concurrently with Get/Put.
+// resetASTEventPool atomically swaps in a fresh AST event pool for test isolation. Safe
+// to call concurrently with Get/Put.
 func resetASTEventPool() {
 	astEventPool.Store(newASTEventPool())
 }

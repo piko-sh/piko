@@ -18,7 +18,9 @@
 
 package registry_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestArtefactMeta_GetProfile(t *testing.T) {
 	meta := &ArtefactMeta{

@@ -22,65 +22,69 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-var tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
-	"generate_series": {
-		{Name: "generate_series", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Nullable: false},
-	},
-	"generate_subscripts": {
-		{Name: "generate_subscripts", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Nullable: false},
-	},
-	"unnest": {
-		{Name: "unnest", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}, Nullable: true},
-	},
-	"json_each": {
-		{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"}, Nullable: true},
-	},
-	"json_each_text": {
-		{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
-	},
-	"jsonb_each": {
-		{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"}, Nullable: true},
-	},
-	"jsonb_each_text": {
-		{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
-	},
-	"json_array_elements": {
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"}, Nullable: true},
-	},
-	"jsonb_array_elements": {
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"}, Nullable: true},
-	},
-	"json_array_elements_text": {
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
-	},
-	"jsonb_array_elements_text": {
-		{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
-	},
-	"json_object_keys": {
-		{Name: "json_object_keys", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-	},
-	"jsonb_object_keys": {
-		{Name: "jsonb_object_keys", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-	},
-	"regexp_matches": {
-		{
-			Name: "regexp_matches",
-			SQLType: querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  "text[]",
-				ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
-			},
-			Nullable: true,
+var (
+	// tableValuedFunctionColumns maps each known PostgreSQL table-valued function name to
+	// the output columns it produces.
+	tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
+		"generate_series": {
+			{Name: "generate_series", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Nullable: false},
 		},
-	},
-	"regexp_split_to_table": {
-		{Name: "regexp_split_to_table", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
-	},
-	"string_to_table": {
-		{Name: "string_to_table", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
-	},
-}
+		"generate_subscripts": {
+			{Name: "generate_subscripts", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Nullable: false},
+		},
+		"unnest": {
+			{Name: "unnest", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}, Nullable: true},
+		},
+		"json_each": {
+			{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"}, Nullable: true},
+		},
+		"json_each_text": {
+			{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
+		},
+		"jsonb_each": {
+			{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"}, Nullable: true},
+		},
+		"jsonb_each_text": {
+			{Name: "key", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
+		},
+		"json_array_elements": {
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"}, Nullable: true},
+		},
+		"jsonb_array_elements": {
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"}, Nullable: true},
+		},
+		"json_array_elements_text": {
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
+		},
+		"jsonb_array_elements_text": {
+			{Name: "value", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
+		},
+		"json_object_keys": {
+			{Name: "json_object_keys", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+		},
+		"jsonb_object_keys": {
+			{Name: "jsonb_object_keys", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+		},
+		"regexp_matches": {
+			{
+				Name: "regexp_matches",
+				SQLType: querier_dto.SQLType{
+					Category:    querier_dto.TypeCategoryArray,
+					EngineName:  "text[]",
+					ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+				},
+				Nullable: true,
+			},
+		},
+		"regexp_split_to_table": {
+			{Name: "regexp_split_to_table", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: false},
+		},
+		"string_to_table": {
+			{Name: "string_to_table", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, Nullable: true},
+		},
+	}
+)

@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-const testCurrency = "USD"
+const (
+	testCurrency = "USD"
+)
 
 func TestNewBudgetManager(t *testing.T) {
 	store := NewMockBudgetStore()

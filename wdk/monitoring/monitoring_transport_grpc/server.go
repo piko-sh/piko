@@ -37,11 +37,15 @@ import (
 	"piko.sh/piko/internal/netutil"
 )
 
-var _ monitoring_domain.TransportServer = (*Server)(nil)
+var (
+	_ monitoring_domain.TransportServer = (*Server)(nil)
+)
 
-// maxPortRetries is the maximum number of port increments to try when
-// AutoNextPort is enabled.
-const maxPortRetries = 100
+const (
+	// maxPortRetries is the maximum number of port increments to try when AutoNextPort is
+	// enabled.
+	maxPortRetries = 100
+)
 
 // ServerConfig holds settings for the gRPC monitoring server.
 type ServerConfig struct {
@@ -51,13 +55,12 @@ type ServerConfig struct {
 	// GRPCServerOpts holds additional gRPC server options (e.g. TLS credentials).
 	GRPCServerOpts []grpc.ServerOption
 
-	// AutoNextPort enables automatic port selection when the configured port is
-	// already in use. The server will try up to maxPortRetries consecutive ports.
+	// AutoNextPort enables automatic port selection when the configured port is already in
+	// use. The server will try up to maxPortRetries consecutive ports.
 	AutoNextPort bool
 
-	// EnableReflection controls whether the gRPC reflection service is
-	// registered. Reflection exposes the full API surface, so consider
-	// disabling it in production.
+	// EnableReflection controls whether the gRPC reflection service is registered.
+	// Reflection exposes the full API surface, so consider disabling it in production.
 	EnableReflection bool
 }
 
@@ -72,16 +75,16 @@ type Server struct {
 	// grpcServer is the underlying gRPC server instance.
 	grpcServer *grpc.Server
 
-	// actualAddress holds the address the server is actually listening on,
-	// which may differ from config.Address when AutoNextPort is enabled.
-	actualAddress atomic.Value
+	// actualAddress holds the address the server is actually listening on, which may differ
+	// from config.Address when AutoNextPort is enabled.
+	actualAddress atomic.Pointer[string]
 
 	// config holds the server configuration including the listen address.
 	config ServerConfig
 }
 
-// serviceRegistrar is a function type that registers gRPC services on a
-// server. This is package-private; external users go through Transport().
+// serviceRegistrar is a function type that registers gRPC services on a server. This is
+// package-private; external users go through Transport().
 type serviceRegistrar func(server *grpc.Server, deps monitoring_domain.MonitoringDeps)
 
 // NewServer creates a new monitoring gRPC server.
@@ -137,14 +140,13 @@ func NewServer(deps monitoring_domain.MonitoringDeps, registrar serviceRegistrar
 	return server
 }
 
-// Start begins serving gRPC requests. When AutoNextPort is enabled, it retries
-// on consecutive ports if the configured port is already in use.
+// Start begins serving gRPC requests. When AutoNextPort is enabled, it retries on
+// consecutive ports if the configured port is already in use.
 //
-// Returns error when the server fails to start or encounters an error while
-// serving.
+// Returns error when the server fails to start or encounters an error while serving.
 //
-// Safe for concurrent use. The spawned goroutine runs until the context is
-// cancelled or the server encounters an error.
+// Safe for concurrent use. The spawned goroutine runs until the context is cancelled or
+// the server encounters an error.
 func (s *Server) Start(ctx context.Context) error {
 	listener, err := s.listen(ctx)
 	if err != nil {
@@ -152,7 +154,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	addr := listener.Addr().String()
-	s.actualAddress.Store(addr)
+	s.actualAddress.Store(&addr)
 
 	ctx, l := logger_domain.From(ctx, log)
 	l.Notice("Starting gRPC monitoring server",
@@ -180,14 +182,14 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 }
 
-// Stop shuts down the gRPC server gracefully with a 10-second timeout. If the
-// graceful shutdown does not complete within the timeout, the server is
-// forcefully stopped to prevent indefinite blocking.
+// Stop shuts down the gRPC server gracefully with a 10-second timeout. If the graceful
+// shutdown does not complete within the timeout, the server is forcefully stopped to
+// prevent indefinite blocking.
 //
 // Takes ctx (context.Context) for logging context propagation.
 //
-// Safe for concurrent use. The spawned goroutine runs until GracefulStop
-// completes or the timeout expires.
+// Safe for concurrent use. The spawned goroutine runs until GracefulStop completes or the
+// timeout expires.
 func (s *Server) Stop(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	l.Notice("Stopping gRPC monitoring server")
@@ -211,8 +213,8 @@ func (s *Server) Stop(ctx context.Context) {
 //
 // Returns string which is the network address the server listens on.
 func (s *Server) Address() string {
-	if addr, ok := s.actualAddress.Load().(string); ok && addr != "" {
-		return addr
+	if addr := s.actualAddress.Load(); addr != nil && *addr != "" {
+		return *addr
 	}
 	return s.config.Address
 }
@@ -293,9 +295,8 @@ func WithServerGRPCOptions(opts ...grpc.ServerOption) ServerOption {
 	}
 }
 
-// WithAutoNextPort enables automatic port selection. When the configured port
-// is already in use, the server tries the next port, up to maxPortRetries
-// attempts.
+// WithAutoNextPort enables automatic port selection. When the configured port is already
+// in use, the server tries the next port, up to maxPortRetries attempts.
 //
 // Takes enabled (bool) which controls whether auto-port selection is active.
 //
@@ -306,8 +307,8 @@ func WithAutoNextPort(enabled bool) ServerOption {
 	}
 }
 
-// WithServerReflection controls whether the gRPC reflection service is
-// registered. Reflection is enabled by default.
+// WithServerReflection controls whether the gRPC reflection service is registered.
+// Reflection is enabled by default.
 //
 // Takes enabled (bool) which controls whether reflection is active.
 //

@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 )
 
-// MockFSWriter is a test double for FSWriterPort where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockFSWriter is a test double for FSWriterPort where nil function fields return zero
+// values and call counts are tracked atomically.
 type MockFSWriter struct {
 	// WriteFileFunc is the function called by WriteFile.
 	WriteFileFunc func(ctx context.Context, filePath string, data []byte) error
@@ -36,20 +36,19 @@ type MockFSWriter struct {
 	// RemoveAllFunc is the function called by RemoveAll.
 	RemoveAllFunc func(path string) error
 
-	// WriteFileCallCount tracks how many times WriteFile
-	// was called.
-	WriteFileCallCount int64
+	// WriteFileCallCount tracks how many times WriteFile was called.
+	WriteFileCallCount atomic.Int64
 
-	// ReadDirCallCount tracks how many times ReadDir
-	// was called.
-	ReadDirCallCount int64
+	// ReadDirCallCount tracks how many times ReadDir was called.
+	ReadDirCallCount atomic.Int64
 
-	// RemoveAllCallCount tracks how many times RemoveAll
-	// was called.
-	RemoveAllCallCount int64
+	// RemoveAllCallCount tracks how many times RemoveAll was called.
+	RemoveAllCallCount atomic.Int64
 }
 
-var _ FSWriterPort = (*MockFSWriter)(nil)
+var (
+	_ FSWriterPort = (*MockFSWriter)(nil)
+)
 
 // WriteFile delegates to WriteFileFunc if set.
 //
@@ -59,7 +58,7 @@ var _ FSWriterPort = (*MockFSWriter)(nil)
 //
 // Returns nil if WriteFileFunc is nil.
 func (m *MockFSWriter) WriteFile(ctx context.Context, filePath string, data []byte) error {
-	atomic.AddInt64(&m.WriteFileCallCount, 1)
+	m.WriteFileCallCount.Add(1)
 	if m.WriteFileFunc != nil {
 		return m.WriteFileFunc(ctx, filePath, data)
 	}
@@ -72,7 +71,7 @@ func (m *MockFSWriter) WriteFile(ctx context.Context, filePath string, data []by
 //
 // Returns (nil, nil) if ReadDirFunc is nil.
 func (m *MockFSWriter) ReadDir(dirname string) ([]os.DirEntry, error) {
-	atomic.AddInt64(&m.ReadDirCallCount, 1)
+	m.ReadDirCallCount.Add(1)
 	if m.ReadDirFunc != nil {
 		return m.ReadDirFunc(dirname)
 	}
@@ -85,7 +84,7 @@ func (m *MockFSWriter) ReadDir(dirname string) ([]os.DirEntry, error) {
 //
 // Returns nil if RemoveAllFunc is nil.
 func (m *MockFSWriter) RemoveAll(path string) error {
-	atomic.AddInt64(&m.RemoveAllCallCount, 1)
+	m.RemoveAllCallCount.Add(1)
 	if m.RemoveAllFunc != nil {
 		return m.RemoveAllFunc(path)
 	}

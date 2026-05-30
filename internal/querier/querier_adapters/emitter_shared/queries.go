@@ -27,150 +27,147 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// QueryFileEmitState tracks which shared declarations have already been
-// emitted for a single query file to avoid duplicates.
+// QueryFileEmitState tracks which shared declarations have already been emitted for a
+// single query file to avoid duplicates.
 type QueryFileEmitState struct {
-	// OrderDirectionEmitted holds whether the order direction type has been
-	// emitted.
+	// OrderDirectionEmitted holds whether the order direction type has been emitted.
 	OrderDirectionEmitted bool
 
-	// OperatorsVarEmitted holds whether the operators variable has been
-	// emitted.
+	// OperatorsVarEmitted holds whether the operators variable has been emitted.
 	OperatorsVarEmitted bool
 
-	// DirectionsVarEmitted holds whether the directions variable has been
-	// emitted.
+	// DirectionsVarEmitted holds whether the directions variable has been emitted.
 	DirectionsVarEmitted bool
 
-	// SliceHelperEmitted holds whether the pikoExpandSlicePlaceholder helper
-	// function has been emitted for this file.
+	// SliceHelperEmitted holds whether the pikoExpandSlicePlaceholder helper function has
+	// been emitted for this file.
 	SliceHelperEmitted bool
 }
 
-// sliceHelperSourceTemplate holds the raw Go source template for the slice
-// expansion helper file, emitted as text because the renumbering algorithm
-// would be excessively verbose as AST nodes.
-const sliceHelperSourceTemplate = `package %s
+const (
+	// sliceHelperSourceTemplate holds the raw Go source template for the slice expansion
+	// helper file, emitted as text because the renumbering algorithm would be excessively
+	// verbose as AST nodes.
+	sliceHelperSourceTemplate = `package %s
 
-import (
-	"slices"
-	"strconv"
-	"strings"
-)
+	import (
+		"slices"
+		"strconv"
+		"strings"
+	)
 
-type pikoSliceExpansionSpec struct {
-	Placeholder int
-	Count       int
-}
-
-func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) string {
-	if len(specs) == 0 {
-		return query
+	type pikoSliceExpansionSpec struct {
+		Placeholder int
+		Count       int
 	}
 
-	sorted := make([]pikoSliceExpansionSpec, len(specs))
-	copy(sorted, specs)
-	slices.SortFunc(sorted, func(a, b pikoSliceExpansionSpec) int {
-		return a.Placeholder - b.Placeholder
-	})
-
-	type mapping struct {
-		newStart int
-		count    int
-	}
-	remap := make(map[int]mapping, len(sorted))
-	pos := 1
-	for _, spec := range sorted {
-		remap[spec.Placeholder] = mapping{newStart: pos, count: spec.Count}
-		if spec.Count > 0 {
-			pos += spec.Count
+	func pikoExpandSlicePlaceholders(query string, specs []pikoSliceExpansionSpec) string {
+		if len(specs) == 0 {
+			return query
 		}
-	}
 
-	type occurrence struct {
-		start       int
-		end         int
-		originalNum int
-		inParens    bool
-	}
+		sorted := make([]pikoSliceExpansionSpec, len(specs))
+		copy(sorted, specs)
+		slices.SortFunc(sorted, func(a, b pikoSliceExpansionSpec) int {
+			return a.Placeholder - b.Placeholder
+		})
 
-	var occurrences []occurrence
-	i := 0
-	for i < len(query) {
-		if query[i] == '?' && i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
-			start := i
-			i++
-			numStart := i
-			for i < len(query) && query[i] >= '0' && query[i] <= '9' {
+		type mapping struct {
+			newStart int
+			count    int
+		}
+		remap := make(map[int]mapping, len(sorted))
+		pos := 1
+		for _, spec := range sorted {
+			remap[spec.Placeholder] = mapping{newStart: pos, count: spec.Count}
+			if spec.Count > 0 {
+				pos += spec.Count
+			}
+		}
+
+		type occurrence struct {
+			start       int
+			end         int
+			originalNum int
+			inParens    bool
+		}
+
+		var occurrences []occurrence
+		i := 0
+		for i < len(query) {
+			if query[i] == '?' && i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
+				start := i
+				i++
+				numStart := i
+				for i < len(query) && query[i] >= '0' && query[i] <= '9' {
+					i++
+				}
+				n, _ := strconv.Atoi(query[numStart:i])
+				inParens := start > 0 && query[start-1] == '(' && i < len(query) && query[i] == ')'
+				occurrences = append(occurrences, occurrence{start: start, end: i, originalNum: n, inParens: inParens})
+			} else {
 				i++
 			}
-			n, _ := strconv.Atoi(query[numStart:i])
-			inParens := start > 0 && query[start-1] == '(' && i < len(query) && query[i] == ')'
-			occurrences = append(occurrences, occurrence{start: start, end: i, originalNum: n, inParens: inParens})
-		} else {
-			i++
 		}
-	}
 
-	if len(occurrences) == 0 {
-		return query
-	}
-
-	var b strings.Builder
-	b.Grow(len(query) + len(occurrences)*4)
-	prevEnd := 0
-	for _, occ := range occurrences {
-		m, ok := remap[occ.originalNum]
-		if !ok {
-			continue
+		if len(occurrences) == 0 {
+			return query
 		}
-		replStart := occ.start
-		replEnd := occ.end
-		var replacement string
-		switch {
-		case m.count == 0 && occ.inParens:
-			replacement = "(NULL)"
-			replStart--
-			replEnd++
-		case m.count > 1 && occ.inParens:
-			var sb strings.Builder
-			sb.Grow(m.count*4 + 2)
-			sb.WriteByte('(')
-			for j := range m.count {
-				if j > 0 {
-					sb.WriteByte(',')
-				}
-				sb.WriteByte('?')
-				sb.WriteString(strconv.Itoa(m.newStart + j))
+
+		var b strings.Builder
+		b.Grow(len(query) + len(occurrences)*4)
+		prevEnd := 0
+		for _, occ := range occurrences {
+			m, ok := remap[occ.originalNum]
+			if !ok {
+				continue
 			}
-			sb.WriteByte(')')
-			replacement = sb.String()
-			replStart--
-			replEnd++
-		default:
-			replacement = "?" + strconv.Itoa(m.newStart)
+			replStart := occ.start
+			replEnd := occ.end
+			var replacement string
+			switch {
+			case m.count == 0 && occ.inParens:
+				replacement = "(NULL)"
+				replStart--
+				replEnd++
+			case m.count > 1 && occ.inParens:
+				var sb strings.Builder
+				sb.Grow(m.count*4 + 2)
+				sb.WriteByte('(')
+				for j := range m.count {
+					if j > 0 {
+						sb.WriteByte(',')
+					}
+					sb.WriteByte('?')
+					sb.WriteString(strconv.Itoa(m.newStart + j))
+				}
+				sb.WriteByte(')')
+				replacement = sb.String()
+				replStart--
+				replEnd++
+			default:
+				replacement = "?" + strconv.Itoa(m.newStart)
+			}
+			b.WriteString(query[prevEnd:replStart])
+			b.WriteString(replacement)
+			prevEnd = replEnd
 		}
-		b.WriteString(query[prevEnd:replStart])
-		b.WriteString(replacement)
-		prevEnd = replEnd
+		b.WriteString(query[prevEnd:])
+		return b.String()
 	}
-	b.WriteString(query[prevEnd:])
-	return b.String()
-}
-`
+	`
+)
 
-// EmitQueries generates Go source code for query methods, parameter structs,
-// result structs, and SQL constants from analysed queries. Queries are grouped
-// by source filename, producing one .sql.go file per source SQL file.
+// EmitQueries generates Go source code for query methods, parameter structs, result
+// structs, and SQL constants from analysed queries. Queries are grouped by source
+// filename, producing one .sql.go file per source SQL file.
 //
 // Takes packageName (string) which is the Go package name for generated files.
-// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked
-// queries.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
-// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or
-// nil if unsupported.
+// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or nil if
+// unsupported.
 //
 // Returns []querier_dto.GeneratedFile which contains the query source files.
 // Returns error when code emission fails.
@@ -218,8 +215,8 @@ func EmitQueries(
 	return files, nil
 }
 
-// emitBatchHelperIfNeeded returns the batch/copyfrom helper file when any query
-// uses :batch or :copyfrom and the handler provides one; otherwise nil.
+// emitBatchHelperIfNeeded returns the batch/copyfrom helper file when any query uses
+// :batch or :copyfrom and the handler provides one; otherwise nil.
 //
 // Takes packageName (string) which is the Go package name for the generated file.
 // Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to check.
@@ -242,8 +239,8 @@ func emitBatchHelperIfNeeded(
 	return nil
 }
 
-// anyQueryNeedsSliceExpansion reports whether any query in the list requires
-// runtime slice expansion.
+// anyQueryNeedsSliceExpansion reports whether any query in the list requires runtime
+// slice expansion.
 //
 // Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to check.
 // Takes strategy (MethodStrategy) which provides expansion support info.
@@ -259,11 +256,10 @@ func anyQueryNeedsSliceExpansion(queries []*querier_dto.AnalysedQuery, strategy 
 }
 
 // EmitSliceHelperFile generates a standalone Go file containing the
-// pikoExpandSlicePlaceholders helper function with renumbering support, shared
-// by all query files in the package that use piko.slice.
+// pikoExpandSlicePlaceholders helper function with renumbering support, shared by all
+// query files in the package that use piko.slice.
 //
-// Takes packageName (string) which is the Go package name for the generated
-// file.
+// Takes packageName (string) which is the Go package name for the generated file.
 //
 // Returns querier_dto.GeneratedFile which contains the helper source file.
 // Returns error when formatting fails.
@@ -276,19 +272,16 @@ func EmitSliceHelperFile(packageName string) (querier_dto.GeneratedFile, error) 
 	}, nil
 }
 
-// EmitQueryFile generates a single .sql.go file from the queries belonging to
-// one source SQL file.
+// EmitQueryFile generates a single .sql.go file from the queries belonging to one source
+// SQL file.
 //
-// Takes packageName (string) which is the Go package name for the generated
-// file.
+// Takes packageName (string) which is the Go package name for the generated file.
 // Takes filename (string) which is the source SQL filename.
-// Takes fileQueries ([]*querier_dto.AnalysedQuery) which are the queries from
-// this file.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes fileQueries ([]*querier_dto.AnalysedQuery) which are the queries from this file.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
-// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or
-// nil if unsupported.
+// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or nil if
+// unsupported.
 //
 // Returns querier_dto.GeneratedFile which contains the generated source file.
 // Returns error when formatting fails.
@@ -332,18 +325,16 @@ func EmitQueryFile(
 	}, nil
 }
 
-// BuildPerQueryDeclarations constructs all AST declarations for a single
-// query, including the SQL constant, parameter structs, output structs, and
-// method.
+// BuildPerQueryDeclarations constructs all AST declarations for a single query, including
+// the SQL constant, parameter structs, output structs, and method.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
 // Takes tracker (*ImportTracker) for import collection.
-// Takes state (*QueryFileEmitState) which tracks shared declarations already
-// emitted.
+// Takes state (*QueryFileEmitState) which tracks shared declarations already emitted.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
-// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or
-// nil if unsupported.
+// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or nil if
+// unsupported.
 //
 // Returns []ast.Decl which contains the declarations for this query.
 func BuildPerQueryDeclarations(

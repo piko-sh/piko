@@ -31,15 +31,17 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/email/email_dto"
-	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/email"
+	"piko.sh/piko/wdk/logger"
 )
 
-var _ email.ProviderPort = (*PostmarkProvider)(nil)
+var (
+	_ email.ProviderPort = (*PostmarkProvider)(nil)
+)
 
 const (
-	// defaultCallsPerSecond is the default Postmark API rate limit for standard
-	// accounts. See Postmark support article 1008 for details.
+	// defaultCallsPerSecond is the default Postmark API rate limit for standard accounts.
+	// See Postmark support article 1008 for details.
 	defaultCallsPerSecond = 100.0
 
 	// defaultBurst is the default burst size for rate limiting.
@@ -51,8 +53,8 @@ const (
 	// metricKeySendType is the metric attribute key for the email send type.
 	metricKeySendType = "send_type"
 
-	// metricStatusSuccess is the metric attribute value for operations that
-	// complete without error.
+	// metricStatusSuccess is the metric attribute value for operations that complete without
+	// error.
 	metricStatusSuccess = "success"
 
 	// metricStatusError is the metric attribute value for failed operations.
@@ -80,8 +82,8 @@ const (
 	logKeyTo = "to"
 )
 
-// PostmarkProvider implements the EmailProviderPort interface for the
-// Postmark email service.
+// PostmarkProvider implements the EmailProviderPort interface for the Postmark email
+// service.
 type PostmarkProvider struct {
 	// client sends emails through the Postmark API.
 	client *postmark.Client
@@ -99,8 +101,7 @@ type PostmarkProvider struct {
 	accountToken string
 }
 
-// PostmarkProviderArgs contains configuration for creating a new Postmark email
-// provider.
+// PostmarkProviderArgs contains configuration for creating a new Postmark email provider.
 type PostmarkProviderArgs struct {
 	// AccountToken is the Postmark account API token used for authentication.
 	AccountToken string
@@ -117,11 +118,11 @@ type ProviderOption = email_domain.ProviderOption
 
 // Send transmits a single email via Postmark.
 //
-// Takes params (*email_dto.SendParams) which specifies the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which specifies the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, parameters are invalid, or the
-// Postmark API request fails.
+// Returns error when rate limiting fails, parameters are invalid, or the Postmark API
+// request fails.
 func (p *PostmarkProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -158,9 +159,9 @@ func (p *PostmarkProvider) Send(ctx context.Context, params *email_dto.SendParam
 	return nil
 }
 
-// SupportsBulkSending reports whether the provider supports native bulk sending.
-// Postmark does not have a native bulk sending API, so bulk sends fall back to
-// individual Send calls.
+// SupportsBulkSending reports whether the provider supports native bulk sending. Postmark
+// does not have a native bulk sending API, so bulk sends fall back to individual Send
+// calls.
 //
 // Returns bool which is always false for this provider.
 func (*PostmarkProvider) SupportsBulkSending() bool {
@@ -197,8 +198,8 @@ func (p *PostmarkProvider) SendBulk(ctx context.Context, emails []*email_dto.Sen
 	return nil
 }
 
-// Close releases resources held by the provider by closing idle HTTP
-// connections in the underlying transport.
+// Close releases resources held by the provider by closing idle HTTP connections in the
+// underlying transport.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (p *PostmarkProvider) Close(_ context.Context) error {
@@ -210,11 +211,9 @@ func (p *PostmarkProvider) Close(_ context.Context) error {
 
 // buildPostmarkMessage converts email parameters to Postmark API format.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// convert.
+// Takes params (*email_dto.SendParams) which contains the email details to convert.
 //
-// Returns postmark.Email which is the formatted message ready for the Postmark
-// API.
+// Returns postmark.Email which is the formatted message ready for the Postmark API.
 func (p *PostmarkProvider) buildPostmarkMessage(params *email_dto.SendParams) postmark.Email {
 	from := p.fromEmail
 	if params.From != nil {
@@ -251,8 +250,8 @@ func (p *PostmarkProvider) buildPostmarkMessage(params *email_dto.SendParams) po
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns *email_domain.MultiError which contains all send failures, or nil if
-// all emails were sent successfully.
+// Returns *email_domain.MultiError which contains all send failures, or nil if all emails
+// were sent successfully.
 func (p *PostmarkProvider) sendEmailsIndividually(ctx context.Context, emails []*email_dto.SendParams) *email_domain.MultiError {
 	ctx, l := logger.From(ctx, log)
 	var multiError *email_domain.MultiError
@@ -284,16 +283,13 @@ func (p *PostmarkProvider) sendEmailsIndividually(ctx context.Context, emails []
 	return multiError
 }
 
-// NewPostmarkProvider creates a new Postmark email provider with the given
-// settings.
+// NewPostmarkProvider creates a new Postmark email provider with the given settings.
 //
-// Takes arguments (PostmarkProviderArgs) which specifies the Postmark credentials
-// and sender details.
-// Takes opts (...ProviderOption) which provides optional rate limiting
-// settings.
+// Takes arguments (PostmarkProviderArgs) which specifies the Postmark credentials and
+// sender details.
+// Takes opts (...ProviderOption) which provides optional rate limiting settings.
 //
-// Returns email.ProviderPort which is the configured provider ready for
-// use.
+// Returns email.ProviderPort which is the configured provider ready for use.
 // Returns error when the server token or from email is empty.
 func NewPostmarkProvider(ctx context.Context, arguments PostmarkProviderArgs, opts ...ProviderOption) (email.ProviderPort, error) {
 	if arguments.ServerToken == "" {
@@ -324,14 +320,11 @@ func NewPostmarkProvider(ctx context.Context, arguments PostmarkProviderArgs, op
 	}, nil
 }
 
-// validateSendParams checks that the required fields in send parameters are
-// present.
+// validateSendParams checks that the required fields in send parameters are present.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// check.
+// Takes params (*email_dto.SendParams) which contains the email details to check.
 //
-// Returns error when no recipients are provided or when both body fields are
-// empty.
+// Returns error when no recipients are provided or when both body fields are empty.
 func validateSendParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired
@@ -355,12 +348,11 @@ func addRecipients(message *postmark.Email, params *email_dto.SendParams) {
 	}
 }
 
-// addAttachments converts email attachments to Postmark format and adds them
-// to the message.
+// addAttachments converts email attachments to Postmark format and adds them to the
+// message.
 //
 // Takes message (*postmark.Email) which receives the converted attachments.
-// Takes attachments ([]email_dto.Attachment) which provides the attachments
-// to convert.
+// Takes attachments ([]email_dto.Attachment) which provides the attachments to convert.
 func addAttachments(message *postmark.Email, attachments []email_dto.Attachment) {
 	if len(attachments) == 0 {
 		return
@@ -434,8 +426,8 @@ func recordSendMetrics(ctx context.Context, startTime time.Time, err error, send
 //
 // Takes startTime (time.Time) which marks when the bulk operation began.
 // Takes emailCount (int) which is the total number of emails in the batch.
-// Takes multiError (*email_domain.MultiError) which holds any errors from the
-// bulk operation.
+// Takes multiError (*email_domain.MultiError) which holds any errors from the bulk
+// operation.
 func recordBulkMetrics(ctx context.Context, startTime time.Time, emailCount int, multiError *email_domain.MultiError) {
 	duration := float64(time.Since(startTime).Milliseconds())
 	status := metricStatusSuccess

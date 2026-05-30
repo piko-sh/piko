@@ -1,0 +1,235 @@
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+OPERATION_COUNT := 100000
+KEY_LENGTH := 12
+ID_RANGE_SIZE := 32768
+ID_MASK := ID_RANGE_SIZE - 1
+INITIAL_CAPACITY := 64
+HASHTABLE_LCG_MASK := 0xFFFFFFFF
+FNV_OFFSET_BASIS := 0x811C9DC5
+FNV_PRIME := 0x01000193
+SLOT_EMPTY := 0
+SLOT_OCCUPIED := 1
+SLOT_TOMBSTONE := 2
+OP_SEED := 0xDEADBEEF
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+fnv1a32 := func(key) {
+	hash := FNV_OFFSET_BASIS
+	for index := 0; index < len(key); index++ {
+		hash = hash ^ int(key[index])
+		hash = (hash * FNV_PRIME) & HASHTABLE_LCG_MASK
+	}
+	return hash
+}
+
+generate_key := func(id) {
+	key_chars := []
+	for i := 0; i < KEY_LENGTH; i++ {
+		key_chars = append(key_chars, 0)
+	}
+	for index := KEY_LENGTH - 1; index >= 0; index-- {
+		key_chars[index] = char(int('a') + id % 26)
+		id = id / 26
+	}
+	out := ""
+	for c in key_chars {
+		out += c
+	}
+	return out
+}
+
+do_hashtable_workload := func() {
+	keys := []
+	values := []
+	state_arr := []
+	capacity := INITIAL_CAPACITY
+	size := 0
+	load := 0
+	for i := 0; i < capacity; i++ {
+		keys = append(keys, "")
+		values = append(values, 0)
+		state_arr = append(state_arr, SLOT_EMPTY)
+	}
+
+	insert_no_grow := func(key, value) {
+		hash := fnv1a32(key)
+		mask := capacity - 1
+		index := hash & mask
+		for state_arr[index] != SLOT_EMPTY {
+			index = (index + 1) & mask
+		}
+		keys[index] = key
+		values[index] = value
+		state_arr[index] = SLOT_OCCUPIED
+		size++
+		load++
+	}
+
+	grow := func() {
+		old_keys := keys
+		old_values := values
+		old_state := state_arr
+		old_capacity := capacity
+		capacity = old_capacity * 2
+		keys = []
+		values = []
+		state_arr = []
+		for i := 0; i < capacity; i++ {
+			keys = append(keys, "")
+			values = append(values, 0)
+			state_arr = append(state_arr, SLOT_EMPTY)
+		}
+		size = 0
+		load = 0
+		for index := 0; index < old_capacity; index++ {
+			if old_state[index] == SLOT_OCCUPIED {
+				insert_no_grow(old_keys[index], old_values[index])
+			}
+		}
+	}
+
+	put := func(key, value) {
+		if load * 10 >= capacity * 7 {
+			grow()
+		}
+		hash := fnv1a32(key)
+		mask := capacity - 1
+		index := hash & mask
+		first_tombstone := -1
+		for {
+			slot_state := state_arr[index]
+			if slot_state == SLOT_EMPTY {
+				if first_tombstone >= 0 {
+					keys[first_tombstone] = key
+					values[first_tombstone] = value
+					state_arr[first_tombstone] = SLOT_OCCUPIED
+					size++
+					return
+				}
+				keys[index] = key
+				values[index] = value
+				state_arr[index] = SLOT_OCCUPIED
+				size++
+				load++
+				return
+			}
+			if slot_state == SLOT_OCCUPIED && keys[index] == key {
+				values[index] = value
+				return
+			}
+			if slot_state == SLOT_TOMBSTONE && first_tombstone < 0 {
+				first_tombstone = index
+			}
+			index = (index + 1) & mask
+		}
+	}
+
+	get := func(key) {
+		hash := fnv1a32(key)
+		mask := capacity - 1
+		index := hash & mask
+		for state_arr[index] != SLOT_EMPTY {
+			if state_arr[index] == SLOT_OCCUPIED && keys[index] == key {
+				return [values[index], true]
+			}
+			index = (index + 1) & mask
+		}
+		return [0, false]
+	}
+
+	delete_key := func(key) {
+		hash := fnv1a32(key)
+		mask := capacity - 1
+		index := hash & mask
+		for state_arr[index] != SLOT_EMPTY {
+			if state_arr[index] == SLOT_OCCUPIED && keys[index] == key {
+				state_arr[index] = SLOT_TOMBSTONE
+				size--
+				return true
+			}
+			index = (index + 1) & mask
+		}
+		return false
+	}
+
+	state := OP_SEED
+	hit_count := 0
+	for operation_index := 0; operation_index < OPERATION_COUNT; operation_index++ {
+		state = (state * 1664525 + 1013904223) & HASHTABLE_LCG_MASK
+		op_kind := (state >> 28) & 0xF
+		id := (state >> 4) & ID_MASK
+		key := generate_key(id)
+		if op_kind < 8 {
+			put(key, state)
+		} else if op_kind < 14 {
+			r := get(key)
+			if r[1] {
+				hit_count++
+			}
+		} else {
+			delete_key(key)
+		}
+	}
+	return int_to_decimal(size) + "," + int_to_decimal(hit_count)
+}
+
+run := func() {
+	return do_hashtable_workload()
+}
+
+run_inner := func(k) {
+	start_nanos := times.time_unix_nano(times.now())
+	last := ""
+	for index := 0; index < k; index++ {
+		last = do_hashtable_workload()
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [last, elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

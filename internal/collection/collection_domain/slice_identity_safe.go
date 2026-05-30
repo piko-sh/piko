@@ -20,9 +20,8 @@
 
 package collection_domain
 
-// sliceDataPointer returns 0 under the safe build, disabling transparent
-// navigation caching. The caller falls through to the per-request rebuild
-// path.
+// sliceDataPointer returns 0 under the safe build, disabling transparent navigation
+// caching. The caller falls through to the per-request rebuild path.
 //
 // Takes items ([]map[string]any) which is unused.
 //

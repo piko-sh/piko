@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Implements the expression parser that converts token sequences from the lexer into expression AST nodes.
-// Uses recursive descent parsing with operator precedence, pooled parser instances, and configurable feature flags for different parsing contexts.
+// Implements the expression parser that converts token sequences from the lexer into
+// expression AST nodes. Uses recursive descent parsing with operator precedence, pooled
+// parser instances, and configurable feature flags for different parsing contexts.
 
 import (
 	"context"
@@ -37,39 +38,38 @@ const (
 	// RuneLiteralPrefixLength is the length of a rune literal prefix and quotes.
 	RuneLiteralPrefixLength = 3
 
-	// DateTimeLiteralPrefixLength is the length of the dt'' prefix and quotes for
-	// datetime literals.
+	// DateTimeLiteralPrefixLength is the length of the dt double single quotes prefix
+	// and quotes for datetime literals.
 	DateTimeLiteralPrefixLength = 4
 
-	// DateLiteralPrefixLength is the length of the d'' prefix and quotes for
-	// date literals.
+	// DateLiteralPrefixLength is the length of the d double single quotes prefix and
+	// quotes for date literals.
 	DateLiteralPrefixLength = 3
 
-	// TimeLiteralPrefixLength is the length of the t'' prefix for time literals.
+	// TimeLiteralPrefixLength is the length of the t double single quotes prefix for
+	// time literals.
 	TimeLiteralPrefixLength = 3
 
-	// DurationLiteralPrefixLength is the length of the "du''" prefix and quotes
-	// in duration literals.
+	// DurationLiteralPrefixLength is the length of the "du double single quotes"
+	// prefix and quotes in duration literals.
 	DurationLiteralPrefixLength = 4
 
 	// NilLiteralLength is the length of the nil keyword in characters.
 	NilLiteralLength = 3
 
-	// MaxExpressionDepth is the maximum nesting depth allowed for expressions.
-	// This limit stops stack overflow errors from deeply nested expressions
-	// such as ((((x)))).
+	// MaxExpressionDepth is the maximum nesting depth allowed for expressions. This limit
+	// stops stack overflow errors from deeply nested expressions such as ((((x)))).
 	MaxExpressionDepth = 256
 
 	// asciiTableSize is the number of entries in the ASCII lookup tables.
 	asciiTableSize = 128
 
-	// prefixParseFunctionTableSize is the size of the prefix parse
-	// function lookup table. It must be larger than the highest token
-	// type value (currently 21).
+	// prefixParseFunctionTableSize is the size of the prefix parse function lookup table. It
+	// must be larger than the highest token type value (currently 21).
 	prefixParseFunctionTableSize = 32
 
-	// expressionCacheMaxEntries caps the number of cached parsed
-	// expressions; on overflow the cache is wiped wholesale.
+	// expressionCacheMaxEntries caps the number of cached parsed expressions; on overflow
+	// the cache is wiped wholesale.
 	expressionCacheMaxEntries = 10000
 )
 
@@ -77,11 +77,11 @@ const (
 type prefixParseFunction func(*ExpressionParser, context.Context) (Expression, []*Diagnostic)
 
 var (
-	// prefixParseFunctions is an array dispatch table that maps token types to
-	// prefix parsing functions.
+	// prefixParseFunctions is an array dispatch table that maps token types to prefix
+	// parsing functions.
 	//
-	// Array lookup is faster than map lookup (~10x). Zero values (nil) mean
-	// no prefix parse function exists for that token type.
+	// Array lookup is faster than map lookup (~10x). Zero values (nil) mean no prefix parse
+	// function exists for that token type.
 	prefixParseFunctions [prefixParseFunctionTableSize]prefixParseFunction
 
 	// parserPool provides pooled parser instances to reduce allocations.
@@ -98,18 +98,18 @@ var (
 		},
 	}
 
-	// expressionCache caches parsed expressions to avoid re-parsing
-	// identical strings. Bounded by [expressionCacheMaxEntries].
+	// expressionCache caches parsed expressions to avoid re-parsing identical strings.
+	// Bounded by expressionCacheMaxEntries.
 	expressionCache sync.Map
 
-	// expressionCacheCount approximates the size of expressionCache for
-	// the bounding check. sync.Map has no Len(); the counter may
-	// temporarily lag the map under concurrent Store + Delete.
+	// expressionCacheCount approximates the size of expressionCache for the bounding check.
+	// sync.Map has no Len(); the counter may temporarily lag the map under concurrent Store
+	// + Delete.
 	expressionCacheCount atomic.Int64
 
-	// identStartTable maps ASCII bytes to whether they can start an identifier,
-	// using a lookup table for O(1) character class checking. Includes '$' as valid
-	// per JavaScript identifier rules (used for $event).
+	// identStartTable maps ASCII bytes to whether they can start an identifier, using a
+	// lookup table for O(1) character class checking. Includes '$' as valid per JavaScript
+	// identifier rules (used for $event).
 	identStartTable = [asciiTableSize]bool{
 		'_': true, '$': true,
 		'a': true, 'b': true, 'c': true, 'd': true, 'e': true, 'f': true, 'g': true,
@@ -122,9 +122,8 @@ var (
 		'V': true, 'W': true, 'X': true, 'Y': true, 'Z': true,
 	}
 
-	// identCharTable maps ASCII bytes to true if they can appear in an
-	// identifier (not in the first position).
-	// Includes '$' as valid per JavaScript identifier rules.
+	// identCharTable maps ASCII bytes to true if they can appear in an identifier (not in
+	// the first position). Includes '$' as valid per JavaScript identifier rules.
 	identCharTable = [asciiTableSize]bool{
 		'_': true, '$': true,
 		'a': true, 'b': true, 'c': true, 'd': true, 'e': true, 'f': true, 'g': true,
@@ -140,11 +139,11 @@ var (
 	}
 )
 
-// ExpressionParser converts a sequence of tokens from the lexer into an AST.
-// Field order is set to reduce GC pointer bitmap size.
+// ExpressionParser converts a sequence of tokens from the lexer into an AST. Field order
+// is set to reduce GC pointer bitmap size.
 type ExpressionParser struct {
-	// tokens holds the lexer tokens. The parser owns this slice and
-	// reuses it across Reset calls.
+	// tokens holds the lexer tokens. The parser owns this slice and reuses it across Reset
+	// calls.
 	tokens []lexerToken
 
 	// sourcePath is the file path shown in error messages.
@@ -156,8 +155,8 @@ type ExpressionParser struct {
 	// currentToken holds the token being processed at the current position.
 	currentToken lexerToken
 
-	// tokenIndex is the current position in the token slice; -1 means before
-	// the first token.
+	// tokenIndex is the current position in the token slice; -1 means before the first
+	// token.
 	tokenIndex int
 
 	// depth tracks the current nesting level of expressions to prevent stack overflow.
@@ -173,13 +172,11 @@ type cachedExpression struct {
 	diagnostics []*Diagnostic
 }
 
-// NewExpressionParser creates and sets up a new parser for the given
-// expression string.
+// NewExpressionParser creates and sets up a new parser for the given expression string.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes expression (string) which is the expression to parse.
-// Takes sourcePath (string) which identifies the source file for error
-// messages.
+// Takes sourcePath (string) which identifies the source file for error messages.
 //
 // Returns *ExpressionParser which is the set up parser ready for use.
 func NewExpressionParser(ctx context.Context, expression string, sourcePath string) *ExpressionParser {
@@ -200,8 +197,8 @@ func NewExpressionParser(ctx context.Context, expression string, sourcePath stri
 	return p
 }
 
-// Release returns the parser to the pool for reuse. Call this when you have
-// finished with the parser to reduce memory allocations.
+// Release returns the parser to the pool for reuse. Call this when you have finished with
+// the parser to reduce memory allocations.
 func (p *ExpressionParser) Release() {
 	p.input = ""
 	p.sourcePath = ""
@@ -210,8 +207,8 @@ func (p *ExpressionParser) Release() {
 
 // Reset reinitialises the parser with a new expression string and source path.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes expression (string) which is the new expression to parse.
 // Takes sourcePath (string) which identifies the source for error messages.
 func (p *ExpressionParser) Reset(ctx context.Context, expression string, sourcePath string) {
@@ -223,8 +220,8 @@ func (p *ExpressionParser) Reset(ctx context.Context, expression string, sourceP
 	p.advanceLexerToken()
 }
 
-// forLoopVarInfo holds token info for for-loop variables without allocating
-// Identifiers, allowing speculative parsing without wasted allocations.
+// forLoopVarInfo holds token info for for-loop variables without allocating Identifiers,
+// allowing speculative parsing without wasted allocations.
 type forLoopVarInfo struct {
 	// name is the loop variable identifier.
 	name string
@@ -233,12 +230,11 @@ type forLoopVarInfo struct {
 	location Location
 }
 
-// ParseExpression is the main entry point for parsing. It handles the special
-// case of for-loop syntax before falling back to standard precedence-based
-// parsing.
+// ParseExpression is the main entry point for parsing. It handles the special case of
+// for-loop syntax before falling back to standard precedence-based parsing.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger and
-// cancellation signal.
+// Takes ctx (context.Context) which carries the request-scoped logger and cancellation
+// signal.
 //
 // Returns Expression which is the parsed expression node.
 // Returns []*Diagnostic which contains any parse errors or warnings.
@@ -253,17 +249,17 @@ func (p *ExpressionParser) ParseExpression(ctx context.Context) (Expression, []*
 	return p.parseAndValidate(ctx)
 }
 
-// tryParseForLoop attempts to parse a for-loop expression in the form
-// `(var, var) in collection` or `var in collection`.
+// tryParseForLoop attempts to parse a for-loop expression in the form `(var, var) in
+// collection` or `var in collection`.
 //
 // Takes start (int) which marks the token position to return to on failure.
-// Takes startLocation (Location) which specifies the source location for the
-// resulting expression.
+// Takes startLocation (Location) which specifies the source location for the resulting
+// expression.
 //
 // Returns Expression which is the parsed for-loop expression on success.
 // Returns []*Diagnostic which contains any parsing errors found.
-// Returns bool which is true if a for-loop was parsed or failed, or false if
-// the tokens do not form a for-loop expression.
+// Returns bool which is true if a for-loop was parsed or failed, or false if the tokens
+// do not form a for-loop expression.
 func (p *ExpressionParser) tryParseForLoop(ctx context.Context, start int, startLocation Location) (Expression, []*Diagnostic, bool) {
 	idxInfo, itemInfo, isLoop := p.parseForLoopVarSyntax()
 	if !isLoop {
@@ -314,19 +310,19 @@ func (p *ExpressionParser) parseAndValidate(ctx context.Context) (Expression, []
 	return expression, nil
 }
 
-// tokenValue returns the string value of the current token.
-// This is a zero-copy operation that slices the original input.
+// tokenValue returns the string value of the current token. This is a zero-copy operation
+// that slices the original input.
 //
 // Returns string which is the token value at the current position.
 func (p *ExpressionParser) tokenValue() string {
 	return p.currentToken.getValue(p.input)
 }
 
-// parseExpressionWithPrecedence is the core of the Pratt parser. It handles
-// prefix, infix, and postfix operators based on their precedence levels.
+// parseExpressionWithPrecedence is the core of the Pratt parser. It handles prefix,
+// infix, and postfix operators based on their precedence levels.
 //
-// Takes minPrec (int) which sets the lowest precedence level for operators
-// that will be parsed.
+// Takes minPrec (int) which sets the lowest precedence level for operators that will be
+// parsed.
 //
 // Returns Expression which is the parsed expression tree.
 // Returns []*Diagnostic which contains any parsing errors found.
@@ -347,8 +343,7 @@ func (p *ExpressionParser) parseExpressionWithPrecedence(ctx context.Context, mi
 	return p.parseOperators(ctx, left, minPrec)
 }
 
-// parseOperators handles the operator parsing loop for postfix and infix
-// operators.
+// parseOperators handles the operator parsing loop for postfix and infix operators.
 //
 // Takes left (Expression) which is the left-hand side of the expression.
 // Takes minPrec (int) which is the minimum precedence level to parse.
@@ -365,8 +360,7 @@ func (p *ExpressionParser) parseOperators(ctx context.Context, left Expression, 
 	}
 }
 
-// tryParseOperator attempts to parse the next operator based on the current
-// token.
+// tryParseOperator attempts to parse the next operator based on the current token.
 //
 // Takes left (Expression) which is the left-hand side of the expression.
 // Takes minPrec (int) which is the minimum precedence level to consider.
@@ -385,8 +379,7 @@ func (p *ExpressionParser) tryParseOperator(ctx context.Context, left Expression
 	}
 }
 
-// tryParsePostfixOp parses postfix operators such as calls, member access,
-// and indexing.
+// tryParsePostfixOp parses postfix operators such as calls, member access, and indexing.
 //
 // Takes left (Expression) which is the expression to extend with operators.
 // Takes minPrec (int) which is the minimum precedence level to parse.
@@ -403,8 +396,8 @@ func (p *ExpressionParser) tryParsePostfixOp(ctx context.Context, left Expressio
 	return result, diagnostics, len(diagnostics) > 0
 }
 
-// tryParseInfixOp parses an infix operator if one exists at the current
-// position with enough precedence.
+// tryParseInfixOp parses an infix operator if one exists at the current position with
+// enough precedence.
 //
 // Takes left (Expression) which is the left-hand operand already parsed.
 // Takes minPrec (int) which is the minimum precedence level to consider.
@@ -423,8 +416,8 @@ func (p *ExpressionParser) tryParseInfixOp(ctx context.Context, left Expression,
 	return result, diagnostics, len(diagnostics) > 0
 }
 
-// parsePrefix parses an expression that starts a statement, such as a
-// literal, identifier, or unary operator.
+// parsePrefix parses an expression that starts a statement, such as a literal,
+// identifier, or unary operator.
 //
 // Returns Expression which is the parsed result, or nil on error.
 // Returns []*Diagnostic which contains any errors found during parsing.
@@ -500,8 +493,8 @@ func (p *ExpressionParser) parseInfix(ctx context.Context, left Expression) (Exp
 	}, nil
 }
 
-// parsePostfix handles operators that follow an expression, like function
-// calls, member access, and index access.
+// parsePostfix handles operators that follow an expression, like function calls, member
+// access, and index access.
 //
 // Takes left (Expression) which is the preceding expression to extend.
 //
@@ -552,8 +545,8 @@ func (p *ExpressionParser) parseUnary(ctx context.Context) (Expression, []*Diagn
 //
 // Takes base (Expression) which is the expression to access a member from.
 //
-// Returns Expression which is the member access expression, or the base
-// expression if parsing fails.
+// Returns Expression which is the member access expression, or the base expression if
+// parsing fails.
 // Returns []*Diagnostic which contains any parse errors found.
 func (p *ExpressionParser) parseMemberAccess(base Expression) (Expression, []*Diagnostic) {
 	isOptional := p.currentToken.Type == tokenOptionalDot
@@ -593,8 +586,8 @@ func (p *ExpressionParser) parseMemberAccess(base Expression) (Expression, []*Di
 //
 // Takes base (Expression) which is the expression being indexed.
 //
-// Returns Expression which is the parsed index expression, or the base if an
-// error occurs.
+// Returns Expression which is the parsed index expression, or the base if an error
+// occurs.
 // Returns []*Diagnostic which contains any parse errors found.
 func (p *ExpressionParser) parseIndexExpression(ctx context.Context, base Expression) (Expression, []*Diagnostic) {
 	isOptional := p.currentToken.Type == tokenOptionalBracket
@@ -639,8 +632,8 @@ func (p *ExpressionParser) parseIndexExpression(ctx context.Context, base Expres
 
 // parseForLoopVarSyntax parses for loop variable declarations.
 //
-// Returns idxInfo (forLoopVarInfo) which holds the index variable details, or
-// empty if not present.
+// Returns idxInfo (forLoopVarInfo) which holds the index variable details, or empty if
+// not present.
 // Returns itemInfo (forLoopVarInfo) which holds the item variable details.
 // Returns isLoop (bool) which is true if valid loop syntax was found.
 func (p *ExpressionParser) parseForLoopVarSyntax() (idxInfo, itemInfo forLoopVarInfo, isLoop bool) {
@@ -683,8 +676,8 @@ func (p *ExpressionParser) parseForLoopVarSyntax() (idxInfo, itemInfo forLoopVar
 	return forLoopVarInfo{}, forLoopVarInfo{}, false
 }
 
-// parseForInExpressionBody parses the body of a for-in expression after the
-// variable declarations.
+// parseForInExpressionBody parses the body of a for-in expression after the variable
+// declarations.
 //
 // Takes idxVar (*Identifier) which is the optional index variable.
 // Takes itemVar (*Identifier) which is the item variable for iteration.
@@ -721,8 +714,8 @@ func (p *ExpressionParser) parseForInExpressionBody(ctx context.Context, idxVar,
 
 // parseParenthesisedExpression parses an expression inside parentheses.
 //
-// Returns Expression which is the parsed inner expression with its source
-// location adjusted to include the parentheses.
+// Returns Expression which is the parsed inner expression with its source location
+// adjusted to include the parentheses.
 // Returns []*Diagnostic which contains any parse errors found.
 func (p *ExpressionParser) parseParenthesisedExpression(ctx context.Context) (Expression, []*Diagnostic) {
 	openParenLocation := p.currentToken.Location
@@ -755,16 +748,13 @@ func (p *ExpressionParser) parseParenthesisedExpression(ctx context.Context) (Ex
 	return expression, nil
 }
 
-// adjustExprForParentheses updates an expression's location and length to
-// include its surrounding parentheses. This means expressions like
-// !(x > 10) have the correct source length of 9, including the opening
-// parenthesis.
+// adjustExprForParentheses updates an expression's location and length to include its
+// surrounding parentheses. This means expressions like !(x > 10) have the correct source
+// length of 9, including the opening parenthesis.
 //
 // Takes expression (Expression) which is the expression to adjust.
-// Takes openParenLocation (Location) which is the position of the opening
-// parenthesis.
-// Takes closeParenLocation (Location) which is the position of the closing
-// parenthesis.
+// Takes openParenLocation (Location) which is the position of the opening parenthesis.
+// Takes closeParenLocation (Location) which is the position of the closing parenthesis.
 func (*ExpressionParser) adjustExprForParentheses(expression Expression, openParenLocation, closeParenLocation Location) {
 	if expression == nil {
 		return
@@ -862,8 +852,8 @@ func (p *ExpressionParser) parseObjectPair(ctx context.Context) (string, Express
 // parseObjectKey extracts the key from an object literal entry.
 //
 // Returns string which is the parsed key value.
-// Returns []*Diagnostic which contains errors when the key is not a valid
-// identifier or string.
+// Returns []*Diagnostic which contains errors when the key is not a valid identifier or
+// string.
 func (p *ExpressionParser) parseObjectKey() (string, []*Diagnostic) {
 	keyLocation := p.currentToken.Location
 	tokenValue := p.tokenValue()
@@ -946,8 +936,8 @@ func (p *ExpressionParser) parseArrayLiteral(ctx context.Context) (Expression, [
 //
 // Takes callee (Expression) which is the expression being called.
 //
-// Returns Expression which is the parsed call expression. Returns a partial
-// result if parsing fails.
+// Returns Expression which is the parsed call expression.
+// Returns a partial result if parsing fails.
 // Returns []*Diagnostic which contains any parsing errors found.
 func (p *ExpressionParser) parseFunctionCall(ctx context.Context, callee Expression) (Expression, []*Diagnostic) {
 	leftParenLocation := p.currentToken.Location
@@ -1002,8 +992,7 @@ func (p *ExpressionParser) parseFirstArgument(ctx context.Context, arguments []E
 	return append(arguments, firstArgument), nil
 }
 
-// parseRemainingArguments parses more arguments after the first one in a
-// function call.
+// parseRemainingArguments parses more arguments after the first one in a function call.
 //
 // Takes arguments ([]Expression) which contains any arguments already parsed.
 //
@@ -1034,8 +1023,7 @@ func (p *ExpressionParser) parseRemainingArguments(ctx context.Context, argument
 	return arguments, nil
 }
 
-// completeCallExpr builds a CallExpression after parsing the
-// closing bracket.
+// completeCallExpr builds a CallExpression after parsing the closing bracket.
 //
 // Takes callee (Expression) which is the function or method being called.
 // Takes arguments ([]Expression) which are the parsed argument expressions.
@@ -1062,8 +1050,8 @@ func (p *ExpressionParser) completeCallExpr(callee Expression, arguments []Expre
 //
 // Takes condition (Expression) which is the condition before the '?' token.
 //
-// Returns Expression which is the complete ternary expression, or the original
-// condition if parsing fails.
+// Returns Expression which is the complete ternary expression, or the original condition
+// if parsing fails.
 // Returns []*Diagnostic which contains any parse errors found.
 func (p *ExpressionParser) parseTernaryExpression(ctx context.Context, condition Expression) (Expression, []*Diagnostic) {
 	p.advanceLexerToken()
@@ -1138,11 +1126,10 @@ func (p *ExpressionParser) advanceLexerToken() {
 
 // validateEndState checks the parser state after parsing an expression.
 //
-// Takes expression (Expression) which is the parsed expression to check
-// against.
+// Takes expression (Expression) which is the parsed expression to check against.
 //
-// Returns []*Diagnostic which contains any syntax errors found, or nil if
-// the state is valid.
+// Returns []*Diagnostic which contains any syntax errors found, or nil if the state is
+// valid.
 func (p *ExpressionParser) validateEndState(expression Expression) []*Diagnostic {
 	if expression != nil && p.currentToken.Type == tokenComma {
 		message := "Invalid syntax. A comma is not a valid operator here. If you are trying to write a for-loop, variables must be enclosed in parentheses, e.g., `(index, item) in collection`."
@@ -1163,13 +1150,12 @@ func (p *ExpressionParser) validateEndState(expression Expression) []*Diagnostic
 
 // ParseExpressionCached parses an expression with caching.
 //
-// If the same expression string was parsed before, returns a clone of the
-// cached result. This is the preferred API for production use where the same
-// expressions may be parsed repeatedly.
+// If the same expression string was parsed before, returns a clone of the cached result.
+// This is the preferred API for production use where the same expressions may be parsed
+// repeatedly.
 //
 // Takes expression (string) which is the expression text to parse.
-// Takes sourcePath (string) which identifies the source file for
-// diagnostics.
+// Takes sourcePath (string) which identifies the source file for diagnostics.
 //
 // Returns Expression which is the parsed expression, or nil if empty.
 // Returns []*Diagnostic which contains any parse errors or warnings.
@@ -1195,19 +1181,18 @@ func ParseExpressionCached(ctx context.Context, expression, sourcePath string) (
 	return nil, ce.diagnostics
 }
 
-// ClearExpressionCache resets the expression cache to an empty state.
-// Intended for testing and for the bounded-cache wipe path.
+// ClearExpressionCache resets the expression cache to an empty state. Intended for
+// testing and for the bounded-cache wipe path.
 func ClearExpressionCache() {
 	expressionCache = sync.Map{}
 	expressionCacheCount.Store(0)
 }
 
-// parseAndCacheExpression parses an expression and stores the result in a
-// cache for later use.
+// parseAndCacheExpression parses an expression and stores the result in a cache for later
+// use.
 //
 // Takes expression (string) which is the expression text to parse.
-// Takes sourcePath (string) which identifies the source file for
-// diagnostics.
+// Takes sourcePath (string) which identifies the source file for diagnostics.
 //
 // Returns Expression which is the parsed expression, even if invalid.
 // Returns []*Diagnostic which contains any parse errors or warnings.
@@ -1225,22 +1210,16 @@ func parseAndCacheExpression(ctx context.Context, expression, sourcePath string)
 	return parsed, diagnostics
 }
 
-// handlePartialExpressionResult provides fault-tolerant error handling for
-// expressions.
+// handlePartialExpressionResult provides fault-tolerant error handling for expressions.
 //
-// If the expression is not nil, it returns both the expression and
-// diagnostics. This is critical for LSP features like completion on
-// incomplete expressions.
+// If the expression is not nil, it returns both the expression and diagnostics. This is
+// critical for LSP features like completion on incomplete expressions.
 //
-// Takes expression (Expression) which is the parsed expression,
-// possibly partial.
-// Takes diagnostics ([]*Diagnostic) which contains any parsing errors
-// or warnings.
+// Takes expression (Expression) which is the parsed expression, possibly partial.
+// Takes diagnostics ([]*Diagnostic) which contains any parsing errors or warnings.
 //
-// Returns Expression which is the input expression, or nil if parsing
-// failed.
-// Returns []*Diagnostic which contains the diagnostics, or nil if
-// empty.
+// Returns Expression which is the input expression, or nil if parsing failed.
+// Returns []*Diagnostic which contains the diagnostics, or nil if empty.
 func handlePartialExpressionResult(expression Expression, diagnostics []*Diagnostic) (Expression, []*Diagnostic) {
 	if len(diagnostics) == 0 {
 		return expression, nil
@@ -1256,8 +1235,7 @@ func handlePartialExpressionResult(expression Expression, diagnostics []*Diagnos
 // Takes callee (Expression) which is the function or method being called.
 // Takes arguments ([]Expression) which holds the arguments to pass.
 // Takes leftParenLocation (Location) which marks the opening parenthesis position.
-// Takes rightParenLocation (Location) which marks the closing
-// parenthesis position.
+// Takes rightParenLocation (Location) which marks the closing parenthesis position.
 //
 // Returns *CallExpression which is the built call expression.
 func newPartialCallExpr(callee Expression, arguments []Expression, leftParenLocation, rightParenLocation Location) *CallExpression {
@@ -1273,14 +1251,12 @@ func newPartialCallExpr(callee Expression, arguments []Expression, leftParenLoca
 	}
 }
 
-// calculateCallExprSourceLength returns the total length in bytes of a call
-// expression, from the start of the callee to the closing parenthesis.
+// calculateCallExprSourceLength returns the total length in bytes of a call expression,
+// from the start of the callee to the closing parenthesis.
 //
 // Takes callee (Expression) which is the function or method being called.
-// Takes arguments ([]Expression) which is the list of arguments
-// passed to the call.
-// Takes leftParenLocation (Location) which is the position of the
-// opening parenthesis.
+// Takes arguments ([]Expression) which is the list of arguments passed to the call.
+// Takes leftParenLocation (Location) which is the position of the opening parenthesis.
 //
 // Returns int which is the byte length of the complete call expression.
 func calculateCallExprSourceLength(callee Expression, arguments []Expression, leftParenLocation Location) int {

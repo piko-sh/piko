@@ -35,8 +35,8 @@ type HealthServiceOption func(*HealthService)
 type HealthService struct {
 	pb.UnimplementedHealthServiceServer
 
-	// healthProbe provides liveness and readiness checks; nil falls back to
-	// simple health status.
+	// healthProbe provides liveness and readiness checks; nil falls back to simple health
+	// status.
 	healthProbe monitoring_domain.HealthProbeService
 
 	// clock provides time operations for timestamps and tickers.
@@ -45,8 +45,8 @@ type HealthService struct {
 
 // NewHealthService creates a new HealthService.
 //
-// Takes healthProbe (monitoring_domain.HealthProbeService) which provides
-// detailed health checks. May be nil for basic health reporting.
+// Takes healthProbe (monitoring_domain.HealthProbeService) which provides detailed health
+// checks. May be nil for basic health reporting.
 //
 // Returns *HealthService which is the configured service ready for use.
 func NewHealthService(healthProbe monitoring_domain.HealthProbeService, opts ...HealthServiceOption) *HealthService {
@@ -141,8 +141,8 @@ func (s *HealthService) WatchHealth(request *pb.WatchHealthRequest, stream pb.He
 	}
 }
 
-// WithHealthServiceClock sets the clock used for timestamp generation. If not
-// provided, the real system clock is used.
+// WithHealthServiceClock sets the clock used for timestamp generation. If not provided,
+// the real system clock is used.
 //
 // Takes clk (clock.Clock) which provides time operations.
 //
@@ -155,14 +155,13 @@ func WithHealthServiceClock(clk clock.Clock) HealthServiceOption {
 	}
 }
 
-// convertHealthStatus converts a domain HealthProbeStatus to a proto
-// HealthStatus.
+// convertHealthStatus converts a domain HealthProbeStatus to a proto HealthStatus.
 //
-// Takes status (monitoring_domain.HealthProbeStatus) which is the domain health
-// status to convert.
+// Takes status (monitoring_domain.HealthProbeStatus) which is the domain health status to
+// convert.
 //
-// Returns *pb.HealthStatus which is the proto representation of the health
-// status, including recursively converted dependencies.
+// Returns *pb.HealthStatus which is the proto representation of the health status,
+// including recursively converted dependencies.
 func convertHealthStatus(status monitoring_domain.HealthProbeStatus) *pb.HealthStatus {
 	deps := make([]*pb.HealthStatus, len(status.Dependencies))
 	for i, dependency := range status.Dependencies {

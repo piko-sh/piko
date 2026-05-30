@@ -22,12 +22,10 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 )
 
-// New creates a JSON encoder for any given type V, using CacheAPI with
-// CopyString enabled to prevent memory issues when decoded objects outlive
-// the original JSON buffer.
+// New creates a JSON encoder for any given type V, using CacheAPI with CopyString enabled
+// to prevent memory issues when decoded objects outlive the original JSON buffer.
 //
-// Returns cache_domain.EncoderPort[V] which is a JSON encoder for
-// the specified type.
+// Returns cache_domain.EncoderPort[V] which is a JSON encoder for the specified type.
 func New[V any]() cache_domain.EncoderPort[V] {
 	return cache_domain.NewEncoder(
 		func(value V) ([]byte, error) {

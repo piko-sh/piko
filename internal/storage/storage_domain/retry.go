@@ -49,15 +49,17 @@ const (
 	logOpGet = "Get"
 )
 
-// errorClassifier classifies errors for retry decisions, treating filesystem
-// and IO errors as permanent in addition to the shared defaults.
-var errorClassifier = retry.NewErrorClassifier(
-	retry.WithPermanentErrors(os.ErrNotExist, os.ErrPermission, io.EOF, io.ErrUnexpectedEOF),
+var (
+	// errorClassifier classifies errors for retry decisions, treating filesystem and IO
+	// errors as permanent in addition to the shared defaults.
+	errorClassifier = retry.NewErrorClassifier(
+		retry.WithPermanentErrors(os.ErrNotExist, os.ErrPermission, io.EOF, io.ErrUnexpectedEOF),
+	)
 )
 
-// retryableOperation wraps a storage provider with retry logic using
-// exponential backoff. It implements StorageProviderPort and transparently
-// handles transient failures for key operations.
+// retryableOperation wraps a storage provider with retry logic using exponential backoff.
+// It implements StorageProviderPort and transparently handles transient failures for key
+// operations.
 type retryableOperation struct {
 	// provider is the storage backend that performs the actual operations.
 	provider StorageProviderPort
@@ -81,8 +83,8 @@ func (r *retryableOperation) Unwrap() StorageProviderPort {
 
 // GetProviderType forwards the provider type query through the wrapper chain.
 //
-// Returns string which is the type from the inner provider, or "unknown" if
-// no layer implements ProviderMetadata.
+// Returns string which is the type from the inner provider, or "unknown" if no layer
+// implements ProviderMetadata.
 func (r *retryableOperation) GetProviderType() string {
 	if meta, ok := r.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderType()
@@ -92,8 +94,8 @@ func (r *retryableOperation) GetProviderType() string {
 
 // GetProviderMetadata forwards the metadata query through the wrapper chain.
 //
-// Returns map[string]any which is the metadata from the inner provider, or nil
-// if no layer implements ProviderMetadata.
+// Returns map[string]any which is the metadata from the inner provider, or nil if no
+// layer implements ProviderMetadata.
 func (r *retryableOperation) GetProviderMetadata() map[string]any {
 	if meta, ok := r.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderMetadata()
@@ -101,11 +103,10 @@ func (r *retryableOperation) GetProviderMetadata() map[string]any {
 	return nil
 }
 
-// Put implements StorageProviderPort, wrapping the underlying provider's Put
-// call with retry logic.
+// Put implements StorageProviderPort, wrapping the underlying provider's Put call with
+// retry logic.
 //
-// Takes params (*storage_dto.PutParams) which specifies the key and data to
-// store.
+// Takes params (*storage_dto.PutParams) which specifies the key and data to store.
 //
 // Returns error when the put operation fails after all retry attempts.
 func (r *retryableOperation) Put(ctx context.Context, params *storage_dto.PutParams) error {
@@ -119,15 +120,14 @@ func (r *retryableOperation) Put(ctx context.Context, params *storage_dto.PutPar
 	return nil
 }
 
-// Get implements StorageProviderPort, wrapping the underlying provider's Get
-// call with retry logic.
+// Get implements StorageProviderPort, wrapping the underlying provider's Get call with
+// retry logic.
 //
-// Takes params (storage_dto.GetParams) which specifies the storage key and
-// retrieval options.
+// Takes params (storage_dto.GetParams) which specifies the storage key and retrieval
+// options.
 //
 // Returns io.ReadCloser which provides access to the retrieved content.
-// Returns error when all retry attempts fail or the result has an unexpected
-// type.
+// Returns error when all retry attempts fail or the result has an unexpected type.
 func (r *retryableOperation) Get(ctx context.Context, params storage_dto.GetParams) (io.ReadCloser, error) {
 	operation := func() (any, error) {
 		return r.provider.Get(ctx, params)
@@ -143,8 +143,8 @@ func (r *retryableOperation) Get(ctx context.Context, params storage_dto.GetPara
 	return reader, nil
 }
 
-// Remove implements StorageProviderPort, wrapping the underlying provider's
-// Remove call with retry logic.
+// Remove implements StorageProviderPort, wrapping the underlying provider's Remove call
+// with retry logic.
 //
 // Takes params (storage_dto.GetParams) which identifies the item to remove.
 //
@@ -160,9 +160,9 @@ func (r *retryableOperation) Remove(ctx context.Context, params storage_dto.GetP
 	return nil
 }
 
-// Stat implements StorageProviderPort by passing through to the underlying
-// provider. Metadata operations are usually fast and are not retried to avoid
-// hiding bigger problems.
+// Stat implements StorageProviderPort by passing through to the underlying provider.
+// Metadata operations are usually fast and are not retried to avoid hiding bigger
+// problems.
 //
 // Takes params (storage_dto.GetParams) which specifies the object to query.
 //
@@ -176,8 +176,8 @@ func (r *retryableOperation) Stat(ctx context.Context, params storage_dto.GetPar
 	return info, nil
 }
 
-// Copy implements StorageProviderPort by passing through to the underlying
-// provider. Server-side copies are generally not retried at this layer.
+// Copy implements StorageProviderPort by passing through to the underlying provider.
+// Server-side copies are generally not retried at this layer.
 //
 // Takes srcRepo (string) which specifies the source repository.
 // Takes srcKey (string) which identifies the source object.
@@ -191,8 +191,8 @@ func (r *retryableOperation) Copy(ctx context.Context, srcRepo string, srcKey, d
 	return nil
 }
 
-// CopyToAnotherRepository implements StorageProviderPort by passing through
-// to the underlying provider.
+// CopyToAnotherRepository implements StorageProviderPort by passing through to the
+// underlying provider.
 //
 // Takes srcRepo (string) which specifies the source repository name.
 // Takes srcKey (string) which identifies the object to copy.
@@ -207,8 +207,7 @@ func (r *retryableOperation) CopyToAnotherRepository(ctx context.Context, srcRep
 	return nil
 }
 
-// GetHash implements StorageProviderPort by passing through to the underlying
-// provider.
+// GetHash implements StorageProviderPort by passing through to the underlying provider.
 //
 // Takes params (storage_dto.GetParams) which specifies what to retrieve.
 //
@@ -222,11 +221,10 @@ func (r *retryableOperation) GetHash(ctx context.Context, params storage_dto.Get
 	return hash, nil
 }
 
-// PresignURL implements StorageProviderPort by passing through to the
-// underlying provider.
+// PresignURL implements StorageProviderPort by passing through to the underlying
+// provider.
 //
-// Takes params (storage_dto.PresignParams) which contains the presign request
-// details.
+// Takes params (storage_dto.PresignParams) which contains the presign request details.
 //
 // Returns string which is the presigned URL for the storage object.
 // Returns error when the underlying provider fails to create the URL.
@@ -238,12 +236,11 @@ func (r *retryableOperation) PresignURL(ctx context.Context, params storage_dto.
 	return url, nil
 }
 
-// PresignDownloadURL implements StorageProviderPort by passing through to the
-// underlying provider. Presigned URLs are not retried as they do not involve
-// network calls to storage.
+// PresignDownloadURL implements StorageProviderPort by passing through to the underlying
+// provider. Presigned URLs are not retried as they do not involve network calls to
+// storage.
 //
-// Takes params (storage_dto.PresignDownloadParams) which specifies the download
-// details.
+// Takes params (storage_dto.PresignDownloadParams) which specifies the download details.
 //
 // Returns string which is the signed URL for downloading.
 // Returns error when URL generation fails.
@@ -255,8 +252,7 @@ func (r *retryableOperation) PresignDownloadURL(ctx context.Context, params stor
 	return url, nil
 }
 
-// Close implements StorageProviderPort by passing through to the underlying
-// provider.
+// Close implements StorageProviderPort by passing through to the underlying provider.
 //
 // Returns error when the underlying provider fails to close.
 func (r *retryableOperation) Close(ctx context.Context) error {
@@ -266,19 +262,18 @@ func (r *retryableOperation) Close(ctx context.Context) error {
 	return nil
 }
 
-// SupportsMultipart implements StorageProviderPort by passing through to the
-// underlying provider.
+// SupportsMultipart implements StorageProviderPort by passing through to the underlying
+// provider.
 //
 // Returns bool which indicates whether multipart uploads are supported.
 func (r *retryableOperation) SupportsMultipart() bool {
 	return r.provider.SupportsMultipart()
 }
 
-// RemoveMany implements batch delete with retry logic. Retries the entire batch
-// if it fails with a retryable error.
+// RemoveMany implements batch delete with retry logic. Retries the entire batch if it
+// fails with a retryable error.
 //
-// Takes params (storage_dto.RemoveManyParams) which specifies the keys to
-// delete.
+// Takes params (storage_dto.RemoveManyParams) which specifies the keys to delete.
 //
 // Returns *storage_dto.BatchResult which contains the outcome of each deletion.
 // Returns error when all retry attempts fail or the result type is unexpected.
@@ -298,15 +293,13 @@ func (r *retryableOperation) RemoveMany(ctx context.Context, params storage_dto.
 	return batchResult, nil
 }
 
-// PutMany implements batch upload with retry logic.
-// Retries the entire batch if it fails with a retryable error.
+// PutMany implements batch upload with retry logic. Retries the entire batch if it fails
+// with a retryable error.
 //
-// Takes params (*storage_dto.PutManyParams) which contains the objects to
-// upload.
+// Takes params (*storage_dto.PutManyParams) which contains the objects to upload.
 //
 // Returns *storage_dto.BatchResult which contains the outcome of each upload.
-// Returns error when all retry attempts fail or the operation returns an
-// unexpected type.
+// Returns error when all retry attempts fail or the operation returns an unexpected type.
 func (r *retryableOperation) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	operation := func() (any, error) {
 		return r.provider.PutMany(ctx, params)
@@ -397,7 +390,9 @@ func (r *retryableOperation) Exists(ctx context.Context, params storage_dto.GetP
 	return exists, nil
 }
 
-var _ StorageProviderPort = (*retryableOperation)(nil)
+var (
+	_ StorageProviderPort = (*retryableOperation)(nil)
+)
 
 // executeWithRetry runs a storage operation with automatic retries on failure.
 //
@@ -406,8 +401,8 @@ var _ StorageProviderPort = (*retryableOperation)(nil)
 // Takes operation (func() (any, error)) which runs the storage operation.
 //
 // Returns any which is the result from a successful operation.
-// Returns error when the operation fails with a non-retryable error, goes past
-// the maximum number of retries, or the context is cancelled.
+// Returns error when the operation fails with a non-retryable error, goes past the
+// maximum number of retries, or the context is cancelled.
 func (r *retryableOperation) executeWithRetry(
 	ctx context.Context,
 	opName, key string,
@@ -459,10 +454,9 @@ func (r *retryableOperation) executeWithRetry(
 	}
 }
 
-// IsRetryableError reports whether an error is temporary and worth retrying.
-// It checks for network errors, system call errors, and known retryable
-// messages, whilst filtering out permanent errors including filesystem and
-// IO errors.
+// IsRetryableError reports whether an error is temporary and worth retrying. It checks
+// for network errors, system call errors, and known retryable messages, whilst filtering
+// out permanent errors including filesystem and IO errors.
 //
 // Takes err (error) which is the error to check.
 //
@@ -478,8 +472,7 @@ func IsRetryableError(err error) bool {
 // Takes config (RetryConfig) which specifies the retry behaviour settings.
 // Takes provider (StorageProviderPort) which provides storage access.
 // Takes name (string) which identifies the operation for logging.
-// Takes clk (clock.Clock) which provides time functions, or nil for the
-// system clock.
+// Takes clk (clock.Clock) which provides time functions, or nil for the system clock.
 //
 // Returns *retryableOperation which is ready to execute with retry logic.
 func newRetryableOperation(config RetryConfig, provider StorageProviderPort, name string, clk clock.Clock) *retryableOperation {

@@ -41,8 +41,8 @@ const (
 	httpTimeout = 10 * time.Second
 
 	// maxResponseBodySize is the maximum number of bytes read from the Turnstile
-	// verification response. Prevents unbounded memory allocation from a
-	// misbehaving upstream.
+	// verification response. Prevents unbounded memory allocation from a misbehaving
+	// upstream.
 	maxResponseBodySize = 64 * 1024
 )
 
@@ -74,7 +74,9 @@ type provider struct {
 	config Config
 }
 
-var _ captcha_domain.CaptchaProvider = (*provider)(nil)
+var (
+	_ captcha_domain.CaptchaProvider = (*provider)(nil)
+)
 
 // NewProvider creates a new Cloudflare Turnstile captcha provider.
 //
@@ -98,8 +100,7 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 
 // Type returns the provider type identifier.
 //
-// Returns captcha_dto.ProviderType which identifies this as a Turnstile
-// provider.
+// Returns captcha_dto.ProviderType which identifies this as a Turnstile provider.
 func (*provider) Type() captcha_dto.ProviderType {
 	return captcha_dto.ProviderTypeTurnstile
 }
@@ -118,11 +119,10 @@ func (*provider) ScriptURL() string {
 	return "https://challenges.cloudflare.com/turnstile/v0/api.js"
 }
 
-// Verify verifies a Turnstile token by calling the Cloudflare siteverify
-// endpoint.
+// Verify verifies a Turnstile token by calling the Cloudflare siteverify endpoint.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the token, client
-// IP, and action name.
+// Takes request (*captcha_dto.VerifyRequest) which contains the token, client IP, and
+// action name.
 //
 // Returns *captcha_dto.VerifyResponse which contains the verification result.
 // Returns error when the HTTP request fails or the response cannot be parsed.
@@ -152,8 +152,8 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	}, nil
 }
 
-// parseChallengeTimestamp parses an RFC 3339 timestamp string, returning the
-// zero time if the input is empty or malformed.
+// parseChallengeTimestamp parses an RFC 3339 timestamp string, returning the zero time if
+// the input is empty or malformed.
 //
 // Takes raw (string) which is the RFC 3339 timestamp to parse.
 //
@@ -166,11 +166,11 @@ func parseChallengeTimestamp(raw string) time.Time {
 	return t
 }
 
-// RenderRequirements returns the frontend rendering configuration for the
-// Cloudflare Turnstile widget.
+// RenderRequirements returns the frontend rendering configuration for the Cloudflare
+// Turnstile widget.
 //
-// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP
-// domains, container HTML, and init script needed to render the widget.
+// Returns *captcha_dto.RenderRequirements which describes the script tags, CSP domains,
+// container HTML, and init script needed to render the widget.
 func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	return &captcha_dto.RenderRequirements{
 		InitScript:        scripts.InitScript,
@@ -182,23 +182,23 @@ func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 	}
 }
 
-// HealthCheck returns nil because Cloudflare Turnstile does not provide a
-// test verification endpoint.
+// HealthCheck returns nil because Cloudflare Turnstile does not provide a test
+// verification endpoint.
 //
 // Returns error which is always nil for this provider.
 func (*provider) HealthCheck(_ context.Context) error {
 	return nil
 }
 
-// callVerifyAPI sends the verification request to the Turnstile API and parses
-// the response.
+// callVerifyAPI sends the verification request to the Turnstile API and parses the
+// response.
 //
-// Takes request (*captcha_dto.VerifyRequest) which contains the token and
-// client IP for verification.
+// Takes request (*captcha_dto.VerifyRequest) which contains the token and client IP for
+// verification.
 //
 // Returns *turnstileVerifyResult which is the raw API response.
-// Returns error when the HTTP request fails, the response is invalid, or the
-// body exceeds size limits.
+// Returns error when the HTTP request fails, the response is invalid, or the body exceeds
+// size limits.
 func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.VerifyRequest) (*turnstileVerifyResult, error) {
 	formData := url.Values{
 		"secret":   {p.config.SecretKey},
@@ -252,8 +252,8 @@ func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.Verif
 	return &result, nil
 }
 
-// normalisedPassFailScore returns 1.0 for success and 0.0 for failure,
-// providing a consistent score for pass/fail providers.
+// normalisedPassFailScore returns 1.0 for success and 0.0 for failure, providing a
+// consistent score for pass/fail providers.
 //
 // Takes success (bool) which indicates whether the verification passed.
 //

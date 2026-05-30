@@ -16,10 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db_catalogue_sqlite provides a PRAGMA-based catalogue provider for
-// SQLite databases. It implements CatalogueProviderPort by introspecting a
-// live database via PRAGMA commands rather than replaying migration files.
+// Package db_catalogue_sqlite provides a PRAGMA-based catalogue provider for SQLite
+// databases. It implements CatalogueProviderPort by introspecting a live database via
+// PRAGMA commands rather than replaying migration files.
 //
-// This is useful for users with existing SQLite databases who want to generate
-// type-safe query code without maintaining migration files.
+// This is useful for users with existing SQLite databases who want to generate type-safe
+// query code without maintaining migration files.
 package db_catalogue_sqlite

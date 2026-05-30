@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// Provider is a backend-agnostic message bus provider.
-// Each provider (GoChannel, NATS, PostgreSQL, SQLite) implements this
-// interface to supply the Watermill infrastructure components.
+// Provider is a backend-agnostic message bus provider. Each backend (GoChannel, NATS,
+// PostgreSQL, SQLite) satisfies Provider to supply the Watermill infrastructure
+// components.
 type Provider = events_domain.Provider
 
 // ProviderConfig is the base settings shared by all providers.
@@ -38,9 +38,8 @@ type ProviderConfig = events_domain.ProviderConfig
 // RouterConfig holds settings for the Watermill Router.
 type RouterConfig = events_domain.RouterConfig
 
-// GetRouter returns the Watermill Router configured by Piko.
-// Users can add their own handlers to this router for custom event
-// processing.
+// GetRouter returns the Watermill Router configured by Piko. Users can add their own
+// handlers to this router for custom event processing.
 //
 // Example:
 //
@@ -63,14 +62,13 @@ type RouterConfig = events_domain.RouterConfig
 //	)
 //
 // Returns *message.Router which is the configured events router.
-// Returns error when the framework is not initialised or the provider cannot
-// be created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetRouter() (*message.Router, error) {
 	return bootstrap.GetEventsRouter()
 }
 
-// GetPublisher returns the Watermill Publisher configured by Piko. Use this to
-// publish your own messages to the event bus.
+// GetPublisher returns the Watermill Publisher configured by Piko. Use this to publish
+// your own messages to the event bus.
 //
 // Example:
 //
@@ -82,14 +80,13 @@ func GetRouter() (*message.Router, error) {
 //	err = publisher.Publish("orders.created", wmMessage)
 //
 // Returns message.Publisher which is the configured events publisher.
-// Returns error when the framework is not initialised or the provider cannot be
-// created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetPublisher() (message.Publisher, error) {
 	return bootstrap.GetEventsPublisher()
 }
 
-// GetSubscriber returns the Watermill Subscriber configured by Piko. Use this
-// to create subscriptions in combination with GetRouter().
+// GetSubscriber returns the Watermill Subscriber configured by Piko. Use this to create
+// subscriptions in combination with GetRouter().
 //
 // Example:
 //
@@ -98,25 +95,23 @@ func GetPublisher() (message.Publisher, error) {
 //	router.AddNoPublisherHandler("handler-name", "topic", subscriber, handler)
 //
 // Returns message.Subscriber which is the configured events subscriber.
-// Returns error when the framework is not initialised or the provider cannot be
-// created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetSubscriber() (message.Subscriber, error) {
 	return bootstrap.GetEventsSubscriber()
 }
 
-// GetProvider returns the underlying events provider for advanced use cases.
-// Most users should use GetRouter, GetPublisher, and GetSubscriber instead.
+// GetProvider returns the underlying events provider for advanced use cases. Most users
+// should use GetRouter, GetPublisher, and GetSubscriber instead.
 //
 // Returns Provider which is the configured events provider.
-// Returns error when the framework is not initialised or the provider cannot
-// be created.
+// Returns error when the framework is not initialised or the provider cannot be created.
 func GetProvider() (Provider, error) {
 	return bootstrap.GetEventsProvider()
 }
 
-// IsRunning reports whether the events router has been started and is running.
-// This can be used to check if the events infrastructure is ready before
-// adding handlers or publishing messages.
+// IsRunning reports whether the events router has been started and is running. This can
+// be used to check if the events infrastructure is ready before adding handlers or
+// publishing messages.
 //
 // Returns bool which is true if the events router is running.
 func IsRunning() bool {
@@ -130,15 +125,14 @@ func DefaultProviderConfig() ProviderConfig {
 	return events_domain.DefaultProviderConfig()
 }
 
-// NewWatermillLoggerAdapter creates a Watermill LoggerAdapter from a Piko
-// logger. Provider implementations use this to integrate with Watermill's
-// logging system, bridging Piko's structured logging to Watermill's internal
-// log calls.
+// NewWatermillLoggerAdapter creates a Watermill LoggerAdapter from a Piko logger.
+// Provider implementations use this to integrate with Watermill's logging system,
+// bridging Piko's structured logging to Watermill's internal log calls.
 //
 // Takes l (logger.Logger) which is the Piko logger to adapt.
 //
-// Returns watermill.LoggerAdapter which wraps the Piko logger for use with
-// Watermill components.
+// Returns watermill.LoggerAdapter which wraps the Piko logger for use with Watermill
+// components.
 func NewWatermillLoggerAdapter(l logger.Logger) watermill.LoggerAdapter {
 	return watermilllogger.NewAdapter(l)
 }

@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Manages the expansion context during partial component inlining, tracking state and recursively expanding nested partials.
-// Handles slot content, maintains invocation keys, and maintains proper scoping during the recursive expansion process.
+// Manages the expansion context during partial component inlining, tracking state and
+// recursively expanding nested partials. Handles slot content, maintains invocation keys,
+// and maintains proper scoping during the recursive expansion process.
 
 import (
 	"context"
@@ -46,8 +47,8 @@ const (
 	// initialOrderCapacity is the initial slice capacity for order collections.
 	initialOrderCapacity = 8
 
-	// initialExpansionDiagnosticsCapacity is the starting slice capacity for
-	// collecting diagnostics during template expansion.
+	// initialExpansionDiagnosticsCapacity is the starting slice capacity for collecting
+	// diagnostics during template expansion.
 	initialExpansionDiagnosticsCapacity = 4
 
 	// initialPropsCapacity is the initial size for property maps.
@@ -87,13 +88,12 @@ type expansionContext struct {
 // expandPartialsRecursive expands partial template nodes within the given list.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes nodes ([]*ast_domain.TemplateNode) which is the list of nodes to
-// expand.
-// Takes invoker (*annotator_dto.ParsedComponent) which provides the import
-// context for resolving partial paths.
+// Takes nodes ([]*ast_domain.TemplateNode) which is the list of nodes to expand.
+// Takes invoker (*annotator_dto.ParsedComponent) which provides the import context for
+// resolving partial paths.
 //
-// Returns []*ast_domain.TemplateNode which is the expanded nodes, or nil if
-// the context is cancelled or errors occur.
+// Returns []*ast_domain.TemplateNode which is the expanded nodes, or nil if the context
+// is cancelled or errors occur.
 func (ec *expansionContext) expandPartialsRecursive(ctx context.Context, nodes []*ast_domain.TemplateNode, invoker *annotator_dto.ParsedComponent) []*ast_domain.TemplateNode {
 	var aliasToRawPath map[string]string
 	if invoker != nil && len(invoker.PikoImports) > 0 {
@@ -126,13 +126,12 @@ func (ec *expansionContext) expandPartialsRecursive(ctx context.Context, nodes [
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the node to expand.
-// Takes aliasToRawPath (map[string]string) which maps import aliases to their
-// file paths.
-// Takes invoker (*annotator_dto.ParsedComponent) which is the component that
-// started this expansion.
+// Takes aliasToRawPath (map[string]string) which maps import aliases to their file paths.
+// Takes invoker (*annotator_dto.ParsedComponent) which is the component that started this
+// expansion.
 //
-// Returns []*ast_domain.TemplateNode which contains the expanded nodes, or nil
-// if the context is cancelled or errors occur.
+// Returns []*ast_domain.TemplateNode which contains the expanded nodes, or nil if the
+// context is cancelled or errors occur.
 func (ec *expansionContext) expandNodeRecursive(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -173,16 +172,14 @@ func (ec *expansionContext) expandNodeRecursive(
 // expandPartial creates and runs a task to expand a single partial template.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes invokerNode (*ast_domain.TemplateNode) which is the template node that
-// calls the partial.
+// Takes invokerNode (*ast_domain.TemplateNode) which is the template node that calls the
+// partial.
 // Takes userAlias (string) which is the alias used to refer to the partial.
-// Takes aliasToRawPath (map[string]string) which maps aliases to their raw
-// file paths.
-// Takes invokerComponent (*annotator_dto.ParsedComponent) which is the
-// component that contains the calling node.
+// Takes aliasToRawPath (map[string]string) which maps aliases to their raw file paths.
+// Takes invokerComponent (*annotator_dto.ParsedComponent) which is the component that
+// contains the calling node.
 //
-// Returns []*ast_domain.TemplateNode which contains the expanded template
-// nodes.
+// Returns []*ast_domain.TemplateNode which contains the expanded template nodes.
 func (ec *expansionContext) expandPartial(
 	ctx context.Context,
 	invokerNode *ast_domain.TemplateNode,
@@ -196,8 +193,8 @@ func (ec *expansionContext) expandPartial(
 	return result
 }
 
-// assembleFinalCSS joins global and scoped CSS blocks into a single string.
-// Blocks are sorted by path or scope ID to produce the same output each time.
+// assembleFinalCSS joins global and scoped CSS blocks into a single string. Blocks are
+// sorted by path or scope ID to produce the same output each time.
 //
 // Returns string which contains the joined CSS content.
 // Returns error which is always nil (kept for future use).
@@ -228,8 +225,8 @@ func (ec *expansionContext) assembleFinalCSS() (string, error) {
 
 // getSortedPartialInvocations returns the unique invocations sorted by key.
 //
-// Returns []*annotator_dto.PartialInvocation which contains the invocations
-// in alphabetical key order.
+// Returns []*annotator_dto.PartialInvocation which contains the invocations in
+// alphabetical key order.
 func (ec *expansionContext) getSortedPartialInvocations() []*annotator_dto.PartialInvocation {
 	sortedKeys := slices.Sorted(maps.Keys(ec.uniqueInvocations))
 
@@ -240,13 +237,12 @@ func (ec *expansionContext) getSortedPartialInvocations() []*annotator_dto.Parti
 	return sorted
 }
 
-// createPartialInfoAnnotation builds a partial invocation info record for a
-// template node.
+// createPartialInfoAnnotation builds a partial invocation info record for a template
+// node.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for
-// expression parsing.
-// Takes invokerNode (*ast_domain.TemplateNode) which is the node that calls
-// the partial.
+// Takes ctx (context.Context) which controls cancellation and deadlines for expression
+// parsing.
+// Takes invokerNode (*ast_domain.TemplateNode) which is the node that calls the partial.
 // Takes userAlias (string) which is the alias used in the template.
 // Takes targetHash (string) which identifies the target partial.
 // Takes invokerHash (string) which identifies the calling component.
@@ -289,21 +285,22 @@ func (ec *expansionContext) createPartialInfoAnnotation(ctx context.Context, inv
 	return partialInfo
 }
 
-// rejectedPikoElementTargets lists tag names that cannot be used as the target
-// of a <piko:element is="..."> resolution.
-var rejectedPikoElementTargets = map[string]bool{
-	tagPikoPartial: true,
-	tagPikoSlot:    true,
-	tagPikoElement: true,
-}
+var (
+	// rejectedPikoElementTargets lists tag names that cannot be used as the target of a
+	// <piko:element is="..."> resolution.
+	rejectedPikoElementTargets = map[string]bool{
+		tagPikoPartial: true,
+		tagPikoSlot:    true,
+		tagPikoElement: true,
+	}
+)
 
 // newExpansionContext creates a new context for template expansion.
 //
 // Takes exp (*PartialExpander) which expands partial templates.
-// Takes graph (*annotator_dto.ComponentGraph) which holds the component
-// dependency graph.
-// Takes entryPointHashedName (string) which is the hashed name of the main
-// component to expand.
+// Takes graph (*annotator_dto.ComponentGraph) which holds the component dependency graph.
+// Takes entryPointHashedName (string) which is the hashed name of the main component to
+// expand.
 //
 // Returns *expansionContext which is the prepared context for expansion.
 // Returns *annotator_dto.ParsedComponent which is the main component.
@@ -339,16 +336,16 @@ func newExpansionContext(
 	return expCtx, mainComponent, astToExpand, nil
 }
 
-// getPartialImportAliasFromIsAttr gets the partial import alias from the "is"
-// attribute of a piko:partial element node. Only piko:partial elements can
-// trigger partial invocation - the "is" attribute on other elements is treated
-// as a normal HTML attribute.
+// getPartialImportAliasFromIsAttr gets the partial import alias from the "is" attribute
+// of a piko:partial element node. Only piko:partial elements can trigger partial
+// invocation - the "is" attribute on other elements is treated as a normal HTML
+// attribute.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 //
 // Returns alias (string) which holds the value of the "is" attribute.
-// Returns isPartial (bool) which is true when a valid alias was found on a
-// piko:partial element.
+// Returns isPartial (bool) which is true when a valid alias was found on a piko:partial
+// element.
 func getPartialImportAliasFromIsAttr(node *ast_domain.TemplateNode) (alias string, isPartial bool) {
 	if node == nil || node.NodeType != ast_domain.NodeElement {
 		return "", false
@@ -360,18 +357,17 @@ func getPartialImportAliasFromIsAttr(node *ast_domain.TemplateNode) (alias strin
 	return value, ok && value != ""
 }
 
-// validatePikoPartialElement checks that a piko:partial element has a valid
-// 'is' attribute.
+// validatePikoPartialElement checks that a piko:partial element has a valid 'is'
+// attribute.
 //
-// It validates that the 'is' attribute is present and not dynamic. The 'is'
-// attribute on other elements is treated as a normal HTML attribute and does
-// not produce errors.
+// It validates that the 'is' attribute is present and not dynamic. The 'is' attribute on
+// other elements is treated as a normal HTML attribute and does not produce errors.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to validate.
 // Takes sourcePath (string) which is the file path for diagnostics.
 //
-// Returns *ast_domain.Diagnostic which is an error if validation fails, or nil
-// if the node is valid or is not a piko:partial element.
+// Returns *ast_domain.Diagnostic which is an error if validation fails, or nil if the
+// node is valid or is not a piko:partial element.
 func validatePikoPartialElement(node *ast_domain.TemplateNode, sourcePath string) *ast_domain.Diagnostic {
 	if node == nil || node.NodeType != ast_domain.NodeElement {
 		return nil
@@ -410,20 +406,19 @@ func validatePikoPartialElement(node *ast_domain.TemplateNode, sourcePath string
 	return nil
 }
 
-// validatePikoElementNode checks that a <piko:element> has a valid 'is'
-// attribute.
+// validatePikoElementNode checks that a <piko:element> has a valid 'is' attribute.
 //
 // Behaviour:
-//   - Returns a diagnostic if the attribute is missing (and no dynamic :is is
-//     present), empty, or targets a rejected tag name.
-//   - Dynamic :is is allowed and produces no diagnostic here; runtime
-//     validation handles it.
+//   - Returns a diagnostic if the attribute is missing (and no dynamic :is is present),
+//     empty, or targets a rejected tag name.
+//   - Dynamic :is is allowed and produces no diagnostic here; runtime validation handles
+//     it.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to validate.
 // Takes sourcePath (string) which is the file path for diagnostics.
 //
-// Returns *ast_domain.Diagnostic which is an error if validation fails, or nil
-// if the node is valid or is not a piko:element.
+// Returns *ast_domain.Diagnostic which is an error if validation fails, or nil if the
+// node is valid or is not a piko:element.
 func validatePikoElementNode(node *ast_domain.TemplateNode, sourcePath string) *ast_domain.Diagnostic {
 	if node == nil || node.NodeType != ast_domain.NodeElement {
 		return nil
@@ -465,12 +460,12 @@ func validatePikoElementNode(node *ast_domain.TemplateNode, sourcePath string) *
 	return nil
 }
 
-// resolvePikoElementStaticIs rewrites a <piko:element is="tag"> node by
-// setting its TagName to the is value and removing the is attribute. Dynamic
-// :is nodes are left as piko:element for runtime resolution.
+// resolvePikoElementStaticIs rewrites a <piko:element is="tag"> node by setting its
+// TagName to the is value and removing the is attribute. Dynamic :is nodes are left as
+// piko:element for runtime resolution.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node to check and
-// potentially rewrite.
+// Takes node (*ast_domain.TemplateNode) which is the node to check and potentially
+// rewrite.
 //
 // Returns bool which is true if the node was resolved (tag name changed).
 func resolvePikoElementStaticIs(node *ast_domain.TemplateNode) bool {
@@ -497,14 +492,14 @@ func resolvePikoElementStaticIs(node *ast_domain.TemplateNode) bool {
 	return true
 }
 
-// calculatePotentialInvocationKey builds a unique cache key from a partial
-// alias and its property maps.
+// calculatePotentialInvocationKey builds a unique cache key from a partial alias and its
+// property maps.
 //
 // Takes partialAlias (string) which is the base part of the key.
-// Takes reqOverrides (map[string]ast_domain.PropValue) which holds request
-// override properties to include in the key.
-// Takes passedProps (map[string]ast_domain.PropValue) which holds passed
+// Takes reqOverrides (map[string]ast_domain.PropValue) which holds request override
 // properties to include in the key.
+// Takes passedProps (map[string]ast_domain.PropValue) which holds passed properties to
+// include in the key.
 //
 // Returns string which is a stable key built from all inputs.
 func calculatePotentialInvocationKey(partialAlias string, reqOverrides, passedProps map[string]ast_domain.PropValue) string {
@@ -526,18 +521,16 @@ func calculatePotentialInvocationKey(partialAlias string, reqOverrides, passedPr
 	return buildAliasFromPath(builder.String())
 }
 
-// extractPropsForLinking extracts properties from a template node for use in
-// component linking.
+// extractPropsForLinking extracts properties from a template node for use in component
+// linking.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for
-// expression parsing.
-// Takes node (*ast_domain.TemplateNode) which holds the template attributes to
-// process.
-// Takes sourcePath (string) which gives the source file path for expression
+// Takes ctx (context.Context) which controls cancellation and deadlines for expression
 // parsing.
+// Takes node (*ast_domain.TemplateNode) which holds the template attributes to process.
+// Takes sourcePath (string) which gives the source file path for expression parsing.
 //
-// Returns requestOverrides (map[string]ast_domain.PropValue) which holds
-// attributes that have the request prefix.
+// Returns requestOverrides (map[string]ast_domain.PropValue) which holds attributes that
+// have the request prefix.
 // Returns passedProps (map[string]ast_domain.PropValue) which holds all other
 // non-structural attributes as properties with lowercase keys.
 func extractPropsForLinking(ctx context.Context, node *ast_domain.TemplateNode, sourcePath string) (requestOverrides, passedProps map[string]ast_domain.PropValue) {

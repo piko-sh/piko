@@ -1,0 +1,4 @@
+{
+  "description": "Three-file pipeline: main calls runPipeline (dispatcher.go), which spawns a goroutine and runs square (worker.go).",
+  "expected": "sum=55"
+}

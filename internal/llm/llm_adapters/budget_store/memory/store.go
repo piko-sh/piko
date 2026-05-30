@@ -68,7 +68,9 @@ type Store struct {
 	mu sync.RWMutex
 }
 
-var _ llm_domain.BudgetStorePort = (*Store)(nil)
+var (
+	_ llm_domain.BudgetStorePort = (*Store)(nil)
+)
 
 // StoreOption is a function that sets up the Store.
 type StoreOption func(*Store)
@@ -113,17 +115,15 @@ func (s *Store) Record(ctx context.Context, scope string, cost *llm_dto.CostEsti
 	return nil
 }
 
-// CheckAndReserve atomically checks whether the estimated cost fits within
-// all configured limits and, if so, reserves it by adding the cost to the
-// current spend counters.
+// CheckAndReserve atomically checks whether the estimated cost fits within all configured
+// limits and, if so, reserves it by adding the cost to the current spend counters.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the cost to reserve.
 // Takes limits (llm_dto.BudgetLimits) which carries the spend limits.
 //
-// Returns error which is llm_domain.ErrBudgetExceeded if any limit would be
-// breached.
+// Returns error which is llm_domain.ErrBudgetExceeded if any limit would be breached.
 //
 // Safe for concurrent use; holds the write lock for the entire operation.
 func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost maths.Money, limits llm_dto.BudgetLimits) error {
@@ -176,8 +176,8 @@ func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost
 	return nil
 }
 
-// Unreserve releases a previously reserved cost when the request fails before
-// the actual usage is recorded.
+// Unreserve releases a previously reserved cost when the request fails before the actual
+// usage is recorded.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
@@ -325,8 +325,7 @@ func (s *Store) Reset(ctx context.Context, scope string) error {
 	return nil
 }
 
-// ResetAll resets all budget data across all scopes.
-// Intended for testing.
+// ResetAll resets all budget data across all scopes. Intended for testing.
 //
 // Returns error if the reset fails (always nil for in-memory).
 //
@@ -343,8 +342,8 @@ func (s *Store) ResetAll(ctx context.Context) error {
 	return nil
 }
 
-// getOrCreateData returns budget data for a scope, creating it if needed.
-// Must be called with lock held.
+// getOrCreateData returns budget data for a scope, creating it if needed. Must be called
+// with lock held.
 //
 // Takes scope (string) which identifies the budget scope to retrieve or create.
 //
@@ -366,8 +365,8 @@ func (s *Store) getOrCreateData(scope string) *budgetData {
 	return data
 }
 
-// WithClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithClock sets the clock used for time operations. If not set, clock.RealClock() is
+// used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -380,8 +379,7 @@ func WithClock(c clock.Clock) StoreOption {
 
 // New creates a new in-memory budget store.
 //
-// Takes opts (...StoreOption) which are optional functions to configure the
-// store.
+// Takes opts (...StoreOption) which are optional functions to configure the store.
 //
 // Returns *Store which is ready for use.
 func New(opts ...StoreOption) *Store {
@@ -411,8 +409,8 @@ func isSameDay(t1, t2 time.Time) bool {
 //
 // Takes t (time.Time) which is the time to truncate.
 //
-// Returns time.Time which is the input time with hours, minutes, seconds, and
-// nanoseconds set to zero.
+// Returns time.Time which is the input time with hours, minutes, seconds, and nanoseconds
+// set to zero.
 func truncateToDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }

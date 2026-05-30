@@ -16,18 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package interp_link exposes the sentinel type used to bridge Go
-// generic functions into Piko's interpreter.
+// Package interp_link exposes the sentinel type used to bridge Go generic functions into
+// Piko's interpreter.
 //
-// Go monomorphises generics at compile time: the machine code for
-// GetData[Post] only exists if the Go compiler saw that instantiation.
-// When Piko's interpreter executes a .pk file that calls a generic
-// function with a user-defined type, the specialised code is absent.
-// A source-level //piko:link directive declares a non-generic sibling
-// that accepts the instantiated types as prepended reflect.Type
-// arguments; the extract tool wraps the sibling in a [LinkedFunction]
-// during symbol generation, and the interpreter dispatches through it.
+// Go monomorphises generics at compile time: the machine code for GetData[Post] only
+// exists if the Go compiler saw that instantiation. When Piko's interpreter executes a
+// .pk file that calls a generic function with a user-defined type, the specialised code
+// is absent. A source-level //piko:link directive declares a non-generic sibling that
+// accepts the instantiated types as prepended reflect.Type arguments; the extract tool
+// wraps the sibling in a [LinkedFunction] during symbol generation, and the interpreter
+// dispatches through it.
 //
-// Imported by generated gen_*.go symbol files, so the package lives in a
-// public path rather than under internal/.
+// Imported by generated gen_*.go symbol files, so the package lives in a public path
+// rather than under internal/.
 package interp_link

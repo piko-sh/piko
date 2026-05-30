@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driver_handlers implements [log/slog.Handler] for the Piko
-// logging system, including pretty-printed console output with
-// colours and OpenTelemetry integration for distributed tracing.
+// Package driver_handlers implements [log/slog.Handler] for the Piko logging system,
+// including pretty-printed console output with colours and OpenTelemetry integration for
+// distributed tracing.
 //
 // For broadcasting to multiple handlers, use the standard library's
 // [log/slog.NewMultiHandler].
@@ -40,6 +40,6 @@
 //
 // # Thread safety
 //
-// All handler implementations are safe for concurrent use. Each
-// call to WithAttrs or WithGroup returns a new handler instance.
+// All handler implementations are safe for concurrent use. Each call to WithAttrs or
+// WithGroup returns a new handler instance.
 package driver_handlers

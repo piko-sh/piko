@@ -18,28 +18,30 @@
 
 package builtin_detectors
 
-// commonBigrams contains the most frequent English letter bigrams. Text
-// composed of random characters will have a low hit rate against this set.
-var commonBigrams = map[string]struct{}{
-	"th": {}, "he": {}, "in": {}, "er": {}, "an": {},
-	"re": {}, "on": {}, "at": {}, "en": {}, "nd": {},
-	"ti": {}, "es": {}, "or": {}, "te": {}, "of": {},
-	"ed": {}, "is": {}, "it": {}, "al": {}, "ar": {},
-	"st": {}, "to": {}, "nt": {}, "ng": {}, "se": {},
-	"ha": {}, "as": {}, "ou": {}, "io": {}, "le": {},
-	"ve": {}, "co": {}, "me": {}, "de": {}, "hi": {},
-	"ri": {}, "ro": {}, "ic": {}, "ne": {}, "ea": {},
-	"ra": {}, "ce": {}, "li": {}, "ch": {}, "ll": {},
-	"be": {}, "ma": {}, "si": {}, "om": {}, "ur": {},
-	"ca": {}, "el": {}, "ta": {}, "la": {}, "ns": {},
-	"ge": {}, "ad": {}, "ec": {}, "ai": {}, "il": {},
-	"no": {}, "pe": {}, "di": {}, "ss": {}, "us": {},
-	"sh": {}, "tr": {}, "ol": {}, "ot": {}, "et": {},
-	"tu": {}, "ie": {}, "wh": {}, "em": {}, "ow": {},
-	"ac": {}, "ag": {}, "am": {}, "ap": {}, "ee": {},
-	"fo": {}, "id": {}, "ig": {}, "im": {}, "iv": {},
-	"ly": {}, "mi": {}, "ni": {}, "op": {}, "ov": {},
-	"pa": {}, "pl": {}, "po": {}, "pr": {}, "so": {},
-	"su": {}, "ul": {}, "un": {}, "up": {}, "ut": {},
-	"wa": {}, "wi": {},
-}
+var (
+	// commonBigrams contains the most frequent English letter bigrams. Text composed of
+	// random characters will have a low hit rate against this set.
+	commonBigrams = map[string]struct{}{
+		"th": {}, "he": {}, "in": {}, "er": {}, "an": {},
+		"re": {}, "on": {}, "at": {}, "en": {}, "nd": {},
+		"ti": {}, "es": {}, "or": {}, "te": {}, "of": {},
+		"ed": {}, "is": {}, "it": {}, "al": {}, "ar": {},
+		"st": {}, "to": {}, "nt": {}, "ng": {}, "se": {},
+		"ha": {}, "as": {}, "ou": {}, "io": {}, "le": {},
+		"ve": {}, "co": {}, "me": {}, "de": {}, "hi": {},
+		"ri": {}, "ro": {}, "ic": {}, "ne": {}, "ea": {},
+		"ra": {}, "ce": {}, "li": {}, "ch": {}, "ll": {},
+		"be": {}, "ma": {}, "si": {}, "om": {}, "ur": {},
+		"ca": {}, "el": {}, "ta": {}, "la": {}, "ns": {},
+		"ge": {}, "ad": {}, "ec": {}, "ai": {}, "il": {},
+		"no": {}, "pe": {}, "di": {}, "ss": {}, "us": {},
+		"sh": {}, "tr": {}, "ol": {}, "ot": {}, "et": {},
+		"tu": {}, "ie": {}, "wh": {}, "em": {}, "ow": {},
+		"ac": {}, "ag": {}, "am": {}, "ap": {}, "ee": {},
+		"fo": {}, "id": {}, "ig": {}, "im": {}, "iv": {},
+		"ly": {}, "mi": {}, "ni": {}, "op": {}, "ov": {},
+		"pa": {}, "pl": {}, "po": {}, "pr": {}, "so": {},
+		"su": {}, "ul": {}, "un": {}, "up": {}, "ut": {},
+		"wa": {}, "wi": {},
+	}
+)

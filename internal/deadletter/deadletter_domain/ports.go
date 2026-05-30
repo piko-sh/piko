@@ -23,8 +23,8 @@ import (
 	"time"
 )
 
-// DeadLetterPort defines the interface for dead letter queue adapters.
-// It uses Go generics to support any entry type.
+// DeadLetterPort defines the interface for dead letter queue adapters. It uses Go
+// generics to support any entry type.
 type DeadLetterPort[T any] interface {
 	// Add adds a failed item to the dead letter queue.
 	//
@@ -68,8 +68,8 @@ type DeadLetterPort[T any] interface {
 	GetOlderThan(ctx context.Context, duration time.Duration) ([]T, error)
 }
 
-// Entry defines the methods that dead letter entry types must provide. The
-// generic dead letter queue uses Entry to work with any entry type.
+// Entry defines the methods that dead letter entry types must provide. The generic dead
+// letter queue uses Entry to work with any entry type.
 type Entry interface {
 	// GetID returns the unique identifier for this entry.
 	GetID() string

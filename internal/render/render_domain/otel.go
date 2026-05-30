@@ -43,19 +43,17 @@ var (
 	// CollectMetadataCount tracks the number of times metadata has been collected.
 	CollectMetadataCount metric.Int64Counter
 
-	// CollectMetadataErrorCount tracks the number of errors that happen when
-	// gathering metadata.
+	// CollectMetadataErrorCount tracks the number of errors that happen when gathering
+	// metadata.
 	CollectMetadataErrorCount metric.Int64Counter
 
 	// RenderASTCount tracks the number of AST render operations.
 	RenderASTCount metric.Int64Counter
 
-	// RenderASTErrorCount tracks the number of errors that happen during AST
-	// rendering.
+	// RenderASTErrorCount tracks the number of errors that happen during AST rendering.
 	RenderASTErrorCount metric.Int64Counter
 
-	// BuildSvgSpriteSheetCount tracks the number of SVG sprite sheet build
-	// operations.
+	// BuildSvgSpriteSheetCount tracks the number of SVG sprite sheet build operations.
 	BuildSvgSpriteSheetCount metric.Int64Counter
 
 	// BuildSvgSpriteSheetErrorCount tracks errors during SVG sprite sheet builds.

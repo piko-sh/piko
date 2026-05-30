@@ -1,0 +1,13 @@
+package mathkit
+
+func Double(value int) int {
+	return scale(value, 2)
+}
+
+func Square(value int) int {
+	return value * value
+}
+
+func scale(value, factor int) int {
+	return value * factor
+}

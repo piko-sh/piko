@@ -32,11 +32,10 @@ import (
 //
 // Takes packageName (string) which is the Go package name for generated files.
 // Takes catalogue (*querier_dto.Catalogue) which is the schema state.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
-// Returns []querier_dto.GeneratedFile which contains the models.go file, or an
-// empty slice if the catalogue has no tables.
+// Returns []querier_dto.GeneratedFile which contains the models.go file, or an empty
+// slice if the catalogue has no tables.
 // Returns error when code generation fails.
 func EmitModels(
 	packageName string,
@@ -65,8 +64,8 @@ func EmitModels(
 	}, nil
 }
 
-// collectTables gathers all tables from the catalogue and sorts them
-// alphabetically by name for deterministic output.
+// collectTables gathers all tables from the catalogue and sorts them alphabetically by
+// name for deterministic output.
 //
 // Takes catalogue (*querier_dto.Catalogue) which is the schema state.
 //
@@ -93,12 +92,10 @@ func collectTables(catalogue *querier_dto.Catalogue) []*querier_dto.Table {
 	return tables
 }
 
-// buildModelStruct constructs a type declaration for a single table model
-// struct.
+// buildModelStruct constructs a type declaration for a single table model struct.
 //
 // Takes table (*querier_dto.Table) which defines the table schema.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 // Takes tracker (*ImportTracker) which collects required imports.
 //
 // Returns ast.Decl which is the type declaration for the model struct.

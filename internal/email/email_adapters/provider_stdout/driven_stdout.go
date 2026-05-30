@@ -57,21 +57,24 @@ const (
 	recipientSeparator = ", "
 )
 
-// stdoutProvider writes email content to stdout as structured JSON.
-// It implements EmailProviderPort for testing and debugging.
+// stdoutProvider writes email content to stdout as structured JSON. It implements
+// EmailProviderPort for testing and debugging.
 type stdoutProvider struct {
 	// rateLimiter limits how often emails can be sent.
 	rateLimiter *email_domain.ProviderRateLimiter
 }
 
-var _ email_domain.EmailProviderPort = (*stdoutProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*stdoutProvider)(nil)
+var (
+	_ email_domain.EmailProviderPort = (*stdoutProvider)(nil)
 
-// Send formats the email details into a readable block and prints it to
-// stdout for debugging.
+	_ provider_domain.ProviderMetadata = (*stdoutProvider)(nil)
+)
+
+// Send formats the email details into a readable block and prints it to stdout for
+// debugging.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// format and display.
+// Takes params (*email_dto.SendParams) which contains the email details to format and
+// display.
 //
 // Returns error when the rate limiter context is cancelled or times out.
 func (p *stdoutProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
@@ -103,8 +106,7 @@ func (p *stdoutProvider) Send(ctx context.Context, params *email_dto.SendParams)
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns error when the rate limiter fails or sending an individual email
-// fails.
+// Returns error when the rate limiter fails or sending an individual email fails.
 func (p *stdoutProvider) SendBulk(ctx context.Context, emails []*email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -126,8 +128,8 @@ func (p *stdoutProvider) SendBulk(ctx context.Context, emails []*email_dto.SendP
 	return nil
 }
 
-// SupportsBulkSending indicates whether this provider can send multiple emails
-// in one operation.
+// SupportsBulkSending indicates whether this provider can send multiple emails in one
+// operation.
 //
 // Returns bool which is true when bulk sending is supported.
 func (*stdoutProvider) SupportsBulkSending() bool { return true }
@@ -162,8 +164,8 @@ func (*stdoutProvider) Name() string {
 	return "EmailProvider (Stdout)"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// The stdout provider is always healthy as it has no external dependencies.
+// Check implements the healthprobe_domain.Probe interface. The stdout provider is always
+// healthy as it has no external dependencies.
 //
 // Returns healthprobe_dto.Status which always reports healthy.
 func (p *stdoutProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -190,8 +192,8 @@ func (*stdoutProvider) formatEmailHeader(builder *strings.Builder) {
 // formatEmailMetadata writes the email metadata to the string builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
-// Takes params (*email_dto.SendParams) which provides the email fields to
-// format, including from, to, cc, bcc, and subject.
+// Takes params (*email_dto.SendParams) which provides the email fields to format,
+// including from, to, cc, bcc, and subject.
 func (*stdoutProvider) formatEmailMetadata(builder *strings.Builder, params *email_dto.SendParams) {
 	from := "[not specified]"
 	if params.From != nil {
@@ -212,8 +214,8 @@ func (*stdoutProvider) formatEmailMetadata(builder *strings.Builder, params *ema
 	builder.WriteString("----------------------------------------------------------------------\n\n")
 }
 
-// formatEmailBody writes the email body content (plain text and HTML) to the
-// string builder.
+// formatEmailBody writes the email body content (plain text and HTML) to the string
+// builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes params (*email_dto.SendParams) which provides the body content.

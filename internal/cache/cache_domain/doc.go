@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_domain defines the core caching abstractions and business logic
-// for the cache hexagon.
+// Package cache_domain defines the core caching abstractions and business logic for the
+// cache hexagon.
 //
-// It contains port interfaces that cache adapters must implement, the service
-// layer that orchestrates caching operations, and a fluent builder API for
-// constructing configured cache instances with support for transformations,
-// encoding, and multi-level caching.
+// It contains port interfaces that cache adapters must implement, the service layer that
+// orchestrates caching operations, and a fluent builder API for constructing configured
+// cache instances with support for transformations, encoding, and multi-level caching.
 //
 // # Usage
 //
@@ -46,16 +45,15 @@
 //
 // # Context handling
 //
-// All I/O methods accept a context.Context for cancellation and timeout
-// control. In-memory providers accept context for API consistency but
-// operations are non-blocking. Distributed providers fully respect context
-// deadlines and cancellation. Multi-level caches propagate context to both
-// L1 and L2 providers, using detached contexts for asynchronous writeback
-// goroutines to preserve trace correlation without inheriting the caller's
-// deadline.
+// All I/O methods accept a context.Context for cancellation and timeout control.
+// In-memory providers accept context for API consistency but operations are non-blocking.
+// Distributed providers fully respect context deadlines and cancellation. Multi-level
+// caches propagate context to both L1 and L2 providers, using detached contexts for
+// asynchronous writeback goroutines to preserve trace correlation without inheriting the
+// caller's deadline.
 //
 // # Thread safety
 //
-// The service, registries, and cache instances returned by providers are all
-// safe for concurrent use.
+// The service, registries, and cache instances returned by providers are all safe for
+// concurrent use.
 package cache_domain

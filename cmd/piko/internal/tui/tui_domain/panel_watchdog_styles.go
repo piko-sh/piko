@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "charm.land/lipgloss/v2"
+import (
+	"charm.land/lipgloss/v2"
+)
 
 const (
 	// PriorityCriticalGlyph marks critical-priority events.
@@ -27,20 +29,19 @@ const (
 	// PriorityHighGlyph marks high-priority events.
 	PriorityHighGlyph = "●"
 
-	// PriorityNormalGlyph marks routine-priority events. Drawn as a
-	// hollow ring so it visually differs from filled glyphs in the
-	// no-colour theme.
+	// PriorityNormalGlyph marks routine-priority events. Drawn as a hollow ring so it
+	// visually differs from filled glyphs in the no-colour theme.
 	PriorityNormalGlyph = "○"
 
-	// SectionMarker is rendered to the left of the active section in
-	// the watchdog Overview's section nav.
+	// SectionMarker is rendered to the left of the active section in the watchdog Overview's
+	// section nav.
 	SectionMarker = "▸"
 )
 
 // PriorityStyle returns the theme-aware style for an event priority.
 //
-// Takes theme (*Theme) which supplies the colour palette. Pass nil to
-// fall back to the legacy global styles.
+// Takes theme (*Theme) which supplies the colour palette. Pass nil to fall back to the
+// legacy global styles.
 // Takes priority (WatchdogEventPriority) which selects the styling.
 //
 // Returns lipgloss.Style which is the appropriate styled glyph.
@@ -81,8 +82,8 @@ func PriorityGlyph(priority WatchdogEventPriority) string {
 	}
 }
 
-// StyledPriorityGlyph returns a styled glyph for the given priority,
-// suitable for direct concatenation into a watchdog event row.
+// StyledPriorityGlyph returns a styled glyph for the given priority, suitable for direct
+// concatenation into a watchdog event row.
 //
 // Takes theme (*Theme) which supplies the colour palette.
 // Takes priority (WatchdogEventPriority) which selects the styling.
@@ -92,8 +93,8 @@ func StyledPriorityGlyph(theme *Theme, priority WatchdogEventPriority) string {
 	return PriorityStyle(theme, priority).Render(PriorityGlyph(priority))
 }
 
-// CategoryLabel returns the short human label for a watchdog event
-// category, suitable for badges and filters.
+// CategoryLabel returns the short human label for a watchdog event category, suitable for
+// badges and filters.
 //
 // Takes category (WatchdogEventCategory) which selects the label.
 //

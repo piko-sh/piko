@@ -18,31 +18,28 @@
 
 package layouter_domain
 
-// Fragment represents the layout result for a single box. It stores
-// positions as parent-relative offsets rather than absolute
-// coordinates, enabling future caching and parallelism.
+// Fragment represents the layout result for a single box. It stores positions as
+// parent-relative offsets rather than absolute coordinates, enabling future caching and
+// parallelism.
 type Fragment struct {
-	// Box is a back-reference to the input LayoutBox that
-	// produced this fragment.
+	// Box is a back-reference to the input LayoutBox that produced this fragment.
 	Box *LayoutBox
 
 	// Children are the child fragments in document order.
 	Children []*Fragment
 
-	// OffsetX is the X position of the content box relative
-	// to the parent fragment's content box origin.
+	// OffsetX is the X position of the content box relative to the parent fragment's content
+	// box origin.
 	OffsetX float64
 
-	// OffsetY is the Y position of the content box relative
-	// to the parent fragment's content box origin.
+	// OffsetY is the Y position of the content box relative to the parent fragment's content
+	// box origin.
 	OffsetY float64
 
-	// ContentWidth is the width of the content area in
-	// points.
+	// ContentWidth is the width of the content area in points.
 	ContentWidth float64
 
-	// ContentHeight is the height of the content area in
-	// points.
+	// ContentHeight is the height of the content area in points.
 	ContentHeight float64
 
 	// Padding holds the resolved padding values in points.
@@ -55,43 +52,39 @@ type Fragment struct {
 	Margin BoxEdges
 }
 
-// BorderBoxWidth returns the total width including padding,
-// borders, and content.
+// BorderBoxWidth returns the total width including padding, borders, and content.
 //
 // Returns the border box width in points.
 func (f *Fragment) BorderBoxWidth() float64 {
 	return f.ContentWidth + f.Padding.Horizontal() + f.Border.Horizontal()
 }
 
-// BorderBoxHeight returns the total height including padding,
-// borders, and content.
+// BorderBoxHeight returns the total height including padding, borders, and content.
 //
 // Returns the border box height in points.
 func (f *Fragment) BorderBoxHeight() float64 {
 	return f.ContentHeight + f.Padding.Vertical() + f.Border.Vertical()
 }
 
-// MarginBoxWidth returns the total width including margins,
-// padding, borders, and content.
+// MarginBoxWidth returns the total width including margins, padding, borders, and
+// content.
 //
 // Returns the margin box width in points.
 func (f *Fragment) MarginBoxWidth() float64 {
 	return f.BorderBoxWidth() + f.Margin.Horizontal()
 }
 
-// MarginBoxHeight returns the total height including margins,
-// padding, borders, and content.
+// MarginBoxHeight returns the total height including margins, padding, borders, and
+// content.
 //
 // Returns the margin box height in points.
 func (f *Fragment) MarginBoxHeight() float64 {
 	return f.BorderBoxHeight() + f.Margin.Vertical()
 }
 
-// InlineSize returns the content size in the inline axis
-// for the given writing mode.
+// InlineSize returns the content size in the inline axis for the given writing mode.
 //
-// Takes writingMode (WritingModeType) which selects the
-// writing direction.
+// Takes writingMode (WritingModeType) which selects the writing direction.
 //
 // Returns float64 which is the inline-axis content size.
 func (f *Fragment) InlineSize(writingMode WritingModeType) float64 {
@@ -101,11 +94,9 @@ func (f *Fragment) InlineSize(writingMode WritingModeType) float64 {
 	return f.ContentHeight
 }
 
-// BlockSize returns the content size in the block axis
-// for the given writing mode.
+// BlockSize returns the content size in the block axis for the given writing mode.
 //
-// Takes writingMode (WritingModeType) which selects the
-// writing direction.
+// Takes writingMode (WritingModeType) which selects the writing direction.
 //
 // Returns float64 which is the block-axis content size.
 func (f *Fragment) BlockSize(writingMode WritingModeType) float64 {
@@ -115,11 +106,9 @@ func (f *Fragment) BlockSize(writingMode WritingModeType) float64 {
 	return f.ContentWidth
 }
 
-// InlineOffset returns the inline-axis offset for the given
-// writing mode.
+// InlineOffset returns the inline-axis offset for the given writing mode.
 //
-// Takes writingMode (WritingModeType) which selects the
-// writing direction.
+// Takes writingMode (WritingModeType) which selects the writing direction.
 //
 // Returns float64 which is the inline-axis offset.
 func (f *Fragment) InlineOffset(writingMode WritingModeType) float64 {
@@ -129,11 +118,9 @@ func (f *Fragment) InlineOffset(writingMode WritingModeType) float64 {
 	return f.OffsetY
 }
 
-// BlockOffset returns the block-axis offset for the given
-// writing mode.
+// BlockOffset returns the block-axis offset for the given writing mode.
 //
-// Takes writingMode (WritingModeType) which selects the
-// writing direction.
+// Takes writingMode (WritingModeType) which selects the writing direction.
 //
 // Returns float64 which is the block-axis offset.
 func (f *Fragment) BlockOffset(writingMode WritingModeType) float64 {
@@ -143,17 +130,14 @@ func (f *Fragment) BlockOffset(writingMode WritingModeType) float64 {
 	return f.OffsetX
 }
 
-// writeFragmentsToBoxTree recursively writes Fragment
-// results back to the corresponding LayoutBox tree,
-// converting parent-relative offsets to absolute
-// coordinates.
+// writeFragmentsToBoxTree recursively writes Fragment results back to the corresponding
+// LayoutBox tree, converting parent-relative offsets to absolute coordinates.
 //
-// Takes fragment (*Fragment) which is the fragment tree
-// to write back.
-// Takes parentContentX (float64) which is the absolute X
-// of the parent's content box origin.
-// Takes parentContentY (float64) which is the absolute Y
-// of the parent's content box origin.
+// Takes fragment (*Fragment) which is the fragment tree to write back.
+// Takes parentContentX (float64) which is the absolute X of the parent's content box
+// origin.
+// Takes parentContentY (float64) which is the absolute Y of the parent's content box
+// origin.
 func writeFragmentsToBoxTree(fragment *Fragment, parentContentX, parentContentY float64) {
 	contentX := parentContentX + fragment.OffsetX
 	contentY := parentContentY + fragment.OffsetY

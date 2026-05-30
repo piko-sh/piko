@@ -18,33 +18,35 @@
 
 package cache_domain
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// DefaultTTL is the default time-to-live for cache entries.
 	DefaultTTL = 1 * time.Hour
 
-	// DefaultOperationTimeout is the default timeout for standard cache
-	// operations such as Get and Set.
+	// DefaultOperationTimeout is the default timeout for standard cache operations such as
+	// Get and Set.
 	DefaultOperationTimeout = 2 * time.Second
 
-	// DefaultAtomicOperationTimeout is the default timeout for atomic
-	// operations such as Compute.
+	// DefaultAtomicOperationTimeout is the default timeout for atomic operations such as
+	// Compute.
 	DefaultAtomicOperationTimeout = 5 * time.Second
 
-	// DefaultBulkOperationTimeout is the default timeout for bulk operations
-	// such as BulkGet and BulkSet.
+	// DefaultBulkOperationTimeout is the default timeout for bulk operations such as BulkGet
+	// and BulkSet.
 	DefaultBulkOperationTimeout = 10 * time.Second
 
 	// DefaultFlushTimeout is the default timeout for flush operations.
 	DefaultFlushTimeout = 30 * time.Second
 
-	// DefaultMaxComputeRetries is the default number of retry attempts for
-	// optimistic-lock compute operations.
+	// DefaultMaxComputeRetries is the default number of retry attempts for optimistic-lock
+	// compute operations.
 	DefaultMaxComputeRetries = 10
 
-	// DefaultConnectionTimeout is the default timeout for initial connection
-	// checks during provider creation.
+	// DefaultConnectionTimeout is the default timeout for initial connection checks during
+	// provider creation.
 	DefaultConnectionTimeout = 5 * time.Second
 
 	// DefaultSearchTimeout is the default timeout for search operations.
@@ -54,9 +56,8 @@ const (
 	DefaultIndexPrefix = "index:"
 )
 
-// ProviderDefaultsParams groups pointer fields that ApplyProviderDefaults
-// fills with sensible defaults when their current value is zero. Nil pointers
-// are safely skipped.
+// ProviderDefaultsParams groups pointer fields that ApplyProviderDefaults fills with
+// sensible defaults when their current value is zero. Nil pointers are safely skipped.
 type ProviderDefaultsParams struct {
 	// DefaultTTL points to the TTL field; set to DefaultTTL when zero.
 	DefaultTTL *time.Duration
@@ -79,16 +80,14 @@ type ProviderDefaultsParams struct {
 	// SearchTimeout points to the search timeout field.
 	SearchTimeout *time.Duration
 
-	// IndexPrefix points to the index prefix field; set to DefaultIndexPrefix
-	// when empty.
+	// IndexPrefix points to the index prefix field; set to DefaultIndexPrefix when empty.
 	IndexPrefix *string
 }
 
-// ApplyProviderDefaults fills zero-valued provider configuration fields with
-// sensible defaults. Nil pointers are safely skipped.
+// ApplyProviderDefaults fills zero-valued provider configuration fields with sensible
+// defaults. Nil pointers are safely skipped.
 //
-// Takes p (ProviderDefaultsParams) which groups all configurable pointer
-// fields.
+// Takes p (ProviderDefaultsParams) which groups all configurable pointer fields.
 func ApplyProviderDefaults(p ProviderDefaultsParams) {
 	setDurationDefault(p.DefaultTTL, DefaultTTL)
 	setDurationDefault(p.OperationTimeout, DefaultOperationTimeout)
@@ -104,8 +103,8 @@ func ApplyProviderDefaults(p ProviderDefaultsParams) {
 	}
 }
 
-// setDurationDefault sets the value pointed to by ptr to defaultVal when ptr is
-// non-nil and the current value is zero.
+// setDurationDefault sets the value pointed to by ptr to defaultVal when ptr is non-nil
+// and the current value is zero.
 //
 // Takes ptr (*time.Duration) which points to the duration field to fill.
 // Takes defaultVal (time.Duration) which is the default value to apply.

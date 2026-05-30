@@ -1,0 +1,4 @@
+{
+  "description": "Defer in function with named return uses cross-file helper to mutate result via pointer; tests named-return sync across file boundaries",
+  "expected": "good=110 errGood=<nil> bad=100 errBad=calc: negative"
+}

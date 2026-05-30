@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package orchestrator_adapters implements the orchestrator domain
-// ports using Watermill for distributed event-driven task processing.
-// The adapters bridge domain abstractions to external infrastructure
-// for task dispatch, event-driven workflows, and artefact compilation
-// pipelines.
+// Package orchestrator_adapters implements the orchestrator domain ports using Watermill
+// for distributed event-driven task processing. The adapters bridge domain abstractions
+// to external infrastructure for task dispatch, event-driven workflows, and artefact
+// compilation pipelines.
 //
 // All exported types are safe for concurrent use.
 package orchestrator_adapters

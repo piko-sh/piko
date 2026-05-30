@@ -19,6 +19,7 @@
 package browser
 
 import (
+	"cmp"
 	"fmt"
 	"time"
 
@@ -83,8 +84,8 @@ func (p *Page) TriggerBusEvent(event string, payload any) *Page {
 	return p
 }
 
-// PikoBusEmit emits a Piko bus event. This is an alias for TriggerBusEvent
-// with explicit naming.
+// PikoBusEmit emits a Piko bus event. This is an alias for TriggerBusEvent with explicit
+// naming.
 //
 // Takes eventName (string) which specifies the event to emit.
 // Takes detail (map[string]any) which provides event payload data.
@@ -101,8 +102,7 @@ func (p *Page) PikoBusEmit(eventName string, detail map[string]any) *Page {
 	return p
 }
 
-// PikoBusWaitForEvent waits for a Piko bus event to be emitted and returns
-// its detail.
+// PikoBusWaitForEvent waits for a Piko bus event to be emitted and returns its detail.
 //
 // Takes eventName (string) which specifies the event name to wait for.
 // Takes opts (...WaitOption) which provides optional wait behaviour controls.
@@ -146,9 +146,8 @@ func (p *Page) PikoPartialReload(partialName string, data map[string]any) *Page 
 //
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which provides the data to pass to the partial.
-// Takes opts (*browser_provider_chromedp.PartialReloadOptions) which selects
-// mode / owned / preserve attribute behaviour; pass nil for the default merge
-// mode.
+// Takes opts (*browser_provider_chromedp.PartialReloadOptions) which selects mode / owned
+// / preserve attribute behaviour; pass nil for the default merge mode.
 //
 // Returns *Page which enables method chaining for further actions.
 func (p *Page) PikoPartialReloadWithOptions(partialName string, data map[string]any, opts *browser_provider_chromedp.PartialReloadOptions) *Page {
@@ -163,17 +162,17 @@ func (p *Page) PikoPartialReloadWithOptions(partialName string, data map[string]
 	return p
 }
 
-// optsModeOrDefault returns the mode string used in trace output, defaulting
-// to "merge" when no options are supplied or the mode is unset.
+// optsModeOrDefault returns the mode string used in trace output, defaulting to "merge"
+// when no options are supplied or the mode is unset.
 //
 // Takes opts (*browser_provider_chromedp.PartialReloadOptions) which may be nil.
 //
 // Returns string which is the mode label.
 func optsModeOrDefault(opts *browser_provider_chromedp.PartialReloadOptions) string {
-	if opts == nil || opts.Mode == "" {
+	if opts == nil {
 		return "merge"
 	}
-	return opts.Mode
+	return cmp.Or(opts.Mode, "merge")
 }
 
 // PikoWaitForPartialReload waits for a Piko partial to finish reloading.
@@ -263,8 +262,7 @@ func (p *Page) PikoCheckBusEventReceived(eventName string) bool {
 	return received
 }
 
-// PikoDispatchFragmentMorph dispatches a Piko fragment morph to update DOM
-// content.
+// PikoDispatchFragmentMorph dispatches a Piko fragment morph to update DOM content.
 //
 // Takes selector (string) which identifies the target element in the DOM.
 // Takes newHTML (string) which provides the new HTML content to morph into.
@@ -281,8 +279,8 @@ func (p *Page) PikoDispatchFragmentMorph(selector, newHTML string) *Page {
 	return p
 }
 
-// PikoDebugGetPartialInfo returns debug information about a partial element.
-// This provides read-only access to internal lifecycle state for E2E testing.
+// PikoDebugGetPartialInfo returns debug information about a partial element. This
+// provides read-only access to internal lifecycle state for E2E testing.
 //
 // Takes selector (string) which identifies the partial element to inspect.
 //
@@ -324,13 +322,11 @@ func (p *Page) PikoDebugGetCleanupCount(selector string) int {
 	return count
 }
 
-// PikoDebugGetRegisteredCallbacks returns the names of registered lifecycle
-// callbacks.
+// PikoDebugGetRegisteredCallbacks returns the names of registered lifecycle callbacks.
 //
 // Takes selector (string) which identifies the element to query.
 //
-// Returns []string which contains the callback names registered for the
-// element.
+// Returns []string which contains the callback names registered for the element.
 func (p *Page) PikoDebugGetRegisteredCallbacks(selector string) []string {
 	callbacks, err := browser_provider_chromedp.PikoDebugGetRegisteredCallbacks(p.actionCtx(), selector)
 	if err != nil {
@@ -339,8 +335,7 @@ func (p *Page) PikoDebugGetRegisteredCallbacks(selector string) []string {
 	return callbacks
 }
 
-// PikoDebugGetAllConnectedPartials returns selectors for all connected
-// partial elements.
+// PikoDebugGetAllConnectedPartials returns selectors for all connected partial elements.
 //
 // Returns []string which contains the CSS selectors for connected partials.
 func (p *Page) PikoDebugGetAllConnectedPartials() []string {

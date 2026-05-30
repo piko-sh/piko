@@ -18,11 +18,10 @@
 
 // Package colour handles zero-allocation ANSI colour output for terminal text.
 //
-// Colours are represented by [Style] values that hold pre-computed ANSI escape
-// sequences. Create a Style once with [New] and reuse it for every write.
-// The hot-path methods [Style.WriteStart] and [Style.WriteReset] perform zero
-// heap allocations -- they write pre-built byte slices directly to an
-// [io.Writer].
+// Colours are represented by [Style] values that hold pre-computed ANSI escape sequences.
+// Create a Style once with [New] and reuse it for every write. The hot-path methods
+// [Style.WriteStart] and [Style.WriteReset] perform zero heap allocations -- they write
+// pre-built byte slices directly to an [io.Writer].
 //
 // # Usage
 //
@@ -38,8 +37,8 @@
 //
 // # Environment variables
 //
-// Colour output is auto-detected from the terminal. The following environment
-// variables override detection:
+// Colour output is auto-detected from the terminal. The following environment variables
+// override detection:
 //
 //   - NO_COLOUR or NO_COLOR: disables colour output when set (any value).
 //   - FORCE_COLOUR or FORCE_COLOR: forces colour output when set (any value).
@@ -47,6 +46,6 @@
 //
 // # Thread safety
 //
-// [Enabled] and [SetEnabled] are safe for concurrent use. [Style] values are
-// immutable after construction and safe to share across goroutines.
+// [Enabled] and [SetEnabled] are safe for concurrent use. [Style] values are immutable
+// after construction and safe to share across goroutines.
 package colour

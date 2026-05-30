@@ -21,7 +21,6 @@ package templater_domain_test
 import (
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -133,27 +132,27 @@ func TestMockPageEntryView_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetHasMiddlewareCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetMiddlewareFuncNameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetHasCachePolicyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCachePolicyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCachePolicyFuncNameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetMiddlewaresCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetIsPageCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetRoutePatternCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetRoutePatternsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetI18nStrategyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetOriginalPathCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetASTRootCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetASTRootWithPropsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetStylingCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetAssetRefsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCustomTagsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetSupportedLocalesCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetLocalStoreCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetJSScriptMetasCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetIsE2EOnlyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetStaticMetadataCallCount))
+	assert.Equal(t, int64(goroutines), m.GetHasMiddlewareCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetMiddlewareFuncNameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetHasCachePolicyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCachePolicyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCachePolicyFuncNameCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetMiddlewaresCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetIsPageCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetRoutePatternCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetRoutePatternsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetI18nStrategyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetOriginalPathCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetASTRootCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetASTRootWithPropsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetStylingCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetAssetRefsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetCustomTagsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetSupportedLocalesCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetLocalStoreCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetJSScriptMetasCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetIsE2EOnlyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetStaticMetadataCallCount.Load())
 }
 
 func TestMockPageEntryView_GetHasMiddleware(t *testing.T) {
@@ -164,7 +163,7 @@ func TestMockPageEntryView_GetHasMiddleware(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetHasMiddleware()
 		assert.False(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetHasMiddlewareCallCount))
+		assert.Equal(t, int64(1), m.GetHasMiddlewareCallCount.Load())
 	})
 
 	t.Run("delegates to GetHasMiddlewareFunc", func(t *testing.T) {
@@ -174,7 +173,7 @@ func TestMockPageEntryView_GetHasMiddleware(t *testing.T) {
 		}
 		got := m.GetHasMiddleware()
 		assert.True(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetHasMiddlewareCallCount))
+		assert.Equal(t, int64(1), m.GetHasMiddlewareCallCount.Load())
 	})
 }
 
@@ -186,7 +185,7 @@ func TestMockPageEntryView_GetMiddlewareFuncName(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetMiddlewareFuncName()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMiddlewareFuncNameCallCount))
+		assert.Equal(t, int64(1), m.GetMiddlewareFuncNameCallCount.Load())
 	})
 
 	t.Run("delegates to GetMiddlewareFuncNameFunc", func(t *testing.T) {
@@ -196,7 +195,7 @@ func TestMockPageEntryView_GetMiddlewareFuncName(t *testing.T) {
 		}
 		got := m.GetMiddlewareFuncName()
 		assert.Equal(t, "authMiddleware", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMiddlewareFuncNameCallCount))
+		assert.Equal(t, int64(1), m.GetMiddlewareFuncNameCallCount.Load())
 	})
 }
 
@@ -208,7 +207,7 @@ func TestMockPageEntryView_GetHasCachePolicy(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetHasCachePolicy()
 		assert.False(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetHasCachePolicyCallCount))
+		assert.Equal(t, int64(1), m.GetHasCachePolicyCallCount.Load())
 	})
 
 	t.Run("delegates to GetHasCachePolicyFunc", func(t *testing.T) {
@@ -218,7 +217,7 @@ func TestMockPageEntryView_GetHasCachePolicy(t *testing.T) {
 		}
 		got := m.GetHasCachePolicy()
 		assert.True(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetHasCachePolicyCallCount))
+		assert.Equal(t, int64(1), m.GetHasCachePolicyCallCount.Load())
 	})
 }
 
@@ -230,7 +229,7 @@ func TestMockPageEntryView_GetCachePolicy(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetCachePolicy(nil)
 		assert.Equal(t, templater_dto.CachePolicy{}, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCachePolicyCallCount))
+		assert.Equal(t, int64(1), m.GetCachePolicyCallCount.Load())
 	})
 
 	t.Run("delegates to GetCachePolicyFunc", func(t *testing.T) {
@@ -245,7 +244,7 @@ func TestMockPageEntryView_GetCachePolicy(t *testing.T) {
 		rd := NewTestRequestData()
 		got := m.GetCachePolicy(rd)
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCachePolicyCallCount))
+		assert.Equal(t, int64(1), m.GetCachePolicyCallCount.Load())
 	})
 }
 
@@ -257,7 +256,7 @@ func TestMockPageEntryView_GetCachePolicyFuncName(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetCachePolicyFuncName()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCachePolicyFuncNameCallCount))
+		assert.Equal(t, int64(1), m.GetCachePolicyFuncNameCallCount.Load())
 	})
 
 	t.Run("delegates to GetCachePolicyFuncNameFunc", func(t *testing.T) {
@@ -267,7 +266,7 @@ func TestMockPageEntryView_GetCachePolicyFuncName(t *testing.T) {
 		}
 		got := m.GetCachePolicyFuncName()
 		assert.Equal(t, "UserCachePolicy", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCachePolicyFuncNameCallCount))
+		assert.Equal(t, int64(1), m.GetCachePolicyFuncNameCallCount.Load())
 	})
 }
 
@@ -279,7 +278,7 @@ func TestMockPageEntryView_GetMiddlewares(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetMiddlewares()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMiddlewaresCallCount))
+		assert.Equal(t, int64(1), m.GetMiddlewaresCallCount.Load())
 	})
 
 	t.Run("delegates to GetMiddlewaresFunc", func(t *testing.T) {
@@ -292,7 +291,7 @@ func TestMockPageEntryView_GetMiddlewares(t *testing.T) {
 		}
 		got := m.GetMiddlewares()
 		require.Len(t, got, 1)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMiddlewaresCallCount))
+		assert.Equal(t, int64(1), m.GetMiddlewaresCallCount.Load())
 	})
 }
 
@@ -304,7 +303,7 @@ func TestMockPageEntryView_GetIsPage(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetIsPage()
 		assert.False(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetIsPageCallCount))
+		assert.Equal(t, int64(1), m.GetIsPageCallCount.Load())
 	})
 
 	t.Run("delegates to GetIsPageFunc", func(t *testing.T) {
@@ -314,7 +313,7 @@ func TestMockPageEntryView_GetIsPage(t *testing.T) {
 		}
 		got := m.GetIsPage()
 		assert.True(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetIsPageCallCount))
+		assert.Equal(t, int64(1), m.GetIsPageCallCount.Load())
 	})
 }
 
@@ -326,7 +325,7 @@ func TestMockPageEntryView_GetRoutePattern(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetRoutePattern()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetRoutePatternCallCount))
+		assert.Equal(t, int64(1), m.GetRoutePatternCallCount.Load())
 	})
 
 	t.Run("delegates to GetRoutePatternFunc", func(t *testing.T) {
@@ -336,7 +335,7 @@ func TestMockPageEntryView_GetRoutePattern(t *testing.T) {
 		}
 		got := m.GetRoutePattern()
 		assert.Equal(t, "/home", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetRoutePatternCallCount))
+		assert.Equal(t, int64(1), m.GetRoutePatternCallCount.Load())
 	})
 }
 
@@ -348,7 +347,7 @@ func TestMockPageEntryView_GetRoutePatterns(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetRoutePatterns()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetRoutePatternsCallCount))
+		assert.Equal(t, int64(1), m.GetRoutePatternsCallCount.Load())
 	})
 
 	t.Run("delegates to GetRoutePatternsFunc", func(t *testing.T) {
@@ -359,7 +358,7 @@ func TestMockPageEntryView_GetRoutePatterns(t *testing.T) {
 		}
 		got := m.GetRoutePatterns()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetRoutePatternsCallCount))
+		assert.Equal(t, int64(1), m.GetRoutePatternsCallCount.Load())
 	})
 }
 
@@ -371,7 +370,7 @@ func TestMockPageEntryView_GetI18nStrategy(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetI18nStrategy()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetI18nStrategyCallCount))
+		assert.Equal(t, int64(1), m.GetI18nStrategyCallCount.Load())
 	})
 
 	t.Run("delegates to GetI18nStrategyFunc", func(t *testing.T) {
@@ -381,7 +380,7 @@ func TestMockPageEntryView_GetI18nStrategy(t *testing.T) {
 		}
 		got := m.GetI18nStrategy()
 		assert.Equal(t, "prefix", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetI18nStrategyCallCount))
+		assert.Equal(t, int64(1), m.GetI18nStrategyCallCount.Load())
 	})
 }
 
@@ -393,7 +392,7 @@ func TestMockPageEntryView_GetOriginalPath(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetOriginalPath()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOriginalPathCallCount))
+		assert.Equal(t, int64(1), m.GetOriginalPathCallCount.Load())
 	})
 
 	t.Run("delegates to GetOriginalPathFunc", func(t *testing.T) {
@@ -403,7 +402,7 @@ func TestMockPageEntryView_GetOriginalPath(t *testing.T) {
 		}
 		got := m.GetOriginalPath()
 		assert.Equal(t, "pages/home.pk", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetOriginalPathCallCount))
+		assert.Equal(t, int64(1), m.GetOriginalPathCallCount.Load())
 	})
 }
 
@@ -416,7 +415,7 @@ func TestMockPageEntryView_GetASTRoot(t *testing.T) {
 		astRoot, meta := m.GetASTRoot(nil)
 		assert.Nil(t, astRoot)
 		assert.Equal(t, templater_dto.InternalMetadata{}, meta)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetASTRootCallCount))
+		assert.Equal(t, int64(1), m.GetASTRootCallCount.Load())
 	})
 
 	t.Run("delegates to GetASTRootFunc", func(t *testing.T) {
@@ -433,7 +432,7 @@ func TestMockPageEntryView_GetASTRoot(t *testing.T) {
 		astRoot, meta := m.GetASTRoot(rd)
 		assert.Same(t, expectedAST, astRoot)
 		assert.Equal(t, expectedMeta, meta)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetASTRootCallCount))
+		assert.Equal(t, int64(1), m.GetASTRootCallCount.Load())
 	})
 }
 
@@ -446,7 +445,7 @@ func TestMockPageEntryView_GetASTRootWithProps(t *testing.T) {
 		astRoot, meta := m.GetASTRootWithProps(nil, nil)
 		assert.Nil(t, astRoot)
 		assert.Equal(t, templater_dto.InternalMetadata{}, meta)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetASTRootWithPropsCallCount))
+		assert.Equal(t, int64(1), m.GetASTRootWithPropsCallCount.Load())
 	})
 
 	t.Run("delegates to GetASTRootWithPropsFunc", func(t *testing.T) {
@@ -465,7 +464,7 @@ func TestMockPageEntryView_GetASTRootWithProps(t *testing.T) {
 		astRoot, meta := m.GetASTRootWithProps(rd, props)
 		assert.Same(t, expectedAST, astRoot)
 		assert.Equal(t, expectedMeta, meta)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetASTRootWithPropsCallCount))
+		assert.Equal(t, int64(1), m.GetASTRootWithPropsCallCount.Load())
 	})
 }
 
@@ -477,7 +476,7 @@ func TestMockPageEntryView_GetStyling(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetStyling()
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStylingCallCount))
+		assert.Equal(t, int64(1), m.GetStylingCallCount.Load())
 	})
 
 	t.Run("delegates to GetStylingFunc", func(t *testing.T) {
@@ -487,7 +486,7 @@ func TestMockPageEntryView_GetStyling(t *testing.T) {
 		}
 		got := m.GetStyling()
 		assert.Equal(t, "body { colour: red; }", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStylingCallCount))
+		assert.Equal(t, int64(1), m.GetStylingCallCount.Load())
 	})
 }
 
@@ -499,7 +498,7 @@ func TestMockPageEntryView_GetAssetRefs(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetAssetRefs()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAssetRefsCallCount))
+		assert.Equal(t, int64(1), m.GetAssetRefsCallCount.Load())
 	})
 
 	t.Run("delegates to GetAssetRefsFunc", func(t *testing.T) {
@@ -510,7 +509,7 @@ func TestMockPageEntryView_GetAssetRefs(t *testing.T) {
 		}
 		got := m.GetAssetRefs()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetAssetRefsCallCount))
+		assert.Equal(t, int64(1), m.GetAssetRefsCallCount.Load())
 	})
 }
 
@@ -522,7 +521,7 @@ func TestMockPageEntryView_GetCustomTags(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetCustomTags()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCustomTagsCallCount))
+		assert.Equal(t, int64(1), m.GetCustomTagsCallCount.Load())
 	})
 
 	t.Run("delegates to GetCustomTagsFunc", func(t *testing.T) {
@@ -533,7 +532,7 @@ func TestMockPageEntryView_GetCustomTags(t *testing.T) {
 		}
 		got := m.GetCustomTags()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCustomTagsCallCount))
+		assert.Equal(t, int64(1), m.GetCustomTagsCallCount.Load())
 	})
 }
 
@@ -545,7 +544,7 @@ func TestMockPageEntryView_GetSupportedLocales(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetSupportedLocales()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetSupportedLocalesCallCount))
+		assert.Equal(t, int64(1), m.GetSupportedLocalesCallCount.Load())
 	})
 
 	t.Run("delegates to GetSupportedLocalesFunc", func(t *testing.T) {
@@ -556,7 +555,7 @@ func TestMockPageEntryView_GetSupportedLocales(t *testing.T) {
 		}
 		got := m.GetSupportedLocales()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetSupportedLocalesCallCount))
+		assert.Equal(t, int64(1), m.GetSupportedLocalesCallCount.Load())
 	})
 }
 
@@ -568,7 +567,7 @@ func TestMockPageEntryView_GetLocalStore(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetLocalStore()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLocalStoreCallCount))
+		assert.Equal(t, int64(1), m.GetLocalStoreCallCount.Load())
 	})
 
 	t.Run("delegates to GetLocalStoreFunc", func(t *testing.T) {
@@ -579,7 +578,7 @@ func TestMockPageEntryView_GetLocalStore(t *testing.T) {
 		}
 		got := m.GetLocalStore()
 		assert.Same(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetLocalStoreCallCount))
+		assert.Equal(t, int64(1), m.GetLocalStoreCallCount.Load())
 	})
 }
 
@@ -591,7 +590,7 @@ func TestMockPageEntryView_GetJSScriptMetas(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetJSScriptMetas()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetJSScriptMetasCallCount))
+		assert.Equal(t, int64(1), m.GetJSScriptMetasCallCount.Load())
 	})
 
 	t.Run("delegates to GetJSScriptMetasFunc", func(t *testing.T) {
@@ -602,7 +601,7 @@ func TestMockPageEntryView_GetJSScriptMetas(t *testing.T) {
 		}
 		got := m.GetJSScriptMetas()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetJSScriptMetasCallCount))
+		assert.Equal(t, int64(1), m.GetJSScriptMetasCallCount.Load())
 	})
 }
 
@@ -614,7 +613,7 @@ func TestMockPageEntryView_GetIsE2EOnly(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetIsE2EOnly()
 		assert.False(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetIsE2EOnlyCallCount))
+		assert.Equal(t, int64(1), m.GetIsE2EOnlyCallCount.Load())
 	})
 
 	t.Run("delegates to GetIsE2EOnlyFunc", func(t *testing.T) {
@@ -624,7 +623,7 @@ func TestMockPageEntryView_GetIsE2EOnly(t *testing.T) {
 		}
 		got := m.GetIsE2EOnly()
 		assert.True(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetIsE2EOnlyCallCount))
+		assert.Equal(t, int64(1), m.GetIsE2EOnlyCallCount.Load())
 	})
 }
 
@@ -636,7 +635,7 @@ func TestMockPageEntryView_GetStaticMetadata(t *testing.T) {
 		m := &templater_domain.MockPageEntryView{}
 		got := m.GetStaticMetadata()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStaticMetadataCallCount))
+		assert.Equal(t, int64(1), m.GetStaticMetadataCallCount.Load())
 	})
 
 	t.Run("delegates to GetStaticMetadataFunc", func(t *testing.T) {
@@ -647,6 +646,6 @@ func TestMockPageEntryView_GetStaticMetadata(t *testing.T) {
 		}
 		got := m.GetStaticMetadata()
 		assert.Same(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetStaticMetadataCallCount))
+		assert.Equal(t, int64(1), m.GetStaticMetadataCallCount.Load())
 	})
 }

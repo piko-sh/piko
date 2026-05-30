@@ -16,17 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package wasm_data holds embedded standard library type data for the
-// WASM runtime.
+// Package wasm_data holds embedded standard library type data for the WASM runtime.
 //
-// It bundles pre-generated stdlib type information in FlatBuffers binary
-// format. The FlatBuffers layout supports zero-copy access without full
-// deserialisation. The embedded data is decoded lazily on first access
-// and cached for subsequent calls.
+// It bundles pre-generated stdlib type information in FlatBuffers binary format. The
+// FlatBuffers layout supports zero-copy access without full deserialisation. The embedded
+// data is decoded lazily on first access and cached for subsequent calls.
 //
 // # Thread safety
 //
-// [GetStdlibTypeData] is safe for concurrent use. The underlying data
-// is decoded exactly once via [sync.Once] and cached for the lifetime
-// of the process.
+// [GetStdlibTypeData] is safe for concurrent use. The underlying data is decoded exactly
+// once via [sync.Once] and cached for the lifetime of the process.
 package wasm_data

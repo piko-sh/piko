@@ -26,8 +26,10 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// linkPattern matches HTTP/HTTPS URLs and www. prefixed domains.
-var linkPattern = regexp.MustCompile(`(?i)(?:https?://\S+|www\.\S+)`)
+var (
+	// linkPattern matches HTTP/HTTPS URLs and www. prefixed domains.
+	linkPattern = regexp.MustCompile(`(?i)(?:https?://\S+|www\.\S+)`)
+)
 
 // LinkDensityDetector analyses text fields for excessive URL density.
 type LinkDensityDetector struct {
@@ -137,14 +139,12 @@ func (d *LinkDensityDetector) Analyse(ctx context.Context, submission *spamdetec
 	}, nil
 }
 
-// HealthCheck always succeeds because the detector has no external
-// dependencies.
+// HealthCheck always succeeds because the detector has no external dependencies.
 //
 // Returns error which is always nil.
 func (*LinkDensityDetector) HealthCheck(_ context.Context) error { return nil }
 
-// resolveMaxLinks returns the per-schema max_links override or the
-// default.
+// resolveMaxLinks returns the per-schema max_links override or the default.
 //
 // Takes schema (*spamdetect_dto.Schema) which may override max_links.
 //

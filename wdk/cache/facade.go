@@ -126,55 +126,51 @@ type SortOrder = cache_dto.SortOrder
 // FilterOp defines filter comparison operations.
 type FilterOp = cache_dto.FilterOp
 
-// Cache is the interface for interacting with a cache instance.
-// Its API mirrors maypok86/otter/v2's Cache API.
+// Cache is the interface for interacting with a cache instance. Its API mirrors
+// maypok86/otter/v2's Cache API.
 type Cache[K comparable, V any] = cache_domain.Cache[K, V]
 
 // Service manages cache providers and creates configured cache instances.
 type Service = cache_domain.Service
 
-// Provider is the non-generic interface for cache providers that manage
-// resources. A Provider manages connections, pools, and other shared
-// resources, and creates type-specific namespaced cache instances on demand.
+// Provider is the non-generic interface for cache providers that manage resources. A
+// Provider manages connections, pools, and other shared resources, and creates
+// type-specific namespaced cache instances on demand.
 //
-// This is the recommended way to create cache providers. See Provider
-// documentation for the architectural benefits of the namespace pattern.
+// This is the recommended way to create cache providers. See Provider documentation for
+// the architectural benefits of the namespace pattern.
 type Provider = cache_domain.Provider
 
-// ProviderPort is the driven port interface that all cache providers must
-// implement. Implement it to create custom cache providers.
+// ProviderPort is the driven port interface that all cache providers must implement.
+// Implement it to create custom cache providers.
 type ProviderPort[K comparable, V any] = cache_domain.ProviderPort[K, V]
 
-// EncoderPort defines how to encode and decode values of type V.
-// Implement it to create custom encoders for cache changes.
+// EncoderPort defines how to encode and decode values of type V. Implement it to create
+// custom encoders for cache changes.
 type EncoderPort[V any] = cache_domain.EncoderPort[V]
 
-// AnyEncoder is a non-generic interface that all typed EncoderPorts implement,
-// so that different encoders can be stored in a single registry.
+// AnyEncoder is a non-generic interface that all typed EncoderPorts implement, so that
+// different encoders can be stored in a single registry.
 type AnyEncoder = cache_domain.AnyEncoder
 
-// EncodingRegistry provides a thread-safe registry for type-specific encoders.
-// Use this when configuring cache providers that need to serialise or
-// deserialise values.
+// EncodingRegistry provides a thread-safe registry for type-specific encoders. Use this
+// when configuring cache providers that need to serialise or deserialise values.
 type EncodingRegistry = cache_domain.EncodingRegistry
 
-// TransformerPort defines the interface for cache value transformers.
-// Transformers can apply compression, encryption, or custom transformations.
+// TransformerPort defines the interface for cache value transformers. Transformers can
+// apply compression, encryption, or custom transformations.
 type TransformerPort = cache_domain.CacheTransformerPort
 
-// Builder builds caches with custom settings.
-// Use NewCacheBuilder to create a builder.
+// Builder builds caches with custom settings. Use NewCacheBuilder to create a builder.
 type Builder[K comparable, V any] = cache_domain.CacheBuilder[K, V]
 
 // Options holds the settings for creating a new cache instance.
 type Options[K comparable, V any] = cache_dto.Options[K, V]
 
-// Entry is an immutable snapshot of a key-value pair in the cache, including
-// metadata.
+// Entry is an immutable snapshot of a key-value pair in the cache, including metadata.
 type Entry[K comparable, V any] = cache_dto.Entry[K, V]
 
-// DeletionEvent is an event passed to deletion handlers when entries are
-// removed.
+// DeletionEvent is an event passed to deletion handlers when entries are removed.
 type DeletionEvent[K comparable, V any] = cache_dto.DeletionEvent[K, V]
 
 // Loader computes or fetches values for the cache when a key is not found.
@@ -186,26 +182,25 @@ type LoaderFunc[K comparable, V any] = cache_dto.LoaderFunc[K, V]
 // BulkLoader computes or fetches values for many keys at once.
 type BulkLoader[K comparable, V any] = cache_dto.BulkLoader[K, V]
 
-// BulkLoaderFunc is an adapter that allows ordinary functions to be used as
-// bulk loaders. It is an alias for cache_dto.BulkLoaderFunc.
+// BulkLoaderFunc is an adapter that allows ordinary functions to be used as bulk loaders.
+// It is an alias for cache_dto.BulkLoaderFunc.
 type BulkLoaderFunc[K comparable, V any] = cache_dto.BulkLoaderFunc[K, V]
 
 // LoadResult holds the outcome of an asynchronous load or refresh operation.
 type LoadResult[V any] = cache_dto.LoadResult[V]
 
-// ComputeResult holds the result of a compute operation with optional TTL
-// override. A zero TTL means use the cache's default expiration policy.
+// ComputeResult holds the result of a compute operation with optional TTL override. A
+// zero TTL means use the cache's default expiration policy.
 type ComputeResult[V any] = cache_dto.ComputeResult[V]
 
 // ExpiryCalculator calculates when cache entries should expire.
 type ExpiryCalculator[K comparable, V any] = cache_dto.ExpiryCalculator[K, V]
 
-// RefreshCalculator calculates when cache entries should be asynchronously
-// refreshed.
+// RefreshCalculator calculates when cache entries should be asynchronously refreshed.
 type RefreshCalculator[K comparable, V any] = cache_dto.RefreshCalculator[K, V]
 
-// Clock is an interface for getting the current time, letting time-based
-// features be tested with a mock clock.
+// Clock is an interface for getting the current time, letting time-based features be
+// tested with a mock clock.
 type Clock = cache_dto.Clock
 
 // Logger is an interface for logging cache events and errors.
@@ -221,23 +216,22 @@ type Stats = cache_dto.Stats
 type StatsRecorder = cache_dto.StatsRecorder
 
 var (
-	// ErrNotFound is returned by a Loader when a value is missing from the data
-	// source.
+	// ErrNotFound is returned by a Loader when a value is missing from the data source.
 	ErrNotFound = cache_dto.ErrNotFound
 
-	// ErrSearchNotSupported is returned when a provider does not support search
-	// operations. Check the provider documentation for search capabilities.
+	// ErrSearchNotSupported is returned when a provider does not support search operations.
+	// Check the provider documentation for search capabilities.
 	ErrSearchNotSupported = cache_domain.ErrSearchNotSupported
 )
 
-// TextAnalyseFunc transforms text into a slice of index terms, handling
-// tokenisation, normalisation, stemming, and stop word removal. When nil,
-// providers use their default tokenisation.
+// TextAnalyseFunc transforms text into a slice of index terms, handling tokenisation,
+// normalisation, stemming, and stop word removal. When nil, providers use their default
+// tokenisation.
 type TextAnalyseFunc = cache_dto.TextAnalyseFunc
 
-// SearchSchema defines which fields of a cached value type are searchable.
-// This schema enables providers to build appropriate internal structures
-// for efficient search and query operations.
+// SearchSchema defines which fields of a cached value type are searchable. This schema
+// enables providers to build appropriate internal structures for efficient search and
+// query operations.
 type SearchSchema = cache_dto.SearchSchema
 
 // FieldSchema defines a single searchable field in a cached value type.
@@ -246,8 +240,7 @@ type FieldSchema = cache_dto.FieldSchema
 // SearchOptions configures a full-text search operation.
 type SearchOptions = cache_dto.SearchOptions
 
-// QueryOptions configures a structured query operation without full-text
-// search.
+// QueryOptions configures a structured query operation without full-text search.
 type QueryOptions = cache_dto.QueryOptions
 
 // SearchResult contains the results of a search or query operation.
@@ -259,13 +252,13 @@ type SearchHit[K comparable, V any] = cache_dto.SearchHit[K, V]
 // Filter represents a single filter condition for structured queries.
 type Filter = cache_dto.Filter
 
-// ProviderFactoryBlueprint is a function that creates a typed cache instance.
-// It receives a Service, namespace, and type-erased options, and returns
-// a typed cache (as any for storage).
+// ProviderFactoryBlueprint is a function that creates a typed cache instance. It receives
+// a Service, namespace, and type-erased options, and returns a typed cache (as any for
+// storage).
 //
-// This pattern enables domain-specific cache types to be created without
-// circular dependencies. External packages can register their own factory
-// blueprints via init() functions.
+// This pattern enables domain-specific cache types to be created without circular
+// dependencies. External packages can register their own factory blueprints via init()
+// functions.
 type ProviderFactoryBlueprint = cache_domain.ProviderFactoryBlueprint
 
 // NewSearchSchema creates a SearchSchema with the given fields.
@@ -277,10 +270,9 @@ func NewSearchSchema(fields ...FieldSchema) *SearchSchema {
 	return cache_dto.NewSearchSchema(fields...)
 }
 
-// NewSearchSchemaWithAnalyser creates a SearchSchema with a text analyser for
-// linguistic processing of TEXT fields. The analyser replaces the provider's
-// default tokenisation, enabling stemming, normalisation, stop words, and
-// other NLP features.
+// NewSearchSchemaWithAnalyser creates a SearchSchema with a text analyser for linguistic
+// processing of TEXT fields. The analyser replaces the provider's default tokenisation,
+// enabling stemming, normalisation, stop words, and other NLP features.
 //
 // Takes analyser (TextAnalyseFunc) which processes text into index terms.
 // Takes fields (...FieldSchema) which define the searchable fields.
@@ -344,8 +336,8 @@ func GeoField(name string) FieldSchema {
 	return cache_dto.GeoField(name)
 }
 
-// VectorField creates a FieldSchema for vector similarity search with the
-// default cosine distance metric.
+// VectorField creates a FieldSchema for vector similarity search with the default cosine
+// distance metric.
 //
 // Takes name (string) which specifies the field name.
 // Takes dimension (int) which sets the vector dimension size.
@@ -355,8 +347,8 @@ func VectorField(name string, dimension int) FieldSchema {
 	return cache_dto.VectorField(name, dimension)
 }
 
-// VectorFieldWithMetric creates a FieldSchema for vector similarity search
-// with a custom distance metric.
+// VectorFieldWithMetric creates a FieldSchema for vector similarity search with a custom
+// distance metric.
 //
 // Takes name (string) which specifies the field name.
 // Takes dimension (int) which sets the vector dimension size.
@@ -402,8 +394,8 @@ func Gt(field string, value any) Filter {
 // Takes field (string) which specifies the field name to compare.
 // Takes value (any) which specifies the value to compare against.
 //
-// Returns Filter which matches records where the field is greater than or
-// equal to the value.
+// Returns Filter which matches records where the field is greater than or equal to the
+// value.
 func Ge(field string, value any) Filter {
 	return cache_dto.Ge(field, value)
 }
@@ -444,8 +436,8 @@ func In(field string, values ...any) Filter {
 // Takes minVal (any) which specifies the lower bound of the range.
 // Takes maxVal (any) which specifies the upper bound of the range.
 //
-// Returns Filter which matches records where the field value falls within the
-// specified range, including both boundary values.
+// Returns Filter which matches records where the field value falls within the specified
+// range, including both boundary values.
 func Between(field string, minVal, maxVal any) Filter {
 	return cache_dto.Between(field, minVal, maxVal)
 }
@@ -460,12 +452,10 @@ func Prefix(field string, prefix string) Filter {
 	return cache_dto.Prefix(field, prefix)
 }
 
-// NewService creates a new cache service with the specified default provider.
-// The default provider is used when creating caches that do not explicitly
-// specify a provider.
+// NewService creates a new cache service with the specified default provider. The default
+// provider is used when creating caches that do not explicitly specify a provider.
 //
-// Takes defaultProvider (string) which specifies the cache provider to use by
-// default.
+// Takes defaultProvider (string) which specifies the cache provider to use by default.
 //
 // Returns Service which is the configured cache service ready for use.
 //
@@ -476,19 +466,17 @@ func NewService(defaultProvider string) Service {
 	return cache_domain.NewService(defaultProvider)
 }
 
-// CreateNamespace creates a new cache instance using the namespace pattern.
-// This is the RECOMMENDED way to create caches with the new Provider interface.
+// CreateNamespace creates a new cache instance using the namespace pattern. This is the
+// RECOMMENDED way to create caches with the new Provider interface.
 //
 // Takes service (Service) which is the cache service managing providers.
-// Takes providerName (string) which identifies the registered provider
-// to use.
-// Takes namespace (string) which is the logical namespace for the cache
-// (e.g. "users", "products").
+// Takes providerName (string) which identifies the registered provider to use.
+// Takes namespace (string) which is the logical namespace for the cache (e.g. "users",
+// "products").
 // Takes options (Options[K, V]) which configures the cache behaviour.
 //
 // Returns Cache[K, V] which is the configured cache instance.
-// Returns error when the provider is not registered or the cache cannot
-// be created.
+// Returns error when the provider is not registered or the cache cannot be created.
 //
 // Example:
 //
@@ -498,12 +486,11 @@ func CreateNamespace[K comparable, V any](ctx context.Context, service Service, 
 	return cache_domain.CreateNamespace[K, V](ctx, service, providerName, namespace, options)
 }
 
-// NewCache creates a cache instance directly from options without using the
-// builder. Use it when you have pre-constructed Options.
+// NewCache creates a cache instance directly from options without using the builder. Use
+// it when you have pre-constructed Options.
 //
 // Takes service (Service) which manages providers and creates caches.
-// Takes options (Options[K, V]) which specifies the full cache
-// configuration.
+// Takes options (Options[K, V]) which specifies the full cache configuration.
 //
 // Returns Cache[K, V] which is the configured cache instance.
 // Returns error when the cache cannot be created from the given options.
@@ -524,8 +511,7 @@ func NewCache[K comparable, V any](service Service, options Options[K, V]) (Cach
 //
 // Takes service (Service) which manages cache providers and creation.
 //
-// Returns *Builder[K, V] which provides a fluent interface for configuring a
-// cache.
+// Returns *Builder[K, V] which provides a fluent interface for configuring a cache.
 // Returns error when service is nil.
 //
 // Example:
@@ -547,24 +533,21 @@ func NewCacheBuilder[K comparable, V any](service Service) (*Builder[K, V], erro
 	return cache_domain.NewCacheBuilder[K, V](service), nil
 }
 
-// NewEncodingRegistry creates a new encoding registry with an optional
-// default encoder. The default encoder is used as a fallback when no
-// type-specific encoder is registered.
+// NewEncodingRegistry creates a new encoding registry with an optional default encoder.
+// The default encoder is used as a fallback when no type-specific encoder is registered.
 //
-// Takes defaultEncoder (AnyEncoder) which provides the fallback encoder for
-// unregistered types, or nil for no default.
+// Takes defaultEncoder (AnyEncoder) which provides the fallback encoder for unregistered
+// types, or nil for no default.
 //
 // Returns *EncodingRegistry which is the configured registry ready for use.
 func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 	return cache_domain.NewEncodingRegistry(defaultEncoder)
 }
 
-// GetDefaultService returns the global cache service instance from the Piko
-// framework.
+// GetDefaultService returns the global cache service instance from the Piko framework.
 //
 // Returns Service which is the configured cache service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 //
 // Example:
 //
@@ -583,15 +566,13 @@ func GetDefaultService() (Service, error) {
 	return service, nil
 }
 
-// NewCacheFromDefault creates a cache using the global service from the Piko
-// framework. It's a convenience wrapper around GetDefaultService() and
-// NewCache().
+// NewCacheFromDefault creates a cache using the global service from the Piko framework.
+// It's a convenience wrapper around GetDefaultService() and NewCache().
 //
 // Takes options (Options[K, V]) which specifies the cache configuration.
 //
 // Returns Cache[K, V] which is the configured cache instance.
-// Returns error when the framework is not initialised or the cache cannot be
-// created.
+// Returns error when the framework is not initialised or the cache cannot be created.
 //
 // Example:
 //
@@ -605,9 +586,9 @@ func NewCacheFromDefault[K comparable, V any](options Options[K, V]) (Cache[K, V
 	return NewCache[K, V](service, options)
 }
 
-// NewCacheBuilderFromDefault creates a cache builder using the global service
-// from the Piko framework. It's a convenience wrapper around
-// GetDefaultService() and NewCacheBuilder().
+// NewCacheBuilderFromDefault creates a cache builder using the global service from the
+// Piko framework. It's a convenience wrapper around GetDefaultService() and
+// NewCacheBuilder().
 //
 // Returns *Builder[K, V] which is the configured builder ready for use.
 // Returns error when the framework is not initialised.
@@ -629,9 +610,8 @@ func NewCacheBuilderFromDefault[K comparable, V any]() (*Builder[K, V], error) {
 	return NewCacheBuilder[K, V](service)
 }
 
-// RegisterProviderFactory registers a named factory function that creates typed
-// cache instances. Factories registered here can be retrieved by name when
-// building caches.
+// RegisterProviderFactory registers a named factory function that creates typed cache
+// instances. Factories registered here can be retrieved by name when building caches.
 //
 // Takes name (string) which identifies the factory for later retrieval.
 // Takes factory (ProviderFactoryBlueprint) which creates typed cache instances.

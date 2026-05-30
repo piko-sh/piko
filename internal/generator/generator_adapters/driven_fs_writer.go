@@ -29,20 +29,20 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// FSWriter implements FSWriterPort as a driven adapter that writes generated
-// files to disk. It writes files atomically to prevent corruption from build
-// interruptions, and restricts all operations to a sandbox to block path
-// traversal attacks.
+// FSWriter implements FSWriterPort as a driven adapter that writes generated files to
+// disk. It writes files atomically to prevent corruption from build interruptions, and
+// restricts all operations to a sandbox to block path traversal attacks.
 type FSWriter struct {
 	// sandbox provides safe file system access within allowed paths.
 	sandbox safedisk.Sandbox
 }
 
-var _ generator_domain.FSWriterPort = (*FSWriter)(nil)
+var (
+	_ generator_domain.FSWriterPort = (*FSWriter)(nil)
+)
 
-// NewFSWriter creates a new file system writer that works within the given
-// sandbox. The sandbox should be set up with ModeReadWrite for the output
-// folder.
+// NewFSWriter creates a new file system writer that works within the given sandbox. The
+// sandbox should be set up with ModeReadWrite for the output folder.
 //
 // Takes sandbox (safedisk.Sandbox) which sets the allowed file paths.
 //
@@ -54,10 +54,10 @@ func NewFSWriter(sandbox safedisk.Sandbox) *FSWriter {
 // WriteFile writes data to the specified file path using an atomic write-then-rename
 // strategy. Safe from race conditions and interruptions.
 //
-// The filePath can be either absolute (within sandbox root) or relative.
-// Absolute paths are changed to relative paths within the sandbox. Relative
-// paths that include the sandbox directory name (e.g., "dist/file.go" when
-// sandbox is rooted at "dist") have that prefix removed.
+// The filePath can be either absolute (within sandbox root) or relative. Absolute paths
+// are changed to relative paths within the sandbox. Relative paths that include the
+// sandbox directory name (e.g., "dist/file.go" when sandbox is rooted at "dist") have
+// that prefix removed.
 //
 // Takes filePath (string) which specifies the destination file path.
 // Takes data ([]byte) which contains the content to write.
@@ -85,8 +85,8 @@ func (w *FSWriter) WriteFile(ctx context.Context, filePath string, data []byte) 
 	return nil
 }
 
-// ReadDir reads the directory at the given path and returns a list of
-// directory entries sorted by filename.
+// ReadDir reads the directory at the given path and returns a list of directory entries
+// sorted by filename.
 //
 // Takes dirname (string) which specifies the directory path to read.
 //

@@ -18,14 +18,13 @@
 
 package templater_domain
 
-// SymbolProviderPort defines the interface for providing Go symbols to
-// the interpreter. It decouples the templater domain from the concrete
-// concrete SymbolProvider implementation, preventing import cycles.
+// SymbolProviderPort defines the interface for providing Go symbols to the interpreter.
+// It decouples the templater domain from the concrete concrete SymbolProvider
+// implementation, preventing import cycles.
 type SymbolProviderPort interface {
 	// Use registers the symbols with the given interpreter instance.
 	//
-	// Takes i (InterpreterPort) which is the interpreter to register symbols
-	// with.
+	// Takes i (InterpreterPort) which is the interpreter to register symbols with.
 	//
 	// Returns error when symbol registration fails.
 	Use(i InterpreterPort) error

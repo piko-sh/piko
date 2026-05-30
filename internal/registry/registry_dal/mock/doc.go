@@ -18,8 +18,8 @@
 
 // Package mock implements the registry DAL interface for testing purposes.
 //
-// It is an in-memory test double for the registry data access layer
-// with configurable behaviour, call tracking, and transaction simulation.
+// It is an in-memory test double for the registry data access layer with configurable
+// behaviour, call tracking, and transaction simulation.
 //
 // All methods are safe for concurrent use.
 package mock

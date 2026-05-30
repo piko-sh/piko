@@ -27,16 +27,12 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// RequestBuilder provides a fluent API for working with storage objects.
-// It is the main entry point for Get, Stat, Remove, and Hash actions.
+// RequestBuilder provides a fluent API for working with storage objects. It is the main
+// entry point for Get, Stat, Remove, and Hash actions.
 //
-// Usage:
-// // Get an object
-// reader, err := service.NewRequest(repo, key).Get(ctx)
-// // Remove an object
-// err := service.NewRequest(repo, key).Remove(ctx)
-// // Stat an object
-// info, err := service.NewRequest(repo, key).Stat(ctx)
+// Usage: // Get an object reader, err := service.NewRequest(repo, key).Get(ctx) // Remove
+// an object err := service.NewRequest(repo, key).Remove(ctx) // Stat an object info, err
+// := service.NewRequest(repo, key).Stat(ctx)
 type RequestBuilder struct {
 	// service provides access to object storage operations.
 	service *service
@@ -83,8 +79,7 @@ func (b *RequestBuilder) Provider(name string) *RequestBuilder {
 
 // ByteRange specifies a byte range for a partial download.
 //
-// This only applies to Get operations. Use end=-1 to read to the end of the
-// file.
+// This only applies to Get operations. Use end=-1 to read to the end of the file.
 //
 // Takes start (int64) which is the starting byte offset (inclusive).
 // Takes end (int64) which is the ending byte offset (inclusive).
@@ -100,8 +95,8 @@ func (b *RequestBuilder) ByteRange(start int64, end int64) *RequestBuilder {
 
 // Transformer sets options for reversing a transformation.
 //
-// This is typically only needed when the reversal cannot be worked out
-// from metadata alone, for example when providing a decryption key.
+// This is typically only needed when the reversal cannot be worked out from metadata
+// alone, for example when providing a decryption key.
 //
 // Takes name (string) which identifies the transformer to set up.
 // Takes options (any) which specifies the settings for that transformer.
@@ -118,8 +113,8 @@ func (b *RequestBuilder) Transformer(name string, options any) *RequestBuilder {
 	return b
 }
 
-// DispatchRemove queues the Remove operation for asynchronous processing.
-// This only applies to the Remove() terminal method.
+// DispatchRemove queues the Remove operation for asynchronous processing. This only
+// applies to the Remove() terminal method.
 //
 // Returns *RequestBuilder which allows method chaining.
 func (b *RequestBuilder) DispatchRemove() *RequestBuilder {
@@ -127,11 +122,11 @@ func (b *RequestBuilder) DispatchRemove() *RequestBuilder {
 	return b
 }
 
-// Get executes the Get operation and returns a readable stream of the object's
-// content. The caller must close the returned io.ReadCloser.
+// Get executes the Get operation and returns a readable stream of the object's content.
+// The caller must close the returned io.ReadCloser.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns io.ReadCloser which provides the object's content as a stream.
 // Returns error when the storage provider cannot retrieve the object.
@@ -148,11 +143,10 @@ func (b *RequestBuilder) Get(ctx context.Context) (io.ReadCloser, error) {
 	return b.service.GetObject(ctx, name, b.params)
 }
 
-// Stat runs the stat operation and returns the object's metadata without its
-// content.
+// Stat runs the stat operation and returns the object's metadata without its content.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns *ObjectInfo which contains the object's metadata.
 // Returns error when the stat operation fails.
@@ -171,11 +165,10 @@ func (b *RequestBuilder) Stat(ctx context.Context) (*ObjectInfo, error) {
 
 // Remove deletes the object from storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// Use DispatchRemove before calling this to make the operation run in the
-// background.
+// Use DispatchRemove before calling this to make the operation run in the background.
 //
 // Returns error when the removal fails or the dispatcher rejects the request.
 func (b *RequestBuilder) Remove(ctx context.Context) error {
@@ -197,8 +190,8 @@ func (b *RequestBuilder) Remove(ctx context.Context) error {
 
 // Hash returns a hash of the object's content.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns string which is the hash of the object's content.
 // Returns error when the hash operation fails.
@@ -217,8 +210,7 @@ func (b *RequestBuilder) Hash(ctx context.Context) (string, error) {
 
 // Clone creates a deep copy of the RequestBuilder.
 //
-// Use it to create a template for performing multiple actions on the same
-// object.
+// Use it to create a template for performing multiple actions on the same object.
 //
 // Returns *RequestBuilder which is an independent copy with its own params.
 func (b *RequestBuilder) Clone() *RequestBuilder {

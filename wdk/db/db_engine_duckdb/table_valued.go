@@ -22,30 +22,35 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-var tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
-	"generate_series": {
-		{Name: "generate_series", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
-	},
-	"range": {
-		{Name: "range", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
-	},
-	"unnest": {
-		{Name: "unnest", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}, Nullable: true},
-	},
-	"regexp_matches": {
-		{
-			Name: "regexp_matches",
-			SQLType: querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  "varchar[]",
-				ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-			},
-			Nullable: true,
+var (
+	// tableValuedFunctionColumns describes the row shapes returned by well-known DuckDB
+	// table-valued functions. A nil entry means the engine derives the shape from runtime
+	// inspection.
+	tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
+		"generate_series": {
+			{Name: "generate_series", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
 		},
-	},
-	"read_parquet":   nil,
-	"read_csv":       nil,
-	"read_csv_auto":  nil,
-	"read_json":      nil,
-	"read_json_auto": nil,
-}
+		"range": {
+			{Name: "range", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
+		},
+		"unnest": {
+			{Name: "unnest", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}, Nullable: true},
+		},
+		"regexp_matches": {
+			{
+				Name: "regexp_matches",
+				SQLType: querier_dto.SQLType{
+					Category:    querier_dto.TypeCategoryArray,
+					EngineName:  "varchar[]",
+					ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+				},
+				Nullable: true,
+			},
+		},
+		"read_parquet":   nil,
+		"read_csv":       nil,
+		"read_csv_auto":  nil,
+		"read_json":      nil,
+		"read_json_auto": nil,
+	}
+)

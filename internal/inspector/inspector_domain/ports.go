@@ -24,21 +24,21 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// TypeDataProvider defines the contract for caching the querier's encoded type
-// data. Implementations can use in-memory, file system, or Redis storage.
+// TypeDataProvider defines the contract for caching the querier's encoded type data.
+// Implementations can use in-memory, file system, or Redis storage.
 type TypeDataProvider interface {
 	// GetTypeData retrieves serialised type information from the cache.
 	//
 	// Takes cacheKey (string) which identifies the cached type data.
 	//
 	// Returns *inspector_dto.TypeData which contains the type information.
-	// Returns error when the data for the given key is not found (a cache miss)
-	// or when there is an error reading from the underlying storage.
+	// Returns error when the data for the given key is not found (a cache miss) or when
+	// there is an error reading from the underlying storage.
 	GetTypeData(ctx context.Context, cacheKey string) (*inspector_dto.TypeData, error)
 
-	// SaveTypeData saves serialised type information to the cache.
-	// Implementations should handle creation or overwriting of data for the given
-	// cache key and should aim for atomic writes to prevent cache corruption.
+	// SaveTypeData saves serialised type information to the cache. Implementations should
+	// handle creation or overwriting of data for the given cache key and should aim for
+	// atomic writes to prevent cache corruption.
 	//
 	// Takes cacheKey (string) which identifies the cache entry.
 	// Takes data (*inspector_dto.TypeData) which contains the type information.
@@ -46,8 +46,8 @@ type TypeDataProvider interface {
 	// Returns error when the save operation fails.
 	SaveTypeData(ctx context.Context, cacheKey string, data *inspector_dto.TypeData) error
 
-	// InvalidateCache removes a specific entry from the cache.
-	// It should not return an error if the key does not exist.
+	// InvalidateCache removes a specific entry from the cache. It should not return an error
+	// if the key does not exist.
 	//
 	// Takes cacheKey (string) which identifies the entry to remove.
 	//

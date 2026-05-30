@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_ses implements the email provider port
-// using Amazon SES.
+// Package email_provider_ses implements the email provider port using Amazon SES.
 //
-// The adapter sends emails through the AWS Simple Email Service
-// API, supporting both simple and raw (MIME) message formats with
-// built-in rate limiting to respect SES quotas. AWS credentials
-// follow the standard SDK default chain unless overridden in
+// The adapter sends emails through the AWS Simple Email Service API, supporting both
+// simple and raw (MIME) message formats with built-in rate limiting to respect SES
+// quotas. AWS credentials follow the standard SDK default chain unless overridden in
 // configuration.
 //
 // # Thread safety

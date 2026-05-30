@@ -23,7 +23,6 @@ import (
 	"errors"
 	goast "go/ast"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +50,7 @@ func TestMockCollectionService_ProcessGetCollectionCall(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessGetCollectionCallCallCount))
+		assert.Equal(t, int64(1), mock.ProcessGetCollectionCallCallCount.Load())
 	})
 
 	t.Run("delegates to ProcessGetCollectionCallFunc", func(t *testing.T) {
@@ -88,7 +87,7 @@ func TestMockCollectionService_ProcessGetCollectionCall(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, wantAnnotation, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessGetCollectionCallCallCount))
+		assert.Equal(t, int64(1), mock.ProcessGetCollectionCallCallCount.Load())
 	})
 
 	t.Run("propagates error from ProcessGetCollectionCallFunc", func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestMockCollectionService_ProcessGetCollectionCall(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.ErrorIs(t, err, wantErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessGetCollectionCallCallCount))
+		assert.Equal(t, int64(1), mock.ProcessGetCollectionCallCallCount.Load())
 	})
 }
 
@@ -136,7 +135,7 @@ func TestMockCollectionService_ProcessCollectionDirective(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessCollectionDirectiveCallCount))
+		assert.Equal(t, int64(1), mock.ProcessCollectionDirectiveCallCount.Load())
 	})
 
 	t.Run("delegates to ProcessCollectionDirectiveFunc", func(t *testing.T) {
@@ -170,7 +169,7 @@ func TestMockCollectionService_ProcessCollectionDirective(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, wantEntryPoints, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessCollectionDirectiveCallCount))
+		assert.Equal(t, int64(1), mock.ProcessCollectionDirectiveCallCount.Load())
 	})
 
 	t.Run("propagates error from ProcessCollectionDirectiveFunc", func(t *testing.T) {
@@ -194,7 +193,7 @@ func TestMockCollectionService_ProcessCollectionDirective(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.ErrorIs(t, err, wantErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessCollectionDirectiveCallCount))
+		assert.Equal(t, int64(1), mock.ProcessCollectionDirectiveCallCount.Load())
 	})
 }
 
@@ -215,8 +214,8 @@ func TestMockCollectionService_ZeroValueIsUsable(t *testing.T) {
 	assert.Nil(t, entries)
 	assert.NoError(t, err)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessGetCollectionCallCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessCollectionDirectiveCallCount))
+	assert.Equal(t, int64(1), mock.ProcessGetCollectionCallCallCount.Load())
+	assert.Equal(t, int64(1), mock.ProcessCollectionDirectiveCallCount.Load())
 }
 
 func TestMockCollectionService_ConcurrentAccess(t *testing.T) {
@@ -262,6 +261,6 @@ func TestMockCollectionService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ProcessGetCollectionCallCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ProcessCollectionDirectiveCallCount))
+	assert.Equal(t, int64(goroutines), mock.ProcessGetCollectionCallCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ProcessCollectionDirectiveCallCount.Load())
 }

@@ -21,6 +21,7 @@ package ast_adapters
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -31,11 +32,11 @@ import (
 )
 
 var (
-	// goToFBDirectiveType maps Go DirectiveType constants to their
-	// FlatBuffer equivalents, indexed by Go DirectiveType.
+	// goToFBDirectiveType maps Go DirectiveType constants to their FlatBuffer equivalents,
+	// indexed by Go DirectiveType.
 	//
-	// This mapping is necessary because the enum orderings differ
-	// between the Go domain types and the FlatBuffer schema.
+	// This mapping is necessary because the enum orderings differ between the Go domain
+	// types and the FlatBuffer schema.
 	//
 	// paired with fbToGoDirectiveType.
 	//
@@ -61,8 +62,8 @@ var (
 		ast_domain.DirectiveScaffold: ast_schema_gen.DirectiveTypeSCAFFOLD,
 	}
 
-	// fbToGoDirectiveType maps FlatBuffer DirectiveType constants back
-	// to Go equivalents, indexed by FlatBuffer DirectiveType.
+	// fbToGoDirectiveType maps FlatBuffer DirectiveType constants back to Go equivalents,
+	// indexed by FlatBuffer DirectiveType.
 	//
 	// paired with goToFBDirectiveType.
 	//
@@ -138,8 +139,8 @@ func (s *encoder) buildTemplateAST(ast *ast_domain.TemplateAST) (flatbuffers.UOf
 	return ast_schema_gen.TemplateASTFBEnd(s.builder), nil
 }
 
-// templateNodeDirectiveOffsets holds FlatBuffer offsets for all directive
-// fields of a template node.
+// templateNodeDirectiveOffsets holds FlatBuffer offsets for all directive fields of a
+// template node.
 type templateNodeDirectiveOffsets struct {
 	// dirIf is the FlatBuffer offset for the if directive.
 	dirIf flatbuffers.UOffsetT
@@ -250,8 +251,7 @@ type templateNodeVectorOffsets struct {
 	// richText is the vector offset for serialised rich text parts.
 	richText flatbuffers.UOffsetT
 
-	// attrs is the FlatBuffers offset for the template node's HTML attributes
-	// vector.
+	// attrs is the FlatBuffers offset for the template node's HTML attributes vector.
 	attrs flatbuffers.UOffsetT
 
 	// dynAttrs is the offset for the dynamic attributes vector.
@@ -266,8 +266,7 @@ type templateNodeVectorOffsets struct {
 	// directives is the FlatBuffer offset for the node's directive vector.
 	directives flatbuffers.UOffsetT
 
-	// onEvents is the FlatBuffer offset for the serialised on-event handlers
-	// vector.
+	// onEvents is the FlatBuffer offset for the serialised on-event handlers vector.
 	onEvents flatbuffers.UOffsetT
 
 	// customEvents is the offset for custom event bindings in the FlatBuffer.
@@ -339,8 +338,7 @@ type templateNodeAnnotationOffsets struct {
 	textContentWriter flatbuffers.UOffsetT
 }
 
-// buildTemplateNodeAnnotations builds annotation and key offsets for a
-// template node.
+// buildTemplateNodeAnnotations builds annotation and key offsets for a template node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
 //
@@ -366,11 +364,10 @@ func (s *encoder) buildTemplateNodeAnnotations(node *ast_domain.TemplateNode) (t
 	return off, nil
 }
 
-// addDirectivesToFlatBuffer adds all directive offsets to the FlatBuffer
-// builder.
+// addDirectivesToFlatBuffer adds all directive offsets to the FlatBuffer builder.
 //
-// Takes directive (templateNodeDirectiveOffsets) which contains the pre-built
-// offsets for each directive type.
+// Takes directive (templateNodeDirectiveOffsets) which contains the pre-built offsets for
+// each directive type.
 func (s *encoder) addDirectivesToFlatBuffer(directive templateNodeDirectiveOffsets) {
 	ast_schema_gen.TemplateNodeFBAddDirectiveIf(s.builder, directive.dirIf)
 	ast_schema_gen.TemplateNodeFBAddDirectiveElseIf(s.builder, directive.dirElseIf)
@@ -407,8 +404,8 @@ func (s *encoder) buildTemplateNode(node *ast_domain.TemplateNode) (flatbuffers.
 	var prerenderedHTMLOff flatbuffers.UOffsetT
 	if len(node.PrerenderedHTML) > 0 {
 		ast_schema_gen.TemplateNodeFBStartPrerenderedHtmlVector(s.builder, len(node.PrerenderedHTML))
-		for i := len(node.PrerenderedHTML) - 1; i >= 0; i-- {
-			s.builder.PrependByte(node.PrerenderedHTML[i])
+		for _, byteValue := range slices.Backward(node.PrerenderedHTML) {
+			s.builder.PrependByte(byteValue)
 		}
 		prerenderedHTMLOff = s.builder.EndVector(len(node.PrerenderedHTML))
 	}
@@ -450,8 +447,7 @@ type templateNodeStringOffsets struct {
 	prerenderedHTML flatbuffers.UOffsetT
 }
 
-// templateNodeRangeOffsets holds the location and range offsets for a
-// TemplateNode.
+// templateNodeRangeOffsets holds the location and range offsets for a TemplateNode.
 type templateNodeRangeOffsets struct {
 	// location is the FlatBuffers offset for the node's source location.
 	location flatbuffers.UOffsetT
@@ -466,14 +462,12 @@ type templateNodeRangeOffsets struct {
 	closingTagRange flatbuffers.UOffsetT
 }
 
-// buildTemplateNodeRanges builds the location and range offsets for a
-// TemplateNode.
+// buildTemplateNodeRanges builds the location and range offsets for a TemplateNode.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// extract ranges from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to extract
+// ranges from.
 //
-// Returns templateNodeRangeOffsets which contains the built location and range
-// offsets.
+// Returns templateNodeRangeOffsets which contains the built location and range offsets.
 // Returns error when any location or range cannot be built.
 func (s *encoder) buildTemplateNodeRanges(node *ast_domain.TemplateNode) (templateNodeRangeOffsets, error) {
 	var rangeOffsets templateNodeRangeOffsets
@@ -494,16 +488,14 @@ func (s *encoder) buildTemplateNodeRanges(node *ast_domain.TemplateNode) (templa
 	return rangeOffsets, err
 }
 
-// assembleTemplateNodeFB builds the final TemplateNodeFB table from pre-built
-// offsets.
+// assembleTemplateNodeFB builds the final TemplateNodeFB table from pre-built offsets.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the source node data.
 // Takes strOff (templateNodeStringOffsets) which contains string field offsets.
 // Takes rangeOffs (templateNodeRangeOffsets) which contains location offsets.
 // Takes vecOff (templateNodeVectorOffsets) which contains vector offsets.
 // Takes dirOff (templateNodeDirectiveOffsets) which contains directive offsets.
-// Takes annOff (templateNodeAnnotationOffsets) which contains annotation
-// offsets.
+// Takes annOff (templateNodeAnnotationOffsets) which contains annotation offsets.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the completed table.
 func (s *encoder) assembleTemplateNodeFB(
@@ -564,8 +556,8 @@ func (s *encoder) buildDirective(directive *ast_domain.Directive) (flatbuffers.U
 	return s.assembleDirectiveFB(directive, offsets), nil
 }
 
-// directiveOffsets groups all pre-built FlatBuffer offsets needed to assemble
-// a directive.
+// directiveOffsets groups all pre-built FlatBuffer offsets needed to assemble a
+// directive.
 type directiveOffsets struct {
 	// argument is the offset for the directive's argument string.
 	argument flatbuffers.UOffsetT
@@ -598,8 +590,8 @@ type directiveOffsets struct {
 	eventModifiers flatbuffers.UOffsetT
 }
 
-// buildDirectiveFieldOffsets pre-builds all string, expression, location, and
-// annotation offsets for a directive.
+// buildDirectiveFieldOffsets pre-builds all string, expression, location, and annotation
+// offsets for a directive.
 //
 // Takes directive (*ast_domain.Directive) which is the directive to process.
 //
@@ -652,8 +644,8 @@ func (s *encoder) buildEventModifiersVector(modifiers []string) flatbuffers.UOff
 		modOffs[i] = s.builder.CreateString(m)
 	}
 	ast_schema_gen.DirectiveFBStartEventModifiersVector(s.builder, len(modOffs))
-	for i := len(modOffs) - 1; i >= 0; i-- {
-		s.builder.PrependUOffsetT(modOffs[i])
+	for _, modOff := range slices.Backward(modOffs) {
+		s.builder.PrependUOffsetT(modOff)
 	}
 	return s.builder.EndVector(len(modOffs))
 }
@@ -727,8 +719,7 @@ func (s *encoder) buildHTMLAttribute(attr *ast_domain.HTMLAttribute) (flatbuffer
 
 // buildDynamicAttribute serialises a dynamic attribute node to the flatbuffer.
 //
-// Takes attr (*ast_domain.DynamicAttribute) which is the dynamic attribute to
-// serialise.
+// Takes attr (*ast_domain.DynamicAttribute) which is the dynamic attribute to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised attribute.
 // Returns error when serialising child nodes fails.
@@ -850,8 +841,8 @@ func (s *encoder) buildDirectWriter(dw *ast_domain.DirectWriter) (flatbuffers.UO
 	}
 
 	ast_schema_gen.DirectWriterFBStartPartsVector(s.builder, len(partOffsets))
-	for i := len(partOffsets) - 1; i >= 0; i-- {
-		s.builder.PrependUOffsetT(partOffsets[i])
+	for _, partOffset := range slices.Backward(partOffsets) {
+		s.builder.PrependUOffsetT(partOffset)
 	}
 	partsVec := s.builder.EndVector(len(partOffsets))
 
@@ -863,8 +854,8 @@ func (s *encoder) buildDirectWriter(dw *ast_domain.DirectWriter) (flatbuffers.UO
 
 // unpackTemplateAST converts a FlatBuffer template AST into a domain model.
 //
-// Takes fb (*ast_schema_gen.TemplateASTFB) which is the serialised template
-// AST to convert.
+// Takes fb (*ast_schema_gen.TemplateASTFB) which is the serialised template AST to
+// convert.
 //
 // Returns *ast_domain.TemplateAST which is the converted domain model.
 // Returns error when unpacking root nodes or diagnostics fails.
@@ -904,13 +895,13 @@ func (d *decoder) unpackTemplateAST(ctx context.Context, fb *ast_schema_gen.Temp
 	return ast, nil
 }
 
-// unpackTemplateNodeVector deserialises a vector of TemplateNodeFB entries,
-// threading ctx through each node for logging within DirectWriter unpacking.
+// unpackTemplateNodeVector deserialises a vector of TemplateNodeFB entries, threading ctx
+// through each node for logging within DirectWriter unpacking.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes length (int) which is the number of entries in the vector.
-// Takes accessor (func(*ast_schema_gen.TemplateNodeFB, int) bool) which
-// retrieves the entry at the given index into the provided flatbuffer.
+// Takes accessor (func(*ast_schema_gen.TemplateNodeFB, int) bool) which retrieves the
+// entry at the given index into the provided flatbuffer.
 //
 // Returns []*ast_domain.TemplateNode which contains the deserialised nodes.
 // Returns error when any node fails to unpack.
@@ -932,12 +923,11 @@ func (d *decoder) unpackTemplateNodeVector(ctx context.Context, length int, acce
 	return result, nil
 }
 
-// unpackDirectWriters deserialises the attribute writer vector from a
-// TemplateNodeFB, threading ctx for the logging site in unpackDirectWriter.
+// unpackDirectWriters deserialises the attribute writer vector from a TemplateNodeFB,
+// threading ctx for the logging site in unpackDirectWriter.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised
-// writer vector.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised writer vector.
 //
 // Returns []*ast_domain.DirectWriter which contains the deserialised writers.
 // Returns error when any writer fails to unpack.
@@ -1043,8 +1033,7 @@ func (d *decoder) unpackTemplateNodeVectors(ctx context.Context, fb *ast_schema_
 	return nil
 }
 
-// unpackTemplateNodeDirectives unpacks all distributed directive fields into
-// the node.
+// unpackTemplateNodeDirectives unpacks all distributed directive fields into the node.
 //
 // Takes fb (*ast_schema_gen.TemplateNodeFB) which is the source flatbuffer.
 // Takes node (*ast_domain.TemplateNode) which receives the unpacked directives.
@@ -1100,11 +1089,10 @@ func (d *decoder) unpackTemplateNodeDirectives(fb *ast_schema_gen.TemplateNodeFB
 	return nil
 }
 
-// unpackTemplateNodeAnnotations unpacks annotation and key fields into the
-// node.
+// unpackTemplateNodeAnnotations unpacks annotation and key fields into the node.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised
-// template node data.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised template node
+// data.
 // Takes node (*ast_domain.TemplateNode) which receives the unpacked fields.
 //
 // Returns error when any annotation or key field fails to unpack.
@@ -1129,13 +1117,11 @@ func (d *decoder) unpackTemplateNodeAnnotations(ctx context.Context, fb *ast_sch
 
 // unpackTemplateNode converts a FlatBuffer template node to a domain object.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to
-// convert.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the FlatBuffer node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the converted domain object, or
-// nil if fb is nil.
-// Returns error when unpacking ranges, vectors, directives, or annotations
-// fails.
+// Returns *ast_domain.TemplateNode which is the converted domain object, or nil if fb is
+// nil.
+// Returns error when unpacking ranges, vectors, directives, or annotations fails.
 func (d *decoder) unpackTemplateNode(ctx context.Context, fb *ast_schema_gen.TemplateNodeFB) (*ast_domain.TemplateNode, error) {
 	if fb == nil {
 		return nil, nil
@@ -1168,8 +1154,8 @@ func (d *decoder) unpackTemplateNode(ctx context.Context, fb *ast_schema_gen.Tem
 	return node, nil
 }
 
-// unpackDirectWriter converts a FlatBuffer DirectWriterFB into a domain
-// DirectWriter by extracting its name and reconstructing its parts.
+// unpackDirectWriter converts a FlatBuffer DirectWriterFB into a domain DirectWriter by
+// extracting its name and reconstructing its parts.
 //
 // Takes fb (*ast_schema_gen.DirectWriterFB) which is the serialised writer.
 //
@@ -1217,11 +1203,10 @@ func (*decoder) unpackDirectWriter(ctx context.Context, fb *ast_schema_gen.Direc
 
 // unpackDirective converts a FlatBuffer directive into a domain directive.
 //
-// Takes fb (*ast_schema_gen.DirectiveFB) which is the FlatBuffer directive to
-// convert.
+// Takes fb (*ast_schema_gen.DirectiveFB) which is the FlatBuffer directive to convert.
 //
-// Returns *ast_domain.Directive which is the converted domain directive, or
-// nil if fb is nil.
+// Returns *ast_domain.Directive which is the converted domain directive, or nil if fb is
+// nil.
 // Returns error when any nested field fails to unpack.
 func (d *decoder) unpackDirective(fb *ast_schema_gen.DirectiveFB) (*ast_domain.Directive, error) {
 	if fb == nil {
@@ -1319,14 +1304,12 @@ func (d *decoder) unpackHTMLAttribute(fb *ast_schema_gen.HTMLAttributeFB) (ast_d
 	}, nil
 }
 
-// unpackDynamicAttribute converts a FlatBuffer dynamic attribute to a domain
-// model representation.
+// unpackDynamicAttribute converts a FlatBuffer dynamic attribute to a domain model
+// representation.
 //
-// Takes fb (*ast_schema_gen.DynamicAttributeFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.DynamicAttributeFB) which is the FlatBuffer to convert.
 //
-// Returns ast_domain.DynamicAttribute which contains the unpacked attribute
-// data.
+// Returns ast_domain.DynamicAttribute which contains the unpacked attribute data.
 // Returns error when unpacking the expression, location, or range fails.
 func (d *decoder) unpackDynamicAttribute(fb *ast_schema_gen.DynamicAttributeFB) (ast_domain.DynamicAttribute, error) {
 	if fb == nil {
@@ -1407,11 +1390,10 @@ func (d *decoder) unpackTextPart(fb *ast_schema_gen.TextPartFB) (ast_domain.Text
 	return part, nil
 }
 
-// unpackDirectiveValue returns a Directive by value for use with unpackVector
-// when working with value slices.
+// unpackDirectiveValue returns a Directive by value for use with unpackVector when
+// working with value slices.
 //
-// Takes fb (*ast_schema_gen.DirectiveFB) which is the flatbuffer directive to
-// unpack.
+// Takes fb (*ast_schema_gen.DirectiveFB) which is the flatbuffer directive to unpack.
 //
 // Returns ast_domain.Directive which is the unpacked directive value.
 // Returns error when the underlying unpackDirective call fails.

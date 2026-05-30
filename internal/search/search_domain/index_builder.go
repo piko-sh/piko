@@ -27,10 +27,10 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/fbs"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/search/search_schema"
@@ -38,8 +38,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// IndexBuilder implements IndexBuilderPort to create search indexes from
-// collection items. Uses AnalyserPort interface for testability.
+// IndexBuilder implements IndexBuilderPort to create search indexes from collection
+// items. Uses AnalyserPort interface for testability.
 //
 // Safe for concurrent use; BuildIndex creates a fresh analyser per call.
 type IndexBuilder struct{}
@@ -54,8 +54,7 @@ func NewIndexBuilder() *IndexBuilder {
 // BuildIndex constructs a search index from collection items.
 //
 // Takes collectionName (string) which identifies the collection being indexed.
-// Takes items ([]collection_dto.ContentItem) which provides the content to
-// index.
+// Takes items ([]collection_dto.ContentItem) which provides the content to index.
 // Takes mode (search_fb.SearchMode) which specifies the search mode to use.
 // Takes config (IndexBuildConfig) which controls indexing behaviour.
 //
@@ -125,23 +124,18 @@ func (ib *IndexBuilder) BuildIndex(
 // detectLanguage finds the language from content items.
 //
 // Detection steps:
-//  1. Check the first item's metadata for a "language" or "lang"
-//     field.
-//  2. If not found, check for a "locale" field and extract the
-//     language (e.g., "en-US" becomes "english").
+//  1. Check the first item's metadata for a "language" or "lang" field.
+//  2. If not found, check for a "locale" field and extract the language (e.g., "en-US"
+//     becomes "english").
 //  3. If no language is found, use "english" as the default.
 //
-// This lets users set the language in their content frontmatter:
-// ---
-// title: My Spanish Article
-// language: spanish
-// ---
+// This lets users set the language in their content frontmatter: --- title: My Spanish
+// Article language: spanish ---
 //
-// Takes items ([]collection_dto.ContentItem) which provides the
-// content items to check for language metadata.
+// Takes items ([]collection_dto.ContentItem) which provides the content items to check
+// for language metadata.
 //
-// Returns string which is the detected language name, or "english"
-// by default.
+// Returns string which is the detected language name, or "english" by default.
 func (*IndexBuilder) detectLanguage(items []collection_dto.ContentItem) string {
 	if len(items) == 0 {
 		return LanguageEnglish
@@ -167,15 +161,14 @@ func (*IndexBuilder) detectLanguage(items []collection_dto.ContentItem) string {
 	return LanguageEnglish
 }
 
-// createAnalysisConfig creates a text analysis configuration based on search
-// mode. Uses the shared config builder to ensure consistency.
+// createAnalysisConfig creates a text analysis configuration based on search mode. Uses
+// the shared config builder to ensure consistency.
 //
-// Takes mode (search_fb.SearchMode) which specifies the search mode for
-// analysis.
+// Takes mode (search_fb.SearchMode) which specifies the search mode for analysis.
 // Takes config (IndexBuildConfig) which provides language and token settings.
 //
-// Returns linguistics_domain.AnalyserConfig which is the configured analyser
-// ready for use.
+// Returns linguistics_domain.AnalyserConfig which is the configured analyser ready for
+// use.
 func (*IndexBuilder) createAnalysisConfig(mode search_fb.SearchMode, config IndexBuildConfig) linguistics_domain.AnalyserConfig {
 	return createAnalyserConfigFromSearchConfig(
 		mode,
@@ -207,8 +200,7 @@ type termInfo struct {
 	docCount uint32
 }
 
-// posting represents a single term occurrence within a document during index
-// building.
+// posting represents a single term occurrence within a document during index building.
 type posting struct {
 	// documentID is the unique identifier of the document that contains this term.
 	documentID uint32
@@ -228,25 +220,21 @@ type docMetadata struct {
 	// documentID is the unique document identifier used for serialisation.
 	documentID uint32
 
-	// fieldLength is the total number of tokens across all fields in this
-	// document.
+	// fieldLength is the total number of tokens across all fields in this document.
 	fieldLength uint32
 
-	// fieldLengthsPacked stores field lengths as a packed uint32 for
-	// serialisation.
+	// fieldLengthsPacked stores field lengths as a packed uint32 for serialisation.
 	fieldLengthsPacked uint32
 }
 
-// buildInvertedIndex processes all items and builds the inverted index
-// structure. Each field (title, content, excerpt) is processed separately
-// with its correct fieldID, enabling proper field-aware BM25 scoring.
+// buildInvertedIndex processes all items and builds the inverted index structure. Each
+// field (title, content, excerpt) is processed separately with its correct fieldID,
+// enabling proper field-aware BM25 scoring.
 //
-// Takes items ([]collection_dto.ContentItem) which contains the documents to
-// index.
-// Takes config (IndexBuildConfig) which specifies tokenisation and field
-// settings.
-// Takes analyser (linguistics_domain.AnalyserPort) which provides text
-// analysis for tokenisation.
+// Takes items ([]collection_dto.ContentItem) which contains the documents to index.
+// Takes config (IndexBuildConfig) which specifies tokenisation and field settings.
+// Takes analyser (linguistics_domain.AnalyserPort) which provides text analysis for
+// tokenisation.
 //
 // Returns map[string]*termInfo which maps terms to their frequency data.
 // Returns []docMetadata which contains metadata for each indexed document.
@@ -275,17 +263,12 @@ func (ib *IndexBuilder) buildInvertedIndex(
 
 // processDocument prepares a single document for the search index.
 //
-// Takes documentID (int) which is the unique number for this
-// document.
-// Takes item (collection_dto.ContentItem) which holds the
-// document content.
+// Takes documentID (int) which is the unique number for this document.
+// Takes item (collection_dto.ContentItem) which holds the document content.
 // Takes _ (IndexBuildConfig) which is reserved for future use.
-// Takes index (map[string]*termInfo) which stores the term data
-// being built.
-// Takes docMeta ([]docMetadata) which stores details about each
-// document.
-// Takes analyser (linguistics_domain.AnalyserPort) which
-// tokenises the document text.
+// Takes index (map[string]*termInfo) which stores the term data being built.
+// Takes docMeta ([]docMetadata) which stores details about each document.
+// Takes analyser (linguistics_domain.AnalyserPort) which tokenises the document text.
 func (ib *IndexBuilder) processDocument(
 	documentID int,
 	item collection_dto.ContentItem,
@@ -318,8 +301,7 @@ func (ib *IndexBuilder) processDocument(
 // Takes documentID (int) which identifies the document being processed.
 // Takes fields ([]fieldText) which contains the text fields to analyse.
 // Takes index (map[string]*termInfo) which holds the term index to update.
-// Takes analyser (linguistics_domain.AnalyserPort) which tokenises the field
-// text.
+// Takes analyser (linguistics_domain.AnalyserPort) which tokenises the field text.
 //
 // Returns uint32 which is the total token count across all fields.
 // Returns map[string]*posting which contains term postings for the document.
@@ -350,8 +332,7 @@ func (ib *IndexBuilder) processDocumentFields(
 // Takes token (linguistics_domain.Token) which is the token to process.
 // Takes fieldID (uint8) which identifies the field containing the token.
 // Takes index (map[string]*termInfo) which is the global index to update.
-// Takes termCounts (map[string]*posting) which tracks term frequencies per
-// document.
+// Takes termCounts (map[string]*posting) which tracks term frequencies per document.
 // Takes analyser (linguistics_domain.AnalyserPort) which extracts token forms.
 func (ib *IndexBuilder) processToken(
 	documentID int,
@@ -379,8 +360,7 @@ func (ib *IndexBuilder) processToken(
 // extractTokenKey finds the index key based on the analysis mode.
 //
 // Takes token (linguistics_domain.Token) which holds the processed token data.
-// Takes analyser (linguistics_domain.AnalyserPort) which provides the
-// analysis mode.
+// Takes analyser (linguistics_domain.AnalyserPort) which provides the analysis mode.
 //
 // Returns termKey (string) which is the key used for indexing.
 // Returns original (string) which is the normalised form. Empty in basic mode.
@@ -421,12 +401,12 @@ func (*IndexBuilder) updateGlobalIndex(
 	}
 }
 
-// extractSearchableFields extracts field-tagged text segments from a content
-// item for indexing. This enables proper field-aware BM25 scoring without the
-// need for field repetition hacks.
+// extractSearchableFields extracts field-tagged text segments from a content item for
+// indexing. This enables proper field-aware BM25 scoring without the need for field
+// repetition hacks.
 //
-// Takes item (collection_dto.ContentItem) which is the content to extract
-// searchable fields from.
+// Takes item (collection_dto.ContentItem) which is the content to extract searchable
+// fields from.
 //
 // Returns []fieldText which contains text segments with their source field IDs.
 // Returns error when no searchable text is found in the item.
@@ -472,15 +452,14 @@ func (ib *IndexBuilder) extractSearchableFields(item collection_dto.ContentItem)
 	return fields, nil
 }
 
-// getMetadataString retrieves a string value from metadata, checking multiple
-// key variants. This handles case sensitivity issues where providers may use
-// "Title" or "title".
+// getMetadataString retrieves a string value from metadata, checking multiple key
+// variants. This handles case sensitivity issues where providers may use "Title" or
+// "title".
 //
 // Takes metadata (map[string]any) which contains the metadata to search.
 // Takes keys (...string) which specifies the key variants to check in order.
 //
-// Returns string which is the first non-empty value found, or empty string if
-// none match.
+// Returns string which is the first non-empty value found, or empty string if none match.
 func (*IndexBuilder) getMetadataString(metadata map[string]any, keys ...string) string {
 	for _, key := range keys {
 		if value, ok := metadata[key].(string); ok && value != "" {
@@ -490,9 +469,9 @@ func (*IndexBuilder) getMetadataString(metadata map[string]any, keys ...string) 
 	return ""
 }
 
-// stripMarkdown performs markdown stripping to extract plain text for
-// indexing. This removes frontmatter, code blocks, and markdown syntax while
-// preserving searchable content.
+// stripMarkdown performs markdown stripping to extract plain text for indexing. This
+// removes frontmatter, code blocks, and markdown syntax while preserving searchable
+// content.
 //
 // Takes markdown (string) which is the raw markdown text to process.
 //
@@ -519,8 +498,7 @@ func (*IndexBuilder) stripMarkdown(markdown string) string {
 //
 // Takes docMeta ([]docMetadata) which contains metadata for all documents.
 //
-// Returns CorpusStats which holds the total document count and average field
-// length.
+// Returns CorpusStats which holds the total document count and average field length.
 func (*IndexBuilder) calculateCorpusStats(docMeta []docMetadata) CorpusStats {
 	var totalLength uint64
 	for _, meta := range docMeta {
@@ -577,10 +555,8 @@ func (*IndexBuilder) buildPhoneticMap(index map[string]*termInfo) map[string][]u
 // Takes mode (search_fb.SearchMode) which specifies the search mode.
 // Takes index (map[string]*termInfo) which contains the term data to encode.
 // Takes docMeta ([]docMetadata) which provides document metadata.
-// Takes phoneticMap (map[string][]uint32) which maps phonetic
-// keys to term indices.
-// Takes corpusStats (CorpusStats) which contains corpus-level
-// statistics.
+// Takes phoneticMap (map[string][]uint32) which maps phonetic keys to term indices.
+// Takes corpusStats (CorpusStats) which contains corpus-level statistics.
 // Takes config (IndexBuildConfig) which specifies build configuration options.
 //
 // Returns []byte which contains the encoded FlatBuffer data.
@@ -635,8 +611,8 @@ type searchIndexParams struct {
 	// docsVectorOffset is the FlatBuffers offset for the documents vector.
 	docsVectorOffset flatbuffers.UOffsetT
 
-	// phoneticMapOffset is the FlatBuffer offset for the phonetic map; 0 means
-	// no phonetic map is included.
+	// phoneticMapOffset is the FlatBuffer offset for the phonetic map; 0 means no phonetic
+	// map is included.
 	phoneticMapOffset flatbuffers.UOffsetT
 
 	// vocabSize is the number of unique terms in the search index vocabulary.
@@ -666,8 +642,8 @@ func (ib *IndexBuilder) encodeTermsVector(
 	}
 
 	search_fb.SearchIndexStartTermsVector(builder, len(termOffsets))
-	for i := len(termOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(termOffsets[i])
+	for _, termOffset := range slices.Backward(termOffsets) {
+		builder.PrependUOffsetT(termOffset)
 	}
 	return builder.EndVector(len(termOffsets))
 }
@@ -695,14 +671,13 @@ func (*IndexBuilder) encodeDocumentsVector(
 	}
 
 	search_fb.SearchIndexStartDocumentsVector(builder, len(docMetaOffsets))
-	for i := len(docMetaOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(docMetaOffsets[i])
+	for _, docMetaOffset := range slices.Backward(docMetaOffsets) {
+		builder.PrependUOffsetT(docMetaOffset)
 	}
 	return builder.EndVector(len(docMetaOffsets))
 }
 
-// buildSearchIndex creates the root SearchIndex table and returns the finished
-// buffer.
+// buildSearchIndex creates the root SearchIndex table and returns the finished buffer.
 //
 // Takes builder (*flatbuffers.Builder) which builds the binary index.
 // Takes params (searchIndexParams) which holds the index data and settings.
@@ -746,11 +721,11 @@ func (ib *IndexBuilder) buildSearchIndex(
 //
 // Takes builder (*flatbuffers.Builder) which collects the output data.
 // Takes term (*termInfo) which holds the term data and postings to write.
-// Takes mode (search_fb.SearchMode) which controls whether to include extra
-// fields like original text and phonetic data.
+// Takes mode (search_fb.SearchMode) which controls whether to include extra fields like
+// original text and phonetic data.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the written Term table
-// in the buffer.
+// Returns flatbuffers.UOffsetT which is the offset of the written Term table in the
+// buffer.
 func (*IndexBuilder) encodeTerm(builder *flatbuffers.Builder, term *termInfo, mode search_fb.SearchMode) flatbuffers.UOffsetT {
 	textOffset := builder.CreateString(term.text)
 	var originalOffset flatbuffers.UOffsetT
@@ -774,9 +749,8 @@ func (*IndexBuilder) encodeTerm(builder *flatbuffers.Builder, term *termInfo, mo
 	})
 
 	search_fb.TermStartPostingsVector(builder, len(postingsList))
-	for i := len(postingsList) - 1; i >= 0; i-- {
-		p := postingsList[i]
-		search_fb.CreatePosting(builder, p.documentID, p.termFrequency, p.fieldID, 0)
+	for _, post := range slices.Backward(postingsList) {
+		search_fb.CreatePosting(builder, post.documentID, post.termFrequency, post.fieldID, 0)
 	}
 	postingsOffset := builder.EndVector(len(postingsList))
 
@@ -797,8 +771,7 @@ func (*IndexBuilder) encodeTerm(builder *flatbuffers.Builder, term *termInfo, mo
 // encodePhoneticMap converts the phonetic code map to binary format.
 //
 // Takes builder (*flatbuffers.Builder) which writes the binary data.
-// Takes phoneticMap (map[string][]uint32) which links phonetic codes to term
-// indices.
+// Takes phoneticMap (map[string][]uint32) which links phonetic codes to term indices.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the phonetic map vector.
 func (*IndexBuilder) encodePhoneticMap(builder *flatbuffers.Builder, phoneticMap map[string][]uint32) flatbuffers.UOffsetT {
@@ -810,8 +783,8 @@ func (*IndexBuilder) encodePhoneticMap(builder *flatbuffers.Builder, phoneticMap
 
 		indices := phoneticMap[code]
 		search_fb.PhoneticMappingStartTermIndicesVector(builder, len(indices))
-		for j := len(indices) - 1; j >= 0; j-- {
-			builder.PrependUint32(indices[j])
+		for _, index := range slices.Backward(indices) {
+			builder.PrependUint32(index)
 		}
 		indicesOffset := builder.EndVector(len(indices))
 
@@ -822,8 +795,8 @@ func (*IndexBuilder) encodePhoneticMap(builder *flatbuffers.Builder, phoneticMap
 	}
 
 	search_fb.SearchIndexStartPhoneticMapVector(builder, len(mappingOffsets))
-	for i := len(mappingOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(mappingOffsets[i])
+	for _, mappingOffset := range slices.Backward(mappingOffsets) {
+		builder.PrependUOffsetT(mappingOffset)
 	}
 
 	return builder.EndVector(len(mappingOffsets))
@@ -842,8 +815,8 @@ func (*IndexBuilder) encodeIndexParams(builder *flatbuffers.Builder, config Inde
 	weights[2] = float32(config.FieldWeights["excerpt"])
 
 	search_fb.IndexParamsStartFieldWeightsVector(builder, len(weights))
-	for i := len(weights) - 1; i >= 0; i-- {
-		builder.PrependFloat32(weights[i])
+	for _, weight := range slices.Backward(weights) {
+		builder.PrependFloat32(weight)
 	}
 	weightsOffset := builder.EndVector(len(weights))
 
@@ -864,8 +837,7 @@ func (*IndexBuilder) encodeIndexParams(builder *flatbuffers.Builder, config Inde
 // Takes mode (search_fb.SearchMode) which specifies the search mode.
 // Takes index (map[string]*termInfo) which contains the term index data.
 // Takes docMeta ([]docMetadata) which provides document metadata.
-// Takes phoneticMap (map[string][]uint32) which maps phonetic
-// codes to term indices.
+// Takes phoneticMap (map[string][]uint32) which maps phonetic codes to term indices.
 // Takes corpusStats (CorpusStats) which provides corpus-level statistics.
 // Takes config (IndexBuildConfig) which specifies index build settings.
 //
@@ -914,13 +886,13 @@ func (*IndexBuilder) encodeIndexToJSON(
 	return json.ConfigStd.MarshalIndent(jsonIndex, "", "  ")
 }
 
-// mapLanguageCode converts an ISO 639-1 language code to a Snowball stemmer
-// language name.
+// mapLanguageCode converts an ISO 639-1 language code to a Snowball stemmer language
+// name.
 //
 // Takes code (string) which is the two-letter language code to convert.
 //
-// Returns string which is the Snowball language name, or English if the code
-// is not supported.
+// Returns string which is the Snowball language name, or English if the code is not
+// supported.
 func mapLanguageCode(code string) string {
 	languageMap := map[string]string{
 		"en": LanguageEnglish,
@@ -941,13 +913,13 @@ func mapLanguageCode(code string) string {
 	return LanguageEnglish
 }
 
-// stripFrontmatter removes YAML frontmatter (--- ... ---) from the start of
-// markdown content.
+// stripFrontmatter removes YAML frontmatter (--- ... ---) from the start of markdown
+// content.
 //
 // Takes markdown (string) which is the raw markdown text to process.
 //
-// Returns string which is the markdown with frontmatter removed, or the
-// original content if no valid frontmatter is found.
+// Returns string which is the markdown with frontmatter removed, or the original content
+// if no valid frontmatter is found.
 func stripFrontmatter(markdown string) string {
 	if !strings.HasPrefix(markdown, "---") {
 		return markdown
@@ -1015,8 +987,8 @@ func stripInlineCode(markdown string) string {
 
 // stripHTMLComments removes HTML comments from markdown text.
 //
-// Takes markdown (string) which is the input text that may contain HTML
-// comments in the form <!-- ... -->.
+// Takes markdown (string) which is the input text that may contain HTML comments in the
+// form <!-- ... -->.
 //
 // Returns string which is the input with all HTML comments removed.
 func stripHTMLComments(markdown string) string {
@@ -1037,8 +1009,8 @@ func stripHTMLComments(markdown string) string {
 	return markdown
 }
 
-// stripMarkdownLinks removes markdown link syntax while keeping the link text.
-// It converts [text](url) to plain text.
+// stripMarkdownLinks removes markdown link syntax while keeping the link text. It
+// converts [text](url) to plain text.
 //
 // Takes markdown (string) which is the input text containing markdown links.
 //
@@ -1089,8 +1061,8 @@ func processMarkdownLink(input string, result *strings.Builder) int {
 	return closeBracket + 1
 }
 
-// stripHeadingMarkers removes heading markers (# ## ###) from each line but
-// keeps the text.
+// stripHeadingMarkers removes heading markers (# ## ###) from each line but keeps the
+// text.
 //
 // Takes markdown (string) which contains text with heading markers.
 //
@@ -1155,8 +1127,8 @@ func stripHorizontalRules(markdown string) string {
 //
 // Takes line (string) which is the text line to check.
 //
-// Returns bool which is true if the line contains at least three dashes,
-// asterisks, or underscores with no other characters.
+// Returns bool which is true if the line contains at least three dashes, asterisks, or
+// underscores with no other characters.
 func isHorizontalRule(line string) bool {
 	trimmed := strings.TrimSpace(line)
 
@@ -1200,8 +1172,7 @@ func convertTermsToJSON(index map[string]*termInfo, termTexts []string) []search
 //
 // Takes term (*termInfo) which holds the term data to convert.
 //
-// Returns search_dto.JSONTerm which is the converted term ready for JSON
-// output.
+// Returns search_dto.JSONTerm which is the converted term ready for JSON output.
 func convertTermToJSON(term *termInfo) search_dto.JSONTerm {
 	postingsList := sortedPostings(term.postings)
 	jsonPostings := make([]search_dto.JSONPosting, len(postingsList))
@@ -1226,11 +1197,9 @@ func convertTermToJSON(term *termInfo) search_dto.JSONTerm {
 
 // sortedPostings returns postings sorted by document ID.
 //
-// Takes postings (map[uint32]*posting) which maps document IDs to their
-// posting entries.
+// Takes postings (map[uint32]*posting) which maps document IDs to their posting entries.
 //
-// Returns []*posting which contains the postings in ascending order by
-// document ID.
+// Returns []*posting which contains the postings in ascending order by document ID.
 func sortedPostings(postings map[uint32]*posting) []*posting {
 	postingsList := make([]*posting, 0, len(postings))
 	for _, p := range postings {
@@ -1246,8 +1215,8 @@ func sortedPostings(postings map[uint32]*posting) []*posting {
 //
 // Takes docMeta ([]docMetadata) which contains the metadata to convert.
 //
-// Returns []search_dto.JSONDocMetadata which contains the converted metadata
-// ready for JSON output.
+// Returns []search_dto.JSONDocMetadata which contains the converted metadata ready for
+// JSON output.
 func convertDocumentsToJSON(docMeta []docMetadata) []search_dto.JSONDocMetadata {
 	jsonDocuments := make([]search_dto.JSONDocMetadata, len(docMeta))
 	for i, document := range docMeta {
@@ -1261,17 +1230,15 @@ func convertDocumentsToJSON(docMeta []docMetadata) []search_dto.JSONDocMetadata 
 	return jsonDocuments
 }
 
-// convertPhoneticMapToJSON converts a phonetic map to JSON data transfer
-// objects.
+// convertPhoneticMapToJSON converts a phonetic map to JSON data transfer objects.
 //
 // When mode is not Smart or the phonetic map is empty, returns nil.
 //
 // Takes mode (search_fb.SearchMode) which specifies the search mode.
-// Takes phoneticMap (map[string][]uint32) which maps phonetic codes to term
-// indices.
+// Takes phoneticMap (map[string][]uint32) which maps phonetic codes to term indices.
 //
-// Returns []search_dto.JSONPhoneticMapping which contains the sorted phonetic
-// mappings ready for JSON output.
+// Returns []search_dto.JSONPhoneticMapping which contains the sorted phonetic mappings
+// ready for JSON output.
 func convertPhoneticMapToJSON(mode search_fb.SearchMode, phoneticMap map[string][]uint32) []search_dto.JSONPhoneticMapping {
 	if mode != search_fb.SearchModeSmart || len(phoneticMap) == 0 {
 		return nil

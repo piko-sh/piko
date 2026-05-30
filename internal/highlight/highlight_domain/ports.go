@@ -18,17 +18,17 @@
 
 package highlight_domain
 
-// Highlighter is the port interface for syntax highlighting code blocks.
-// It is used by backends such as Chroma, highlight.js, or Prism.
+// Highlighter is the port interface for syntax highlighting code blocks. It is used by
+// backends such as Chroma, highlight.js, or Prism.
 type Highlighter interface {
-	// Highlight takes source code and a language identifier, returning
-	// syntax-highlighted HTML. If the language is not supported or highlighting
-	// fails, implementations should return the original code wrapped in
-	// appropriate HTML (e.g., <pre><code>...</code></pre>).
+	// Highlight takes source code and a language identifier, returning syntax-highlighted
+	// HTML. If the language is not supported or highlighting fails, implementations should
+	// return the original code wrapped in appropriate HTML (e.g.,
+	// <pre><code>...</code></pre>).
 	//
 	// Takes code (string) which is the source code to highlight.
-	// Takes language (string) which is the language identifier (e.g., "go",
-	// "piko", or a JavaScript identifier such as "js").
+	// Takes language (string) which is the language identifier (e.g., "go", "piko", or a
+	// JavaScript identifier such as "js").
 	//
 	// Returns string which is the highlighted HTML ready for rendering.
 	Highlight(code, language string) string

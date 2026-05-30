@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "charm.land/lipgloss/v2"
+import (
+	"charm.land/lipgloss/v2"
+)
 
 const (
 	// LayoutNameSingle renders the focused panel full-width.
@@ -38,21 +40,19 @@ const (
 	// MinPaneHeight is the minimum visible height a pane may receive.
 	MinPaneHeight = 6
 
-	// MinSinglePaneWidth is the minimum width for the single-pane layout.
-	// Below this the user is told the terminal is too narrow.
+	// MinSinglePaneWidth is the minimum width for the single-pane layout. Below this the
+	// user is told the terminal is too narrow.
 	MinSinglePaneWidth = 20
 )
 
-// PaneRect describes the on-screen rectangle a Layout has allocated for a
-// single pane. Coordinates are in terminal cells; the origin is the top-left
-// of the layout area (not the screen).
+// PaneRect describes the on-screen rectangle a Layout has allocated for a single pane.
+// Coordinates are in terminal cells; the origin is the top-left of the layout area (not
+// the screen).
 type PaneRect struct {
-	// X is the column offset of the pane's left edge within the layout
-	// rectangle.
+	// X is the column offset of the pane's left edge within the layout rectangle.
 	X int
 
-	// Y is the row offset of the pane's top edge within the layout
-	// rectangle.
+	// Y is the row offset of the pane's top edge within the layout rectangle.
 	Y int
 
 	// Width is the pane's width in columns.
@@ -62,53 +62,50 @@ type PaneRect struct {
 	Height int
 }
 
-// RenderedPane couples a panel's already-rendered body with metadata the
-// Layout needs to compose the final image. Bodies are produced by calling
-// each panel's View with the dimensions Allocate returned.
+// RenderedPane couples a panel's already-rendered body with metadata the Layout needs to
+// compose the final image. Bodies are produced by calling each panel's View with the
+// dimensions Allocate returned.
 type RenderedPane struct {
 	// ID is the panel identifier; layouts use it for diagnostic logging.
 	ID string
 
-	// Title is the panel display title; layouts may render it as part of
-	// chrome they own (none today, though Phase 4 will).
+	// Title is the panel display title; layouts may render it as part of the chrome they
+	// own.
 	Title string
 
-	// Body is the rendered string the panel produced from View(width,
-	// height). It is expected to fill exactly the dimensions Allocate
-	// returned for this pane.
+	// Body is the rendered string the panel produced from View(width, height). It is
+	// expected to fill exactly the dimensions Allocate returned for this pane.
 	Body string
 
-	// Width is the cell width Allocate gave to this pane. Stored on the
-	// rendered pane so Compose can verify or pad as needed.
+	// Width is the cell width Allocate gave to this pane. Stored on the rendered pane so
+	// Compose can verify or pad as needed.
 	Width int
 
 	// Height is the cell height Allocate gave to this pane.
 	Height int
 
-	// Focused indicates whether this pane is the active focus target.
-	// Panels render their own focus borders today, so layouts do not need
-	// to read this; future phases (focus rings owned by the layout) will.
+	// Focused indicates whether this pane is the active focus target. Panels render their
+	// own focus borders today, so layouts do not need to read this; future phases (focus
+	// rings owned by the layout) will.
 	Focused bool
 }
 
-// Layout owns the geometry of a multi-pane render. Implementations are
-// responsible for both computing the per-pane rectangles (Allocate) and
-// stitching the rendered bodies together (Compose).
+// Layout owns the geometry of a multi-pane render. Implementations are responsible for
+// both computing the per-pane rectangles (Allocate) and stitching the rendered bodies
+// together (Compose).
 type Layout interface {
 	// Name returns the registered layout identifier.
 	Name() string
 
 	// Allocate splits a layout rectangle into per-pane rectangles.
 	//
-	// Splits the area between header and status bar. The returned slice has
-	// length min(paneCount, MaxPanes) where MaxPanes depends on the layout.
-	// The supplied paneCount may be larger than the layout supports; surplus
-	// panes are dropped.
+	// Splits the area between header and status bar. The returned slice has length
+	// min(paneCount, MaxPanes) where MaxPanes depends on the layout. The supplied paneCount
+	// may be larger than the layout supports; surplus panes are dropped.
 	Allocate(width, height, paneCount int) []PaneRect
 
-	// Compose stitches rendered pane bodies into the final layout string.
-	// The number of panes must equal the number of rectangles Allocate
-	// returned for the same dimensions.
+	// Compose stitches rendered pane bodies into the final layout string. The number of
+	// panes must equal the number of rectangles Allocate returned for the same dimensions.
 	Compose(panes []RenderedPane, width, height int) string
 
 	// MaxPanes is the maximum number of panes this layout renders.
@@ -117,9 +114,8 @@ type Layout interface {
 
 // joinHorizontal concatenates pane bodies side-by-side.
 //
-// Bodies are expected to be rectangular blocks of text;
-// lipgloss.JoinHorizontal handles padding rows that are shorter than the
-// tallest body.
+// Bodies are expected to be rectangular blocks of text; lipgloss.JoinHorizontal handles
+// padding rows that are shorter than the tallest body.
 //
 // Takes panes ([]RenderedPane) which is the ordered list of panes to join.
 //

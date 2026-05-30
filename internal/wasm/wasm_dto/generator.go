@@ -18,19 +18,19 @@
 
 package wasm_dto
 
-// GenerateFromSourcesRequest contains the input for generating code from
-// in-memory sources via WASM.
+// GenerateFromSourcesRequest contains the input for generating code from in-memory
+// sources via WASM.
 type GenerateFromSourcesRequest struct {
-	// Sources maps file paths to their contents. The paths should be relative
-	// to the project root (e.g., "pages/main.pk", "partials/header.pk").
+	// Sources maps file paths to their contents. The paths should be relative to the project
+	// root (e.g., "pages/main.pk", "partials/header.pk").
 	Sources map[string]string `json:"sources"`
 
-	// ModuleName is the Go module name for the generated code
-	// (e.g., "example.com/myproject").
+	// ModuleName is the Go module name for the generated code (e.g.,
+	// "example.com/myproject").
 	ModuleName string `json:"moduleName"`
 
-	// BaseDir is the virtual base directory for path resolution.
-	// If empty, defaults to the current directory.
+	// BaseDir is the virtual base directory for path resolution. If empty, defaults to the
+	// current directory.
 	BaseDir string `json:"baseDir,omitempty"`
 }
 
@@ -54,26 +54,24 @@ type GenerateFromSourcesResponse struct {
 
 // ScriptArtefact is a compiled client-side JavaScript module.
 //
-// Surfaced via DynamicRenderResponse.Scripts. The path is the artefact
-// ID without any URL prefix (e.g. "pk-js/pages/index.js"); consumers
-// prefix with their asset route (typically "/_piko/assets/") when
-// constructing import maps or HTML.
+// Surfaced via DynamicRenderResponse.Scripts. The path is the artefact ID without any URL
+// prefix (e.g. "pk-js/pages/index.js"); consumers prefix with their asset route
+// (typically "/_piko/assets/") when constructing import maps or HTML.
 type ScriptArtefact struct {
 	// Path is the artefact ID (e.g. "pk-js/pages/index.js").
 	//
-	// Joining this with the consumer's asset serve prefix yields the URL
-	// the compiled JS expects in its `import` statements.
+	// Joining this with the consumer's asset serve prefix yields the URL the compiled JS
+	// expects in its `import` statements.
 	Path string `json:"path"`
 
 	// Content is the compiled ES module source ready for execution.
 	Content string `json:"content"`
 }
 
-// GeneratedArtefact represents a single generated file from the code
-// generation process.
+// GeneratedArtefact represents a single generated file from the code generation process.
 type GeneratedArtefact struct {
-	// Path is the relative path where the file should be written
-	// (e.g., "dist/pages/pages_main_abc123/main.go").
+	// Path is the relative path where the file should be written (e.g.,
+	// "dist/pages/pages_main_abc123/main.go").
 	Path string `json:"path"`
 
 	// Content is the generated file content as a string.
@@ -156,15 +154,13 @@ type ManifestPartialEntry struct {
 	// PropsTypeName is the name of the Props type, if any.
 	PropsTypeName string `json:"propsTypeName,omitempty"`
 
-	// JSArtefactID is the client-side JavaScript artefact ID for this
-	// partial, when it has a <script> block. Pages aggregate transitively-
-	// referenced partial IDs into ManifestPageEntry.JSArtefactIDs; this
-	// field exposes the per-partial value for tooling that walks the
-	// partial graph directly.
+	// JSArtefactID is the client-side JavaScript artefact ID for this partial, when it has a
+	// <script> block. Pages aggregate transitively- referenced partial IDs into
+	// ManifestPageEntry.JSArtefactIDs; JSArtefactID exposes the per-partial value for tooling
+	// that walks the partial graph directly.
 	JSArtefactID string `json:"jsArtefactId,omitempty"`
 
-	// StyleBlock contains the aggregated CSS for this partial and its
-	// nested partials.
+	// StyleBlock contains the aggregated CSS for this partial and its nested partials.
 	StyleBlock string `json:"styleBlock,omitempty"`
 
 	// HasProps indicates whether the partial accepts props.

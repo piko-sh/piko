@@ -35,17 +35,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testRegistry = map[string]TestCaseDef{
-	"001_basic_resolution": {
-		CreateLinkingResult: testcase_01.CreateLinkingResult,
-	},
-	"002_pfor_scoping": {
-		CreateLinkingResult: testcase_02.CreateLinkingResult,
-	},
-	"003_slotted_content_context_switch": {
-		CreateLinkingResult: testcase_03.CreateLinkingResult,
-	},
-}
+var (
+	testRegistry = map[string]TestCaseDef{
+		"001_basic_resolution": {
+			CreateLinkingResult: testcase_01.CreateLinkingResult,
+		},
+		"002_pfor_scoping": {
+			CreateLinkingResult: testcase_02.CreateLinkingResult,
+		},
+		"003_slotted_content_context_switch": {
+			CreateLinkingResult: testcase_03.CreateLinkingResult,
+		},
+	}
+)
 
 func TestSemanticAnnotator(t *testing.T) {
 	if testing.Short() {

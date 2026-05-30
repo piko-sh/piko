@@ -25,11 +25,13 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// statePrefix is the text pattern used to detect state property access.
-const statePrefix = "state."
+const (
+	// statePrefix is the text pattern used to detect state property access.
+	statePrefix = "state."
+)
 
-// checkPKCStatePropertyContext detects state.propName references in template
-// attribute values and interpolation expressions.
+// checkPKCStatePropertyContext detects state.propName references in template attribute
+// values and interpolation expressions.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character offset of the cursor in the line.
@@ -72,8 +74,8 @@ func (d *document) pkcSymbolLocation(line, column, nameLen int) []protocol.Locat
 	}}
 }
 
-// findPKCStatePropertyDefinition returns the location of a state property
-// definition in the PKC script block using cached metadata.
+// findPKCStatePropertyDefinition returns the location of a state property definition in
+// the PKC script block using cached metadata.
 //
 // Takes name (string) which is the property name to find.
 //
@@ -93,8 +95,8 @@ func (d *document) findPKCStatePropertyDefinition(name string) ([]protocol.Locat
 	return d.pkcSymbolLocation(prop.Line, prop.Column, len(prop.Name)), nil
 }
 
-// findPKCHandlerDefinition returns the location of a function definition using
-// cached PKC metadata, avoiding re-parsing the script.
+// findPKCHandlerDefinition returns the location of a function definition using cached PKC
+// metadata, avoiding re-parsing the script.
 //
 // Takes name (string) which is the function name to find.
 //
@@ -114,8 +116,8 @@ func (d *document) findPKCHandlerDefinition(name string) ([]protocol.Location, e
 	return d.pkcSymbolLocation(function.Line, function.Column, len(function.Name)), nil
 }
 
-// findPKCRefDefinition finds a _ref or p-ref attribute in the PKC template
-// by text scanning.
+// findPKCRefDefinition finds a _ref or p-ref attribute in the PKC template by text
+// scanning.
 //
 // Takes refName (string) which is the reference name to find.
 //
@@ -157,19 +159,19 @@ func (d *document) findPKCRefDefinition(refName string) ([]protocol.Location, er
 	return nil, nil
 }
 
-// scanStatePropertyAccess detects a state.propName access pattern near the
-// cursor by searching backwards for "state." and scanning forward to collect
-// the property name, verifying it is not part of a longer identifier.
+// scanStatePropertyAccess detects a state.propName access pattern near the cursor by
+// searching backwards for "state." and scanning forward to collect the property name,
+// verifying it is not part of a longer identifier.
 //
 // Takes line (string) which is the source text to search.
 // Takes cursor (int) which is the cursor position within the line.
 //
 // Returns name (string) which is the property name after "state.".
 // Returns dotIndex (int) which is the position where "state." begins.
-// Returns nameEnd (int) which is the position after the last character of the
-// property name.
-// Returns ok (bool) which is true when a valid state property was found at the
-// cursor position.
+// Returns nameEnd (int) which is the position after the last character of the property
+// name.
+// Returns ok (bool) which is true when a valid state property was found at the cursor
+// position.
 func scanStatePropertyAccess(line string, cursor int) (name string, dotIndex, nameEnd int, ok bool) {
 	end := min(cursor, len(line))
 	textBefore := line[:end]

@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Command stdlib-generator generates pre-bundled standard library type
-// data for embedding in WASM builds.
+// Command stdlib-generator generates pre-bundled standard library type data for embedding
+// in WASM builds.
 //
-// This tool inspects Go standard library packages using the full
-// inspector (via go/packages) and serialises the resulting type
-// information into a FlatBuffers binary. The output is embedded in
-// the WASM binary so that the lite builder can access complete
-// stdlib type data without requiring the full Go toolchain at
-// runtime.
+// This tool inspects Go standard library packages using the full inspector (via
+// go/packages) and serialises the resulting type information into a FlatBuffers binary.
+// The output is embedded in the WASM binary so that the lite builder can access complete
+// stdlib type data without requiring the full Go toolchain at runtime.
 //
 // # Usage
 //
@@ -32,16 +30,16 @@
 //
 // # Flags
 //
-//   - -output: Path for the generated FlatBuffers binary
-//     (default: internal/wasm/wasm_data/stdlib.bin)
-//   - -packages: Comma-separated list of additional packages
-//     (currently accepted but not merged into the build)
+//   - -output: Path for the generated FlatBuffers binary (default:
+//     internal/wasm/wasm_data/stdlib.bin)
+//   - -packages: Comma-separated list of additional packages (currently accepted but not
+//     merged into the build)
 //
 // # Output format
 //
-// The generated file is in FlatBuffers binary format, chosen for
-// zero-copy access and fast startup times. The default set of
-// packages is defined in [wasm_data.DefaultStdlibPackages].
+// The generated file is in FlatBuffers binary format, chosen for zero-copy access and
+// fast startup times. The default set of packages is defined in
+// [wasm_data.DefaultStdlibPackages].
 //
 // # Integration
 //

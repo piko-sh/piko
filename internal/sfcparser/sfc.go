@@ -53,9 +53,8 @@ type parser struct {
 	// tagHandlers maps tag names to their handler functions.
 	tagHandlers map[string]func(Location) error
 
-	// lexer tokenises HTML input for parsing. Held by value so it lives
-	// inside the parser's heap allocation rather than as a separate
-	// allocation.
+	// lexer tokenises HTML input for parsing. Held by value so it lives inside the parser's
+	// heap allocation rather than as a separate allocation.
 	lexer htmllexer.Lexer
 }
 
@@ -98,8 +97,8 @@ func (p *parser) parse() (*ParseResult, error) {
 
 // handleErrorToken processes an error token from the lexer.
 //
-// Returns *ParseResult which contains the parsed result when the error is EOF
-// or when no error occurred.
+// Returns *ParseResult which contains the parsed result when the error is EOF or when no
+// error occurred.
 // Returns error when the lexer encountered an error that is not EOF.
 func (p *parser) handleErrorToken() (*ParseResult, error) {
 	err := p.lexer.Err()
@@ -221,9 +220,9 @@ func (p *parser) handleI18nTag(location Location) error {
 	return nil
 }
 
-// handleTimelineTag parses a piko:timeline tag and appends it to the list of
-// timeline blocks. Multiple blocks are supported so that each can target a
-// different viewport via a media attribute.
+// handleTimelineTag parses a piko:timeline tag and appends it to the list of timeline
+// blocks. Multiple blocks are supported so that each can target a different viewport via
+// a media attribute.
 //
 // Takes location (Location) which specifies where the tag starts.
 //
@@ -247,8 +246,7 @@ func (p *parser) handleTimelineTag(location Location) error {
 // Takes tagName (string) which specifies the tag name for content extraction.
 //
 // Returns map[string]string which contains the parsed attributes.
-// Returns string which holds the extracted content, or empty if the tag has no
-// body.
+// Returns string which holds the extracted content, or empty if the tag has no body.
 // Returns Location which marks where the content starts in the source.
 // Returns error when attribute parsing fails.
 func (p *parser) parseBlockContent(tagName string) (map[string]string, string, Location, error) {
@@ -270,8 +268,7 @@ func (p *parser) parseBlockContent(tagName string) (map[string]string, string, L
 
 // parseAttributes reads attribute tokens until the tag closes.
 //
-// Returns map[string]string which contains the parsed attribute key-value
-// pairs.
+// Returns map[string]string which contains the parsed attribute key-value pairs.
 // Returns bool which is true when the tag is self-closing.
 // Returns error when the lexer encounters an error.
 func (p *parser) parseAttributes() (map[string]string, bool, error) {
@@ -310,12 +307,12 @@ func (p *parser) extractArbitraryContent(parentTagName string) string {
 	return p.extractNestableContent(parentTagName, startOffset)
 }
 
-// extractRawTextContent extracts the content of script and style blocks from
-// the input starting at the given offset.
+// extractRawTextContent extracts the content of script and style blocks from the input
+// starting at the given offset.
 //
-// Raw text elements have special parsing rules where the lexer stops at the
-// first closing tag, even within strings. Finds the correct closing tag and
-// advances the lexer past the block.
+// Raw text elements have special parsing rules where the lexer stops at the first closing
+// tag, even within strings. Finds the correct closing tag and advances the lexer past the
+// block.
 //
 // Takes tagName (string) which specifies the tag type (e.g. "script", "style").
 // Takes startOffset (int) which indicates where to begin searching in the input.
@@ -329,17 +326,16 @@ func (p *parser) extractRawTextContent(tagName string, startOffset int) string {
 	return string(content)
 }
 
-// findRawTextEndOffset locates the closing tag for a raw text element. It
-// searches for the last closing tag before the next opening tag to handle
-// cases where the tag name appears in string content.
+// findRawTextEndOffset locates the closing tag for a raw text element. It searches for
+// the last closing tag before the next opening tag to handle cases where the tag name
+// appears in string content.
 //
 // Takes tagName (string) which specifies the HTML tag name to find.
-// Takes startOffset (int) which is the position to calculate the final offset
-// from.
+// Takes startOffset (int) which is the position to calculate the final offset from.
 // Takes searchBytes ([]byte) which contains the bytes to search within.
 //
-// Returns int which is the offset of the closing tag, or the input length if
-// no closing tag is found.
+// Returns int which is the offset of the closing tag, or the input length if no closing
+// tag is found.
 func (p *parser) findRawTextEndOffset(tagName string, startOffset int, searchBytes []byte) int {
 	endTag := []byte("</" + tagName)
 	nextStartTag := []byte("<" + tagName)
@@ -358,15 +354,15 @@ func (p *parser) findRawTextEndOffset(tagName string, startOffset int, searchByt
 	return startOffset + endOffsetInSlice
 }
 
-// determineSearchRange limits the search to find the closing tag by looking
-// only before the next opening tag. This means the correct closing tag is
-// found for the current block.
+// determineSearchRange limits the search to find the closing tag by looking only before
+// the next opening tag. This means the correct closing tag is found for the current
+// block.
 //
 // Takes searchBytes ([]byte) which contains the bytes to search within.
 // Takes nextStartTag ([]byte) which is the next opening tag to look for.
 //
-// Returns []byte which is the part of searchBytes before nextStartTag, or the
-// original searchBytes if nextStartTag is not found.
+// Returns []byte which is the part of searchBytes before nextStartTag, or the original
+// searchBytes if nextStartTag is not found.
 func (*parser) determineSearchRange(searchBytes, nextStartTag []byte) []byte {
 	before, _, found := bytes.Cut(searchBytes, nextStartTag)
 	if found {
@@ -377,11 +373,10 @@ func (*parser) determineSearchRange(searchBytes, nextStartTag []byte) []byte {
 
 // advanceLexerPastBlock repositions the lexer past a raw-text block.
 //
-// Because the byte-search in findRawTextEndOffset has already located
-// the true end of the block, we resume the lexer there directly rather
-// than token-walking through it: a script body often contains characters
-// the HTML lexer would mis-interpret (an unclosed `<!--` literal in a
-// JavaScript string, for example, would otherwise consume the rest of
+// Because the byte-search in findRawTextEndOffset has already located the true end of the
+// block, we resume the lexer there directly rather than token-walking through it: a
+// script body often contains characters the HTML lexer would mis-interpret (an unclosed
+// `<!--` literal in a JavaScript string, for example, would otherwise consume the rest of
 // the file as a single HTML comment and swallow the next block).
 //
 // Takes contentEndOffset (int) which specifies the end position of the content.
@@ -390,13 +385,12 @@ func (p *parser) advanceLexerPastBlock(contentEndOffset int) {
 	p.lexer.ResumeAfterRawText(fullBlockEndOffset)
 }
 
-// findBlockEndOffset finds the end of the full block, including the closing
-// tag.
+// findBlockEndOffset finds the end of the full block, including the closing tag.
 //
 // Takes contentEndOffset (int) which is the position where the content ends.
 //
-// Returns int which is the position after the closing bracket, or the end of
-// the input if no closing bracket is found.
+// Returns int which is the position after the closing bracket, or the end of the input if
+// no closing bracket is found.
 func (p *parser) findBlockEndOffset(contentEndOffset int) int {
 	closingBracketIndex := bytes.IndexByte(p.lexer.SourceBytes()[contentEndOffset:], '>')
 	if closingBracketIndex != -1 {
@@ -405,15 +399,13 @@ func (p *parser) findBlockEndOffset(contentEndOffset int) int {
 	return len(p.lexer.SourceBytes())
 }
 
-// extractNestableContent extracts the content of template and i18n blocks.
-// These elements can be nested, so we track the nesting level to find the
-// matching closing tag.
+// extractNestableContent extracts the content of template and i18n blocks. These elements
+// can be nested, so we track the nesting level to find the matching closing tag.
 //
 // Takes parentTagName (string) which specifies the tag type to match.
 // Takes startOffset (int) which marks the starting position in the input.
 //
-// Returns string which contains the content between the opening and closing
-// tags.
+// Returns string which contains the content between the opening and closing tags.
 func (p *parser) extractNestableContent(parentTagName string, startOffset int) string {
 	level := 1
 	for {
@@ -460,16 +452,15 @@ func (p *parser) updateNestingLevel(tokenType htmllexer.TokenType, tagName strin
 //
 // Takes tagName (string) which specifies the tag name to match against.
 //
-// Returns bool which is true if the token text, when lowercased, equals the
-// tag name.
+// Returns bool which is true if the token text, when lowercased, equals the tag name.
 func (p *parser) isMatchingTag(tagName string) bool {
 	return string(bytes.ToLower(p.lexer.Text())) == tagName
 }
 
 // consumeAndDiscardContent skips all tokens until the matching closing tag.
 //
-// Takes parentTagName (string) which specifies the tag name to match for
-// tracking how deeply nested the tags are.
+// Takes parentTagName (string) which specifies the tag name to match for tracking how
+// deeply nested the tags are.
 func (p *parser) consumeAndDiscardContent(parentTagName string) {
 	level := 1
 	for {
@@ -497,8 +488,8 @@ func (p *parser) consumeAndDiscardContent(parentTagName string) {
 //
 // Takes data ([]byte) which contains the raw SFC content to parse.
 //
-// Returns *ParseResult which holds the parsed template, scripts, styles,
-// and i18n blocks with their locations.
+// Returns *ParseResult which holds the parsed template, scripts, styles, and i18n blocks
+// with their locations.
 // Returns error when parsing fails.
 func Parse(data []byte) (*ParseResult, error) {
 	p := &parser{

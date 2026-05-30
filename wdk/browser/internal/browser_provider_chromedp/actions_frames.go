@@ -87,8 +87,7 @@ func GetFrames(ctx *ActionContext) ([]FrameInfo, error) {
 // Takes selector (string) which specifies the CSS selector for the iframe.
 //
 // Returns *FrameInfo which contains the frame's ID, name, URL, and parent ID.
-// Returns error when the frame info cannot be retrieved or the iframe is not
-// found.
+// Returns error when the frame info cannot be retrieved or the iframe is not found.
 func GetFrameBySelector(ctx *ActionContext, selector string) (*FrameInfo, error) {
 	js := scripts.MustExecute("iframe_get_info.js.tmpl", map[string]any{
 		"Selector": selector,
@@ -139,8 +138,7 @@ func EvalInFrame(ctx *ActionContext, frameSelector, script string) (any, error) 
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
 // Takes frameSelector (string) which identifies the iframe element.
-// Takes elementSelector (string) which identifies the element to click within
-// the iframe.
+// Takes elementSelector (string) which identifies the element to click within the iframe.
 //
 // Returns error when the click action fails to execute.
 func ClickInFrame(ctx *ActionContext, frameSelector, elementSelector string) error {
@@ -185,12 +183,10 @@ func GetTextInFrame(ctx *ActionContext, frameSelector, elementSelector string) (
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes frameSelector (string) which identifies the iframe element.
-// Takes elementSelector (string) which identifies the input element within the
-// iframe.
+// Takes elementSelector (string) which identifies the input element within the iframe.
 // Takes value (string) which is the text to enter into the input element.
 //
-// Returns error when the JavaScript execution fails or the element cannot be
-// found.
+// Returns error when the JavaScript execution fails or the element cannot be found.
 func FillInFrame(ctx *ActionContext, frameSelector, elementSelector, value string) error {
 	js := scripts.MustExecute("iframe_fill.js.tmpl", map[string]any{
 		"FrameSelector":   frameSelector,
@@ -284,8 +280,8 @@ func IsFrameLoaded(ctx *ActionContext, frameSelector string) (bool, error) {
 	return result, nil
 }
 
-// ExecuteInFrameContext executes actions within a specific frame context.
-// This uses CDP to switch the execution context to the frame.
+// ExecuteInFrameContext executes actions within a specific frame context. This uses CDP
+// to switch the execution context to the frame.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes frameSelector (string) which identifies the frame element to target.

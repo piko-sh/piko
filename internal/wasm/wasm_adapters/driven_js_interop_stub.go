@@ -26,11 +26,14 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 
-var _ wasm_domain.JSInteropPort = (*jsInterop)(nil)
-var _ wasm_domain.ConsolePort = (*jsConsole)(nil)
+var (
+	_ wasm_domain.JSInteropPort = (*jsInterop)(nil)
 
-// jsInterop is a stub for non-WASM builds that implements JSInteropPort.
-// All methods are no-ops or return errors.
+	_ wasm_domain.ConsolePort = (*jsConsole)(nil)
+)
+
+// jsInterop is a stub for non-WASM builds that implements JSInteropPort. All methods are
+// no-ops or return errors.
 type jsInterop struct{}
 
 // RegisterFunction does nothing in non-WASM builds.
@@ -49,19 +52,18 @@ func (*jsInterop) MarshalToJS(_ any) (any, error) {
 	return nil, errors.New("JS interop not available outside WASM")
 }
 
-// UnmarshalFromJS returns an error because JS interop is not available outside
-// WASM builds.
+// UnmarshalFromJS returns an error because JS interop is not available outside WASM
+// builds.
 //
 // Returns error when called outside a WASM environment.
 func (*jsInterop) UnmarshalFromJS(_ any, _ any) error {
 	return errors.New("JS interop not available outside WASM")
 }
 
-// jsConsole is a stub implementation of ConsolePort for non-WASM builds.
-// It writes to stdout for testing.
+// jsConsole is a stub implementation of ConsolePort for non-WASM builds. It writes to
+// stdout for testing.
 type jsConsole struct {
-	// stdout delegates debug, info, warn, and error log output in non-WASM
-	// builds.
+	// stdout delegates debug, info, warn, and error log output in non-WASM builds.
 	stdout *stdoutConsole
 }
 
@@ -97,8 +99,8 @@ func (c *jsConsole) Error(message string, arguments ...any) {
 	c.stdout.Error(message, arguments...)
 }
 
-// NewJSConsole creates a new stub JS console adapter.
-// In non-WASM builds, this outputs to stdout.
+// NewJSConsole creates a new stub JS console adapter. In non-WASM builds, this outputs to
+// stdout.
 //
 // Returns wasm_domain.ConsolePort which provides console output via stdout.
 func NewJSConsole() wasm_domain.ConsolePort {

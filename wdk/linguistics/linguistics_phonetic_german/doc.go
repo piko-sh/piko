@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_german provides a German phonetic
-// encoder for the linguistics package.
+// Package linguistics_phonetic_german provides a German phonetic encoder for the
+// linguistics package.
 //
-// The encoder uses the Cologne Phonetic (Koelner Phonetik) algorithm
-// to convert German words into numeric phonetic codes that enable
-// "sounds-like" matching. Letters are mapped to digits 0-8 using
-// context-sensitive rules, with post-processing to remove
-// consecutive duplicates and internal zeros. It self-registers via
-// an init function so that a blank import is sufficient to make it
-// available through the registry.
+// The encoder uses the Cologne Phonetic (Koelner Phonetik) algorithm to convert German
+// words into numeric phonetic codes that enable "sounds-like" matching. Letters are
+// mapped to digits 0-8 using context-sensitive rules, with post-processing to remove
+// consecutive duplicates and internal zeros. It self-registers via an init function so
+// that a blank import is sufficient to make it available through the registry.
 //
 // [Encoder] is safe for concurrent use.
 package linguistics_phonetic_german

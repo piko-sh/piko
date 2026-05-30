@@ -60,7 +60,9 @@ func TestLinkedGenericTypeInstantiatesAgainstUserDefinedType(t *testing.T) {
 
 	source := `package main
 
-import "example.com/synth"
+import (
+	"example.com/synth"
+)
 
 type Doc struct {
 	Title string
@@ -114,7 +116,9 @@ func TestLinkedGenericTypeAsSliceElement(t *testing.T) {
 
 	source := `package main
 
-import "example.com/synth"
+import (
+	"example.com/synth"
+)
 
 type Doc struct {
 	Title string

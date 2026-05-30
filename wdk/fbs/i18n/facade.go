@@ -18,7 +18,9 @@
 
 package i18n
 
-import "piko.sh/piko/internal/i18n/i18n_schema"
+import (
+	"piko.sh/piko/internal/i18n/i18n_schema"
+)
 
 var (
 	// SchemaHash is the SHA-256 hash of i18n.fbs.

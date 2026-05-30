@@ -44,7 +44,9 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testSpec struct {
 	Description     string  `json:"description"`

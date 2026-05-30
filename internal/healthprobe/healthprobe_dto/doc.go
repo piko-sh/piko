@@ -16,16 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package healthprobe_dto defines the types used to represent health
-// check requests and responses, including the hierarchical status
-// structure that supports nested dependency reporting.
+// Package healthprobe_dto defines the types used to represent health check requests and
+// responses, including the hierarchical status structure that supports nested dependency
+// reporting.
 //
 // # Check types
 //
 // Two standard Kubernetes-style health checks are supported:
 //
-//   - Liveness: Determines if the application is running and not deadlocked.
-//     Failure typically triggers a restart.
-//   - Readiness: Determines if the application can serve traffic.
-//     Failure temporarily removes the instance from the load balancer.
+//   - Liveness: Determines if the application is running and not deadlocked. Failure
+//     typically triggers a restart.
+//   - Readiness: Determines if the application can serve traffic. Failure temporarily
+//     removes the instance from the load balancer.
 package healthprobe_dto

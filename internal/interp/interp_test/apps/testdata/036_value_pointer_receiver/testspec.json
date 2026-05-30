@@ -1,0 +1,4 @@
+{
+  "description": "Same type with value-receiver methods in one file and pointer-receiver methods in another",
+  "expected": "label=hi count=3 doubled=6"
+}

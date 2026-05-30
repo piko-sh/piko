@@ -18,8 +18,10 @@
 
 package ast_domain
 
-// Provides runtime evaluation of expression trees with variable scopes for computing values from template expressions.
-// Handles literals, identifiers, member access, operators, function calls, and composite expressions with type coercion and reflection support.
+// Provides runtime evaluation of expression trees with variable scopes for computing
+// values from template expressions. Handles literals, identifiers, member access,
+// operators, function calls, and composite expressions with type coercion and reflection
+// support.
 
 import (
 	"fmt"
@@ -31,15 +33,14 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// EvaluateExpression evaluates an expression tree with a given variable scope,
-// returning the computed value.
+// EvaluateExpression evaluates an expression tree with a given variable scope, returning
+// the computed value.
 //
 // Takes expression (Expression) which is the expression tree to evaluate.
-// Takes scope (map[string]any) which provides variable bindings for the
-// evaluation.
+// Takes scope (map[string]any) which provides variable bindings for the evaluation.
 //
-// Returns any which is the computed result, or nil if the expression is nil
-// or cannot be evaluated.
+// Returns any which is the computed result, or nil if the expression is nil or cannot be
+// evaluated.
 func EvaluateExpression(expression Expression, scope map[string]any) any {
 	if expression == nil {
 		return nil
@@ -59,8 +60,7 @@ func EvaluateExpression(expression Expression, scope map[string]any) any {
 	return nil
 }
 
-// evaluatePrimitiveLiteral converts a primitive literal expression to its
-// Go value.
+// evaluatePrimitiveLiteral converts a primitive literal expression to its Go value.
 //
 // Takes expression (Expression) which is the expression node to evaluate.
 //
@@ -140,8 +140,8 @@ func evaluateOperatorExpression(expression Expression, scope map[string]any) (an
 	}
 }
 
-// evaluateCompositeExpression handles composite literal expressions such as
-// arrays, objects, and ternary expressions.
+// evaluateCompositeExpression handles composite literal expressions such as arrays,
+// objects, and ternary expressions.
 //
 // Takes expression (Expression) which is the expression to evaluate.
 // Takes scope (map[string]any) which provides the variable bindings.
@@ -166,8 +166,8 @@ func evaluateCompositeExpression(expression Expression, scope map[string]any) (a
 // Takes node (*Identifier) which is the identifier to resolve.
 // Takes scope (map[string]any) which contains variable bindings.
 //
-// Returns any which is the resolved value. For the special "now" identifier,
-// returns time.Now if not set in scope.
+// Returns any which is the resolved value. For the special "now" identifier, returns
+// time.Now if not set in scope.
 func evaluateIdentifier(node *Identifier, scope map[string]any) any {
 	if node.Name == "now" {
 		if value, ok := scope["now"]; ok {
@@ -183,8 +183,7 @@ func evaluateIdentifier(node *Identifier, scope map[string]any) any {
 // Takes node (*MemberExpression) which is the member expression to evaluate.
 // Takes scope (map[string]any) which provides the variable bindings.
 //
-// Returns any which is the property value, or nil if the property cannot be
-// accessed.
+// Returns any which is the property value, or nil if the property cannot be accessed.
 func evaluateMemberExpr(node *MemberExpression, scope map[string]any) any {
 	base := EvaluateExpression(node.Base, scope)
 	prop, ok := node.Property.(*Identifier)
@@ -197,14 +196,14 @@ func evaluateMemberExpr(node *MemberExpression, scope map[string]any) any {
 	return nil
 }
 
-// evaluateIndexExpr gets a value from a slice, array, string, or map using
-// the given index.
+// evaluateIndexExpr gets a value from a slice, array, string, or map using the given
+// index.
 //
 // Takes node (*IndexExpression) which is the index expression to evaluate.
 // Takes scope (map[string]any) which provides variable bindings.
 //
-// Returns any which is the value at the index, or nil if the index is out of
-// bounds, the key is not found, or the types do not match.
+// Returns any which is the value at the index, or nil if the index is out of bounds, the
+// key is not found, or the types do not match.
 func evaluateIndexExpr(node *IndexExpression, scope map[string]any) any {
 	base := EvaluateExpression(node.Base, scope)
 	index := EvaluateExpression(node.Index, scope)
@@ -245,8 +244,8 @@ func evaluateIndexExpr(node *IndexExpression, scope map[string]any) any {
 // Takes node (*CallExpression) which contains the function and its arguments.
 // Takes scope (map[string]any) which provides variable bindings for evaluation.
 //
-// Returns any which is the return value from the function, or nil if the
-// callee is not a function or returns no values.
+// Returns any which is the return value from the function, or nil if the callee is not a
+// function or returns no values.
 func evaluateCallExpr(node *CallExpression, scope map[string]any) any {
 	callee := EvaluateExpression(node.Callee, scope)
 	fnVal := reflect.ValueOf(callee)
@@ -267,17 +266,15 @@ func evaluateCallExpr(node *CallExpression, scope map[string]any) any {
 	return nil
 }
 
-// prepareCallArguments evaluates argument expressions and converts them to the
-// types expected by the target function.
+// prepareCallArguments evaluates argument expressions and converts them to the types
+// expected by the target function.
 //
 // Takes fnVal (reflect.Value) which is the function to prepare arguments for.
-// Takes argExprs ([]Expression) which contains the argument expressions to
-// evaluate.
-// Takes scope (map[string]any) which provides variables for expression
-// evaluation.
+// Takes argExprs ([]Expression) which contains the argument expressions to evaluate.
+// Takes scope (map[string]any) which provides variables for expression evaluation.
 //
-// Returns []reflect.Value which contains the prepared arguments ready for use
-// with reflect.Value.Call.
+// Returns []reflect.Value which contains the prepared arguments ready for use with
+// reflect.Value.Call.
 func prepareCallArguments(fnVal reflect.Value, argExprs []Expression, scope map[string]any) []reflect.Value {
 	fnType := fnVal.Type()
 	numIn := fnType.NumIn()
@@ -311,8 +308,8 @@ func prepareCallArguments(fnVal reflect.Value, argExprs []Expression, scope map[
 // Takes providedVal (reflect.Value) which is the value to change.
 // Takes paramType (reflect.Type) which is the target type.
 //
-// Returns reflect.Value which is the changed value, or the original value
-// if no change is needed.
+// Returns reflect.Value which is the changed value, or the original value if no change is
+// needed.
 func convertArgument(providedVal reflect.Value, paramType reflect.Type) reflect.Value {
 	switch paramType.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -329,8 +326,7 @@ func convertArgument(providedVal reflect.Value, paramType reflect.Type) reflect.
 //
 // Takes node (*DateTimeLiteral) which holds the RFC3339 formatted string.
 //
-// Returns any which is a time.Time value on success, or an error if parsing
-// fails.
+// Returns any which is a time.Time value on success, or an error if parsing fails.
 func evaluateDateTimeLiteral(node *DateTimeLiteral) any {
 	t, err := time.Parse(time.RFC3339, node.Value)
 	if err != nil {
@@ -343,8 +339,7 @@ func evaluateDateTimeLiteral(node *DateTimeLiteral) any {
 //
 // Takes node (*DateLiteral) which contains the date string to parse.
 //
-// Returns any which is a time.Time value on success, or an error if parsing
-// fails.
+// Returns any which is a time.Time value on success, or an error if parsing fails.
 func evaluateDateLiteral(node *DateLiteral) any {
 	t, err := time.ParseInLocation("2006-01-02", node.Value, time.UTC)
 	if err != nil {
@@ -409,8 +404,7 @@ func evaluateObjectLiteral(node *ObjectLiteral, scope map[string]any) any {
 
 // evaluateTernaryExpr checks a condition and returns one of two values.
 //
-// Takes node (*TernaryExpression) which holds the condition and both
-// branch values.
+// Takes node (*TernaryExpression) which holds the condition and both branch values.
 // Takes scope (map[string]any) which provides variable values for lookup.
 //
 // Returns any which is the result from the true or false branch.
@@ -427,11 +421,10 @@ func evaluateTernaryExpr(node *TernaryExpression, scope map[string]any) any {
 // Takes op (UnaryOp) which specifies the unary operation to perform.
 // Takes value (any) which is the value to apply the operation to.
 //
-// Returns any which is the result of the operation, or nil if the operator is
-// not known.
+// Returns any which is the result of the operation, or nil if the operator is not known.
 func evaluateUnary(op UnaryOp, value any) any {
 	if d, ok := value.(maths.Decimal); ok {
-		switch op {
+		switch op { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case OpNeg:
 			return d.Negate()
 		case OpNot:
@@ -455,8 +448,8 @@ func evaluateUnary(op UnaryOp, value any) any {
 
 // evaluateBinary applies a binary operation to two operands.
 //
-// It first tries handlers for time, decimal, and big integer types. If none
-// of these handle the operation, it falls back to standard evaluation.
+// It first tries handlers for time, decimal, and big integer types. If none of these
+// handle the operation, it falls back to standard evaluation.
 //
 // Takes op (BinaryOp) which specifies the operation to perform.
 // Takes left (any) which is the left operand.
@@ -476,12 +469,11 @@ func evaluateBinary(op BinaryOp, left any, right any) any {
 	return evaluateStandardBinary(op, left, right)
 }
 
-// tryEvaluateTimeOperation attempts to evaluate a binary operation on time
-// and duration values.
+// tryEvaluateTimeOperation attempts to evaluate a binary operation on time and duration
+// values.
 //
 // Takes op (BinaryOp) which specifies the operation to perform.
-// Takes left (any) which is the left operand, expected to be time.Time or
-// time.Duration.
+// Takes left (any) which is the left operand, expected to be time.Time or time.Duration.
 // Takes right (any) which is the right operand, expected to be time.Time or
 // time.Duration.
 //
@@ -517,8 +509,7 @@ func tryEvaluateTimeOperation(op BinaryOp, left any, right any) (any, bool) {
 // Takes t (time.Time) which is the base time value.
 // Takes d (time.Duration) which is the duration to add or subtract.
 //
-// Returns any which is the resulting time, or nil if the operation is not
-// supported.
+// Returns any which is the resulting time, or nil if the operation is not supported.
 // Returns bool which is true if the operation was successful.
 func evaluateTimeWithDuration(op BinaryOp, t time.Time, d time.Duration) (any, bool) {
 	if op == OpPlus {
@@ -536,8 +527,8 @@ func evaluateTimeWithDuration(op BinaryOp, t time.Time, d time.Duration) (any, b
 // Takes left (time.Duration) which is the left operand.
 // Takes right (time.Duration) which is the right operand.
 //
-// Returns any which is the result of the operation, or an error if the
-// operator is not supported.
+// Returns any which is the result of the operation, or an error if the operator is not
+// supported.
 // Returns bool which shows whether the evaluation ran.
 func evaluateDurationBinary(op BinaryOp, left time.Duration, right time.Duration) (any, bool) {
 	switch op {
@@ -568,8 +559,7 @@ func evaluateDurationBinary(op BinaryOp, left time.Duration, right time.Duration
 // Takes left (time.Time) which is the first time value.
 // Takes right (time.Time) which is the second time value.
 //
-// Returns any which holds the result or an error if the operation is not
-// supported.
+// Returns any which holds the result or an error if the operation is not supported.
 // Returns bool which shows whether the operation was handled.
 func evaluateTimeBinary(op BinaryOp, left time.Time, right time.Time) (any, bool) {
 	switch op {
@@ -624,8 +614,8 @@ func tryEvaluateDecimalOperation(op BinaryOp, left any, right any) (any, bool) {
 // Takes left (maths.Decimal) which is the left-hand value.
 // Takes right (maths.Decimal) which is the right-hand value.
 //
-// Returns any which is the result of the operation. This is a decimal for
-// maths operations, or a boolean for comparisons.
+// Returns any which is the result of the operation. This is a decimal for maths
+// operations, or a boolean for comparisons.
 func evaluateDecimalBinary(op BinaryOp, left maths.Decimal, right maths.Decimal) any {
 	switch op {
 	case OpPlus:
@@ -661,8 +651,8 @@ func evaluateDecimalBinary(op BinaryOp, left maths.Decimal, right maths.Decimal)
 	}
 }
 
-// tryEvaluateBigIntOperation tries to run a binary operation when at least
-// one operand is a BigInt.
+// tryEvaluateBigIntOperation tries to run a binary operation when at least one operand is
+// a BigInt.
 //
 // Takes op (BinaryOp) which specifies the binary operation to perform.
 // Takes left (any) which is the left operand.
@@ -686,8 +676,8 @@ func tryEvaluateBigIntOperation(op BinaryOp, left any, right any) (any, bool) {
 
 // promoteToBigInt converts a value to a BigInt.
 //
-// If the value is already a BigInt, it returns the value unchanged. Otherwise,
-// the value is converted to a float and then to a BigInt.
+// If the value is already a BigInt, it returns the value unchanged. Otherwise, the value
+// is converted to a float and then to a BigInt.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -705,8 +695,8 @@ func promoteToBigInt(value any) maths.BigInt {
 // Takes left (maths.BigInt) which is the left operand.
 // Takes right (maths.BigInt) which is the right operand.
 //
-// Returns any which is the result of the operation, either a BigInt for
-// arithmetic operations or a bool for comparison operations.
+// Returns any which is the result of the operation, either a BigInt for arithmetic
+// operations or a bool for comparison operations.
 func evaluateBigIntBinary(op BinaryOp, left maths.BigInt, right maths.BigInt) any {
 	switch op {
 	case OpPlus:
@@ -742,9 +732,9 @@ func evaluateBigIntBinary(op BinaryOp, left maths.BigInt, right maths.BigInt) an
 	}
 }
 
-// evaluateStandardBinary works out the result of a binary operation on two
-// values. It tries logical, equality, comparison, and arithmetic operations
-// in turn until one handles the operation.
+// evaluateStandardBinary works out the result of a binary operation on two values. It
+// tries logical, equality, comparison, and arithmetic operations in turn until one
+// handles the operation.
 //
 // Takes op (BinaryOp) which specifies the operation to perform.
 // Takes left (any) which is the left operand.
@@ -771,8 +761,7 @@ func evaluateStandardBinary(op BinaryOp, left any, right any) any {
 // Takes right (any) which is the right operand.
 //
 // Returns any which is the result of the logical operation.
-// Returns bool which is true when the operation succeeds, false for unknown
-// operators.
+// Returns bool which is true when the operation succeeds, false for unknown operators.
 func evaluateLogicalOp(op BinaryOp, left any, right any) (any, bool) {
 	switch op {
 	case OpCoalesce:
@@ -795,8 +784,8 @@ func evaluateLogicalOp(op BinaryOp, left any, right any) (any, bool) {
 // Takes left (any) which is the first value to compare.
 // Takes right (any) which is the second value to compare.
 //
-// Returns any which is the boolean result of the comparison, or nil if the
-// operator is not known.
+// Returns any which is the boolean result of the comparison, or nil if the operator is
+// not known.
 // Returns bool which is true if the operator was handled.
 func evaluateEqualityOp(op BinaryOp, left any, right any) (any, bool) {
 	switch op {
@@ -819,8 +808,8 @@ func evaluateEqualityOp(op BinaryOp, left any, right any) (any, bool) {
 // Takes left (any) which is the left-hand value.
 // Takes right (any) which is the right-hand value.
 //
-// Returns any which is the boolean result of the comparison, or nil if the
-// operator is not a comparison operator.
+// Returns any which is the boolean result of the comparison, or nil if the operator is
+// not a comparison operator.
 // Returns bool which is true when op is a valid comparison operator.
 func evaluateComparisonOp(op BinaryOp, left any, right any) (any, bool) {
 	switch op {
@@ -863,8 +852,8 @@ func evaluateArithmeticOp(op BinaryOp, left any, right any) any {
 
 // evaluatePlus adds two values together, handling both strings and numbers.
 //
-// When either value is a string, joins both values as strings. Otherwise,
-// adds the values as numbers.
+// When either value is a string, joins both values as strings. Otherwise, adds the values
+// as numbers.
 //
 // Takes left (any) which is the first value to add.
 // Takes right (any) which is the second value to add.
@@ -900,8 +889,7 @@ func evaluateDivide(left any, right any) any {
 // Takes left (any) which is the dividend value.
 // Takes right (any) which is the divisor value.
 //
-// Returns any which is the remainder as a float64, or 0.0 if the divisor is
-// zero.
+// Returns any which is the remainder as a float64, or 0.0 if the divisor is zero.
 func evaluateModulo(left any, right any) any {
 	den := toFloat(right)
 	denInt := int64(den)
@@ -913,10 +901,10 @@ func evaluateModulo(left any, right any) any {
 
 // toBool converts any value to a boolean using truthiness rules.
 //
-// When value is nil, returns false. For bool, returns the value directly.
-// For string, returns false if empty, "0", or "false" (case-insensitive).
-// For numeric types, returns false if zero. For time.Time, returns false
-// if the time is the zero value. All other types return true.
+// When value is nil, returns false. For bool, returns the value directly. For string,
+// returns false if empty, "0", or "false" (case-insensitive). For numeric types, returns
+// false if zero. For time.Time, returns false if the time is the zero value. All other
+// types return true.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -951,8 +939,8 @@ func toBool(value any) bool {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float64 which is the converted value, or 0 if value is nil or not a
-// supported type.
+// Returns float64 which is the converted value, or 0 if value is nil or not a supported
+// type.
 func toFloat(value any) float64 {
 	if value == nil {
 		return 0
@@ -1046,9 +1034,9 @@ func tryStringOrFloat(value any) (*string, float64) {
 
 // isLooselyEqual compares two values for equality with type coercion.
 //
-// When either value is nil, returns true only if both are nil. When both
-// values are numeric-like, compares them as floats. Otherwise, uses
-// reflect.DeepEqual for comparison.
+// When either value is nil, returns true only if both are nil. When both values are
+// numeric-like, compares them as floats. Otherwise, uses reflect.DeepEqual for
+// comparison.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
@@ -1074,9 +1062,9 @@ func isLooselyEqual(a, b any) bool {
 
 // isStrictlyEqual compares two values for strict equality with type checking.
 //
-// When either value is nil, returns true only if both are nil. For Decimal,
-// BigInt, and Time types, uses their native equality methods. For all other
-// types, requires matching types and uses reflect.DeepEqual.
+// When either value is nil, returns true only if both are nil. For Decimal, BigInt, and
+// Time types, uses their native equality methods. For all other types, requires matching
+// types and uses reflect.DeepEqual.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
@@ -1100,8 +1088,8 @@ func isStrictlyEqual(a, b any) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-// tryStrictlyEqualSpecialTypes attempts strict equality for Decimal, BigInt,
-// and time.Time values.
+// tryStrictlyEqualSpecialTypes attempts strict equality for Decimal, BigInt, and
+// time.Time values.
 //
 // Takes a (any) which is the left operand.
 // Takes b (any) which is the right operand.
@@ -1132,8 +1120,8 @@ func tryStrictlyEqualSpecialTypes(a, b any) (matched bool, equal bool) {
 	return false, false
 }
 
-// tryStrictlyEqualPrimitives attempts strict equality for Go primitive types
-// (string, bool, int, int64, float64).
+// tryStrictlyEqualPrimitives attempts strict equality for Go primitive types (string,
+// bool, int, int64, float64).
 //
 // Takes a (any) which is the left operand.
 // Takes b (any) which is the right operand.
@@ -1174,13 +1162,12 @@ func tryStrictlyEqualPrimitives(a, b any) (matched bool, equal bool) {
 	return false, false
 }
 
-// isNumericLike reports whether the given value is numeric or can be parsed
-// as a number.
+// isNumericLike reports whether the given value is numeric or can be parsed as a number.
 //
 // Takes v (any) which is the value to check.
 //
-// Returns bool which is true if v is a numeric type, a boolean, a Decimal, a
-// BigInt, or a string that can be parsed as a float.
+// Returns bool which is true if v is a numeric type, a boolean, a Decimal, a BigInt, or a
+// string that can be parsed as a float.
 func isNumericLike(v any) bool {
 	switch value := v.(type) {
 	case int, int8, int16, int32, int64,

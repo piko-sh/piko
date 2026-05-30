@@ -37,19 +37,21 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// ErrNoModuleFound is returned when no go.mod file is found while searching up
-// the directory tree from a file path.
-var ErrNoModuleFound = errors.New("no go.mod file found")
+var (
+	// ErrNoModuleFound is returned when no go.mod file is found while searching up the
+	// directory tree from a file path.
+	ErrNoModuleFound = errors.New("no go.mod file found")
+)
 
-// ModuleContext holds the resolver and cached entry points for a single Go
-// module. Each module (identified by its go.mod location) gets its own context
-// to ensure correct import resolution.
+// ModuleContext holds the resolver and cached entry points for a single Go module. Each
+// module (identified by its go.mod location) gets its own context to ensure correct
+// import resolution.
 type ModuleContext struct {
 	// ModuleRoot is the absolute path to the directory that contains go.mod.
 	ModuleRoot string
 
-	// ModuleName is the Go module name from go.mod (for example a GitHub-hosted
-	// path of the form "example.com/org/app").
+	// ModuleName is the Go module name from go.mod (for example a GitHub-hosted path of the
+	// form "example.com/org/app").
 	ModuleName string
 
 	// Resolver provides import path resolution for this module.
@@ -58,12 +60,12 @@ type ModuleContext struct {
 	// PathsConfig holds the path settings used for entry point discovery.
 	PathsConfig *config.PathsConfig
 
-	// sandboxFactory creates sandboxes for filesystem access. If nil, a
-	// no-op sandbox is created as a fallback.
+	// sandboxFactory creates sandboxes for filesystem access. If nil, a no-op sandbox is
+	// created as a fallback.
 	sandboxFactory safedisk.Factory
 
-	// rootSandbox provides file system access for the module root folder.
-	// If nil, a sandbox is created when needed.
+	// rootSandbox provides file system access for the module root folder. If nil, a sandbox
+	// is created when needed.
 	rootSandbox safedisk.Sandbox
 
 	// entryPoints caches the entry points found for this module.
@@ -79,20 +81,18 @@ type ModuleContext struct {
 // ModuleContextOption configures a ModuleContext during construction.
 type ModuleContextOption func(*ModuleContext)
 
-// NewModuleContext creates a new module context for the given module root.
-// It sets up a chained resolver that can handle both local paths and external
-// Go module dependencies.
+// NewModuleContext creates a new module context for the given module root. It sets up a
+// chained resolver that can handle both local paths and external Go module dependencies.
 //
-// Takes moduleRoot (string) which is the absolute path to the directory that
-// contains go.mod.
-// Takes basePathsConfig (*config.PathsConfig) which provides the base path
-// settings to clone for this module.
-// Takes opts (...ModuleContextOption) which provides optional configuration
-// such as WithModuleSandbox for testing.
+// Takes moduleRoot (string) which is the absolute path to the directory that contains
+// go.mod.
+// Takes basePathsConfig (*config.PathsConfig) which provides the base path settings to
+// clone for this module.
+// Takes opts (...ModuleContextOption) which provides optional configuration such as
+// WithModuleSandbox for testing.
 //
 // Returns *ModuleContext which is ready to use for path resolution.
-// Returns error when the module cannot be detected or the resolver fails to
-// initialise.
+// Returns error when the module cannot be detected or the resolver fails to initialise.
 func NewModuleContext(ctx context.Context, moduleRoot string, basePathsConfig *config.PathsConfig, opts ...ModuleContextOption) (*ModuleContext, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -125,11 +125,11 @@ func NewModuleContext(ctx context.Context, moduleRoot string, basePathsConfig *c
 	return mc, nil
 }
 
-// GetEntryPoints returns the cached entry points for this module, discovering
-// them if necessary.
+// GetEntryPoints returns the cached entry points for this module, discovering them if
+// necessary.
 //
-// Returns []annotator_dto.EntryPoint which contains all .pk files in the
-// module's pages, emails, and partials directories.
+// Returns []annotator_dto.EntryPoint which contains all .pk files in the module's pages,
+// emails, and partials directories.
 // Returns error when entry point discovery fails.
 //
 // Safe for concurrent use.
@@ -166,8 +166,8 @@ func (mc *ModuleContext) GetEntryPoints(ctx context.Context) ([]annotator_dto.En
 	return mc.entryPoints, nil
 }
 
-// InvalidateEntryPoints marks the cached entry points as stale, forcing
-// rediscovery on the next call to GetEntryPoints.
+// InvalidateEntryPoints marks the cached entry points as stale, forcing rediscovery on
+// the next call to GetEntryPoints.
 //
 // Safe for concurrent use.
 func (mc *ModuleContext) InvalidateEntryPoints() {
@@ -177,8 +177,8 @@ func (mc *ModuleContext) InvalidateEntryPoints() {
 	mc.entryPoints = nil
 }
 
-// discoverEntryPoints walks the module's source directories and collects all
-// .pk entry points.
+// discoverEntryPoints walks the module's source directories and collects all .pk entry
+// points.
 //
 // Returns []annotator_dto.EntryPoint which contains all entry points found.
 // Returns error when walking the directory fails.
@@ -202,14 +202,12 @@ func (mc *ModuleContext) discoverEntryPoints(ctx context.Context) ([]annotator_d
 	return entryPoints, nil
 }
 
-// discoverEntryPointsInDir walks a single source directory and collects entry
-// points.
+// discoverEntryPointsInDir walks a single source directory and collects entry points.
 //
 // Takes kind (string) which describes the directory type for error messages.
 // Takes info (sourceDirInfo) which provides the directory path and metadata.
 //
-// Returns []annotator_dto.EntryPoint which contains the discovered entry
-// points.
+// Returns []annotator_dto.EntryPoint which contains the discovered entry points.
 // Returns error when walking fails.
 func (mc *ModuleContext) discoverEntryPointsInDir(ctx context.Context, kind string, info sourceDirInfo) ([]annotator_dto.EntryPoint, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -284,11 +282,9 @@ func (mc *ModuleContext) sourceDirectoryExists(ctx context.Context, relDir, absD
 // createEntryPoint creates an entry point from a discovered file path.
 //
 // Takes currentPath (string) which is the discovered file path.
-// Takes info (sourceDirInfo) which contains metadata about the source
-// directory.
+// Takes info (sourceDirInfo) which contains metadata about the source directory.
 //
-// Returns annotator_dto.EntryPoint which contains the full import path and
-// flags.
+// Returns annotator_dto.EntryPoint which contains the full import path and flags.
 func (mc *ModuleContext) createEntryPoint(currentPath string, info sourceDirInfo) annotator_dto.EntryPoint {
 	relPath, err := filepath.Rel(mc.ModuleRoot, currentPath)
 	if err != nil {
@@ -305,40 +301,35 @@ func (mc *ModuleContext) createEntryPoint(currentPath string, info sourceDirInfo
 	}
 }
 
-// WithModuleSandbox sets a custom sandbox for the module context, letting
-// mock sandboxes stand in for testing filesystem operations.
+// WithModuleSandbox sets a custom sandbox for the module context, letting mock sandboxes
+// stand in for testing filesystem operations.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access for the
-// module root directory.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access for the module root
+// directory.
 //
-// Returns ModuleContextOption which configures the context with the given
-// sandbox.
+// Returns ModuleContextOption which configures the context with the given sandbox.
 func WithModuleSandbox(sandbox safedisk.Sandbox) ModuleContextOption {
 	return func(mc *ModuleContext) {
 		mc.rootSandbox = sandbox
 	}
 }
 
-// WithModuleSandboxFactory sets a factory for creating sandboxes in the module
-// context.
+// WithModuleSandboxFactory sets a factory for creating sandboxes in the module context.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
-// Returns ModuleContextOption which configures the context with the given
-// factory.
+// Returns ModuleContextOption which configures the context with the given factory.
 func WithModuleSandboxFactory(factory safedisk.Factory) ModuleContextOption {
 	return func(mc *ModuleContext) {
 		mc.sandboxFactory = factory
 	}
 }
 
-// FindGoModRoot searches upward from the given file path to find the nearest
-// go.mod file.
+// FindGoModRoot searches upward from the given file path to find the nearest go.mod file.
 //
 // Takes filePath (string) which is the starting point for the search.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access. When nil, a no-op sandbox is used as a fallback.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
+// nil, a no-op sandbox is used as a fallback.
 //
 // Returns string which is the absolute path to the folder containing go.mod.
 // Returns error when no go.mod file is found or the path is not valid.
@@ -375,15 +366,13 @@ func FindGoModRoot(ctx context.Context, filePath string, factory safedisk.Factor
 	}
 }
 
-// clonePathsConfigForModule creates a copy of the base path settings with
-// BaseDir set for a given module root folder.
+// clonePathsConfigForModule creates a copy of the base path settings with BaseDir set for
+// a given module root folder.
 //
 // Takes basePaths (*config.PathsConfig) which is the path settings to copy.
-// Takes moduleRoot (string) which is the root folder for the new
-// configuration.
+// Takes moduleRoot (string) which is the root folder for the new configuration.
 //
-// Returns *config.PathsConfig which is a new path configuration set up for
-// this module.
+// Returns *config.PathsConfig which is a new path configuration set up for this module.
 func clonePathsConfigForModule(basePaths *config.PathsConfig, moduleRoot string) *config.PathsConfig {
 	return &config.PathsConfig{
 		BaseDir:             &moduleRoot,
@@ -395,17 +384,14 @@ func clonePathsConfigForModule(basePaths *config.PathsConfig, moduleRoot string)
 	}
 }
 
-// tryReadGoMod checks whether a go.mod file exists in directory and
-// can be parsed. It returns true when a valid go.mod was found,
-// false when the directory does not contain one, and a non-nil
-// error for unexpected failures.
+// tryReadGoMod checks whether a go.mod file exists in directory and can be parsed. It
+// returns true when a valid go.mod was found, false when the directory does not contain
+// one, and a non-nil error for unexpected failures.
 //
-// Takes directory (string) which is the directory to check for a
-// go.mod file.
-// Takes l (logger_domain.Logger) which receives debug and
-// warning messages.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access. When nil, a no-op sandbox is used as a fallback.
+// Takes directory (string) which is the directory to check for a go.mod file.
+// Takes l (logger_domain.Logger) which receives debug and warning messages.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
+// nil, a no-op sandbox is used as a fallback.
 //
 // Returns bool which is true when a valid go.mod was found.
 // Returns error when an unexpected failure occurs.
@@ -445,11 +431,11 @@ func tryReadGoMod(directory string, l logger_domain.Logger, factory safedisk.Fac
 	return true, nil
 }
 
-// readModuleNameFromGoMod reads the module name from a go.mod file using a
-// sandboxed filesystem rooted at the directory containing the go.mod.
+// readModuleNameFromGoMod reads the module name from a go.mod file using a sandboxed
+// filesystem rooted at the directory containing the go.mod.
 //
-// Takes sandbox (safedisk.Sandbox) which provides access to the directory
-// containing go.mod.
+// Takes sandbox (safedisk.Sandbox) which provides access to the directory containing
+// go.mod.
 //
 // Returns string which is the module name.
 // Returns error when the file cannot be read or has no module line.

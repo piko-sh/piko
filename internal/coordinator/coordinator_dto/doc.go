@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package coordinator_dto defines data transfer objects for the coordinator
-// module.
+// Package coordinator_dto defines data transfer objects for the coordinator module.
 //
-// It contains the request and result types used to communicate with
-// the build coordinator, encapsulating all inputs required for a
-// deterministic project build and the resulting compiled output.
+// It contains the request and result types used to communicate with the build
+// coordinator, encapsulating all inputs required for a deterministic project build and
+// the resulting compiled output.
 package coordinator_dto

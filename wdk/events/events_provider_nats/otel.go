@@ -46,12 +46,10 @@ var (
 	// providerStartErrorCount is a metric that counts provider start errors.
 	providerStartErrorCount metric.Int64Counter
 
-	// providerCloseErrorCount tracks the number of errors that occur when closing
-	// providers.
+	// providerCloseErrorCount tracks the number of errors that occur when closing providers.
 	providerCloseErrorCount metric.Int64Counter
 
-	// providerConnectionAttempts counts the number of connection attempts made to
-	// providers.
+	// providerConnectionAttempts counts the number of connection attempts made to providers.
 	providerConnectionAttempts metric.Int64Counter
 
 	// providerConnectionErrors counts connection failures to upstream providers.

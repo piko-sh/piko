@@ -18,7 +18,9 @@
 
 package generator_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSeverity_String(t *testing.T) {
 	t.Parallel()

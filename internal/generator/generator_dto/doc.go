@@ -16,11 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package generator_dto defines data transfer objects for the
-// generator module.
+// Package generator_dto defines data transfer objects for the generator module.
 //
-// It contains the structures used to communicate between the
-// generator's domain logic and its adapters, including code generation
-// requests, compilation outputs, and the project manifest that is the
-// definitive registry for the compiled application.
+// It contains the structures used to communicate between the generator's domain logic and
+// its adapters, including code generation requests, compilation outputs, and the project
+// manifest that is the definitive registry for the compiled application.
 package generator_dto

@@ -29,40 +29,42 @@ import (
 	"piko.sh/piko/internal/querier/querier_domain"
 )
 
-// defaultMaxMigrationFileBytes caps the size of a migration or seed file
-// loaded by FSFileReader. Migrations are typically small; oversized files
-// are likely a misconfiguration or denial-of-service vector.
-const defaultMaxMigrationFileBytes int64 = 4 * 1024 * 1024
+const (
+	// defaultMaxMigrationFileBytes caps the size of a migration or seed file loaded by
+	// FSFileReader. Migrations are typically small; oversized files are likely a
+	// misconfiguration or denial-of-service vector.
+	defaultMaxMigrationFileBytes int64 = 4 * 1024 * 1024
+)
 
-// ErrMigrationFileTooLarge is returned when a migration or seed file
-// exceeds the configured size cap. Callers can use errors.Is to detect
-// this condition without parsing the message.
-var ErrMigrationFileTooLarge = errors.New("migration file exceeds configured size limit")
+var (
+	// ErrMigrationFileTooLarge is returned when a migration or seed file exceeds the
+	// configured size cap. Callers can use errors.Is to detect this condition without
+	// parsing the message.
+	ErrMigrationFileTooLarge = errors.New("migration file exceeds configured size limit")
+)
 
-// FSFileReader implements FileReaderPort using an io/fs.FS. This allows
-// reading migration files from embed.FS without requiring OS-level filesystem
-// access.
+// FSFileReader implements FileReaderPort using an io/fs.FS. This allows reading migration
+// files from embed.FS without requiring OS-level filesystem access.
 type FSFileReader struct {
 	// filesystem holds the underlying fs.FS used for file operations.
 	filesystem fs.FS
 
-	// maxFileBytes caps the size of files returned from ReadFile. A
-	// non-positive value falls back to defaultMaxMigrationFileBytes.
+	// maxFileBytes caps the size of files returned from ReadFile. A non-positive value falls
+	// back to defaultMaxMigrationFileBytes.
 	maxFileBytes int64
 }
 
-// FSFileReaderOption configures optional behaviour for FSFileReader
-// instances.
+// FSFileReaderOption configures optional behaviour for FSFileReader instances.
 type FSFileReaderOption func(*FSFileReader)
 
-// WithMaxMigrationFileBytes overrides the per-file size cap enforced when
-// reading migration or seed content. Non-positive values reset the cap to
+// WithMaxMigrationFileBytes overrides the per-file size cap enforced when reading
+// migration or seed content. Non-positive values reset the cap to
 // defaultMaxMigrationFileBytes.
 //
 // Takes maxBytes (int64) which is the maximum file size in bytes.
 //
-// Returns FSFileReaderOption which applies the cap to the reader when
-// passed to NewFSFileReader.
+// Returns FSFileReaderOption which applies the cap to the reader when passed to
+// NewFSFileReader.
 func WithMaxMigrationFileBytes(maxBytes int64) FSFileReaderOption {
 	return func(r *FSFileReader) {
 		if maxBytes <= 0 {
@@ -73,14 +75,15 @@ func WithMaxMigrationFileBytes(maxBytes int64) FSFileReaderOption {
 	}
 }
 
-var _ querier_domain.FileReaderPort = (*FSFileReader)(nil)
+var (
+	_ querier_domain.FileReaderPort = (*FSFileReader)(nil)
+)
 
 // NewFSFileReader creates a FileReaderPort backed by the given filesystem.
 //
-// Takes filesystem (fs.FS) which is the filesystem to read from (typically
-// an embed.FS).
-// Takes opts (...FSFileReaderOption) which configure optional behaviour
-// such as the maximum file size.
+// Takes filesystem (fs.FS) which is the filesystem to read from (typically an embed.FS).
+// Takes opts (...FSFileReaderOption) which configure optional behaviour such as the
+// maximum file size.
 //
 // Returns *FSFileReader which is ready to read files.
 func NewFSFileReader(filesystem fs.FS, opts ...FSFileReaderOption) *FSFileReader {
@@ -96,8 +99,8 @@ func NewFSFileReader(filesystem fs.FS, opts ...FSFileReaderOption) *FSFileReader
 
 // ReadFile reads the contents of a file from the embedded filesystem.
 //
-// The read is capped at the configured maxFileBytes; files exceeding this
-// cap return ErrMigrationFileTooLarge wrapped with %w.
+// The read is capped at the configured maxFileBytes; files exceeding this cap return
+// ErrMigrationFileTooLarge wrapped with %w.
 //
 // Takes path (string) which is the file path relative to the filesystem root.
 //
@@ -128,11 +131,9 @@ func (reader *FSFileReader) ReadFile(_ context.Context, path string) ([]byte, er
 	return content, nil
 }
 
-// ReadDir reads the directory entries from the embedded filesystem, sorted by
-// name.
+// ReadDir reads the directory entries from the embedded filesystem, sorted by name.
 //
-// Takes directory (string) which is the directory path relative to the
-// filesystem root.
+// Takes directory (string) which is the directory path relative to the filesystem root.
 //
 // Returns []os.DirEntry which holds the directory entries.
 // Returns error when the directory cannot be read.

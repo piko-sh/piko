@@ -24,23 +24,23 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ProcessedMarkdown holds all the build artefacts generated from a single
-// .md source file. This is the primary return type of the MarkdownService.
+// ProcessedMarkdown holds all the build artefacts generated from a single .md source
+// file. This is the primary return type of the MarkdownService.
 type ProcessedMarkdown struct {
-	// PageAST holds the parsed Markdown content as a Piko AST node tree.
-	// It is ready to be passed to a <piko-ast-renderer> for display.
+	// PageAST holds the parsed Markdown content as a Piko AST node tree. It is ready to be
+	// passed to a <piko-ast-renderer> for display.
 	PageAST *ast_domain.TemplateAST
 
-	// ExcerptAST is a separate, optional renderable artefact used on other pages
-	// (e.g., a blog index) to show a preview; nil if no excerpt is defined.
+	// ExcerptAST is a separate, optional renderable artefact used on other pages (e.g., a
+	// blog index) to show a preview; nil if no excerpt is defined.
 	ExcerptAST *ast_domain.TemplateAST
 
 	// Diagnostics holds any warnings or errors found during transformation.
 	Diagnostics []*ast_domain.Diagnostic
 
-	// Metadata contains all the data about the page that is not part of the AST.
-	// This data can be serialised and should be passed as props to the layout
-	// component for use in expressions like `{{ state.Page.Title }}`.
+	// Metadata contains all the data about the page that is not part of the AST. This data
+	// can be serialised and should be passed as props to the layout component for use in
+	// expressions like `{{ state.Page.Title }}`.
 	Metadata PageMetadata
 }
 
@@ -64,8 +64,8 @@ type PageMetadata struct {
 	// Tags contains labels used to group and filter content.
 	Tags []string
 
-	// Sections holds heading data used to build a table of contents.
-	// The actual content for each section is stored in PageAST.
+	// Sections holds heading data used to build a table of contents. The actual content for
+	// each section is stored in PageAST.
 	Sections []SectionData
 
 	// Images holds metadata for images found on the page.
@@ -80,16 +80,15 @@ type PageMetadata struct {
 	// WordCount is the total number of words in the document.
 	WordCount int
 
-	// Draft indicates whether this content is a draft that should not be
-	// published.
+	// Draft indicates whether this content is a draft that should not be published.
 	Draft bool
 }
 
-// SectionData represents a logical part of the document, initiated by a heading.
-// It is a data-only struct, primarily for building a Table of Contents.
+// SectionData represents a logical part of the document, initiated by a heading. It is a
+// data-only struct, primarily for building a Table of Contents.
 //
-// For hierarchical ToC structures, use collection_dto.SectionNode which
-// is the provider-agnostic output type produced by BuildSectionTree.
+// For hierarchical ToC structures, use collection_dto.SectionNode which is the
+// provider-agnostic output type produced by BuildSectionTree.
 type SectionData struct {
 	// Title is the heading text for this section.
 	Title string

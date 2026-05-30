@@ -28,23 +28,20 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// IfEmitter provides methods for emitting conditional directive chains
-// (p-if, p-else-if, p-else). It allows mocking and testing of conditional
-// logic emission.
+// IfEmitter provides methods for emitting conditional directive chains (p-if, p-else-if,
+// p-else). It allows mocking and testing of conditional logic emission.
 type IfEmitter interface {
 	// emitChain emits Go statements for a chain of template nodes.
 	//
-	// Takes startNode (*ast_domain.TemplateNode) which is the first node in the
-	// chain.
-	// Takes siblings ([]*ast_domain.TemplateNode) which contains all sibling nodes
-	// at this level.
+	// Takes startNode (*ast_domain.TemplateNode) which is the first node in the chain.
+	// Takes siblings ([]*ast_domain.TemplateNode) which contains all sibling nodes at this
+	// level.
 	// Takes currentNodeIndex (int) which is the position of startNode in siblings.
-	// Takes parentSliceExpr (goast.Expr) which is the expression to append output
-	// to.
-	// Takes partialScopeID (string) which is the HashedName of the current partial
-	// for CSS scoping.
-	// Takes mainComponentScope (string) which is the HashedName of the main
-	// component being generated.
+	// Takes parentSliceExpr (goast.Expr) which is the expression to append output to.
+	// Takes partialScopeID (string) which is the HashedName of the current partial for CSS
+	// scoping.
+	// Takes mainComponentScope (string) which is the HashedName of the main component being
+	// generated.
 	//
 	// Returns []goast.Stmt which contains the generated Go statements.
 	// Returns int which is the number of siblings consumed by the chain.
@@ -60,8 +57,8 @@ type IfEmitter interface {
 	) ([]goast.Stmt, int, []*ast_domain.Diagnostic)
 }
 
-// ifEmitter generates Go code for conditional directive chains such as p-if,
-// p-else-if, and p-else. It implements the IfEmitter interface.
+// ifEmitter generates Go code for conditional directive chains such as p-if, p-else-if,
+// and p-else. It implements the IfEmitter interface.
 type ifEmitter struct {
 	// emitter provides helper methods for building Go AST nodes.
 	emitter *emitter
@@ -69,43 +66,45 @@ type ifEmitter struct {
 	// expressionEmitter converts template expressions into Go AST nodes.
 	expressionEmitter ExpressionEmitter
 
-	// astBuilder is the main code builder used to create nodes inside
-	// conditional block bodies.
+	// astBuilder is the main code builder used to create nodes inside conditional block
+	// bodies.
 	astBuilder AstBuilder
 
-	// currentPartialScopeID is the HashedName of the current partial for CSS
-	// scoping, set during emitChain to be used by buildConditionalBody.
+	// currentPartialScopeID is the HashedName of the current partial for CSS scoping, set
+	// during emitChain to be used by buildConditionalBody.
 	currentPartialScopeID string
 
-	// currentMainComponentScope is the hashed name of the main component being
-	// built. It is set during emitChain and used in buildConditionalBody.
+	// currentMainComponentScope is the hashed name of the main component being built. It is
+	// set during emitChain and used in buildConditionalBody.
 	currentMainComponentScope string
 }
 
-var _ IfEmitter = (*ifEmitter)(nil)
+var (
+	_ IfEmitter = (*ifEmitter)(nil)
+)
 
-// emitChain is the primary entry point for this emitter, called by the
-// astBuilder when it encounters a node with a `p-if` directive. It generates
-// a complete `if / else if / else` block by consuming the starting node and
-// any subsequent, validly chained sibling nodes.
+// emitChain is the primary entry point for this emitter, called by the astBuilder when it
+// encounters a node with a `p-if` directive. It generates a complete `if / else if /
+// else` block by consuming the starting node and any subsequent, validly chained sibling
+// nodes.
 //
-// Takes startNode (*ast_domain.TemplateNode) which is the node containing
-// the p-if directive that starts the chain.
-// Takes siblings ([]*ast_domain.TemplateNode) which contains all sibling
-// nodes to scan for chained else-if and else directives.
+// Takes startNode (*ast_domain.TemplateNode) which is the node containing the p-if
+// directive that starts the chain.
+// Takes siblings ([]*ast_domain.TemplateNode) which contains all sibling nodes to scan
+// for chained else-if and else directives.
 // Takes currentNodeIndex (int) which is the index of startNode in siblings.
-// Takes parentSliceExpr (goast.Expr) which is the parent slice expression
-// for generating append statements.
-// Takes partialScopeID (string) which is the HashedName of the current partial
-// for CSS scoping.
-// Takes mainComponentScope (string) which is the HashedName of the main
-// component being generated.
+// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for generating
+// append statements.
+// Takes partialScopeID (string) which is the HashedName of the current partial for CSS
+// scoping.
+// Takes mainComponentScope (string) which is the HashedName of the main component being
+// generated.
 //
-// Returns []goast.Stmt which contains the prerequisite statements and the
-// complete if statement chain.
+// Returns []goast.Stmt which contains the prerequisite statements and the complete if
+// statement chain.
 // Returns int which is the number of sibling nodes consumed by this chain.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics generated
-// during emission.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics generated during
+// emission.
 func (ie *ifEmitter) emitChain(
 	ctx context.Context,
 	startNode *ast_domain.TemplateNode,
@@ -164,17 +163,15 @@ func (ie *ifEmitter) emitChain(
 
 // buildIfBlock creates the code for the first if statement in a chain.
 //
-// Takes node (*ast_domain.TemplateNode) which holds the template node with the
-// if directive to process.
-// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for
-// appending created statements.
+// Takes node (*ast_domain.TemplateNode) which holds the template node with the if
+// directive to process.
+// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for appending
+// created statements.
 //
-// Returns *goast.IfStmt which is the created if statement, or nil if no
-// directive exists.
+// Returns *goast.IfStmt which is the created if statement, or nil if no directive exists.
 // Returns []goast.Stmt which holds extra statements created during processing.
 // Returns int which shows the number of nodes used by this block.
-// Returns []*ast_domain.Diagnostic which holds any diagnostics made during
-// code creation.
+// Returns []*ast_domain.Diagnostic which holds any diagnostics made during code creation.
 func (ie *ifEmitter) buildIfBlock(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -188,10 +185,9 @@ func (ie *ifEmitter) buildIfBlock(
 
 // buildElseIfBlock builds an if statement for use in an else branch.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node with the
-// else-if directive.
-// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for
-// context.
+// Takes node (*ast_domain.TemplateNode) which is the template node with the else-if
+// directive.
+// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for context.
 //
 // Returns *goast.IfStmt which is the if statement for the else branch.
 // Returns []goast.Stmt which holds extra statements from processing.
@@ -208,8 +204,8 @@ func (ie *ifEmitter) buildElseIfBlock(
 	return ie.buildConditionalIfStatement(ctx, node, parentSliceExpr, node.DirElseIf.Expression, func(n *ast_domain.TemplateNode) { n.DirElseIf = nil })
 }
 
-// buildConditionalIfStatement builds the if statement structure used by both
-// p-if and p-else-if directives.
+// buildConditionalIfStatement builds the if statement structure used by both p-if and
+// p-else-if directives.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
 // Takes parentSliceExpr (goast.Expr) which is the parent slice expression.
@@ -247,8 +243,7 @@ func (ie *ifEmitter) buildConditionalIfStatement(
 // Returns *goast.BlockStmt which contains the generated else block statements.
 // Returns []goast.Stmt which is always nil for else blocks.
 // Returns int which shows whether an else block was generated (1) or not (0).
-// Returns []*ast_domain.Diagnostic which contains any errors from building the
-// body.
+// Returns []*ast_domain.Diagnostic which contains any errors from building the body.
 func (ie *ifEmitter) buildElseBlock(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -262,9 +257,8 @@ func (ie *ifEmitter) buildElseBlock(
 	return &goast.BlockStmt{List: bodyStmts}, nil, 1, bodyDiags
 }
 
-// buildConditionalBody creates the body statements for a conditional block.
-// It uses the clone and modify pattern to avoid side effects on the original
-// AST.
+// buildConditionalBody creates the body statements for a conditional block. It uses the
+// clone and modify pattern to avoid side effects on the original AST.
 //
 // Takes originalNode (*ast_domain.TemplateNode) which is the node to process.
 // Takes parentSliceExpr (goast.Expr) which is the slice to append results to.
@@ -315,16 +309,15 @@ func (ie *ifEmitter) buildConditionalBody(
 	return bodyStmts, bodyDiags
 }
 
-// nodeContainsForLoops checks if a node or any of its descendants contain a
-// p-for directive.
+// nodeContainsForLoops checks if a node or any of its descendants contain a p-for
+// directive.
 //
-// Used to prevent treating nodes with internal loops as static, which would cause
-// issues with dynamic key expressions.
+// Used to prevent treating nodes with internal loops as static, which would cause issues
+// with dynamic key expressions.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node or any descendant has a p-for
-// directive.
+// Returns bool which is true if the node or any descendant has a p-for directive.
 func (ie *ifEmitter) nodeContainsForLoops(node *ast_domain.TemplateNode) bool {
 	if node == nil {
 		return false
@@ -335,9 +328,9 @@ func (ie *ifEmitter) nodeContainsForLoops(node *ast_domain.TemplateNode) bool {
 	return slices.ContainsFunc(node.Children, ie.nodeContainsForLoops)
 }
 
-// nodeContainsDynamicContent checks if a node or any of its children contain
-// dynamic content that requires runtime evaluation. This includes RichText,
-// p-text directives, p-html directives, and dynamic attribute bindings.
+// nodeContainsDynamicContent checks if a node or any of its children contain dynamic
+// content that requires runtime evaluation. This includes RichText, p-text directives,
+// p-html directives, and dynamic attribute bindings.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to check.
 //
@@ -376,15 +369,14 @@ func newIfEmitter(emitter *emitter, expressionEmitter ExpressionEmitter, astBuil
 	}
 }
 
-// isChainedElseIf checks if a node is a chained else-if that belongs to the
-// same conditional block as the start node.
+// isChainedElseIf checks if a node is a chained else-if that belongs to the same
+// conditional block as the start node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
-// Takes startNode (*ast_domain.TemplateNode) which is the first node in the
-// conditional chain.
+// Takes startNode (*ast_domain.TemplateNode) which is the first node in the conditional
+// chain.
 //
-// Returns bool which is true if the node is a chained else-if with a matching
-// chain key.
+// Returns bool which is true if the node is a chained else-if with a matching chain key.
 func isChainedElseIf(node, startNode *ast_domain.TemplateNode) bool {
 	return node.DirElseIf != nil &&
 		node.DirElseIf.ChainKey != nil &&
@@ -396,21 +388,20 @@ func isChainedElseIf(node, startNode *ast_domain.TemplateNode) bool {
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes startNode (*ast_domain.TemplateNode) which is the node to match against.
 //
-// Returns bool which is true when the node has an else directive with a chain
-// key that matches the start node's key.
+// Returns bool which is true when the node has an else directive with a chain key that
+// matches the start node's key.
 func isChainedElse(node, startNode *ast_domain.TemplateNode) bool {
 	return node.DirElse != nil &&
 		node.DirElse.ChainKey != nil &&
 		node.DirElse.ChainKey.String() == startNode.Key.String()
 }
 
-// isWhitespaceOrComment checks whether a template node contains only
-// whitespace or is a comment node.
+// isWhitespaceOrComment checks whether a template node contains only whitespace or is a
+// comment node.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node is a comment or contains only
-// whitespace text.
+// Returns bool which is true if the node is a comment or contains only whitespace text.
 func isWhitespaceOrComment(node *ast_domain.TemplateNode) bool {
 	if node.NodeType == ast_domain.NodeComment {
 		return true
@@ -428,8 +419,8 @@ func isWhitespaceOrComment(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// wrapInTruthinessCallIfNeeded wraps a Go expression in a boolean check when
-// needed. It uses type information to choose the right method.
+// wrapInTruthinessCallIfNeeded wraps a Go expression in a boolean check when needed. It
+// uses type information to choose the right method.
 //
 // Takes condGoExpr (goast.Expr) which is the Go expression to wrap.
 // Takes directiveExpr (ast_domain.Expression) which provides type details.
@@ -486,19 +477,18 @@ func emitNotEqualZero(goExpr goast.Expr) *goast.BinaryExpr {
 	return &goast.BinaryExpr{X: goExpr, Op: token.NEQ, Y: intLit(0)}
 }
 
-// emitNotEqualEmptyString creates an expression that checks if a string is not
-// empty (expr != "").
+// emitNotEqualEmptyString creates an expression that checks if a string is not empty
+// (expr != "").
 //
-// Takes goExpr (goast.Expr) which is the expression to compare against an empty
-// string.
+// Takes goExpr (goast.Expr) which is the expression to compare against an empty string.
 //
 // Returns *goast.BinaryExpr which is the inequality comparison.
 func emitNotEqualEmptyString(goExpr goast.Expr) *goast.BinaryExpr {
 	return &goast.BinaryExpr{X: goExpr, Op: token.NEQ, Y: strLit("")}
 }
 
-// emitNotEqualNil builds an expr != nil comparison for pointer or interface
-// truthiness checks.
+// emitNotEqualNil builds an expr != nil comparison for pointer or interface truthiness
+// checks.
 //
 // Takes goExpr (goast.Expr) which is the expression to compare against nil.
 //
@@ -507,8 +497,8 @@ func emitNotEqualNil(goExpr goast.Expr) *goast.BinaryExpr {
 	return &goast.BinaryExpr{X: goExpr, Op: token.NEQ, Y: cachedIdent(nilLiteral)}
 }
 
-// emitLenGreaterThanZero creates a len(expr) > 0 comparison for checking if a
-// slice or map is not empty.
+// emitLenGreaterThanZero creates a len(expr) > 0 comparison for checking if a slice or
+// map is not empty.
 //
 // Takes goExpr (goast.Expr) which is the expression to check.
 //
@@ -521,14 +511,14 @@ func emitLenGreaterThanZero(goExpr goast.Expr) *goast.BinaryExpr {
 	}
 }
 
-// emitTruthinessForCompositeType builds a truthiness check for composite types
-// such as arrays, slices, maps, pointers, interfaces, functions, and channels.
+// emitTruthinessForCompositeType builds a truthiness check for composite types such as
+// arrays, slices, maps, pointers, interfaces, functions, and channels.
 //
 // Takes goExpr (goast.Expr) which is the expression to check.
 // Takes typeExpr (goast.Expr) which is the type used to decide how to check.
 //
-// Returns goast.Expr which is the truthiness check expression, or nil if the
-// type is not a composite type that can be checked.
+// Returns goast.Expr which is the truthiness check expression, or nil if the type is not
+// a composite type that can be checked.
 func emitTruthinessForCompositeType(goExpr goast.Expr, typeExpr goast.Expr) goast.Expr {
 	switch t := typeExpr.(type) {
 	case *goast.ArrayType:

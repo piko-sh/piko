@@ -27,12 +27,12 @@ import (
 	"sync/atomic"
 )
 
-// noOpSandbox is a pass-through implementation that provides no actual sandboxing.
-// Use this when sandboxing is disabled in configuration or for testing.
+// noOpSandbox is a pass-through implementation that provides no actual sandboxing. Use
+// this when sandboxing is disabled in configuration or for testing.
 //
-// WARNING: This implementation does NOT prevent path traversal attacks.
-// It performs basic path validation but relies on filepath.Clean which
-// can still be bypassed in certain edge cases. Use OSSandbox for production.
+// WARNING: This implementation does NOT prevent path traversal attacks. It performs basic
+// path validation but relies on filepath.Clean which can still be bypassed in certain
+// edge cases. Use OSSandbox for production.
 type noOpSandbox struct {
 	// rootPath is the base directory for all file operations.
 	rootPath string
@@ -44,15 +44,17 @@ type noOpSandbox struct {
 	closed atomic.Bool
 }
 
-var _ Sandbox = (*noOpSandbox)(nil)
+var (
+	_ Sandbox = (*noOpSandbox)(nil)
+)
 
 // Open opens a file for reading.
 //
 // Takes name (string) which specifies the path to the file to open.
 //
 // Returns FileHandle which wraps the opened file for reading.
-// Returns error when the sandbox is closed, the path is invalid, or the file
-// cannot be opened.
+// Returns error when the sandbox is closed, the path is invalid, or the file cannot be
+// opened.
 func (s *noOpSandbox) Open(name string) (FileHandle, error) {
 	if err := s.checkClosed(); err != nil {
 		return nil, err
@@ -71,28 +73,28 @@ func (s *noOpSandbox) Open(name string) (FileHandle, error) {
 	return &File{file: f, name: cleanPath(name)}, nil
 }
 
-// ReadFile reads the entire contents of a file up to DefaultReadFileMaxBytes.
-// Callers that need a tighter or looser cap should use ReadFileLimit.
+// ReadFile reads the entire contents of a file up to DefaultReadFileMaxBytes. Callers
+// that need a tighter or looser cap should use ReadFileLimit.
 //
 // Takes name (string) which specifies the path to the file to read.
 //
 // Returns []byte which contains the complete file contents.
-// Returns error when the file cannot be opened or read, or wraps
-// ErrFileExceedsLimit when the file exceeds DefaultReadFileMaxBytes.
+// Returns error when the file cannot be opened or read, or wraps ErrFileExceedsLimit when
+// the file exceeds DefaultReadFileMaxBytes.
 func (s *noOpSandbox) ReadFile(name string) ([]byte, error) {
 	return readFileViaOpen(s.Open, name)
 }
 
-// ReadFileLimit reads up to maxBytes from a file. See Sandbox.ReadFileLimit
-// for the contract.
+// ReadFileLimit reads up to maxBytes from a file. See Sandbox.ReadFileLimit for the
+// contract.
 //
 // Takes name (string) which specifies the path to the file to read.
 // Takes maxBytes (int64) which caps the byte count read into memory.
 //
 // Returns []byte which contains the file content (up to maxBytes).
 // Returns int64 which is the stat-reported file size at stat time.
-// Returns error which wraps ErrFileExceedsLimit, ErrInvalidLimit, or any
-// underlying stat or read error.
+// Returns error which wraps ErrFileExceedsLimit, ErrInvalidLimit, or any underlying stat
+// or read error.
 func (s *noOpSandbox) ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error) {
 	return readFileLimitViaOpen(s.Open, s.Stat, name, maxBytes)
 }
@@ -210,8 +212,8 @@ func (s *noOpSandbox) Create(name string) (FileHandle, error) {
 // Takes perm (fs.FileMode) which sets the file permissions when creating.
 //
 // Returns FileHandle which wraps the opened file with a cleaned path.
-// Returns error when the sandbox is closed, write access is not allowed, the
-// path is not valid, or the file operation fails.
+// Returns error when the sandbox is closed, write access is not allowed, the path is not
+// valid, or the file operation fails.
 func (s *noOpSandbox) OpenFile(name string, flag int, perm fs.FileMode) (FileHandle, error) {
 	isWrite := flag&(os.O_WRONLY|os.O_RDWR|os.O_APPEND|os.O_CREATE|os.O_TRUNC) != 0
 	if isWrite {
@@ -257,9 +259,9 @@ func (s *noOpSandbox) WriteFile(name string, data []byte, perm fs.FileMode) erro
 	return os.WriteFile(fullPath, data, perm)
 }
 
-// WriteFileAtomic writes data to a file atomically by first writing to a
-// temporary file in the same directory and then renaming it to the target path.
-// This provides crash safety.
+// WriteFileAtomic writes data to a file atomically by first writing to a temporary file
+// in the same directory and then renaming it to the target path. This provides crash
+// safety.
 //
 // Takes name (string) which is the relative path within the sandbox.
 // Takes data ([]byte) which contains the content to write.
@@ -319,10 +321,10 @@ func (s *noOpSandbox) WriteFileAtomic(name string, data []byte, perm fs.FileMode
 	return nil
 }
 
-// syncParentDirectoryFS fsyncs an absolute parent directory path so that the
-// preceding rename becomes durable on filesystems where metadata is journaled
-// separately from the rename operation. Errors are ignored since the file
-// data was already fsynced and surfacing the error cannot help callers.
+// syncParentDirectoryFS fsyncs an absolute parent directory path so that the preceding
+// rename becomes durable on filesystems where metadata is journaled separately from the
+// rename operation. Errors are ignored since the file data was already fsynced and
+// surfacing the error cannot help callers.
 //
 // Takes directory (string) which is the absolute path to the directory to sync.
 func syncParentDirectoryFS(directory string) {
@@ -411,8 +413,7 @@ func (s *noOpSandbox) RemoveAll(path string) error {
 // Rename renames a file or directory.
 //
 // Takes oldpath (string) which specifies the current path to rename.
-// Takes newpath (string) which specifies the new path for the file or
-// directory.
+// Takes newpath (string) which specifies the new path for the file or directory.
 //
 // Returns error when the sandbox is not writable or either path is invalid.
 func (s *noOpSandbox) Rename(oldpath, newpath string) error {
@@ -492,8 +493,8 @@ func (s *noOpSandbox) CreateTemp(directory, pattern string) (FileHandle, error) 
 // Takes pattern (string) which specifies the prefix for the directory name.
 //
 // Returns string which is the relative path to the created directory.
-// Returns error when the sandbox is read-only, the path is invalid, or
-// directory creation fails.
+// Returns error when the sandbox is read-only, the path is invalid, or directory creation
+// fails.
 func (s *noOpSandbox) MkdirTemp(directory, pattern string) (string, error) {
 	if err := s.checkWritable(); err != nil {
 		return "", err
@@ -544,20 +545,20 @@ func (s *noOpSandbox) IsReadOnly() bool {
 
 // Close releases resources.
 //
-// Returns error when resources cannot be released, though this implementation
-// always returns nil.
+// Returns error when resources cannot be released, though this implementation always
+// returns nil.
 func (s *noOpSandbox) Close() error {
 	s.closed.Store(true)
 	return nil
 }
 
-// RelPath converts a path to a sandbox-relative path.
-// See the Sandbox interface for full documentation.
+// RelPath converts a path to a sandbox-relative path. See the Sandbox interface for full
+// documentation.
 //
 // Takes path (string) which is the path to convert.
 //
-// Returns string which is the path relative to the sandbox root. If the path
-// cannot be made relative, the original path is returned unchanged.
+// Returns string which is the path relative to the sandbox root. If the path cannot be
+// made relative, the original path is returned unchanged.
 func (s *noOpSandbox) RelPath(path string) string {
 	if filepath.IsAbs(path) {
 		relPath, err := filepath.Rel(s.rootPath, path)
@@ -576,8 +577,8 @@ func (s *noOpSandbox) RelPath(path string) string {
 	return path
 }
 
-// fullPath turns a relative path into an absolute path within the root.
-// It does basic path traversal checks but is not as secure as OSSandbox.
+// fullPath turns a relative path into an absolute path within the root. It does basic
+// path traversal checks but is not as secure as OSSandbox.
 //
 // Takes name (string) which is the relative path to convert.
 //
@@ -618,9 +619,8 @@ func (s *noOpSandbox) checkWritable() error {
 	return nil
 }
 
-// NewNoOpSandbox creates a sandbox that wraps standard file operations
-// without path restrictions. All paths are resolved relative to the given
-// root directory.
+// NewNoOpSandbox creates a sandbox that wraps standard file operations without path
+// restrictions. All paths are resolved relative to the given root directory.
 //
 // Takes directory (string) which is the root directory path.
 // Takes mode (Mode) which sets whether to allow write operations.
@@ -652,8 +652,8 @@ func NewNoOpSandbox(directory string, mode Mode) (Sandbox, error) {
 	}, nil
 }
 
-// isWithinRoot checks if a path is within the root directory.
-// This is a basic string prefix check and is NOT safe against symlinks.
+// isWithinRoot checks if a path is within the root directory. This is a basic string
+// prefix check and is NOT safe against symlinks.
 //
 // Takes root (string) which is the root directory path to check against.
 // Takes path (string) which is the path to check.

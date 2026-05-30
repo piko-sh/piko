@@ -24,12 +24,12 @@ import (
 	"strconv"
 )
 
-// processorFunc is the signature for functions that handle a field during a
-// walk. It is the main contract for any action done by the recursive walker.
+// processorFunc is the signature for functions that handle a field during a walk. It is
+// the main contract for any action done by the recursive walker.
 type processorFunc func(field *reflect.StructField, value reflect.Value, prefix, keyPath string) error
 
-// fieldPathSetter is an interface for types that need to know their location
-// in the config. Types can use this path for logging or audit purposes.
+// fieldPathSetter is an interface for types that need to know their location in the
+// config. Types can use this path for logging or audit purposes.
 type fieldPathSetter interface {
 	// SetFieldPath sets the field path for use in error messages.
 	//
@@ -87,8 +87,8 @@ func (l *Loader) walk(value reflect.Value, state *walkState) error {
 	return nil
 }
 
-// dispatchAndProcessField routes field processing to the appropriate handler
-// based on type and updates source tracking when values change.
+// dispatchAndProcessField routes field processing to the appropriate handler based on
+// type and updates source tracking when values change.
 //
 // Takes fieldValue (reflect.Value) which is the field to process.
 // Takes fieldType (*reflect.StructField) which describes the field metadata.
@@ -140,16 +140,15 @@ func (l *Loader) processStructField(fieldValue reflect.Value, state *walkState) 
 	return l.walk(fieldValue.Addr(), state)
 }
 
-// processPointerField handles a pointer-typed struct field during config
-// walking.
+// processPointerField handles a pointer-typed struct field during config walking.
 //
-// Takes fieldType (*reflect.StructField) which provides the field metadata
-// including struct tags.
+// Takes fieldType (*reflect.StructField) which provides the field metadata including
+// struct tags.
 // Takes fieldValue (reflect.Value) which is the pointer field to process.
 // Takes state (*walkState) which holds the current traversal context.
 //
-// Returns error when walking the pointed-to struct fails or when processing
-// the field fails.
+// Returns error when walking the pointed-to struct fails or when processing the field
+// fails.
 func (l *Loader) processPointerField(fieldType *reflect.StructField, fieldValue reflect.Value, state *walkState) error {
 	if fieldValue.Type().Elem().Kind() == reflect.Struct {
 		if fieldValue.IsNil() {
@@ -184,8 +183,7 @@ func processUnmarshalerField(fieldType *reflect.StructField, fieldValue reflect.
 	return nil
 }
 
-// processPrimitiveField handles a primitive struct field by calling the state
-// processor.
+// processPrimitiveField handles a primitive struct field by calling the state processor.
 //
 // Takes fieldType (*reflect.StructField) which provides the field metadata.
 // Takes fieldValue (reflect.Value) which holds the field value to process.

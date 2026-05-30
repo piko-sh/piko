@@ -22,8 +22,8 @@ package mem
 
 // String converts a byte slice to a string.
 //
-// This is the safe (allocating) version used when building with -tags safe.
-// It copies the byte slice contents into a new string.
+// This is the safe (allocating) version used when building with -tags safe. It copies the
+// byte slice contents into a new string.
 //
 // Takes b ([]byte) which is the byte slice to convert.
 //
@@ -34,9 +34,8 @@ func String(b []byte) string {
 
 // Bytes converts a string to a byte slice.
 //
-// This is the safe version that creates a new allocation. It is used when
-// building with -tags safe. The function copies the string contents into a
-// new byte slice.
+// This is the safe version that creates a new allocation. It is used when building with
+// -tags safe. The function copies the string contents into a new byte slice.
 //
 // Takes s (string) which is the string to convert.
 //

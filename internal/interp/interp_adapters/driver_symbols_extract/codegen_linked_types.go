@@ -28,17 +28,15 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// buildLinkedTypeEntries emits one symbolEntry per registered linked
-// generic type. Each entry evaluates to
-// reflect.ValueOf(interp_link.WrapType(name, N, []interp_link.GenericField{...})),
-// encoding the field layout so the interpreter can instantiate the
-// generic against user-supplied type arguments at compile/runtime.
+// buildLinkedTypeEntries emits one symbolEntry per registered linked generic type. Each
+// entry evaluates to reflect.ValueOf(interp_link.WrapType(name, N,
+// []interp_link.GenericField{...})), encoding the field layout so the interpreter can
+// instantiate the generic against user-supplied type arguments at compile/runtime.
 //
-// Takes extractedPackage (ExtractedPackage) which holds the parsed
-// LinkedGenericTypeInfo entries.
+// Takes extractedPackage (ExtractedPackage) which holds the parsed LinkedGenericTypeInfo
+// entries.
 //
-// Returns a slice of symbolEntry values keyed by the generic type's
-// exported name.
+// Returns a slice of symbolEntry values keyed by the generic type's exported name.
 func buildLinkedTypeEntries(extractedPackage ExtractedPackage) []symbolEntry {
 	if len(extractedPackage.LinkedGenericTypes) == 0 {
 		return nil
@@ -65,12 +63,93 @@ func buildLinkedTypeEntries(extractedPackage ExtractedPackage) []symbolEntry {
 	return entries
 }
 
-// buildGenericFieldExprs converts a list of LinkedGenericFieldInfo
-// records into the AST literal slice expected by
-// interp_link.WrapType's `fields` parameter.
+// buildNativeBackedTypeEntries emits one symbolEntry per native-backed generic type.
 //
-// Takes fields ([]LinkedGenericFieldInfo) which are the per-field
-// descriptors from extract.
+// Each entry evaluates to
+//
+//	reflect.ValueOf(interp_link.WrapNativeGenericType(
+//	    "Pointer", 1,
+//	    reflect.TypeFor[atomic.Pointer[struct{}]]()))
+//
+// baking the real method-bearing reflect.Type of the canonical erased instantiation into
+// the generated file.
+//
+// Takes extractedPackage (ExtractedPackage) which holds the parsed
+// NativeBackedGenericTypeInfo entries.
+// Takes alias (string) which is the import alias for the target package, used to qualify
+// the generic type.
+//
+// Returns a slice of symbolEntry values keyed by the generic type's exported name.
+func buildNativeBackedTypeEntries(extractedPackage ExtractedPackage, alias string) []symbolEntry {
+	if len(extractedPackage.NativeBackedGenericTypes) == 0 {
+		return nil
+	}
+	entries := make([]symbolEntry, 0, len(extractedPackage.NativeBackedGenericTypes))
+	for _, info := range extractedPackage.NativeBackedGenericTypes {
+		erasedElem := typeForReflectType(nativeBackedTypeExpr(alias, info))
+		wrapArgs := []ast.Expr{
+			goastutil.StrLit(info.Name),
+			goastutil.IntLit(info.TypeArgCount),
+			erasedElem,
+		}
+		for _, erasureArg := range info.ErasureTypeArgs {
+			wrapArgs = append(wrapArgs, typeForReflectType(parseTypeExpr(erasureArg)))
+		}
+		wrapCall := goastutil.CallExpr(
+			goastutil.SelectorExpr(interpLinkPackage, "WrapNativeGenericType"),
+			wrapArgs...,
+		)
+		entries = append(entries, symbolEntry{
+			name:       info.Name,
+			expression: goastutil.CallExpr(goastutil.SelectorExpr(reflectPackage, "ValueOf"), wrapCall),
+		})
+	}
+	return entries
+}
+
+// typeForReflectType yields `reflect.TypeFor[T]()` for the given element type. TypeFor
+// resolves the type at compile time from the type argument, so no value of T is
+// materialised; this is correct even for types embedding noCopy (sync.Mutex,
+// atomic.Pointer) and for interface types, neither of which a value-based reflect.TypeOf
+// could handle.
+//
+// Takes elementType (ast.Expr) which is the Go type T to reflect.
+//
+// Returns the `reflect.TypeFor[T]()` AST expression.
+func typeForReflectType(elementType ast.Expr) ast.Expr {
+	indexed := &ast.IndexExpr{
+		X:     goastutil.SelectorExpr(reflectPackage, "TypeFor"),
+		Index: elementType,
+	}
+	return &ast.CallExpr{Fun: indexed}
+}
+
+// nativeBackedTypeExpr builds the instantiated `pkg.Name[erasure...]` generic type
+// expression for a native-backed generic type, suitable as the type argument to
+// reflect.TypeFor.
+//
+// Takes alias (string) which is the target package import alias.
+// Takes info (NativeBackedGenericTypeInfo) which names the type and its erased type
+// arguments.
+//
+// Returns the instantiated generic type AST expression.
+func nativeBackedTypeExpr(alias string, info NativeBackedGenericTypeInfo) ast.Expr {
+	qualified := goastutil.SelectorExpr(alias, info.Name)
+	if len(info.ErasureTypeArgs) == 1 {
+		return &ast.IndexExpr{X: qualified, Index: parseTypeExpr(info.ErasureTypeArgs[0])}
+	}
+	indices := make([]ast.Expr, 0, len(info.ErasureTypeArgs))
+	for _, typeArg := range info.ErasureTypeArgs {
+		indices = append(indices, parseTypeExpr(typeArg))
+	}
+	return &ast.IndexListExpr{X: qualified, Indices: indices}
+}
+
+// buildGenericFieldExprs converts a list of LinkedGenericFieldInfo records into the AST
+// literal slice expected by interp_link.WrapType's `fields` parameter.
+//
+// Takes fields ([]LinkedGenericFieldInfo) which are the per-field descriptors from
+// extract.
 //
 // Returns the []ast.Expr shaped for a CompositeLit.
 func buildGenericFieldExprs(fields []LinkedGenericFieldInfo) []ast.Expr {
@@ -89,16 +168,14 @@ func buildGenericFieldExprs(fields []LinkedGenericFieldInfo) []ast.Expr {
 	return expressions
 }
 
-// buildGenericFieldTypeExpr emits the AST literal for a single
-// GenericFieldTypeInfo node, recursing into Element/Key where
-// appropriate. The emitted literal uses named fields so the generated
-// source stays readable and forward-compatible with additions to
+// buildGenericFieldTypeExpr emits the AST literal for a single GenericFieldTypeInfo node,
+// recursing into Element/Key where appropriate. The emitted literal uses named fields so
+// the generated source stays readable and forward-compatible with additions to
 // interp_link.GenericFieldType.
 //
 // Takes info (GenericFieldTypeInfo) which is the descriptor to emit.
 //
-// Returns the AST expression constructing the equivalent
-// interp_link.GenericFieldType.
+// Returns the AST expression constructing the equivalent interp_link.GenericFieldType.
 func buildGenericFieldTypeExpr(info GenericFieldTypeInfo) ast.Expr {
 	kindElements := buildGenericFieldTypeKindElements(info)
 	elements := make([]ast.Expr, 0, 1+len(kindElements))
@@ -113,16 +190,15 @@ func buildGenericFieldTypeExpr(info GenericFieldTypeInfo) ast.Expr {
 	}
 }
 
-// buildGenericFieldTypeKindElements returns the kind-specific
-// KeyValueExpr entries for a GenericFieldTypeInfo.
+// buildGenericFieldTypeKindElements returns the kind-specific KeyValueExpr entries for a
+// GenericFieldTypeInfo.
 //
 // Takes info (GenericFieldTypeInfo) which is the descriptor node.
 //
 // Returns the list of AST key-value expressions for the kind's fields.
 //
-// Panics when info.Kind is not a known GenericFieldKind constant. This
-// is a programmer error: a new kind was added without a matching codegen
-// branch.
+// Panics when info.Kind is not a known GenericFieldKind constant. This is a programmer
+// error: a new kind was added without a matching codegen branch.
 func buildGenericFieldTypeKindElements(info GenericFieldTypeInfo) []ast.Expr {
 	switch info.Kind {
 	case GenericFieldKindBasic:
@@ -155,8 +231,8 @@ func buildGenericFieldTypeKindElements(info GenericFieldTypeInfo) []ast.Expr {
 	panic(fmt.Sprintf("driver_symbols_extract: unhandled GenericFieldKind in codegen: %d", info.Kind))
 }
 
-// elementExprOnly returns the Element key/value pair, or an empty slice
-// when element is nil.
+// elementExprOnly returns the Element key/value pair, or an empty slice when element is
+// nil.
 //
 // Takes element (*GenericFieldTypeInfo) which is the inner descriptor.
 //
@@ -175,8 +251,8 @@ func elementExprOnly(element *GenericFieldTypeInfo) []ast.Expr {
 //
 // Takes info (GenericFieldTypeInfo) which is the map descriptor.
 //
-// Returns the Key and Element key-value expressions; either is omitted
-// when the corresponding descriptor is nil.
+// Returns the Key and Element key-value expressions; either is omitted when the
+// corresponding descriptor is nil.
 func mapKindElements(info GenericFieldTypeInfo) []ast.Expr {
 	expressions := make([]ast.Expr, 0, 2)
 	if info.Key != nil {
@@ -206,14 +282,12 @@ func namedElements(info GenericFieldTypeInfo) []ast.Expr {
 	}
 }
 
-// namedGenericElements returns the entries for a NamedGeneric kind,
-// including the optional TypeArgs slice.
+// namedGenericElements returns the entries for a NamedGeneric kind, including the
+// optional TypeArgs slice.
 //
-// Takes info (GenericFieldTypeInfo) which is the named-generic
-// descriptor.
+// Takes info (GenericFieldTypeInfo) which is the named-generic descriptor.
 //
-// Returns the NamedPackage, NamedName, and optional TypeArgs key-value
-// expressions.
+// Returns the NamedPackage, NamedName, and optional TypeArgs key-value expressions.
 func namedGenericElements(info GenericFieldTypeInfo) []ast.Expr {
 	expressions := namedElements(info)
 	if len(info.TypeArgs) > 0 {
@@ -225,10 +299,9 @@ func namedGenericElements(info GenericFieldTypeInfo) []ast.Expr {
 	return expressions
 }
 
-// addressOfComposite wraps an inline struct literal in a &-operator so
-// it can be used as a pointer field value. Emitting a separate variable
-// for nested descriptors would bloat the generated file; using the
-// unary address expression keeps each field self-contained.
+// addressOfComposite wraps an inline struct literal in a &-operator so it can be used as
+// a pointer field value. Emitting a separate variable for nested descriptors would bloat
+// the generated file; using the unary address expression keeps each field self-contained.
 //
 // Takes expression (ast.Expr) which is the composite literal to address.
 //
@@ -237,16 +310,16 @@ func addressOfComposite(expression ast.Expr) ast.Expr {
 	return &ast.UnaryExpr{Op: token.AND, X: expression}
 }
 
-// genericFieldKindName maps the extract-side kind enum to the
-// interp_link constant identifier. Keeping this mapping explicit lets
-// the two enums evolve independently if needed.
+// genericFieldKindName maps the extract-side kind enum to the interp_link constant
+// identifier. Keeping this mapping explicit lets the two enums evolve independently if
+// needed.
 //
 // Takes kind (GenericFieldKind) which identifies the node category.
 //
 // Returns the exported constant name from interp_link.
 //
-// Panics when kind is not a known GenericFieldKind constant: a new
-// kind was added without updating this mapping.
+// Panics when kind is not a known GenericFieldKind constant: a new kind was added without
+// updating this mapping.
 func genericFieldKindName(kind GenericFieldKind) string {
 	switch kind {
 	case GenericFieldKindBasic:
@@ -275,10 +348,9 @@ func genericFieldKindName(kind GenericFieldKind) string {
 	panic(fmt.Sprintf("driver_symbols_extract: unknown GenericFieldKind constant: %d", kind))
 }
 
-// buildGenericFieldTypeSliceExpr emits a []interp_link.GenericFieldType
-// composite literal, used for both the generic's Params/Results lists
-// on a LinkedFunction and the TypeArgs nested inside a NamedGeneric
-// descriptor.
+// buildGenericFieldTypeSliceExpr emits a []interp_link.GenericFieldType composite
+// literal, used for both the generic's Params/Results lists on a LinkedFunction and the
+// TypeArgs nested inside a NamedGeneric descriptor.
 //
 // Takes infos ([]GenericFieldTypeInfo) which are the descriptors.
 //
@@ -296,17 +368,17 @@ func buildGenericFieldTypeSliceExpr(infos []GenericFieldTypeInfo) ast.Expr {
 	}
 }
 
-// reflectKindName converts a reflect.Kind into its exported identifier
-// so the generated file references reflect.Int etc. rather than the
-// numeric constant that would be unreadable after formatting.
+// reflectKindName converts a reflect.Kind into its exported identifier so the generated
+// file references reflect.Int etc. rather than the numeric constant that would be
+// unreadable after formatting.
 //
 // Takes kind (reflect.Kind) which is the primitive kind to name.
 //
 // Returns the identifier used by the reflect package.
 //
-// Panics when kind is not a primitive reflect.Kind that can appear on
-// FieldKindBasic (e.g. reflect.Struct, reflect.Func): the extract
-// classifier should have rejected the shape before this mapping runs.
+// Panics when kind is not a primitive reflect.Kind that can appear on FieldKindBasic
+// (e.g. reflect.Struct, reflect.Func): the extract classifier should have rejected the
+// shape before this mapping runs.
 func reflectKindName(kind reflect.Kind) string {
 	switch kind {
 	case reflect.Bool:
@@ -351,9 +423,8 @@ func reflectKindName(kind reflect.Kind) string {
 	panic(fmt.Sprintf("driver_symbols_extract: unknown reflect.Kind constant: %d", kind))
 }
 
-// boolLiteral returns the identifier name for a boolean value so
-// generated code reads as `true` / `false` rather than
-// reflect.ValueOf-looking forms.
+// boolLiteral returns the identifier name for a boolean value so generated code reads as
+// `true` / `false` rather than reflect.ValueOf-looking forms.
 //
 // Takes value (bool) which is the constant.
 //

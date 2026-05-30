@@ -41,8 +41,8 @@ type FSLoader struct {
 // NewFSLoader creates a new FSLoader with the given file system and patterns.
 //
 // Takes fsys (fs.FS) which provides the file system to load from.
-// Takes patterns (...string) which specifies the glob patterns to match. If
-// empty, defaults to "*" to match all files.
+// Takes patterns (...string) which specifies the glob patterns to match. If empty,
+// defaults to "*" to match all files.
 //
 // Returns *FSLoader which is ready to load matching files from the file system.
 func NewFSLoader(fsys fs.FS, patterns ...string) *FSLoader {
@@ -55,13 +55,13 @@ func NewFSLoader(fsys fs.FS, patterns ...string) *FSLoader {
 	}
 }
 
-// Load retrieves documents from the file system matching the patterns.
-// Files that cannot be opened or read are skipped, and a summary error is
-// returned alongside any successfully loaded documents.
+// Load retrieves documents from the file system matching the patterns. Files that cannot
+// be opened or read are skipped, and a summary error is returned alongside any
+// successfully loaded documents.
 //
 // Returns []Document which contains all successfully loaded documents.
-// Returns error when a glob pattern is invalid, the context is cancelled,
-// or one or more files could not be read.
+// Returns error when a glob pattern is invalid, the context is cancelled, or one or more
+// files could not be read.
 func (l *FSLoader) Load(ctx context.Context) ([]Document, error) {
 	var docs []Document
 	var skipped []string
@@ -107,9 +107,9 @@ func (l *FSLoader) Load(ctx context.Context) ([]Document, error) {
 	return docs, nil
 }
 
-// RecursiveFSLoader loads documents by walking a file system tree recursively.
-// Unlike FSLoader which uses fs.Glob (single-level matching), this loader
-// traverses all subdirectories to find files whose names match the patterns.
+// RecursiveFSLoader loads documents by walking a file system tree recursively. Unlike
+// FSLoader which uses fs.Glob (single-level matching), this loader traverses all
+// subdirectories to find files whose names match the patterns.
 type RecursiveFSLoader struct {
 	// fsys is the file system to walk recursively.
 	fsys fs.FS
@@ -118,13 +118,12 @@ type RecursiveFSLoader struct {
 	patterns []string
 }
 
-// NewRecursiveFSLoader creates a new RecursiveFSLoader with the given file
-// system and patterns. Patterns are matched against file names (not paths)
-// using filepath.Match.
+// NewRecursiveFSLoader creates a new RecursiveFSLoader with the given file system and
+// patterns. Patterns are matched against file names (not paths) using filepath.Match.
 //
 // Takes fsys (fs.FS) which provides the file system to walk.
-// Takes patterns (...string) which specifies the glob patterns to match file
-// names against. If empty, defaults to "*" to match all files.
+// Takes patterns (...string) which specifies the glob patterns to match file names
+// against. If empty, defaults to "*" to match all files.
 //
 // Returns *RecursiveFSLoader which is ready to load matching files.
 func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) *RecursiveFSLoader {
@@ -137,8 +136,8 @@ func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) *RecursiveFSLoader {
 	}
 }
 
-// Load walks the file system tree and retrieves all files whose names match
-// the configured patterns. Files that cannot be read are skipped.
+// Load walks the file system tree and retrieves all files whose names match the
+// configured patterns. Files that cannot be read are skipped.
 //
 // Returns []Document which contains all successfully loaded documents.
 // Returns error when the walk fails or the context is cancelled.
@@ -180,8 +179,8 @@ func (l *RecursiveFSLoader) Load(ctx context.Context) ([]Document, error) {
 	return docs, nil
 }
 
-// matchesAnyPattern reports whether the file at path matches any of the
-// configured glob patterns. Patterns are matched against the base file name.
+// matchesAnyPattern reports whether the file at path matches any of the configured glob
+// patterns. Patterns are matched against the base file name.
 //
 // Takes path (string) which is the full file path to check.
 //
@@ -196,8 +195,8 @@ func (l *RecursiveFSLoader) matchesAnyPattern(path string) bool {
 	return false
 }
 
-// readFileAsDocument reads a file from the file system and returns it as a
-// Document. Returns false when the file cannot be opened or read.
+// readFileAsDocument reads a file from the file system and returns it as a Document.
+// Returns false when the file cannot be opened or read.
 //
 // Takes path (string) which is the file path to read.
 //
@@ -224,9 +223,9 @@ func (l *RecursiveFSLoader) readFileAsDocument(path string) (Document, bool) {
 	}, true
 }
 
-// RecursiveCharacterSplitter splits text into chunks by recursively trying
-// a list of separators. It aims to keep chunks within a target size while
-// maintaining overlap for context.
+// RecursiveCharacterSplitter splits text into chunks by recursively trying a list of
+// separators. It aims to keep chunks within a target size while maintaining overlap for
+// context.
 type RecursiveCharacterSplitter struct {
 	// separators lists the strings used to split text, tried in order.
 	separators []string
@@ -241,12 +240,12 @@ type RecursiveCharacterSplitter struct {
 // NewRecursiveCharacterSplitter creates a new RecursiveCharacterSplitter.
 //
 // Takes chunkSize (int) which specifies the target size for each chunk.
-// Takes overlap (int) which specifies the number of characters to overlap
-// between chunks. Must be less than chunkSize.
+// Takes overlap (int) which specifies the number of characters to overlap between chunks.
+// Must be less than chunkSize.
 //
 // Returns *RecursiveCharacterSplitter which is configured and ready for use.
-// Returns error when overlap is greater than or equal to chunkSize as this
-// would cause an infinite loop during hard splitting.
+// Returns error when overlap is greater than or equal to chunkSize as this would cause an
+// infinite loop during hard splitting.
 func NewRecursiveCharacterSplitter(chunkSize, overlap int) (*RecursiveCharacterSplitter, error) {
 	if chunkSize <= 0 {
 		chunkSize = 1
@@ -261,8 +260,8 @@ func NewRecursiveCharacterSplitter(chunkSize, overlap int) (*RecursiveCharacterS
 	}, nil
 }
 
-// Split divides a document into chunks. Each chunk receives its own copy of
-// the parent document's metadata to prevent shared-reference mutations.
+// Split divides a document into chunks. Each chunk receives its own copy of the parent
+// document's metadata to prevent shared-reference mutations.
 //
 // Takes document (Document) which is the document to split into smaller chunks.
 //
@@ -303,9 +302,9 @@ func (s *RecursiveCharacterSplitter) splitText(text string, separators []string)
 	return s.refineChunks(finalChunks, separators[1:])
 }
 
-// assembleChunks joins parts back into chunks that fit within the configured
-// size, inserting the original separator between parts and applying overlap
-// when a chunk boundary is reached.
+// assembleChunks joins parts back into chunks that fit within the configured size,
+// inserting the original separator between parts and applying overlap when a chunk
+// boundary is reached.
 //
 // Takes parts ([]string) which are the text segments to reassemble.
 // Takes separator (string) which is the delimiter placed between parts.
@@ -336,17 +335,16 @@ func (s *RecursiveCharacterSplitter) assembleChunks(parts []string, separator st
 	return finalChunks
 }
 
-// computeOverlap returns the trailing portion of text to carry forward into the next chunk.
+// computeOverlap returns the trailing portion of text to carry forward into the next
+// chunk.
 //
-// The slice boundary is snapped forward to the nearest UTF-8 rune start so the
-// result is always valid UTF-8, even when the byte budget would otherwise fall
-// inside a multi-byte sequence. The returned slice may therefore be slightly
-// shorter than s.overlap bytes.
+// The slice boundary is snapped forward to the nearest UTF-8 rune start so the result is
+// always valid UTF-8, even when the byte budget would otherwise fall inside a multi-byte
+// sequence. The returned slice may therefore be slightly shorter than s.overlap bytes.
 //
 // Takes text (string) which is the completed chunk text.
 //
-// Returns string which is the trailing overlap portion, or empty if overlap
-// is zero.
+// Returns string which is the trailing overlap portion, or empty if overlap is zero.
 func (s *RecursiveCharacterSplitter) computeOverlap(text string) string {
 	if s.overlap <= 0 {
 		return ""
@@ -361,12 +359,10 @@ func (s *RecursiveCharacterSplitter) computeOverlap(text string) string {
 	return text[start:]
 }
 
-// refineChunks recursively splits any oversized chunks using the remaining
-// separators.
+// refineChunks recursively splits any oversized chunks using the remaining separators.
 //
 // Takes chunks ([]string) which are the chunks to refine.
-// Takes remainingSeparators ([]string) which are the separators still
-// available.
+// Takes remainingSeparators ([]string) which are the separators still available.
 //
 // Returns []string which contains chunks no larger than the configured size.
 func (s *RecursiveCharacterSplitter) refineChunks(chunks []string, remainingSeparators []string) []string {
@@ -383,15 +379,14 @@ func (s *RecursiveCharacterSplitter) refineChunks(chunks []string, remainingSepa
 
 // hardSplit splits text into fixed-size chunks when no separators work.
 //
-// Both the start and end of each chunk are snapped to the nearest rune
-// boundary so chunks remain valid UTF-8 even when the byte budget would
-// otherwise cut mid-rune. Resulting chunks may therefore be slightly smaller
-// than s.chunkSize.
+// Both the start and end of each chunk are snapped to the nearest rune boundary so chunks
+// remain valid UTF-8 even when the byte budget would otherwise cut mid-rune. Resulting
+// chunks may therefore be slightly smaller than s.chunkSize.
 //
 // Takes text (string) which is the content to split into chunks.
 //
-// Returns []string which contains the text divided into overlapping chunks
-// of approximately the configured size in bytes.
+// Returns []string which contains the text divided into overlapping chunks of
+// approximately the configured size in bytes.
 func (s *RecursiveCharacterSplitter) hardSplit(text string) []string {
 	var chunks []string
 	stride := max(s.chunkSize-s.overlap, 1)
@@ -417,8 +412,8 @@ func (s *RecursiveCharacterSplitter) hardSplit(text string) []string {
 // Takes text (string) which is the source string to scan.
 // Takes start (int) which is the candidate index to snap forward from.
 //
-// Returns int which is the snapped index, or len(text) if no rune-start byte
-// exists at or after start.
+// Returns int which is the snapped index, or len(text) if no rune-start byte exists at or
+// after start.
 func snapForwardToRune(text string, start int) int {
 	for start < len(text) && !utf8.RuneStart(text[start]) {
 		start++
@@ -426,18 +421,18 @@ func snapForwardToRune(text string, start int) int {
 	return start
 }
 
-// snapBackwardToRune clamps end to len(text) then walks back to the nearest
-// rune boundary.
+// snapBackwardToRune clamps end to len(text) then walks back to the nearest rune
+// boundary.
 //
-// The walk stops once end either equals start or sits on a rune-start byte,
-// keeping the returned slice bounds valid UTF-8.
+// The walk stops once end either equals start or sits on a rune-start byte, keeping the
+// returned slice bounds valid UTF-8.
 //
 // Takes text (string) which is the source string to scan.
 // Takes start (int) which is the lower bound that end must not cross.
 // Takes end (int) which is the candidate end index to snap backward.
 //
-// Returns int which is the snapped end index, clamped to len(text) and never
-// less than start.
+// Returns int which is the snapped end index, clamped to len(text) and never less than
+// start.
 func snapBackwardToRune(text string, start, end int) int {
 	if end >= len(text) {
 		return len(text)
@@ -448,13 +443,13 @@ func snapBackwardToRune(text string, start, end int) int {
 	return end
 }
 
-// copyMetadata creates a shallow copy of a metadata map so that each chunk
-// gets its own map instance.
+// copyMetadata creates a shallow copy of a metadata map so that each chunk gets its own
+// map instance.
 //
 // Takes src (map[string]any) which is the metadata map to copy.
 //
-// Returns map[string]any which is a new map containing the same key-value
-// pairs, or nil if src is nil.
+// Returns map[string]any which is a new map containing the same key-value pairs, or nil
+// if src is nil.
 func copyMetadata(src map[string]any) map[string]any {
 	if src == nil {
 		return nil

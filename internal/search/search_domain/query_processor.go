@@ -30,18 +30,17 @@ import (
 	search_fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
-// QueryProcessor implements QueryProcessorPort to run search queries.
-// It supports Fast and Smart modes with different query expansion methods.
+// QueryProcessor implements QueryProcessorPort to run search queries. It supports Fast
+// and Smart modes with different query expansion methods.
 type QueryProcessor struct {
 	// analyser processes query text into tokens for search matching.
 	analyser linguistics_domain.AnalyserPort
 }
 
-// NewQueryProcessorForIndex creates a query processor configured for a
-// specific index. The analyser is created once and reused for all queries.
+// NewQueryProcessorForIndex creates a query processor configured for a specific index.
+// The analyser is created once and reused for all queries.
 //
-// Takes reader (IndexReaderPort) which provides the index mode and language
-// settings.
+// Takes reader (IndexReaderPort) which provides the index mode and language settings.
 //
 // Returns *QueryProcessor which is ready for concurrent use.
 func NewQueryProcessorForIndex(reader IndexReaderPort) *QueryProcessor {
@@ -77,11 +76,9 @@ func NewQueryProcessorForIndex(reader IndexReaderPort) *QueryProcessor {
 //
 // Smart Mode:
 //  1. Tokenise and stem the query.
-//  2. For each term, try these strategies in order:
-//     a) Exact match (highest boost).
-//     b) Stemmed match (medium boost).
-//     c) Phonetic match (lower boost).
-//     d) Prefix match (for partial words).
+//  2. For each term, try these strategies in order: a) Exact match (highest boost). b)
+//     Stemmed match (medium boost). c) Phonetic match (lower boost). d) Prefix match (for
+//     partial words).
 //  3. Score with BM25 plus boost factors.
 //  4. Return the top N results.
 func (qp *QueryProcessor) Search(
@@ -137,8 +134,8 @@ func (qp *QueryProcessor) Search(
 	return scoredResults, nil
 }
 
-// SearchWithExplanation executes a search and returns detailed scoring
-// explanations for debugging and understanding search results.
+// SearchWithExplanation executes a search and returns detailed scoring explanations for
+// debugging and understanding search results.
 //
 // Takes query (string) which specifies the search terms.
 // Takes reader (IndexReaderPort) which provides access to the search index.
@@ -219,8 +216,8 @@ func (qp *QueryProcessor) analyseQuery(query string, mode search_fb.SearchMode) 
 	return terms, nil
 }
 
-// findCandidateDocuments retrieves all documents that contain any query term.
-// This uses the inverted index for O(log n) term lookup.
+// findCandidateDocuments retrieves all documents that contain any query term. This uses
+// the inverted index for O(log n) term lookup.
 //
 // Takes queryTerms ([]string) which specifies the terms to search for.
 // Takes reader (IndexReaderPort) which provides access to the inverted index.
@@ -276,8 +273,8 @@ func (qp *QueryProcessor) findCandidatesForTerm(
 	qp.findCandidatesFastMode(term, reader, candidates)
 }
 
-// findCandidatesFastMode searches for matching documents using fast mode
-// strategies: exact match and prefix expansion.
+// findCandidatesFastMode searches for matching documents using fast mode strategies:
+// exact match and prefix expansion.
 //
 // Takes term (string) which is the search term to find matches for.
 // Takes reader (IndexReaderPort) which provides access to the search index.
@@ -303,8 +300,8 @@ func (qp *QueryProcessor) findCandidatesFastMode(
 //  3. Phonetic match - O(log n) via phonetic map
 //  4. Jaro-Winkler fuzzy match - O(V) vocabulary scan, handles typos
 //
-// Each strategy is only tried if the previous one fails. This degrades
-// gracefully from fast exact matches to slower fuzzy matches.
+// Each strategy is only tried if the previous one fails. This degrades gracefully from
+// fast exact matches to slower fuzzy matches.
 //
 // Takes term (string) which is the search term to find candidates for.
 // Takes reader (IndexReaderPort) which provides access to the search index.
@@ -388,8 +385,8 @@ func (*QueryProcessor) tryPhoneticMatch(
 	return true
 }
 
-// tryFuzzyMatch finds documents using fuzzy string matching with the
-// Jaro-Winkler algorithm.
+// tryFuzzyMatch finds documents using fuzzy string matching with the Jaro-Winkler
+// algorithm.
 //
 // Takes term (string) which is the search term to match.
 // Takes reader (IndexReaderPort) which provides access to the search index.
@@ -416,8 +413,8 @@ func (qp *QueryProcessor) tryFuzzyMatch(
 	return true
 }
 
-// tryPrefixMatch attempts to find documents using prefix matching. This
-// expands terms like "doc" to "docs", "documentation", and similar variations.
+// tryPrefixMatch attempts to find documents using prefix matching. This expands terms
+// like "doc" to "docs", "documentation", and similar variations.
 //
 // Takes term (string) which specifies the search term to expand.
 // Takes reader (IndexReaderPort) which provides access to the term index.
@@ -454,11 +451,11 @@ func (*QueryProcessor) tryPrefixMatch(
 	return foundAny
 }
 
-// findSimilarTermsJaroWinkler finds terms in the index vocabulary that are
-// similar to the query term using the Jaro-Winkler algorithm.
+// findSimilarTermsJaroWinkler finds terms in the index vocabulary that are similar to the
+// query term using the Jaro-Winkler algorithm.
 //
-// This is used as a fallback when exact and phonetic matching fail.
-// It works well for typos like:
+// This is used as a fallback when exact and phonetic matching fail. It works well for
+// typos like:
 //   - "configurtion" (missing 'a') -> "configuration"
 //   - "ocnfiguration" (transposed 'on') -> "configuration"
 //
@@ -536,8 +533,8 @@ func (*QueryProcessor) scoreDocuments(
 // Takes results ([]QueryResult) which contains the results to filter.
 // Takes minScore (float64) which specifies the minimum score threshold.
 //
-// Returns []QueryResult which contains only results with scores at or above
-// the threshold.
+// Returns []QueryResult which contains only results with scores at or above the
+// threshold.
 func (*QueryProcessor) filterByMinScore(results []QueryResult, minScore float64) []QueryResult {
 	filtered := make([]QueryResult, 0, len(results))
 	for _, result := range results {
@@ -570,12 +567,10 @@ func (*QueryProcessor) applyPagination(results []QueryResult, limit, offset int)
 	return results
 }
 
-// addPostingsToCandidates adds all document IDs from the postings to the
-// candidates map.
+// addPostingsToCandidates adds all document IDs from the postings to the candidates map.
 //
 // Takes postings ([]PostingInfo) which contains the posting entries to add.
-// Takes candidates (map[uint32]bool) which is the map to fill with document
-// IDs.
+// Takes candidates (map[uint32]bool) which is the map to fill with document IDs.
 func addPostingsToCandidates(postings []PostingInfo, candidates map[uint32]bool) {
 	for _, posting := range postings {
 		candidates[posting.DocumentID] = true

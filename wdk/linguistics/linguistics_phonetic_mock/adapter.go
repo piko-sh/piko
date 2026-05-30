@@ -26,8 +26,8 @@ import (
 )
 
 // MockPhoneticEncoder is a thread-safe, configurable mock implementation of
-// PhoneticEncoderPort for testing. It supports call tracking, custom encode
-// mappings, and pass-through behaviour.
+// PhoneticEncoderPort for testing. It supports call tracking, custom encode mappings, and
+// pass-through behaviour.
 type MockPhoneticEncoder struct {
 	// encodeFunc allows custom encoding behaviour when set.
 	encodeFunc func(word string) string
@@ -48,13 +48,14 @@ type MockPhoneticEncoder struct {
 	passThrough bool
 }
 
-var _ linguistics_domain.PhoneticEncoderPort = (*MockPhoneticEncoder)(nil)
+var (
+	_ linguistics_domain.PhoneticEncoderPort = (*MockPhoneticEncoder)(nil)
+)
 
 // NewWithMappings creates a mock encoder with pre-configured encode mappings.
 //
 // Takes language (string) which specifies the language to report.
-// Takes mappings (map[string]string) which maps input words to their phonetic
-// codes.
+// Takes mappings (map[string]string) which maps input words to their phonetic codes.
 //
 // Returns *MockPhoneticEncoder configured with the provided mappings.
 func NewWithMappings(language string, mappings map[string]string) *MockPhoneticEncoder {
@@ -133,11 +134,11 @@ func (m *MockPhoneticEncoder) SetEncodeMappings(mappings map[string]string) {
 	maps.Copy(m.encodeMappings, mappings)
 }
 
-// SetPassThrough configures whether words should pass through unchanged
-// when no mapping exists.
+// SetPassThrough configures whether words should pass through unchanged when no mapping
+// exists.
 //
-// Takes passThrough (bool) which when true causes Encode to return the
-// input word unchanged if no mapping exists.
+// Takes passThrough (bool) which when true causes Encode to return the input word
+// unchanged if no mapping exists.
 //
 // Safe for concurrent use.
 func (m *MockPhoneticEncoder) SetPassThrough(passThrough bool) {
@@ -146,8 +147,7 @@ func (m *MockPhoneticEncoder) SetPassThrough(passThrough bool) {
 	m.passThrough = passThrough
 }
 
-// SetEncodeFunc sets a custom function to be called by Encode when no mapping
-// exists.
+// SetEncodeFunc sets a custom function to be called by Encode when no mapping exists.
 //
 // Takes override (func(string) string) which processes words not in the mapping.
 //
@@ -208,8 +208,8 @@ func (m *MockPhoneticEncoder) GetLastEncodeCall() (string, bool) {
 	return m.encodeCalls[len(m.encodeCalls)-1], true
 }
 
-// Reset clears all recorded calls and configured mappings, preparing the
-// mock for a new test case.
+// Reset clears all recorded calls and configured mappings, preparing the mock for a new
+// test case.
 //
 // Safe for concurrent use.
 func (m *MockPhoneticEncoder) Reset() {

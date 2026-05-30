@@ -20,12 +20,12 @@ package llm_dto
 
 // EmbeddingRequest holds the settings for creating text embeddings.
 type EmbeddingRequest struct {
-	// EncodingFormat specifies the output format ("float" or "base64").
-	// Nil defaults to "float".
+	// EncodingFormat specifies the output format ("float" or "base64"). Nil defaults to
+	// "float".
 	EncodingFormat *string
 
-	// Dimensions specifies the output dimension (for models that support it).
-	// If nil, uses the model's default dimensions.
+	// Dimensions specifies the output dimension (for models that support it). If nil, uses
+	// the model's default dimensions.
 	Dimensions *int
 
 	// User is an optional identifier for the end user making the request.
@@ -61,16 +61,16 @@ type EmbeddingResponse struct {
 
 // Embedding represents a single embedding vector.
 type Embedding struct {
-	// Base64 is the base64-encoded embedding vector. This is set when
-	// EncodingFormat is "base64".
+	// Base64 is the base64-encoded embedding vector. This is set when EncodingFormat is
+	// "base64".
 	Base64 *string
 
-	// Vector contains the embedding values as float32 numbers.
-	// This is filled when EncodingFormat is "float" or nil.
+	// Vector contains the embedding values as float32 numbers. This is filled when
+	// EncodingFormat is "float" or nil.
 	Vector []float32
 
-	// Index is the position of this embedding in the response, starting from 0.
-	// It matches the position of the input text in the request.
+	// Index is the position of this embedding in the response, starting from 0. It matches
+	// the position of the input text in the request.
 	Index int
 }
 
@@ -86,8 +86,8 @@ type EmbeddingUsage struct {
 	TotalTokens int
 }
 
-// FirstEmbedding returns the first embedding from the response, or an empty
-// Embedding if none exist. This is a convenience method for single-input requests.
+// FirstEmbedding returns the first embedding from the response, or an empty Embedding if
+// none exist. This is a convenience method for single-input requests.
 //
 // Returns Embedding which is the first embedding, or empty if none exist.
 func (r *EmbeddingResponse) FirstEmbedding() Embedding {
@@ -97,8 +97,8 @@ func (r *EmbeddingResponse) FirstEmbedding() Embedding {
 	return r.Embeddings[0]
 }
 
-// FirstVector returns the first embedding vector from the response, or nil
-// if none exist. This is a convenience method for single-input requests.
+// FirstVector returns the first embedding vector from the response, or nil if none exist.
+// This is a convenience method for single-input requests.
 //
 // Returns []float32 which is the first embedding vector, or nil if none exist.
 func (r *EmbeddingResponse) FirstVector() []float32 {

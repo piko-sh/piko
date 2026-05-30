@@ -27,11 +27,13 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// errFmtUnknownResourceType is the format string for unrecognised resource types.
-const errFmtUnknownResourceType = "unknown resource type: %s"
+const (
+	// errFmtUnknownResourceType is the format string for unrecognised resource types.
+	errFmtUnknownResourceType = "unknown resource type: %s"
+)
 
-// ProviderInfoAggregator collects ResourceDescriptors from hexagon services
-// and implements ProviderInfoInspector for the monitoring gRPC service.
+// ProviderInfoAggregator collects ResourceDescriptors from hexagon services and
+// implements ProviderInfoInspector for the monitoring gRPC service.
 type ProviderInfoAggregator struct {
 	// descriptors maps resource type names to their descriptors.
 	descriptors map[string]provider_domain.ResourceDescriptor
@@ -40,7 +42,9 @@ type ProviderInfoAggregator struct {
 	mu sync.RWMutex
 }
 
-var _ ProviderInfoInspector = (*ProviderInfoAggregator)(nil)
+var (
+	_ ProviderInfoInspector = (*ProviderInfoAggregator)(nil)
+)
 
 // NewProviderInfoAggregator creates a new empty aggregator.
 //
@@ -51,11 +55,11 @@ func NewProviderInfoAggregator() *ProviderInfoAggregator {
 	}
 }
 
-// Register adds a ResourceDescriptor to the aggregator. If a descriptor
-// with the same ResourceType is already registered, it is replaced.
+// Register adds a ResourceDescriptor to the aggregator. If a descriptor with the same
+// ResourceType is already registered, it is replaced.
 //
-// Takes descriptor (provider_domain.ResourceDescriptor) which provides
-// provider information for its resource type.
+// Takes descriptor (provider_domain.ResourceDescriptor) which provides provider
+// information for its resource type.
 //
 // Safe for concurrent use.
 func (a *ProviderInfoAggregator) Register(descriptor provider_domain.ResourceDescriptor) {
@@ -77,8 +81,8 @@ func (a *ProviderInfoAggregator) HasDescriptors() bool {
 	return len(a.descriptors) > 0
 }
 
-// ListResourceTypes returns the names of all registered resource types,
-// sorted alphabetically.
+// ListResourceTypes returns the names of all registered resource types, sorted
+// alphabetically.
 //
 // Returns []string which contains the resource type names.
 //
@@ -97,8 +101,7 @@ func (a *ProviderInfoAggregator) ListResourceTypes(_ context.Context) []string {
 	return types
 }
 
-// ListProviders returns column definitions and provider rows for the given
-// resource type.
+// ListProviders returns column definitions and provider rows for the given resource type.
 //
 // Takes resourceType (string) which identifies which resource to query.
 //
@@ -121,15 +124,14 @@ func (a *ProviderInfoAggregator) ListProviders(ctx context.Context, resourceType
 	}, nil
 }
 
-// DescribeProvider returns detailed information for a single provider within
-// the given resource type.
+// DescribeProvider returns detailed information for a single provider within the given
+// resource type.
 //
 // Takes resourceType (string) which identifies the resource.
 // Takes name (string) which identifies the provider.
 //
 // Returns *provider_domain.ProviderDetail which contains structured sections.
-// Returns error when the resource type is not registered or the provider is
-// not found.
+// Returns error when the resource type is not registered or the provider is not found.
 //
 // Safe for concurrent use.
 func (a *ProviderInfoAggregator) DescribeProvider(ctx context.Context, resourceType, name string) (*provider_domain.ProviderDetail, error) {
@@ -144,16 +146,15 @@ func (a *ProviderInfoAggregator) DescribeProvider(ctx context.Context, resourceT
 	return descriptor.ResourceDescribeProvider(ctx, name)
 }
 
-// ListSubResources returns sub-resources for a named provider. The service
-// must implement SubResourceDescriptor; otherwise ErrNoSubResources is
-// returned.
+// ListSubResources returns sub-resources for a named provider. The service must implement
+// SubResourceDescriptor; otherwise ErrNoSubResources is returned.
 //
 // Takes resourceType (string) which identifies the resource.
 // Takes providerName (string) which identifies the provider.
 //
 // Returns *ProviderListResult which contains sub-resource columns and rows.
-// Returns error when the resource type is not found or the service does not
-// support sub-resources.
+// Returns error when the resource type is not found or the service does not support
+// sub-resources.
 //
 // Safe for concurrent use.
 func (a *ProviderInfoAggregator) ListSubResources(ctx context.Context, resourceType, providerName string) (*ProviderListResult, error) {
@@ -182,14 +183,14 @@ func (a *ProviderInfoAggregator) ListSubResources(ctx context.Context, resourceT
 	}, nil
 }
 
-// DescribeResourceType returns a service-level overview for the given resource
-// type. The service must implement ResourceTypeDescriptor.
+// DescribeResourceType returns a service-level overview for the given resource type. The
+// service must implement ResourceTypeDescriptor.
 //
 // Takes resourceType (string) which identifies the resource.
 //
 // Returns *provider_domain.ProviderDetail which contains the overview.
-// Returns error when the resource type is not found or the service does not
-// support type-level describe.
+// Returns error when the resource type is not found or the service does not support
+// type-level describe.
 //
 // Safe for concurrent use.
 func (a *ProviderInfoAggregator) DescribeResourceType(ctx context.Context, resourceType string) (*provider_domain.ProviderDetail, error) {

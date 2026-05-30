@@ -55,8 +55,8 @@ type Config struct {
 	MaximumSize int
 }
 
-// Store provides an LLM budget store using the internal cache service.
-// It implements llm_domain.BudgetStorePort.
+// Store provides an LLM budget store using the internal cache service. It implements
+// llm_domain.BudgetStorePort.
 type Store struct {
 	// cache stores budget data entries keyed by scope.
 	cache cache_domain.Cache[string, *llm_dto.BudgetData]
@@ -65,7 +65,9 @@ type Store struct {
 	clock clock.Clock
 }
 
-var _ llm_domain.BudgetStorePort = (*Store)(nil)
+var (
+	_ llm_domain.BudgetStorePort = (*Store)(nil)
+)
 
 // Record adds a cost entry for a scope.
 //
@@ -100,17 +102,15 @@ func (s *Store) Record(ctx context.Context, scope string, cost *llm_dto.CostEsti
 	return nil
 }
 
-// CheckAndReserve atomically checks whether the estimated cost fits within
-// all configured limits and, if so, reserves it by adding the cost to the
-// current spend counters.
+// CheckAndReserve atomically checks whether the estimated cost fits within all configured
+// limits and, if so, reserves it by adding the cost to the current spend counters.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the cost to reserve.
 // Takes limits (llm_dto.BudgetLimits) which carries the spend limits.
 //
-// Returns error which is llm_domain.ErrBudgetExceeded if any limit would be
-// breached.
+// Returns error which is llm_domain.ErrBudgetExceeded if any limit would be breached.
 func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost maths.Money, limits llm_dto.BudgetLimits) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -142,8 +142,8 @@ func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost
 	return checkErr
 }
 
-// Unreserve releases a previously reserved cost when the request fails before
-// the actual usage is recorded.
+// Unreserve releases a previously reserved cost when the request fails before the actual
+// usage is recorded.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
@@ -253,12 +253,10 @@ func (s *Store) Reset(ctx context.Context, scope string) error {
 	return s.cache.Invalidate(ctx, scope)
 }
 
-// incrementCounter is a shared helper for IncrementRequests and
-// IncrementTokens.
+// incrementCounter is a shared helper for IncrementRequests and IncrementTokens.
 //
 // Takes scope (string) which identifies the budget scope.
-// Takes mutate (func(*llm_dto.BudgetData)) which applies the
-// counter mutation.
+// Takes mutate (func(*llm_dto.BudgetData)) which applies the counter mutation.
 //
 // Returns error if the context is cancelled or the compute fails.
 func (s *Store) incrementCounter(ctx context.Context, scope string, mutate func(*llm_dto.BudgetData)) error {
@@ -321,15 +319,13 @@ func New(ctx context.Context, config Config) (*Store, error) {
 	}, nil
 }
 
-// getOrCreate returns the existing data or creates a new zero-valued
-// entry.
+// getOrCreate returns the existing data or creates a new zero-valued entry.
 //
 // Takes old (*llm_dto.BudgetData) which is the existing data if any.
 // Takes found (bool) which indicates whether old is valid.
 // Takes now (time.Time) which is the current time for window starts.
 //
-// Returns *llm_dto.BudgetData which is the existing or newly created
-// entry.
+// Returns *llm_dto.BudgetData which is the existing or newly created entry.
 func getOrCreate(old *llm_dto.BudgetData, found bool, now time.Time) *llm_dto.BudgetData {
 	if found && old != nil {
 		return old
@@ -344,11 +340,10 @@ func getOrCreate(old *llm_dto.BudgetData, found bool, now time.Time) *llm_dto.Bu
 	}
 }
 
-// resetStaleWindows zeroes hourly and daily counters when their time
-// windows have elapsed.
+// resetStaleWindows zeroes hourly and daily counters when their time windows have
+// elapsed.
 //
-// Takes data (*llm_dto.BudgetData) which is the budget data to
-// update in place.
+// Takes data (*llm_dto.BudgetData) which is the budget data to update in place.
 // Takes now (time.Time) which is the current time for window checks.
 func resetStaleWindows(data *llm_dto.BudgetData, now time.Time) {
 	if now.Sub(data.HourStart) >= time.Hour {
@@ -362,16 +357,13 @@ func resetStaleWindows(data *llm_dto.BudgetData, now time.Time) {
 	}
 }
 
-// checkLimits verifies the estimated cost against all configured
-// budget limits.
+// checkLimits verifies the estimated cost against all configured budget limits.
 //
-// Takes data (*llm_dto.BudgetData) which holds current spend
-// counters.
+// Takes data (*llm_dto.BudgetData) which holds current spend counters.
 // Takes estimatedCost (maths.Money) which is the cost to check.
 // Takes limits (llm_dto.BudgetLimits) which carries the spend caps.
 //
-// Returns error which is llm_domain.ErrBudgetExceeded if any limit
-// would be breached.
+// Returns error which is llm_domain.ErrBudgetExceeded if any limit would be breached.
 func checkLimits(data *llm_dto.BudgetData, estimatedCost maths.Money, limits llm_dto.BudgetLimits) error {
 	if !limits.MaxTotalSpend.CheckIsZero() {
 		projected := data.TotalSpent.Add(estimatedCost)
@@ -397,8 +389,7 @@ func checkLimits(data *llm_dto.BudgetData, estimatedCost maths.Money, limits llm
 	return nil
 }
 
-// isSameDay reports whether t1 and t2 are on the same calendar day
-// in UTC.
+// isSameDay reports whether t1 and t2 are on the same calendar day in UTC.
 //
 // Takes t1 (time.Time) which is the first time to compare.
 // Takes t2 (time.Time) which is the second time to compare.

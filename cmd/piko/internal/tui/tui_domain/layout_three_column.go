@@ -19,18 +19,17 @@
 package tui_domain
 
 const (
-	// threeColumnContextFraction is the fraction of width allocated to the
-	// left context strip in the three-column layout.
+	// threeColumnContextFraction is the fraction of width allocated to the left context
+	// strip in the three-column layout.
 	threeColumnContextFraction = 0.22
 
-	// threeColumnPrimaryFraction is the fraction of width allocated to the
-	// centre primary pane in the three-column layout.
+	// threeColumnPrimaryFraction is the fraction of width allocated to the centre primary
+	// pane in the three-column layout.
 	threeColumnPrimaryFraction = 0.40
 )
 
-// ThreeColumnLayout renders three panes side-by-side. The focused panel
-// claims the centre (primary) slot; the PaneAssigner supplies the context
-// (left) and detail (right) panes.
+// ThreeColumnLayout renders three panes side-by-side. The focused panel claims the centre
+// (primary) slot; the PaneAssigner supplies the context (left) and detail (right) panes.
 type ThreeColumnLayout struct{}
 
 // NewThreeColumnLayout returns the canonical three-column layout.
@@ -50,10 +49,9 @@ func (*ThreeColumnLayout) Name() string { return LayoutNameThreeColumn }
 // Returns int equal to 3.
 func (*ThreeColumnLayout) MaxPanes() int { return ThreeColumnMinPanes }
 
-// Allocate splits the layout rectangle into context, primary, and detail
-// panes. Falls back to two-column behaviour when there is not room for
-// three at their minimum widths, and to single-pane behaviour when there is
-// not even room for two.
+// Allocate splits the layout rectangle into context, primary, and detail panes. Falls
+// back to two-column behaviour when there is not room for three at their minimum widths,
+// and to single-pane behaviour when there is not even room for two.
 //
 // Takes width (int) which is the layout area width.
 // Takes height (int) which is the layout area height.

@@ -62,8 +62,8 @@ var (
 		"providers":   describeProviders,
 	}
 
-	// describeResourceList is the sorted, comma-separated list of available
-	// describe resources, derived from the describeResources dispatch map.
+	// describeResourceList is the sorted, comma-separated list of available describe
+	// resources, derived from the describeResources dispatch map.
 	describeResourceList = buildResourceList(describeResources)
 )
 
@@ -134,14 +134,14 @@ func describeHealth(ctx context.Context, conn monitoringConnection, p *Printer, 
 
 // describeTrace displays all spans belonging to a specific trace.
 //
-// Takes conn (*provider_grpc.Connection) which provides the gRPC connection
-// for fetching trace data.
+// Takes conn (*provider_grpc.Connection) which provides the gRPC connection for fetching
+// trace data.
 // Takes p (*Printer) which handles output formatting and table rendering.
-// Takes arguments ([]string) which contains the command-line arguments including
-// the trace ID.
+// Takes arguments ([]string) which contains the command-line arguments including the
+// trace ID.
 //
-// Returns error when the trace ID is missing, the gRPC request fails, or no
-// spans are found for the given trace ID.
+// Returns error when the trace ID is missing, the gRPC request fails, or no spans are
+// found for the given trace ID.
 func describeTrace(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
 	fs := newResourceFlagSet("piko describe trace", "piko describe trace <trace-id> [flags]", "Show all spans for a trace.", describeFormatHelp, describeDefaultFormat, p.w)
 	positional, err := parseInterspersed(fs, arguments)
@@ -174,13 +174,13 @@ func describeTrace(ctx context.Context, conn monitoringConnection, p *Printer, a
 	return nil
 }
 
-// capitaliseFirstRune returns s with its leading rune upper-cased.
-// Walks runes (not bytes) so non-ASCII inputs are not split mid-byte.
+// capitaliseFirstRune returns s with its leading rune upper-cased. Walks runes (not
+// bytes) so non-ASCII inputs are not split mid-byte.
 //
 // Takes s (string) which is the value to capitalise.
 //
-// Returns string with the first rune upper-cased, or s unchanged when
-// it is empty or the leading rune cannot be decoded.
+// Returns string with the first rune upper-cased, or s unchanged when it is empty or the
+// leading rune cannot be decoded.
 func capitaliseFirstRune(s string) string {
 	if s == "" {
 		return s
@@ -253,8 +253,8 @@ func printSpanDetails(p *Printer, spans []*pb.Span) {
 	}
 }
 
-// buildSpanDetailSections creates detail sections for a single span's
-// attributes and events.
+// buildSpanDetailSections creates detail sections for a single span's attributes and
+// events.
 //
 // Takes s (*pb.Span) which is the span to extract details from.
 //
@@ -308,24 +308,24 @@ type resourceDescriptor struct {
 	// fetch retrieves items from the gRPC endpoint.
 	fetch func(ctx context.Context, conn monitoringConnection, filter string) (any, error)
 
-	// filterForJSON narrows the item collection to those matching a filter string,
-	// for use in JSON output mode.
+	// filterForJSON narrows the item collection to those matching a filter string, for use
+	// in JSON output mode.
 	filterForJSON func(items any, filter string) any
 
 	// buildSections constructs inspector.DetailSection values from the items and filter.
 	buildSections func(items any, filter string) []inspector.DetailSection
 }
 
-// describeResourceItems implements the shared describe pattern: parse flags,
-// fetch items via gRPC, then render as JSON or detail sections.
+// describeResourceItems implements the shared describe pattern: parse flags, fetch items
+// via gRPC, then render as JSON or detail sections.
 //
-// Takes resourceName (string) which names the resource for the flag set and
-// error messages.
+// Takes resourceName (string) which names the resource for the flag set and error
+// messages.
 // Takes descriptor (resourceDescriptor) which bundles the fetch, filter, and
 // section-building callbacks for the specific resource type.
 //
-// Returns error when flag parsing, the gRPC call, or output rendering fails,
-// or when no sections match a non-empty filter.
+// Returns error when flag parsing, the gRPC call, or output rendering fails, or when no
+// sections match a non-empty filter.
 func describeResourceItems(
 	ctx context.Context,
 	conn monitoringConnection,
@@ -583,8 +583,7 @@ func filterArtefacts(artefacts []*pb.ArtefactListItem, filter string) []*pb.Arte
 // buildArtefactDetailSections creates detail sections for artefacts.
 //
 // Takes p (*Printer) which provides colourised status formatting.
-// Takes artefacts ([]*pb.ArtefactListItem) which contains the artefacts to
-// display.
+// Takes artefacts ([]*pb.ArtefactListItem) which contains the artefacts to display.
 // Takes filter (string) which limits results to matching IDs or source paths.
 //
 // Returns []inspector.DetailSection which contains the formatted detail sections for
@@ -617,8 +616,8 @@ func buildArtefactDetailSections(p *Printer, artefacts []*pb.ArtefactListItem, f
 // Takes p (*Printer) which handles output formatting.
 // Takes arguments ([]string) which contains command-line arguments.
 //
-// Returns error when fetching the dispatcher summary fails or no dispatcher
-// matches the filter.
+// Returns error when fetching the dispatcher summary fails or no dispatcher matches the
+// filter.
 func describeDLQ(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
 	fs := newResourceFlagSet("piko describe dlq", "piko describe dlq [type] [flags]", "Show detailed dispatcher and DLQ information.", describeFormatHelp, describeDefaultFormat, p.w)
 	positional, err := parseInterspersed(fs, arguments)
@@ -647,13 +646,13 @@ func describeDLQ(ctx context.Context, conn monitoringConnection, p *Printer, arg
 
 // describeOpenResources displays detailed open resource information.
 //
-// Takes conn (*provider_grpc.Connection) which provides the gRPC connection
-// for fetching metrics.
+// Takes conn (*provider_grpc.Connection) which provides the gRPC connection for fetching
+// metrics.
 // Takes p (*Printer) which controls output formatting.
 // Takes arguments ([]string) which contains command-line arguments and flags.
 //
-// Returns error when flag parsing fails, the gRPC request fails, or no
-// category matches the filter.
+// Returns error when flag parsing fails, the gRPC request fails, or no category matches
+// the filter.
 func describeOpenResources(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
 	fs := newResourceFlagSet("piko describe resources", "piko describe resources [category] [flags]", "Show detailed open resource information.", describeFormatHelp, describeDefaultFormat, p.w)
 	positional, err := parseInterspersed(fs, arguments)
@@ -682,8 +681,8 @@ func describeOpenResources(ctx context.Context, conn monitoringConnection, p *Pr
 
 // buildResourceDetailSections creates detail sections for resource categories.
 //
-// Takes response (*pb.GetFileDescriptorsResponse) which contains the resource
-// data to format.
+// Takes response (*pb.GetFileDescriptorsResponse) which contains the resource data to
+// format.
 // Takes filter (string) which limits results to matching categories.
 //
 // Returns []inspector.DetailSection which contains the formatted sections for display.
@@ -761,11 +760,10 @@ func describeRateLimiter(ctx context.Context, conn monitoringConnection, p *Prin
 //
 // Takes conn (*provider_grpc.Connection) which provides the gRPC connection.
 // Takes p (*Printer) which controls output formatting.
-// Takes arguments ([]string) which contains the resource type, provider name, and
-// any flags.
+// Takes arguments ([]string) which contains the resource type, provider name, and any
+// flags.
 //
-// Returns error when the required arguments are missing or the gRPC request
-// fails.
+// Returns error when the required arguments are missing or the gRPC request fails.
 func describeProvider(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
 	fs := newResourceFlagSet(
 		"piko describe provider",
@@ -806,11 +804,10 @@ func describeProvider(ctx context.Context, conn monitoringConnection, p *Printer
 
 // appendSubResourceSections appends sub-resource detail to sections.
 //
-// Fetches sub-resources for the provider and adds them as a detail
-// section if any are found. When the underlying RPC fails the error is
-// surfaced as a warning on the printer's writer so the user knows the
-// listing was incomplete instead of the call silently returning only
-// the parent sections.
+// Fetches sub-resources for the provider and adds them as a detail section if any are
+// found. When the underlying RPC fails the error is surfaced as a warning on the
+// printer's writer so the user knows the listing was incomplete instead of the call
+// silently returning only the parent sections.
 //
 // Takes ctx (context.Context) which controls the request lifecycle.
 // Takes conn (monitoringConnection) which provides the gRPC client.
@@ -843,11 +840,11 @@ func appendSubResourceSections(ctx context.Context, conn monitoringConnection, p
 	})
 }
 
-// buildSubResourceFields creates detail fields from sub-resource rows,
-// combining non-identity column values into a summary string per row.
+// buildSubResourceFields creates detail fields from sub-resource rows, combining
+// non-identity column values into a summary string per row.
 //
-// Takes response (*pb.ListSubResourcesResponse) which contains the sub-resource
-// data to format.
+// Takes response (*pb.ListSubResourcesResponse) which contains the sub-resource data to
+// format.
 //
 // Returns []inspector.DetailRow which contains one field per sub-resource row.
 func buildSubResourceFields(response *pb.ListSubResourcesResponse) []inspector.DetailRow {
@@ -874,18 +871,15 @@ func buildSubResourceFields(response *pb.ListSubResourcesResponse) []inspector.D
 	return fields
 }
 
-// describeProviders displays a service-level overview for a resource type, or
-// delegates to describeProvider when a provider name is also given.
+// describeProviders displays a service-level overview for a resource type, or delegates
+// to describeProvider when a provider name is also given.
 //
-// Usage:
-// piko describe providers <type>          - service-level overview
-// piko describe providers <type> <name>   - single provider detail
+// Usage: piko describe providers <type> - service-level overview piko describe providers
+// <type> <name> - single provider detail
 //
 // Takes conn (*provider_grpc.Connection) which provides the gRPC connection.
 // Takes p (*Printer) which controls output formatting.
-// Takes arguments ([]string) which contains the resource type and
-// optional provider
-// name.
+// Takes arguments ([]string) which contains the resource type and optional provider name.
 //
 // Returns error when the resource type is missing or the gRPC request fails.
 func describeProviders(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {

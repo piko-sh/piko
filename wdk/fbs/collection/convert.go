@@ -27,14 +27,15 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be
-// decoded.
-var errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+var (
+	// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be decoded.
+	errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+)
 
-// StaticCollection is a JSON-serialisable representation of a compiled
-// collection. Each item's metadata is included as decoded JSON, while AST
-// payloads are represented as size information (since they are nested
-// FlatBuffers that cannot be meaningfully displayed as text).
+// StaticCollection is a JSON-serialisable representation of a compiled collection. Each
+// item's metadata is included as decoded JSON, while AST payloads are represented as size
+// information (since they are nested FlatBuffers that cannot be meaningfully displayed as
+// text).
 type StaticCollection struct {
 	// Name is the collection name, if set.
 	Name string `json:"name,omitempty"`
@@ -64,11 +65,11 @@ type ContentItem struct {
 	HasExcerpt bool `json:"has_excerpt"`
 }
 
-// ConvertCollection parses a raw FlatBuffer collection payload into a
-// JSON-serialisable struct.
+// ConvertCollection parses a raw FlatBuffer collection payload into a JSON-serialisable
+// struct.
 //
-// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the
-// version header (use Unpack first).
+// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the version
+// header (use Unpack first).
 //
 // Returns *StaticCollection which contains all items with decoded metadata.
 // Returns error when the payload cannot be parsed.
@@ -88,11 +89,11 @@ func ConvertCollection(payload []byte) (*StaticCollection, error) {
 
 // convertItems extracts all content items from the FlatBuffer.
 //
-// Takes fb (*coll_fb.StaticCollectionFB) which is the source FlatBuffer to
-// extract items from.
+// Takes fb (*coll_fb.StaticCollectionFB) which is the source FlatBuffer to extract items
+// from.
 //
-// Returns []ContentItem which contains the converted items, or nil if the
-// FlatBuffer has no items.
+// Returns []ContentItem which contains the converted items, or nil if the FlatBuffer has
+// no items.
 func convertItems(fb *coll_fb.StaticCollectionFB) []ContentItem {
 	length := fb.ItemsLength()
 	if length == 0 {
@@ -110,11 +111,9 @@ func convertItems(fb *coll_fb.StaticCollectionFB) []ContentItem {
 
 // convertContentItem converts a single FlatBuffer content item.
 //
-// Takes fb (*coll_fb.ContentItemFB) which is the FlatBuffer content item to
-// convert.
+// Takes fb (*coll_fb.ContentItemFB) which is the FlatBuffer content item to convert.
 //
-// Returns ContentItem which contains the extracted route, metadata, and size
-// information.
+// Returns ContentItem which contains the extracted route, metadata, and size information.
 func convertContentItem(fb *coll_fb.ContentItemFB) ContentItem {
 	metadataJSON := fb.MetadataJsonBytes()
 	contentAST := fb.ContentAstBytes()

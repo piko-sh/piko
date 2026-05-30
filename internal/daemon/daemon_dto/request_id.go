@@ -28,13 +28,12 @@ import (
 )
 
 const (
-	// requestIDPrefixLength is the number of random characters in the request ID
-	// prefix. This gives enough uniqueness when the process restarts.
+	// requestIDPrefixLength is the number of random characters in the request ID prefix.
+	// This gives enough uniqueness when the process restarts.
 	requestIDPrefixLength = 10
 
-	// requestIDCounterPadding is the number of digits to pad the request counter
-	// to. With 6 digits, the counter can reach 999,999 before it goes past the
-	// padding width.
+	// requestIDCounterPadding is the number of digits to pad the request counter to. With 6
+	// digits, the counter can reach 999,999 before it goes past the padding width.
 	requestIDCounterPadding = 6
 
 	// baseDecimal is the base value for formatting numbers as decimal strings.
@@ -50,20 +49,19 @@ var (
 	requestIDCounter atomic.Uint64
 )
 
-// NextRequestIDCounter atomically increments and returns the next
-// request ID counter value. The middleware stores this lightweight
-// uint64 in the context instead of a pre-formatted string; the
-// string is produced lazily by FormatRequestID only when actually
-// read.
+// NextRequestIDCounter atomically increments and returns the next request ID counter
+// value. The middleware stores this lightweight uint64 in the context instead of a
+// pre-formatted string; the string is produced lazily by FormatRequestID only when
+// actually read.
 //
 // Returns uint64 which is the next unique counter value.
 func NextRequestIDCounter() uint64 {
 	return requestIDCounter.Add(1)
 }
 
-// FormatRequestID formats a counter value into the full request ID
-// string "hostname/random10chars-NNNNNN". This is called lazily by
-// PikoRequestCtx.RequestID when the request ID is actually read.
+// FormatRequestID formats a counter value into the full request ID string
+// "hostname/random10chars-NNNNNN". This is called lazily by PikoRequestCtx.RequestID when
+// the request ID is actually read.
 //
 // Takes counter (uint64) which is the raw counter value to format.
 //

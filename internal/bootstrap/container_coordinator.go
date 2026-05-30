@@ -18,8 +18,7 @@
 
 package bootstrap
 
-// This file contains coordinator, annotator, generator, and resolver container
-// methods.
+// This file contains coordinator, annotator, generator, and resolver container methods.
 
 import (
 	"context"
@@ -53,11 +52,9 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// GetAnnotatorService returns the code annotation service, creating it if
-// necessary.
+// GetAnnotatorService returns the code annotation service, creating it if necessary.
 //
-// Returns annotator_domain.AnnotatorPort which provides code annotation
-// functionality.
+// Returns annotator_domain.AnnotatorPort which provides code annotation functionality.
 // Returns error when service creation fails.
 func (c *Container) GetAnnotatorService() (annotator_domain.AnnotatorPort, error) {
 	c.annotatorOnce.Do(func() {
@@ -95,14 +92,12 @@ func (c *Container) createDefaultAnnotatorService() {
 	c.annotatorService, c.annotatorErr = c.createAnnotatorServiceInstance(resolver, fsReader)
 }
 
-// createAnnotatorFSReader creates the file system reader for the annotator
-// service.
+// createAnnotatorFSReader creates the file system reader for the annotator service.
 //
-// Takes baseDir (string) which provides the base folder path for the source
-// sandbox.
+// Takes baseDir (string) which provides the base folder path for the source sandbox.
 //
-// Returns annotator_domain.FSReaderPort which provides file system read access
-// for the annotator.
+// Returns annotator_domain.FSReaderPort which provides file system read access for the
+// annotator.
 // Returns error when the source sandbox cannot be created.
 func (c *Container) createAnnotatorFSReader(baseDir string) (annotator_domain.FSReaderPort, error) {
 	if c.coordinatorFSReaderOverride != nil {
@@ -115,8 +110,7 @@ func (c *Container) createAnnotatorFSReader(baseDir string) (annotator_domain.FS
 	return generator_adapters.NewFSReader(sourceSandbox), nil
 }
 
-// createAnnotatorServiceInstance creates the annotator service with all its
-// dependencies.
+// createAnnotatorServiceInstance creates the annotator service with all its dependencies.
 //
 // Takes resolver (resolver_domain.ResolverPort) which resolves file paths.
 // Takes fsReader (annotator_domain.FSReaderPort) which reads files from disk.
@@ -170,11 +164,9 @@ func (c *Container) createAnnotatorServiceInstance(
 	})
 }
 
-// GetCoordinatorService returns the build coordination service, creating it
-// if necessary.
+// GetCoordinatorService returns the build coordination service, creating it if necessary.
 //
-// Returns coordinator_domain.CoordinatorService which provides build
-// coordination.
+// Returns coordinator_domain.CoordinatorService which provides build coordination.
 // Returns error when the service cannot be created.
 func (c *Container) GetCoordinatorService() (coordinator_domain.CoordinatorService, error) {
 	c.coordinatorOnce.Do(func() {
@@ -189,8 +181,8 @@ func (c *Container) GetCoordinatorService() (coordinator_domain.CoordinatorServi
 	return c.coordinatorService, c.coordinatorErr
 }
 
-// createDefaultCoordinatorService sets up the coordinator service with its
-// default components.
+// createDefaultCoordinatorService sets up the coordinator service with its default
+// components.
 func (c *Container) createDefaultCoordinatorService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CoordinatorService...")
@@ -240,13 +232,11 @@ func (c *Container) createDefaultCoordinatorService() {
 	})
 }
 
-// createCoordinatorCaches creates the build result and introspection caches,
-// using overrides when provided and falling back to defaults otherwise.
+// createCoordinatorCaches creates the build result and introspection caches, using
+// overrides when provided and falling back to defaults otherwise.
 //
-// Returns coordinator_domain.BuildResultCachePort which is the build result
-// cache.
-// Returns coordinator_domain.IntrospectionCachePort which is the introspection
-// cache.
+// Returns coordinator_domain.BuildResultCachePort which is the build result cache.
+// Returns coordinator_domain.IntrospectionCachePort which is the introspection cache.
 // Returns error when a cache cannot be created.
 func (c *Container) createCoordinatorCaches() (coordinator_domain.BuildResultCachePort, coordinator_domain.IntrospectionCachePort, error) {
 	cacheService, err := c.GetCacheService()
@@ -277,8 +267,7 @@ func (c *Container) createCoordinatorCaches() (coordinator_domain.BuildResultCac
 	return buildCache, introspectionCache, nil
 }
 
-// createCoordinatorFSReader creates the file system reader for the
-// coordinator service.
+// createCoordinatorFSReader creates the file system reader for the coordinator service.
 //
 // Returns annotator_domain.FSReaderPort which provides file system access.
 // Returns error when the sandbox cannot be created.
@@ -294,12 +283,10 @@ func (c *Container) createCoordinatorFSReader() (annotator_domain.FSReaderPort, 
 	return generator_adapters.NewFSReader(sourceSandbox), nil
 }
 
-// getCoordinatorOptions returns the functional options for the coordinator
-// service.
+// getCoordinatorOptions returns the functional options for the coordinator service.
 //
-// Returns []coordinator_domain.CoordinatorOption which contains the configured
-// options including any overrides for file hash cache, code emitter, and
-// diagnostic output.
+// Returns []coordinator_domain.CoordinatorOption which contains the configured options
+// including any overrides for file hash cache, code emitter, and diagnostic output.
 func (c *Container) getCoordinatorOptions() []coordinator_domain.CoordinatorOption {
 	var opts []coordinator_domain.CoordinatorOption
 
@@ -337,8 +324,8 @@ func (c *Container) getCoordinatorOptions() []coordinator_domain.CoordinatorOpti
 
 // GetCoordinatorCache returns the build result cache for the coordinator.
 //
-// Returns coordinator_domain.BuildResultCachePort which provides the cache
-// instance, initialised lazily on first call.
+// Returns coordinator_domain.BuildResultCachePort which provides the cache instance,
+// initialised lazily on first call.
 // Returns error when the cache cannot be created.
 func (c *Container) GetCoordinatorCache() (coordinator_domain.BuildResultCachePort, error) {
 	c.coordinatorCacheOnce.Do(func() {
@@ -356,8 +343,7 @@ func (c *Container) GetCoordinatorCache() (coordinator_domain.BuildResultCachePo
 	return c.coordinatorCache, c.coordinatorCacheErr
 }
 
-// GetGeneratorService returns the code generation service, creating it if
-// necessary.
+// GetGeneratorService returns the code generation service, creating it if necessary.
 //
 // Returns generator_domain.GeneratorService which provides code generation.
 // Returns error when the service cannot be created.
@@ -372,9 +358,8 @@ func (c *Container) GetGeneratorService() (generator_domain.GeneratorService, er
 	return c.generatorService, c.generatorErr
 }
 
-// GetCodeEmitter returns a code emitter for generating Go code from
-// annotations. This is primarily used in dev-i mode to provide emitted
-// artefacts to the coordinator.
+// GetCodeEmitter returns a code emitter for generating Go code from annotations. This is
+// primarily used in dev-i mode to provide emitted artefacts to the coordinator.
 //
 // Returns coordinator_domain.CodeEmitterPort which generates Go code.
 // Returns error when the emitter cannot be created.
@@ -387,37 +372,34 @@ func (c *Container) GetCodeEmitter() (coordinator_domain.CodeEmitterPort, error)
 	return emitter, nil
 }
 
-// SetIntrospectionCacheOverride sets the Tier 1 introspection cache override,
-// which must be called before GetCoordinatorService to take effect and replaces
-// the default introspection cache created during coordinator service
-// initialisation.
+// SetIntrospectionCacheOverride sets the Tier 1 introspection cache override, which must
+// be called before GetCoordinatorService to take effect and replaces the default
+// introspection cache created during coordinator service initialisation.
 //
 // Takes cache (IntrospectionCachePort) which provides the cache to use.
 func (c *Container) SetIntrospectionCacheOverride(cache coordinator_domain.IntrospectionCachePort) {
 	c.introspectionCacheOverride = cache
 }
 
-// SetCoordinatorCacheOverride sets the Tier 2 build result cache override,
-// which must be called before GetCoordinatorService to take effect and replaces
-// the default build result cache created during coordinator service
-// initialisation.
+// SetCoordinatorCacheOverride sets the Tier 2 build result cache override, which must be
+// called before GetCoordinatorService to take effect and replaces the default build
+// result cache created during coordinator service initialisation.
 //
 // Takes cache (BuildResultCachePort) which provides the cache to use.
 func (c *Container) SetCoordinatorCacheOverride(cache coordinator_domain.BuildResultCachePort) {
 	c.coordinatorCacheOverride = cache
 }
 
-// SetCoordinatorCodeEmitterOverride sets the code emitter override for the
-// coordinator. This must be called before GetCoordinatorService to take
-// effect.
+// SetCoordinatorCodeEmitterOverride sets the code emitter override for the coordinator.
+// This must be called before GetCoordinatorService to take effect.
 //
 // Takes emitter (CodeEmitterPort) which provides the code emission behaviour.
 func (c *Container) SetCoordinatorCodeEmitterOverride(emitter coordinator_domain.CodeEmitterPort) {
 	c.coordinatorCodeEmitterOverride = emitter
 }
 
-// SetCoordinatorDiagnosticOutputOverride sets the diagnostic output strategy
-// for the coordinator.
+// SetCoordinatorDiagnosticOutputOverride sets the diagnostic output strategy for the
+// coordinator.
 //
 // This must be called before GetCoordinatorService() to take effect. Use
 // SilentDiagnosticOutput for LSP contexts to prevent stderr pollution.
@@ -429,23 +411,22 @@ func (c *Container) SetCoordinatorDiagnosticOutputOverride(output coordinator_do
 
 // SetFSReaderOverride sets the file system reader for the coordinator.
 //
-// This must be called before GetCoordinatorService() to take effect. Use
-// lspFSReader for LSP contexts to prioritise in-memory content for open
-// documents.
+// This must be called before GetCoordinatorService() to take effect. Use lspFSReader for
+// LSP contexts to prioritise in-memory content for open documents.
 //
-// Takes fsReader (annotator_domain.FSReaderPort) which provides the file
-// system reader to use for document access.
+// Takes fsReader (annotator_domain.FSReaderPort) which provides the file system reader to
+// use for document access.
 func (c *Container) SetFSReaderOverride(fsReader annotator_domain.FSReaderPort) {
 	c.coordinatorFSReaderOverride = fsReader
 }
 
 // SetResolverOverride sets a custom resolver for module path resolution.
 //
-// Takes resolver (resolver_domain.ResolverPort) which specifies the resolver
-// to use instead of the default.
+// Takes resolver (resolver_domain.ResolverPort) which specifies the resolver to use
+// instead of the default.
 //
-// Must be called before GetResolver() to take effect. Use
-// InMemoryModuleResolver for tests or contexts without go.mod.
+// Must be called before GetResolver() to take effect. Use InMemoryModuleResolver for
+// tests or contexts without go.mod.
 func (c *Container) SetResolverOverride(resolver resolver_domain.ResolverPort) {
 	c.resolverOverride = resolver
 }
@@ -472,8 +453,7 @@ func (c *Container) GetResolver() (resolver_domain.ResolverPort, error) {
 	return c.resolver, c.resolverErr
 }
 
-// createDefaultGeneratorService sets up the generator service with default
-// settings.
+// createDefaultGeneratorService sets up the generator service with default settings.
 func (c *Container) createDefaultGeneratorService() {
 	serverConfig := &c.serverConfig
 
@@ -501,19 +481,17 @@ type generatorSandboxes struct {
 	// source is the sandbox for reading source files.
 	source safedisk.Sandbox
 
-	// base is the read-write sandbox rooted at the project base directory,
-	// used by the generator for creating action stubs and reading TypeScript sources.
+	// base is the read-write sandbox rooted at the project base directory, used by the
+	// generator for creating action stubs and reading TypeScript sources.
 	base safedisk.Sandbox
 
 	// output is the sandbox folder where generated files are written.
 	output safedisk.Sandbox
 }
 
-// createGeneratorSandboxes creates the source and output sandboxes for the
-// generator.
+// createGeneratorSandboxes creates the source and output sandboxes for the generator.
 //
-// Takes serverConfig (*ServerConfig) which provides the paths
-// configuration.
+// Takes serverConfig (*ServerConfig) which provides the paths configuration.
 //
 // Returns generatorSandboxes which contains the source and output sandboxes.
 // Returns error when either sandbox cannot be created.
@@ -588,8 +566,7 @@ func (c *Container) createGeneratorPorts(serverConfig *ServerConfig, sandboxes g
 // Takes outputSandbox (safedisk.Sandbox) which provides a safe output folder.
 // Takes resolver (resolver_domain.ResolverPort) which resolves module names.
 //
-// Returns generator_domain.CollectionEmitterPort which writes collection data
-// to files.
+// Returns generator_domain.CollectionEmitterPort which writes collection data to files.
 func (*Container) createCollectionEmitter(fsWriter generator_domain.FSWriterPort, outputSandbox safedisk.Sandbox, resolver resolver_domain.ResolverPort) generator_domain.CollectionEmitterPort {
 	return generator_adapters.NewDrivenCollectionEmitter(
 		collection_adapters.NewFlatBufferEncoder(),
@@ -601,14 +578,11 @@ func (*Container) createCollectionEmitter(fsWriter generator_domain.FSWriterPort
 
 // createSearchIndexEmitter creates the search index emitter for the generator.
 //
-// Takes fsWriter (generator_domain.FSWriterPort) which handles file system
-// writes.
-// Takes outputSandbox (safedisk.Sandbox) which restricts output to a safe
-// directory.
+// Takes fsWriter (generator_domain.FSWriterPort) which handles file system writes.
+// Takes outputSandbox (safedisk.Sandbox) which restricts output to a safe directory.
 // Takes resolver (resolver_domain.ResolverPort) which provides the module name.
 //
-// Returns generator_domain.SearchIndexEmitterPort which emits search index
-// data.
+// Returns generator_domain.SearchIndexEmitterPort which emits search index data.
 func (*Container) createSearchIndexEmitter(
 	fsWriter generator_domain.FSWriterPort,
 	outputSandbox safedisk.Sandbox,
@@ -625,8 +599,8 @@ func (*Container) createSearchIndexEmitter(
 
 // createPKJSEmitter creates the PK JavaScript emitter for the generator.
 //
-// Returns generator_domain.PKJSEmitterPort which outputs JavaScript for PK
-// client scripts.
+// Returns generator_domain.PKJSEmitterPort which outputs JavaScript for PK client
+// scripts.
 func (c *Container) createPKJSEmitter() generator_domain.PKJSEmitterPort {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	registryService, err := c.GetRegistryService()
@@ -639,8 +613,7 @@ func (c *Container) createPKJSEmitter() generator_domain.PKJSEmitterPort {
 
 // getSEOServiceOptional returns the SEO service, or nil if not available.
 //
-// Returns seo_domain.SEOService which is the SEO service, or nil if setup
-// fails.
+// Returns seo_domain.SEOService which is the SEO service, or nil if setup fails.
 func (c *Container) getSEOServiceOptional() seo_domain.SEOService {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	seoService, err := c.GetSEOService()
@@ -651,8 +624,7 @@ func (c *Container) getSEOServiceOptional() seo_domain.SEOService {
 	return seoService
 }
 
-// GetTypeInspectorManager returns the type inspection manager, creating it
-// if needed.
+// GetTypeInspectorManager returns the type inspection manager, creating it if needed.
 //
 // Returns *inspector_domain.TypeBuilder which provides type inspection.
 // Returns error when the manager cannot be created.
@@ -669,8 +641,8 @@ func (c *Container) GetTypeInspectorManager() (*inspector_domain.TypeBuilder, er
 	return c.typeInspectorBuilder, c.typeInspectorBuilderErr
 }
 
-// createDefaultTypeInspectorManager sets up the type inspector builder with
-// default settings.
+// createDefaultTypeInspectorManager sets up the type inspector builder with default
+// settings.
 func (c *Container) createDefaultTypeInspectorManager() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default TypeInspectorManager...")
@@ -713,12 +685,12 @@ func (c *Container) createDefaultTypeInspectorManager() {
 	)
 }
 
-// GetCollectionService returns the collection service, initialising it if
-// needed. The collection service is responsible for processing GetCollection()
-// calls detected by the type resolver during template annotation.
+// GetCollectionService returns the collection service, initialising it if needed. The
+// collection service is responsible for processing GetCollection() calls detected by the
+// type resolver during template annotation.
 //
-// Returns collection_domain.CollectionService which handles collection
-// processing for template annotation.
+// Returns collection_domain.CollectionService which handles collection processing for
+// template annotation.
 // Returns error when the service fails to initialise.
 func (c *Container) GetCollectionService() (collection_domain.CollectionService, error) {
 	c.collectionServiceOnce.Do(func() {
@@ -727,8 +699,8 @@ func (c *Container) GetCollectionService() (collection_domain.CollectionService,
 	return c.collectionService, c.collectionServiceErr
 }
 
-// createDefaultCollectionService sets up the collection service with default
-// settings and stores any error in the container.
+// createDefaultCollectionService sets up the collection service with default settings and
+// stores any error in the container.
 func (c *Container) createDefaultCollectionService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CollectionService...")
@@ -745,9 +717,9 @@ func (c *Container) createDefaultCollectionService() {
 	initHybridCache(c)
 }
 
-// GetSearchService returns the search service, initialising it if needed.
-// The search service provides full-text search functionality for static
-// collections using pre-built FlatBuffer search indexes.
+// GetSearchService returns the search service, initialising it if needed. The search
+// service provides full-text search functionality for static collections using pre-built
+// FlatBuffer search indexes.
 //
 // Returns collection_domain.SearchServicePort which is the search service.
 // Returns error when the search service cannot be initialised.
@@ -758,8 +730,8 @@ func (c *Container) GetSearchService() (collection_domain.SearchServicePort, err
 	return c.searchService, c.searchServiceErr
 }
 
-// createDefaultSearchService sets up the search service with default settings,
-// or uses an override if one has been provided.
+// createDefaultSearchService sets up the search service with default settings, or uses an
+// override if one has been provided.
 func (c *Container) createDefaultSearchService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	if c.searchServiceOverride != nil {
@@ -772,8 +744,8 @@ func (c *Container) createDefaultSearchService() {
 	c.searchService = collection_domain.NewSearchService()
 }
 
-// SetSearchService sets a custom search service implementation.
-// This is typically used for testing with mock implementations.
+// SetSearchService sets a custom search service implementation. This is typically used
+// for testing with mock implementations.
 //
 // Takes service (SearchServicePort) which is the search service to use.
 func (c *Container) SetSearchService(service collection_domain.SearchServicePort) {

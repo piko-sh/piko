@@ -37,21 +37,19 @@ const (
 	// DefaultPikoEndpoint is the default Piko application URL.
 	DefaultPikoEndpoint = "http://localhost:8080"
 
-	// DefaultHealthEndpoint is the default Piko health server URL.
-	// The health server runs on a separate port (9090) for Kubernetes probes.
+	// DefaultHealthEndpoint is the default Piko health server URL. The health server runs on
+	// a separate port (9090) for Kubernetes probes.
 	DefaultHealthEndpoint = "http://localhost:9090"
 
-	// DefaultMonitoringEndpoint is the default Piko gRPC monitoring server address
-	// on port 9091. Uses 127.0.0.1 explicitly to avoid IPv6/IPv4 mismatch issues
-	// with "localhost".
+	// DefaultMonitoringEndpoint is the default Piko gRPC monitoring server address on port
+	// 9091. Uses 127.0.0.1 explicitly to avoid IPv6/IPv4 mismatch issues with "localhost".
 	DefaultMonitoringEndpoint = "127.0.0.1:9091"
 )
 
-// Config holds the configuration for the TUI monitoring tool.
-// Populated by the public facade's With* options.
+// Config holds the configuration for the TUI monitoring tool. Populated by the public
+// facade's With* options.
 type Config struct {
-	// Clock supplies the current time, allowing tests to inject a
-	// deterministic clock.
+	// Clock supplies the current time, allowing tests to inject a deterministic clock.
 	Clock clock.Clock
 
 	// Title is the window title displayed in the terminal interface.
@@ -81,8 +79,7 @@ type Config struct {
 
 // GetClock returns the configured clock, defaulting to RealClock if nil.
 //
-// Returns clock.Clock which is the configured clock or a real clock if none
-// was set.
+// Returns clock.Clock which is the configured clock or a real clock if none was set.
 func (c *Config) GetClock() clock.Clock {
 	if c.Clock == nil {
 		return clock.RealClock()

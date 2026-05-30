@@ -28,15 +28,19 @@ import (
 	"piko.sh/piko/internal/testutil/leakcheck"
 )
 
-var testStdlibData *inspector_dto.TypeData
+var (
+	testStdlibData *inspector_dto.TypeData
+)
 
-var MinimalStdlibPackages = []string{
-	"time",
-	"context",
-	"fmt",
-	"strings",
-	"net/http",
-}
+var (
+	MinimalStdlibPackages = []string{
+		"time",
+		"context",
+		"fmt",
+		"strings",
+		"net/http",
+	}
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

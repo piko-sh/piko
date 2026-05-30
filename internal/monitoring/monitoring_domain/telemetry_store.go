@@ -28,24 +28,26 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-var _ TelemetryProvider = (*TelemetryStore)(nil)
+var (
+	_ TelemetryProvider = (*TelemetryStore)(nil)
+)
 
 const (
-	// DefaultMaxSpans is the default maximum number of spans to retain.
-	// Increased from 1000 to support Routes panel aggregation.
+	// DefaultMaxSpans is the default maximum number of spans to retain. Increased from 1000
+	// to support Routes panel aggregation.
 	DefaultMaxSpans = 10000
 
-	// DefaultMaxMetrics is the default maximum number of metrics to retain.
-	// Increased from 500 to support per-path metric cardinality.
+	// DefaultMaxMetrics is the default maximum number of metrics to retain. Increased from
+	// 500 to support per-path metric cardinality.
 	DefaultMaxMetrics = 2000
 
-	// DefaultMaxMetricAge is the default maximum age for metric data points.
-	// Increased from 5 minutes to support longer-term trend analysis.
+	// DefaultMaxMetricAge is the default maximum age for metric data points. Increased from
+	// 5 minutes to support longer-term trend analysis.
 	DefaultMaxMetricAge = 15 * time.Minute
 )
 
-// InternalMetricDataPoint represents a single metric value at a point in time.
-// This is the internal storage type; GetMetrics converts to domain types.
+// InternalMetricDataPoint represents a single metric value at a point in time. This is
+// the internal storage type; GetMetrics converts to domain types.
 type InternalMetricDataPoint struct {
 	// Timestamp is when the data point was recorded.
 	Timestamp time.Time
@@ -57,8 +59,8 @@ type InternalMetricDataPoint struct {
 	Value float64
 }
 
-// InternalMetricData represents a metric with its recent values.
-// This is the internal storage type; GetMetrics converts it to domain types.
+// InternalMetricData represents a metric with its recent values. This is the internal
+// storage type; GetMetrics converts it to domain types.
 type InternalMetricData struct {
 	// Name string // Name is the identifier for this metric.
 	Name string
@@ -88,8 +90,8 @@ type InternalSpanEvent struct {
 	Name string
 }
 
-// InternalSpanData represents a trace span.
-// This is the internal storage type; GetSpans converts to domain types.
+// InternalSpanData represents a trace span. This is the internal storage type; GetSpans
+// converts to domain types.
 type InternalSpanData struct {
 	// StartTime is when the span began.
 	StartTime time.Time
@@ -141,20 +143,20 @@ type StoreConfig struct {
 
 	// MaxMetrics is the maximum number of metrics to store.
 	//
-	// New entries past the cap are dropped (fail-closed); existing
-	// entries are not evicted. A value of 0 disables the cap.
+	// New entries past the cap are dropped (fail-closed); existing entries are not evicted.
+	// A value of 0 disables the cap.
 	MaxMetrics int
 
-	// MaxMetricAge is the maximum age for metric data points; older points are
-	// trimmed during recording.
+	// MaxMetricAge is the maximum age for metric data points; older points are trimmed
+	// during recording.
 	MaxMetricAge time.Duration
 }
 
 // StoreOption configures the telemetry store.
 type StoreOption func(*StoreConfig)
 
-// TelemetryStore provides safe in-memory storage for metrics and spans.
-// It implements TelemetryProvider and can be used by multiple goroutines.
+// TelemetryStore provides safe in-memory storage for metrics and spans. It implements
+// TelemetryProvider and can be used by multiple goroutines.
 type TelemetryStore struct {
 	// clock provides the time source for recording metric timestamps.
 	clock clock.Clock
@@ -171,9 +173,8 @@ type TelemetryStore struct {
 	// spanIndex is the current position in the ring buffer for spans.
 	spanIndex int
 
-	// metricCapWarnOnce ensures the cap-hit warning is logged at most once
-	// per store lifetime, preventing log floods when a misbehaving caller
-	// drives high cardinality.
+	// metricCapWarnOnce ensures the cap-hit warning is logged at most once per store
+	// lifetime, preventing log floods when a misbehaving caller drives high cardinality.
 	metricCapWarnOnce sync.Once
 
 	// metricsMutex sync.RWMutex // metricsMutex guards access to the metrics map.
@@ -228,15 +229,13 @@ func NewTelemetryStore(opts ...StoreOption) *TelemetryStore {
 //
 // Safe for concurrent use. Protected by a mutex.
 //
-// New entries are dropped (fail-closed) once the configured MaxMetrics
-// cap is reached; MaxMetrics of 0 disables the cap. Existing entries
-// continue to accumulate data points so cardinality cannot escape via
-// later calls. The cap-hit is logged once per store lifetime to avoid
-// log floods.
+// New entries are dropped (fail-closed) once the configured MaxMetrics cap is reached;
+// MaxMetrics of 0 disables the cap. Existing entries continue to accumulate data points
+// so cardinality cannot escape via later calls. The cap-hit is logged once per store
+// lifetime to avoid log floods.
 //
-// TODO: the per-call DataPoints slice rebuild allocates fresh storage
-// every recording. If profiling flags this on a hot path, switch to
-// in-place compaction or a ring buffer.
+// Note: the per-call DataPoints slice rebuild allocates fresh storage on every recording;
+// profiling-driven hot paths may benefit from in-place compaction or a ring buffer.
 func (s *TelemetryStore) RecordMetric(name, description, unit, metricType string, value float64, attributes map[string]string) {
 	s.metricsMutex.Lock()
 	defer s.metricsMutex.Unlock()
@@ -301,8 +300,7 @@ func (s *TelemetryStore) RecordSpan(span InternalSpanData) {
 	}
 }
 
-// GetMetrics returns all current metrics in domain format.
-// Implements TelemetryProvider.
+// GetMetrics returns all current metrics in domain format. Implements TelemetryProvider.
 //
 // Returns []MetricData which contains a snapshot of all stored metrics.
 //
@@ -334,11 +332,10 @@ func (s *TelemetryStore) GetMetrics() []MetricData {
 	return result
 }
 
-// GetSpans returns recent spans in domain format.
-// Implements TelemetryProvider.
+// GetSpans returns recent spans in domain format. Implements TelemetryProvider.
 //
-// Takes limit (int) which specifies the maximum number of spans to return.
-// A value of zero or less returns all spans.
+// Takes limit (int) which specifies the maximum number of spans to return. A value of
+// zero or less returns all spans.
 // Takes errorsOnly (bool) which filters to only spans with error status.
 //
 // Returns []SpanData which contains spans in reverse chronological order.
@@ -378,8 +375,8 @@ func (s *TelemetryStore) GetSpans(limit int, errorsOnly bool) []SpanData {
 	return result
 }
 
-// GetSpanByTraceID returns all spans for a given trace ID in domain format.
-// Implements TelemetryProvider.
+// GetSpanByTraceID returns all spans for a given trace ID in domain format. Implements
+// TelemetryProvider.
 //
 // Takes traceID (string) which identifies the trace to retrieve spans for.
 //
@@ -402,8 +399,7 @@ func (s *TelemetryStore) GetSpanByTraceID(traceID string) []SpanData {
 
 // convertSpanToDomain converts internal span data to domain format.
 //
-// Takes span (InternalSpanData) which contains the internal span data to
-// convert.
+// Takes span (InternalSpanData) which contains the internal span data to convert.
 //
 // Returns SpanData which is the converted span in domain format.
 func (*TelemetryStore) convertSpanToDomain(span InternalSpanData) SpanData {
@@ -457,8 +453,8 @@ func WithMaxMetrics(n int) StoreOption {
 
 // WithMaxMetricAge sets the maximum age for metric data points.
 //
-// Takes d (time.Duration) which specifies how long metric data points are
-// retained before expiry.
+// Takes d (time.Duration) which specifies how long metric data points are retained before
+// expiry.
 //
 // Returns StoreOption which configures the maximum metric age on a store.
 func WithMaxMetricAge(d time.Duration) StoreOption {
@@ -480,11 +476,10 @@ func WithStoreClock(clk clock.Clock) StoreOption {
 
 // attributesToKey creates a unique key suffix from attributes.
 //
-// Iteration order of a Go map is randomised, so the suffix is built
-// from keys collected via slices.Sorted(maps.Keys(...)) to guarantee
-// the same attribute set always produces the same key. Without this,
-// callers re-passing identical attributes would mint fresh map entries
-// indefinitely (cardinality bomb).
+// Iteration order of a Go map is randomised, so the suffix is built from keys collected
+// via slices.Sorted(maps.Keys(...)) to guarantee the same attribute set always produces
+// the same key. Without this, callers re-passing identical attributes would mint fresh
+// map entries indefinitely (cardinality bomb).
 //
 // Takes attrs (map[string]string) which contains the key-value pairs to encode.
 //

@@ -26,14 +26,15 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 )
 
-// osSignalNotifier implements SignalNotifier for production use.
-// It listens for SIGINT and SIGTERM signals using signal.NotifyContext.
+// osSignalNotifier implements SignalNotifier for production use. It listens for SIGINT
+// and SIGTERM signals using signal.NotifyContext.
 type osSignalNotifier struct{}
 
-var _ daemon_domain.SignalNotifier = (*osSignalNotifier)(nil)
+var (
+	_ daemon_domain.SignalNotifier = (*osSignalNotifier)(nil)
+)
 
-// NotifyContext returns a context that is cancelled when SIGINT or SIGTERM
-// is received.
+// NotifyContext returns a context that is cancelled when SIGINT or SIGTERM is received.
 //
 // Returns context.Context which is cancelled upon receiving a signal.
 // Returns context.CancelFunc which can be called to release resources.

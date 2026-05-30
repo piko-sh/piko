@@ -24,9 +24,8 @@ import (
 	"slices"
 )
 
-// Allocate splits a Money value into parts based on the given ratios.
-// Any remainder is added to the last part so the sum of all parts equals
-// the original value.
+// Allocate splits a Money value into parts based on the given ratios. Any remainder is
+// added to the last part so the sum of all parts equals the original value.
 //
 // Takes ratios (...int64) which specifies how to divide the value.
 //
@@ -56,13 +55,13 @@ func (m Money) Allocate(ratios ...int64) ([]Money, error) {
 	return results, nil
 }
 
-// AverageMoney returns the average of the given money values.
-// All values must have the same currency.
+// AverageMoney returns the average of the given money values. All values must have the
+// same currency.
 //
 // Takes monies (...Money) which provides the values to average.
 //
-// Returns Money which contains the calculated average, or an error-state Money
-// if the slice is empty or currencies do not match.
+// Returns Money which contains the calculated average, or an error-state Money if the
+// slice is empty or currencies do not match.
 func AverageMoney(monies ...Money) Money {
 	if len(monies) == 0 {
 		return Money{err: errors.New("money: cannot calculate average of an empty slice")}
@@ -77,8 +76,8 @@ func AverageMoney(monies ...Money) Money {
 	return sum.Divide(count)
 }
 
-// SumMoney returns the sum of all money values in a slice.
-// All values must have the same currency.
+// SumMoney returns the sum of all money values in a slice. All values must have the same
+// currency.
 //
 // When the slice is empty, returns an error-state Money.
 //
@@ -96,8 +95,8 @@ func SumMoney(monies ...Money) Money {
 	return sum
 }
 
-// AbsSumMoney returns the sum of the absolute values of all money in a slice.
-// All values must have the same currency.
+// AbsSumMoney returns the sum of the absolute values of all money in a slice. All values
+// must have the same currency.
 //
 // When the slice is empty, returns an error-state Money.
 //
@@ -122,14 +121,14 @@ func AbsSumMoney(monies ...Money) Money {
 	return sum
 }
 
-// MinMoney returns the smallest Money value from a list of arguments.
-// All values must have the same currency.
+// MinMoney returns the smallest Money value from a list of arguments. All values must
+// have the same currency.
 //
 // Takes m1 (Money) which is the first value to compare.
 // Takes others (...Money) which are extra values to compare.
 //
-// Returns Money which is the smallest value. Returns an error Money if any
-// value has an error or if currencies do not match.
+// Returns Money which is the smallest value.
+// Returns an error Money if any value has an error or if currencies do not match.
 func MinMoney(m1 Money, others ...Money) Money {
 	if m1.err != nil {
 		return m1
@@ -150,14 +149,14 @@ func MinMoney(m1 Money, others ...Money) Money {
 	return minValue
 }
 
-// MaxMoney returns the largest money value from a list of arguments.
-// All values must have the same currency.
+// MaxMoney returns the largest money value from a list of arguments. All values must have
+// the same currency.
 //
 // Takes m1 (Money) which is the first value to compare.
 // Takes others (...Money) which are extra values to compare.
 //
-// Returns Money which is the largest value. If any value has an error or the
-// currencies do not match, returns a Money with an error instead.
+// Returns Money which is the largest value. If any value has an error or the currencies
+// do not match, returns a Money with an error instead.
 func MaxMoney(m1 Money, others ...Money) Money {
 	if m1.err != nil {
 		return m1
@@ -182,8 +181,8 @@ func MaxMoney(m1 Money, others ...Money) Money {
 //
 // Takes monies ([]Money) which is the slice to sort in place.
 //
-// Returns error when any value has an error, when currencies are mismatched,
-// or when an unexpected comparison error occurs during sorting.
+// Returns error when any value has an error, when currencies are mismatched, or when an
+// unexpected comparison error occurs during sorting.
 func SortMoney(monies []Money) error {
 	return sortMoneyInternal(monies, Money.LessThan)
 }
@@ -192,21 +191,21 @@ func SortMoney(monies []Money) error {
 //
 // Takes monies ([]Money) which contains the values to sort in place.
 //
-// Returns error when any value has an error, when currencies are mismatched,
-// or when an unexpected comparison error occurs during sorting.
+// Returns error when any value has an error, when currencies are mismatched, or when an
+// unexpected comparison error occurs during sorting.
 func SortMoneyReverse(monies []Money) error {
 	return sortMoneyInternal(monies, Money.GreaterThan)
 }
 
-// sortMoneyInternal validates currency consistency and sorts using the given
-// comparison function.
+// sortMoneyInternal validates currency consistency and sorts using the given comparison
+// function.
 //
 // Takes monies ([]Money) which is the slice to sort in place.
-// Takes compare (func(Money, Money) (bool, error)) which returns true when
-// the first argument should come before the second.
+// Takes compare (func(Money, Money) (bool, error)) which returns true when the first
+// argument should come before the second.
 //
-// Returns error when any value has an error, when currencies are mismatched,
-// or when an unexpected comparison error occurs during sorting.
+// Returns error when any value has an error, when currencies are mismatched, or when an
+// unexpected comparison error occurs during sorting.
 func sortMoneyInternal(monies []Money, compare func(Money, Money) (bool, error)) error {
 	if len(monies) <= 1 {
 		return nil

@@ -41,8 +41,10 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// payloadKeyArtefactID is the payload key for artefact identifiers.
-const payloadKeyArtefactID = "artefactID"
+const (
+	// payloadKeyArtefactID is the payload key for artefact identifiers.
+	payloadKeyArtefactID = "artefactID"
+)
 
 var (
 	_ orchestrator_domain.TaskExecutor = (*compilerExecutor)(nil)
@@ -54,9 +56,10 @@ var (
 	compilerSHA384Pool = sync.Pool{New: func() any { return sha512.New384() }}
 )
 
-// ExecutorNameArtefactCompiler is the executor name for artefact compilation
-// tasks.
-const ExecutorNameArtefactCompiler = "artefact.compiler"
+const (
+	// ExecutorNameArtefactCompiler is the executor name for artefact compilation tasks.
+	ExecutorNameArtefactCompiler = "artefact.compiler"
+)
 
 // readCounter wraps an io.Reader to track the number of bytes read.
 type readCounter struct {
@@ -99,8 +102,8 @@ type compilerPayload struct {
 	TaskID string
 }
 
-// compilerExecutor runs artefact compilation tasks.
-// It implements the orchestrator_domain.TaskExecutor interface.
+// compilerExecutor runs artefact compilation tasks. It implements the
+// orchestrator_domain.TaskExecutor interface.
 type compilerExecutor struct {
 	// registryService provides access to artefact data and blob storage.
 	registryService registry_domain.RegistryService
@@ -111,14 +114,13 @@ type compilerExecutor struct {
 
 // Execute runs the artefact compilation task with the given payload.
 //
-// Takes payload (map[string]any) which contains the task configuration
-// including artefact ID, source variant, and capability to run.
+// Takes payload (map[string]any) which contains the task configuration including artefact
+// ID, source variant, and capability to run.
 //
-// Returns map[string]any which contains the compilation result with the new
-// variant details.
-// Returns error when the payload is invalid, task metadata cannot be fetched,
-// source data is unavailable, capability execution fails, or variant
-// registration fails.
+// Returns map[string]any which contains the compilation result with the new variant
+// details.
+// Returns error when the payload is invalid, task metadata cannot be fetched, source data
+// is unavailable, capability execution fails, or variant registration fails.
 func (e *compilerExecutor) Execute(ctx context.Context, payload map[string]any) (map[string]any, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "compilerExecutor.Execute",
@@ -140,8 +142,8 @@ func (e *compilerExecutor) Execute(ctx context.Context, payload map[string]any) 
 	return e.runCompilation(ctx, span, startTime, p)
 }
 
-// enrichContext attaches task-specific fields to the logger and returns the
-// enriched context.
+// enrichContext attaches task-specific fields to the logger and returns the enriched
+// context.
 //
 // Takes ctx (context.Context) which carries the current context.
 // Takes l (logger_domain.Logger) which is the current logger to enrich.
@@ -159,8 +161,8 @@ func (*compilerExecutor) enrichContext(ctx context.Context, l logger_domain.Logg
 	return logger_domain.WithLogger(ctx, l)
 }
 
-// runCompilation executes the full compilation pipeline: fetch metadata, read
-// source, run capability, store output, and register the variant.
+// runCompilation executes the full compilation pipeline: fetch metadata, read source, run
+// capability, store output, and register the variant.
 //
 // Takes ctx (context.Context) which carries tracing and cancellation.
 // Takes span (trace.Span) which is the parent tracing span.
@@ -217,14 +219,13 @@ func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, 
 	return recordCompilationSuccess(ctx, startTime, &newVariant)
 }
 
-// handleCapabilityError records the capability error metric and wraps the
-// error, marking it as fatal when appropriate.
+// handleCapabilityError records the capability error metric and wraps the error, marking
+// it as fatal when appropriate.
 //
 // Takes ctx (context.Context) which carries tracing and metrics context.
 // Takes span (trace.Span) which is the parent tracing span.
 // Takes l (logger_domain.Logger) which logs the failure.
-// Takes p (*compilerPayload) which provides the capability name for the error
-// message.
+// Takes p (*compilerPayload) which provides the capability name for the error message.
 // Takes err (error) which is the original capability error.
 //
 // Returns error which is the wrapped (and optionally fatal) error.
@@ -259,8 +260,7 @@ func (*compilerExecutor) parsePayload(
 	return p, err
 }
 
-// fetchTaskMetadata gets the artefact, source variant, and desired profile
-// for a task.
+// fetchTaskMetadata gets the artefact, source variant, and desired profile for a task.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which holds the task details to look up.
@@ -292,8 +292,7 @@ func (e *compilerExecutor) fetchTaskMetadata(
 // fetchSourceStream retrieves the source data stream for a variant.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
-// Takes sourceVariant (*registry_dto.Variant) which identifies the variant to
-// fetch.
+// Takes sourceVariant (*registry_dto.Variant) which identifies the variant to fetch.
 //
 // Returns io.ReadCloser which provides the source data stream.
 // Returns error when the variant data cannot be retrieved.
@@ -349,14 +348,14 @@ func (e *compilerExecutor) executeCapability(
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which contains the compilation request details.
 // Takes artefact (*registry_dto.ArtefactMeta) which provides artefact metadata.
-// Takes sourceVariant (*registry_dto.Variant) which is the parent variant used
-// as input to the capability.
-// Takes desiredProfile (*registry_dto.DesiredProfile) which specifies the
-// target profile and resulting tags.
+// Takes sourceVariant (*registry_dto.Variant) which is the parent variant used as input
+// to the capability.
+// Takes desiredProfile (*registry_dto.DesiredProfile) which specifies the target profile
+// and resulting tags.
 // Takes outputStream (io.Reader) which provides the compiled output to store.
 //
-// Returns registry_dto.Variant which contains the created variant record with
-// storage details and metadata.
+// Returns registry_dto.Variant which contains the created variant record with storage
+// details and metadata.
 // Returns error when the blob store cannot be retrieved or storage fails.
 func (e *compilerExecutor) storeAndCreateVariant(
 	ctx context.Context,
@@ -429,8 +428,7 @@ func (e *compilerExecutor) getBlobStore(
 	return blobStore, err
 }
 
-// streamToStorageResult holds the output of streaming processed content to
-// blob storage.
+// streamToStorageResult holds the output of streaming processed content to blob storage.
 type streamToStorageResult struct {
 	// sriHash is the SRI integrity hash in "sha384-<base64>" format.
 	sriHash string
@@ -445,8 +443,8 @@ type streamToStorageResult struct {
 	size int64
 }
 
-// acquireCompilerHashers retrieves and resets SHA-256 and SHA-384 hashers from
-// their respective pools.
+// acquireCompilerHashers retrieves and resets SHA-256 and SHA-384 hashers from their
+// respective pools.
 //
 // Returns hash.Hash which is the reset SHA-256 hasher.
 // Returns hash.Hash which is the reset SHA-384 hasher.
@@ -467,20 +465,20 @@ func acquireCompilerHashers() (sha256Hasher hash.Hash, sha384Hasher hash.Hash, e
 	return sha256Hasher, sha384Hasher, nil
 }
 
-// streamToStorage writes the output stream to blob storage and returns the
-// hash, size, and final storage key.
+// streamToStorage writes the output stream to blob storage and returns the hash, size,
+// and final storage key.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes p (*compilerPayload) which contains the task ID for temporary storage.
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the source path
-// for building the final key.
-// Takes desiredProfile (*registry_dto.DesiredProfile) which specifies the
-// output file extension.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the source path for building
+// the final key.
+// Takes desiredProfile (*registry_dto.DesiredProfile) which specifies the output file
+// extension.
 // Takes blobStore (registry_domain.BlobStore) which is the storage backend.
 // Takes outputStream (io.Reader) which provides the data to store.
 //
-// Returns streamToStorageResult which holds the hash, SRI hash, size, and
-// storage key of the stored content.
+// Returns streamToStorageResult which holds the hash, SRI hash, size, and storage key of
+// the stored content.
 // Returns error when the blob cannot be written or renamed.
 func (*compilerExecutor) streamToStorage(
 	ctx context.Context,
@@ -573,17 +571,17 @@ func (e *compilerExecutor) registerVariant(
 	})
 }
 
-// getTaskMetadata fetches the artefact, source variant, and desired profile
-// for a compilation task.
+// getTaskMetadata fetches the artefact, source variant, and desired profile for a
+// compilation task.
 //
-// Takes p (*compilerPayload) which holds the artefact ID, source variant ID,
-// and desired profile name to look up.
+// Takes p (*compilerPayload) which holds the artefact ID, source variant ID, and desired
+// profile name to look up.
 //
 // Returns *registry_dto.ArtefactMeta which is the full artefact metadata.
 // Returns *registry_dto.Variant which is the source variant to compile from.
 // Returns *registry_dto.DesiredProfile which is the target profile for output.
-// Returns error when the artefact cannot be found, the source variant does not
-// exist, or the desired profile is not set.
+// Returns error when the artefact cannot be found, the source variant does not exist, or
+// the desired profile is not set.
 func (e *compilerExecutor) getTaskMetadata(ctx context.Context, p *compilerPayload) (*registry_dto.ArtefactMeta, *registry_dto.Variant, *registry_dto.DesiredProfile, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "compilerExecutor.getTaskMetadata",
@@ -625,13 +623,13 @@ func (e *compilerExecutor) getTaskMetadata(ctx context.Context, p *compilerPaylo
 	return artefact, sourceVariant, &desiredProfile, nil
 }
 
-// NewCompilerExecutor creates a new compilerExecutor with the given registry
-// and capability services.
+// NewCompilerExecutor creates a new compilerExecutor with the given registry and
+// capability services.
 //
-// Takes registry (registry_domain.RegistryService) which provides access to
-// the registry for compiler lookup.
-// Takes capabilities (capabilities_domain.CapabilityService) which provides
-// capability checking for compilation tasks.
+// Takes registry (registry_domain.RegistryService) which provides access to the registry
+// for compiler lookup.
+// Takes capabilities (capabilities_domain.CapabilityService) which provides capability
+// checking for compilation tasks.
 //
 // Returns orchestrator_domain.TaskExecutor which executes compilation tasks.
 func NewCompilerExecutor(
@@ -644,14 +642,14 @@ func NewCompilerExecutor(
 	}
 }
 
-// wrapFatalIfNeeded wraps the given error as a fatal orchestrator error when
-// the cause is a fatal capability error.
+// wrapFatalIfNeeded wraps the given error as a fatal orchestrator error when the cause is
+// a fatal capability error.
 //
 // Takes cause (error) which is the original error to check for fatality.
 // Takes wrapped (error) which is the contextual error to wrap.
 //
-// Returns error which is either a fatal orchestrator error or the wrapped
-// error unchanged.
+// Returns error which is either a fatal orchestrator error or the wrapped error
+// unchanged.
 func wrapFatalIfNeeded(cause, wrapped error) error {
 	if capabilities_domain.IsFatalError(cause) {
 		return orchestrator_domain.NewFatalError(wrapped)
@@ -659,8 +657,7 @@ func wrapFatalIfNeeded(cause, wrapped error) error {
 	return wrapped
 }
 
-// recordCompilationSuccess logs a successful compilation and returns the
-// result.
+// recordCompilationSuccess logs a successful compilation and returns the result.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes startTime (time.Time) which marks when compilation started.
@@ -729,12 +726,10 @@ func parseCompilerPayload(payload map[string]any) (*compilerPayload, error) {
 	return &p, nil
 }
 
-// parseCapabilityParams extracts and converts capability parameters from a
-// payload map.
+// parseCapabilityParams extracts and converts capability parameters from a payload map.
 //
-// When the payload lacks a capabilityParams key or the value is nil, returns
-// an empty map. Non-string values within a map[string]any are skipped without
-// warning.
+// When the payload lacks a capabilityParams key or the value is nil, returns an empty
+// map. Non-string values within a map[string]any are skipped without warning.
 //
 // Takes payload (map[string]any) which contains the raw payload to parse.
 //
@@ -770,8 +765,8 @@ func parseCapabilityParams(payload map[string]any) (map[string]string, error) {
 // Takes key (string) which is the map key to look up.
 //
 // Returns string which is the value found at the given key.
-// Returns error when the key is missing, the value is not a string, or the
-// value is empty.
+// Returns error when the key is missing, the value is not a string, or the value is
+// empty.
 func getString(payload map[string]any, key string) (string, error) {
 	value, ok := payload[key]
 	if !ok {
@@ -789,8 +784,8 @@ func getString(payload map[string]any, key string) (string, error) {
 // Takes variants ([]registry_dto.Variant) which is the slice to search.
 // Takes id (string) which is the variant ID to find.
 //
-// Returns *registry_dto.Variant which points to the matching variant, or nil
-// if not found.
+// Returns *registry_dto.Variant which points to the matching variant, or nil if not
+// found.
 func findVariantByID(variants []registry_dto.Variant, id string) *registry_dto.Variant {
 	for i := range variants {
 		if variants[i].VariantID == id {

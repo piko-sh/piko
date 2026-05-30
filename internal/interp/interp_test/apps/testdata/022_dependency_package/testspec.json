@@ -1,0 +1,5 @@
+{
+  "description": "Multi-file non-main dependency package with intra-package cross-file references",
+  "modulePath": "testpkg",
+  "expected": "sum=15 doubled=30 squared=225"
+}

@@ -16,23 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package captcha_provider_turnstile provides a Cloudflare Turnstile
-// captcha provider.
+// Package captcha_provider_turnstile provides a Cloudflare Turnstile captcha provider.
 //
-// This provider delegates verification to Cloudflare's Turnstile
-// service (challenges.cloudflare.com), a privacy-friendly, free
-// alternative to traditional CAPTCHAs. Turnstile uses non-interactive
-// challenges and does not require users to solve puzzles.
+// This provider delegates verification to Cloudflare's Turnstile service
+// (challenges.cloudflare.com), a privacy-friendly, free alternative to traditional
+// CAPTCHAs. Turnstile uses non-interactive challenges and does not require users to solve
+// puzzles.
 //
-// Turnstile returns a pass/fail outcome. On success the provider
-// reports a normalised score of 1.0; on failure it reports 0.0.
-// Tokens are valid for 5 minutes and are single-use. There is no
-// official Go SDK, so this provider communicates with the Turnstile
-// API via HTTP directly.
+// Turnstile returns a pass/fail outcome. On success the provider reports a normalised
+// score of 1.0; on failure it reports 0.0. Tokens are valid for 5 minutes and are
+// single-use. There is no official Go SDK, so this provider communicates with the
+// Turnstile API via HTTP directly.
 //
-// Obtain a site key and secret key from the Cloudflare dashboard
-// under Turnstile settings. The provider needs only these two
-// credentials:
+// Obtain a site key and secret key from the Cloudflare dashboard under Turnstile
+// settings. The provider needs only these two credentials:
 //
 //	provider, err := captcha_provider_turnstile.NewProvider(captcha_provider_turnstile.Config{
 //	    SiteKey:   "0x4AAAAAAAB...",

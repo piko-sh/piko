@@ -1,0 +1,13 @@
+package lib
+
+type Tag struct {
+	name string
+}
+
+func New(name string) Tag {
+	return Tag{name: name}
+}
+
+func (t Tag) String() string {
+	return "<" + t.name + ">"
+}

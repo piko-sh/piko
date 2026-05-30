@@ -22,6 +22,6 @@ package colour
 
 // ioctlGetTermios is not available on this platform.
 //
-// The isTerminal function in terminal_unix.go will always return false, so
-// colour auto-detection is disabled. Use FORCE_COLOUR to enable colour output.
+// The isTerminal function in terminal_unix.go will always return false, so colour
+// auto-detection is disabled. Use FORCE_COLOUR to enable colour output.
 const ioctlGetTermios = 0

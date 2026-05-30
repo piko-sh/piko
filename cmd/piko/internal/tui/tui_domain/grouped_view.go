@@ -24,26 +24,26 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// MenuColumnDefaultWidth is the default cell width allocated to the
-// left-column contextual menu when the breakpoint shows it.
-const MenuColumnDefaultWidth = 20
+const (
+	// MenuColumnDefaultWidth is the default cell width allocated to the left-column
+	// contextual menu when the breakpoint shows it.
+	MenuColumnDefaultWidth = 20
 
-// MenuColumnMinWidth is the lower bound below which the menu column
-// folds into a chip-bar above the centre column.
-const MenuColumnMinWidth = 16
+	// MenuColumnMinWidth is the lower bound below which the menu column folds into a
+	// chip-bar above the centre column.
+	MenuColumnMinWidth = 16
 
-// DetailColumnMinFraction is the fraction of the residual width
-// (after the menu column) reserved for the right detail column when
-// it is visible. The remainder goes to centre.
-const DetailColumnMinFraction = 0.4
+	// DetailColumnMinFraction is the fraction of the residual width (after the menu column)
+	// reserved for the right detail column when it is visible. The remainder goes to centre.
+	DetailColumnMinFraction = 0.4
 
-// groupedColumnCount is the maximum number of columns the GroupedView
-// composer ever joins horizontally: left menu, centre, right detail.
-const groupedColumnCount = 3
+	// groupedColumnCount is the maximum number of columns the GroupedView composer ever
+	// joins horizontally: left menu, centre, right detail.
+	groupedColumnCount = 3
+)
 
-// FocusTarget identifies which pane within the GroupedView currently owns
-// keyboard focus. Centre is the default; Tab cycles to Detail and back
-// when the right column is visible.
+// FocusTarget identifies which pane within the GroupedView currently owns keyboard focus.
+// Centre is the default; Tab cycles to Detail and back when the right column is visible.
 type FocusTarget int
 
 const (
@@ -53,31 +53,29 @@ const (
 	// FocusDetail means the right detail pane consumes key presses.
 	FocusDetail
 
-	// FocusMenu means the left menu owns focus (item navigation via
-	// j/k in the menu, Enter activates).
+	// FocusMenu means the left menu owns focus (item navigation via j/k in the menu, Enter
+	// activates).
 	FocusMenu
 )
 
-// GroupVisibilityState records the per-group toggle state for left and
-// right column visibility. It overrides the breakpoint defaults so the
-// user's intent persists across resizes within the same group.
+// GroupVisibilityState records the per-group toggle state for left and right column
+// visibility. It overrides the breakpoint defaults so the user's intent persists across
+// resizes within the same group.
 //
-// A nil pointer means "use the breakpoint default"; non-nil values
-// override.
+// A nil pointer means "use the breakpoint default"; non-nil values override.
 type GroupVisibilityState struct {
-	// LeftOverride, when non-nil, forces the left column visible (true)
-	// or hidden (false) regardless of breakpoint default.
+	// LeftOverride, when non-nil, forces the left column visible (true) or hidden (false)
+	// regardless of breakpoint default.
 	LeftOverride *bool
 
-	// RightOverride, when non-nil, forces the right column visible
-	// (true) or hidden (false) regardless of breakpoint default.
+	// RightOverride, when non-nil, forces the right column visible (true) or hidden (false)
+	// regardless of breakpoint default.
 	RightOverride *bool
 }
 
 // columnVisible resolves an override against a default.
 //
-// Takes override (*bool) which is the user's per-group override; nil
-// means "no override".
+// Takes override (*bool) which is the user's per-group override; nil means "no override".
 // Takes fallback (bool) which is the breakpoint default.
 //
 // Returns bool which is true when the column should be visible.
@@ -88,9 +86,9 @@ func columnVisible(override *bool, fallback bool) bool {
 	return *override
 }
 
-// GroupedViewArgs bundles the inputs to GroupedView.Compose. Bundled into
-// a struct because the call site has many independent fields and a
-// positional signature would be hard to read.
+// GroupedViewArgs bundles the inputs to GroupedView.Compose. Bundled into a struct
+// because the call site has many independent fields and a positional signature would be
+// hard to read.
 type GroupedViewArgs struct {
 	// Group is the active panel group.
 	Group PanelGroup
@@ -120,9 +118,8 @@ type GroupedViewArgs struct {
 	Height int
 }
 
-// GroupedView composes the menu / centre / detail layout for the active
-// group. It owns no state; the model passes the active group, item,
-// focus, and visibility on each frame.
+// GroupedView composes the menu / centre / detail layout for the active group. It owns no
+// state; the model passes the active group, item, focus, and visibility on each frame.
 type GroupedView struct {
 	// menu is the contextual menu renderer.
 	menu *ContextualMenu
@@ -144,15 +141,14 @@ func (v *GroupedView) SetTheme(theme *Theme) {
 	v.menu.SetTheme(theme)
 }
 
-// Compose renders the menu / centre / detail composition at the
-// supplied width and height. The right column collapses before the left
-// when the terminal narrows; below the smallest breakpoint only the
-// centre is rendered by default.
+// Compose renders the menu / centre / detail composition at the supplied width and
+// height. The right column collapses before the left when the terminal narrows; below the
+// smallest breakpoint only the centre is rendered by default.
 //
 // Takes args (GroupedViewArgs) which bundles the rendering inputs.
 //
-// Returns string with the composed body. The caller frames the body
-// with surrounding chrome (breadcrumb above, status bar below).
+// Returns string with the composed body. The caller frames the body with surrounding
+// chrome (breadcrumb above, status bar below).
 func (v *GroupedView) Compose(args GroupedViewArgs) string {
 	if args.Width <= 0 || args.Height <= 0 || args.Group == nil || args.Item.Panel == nil {
 		return ""
@@ -181,21 +177,18 @@ func (v *GroupedView) Compose(args GroupedViewArgs) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 }
 
-// allocate divides width among the visible columns. The menu takes a
-// fixed 20-cell column (down to a 16-cell minimum); the right takes
-// roughly 40% of the residual width when visible; the centre takes the
-// remainder.
+// allocate divides width among the visible columns. The menu takes a fixed 20-cell column
+// (down to a 16-cell minimum); the right takes roughly 40% of the residual width when
+// visible; the centre takes the remainder.
 //
 // Takes width (int) which is the total available width.
-// Takes leftVisible, rightVisible (bool) which are the column visibility
-// flags.
+// Takes leftVisible, rightVisible (bool) which are the column visibility flags.
 //
-// Returns leftWidth (int) which is the cells allocated to the left
-// menu column; 0 when the menu is hidden.
-// Returns centreWidth (int) which is the cells allocated to the centre
-// pane.
-// Returns rightWidth (int) which is the cells allocated to the right
-// detail column; 0 when the right column is hidden.
+// Returns leftWidth (int) which is the cells allocated to the left menu column; 0 when
+// the menu is hidden.
+// Returns centreWidth (int) which is the cells allocated to the centre pane.
+// Returns rightWidth (int) which is the cells allocated to the right detail column; 0
+// when the right column is hidden.
 func (*GroupedView) allocate(width int, leftVisible, rightVisible bool) (leftWidth, centreWidth, rightWidth int) {
 	if !leftVisible && !rightVisible {
 		return 0, width, 0
@@ -258,9 +251,9 @@ func (v *GroupedView) renderMenu(args GroupedViewArgs, width, height int) string
 	})
 }
 
-// renderCentre renders the centre column. Panels render their own
-// frames internally (via BasePanel.RenderFrame), so the composer hands
-// them the full column dimensions without adding another frame.
+// renderCentre renders the centre column. Panels render their own frames internally (via
+// BasePanel.RenderFrame), so the composer hands them the full column dimensions without
+// adding another frame.
 //
 // Takes args (GroupedViewArgs) which is the full compose argument set.
 // Takes width (int) which is the column cell width.
@@ -275,13 +268,12 @@ func (*GroupedView) renderCentre(args GroupedViewArgs, width, height int) string
 	return centre.View(width, height)
 }
 
-// renderDetail renders the right detail column. The active panel
-// supplies its own DetailView body; panels with no per-row detail
-// return "" and the composer falls back to a centred placeholder.
+// renderDetail renders the right detail column. The active panel supplies its own
+// DetailView body; panels with no per-row detail return "" and the composer falls back to
+// a centred placeholder.
 //
-// Takes args (GroupedViewArgs) which is the full compose argument set.
-// Takes width (int) which is the column cell width.
-// Takes height (int) which is the column cell height.
+// Takes args (GroupedViewArgs) which is the full compose argument set. Takes width (int)
+// which is the column cell width. Takes height (int) which is the column cell height.
 //
 // Returns string which is the framed detail column.
 func (*GroupedView) renderDetail(args GroupedViewArgs, width, height int) string {
@@ -307,13 +299,13 @@ func (*GroupedView) renderDetail(args GroupedViewArgs, width, height int) string
 	})
 }
 
-// placeholderDetailBody renders the "no detail available" placeholder
-// the composer uses when the active panel returns "" from DetailView.
+// placeholderDetailBody renders the "no detail available" hint body the composer uses
+// when the active panel returns "" from DetailView.
 //
 // Takes theme (*Theme) for the dim style; may be nil during tests.
-// Takes width (int) and height (int) which size the placeholder.
+// Takes width (int) and height (int) which size the hint body.
 //
-// Returns string with a centred placeholder body.
+// Returns string with a centred hint body.
 func placeholderDetailBody(theme *Theme, width, height int) string {
 	hint := "no detail available"
 	hintWidth := TextWidth(hint)

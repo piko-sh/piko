@@ -16,10 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package typegen_schema contains the FlatBuffers-generated Go
-// types for the LSP Action Manifest schema.
+// Package typegen_schema contains the FlatBuffers-generated Go types for the LSP Action
+// Manifest schema.
 //
-// These types are produced by the FlatBuffers compiler from the
-// action_manifest.fbs definition. All code in this package is
-// generated and should not be edited by hand.
+// These types are produced by the FlatBuffers compiler from the action_manifest.fbs
+// definition. All code in this package is generated and should not be edited by hand.
 package typegen_schema

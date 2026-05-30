@@ -18,28 +18,27 @@
 
 package layouter_dto
 
-// Defines configuration types for the layouter module including page geometry,
-// font settings, and top-level layout configuration.
+// Defines configuration types for the layouter module including page geometry, font
+// settings, and top-level layout configuration.
 
 // LayoutConfig holds all configuration for a layout operation.
 type LayoutConfig struct {
-	// DefaultFontFamily is the font family used when no font-family is
-	// specified in CSS. Defaults to "serif" if empty.
+	// DefaultFontFamily is the font family used when no font-family is specified in CSS.
+	// Defaults to "serif" if empty.
 	DefaultFontFamily string
 
-	// Stylesheets contains additional CSS strings to apply after the
-	// user-agent stylesheet and before inline styles.
+	// Stylesheets contains additional CSS strings to apply after the user-agent stylesheet
+	// and before inline styles.
 	Stylesheets []string
 
 	// Page defines the page geometry (dimensions and margins).
 	Page PageConfig
 
-	// DefaultFontSize is the root font size in points, defaulting to
-	// 12.0 if zero and serving as the basis for rem unit resolution.
+	// DefaultFontSize is the root font size in points, defaulting to 12.0 if zero and
+	// serving as the basis for rem unit resolution.
 	DefaultFontSize float64
 
-	// DefaultLineHeight is the unitless line-height multiplier. Defaults
-	// to 1.2 if zero.
+	// DefaultLineHeight is the unitless line-height multiplier. Defaults to 1.2 if zero.
 	DefaultLineHeight float64
 }
 
@@ -48,8 +47,7 @@ type PageConfig struct {
 	// Width is the total page width in points.
 	Width float64
 
-	// Height is the total page height in points. Ignored when
-	// AutoHeight is true.
+	// Height is the total page height in points. Ignored when AutoHeight is true.
 	Height float64
 
 	// MarginTop is the top margin in points.
@@ -64,8 +62,8 @@ type PageConfig struct {
 	// MarginLeft is the left margin in points.
 	MarginLeft float64
 
-	// AutoHeight disables pagination and sizes the page height to
-	// fit all content. Width is still required.
+	// AutoHeight disables pagination and sizes the page height to fit all content. Width is
+	// still required.
 	AutoHeight bool
 }
 
@@ -88,8 +86,7 @@ type FontConfig struct {
 	// FontFiles lists font files to load for text rendering.
 	FontFiles []FontFile
 
-	// FallbackFamilies lists font families to try when the primary font
-	// lacks a glyph.
+	// FallbackFamilies lists font families to try when the primary font lacks a glyph.
 	FallbackFamilies []string
 }
 

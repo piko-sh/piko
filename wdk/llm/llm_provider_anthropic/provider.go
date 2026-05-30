@@ -47,38 +47,35 @@ const (
 	// ContextWindowClaude4 is the context window size for Claude 4 family models.
 	ContextWindowClaude4 = 200_000
 
-	// ContextWindowClaude4Opus is the context window size for Claude 4 Opus
-	// models.
+	// ContextWindowClaude4Opus is the context window size for Claude 4 Opus models.
 	ContextWindowClaude4Opus = 200_000
 
-	// MaxOutputTokensClaude4 is the maximum output tokens for Claude 4
-	// Sonnet/Haiku models.
+	// MaxOutputTokensClaude4 is the maximum output tokens for Claude 4 Sonnet/Haiku models.
 	MaxOutputTokensClaude4 = 16384
 
-	// MaxOutputTokensClaude4Opus is the maximum output tokens for Claude 4 Opus
-	// models.
+	// MaxOutputTokensClaude4Opus is the maximum output tokens for Claude 4 Opus models.
 	MaxOutputTokensClaude4Opus = 32000
 
-	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
-	// even when the caller does not supply a per-request deadline. It is
-	// generous enough to allow long-running completions but prevents stuck
-	// connections from leaking goroutines indefinitely.
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests even when
+	// the caller does not supply a per-request deadline. It is generous enough to allow
+	// long-running completions but prevents stuck connections from leaking goroutines
+	// indefinitely.
 	httpClientTimeout = 30 * time.Minute
 )
 
 // anthropicProvider implements llm_domain.LLMProviderPort for Anthropic Claude.
 type anthropicProvider struct {
-	// closeContext is the provider-level context whose cancellation signals
-	// background stream goroutines to exit.
+	// closeContext is the provider-level context whose cancellation signals background
+	// stream goroutines to exit.
 	closeContext context.Context
 
-	// closeCancel cancels closeContext on Close to signal in-flight stream
-	// goroutines to wind down.
+	// closeCancel cancels closeContext on Close to signal in-flight stream goroutines to
+	// wind down.
 	closeCancel context.CancelCauseFunc
 
-	// httpClient is the underlying *http.Client injected into the Anthropic
-	// SDK; retained so tests can verify the configured top-level timeout and
-	// idle connections can be released on Close.
+	// httpClient is the underlying *http.Client injected into the Anthropic SDK; retained so
+	// tests can verify the configured top-level timeout and idle connections can be released
+	// on Close.
 	httpClient *http.Client
 
 	// defaultModel is the model identifier to use when none is specified.
@@ -90,8 +87,8 @@ type anthropicProvider struct {
 	// config holds the provider configuration settings.
 	config Config
 
-	// streamWaitGroup tracks active streaming goroutines so Close can wait for
-	// them to drain.
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for them to
+	// drain.
 	streamWaitGroup sync.WaitGroup
 
 	// defaultMaxToken is the maximum number of tokens for API requests.
@@ -101,12 +98,14 @@ type anthropicProvider struct {
 	closeOnce sync.Once
 }
 
-var _ llm_domain.LLMProviderPort = (*anthropicProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*anthropicProvider)(nil)
+)
 
 // Complete sends a completion request to Anthropic.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model, messages, and optional response format.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model, messages, and optional response format.
 //
 // Returns *llm_dto.CompletionResponse which contains the model's response.
 // Returns error when the Anthropic API call fails.
@@ -147,9 +146,9 @@ func (p *anthropicProvider) Complete(ctx context.Context, request *llm_dto.Compl
 	return p.convertResponse(message, model), nil
 }
 
-// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP
-// edges can sanitise it before returning to the user. Non-4xx errors are
-// returned unchanged so retry classification continues to work.
+// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP edges can
+// sanitise it before returning to the user. Non-4xx errors are returned unchanged so
+// retry classification continues to work.
 //
 // Takes err (error) which is the error to inspect.
 // Takes safeMessage (string) which is shown to end users for 4xx errors.
@@ -169,8 +168,8 @@ func (*anthropicProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output. Anthropic supports this via tool-use translation.
+// SupportsStructuredOutput reports whether the provider supports structured output.
+// Anthropic supports this via tool-use translation.
 //
 // Returns bool which is true when structured output is supported.
 func (*anthropicProvider) SupportsStructuredOutput() bool {
@@ -184,8 +183,8 @@ func (*anthropicProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is false as Anthropic does not support penalties.
 func (*anthropicProvider) SupportsPenalties() bool { return false }
@@ -195,15 +194,12 @@ func (*anthropicProvider) SupportsPenalties() bool { return false }
 // Returns bool which is false as Anthropic does not support seed.
 func (*anthropicProvider) SupportsSeed() bool { return false }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
-// Returns bool which is false as Anthropic does not support parallel tool
-// calls.
+// Returns bool which is false as Anthropic does not support parallel tool calls.
 func (*anthropicProvider) SupportsParallelToolCalls() bool { return false }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is false as Anthropic does not support message names.
 func (*anthropicProvider) SupportsMessageName() bool { return false }
@@ -272,14 +268,13 @@ func (*anthropicProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, er
 	}, nil
 }
 
-// Close releases resources held by the provider, cancelling any in-flight
-// stream goroutines and waiting for them to drain within a bounded timeout.
+// Close releases resources held by the provider, cancelling any in-flight stream
+// goroutines and waiting for them to drain within a bounded timeout.
 //
 // Returns error when the provider close drain exceeds its bounded wait.
 //
-// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
-// signal active stream goroutines, then waits on streamWaitGroup before
-// returning.
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to signal
+// active stream goroutines, then waits on streamWaitGroup before returning.
 func (p *anthropicProvider) Close(ctx context.Context) error {
 	var closeErr error
 	p.closeOnce.Do(func() {
@@ -318,15 +313,14 @@ func (p *anthropicProvider) DefaultModel() string {
 	return p.defaultModel
 }
 
-// buildMessageParams converts a CompletionRequest to Anthropic
-// MessageNewParams.
+// buildMessageParams converts a CompletionRequest to Anthropic MessageNewParams.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the completion request
-// to convert.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request to
+// convert.
 // Takes model (string) which specifies the Anthropic model to use.
 //
-// Returns anthropic.MessageNewParams which is the converted parameters ready
-// for the Anthropic API.
+// Returns anthropic.MessageNewParams which is the converted parameters ready for the
+// Anthropic API.
 func (p *anthropicProvider) buildMessageParams(request *llm_dto.CompletionRequest, model string) anthropic.MessageNewParams {
 	maxTokens := p.defaultMaxToken
 	if request.MaxTokens != nil {
@@ -386,8 +380,8 @@ func (*anthropicProvider) extractSystemMessage(messages []llm_dto.Message) strin
 	return ""
 }
 
-// convertMessages converts an llm_dto.Message slice to Anthropic format.
-// Filters out system messages as they are handled separately.
+// convertMessages converts an llm_dto.Message slice to Anthropic format. Filters out
+// system messages as they are handled separately.
 //
 // Takes messages ([]llm_dto.Message) which contains the messages to convert.
 //
@@ -407,8 +401,7 @@ func (p *anthropicProvider) convertMessages(messages []llm_dto.Message) []anthro
 //
 // Takes message (llm_dto.Message) which is the message to convert.
 //
-// Returns anthropic.MessageParam which is the converted message in Anthropic
-// API format.
+// Returns anthropic.MessageParam which is the converted message in Anthropic API format.
 func (p *anthropicProvider) convertMessage(message llm_dto.Message) anthropic.MessageParam {
 	switch message.Role {
 	case llm_dto.RoleAssistant:
@@ -427,8 +420,8 @@ func (p *anthropicProvider) convertMessage(message llm_dto.Message) anthropic.Me
 	}
 }
 
-// convertAssistantMessage converts an assistant-role message to Anthropic
-// format, handling both plain text and tool-call content.
+// convertAssistantMessage converts an assistant-role message to Anthropic format,
+// handling both plain text and tool-call content.
 //
 // Takes message (llm_dto.Message) which is the assistant message to convert.
 //
@@ -455,14 +448,12 @@ func (*anthropicProvider) convertAssistantMessage(message llm_dto.Message) anthr
 	return anthropic.NewAssistantMessage(blocks...)
 }
 
-// convertContentParts converts multimodal content parts to Anthropic content
-// blocks.
+// convertContentParts converts multimodal content parts to Anthropic content blocks.
 //
-// Takes parts ([]llm_dto.ContentPart) which contains the content parts to
-// convert.
+// Takes parts ([]llm_dto.ContentPart) which contains the content parts to convert.
 //
-// Returns []anthropic.ContentBlockParamUnion which contains the converted
-// content blocks for the Anthropic API.
+// Returns []anthropic.ContentBlockParamUnion which contains the converted content blocks
+// for the Anthropic API.
 func (*anthropicProvider) convertContentParts(parts []llm_dto.ContentPart) []anthropic.ContentBlockParamUnion {
 	blocks := make([]anthropic.ContentBlockParamUnion, 0, len(parts))
 	for _, part := range parts {
@@ -491,11 +482,10 @@ func (*anthropicProvider) convertContentParts(parts []llm_dto.ContentPart) []ant
 
 // convertTools converts llm_dto.ToolDefinition slice to Anthropic format.
 //
-// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions
-// to convert.
+// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions to convert.
 //
-// Returns []anthropic.ToolUnionParam which contains the converted tools ready
-// for use with the Anthropic API.
+// Returns []anthropic.ToolUnionParam which contains the converted tools ready for use
+// with the Anthropic API.
 func (p *anthropicProvider) convertTools(tools []llm_dto.ToolDefinition) []anthropic.ToolUnionParam {
 	result := make([]anthropic.ToolUnionParam, len(tools))
 	for i, tool := range tools {
@@ -527,8 +517,8 @@ func (p *anthropicProvider) convertTools(tools []llm_dto.ToolDefinition) []anthr
 //
 // Takes schema (*llm_dto.JSONSchema) which contains the JSON schema to convert.
 //
-// Returns any which is a map of property names to their definitions, or an
-// empty map if schema is nil or conversion fails.
+// Returns any which is a map of property names to their definitions, or an empty map if
+// schema is nil or conversion fails.
 func (*anthropicProvider) schemaToProperties(schema *llm_dto.JSONSchema) any {
 	if schema == nil || schema.Properties == nil {
 		return map[string]any{}
@@ -548,9 +538,9 @@ func (*anthropicProvider) schemaToProperties(schema *llm_dto.JSONSchema) any {
 //
 // Takes choice (*llm_dto.ToolChoice) which specifies the tool selection mode.
 //
-// Returns anthropic.ToolChoiceUnionParam which is the Anthropic-compatible
-// tool choice. Defaults to auto if the choice type is unknown or if function
-// type is specified without a function name.
+// Returns anthropic.ToolChoiceUnionParam which is the Anthropic-compatible tool choice.
+// Defaults to auto if the choice type is unknown or if function type is specified without
+// a function name.
 func (*anthropicProvider) convertToolChoice(choice *llm_dto.ToolChoice) anthropic.ToolChoiceUnionParam {
 	switch choice.Type {
 	case llm_dto.ToolChoiceTypeAuto:
@@ -579,17 +569,13 @@ func (*anthropicProvider) convertToolChoice(choice *llm_dto.ToolChoice) anthropi
 	}
 }
 
-// convertResponse converts Anthropic's response to
-// llm_dto.CompletionResponse.
+// convertResponse converts Anthropic's response to llm_dto.CompletionResponse.
 //
-// Takes anthropicMessage (*anthropic.Message) which is the raw
-// Anthropic API response.
-// Takes model (string) which specifies the model name for the
-// response.
+// Takes anthropicMessage (*anthropic.Message) which is the raw Anthropic API response.
+// Takes model (string) which specifies the model name for the response.
 //
-// Returns *llm_dto.CompletionResponse which contains the
-// normalised completion data including message content, tool
-// calls, and usage statistics.
+// Returns *llm_dto.CompletionResponse which contains the normalised completion data
+// including message content, tool calls, and usage statistics.
 func (p *anthropicProvider) convertResponse(anthropicMessage *anthropic.Message, model string) *llm_dto.CompletionResponse {
 	message := llm_dto.Message{
 		Role: llm_dto.RoleAssistant,
@@ -642,8 +628,7 @@ func (p *anthropicProvider) convertResponse(anthropicMessage *anthropic.Message,
 
 // convertStopReason converts Anthropic's stop reason to llm_dto.FinishReason.
 //
-// Takes reason (anthropic.StopReason) which is the Anthropic stop reason
-// to convert.
+// Takes reason (anthropic.StopReason) which is the Anthropic stop reason to convert.
 //
 // Returns llm_dto.FinishReason which is the corresponding finish reason.
 func (*anthropicProvider) convertStopReason(reason anthropic.StopReason) llm_dto.FinishReason {

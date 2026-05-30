@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// TypeExtractor defines the interface for extracting component metadata
-// from an AST. It implements compiler_domain.TypeExtractor.
+// TypeExtractor defines the interface for extracting component metadata from an AST. It
+// implements compiler_domain.TypeExtractor.
 type TypeExtractor interface {
 	// ExtractMetadata retrieves metadata from the component.
 	//
@@ -38,8 +38,8 @@ type TypeExtractor interface {
 	ExtractMetadata() (*ComponentMetadata, error)
 }
 
-// typeExtractor walks an esbuild AST to extract component metadata.
-// It implements TypeExtractor and handles TypeScript type assertions.
+// typeExtractor walks an esbuild AST to extract component metadata. It implements
+// TypeExtractor and handles TypeScript type assertions.
 type typeExtractor struct {
 	// ast holds the parsed JavaScript AST used to extract type metadata.
 	ast *js_ast.AST
@@ -48,10 +48,12 @@ type typeExtractor struct {
 	typeAssertions map[string]TypeAssertion
 }
 
-var _ TypeExtractor = (*typeExtractor)(nil)
+var (
+	_ TypeExtractor = (*typeExtractor)(nil)
+)
 
-// ExtractMetadata walks the esbuild AST and extracts type information from
-// literal value inference, user-defined functions, and state bindings.
+// ExtractMetadata walks the esbuild AST and extracts type information from literal value
+// inference, user-defined functions, and state bindings.
 //
 // Returns *ComponentMetadata which contains the extracted type information.
 // Returns error when extracting state properties fails.
@@ -79,8 +81,8 @@ func (e *typeExtractor) ExtractMetadata() (*ComponentMetadata, error) {
 //
 // Takes binding (js_ast.Binding) which is the AST binding to check.
 //
-// Returns bool which is true if the binding is an identifier with the original
-// name "state".
+// Returns bool which is true if the binding is an identifier with the original name
+// "state".
 func (e *typeExtractor) isStateBinding(binding js_ast.Binding) bool {
 	if identifier, ok := binding.Data.(*js_ast.BIdentifier); ok {
 		if int(identifier.Ref.InnerIndex) < len(e.ast.Symbols) {
@@ -90,8 +92,8 @@ func (e *typeExtractor) isStateBinding(binding js_ast.Binding) bool {
 	return false
 }
 
-// extractStateProperties reads property data from a state variable and adds
-// it to the component metadata.
+// extractStateProperties reads property data from a state variable and adds it to the
+// component metadata.
 //
 // Takes declaration (*js_ast.Decl) which is the state variable to parse.
 // Takes metadata (*ComponentMetadata) which receives the extracted properties.
@@ -130,18 +132,14 @@ func (e *typeExtractor) extractStateProperties(declaration *js_ast.Decl, metadat
 	return nil
 }
 
-// extractPropertyMetadata extracts type information from a property value.
-// Uses pre-extracted type assertions when available, otherwise infers from the
-// literal value.
+// extractPropertyMetadata extracts type information from a property value. Uses
+// pre-extracted type assertions when available, otherwise infers from the literal value.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// extract type info from.
-// Takes propName (string) which is the name of the property being
-// processed.
+// Takes expression (js_ast.Expr) which is the expression to extract type info from.
+// Takes propName (string) which is the name of the property being processed.
 //
-// Returns *PropertyMetadata which contains the extracted type
-// information, or a default metadata with JSType "any" if no type
-// could be determined.
+// Returns *PropertyMetadata which contains the extracted type information, or a default
+// metadata with JSType "any" if no type could be determined.
 func (e *typeExtractor) extractPropertyMetadata(expression js_ast.Expr, propName string) *PropertyMetadata {
 	meta := &PropertyMetadata{
 		Name:         propName,
@@ -177,14 +175,12 @@ func (e *typeExtractor) extractPropertyMetadata(expression js_ast.Expr, propName
 	return meta
 }
 
-// inferTypeFromLiteral infers the TypeScript type from a JavaScript literal
-// expression.
+// inferTypeFromLiteral infers the TypeScript type from a JavaScript literal expression.
 //
-// Takes expression (js_ast.Expr) which is the literal expression
-// to analyse.
+// Takes expression (js_ast.Expr) which is the literal expression to analyse.
 //
-// Returns *PropertyMetadata which contains the inferred type
-// information, or nil when the expression type is not recognised.
+// Returns *PropertyMetadata which contains the inferred type information, or nil when the
+// expression type is not recognised.
 func (e *typeExtractor) inferTypeFromLiteral(expression js_ast.Expr) *PropertyMetadata {
 	switch v := expression.Data.(type) {
 	case *js_ast.ENumber:
@@ -257,11 +253,10 @@ func (e *typeExtractor) extractMethods(metadata *ComponentMetadata) {
 	}
 }
 
-// expressionToString converts an esbuild expression to its string form.
-// Used to keep the starting value for defaultProps.
+// expressionToString converts an esbuild expression to its string form. Used to keep the
+// starting value for defaultProps.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression to convert.
 //
 // Returns string which is the string form of the expression.
 func (e *typeExtractor) expressionToString(expression js_ast.Expr) string {
@@ -301,8 +296,8 @@ func (*typeExtractor) booleanToString(value bool) string {
 //
 // Takes v (*js_ast.EArray) which is the array expression to convert.
 //
-// Returns string which is the formatted array as "[elem1, elem2, ...]" or
-// "[]" for empty arrays.
+// Returns string which is the formatted array as "[elem1, elem2, ...]" or "[]" for empty
+// arrays.
 func (e *typeExtractor) arrayToString(v *js_ast.EArray) string {
 	if len(v.Items) == 0 {
 		return "[]"
@@ -339,8 +334,8 @@ func (e *typeExtractor) objectToString(v *js_ast.EObject) string {
 //
 // Takes keyExpr (js_ast.Expr) which is the property key expression.
 //
-// Returns string which is the key name, or an empty string if the key is not
-// a string literal.
+// Returns string which is the key name, or an empty string if the key is not a string
+// literal.
 func (*typeExtractor) extractPropertyKey(keyExpr js_ast.Expr) string {
 	if strKey, ok := keyExpr.Data.(*js_ast.EString); ok {
 		return helpers.UTF16ToString(strKey.Value)
@@ -350,12 +345,12 @@ func (*typeExtractor) extractPropertyKey(keyExpr js_ast.Expr) string {
 
 // NewTypeExtractor creates a new type extractor for the given AST.
 //
-// The typeAssertions should be pre-extracted from raw source before esbuild
-// parsing, since esbuild strips type information.
+// The typeAssertions should be pre-extracted from raw source before esbuild parsing,
+// since esbuild strips type information.
 //
 // Takes ast (*js_ast.AST) which is the parsed JavaScript AST to extract from.
-// Takes typeAssertions (map[string]typeAssertion) which provides pre-extracted
-// type assertion data.
+// Takes typeAssertions (map[string]typeAssertion) which provides pre-extracted type
+// assertion data.
 //
 // Returns TypeExtractor which is ready to extract type information.
 func NewTypeExtractor(ast *js_ast.AST, typeAssertions map[string]TypeAssertion) TypeExtractor {

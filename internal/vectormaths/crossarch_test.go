@@ -34,10 +34,12 @@ type crossArchTarget struct {
 	platform string
 }
 
-var crossArchTargets = []crossArchTarget{
-	{goarch: "amd64", platform: "linux/amd64"},
-	{goarch: "arm64", platform: "linux/arm64"},
-}
+var (
+	crossArchTargets = []crossArchTarget{
+		{goarch: "amd64", platform: "linux/amd64"},
+		{goarch: "arm64", platform: "linux/arm64"},
+	}
+)
 
 func TestCrossArch(t *testing.T) {
 	dockerBin, err := exec.LookPath("docker")

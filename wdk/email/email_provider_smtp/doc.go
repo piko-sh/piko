@@ -16,17 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_smtp provides an SMTP-based email provider
-// for sending emails through standard SMTP servers.
+// Package email_provider_smtp provides an SMTP-based email provider for sending emails
+// through standard SMTP servers.
 //
-// The provider maintains a persistent connection with automatic
-// reconnection, minimising latency when sending multiple emails.
-// It supports configurable authentication, TLS, rate limiting,
-// and both single and bulk sending.
+// The provider maintains a persistent connection with automatic reconnection, minimising
+// latency when sending multiple emails. It supports configurable authentication, TLS,
+// rate limiting, and both single and bulk sending.
 //
 // # Thread safety
 //
-// The provider is safe for concurrent use. It guards its internal
-// SMTP connection with a mutex and applies rate limiting to avoid
-// exceeding server limits.
+// The provider is safe for concurrent use. It guards its internal SMTP connection with a
+// mutex and applies rate limiting to avoid exceeding server limits.
 package email_provider_smtp

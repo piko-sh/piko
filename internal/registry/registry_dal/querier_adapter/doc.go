@@ -16,8 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package querier_adapter wraps the querier-generated Queries
-// struct to satisfy the RegistryDALWithTx interface. It bridges
-// between the generated SQL query layer and the domain-level DAL
-// ports.
+// Package querier_adapter wraps the querier-generated Queries struct to satisfy the
+// RegistryDALWithTx interface. It bridges between the generated SQL query layer and the
+// domain-level DAL ports.
 package querier_adapter

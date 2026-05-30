@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// StringConverter provides conversion of Go expressions to their string
-// representations. It enables mocking and testing of string conversion.
+// StringConverter provides conversion of Go expressions to their string representations.
+// It enables mocking and testing of string conversion.
 type StringConverter interface {
 	// valueToString converts a Go expression to its string representation.
 	//
@@ -40,22 +40,24 @@ type StringConverter interface {
 	valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr
 }
 
-// stringConverter turns values into Go string literals.
-// It implements the StringConverter interface.
+// stringConverter turns values into Go string literals. It implements the StringConverter
+// interface.
 type stringConverter struct {
-	// A reference to the parent emitter is not needed here, as this component
-	// is a pure, functional transformer of a `goast.Expr`.
+	// A reference to the parent emitter is not needed here, as this component is a pure,
+	// functional transformer of a `goast.Expr`.
 }
 
-var _ StringConverter = (*stringConverter)(nil)
+var (
+	_ StringConverter = (*stringConverter)(nil)
+)
 
-// valueToString is the main entry point for this component. It generates
-// Go code to convert an expression to a string, using type information from
-// the annotator to select the best conversion method.
+// valueToString is the main entry point for this component. It generates Go code to
+// convert an expression to a string, using type information from the annotator to select
+// the best conversion method.
 //
 // Takes goExpr (goast.Expr) which is the expression to convert to a string.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type information
-// for selecting the conversion method.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type information for
+// selecting the conversion method.
 //
 // Returns goast.Expr which is the generated Go code for the string conversion.
 func (sc *stringConverter) valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
@@ -93,8 +95,8 @@ func (sc *stringConverter) valueToString(goExpr goast.Expr, ann *ast_domain.GoGe
 	}
 }
 
-// emitPikoFormatterDefault generates the default string conversion for Piko
-// maths types (Decimal, BigInt, Money). This emits expr.MustString().
+// emitPikoFormatterDefault generates the default string conversion for Piko maths types
+// (Decimal, BigInt, Money). This emits expr.MustString().
 //
 // Takes goExpr (goast.Expr) which is the expression to convert.
 //
@@ -105,9 +107,9 @@ func (*stringConverter) emitPikoFormatterDefault(goExpr goast.Expr) goast.Expr {
 	}
 }
 
-// emitPointerToStringerIIFE generates a self-executing anonymous function
-// that performs a nil-check before converting the underlying value to a
-// string. This is the reflection-free implementation.
+// emitPointerToStringerIIFE generates a self-executing anonymous function that performs a
+// nil-check before converting the underlying value to a string. This is the
+// reflection-free implementation.
 //
 // Takes goExpr (goast.Expr) which is the pointer expression to convert.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type metadata.
@@ -151,12 +153,12 @@ func (sc *stringConverter) emitPointerToStringerIIFE(goExpr goast.Expr, ann *ast
 	}
 }
 
-// convertPrimitiveToString selects the correct, highly optimised strconv
-// function or direct type cast for a given primitive Go type.
+// convertPrimitiveToString selects the correct, highly optimised strconv function or
+// direct type cast for a given primitive Go type.
 //
 // Takes expression (goast.Expr) which is the expression to convert.
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the primitive
-// type being converted.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the primitive type being
+// converted.
 //
 // Returns goast.Expr which is the conversion call expression.
 func (*stringConverter) convertPrimitiveToString(expression goast.Expr, typeInfo *ast_domain.ResolvedTypeInfo) goast.Expr {
@@ -168,9 +170,8 @@ func (*stringConverter) convertPrimitiveToString(expression goast.Expr, typeInfo
 	return callHelper(helperValueToString, expression)
 }
 
-// emitTextMarshalerIIFE generates a self-executing anonymous function (IIFE)
-// to safely call MarshalText(), which returns ([]byte, error), and convert
-// the result to a string.
+// emitTextMarshalerIIFE generates a self-executing anonymous function (IIFE) to safely
+// call MarshalText(), which returns ([]byte, error), and convert the result to a string.
 //
 // The generated code pattern is:
 //
@@ -210,10 +211,9 @@ func (*stringConverter) emitTextMarshalerIIFE(goExpr goast.Expr) goast.Expr {
 	}
 }
 
-// emitJSONMarshalIIFE generates a self-executing anonymous function (IIFE)
-// to safely call json.Marshal and convert the result to a string. This is used
-// for maps and slices that need to be serialised to JSON for use in HTML
-// attributes.
+// emitJSONMarshalIIFE generates a self-executing anonymous function (IIFE) to safely call
+// json.Marshal and convert the result to a string. This is used for maps and slices that
+// need to be serialised to JSON for use in HTML attributes.
 //
 // The generated code pattern is:
 //
@@ -226,8 +226,8 @@ func (*stringConverter) emitTextMarshalerIIFE(goExpr goast.Expr) goast.Expr {
 //	}()
 //
 // Takes goExpr (goast.Expr) which is the Go expression to marshal to JSON.
-// Takes fallbackValue (string) which is the value to return on error, such as
-// "{}" for maps or "[]" for slices.
+// Takes fallbackValue (string) which is the value to return on error, such as "{}" for
+// maps or "[]" for slices.
 //
 // Returns goast.Expr which is the AST for the generated IIFE.
 func (*stringConverter) emitJSONMarshalIIFE(goExpr goast.Expr, fallbackValue string) goast.Expr {
@@ -258,60 +258,62 @@ func (*stringConverter) emitJSONMarshalIIFE(goExpr goast.Expr, fallbackValue str
 	}
 }
 
-// primitiveStringerMap is a dispatch table that maps a primitive Go type name
-// to a function that generates the optimal go/ast expression for converting it
-// to a string. This applies the Replace Conditional with Dispatch Table pattern.
-var primitiveStringerMap = map[string]func(goast.Expr) goast.Expr{
-	"string": func(e goast.Expr) goast.Expr { return e },
-	"int": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"int8": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"int16": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"int32": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"int64": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatInt", e, intLit(10))
-	},
-	"uint": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"uint8": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"byte": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"uint16": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"uint32": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"uint64": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", e, intLit(10))
-	},
-	"uintptr": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
-	},
-	"float32": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatFloat", &goast.CallExpr{Fun: cachedIdent("float64"), Args: []goast.Expr{e}}, &goast.BasicLit{Kind: token.CHAR, Value: "'f'"}, intLit(-1), intLit(32))
-	},
-	"float64": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatFloat", e, &goast.BasicLit{Kind: token.CHAR, Value: "'f'"}, intLit(-1), intLit(64))
-	},
-	"bool": func(e goast.Expr) goast.Expr {
-		return callStrconv("FormatBool", e)
-	},
-	"rune": func(e goast.Expr) goast.Expr {
-		return &goast.CallExpr{Fun: cachedIdent(StringTypeName), Args: []goast.Expr{e}}
-	},
-}
+var (
+	// primitiveStringerMap is a dispatch table that maps a primitive Go type name to a
+	// function that generates the optimal go/ast expression for converting it to a string.
+	// This applies the Replace Conditional with Dispatch Table pattern.
+	primitiveStringerMap = map[string]func(goast.Expr) goast.Expr{
+		"string": func(e goast.Expr) goast.Expr { return e },
+		"int": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"int8": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"int16": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"int32": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatInt", &goast.CallExpr{Fun: cachedIdent(Int64TypeName), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"int64": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatInt", e, intLit(10))
+		},
+		"uint": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"uint8": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"byte": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"uint16": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"uint32": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"uint64": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", e, intLit(10))
+		},
+		"uintptr": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatUint", &goast.CallExpr{Fun: cachedIdent("uint64"), Args: []goast.Expr{e}}, intLit(10))
+		},
+		"float32": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatFloat", &goast.CallExpr{Fun: cachedIdent("float64"), Args: []goast.Expr{e}}, &goast.BasicLit{Kind: token.CHAR, Value: "'f'"}, intLit(-1), intLit(32))
+		},
+		"float64": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatFloat", e, &goast.BasicLit{Kind: token.CHAR, Value: "'f'"}, intLit(-1), intLit(64))
+		},
+		"bool": func(e goast.Expr) goast.Expr {
+			return callStrconv("FormatBool", e)
+		},
+		"rune": func(e goast.Expr) goast.Expr {
+			return &goast.CallExpr{Fun: cachedIdent(StringTypeName), Args: []goast.Expr{e}}
+		},
+	}
+)
 
 // newStringConverter creates a new string converter.
 //
@@ -320,16 +322,16 @@ func newStringConverter() *stringConverter {
 	return &stringConverter{}
 }
 
-// createUnderlyingTypeAnnotation creates an annotation for the type that a
-// pointer points to.
+// createUnderlyingTypeAnnotation creates an annotation for the type that a pointer points
+// to.
 //
-// Takes starExpr (*goast.StarExpr) which provides the pointer expression to
-// extract the underlying type from.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the parent
-// annotation to copy stringability settings from.
+// Takes starExpr (*goast.StarExpr) which provides the pointer expression to extract the
+// underlying type from.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the parent annotation to
+// copy stringability settings from.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the type information
-// for the underlying type.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the type information for the
+// underlying type.
 func createUnderlyingTypeAnnotation(starExpr *goast.StarExpr, ann *ast_domain.GoGeneratorAnnotation) *ast_domain.GoGeneratorAnnotation {
 	underlyingTypeInfo := &ast_domain.ResolvedTypeInfo{
 		TypeExpression:       starExpr.X,
@@ -386,12 +388,12 @@ func getPackageAliasFromType(typeExpr goast.Expr, fallback string) string {
 	return fallback
 }
 
-// determineJSONFallback returns the correct empty JSON value for a given type.
-// Maps return "{}", slices and arrays return "[]", and json.Marshaler types
-// return "null" because the actual JSON type they produce is not known.
+// determineJSONFallback returns the correct empty JSON value for a given type. Maps
+// return "{}", slices and arrays return "[]", and json.Marshaler types return "null"
+// because the actual JSON type they produce is not known.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type details used to pick the fallback value.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type details
+// used to pick the fallback value.
 //
 // Returns string which is the JSON fallback value ("{}", "[]", or "null").
 func determineJSONFallback(typeInfo *ast_domain.ResolvedTypeInfo) string {
@@ -401,13 +403,13 @@ func determineJSONFallback(typeInfo *ast_domain.ResolvedTypeInfo) string {
 	return getJSONFallbackForExpr(typeInfo.TypeExpression)
 }
 
-// getJSONFallbackForExpr returns a default JSON value for a type expression.
-// It follows pointers to find the base type.
+// getJSONFallbackForExpr returns a default JSON value for a type expression. It follows
+// pointers to find the base type.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
-// Returns string which is the JSON fallback value: "{}" for maps, "[]" for
-// arrays, or "null" for other types.
+// Returns string which is the JSON fallback value: "{}" for maps, "[]" for arrays, or
+// "null" for other types.
 func getJSONFallbackForExpr(typeExpr goast.Expr) string {
 	switch t := typeExpr.(type) {
 	case *goast.MapType:

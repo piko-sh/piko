@@ -22,6 +22,12 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// buildFunctionCatalogue assembles the PostgreSQL function catalogue.
+//
+// Takes extraFunctions (func(*FunctionCatalogueBuilder)) which adds extra signatures
+// after the builtins have been registered.
+//
+// Returns *querier_dto.FunctionCatalogue which lists every registered function signature.
 func buildFunctionCatalogue(extraFunctions func(*FunctionCatalogueBuilder)) *querier_dto.FunctionCatalogue {
 	builder := &FunctionCatalogueBuilder{
 		Catalogue: &querier_dto.FunctionCatalogue{
@@ -66,57 +72,83 @@ func buildFunctionCatalogue(extraFunctions func(*FunctionCatalogueBuilder)) *que
 	return builder.Catalogue
 }
 
-// FunctionCatalogueBuilder builds a PostgreSQL function catalogue. It is
-// exported so that flavour option functions can register additional functions
-// via WithExtraFunctions.
+// FunctionCatalogueBuilder builds a PostgreSQL function catalogue. It is exported so that
+// flavour option functions can register additional functions via WithExtraFunctions.
 type FunctionCatalogueBuilder struct {
+	// Catalogue accumulates registered function entries as the builder runs.
 	Catalogue *querier_dto.FunctionCatalogue
 
+	// Integer is the canonical 4-byte integer type (int4).
 	Integer querier_dto.SQLType
 
+	// Bigint is the canonical 8-byte integer type (int8).
 	Bigint querier_dto.SQLType
 
+	// Smallint is the canonical 2-byte integer type (int2).
 	Smallint querier_dto.SQLType
 
+	// Float4 is the canonical single-precision floating point type.
 	Float4 querier_dto.SQLType
 
+	// Float8 is the canonical double-precision floating point type.
 	Float8 querier_dto.SQLType
 
+	// Numeric is the canonical arbitrary-precision decimal type.
 	Numeric querier_dto.SQLType
 
+	// Boolean is the canonical boolean type.
 	Boolean querier_dto.SQLType
 
+	// Text is the canonical variable-length text type.
 	Text querier_dto.SQLType
 
+	// Bytea is the canonical raw byte string type.
 	Bytea querier_dto.SQLType
 
+	// Timestamp is the canonical timestamp without time zone type.
 	Timestamp querier_dto.SQLType
 
+	// Timestamptz is the canonical timestamp with time zone type.
 	Timestamptz querier_dto.SQLType
 
+	// Date is the canonical calendar date type.
 	Date querier_dto.SQLType
 
+	// Time is the canonical time-of-day type.
 	Time querier_dto.SQLType
 
+	// Interval is the canonical interval duration type.
 	Interval querier_dto.SQLType
 
+	// JSON is the canonical textual JSON type.
 	JSON querier_dto.SQLType
 
+	// JSONB is the canonical binary JSON type.
 	JSONB querier_dto.SQLType
 
+	// UUID is the canonical universally unique identifier type.
 	UUID querier_dto.SQLType
 
+	// Any is the wildcard placeholder type used for polymorphic arguments.
 	Any querier_dto.SQLType
 }
 
 // Add registers a function signature under the given name.
+//
+// Takes name (string) which is the canonical function name.
+// Takes signature (*querier_dto.FunctionSignature) which describes arguments, return
+// type, and nullability.
 func (b *FunctionCatalogueBuilder) Add(name string, signature *querier_dto.FunctionSignature) {
 	signature.Name = name
 	signature.DataAccess = querier_dto.DataAccessReadOnly
 	b.Catalogue.Functions[name] = append(b.Catalogue.Functions[name], signature)
 }
 
-// Args builds a slice of FunctionArgument from alternating (name, type) pairs.
+// Args builds FunctionArgument values from alternating (name, type) pairs.
+//
+// Takes pairs (...any) which is a flattened list of (string, SQLType) entries.
+//
+// Returns []querier_dto.FunctionArgument which lists every well-formed pair.
 func (*FunctionCatalogueBuilder) Args(pairs ...any) []querier_dto.FunctionArgument {
 	arguments := make([]querier_dto.FunctionArgument, 0, len(pairs)/2)
 	for i := 0; i+1 < len(pairs); i += 2 {
@@ -130,6 +162,11 @@ func (*FunctionCatalogueBuilder) Args(pairs ...any) []querier_dto.FunctionArgume
 }
 
 // NullOnNull registers a function that returns NULL when any argument is NULL.
+//
+// Takes name (string) which is the function name to register.
+// Takes arguments ([]querier_dto.FunctionArgument) which describes each declared
+// parameter.
+// Takes returnType (querier_dto.SQLType) which is the function's return type.
 func (b *FunctionCatalogueBuilder) NullOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.Add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -139,6 +176,11 @@ func (b *FunctionCatalogueBuilder) NullOnNull(name string, arguments []querier_d
 }
 
 // NeverNull registers a function that never returns NULL.
+//
+// Takes name (string) which is the function name to register.
+// Takes arguments ([]querier_dto.FunctionArgument) which describes each declared
+// parameter.
+// Takes returnType (querier_dto.SQLType) which is the function's return type.
 func (b *FunctionCatalogueBuilder) NeverNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.Add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -147,8 +189,14 @@ func (b *FunctionCatalogueBuilder) NeverNull(name string, arguments []querier_dt
 	})
 }
 
-// CalledOnNull registers a function that is called even when arguments are
-// NULL. The result may or may not be NULL depending on the function.
+// CalledOnNull registers a function called even when arguments are NULL.
+//
+// The result may or may not be NULL depending on the function body.
+//
+// Takes name (string) which is the function name to register.
+// Takes arguments ([]querier_dto.FunctionArgument) which describes each declared
+// parameter.
+// Takes returnType (querier_dto.SQLType) which is the function's return type.
 func (b *FunctionCatalogueBuilder) CalledOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
 	b.Add(name, &querier_dto.FunctionSignature{
 		Arguments:         arguments,
@@ -190,8 +238,8 @@ func (b *FunctionCatalogueBuilder) registerMathFunctions() {
 	b.NullOnNull("width_bucket", b.Args("operand", b.Numeric, "low", b.Numeric, "high", b.Numeric, paramNameCount, b.Integer), b.Integer)
 }
 
-// registerTrigonometricFunctions registers trigonometric functions (radian and
-// degree variants).
+// registerTrigonometricFunctions registers trigonometric functions (radian and degree
+// variants).
 func (b *FunctionCatalogueBuilder) registerTrigonometricFunctions() {
 	b.NullOnNull("acos", b.Args(paramNameX, b.Float8), b.Float8)
 	b.NullOnNull("asin", b.Args(paramNameX, b.Float8), b.Float8)
@@ -219,6 +267,7 @@ func (b *FunctionCatalogueBuilder) registerStringFunctions() {
 	b.registerStringMiscFunctions()
 }
 
+// registerStringBasicFunctions registers basic string scalar functions.
 func (b *FunctionCatalogueBuilder) registerStringBasicFunctions() {
 	b.NullOnNull("length", b.Args(paramNameX, b.Text), b.Integer)
 	b.NullOnNull("char_length", b.Args(paramNameX, b.Text), b.Integer)
@@ -248,6 +297,7 @@ func (b *FunctionCatalogueBuilder) registerStringBasicFunctions() {
 	b.NullOnNull("right", b.Args(paramNameString, b.Text, paramNameN, b.Integer), b.Text)
 }
 
+// registerStringVariadicFunctions registers variadic string functions.
 func (b *FunctionCatalogueBuilder) registerStringVariadicFunctions() {
 	b.Add("concat", &querier_dto.FunctionSignature{
 		Arguments:         b.Args(paramNameValue, b.Any),
@@ -272,6 +322,7 @@ func (b *FunctionCatalogueBuilder) registerStringVariadicFunctions() {
 	})
 }
 
+// registerStringMiscFunctions registers miscellaneous string functions.
 func (b *FunctionCatalogueBuilder) registerStringMiscFunctions() {
 	b.NullOnNull("initcap", b.Args(paramNameX, b.Text), b.Text)
 	b.NullOnNull("translate", b.Args(paramNameString, b.Text, "from", b.Text, "to", b.Text), b.Text)
@@ -349,6 +400,7 @@ func (b *FunctionCatalogueBuilder) registerJSONFunctions() {
 	b.registerJSONBMutationFunctions()
 }
 
+// registerJSONBuildFunctions registers JSON and JSONB construction functions.
 func (b *FunctionCatalogueBuilder) registerJSONBuildFunctions() {
 	b.Add("json_build_object", &querier_dto.FunctionSignature{
 		Arguments:         b.Args("key", b.Any, paramNameValue, b.Any),
@@ -380,6 +432,7 @@ func (b *FunctionCatalogueBuilder) registerJSONBuildFunctions() {
 	})
 }
 
+// registerJSONScalarFunctions registers scalar JSON conversion functions.
 func (b *FunctionCatalogueBuilder) registerJSONScalarFunctions() {
 	b.NullOnNull("to_json", b.Args(paramNameValue, b.Any), b.JSON)
 	b.NullOnNull("to_jsonb", b.Args(paramNameValue, b.Any), b.JSONB)
@@ -392,6 +445,7 @@ func (b *FunctionCatalogueBuilder) registerJSONScalarFunctions() {
 	b.NullOnNull("jsonb_typeof", b.Args(paramNameJSON, b.JSONB), b.Text)
 }
 
+// registerJSONPathFunctions registers JSON path extraction functions.
 func (b *FunctionCatalogueBuilder) registerJSONPathFunctions() {
 	b.Add("json_extract_path", &querier_dto.FunctionSignature{
 		Arguments:         b.Args("from_json", b.JSON, "path_elem", b.Text),
@@ -426,6 +480,7 @@ func (b *FunctionCatalogueBuilder) registerJSONPathFunctions() {
 	b.NullOnNull("jsonb_path_match", b.Args(paramNameTarget, b.JSONB, paramNamePath, b.Text), b.Boolean)
 }
 
+// registerJSONBMutationFunctions registers JSONB mutation functions.
 func (b *FunctionCatalogueBuilder) registerJSONBMutationFunctions() {
 	b.NullOnNull("jsonb_set", b.Args(paramNameTarget, b.JSONB, paramNamePath, b.Text, paramNameNewValue, b.JSONB), b.JSONB)
 	b.NullOnNull("jsonb_set", b.Args(paramNameTarget, b.JSONB, paramNamePath, b.Text, paramNameNewValue, b.JSONB, "create_if_missing", b.Boolean), b.JSONB)
@@ -468,6 +523,7 @@ func (b *FunctionCatalogueBuilder) registerAggregateFunctions() {
 	b.registerStatisticalAggregates()
 }
 
+// registerCountAggregates registers count aggregate functions.
 func (b *FunctionCatalogueBuilder) registerCountAggregates() {
 	b.Add("count", &querier_dto.FunctionSignature{
 		ReturnType:        b.Bigint,
@@ -482,7 +538,10 @@ func (b *FunctionCatalogueBuilder) registerCountAggregates() {
 	})
 }
 
-func (b *FunctionCatalogueBuilder) registerBooleanAndBitwiseAggregates() { //nolint:dupl // structurally similar aggregates
+// registerBooleanAndBitwiseAggregates registers boolean and bitwise aggregates.
+//
+//nolint:dupl // structurally similar aggregates
+func (b *FunctionCatalogueBuilder) registerBooleanAndBitwiseAggregates() {
 	b.Add("bool_and", &querier_dto.FunctionSignature{
 		Arguments:         b.Args(paramNameX, b.Boolean),
 		ReturnType:        b.Boolean,
@@ -522,6 +581,7 @@ func (b *FunctionCatalogueBuilder) registerBooleanAndBitwiseAggregates() { //nol
 	})
 }
 
+// registerCollectionAggregates registers string and array collection aggregates.
 func (b *FunctionCatalogueBuilder) registerCollectionAggregates() {
 	b.Add("string_agg", &querier_dto.FunctionSignature{
 		Arguments:         b.Args(paramNameExpression, b.Text, paramNameDelimiter, b.Text),
@@ -537,6 +597,7 @@ func (b *FunctionCatalogueBuilder) registerCollectionAggregates() {
 	})
 }
 
+// registerJSONAggregates registers JSON and JSONB aggregate functions.
 func (b *FunctionCatalogueBuilder) registerJSONAggregates() {
 	b.Add("json_agg", &querier_dto.FunctionSignature{
 		Arguments:         b.Args(paramNameExpression, b.Any),
@@ -564,6 +625,7 @@ func (b *FunctionCatalogueBuilder) registerJSONAggregates() {
 	})
 }
 
+// registerOrderedSetAggregates registers ordered-set aggregate functions.
 func (b *FunctionCatalogueBuilder) registerOrderedSetAggregates() {
 	b.Add("percentile_cont", &querier_dto.FunctionSignature{
 		Arguments:         b.Args("fraction", b.Float8),
@@ -584,7 +646,10 @@ func (b *FunctionCatalogueBuilder) registerOrderedSetAggregates() {
 	})
 }
 
-func (b *FunctionCatalogueBuilder) registerStatisticalAggregates() { //nolint:dupl // structurally similar aggregates
+// registerStatisticalAggregates registers statistical aggregate functions.
+//
+//nolint:dupl // structurally similar aggregates
+func (b *FunctionCatalogueBuilder) registerStatisticalAggregates() {
 	b.Add("stddev", &querier_dto.FunctionSignature{
 		Arguments:         b.Args(paramNameX, b.Any),
 		ReturnType:        b.Numeric,

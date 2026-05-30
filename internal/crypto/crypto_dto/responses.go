@@ -38,16 +38,15 @@ type DecryptResponse struct {
 
 // DataKey represents a data encryption key for envelope encryption.
 type DataKey struct {
-	// PlaintextKey is the unencrypted data encryption key held in secure
-	// memory for local encryption and decryption. The caller must call
-	// PlaintextKey.Close() when done.
+	// PlaintextKey is the unencrypted data encryption key held in secure memory for local
+	// encryption and decryption. The caller must call PlaintextKey.Close() when done.
 	//
-	// Uses secure memory (mmap+mlock on Unix, VirtualAlloc+VirtualLock on
-	// Windows) to prevent garbage collector copying and disk swapping.
+	// Uses secure memory (mmap+mlock on Unix, VirtualAlloc+VirtualLock on Windows) to
+	// prevent garbage collector copying and disk swapping.
 	PlaintextKey *SecureBytes
 
-	// EncryptedKey is the data key encrypted with the master key.
-	// It is stored alongside the encrypted data.
+	// EncryptedKey is the data key encrypted with the master key. It is stored alongside the
+	// encrypted data.
 	EncryptedKey string
 
 	// KeyID identifies the master key that encrypted this data key.
@@ -57,8 +56,8 @@ type DataKey struct {
 	Provider ProviderType
 }
 
-// Close releases the secure memory holding the plaintext key.
-// This is a convenience method that calls PlaintextKey.Close if it is not nil.
+// Close releases the secure memory holding the plaintext key. This is a convenience
+// method that calls PlaintextKey.Close if it is not nil.
 //
 // Returns error when the underlying PlaintextKey fails to close.
 func (dk *DataKey) Close() error {

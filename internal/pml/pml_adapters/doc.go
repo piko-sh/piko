@@ -16,14 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pml_adapters implements the collector interfaces defined in
-// pml_domain, handling responsive CSS media query generation and Microsoft
-// Outlook conditional comment blocks for email compatibility.
+// Package pml_adapters implements the collector interfaces defined in pml_domain,
+// handling responsive CSS media query generation and Microsoft Outlook conditional
+// comment blocks for email compatibility.
 //
 // # Usage
 //
-// Collectors are typically created at the start of a transformation pass
-// and passed through the rendering pipeline:
+// Collectors are typically created at the start of a transformation pass and passed
+// through the rendering pipeline:
 //
 //	mqCollector := pml_adapters.NewMediaQueryCollector()
 //	mqCollector.RegisterClass("pml-col-50", "width: 100% !important;")
@@ -35,6 +35,6 @@
 //
 // # Thread safety
 //
-// All collector implementations are safe for concurrent use. Methods use
-// internal synchronisation to protect shared state.
+// All collector implementations are safe for concurrent use. Methods use internal
+// synchronisation to protect shared state.
 package pml_adapters

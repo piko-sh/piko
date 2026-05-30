@@ -30,15 +30,15 @@ import (
 	"piko.sh/piko/internal/notification/notification_dto"
 )
 
-var _ notification_domain.NotificationProviderPort = (*DiscordProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*DiscordProvider)(nil)
+)
 
 const (
-	// discordColourError is the Discord embed colour for critical priority
-	// messages.
+	// discordColourError is the Discord embed colour for critical priority messages.
 	discordColourError = 15158332
 
-	// discordColourWarn is the Discord embed colour for high priority
-	// notifications.
+	// discordColourWarn is the Discord embed colour for high priority notifications.
 	discordColourWarn = 15844367
 
 	// discordColourInfo is the Discord embed colour for informational messages.
@@ -47,8 +47,7 @@ const (
 	// discordColourDefault is the fallback embed colour for Discord notifications.
 	discordColourDefault = 9807270
 
-	// discordMaxEmbedSize is the maximum character length for Discord embed
-	// content.
+	// discordMaxEmbedSize is the maximum character length for Discord embed content.
 	discordMaxEmbedSize = 6000
 )
 
@@ -78,8 +77,8 @@ type discordEmbed struct {
 	// Fields contains additional field sections displayed in the embed.
 	Fields []discordEmbedField `json:"fields,omitempty"`
 
-	// Colour is the embed sidebar colour as a decimal integer. The JSON tag
-	// stays `color` because Discord's API uses the American spelling.
+	// Colour is the embed sidebar colour as a decimal integer. The JSON tag stays `color`
+	// because Discord's API uses the American spelling.
 	Colour int `json:"color"`
 }
 
@@ -92,8 +91,8 @@ type discordPayload struct {
 	Embeds []discordEmbed `json:"embeds"`
 }
 
-// DiscordProvider sends notifications to Discord using webhooks.
-// It implements NotificationProviderPort.
+// DiscordProvider sends notifications to Discord using webhooks. It implements
+// NotificationProviderPort.
 type DiscordProvider struct {
 	// httpClient is the HTTP client used to send webhook requests to Discord.
 	httpClient *http.Client
@@ -104,11 +103,11 @@ type DiscordProvider struct {
 
 // Send delivers a notification to Discord.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and metadata.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// metadata.
 //
-// Returns error when payload formatting fails, request creation fails, the
-// HTTP request fails, or Discord returns a non-success status code.
+// Returns error when payload formatting fails, request creation fails, the HTTP request
+// fails, or Discord returns a non-success status code.
 func (d *DiscordProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := d.formatDiscordPayload(params)
 	if err != nil {
@@ -118,11 +117,11 @@ func (d *DiscordProvider) Send(ctx context.Context, params *notification_dto.Sen
 	return sendHTTPJSONPayload(ctx, d.httpClient, d.webhookURL, payload, "discord")
 }
 
-// SendBulk sends multiple notifications by falling back to individual sends,
-// as Discord webhooks do not support bulk operations.
+// SendBulk sends multiple notifications by falling back to individual sends, as Discord
+// webhooks do not support bulk operations.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notification data to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+// data to send.
 //
 // Returns error when any individual send fails.
 func (d *DiscordProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -134,8 +133,7 @@ func (d *DiscordProvider) SendBulk(ctx context.Context, notifications []*notific
 	return nil
 }
 
-// SupportsBulkSending reports whether Discord supports bulk sending (it does
-// not).
+// SupportsBulkSending reports whether Discord supports bulk sending (it does not).
 //
 // Returns bool which is always false as Discord does not support bulk sending.
 func (*DiscordProvider) SupportsBulkSending() bool {
@@ -144,8 +142,8 @@ func (*DiscordProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the Discord provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes what
-// features the Discord provider supports.
+// Returns notification_domain.ProviderCapabilities which describes what features the
+// Discord provider supports.
 func (*DiscordProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: true,
@@ -166,8 +164,8 @@ func (*DiscordProvider) Close(_ context.Context) error {
 
 // formatDiscordPayload converts notification params to Discord embed format.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to format.
 //
 // Returns []byte which is the JSON-encoded Discord webhook payload.
 // Returns error when JSON marshalling fails.
@@ -234,8 +232,8 @@ func (*DiscordProvider) priorityToDiscordColour(priority notification_dto.Notifi
 // NewDiscordProvider creates a new Discord notification provider.
 //
 // Takes webhookURL (string) which specifies the Discord webhook endpoint.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.

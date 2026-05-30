@@ -31,26 +31,25 @@ var (
 	// Meter is the OpenTelemetry meter for the go_literal emitter, used to create metrics.
 	Meter = otel.Meter("piko/internal/generator/generator_emitter/go_literal")
 
-	// CodeEmissionCount counts the number of times EmitCode is called.
-	// This helps track the overall workload of the emitter.
+	// CodeEmissionCount counts the number of times EmitCode is called. This helps track the
+	// overall workload of the emitter.
 	CodeEmissionCount metric.Int64Counter
 
 	// CodeEmissionDuration measures the time taken for each EmitCode operation, in
-	// milliseconds. This is a key performance indicator for the code generation
-	// stage.
+	// milliseconds. This is a key performance indicator for the code generation stage.
 	CodeEmissionDuration metric.Float64Histogram
 
-	// CodeEmissionErrorCount counts the number of fatal, unrecoverable errors that
-	// occur during code emission, such as failures to format the final Go code.
+	// CodeEmissionErrorCount counts the number of fatal, unrecoverable errors that occur
+	// during code emission, such as failures to format the final Go code.
 	CodeEmissionErrorCount metric.Int64Counter
 
-	// StaticNodeHoistedCount counts the number of individual static AST nodes that
-	// are successfully hoisted into the init() function. This provides insight
-	// into the effectiveness of the static analysis optimisation.
+	// StaticNodeHoistedCount counts the number of individual static AST nodes that are
+	// successfully hoisted into the init() function. This provides insight into the
+	// effectiveness of the static analysis optimisation.
 	StaticNodeHoistedCount metric.Int64Counter
 
-	// PrerenderedNodeCount counts the number of static nodes that are prerendered
-	// to HTML bytes at generation time. These nodes skip AST walking at runtime.
+	// PrerenderedNodeCount counts the number of static nodes that are prerendered to HTML
+	// bytes at generation time. These nodes skip AST walking at runtime.
 	PrerenderedNodeCount metric.Int64Counter
 )
 

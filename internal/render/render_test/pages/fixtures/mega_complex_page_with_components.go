@@ -24,8 +24,8 @@ import (
 
 // MegaComplexPageAST returns a complex template AST for testing purposes.
 //
-// Returns *ast_domain.TemplateAST which contains a multi-level page structure
-// with header, navigation, main content, forms, and footer elements.
+// Returns *ast_domain.TemplateAST which contains a multi-level page structure with
+// header, navigation, main content, forms, and footer elements.
 func MegaComplexPageAST() *ast_domain.TemplateAST {
 	return &ast_domain.TemplateAST{
 		RootNodes: []*ast_domain.TemplateNode{

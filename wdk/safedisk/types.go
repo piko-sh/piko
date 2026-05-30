@@ -25,19 +25,19 @@ import (
 	"time"
 )
 
-// DefaultReadFileMaxBytes is the safety cap applied by Sandbox.ReadFile so
-// that a single read cannot allocate unbounded memory. Callers expecting
-// larger files should use ReadFileLimit with an explicit cap or stream via
-// Open.
-const DefaultReadFileMaxBytes int64 = 256 * 1024 * 1024
+const (
+	// DefaultReadFileMaxBytes is the safety cap applied by Sandbox.ReadFile so that a single
+	// read cannot allocate unbounded memory. Callers expecting larger files should use
+	// ReadFileLimit with an explicit cap or stream via Open.
+	DefaultReadFileMaxBytes int64 = 256 * 1024 * 1024
+)
 
-// Mode specifies whether a sandbox allows write operations.
-// It implements fmt.Stringer.
+// Mode specifies whether a sandbox allows write operations. It implements fmt.Stringer.
 type Mode uint8
 
 const (
-	// ModeReadOnly is a sandbox mode that allows only read operations such as
-	// Open, ReadFile, and Stat.
+	// ModeReadOnly is a sandbox mode that allows only read operations such as Open,
+	// ReadFile, and Stat.
 	ModeReadOnly Mode = iota
 
 	// ModeReadWrite allows both read and write operations within the sandbox.
@@ -62,12 +62,13 @@ var (
 	_ FileHandle = (*File)(nil)
 )
 
-var _ fs.FileInfo = fileInfo{}
+var (
+	_ fs.FileInfo = fileInfo{}
+)
 
 // String returns the string representation of the mode.
 //
-// Returns string which is "read-only" for ModeReadOnly, or "read-write"
-// otherwise.
+// Returns string which is "read-only" for ModeReadOnly, or "read-write" otherwise.
 func (m Mode) String() string {
 	if m == ModeReadOnly {
 		return "read-only"
@@ -75,17 +76,17 @@ func (m Mode) String() string {
 	return "read-write"
 }
 
-// FileHandle provides an interface for sandboxed file operations.
-// Enables dependency injection and testing with mock implementations that can
-// simulate errors for test coverage.
+// FileHandle provides an interface for sandboxed file operations. Enables dependency
+// injection and testing with mock implementations that can simulate errors for test
+// coverage.
 //
 // The default implementation is *File, which wraps os.File.
 type FileHandle interface {
 	// Name returns the relative path of the file within the sandbox.
 	Name() string
 
-	// AbsolutePath returns the absolute path of the file on disk.
-	// This should only be used for logging/debugging.
+	// AbsolutePath returns the absolute path of the file on disk. This should only be used
+	// for logging/debugging.
 	AbsolutePath() string
 
 	// Read reads up to len(p) bytes into p.
@@ -128,12 +129,12 @@ type FileHandle interface {
 	Fd() uintptr
 }
 
-// Sandbox defines a restricted filesystem interface that confines all
-// operations within a root directory. All paths are relative to the sandbox
-// root, and attempts to access paths outside the boundary will fail.
+// Sandbox defines a restricted filesystem interface that confines all operations within a
+// root directory. All paths are relative to the sandbox root, and attempts to access
+// paths outside the boundary will fail.
 type Sandbox interface {
-	// Open opens a file for reading within the sandbox.
-	// The path must be relative to the sandbox root.
+	// Open opens a file for reading within the sandbox. The path must be relative to the
+	// sandbox root.
 	//
 	// Takes name (string) the relative path within the sandbox.
 	//
@@ -141,38 +142,38 @@ type Sandbox interface {
 	// Returns error if the file cannot be opened or path escapes sandbox.
 	Open(name string) (FileHandle, error)
 
-	// ReadFile reads the entire contents of a file within the sandbox up
-	// to DefaultReadFileMaxBytes.
+	// ReadFile reads the entire contents of a file within the sandbox up to
+	// DefaultReadFileMaxBytes.
 	//
-	// The cap exists to prevent unbounded memory allocation when the
-	// underlying file has unexpectedly grown. Callers that know the file is
-	// small may use this; callers expecting larger content should use
-	// ReadFileLimit with an explicit cap, or stream via Open.
+	// The cap exists to prevent unbounded memory allocation when the underlying file has
+	// unexpectedly grown. Callers that know the file is small may use this; callers
+	// expecting larger content should use ReadFileLimit with an explicit cap, or stream via
+	// Open.
 	//
 	// Takes name (string) the relative path within the sandbox.
 	//
 	// Returns []byte the file contents.
-	// Returns error if the file cannot be read, path escapes sandbox, or the
-	// file exceeds DefaultReadFileMaxBytes (wrapped as ErrFileExceedsLimit).
+	// Returns error if the file cannot be read, path escapes sandbox, or the file exceeds
+	// DefaultReadFileMaxBytes (wrapped as ErrFileExceedsLimit).
 	ReadFile(name string) ([]byte, error)
 
-	// ReadFileLimit reads up to maxBytes of a file within the sandbox after
-	// stat-checking the file's size. Refuses to allocate when the file is
-	// larger than maxBytes; this prevents a malformed or attacker-influenced
-	// file from dominating memory in callers that consume sandbox content.
+	// ReadFileLimit reads up to maxBytes of a file within the sandbox after stat-checking
+	// the file's size. Refuses to allocate when the file is larger than maxBytes; this
+	// prevents a malformed or attacker-influenced file from dominating memory in callers
+	// that consume sandbox content.
 	//
-	// The returned size is the stat-reported file size at the moment of stat,
-	// independent of how many bytes were read. Callers may compare it against
-	// len(data) to detect a file that grew between stat and read.
+	// The returned size is the stat-reported file size when stat was called, independent of
+	// how many bytes were read. Callers may compare it against len(data) to detect a file
+	// that grew between stat and read.
 	//
 	// Takes name (string) which is the relative path within the sandbox.
-	// Takes maxBytes (int64) which caps the byte count allocated for the
-	// read. Must be positive.
+	// Takes maxBytes (int64) which caps the byte count allocated for the read. Must be
+	// positive.
 	//
 	// Returns []byte which contains the file content (up to maxBytes).
 	// Returns int64 which is the stat-reported file size at stat time.
-	// Returns error wrapping ErrFileExceedsLimit when the file is larger
-	// than maxBytes, or any underlying stat / read error.
+	// Returns error wrapping ErrFileExceedsLimit when the file is larger than maxBytes, or
+	// any underlying stat / read error.
 	ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error)
 
 	// Stat returns file information for a path within the sandbox.
@@ -199,8 +200,8 @@ type Sandbox interface {
 	// Returns error if the directory cannot be read or path escapes sandbox.
 	ReadDir(name string) ([]fs.DirEntry, error)
 
-	// WalkDir walks the directory tree rooted at root within the sandbox.
-	// It calls walkFunction for each file or directory in the tree.
+	// WalkDir walks the directory tree rooted at root within the sandbox. It calls
+	// walkFunction for each file or directory in the tree.
 	//
 	// Takes root (string) the relative path to start walking from.
 	// Takes walkFunction (fs.WalkDirFunc) the function to call for each entry.
@@ -216,21 +217,20 @@ type Sandbox interface {
 	// Returns error if creation fails, path escapes sandbox, or sandbox is read-only.
 	Create(name string) (FileHandle, error)
 
-	// OpenFile opens a file with the specified flags and permissions.
-	// This is the most flexible file opening function.
+	// OpenFile opens a file with the specified flags and permissions. This is the most
+	// flexible file opening function.
 	//
 	// Takes name (string) which is the relative path within the sandbox.
-	// Takes flag (int) which specifies the file open flags (os.O_RDONLY,
-	// os.O_WRONLY, etc.).
+	// Takes flag (int) which specifies the file open flags (os.O_RDONLY, os.O_WRONLY, etc.).
 	// Takes perm (fs.FileMode) which sets the file permissions for creation.
 	//
 	// Returns FileHandle which is the opened file handle.
-	// Returns error when opening fails, path escapes sandbox, or write is
-	// attempted on a read-only sandbox.
+	// Returns error when opening fails, path escapes sandbox, or write is attempted on a
+	// read-only sandbox.
 	OpenFile(name string, flag int, perm fs.FileMode) (FileHandle, error)
 
-	// WriteFile writes data to a file, creating it if necessary.
-	// This is equivalent to Create followed by Write and Close.
+	// WriteFile writes data to a file, creating it if necessary. This is equivalent to
+	// Create followed by Write and Close.
 	//
 	// Takes name (string) the relative path within the sandbox.
 	// Takes data ([]byte) the content to write.
@@ -241,17 +241,16 @@ type Sandbox interface {
 
 	// WriteFileAtomic writes data to a file atomically.
 	//
-	// The method first writes to a temporary file in the same directory and then
-	// renames it to the target path. This means that if the process crashes
-	// during the write, the original file remains intact and no partially written
-	// file is left behind.
+	// The method first writes to a temporary file in the same directory and then renames it
+	// to the target path. This means that if the process crashes during the write, the
+	// original file remains intact and no partially written file is left behind.
 	//
 	// Takes name (string) which is the relative path within the sandbox.
 	// Takes data ([]byte) which is the content to write.
 	// Takes perm (fs.FileMode) which specifies the file permissions.
 	//
-	// Returns error when writing fails, path escapes the sandbox, or the sandbox
-	// is read-only.
+	// Returns error when writing fails, path escapes the sandbox, or the sandbox is
+	// read-only.
 	WriteFileAtomic(name string, data []byte, perm fs.FileMode) error
 
 	// Mkdir creates a directory within the sandbox.
@@ -284,8 +283,8 @@ type Sandbox interface {
 	// Returns error if removal fails, path escapes sandbox, or sandbox is read-only.
 	RemoveAll(path string) error
 
-	// Rename renames a file or directory within the sandbox.
-	// IMPORTANT: Both oldpath and newpath must be within the same sandbox.
+	// Rename renames a file or directory within the sandbox. IMPORTANT: Both oldpath and
+	// newpath must be within the same sandbox.
 	//
 	// Takes oldpath (string) the current relative path.
 	// Takes newpath (string) the new relative path.
@@ -301,15 +300,15 @@ type Sandbox interface {
 	// Returns error if changing fails, path escapes sandbox, or sandbox is read-only.
 	Chmod(name string, mode fs.FileMode) error
 
-	// CreateTemp creates a temporary file within the sandbox.
-	// The file is created in the specified directory with a name
-	// generated from the pattern (using * as placeholder for random string).
+	// CreateTemp creates a temporary file within the sandbox. The file is created in the
+	// specified directory with a name generated from the pattern (using * as placeholder for
+	// random string).
 	//
-	// Takes directory (string) the relative directory for the temp file.
-	// Takes pattern (string) the filename pattern (e.g., "upload-*.tmp").
+	// Takes directory (string) the relative directory for the temp file. Takes pattern
+	// (string) the filename pattern (e.g., "upload-*.tmp").
 	//
-	// Returns FileHandle the created temporary file.
-	// Returns error if creation fails, path escapes sandbox, or sandbox is read-only.
+	// Returns FileHandle the created temporary file. Returns error if creation fails, path
+	// escapes sandbox, or sandbox is read-only.
 	CreateTemp(directory, pattern string) (FileHandle, error)
 
 	// MkdirTemp creates a temporary directory within the sandbox.
@@ -332,8 +331,8 @@ type Sandbox interface {
 	// IsReadOnly returns true if the sandbox does not allow write operations.
 	IsReadOnly() bool
 
-	// Close releases any resources held by the sandbox. After Close is called,
-	// all operations will fail.
+	// Close releases any resources held by the sandbox. After Close is called, all
+	// operations will fail.
 	//
 	// Returns error when releasing resources fails.
 	Close() error
@@ -342,13 +341,13 @@ type Sandbox interface {
 	//
 	// This handles three cases:
 	//
-	//  1. Absolute paths (e.g., "/project/dist/file.go") are converted to
-	//     paths relative to the sandbox root using filepath.Rel.
+	//  1. Absolute paths (e.g., "/project/dist/file.go") are converted to paths relative to
+	//     the sandbox root using filepath.Rel.
 	//
-	//  2. Relative paths that include the sandbox directory name as a prefix
-	//     (e.g., "dist/file.go" when sandbox is at "dist") have that
-	//     redundant prefix stripped. This occurs when paths are calculated
-	//     relative to a parent directory but include the sandbox folder name.
+	//  2. Relative paths that include the sandbox directory name as a prefix (e.g.,
+	//     "dist/file.go" when sandbox is at "dist") have that redundant prefix stripped.
+	//     This occurs when paths are calculated relative to a parent directory but include
+	//     the sandbox folder name.
 	//
 	//  3. Relative paths that do not match the above cases are returned as-is.
 	//
@@ -358,8 +357,8 @@ type Sandbox interface {
 	RelPath(path string) string
 }
 
-// File provides a sandboxed file handle that implements io.ReadWriteCloser.
-// It wraps os.File with path checks to keep all operations within the sandbox.
+// File provides a sandboxed file handle that implements io.ReadWriteCloser. It wraps
+// os.File with path checks to keep all operations within the sandbox.
 type File struct {
 	// file is the underlying OS file handle for read and write operations.
 	file *os.File
@@ -375,12 +374,10 @@ func (f *File) Name() string {
 	return f.name
 }
 
-// AbsolutePath returns the absolute path of the file on disk.
-// This should only be used for logging/debugging, not for further file
-// operations.
+// AbsolutePath returns the absolute path of the file on disk. This should only be used
+// for logging/debugging, not for further file operations.
 //
-// Returns string which is the file's absolute path, or empty if the file is
-// nil.
+// Returns string which is the file's absolute path, or empty if the file is nil.
 func (f *File) AbsolutePath() string {
 	if f.file == nil {
 		return ""
@@ -443,8 +440,8 @@ func (f *File) WriteString(s string) (n int, err error) {
 // Seek sets the offset for the next Read or Write.
 //
 // Takes offset (int64) which specifies the position relative to whence.
-// Takes whence (int) which defines the reference point: 0 for start, 1 for
-// current position, 2 for end of file.
+// Takes whence (int) which defines the reference point: 0 for start, 1 for current
+// position, 2 for end of file.
 //
 // Returns int64 which is the new offset from the start of the file.
 // Returns error when the seek operation fails.
@@ -494,8 +491,8 @@ func (f *File) Close() error {
 
 // ReadDir reads the directory contents (if this is a directory).
 //
-// Takes n (int) which limits the number of entries to return. If n <= 0, all
-// entries are returned.
+// Takes n (int) which limits the number of entries to return. If n <= 0, all entries are
+// returned.
 //
 // Returns []fs.DirEntry which contains the directory entries.
 // Returns error when the file is not a directory or reading fails.

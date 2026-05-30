@@ -107,17 +107,17 @@ const (
 )
 
 var (
-	// lastV7timeAt holds the last combined timestamp-plus-sequence value used for
-	// UUIDv7 generation, ensuring monotonic ordering.
+	// lastV7timeAt holds the last combined timestamp-plus-sequence value used for UUIDv7
+	// generation, ensuring monotonic ordering.
 	lastV7timeAt int64
 
 	// timeAtMu guards concurrent access to lastV7timeAt.
 	timeAtMu sync.Mutex
 )
 
-// NewV7At generates a Version 7 UUID using the provided time for the
-// timestamp portion. It uses random data for the lower bits and maintains
-// ascending output even if timestamps are out of order or identical.
+// NewV7At generates a Version 7 UUID using the provided time for the timestamp portion.
+// It uses random data for the lower bits and maintains ascending output even if
+// timestamps are out of order or identical.
 //
 // Takes t (time.Time) which specifies the Unix Epoch time for the UUID.
 //
@@ -132,8 +132,7 @@ func NewV7At(t time.Time) (uuid.UUID, error) {
 	return uuidVal, nil
 }
 
-// NewV7AtFromReader is like NewV7At but uses a custom random source for
-// the lower bits.
+// NewV7AtFromReader is like NewV7At but uses a custom random source for the lower bits.
 //
 // Takes r (io.Reader) which provides the random source for UUID generation.
 // Takes t (time.Time) which specifies the timestamp to embed in the UUID.
@@ -151,8 +150,8 @@ func NewV7AtFromReader(r io.Reader, t time.Time) (uuid.UUID, error) {
 
 // ResetLastV7timeAt resets the last V7 timestamp to zero.
 //
-// This is a helper for tests, ensuring consistent behaviour when running
-// code again with the same time and seed.
+// This is a helper for tests, ensuring consistent behaviour when running code again with
+// the same time and seed.
 //
 // Safe for concurrent use.
 func ResetLastV7timeAt() {
@@ -161,9 +160,9 @@ func ResetLastV7timeAt() {
 	lastV7timeAt = 0
 }
 
-// NewV7MinAt returns a Version 7 UUID at the given time with all random bits
-// and sub-millisecond bits set to zero. Use it as a lower bound when
-// performing searches based on V7 UUIDs.
+// NewV7MinAt returns a Version 7 UUID at the given time with all random bits and
+// sub-millisecond bits set to zero. Use it as a lower bound when performing searches
+// based on V7 UUIDs.
 //
 // Takes t (time.Time) which specifies the timestamp for the UUID.
 //
@@ -174,9 +173,9 @@ func NewV7MinAt(t time.Time) uuid.UUID {
 	return u
 }
 
-// NewV7MaxAt returns a Version 7 UUID at the given time with all random bits
-// set to one and sub-millisecond bits set to 0xFFF. Use it as an upper
-// bound when performing searches based on V7 UUIDs.
+// NewV7MaxAt returns a Version 7 UUID at the given time with all random bits set to one
+// and sub-millisecond bits set to 0xFFF. Use it as an upper bound when performing
+// searches based on V7 UUIDs.
 //
 // Takes t (time.Time) which specifies the timestamp for the UUID.
 //
@@ -187,8 +186,8 @@ func NewV7MaxAt(t time.Time) uuid.UUID {
 	return u
 }
 
-// makeV7At fills a UUID byte slice with version 7 format using a given time.
-// This mirrors makeV7 but uses getV7TimeAt to encode the timestamp.
+// makeV7At fills a UUID byte slice with version 7 format using a given time. This mirrors
+// makeV7 but uses getV7TimeAt to encode the timestamp.
 //
 // Takes u ([]byte) which is the UUID byte slice to fill.
 // Takes t (time.Time) which is the timestamp to encode.
@@ -210,8 +209,8 @@ func makeV7At(u []byte, t time.Time) {
 	u[uuidByte7Index] = byte(sequence)
 }
 
-// getV7TimeAt converts a time to milliseconds and a sub-millisecond sequence.
-// It guarantees values always increase across calls, even for the same timestamp.
+// getV7TimeAt converts a time to milliseconds and a sub-millisecond sequence. It
+// guarantees values always increase across calls, even for the same timestamp.
 //
 // Takes t (time.Time) which is the timestamp to convert.
 //
@@ -241,8 +240,8 @@ func getV7TimeAt(t time.Time) (milli, sequence int64) {
 //
 // Takes u ([]byte) which is the UUID byte slice to fill.
 // Takes t (time.Time) which sets the timestamp for the UUID.
-// Takes isMax (bool) which when true sets all random bits to one, otherwise
-// sets them to zero.
+// Takes isMax (bool) which when true sets all random bits to one, otherwise sets them to
+// zero.
 //
 //nolint:gosec // intentional byte extraction
 func makeV7BoundaryAt(u []byte, t time.Time, isMax bool) {

@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_resolver_vault resolves configuration values from
-// HashiCorp Vault.
+// Package config_resolver_vault resolves configuration values from HashiCorp Vault.
 //
 // All methods on [Resolver] are safe for concurrent use.
 package config_resolver_vault

@@ -16,23 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lsp_domain orchestrates the Language Server Protocol
-// implementation for Piko.
+// Package lsp_domain orchestrates the Language Server Protocol implementation for Piko.
 //
-// It handles LSP requests and responses for code intelligence in .pk
-// template files: completion, hover, go-to-definition, diagnostics,
-// signature help, quick fixes, inlay hints, type hierarchy, and
-// refactoring. Port interfaces (LSPServerPort, WorkspacePort,
-// TypeInspectorPort) are defined here for adapters and test doubles.
-// The package coordinates with the annotator, inspector, and coordinator
-// modules for semantic analysis, whilst lsp_adapters handles transport
-// (stdio/TCP).
+// It handles LSP requests and responses for code intelligence in .pk template files:
+// completion, hover, go-to-definition, diagnostics, signature help, quick fixes, inlay
+// hints, type hierarchy, and refactoring. Port interfaces (LSPServerPort, WorkspacePort,
+// TypeInspectorPort) are defined here for adapters and test doubles. The package
+// coordinates with the annotator, inspector, and coordinator modules for semantic
+// analysis, whilst lsp_adapters handles transport (stdio/TCP).
 //
 // # Thread safety
 //
-// Server and workspace methods are safe for concurrent use. Document
-// instances are immutable snapshots and may be shared between
-// goroutines. The workspace uses mutex protection for document cache
-// operations and cancellation tracking for in-flight analyses.
-// DocumentCache is safe for concurrent use.
+// Server and workspace methods are safe for concurrent use. Document instances are
+// immutable snapshots and may be shared between goroutines. The workspace uses mutex
+// protection for document cache operations and cancellation tracking for in-flight
+// analyses. DocumentCache is safe for concurrent use.
 package lsp_domain

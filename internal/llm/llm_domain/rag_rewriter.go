@@ -37,9 +37,9 @@ const (
 	// defaultRewriterMaxTokens is the default token limit for rewritten queries.
 	defaultRewriterMaxTokens = 200
 
-	// defaultSingleRewritePrompt is the default prompt for generating a single
-	// optimised search query as JSON. Override with [WithRewriterPrompt] to
-	// provide domain-specific examples.
+	// defaultSingleRewritePrompt is the default prompt for generating a single optimised
+	// search query as JSON. Override with WithRewriterPrompt to provide domain-specific
+	// examples.
 	defaultSingleRewritePrompt = `Task: rewrite the user's search query into a single precise search query optimised for vector similarity search.
 
 Rules:
@@ -58,12 +58,12 @@ Output: {"queries": ["deployment error troubleshooting"]}
 
 Now rewrite the user's query below.`
 
-	// defaultMultiQueryPromptTemplate instructs the model to produce multiple
-	// diverse queries as JSON, with the %d verb replaced by the desired count.
+	// defaultMultiQueryPromptTemplate instructs the model to produce multiple diverse
+	// queries as JSON, with the %d verb replaced by the desired count.
 	//
-	// Uses a structured format with examples to prevent weak models from
-	// generating conversational responses. Override with [WithRewriterPrompt] for
-	// domain-specific examples.
+	// Uses a structured format with examples to prevent weak models from generating
+	// conversational responses. Override with WithRewriterPrompt for domain-specific
+	// examples.
 	defaultMultiQueryPromptTemplate = `Task: rewrite the user's search query into exactly %d different search queries optimised for vector similarity search. 
 Each query should capture a different aspect of what the user is looking for.
 
@@ -79,23 +79,21 @@ Example output: {"queries": ["installation setup configuration guide", "authenti
 Now generate %d queries for the user's query below.`
 )
 
-// QueryRewriterFunc rewrites a user query into one or more search queries
-// before embedding. Returning a single element performs simple rewriting;
-// returning multiple elements triggers multi-query expansion with result
-// deduplication.
+// QueryRewriterFunc rewrites a user query into one or more search queries before
+// embedding. Returning a single element performs simple rewriting; returning multiple
+// elements triggers multi-query expansion with result deduplication.
 //
-// A nil or empty slice means "use the original query unchanged". An error
-// causes graceful degradation to the original query.
+// A nil or empty slice means "use the original query unchanged". An error causes graceful
+// degradation to the original query.
 type QueryRewriterFunc func(ctx context.Context, query string) ([]string, error)
 
-// QueryRewriterOption is a functional option for configuring the built-in
-// LLM-based query rewriter created by [LLMQueryRewriter].
+// QueryRewriterOption is a functional option for configuring the built-in LLM-based query
+// rewriter created by LLMQueryRewriter.
 type QueryRewriterOption func(*queryRewriterConfig)
 
 // queryRewriterConfig holds settings for LLM-based query rewriting.
 type queryRewriterConfig struct {
-	// model is the LLM model to use for rewriting. Empty uses the provider
-	// default.
+	// model is the LLM model to use for rewriting. Empty uses the provider default.
 	model string
 
 	// provider is the LLM provider name. Empty uses the service default.
@@ -104,16 +102,18 @@ type queryRewriterConfig struct {
 	// prompt is the system prompt. Empty uses the built-in default.
 	prompt string
 
-	// maxQueries is the maximum number of expanded queries to generate, defaulting
-	// to 1 (simple rewrite) with larger values enabling multi-query expansion.
+	// maxQueries is the maximum number of expanded queries to generate, defaulting to 1
+	// (simple rewrite) with larger values enabling multi-query expansion.
 	maxQueries int
 
 	// maxTokens limits the rewriter completion output. Defaults to 200.
 	maxTokens int
 }
 
-// numberPrefixRe matches common numbering patterns LLMs prepend to list items.
-var numberPrefixRe = regexp.MustCompile(`^\d+[\.\)]\s*`)
+var (
+	// numberPrefixRe matches common numbering patterns LLMs prepend to list items.
+	numberPrefixRe = regexp.MustCompile(`^\d+[\.\)]\s*`)
+)
 
 // rewriterJSONResponse is the expected JSON structure from the rewriter.
 type rewriterJSONResponse struct {
@@ -139,9 +139,8 @@ func WithRewriterProvider(provider string) QueryRewriterOption {
 	return func(c *queryRewriterConfig) { c.provider = provider }
 }
 
-// WithRewriterPrompt sets a custom system prompt for the built-in query
-// rewriter. When set, this overrides the default single-rewrite or
-// multi-query expansion prompt.
+// WithRewriterPrompt sets a custom system prompt for the built-in query rewriter. When
+// set, this overrides the default single-rewrite or multi-query expansion prompt.
 //
 // Takes prompt (string) which is the system prompt text.
 //
@@ -150,10 +149,9 @@ func WithRewriterPrompt(prompt string) QueryRewriterOption {
 	return func(c *queryRewriterConfig) { c.prompt = prompt }
 }
 
-// WithRewriterMaxQueries sets the maximum number of expanded queries
-// the rewriter should generate, where 1 (default) produces a single
-// rewritten query and values greater than 1 enable multi-query
-// expansion with independent embedding, searching, and result merging.
+// WithRewriterMaxQueries sets the maximum number of expanded queries the rewriter should
+// generate, where 1 (default) produces a single rewritten query and values greater than 1
+// enable multi-query expansion with independent embedding, searching, and result merging.
 //
 // Takes n (int) which is the maximum query count.
 //
@@ -162,8 +160,8 @@ func WithRewriterMaxQueries(n int) QueryRewriterOption {
 	return func(c *queryRewriterConfig) { c.maxQueries = n }
 }
 
-// WithRewriterMaxTokens sets the maximum number of tokens for the rewriter
-// completion output. Defaults to 200.
+// WithRewriterMaxTokens sets the maximum number of tokens for the rewriter completion
+// output. Defaults to 200.
 //
 // Takes n (int) which is the token limit.
 //
@@ -172,13 +170,12 @@ func WithRewriterMaxTokens(n int) QueryRewriterOption {
 	return func(c *queryRewriterConfig) { c.maxTokens = n }
 }
 
-// LLMQueryRewriter creates a [QueryRewriterFunc] that uses the LLM service to
-// rewrite or expand a query for improved vector search retrieval. The rewriter
-// makes a completion call with a system prompt instructing the model to
-// reformulate the query.
+// LLMQueryRewriter creates a QueryRewriterFunc that uses the LLM service to rewrite or
+// expand a query for improved vector search retrieval. The rewriter makes a completion
+// call with a system prompt instructing the model to reformulate the query.
 //
-// When maxQueries is 1 (default), the model returns a single improved query.
-// When maxQueries > 1, the model returns multiple diverse query expansions.
+// When maxQueries is 1 (default), the model returns a single improved query. When
+// maxQueries > 1, the model returns multiple diverse query expansions.
 //
 // Takes service (Service) which provides the LLM completion capability.
 // Takes opts (...QueryRewriterOption) which configure the rewriter behaviour.
@@ -236,14 +233,14 @@ func LLMQueryRewriter(service Service, opts ...QueryRewriterOption) QueryRewrite
 	}
 }
 
-// parseJSONRewriterResponse attempts to parse LLM output as JSON containing a
-// "queries" array.
+// parseJSONRewriterResponse attempts to parse LLM output as JSON containing a "queries"
+// array.
 //
 // Takes content (string) which is the raw LLM output to parse.
 // Takes maxQueries (int) which limits the number of queries returned.
 //
-// Returns []string which contains the parsed queries, or nil if parsing fails
-// to signal the caller to fall back to text-based parsing.
+// Returns []string which contains the parsed queries, or nil if parsing fails to signal
+// the caller to fall back to text-based parsing.
 func parseJSONRewriterResponse(content string, maxQueries int) []string {
 	var response rewriterJSONResponse
 	if err := json.Unmarshal([]byte(content), &response); err != nil {
@@ -267,8 +264,8 @@ func parseJSONRewriterResponse(content string, maxQueries int) []string {
 
 // parseRewriterResponse splits LLM output into individual queries.
 //
-// It strips numbering prefixes, empty lines, and conversational filler that
-// small models sometimes emit despite the prompt.
+// It strips numbering prefixes, empty lines, and conversational filler that small models
+// sometimes emit despite the prompt.
 //
 // Takes content (string) which is the raw LLM response to parse.
 // Takes maxQueries (int) which limits the maximum number of queries returned.
@@ -301,16 +298,15 @@ func parseRewriterResponse(content string, maxQueries int) []string {
 	return queries
 }
 
-// isRewriterJunk reports whether a line from the rewriter output is
-// conversational filler or a formatting artefact rather than a real search
-// query.
+// isRewriterJunk reports whether a line from the rewriter output is conversational filler
+// or a formatting artefact rather than a real search query.
 //
 // Takes line (string) which is a single line from the rewriter output.
 //
 // Returns bool which is true when the line is junk that should be filtered.
 //
-// Small models (e.g. tinyllama) frequently emit these despite explicit
-// prompt instructions.
+// Small models (e.g. tinyllama) frequently emit these despite explicit prompt
+// instructions.
 func isRewriterJunk(line string) bool {
 	lower := strings.ToLower(line)
 
@@ -331,15 +327,15 @@ func isRewriterJunk(line string) bool {
 	return false
 }
 
-// mergeSearchResults deduplicates vector search results from multiple query
-// expansions, keeping the highest similarity score for each document ID.
+// mergeSearchResults deduplicates vector search results from multiple query expansions,
+// keeping the highest similarity score for each document ID.
 //
-// Takes resultSets ([][]llm_dto.VectorSearchResult) which contains the search
-// results from multiple query expansions to merge.
+// Takes resultSets ([][]llm_dto.VectorSearchResult) which contains the search results
+// from multiple query expansions to merge.
 // Takes topK (int) which specifies the maximum number of results to return.
 //
-// Returns []llm_dto.VectorSearchResult which contains the merged results
-// sorted by score descending and truncated to topK.
+// Returns []llm_dto.VectorSearchResult which contains the merged results sorted by score
+// descending and truncated to topK.
 func mergeSearchResults(resultSets [][]llm_dto.VectorSearchResult, topK int) []llm_dto.VectorSearchResult {
 	seen := make(map[string]llm_dto.VectorSearchResult)
 

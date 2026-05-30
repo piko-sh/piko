@@ -29,8 +29,7 @@ func NewValidationError(fields map[string]string) *ValidationError {
 
 // ValidationField creates a single-field validation error.
 //
-// This is a convenience function for the common case of one field failing
-// validation.
+// This is a convenience function for the common case of one field failing validation.
 //
 // Takes field (string) which is the name of the field that failed validation.
 // Takes message (string) which describes why the validation failed.
@@ -50,8 +49,8 @@ func NotFound(resource, id string) *NotFoundError {
 	return &NotFoundError{Resource: resource, ID: id}
 }
 
-// NotFoundResource creates a not found error without a specific ID.
-// Use this when the resource type is known but there is no specific identifier.
+// NotFoundResource creates a not found error without a specific ID. Use this when the
+// resource type is known but there is no specific identifier.
 //
 // Takes resource (string) which specifies the type of resource that was not found.
 //
@@ -69,9 +68,8 @@ func Conflict(message string) *ConflictError {
 	return &ConflictError{Message: message, Code: "CONFLICT"}
 }
 
-// ConflictWithCode creates a conflict error with a custom error code.
-// Use this when the client needs to distinguish between different conflict
-// types.
+// ConflictWithCode creates a conflict error with a custom error code. Use this when the
+// client needs to distinguish between different conflict types.
 //
 // Takes message (string) which describes the conflict that occurred.
 // Takes code (string) which identifies the type of conflict for clients.
@@ -108,9 +106,9 @@ func BadRequest(message string) *BadRequestError {
 	return &BadRequestError{Message: message}
 }
 
-// PageError creates a generic page error with an arbitrary HTTP status code.
-// Use this when none of the specific error helpers (NotFound, Forbidden, etc.)
-// match the status code you need.
+// PageError creates a generic page error with an arbitrary HTTP status code. Use this
+// when none of the specific error helpers (NotFound, Forbidden, etc.) match the status
+// code you need.
 //
 // Takes statusCode (int) which is the HTTP status code.
 // Takes message (string) which describes the error.
@@ -122,8 +120,8 @@ func PageError(statusCode int, message string) *GenericPageError {
 
 // Teapot creates an HTTP 418 I'm a Teapot error. Short and stout.
 //
-// Takes message (string) which describes why this teapot refuses to brew
-// coffee. Pass an empty string for the default message.
+// Takes message (string) which describes why this teapot refuses to brew coffee. Pass an
+// empty string for the default message.
 //
 // Returns *TeapotError which is a teapot error.
 func Teapot(message string) *TeapotError {

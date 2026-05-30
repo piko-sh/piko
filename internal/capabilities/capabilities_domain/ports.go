@@ -26,16 +26,16 @@ import (
 // CapabilityParams holds key-value parameters passed to a capability function.
 type CapabilityParams map[string]string
 
-// CapabilityFunc is a function type that transforms content for a specific
-// capability such as compression, minification, or image processing.
+// CapabilityFunc is a function type that transforms content for a specific capability
+// such as compression, minification, or image processing.
 type CapabilityFunc func(
 	ctx context.Context,
 	inputData io.Reader,
 	params CapabilityParams,
 ) (outputData io.Reader, err error)
 
-// CapabilityService provides methods to register and execute capabilities.
-// It is used by the daemon and orchestrator to process capability requests.
+// CapabilityService provides methods to register and execute capabilities. It is used by
+// the daemon and orchestrator to process capability requests.
 type CapabilityService interface {
 	// Register adds a capability function with the given name.
 	//

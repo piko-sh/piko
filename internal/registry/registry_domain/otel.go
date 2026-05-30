@@ -32,94 +32,86 @@ var (
 	// meter is the OpenTelemetry meter for registry domain metrics.
 	meter = otel.Meter("piko/internal/registry/registry_domain")
 
-	// registryServiceUpsertArtefactDuration measures the latency of artefact
-	// upsert operations. This is a core mutation operation critical for
-	// understanding registry write performance.
+	// registryServiceUpsertArtefactDuration measures the latency of artefact upsert
+	// operations. This is a core mutation operation critical for understanding registry
+	// write performance.
 	registryServiceUpsertArtefactDuration metric.Float64Histogram
 
-	// registryServiceAddVariantDuration measures the latency of variant addition
-	// operations. Tracks performance of capability output registration, a key part
-	// of the asset pipeline.
+	// registryServiceAddVariantDuration measures the latency of variant addition operations.
+	// Tracks performance of capability output registration, a key part of the asset
+	// pipeline.
 	registryServiceAddVariantDuration metric.Float64Histogram
 
-	// registryServiceDeleteArtefactDuration measures the latency of artefact
-	// deletion operations. Important for understanding cleanup performance and GC
-	// hint generation overhead.
+	// registryServiceDeleteArtefactDuration measures the latency of artefact deletion
+	// operations. Important for understanding cleanup performance and GC hint generation
+	// overhead.
 	registryServiceDeleteArtefactDuration metric.Float64Histogram
 
-	// registryServiceGetArtefactDuration measures the latency of single artefact
-	// retrieval. High-frequency read operation; essential for monitoring cache
-	// effectiveness and query performance.
+	// registryServiceGetArtefactDuration measures the latency of single artefact retrieval.
+	// High-frequency read operation; essential for monitoring cache effectiveness and query
+	// performance.
 	registryServiceGetArtefactDuration metric.Float64Histogram
 
-	// registryServiceGetMultipleArtefactsDuration measures the latency of batch
-	// artefact retrieval. Critical for understanding bulk read performance and
-	// cache batch efficiency.
+	// registryServiceGetMultipleArtefactsDuration measures the latency of batch artefact
+	// retrieval. Critical for understanding bulk read performance and cache batch
+	// efficiency.
 	registryServiceGetMultipleArtefactsDuration metric.Float64Histogram
 
-	// registryServiceUpsertArtefactErrorCount tracks failures in artefact upsert
-	// operations. High error rates indicate storage backend issues or validation
-	// problems.
+	// registryServiceUpsertArtefactErrorCount tracks failures in artefact upsert operations.
+	// High error rates indicate storage backend issues or validation problems.
 	registryServiceUpsertArtefactErrorCount metric.Int64Counter
 
-	// registryServiceUpsertArtefactSkippedCount tracks upsert operations that were
-	// skipped because the artefact was unchanged. This optimisation prevents
-	// unnecessary event storms during rapid page reloads when dynamic assets are
-	// re-registered with identical profiles.
+	// registryServiceUpsertArtefactSkippedCount tracks upsert operations that were skipped
+	// because the artefact was unchanged. This optimisation prevents unnecessary event
+	// storms during rapid page reloads when dynamic assets are re-registered with identical
+	// profiles.
 	registryServiceUpsertArtefactSkippedCount metric.Int64Counter
 
-	// registryServiceAddVariantErrorCount tracks failures in variant addition
-	// operations. Indicates issues with capability output registration or metadata
-	// inconsistencies.
+	// registryServiceAddVariantErrorCount tracks failures in variant addition operations.
+	// Indicates issues with capability output registration or metadata inconsistencies.
 	registryServiceAddVariantErrorCount metric.Int64Counter
 
 	// registryServiceDeleteArtefactErrorCount tracks failures in artefact deletion
 	// operations. May indicate ref counting bugs or database transaction failures.
 	registryServiceDeleteArtefactErrorCount metric.Int64Counter
 
-	// registryServiceBlobDeduplicationHitCount tracks how often content
-	// deduplication saves storage.
+	// registryServiceBlobDeduplicationHitCount tracks how often content deduplication saves
+	// storage.
 	//
-	// When an artefact is uploaded with content that already exists (same
-	// hash), the blob is reused. A high hit rate indicates effective
-	// deduplication and storage savings.
+	// When an artefact is uploaded with content that already exists (same hash), the blob is
+	// reused. A high hit rate indicates effective deduplication and storage savings.
 	registryServiceBlobDeduplicationHitCount metric.Int64Counter
 
-	// registryServiceBlobRefCountIncrementCount tracks blob reference count
-	// increments. Each increment represents a new artefact or variant
-	// referencing a blob.
+	// registryServiceBlobRefCountIncrementCount tracks blob reference count increments. Each
+	// increment represents a new artefact or variant referencing a blob.
 	registryServiceBlobRefCountIncrementCount metric.Int64Counter
 
-	// registryServiceBlobRefCountDecrementCount tracks blob reference count
-	// decrements. Each decrement represents an artefact or variant no longer
-	// referencing a blob.
+	// registryServiceBlobRefCountDecrementCount tracks blob reference count decrements. Each
+	// decrement represents an artefact or variant no longer referencing a blob.
 	registryServiceBlobRefCountDecrementCount metric.Int64Counter
 
-	// registryServiceCacheHitCount tracks successful cache lookups for artefacts.
-	// High hit rate reduces database load and improves response times.
+	// registryServiceCacheHitCount tracks successful cache lookups for artefacts. High hit
+	// rate reduces database load and improves response times.
 	registryServiceCacheHitCount metric.Int64Counter
 
-	// registryServiceCacheMissCount tracks cache misses requiring database
-	// queries. High miss rate may indicate cache sizing issues or high cardinality
-	// in queries.
+	// registryServiceCacheMissCount tracks cache misses requiring database queries. High
+	// miss rate may indicate cache sizing issues or high cardinality in queries.
 	registryServiceCacheMissCount metric.Int64Counter
 
-	// registryServiceVariantInvalidationCount tracks cascading variant
-	// invalidations where a source artefact change causes dependent
-	// variants to become stale and require regeneration, with high
-	// counts indicating significant rework in the asset pipeline.
+	// registryServiceVariantInvalidationCount tracks cascading variant invalidations where a
+	// source artefact change causes dependent variants to become stale and require
+	// regeneration, with high counts indicating significant rework in the asset pipeline.
 	registryServiceVariantInvalidationCount metric.Int64Counter
 
-	// registryServiceEventPublishCount tracks registry events published to the
-	// orchestrator. Events trigger capability processing; count reflects system
-	// activity level.
+	// registryServiceEventPublishCount tracks registry events published to the orchestrator.
+	// Events trigger capability processing; count reflects system activity level.
 	registryServiceEventPublishCount metric.Int64Counter
 )
 
 // getTextMapPropagator returns the global OpenTelemetry text map propagator.
 //
-// Returns propagation.TextMapPropagator which handles trace context
-// propagation across service boundaries.
+// Returns propagation.TextMapPropagator which handles trace context propagation across
+// service boundaries.
 func getTextMapPropagator() propagation.TextMapPropagator {
 	return otel.GetTextMapPropagator()
 }

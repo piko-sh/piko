@@ -19,13 +19,13 @@
 package driven_svgwriter
 
 const (
-	// minPolygonPoints holds the minimum number of coordinate values needed
-	// to form a polygon (two x,y pairs).
+	// minPolygonPoints holds the minimum number of coordinate values needed to form a
+	// polygon (two x,y pairs).
 	minPolygonPoints = 4
 )
 
-// applyClipPath looks up a clip-path url(#id) reference in defs and
-// renders the clip path's children as clipping shapes.
+// applyClipPath looks up a clip-path url(#id) reference in defs and renders the clip
+// path's children as clipping shapes.
 //
 // Takes rc (*renderContext) which provides the PDF stream and defs map.
 // Takes node (*Node) which is the element that references the clip path.
@@ -61,8 +61,8 @@ func applyClipPath(rc *renderContext, node *Node, style *Style) bool {
 	return true
 }
 
-// resolveClipRef extracts the clip-path reference id from the node's
-// style property, clip-path attribute, or inline style attribute.
+// resolveClipRef extracts the clip-path reference id from the node's style property,
+// clip-path attribute, or inline style attribute.
 //
 // Takes node (*Node) which is the element to inspect for clip-path references.
 // Takes style (*Style) which may contain a clip-path url in its display property.
@@ -87,8 +87,8 @@ func resolveClipRef(node *Node, style *Style) string {
 	return ref
 }
 
-// emitShapeAsPath emits a shape element as path operators without
-// painting, for use in clipping.
+// emitShapeAsPath emits a shape element as path operators without painting, for use in
+// clipping.
 //
 // Takes rc (*renderContext) which provides the PDF stream to write path operators to.
 // Takes node (*Node) which is the shape element to emit.
@@ -109,8 +109,8 @@ func emitShapeAsPath(rc *renderContext, node *Node) {
 	}
 }
 
-// emitRectClip emits a rectangle clip path from a <rect> element's
-// x, y, width, and height attributes.
+// emitRectClip emits a rectangle clip path from a <rect> element's x, y, width, and
+// height attributes.
 //
 // Takes rc (*renderContext) which provides the PDF stream.
 // Takes node (*Node) which is the rect element.
@@ -124,8 +124,8 @@ func emitRectClip(rc *renderContext, node *Node) {
 	}
 }
 
-// emitCircleClip emits an ellipse clip path from a <circle> element's
-// cx, cy, and r attributes.
+// emitCircleClip emits an ellipse clip path from a <circle> element's cx, cy, and r
+// attributes.
 //
 // Takes rc (*renderContext) which provides the PDF stream.
 // Takes node (*Node) which is the circle element.
@@ -138,8 +138,8 @@ func emitCircleClip(rc *renderContext, node *Node) {
 	}
 }
 
-// emitEllipseClip emits an ellipse clip path from an <ellipse> element's
-// cx, cy, rx, and ry attributes.
+// emitEllipseClip emits an ellipse clip path from an <ellipse> element's cx, cy, rx, and
+// ry attributes.
 //
 // Takes rc (*renderContext) which provides the PDF stream.
 // Takes node (*Node) which is the ellipse element.
@@ -153,8 +153,7 @@ func emitEllipseClip(rc *renderContext, node *Node) {
 	}
 }
 
-// emitPolygonClip emits a polygon clip path from a <polygon> element's
-// points attribute.
+// emitPolygonClip emits a polygon clip path from a <polygon> element's points attribute.
 //
 // Takes rc (*renderContext) which provides the PDF stream.
 // Takes node (*Node) which is the polygon element.
@@ -169,8 +168,8 @@ func emitPolygonClip(rc *renderContext, node *Node) {
 	}
 }
 
-// emitPathClip emits a clip path from a <path> element's d attribute
-// by parsing the path data into move, line, curve, and close operators.
+// emitPathClip emits a clip path from a <path> element's d attribute by parsing the path
+// data into move, line, curve, and close operators.
 //
 // Takes rc (*renderContext) which provides the PDF stream.
 // Takes node (*Node) which is the path element.
@@ -199,8 +198,8 @@ func emitPathClip(rc *renderContext, node *Node) {
 	}
 }
 
-// emitUseClip resolves a <use> element's href and emits the referenced
-// shape as a clip path.
+// emitUseClip resolves a <use> element's href and emits the referenced shape as a clip
+// path.
 //
 // Takes rc (*renderContext) which provides the PDF stream and defs map.
 // Takes node (*Node) which is the use element.
@@ -215,8 +214,8 @@ func emitUseClip(rc *renderContext, node *Node) {
 	}
 }
 
-// trimHash removes a leading '#' character from a string, returning
-// the string unchanged if no '#' prefix is present.
+// trimHash removes a leading '#' character from a string, returning the string unchanged
+// if no '#' prefix is present.
 //
 // Takes s (string) which is the string to trim.
 //

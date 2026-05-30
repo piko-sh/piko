@@ -31,16 +31,16 @@ import (
 )
 
 const (
-	// initialTokenBufferCapacity is the starting size for tokenisation buffers.
-	// This size handles typical query lengths without needing to grow the buffer.
+	// initialTokenBufferCapacity is the starting size for tokenisation buffers. This size
+	// handles typical query lengths without needing to grow the buffer.
 	initialTokenBufferCapacity = 32
 
-	// bm25K1 is the BM25 term frequency saturation parameter. Higher values
-	// make term frequency more important.
+	// bm25K1 is the BM25 term frequency saturation parameter. Higher values make term
+	// frequency more important.
 	bm25K1 = 1.2
 
-	// bm25B is the BM25 document length normalisation parameter. Values range
-	// from 0 (no normalisation) to 1 (full normalisation), with 0.75 being standard.
+	// bm25B is the BM25 document length normalisation parameter. Values range from 0 (no
+	// normalisation) to 1 (full normalisation), with 0.75 being standard.
 	bm25B = 0.75
 )
 
@@ -48,19 +48,18 @@ const (
 type TermMatch int
 
 const (
-	// TermMatchAll requires documents to contain ALL query terms (AND logic).
-	// This is the default and is consistent with [InvertedIndex.Search].
+	// TermMatchAll requires documents to contain ALL query terms (AND logic). This is the
+	// default and is consistent with InvertedIndex.Search.
 	TermMatchAll TermMatch = iota
 
-	// TermMatchAny is a term matching mode that matches documents containing any
-	// query term using OR logic. Documents matching more terms score higher
-	// through BM25 IDF accumulation, making this the preferred mode for hybrid
-	// search where text scoring is one of several ranking inputs.
+	// TermMatchAny is a term matching mode that matches documents containing any query term
+	// using OR logic. Documents matching more terms score higher through BM25 IDF
+	// accumulation, making this the preferred mode for hybrid search where text scoring is
+	// one of several ranking inputs.
 	TermMatchAny
 )
 
-// tokeniseBuffers holds reusable buffers for tokenisation to reduce memory
-// allocations.
+// tokeniseBuffers holds reusable buffers for tokenisation to reduce memory allocations.
 type tokeniseBuffers struct {
 	// words holds the extracted words for reuse.
 	words []string
@@ -72,16 +71,18 @@ type tokeniseBuffers struct {
 	result []string
 }
 
-// tokenisePool pools tokenisation buffers to eliminate per-query allocations.
-var tokenisePool = sync.Pool{
-	New: func() any {
-		return &tokeniseBuffers{
-			words:  make([]string, 0, initialTokenBufferCapacity),
-			seen:   make(map[string]struct{}, initialTokenBufferCapacity),
-			result: make([]string, 0, initialTokenBufferCapacity),
-		}
-	},
-}
+var (
+	// tokenisePool pools tokenisation buffers to eliminate per-query allocations.
+	tokenisePool = sync.Pool{
+		New: func() any {
+			return &tokeniseBuffers{
+				words:  make([]string, 0, initialTokenBufferCapacity),
+				seen:   make(map[string]struct{}, initialTokenBufferCapacity),
+				result: make([]string, 0, initialTokenBufferCapacity),
+			}
+		},
+	}
+)
 
 // ScoredResult holds a key and its BM25 relevance score from a scored search.
 type ScoredResult[K comparable] struct {
@@ -92,9 +93,9 @@ type ScoredResult[K comparable] struct {
 	Score float64
 }
 
-// InvertedIndex provides fast full-text search by mapping terms to keys.
-// It tokenises text into terms and maintains a reverse mapping from terms
-// to the set of keys containing those terms.
+// InvertedIndex provides fast full-text search by mapping terms to keys. It tokenises
+// text into terms and maintains a reverse mapping from terms to the set of keys
+// containing those terms.
 //
 // Thread-safe for concurrent read/write access.
 type InvertedIndex[K comparable] struct {
@@ -104,12 +105,12 @@ type InvertedIndex[K comparable] struct {
 	// keyTerms maps keys to their indexed terms for fast removal.
 	keyTerms map[K]map[string]struct{}
 
-	// docLengths stores the number of terms in each indexed document, used for
-	// BM25 document length normalisation.
+	// docLengths stores the number of terms in each indexed document, used for BM25 document
+	// length normalisation.
 	docLengths map[K]int
 
-	// analyseFunc replaces the default tokenise when set, enabling linguistic
-	// processing (stemming, normalisation, stop words, etc.).
+	// analyseFunc replaces the default tokenise when set, enabling linguistic processing
+	// (stemming, normalisation, stop words, etc.).
 	analyseFunc cache_dto.TextAnalyseFunc
 
 	// maxTokens limits the total unique terms in the vocabulary. Zero means unlimited.
@@ -118,25 +119,25 @@ type InvertedIndex[K comparable] struct {
 	// totalDocuments is the number of documents currently indexed.
 	totalDocuments int
 
-	// totalTerms is the sum of all document lengths, used to compute average
-	// document length for BM25.
+	// totalTerms is the sum of all document lengths, used to compute average document length
+	// for BM25.
 	totalTerms int64
 
 	// mu guards concurrent access to the index.
 	mu sync.RWMutex
 }
 
-// SetAnalyseFunction configures the text analysis function used for
-// both indexing and querying. Must be called before adding documents.
+// SetAnalyseFunction configures the text analysis function used for both indexing and
+// querying. Must be called before adding documents.
 //
-// Takes analyseFunction (cache_dto.TextAnalyseFunc) which transforms
-// text into index terms.
+// Takes analyseFunction (cache_dto.TextAnalyseFunc) which transforms text into index
+// terms.
 func (idx *InvertedIndex[K]) SetAnalyseFunction(analyseFunction cache_dto.TextAnalyseFunc) {
 	idx.analyseFunc = analyseFunction
 }
 
-// Add indexes text content for a key. If the key already exists,
-// it removes old terms first before adding new ones.
+// Add indexes text content for a key. If the key already exists, it removes old terms
+// first before adding new ones.
 //
 // Takes key (K) which identifies the document.
 // Takes texts ([]string) which are the text fields to tokenise and index.
@@ -154,8 +155,7 @@ func (idx *InvertedIndex[K]) Add(key K, texts []string) {
 	idx.addUnsafe(key, texts)
 }
 
-// addUnsafe indexes text without holding the lock. The caller must hold the
-// write lock.
+// addUnsafe indexes text without holding the lock. The caller must hold the write lock.
 //
 // Takes key (K) which identifies the entry to index.
 // Takes texts ([]string) which contains the text content to tokenise.
@@ -196,8 +196,8 @@ func (idx *InvertedIndex[K]) Remove(key K) {
 	idx.removeKeyUnsafe(key)
 }
 
-// removeKeyUnsafe removes a key from the index without holding the lock.
-// The caller must hold the write lock.
+// removeKeyUnsafe removes a key from the index without holding the lock. The caller must
+// hold the write lock.
 //
 // Takes key (K) which is the key to remove.
 func (idx *InvertedIndex[K]) removeKeyUnsafe(key K) {
@@ -248,8 +248,8 @@ func (idx *InvertedIndex[K]) Search(query string) []K {
 	return idx.searchMultiTerm(terms)
 }
 
-// searchSingleTerm handles the search for a single term.
-// The caller must hold the read lock.
+// searchSingleTerm handles the search for a single term. The caller must hold the read
+// lock.
 //
 // Takes term (string) which specifies the term to look up.
 //
@@ -271,8 +271,7 @@ func (idx *InvertedIndex[K]) searchSingleTerm(term string) []K {
 //
 // Takes terms ([]string) which contains the search terms to intersect.
 //
-// Returns []K which contains keys present in all term sets, or nil if no
-// matches exist.
+// Returns []K which contains keys present in all term sets, or nil if no matches exist.
 //
 // Caller must hold read lock.
 func (idx *InvertedIndex[K]) searchMultiTerm(terms []string) []K {
@@ -293,14 +292,14 @@ func (idx *InvertedIndex[K]) searchMultiTerm(terms []string) []K {
 	return idx.mapToSlice(candidates)
 }
 
-// findSmallestTermSet finds the term with the fewest matching keys.
-// Caller must hold read lock.
+// findSmallestTermSet finds the term with the fewest matching keys. Caller must hold read
+// lock.
 //
 // Takes terms ([]string) which contains the terms to evaluate.
 //
 // Returns string which is the term with the smallest key set.
-// Returns map[K]struct{} which is the key set for that term, or nil if any
-// term has no matches.
+// Returns map[K]struct{} which is the key set for that term, or nil if any term has no
+// matches.
 func (idx *InvertedIndex[K]) findSmallestTermSet(terms []string) (string, map[K]struct{}) {
 	var smallestTerm string
 	var smallestKeys map[K]struct{}
@@ -321,8 +320,8 @@ func (idx *InvertedIndex[K]) findSmallestTermSet(terms []string) (string, map[K]
 	return smallestTerm, smallestKeys
 }
 
-// intersectTerms filters candidate keys by keeping only those that appear in
-// all term sets.
+// intersectTerms filters candidate keys by keeping only those that appear in all term
+// sets.
 //
 // Takes terms ([]string) which contains the search terms to check.
 // Takes skipTerm (string) which specifies a term to exclude from filtering.
@@ -355,8 +354,8 @@ func (idx *InvertedIndex[K]) intersectTerms(terms []string, skipTerm string, can
 	return true
 }
 
-// mapToSlice converts a map set to a slice.
-// Caller must hold read lock or have exclusive access to the map.
+// mapToSlice converts a map set to a slice. Caller must hold read lock or have exclusive
+// access to the map.
 //
 // Takes m (map[K]struct{}) which is the set to convert.
 //
@@ -382,7 +381,7 @@ func (idx *InvertedIndex[K]) Clear() {
 	idx.totalTerms = 0
 }
 
-// ScoredSearchOption configures behaviour of [InvertedIndex.SearchScored].
+// ScoredSearchOption configures behaviour of InvertedIndex.SearchScored.
 type ScoredSearchOption func(*scoredSearchConfig)
 
 // scoredSearchConfig holds resolved options for a scored search.
@@ -391,9 +390,9 @@ type scoredSearchConfig struct {
 	match TermMatch
 }
 
-// SearchScored performs BM25-scored search across indexed TEXT fields,
-// returning only documents matching ALL query terms (AND logic) by default
-// unless [WithTermMatch]([TermMatchAny]) is passed for OR semantics.
+// SearchScored performs BM25-scored search across indexed TEXT fields, returning only
+// documents matching ALL query terms (AND logic) by default unless
+// WithTermMatch(TermMatchAny) is passed for OR semantics.
 //
 // Results are sorted by BM25 relevance score descending.
 //
@@ -427,13 +426,13 @@ func (idx *InvertedIndex[K]) SearchScored(query string, opts ...ScoredSearchOpti
 	return idx.searchScoredAny(terms)
 }
 
-// searchScoredAll scores documents matching ALL query terms (AND logic).
-// Caller must hold the read lock.
+// searchScoredAll scores documents matching ALL query terms (AND logic). Caller must hold
+// the read lock.
 //
 // Takes terms ([]string) which contains the query terms to match against.
 //
-// Returns []ScoredResult[K] which contains the matching documents sorted by
-// BM25 score in descending order, or nil if no documents match all terms.
+// Returns []ScoredResult[K] which contains the matching documents sorted by BM25 score in
+// descending order, or nil if no documents match all terms.
 func (idx *InvertedIndex[K]) searchScoredAll(terms []string) []ScoredResult[K] {
 	candidates := idx.findCandidatesUnsafe(terms)
 	if len(candidates) == 0 {
@@ -467,14 +466,14 @@ func (idx *InvertedIndex[K]) searchScoredAll(terms []string) []ScoredResult[K] {
 	return idx.collectAndSort(scores)
 }
 
-// searchScoredAny scores documents matching ANY query term (OR logic) where
-// documents matching more terms naturally score higher through BM25 IDF
-// accumulation (caller must hold the read lock).
+// searchScoredAny scores documents matching ANY query term (OR logic) where documents
+// matching more terms naturally score higher through BM25 IDF accumulation (caller must
+// hold the read lock).
 //
 // Takes terms ([]string) which contains the query terms to match against.
 //
-// Returns []ScoredResult[K] which contains the matching documents sorted by
-// BM25 score in descending order, or nil if no documents match any term.
+// Returns []ScoredResult[K] which contains the matching documents sorted by BM25 score in
+// descending order, or nil if no documents match any term.
 func (idx *InvertedIndex[K]) searchScoredAny(terms []string) []ScoredResult[K] {
 	avgdl := float64(idx.totalTerms) / float64(idx.totalDocuments)
 	scores := make(map[K]float64)
@@ -503,11 +502,10 @@ func (idx *InvertedIndex[K]) searchScoredAny(terms []string) []ScoredResult[K] {
 // collectAndSort converts a score map into a sorted slice of ScoredResult.
 // Returns nil if scores is empty.
 //
-// Takes scores (map[K]float64) which maps document keys to their BM25
-// relevance scores.
+// Takes scores (map[K]float64) which maps document keys to their BM25 relevance scores.
 //
-// Returns []ScoredResult[K] which contains the results sorted by score in
-// descending order, or nil if scores is empty.
+// Returns []ScoredResult[K] which contains the results sorted by score in descending
+// order, or nil if scores is empty.
 func (*InvertedIndex[K]) collectAndSort(scores map[K]float64) []ScoredResult[K] {
 	if len(scores) == 0 {
 		return nil
@@ -525,13 +523,13 @@ func (*InvertedIndex[K]) collectAndSort(scores map[K]float64) []ScoredResult[K] 
 	return results
 }
 
-// findCandidatesUnsafe returns the set of keys that match all query terms.
-// Caller must hold the read lock.
+// findCandidatesUnsafe returns the set of keys that match all query terms. Caller must
+// hold the read lock.
 //
 // Takes terms ([]string) which contains the query terms to match against.
 //
-// Returns map[K]struct{} which contains keys present in all term sets, or nil
-// if no matches exist.
+// Returns map[K]struct{} which contains keys present in all term sets, or nil if no
+// matches exist.
 func (idx *InvertedIndex[K]) findCandidatesUnsafe(terms []string) map[K]struct{} {
 	if len(terms) == 1 {
 		return idx.copySingleTermKeys(terms[0])
@@ -554,9 +552,8 @@ func (idx *InvertedIndex[K]) findCandidatesUnsafe(terms []string) map[K]struct{}
 	return candidates
 }
 
-// copySingleTermKeys returns a copy of the key set for a single term, or nil
-// if the term is not indexed.
-// Caller must hold the read lock.
+// copySingleTermKeys returns a copy of the key set for a single term, or nil if the term
+// is not indexed. Caller must hold the read lock.
 //
 // Takes term (string) which is the term to look up.
 //
@@ -593,13 +590,13 @@ func (idx *InvertedIndex[K]) tokeniseAll(texts []string) []string {
 	return result
 }
 
-// tokenise splits text into lowercase terms, removing punctuation. When an
-// analyseFunc is configured, it delegates to the linguistic analyser instead.
+// tokenise splits text into lowercase terms, removing punctuation. When an analyseFunc is
+// configured, it delegates to the linguistic analyser instead.
 //
 // Takes text (string) which is the input to split into terms.
 //
-// Returns []string which contains unique terms of two or more characters.
-// Uses pooled buffers to avoid memory allocation when using the default path.
+// Returns []string which contains unique terms of two or more characters. Uses pooled
+// buffers to avoid memory allocation when using the default path.
 func (idx *InvertedIndex[K]) tokenise(text string) []string {
 	if idx.analyseFunc != nil {
 		return idx.analyseFunc(text)
@@ -608,8 +605,8 @@ func (idx *InvertedIndex[K]) tokenise(text string) []string {
 	return idx.tokeniseDefault(text)
 }
 
-// tokeniseDefault is the built-in tokeniser that splits text into lowercase
-// terms, removing punctuation.
+// tokeniseDefault is the built-in tokeniser that splits text into lowercase terms,
+// removing punctuation.
 //
 // Takes text (string) which is the input to split into terms.
 //
@@ -664,9 +661,9 @@ func NewInvertedIndex[K comparable]() *InvertedIndex[K] {
 
 // WithTermMatch sets the term matching strategy for a scored search.
 //
-// Takes match ([TermMatch]) which controls AND vs OR semantics.
+// Takes match (TermMatch) which controls AND vs OR semantics.
 //
-// Returns [ScoredSearchOption] to pass to [InvertedIndex.SearchScored].
+// Returns ScoredSearchOption to pass to InvertedIndex.SearchScored.
 func WithTermMatch(match TermMatch) ScoredSearchOption {
 	return func(c *scoredSearchConfig) {
 		c.match = match

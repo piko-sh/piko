@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package inspector_schema manages versioned serialisation for the
-// inspector's type data cache using FlatBuffers. It embeds
-// type_data.fbs and computes a SHA-256 hash at init time; this hash
-// prefixes every serialised payload so that the cache is
-// automatically invalidated whenever the schema evolves.
+// Package inspector_schema manages versioned serialisation for the inspector's type data
+// cache using FlatBuffers. It embeds type_data.fbs and computes a SHA-256 hash at init
+// time; this hash prefixes every serialised payload so that the cache is automatically
+// invalidated whenever the schema evolves.
 //
 // # Integration
 //
-// Consumers call [Pack] or [PackInto] before writing cache entries
-// and [Unpack] when reading them back. A returned
-// [fbs.ErrSchemaVersionMismatch] signals that the entry was
+// Consumers call [Pack] or [PackInto] before writing cache entries and [Unpack] when
+// reading them back. A returned [fbs.ErrSchemaVersionMismatch] signals that the entry was
 // produced by an older schema and must be regenerated.
 package inspector_schema

@@ -18,9 +18,8 @@
 
 package tui
 
-// Config holds TUI settings loaded from tui.yaml or PIKO_TUI_* environment
-// variables. The config_domain loader populates the fields using the struct
-// tags below.
+// Config holds TUI settings loaded from tui.yaml or PIKO_TUI_* environment variables. The
+// config_domain loader populates the fields using the struct tags below.
 type Config struct {
 	// Endpoint is the API endpoint URL for the TUI service.
 	Endpoint string `json:"endpoint" yaml:"endpoint" env:"PIKO_TUI_ENDPOINT" default:"http://localhost:8080"`

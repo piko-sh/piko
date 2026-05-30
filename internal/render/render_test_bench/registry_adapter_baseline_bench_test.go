@@ -36,12 +36,14 @@ import (
 	"piko.sh/piko/internal/render/render_adapters"
 )
 
-var svgContentSizes = map[string]int{
-	"tiny":   100,
-	"small":  500,
-	"medium": 2000,
-	"large":  10000,
-}
+var (
+	svgContentSizes = map[string]int{
+		"tiny":   100,
+		"small":  500,
+		"medium": 2000,
+		"large":  10000,
+	}
+)
 
 func createBaselineSVGContent(size int, index int) string {
 
@@ -328,10 +330,10 @@ func BenchmarkBaseline_Concurrent_SVG(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
 
-			var counter int64
+			var counter atomic.Int64
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					index := atomic.AddInt64(&counter, 1)
+					index := counter.Add(1)
 					assetID := fmt.Sprintf("svg-artefact-%d", index%50)
 					_, _ = adapter.GetAssetRawSVG(ctx, assetID)
 				}
@@ -358,10 +360,10 @@ func BenchmarkBaseline_Concurrent_Component(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
 
-			var counter int64
+			var counter atomic.Int64
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					index := atomic.AddInt64(&counter, 1)
+					index := counter.Add(1)
 					tag := tags[index%int64(len(tags))]
 					_, _ = adapter.GetComponentMetadata(ctx, tag)
 				}
@@ -387,10 +389,10 @@ func BenchmarkBaseline_Concurrent_Mixed(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	var counter int64
+	var counter atomic.Int64
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			index := atomic.AddInt64(&counter, 1)
+			index := counter.Add(1)
 			if index%3 == 0 {
 				tag := tags[index%int64(len(tags))]
 				_, _ = adapter.GetComponentMetadata(ctx, tag)

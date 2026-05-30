@@ -18,28 +18,29 @@
 
 package ast_domain
 
-// Provides tree traversal utilities for walking AST structures with visitor
-// patterns and iterators. Implements depth-first traversal, parallel walking,
-// and Go 1.23+ range-over-func iterators for flexible node processing.
+// Provides tree traversal utilities for walking AST structures with visitor patterns and
+// iterators. Implements depth-first traversal, parallel walking, and Go 1.23+
+// range-over-func iterators for flexible node processing.
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"iter"
+	"slices"
 	"sync"
 	"sync/atomic"
 )
 
-// maxWalkDepth is the largest depth allowed when walking through a tree.
-// This limit stops stack overflow errors in deeply nested trees.
-const maxWalkDepth = 10000
+const (
+	// maxWalkDepth is the largest depth allowed when walking through a tree. This limit
+	// stops stack overflow errors in deeply nested trees.
+	maxWalkDepth = 10000
+)
 
-// Nodes returns an iterator over all nodes in the AST using Go 1.23+
-// range-over-func.
+// Nodes returns an iterator over all nodes in the AST using Go 1.23+ range-over-func.
 //
-// Returns iter.Seq[*TemplateNode] which yields each node in
-// depth-first order.
+// Returns iter.Seq[*TemplateNode] which yields each node in depth-first order.
 func (ast *TemplateAST) Nodes() iter.Seq[*TemplateNode] {
 	return func(yield func(*TemplateNode) bool) {
 		if ast == nil {
@@ -53,11 +54,11 @@ func (ast *TemplateAST) Nodes() iter.Seq[*TemplateNode] {
 	}
 }
 
-// NodesWithParent returns an iterator over all nodes with their parent using Go
-// 1.23+ range-over-func.
+// NodesWithParent returns an iterator over all nodes with their parent using Go 1.23+
+// range-over-func.
 //
-// Returns iter.Seq2[*TemplateNode, *TemplateNode] which yields each
-// node paired with its parent in depth-first order.
+// Returns iter.Seq2[*TemplateNode, *TemplateNode] which yields each node paired with its
+// parent in depth-first order.
 func (ast *TemplateAST) NodesWithParent() iter.Seq2[*TemplateNode, *TemplateNode] {
 	return func(yield func(node, parent *TemplateNode) bool) {
 		if ast == nil {
@@ -74,8 +75,7 @@ func (ast *TemplateAST) NodesWithParent() iter.Seq2[*TemplateNode, *TemplateNode
 // ParallelWalkFunc processes a single node during parallel traversal.
 type ParallelWalkFunc func(ctx context.Context, node *TemplateNode) error
 
-// ParallelWalk traverses the AST in parallel using the specified number of
-// workers.
+// ParallelWalk traverses the AST in parallel using the specified number of workers.
 //
 // Takes numWorkers (int) which specifies the number of concurrent workers.
 // Takes f (ParallelWalkFunc) which is called for each node in the AST.
@@ -94,9 +94,8 @@ func (ast *TemplateAST) ParallelWalk(ctx context.Context, numWorkers int, f Para
 //
 // Returns <-chan *TemplateNode which yields each node in the tree.
 //
-// Spawns a goroutine that walks the AST and sends nodes until
-// the context is cancelled or all nodes have been sent. The channel is closed
-// when complete.
+// Spawns a goroutine that walks the AST and sends nodes until the context is cancelled or
+// all nodes have been sent. The channel is closed when complete.
 func (ast *TemplateAST) StreamNodes(ctx context.Context) <-chan *TemplateNode {
 	nodeChannel := make(chan *TemplateNode)
 	go func() {
@@ -186,8 +185,7 @@ func (ast *TemplateAST) AcceptWithError(v VisitorWithError) error {
 	return nil
 }
 
-// WalkFunc is a function that processes a node and returns whether to continue
-// traversal.
+// WalkFunc is a function that processes a node and returns whether to continue traversal.
 type WalkFunc func(node *TemplateNode) (continueTraversal bool)
 
 // Walk visits all nodes in the AST using depth-first order.
@@ -223,11 +221,11 @@ func (ast *TemplateAST) Find(predicate func(node *TemplateNode) bool) *TemplateN
 
 // FindAll returns all nodes that match the given predicate function.
 //
-// Takes predicate (func(node *TemplateNode) bool) which tests each node and
-// returns true if the node should be included.
+// Takes predicate (func(node *TemplateNode) bool) which tests each node and returns true
+// if the node should be included.
 //
-// Returns []*TemplateNode which contains all matching nodes, or an empty slice
-// if none match.
+// Returns []*TemplateNode which contains all matching nodes, or an empty slice if none
+// match.
 func (ast *TemplateAST) FindAll(predicate func(node *TemplateNode) bool) []*TemplateNode {
 	found := make([]*TemplateNode, 0)
 	for node := range ast.Nodes() {
@@ -241,8 +239,7 @@ func (ast *TemplateAST) FindAll(predicate func(node *TemplateNode) bool) []*Temp
 // Nodes returns an iterator over this node and all descendants using Go 1.23+
 // range-over-func.
 //
-// Returns iter.Seq[*TemplateNode] which yields each node in
-// depth-first order.
+// Returns iter.Seq[*TemplateNode] which yields each node in depth-first order.
 func (n *TemplateNode) Nodes() iter.Seq[*TemplateNode] {
 	return func(yield func(*TemplateNode) bool) {
 		if n == nil {
@@ -252,11 +249,11 @@ func (n *TemplateNode) Nodes() iter.Seq[*TemplateNode] {
 	}
 }
 
-// NodesWithParent returns an iterator over this node and descendants with their
-// parent using Go 1.23+ range-over-func.
+// NodesWithParent returns an iterator over this node and descendants with their parent
+// using Go 1.23+ range-over-func.
 //
-// Returns iter.Seq2[*TemplateNode, *TemplateNode] which yields each
-// node paired with its parent in depth-first order.
+// Returns iter.Seq2[*TemplateNode, *TemplateNode] which yields each node paired with its
+// parent in depth-first order.
 func (n *TemplateNode) NodesWithParent() iter.Seq2[*TemplateNode, *TemplateNode] {
 	return func(yield func(node, parent *TemplateNode) bool) {
 		if n == nil {
@@ -285,9 +282,8 @@ func (n *TemplateNode) ParallelWalk(ctx context.Context, numWorkers int, f Paral
 //
 // Returns <-chan *TemplateNode which yields each node in the tree.
 //
-// Spawns a goroutine that walks the tree and sends nodes until
-// the context is cancelled or all nodes have been sent. The channel is closed
-// when done.
+// Spawns a goroutine that walks the tree and sends nodes until the context is cancelled
+// or all nodes have been sent. The channel is closed when done.
 func (n *TemplateNode) StreamNodes(ctx context.Context) <-chan *TemplateNode {
 	nodeChannel := make(chan *TemplateNode)
 	go func() {
@@ -304,8 +300,7 @@ func (n *TemplateNode) StreamNodes(ctx context.Context) <-chan *TemplateNode {
 	return nodeChannel
 }
 
-// NewIterator creates a pre-order iterator for traversing this node and its
-// descendants.
+// NewIterator creates a pre-order iterator for traversing this node and its descendants.
 //
 // Returns *Iterator which provides access to nodes one at a time in pre-order.
 func (n *TemplateNode) NewIterator() *Iterator {
@@ -324,8 +319,8 @@ func (n *TemplateNode) NewIterator() *Iterator {
 	return &Iterator{Node: nil, Parent: nil, stack: stack}
 }
 
-// NewPostOrderIterator creates a post-order iterator for traversing this node
-// and its children.
+// NewPostOrderIterator creates a post-order iterator for traversing this node and its
+// children.
 //
 // Returns *PostOrderIterator which visits children before their parents.
 func (n *TemplateNode) NewPostOrderIterator() *PostOrderIterator {
@@ -348,8 +343,7 @@ func (n *TemplateNode) Accept(ctx context.Context, v Visitor) error {
 	return WalkWithVisitor(ctx, v, n)
 }
 
-// AcceptWithError traverses this node and descendants using the
-// VisitorWithError pattern.
+// AcceptWithError traverses this node and descendants using the VisitorWithError pattern.
 //
 // Takes v (VisitorWithError) which processes the node and its children.
 //
@@ -389,8 +383,8 @@ func (n *TemplateNode) Find(predicate func(node *TemplateNode) bool) *TemplateNo
 //
 // Takes predicate (func(node *TemplateNode) bool) which tests each node.
 //
-// Returns []*TemplateNode which contains all matching nodes, or nil if the
-// receiver is nil.
+// Returns []*TemplateNode which contains all matching nodes, or nil if the receiver is
+// nil.
 func (n *TemplateNode) FindAll(predicate func(node *TemplateNode) bool) []*TemplateNode {
 	if n == nil {
 		return nil
@@ -413,17 +407,19 @@ type iteratorFrame struct {
 	parent *TemplateNode
 }
 
-// iteratorFramePool reuses iteratorFrame instances to reduce allocation pressure
-// during AST traversal. Wrapped in atomic.Pointer so resetIteratorFramePool
-// can swap the underlying pool without racing concurrent Get/Put callers.
-var iteratorFramePool atomic.Pointer[sync.Pool]
+var (
+	// iteratorFramePool reuses iteratorFrame instances to reduce allocation pressure during
+	// AST traversal. Wrapped in atomic.Pointer so resetIteratorFramePool can swap the
+	// underlying pool without racing concurrent Get/Put callers.
+	iteratorFramePool atomic.Pointer[sync.Pool]
+)
 
 func init() {
 	iteratorFramePool.Store(newIteratorFramePool())
 }
 
-// newIteratorFramePool builds a fresh sync.Pool whose New func returns a
-// zero-valued iteratorFrame. Used by init and resetIteratorFramePool.
+// newIteratorFramePool builds a fresh sync.Pool whose New func returns a zero-valued
+// iteratorFrame. Used by init and resetIteratorFramePool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newIteratorFramePool() *sync.Pool {
@@ -434,8 +430,8 @@ func newIteratorFramePool() *sync.Pool {
 	}
 }
 
-// Iterator provides depth-first, pre-order traversal of the template tree with
-// parent tracking.
+// Iterator provides depth-first, pre-order traversal of the template tree with parent
+// tracking.
 type Iterator struct {
 	// Node is the current template node in the iteration.
 	Node *TemplateNode
@@ -449,8 +445,8 @@ type Iterator struct {
 
 // Next moves the iterator to the next node in the tree.
 //
-// Returns bool which is true if a node is available, or false when there
-// are no more nodes to visit.
+// Returns bool which is true if a node is available, or false when there are no more
+// nodes to visit.
 func (it *Iterator) Next() bool {
 	if len(it.stack) == 0 {
 		it.Node, it.Parent = nil, nil
@@ -465,8 +461,8 @@ func (it *Iterator) Next() bool {
 	iteratorFramePool.Load().Put(frame)
 
 	children := it.Node.Children
-	for i := len(children) - 1; i >= 0; i-- {
-		if child := children[i]; child != nil {
+	for _, child := range slices.Backward(children) {
+		if child != nil {
 			childFrame, ok := iteratorFramePool.Load().Get().(*iteratorFrame)
 			if !ok {
 				childFrame = &iteratorFrame{}
@@ -479,8 +475,7 @@ func (it *Iterator) Next() bool {
 	return true
 }
 
-// SkipChildren prevents the iterator from descending into the current node's
-// children.
+// SkipChildren prevents the iterator from descending into the current node's children.
 func (it *Iterator) SkipChildren() {
 	if it.Node == nil || len(it.Node.Children) == 0 {
 		return
@@ -503,8 +498,7 @@ func (it *Iterator) SkipChildren() {
 	}
 }
 
-// PostOrderIterator provides depth-first, post-order traversal of the template
-// tree.
+// PostOrderIterator provides depth-first, post-order traversal of the template tree.
 type PostOrderIterator struct {
 	// Node is the current node in the iteration.
 	Node *TemplateNode
@@ -518,8 +512,8 @@ type PostOrderIterator struct {
 
 // Next moves the iterator to the next node in post-order sequence.
 //
-// Returns bool which is true if a node is available, or false when there are
-// no more nodes to visit.
+// Returns bool which is true if a node is available, or false when there are no more
+// nodes to visit.
 func (it *PostOrderIterator) Next() bool {
 	for len(it.stack) > 0 {
 		peekNode := it.stack[len(it.stack)-1]
@@ -532,16 +526,16 @@ func (it *PostOrderIterator) Next() bool {
 			return true
 		}
 
-		for i := len(peekNode.Children) - 1; i >= 0; i-- {
-			it.stack = append(it.stack, peekNode.Children[i])
+		for _, child := range slices.Backward(peekNode.Children) {
+			it.stack = append(it.stack, child)
 		}
 	}
 	it.Node = nil
 	return false
 }
 
-// isLastChildVisited checks whether the most recently visited node is the last
-// child of the given node.
+// isLastChildVisited checks whether the most recently visited node is the last child of
+// the given node.
 //
 // Takes peekNode (*TemplateNode) which is the node to check against.
 //
@@ -553,8 +547,8 @@ func (it *PostOrderIterator) isLastChildVisited(peekNode *TemplateNode) bool {
 	return it.lastVisitedNode == peekNode.Children[len(peekNode.Children)-1]
 }
 
-// Visitor provides a way to walk AST nodes using a two-phase pattern.
-// It implements ast_domain.Visitor with Enter and Exit callbacks.
+// Visitor provides a way to walk AST nodes using a two-phase pattern. It implements
+// ast_domain.Visitor with Enter and Exit callbacks.
 type Visitor interface {
 	// Enter begins visiting a template node in the AST.
 	//
@@ -574,8 +568,8 @@ type Visitor interface {
 	Exit(ctx context.Context, node *TemplateNode) error
 }
 
-// VisitorWithError provides a visitor pattern that can return errors.
-// It implements ast_domain.VisitorWithError for traversing template nodes.
+// VisitorWithError provides a visitor pattern that can return errors. It implements
+// ast_domain.VisitorWithError for traversing template nodes.
 type VisitorWithError interface {
 	// Visit processes a template node and returns a visitor for child nodes.
 	//
@@ -627,12 +621,12 @@ func (n *TemplateNode) yieldRecursive(yield func(*TemplateNode) bool) bool {
 
 // yieldRecursiveWithDepth traverses the node and its children depth-first.
 //
-// Takes yield (func(*TemplateNode) bool) which processes each node and returns
-// false to stop traversal.
+// Takes yield (func(*TemplateNode) bool) which processes each node and returns false to
+// stop traversal.
 // Takes depth (int) which tracks the current recursion level.
 //
-// Returns bool which is false if traversal was stopped early, true otherwise.
-// Stops and returns true without crashing when depth exceeds maxWalkDepth.
+// Returns bool which is false if traversal was stopped early, true otherwise. Stops and
+// returns true without crashing when depth exceeds maxWalkDepth.
 func (n *TemplateNode) yieldRecursiveWithDepth(yield func(*TemplateNode) bool, depth int) bool {
 	if depth > maxWalkDepth {
 		return true
@@ -648,8 +642,7 @@ func (n *TemplateNode) yieldRecursiveWithDepth(yield func(*TemplateNode) bool, d
 	return true
 }
 
-// yieldWithParentRecursive walks the tree and calls yield for each node with
-// its parent.
+// yieldWithParentRecursive walks the tree and calls yield for each node with its parent.
 //
 // Takes parent (*TemplateNode) which is the parent of the current node.
 // Takes yield (func(...)) which is called for each node with its parent.
@@ -659,8 +652,8 @@ func (n *TemplateNode) yieldWithParentRecursive(parent *TemplateNode, yield func
 	return n.yieldWithParentRecursiveWithDepth(parent, yield, 0)
 }
 
-// yieldWithParentRecursiveWithDepth traverses the node tree depth-first,
-// calling yield for each node with its parent.
+// yieldWithParentRecursiveWithDepth traverses the node tree depth-first, calling yield
+// for each node with its parent.
 //
 // Takes parent (*TemplateNode) which is the parent of the current node.
 // Takes yield (func(...)) which is called for each node and its parent.
@@ -682,8 +675,7 @@ func (n *TemplateNode) yieldWithParentRecursiveWithDepth(parent *TemplateNode, y
 	return true
 }
 
-// RemoveNodes removes the given nodes from the AST.
-// It changes the tree in place.
+// RemoveNodes removes the given nodes from the AST. It changes the tree in place.
 //
 // Takes nodesToRemove ([]*TemplateNode) which specifies the nodes to remove.
 func (ast *TemplateAST) RemoveNodes(nodesToRemove []*TemplateNode) {
@@ -722,8 +714,8 @@ func WalkWithError(v VisitorWithError, node *TemplateNode) error {
 
 // WalkNodeExpressions visits all expressions within a single template node.
 //
-// It walks through directives, attributes, and event handlers, calling the
-// visit function for each expression found.
+// It walks through directives, attributes, and event handlers, calling the visit function
+// for each expression found.
 //
 // Takes node (*TemplateNode) which is the node to walk.
 // Takes visit (func(Expression)) which is called for each expression found.
@@ -736,29 +728,25 @@ func WalkNodeExpressions(node *TemplateNode, visit func(Expression)) {
 	walkEventExpressions(node, visit)
 }
 
-// VisitExpression walks an expression tree and calls the visitor
-// function for each node.
+// VisitExpression walks an expression tree and calls the visitor function for each node.
 //
 // If the visitor returns false, the walk stops for that branch.
 //
-// Takes expression (Expression) which is the root expression
-// to walk.
-// Takes visitor (func(...)) which is called for each expression
-// in the tree.
+// Takes expression (Expression) which is the root expression to walk.
+// Takes visitor (func(...)) which is called for each expression in the tree.
 func VisitExpression(expression Expression, visitor func(Expression) bool) {
 	visitExpressionWithDepth(expression, visitor, 0)
 }
 
-// parallelWalkImpl is the shared implementation for parallel tree traversal.
+// parallelWalkImpl is the shared implementation for parallel tree traversal. It spawns
+// numWorkers worker goroutines plus one producer goroutine; all stop when processing
+// finishes or the context is cancelled.
 //
 // Takes numWorkers (int) which sets how many worker goroutines run at once.
 // Takes f (ParallelWalkFunc) which handles each node in the tree.
 // Takes walkFunc (func(...)) which produces nodes to process.
 //
 // Returns error when any worker fails during processing.
-//
-// Spawns numWorkers goroutines plus one producer goroutine. All
-// goroutines stop when processing finishes or the context is cancelled.
 func parallelWalkImpl(ctx context.Context, numWorkers int, f ParallelWalkFunc, walkFunc func(yield func(*TemplateNode) bool)) error {
 	if numWorkers <= 0 {
 		numWorkers = 1
@@ -772,37 +760,30 @@ func parallelWalkImpl(ctx context.Context, numWorkers int, f ParallelWalkFunc, w
 	var once sync.Once
 	var firstErr error
 
-	wg.Add(numWorkers)
 	for range numWorkers {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			processWorkerTasks(workerCtx, tasks, f, &once, &firstErr, cancel)
-		}()
+		})
 	}
 
-	go func() {
+	wg.Go(func() {
 		defer close(tasks)
 		produceWalkTasks(workerCtx, tasks, walkFunc)
-	}()
+	})
 
 	wg.Wait()
 	return firstErr
 }
 
-// processWorkerTasks handles task processing for a single
-// worker.
+// processWorkerTasks handles task processing for a single worker.
 //
-// Takes ctx (context.Context) which controls cancellation of
-// the worker.
-// Takes tasks (<-chan *TemplateNode) which provides nodes to
-// process.
+// Takes ctx (context.Context) which controls cancellation of the worker.
+// Takes tasks (<-chan *TemplateNode) which provides nodes to process.
 // Takes f (ParallelWalkFunc) which is called for each node.
-// Takes once (*sync.Once) which ensures only the first error
-// is recorded.
-// Takes firstErr (*error) which stores the first error
-// encountered.
-// Takes cancel (context.CancelCauseFunc) which cancels the worker
-// context when the first error occurs.
+// Takes once (*sync.Once) which ensures only the first error is recorded.
+// Takes firstErr (*error) which stores the first error encountered.
+// Takes cancel (context.CancelCauseFunc) which cancels the worker context when the first
+// error occurs.
 func processWorkerTasks(ctx context.Context, tasks <-chan *TemplateNode, f ParallelWalkFunc, once *sync.Once, firstErr *error, cancel context.CancelCauseFunc) {
 	for {
 		select {
@@ -838,8 +819,8 @@ func produceWalkTasks(ctx context.Context, tasks chan<- *TemplateNode, walkFunc 
 	})
 }
 
-// resetIteratorFramePool atomically swaps in a fresh iterator frame pool for
-// test isolation. Safe to call concurrently with Get/Put.
+// resetIteratorFramePool atomically swaps in a fresh iterator frame pool for test
+// isolation. Safe to call concurrently with Get/Put.
 func resetIteratorFramePool() {
 	iteratorFramePool.Store(newIteratorFramePool())
 }
@@ -879,8 +860,8 @@ func walkWithVisitorDepth(ctx context.Context, v Visitor, node *TemplateNode, de
 	return v.Exit(ctx, node)
 }
 
-// walkWithErrorDepth walks a template tree while tracking how deep into the
-// tree the walk has gone.
+// walkWithErrorDepth walks a template tree while tracking how deep into the tree the walk
+// has gone.
 //
 // Takes v (VisitorWithError) which processes each node.
 // Takes node (*TemplateNode) which is the starting node.
@@ -959,8 +940,7 @@ func walkAttributeExpressions(node *TemplateNode, visit func(Expression)) {
 	}
 }
 
-// walkEventExpressions visits all event handler expressions in a template
-// node.
+// walkEventExpressions visits all event handler expressions in a template node.
 //
 // Takes node (*TemplateNode) which contains the event handlers to walk.
 // Takes visit (func(Expression)) which is called for each expression found.
@@ -977,13 +957,10 @@ func walkEventExpressions(node *TemplateNode, visit func(Expression)) {
 	}
 }
 
-// visitExpressionWithDepth walks an expression tree in
-// depth-first order.
+// visitExpressionWithDepth walks an expression tree in depth-first order.
 //
-// Takes expression (Expression) which is the root expression
-// to visit.
-// Takes visitor (func(...)) which returns true to continue
-// into children.
+// Takes expression (Expression) which is the root expression to visit.
+// Takes visitor (func(...)) which returns true to continue into children.
 // Takes depth (int) which tracks the current level in the tree.
 func visitExpressionWithDepth(expression Expression, visitor func(Expression) bool, depth int) {
 	if expression == nil || depth > maxWalkDepth {
@@ -1000,18 +977,14 @@ func visitExpressionWithDepth(expression Expression, visitor func(Expression) bo
 	visitLiteralExprChildrenWithDepth(expression, visitor, depth+1)
 }
 
-// visitCompoundExprChildrenWithDepth visits the children of
-// compound expression types while tracking the current depth.
+// visitCompoundExprChildrenWithDepth visits the children of compound expression types
+// while tracking the current depth.
 //
-// Takes expression (Expression) which is the compound
-// expression to visit.
-// Takes visitor (func(...)) which is called for each child
-// expression.
-// Takes depth (int) which tracks the current depth in the
-// tree.
+// Takes expression (Expression) which is the compound expression to visit.
+// Takes visitor (func(...)) which is called for each child expression.
+// Takes depth (int) which tracks the current depth in the tree.
 //
-// Returns bool which is true if expression was a compound
-// type, false otherwise.
+// Returns bool which is true if expression was a compound type, false otherwise.
 func visitCompoundExprChildrenWithDepth(expression Expression, visitor func(Expression) bool, depth int) bool {
 	switch n := expression.(type) {
 	case *MemberExpression:
@@ -1044,15 +1017,12 @@ func visitCompoundExprChildrenWithDepth(expression Expression, visitor func(Expr
 	return true
 }
 
-// visitLiteralExprChildrenWithDepth visits child expressions
-// within literal types such as templates, objects, and arrays.
+// visitLiteralExprChildrenWithDepth visits child expressions within literal types such as
+// templates, objects, and arrays.
 //
-// Takes expression (Expression) which is the literal expression
-// to visit.
-// Takes visitor (func(...)) which is called for each child
-// expression.
-// Takes depth (int) which tracks the current depth in the
-// tree.
+// Takes expression (Expression) which is the literal expression to visit.
+// Takes visitor (func(...)) which is called for each child expression.
+// Takes depth (int) which tracks the current depth in the tree.
 func visitLiteralExprChildrenWithDepth(expression Expression, visitor func(Expression) bool, depth int) {
 	switch n := expression.(type) {
 	case *TemplateLiteral:
@@ -1074,8 +1044,8 @@ func visitLiteralExprChildrenWithDepth(expression Expression, visitor func(Expre
 
 // buildRemovalMap creates a lookup map for nodes to be removed.
 //
-// Takes nodesToRemove ([]*TemplateNode) which specifies the nodes to include
-// in the lookup map.
+// Takes nodesToRemove ([]*TemplateNode) which specifies the nodes to include in the
+// lookup map.
 //
 // Returns map[*TemplateNode]bool which allows fast membership checks.
 func buildRemovalMap(nodesToRemove []*TemplateNode) map[*TemplateNode]bool {
@@ -1102,8 +1072,8 @@ func filterNodes(nodes []*TemplateNode, removalMap map[*TemplateNode]bool) []*Te
 	return result
 }
 
-// filterChildrenInPlace removes marked nodes from a parent's children list.
-// It avoids extra memory use when no children need to be removed.
+// filterChildrenInPlace removes marked nodes from a parent's children list. It avoids
+// extra memory use when no children need to be removed.
 //
 // Takes parent (*TemplateNode) which is the node whose children to filter.
 // Takes removalMap (map[*TemplateNode]bool) which marks nodes for removal.
@@ -1122,8 +1092,7 @@ func filterChildrenInPlace(parent *TemplateNode, removalMap map[*TemplateNode]bo
 // anyChildNeedsRemoval checks whether any child node is marked for removal.
 //
 // Takes children ([]*TemplateNode) which is the list of child nodes to check.
-// Takes removalMap (map[*TemplateNode]bool) which tracks nodes marked for
-// removal.
+// Takes removalMap (map[*TemplateNode]bool) which tracks nodes marked for removal.
 //
 // Returns bool which is true if any child is in the removal map.
 func anyChildNeedsRemoval(children []*TemplateNode, removalMap map[*TemplateNode]bool) bool {

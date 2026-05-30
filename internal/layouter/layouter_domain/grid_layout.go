@@ -24,17 +24,17 @@ import (
 )
 
 const (
-	// gridSearchLimit is the maximum number of rows or columns
-	// searched during grid auto-placement.
+	// gridSearchLimit is the maximum number of rows or columns searched during grid
+	// auto-placement.
 	gridSearchLimit = 1000
 
-	// gridColumnOverflow is the extra columns searched beyond
-	// the explicit grid when looking for available slots.
+	// gridColumnOverflow is the extra columns searched beyond the explicit grid when looking
+	// for available slots.
 	gridColumnOverflow = 100
 )
 
-// gridItemPlacement holds the resolved grid position and layout
-// fragment for a single grid item.
+// gridItemPlacement holds the resolved grid position and layout fragment for a single
+// grid item.
 type gridItemPlacement struct {
 	// item holds the layout box for this grid item.
 	item *LayoutBox
@@ -55,8 +55,8 @@ type gridItemPlacement struct {
 	rowEnd int
 }
 
-// gridAreaBounds describes the rectangular region occupied
-// by a named grid area within the grid-template-areas matrix.
+// gridAreaBounds describes the rectangular region occupied by a named grid area within
+// the grid-template-areas matrix.
 type gridAreaBounds struct {
 	// rowStart holds the zero-based inclusive start row.
 	rowStart int
@@ -71,15 +71,13 @@ type gridAreaBounds struct {
 	columnEnd int
 }
 
-// buildGridAreaMap scans a grid-template-areas matrix and
-// returns a mapping from area name to its bounding rectangle.
-// The "." name (unnamed cells) is excluded.
+// buildGridAreaMap scans a grid-template-areas matrix and returns a mapping from area
+// name to its bounding rectangle. The "." name (unnamed cells) is excluded.
 //
-// Takes areas ([][]string) which holds the grid-template-areas
-// matrix.
+// Takes areas ([][]string) which holds the grid-template-areas matrix.
 //
-// Returns map[string]gridAreaBounds which maps area names to
-// their bounding rectangles, or nil when the matrix is empty.
+// Returns map[string]gridAreaBounds which maps area names to their bounding rectangles,
+// or nil when the matrix is empty.
 func buildGridAreaMap(areas [][]string) map[string]gridAreaBounds {
 	if len(areas) == 0 {
 		return nil
@@ -95,11 +93,10 @@ func buildGridAreaMap(areas [][]string) map[string]gridAreaBounds {
 	return result
 }
 
-// updateAreaBounds inserts or expands the bounding rectangle for a
-// named grid area at the given row and column position.
+// updateAreaBounds inserts or expands the bounding rectangle for a named grid area at the
+// given row and column position.
 //
-// Takes m (map[string]gridAreaBounds) which holds the area map
-// to update.
+// Takes m (map[string]gridAreaBounds) which holds the area map to update.
 // Takes name (string) which specifies the area name.
 // Takes row (int) which specifies the row index of the cell.
 // Takes col (int) which specifies the column index of the cell.
@@ -123,15 +120,14 @@ func updateAreaBounds(m map[string]gridAreaBounds, name string, row, col int) {
 	m[name] = bounds
 }
 
-// layoutGridContainer lays out a CSS grid container,
-// resolving track sizes, placing items, and positioning
-// fragments.
+// layoutGridContainer lays out a CSS grid container, resolving track sizes, placing
+// items, and positioning fragments.
 //
 // Takes ctx (context.Context) which carries cancellation.
 // Takes box (*LayoutBox) which is the grid container box.
 //
-// Returns formattingContextResult which holds the laid-out
-// child fragments and content height.
+// Returns formattingContextResult which holds the laid-out child fragments and content
+// height.
 func layoutGridContainer(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	containerWidth := input.AvailableWidth
 	templateColumns := resolveAutoRepeatColumns(box, containerWidth)
@@ -181,12 +177,11 @@ func layoutGridContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 	}
 }
 
-// resolveAutoRepeatColumns expands any auto-fill/auto-fit repeat
-// on the column axis using the container width.
+// resolveAutoRepeatColumns expands any auto-fill/auto-fit repeat on the column axis using
+// the container width.
 //
 // Takes box (*LayoutBox) which is the grid container box.
-// Takes containerWidth (float64) which specifies the available
-// inline size.
+// Takes containerWidth (float64) which specifies the available inline size.
 //
 // Returns []GridTrack which holds the expanded column track list.
 func resolveAutoRepeatColumns(box *LayoutBox, containerWidth float64) []GridTrack {
@@ -200,9 +195,8 @@ func resolveAutoRepeatColumns(box *LayoutBox, containerWidth float64) []GridTrac
 	return cols
 }
 
-// resolveAutoRepeatRows expands any auto-fill/auto-fit repeat
-// on the row axis. The available block size is typically
-// indefinite so 0 is used.
+// resolveAutoRepeatRows expands any auto-fill/auto-fit repeat on the row axis. The
+// available block size is typically indefinite so 0 is used.
 //
 // Takes box (*LayoutBox) which is the grid container box.
 //
@@ -217,8 +211,7 @@ func resolveAutoRepeatRows(box *LayoutBox) []GridTrack {
 	return rows
 }
 
-// sumTrackHeights returns the total height of all row tracks
-// including gaps.
+// sumTrackHeights returns the total height of all row tracks including gaps.
 //
 // Takes heights ([]float64) which holds the resolved row heights.
 // Takes gap (float64) which specifies the row gap size.
@@ -235,16 +228,14 @@ func sumTrackHeights(heights []float64, gap float64) float64 {
 	return total
 }
 
-// placeGridItemsWithColumns is like placeGridItems but uses the
-// provided template columns instead of the style's columns.
-// This is needed when auto-repeat has expanded the column list.
+// placeGridItemsWithColumns is like placeGridItems but uses the provided template columns
+// instead of the style's columns. This is needed when auto-repeat has expanded the column
+// list.
 //
 // Takes box (*LayoutBox) which is the grid container box.
-// Takes templateColumns ([]GridTrack) which holds the expanded
-// column tracks.
+// Takes templateColumns ([]GridTrack) which holds the expanded column tracks.
 //
-// Returns placements ([]gridItemPlacement) which holds each
-// item's resolved position.
+// Returns placements ([]gridItemPlacement) which holds each item's resolved position.
 // Returns columnCount (int) which holds the total column count.
 // Returns rowCount (int) which holds the total row count.
 func placeGridItemsWithColumns(
@@ -275,9 +266,9 @@ func placeGridItemsWithColumns(
 	return placements, maxColumn, maxRow
 }
 
-// expandAutoRepeatTracks expands an auto-fill or auto-fit repeat
-// pattern into a concrete track list. The number of repetitions
-// is the largest integer that does not overflow the container.
+// expandAutoRepeatTracks expands an auto-fill or auto-fit repeat pattern into a concrete
+// track list. The number of repetitions is the largest integer that does not overflow the
+// container.
 //
 // Takes fixedTracks ([]GridTrack) which is the non-repeat tracks.
 // Takes ar (*GridAutoRepeat) which is the auto-repeat to expand.
@@ -326,9 +317,8 @@ func expandAutoRepeatTracks(
 	return spliceAutoRepeat(fixedTracks, ar, count)
 }
 
-// sumDefiniteTrackSizes returns the total size of all tracks
-// with a definite (fixed) size. Flexible and intrinsic tracks
-// contribute 0.
+// sumDefiniteTrackSizes returns the total size of all tracks with a definite (fixed)
+// size. Flexible and intrinsic tracks contribute 0.
 //
 // Takes tracks ([]GridTrack) which holds the track list to sum.
 //
@@ -336,7 +326,7 @@ func expandAutoRepeatTracks(
 func sumDefiniteTrackSizes(tracks []GridTrack) float64 {
 	total := 0.0
 	for _, track := range tracks {
-		switch track.Unit {
+		switch track.Unit { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case GridTrackPoints:
 			total += track.Value
 		case GridTrackPercentage:
@@ -345,13 +335,11 @@ func sumDefiniteTrackSizes(tracks []GridTrack) float64 {
 	return total
 }
 
-// spliceAutoRepeat inserts count repetitions of the auto-repeat
-// pattern into the fixed tracks at the recorded insert index.
+// spliceAutoRepeat inserts count repetitions of the auto-repeat pattern into the fixed
+// tracks at the recorded insert index.
 //
-// Takes fixedTracks ([]GridTrack) which holds the non-repeat
-// tracks.
-// Takes ar (*GridAutoRepeat) which holds the auto-repeat pattern
-// and insertion index.
+// Takes fixedTracks ([]GridTrack) which holds the non-repeat tracks.
+// Takes ar (*GridAutoRepeat) which holds the auto-repeat pattern and insertion index.
 // Takes count (int) which specifies the number of repetitions.
 //
 // Returns []GridTrack which holds the spliced track list.
@@ -372,19 +360,17 @@ func spliceAutoRepeat(fixedTracks []GridTrack, ar *GridAutoRepeat, count int) []
 	return result
 }
 
-// collapseEmptyAutoFitTracks replaces empty tracks in the
-// auto-repeat region with zero-width fixed tracks. A track is
-// empty when no grid item occupies it.
+// collapseEmptyAutoFitTracks replaces empty tracks in the auto-repeat region with
+// zero-width fixed tracks. A track is empty when no grid item occupies it.
 //
-// Takes expandedTracks ([]GridTrack) which holds the full
-// expanded track list.
-// Takes ar (*GridAutoRepeat) which holds the auto-repeat metadata
-// for locating the repeat region.
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements used to determine occupancy.
+// Takes expandedTracks ([]GridTrack) which holds the full expanded track list.
+// Takes ar (*GridAutoRepeat) which holds the auto-repeat metadata for locating the repeat
+// region.
+// Takes placements ([]gridItemPlacement) which holds the item placements used to
+// determine occupancy.
 //
-// Returns []GridTrack which holds the track list with empty
-// auto-fit tracks collapsed to zero width.
+// Returns []GridTrack which holds the track list with empty auto-fit tracks collapsed to
+// zero width.
 func collapseEmptyAutoFitTracks(
 	expandedTracks []GridTrack, ar *GridAutoRepeat,
 	placements []gridItemPlacement,
@@ -410,19 +396,16 @@ func collapseEmptyAutoFitTracks(
 	return result
 }
 
-// layoutGridItemFragments lays out each grid item's content using
-// the resolved column widths, producing a fragment per placement.
+// layoutGridItemFragments lays out each grid item's content using the resolved column
+// widths, producing a fragment per placement.
 //
-// When a row track has a definite size (points or percentage),
-// the resolved height is passed as AvailableBlockSize so that
-// percentage-height children can resolve correctly.
+// When a row track has a definite size (points or percentage), the resolved height is
+// passed as AvailableBlockSize so that percentage-height children can resolve correctly.
 //
 // Takes ctx (context.Context) which controls cancellation.
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements to lay out.
+// Takes placements ([]gridItemPlacement) which holds the item placements to lay out.
 // Takes box (*LayoutBox) which is the grid container box.
-// Takes columnWidths ([]float64) which holds the resolved column
-// sizes.
+// Takes columnWidths ([]float64) which holds the resolved column sizes.
 func layoutGridItemFragments(
 	ctx context.Context,
 	placements []gridItemPlacement,
@@ -477,19 +460,16 @@ func layoutGridItemFragments(
 	}
 }
 
-// definiteRowHeight returns the definite block size for a
-// grid row track, or 0 if the track size is indefinite.
+// definiteRowHeight returns the definite block size for a grid row track, or 0 if the
+// track size is indefinite.
 //
 // Takes rowIndex (int) which specifies the zero-based row index.
-// Takes templateRows ([]GridTrack) which holds the explicit row
-// tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit row
-// tracks.
-// Takes containerHeight (float64) which specifies the container
-// block size for percentage resolution.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
+// Takes containerHeight (float64) which specifies the container block size for percentage
+// resolution.
 //
-// Returns float64 which holds the definite row height in points,
-// or 0 when indefinite.
+// Returns float64 which holds the definite row height in points, or 0 when indefinite.
 func definiteRowHeight(
 	rowIndex int,
 	templateRows []GridTrack,
@@ -497,7 +477,7 @@ func definiteRowHeight(
 	containerHeight float64,
 ) float64 {
 	track := getTrack(templateRows, autoRows, rowIndex)
-	switch track.Unit {
+	switch track.Unit { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case GridTrackPoints:
 		return track.Value
 	case GridTrackPercentage:
@@ -508,16 +488,15 @@ func definiteRowHeight(
 	return 0
 }
 
-// resolveGridContainerHeight returns the definite block size
-// for the grid container, or 0 if the height is indefinite.
+// resolveGridContainerHeight returns the definite block size for the grid container, or 0
+// if the height is indefinite.
 //
-// Takes style (*ComputedStyle) which holds the container's
-// computed style.
-// Takes parentBlockSize (float64) which specifies the parent's
-// block size for percentage resolution.
+// Takes style (*ComputedStyle) which holds the container's computed style.
+// Takes parentBlockSize (float64) which specifies the parent's block size for percentage
+// resolution.
 //
-// Returns float64 which holds the definite container height in
-// points, or 0 when indefinite.
+// Returns float64 which holds the definite container height in points, or 0 when
+// indefinite.
 func resolveGridContainerHeight(style *ComputedStyle, parentBlockSize float64) float64 {
 	if !style.Height.IsAuto() && !style.Height.IsIntrinsic() {
 		return adjustForBoxSizing(
@@ -528,26 +507,20 @@ func resolveGridContainerHeight(style *ComputedStyle, parentBlockSize float64) f
 	return 0
 }
 
-// relayoutStretchedGridItems re-lays out grid items that need
-// a second pass.
+// relayoutStretchedGridItems re-lays out grid items that need a second pass.
 //
-//  1. Stretching: the cell height exceeds the item's natural
-//     height, so flex/grid items must be re-laid out with the
-//     cell height as their main size.
-//  2. Percentage resolution: the item is in a row whose height
-//     was not known at initial layout (auto or fr tracks), so
-//     children with percentage heights could not resolve. Now
-//     that the row height is computed, a re-layout lets
-//     percentage heights resolve correctly.
+//  1. Stretching: the cell height exceeds the item's natural height, so flex/grid items
+//     must be re-laid out with the cell height as their main size.
+//  2. Percentage resolution: the item is in a row whose height was not known at initial
+//     layout (auto or fr tracks), so children with percentage heights could not resolve.
+//     Now that the row height is computed, a re-layout lets percentage heights resolve
+//     correctly.
 //
 // Takes ctx (context.Context) which controls cancellation.
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements to check.
+// Takes placements ([]gridItemPlacement) which holds the item placements to check.
 // Takes box (*LayoutBox) which is the grid container box.
-// Takes columnWidths ([]float64) which holds the resolved column
-// sizes.
-// Takes rowHeights ([]float64) which holds the resolved row
-// sizes.
+// Takes columnWidths ([]float64) which holds the resolved column sizes.
+// Takes rowHeights ([]float64) which holds the resolved row sizes.
 func relayoutStretchedGridItems(
 	ctx context.Context,
 	placements []gridItemPlacement,
@@ -581,22 +554,18 @@ func relayoutStretchedGridItems(
 	}
 }
 
-// relayoutSingleGridItem performs a second layout pass for a single
-// grid item that needs stretching or percentage height resolution.
+// relayoutSingleGridItem performs a second layout pass for a single grid item that needs
+// stretching or percentage height resolution.
 //
-// It temporarily sets an explicit height on the item so that
-// resolveAvailableBlockSize passes through the definite size to
-// children, enabling percentage height resolution and correct
-// column flex sizing.
+// It temporarily sets an explicit height on the item so that resolveAvailableBlockSize
+// passes through the definite size to children, enabling percentage height resolution and
+// correct column flex sizing.
 //
 // Takes ctx (context.Context) which controls cancellation.
-// Takes placement (*gridItemPlacement) which holds the item
-// placement to re-lay out.
+// Takes placement (*gridItemPlacement) which holds the item placement to re-lay out.
 // Takes box (*LayoutBox) which is the grid container box.
-// Takes columnWidths ([]float64) which holds the resolved column
-// sizes.
-// Takes cellHeight (float64) which specifies the resolved cell
-// height in points.
+// Takes columnWidths ([]float64) which holds the resolved column sizes.
+// Takes cellHeight (float64) which specifies the resolved cell height in points.
 func relayoutSingleGridItem(
 	ctx context.Context,
 	placement *gridItemPlacement,
@@ -645,21 +614,17 @@ func relayoutSingleGridItem(
 	placement.item.Style.Height = originalHeight
 }
 
-// placeGridChild resolves the grid position for a single child
-// element, handling named areas, explicit placement, semi-auto
-// placement (one axis specified), and fully automatic placement.
+// placeGridChild resolves the grid position for a single child element, handling named
+// areas, explicit placement, semi-auto placement (one axis specified), and fully
+// automatic placement.
 //
 // Takes child (*LayoutBox) which is the grid item to place.
-// Takes templateColumns (int) which specifies the explicit column
-// count.
+// Takes templateColumns (int) which specifies the explicit column count.
 // Takes occupied (map[[2]int]bool) which tracks occupied cells.
-// Takes autoFlow (GridAutoFlowType) which specifies the
-// auto-placement direction.
+// Takes autoFlow (GridAutoFlowType) which specifies the auto-placement direction.
 // Takes cursorRow (*int) which holds the row-major cursor row.
-// Takes cursorColumn (*int) which holds the row-major cursor
-// column.
-// Takes areaMap (map[string]gridAreaBounds) which maps named
-// areas to their bounds.
+// Takes cursorColumn (*int) which holds the row-major cursor column.
+// Takes areaMap (map[string]gridAreaBounds) which maps named areas to their bounds.
 //
 // Returns gridItemPlacement which holds the resolved position.
 func placeGridChild(
@@ -708,14 +673,11 @@ func placeGridChild(
 	}
 }
 
-// computeGridBounds returns the maximum column and row indices
-// across all placements, clamped to at least the explicit grid
-// dimensions.
+// computeGridBounds returns the maximum column and row indices across all placements,
+// clamped to at least the explicit grid dimensions.
 //
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements.
-// Takes templateColumns (int) which specifies the explicit column
-// count.
+// Takes placements ([]gridItemPlacement) which holds the item placements.
+// Takes templateColumns (int) which specifies the explicit column count.
 // Takes templateRows (int) which specifies the explicit row count.
 //
 // Returns maxColumn (int) which holds the total column count.
@@ -734,16 +696,14 @@ func computeGridBounds(placements []gridItemPlacement, templateColumns, template
 	return maxColumn, maxRow
 }
 
-// resolveGridItemColumn resolves the column start and span
-// for a grid item from its computed style properties.
+// resolveGridItemColumn resolves the column start and span for a grid item from its
+// computed style properties.
 //
-// Takes style (*ComputedStyle) which holds the grid
-// placement properties.
-// Takes templateColumns (int) which is the explicit
-// column count for negative line resolution.
+// Takes style (*ComputedStyle) which holds the grid placement properties.
+// Takes templateColumns (int) which is the explicit column count for negative line
+// resolution.
 //
-// Returns start (int) which is the zero-based column
-// start, or -1 for auto.
+// Returns start (int) which is the zero-based column start, or -1 for auto.
 // Returns span (int) which is the column span count.
 func resolveGridItemColumn(style *ComputedStyle, templateColumns int) (start, span int) {
 	start = -1
@@ -771,14 +731,12 @@ func resolveGridItemColumn(style *ComputedStyle, templateColumns int) (start, sp
 	return start, span
 }
 
-// resolveGridItemRow resolves the row start and span for a
-// grid item from its computed style properties.
+// resolveGridItemRow resolves the row start and span for a grid item from its computed
+// style properties.
 //
-// Takes style (*ComputedStyle) which holds the grid
-// placement properties.
+// Takes style (*ComputedStyle) which holds the grid placement properties.
 //
-// Returns start (int) which is the zero-based row start,
-// or -1 for auto.
+// Returns start (int) which is the zero-based row start, or -1 for auto.
 // Returns span (int) which is the row span count.
 func resolveGridItemRow(style *ComputedStyle) (start, span int) {
 	start = -1
@@ -804,13 +762,10 @@ func resolveGridItemRow(style *ComputedStyle) (start, span int) {
 	return start, span
 }
 
-// markOccupied marks all cells covered by a placement as
-// occupied in the occupancy map.
+// markOccupied marks all cells covered by a placement as occupied in the occupancy map.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
-// Takes placement (gridItemPlacement) which holds the item
-// position and span.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes placement (gridItemPlacement) which holds the item position and span.
 func markOccupied(occupied map[[2]int]bool, placement gridItemPlacement) {
 	for row := placement.row; row < placement.rowEnd; row++ {
 		for column := placement.column; column < placement.columnEnd; column++ {
@@ -819,15 +774,13 @@ func markOccupied(occupied map[[2]int]bool, placement gridItemPlacement) {
 	}
 }
 
-// findNextAvailableRow searches downward from startRow for
-// the first row where the given column span is unoccupied.
+// findNextAvailableRow searches downward from startRow for the first row where the given
+// column span is unoccupied.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes column (int) which is the fixed column index.
 // Takes columnSpan (int) which is the required column span.
-// Takes startRow (int) which is the row to begin searching
-// from.
+// Takes startRow (int) which is the row to begin searching from.
 //
 // Returns int which is the first available row index.
 func findNextAvailableRow(occupied map[[2]int]bool, column, columnSpan, startRow int) int {
@@ -839,16 +792,13 @@ func findNextAvailableRow(occupied map[[2]int]bool, column, columnSpan, startRow
 	return startRow
 }
 
-// findNextAvailableColumn searches rightward from
-// startColumn for the first column where the given row
-// span is unoccupied.
+// findNextAvailableColumn searches rightward from startColumn for the first column where
+// the given row span is unoccupied.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes row (int) which is the fixed row index.
 // Takes rowSpan (int) which is the required row span.
-// Takes startColumn (int) which is the column to begin
-// searching from.
+// Takes startColumn (int) which is the column to begin searching from.
 // Takes maxColumns (int) which is the column search limit.
 //
 // Returns int which is the first available column index.
@@ -861,20 +811,16 @@ func findNextAvailableColumn(occupied map[[2]int]bool, row, rowSpan, startColumn
 	return 0
 }
 
-// autoPlaceItem places a grid item automatically using the
-// specified auto-flow direction and density mode.
+// autoPlaceItem places a grid item automatically using the specified auto-flow direction
+// and density mode.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes maxColumns (int) which is the column limit.
-// Takes autoFlow (GridAutoFlowType) which selects the
-// placement algorithm.
-// Takes cursorRow (*int) which holds the current row
-// cursor position.
-// Takes cursorColumn (*int) which holds the current
-// column cursor position.
+// Takes autoFlow (GridAutoFlowType) which selects the placement algorithm.
+// Takes cursorRow (*int) which holds the current row cursor position.
+// Takes cursorColumn (*int) which holds the current column cursor position.
 //
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
@@ -899,20 +845,16 @@ func autoPlaceItem(
 	)
 }
 
-// autoPlaceRowMajor places a grid item using row-major
-// auto-placement, scanning rows then columns for a free
-// slot.
+// autoPlaceRowMajor places a grid item using row-major auto-placement, scanning rows then
+// columns for a free slot.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes maxColumns (int) which is the column limit.
 // Takes isDense (bool) which enables dense packing mode.
-// Takes cursorRow (*int) which holds the current row
-// cursor.
-// Takes cursorColumn (*int) which holds the current
-// column cursor.
+// Takes cursorRow (*int) which holds the current row cursor.
+// Takes cursorColumn (*int) which holds the current column cursor.
 //
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
@@ -943,8 +885,8 @@ func autoPlaceRowMajor(
 	return 0, 0
 }
 
-// findAvailableColumnInRow scans a single row for an available area
-// that can fit the given column and row span.
+// findAvailableColumnInRow scans a single row for an available area that can fit the
+// given column and row span.
 //
 // Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes row (int) which specifies the row to scan.
@@ -967,18 +909,14 @@ func findAvailableColumnInRow(
 	return 0, false
 }
 
-// advanceRowMajorCursor advances the row-major auto-placement cursor
-// past the newly placed item, wrapping to the next row when the
-// cursor exceeds the column limit.
+// advanceRowMajorCursor advances the row-major auto-placement cursor past the newly
+// placed item, wrapping to the next row when the cursor exceeds the column limit.
 //
 // Takes cursorRow (*int) which holds the cursor row to update.
-// Takes cursorColumn (*int) which holds the cursor column to
-// update.
+// Takes cursorColumn (*int) which holds the cursor column to update.
 // Takes row (int) which specifies the row of the placed item.
-// Takes nextColumn (int) which specifies the column after the
-// placed item.
-// Takes columnLimit (int) which specifies the maximum column
-// before wrapping.
+// Takes nextColumn (int) which specifies the column after the placed item.
+// Takes columnLimit (int) which specifies the maximum column before wrapping.
 func advanceRowMajorCursor(cursorRow, cursorColumn *int, row, nextColumn, columnLimit int) {
 	*cursorRow = row
 	*cursorColumn = nextColumn
@@ -988,19 +926,15 @@ func advanceRowMajorCursor(cursorRow, cursorColumn *int, row, nextColumn, column
 	}
 }
 
-// autoPlaceColumnMajor places a grid item using
-// column-major auto-placement, scanning columns then rows
-// for a free slot.
+// autoPlaceColumnMajor places a grid item using column-major auto-placement, scanning
+// columns then rows for a free slot.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes isDense (bool) which enables dense packing mode.
-// Takes cursorRow (*int) which holds the current row
-// cursor.
-// Takes cursorColumn (*int) which holds the current
-// column cursor.
+// Takes cursorRow (*int) which holds the current row cursor.
+// Takes cursorColumn (*int) which holds the current column cursor.
 //
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
@@ -1033,19 +967,16 @@ func autoPlaceColumnMajor(
 	return 0, 0
 }
 
-// isAreaAvailable reports whether the rectangular region
-// starting at (row, column) with the given spans is
-// entirely unoccupied.
+// isAreaAvailable reports whether the rectangular region starting at (row, column) with
+// the given spans is entirely unoccupied.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied
-// cells.
+// Takes occupied (map[[2]int]bool) which tracks occupied cells.
 // Takes row (int) which is the start row.
 // Takes column (int) which is the start column.
 // Takes rowSpan (int) which is the row extent.
 // Takes columnSpan (int) which is the column extent.
 //
-// Returns bool which is true if every cell in the area is
-// free.
+// Returns bool which is true if every cell in the area is free.
 func isAreaAvailable(occupied map[[2]int]bool, row, column, rowSpan, columnSpan int) bool {
 	for checkRow := row; checkRow < row+rowSpan; checkRow++ {
 		for checkColumn := column; checkColumn < column+columnSpan; checkColumn++ {
@@ -1057,8 +988,8 @@ func isAreaAvailable(occupied map[[2]int]bool, row, column, rowSpan, columnSpan 
 	return true
 }
 
-// gridTrackSizingInput groups the parameters for grid track
-// sizing, reducing the argument count of resolveGridTrackSizes.
+// gridTrackSizingInput groups the parameters for grid track sizing, reducing the argument
+// count of resolveGridTrackSizes.
 type gridTrackSizingInput struct {
 	// fontMetrics holds the font metrics port for intrinsic sizing.
 	fontMetrics FontMetricsPort
@@ -1069,12 +1000,10 @@ type gridTrackSizingInput struct {
 	// autoTracks holds the implicit auto tracks.
 	autoTracks []GridTrack
 
-	// placements holds the grid item placements for intrinsic
-	// sizing.
+	// placements holds the grid item placements for intrinsic sizing.
 	placements []gridItemPlacement
 
-	// containerSize holds the available space for the axis in
-	// points.
+	// containerSize holds the available space for the axis in points.
 	containerSize float64
 
 	// gap holds the gap size between tracks in points.
@@ -1087,15 +1016,13 @@ type gridTrackSizingInput struct {
 	isColumn bool
 }
 
-// resolveGridTrackSizes resolves all track sizes for a
-// single axis, handling fixed, intrinsic, and fraction
-// tracks.
+// resolveGridTrackSizes resolves all track sizes for a single axis, handling fixed,
+// intrinsic, and fraction tracks.
 //
-// Takes input (gridTrackSizingInput) which holds the
-// track definitions and container size.
+// Takes input (gridTrackSizingInput) which holds the track definitions and container
+// size.
 //
-// Returns []float64 which holds the resolved track sizes
-// in points.
+// Returns []float64 which holds the resolved track sizes in points.
 func resolveGridTrackSizes(input gridTrackSizingInput) []float64 {
 	sizes := make([]float64, input.trackCount)
 	totalGap := float64(input.trackCount-1) * input.gap
@@ -1113,19 +1040,14 @@ func resolveGridTrackSizes(input gridTrackSizingInput) []float64 {
 	return sizes
 }
 
-// resolveFixedTracks resolves all non-fraction tracks (points,
-// percentages, min/max-content, auto) and returns the total
-// fraction and fixed sizes.
+// resolveFixedTracks resolves all non-fraction tracks (points, percentages,
+// min/max-content, auto) and returns the total fraction and fixed sizes.
 //
-// Takes sizes ([]float64) which holds the output slice to
-// populate with resolved sizes.
-// Takes input (gridTrackSizingInput) which holds the track
-// sizing parameters.
+// Takes sizes ([]float64) which holds the output slice to populate with resolved sizes.
+// Takes input (gridTrackSizingInput) which holds the track sizing parameters.
 //
-// Returns fractionTotal (float64) which holds the sum of all
-// fr values.
-// Returns fixedTotal (float64) which holds the sum of all
-// resolved non-fr sizes.
+// Returns fractionTotal (float64) which holds the sum of all fr values.
+// Returns fixedTotal (float64) which holds the sum of all resolved non-fr sizes.
 func resolveFixedTracks(sizes []float64, input gridTrackSizingInput) (fractionTotal, fixedTotal float64) {
 	for index := range input.trackCount {
 		track := getTrack(input.templateTracks, input.autoTracks, index)
@@ -1170,16 +1092,13 @@ func resolveFixedTracks(sizes []float64, input gridTrackSizingInput) (fractionTo
 	return fractionTotal, fixedTotal
 }
 
-// resolveFractionTracks distributes the remaining space among
-// fraction-unit tracks proportionally to their fr values.
+// resolveFractionTracks distributes the remaining space among fraction-unit tracks
+// proportionally to their fr values.
 //
 // Takes sizes ([]float64) which holds the output slice to update.
-// Takes input (gridTrackSizingInput) which holds the track
-// sizing parameters.
-// Takes fractionTotal (float64) which specifies the sum of all
-// fr values.
-// Takes remainingSpace (float64) which specifies the space
-// available for fr tracks.
+// Takes input (gridTrackSizingInput) which holds the track sizing parameters.
+// Takes fractionTotal (float64) which specifies the sum of all fr values.
+// Takes remainingSpace (float64) which specifies the space available for fr tracks.
 func resolveFractionTracks(sizes []float64, input gridTrackSizingInput, fractionTotal, remainingSpace float64) {
 	if remainingSpace < 0 {
 		remainingSpace = 0
@@ -1192,14 +1111,11 @@ func resolveFractionTracks(sizes []float64, input gridTrackSizingInput, fraction
 	}
 }
 
-// getTrack returns the grid track definition for the given
-// index, falling back to auto tracks or GridTrackAuto when
-// out of range.
+// getTrack returns the grid track definition for the given index, falling back to auto
+// tracks or GridTrackAuto when out of range.
 //
-// Takes templateTracks ([]GridTrack) which holds the
-// explicit template tracks.
-// Takes autoTracks ([]GridTrack) which holds the implicit
-// auto tracks.
+// Takes templateTracks ([]GridTrack) which holds the explicit template tracks.
+// Takes autoTracks ([]GridTrack) which holds the implicit auto tracks.
 // Takes index (int) which is the track index to look up.
 //
 // Returns GridTrack which is the resolved track definition.
@@ -1213,21 +1129,16 @@ func getTrack(templateTracks []GridTrack, autoTracks []GridTrack, index int) Gri
 	return GridTrack{Unit: GridTrackAuto}
 }
 
-// computeTrackIntrinsicSize computes the intrinsic size of
-// a single track based on the content of items occupying
-// it.
+// computeTrackIntrinsicSize computes the intrinsic size of a single track based on the
+// content of items occupying it.
 //
-// Takes placements ([]gridItemPlacement) which holds the
-// grid item placements.
+// Takes placements ([]gridItemPlacement) which holds the grid item placements.
 // Takes trackIndex (int) which is the track to measure.
 // Takes isColumn (bool) which selects column or row axis.
-// Takes useMinContent (bool) which selects min-content or
-// max-content sizing.
-// Takes fontMetrics (FontMetricsPort) which provides font
-// measurement.
+// Takes useMinContent (bool) which selects min-content or max-content sizing.
+// Takes fontMetrics (FontMetricsPort) which provides font measurement.
 //
-// Returns float64 which is the intrinsic track size in
-// points.
+// Returns float64 which is the intrinsic track size in points.
 func computeTrackIntrinsicSize(
 	placements []gridItemPlacement,
 	trackIndex int,
@@ -1263,23 +1174,18 @@ func computeTrackIntrinsicSize(
 	return maxSize
 }
 
-// computeRowHeights resolves all row track heights,
-// handling fixed tracks, item-driven sizing, fr
-// distribution, multi-span items, and auto-row stretching.
+// computeRowHeights resolves all row track heights, handling fixed tracks, item-driven
+// sizing, fr distribution, multi-span items, and auto-row stretching.
 //
-// Takes templateRows ([]GridTrack) which holds the
-// explicit row tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit
-// row tracks.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
 // Takes rowCount (int) which is the total number of rows.
-// Takes placements ([]gridItemPlacement) which holds the
-// grid item placements.
+// Takes placements ([]gridItemPlacement) which holds the grid item placements.
 // Takes gap (float64) which is the row gap in points.
-// Takes containerHeight (float64) which is the container
-// block size for percentage and fr resolution.
+// Takes containerHeight (float64) which is the container block size for percentage and fr
+// resolution.
 //
-// Returns []float64 which holds the resolved row heights
-// in points.
+// Returns []float64 which holds the resolved row heights in points.
 func computeRowHeights(
 	templateRows []GridTrack,
 	autoRows []GridTrack,
@@ -1306,22 +1212,18 @@ func computeRowHeights(
 	return heights
 }
 
-// resolveFixedRowHeights resolves all definite row track sizes
-// (points and percentages) and accumulates the total fr value.
+// resolveFixedRowHeights resolves all definite row track sizes (points and percentages)
+// and accumulates the total fr value.
 //
-// Takes heights ([]float64) which holds the output slice to
-// populate.
-// Takes templateRows ([]GridTrack) which holds the explicit row
-// tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit row
-// tracks.
+// Takes heights ([]float64) which holds the output slice to populate.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
 // Takes rowCount (int) which specifies the total number of rows.
-// Takes containerHeight (float64) which specifies the container
-// block size for percentage resolution.
+// Takes containerHeight (float64) which specifies the container block size for percentage
+// resolution.
 //
 // Returns frTotal (float64) which holds the sum of all fr values.
-// Returns fixedTotal (float64) which holds the sum of all
-// resolved fixed heights.
+// Returns fixedTotal (float64) which holds the sum of all resolved fixed heights.
 func resolveFixedRowHeights(
 	heights []float64,
 	templateRows, autoRows []GridTrack,
@@ -1348,17 +1250,13 @@ func resolveFixedRowHeights(
 	return frTotal, fixedTotal
 }
 
-// applyItemDrivenRowHeights updates row heights for non-fr tracks
-// using the margin-box heights of single-row-span items. Each row
-// is expanded to fit its tallest item.
+// applyItemDrivenRowHeights updates row heights for non-fr tracks using the margin-box
+// heights of single-row-span items. Each row is expanded to fit its tallest item.
 //
 // Takes heights ([]float64) which holds the row heights to update.
-// Takes templateRows ([]GridTrack) which holds the explicit row
-// tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit row
-// tracks.
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
+// Takes placements ([]gridItemPlacement) which holds the item placements.
 func applyItemDrivenRowHeights(
 	heights []float64,
 	templateRows, autoRows []GridTrack,
@@ -1381,20 +1279,16 @@ func applyItemDrivenRowHeights(
 	}
 }
 
-// distributeFrRowSpace distributes the remaining container height
-// among fr-unit row tracks proportionally to their fr values.
+// distributeFrRowSpace distributes the remaining container height among fr-unit row
+// tracks proportionally to their fr values.
 //
 // Takes heights ([]float64) which holds the row heights to update.
-// Takes templateRows ([]GridTrack) which holds the explicit row
-// tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit row
-// tracks.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
 // Takes rowCount (int) which specifies the total number of rows.
-// Takes frTotal (float64) which specifies the sum of all fr
-// values.
+// Takes frTotal (float64) which specifies the sum of all fr values.
 // Takes gap (float64) which specifies the row gap size.
-// Takes containerHeight (float64) which specifies the container
-// block size.
+// Takes containerHeight (float64) which specifies the container block size.
 func distributeFrRowSpace(
 	heights []float64,
 	templateRows, autoRows []GridTrack,
@@ -1421,13 +1315,12 @@ func distributeFrRowSpace(
 	}
 }
 
-// applyItemDrivenFrRowHeights sizes fr tracks using item content
-// heights when the container has no definite height. Each fr row
-// is expanded to fit its tallest single-row-span item.
+// applyItemDrivenFrRowHeights sizes fr tracks using item content heights when the
+// container has no definite height. Each fr row is expanded to fit its tallest
+// single-row-span item.
 //
 // Takes heights ([]float64) which holds the row heights to update.
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements.
+// Takes placements ([]gridItemPlacement) which holds the item placements.
 func applyItemDrivenFrRowHeights(heights []float64, placements []gridItemPlacement) {
 	for _, placement := range placements {
 		if placement.rowEnd-placement.row != 1 {
@@ -1440,22 +1333,17 @@ func applyItemDrivenFrRowHeights(heights []float64, placements []gridItemPlaceme
 	}
 }
 
-// stretchAutoRowsToFill distributes remaining container height
-// among auto-sized rows when there is a definite container height
-// and no fr tracks consume the space. This implements the
-// align-content: stretch default behaviour.
+// stretchAutoRowsToFill distributes remaining container height among auto-sized rows when
+// there is a definite container height and no fr tracks consume the space. This
+// implements the align-content: stretch default behaviour.
 //
 // Takes heights ([]float64) which holds the row heights to update.
-// Takes templateRows ([]GridTrack) which holds the explicit row
-// tracks.
-// Takes autoRows ([]GridTrack) which holds the implicit row
-// tracks.
+// Takes templateRows ([]GridTrack) which holds the explicit row tracks.
+// Takes autoRows ([]GridTrack) which holds the implicit row tracks.
 // Takes rowCount (int) which specifies the total number of rows.
 // Takes gap (float64) which specifies the row gap size.
-// Takes containerHeight (float64) which specifies the container
-// block size.
-// Takes frTotal (float64) which specifies the sum of all fr
-// values.
+// Takes containerHeight (float64) which specifies the container block size.
+// Takes frTotal (float64) which specifies the sum of all fr values.
 func stretchAutoRowsToFill(
 	heights []float64,
 	templateRows, autoRows []GridTrack,
@@ -1488,11 +1376,10 @@ func stretchAutoRowsToFill(
 	}
 }
 
-// resolveMultiSpanRowHeights distributes extra height needed by
-// multi-row-span items across the spanned rows.
+// resolveMultiSpanRowHeights distributes extra height needed by multi-row-span items
+// across the spanned rows.
 //
-// Takes placements ([]gridItemPlacement) which holds the item
-// placements.
+// Takes placements ([]gridItemPlacement) which holds the item placements.
 // Takes heights ([]float64) which holds the row heights to update.
 // Takes gap (float64) which specifies the row gap size.
 func resolveMultiSpanRowHeights(placements []gridItemPlacement, heights []float64, gap float64) {
@@ -1514,17 +1401,15 @@ func resolveMultiSpanRowHeights(placements []gridItemPlacement, heights []float6
 	}
 }
 
-// spanTrackSize returns the total size of tracks from
-// start (inclusive) to end (exclusive), including
-// inter-track gaps.
+// spanTrackSize returns the total size of tracks from start (inclusive) to end
+// (exclusive), including inter-track gaps.
 //
 // Takes sizes ([]float64) which holds the track sizes.
 // Takes start (int) which is the first track index.
 // Takes end (int) which is the exclusive end track index.
 // Takes gap (float64) which is the inter-track gap size.
 //
-// Returns float64 which is the total spanned size in
-// points.
+// Returns float64 which is the total spanned size in points.
 func spanTrackSize(sizes []float64, start, end int, gap float64) float64 {
 	total := 0.0
 	for index := start; index < end && index < len(sizes); index++ {
@@ -1536,22 +1421,16 @@ func spanTrackSize(sizes []float64, start, end int, gap float64) float64 {
 	return total
 }
 
-// positionGridItems positions all grid item fragments at
-// their resolved grid coordinates, applying alignment and
-// RTL mirroring.
+// positionGridItems positions all grid item fragments at their resolved grid coordinates,
+// applying alignment and RTL mirroring.
 //
 // Takes box (*LayoutBox) which is the grid container.
-// Takes placements ([]gridItemPlacement) which holds the
-// item placements.
-// Takes columnWidths ([]float64) which holds the resolved
-// column widths.
-// Takes rowHeights ([]float64) which holds the resolved
-// row heights.
-// Takes containerWidth (float64) which is the container
-// width for RTL mirroring.
+// Takes placements ([]gridItemPlacement) which holds the item placements.
+// Takes columnWidths ([]float64) which holds the resolved column widths.
+// Takes rowHeights ([]float64) which holds the resolved row heights.
+// Takes containerWidth (float64) which is the container width for RTL mirroring.
 //
-// Returns []*Fragment which holds the positioned child
-// fragments.
+// Returns []*Fragment which holds the positioned child fragments.
 func positionGridItems(
 	box *LayoutBox,
 	placements []gridItemPlacement,
@@ -1588,9 +1467,8 @@ func positionGridItems(
 	return childFragments
 }
 
-// computeTrackOffsets computes cumulative offsets for each
-// track, producing a slice one longer than sizes where
-// each entry is the start position of that track.
+// computeTrackOffsets computes cumulative offsets for each track, producing a slice one
+// longer than sizes where each entry is the start position of that track.
 //
 // Takes sizes ([]float64) which holds the track sizes.
 // Takes gap (float64) which is the inter-track gap size.

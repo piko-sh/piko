@@ -39,8 +39,7 @@ type ParseJSResult struct {
 	Imports []string
 }
 
-// ParseUserScript parses a TypeScript or JavaScript script and extracts type
-// assertions.
+// ParseUserScript parses a TypeScript or JavaScript script and extracts type assertions.
 //
 // When the script code is empty, returns an empty AST with no assertions.
 //
@@ -93,8 +92,7 @@ func ParseUserScript(
 //
 // Takes script (string) which contains the JavaScript source to parse.
 //
-// Returns map[string]TypeAssertion which maps assertion names to their
-// definitions.
+// Returns map[string]TypeAssertion which maps assertion names to their definitions.
 func extractTypeAssertionsWithSpan(ctx context.Context, script string) map[string]TypeAssertion {
 	ctx, l := logger_domain.From(ctx, log)
 	_ = ctx

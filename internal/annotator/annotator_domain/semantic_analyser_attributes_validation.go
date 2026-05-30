@@ -18,8 +18,8 @@
 
 package annotator_domain
 
-// Helper-call handling, client event handler validation, directive validation
-// utilities, and expression pattern matching for the attribute analyser.
+// Helper-call handling, client event handler validation, directive validation utilities,
+// and expression pattern matching for the attribute analyser.
 
 import (
 	"context"
@@ -33,9 +33,8 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// isHelperCall checks if a directive is a helper function call. Helper calls
-// use the syntax `helpers.functionName()` to invoke client-side JavaScript
-// helper functions.
+// isHelperCall checks if a directive is a helper function call. Helper calls use the
+// syntax `helpers.functionName()` to invoke client-side JavaScript helper functions.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 //
@@ -44,10 +43,9 @@ func (*AttributeAnalyser) isHelperCall(d *ast_domain.Directive) bool {
 	return strings.HasPrefix(d.RawExpression, helpersPrefix)
 }
 
-// resolveHelperCall handles a `helpers.functionName()` directive. It sets the
-// modifier to "helper" so the emitter produces the correct HTML attribute,
-// transforms the callee from a MemberExpr to a simple Identifier, and
-// resolves the argument expressions.
+// resolveHelperCall handles a `helpers.functionName()` directive. It sets the modifier to
+// "helper" so the emitter produces the correct HTML attribute, transforms the callee from
+// a MemberExpr to a simple Identifier, and resolves the argument expressions.
 //
 // Takes d (*ast_domain.Directive) which contains the helper directive.
 // Takes ctx (*AnalysisContext) which provides the analysis context.
@@ -72,19 +70,18 @@ func (aa *AttributeAnalyser) resolveHelperCall(goCtx context.Context, d *ast_dom
 	d.GoAnnotations = newAnnotationWithType(newSyntheticAnyTypeInfo())
 }
 
-// resolveClientEventHandlerArgs checks argument expressions in client-side
-// event handler directives. It validates type correctness without resolving
-// the JavaScript function being called.
+// resolveClientEventHandlerArgs checks argument expressions in client-side event handler
+// directives. It validates type correctness without resolving the JavaScript function
+// being called.
 //
-// This catches bugs such as using (item, index) instead of (index, item) in a
-// p-for loop, where index + 1 would cause a type mismatch. It also catches
-// wrong use of $event by defining it as a special js.Event type that can only
-// be passed as a whole value.
+// This catches bugs such as using (item, index) instead of (index, item) in a p-for loop,
+// where index + 1 would cause a type mismatch. It also catches wrong use of $event by
+// defining it as a special js.Event type that can only be passed as a whole value.
 //
 // Takes d (*ast_domain.Directive) which is the directive to process.
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes validator (*PKValidator) which provides client script export data for
-// parameter type checking. May be nil.
+// Takes validator (*PKValidator) which provides client script export data for parameter
+// type checking. May be nil.
 func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(goCtx context.Context, d *ast_domain.Directive, ctx *AnalysisContext, validator *PKValidator) {
 	if d == nil || d.Expression == nil {
 		return
@@ -142,8 +139,8 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(goCtx context.Context
 	})
 }
 
-// validateClientHandlerArgs checks that the arguments passed to a client-side
-// event handler function match the expected parameter types and count.
+// validateClientHandlerArgs checks that the arguments passed to a client-side event
+// handler function match the expected parameter types and count.
 //
 // Takes callExpr (*ast_domain.CallExpression) which contains the arguments.
 // Takes handlerName (string) which identifies the function being called.
@@ -174,9 +171,9 @@ func (*AttributeAnalyser) validateClientHandlerArgs(
 	validateArgTypes(callExpr.Args, function.Params, handlerName, d, ctx)
 }
 
-// resolveObjectLiteralValues finds the values inside an object literal. This
-// handles p-class and p-style directives which accept object literals with
-// dynamic values (e.g., p-class="{ 'active': state.IsActive }").
+// resolveObjectLiteralValues finds the values inside an object literal. This handles
+// p-class and p-style directives which accept object literals with dynamic values (e.g.,
+// p-class="{ 'active': state.IsActive }").
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
@@ -189,9 +186,8 @@ func (aa *AttributeAnalyser) resolveObjectLiteralValues(goCtx context.Context, c
 	}
 }
 
-// extractHelperNameFromDirective extracts the helper function name from a
-// helpers directive. For an expression like "helpers.doSomething($event)",
-// returns "doSomething".
+// extractHelperNameFromDirective extracts the helper function name from a helpers
+// directive. For an expression like "helpers.doSomething($event)", returns "doSomething".
 //
 // Takes d (*ast_domain.Directive) which contains the raw helper expression.
 //
@@ -204,8 +200,8 @@ func extractHelperNameFromDirective(d *ast_domain.Directive) string {
 	return strings.TrimPrefix(helperExpr, helpersPrefix)
 }
 
-// validateArgCount checks whether the argument count is valid for the given
-// parameter list and returns a diagnostic message if not.
+// validateArgCount checks whether the argument count is valid for the given parameter
+// list and returns a diagnostic message if not.
 //
 // Takes params ([]ParamInfo) which describes the function parameters.
 // Takes gotArgs (int) which is the number of arguments provided.
@@ -244,8 +240,8 @@ func validateArgCount(params []ParamInfo, gotArgs int, handlerName string) strin
 	return ""
 }
 
-// validateArgTypes checks each argument against its corresponding parameter
-// type and emits a diagnostic for mismatches.
+// validateArgTypes checks each argument against its corresponding parameter type and
+// emits a diagnostic for mismatches.
 //
 // Takes arguments ([]ast_domain.Expression) which contains the call arguments.
 // Takes params ([]ParamInfo) which describes the expected parameter types.
@@ -275,14 +271,12 @@ func validateArgTypes(arguments []ast_domain.Expression, params []ParamInfo, han
 	}
 }
 
-// classifyResolvedExprCategory maps a resolved Go type from an expression
-// annotation to a simplified category for comparison with TypeScript parameter
-// types.
+// classifyResolvedExprCategory maps a resolved Go type from an expression annotation to a
+// simplified category for comparison with TypeScript parameter types.
 //
 // Takes expression (ast_domain.Expression) which is the expression to classify.
 //
-// Returns string which is one of: "string", "number", "boolean", "object",
-// or "any".
+// Returns string which is one of: "string", "number", "boolean", "object", or "any".
 func classifyResolvedExprCategory(expression ast_domain.Expression) string {
 	ann := expression.GetGoAnnotation()
 	if ann == nil || ann.ResolvedType == nil || ann.ResolvedType.TypeExpression == nil {
@@ -301,8 +295,8 @@ func classifyResolvedExprCategory(expression ast_domain.Expression) string {
 //
 // Takes goType (string) which is the resolved Go type string.
 //
-// Returns string which is the category: "string", "number", "boolean",
-// "object", or "any".
+// Returns string which is the category: "string", "number", "boolean", "object", or
+// "any".
 func classifyGoTypeCategory(goType string) string {
 	goType = strings.TrimPrefix(goType, "*")
 
@@ -326,13 +320,12 @@ func classifyGoTypeCategory(goType string) string {
 	return categoryObject
 }
 
-// validateAttributeTypeIsStringable checks if a dynamic attribute's type can
-// be converted to a string for use as an HTML attribute value. It reports a
-// warning if the type does not implement fmt.Stringer or
-// encoding.TextMarshaler.
+// validateAttributeTypeIsStringable checks if a dynamic attribute's type can be converted
+// to a string for use as an HTML attribute value. It reports a warning if the type does
+// not implement fmt.Stringer or encoding.TextMarshaler.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// diagnostics collector.
+// Takes ctx (*AnalysisContext) which provides the analysis state and diagnostics
+// collector.
 // Takes attr (*ast_domain.DynamicAttribute) which is the attribute to check.
 func validateAttributeTypeIsStringable(ctx *AnalysisContext, attr *ast_domain.DynamicAttribute) {
 	if attr.GoAnnotations == nil {
@@ -367,12 +360,11 @@ func validateAttributeTypeIsStringable(ctx *AnalysisContext, attr *ast_domain.Dy
 
 // validateClassAttribute checks if a :class binding has a valid type.
 //
-// Valid types are string, slice, or map. If the type is not valid, a
-// diagnostic error is added to the context. Skips checking if an error
-// diagnostic already exists for this attribute.
+// Valid types are string, slice, or map. If the type is not valid, a diagnostic error is
+// added to the context. Skips checking if an error diagnostic already exists for this
+// attribute.
 //
-// Takes ctx (*AnalysisContext) which holds the analysis state and collects
-// diagnostics.
+// Takes ctx (*AnalysisContext) which holds the analysis state and collects diagnostics.
 // Takes attr (*ast_domain.DynamicAttribute) which is the attribute to check.
 func validateClassAttribute(ctx *AnalysisContext, attr *ast_domain.DynamicAttribute) {
 	if attr.GoAnnotations == nil || attr.GoAnnotations.ResolvedType == nil {
@@ -397,8 +389,8 @@ func validateClassAttribute(ctx *AnalysisContext, attr *ast_domain.DynamicAttrib
 	}
 }
 
-// validateConditionalDirective checks that a conditional directive has a
-// boolean expression.
+// validateConditionalDirective checks that a conditional directive has a boolean
+// expression.
 //
 // Conditional directives include p-if, p-else-if, and p-show.
 //
@@ -423,12 +415,12 @@ func validateConditionalDirective(d *ast_domain.Directive, ctx *AnalysisContext)
 	}
 }
 
-// validateModelDirective checks that a p-model expression is an assignable
-// variable such as an identifier, member expression, or index expression.
+// validateModelDirective checks that a p-model expression is an assignable variable such
+// as an identifier, member expression, or index expression.
 //
 // Takes d (*ast_domain.Directive) which is the directive to validate.
-// Takes ctx (*AnalysisContext) which provides the analysis context for
-// recording diagnostics.
+// Takes ctx (*AnalysisContext) which provides the analysis context for recording
+// diagnostics.
 func validateModelDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	if rejectEventPlaceholderInDirective(d, ctx) || rejectFormPlaceholderInDirective(d, ctx) {
 		return
@@ -468,8 +460,8 @@ func validateClassDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 // validateStyleDirective checks that a p-style expression has a valid type.
 //
 // Takes d (*ast_domain.Directive) which is the directive to validate.
-// Takes ctx (*AnalysisContext) which provides the analysis context for
-// recording diagnostics.
+// Takes ctx (*AnalysisContext) which provides the analysis context for recording
+// diagnostics.
 func validateStyleDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	if rejectEventPlaceholderInDirective(d, ctx) || rejectFormPlaceholderInDirective(d, ctx) {
 		return
@@ -487,8 +479,8 @@ func validateStyleDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	}
 }
 
-// validateKeyDirective checks that a p-key expression does not use complex
-// types such as structs, maps, or slices.
+// validateKeyDirective checks that a p-key expression does not use complex types such as
+// structs, maps, or slices.
 //
 // Takes d (*ast_domain.Directive) which contains the directive to check.
 // Takes ctx (*AnalysisContext) which receives any diagnostic warnings.
@@ -506,8 +498,7 @@ func validateKeyDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	}
 }
 
-// validateContextDirective checks that a p-context expression resolves to a
-// string type.
+// validateContextDirective checks that a p-context expression resolves to a string type.
 //
 // Takes d (*ast_domain.Directive) which is the directive to validate.
 // Takes ctx (*AnalysisContext) which collects diagnostics during validation.
@@ -525,11 +516,11 @@ func validateContextDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	}
 }
 
-// validateEventDirective checks that an event handler uses a function call
-// and validates $event placeholder usage.
+// validateEventDirective checks that an event handler uses a function call and validates
+// $event placeholder usage.
 //
-// Takes d (*ast_domain.Directive) which is the directive to validate.
-// Takes ctx (*AnalysisContext) which collects any validation errors.
+// Takes d (*ast_domain.Directive) which is the directive to validate. Takes ctx
+// (*AnalysisContext) which collects any validation errors.
 func validateEventDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	if d.Expression == nil {
 		return
@@ -549,8 +540,8 @@ func validateEventDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	}
 }
 
-// validateEventHandlerArg checks a single argument in an event handler call
-// for valid $event and $form usage patterns.
+// validateEventHandlerArg checks a single argument in an event handler call for valid
+// $event and $form usage patterns.
 //
 // Takes argument (ast_domain.Expression) which is the argument to check.
 // Takes d (*ast_domain.Directive) which provides the location for any errors.
@@ -592,11 +583,11 @@ func validateEventHandlerArg(argument ast_domain.Expression, d *ast_domain.Direc
 	}
 }
 
-// isClassBindingType checks whether a type can be used for :class binding.
-// Valid types are string, slice, or map[string]....
+// isClassBindingType checks whether a type can be used for :class binding. Valid types
+// are string, slice, or map[string]....
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to check.
 //
 // Returns bool which is true if the type can be used for :class binding.
 func isClassBindingType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -607,11 +598,11 @@ func isClassBindingType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return typeString == "string" || strings.HasPrefix(typeString, "[]") || strings.HasPrefix(typeString, "map[string]")
 }
 
-// isStyleBindingType checks whether a type is valid for :style binding.
-// Valid types are string or map[string]....
+// isStyleBindingType checks whether a type is valid for :style binding. Valid types are
+// string or map[string]....
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
+// check.
 //
 // Returns bool which is true if the type is valid for style binding.
 func isStyleBindingType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -622,14 +613,13 @@ func isStyleBindingType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return typeString == "string" || strings.HasPrefix(typeString, "map[string]")
 }
 
-// isComplexType checks whether a type is complex, such as a struct, map, or
-// slice.
+// isComplexType checks whether a type is complex, such as a struct, map, or slice.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to check.
 //
-// Returns bool which is true if the type is complex, or false for primitive or
-// built-in types.
+// Returns bool which is true if the type is complex, or false for primitive or built-in
+// types.
 func isComplexType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return true
@@ -644,15 +634,14 @@ func isComplexType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns bool which is true if the expression is a function call, false
-// otherwise.
+// Returns bool which is true if the expression is a function call, false otherwise.
 func isCallExpr(expression ast_domain.Expression) bool {
 	_, ok := expression.(*ast_domain.CallExpression)
 	return ok
 }
 
-// containsEventPlaceholder checks whether an expression contains the $event
-// placeholder. Used to check that $event only appears in event handlers.
+// containsEventPlaceholder checks whether an expression contains the $event identifier.
+// Used to check that $event only appears in event handlers.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
@@ -669,15 +658,14 @@ func containsEventPlaceholder(expression ast_domain.Expression) bool {
 	return found
 }
 
-// findEventPropertyAccess searches for $event.property access patterns in an
-// expression. These patterns are not supported because the event object only
-// exists at runtime in the browser, so property access cannot be checked on
-// the server.
+// findEventPropertyAccess searches for $event.property access patterns in an expression.
+// These patterns are not supported because the event object only exists at runtime in the
+// browser, so property access cannot be checked on the server.
 //
 // Takes expression (ast_domain.Expression) which is the expression to search.
 //
-// Returns *ast_domain.MemberExpression which is the first $event.property access
-// found, or nil if none exists.
+// Returns *ast_domain.MemberExpression which is the first $event.property access found,
+// or nil if none exists.
 func findEventPropertyAccess(expression ast_domain.Expression) *ast_domain.MemberExpression {
 	var found *ast_domain.MemberExpression
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
@@ -694,13 +682,13 @@ func findEventPropertyAccess(expression ast_domain.Expression) *ast_domain.Membe
 	return found
 }
 
-// findLegacyEventIdentifier searches for the old bare "event" identifier.
-// Users should use "$event" instead to make event injection clear.
+// findLegacyEventIdentifier searches for the old bare "event" identifier. Users should
+// use "$event" instead to make event injection clear.
 //
 // Takes expression (ast_domain.Expression) which is the expression to search.
 //
-// Returns *ast_domain.Identifier which is the first "event" identifier found,
-// or nil if none exists.
+// Returns *ast_domain.Identifier which is the first "event" identifier found, or nil if
+// none exists.
 func findLegacyEventIdentifier(expression ast_domain.Expression) *ast_domain.Identifier {
 	var found *ast_domain.Identifier
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
@@ -713,9 +701,9 @@ func findLegacyEventIdentifier(expression ast_domain.Expression) *ast_domain.Ide
 	return found
 }
 
-// rejectEventPlaceholderInDirective checks whether a directive contains the
-// $event placeholder and adds an error if found. This is used for directives
-// where $event is not allowed, such as model, class, and style bindings.
+// rejectEventPlaceholderInDirective checks whether a directive contains the $event
+// identifier and adds an error if found. This is used for directives where $event is not
+// allowed, such as model, class, and style bindings.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes ctx (*AnalysisContext) which collects any validation errors.
@@ -739,8 +727,8 @@ func rejectEventPlaceholderInDirective(d *ast_domain.Directive, ctx *AnalysisCon
 	return false
 }
 
-// containsFormPlaceholder checks whether an expression contains the $form
-// placeholder. Used to check that $form only appears in event handlers.
+// containsFormPlaceholder checks whether an expression contains the $form identifier.
+// Used to check that $form only appears in event handlers.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
@@ -757,14 +745,14 @@ func containsFormPlaceholder(expression ast_domain.Expression) bool {
 	return found
 }
 
-// findFormPropertyAccess searches for $form.property access patterns in an
-// expression. These patterns are not allowed because the form data object must
-// be passed as a whole value so the handler can access its properties.
+// findFormPropertyAccess searches for $form.property access patterns in an expression.
+// These patterns are not allowed because the form data object must be passed as a whole
+// value so the handler can access its properties.
 //
 // Takes expression (ast_domain.Expression) which is the expression to search.
 //
-// Returns *ast_domain.MemberExpression which is the first $form.property access
-// found, or nil if none exists.
+// Returns *ast_domain.MemberExpression which is the first $form.property access found, or
+// nil if none exists.
 func findFormPropertyAccess(expression ast_domain.Expression) *ast_domain.MemberExpression {
 	var found *ast_domain.MemberExpression
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
@@ -781,9 +769,9 @@ func findFormPropertyAccess(expression ast_domain.Expression) *ast_domain.Member
 	return found
 }
 
-// rejectFormPlaceholderInDirective checks whether a directive contains the
-// $form placeholder and adds an error if found. This is used for directives
-// where $form is not allowed, such as model, class, and style bindings.
+// rejectFormPlaceholderInDirective checks whether a directive contains the $form
+// identifier and adds an error if found. This is used for directives where $form is not
+// allowed, such as model, class, and style bindings.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes ctx (*AnalysisContext) which collects any validation errors.
@@ -807,17 +795,17 @@ func rejectFormPlaceholderInDirective(d *ast_domain.Directive, ctx *AnalysisCont
 	return false
 }
 
-// expressionHasDynamicScopeRefs checks if an expression contains references to
-// dynamic template scope variables. Used to decide if an event handler can be
-// hoisted statically.
+// expressionHasDynamicScopeRefs checks if an expression contains references to dynamic
+// template scope variables. Used to decide if an event handler can be hoisted statically.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns bool which is true if dynamic scope references are found. Returns
-// true for identifiers or member expressions that reference scope variables
-// (like `item.id` or `props.value`). Returns false for simple function
-// identifiers (callee of call expressions), $event and $form placeholders
-// (resolved on the client), and static literals (strings, numbers, booleans).
+// Returns bool which is true if dynamic scope references are found.
+// Returns true for identifiers or member expressions that reference scope variables (like
+// `item.id` or `props.value`).
+// Returns false for simple function identifiers (callee of call expressions), $event and
+// $form placeholders (resolved on the client), and static literals (strings, numbers,
+// booleans).
 func expressionHasDynamicScopeRefs(expression ast_domain.Expression) bool {
 	if expression == nil {
 		return false

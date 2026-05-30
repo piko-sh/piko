@@ -27,17 +27,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// makeDocumentHandler returns a handler func that unmarshals raw params into P,
-// looks up the document identified by docURI, and invokes invoke on it, returning
-// emptyResult when no workspace is active or the document is not found.
+// makeDocumentHandler returns a handler func that unmarshals raw params into P, looks up
+// the document identified by docURI, and invokes invoke on it, returning emptyResult when
+// no workspace is active or the document is not found.
 //
 // Takes server (*Server) which holds the workspace to query.
 // Takes name (string) which is the handler name used in log and error messages.
 // Takes emptyResult (any) which is returned when no document is available.
 // Takes logField (func(P) (string, string)) which returns the log key and value.
 // Takes docURI (func(P) protocol.DocumentURI) which extracts the lookup URI.
-// Takes invoke (func(*document, context.Context, P) (any, error)) which calls
-// the relevant document method.
+// Takes invoke (func(*document, context.Context, P) (any, error)) which calls the
+// relevant document method.
 //
 // Returns func(context.Context, any) (any, error) ready for handler dispatch.
 func makeDocumentHandler[P any](
@@ -178,8 +178,7 @@ func (s *Server) handleTypeHierarchySubtypes(ctx context.Context, params any) (a
 	)(ctx, params)
 }
 
-// remarshalParams converts params to the expected struct type using JSON
-// re-marshalling.
+// remarshalParams converts params to the expected struct type using JSON re-marshalling.
 //
 // Takes params (any) which is the source value, typically map[string]interface{}.
 // Takes target (any) which is a pointer to the destination struct.

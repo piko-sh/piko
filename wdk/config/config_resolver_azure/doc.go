@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_resolver_azure resolves configuration values from
-// Azure Key Vault.
+// Package config_resolver_azure resolves configuration values from Azure Key Vault.
 //
-// All methods on [Resolver] are safe for concurrent use. Key Vault
-// clients are lazily created and cached per vault name.
+// All methods on [Resolver] are safe for concurrent use. Key Vault clients are lazily
+// created and cached per vault name.
 package config_resolver_azure

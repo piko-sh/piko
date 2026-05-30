@@ -37,12 +37,12 @@ const (
 	// newlineChar is the newline character used to split document content into lines.
 	newlineChar = "\n"
 
-	// patternSearchRadius is the number of characters after the cursor to include
-	// when searching for a pattern match.
+	// patternSearchRadius is the number of characters after the cursor to include when
+	// searching for a pattern match.
 	patternSearchRadius = 20
 
-	// maxMultiLineSearchLinesNav is the maximum number of lines to search when
-	// finding multi-line element attributes.
+	// maxMultiLineSearchLinesNav is the maximum number of lines to search when finding
+	// multi-line element attributes.
 	maxMultiLineSearchLinesNav = 20
 )
 
@@ -96,25 +96,24 @@ const (
 	// action.email.Contact($form).
 	PKDefActionRoot
 
-	// PKDefActionNamespace represents the cursor on a namespace segment like
-	// "email" in action.email.Contact($form).
+	// PKDefActionNamespace represents the cursor on a namespace segment like "email" in
+	// action.email.Contact($form).
 	PKDefActionNamespace
 
-	// PKDefActionName represents the cursor on the action name like "Contact"
-	// in action.email.Contact($form).
+	// PKDefActionName represents the cursor on the action name like "Contact" in
+	// action.email.Contact($form).
 	PKDefActionName
 
-	// PKDefActionParamKey represents the cursor on a key inside an action
-	// call's object literal, e.g. "environment_id" in
-	// action.ns.Name({environment_id: ...}).
+	// PKDefActionParamKey represents the cursor on a key inside an action call's object
+	// literal, e.g. "environment_id" in action.ns.Name({environment_id: ...}).
 	PKDefActionParamKey
 
-	// PKDefCSSClass represents a CSS class name reference in a template
-	// attribute such as class="foo", p-class:foo, or :class="'foo'".
+	// PKDefCSSClass represents a CSS class name reference in a template attribute such as
+	// class="foo", p-class:foo, or :class="'foo'".
 	PKDefCSSClass
 
-	// PKDefPKCStateProperty represents a state.propName reference in a PKC
-	// template expression.
+	// PKDefPKCStateProperty represents a state.propName reference in a PKC template
+	// expression.
 	PKDefPKCStateProperty
 )
 
@@ -173,8 +172,8 @@ func (d *document) GetPKDefinition(ctx context.Context, position protocol.Positi
 
 // kindString returns a string representation of the definition kind.
 //
-// Returns string which is "handler", "partial", "ref", "piko-element",
-// "directive", "template-tag", or "unknown".
+// Returns string which is "handler", "partial", "ref", "piko-element", "directive",
+// "template-tag", or "unknown".
 func (ctx *PKDefinitionContext) kindString() string {
 	switch ctx.Kind {
 	case PKDefHandler:
@@ -212,8 +211,8 @@ func (ctx *PKDefinitionContext) kindString() string {
 //
 // Takes position (protocol.Position) which specifies the cursor position to check.
 //
-// Returns *PKDefinitionContext which describes the definition context, or nil
-// if the position is not on a known PK definition.
+// Returns *PKDefinitionContext which describes the definition context, or nil if the
+// position is not on a known PK definition.
 func (d *document) analysePKDefinitionContext(position protocol.Position) *PKDefinitionContext {
 	lines := strings.Split(string(d.Content), newlineChar)
 	if int(position.Line) >= len(lines) {
@@ -256,15 +255,15 @@ func (d *document) analysePKDefinitionContext(position protocol.Position) *PKDef
 	return d.checkCSSClassDefinitionContext(line, cursor, position)
 }
 
-// checkIsAttributeDefinitionContext checks if cursor is on an is="..."
-// attribute for go-to-definition.
+// checkIsAttributeDefinitionContext checks if cursor is on an is="..." attribute for
+// go-to-definition.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKDefinitionContext which provides definition context if the
-// cursor is on an is="..." attribute, or nil if no match.
+// Returns *PKDefinitionContext which provides definition context if the cursor is on an
+// is="..." attribute, or nil if no match.
 func (*document) checkIsAttributeDefinitionContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	patterns := []string{`is="`, `is='`}
 
@@ -277,15 +276,15 @@ func (*document) checkIsAttributeDefinitionContext(line string, cursor int, posi
 	return nil
 }
 
-// checkPikoPartialTagDefinitionContext checks if cursor is on a <piko:partial>
-// tag name for go-to-definition.
+// checkPikoPartialTagDefinitionContext checks if cursor is on a <piko:partial> tag name
+// for go-to-definition.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKDefinitionContext which provides definition context if the cursor
-// is on a piko:partial tag name, or nil if no match.
+// Returns *PKDefinitionContext which provides definition context if the cursor is on a
+// piko:partial tag name, or nil if no match.
 func (d *document) checkPikoPartialTagDefinitionContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	for _, pattern := range []string{"<piko:partial", "</piko:partial"} {
 		index := strings.LastIndex(line, pattern)
@@ -318,8 +317,8 @@ func (d *document) checkPikoPartialTagDefinitionContext(line string, cursor int,
 	return nil
 }
 
-// extractIsAttributeValueMultiLine extracts the is="..." attribute value from
-// an element, searching across multiple lines if needed.
+// extractIsAttributeValueMultiLine extracts the is="..." attribute value from an element,
+// searching across multiple lines if needed.
 //
 // Takes startLine (uint32) which is the line number where the element starts.
 //
@@ -342,8 +341,8 @@ func (d *document) extractIsAttributeValueMultiLine(startLine uint32) string {
 }
 
 var (
-	// eventHandlerPatterns defines the directive patterns to search for event
-	// handler context.
+	// eventHandlerPatterns defines the directive patterns to search for event handler
+	// context.
 	eventHandlerPatterns = []string{
 		`p-on:click="`, `p-on:change="`, `p-on:submit="`, `p-on:input="`,
 		`p-on:focus="`, `p-on:blur="`, `p-on:keydown="`, `p-on:keyup="`,
@@ -359,11 +358,10 @@ var (
 //
 // Takes line (string) which contains the text of the current line.
 // Takes cursor (int) which specifies the cursor position within the line.
-// Takes position (protocol.Position) which provides the LSP
-// position in the document.
+// Takes position (protocol.Position) which provides the LSP position in the document.
 //
-// Returns *PKDefinitionContext which contains the handler context, or nil if
-// the cursor is not on an event handler.
+// Returns *PKDefinitionContext which contains the handler context, or nil if the cursor
+// is not on an event handler.
 func (*document) checkEventHandlerContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	for _, pattern := range eventHandlerPatterns {
 		if ctx := tryExtractEventHandlerContext(line, cursor, position, pattern); ctx != nil {
@@ -373,15 +371,14 @@ func (*document) checkEventHandlerContext(line string, cursor int, position prot
 	return nil
 }
 
-// checkPartialReloadContext checks if the cursor is on a partial name in
-// reloadPartial().
+// checkPartialReloadContext checks if the cursor is on a partial name in reloadPartial().
 //
 // Takes line (string) which is the current line of text being analysed.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKDefinitionContext which provides the definition context if
-// found, or nil if the cursor is not on a partial reload pattern.
+// Returns *PKDefinitionContext which provides the definition context if found, or nil if
+// the cursor is not on a partial reload pattern.
 func (*document) checkPartialReloadContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	for _, pattern := range partialReloadPatterns {
 		if ctx := tryExtractPartialReloadContext(line, cursor, position, pattern); ctx != nil {
@@ -391,15 +388,14 @@ func (*document) checkPartialReloadContext(line string, cursor int, position pro
 	return nil
 }
 
-// checkRefsAccessContext checks if the cursor is on a ref name in a
-// refs.refName pattern.
+// checkRefsAccessContext checks if the cursor is on a ref name in a refs.refName pattern.
 //
 // Takes line (string) which contains the text to search within.
 // Takes cursor (int) which specifies the cursor position in the line.
 // Takes position (protocol.Position) which provides the position for the result.
 //
-// Returns *PKDefinitionContext which contains the ref definition context, or
-// nil if the cursor is not on a valid ref name.
+// Returns *PKDefinitionContext which contains the ref definition context, or nil if the
+// cursor is not on a valid ref name.
 func (*document) checkRefsAccessContext(line string, cursor int, position protocol.Position) *PKDefinitionContext {
 	name, _, _, ok := scanIdentifierAfterPrefix(line, cursor, "refs.", patternSearchRadius)
 	if !ok {
@@ -413,15 +409,15 @@ func (*document) checkRefsAccessContext(line string, cursor int, position protoc
 	}
 }
 
-// findHandlerDefinition finds the definition of a handler function in the
-// client script. Uses the shared function extraction from
-// extractPKCFunctionsFromAST for consistent handling of regular functions,
-// arrow functions, function expressions, and default exports.
+// findHandlerDefinition finds the definition of a handler function in the client script.
+// Uses the shared function extraction from extractPKCFunctionsFromAST for consistent
+// handling of regular functions, arrow functions, function expressions, and default
+// exports.
 //
 // Takes handlerName (string) which specifies the name of the handler to find.
 //
-// Returns []protocol.Location which contains the location of the handler in
-// the source code.
+// Returns []protocol.Location which contains the location of the handler in the source
+// code.
 // Returns error when the definition cannot be found.
 func (d *document) findHandlerDefinition(handlerName string) ([]protocol.Location, error) {
 	sfcResult := d.getSFCResult()
@@ -468,9 +464,9 @@ func (d *document) findHandlerDefinition(handlerName string) ([]protocol.Locatio
 	return d.pkcSymbolLocation(function.Line, function.Column, len(function.Name)), nil
 }
 
-// findPartialDefinitionByName finds where a partial component is defined.
-// It first looks for the import line in the script block, then falls back to
-// opening the partial file itself.
+// findPartialDefinitionByName finds where a partial component is defined. It first looks
+// for the import line in the script block, then falls back to opening the partial file
+// itself.
 //
 // Takes partialName (string) which specifies the partial component to find.
 //
@@ -506,9 +502,8 @@ func (d *document) findPartialDefinitionByName(partialName string) ([]protocol.L
 	return nil, nil
 }
 
-// findPartialFileByName finds the source file of a partial component by name.
-// Unlike findPartialDefinitionByName, this returns the partial file itself,
-// not the import line.
+// findPartialFileByName finds the source file of a partial component by name. Unlike
+// findPartialDefinitionByName, this returns the partial file itself, not the import line.
 //
 // Takes partialName (string) which specifies the name of the partial to find.
 //
@@ -550,8 +545,7 @@ func (d *document) findPartialFileByName(ctx context.Context, partialName string
 //
 // Takes partialName (string) which is the alias of the partial to find.
 //
-// Returns *protocol.Location which points to the import line, or nil if not
-// found.
+// Returns *protocol.Location which points to the import line, or nil if not found.
 func (d *document) findPartialImportLine(partialName string) *protocol.Location {
 	content := string(d.Content)
 	lines := strings.Split(content, newlineChar)
@@ -594,8 +588,8 @@ func (d *document) findPartialImportLine(partialName string) *protocol.Location 
 //
 // Takes refName (string) which specifies the reference name to find.
 //
-// Returns []protocol.Location which contains the definition location, or nil
-// if not found.
+// Returns []protocol.Location which contains the definition location, or nil if not
+// found.
 // Returns error when the lookup fails.
 func (d *document) findRefDefinition(refName string) ([]protocol.Location, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -633,14 +627,12 @@ func (d *document) findRefDefinition(refName string) ([]protocol.Location, error
 	return nil, nil
 }
 
-// GetPKReferences finds all references to a PK symbol (handler, partial,
-// ref).
+// GetPKReferences finds all references to a PK symbol (handler, partial, ref).
 //
-// Takes position (protocol.Position) which specifies the cursor
-// position to analyse.
+// Takes position (protocol.Position) which specifies the cursor position to analyse.
 //
-// Returns []protocol.Location which contains all locations referencing the
-// symbol at the given position.
+// Returns []protocol.Location which contains all locations referencing the symbol at the
+// given position.
 // Returns error when the reference search fails.
 func (d *document) GetPKReferences(ctx context.Context, position protocol.Position) ([]protocol.Location, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -716,8 +708,8 @@ func (d *document) findHandlerReferences(handlerName string) ([]protocol.Locatio
 	return locations, nil
 }
 
-// findPartialReferences finds all reloadPartial and partial calls that
-// reference the given partial name.
+// findPartialReferences finds all reloadPartial and partial calls that reference the
+// given partial name.
 //
 // Takes partialName (string) which is the name of the partial to search for.
 //
@@ -766,8 +758,7 @@ func (d *document) findPartialReferences(partialName string) ([]protocol.Locatio
 //
 // Takes refName (string) which specifies the reference name to search for.
 //
-// Returns []protocol.Location which contains all locations where the
-// reference is used.
+// Returns []protocol.Location which contains all locations where the reference is used.
 // Returns error when the search fails.
 func (d *document) findRefReferences(refName string) ([]protocol.Location, error) {
 	locations := make([]protocol.Location, 0)
@@ -811,11 +802,9 @@ func (d *document) findRefReferencesInLine(line string, lineNum int, pattern, re
 //
 // Takes lineNum (int) which specifies the line number in the document.
 // Takes column (int) which specifies the column position on the line.
-// Takes refName (string) which provides the reference name to determine the
-// end position.
+// Takes refName (string) which provides the reference name to determine the end position.
 //
-// Returns protocol.Location which represents the location spanning the
-// reference name.
+// Returns protocol.Location which represents the location spanning the reference name.
 func (d *document) createRefLocation(lineNum, column int, refName string) protocol.Location {
 	return protocol.Location{
 		URI: d.URI,
@@ -832,16 +821,16 @@ func (d *document) createRefLocation(lineNum, column int, refName string) protoc
 	}
 }
 
-// tryExtractIsAttributeContext tries to extract definition context from an
-// is="..." pattern.
+// tryExtractIsAttributeContext tries to extract definition context from an is="..."
+// pattern.
 //
 // Takes line (string) which contains the text to search within.
 // Takes cursor (int) which specifies the current cursor position.
 // Takes position (protocol.Position) which provides the document position.
 // Takes pattern (string) which defines the attribute pattern to match.
 //
-// Returns *PKDefinitionContext which contains the extracted context, or nil
-// when no valid context is found.
+// Returns *PKDefinitionContext which contains the extracted context, or nil when no valid
+// context is found.
 func tryExtractIsAttributeContext(line string, cursor int, position protocol.Position, pattern string) *PKDefinitionContext {
 	index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 	if index == -1 || index > cursor {
@@ -868,8 +857,8 @@ func tryExtractIsAttributeContext(line string, cursor int, position protocol.Pos
 	}
 }
 
-// findQuoteEndPositionNav finds the position of the closing quote character in a
-// line of text.
+// findQuoteEndPositionNav finds the position of the closing quote character in a line of
+// text.
 //
 // Takes line (string) which is the text to search within.
 // Takes startPosition (int) which is the position to start searching from.
@@ -885,8 +874,8 @@ func findQuoteEndPositionNav(line string, startPosition int, quoteChar byte) int
 	return -1
 }
 
-// extractIsAttributeValue extracts the value from an is="..." attribute on the
-// given line.
+// extractIsAttributeValue extracts the value from an is="..." attribute on the given
+// line.
 //
 // Takes line (string) which contains the tag with the is attribute.
 //
@@ -910,16 +899,16 @@ func extractIsAttributeValue(line string) string {
 	return ""
 }
 
-// tryExtractEventHandlerContext tries to extract an event handler context
-// for a single pattern.
+// tryExtractEventHandlerContext tries to extract an event handler context for a single
+// pattern.
 //
 // Takes line (string) which is the source line to search.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position for the result.
 // Takes pattern (string) which is the event handler pattern to match.
 //
-// Returns *PKDefinitionContext which contains the handler context, or nil if
-// no valid handler is found at the cursor position.
+// Returns *PKDefinitionContext which contains the handler context, or nil if no valid
+// handler is found at the cursor position.
 func tryExtractEventHandlerContext(line string, cursor int, position protocol.Position, pattern string) *PKDefinitionContext {
 	index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 	if index == -1 || index > cursor {
@@ -953,8 +942,8 @@ func tryExtractEventHandlerContext(line string, cursor int, position protocol.Po
 // Takes line (string) which contains the text to search.
 // Takes startPosition (int) which is the offset to begin searching from.
 //
-// Returns int which is the position of the closing quote or opening bracket
-// relative to startPosition, or -1 if neither is found.
+// Returns int which is the position of the closing quote or opening bracket relative to
+// startPosition, or -1 if neither is found.
 func findEventHandlerEndPosition(line string, startPosition int) int {
 	endPosition := strings.Index(line[startPosition:], `"`)
 	if endPosition == -1 {
@@ -963,10 +952,9 @@ func findEventHandlerEndPosition(line string, startPosition int) int {
 	return endPosition
 }
 
-// tryExtractQuotedValue searches for a pattern in the line near the cursor and
-// extracts the quoted value that follows it. The last character of the pattern
-// is treated as the opening quote character, and the function searches for the
-// corresponding closing quote.
+// tryExtractQuotedValue searches for a pattern in the line near the cursor and extracts
+// the quoted value that follows it. The last character of the pattern is treated as the
+// opening quote character, and the function searches for the corresponding closing quote.
 //
 // Takes line (string) which is the source text to search.
 // Takes cursor (int) which is the cursor position within the line.
@@ -975,8 +963,8 @@ func findEventHandlerEndPosition(line string, startPosition int) int {
 // Returns name (string) which is the extracted quoted value.
 // Returns startPosition (int) which is the position immediately after the pattern.
 // Returns endPosition (int) which is the position of the closing quote.
-// Returns ok (bool) which is true when a valid quoted value was found at the
-// cursor position.
+// Returns ok (bool) which is true when a valid quoted value was found at the cursor
+// position.
 func tryExtractQuotedValue(line string, cursor int, pattern string) (name string, startPosition, endPosition int, ok bool) {
 	index := strings.LastIndex(line[:min(cursor+30, len(line))], pattern)
 	if index == -1 || index > cursor {
@@ -1003,16 +991,16 @@ func tryExtractQuotedValue(line string, cursor int, pattern string) (name string
 	return value, startPosition, endPosition, true
 }
 
-// tryExtractPartialReloadContext tries to find a partial reload context for
-// a single pattern.
+// tryExtractPartialReloadContext tries to find a partial reload context for a single
+// pattern.
 //
 // Takes line (string) which contains the source line to search.
 // Takes cursor (int) which specifies the cursor position within the line.
 // Takes position (protocol.Position) which provides the LSP position information.
 // Takes pattern (string) which defines the pattern to match against.
 //
-// Returns *PKDefinitionContext which contains the extracted context, or nil
-// if no valid partial reload context can be found.
+// Returns *PKDefinitionContext which contains the extracted context, or nil if no valid
+// partial reload context can be found.
 func tryExtractPartialReloadContext(line string, cursor int, position protocol.Position, pattern string) *PKDefinitionContext {
 	name, _, _, ok := tryExtractQuotedValue(line, cursor, pattern)
 	if !ok {
@@ -1026,24 +1014,22 @@ func tryExtractPartialReloadContext(line string, cursor int, position protocol.P
 	}
 }
 
-// scanIdentifierAfterPrefix finds an identifier name following a prefix
-// pattern near the cursor position. It searches backwards from the cursor
-// (plus searchRadius) for the prefix, then scans forward to collect the
-// identifier characters (letters, digits, underscore).
+// scanIdentifierAfterPrefix finds an identifier name following a prefix pattern near the
+// cursor position. It searches backwards from the cursor (plus searchRadius) for the
+// prefix, then scans forward to collect the identifier characters (letters, digits,
+// underscore).
 //
 // Takes line (string) which is the source text to search.
 // Takes cursor (int) which is the cursor position within the line.
 // Takes prefix (string) which is the prefix pattern to look for.
-// Takes searchRadius (int) which is how far past the cursor to include when
-// searching for the prefix.
+// Takes searchRadius (int) which is how far past the cursor to include when searching for
+// the prefix.
 //
 // Returns name (string) which is the identifier found after the prefix.
-// Returns startPosition (int) which is the position of the
-// first identifier character.
-// Returns endPosition (int) which is the position after the
-// last identifier character.
-// Returns ok (bool) which is true when a non-empty identifier was found at the
-// cursor position.
+// Returns startPosition (int) which is the position of the first identifier character.
+// Returns endPosition (int) which is the position after the last identifier character.
+// Returns ok (bool) which is true when a non-empty identifier was found at the cursor
+// position.
 func scanIdentifierAfterPrefix(line string, cursor int, prefix string, searchRadius int) (name string, startPosition, endPosition int, ok bool) {
 	index := strings.LastIndex(line[:min(cursor+searchRadius, len(line))], prefix)
 	if index == -1 || index > cursor {

@@ -42,8 +42,8 @@ type OtelProviderResult struct {
 	Closers []io.Closer
 }
 
-// OtelProviderFactory creates real OTEL SDK trace and metric providers. When no
-// factory is registered, SetupOtel uses noop providers instead.
+// OtelProviderFactory creates real OTEL SDK trace and metric providers. When no factory
+// is registered, SetupOtel uses noop providers instead.
 type OtelProviderFactory func(
 	ctx context.Context,
 	config OtelSetupConfig,
@@ -72,8 +72,8 @@ func RegisterOtelProviderFactory(factory OtelProviderFactory) {
 	providerFactory = factory
 }
 
-// getOtelProviderFactory returns the registered provider factory, or nil if
-// none has been registered.
+// getOtelProviderFactory returns the registered provider factory, or nil if none has been
+// registered.
 //
 // Returns OtelProviderFactory which creates SDK providers, or nil.
 //

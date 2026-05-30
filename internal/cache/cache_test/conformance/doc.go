@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package conformance provides a reusable conformance test suite for
-// validating cache provider implementations against the cache interface
-// contract.
+// Package conformance provides a reusable conformance test suite for validating cache
+// provider implementations against the cache interface contract.
 //
-// Each cache adapter can import this package and run the full suite to
-// verify correct behaviour across core operations, bulk operations,
-// compute operations, TTL expiry, iteration, full-text search,
-// concurrent access patterns, and context cancellation.
+// Each cache adapter can import this package and run the full suite to verify correct
+// behaviour across core operations, bulk operations, compute operations, TTL expiry,
+// iteration, full-text search, concurrent access patterns, and context cancellation.
 //
 // # Usage
 //
@@ -37,7 +35,6 @@
 //	    conformance.RunStringSuite(t, config)
 //	}
 //
-// Feature-gated sub-suites (TTL, iteration, compute, search) are
-// skipped automatically when their corresponding capability flag
-// is false.
+// Feature-gated sub-suites (TTL, iteration, compute, search) are skipped automatically
+// when their corresponding capability flag is false.
 package conformance

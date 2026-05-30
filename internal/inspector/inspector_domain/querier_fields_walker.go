@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file specifically holds the logic for the stateful, recursive traversal
-// of type hierarchies to find fields.
+// This file specifically holds the logic for the stateful, recursive traversal of type
+// hierarchies to find fields.
 
 import (
 	"context"
@@ -32,25 +32,30 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// logKeyFieldName is the logger key for the field name in trace logs.
-const logKeyFieldName = "field_name"
+const (
 
-// fsPool manages a pool of fieldSearcher objects.
-// It provides a type-safe API around the underlying sync.Pool.
-var fsPool = &fieldSearcherPool{
-	p: sync.Pool{
-		New: func() any {
-			return &fieldSearcher{
-				typeWalker:         typeWalker{querier: nil},
-				result:             nil,
-				visited:            make(map[string]struct{}),
-				fieldName:          "",
-				initialPackagePath: "",
-				initialFilePath:    "",
-			}
+	// logKeyFieldName is the logger key for the field name in trace logs.
+	logKeyFieldName = "field_name"
+)
+
+var (
+	// fsPool manages a pool of fieldSearcher objects. It provides a type-safe API around the
+	// underlying sync.Pool.
+	fsPool = &fieldSearcherPool{
+		p: sync.Pool{
+			New: func() any {
+				return &fieldSearcher{
+					typeWalker:         typeWalker{querier: nil},
+					result:             nil,
+					visited:            make(map[string]struct{}),
+					fieldName:          "",
+					initialPackagePath: "",
+					initialFilePath:    "",
+				}
+			},
 		},
-	},
-}
+	}
+)
 
 // fieldSearcherPool manages a pool of reusable field searcher instances.
 type fieldSearcherPool struct {
@@ -60,8 +65,8 @@ type fieldSearcherPool struct {
 
 // Get retrieves a fieldSearcher from the pool.
 //
-// Returns *fieldSearcher which is either a pooled instance or a safe fallback
-// if the type assertion fails.
+// Returns *fieldSearcher which is either a pooled instance or a safe fallback if the type
+// assertion fails.
 func (p *fieldSearcherPool) Get() *fieldSearcher {
 	s, ok := p.p.Get().(*fieldSearcher)
 	if !ok {
@@ -118,13 +123,10 @@ func (s *fieldSearcher) reset() {
 // search finds a field by looking through a type and its embedded types.
 //
 // Takes currentType (ast.Expr) which is the type expression to search within.
-// Takes currentPackagePath (string) which is the import
-// path of the current package.
-// Takes currentFilePath (string) which is the file path
-// for resolving imports.
-// Takes parentSubstMap (map[string]ast.Expr) which maps
-// type parameters to their
-// concrete types from the parent scope.
+// Takes currentPackagePath (string) which is the import path of the current package.
+// Takes currentFilePath (string) which is the file path for resolving imports.
+// Takes parentSubstMap (map[string]ast.Expr) which maps type parameters to their concrete
+// types from the parent scope.
 func (s *fieldSearcher) search(currentType ast.Expr, currentPackagePath, currentFilePath string, parentSubstMap map[string]ast.Expr) {
 	if s.result != nil {
 		return
@@ -157,19 +159,17 @@ func (s *fieldSearcher) search(currentType ast.Expr, currentPackagePath, current
 	s.searchEmbedded(fieldDefiningPackage, namedType, substMapVar)
 }
 
-// resolveTypeAndPackage resolves an AST expression to its named type and
-// defining package.
+// resolveTypeAndPackage resolves an AST expression to its named type and defining
+// package.
 //
 // Takes currentType (ast.Expr) which is the AST expression to resolve.
-// Takes currentPackagePath (string) which is the import
-// path of the current package.
-// Takes currentFilePath (string) which is the file path
-// for import resolution.
+// Takes currentPackagePath (string) which is the import path of the current package.
+// Takes currentFilePath (string) which is the file path for import resolution.
 //
-// Returns *inspector_dto.Type which is the resolved named type, or nil if
-// resolution fails.
-// Returns *inspector_dto.Package which is the package defining the type, or nil
-// if not found.
+// Returns *inspector_dto.Type which is the resolved named type, or nil if resolution
+// fails.
+// Returns *inspector_dto.Package which is the package defining the type, or nil if not
+// found.
 func (s *fieldSearcher) resolveTypeAndPackage(currentType ast.Expr, currentPackagePath, currentFilePath string) (*inspector_dto.Type, *inspector_dto.Package) {
 	_, l := logger_domain.From(context.Background(), log)
 	namedType, _ := s.querier.ResolveExprToNamedType(currentType, currentPackagePath, currentFilePath)
@@ -207,18 +207,17 @@ func (s *fieldSearcher) resolveTypeAndPackage(currentType ast.Expr, currentPacka
 	return namedType, fieldDefiningPackage
 }
 
-// buildSubstitutionMap builds a map from type parameter names to their actual
-// type expressions.
+// buildSubstitutionMap builds a map from type parameter names to their actual type
+// expressions.
 //
-// Takes parentSubstMap (map[string]ast.Expr) which provides existing type
-// parameter mappings to include.
-// Takes namedType (*inspector_dto.Type) which contains the type parameter names
-// to map.
-// Takes instantiatedTypeAST (ast.Expr) which is the instantiated type from
-// which to get the type arguments.
+// Takes parentSubstMap (map[string]ast.Expr) which provides existing type parameter
+// mappings to include.
+// Takes namedType (*inspector_dto.Type) which contains the type parameter names to map.
+// Takes instantiatedTypeAST (ast.Expr) which is the instantiated type from which to get
+// the type arguments.
 //
-// Returns map[string]ast.Expr which maps type parameter names to their actual
-// type expressions.
+// Returns map[string]ast.Expr which maps type parameter names to their actual type
+// expressions.
 func (*fieldSearcher) buildSubstitutionMap(parentSubstMap map[string]ast.Expr, namedType *inspector_dto.Type, instantiatedTypeAST ast.Expr) map[string]ast.Expr {
 	_, l := logger_domain.From(context.Background(), log)
 	substMapVar := make(map[string]ast.Expr)
@@ -246,12 +245,12 @@ func (*fieldSearcher) buildSubstitutionMap(parentSubstMap map[string]ast.Expr, n
 
 // searchEmbedded searches through embedded fields to find a match.
 //
-// Takes fieldDefiningPackage (*inspector_dto.Package) which is the package where
-// the field is defined.
-// Takes namedType (*inspector_dto.Type) which is the type containing embedded
-// fields to search.
-// Takes parentSubstMap (map[string]ast.Expr) which maps type parameter names
-// to their concrete type expressions.
+// Takes fieldDefiningPackage (*inspector_dto.Package) which is the package where the
+// field is defined.
+// Takes namedType (*inspector_dto.Type) which is the type containing embedded fields to
+// search.
+// Takes parentSubstMap (map[string]ast.Expr) which maps type parameter names to their
+// concrete type expressions.
 func (s *fieldSearcher) searchEmbedded(fieldDefiningPackage *inspector_dto.Package, namedType *inspector_dto.Type, parentSubstMap map[string]ast.Expr) {
 	var foundResults []*inspector_dto.FieldInfo
 
@@ -268,19 +267,18 @@ func (s *fieldSearcher) searchEmbedded(fieldDefiningPackage *inspector_dto.Packa
 	s.result = s.disambiguateFieldResults(foundResults)
 }
 
-// searchSingleEmbeddedField performs the recursive search for a single
-// embedded field. It manages the lifecycle of a temporary branch searcher.
+// searchSingleEmbeddedField performs the recursive search for a single embedded field. It
+// manages the lifecycle of a temporary branch searcher.
 //
 // Takes field (*inspector_dto.Field) which is the embedded field to search.
-// Takes fieldDefiningPackage (*inspector_dto.Package) which is the package where
-// the field is defined.
-// Takes parentType (*inspector_dto.Type) which is the type containing the
-// embedded field.
-// Takes parentSubstMap (map[string]ast.Expr) which maps generic type
-// parameters to their concrete types.
+// Takes fieldDefiningPackage (*inspector_dto.Package) which is the package where the
+// field is defined.
+// Takes parentType (*inspector_dto.Type) which is the type containing the embedded field.
+// Takes parentSubstMap (map[string]ast.Expr) which maps generic type parameters to their
+// concrete types.
 //
-// Returns *inspector_dto.FieldInfo which is the search result from the branch
-// searcher, or nil if the field was not found.
+// Returns *inspector_dto.FieldInfo which is the search result from the branch searcher,
+// or nil if the field was not found.
 func (s *fieldSearcher) searchSingleEmbeddedField(
 	field *inspector_dto.Field,
 	fieldDefiningPackage *inspector_dto.Package,
@@ -306,15 +304,15 @@ func (s *fieldSearcher) searchSingleEmbeddedField(
 	return branchSearcher.result
 }
 
-// disambiguateFieldResults picks a single field from several possible matches.
-// It handles cases where a selector could refer to more than one field, such as
-// with diamond embedding patterns.
+// disambiguateFieldResults picks a single field from several possible matches. It handles
+// cases where a selector could refer to more than one field, such as with diamond
+// embedding patterns.
 //
-// Takes foundResults ([]*inspector_dto.FieldInfo) which contains the possible
-// fields to check.
+// Takes foundResults ([]*inspector_dto.FieldInfo) which contains the possible fields to
+// check.
 //
-// Returns *inspector_dto.FieldInfo which is the chosen field, or nil when no
-// results exist or the results come from different types.
+// Returns *inspector_dto.FieldInfo which is the chosen field, or nil when no results
+// exist or the results come from different types.
 func (*fieldSearcher) disambiguateFieldResults(foundResults []*inspector_dto.FieldInfo) *inspector_dto.FieldInfo {
 	if len(foundResults) == 0 {
 		return nil
@@ -325,9 +323,9 @@ func (*fieldSearcher) disambiguateFieldResults(foundResults []*inspector_dto.Fie
 	}
 
 	firstResult := foundResults[0]
-	for i := 1; i < len(foundResults); i++ {
-		if firstResult.ParentTypeName != foundResults[i].ParentTypeName ||
-			firstResult.CanonicalPackagePath != foundResults[i].CanonicalPackagePath {
+	for _, r := range foundResults[1:] {
+		if firstResult.ParentTypeName != r.ParentTypeName ||
+			firstResult.CanonicalPackagePath != r.CanonicalPackagePath {
 			return nil
 		}
 	}

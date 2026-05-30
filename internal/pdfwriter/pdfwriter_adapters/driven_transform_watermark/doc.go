@@ -16,10 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_watermark overlays text watermarks on PDF pages
-// as a post-processing transformer.
+// Package driven_transform_watermark overlays text watermarks on PDF pages as a
+// post-processing transformer.
 //
-// It prepends a watermark content stream behind existing page content and
-// adds the required font and graphics state resources. The watermark uses
-// Helvetica (a built-in Type1 font) so no font embedding is needed.
+// It prepends a watermark content stream behind existing page content and adds the
+// required font and graphics state resources. The watermark uses Helvetica (a built-in
+// Type1 font) so no font embedding is needed.
 package driven_transform_watermark

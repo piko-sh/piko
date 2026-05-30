@@ -18,8 +18,8 @@
 
 package orchestrator_domain
 
-// scheduledTaskHeap is a min-heap of tasks ordered by their scheduled time.
-// It allows quick insertion and removal of tasks for timer-based scheduling.
+// scheduledTaskHeap is a min-heap of tasks ordered by their scheduled time. It allows
+// quick insertion and removal of tasks for timer-based scheduling.
 type scheduledTaskHeap []*Task
 
 // Len returns the number of tasks in the heap.
@@ -27,14 +27,13 @@ type scheduledTaskHeap []*Task
 // Returns int which is the current heap size.
 func (h *scheduledTaskHeap) Len() int { return len(*h) }
 
-// Less reports whether the element with index i should sort before the
-// element with index j.
+// Less reports whether the element with index i should sort before the element with index
+// j.
 //
 // Takes i (int) which is the index of the first element to compare.
 // Takes j (int) which is the index of the second element to compare.
 //
-// Returns bool which is true when element i has an earlier scheduled time
-// than element j.
+// Returns bool which is true when element i has an earlier scheduled time than element j.
 func (h *scheduledTaskHeap) Less(i, j int) bool {
 	return (*h)[i].ScheduledExecuteAt.Before((*h)[j].ScheduledExecuteAt)
 }
@@ -72,8 +71,7 @@ func (h *scheduledTaskHeap) Pop() *Task {
 	return task
 }
 
-// Peek returns the task with the earliest ScheduledExecuteAt without removing
-// it.
+// Peek returns the task with the earliest ScheduledExecuteAt without removing it.
 //
 // Returns *Task which is the next scheduled task, or nil if the heap is empty.
 func (h *scheduledTaskHeap) Peek() *Task {

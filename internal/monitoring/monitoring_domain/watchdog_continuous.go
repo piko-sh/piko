@@ -26,18 +26,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// continuousProfilingLoop periodically captures routine profile snapshots
-// at the configured interval. The loop is opt-in (gated on
-// ContinuousProfilingEnabled) and lives alongside the main evaluation loop --
-// routine captures complement, not replace, threshold-triggered captures.
+// continuousProfilingLoop periodically captures routine profile snapshots at the
+// configured interval. The loop is opt-in (gated on ContinuousProfilingEnabled) and lives
+// alongside the main evaluation loop -- routine captures complement, not replace,
+// threshold-triggered captures.
 //
-// Routine captures are written under a distinct prefix so they rotate
-// independently from threshold-triggered ones; both sets coexist in the
-// profile directory.
+// Routine captures are written under a distinct prefix so they rotate independently from
+// threshold-triggered ones; both sets coexist in the profile directory.
 //
-// Routine captures are skipped when the system is already in an unstable
-// state (goroutine count above the safety ceiling) -- capturing pprof in
-// that situation would worsen the failure.
+// Routine captures are skipped when the system is already in an unstable state (goroutine
+// count above the safety ceiling) -- capturing pprof in that situation would worsen the
+// failure.
 func (w *Watchdog) continuousProfilingLoop(ctx context.Context) {
 	defer goroutine.RecoverPanic(ctx, "monitoring.watchdogContinuousProfiling")
 
@@ -56,14 +55,12 @@ func (w *Watchdog) continuousProfilingLoop(ctx context.Context) {
 	}
 }
 
-// captureRoutineProfiles iterates through the configured profile types and
-// triggers a routine capture for each. Captures are dispatched to the same
-// captureWG used by threshold-triggered captures so Stop() drains them
-// cleanly.
+// captureRoutineProfiles iterates through the configured profile types and triggers a
+// routine capture for each. Captures are dispatched to the same captureWG used by
+// threshold-triggered captures so Stop() drains them cleanly.
 //
-// Concurrency: reads w.profilingController under w.mu; dispatches each
-// capture as a goroutine via w.goSafely so the loop itself does not
-// block on pprof.
+// Concurrency: reads w.profilingController under w.mu; dispatches each capture as a
+// goroutine via w.goSafely so the loop itself does not block on pprof.
 func (w *Watchdog) captureRoutineProfiles(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -105,29 +102,29 @@ func (w *Watchdog) captureRoutineProfiles(ctx context.Context) {
 	}
 }
 
-// requiresMemProfileRate reports whether a profile type is empty when the
-// runtime allocation sampler is disabled.
+// requiresMemProfileRate reports whether a profile type is empty when the runtime
+// allocation sampler is disabled.
 //
 // Takes profileType (string) which identifies the pprof profile type.
 //
-// Returns bool which is true when the profile depends on
-// runtime.MemProfileRate sampling (heap and allocs).
+// Returns bool which is true when the profile depends on runtime.MemProfileRate sampling
+// (heap and allocs).
 func requiresMemProfileRate(profileType string) bool {
 	return profileType == profileTypeHeap || profileType == "allocs"
 }
 
 // captureAndStoreRoutineProfile is the routine-mode counterpart to
-// captureAndStoreProfile. It uses the routine-prefixed type name so storage
-// rotation segregates routine files from threshold-triggered files, and
-// uses the dedicated retention budget rather than the per-type cap.
+// captureAndStoreProfile. It uses the routine-prefixed type name so storage rotation
+// segregates routine files from threshold-triggered files, and uses the dedicated
+// retention budget rather than the per-type cap.
 //
 // Errors are logged + counted but never propagate.
 //
-// Takes profileType (string) which is the pprof profile type to capture
-// (heap, goroutine, allocs).
+// Takes profileType (string) which is the pprof profile type to capture (heap, goroutine,
+// allocs).
 //
-// Safe for concurrent use; reads the profilingController under the
-// watchdog mutex and dispatches I/O outside the lock.
+// Safe for concurrent use; reads the profilingController under the watchdog mutex and
+// dispatches I/O outside the lock.
 func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileType string) {
 	if ctx.Err() != nil {
 		return

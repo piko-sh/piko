@@ -43,40 +43,39 @@ import (
 )
 
 const (
-	// defaultMaxLSPMessageBytes caps the size of a single LSP message read
-	// from the wire at 16 MiB.
+	// defaultMaxLSPMessageBytes caps the size of a single LSP message read from the wire at
+	// 16 MiB.
 	//
-	// Real LSP traffic is small structured JSON; an unbounded Content-Length
-	// lets a malformed or hostile peer drive the server to OOM via
-	// io.ReadFull. The cap is enforced by the cappedReadWriteCloser that
-	// wraps each accepted connection.
+	// Real LSP traffic is small structured JSON; an unbounded Content-Length lets a
+	// malformed or hostile peer drive the server to OOM via io.ReadFull. The cap is enforced
+	// by the cappedReadWriteCloser that wraps each accepted connection.
 	defaultMaxLSPMessageBytes = 16 * 1024 * 1024
 
-	// defaultMaxConcurrentLSPConnections caps concurrent in-flight LSP
-	// connections handled by the TCP adapter. Excess connections are accepted,
-	// rejected with an error notification, and immediately closed so a hostile
-	// peer cannot exhaust file descriptors or goroutines.
+	// defaultMaxConcurrentLSPConnections caps concurrent in-flight LSP connections handled
+	// by the TCP adapter. Excess connections are accepted, rejected with an error
+	// notification, and immediately closed so a hostile peer cannot exhaust file descriptors
+	// or goroutines.
 	defaultMaxConcurrentLSPConnections = 64
 
-	// defaultLSPConnectionInactivityTimeout sets the initial read deadline on
-	// each accepted connection. Editors keep the conn open for the lifetime of
-	// the workspace, so a per-message reset is impractical at this layer; we
-	// instead expose a long inactivity window that protects against leaked
-	// half-open connections without disrupting normal usage.
+	// defaultLSPConnectionInactivityTimeout sets the initial read deadline on each accepted
+	// connection. Editors keep the conn open for the lifetime of the workspace, so a
+	// per-message reset is impractical at this layer; we instead expose a long inactivity
+	// window that protects against leaked half-open connections without disrupting normal
+	// usage.
 	defaultLSPConnectionInactivityTimeout = 30 * time.Minute
 
-	// shutdownDrainTimeout caps how long Run waits for in-flight handler
-	// goroutines to finish after the listener returns. Keeps the shutdown path
-	// bounded if a misbehaving peer wedges a handler.
+	// shutdownDrainTimeout caps how long Run waits for in-flight handler goroutines to
+	// finish after the listener returns. Keeps the shutdown path bounded if a misbehaving
+	// peer wedges a handler.
 	shutdownDrainTimeout = 30 * time.Second
 
-	// attributeKeyRemoteAddr is the structured-log attribute key for the
-	// remote address of an accepted TCP connection.
+	// attributeKeyRemoteAddr is the structured-log attribute key for the remote address of
+	// an accepted TCP connection.
 	attributeKeyRemoteAddr = "remoteAddr"
 )
 
-// tcpAdapter listens on a TCP socket and creates a new LSP server for each
-// client connection. It implements LSPServerPort.
+// tcpAdapter listens on a TCP socket and creates a new LSP server for each client
+// connection. It implements LSPServerPort.
 type tcpAdapter struct {
 	// coordinatorService handles LSP coordination for connections.
 	coordinatorService coordinator_domain.CoordinatorService
@@ -96,20 +95,18 @@ type tcpAdapter struct {
 	// pathsConfig provides workspace path settings for document processing.
 	pathsConfig *config.PathsConfig
 
-	// connectionSemaphore caps concurrent in-flight handler goroutines. nil
-	// means unlimited (only used when MaxConcurrentConnections is set to a
-	// non-positive value via the option).
+	// connectionSemaphore caps concurrent in-flight handler goroutines. nil means unlimited
+	// (only used when MaxConcurrentConnections is set to a non-positive value via the
+	// option).
 	connectionSemaphore chan struct{}
 
 	// addr is the TCP address to listen on (e.g. "localhost:8080").
 	addr string
 
-	// goroutineWG tracks spawned handler goroutines so Run can drain them on
-	// shutdown.
+	// goroutineWG tracks spawned handler goroutines so Run can drain them on shutdown.
 	goroutineWG sync.WaitGroup
 
-	// maxMessageBytes caps the size of a single LSP message read from the
-	// wire.
+	// maxMessageBytes caps the size of a single LSP message read from the wire.
 	maxMessageBytes int64
 
 	// connectionInactivityTimeout sets the initial conn read deadline.
@@ -119,7 +116,9 @@ type tcpAdapter struct {
 	formattingEnabled bool
 }
 
-var _ lsp_domain.LSPServerPort = (*tcpAdapter)(nil)
+var (
+	_ lsp_domain.LSPServerPort = (*tcpAdapter)(nil)
+)
 
 // TCPAdapterDeps holds the dependencies for creating a TCP adapter.
 type TCPAdapterDeps struct {
@@ -144,33 +143,32 @@ type TCPAdapterDeps struct {
 	// Addr is the TCP address to listen on (e.g. "localhost:8080").
 	Addr string
 
-	// MaxMessageBytes caps the size of a single LSP message read from the
-	// wire. Zero or negative falls back to defaultMaxLSPMessageBytes.
+	// MaxMessageBytes caps the size of a single LSP message read from the wire. Zero or
+	// negative falls back to defaultMaxLSPMessageBytes.
 	MaxMessageBytes int64
 
-	// MaxConcurrentConnections caps concurrent handler goroutines. Zero or
-	// negative falls back to defaultMaxConcurrentLSPConnections; pass a very
-	// large value to effectively disable the cap.
+	// MaxConcurrentConnections caps concurrent handler goroutines. Zero or negative falls
+	// back to defaultMaxConcurrentLSPConnections; pass a very large value to effectively
+	// disable the cap.
 	MaxConcurrentConnections int
 
-	// ConnectionInactivityTimeout sets the initial conn read deadline. Zero or
-	// negative falls back to defaultLSPConnectionInactivityTimeout.
+	// ConnectionInactivityTimeout sets the initial conn read deadline. Zero or negative
+	// falls back to defaultLSPConnectionInactivityTimeout.
 	ConnectionInactivityTimeout time.Duration
 
 	// FormattingEnabled controls whether formatting capabilities are advertised.
 	FormattingEnabled bool
 }
 
-// Run starts the TCP server and accepts client connections in a loop.
-// The stream parameter is ignored as TCP creates its own connections.
+// Run starts the TCP server and accepts client connections in a loop. The stream
+// parameter is ignored as TCP creates its own connections.
 //
 // Returns error when the TCP listener cannot be created.
 //
-// Spawns a new goroutine for each accepted connection. These goroutines run
-// until the connection is closed or the context is cancelled. On context
-// cancellation, the listener stops accepting and Run blocks (up to
-// shutdownDrainTimeout) waiting for in-flight handler goroutines via
-// goroutineWG so callers can rely on a clean shutdown.
+// Spawns a new goroutine for each accepted connection. These goroutines run until the
+// connection is closed or the context is cancelled. On context cancellation, the listener
+// stops accepting and Run blocks (up to shutdownDrainTimeout) waiting for in-flight
+// handler goroutines via goroutineWG so callers can rely on a clean shutdown.
 func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -208,13 +206,11 @@ func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 			continue
 		}
 
-		a.goroutineWG.Add(1)
-		go func(conn net.Conn) {
-			defer a.goroutineWG.Done()
+		a.goroutineWG.Go(func() {
 			defer a.releaseConnectionSlot()
 			defer goroutine.RecoverPanic(ctx, "lsp.tcpAdapter.handleConnection")
 			a.handleConnection(ctx, conn)
-		}(conn)
+		})
 	}
 
 	a.drainHandlers(ctx)
@@ -223,8 +219,8 @@ func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 
 // acquireConnectionSlot reserves a semaphore slot for a new handler goroutine.
 //
-// Returns bool which is true when a slot was reserved, false when the cap is
-// reached and the connection should be rejected.
+// Returns bool which is true when a slot was reserved, false when the cap is reached and
+// the connection should be rejected.
 func (a *tcpAdapter) acquireConnectionSlot() bool {
 	if a.connectionSemaphore == nil {
 		return true
@@ -245,14 +241,14 @@ func (a *tcpAdapter) releaseConnectionSlot() {
 	<-a.connectionSemaphore
 }
 
-// drainHandlers waits for in-flight handler goroutines to finish, with an
-// upper bound so a wedged handler cannot block shutdown forever.
+// drainHandlers waits for in-flight handler goroutines to finish, with an upper bound so
+// a wedged handler cannot block shutdown forever.
 //
 // Takes ctx (context.Context) used for diagnostic logging via logger_domain.
 //
-// Concurrency: spawns a goroutine that waits on a.goroutineWG and signals
-// completion via the done channel. Caller blocks until either drain
-// completes or shutdownDrainTimeout elapses.
+// Concurrency: spawns a goroutine that waits on a.goroutineWG and signals completion via
+// the done channel. Caller blocks until either drain completes or shutdownDrainTimeout
+// elapses.
 func (a *tcpAdapter) drainHandlers(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -273,10 +269,9 @@ func (a *tcpAdapter) drainHandlers(ctx context.Context) {
 
 // handleConnection manages a single client connection over TCP.
 //
-// The conn is wrapped with a cappedReadWriteCloser so a hostile peer cannot
-// announce a massive Content-Length and force io.ReadFull to allocate it.
-// An initial read deadline is set so leaked half-open connections eventually
-// unwedge.
+// The conn is wrapped with a cappedReadWriteCloser so a hostile peer cannot announce a
+// massive Content-Length and force io.ReadFull to allocate it. An initial read deadline
+// is set so leaked half-open connections are closed once the deadline elapses.
 //
 // Takes conn (net.Conn) which is the TCP connection to handle.
 func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
@@ -326,13 +321,11 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 
 // NewTCPAdapter creates a new TCP adapter for the LSP server.
 //
-// Takes deps (TCPAdapterDeps) which provides all dependencies the LSP server
-// needs. Optional knobs (MaxMessageBytes, MaxConcurrentConnections,
-// ConnectionInactivityTimeout) fall back to high defaults when zero or
-// negative.
+// Takes deps (TCPAdapterDeps) which provides all dependencies the LSP server needs.
+// Optional knobs (MaxMessageBytes, MaxConcurrentConnections, ConnectionInactivityTimeout)
+// fall back to high defaults when zero or negative.
 //
-// Returns lsp_domain.LSPServerPort which is the configured adapter ready for
-// use.
+// Returns lsp_domain.LSPServerPort which is the configured adapter ready for use.
 // Returns error when any required dependency field in deps is nil, including
 // CoordinatorService, Resolver, TypeInspectorManager, DocCache, LSPReader, or
 // PathsConfig.
@@ -384,11 +377,10 @@ func NewTCPAdapter(deps TCPAdapterDeps) (lsp_domain.LSPServerPort, error) {
 
 // cappedReadWriteCloser caps cumulative reads from an io.ReadWriteCloser.
 //
-// The jsonrpc2 stream parses Content-Length from headers and then issues
-// an io.ReadFull for the announced size; without this wrapper a hostile
-// peer can announce 100 GiB and exhaust memory before the read fails.
-// Once the cap is reached, every Read returns errMessageTooLarge so
-// jsonrpc2 surfaces the failure and we close the conn.
+// The jsonrpc2 stream parses Content-Length from headers and then issues an io.ReadFull
+// for the announced size; without this wrapper a hostile peer can announce 100 GiB and
+// exhaust memory before the read fails. Once the cap is reached, every Read returns
+// errMessageTooLarge so jsonrpc2 surfaces the failure and we close the conn.
 type cappedReadWriteCloser struct {
 	// inner is the underlying conn whose reads are capped.
 	inner io.ReadWriteCloser
@@ -400,26 +392,28 @@ type cappedReadWriteCloser struct {
 	readSoFar atomic.Int64
 }
 
-// errMessageTooLarge is returned from Read when an LSP peer attempts to push
-// more bytes than maxMessageBytes through the conn. Surfacing it as a sentinel
-// lets tests assert against errors.Is.
-var errMessageTooLarge = errors.New("lsp: message exceeds maximum size")
+var (
+	// errMessageTooLarge is returned from Read when an LSP peer attempts to push more bytes
+	// than maxMessageBytes through the conn. Surfacing it as a sentinel lets tests assert
+	// against errors.Is.
+	errMessageTooLarge = errors.New("lsp: message exceeds maximum size")
+)
 
-// newCappedReadWriteCloser wraps inner so cumulative Read sizes cannot exceed
-// limit. A non-positive limit disables the cap.
+// newCappedReadWriteCloser wraps inner so cumulative Read sizes cannot exceed limit. A
+// non-positive limit disables the cap.
 //
 // Takes inner (io.ReadWriteCloser) which is the underlying conn.
 // Takes limit (int64) which is the cumulative byte cap; <= 0 disables.
 //
-// Returns *cappedReadWriteCloser which delegates Write/Close to inner and
-// enforces the cap on Read.
+// Returns *cappedReadWriteCloser which delegates Write/Close to inner and enforces the
+// cap on Read.
 func newCappedReadWriteCloser(inner io.ReadWriteCloser, limit int64) *cappedReadWriteCloser {
 	return &cappedReadWriteCloser{inner: inner, limit: limit}
 }
 
-// Read delegates to the wrapped conn but trims the requested length so the
-// cumulative bytes returned never exceed limit, returning errMessageTooLarge
-// once the cap is reached.
+// Read delegates to the wrapped conn but trims the requested length so the cumulative
+// bytes returned never exceed limit, returning errMessageTooLarge once the cap is
+// reached.
 //
 // Takes p ([]byte) which receives the read bytes.
 //

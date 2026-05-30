@@ -34,10 +34,12 @@ type crossArchTarget struct {
 	platform string
 }
 
-var crossArchTargets = []crossArchTarget{
-	{goarch: "amd64", platform: "linux/amd64"},
-	{goarch: "arm64", platform: "linux/arm64"},
-}
+var (
+	crossArchTargets = []crossArchTarget{
+		{goarch: "amd64", platform: "linux/amd64"},
+		{goarch: "arm64", platform: "linux/arm64"},
+	}
+)
 
 func TestCrossArch(t *testing.T) {
 	dockerBin, err := exec.LookPath("docker")
@@ -72,12 +74,19 @@ func runCrossArch(t *testing.T, dockerBin, pkgDir string, target crossArchTarget
 		t.Fatalf("cross-compile for %s failed:\n%s\n%v", target.goarch, out, err)
 	}
 
+	goroot := runtime.GOROOT() //nolint:staticcheck // tests mount the local GOROOT into the QEMU container; system PATH cannot substitute
+	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(pkgDir)))
 	run := exec.Command(
 		dockerBin, "run", "--rm", "--platform", target.platform,
 		"-v", binPath+":/test:ro",
+		"-v", goroot+":"+goroot+":ro",
+		"-v", repoRoot+":"+repoRoot+":ro",
+		"-e", "GOROOT="+goroot,
+		"-e", "PATH="+goroot+"/bin:/usr/bin:/bin",
+		"-w", pkgDir,
 		"alpine:latest",
 		"/test", "-test.v", "-test.short",
-		"-test.run", "TestEvalArithmetic|TestEvalComparisons|TestEvalControlFlow|TestEvalFunctions|TestEvalGenerics|TestEvalClosures|TestDispatchContextOffsets|TestCallFrameOffsets|TestVarLocationOffsets|TestASMCallInfoOffsets|TestAsmDispatchSaveOffsets",
+		"-test.run", "^TestEval|^TestDispatch|^TestCallFrame|^TestVarLocation|^TestASM|^TestAsm",
 	)
 
 	out, err := run.CombinedOutput()

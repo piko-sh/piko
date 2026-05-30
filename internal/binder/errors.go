@@ -23,14 +23,14 @@ import (
 	"strings"
 )
 
-// MultiError holds multiple binding errors from a single form.
-// It implements the error interface.
+// MultiError holds multiple binding errors from a single form. It implements the error
+// interface.
 type MultiError map[string]error
 
 // Error implements the error interface for MultiError.
 //
-// Returns string which contains a formatted list of all validation errors
-// with their field names, or "(0 errors)" when the map is empty.
+// Returns string which contains a formatted list of all validation errors with their
+// field names, or "(0 errors)" when the map is empty.
 func (m MultiError) Error() string {
 	if len(m) == 0 {
 		return "(0 errors)"
@@ -43,17 +43,16 @@ func (m MultiError) Error() string {
 	return b.String()
 }
 
-// SafeMessage returns a user-safe error message that does not expose
-// field names or internal types.
+// SafeMessage returns a user-safe error message that does not expose field names or
+// internal types.
 //
 // Returns string which is a generic validation failure message.
 func (MultiError) SafeMessage() string { return "validation failed" }
 
-// errInvalidTarget is returned when the destination for binding is not a
-// pointer to a struct.
+// errInvalidTarget is returned when the destination for binding is not a pointer to a
+// struct.
 type errInvalidTarget struct {
-	// targetType is the name of the type that was given instead of a struct
-	// pointer.
+	// targetType is the name of the type that was given instead of a struct pointer.
 	targetType string
 }
 
@@ -64,14 +63,14 @@ func (e errInvalidTarget) Error() string {
 	return fmt.Sprintf("binder: destination must be a pointer to a struct, but got %s", e.targetType)
 }
 
-// SafeMessage returns a user-safe error message that does not expose
-// internal type information.
+// SafeMessage returns a user-safe error message that does not expose internal type
+// information.
 //
 // Returns string which is a generic binding failure message.
 func (errInvalidTarget) SafeMessage() string { return "invalid form data" }
 
-// errInvalidPath is returned when a key in the source map is not a valid Piko
-// expression path.
+// errInvalidPath is returned when a key in the source map is not a valid Piko expression
+// path.
 type errInvalidPath struct {
 	// err is the underlying error that explains why the path is invalid.
 	err error
@@ -87,14 +86,13 @@ func (e errInvalidPath) Error() string {
 	return fmt.Sprintf("binder: invalid path '%s': %v", e.path, e.err)
 }
 
-// SafeMessage returns a user-safe error message that does not expose
-// internal path details.
+// SafeMessage returns a user-safe error message that does not expose internal path
+// details.
 //
 // Returns string which is a generic binding failure message.
 func (errInvalidPath) SafeMessage() string { return "invalid form data" }
 
-// errSetField is returned when a value cannot be converted or set on a struct
-// field.
+// errSetField is returned when a value cannot be converted or set on a struct field.
 type errSetField struct {
 	// err is the underlying error from the failed field assignment.
 	err error
@@ -116,8 +114,8 @@ func (e errSetField) Error() string {
 	return fmt.Sprintf("binder: could not set field '%s' for path '%s' (expected type %s): %v", e.field, e.path, e.fieldType, e.err)
 }
 
-// SafeMessage returns a user-safe error message that does not expose
-// field names or internal type information.
+// SafeMessage returns a user-safe error message that does not expose field names or
+// internal type information.
 //
 // Returns string which is a generic binding failure message.
 func (errSetField) SafeMessage() string { return "invalid form data" }

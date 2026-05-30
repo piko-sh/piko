@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package querier_dto provides data transfer objects for the querier
-// hexagon.
+// Package querier_dto provides data transfer objects for the querier hexagon.
 //
-// These types carry no behaviour; they are pure data representations
-// of schemas, queries, expressions, types, and analysis results used
-// for cross-package communication.
+// These types carry no behaviour; they are pure data representations of schemas, queries,
+// expressions, types, and analysis results used for cross-package communication.
 package querier_dto

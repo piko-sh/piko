@@ -18,7 +18,9 @@
 
 package email_domain
 
-import "time"
+import (
+	"time"
+)
 
 // retryItem holds an email error and the time when it should be retried.
 type retryItem struct {

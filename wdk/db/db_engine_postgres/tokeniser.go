@@ -24,72 +24,113 @@ import (
 	"unicode"
 )
 
+// tokenKind enumerates the lexical token categories produced by the tokeniser.
 type tokenKind uint8
 
 const (
+	// tokenIdentifier is an unquoted or double-quoted identifier.
 	tokenIdentifier tokenKind = iota
 
+	// tokenNumber is a numeric literal.
 	tokenNumber
 
+	// tokenString is a single-quoted string literal.
 	tokenString
 
+	// tokenEscapeString is an E'...' escape string literal.
 	tokenEscapeString
 
+	// tokenDollarString is a dollar-quoted string literal.
 	tokenDollarString
 
+	// tokenBitString is a B'...' bit string literal.
 	tokenBitString
 
+	// tokenOperator is a SQL operator token.
 	tokenOperator
 
+	// tokenLeftParen is the '(' token.
 	tokenLeftParen
 
+	// tokenRightParen is the ')' token.
 	tokenRightParen
 
+	// tokenLeftBracket is the '[' token.
 	tokenLeftBracket
 
+	// tokenRightBracket is the ']' token.
 	tokenRightBracket
 
+	// tokenComma is the ',' token.
 	tokenComma
 
+	// tokenSemicolon is the ';' token.
 	tokenSemicolon
 
+	// tokenDot is the '.' token.
 	tokenDot
 
+	// tokenStar is the '*' token.
 	tokenStar
 
+	// tokenDollarParam is a positional parameter such as $1.
 	tokenDollarParam
 
+	// tokenNamedParam is a named parameter such as :name.
 	tokenNamedParam
 
+	// tokenCast is the '::' cast operator.
 	tokenCast
 
+	// tokenArrow is the '->' JSON access operator.
 	tokenArrow
 
+	// tokenDoubleArrow is the '->>' JSON access operator.
 	tokenDoubleArrow
 
+	// tokenHashArrow is the '#>' JSON path operator.
 	tokenHashArrow
 
+	// tokenHashDoubleArrow is the '#>>' JSON path operator.
 	tokenHashDoubleArrow
 
+	// tokenEOF marks the end of input.
 	tokenEOF
 )
+const (
 
-const maxASCII = 127
+	// maxASCII is the highest ASCII code point; bytes above this require Unicode handling
+	// for identifier classification.
+	maxASCII = 127
+)
 
+// token is a single lexical token produced by the tokeniser.
 type token struct {
+	// value is the textual content of the token.
 	value string
 
+	// position is the byte offset of the token within the input.
 	position int
 
+	// kind classifies the token lexically.
 	kind tokenKind
 }
 
+// tokeniser scans an input SQL string and emits tokens on demand.
 type tokeniser struct {
+	// input is the source SQL being scanned.
 	input string
 
+	// position is the current byte offset within input.
 	position int
 }
 
+// tokenise scans input and returns the full token stream.
+//
+// Takes input (string) which is the SQL text to scan.
+//
+// Returns []token which is the ordered stream of tokens ending in tokenEOF.
+// Returns error when a lexical error occurs.
 func tokenise(input string) ([]token, error) {
 	lexer := &tokeniser{input: input}
 	var tokens []token
@@ -108,6 +149,10 @@ func tokenise(input string) ([]token, error) {
 	return tokens, nil
 }
 
+// next advances and returns the next token from the input.
+//
+// Returns token which is the scanned token.
+// Returns error when a lexical error occurs.
 func (t *tokeniser) next() (token, error) {
 	t.skipWhitespaceAndComments()
 
@@ -124,7 +169,12 @@ func (t *tokeniser) next() (token, error) {
 	return t.readMultiCharToken(character)
 }
 
-var singleCharTokens = [256]tokenKind{}
+var (
+
+	// singleCharTokens maps an ASCII byte to its tokenKind (biased by +1 so the zero value
+	// indicates "no mapping").
+	singleCharTokens = [256]tokenKind{}
+)
 
 func init() {
 	singleCharTokens['('] = tokenLeftParen + 1
@@ -137,6 +187,12 @@ func init() {
 	singleCharTokens['*'] = tokenStar + 1
 }
 
+// readSingleCharToken returns the single-character token for character if one is mapped.
+//
+// Takes character (byte) which is the candidate byte to classify.
+//
+// Returns token which is the produced token when ok is true.
+// Returns bool which is true when character maps to a single-char token.
 func (t *tokeniser) readSingleCharToken(character byte) (token, bool) {
 	mapped := singleCharTokens[character]
 	if mapped == 0 {
@@ -147,6 +203,12 @@ func (t *tokeniser) readSingleCharToken(character byte) (token, bool) {
 	return token{kind: mapped - 1, value: string(character), position: startPosition}, true
 }
 
+// readMultiCharToken dispatches to the appropriate multi-character reader.
+//
+// Takes character (byte) which is the leading byte of the token.
+//
+// Returns token which is the scanned token.
+// Returns error when no reader accepts the input.
 func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 	switch {
 	case character == '$':
@@ -170,6 +232,7 @@ func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 	}
 }
 
+// skipWhitespaceAndComments advances past whitespace and comments.
 func (t *tokeniser) skipWhitespaceAndComments() {
 	for t.position < len(t.input) {
 		character := t.input[t.position]
@@ -193,6 +256,7 @@ func (t *tokeniser) skipWhitespaceAndComments() {
 	}
 }
 
+// skipLineComment advances past a -- comment up to the next newline.
 func (t *tokeniser) skipLineComment() {
 	t.position += 2
 	for t.position < len(t.input) && t.input[t.position] != '\n' {
@@ -200,6 +264,7 @@ func (t *tokeniser) skipLineComment() {
 	}
 }
 
+// skipBlockComment advances past a /* ... */ block comment, honouring nesting.
 func (t *tokeniser) skipBlockComment() {
 	t.position += 2
 	depth := 1
@@ -218,10 +283,24 @@ func (t *tokeniser) skipBlockComment() {
 	}
 }
 
+// readString reads a single-quoted string literal.
+//
+// Returns token which is the string literal token.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readString() (token, error) {
 	return t.readDelimitedLiteral('\'', tokenString, "string literal")
 }
 
+// readDelimitedLiteral reads a literal delimited by delimiter on both sides.
+//
+// Doubled delimiters inside the literal are treated as escaped delimiters.
+//
+// Takes delimiter (byte) which opens and closes the literal.
+// Takes kind (tokenKind) which classifies the produced token.
+// Takes errorDescription (string) which names the literal in error messages.
+//
+// Returns token which is the produced literal token.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readDelimitedLiteral(delimiter byte, kind tokenKind, errorDescription string) (token, error) {
 	startPosition := t.position
 	t.position++
@@ -245,6 +324,10 @@ func (t *tokeniser) readDelimitedLiteral(delimiter byte, kind tokenKind, errorDe
 	return token{}, fmt.Errorf("unterminated %s at position %d", errorDescription, startPosition)
 }
 
+// readEscapeString reads an E'...' Postgres escape string literal.
+//
+// Returns token which is the escape string token.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readEscapeString() (token, error) {
 	startPosition := t.position
 	t.position += 2
@@ -274,6 +357,10 @@ func (t *tokeniser) readEscapeString() (token, error) {
 	return token{}, fmt.Errorf("unterminated escape string at position %d", startPosition)
 }
 
+// readBitString reads a B'...' bit string literal.
+//
+// Returns token which is the bit string token.
+// Returns error when the literal is unterminated.
 func (t *tokeniser) readBitString() (token, error) {
 	startPosition := t.position
 	t.position += 2
@@ -292,10 +379,18 @@ func (t *tokeniser) readBitString() (token, error) {
 	return token{}, fmt.Errorf("unterminated bit string at position %d", startPosition)
 }
 
+// readQuotedIdentifier reads a double-quoted identifier.
+//
+// Returns token which is the identifier token.
+// Returns error when the identifier is unterminated.
 func (t *tokeniser) readQuotedIdentifier() (token, error) {
 	return t.readDelimitedLiteral('"', tokenIdentifier, "quoted identifier")
 }
 
+// readNumber reads a numeric literal, supporting prefixed bases.
+//
+// Returns token which is the number token.
+// Returns error when scanning fails.
 func (t *tokeniser) readNumber() (token, error) {
 	startPosition := t.position
 
@@ -310,6 +405,12 @@ func (t *tokeniser) readNumber() (token, error) {
 	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
 
+// tryReadPrefixedNumber reads a 0x, 0o, or 0b prefixed number when present.
+//
+// Takes startPosition (int) which is the start offset of the candidate literal.
+//
+// Returns token which is the produced number token when matched is true.
+// Returns bool which is true when a prefixed literal was consumed.
 func (t *tokeniser) tryReadPrefixedNumber(startPosition int) (token, bool) {
 	if t.input[t.position] != '0' || t.position+1 >= len(t.input) {
 		return token{}, false
@@ -327,6 +428,12 @@ func (t *tokeniser) tryReadPrefixedNumber(startPosition int) (token, bool) {
 	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, true
 }
 
+// prefixedNumberValidator returns the digit validator for a base prefix byte.
+//
+// Takes prefix (byte) which is the second byte of a 0X-style literal.
+//
+// Returns func(byte) bool which validates digits for the chosen base, or nil when prefix
+// does not denote a recognised base.
 func prefixedNumberValidator(prefix byte) func(byte) bool {
 	switch prefix {
 	case 'x', 'X':
@@ -340,26 +447,41 @@ func prefixedNumberValidator(prefix byte) func(byte) bool {
 	}
 }
 
+// consumeWhile advances the cursor while predicate accepts the next byte.
+//
+// Takes predicate (func(byte) bool) which decides whether to keep consuming.
 func (t *tokeniser) consumeWhile(predicate func(byte) bool) {
 	for t.position < len(t.input) && predicate(t.input[t.position]) {
 		t.position++
 	}
 }
 
+// isOctalDigit reports whether character is an octal digit.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true when character is between '0' and '7'.
 func isOctalDigit(character byte) bool {
 	return character >= '0' && character <= '7'
 }
 
+// isBinaryDigit reports whether character is a binary digit.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true when character is '0' or '1'.
 func isBinaryDigit(character byte) bool {
 	return character == '0' || character == '1'
 }
 
+// consumeDigits advances the cursor over decimal digits.
 func (t *tokeniser) consumeDigits() {
 	for t.position < len(t.input) && isDigit(t.input[t.position]) {
 		t.position++
 	}
 }
 
+// consumeFractionalPart advances past an optional '.digits' fractional part.
 func (t *tokeniser) consumeFractionalPart() {
 	if t.position >= len(t.input) || t.input[t.position] != '.' {
 		return
@@ -368,6 +490,7 @@ func (t *tokeniser) consumeFractionalPart() {
 	t.consumeDigits()
 }
 
+// consumeExponentPart advances past an optional 'e[+-]?digits' exponent.
 func (t *tokeniser) consumeExponentPart() {
 	if t.position >= len(t.input) {
 		return
@@ -382,6 +505,10 @@ func (t *tokeniser) consumeExponentPart() {
 	t.consumeDigits()
 }
 
+// readIdentifier reads an unquoted identifier.
+//
+// Returns token which is the identifier token.
+// Returns error which is always nil; declared for caller uniformity.
 func (t *tokeniser) readIdentifier() (token, error) {
 	startPosition := t.position
 	for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
@@ -390,6 +517,10 @@ func (t *tokeniser) readIdentifier() (token, error) {
 	return token{kind: tokenIdentifier, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
 
+// readDollarToken dispatches to dollar-parameter or dollar-quoted string.
+//
+// Returns token which is the produced token.
+// Returns error when the dollar-quoted literal is malformed.
 func (t *tokeniser) readDollarToken() (token, error) {
 	startPosition := t.position
 
@@ -404,6 +535,10 @@ func (t *tokeniser) readDollarToken() (token, error) {
 	return t.readDollarQuotedString()
 }
 
+// readDollarQuotedString reads a $tag$ ... $tag$ dollar-quoted string.
+//
+// Returns token which is the dollar string token.
+// Returns error when the literal is malformed or unterminated.
 func (t *tokeniser) readDollarQuotedString() (token, error) {
 	startPosition := t.position
 	t.position++
@@ -440,6 +575,10 @@ func (t *tokeniser) readDollarQuotedString() (token, error) {
 	return token{}, fmt.Errorf("unterminated dollar-quoted string at position %d", startPosition)
 }
 
+// readColonToken reads :: cast, :name parameter, or a bare ':' operator.
+//
+// Returns token which is the produced token.
+// Returns error which is always nil; declared for caller uniformity.
 func (t *tokeniser) readColonToken() (token, error) {
 	startPosition := t.position
 
@@ -460,6 +599,10 @@ func (t *tokeniser) readColonToken() (token, error) {
 	return token{kind: tokenOperator, value: ":", position: startPosition}, nil
 }
 
+// readOperator reads an arrow, multi-character, or single-character operator.
+//
+// Returns token which is the operator token.
+// Returns error when no operator pattern matches.
 func (t *tokeniser) readOperator() (token, error) {
 	startPosition := t.position
 	character := t.input[t.position]
@@ -479,14 +622,40 @@ func (t *tokeniser) readOperator() (token, error) {
 	return t.readSingleCharOperator(character, startPosition)
 }
 
+// readArrowOperator reads -> or ->> JSON access operators when present.
+//
+// Takes character (byte) which is the candidate leading byte.
+// Takes startPosition (int) which is the start offset of the token.
+//
+// Returns token which is the produced operator token when matched is true.
+// Returns bool which is true when an arrow operator was consumed.
 func (t *tokeniser) readArrowOperator(character byte, startPosition int) (token, bool) {
 	return t.readArrowLikeOperator(character, '-', startPosition, tokenArrow, "->", tokenDoubleArrow, "->>")
 }
 
+// readHashArrowOperator reads #> or #>> JSON path operators when present.
+//
+// Takes character (byte) which is the candidate leading byte.
+// Takes startPosition (int) which is the start offset of the token.
+//
+// Returns token which is the produced operator token when matched is true.
+// Returns bool which is true when a hash-arrow operator was consumed.
 func (t *tokeniser) readHashArrowOperator(character byte, startPosition int) (token, bool) {
 	return t.readArrowLikeOperator(character, '#', startPosition, tokenHashArrow, "#>", tokenHashDoubleArrow, "#>>")
 }
 
+// readArrowLikeOperator reads a prefix> or prefix>> operator pair.
+//
+// Takes character (byte) which is the candidate leading byte.
+// Takes prefix (byte) which is the expected leading byte.
+// Takes startPosition (int) which is the start offset of the token.
+// Takes singleKind (tokenKind) which classifies the prefix> variant.
+// Takes singleValue (string) which is the literal text of the prefix> variant.
+// Takes doubleKind (tokenKind) which classifies the prefix>> variant.
+// Takes doubleValue (string) which is the literal text of the prefix>> variant.
+//
+// Returns token which is the produced operator token when matched is true.
+// Returns bool which is true when an operator was consumed.
 func (t *tokeniser) readArrowLikeOperator(
 	character byte,
 	prefix byte,
@@ -507,12 +676,21 @@ func (t *tokeniser) readArrowLikeOperator(
 	return token{kind: singleKind, value: singleValue, position: startPosition}, true
 }
 
-var twoCharOps = map[string]bool{
-	"<=": true, ">=": true, "<>": true, "!=": true, "||": true,
-	"<<": true, ">>": true, "&&": true, "@>": true, "<@": true,
-	"~*": true, "!~": true,
-}
+var (
+	// twoCharOps holds the set of two-character SQL operators recognised by the tokeniser.
+	twoCharOps = map[string]bool{
+		"<=": true, ">=": true, "<>": true, "!=": true, "||": true,
+		"<<": true, ">>": true, "&&": true, "@>": true, "<@": true,
+		"~*": true, "!~": true,
+	}
+)
 
+// readTwoOrThreeCharOperator reads a two- or three-character operator.
+//
+// Takes startPosition (int) which is the start offset of the token.
+//
+// Returns token which is the produced operator token when matched is true.
+// Returns bool which is true when an operator was consumed.
 func (t *tokeniser) readTwoOrThreeCharOperator(startPosition int) (token, bool) {
 	if t.position+1 >= len(t.input) {
 		return token{}, false
@@ -533,6 +711,13 @@ func (t *tokeniser) readTwoOrThreeCharOperator(startPosition int) (token, bool) 
 	return token{}, false
 }
 
+// readSingleCharOperator reads a single-character SQL operator.
+//
+// Takes character (byte) which is the candidate operator byte.
+// Takes startPosition (int) which is the start offset of the token.
+//
+// Returns token which is the operator token.
+// Returns error when character is not a recognised operator.
 func (t *tokeniser) readSingleCharOperator(character byte, startPosition int) (token, error) {
 	singleCharOps := "=<>+-/%~&|!#^"
 	if strings.ContainsRune(singleCharOps, rune(character)) {
@@ -543,16 +728,31 @@ func (t *tokeniser) readSingleCharOperator(character byte, startPosition int) (t
 	return token{}, fmt.Errorf("unexpected character %q at position %d", string(character), startPosition)
 }
 
+// isDigit reports whether character is a decimal digit.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true when character is between '0' and '9'.
 func isDigit(character byte) bool {
 	return character >= '0' && character <= '9'
 }
 
+// isHexDigit reports whether character is a hexadecimal digit.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true when character is a hex digit in either case.
 func isHexDigit(character byte) bool {
 	return isDigit(character) ||
 		(character >= 'a' && character <= 'f') ||
 		(character >= 'A' && character <= 'F')
 }
 
+// isIdentStart reports whether character may begin an identifier.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true for letters, underscore, or non-ASCII letters.
 func isIdentStart(character byte) bool {
 	return (character >= 'a' && character <= 'z') ||
 		(character >= 'A' && character <= 'Z') ||
@@ -560,6 +760,11 @@ func isIdentStart(character byte) bool {
 		character > maxASCII && unicode.IsLetter(rune(character))
 }
 
+// isIdentPart reports whether character may appear within an identifier.
+//
+// Takes character (byte) which is the byte to classify.
+//
+// Returns bool which is true for identifier-start bytes or decimal digits.
 func isIdentPart(character byte) bool {
 	return isIdentStart(character) || isDigit(character)
 }

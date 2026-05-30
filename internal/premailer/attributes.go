@@ -25,15 +25,14 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// AttributeMapper is a function type that converts a CSS property and its
-// value into an HTML attribute name and value. It returns the attribute name,
-// attribute value, and a boolean that indicates whether the mapping succeeded.
+// AttributeMapper is a function type that converts a CSS property and its value into an
+// HTML attribute name and value. It returns the attribute name, attribute value, and a
+// boolean that indicates whether the mapping succeeded.
 type AttributeMapper func(cssProperty, cssValue string) (attributeName string, attributeValue string, ok bool)
 
 var (
 	// propertyToAttributeMap is a dispatch table that maps a CSS property to its
-	// corresponding AttributeMapper function. This is highly extensible and
-	// testable.
+	// corresponding AttributeMapper function. This is highly extensible and testable.
 	propertyToAttributeMap = map[string]AttributeMapper{
 		"width":            mapWidthHeight,
 		"height":           mapWidthHeight,
@@ -51,9 +50,9 @@ var (
 		"cellspacing":      mapCellspacing,
 	}
 
-	// targetElementsForAttributeMap specifies which HTML attributes should be
-	// applied to which tags. This is needed for compatibility (e.g., "bgcolor" only
-	// applies to table elements).
+	// targetElementsForAttributeMap specifies which HTML attributes should be applied to
+	// which tags. This is needed for compatibility (e.g., "bgcolor" only applies to table
+	// elements).
 	targetElementsForAttributeMap = map[string]map[string]bool{
 		"width":       {"table": true, "td": true, "th": true, "img": true},
 		"height":      {"table": true, "td": true, "th": true, "img": true},
@@ -74,16 +73,13 @@ var (
 	importantRemover = regexp.MustCompile(`\s*!important\s*$`)
 )
 
-// ApplyAttributesFromStyle converts CSS properties to HTML attributes on a
-// node.
+// ApplyAttributesFromStyle converts CSS properties to HTML attributes on a node.
 //
-// It uses a lookup table to map each CSS property to the correct HTML attribute
-// for the element type.
+// It uses a lookup table to map each CSS property to the correct HTML attribute for the
+// element type.
 //
-// Takes node (*ast_domain.TemplateNode) which is the element to receive
-// attributes.
-// Takes styleMap (map[string]property) which contains the CSS properties to
-// convert.
+// Takes node (*ast_domain.TemplateNode) which is the element to receive attributes.
+// Takes styleMap (map[string]property) which contains the CSS properties to convert.
 func ApplyAttributesFromStyle(node *ast_domain.TemplateNode, styleMap map[string]property) {
 	nodeTag := strings.ToLower(node.TagName)
 
@@ -92,8 +88,7 @@ func ApplyAttributesFromStyle(node *ast_domain.TemplateNode, styleMap map[string
 	}
 }
 
-// applyPropertyAttribute tries to apply a single CSS property as an HTML
-// attribute.
+// applyPropertyAttribute tries to apply a single CSS property as an HTML attribute.
 //
 // Takes node (*ast_domain.TemplateNode) which is the target node to modify.
 // Takes nodeTag (string) which is the HTML tag name of the node.
@@ -132,8 +127,8 @@ func applyPropertyAttribute(node *ast_domain.TemplateNode, nodeTag, propName, pr
 // Takes value (string) which is the CSS value to convert.
 //
 // Returns attributeName (string) which is the HTML attribute name.
-// Returns attributeValue (string) which is the converted value without units for
-// pixel values, or with the percent sign kept for percentage values.
+// Returns attributeValue (string) which is the converted value without units for pixel
+// values, or with the percent sign kept for percentage values.
 // Returns ok (bool) which is true when the value was converted.
 func mapWidthHeight(prop, value string) (attributeName string, attributeValue string, ok bool) {
 	value = strings.TrimSpace(value)
@@ -159,8 +154,7 @@ func mapWidthHeight(prop, value string) (attributeName string, attributeValue st
 	return "", "", false
 }
 
-// mapBgColor converts a background-color CSS property to a bgcolor HTML
-// attribute.
+// mapBgColor converts a background-color CSS property to a bgcolor HTML attribute.
 //
 // Takes value (string) which is the CSS colour value.
 //
@@ -171,12 +165,10 @@ func mapBgColor(_, value string) (attributeName string, attributeValue string, o
 	return "bgcolor", strings.TrimSpace(value), true
 }
 
-// mapBackgroundShorthand attempts to find a colour in a 'background' shorthand
-// property. This is a simple implementation that looks for the first value that
-// could be a colour.
+// mapBackgroundShorthand attempts to find a colour in a 'background' shorthand property.
+// This is a simple implementation that looks for the first value that could be a colour.
 //
-// Takes value (string) which is the background shorthand CSS value to
-// parse.
+// Takes value (string) which is the background shorthand CSS value to parse.
 //
 // Returns attributeName (string) which is "bgcolor" when a colour is found.
 // Returns attributeValue (string) which is the extracted colour value.
@@ -193,8 +185,7 @@ func mapBackgroundShorthand(_, value string) (attributeName string, attributeVal
 	return "", "", false
 }
 
-// mapTextAlign converts a text-align CSS property to an align HTML
-// attribute.
+// mapTextAlign converts a text-align CSS property to an align HTML attribute.
 //
 // Takes value (string) which is the alignment value.
 //
@@ -205,8 +196,7 @@ func mapTextAlign(_, value string) (attributeName string, attributeValue string,
 	return "align", strings.TrimSpace(value), true
 }
 
-// mapVerticalAlign converts a vertical-align CSS property to a valign
-// HTML attribute.
+// mapVerticalAlign converts a vertical-align CSS property to a valign HTML attribute.
 //
 // Takes value (string) which is the vertical alignment value.
 //
@@ -217,15 +207,13 @@ func mapVerticalAlign(_, value string) (attributeName string, attributeValue str
 	return "valign", strings.TrimSpace(value), true
 }
 
-// mapBorder converts a border CSS property to an HTML border attribute
-// when the border value is zero or none.
+// mapBorder converts a border CSS property to an HTML border attribute when the border
+// value is zero or none.
 //
 // Takes value (string) which is the CSS border value.
 //
-// Returns attributeName (string) which is "border" when the value is zero or
-// none.
-// Returns attributeValue (string) which is "0" when the value is zero or
-// none.
+// Returns attributeName (string) which is "border" when the value is zero or none.
+// Returns attributeValue (string) which is "0" when the value is zero or none.
 // Returns ok (bool) which is true only when the border is zero or none.
 func mapBorder(_, value string) (attributeName string, attributeValue string, ok bool) {
 	lowerValue := strings.ToLower(strings.TrimSpace(value))
@@ -235,8 +223,8 @@ func mapBorder(_, value string) (attributeName string, attributeValue string, ok
 	return "", "", false
 }
 
-// mapCellspacing converts a border-spacing CSS property to a cellspacing
-// HTML attribute when the value is zero.
+// mapCellspacing converts a border-spacing CSS property to a cellspacing HTML attribute
+// when the value is zero.
 //
 // Takes value (string) which is the CSS spacing value.
 //
@@ -254,8 +242,8 @@ func mapCellspacing(_, value string) (attributeName string, attributeValue strin
 	return "", "", false
 }
 
-// mapCellpadding converts a cellpadding CSS property to an HTML
-// cellpadding attribute when the value is zero.
+// mapCellpadding converts a cellpadding CSS property to an HTML cellpadding attribute
+// when the value is zero.
 //
 // Takes value (string) which is the CSS padding value.
 //
@@ -273,8 +261,8 @@ func mapCellpadding(_, value string) (attributeName string, attributeValue strin
 	return "", "", false
 }
 
-// mapPadding converts a padding CSS property to a cellpadding HTML
-// attribute when the value is zero.
+// mapPadding converts a padding CSS property to a cellpadding HTML attribute when the
+// value is zero.
 //
 // Takes value (string) which is the CSS padding value.
 //
@@ -289,8 +277,8 @@ func mapPadding(_, value string) (attributeName string, attributeValue string, o
 	return "", "", false
 }
 
-// mapBackgroundImage converts a background-image CSS property to an HTML
-// background attribute by extracting the URL from a url() function.
+// mapBackgroundImage converts a background-image CSS property to an HTML background
+// attribute by extracting the URL from a url() function.
 //
 // Takes value (string) which is the CSS background-image value.
 //
@@ -314,8 +302,8 @@ func mapBackgroundImage(_, value string) (attributeName string, attributeValue s
 	return "background", url, true
 }
 
-// mapBorderCollapse converts a border-collapse CSS property to a
-// cellspacing HTML attribute when the value is "collapse".
+// mapBorderCollapse converts a border-collapse CSS property to a cellspacing HTML
+// attribute when the value is "collapse".
 //
 // Takes value (string) which is the CSS border-collapse value.
 //
@@ -330,14 +318,13 @@ func mapBorderCollapse(_, value string) (attributeName string, attributeValue st
 	return "", "", false
 }
 
-// mapWhiteSpace converts a white-space CSS property to a nowrap HTML
-// attribute when the value is "nowrap".
+// mapWhiteSpace converts a white-space CSS property to a nowrap HTML attribute when the
+// value is "nowrap".
 //
 // Takes value (string) which is the CSS white-space value.
 //
 // Returns attributeName (string) which is "nowrap" when matched.
-// Returns attributeValue (string) which is "nowrap" when the value is
-// "nowrap".
+// Returns attributeValue (string) which is "nowrap" when the value is "nowrap".
 // Returns ok (bool) which is true only when the value is "nowrap".
 func mapWhiteSpace(_, value string) (attributeName string, attributeValue string, ok bool) {
 	value = strings.ToLower(strings.TrimSpace(value))

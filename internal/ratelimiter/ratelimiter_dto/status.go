@@ -18,16 +18,15 @@
 
 package ratelimiter_dto
 
-// Status holds the inspectable state of the centralised rate limiter.
-// It is returned by the RateLimiterInspector interface for monitoring
-// and CLI display.
+// Status holds the inspectable state of the centralised rate limiter. It is returned by
+// the RateLimiterInspector interface for monitoring and CLI display.
 type Status struct {
-	// TokenBucketStore is the name of the active token bucket store
-	// (e.g. "cache", "inmemory", "noop").
+	// TokenBucketStore is the name of the active token bucket store (e.g. "cache",
+	// "inmemory", "noop").
 	TokenBucketStore string
 
-	// CounterStore is the name of the active fixed window counter store
-	// (e.g. "cache", "noop").
+	// CounterStore is the name of the active fixed window counter store (e.g. "cache",
+	// "noop").
 	CounterStore string
 
 	// FailPolicy is the current failure behaviour ("open" or "closed").

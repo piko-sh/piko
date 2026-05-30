@@ -27,6 +27,7 @@ import (
 	"log/slog"
 	"math"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -46,8 +47,7 @@ const (
 	// LevelInternal is a log level for internal framework messages.
 	LevelInternal = slog.Level(-6)
 
-	// LevelNotice is a log level between Info and Warn for notable operational
-	// events.
+	// LevelNotice is a log level between Info and Warn for notable operational events.
 	LevelNotice = slog.Level(2)
 
 	// FieldStrContext is the log field key for context attributes.
@@ -77,43 +77,41 @@ const (
 	// FieldStrDir is the legacy key for directory fields in log entries.
 	FieldStrDir = "dir"
 
-	// callerSkipFrames is the number of stack frames to skip when finding the
-	// caller's source location for slog's AddSource feature.
-	// Stack: runtime.Callers -> log -> Info/Error -> User code.
+	// callerSkipFrames is the number of stack frames to skip when finding the caller's
+	// source location for slog's AddSource feature. Stack: runtime.Callers -> log ->
+	// Info/Error -> User code.
 	callerSkipFrames = 3
 
 	// maxStackTraceFrames is the maximum number of stack frames to capture.
 	maxStackTraceFrames = 64
 
-	// callerUnknown is the placeholder value when caller information cannot be
-	// resolved.
+	// callerUnknown is the sentinel value used when caller information cannot be resolved.
 	callerUnknown = "<unknown>"
 )
 
 var (
-	// otelAttrPool reuses OpenTelemetry attribute slices to reduce allocation
-	// pressure during span attribute propagation.
+	// otelAttrPool reuses OpenTelemetry attribute slices to reduce allocation pressure
+	// during span attribute propagation.
 	otelAttrPool = sync.Pool{
 		New: func() any {
 			return new(make([]attribute.KeyValue, 0, 8))
 		},
 	}
 
-	// callerCache maps program counters to their cached caller info.
-	// For a given PC, the package and method names are fixed at compile time,
-	// so we only need to compute them once per unique call site.
+	// callerCache maps program counters to their cached caller info. For a given PC, the
+	// package and method names are fixed at compile time, so we only need to compute them
+	// once per unique call site.
 	callerCache sync.Map
 )
 
 // Logger is the primary logging interface for the Piko framework.
 //
-// It provides structured logging with multiple severity levels, context
-// propagation, and deep integration with OpenTelemetry for distributed
-// tracing. Implements logger.Logger and logger_domain.Logger.
+// It provides structured logging with multiple severity levels, context propagation, and
+// deep integration with OpenTelemetry for distributed tracing. Implements logger.Logger
+// and logger_domain.Logger.
 type Logger interface {
-	// Enabled reports whether the logger handles records at the given level.
-	// Callers can use this to skip expensive argument evaluation when the
-	// message would be discarded.
+	// Enabled reports whether the logger handles records at the given level. Callers can use
+	// this to skip expensive argument evaluation when the message would be discarded.
 	//
 	// Takes level (slog.Level) which is the level to check.
 	//
@@ -197,24 +195,23 @@ type Logger interface {
 	// Returns Logger which is a child logger bound to the span context.
 	Span(ctx context.Context, spanName string, attrs ...slog.Attr) (context.Context, trace.Span, Logger)
 
-	// WithSpanContext returns a logger bound to the given span context without
-	// calling WithAttrs on the underlying handler. Acts as a low-allocation
-	// alternative to Span() for hot paths where the OTEL span is created
-	// directly and only the logger is needed for correlation.
+	// WithSpanContext returns a logger bound to the given span context without calling
+	// WithAttrs on the underlying handler. Acts as a low-allocation alternative to Span()
+	// for hot paths where the OTEL span is created directly and only the logger is needed
+	// for correlation.
 	//
 	// Use when:
 	//   - The span is created via otel.Tracer().Start() directly
 	//   - Attributes are set on the span via span.SetAttributes()
-	//   - A logger that correlates with the span is needed without
-	//     repeating the attributes on every log line
+	//   - A logger that correlates with the span is needed without repeating the attributes
+	//     on every log line
 	//
 	// Takes ctx (context.Context) which contains the span from tracer.Start().
 	//
 	// Returns Logger which is bound to the span context for log correlation.
 	WithSpanContext(ctx context.Context) Logger
 
-	// ReportError records an error on the given span with a message and
-	// attributes.
+	// ReportError records an error on the given span with a message and attributes.
 	//
 	// Takes span (trace.Span) which is the span to record the error on.
 	// Takes err (error) which is the error to report.
@@ -222,47 +219,44 @@ type Logger interface {
 	// Takes attrs (...Attr) which provides optional attributes for the error.
 	ReportError(span trace.Span, err error, message string, attrs ...Attr)
 
-	// RunInSpan executes the given function within a new
-	// trace span.
+	// RunInSpan executes the given function within a new trace span.
 	//
 	// Takes spanName (string) which identifies the span.
-	// Takes operation (func(context.Context, Logger) error)
-	// which is the function to run.
-	// Takes attrs (...Attr) which provides optional span
-	// attributes.
+	// Takes operation (func(context.Context, Logger) error) which is the function to run.
+	// Takes attrs (...Attr) which provides optional span attributes.
 	//
 	// Returns error which propagates any failure raised by the operation.
 	RunInSpan(ctx context.Context, spanName string, operation func(context.Context, Logger) error, attrs ...Attr) error
 
 	// AddSpanLifecycleHook registers a hook for span lifecycle events.
 	//
-	// The hook is called during span creation and error reporting. Hooks are
-	// passed on to derived loggers created via With() or WithContext().
+	// The hook is called during span creation and error reporting. Hooks are passed on to
+	// derived loggers created via With() or WithContext().
 	//
 	// Takes hook (SpanLifecycleHook) which handles span lifecycle callbacks.
 	AddSpanLifecycleHook(hook SpanLifecycleHook)
 
-	// WithoutAutoCaller returns a logger that disables automatic caller capture,
-	// which by default records the caller's package and method on every log call.
+	// WithoutAutoCaller returns a logger that disables automatic caller capture, which by
+	// default records the caller's package and method on every log call.
 	//
-	// Loggers created via GetLogger() automatically capture KeyContext (package)
-	// and KeyMethod on every call. Use for performance-critical paths
-	// where caller capture overhead is unacceptable.
+	// Loggers created via GetLogger() automatically capture KeyContext (package) and
+	// KeyMethod on every call. Use for performance-critical paths where caller capture
+	// overhead is unacceptable.
 	//
 	// Returns Logger which does not capture caller information.
 	WithoutAutoCaller() Logger
 }
 
-// Attr represents a key-value pair for structured logging. It is a type
-// alias for slog.Attr.
+// Attr represents a key-value pair for structured logging. It is a type alias for
+// slog.Attr.
 type Attr = slog.Attr
 
-// StackTrace represents a captured stack trace with pooled memory management.
-// It provides special formatting for pretty-printing and does not implement
-// String() to stop slog from converting it to a string too early.
+// StackTrace represents a captured stack trace with pooled memory management. It provides
+// special formatting for pretty-printing and does not implement String() to stop slog
+// from converting it to a string too early.
 //
-// After use, Release() should be called to return the backing slice to the
-// pool. This enables zero-allocation stack trace capture after warmup.
+// After use, Release() should be called to return the backing slice to the pool. This
+// enables zero-allocation stack trace capture after warmup.
 type StackTrace struct {
 	// poolPtr points to the pooled slice; used to return it when released.
 	poolPtr *[]string
@@ -278,8 +272,8 @@ func (st StackTrace) Frames() []string {
 	return st.frames
 }
 
-// Release returns the backing slice to the pool and must be called after use.
-// Safe to call multiple times or on a zero-value StackTrace.
+// Release returns the backing slice to the pool and must be called after use. Safe to
+// call multiple times or on a zero-value StackTrace.
 func (st *StackTrace) Release() {
 	if st.poolPtr != nil {
 		*st.poolPtr = st.frames[:0]
@@ -289,17 +283,17 @@ func (st *StackTrace) Release() {
 	}
 }
 
-// LogValue implements slog.LogValuer to serialise the stack trace properly.
-// This returns the frames slice so that slog serialises the actual frames
-// rather than the struct's unexported fields.
+// LogValue implements slog.LogValuer to serialise the stack trace properly. This returns
+// the frames slice so that slog serialises the actual frames rather than the struct's
+// unexported fields.
 //
 // Returns slog.Value which contains the frames for proper serialisation.
 func (st StackTrace) LogValue() slog.Value {
 	return slog.AnyValue(st.frames)
 }
 
-// callerCacheEntry holds cached caller data for a program counter.
-// It pre-builds slog.Attr values to avoid allocation on every log call.
+// callerCacheEntry holds cached caller data for a program counter. It pre-builds
+// slog.Attr values to avoid allocation on every log call.
 type callerCacheEntry struct {
 	// ctxAttr is a pre-built KeyContext attribute for the caller.
 	ctxAttr Attr
@@ -308,11 +302,10 @@ type callerCacheEntry struct {
 	methodAttr Attr
 }
 
-// slogLogger implements the Logger interface using Go's standard slog package.
-// It provides structured logging with OpenTelemetry tracing support.
+// slogLogger implements the Logger interface using Go's standard slog package. It
+// provides structured logging with OpenTelemetry tracing support.
 type slogLogger struct {
-	// tracer is the OpenTelemetry tracer used to create spans for distributed
-	// tracing.
+	// tracer is the OpenTelemetry tracer used to create spans for distributed tracing.
 	tracer trace.Tracer
 
 	// ctx stores the context for hook calls and logging checks.
@@ -333,18 +326,17 @@ type slogLogger struct {
 	// hooksMutex guards the hooks slice for safe concurrent access.
 	hooksMutex sync.RWMutex
 
-	// useDynamicDefault when true makes getLogger return slog.Default()
-	// instead of the stored logger. This keeps package-level loggers in sync
-	// with runtime settings.
+	// useDynamicDefault when true makes getLogger return slog.Default() instead of the
+	// stored logger. This keeps package-level loggers in sync with runtime settings.
 	useDynamicDefault bool
 
-	// autoCaller enables automatic capture of the caller function name on each
-	// log call. Only checked after Enabled(), so disabled levels have no overhead.
+	// autoCaller enables automatic capture of the caller function name on each log call.
+	// Only checked after Enabled(), so disabled levels have no overhead.
 	autoCaller bool
 }
 
-// AddSpanLifecycleHook registers a hook to receive span lifecycle events.
-// The hook is called for this logger and any derived loggers.
+// AddSpanLifecycleHook registers a hook to receive span lifecycle events. The hook is
+// called for this logger and any derived loggers.
 //
 // Takes hook (SpanLifecycleHook) which handles span lifecycle events.
 //
@@ -364,12 +356,11 @@ func (l *slogLogger) Enabled(level slog.Level) bool {
 	return l.getLogger().Handler().Enabled(l.ctx, level)
 }
 
-// Trace logs a message at TRACE level, the most granular diagnostic
-// information.
+// Trace logs a message at TRACE level, the most granular diagnostic information.
 //
-// Used for loop iterations, per-node processing, variable state dumps, and
-// high-frequency operations. This level is reserved for framework internals;
-// webdevs should not use this level.
+// Used for loop iterations, per-node processing, variable state dumps, and high-frequency
+// operations. This level is reserved for framework internals; webdevs should not use this
+// level.
 //
 // Takes message (string) which specifies the log message.
 // Takes arguments (...Attr) which provides optional structured attributes.
@@ -377,12 +368,11 @@ func (l *slogLogger) Trace(message string, arguments ...Attr) {
 	l.log(LevelTrace, message, arguments...)
 }
 
-// Internal logs a message at INTERNAL level for framework surface
-// operations.
+// Internal logs a message at INTERNAL level for framework surface operations.
 //
-// Used for service registration, cache operations, adapter lifecycle, and
-// validation passes. This level is reserved for framework internals; webdevs
-// should use Debug instead.
+// Used for service registration, cache operations, adapter lifecycle, and validation
+// passes. This level is reserved for framework internals; webdevs should use Debug
+// instead.
 //
 // Takes message (string) which is the log message to record.
 // Takes arguments (...Attr) which provides optional structured attributes.
@@ -392,9 +382,8 @@ func (l *slogLogger) Internal(message string, arguments ...Attr) {
 
 // Debug logs a message at DEBUG level for user application debugging.
 //
-// Used for request/response details, business logic checkpoints, and
-// variable inspection. This level is owned by webdevs; framework code
-// should use Internal or Trace instead.
+// Used for request/response details, business logic checkpoints, and variable inspection.
+// This level is owned by webdevs; framework code should use Internal or Trace instead.
 //
 // Takes message (string) which is the message to log.
 // Takes arguments (...Attr) which provides structured key-value pairs.
@@ -402,19 +391,18 @@ func (l *slogLogger) Debug(message string, arguments ...Attr) {
 	l.log(slog.LevelDebug, message, arguments...)
 }
 
-// Info logs a message at INFO level for normal operations affecting the
-// application. Used for successful completions like page renders, route
-// registrations, and request completions.
+// Info logs a message at INFO level for normal operations affecting the application. Used
+// for successful completions like page renders, route registrations, and request
+// completions.
 //
 // Takes message (string) which is the message to log.
-// Takes arguments (...Attr) which provides structured attributes
-// for the log entry.
+// Takes arguments (...Attr) which provides structured attributes for the log entry.
 func (l *slogLogger) Info(message string, arguments ...Attr) {
 	l.log(slog.LevelInfo, message, arguments...)
 }
 
-// Notice logs a message at NOTICE level for important lifecycle events.
-// Used for service startup, shutdown, and major state changes.
+// Notice logs a message at NOTICE level for important lifecycle events. Used for service
+// startup, shutdown, and major state changes.
 //
 // Takes message (string) which is the log message text.
 // Takes arguments (...Attr) which provides optional structured attributes.
@@ -422,9 +410,8 @@ func (l *slogLogger) Notice(message string, arguments ...Attr) {
 	l.log(LevelNotice, message, arguments...)
 }
 
-// Warn logs a message at WARN level for recoverable or unexpected events.
-// Used for configuration defaults, rate limit warnings, and deprecated
-// feature usage.
+// Warn logs a message at WARN level for recoverable or unexpected events. Used for
+// configuration defaults, rate limit warnings, and deprecated feature usage.
 //
 // Takes message (string) which is the log message to record.
 // Takes arguments (...Attr) which provides optional structured attributes.
@@ -432,9 +419,8 @@ func (l *slogLogger) Warn(message string, arguments ...Attr) {
 	l.log(slog.LevelWarn, message, arguments...)
 }
 
-// Error logs a message at ERROR level with a full stack trace for maximum
-// context. Used for operation failures and actionable alerts requiring
-// investigation.
+// Error logs a message at ERROR level with a full stack trace for maximum context. Used
+// for operation failures and actionable alerts requiring investigation.
 //
 // Takes message (string) which is the log message to record.
 // Takes arguments (...Attr) which provides optional structured attributes.
@@ -442,8 +428,8 @@ func (l *slogLogger) Error(message string, arguments ...Attr) {
 	l.logWithStack(slog.LevelError, message, arguments...)
 }
 
-// Panic logs a message at ERROR level with a stack trace, then panics.
-// Use sparingly for unrecoverable errors that should crash the application.
+// Panic logs a message at ERROR level with a stack trace, then panics. Use sparingly for
+// unrecoverable errors that should crash the application.
 //
 // Takes message (string) which is the message to log and panic with.
 // Takes arguments (...Attr) which are optional structured attributes to include.
@@ -452,11 +438,10 @@ func (l *slogLogger) Panic(message string, arguments ...Attr) {
 	panic(message)
 }
 
-// ReportError logs an error with a stack trace and records it on the provided
-// span.
+// ReportError logs an error with a stack trace and records it on the provided span.
 //
-// If the error is nil, the call is a no-op. The span's status is set to Error when
-// the span is recording.
+// If the error is nil, the call is a no-op. The span's status is set to Error when the
+// span is recording.
 //
 // Takes span (trace.Span) which receives the error recording and status.
 // Takes err (error) which is the error to log and record.
@@ -482,44 +467,40 @@ func (l *slogLogger) ReportError(span trace.Span, err error, message string, att
 	}
 }
 
-// spanWithFinishers wraps a trace.Span to execute cleanup functions when the
-// span ends.
+// spanWithFinishers wraps a trace.Span to execute cleanup functions when the span ends.
 type spanWithFinishers struct {
 	trace.Span
 
-	// finishers holds cleanup functions to run when the span ends, called in
-	// reverse order.
+	// finishers holds cleanup functions to run when the span ends, called in reverse order.
 	finishers []func()
 
 	// endOnce guards single execution of End cleanup logic.
 	endOnce sync.Once
 }
 
-// End finishes the span, executing all registered finishers in reverse order
-// first.
+// End finishes the span, executing all registered finishers in reverse order first.
 //
 // Takes options (...trace.SpanEndOption) which configures span end behaviour.
 //
 // Safe to call multiple times; subsequent calls are no-ops.
 func (s *spanWithFinishers) End(options ...trace.SpanEndOption) {
 	s.endOnce.Do(func() {
-		for i := len(s.finishers) - 1; i >= 0; i-- {
-			s.finishers[i]()
+		for _, finisher := range slices.Backward(s.finishers) {
+			finisher()
 		}
 		s.Span.End(options...)
 	})
 }
 
-// Span starts a new OpenTelemetry span and returns the enriched context,
-// span, and a logger bound to it.
+// Span starts a new OpenTelemetry span and returns the enriched context, span, and a
+// logger bound to it.
 //
 // Takes spanName (string) which identifies the span in traces.
-// Takes attrs (...Attr) which provides optional attributes to attach to the
-// span.
+// Takes attrs (...Attr) which provides optional attributes to attach to the span.
 //
 // Returns context.Context which contains the new span context.
-// Returns trace.Span which is the started span; the caller must call End when
-// the operation completes.
+// Returns trace.Span which is the started span; the caller must call End when the
+// operation completes.
 // Returns Logger which is bound to the span context for correlated logging.
 func (l *slogLogger) Span(ctx context.Context, spanName string, attrs ...Attr) (context.Context, trace.Span, Logger) {
 	spanCtx, otelSpan := l.tracer.Start(ctx, spanName)
@@ -547,20 +528,17 @@ func (l *slogLogger) Span(ctx context.Context, spanName string, attrs ...Attr) (
 	return spanCtx, wrappedSpan, finalLogger
 }
 
-// With returns a new Logger with the given attributes added to every
-// log entry. If no attributes are given, the original logger is
-// returned.
+// With returns a new Logger with the given attributes added to every log entry. If no
+// attributes are given, the original logger is returned.
 //
-// The attributes are also stored and will be set on any spans
-// created via Span or RunInSpan.
+// The attributes are also stored and will be set on any spans created via Span or
+// RunInSpan.
 //
-// Takes attrs (...Attr) which are the attributes to add to each
-// log entry.
+// Takes attrs (...Attr) which are the attributes to add to each log entry.
 //
 // Returns Logger which is a new logger with the attributes applied.
 //
-// Safe for concurrent use. The internal hooks are copied under a
-// read lock.
+// Safe for concurrent use. The internal hooks are copied under a read lock.
 func (l *slogLogger) With(attrs ...Attr) Logger {
 	if len(attrs) == 0 {
 		return l
@@ -593,14 +571,14 @@ func (l *slogLogger) With(attrs ...Attr) Logger {
 }
 
 // WithSpanContext returns a logger bound to the given span context without calling
-// WithAttrs on the underlying handler. Acts as a low-allocation alternative to
-// Span() for hot paths where the OTEL span is created directly and only the logger
-// is needed for correlation.
+// WithAttrs on the underlying handler. Acts as a low-allocation alternative to Span() for
+// hot paths where the OTEL span is created directly and only the logger is needed for
+// correlation.
 //
 // Saves ~400MB of allocations over 500K requests compared to Span() by avoiding the
-// WithAttrs() call on the handler chain. The trade-off is that span attributes set
-// via span.SetAttributes() won't appear on log lines, but logs will still be
-// correlated with the span via trace context.
+// WithAttrs() call on the handler chain. The trade-off is that span attributes set via
+// span.SetAttributes() won't appear on log lines, but logs will still be correlated with
+// the span via trace context.
 //
 // Returns Logger which is bound to the span context for log correlation.
 func (l *slogLogger) WithSpanContext(ctx context.Context) Logger {
@@ -610,12 +588,11 @@ func (l *slogLogger) WithSpanContext(ctx context.Context) Logger {
 	return l.cloneWithContext(ctx)
 }
 
-// WithContext returns a new Logger with the given context for trace linking.
-// If the context is the same as the current one, the original logger is
-// returned.
+// WithContext returns a new Logger with the given context for trace linking. If the
+// context is the same as the current one, the original logger is returned.
 //
-// Returns Logger which is either a new logger with the updated context or the
-// original logger if the context has not changed.
+// Returns Logger which is either a new logger with the updated context or the original
+// logger if the context has not changed.
 func (l *slogLogger) WithContext(ctx context.Context) Logger {
 	if l.ctx == ctx {
 		return l
@@ -630,9 +607,9 @@ func (l *slogLogger) GetContext() context.Context {
 	return l.ctx
 }
 
-// WithoutAutoCaller returns a logger that disables automatic caller capture.
-// By default, loggers from GetLogger capture the caller's package and method
-// on every call; use this for performance-critical paths.
+// WithoutAutoCaller returns a logger that disables automatic caller capture. By default,
+// loggers from GetLogger capture the caller's package and method on every call; use this
+// for performance-critical paths.
 //
 // Returns Logger which does not capture caller information.
 //
@@ -663,11 +640,11 @@ func (l *slogLogger) WithoutAutoCaller() Logger {
 	}
 }
 
-// RunInSpan executes the provided function within a new span, handling
-// lifecycle and errors.
+// RunInSpan executes the provided function within a new span, handling lifecycle and
+// errors.
 //
-// Any error from the operation is reported to the span and the span status is
-// set to Error. On success, the span status is set to Ok.
+// Any error from the operation is reported to the span and the span status is set to
+// Error. On success, the span status is set to Ok.
 //
 // Takes spanName (string) which identifies the span for tracing.
 // Takes operation (func(...)) which is the function to execute within the span.
@@ -690,8 +667,8 @@ func (l *slogLogger) RunInSpan(ctx context.Context, spanName string, operation f
 	return nil
 }
 
-// mergeSpanAttrs combines logger-level attributes with span-level attributes.
-// Reuses existing slices when possible to avoid memory allocation.
+// mergeSpanAttrs combines logger-level attributes with span-level attributes. Reuses
+// existing slices when possible to avoid memory allocation.
 //
 // Takes attrs ([]Attr) which contains the span-level attributes to merge.
 //
@@ -709,12 +686,11 @@ func (l *slogLogger) mergeSpanAttrs(attrs []Attr) []slog.Attr {
 	}
 }
 
-// setSpanOtelAttrs sets OpenTelemetry attributes on the span using a pooled
-// slice for better performance and lower memory use.
+// setSpanOtelAttrs sets OpenTelemetry attributes on the span using a pooled slice for
+// better performance and lower memory use.
 //
 // Takes otelSpan (trace.Span) which is the span to set attributes on.
-// Takes allSpanAttrs ([]slog.Attr) which contains the attributes to convert
-// and apply.
+// Takes allSpanAttrs ([]slog.Attr) which contains the attributes to convert and apply.
 func (*slogLogger) setSpanOtelAttrs(otelSpan trace.Span, allSpanAttrs []slog.Attr) {
 	if len(allSpanAttrs) == 0 {
 		return
@@ -732,11 +708,9 @@ func (*slogLogger) setSpanOtelAttrs(otelSpan trace.Span, allSpanAttrs []slog.Att
 	otelAttrPool.Put(kvsPtr)
 }
 
-// callHooksOnSpanStart invokes all hook OnSpanStart callbacks and collects
-// finishers.
+// callHooksOnSpanStart invokes all hook OnSpanStart callbacks and collects finishers.
 //
-// Takes spanCtx (context.Context) which is the span context to pass to
-// hooks.
+// Takes spanCtx (context.Context) which is the span context to pass to hooks.
 // Takes spanName (string) which identifies the span.
 // Takes attrs ([]Attr) which contains span attributes.
 // Takes hooks ([]SpanLifecycleHook) which are the hooks to invoke.
@@ -760,8 +734,8 @@ func (*slogLogger) callHooksOnSpanStart(
 	return spanCtx, finishers
 }
 
-// createSpanLogger creates a new logger bound to the span context.
-// Reuses the existing slog.Logger when no attrs are provided.
+// createSpanLogger creates a new logger bound to the span context. Reuses the existing
+// slog.Logger when no attrs are provided.
 //
 // Takes attrs ([]Attr) which specifies attributes to add to the handler.
 // Takes allSpanAttrs ([]Attr) which contains all attributes for the span.
@@ -793,8 +767,8 @@ func (l *slogLogger) createSpanLogger(
 
 // cloneWithContext creates a copy of the logger with a new context.
 //
-// Returns *slogLogger which is a shallow copy with the given context and a
-// deep copy of the hooks slice.
+// Returns *slogLogger which is a shallow copy with the given context and a deep copy of
+// the hooks slice.
 //
 // Safe for concurrent use. Acquires a read lock on hooks during the copy.
 func (l *slogLogger) cloneWithContext(ctx context.Context) *slogLogger {
@@ -822,11 +796,11 @@ func (l *slogLogger) cloneWithContext(ctx context.Context) *slogLogger {
 // getLogger returns the effective logger for this instance.
 //
 // If useDynamicDefault is true, it returns slog.Default() which may have been
-// reconfigured after this logger was created (e.g., by AddPrettyOutput).
-// This keeps package-level loggers in sync with runtime configuration.
+// reconfigured after this logger was created (e.g., by AddPrettyOutput). This keeps
+// package-level loggers in sync with runtime configuration.
 //
-// Returns *slog.Logger which is either the instance logger or the current
-// default logger based on the useDynamicDefault setting.
+// Returns *slog.Logger which is either the instance logger or the current default logger
+// based on the useDynamicDefault setting.
 func (l *slogLogger) getLogger() *slog.Logger {
 	if l.useDynamicDefault {
 		return slog.Default()
@@ -836,8 +810,8 @@ func (l *slogLogger) getLogger() *slog.Logger {
 
 // getHooks returns a copy of the current hooks for safe iteration.
 //
-// Returns []SpanLifecycleHook which contains the instance hooks,
-// or nil if no hooks are registered.
+// Returns []SpanLifecycleHook which contains the instance hooks, or nil if no hooks are
+// registered.
 //
 // Safe for concurrent use. Uses a read lock when accessing instance hooks.
 func (l *slogLogger) getHooks() []SpanLifecycleHook {
@@ -852,18 +826,15 @@ func (l *slogLogger) getHooks() []SpanLifecycleHook {
 	return result
 }
 
-// addContextCauseIfPresent enriches a log record with the
-// descriptive cancellation cause from the logger's context when
-// available.
+// addContextCauseIfPresent enriches a log record with the descriptive cancellation cause
+// from the logger's context when available.
 //
-// Only called at WARN level and above to avoid overhead on hot
-// paths. The cause is only added when it differs from the generic
-// sentinel (context.Canceled / context.DeadlineExceeded), meaning
-// someone set a descriptive cause via WithTimeoutCause or
-// WithCancelCause.
+// Only called at WARN level and above to avoid overhead on hot paths. The cause is only
+// added when it differs from the generic sentinel (context.Canceled /
+// context.DeadlineExceeded), meaning someone set a descriptive cause via WithTimeoutCause
+// or WithCancelCause.
 //
-// Takes r (*slog.Record) which is the record to enrich with the
-// context cause.
+// Takes r (*slog.Record) which is the record to enrich with the context cause.
 func (l *slogLogger) addContextCauseIfPresent(r *slog.Record) {
 	if l.ctx == nil {
 		return
@@ -877,9 +848,9 @@ func (l *slogLogger) addContextCauseIfPresent(r *slog.Record) {
 	}
 }
 
-// log writes a log entry for non-error severity levels.
-// It uses runtime.Callers directly instead of the full CaptureStackTrace
-// to avoid the cost of frame iteration and string formatting.
+// log writes a log entry for non-error severity levels. It uses runtime.Callers directly
+// instead of the full CaptureStackTrace to avoid the cost of frame iteration and string
+// formatting.
 //
 // Takes level (slog.Level) which sets the severity of the log message.
 // Takes message (string) which provides the log message text.
@@ -953,8 +924,8 @@ func (l *slogLogger) logWithStack(level slog.Level, message string, arguments ..
 
 // LevelName returns the display name for a log level.
 //
-// Custom levels (TRACE, INTERNAL, NOTICE) return their proper names. Standard
-// levels use the slog String method.
+// Custom levels (TRACE, INTERNAL, NOTICE) return their proper names. Standard levels use
+// the slog String method.
 //
 // Takes level (slog.Level) which specifies the log level to convert.
 //
@@ -972,15 +943,14 @@ func LevelName(level slog.Level) string {
 	}
 }
 
-// ReplaceLevelAttr returns a ReplaceAttr function for slog handlers that
-// properly formats custom log levels (TRACE, INTERNAL, NOTICE) instead of
-// displaying them as offsets like "INFO+2" or "DEBUG-2".
+// ReplaceLevelAttr returns a ReplaceAttr function for slog handlers that properly formats
+// custom log levels (TRACE, INTERNAL, NOTICE) instead of displaying them as offsets like
+// "INFO+2" or "DEBUG-2".
 //
-// Takes a (slog.Attr) which is the attribute to inspect and possibly
-// rewrite.
+// Takes a (slog.Attr) which is the attribute to inspect and possibly rewrite.
 //
-// Returns slog.Attr which is the attribute with the level value
-// replaced by its human-readable name when applicable.
+// Returns slog.Attr which is the attribute with the level value replaced by its
+// human-readable name when applicable.
 func ReplaceLevelAttr(_ []string, a slog.Attr) slog.Attr {
 	if a.Key == slog.LevelKey {
 		if level, ok := a.Value.Any().(slog.Level); ok {
@@ -1070,13 +1040,12 @@ func Time(key string, value time.Time) Attr { return slog.Time(key, value) }
 // Returns Attr which is the structured log attribute ready for use.
 func Duration(key string, value time.Duration) Attr { return slog.Duration(key, value) }
 
-// Error creates a structured log attribute with an error value.
-// If the error is nil, it logs the string "<nil>".
+// Error creates a structured log attribute with an error value. If the error is nil, it
+// logs the string "<nil>".
 //
 // Takes value (error) which is the error to include in the log output.
 //
-// Returns Attr which is the structured log attribute containing the
-// error message.
+// Returns Attr which is the structured log attribute containing the error message.
 func Error(value error) Attr {
 	if value == nil {
 		return slog.String("error", "<nil>")
@@ -1086,16 +1055,16 @@ func Error(value error) Attr {
 
 // Caller creates a log attribute with the caller's function name.
 //
-// It captures which function called the log statement, so you do not need to
-// set KeyMethod yourself.
+// It captures which function called the log statement, so you do not need to set
+// KeyMethod yourself.
 //
-// Returns Attr which contains KeyMethod with the full function name
-// (e.g. "(*Container).StartMonitoringService").
+// Returns Attr which contains KeyMethod with the full function name (e.g.
+// "(*Container).StartMonitoringService").
 //
-// Cost: roughly 235ns for runtime.Caller() lookup.
+// Cost: one runtime.Caller() lookup per invocation.
 //
-// By default, loggers from GetLogger() capture caller information on their
-// own. Use WithoutAutoCaller() to turn this off.
+// By default, loggers from GetLogger() capture caller information on their own. Use
+// WithoutAutoCaller() to turn this off.
 func Caller() Attr {
 	_, method := callerInfoAtSkip(1)
 	return slog.String(KeyMethod, method)
@@ -1123,9 +1092,8 @@ func New(baseLogger *slog.Logger, name string) Logger {
 	)
 }
 
-// NewLogger creates a new Logger instance with the provided slog.Logger and
-// OpenTelemetry tracer. Auto-caller is enabled by default; use
-// WithoutAutoCaller to disable.
+// NewLogger creates a new Logger instance with the provided slog.Logger and OpenTelemetry
+// tracer. Auto-caller is enabled by default; use WithoutAutoCaller to disable.
 //
 // Takes logger (*slog.Logger) which handles the underlying log output.
 // Takes tracer (trace.Tracer) which provides OpenTelemetry tracing support.
@@ -1150,15 +1118,14 @@ func NewLogger(logger *slog.Logger, tracer trace.Tracer, ctx ...context.Context)
 	}
 }
 
-// callerAttrsAtSkip returns slog.Attr values for the caller at the given stack
-// depth. Uses the loc library for fast, allocation-free caller capture, with
-// caching for the attribute building step.
+// callerAttrsAtSkip returns slog.Attr values for the caller at the given stack depth.
+// Uses the loc library for fast, allocation-free caller capture, with caching for the
+// attribute building step.
 //
 // Takes skip (int) which specifies how many stack frames to skip.
 //
 // Returns ctxAttr (Attr) which is the context attribute (e.g. "bootstrap").
-// Returns methodAttr (Attr) which is the method attribute
-// (e.g. "(*Container).Start").
+// Returns methodAttr (Attr) which is the method attribute (e.g. "(*Container).Start").
 func callerAttrsAtSkip(skip int) (ctxAttr, methodAttr Attr) {
 	pc := caller.Caller(skip + 1)
 	if pc == 0 {
@@ -1181,8 +1148,8 @@ func callerAttrsAtSkip(skip int) (ctxAttr, methodAttr Attr) {
 
 // callerInfoAtSkip gets the package and method name at a given stack depth.
 //
-// Uses the loc library for fast caller capture without memory allocation.
-// Results are cached to avoid repeated string parsing.
+// Uses the loc library for fast caller capture without memory allocation. Results are
+// cached to avoid repeated string parsing.
 //
 // Takes skip (int) which specifies how many stack frames to skip.
 //
@@ -1209,9 +1176,8 @@ func callerInfoAtSkip(skip int) (pkg, method string) {
 	return pkg, method
 }
 
-// extractPackageAndMethod splits a fully qualified function name into its
-// package and method parts. This is the slow path that only runs once per
-// unique call site.
+// extractPackageAndMethod splits a fully qualified function name into its package and
+// method parts. This is the slow path that only runs once per unique call site.
 //
 // Takes name (string) which is the fully qualified function name.
 //
@@ -1234,9 +1200,8 @@ func extractPackageAndMethod(name string) (pkg, method string) {
 	return shortName, shortName
 }
 
-// newLoggerWithStackTraceProvider creates a Logger with a custom stack trace
-// provider. This is primarily for testing, allowing injection of mock stack
-// trace providers.
+// newLoggerWithStackTraceProvider creates a Logger with a custom stack trace provider.
+// This is primarily for testing, allowing injection of mock stack trace providers.
 //
 // Takes logger (*slog.Logger) which provides the underlying structured logger.
 // Takes tracer (trace.Tracer) which provides distributed tracing support.
@@ -1265,8 +1230,8 @@ func newLoggerWithStackTraceProvider(logger *slog.Logger, tracer trace.Tracer, p
 //
 // Takes attrs ([]slog.Attr) which contains the slog attributes to convert.
 //
-// Returns []attribute.KeyValue which contains the converted attributes, or
-// nil when attrs is empty.
+// Returns []attribute.KeyValue which contains the converted attributes, or nil when attrs
+// is empty.
 func otelAttrsFromSlog(attrs []slog.Attr) []attribute.KeyValue {
 	if len(attrs) == 0 {
 		return nil
@@ -1323,8 +1288,8 @@ func addAttrRecursive(kvs *[]attribute.KeyValue, prefix string, a slog.Attr) {
 	}
 }
 
-// addGroupAttr processes a group attribute by adding each nested attribute
-// to the output slice.
+// addGroupAttr processes a group attribute by adding each nested attribute to the output
+// slice.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the converted attributes.
 // Takes key (string) which specifies the group prefix for nested attributes.
@@ -1335,9 +1300,9 @@ func addGroupAttr(kvs *[]attribute.KeyValue, key string, a slog.Attr) {
 	}
 }
 
-// addAnyAttr converts a value of any type to an OpenTelemetry attribute.
-// It handles common types such as stdjson.Marshaler, encoding.TextMarshaler,
-// error, fmt.Stringer, and string slices.
+// addAnyAttr converts a value of any type to an OpenTelemetry attribute. It handles
+// common types such as stdjson.Marshaler, encoding.TextMarshaler, error, fmt.Stringer,
+// and string slices.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the converted attribute.
 // Takes key (string) which specifies the attribute name.
@@ -1359,8 +1324,8 @@ func addAnyAttr(kvs *[]attribute.KeyValue, key string, anyVal any) {
 	}
 }
 
-// addJSONMarshalerAttr converts a stdjson.Marshaler value to JSON and adds it as
-// a string attribute. If marshalling fails, it uses fmt.Sprintf instead.
+// addJSONMarshalerAttr converts a stdjson.Marshaler value to JSON and adds it as a string
+// attribute. If marshalling fails, it uses fmt.Sprintf instead.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the new attribute.
 // Takes key (string) which specifies the attribute name.
@@ -1373,9 +1338,8 @@ func addJSONMarshalerAttr(kvs *[]attribute.KeyValue, key string, v stdjson.Marsh
 	}
 }
 
-// addTextMarshalerAttr adds an attribute for encoding.TextMarshaler types.
-// If text marshalling fails, it falls back to JSON marshalling, then to
-// fmt.Sprintf.
+// addTextMarshalerAttr adds an attribute for encoding.TextMarshaler types. If text
+// marshalling fails, it falls back to JSON marshalling, then to fmt.Sprintf.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the new attribute.
 // Takes key (string) which specifies the attribute name.
@@ -1392,8 +1356,8 @@ func addTextMarshalerAttr(kvs *[]attribute.KeyValue, key string, v encoding.Text
 	}
 }
 
-// addFallbackAttr converts a value to JSON and adds it as a string attribute.
-// If JSON encoding fails, it uses fmt.Sprintf as a fallback.
+// addFallbackAttr converts a value to JSON and adds it as a string attribute. If JSON
+// encoding fails, it uses fmt.Sprintf as a fallback.
 //
 // Takes kvs (*[]attribute.KeyValue) which receives the new attribute.
 // Takes key (string) which is the attribute name.

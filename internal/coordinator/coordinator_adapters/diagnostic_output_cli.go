@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CLIDiagnosticOutput writes formatted diagnostics to stderr for use on the
-// command line. It implements DiagnosticOutputPort and keeps ANSI colour codes
-// for clear output in terminal windows.
+// CLIDiagnosticOutput writes formatted diagnostics to stderr for use on the command line.
+// It implements DiagnosticOutputPort and keeps ANSI colour codes for clear output in
+// terminal windows.
 type CLIDiagnosticOutput struct{}
 
 // NewCLIDiagnosticOutput creates a new CLI diagnostic output adapter.
@@ -38,19 +38,18 @@ func NewCLIDiagnosticOutput() *CLIDiagnosticOutput {
 	return &CLIDiagnosticOutput{}
 }
 
-// OutputDiagnostics writes richly formatted diagnostics to
-// stderr using ANSI colour codes.
+// OutputDiagnostics writes richly formatted diagnostics to stderr using ANSI colour
+// codes.
 //
-// This provides excellent DX for developers working in terminal
-// environments by grouping diagnostics by file, showing source
-// code context with syntax highlighting, using colours to
-// distinguish errors from warnings, and displaying precise line
-// and column information.
+// This provides excellent DX for developers working in terminal environments by grouping
+// diagnostics by file, showing source code context with syntax highlighting, using
+// colours to distinguish errors from warnings, and displaying precise line and column
+// information.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the
-// diagnostic messages to display.
-// Takes sourceContents (map[string][]byte) which maps file paths to
-// their source code for context display.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostic messages to
+// display.
+// Takes sourceContents (map[string][]byte) which maps file paths to their source code for
+// context display.
 func (*CLIDiagnosticOutput) OutputDiagnostics(
 	diagnostics []*ast_domain.Diagnostic,
 	sourceContents map[string][]byte,

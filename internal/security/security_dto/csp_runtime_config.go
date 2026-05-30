@@ -18,9 +18,9 @@
 
 package security_dto
 
-// CSPRuntimeConfig holds the computed CSP configuration for use by middleware.
-// This is a separate struct from the CSP builder to keep configuration immutable
-// after startup, avoiding concurrency issues from runtime mutation.
+// CSPRuntimeConfig holds the computed CSP configuration for use by middleware. This is a
+// separate struct from the CSP builder to keep configuration immutable after startup,
+// avoiding concurrency issues from runtime mutation.
 type CSPRuntimeConfig struct {
 	// Policy is the Content-Security-Policy header value.
 	Policy string
@@ -28,7 +28,6 @@ type CSPRuntimeConfig struct {
 	// ReportOnly uses the Content-Security-Policy-Report-Only header when true.
 	ReportOnly bool
 
-	// UsesRequestTokens indicates the policy contains a {{REQUEST_TOKEN}}
-	// placeholder.
+	// UsesRequestTokens indicates the policy contains a {{REQUEST_TOKEN}} placeholder.
 	UsesRequestTokens bool
 }

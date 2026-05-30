@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package render_adapters implements the render domain ports for registry
-// access with caching and headless rendering.
+// Package render_adapters implements the render domain ports for registry access with
+// caching and headless rendering.
 //
-// The data loader adapter wraps the registry service with TTL-based caches
-// for component metadata and SVG assets, using proactive refresh to avoid
-// cache stampedes. The headless renderer adapter bridges the render
-// orchestrator to the WASM subsystem for HTTP-context-free rendering.
+// The data loader adapter wraps the registry service with TTL-based caches for component
+// metadata and SVG assets, using proactive refresh to avoid cache stampedes. The headless
+// renderer adapter bridges the render orchestrator to the WASM subsystem for
+// HTTP-context-free rendering.
 //
 // All methods are safe for concurrent use.
 package render_adapters

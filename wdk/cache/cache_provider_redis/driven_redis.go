@@ -43,8 +43,7 @@ const (
 	// logKeyField is the attribute key used when logging Redis cache keys.
 	logKeyField = "key"
 
-	// scanAllPattern is the wildcard pattern used in Redis SCAN commands to
-	// match all keys.
+	// scanAllPattern is the wildcard pattern used in Redis SCAN commands to match all keys.
 	scanAllPattern = "*"
 
 	// errMessageEncodeKey is the warning message logged when key encoding fails.
@@ -54,15 +53,14 @@ const (
 	errFmtEncodeKey = "failed to encode key: %w"
 )
 
-// RedisAdapter implements the ProviderPort using a Redis client. It supports
-// generics by encoding keys to strings and using a type-driven EncodingRegistry
-// for values.
+// RedisAdapter implements the ProviderPort using a Redis client. It supports generics by
+// encoding keys to strings and using a type-driven EncodingRegistry for values.
 type RedisAdapter[K comparable, V any] struct {
 	// expiryCalculator sets the expiry time for each key; optional.
 	expiryCalculator cache.ExpiryCalculator[K, V]
 
-	// refreshCalculator calculates when entries become ready for background
-	// refresh; optional.
+	// refreshCalculator calculates when entries become ready for background refresh;
+	// optional.
 	refreshCalculator cache.RefreshCalculator[K, V]
 
 	// registry encodes values before they are stored.
@@ -95,8 +93,8 @@ type RedisAdapter[K comparable, V any] struct {
 	// atomicOperationTimeout is the time limit for WATCH/MULTI/EXEC operations.
 	atomicOperationTimeout time.Duration
 
-	// bulkOperationTimeout is the maximum time for bulk operations like MGET,
-	// MSET, and pipelines.
+	// bulkOperationTimeout is the maximum time for bulk operations like MGET, MSET, and
+	// pipelines.
 	bulkOperationTimeout time.Duration
 
 	// flushTimeout is the time limit for InvalidateAll operations.
@@ -105,28 +103,28 @@ type RedisAdapter[K comparable, V any] struct {
 	// searchTimeout is the time limit for FT.SEARCH operations.
 	searchTimeout time.Duration
 
-	// maxComputeRetries is the maximum number of retry attempts for optimistic
-	// locking in Compute methods.
+	// maxComputeRetries is the maximum number of retry attempts for optimistic locking in
+	// Compute methods.
 	maxComputeRetries int
 
-	// allowUnsafeFLUSHDB controls whether InvalidateAll may use FLUSHDB when no
-	// namespace is set. If false, InvalidateAll is blocked without a namespace
-	// for safety.
+	// allowUnsafeFLUSHDB controls whether InvalidateAll may use FLUSHDB when no namespace is
+	// set. If false, InvalidateAll is blocked without a namespace for safety.
 	allowUnsafeFLUSHDB bool
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
 }
 
-var _ cache.ProviderPort[any, any] = (*RedisAdapter[any, any])(nil)
+var (
+	_ cache.ProviderPort[any, any] = (*RedisAdapter[any, any])(nil)
+)
 
 // encodeKey converts a key of type K to a Redis key string.
 //
 // Takes key (K) which is the cache key to encode.
 //
 // Returns string which is the encoded Redis key, with namespace prefix if set.
-// Returns error when no encoder is registered for the key type or when
-// marshalling fails.
+// Returns error when no encoder is registered for the key type or when marshalling fails.
 func (a *RedisAdapter[K, V]) encodeKey(key K) (string, error) {
 	return cache_domain.EncodeKey(key, a.namespace, a.keyRegistry)
 }
@@ -136,17 +134,17 @@ func (a *RedisAdapter[K, V]) encodeKey(key K) (string, error) {
 // Takes keyString (string) which is the Redis key to decode.
 //
 // Returns K which is the decoded key value.
-// Returns error when the namespace prefix is missing, decoding fails, or no
-// encoder is registered for the key type.
+// Returns error when the namespace prefix is missing, decoding fails, or no encoder is
+// registered for the key type.
 func (a *RedisAdapter[K, V]) decodeKey(keyString string) (K, error) {
 	return cache_domain.DecodeKey[K](keyString, a.namespace, a.keyRegistry)
 }
 
-// GetIfPresent retrieves a value from the cache if it exists, without blocking
-// or loading. When SearchSchema is configured, reads from JSON storage.
+// GetIfPresent retrieves a value from the cache if it exists, without blocking or
+// loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
@@ -194,16 +192,15 @@ func (a *RedisAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V, bool, 
 	return result, true, nil
 }
 
-// Get retrieves a value from the cache, loading it via the provided loader
-// if not present.
+// Get retrieves a value from the cache, loading it via the provided loader if not
+// present.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cached value to retrieve.
 // Takes loader (Loader[K, V]) which loads the value if not already cached.
 //
 // Returns V which is the cached or newly loaded value.
-// Returns error when key encoding fails, the loader fails, or type assertion
-// fails.
+// Returns error when key encoding fails, the loader fails, or type assertion fails.
 func (a *RedisAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loader[K, V]) (V, error) {
 	ctx, l := logger.From(ctx, log)
 	keyString, err := a.encodeKey(key)
@@ -239,12 +236,11 @@ func (a *RedisAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loader
 	return value, nil
 }
 
-// Set stores a key-value pair in the cache with optional tags for grouped
-// invalidation. When a SearchSchema is configured, values are stored as JSON
-// for RediSearch indexing.
+// Set stores a key-value pair in the cache with optional tags for grouped invalidation.
+// When a SearchSchema is configured, values are stored as JSON for RediSearch indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
@@ -347,8 +343,8 @@ func (a *RedisAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to remove.
@@ -380,8 +376,8 @@ func (a *RedisAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 // Takes valBytes ([]byte) which contains the encoded data to decode.
 //
 // Returns V which is the decoded value.
-// Returns error when the encoder cannot be found, unmarshalling fails, or type
-// assertion fails.
+// Returns error when the encoder cannot be found, unmarshalling fails, or type assertion
+// fails.
 func (a *RedisAdapter[K, V]) decodeValue(valBytes []byte) (V, error) {
 	return cache_domain.DecodeValue[V](valBytes, a.registry)
 }
@@ -401,8 +397,7 @@ func (a *RedisAdapter[K, V]) encodeValue(value V) ([]byte, error) {
 // Takes pipe (redis.Pipeliner) which is the pipeline to queue commands on.
 // Takes keyString (string) which is the cache key to operate on.
 // Takes newValue (V) which is the value to set when the action is Set.
-// Takes action (cache.ComputeAction) which specifies the operation to
-// perform.
+// Takes action (cache.ComputeAction) which specifies the operation to perform.
 // Takes found (bool) which indicates whether the key exists in the cache.
 //
 // Returns error when encoding the value fails.
@@ -425,15 +420,12 @@ func (a *RedisAdapter[K, V]) executeComputeAction(ctx context.Context, pipe redi
 	return nil
 }
 
-// handleComputeRetryResult processes the result of a compute transaction
-// attempt.
+// handleComputeRetryResult processes the result of a compute transaction attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
-// Takes keyString (string) which is the string representation of the key for
-// logging.
-// Takes err (error) which is the error from the transaction attempt, or nil on
-// success.
+// Takes keyString (string) which is the string representation of the key for logging.
+// Takes err (error) which is the error from the transaction attempt, or nil on success.
 // Takes attempt (int) which is the current retry attempt number.
 //
 // Returns bool which indicates whether the operation should be retried.
@@ -465,16 +457,16 @@ func (a *RedisAdapter[K, V]) handleComputeRetryResult(ctx context.Context, key K
 	return false, zero, false, err
 }
 
-// Compute atomically updates a cache entry using a compute function with
-// optimistic locking. Computes and writes the new value in one round trip.
+// Compute atomically updates a cache entry using a compute function with optimistic
+// locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which calculates the new value based on the
-// current value and whether it exists.
+// Takes computeFunction (func(...)) which calculates the new value based on the current
+// value and whether it exists.
 //
 // Returns V which is the computed value, or zero value if the operation fails.
 // Returns bool which indicates whether the operation succeeded.
@@ -542,11 +534,9 @@ func (a *RedisAdapter[K, V]) fetchValueInWatch(ctx context.Context, tx *redis.Tx
 
 // computeIfAbsentWatchFunction runs the WATCH callback for ComputeIfAbsent.
 //
-// Takes tx (*redis.Tx) which provides the transaction context for the
-// operation.
+// Takes tx (*redis.Tx) which provides the transaction context for the operation.
 // Takes keyString (string) which specifies the key to check and set if missing.
-// Takes computeFunction (func() V) which creates the value if the key does not
-// exist.
+// Takes computeFunction (func() V) which creates the value if the key does not exist.
 // Takes didCompute (*bool) which is set to true if the value was computed.
 //
 // Returns error when the key check fails or the transaction cannot complete.
@@ -572,8 +562,8 @@ func (a *RedisAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Context, t
 	return txErr
 }
 
-// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent
-// transaction attempt.
+// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -583,8 +573,8 @@ func (a *RedisAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Context, t
 //
 // Returns value (V) which is the computed or cached value if successful.
 // Returns computed (bool) which indicates whether the value was newly computed.
-// Returns shouldRetry (bool) which indicates whether the operation should be
-// retried due to a transaction conflict.
+// Returns shouldRetry (bool) which indicates whether the operation should be retried due
+// to a transaction conflict.
 // Returns error when the post-transaction read fails.
 func (a *RedisAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, key K, keyString string, err error, didCompute bool) (value V, computed bool, shouldRetry bool, retErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -610,19 +600,17 @@ func (a *RedisAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, ke
 	return zero, false, false, err
 }
 
-// ComputeIfAbsent atomically computes and stores a value only if the key is
-// not present.
+// ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to check or create.
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
 // Returns V which is the existing or newly computed value.
-// Returns bool which indicates whether a value was successfully retrieved or
-// computed.
+// Returns bool which indicates whether a value was successfully retrieved or computed.
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, computeFunction func() V) (V, bool, error) {
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.atomicOperationTimeout, fmt.Errorf("redis ComputeIfAbsent exceeded %s timeout", a.atomicOperationTimeout))
@@ -651,8 +639,8 @@ func (a *RedisAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, compute
 	return *new(V), false, fmt.Errorf("compute if absent max retries exceeded (%d) for key %q", a.maxComputeRetries, keyString)
 }
 
-// executeComputeActionPresent executes the compute action for ComputeIfPresent,
-// always deleting when action is delete.
+// executeComputeActionPresent executes the compute action for ComputeIfPresent, always
+// deleting when action is delete.
 //
 // Takes pipe (redis.Pipeliner) which queues the Redis commands.
 // Takes keyString (string) which is the cache key to operate on.
@@ -679,8 +667,8 @@ func (a *RedisAdapter[K, V]) executeComputeActionPresent(ctx context.Context, pi
 //
 // Takes tx (*redis.Tx) which is the Redis transaction for the watch operation.
 // Takes keyString (string) which is the cache key to operate on.
-// Takes computeFunction (func(oldValue V) (V, cache.ComputeAction))
-// which works out the new value from the existing value.
+// Takes computeFunction (func(oldValue V) (V, cache.ComputeAction)) which works out the
+// new value from the existing value.
 //
 // Returns error when the fetch or transaction fails.
 func (a *RedisAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Context, tx *redis.Tx, keyString string, computeFunction func(oldValue V) (V, cache.ComputeAction)) error {
@@ -699,8 +687,8 @@ func (a *RedisAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Context, 
 	return txErr
 }
 
-// handleComputeIfPresentResult processes the result of a ComputeIfPresent
-// transaction attempt.
+// handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -710,8 +698,8 @@ func (a *RedisAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Context, 
 //
 // Returns value (V) which is the computed value if found.
 // Returns found (bool) which indicates whether the value was present.
-// Returns shouldRetry (bool) which indicates whether the transaction should be
-// retried due to a conflict.
+// Returns shouldRetry (bool) which indicates whether the transaction should be retried
+// due to a conflict.
 // Returns error when the post-transaction read fails.
 func (a *RedisAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, key K, keyString string, err error, attempt int) (value V, found bool, shouldRetry bool, retErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -738,20 +726,18 @@ func (a *RedisAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, k
 	return zero, false, false, err
 }
 
-// ComputeIfPresent atomically updates a value only if the key exists in the
-// cache.
+// ComputeIfPresent atomically updates a value only if the key exists in the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which receives the current value
-// and returns the new value along with an action indicating whether
-// to update or remove.
+// Takes computeFunction (func(...)) which receives the current value and returns the new
+// value along with an action indicating whether to update or remove.
 //
-// Returns V which is the resulting value after computation, or the zero value
-// if the key was not found or the operation failed.
+// Returns V which is the resulting value after computation, or the zero value if the key
+// was not found or the operation failed.
 // Returns bool which is true if the key existed and the computation succeeded.
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, computeFunction func(oldValue V) (newValue V, action cache.ComputeAction)) (V, bool, error) {
@@ -780,8 +766,8 @@ func (a *RedisAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, comput
 	return *new(V), false, fmt.Errorf("compute if present max retries exceeded (%d) for key %q", a.maxComputeRetries, keyString)
 }
 
-// executeComputeActionWithTTL executes the compute action within a Redis
-// pipeline with optional custom TTL.
+// executeComputeActionWithTTL executes the compute action within a Redis pipeline with
+// optional custom TTL.
 //
 // Takes pipe (redis.Pipeliner) which is the pipeline to queue commands on.
 // Takes keyString (string) which is the cache key to operate on.
@@ -814,8 +800,8 @@ func (a *RedisAdapter[K, V]) executeComputeActionWithTTL(ctx context.Context, pi
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -861,8 +847,8 @@ func (a *RedisAdapter[K, V]) ComputeWithTTL(ctx context.Context, key K, computeF
 	return *new(V), false, fmt.Errorf("compute with TTL max retries exceeded (%d) for key %q", a.maxComputeRetries, keyString)
 }
 
-// bulkEncodeKeys encodes a slice of keys and returns the encoded string keys
-// and a reverse map for decoding. Keys that fail to encode are skipped.
+// bulkEncodeKeys encodes a slice of keys and returns the encoded string keys and a
+// reverse map for decoding. Keys that fail to encode are skipped.
 //
 // Takes keys ([]K) which contains the keys to encode.
 //
@@ -885,8 +871,8 @@ func (a *RedisAdapter[K, V]) bulkEncodeKeys(ctx context.Context, keys []K) ([]st
 	return keyStrs, keyMap
 }
 
-// processBulkGetResult processes a single MGET result and returns the value
-// if successful.
+// processBulkGetResult processes a single MGET result and returns the value if
+// successful.
 //
 // Takes value (any) which is the raw value returned from Redis MGET.
 // Takes keyString (string) which identifies the cache key for logging.
@@ -925,8 +911,8 @@ func (a *RedisAdapter[K, V]) processBulkGetResult(ctx context.Context, value any
 	return result, true
 }
 
-// storeLoadedValues stores loaded values to Redis using a pipeline and updates
-// the results map.
+// storeLoadedValues stores loaded values to Redis using a pipeline and updates the
+// results map.
 //
 // Takes loaded (map[K]V) which holds the values fetched from the loader.
 // Takes results (map[K]V) which is updated with entries that were stored.
@@ -960,8 +946,8 @@ func (a *RedisAdapter[K, V]) storeLoadedValues(ctx context.Context, loaded map[K
 	}
 }
 
-// BulkGet retrieves multiple values from the cache, loading missing ones
-// via the bulk loader.
+// BulkGet retrieves multiple values from the cache, loading missing ones via the bulk
+// loader.
 //
 // Takes keys ([]K) which specifies the cache keys to retrieve.
 // Takes bulkLoader (BulkLoader[K, V]) which loads values for any cache misses.
@@ -1020,8 +1006,8 @@ func (a *RedisAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader c
 //
 // Takes key (K) which is the cache key to encode.
 // Takes value (V) which is the value to marshal for storage.
-// Takes defaultTTL (time.Duration) which is the fallback TTL when no expiry
-// calculator is configured.
+// Takes defaultTTL (time.Duration) which is the fallback TTL when no expiry calculator is
+// configured.
 //
 // Returns string which is the encoded key string.
 // Returns []byte which is the marshalled value bytes.
@@ -1061,12 +1047,10 @@ func (a *RedisAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, valu
 	return keyString, valBytes, entryTTL, true
 }
 
-// BulkSet stores multiple key-value pairs in the cache using a pipeline for
-// efficiency.
+// BulkSet stores multiple key-value pairs in the cache using a pipeline for efficiency.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
-// Takes tags (...string) which specifies optional tags to associate with the
-// keys.
+// Takes tags (...string) which specifies optional tags to associate with the keys.
 //
 // Returns error when the pipeline execution fails.
 func (a *RedisAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ...string) error {
@@ -1119,8 +1103,7 @@ func (a *RedisAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 	return nil
 }
 
-// bulkSetJSON stores multiple items using JSON.SET for search-indexed
-// namespaces.
+// bulkSetJSON stores multiple items using JSON.SET for search-indexed namespaces.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
 // Takes tags (...string) which specifies optional tags to associate with keys.
@@ -1151,8 +1134,8 @@ func (a *RedisAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, tag
 
 // InvalidateByTags removes all cache entries linked to the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries to remove.
@@ -1170,8 +1153,8 @@ func (a *RedisAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...strin
 	return count, nil
 }
 
-// flushUnsafe runs FLUSHDB on the Redis instance, deleting all keys in the
-// current database.
+// flushUnsafe runs FLUSHDB on the Redis instance, deleting all keys in the current
+// database.
 //
 // Returns error when the FLUSHDB command fails.
 func (a *RedisAdapter[K, V]) flushUnsafe(ctx context.Context) error {
@@ -1200,8 +1183,7 @@ func (a *RedisAdapter[K, V]) deleteBatch(ctx context.Context, batch []string) in
 	return int(deleted)
 }
 
-// invalidateByNamespace scans for and deletes all keys that match the
-// namespace pattern.
+// invalidateByNamespace scans for and deletes all keys that match the namespace pattern.
 //
 // Returns error when the SCAN iteration fails.
 func (a *RedisAdapter[K, V]) invalidateByNamespace(ctx context.Context) error {
@@ -1239,14 +1221,14 @@ func (a *RedisAdapter[K, V]) invalidateByNamespace(ctx context.Context) error {
 	return nil
 }
 
-// InvalidateAll removes all cache entries within the set namespace.
-// If search is enabled, it also drops the RediSearch index.
+// InvalidateAll removes all cache entries within the set namespace. If search is enabled,
+// it also drops the RediSearch index.
 //
-// When no namespace is set and AllowUnsafeFLUSHDB is false, the operation
-// is blocked and an error is returned.
+// When no namespace is set and AllowUnsafeFLUSHDB is false, the operation is blocked and
+// an error is returned.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //
@@ -1268,16 +1250,14 @@ func (a *RedisAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	return a.invalidateByNamespace(timeoutCtx)
 }
 
-// BulkRefresh updates several cache entries in the background using the
-// bulk loader.
+// BulkRefresh updates several cache entries in the background using the bulk loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads values for the given keys.
 //
-// Safe for concurrent use. Starts a goroutine that runs
-// the bulk loader and updates the cache. The goroutine
-// finishes when all keys are loaded and stored.
+// Safe for concurrent use. Starts a goroutine that runs the bulk loader and updates the
+// cache. The goroutine finishes when all keys are loaded and stored.
 func (a *RedisAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache.BulkLoader[K, V]) {
 	ctx, l := logger.From(ctx, log)
 	go func() {
@@ -1295,19 +1275,17 @@ func (a *RedisAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoad
 	}()
 }
 
-// Refresh asynchronously refreshes a single cache entry using the provided
-// loader.
+// Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
-// Takes loader (Loader[K, V]) which loads the fresh value for the
-// given key.
+// Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
-// Returns <-chan LoadResult[V] which receives the loaded value or error once
-// the background goroutine completes.
+// Returns <-chan LoadResult[V] which receives the loaded value or error once the
+// background goroutine completes.
 //
-// Safe for concurrent use. Spawns a goroutine that loads the value and updates
-// the cache. The returned channel is closed when the goroutine finishes.
+// Safe for concurrent use. Spawns a goroutine that loads the value and updates the cache.
+// The returned channel is closed when the goroutine finishes.
 func (a *RedisAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.Loader[K, V]) <-chan cache.LoadResult[V] {
 	ctx, l := logger.From(ctx, log)
 	resultChan := make(chan cache.LoadResult[V], 1)
@@ -1327,8 +1305,8 @@ func (a *RedisAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.Lo
 
 // All returns an iterator over all key-value pairs in the cache namespace.
 //
-// Returns iter.Seq2[K, V] which yields each key-value pair found in the
-// namespace via Redis SCAN.
+// Returns iter.Seq2[K, V] which yields each key-value pair found in the namespace via
+// Redis SCAN.
 func (a *RedisAdapter[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		ctx := context.Background()
@@ -1343,11 +1321,10 @@ func (a *RedisAdapter[K, V]) All() iter.Seq2[K, V] {
 	}
 }
 
-// allScanPattern returns the Redis SCAN pattern for iterating
-// all keys in the adapter's namespace.
+// allScanPattern returns the Redis SCAN pattern for iterating all keys in the adapter's
+// namespace.
 //
-// Returns string which is the wildcard pattern scoped to the
-// configured namespace.
+// Returns string which is the wildcard pattern scoped to the configured namespace.
 func (a *RedisAdapter[K, V]) allScanPattern() string {
 	if a.namespace != "" {
 		return a.namespace + scanAllPattern
@@ -1355,16 +1332,15 @@ func (a *RedisAdapter[K, V]) allScanPattern() string {
 	return scanAllPattern
 }
 
-// yieldScannedEntry decodes a single scanned key, fetches its
-// value, and yields it to the iterator consumer.
+// yieldScannedEntry decodes a single scanned key, fetches its value, and yields it to the
+// iterator consumer.
 //
-// Takes keyString (string) which is the raw Redis key to decode
-// and look up.
-// Takes yield (func(K, V) bool) which is the iterator callback
-// that receives the decoded key and its value.
+// Takes keyString (string) which is the raw Redis key to decode and look up.
+// Takes yield (func(K, V) bool) which is the iterator callback that receives the decoded
+// key and its value.
 //
-// Returns bool which is false when the consumer stopped
-// iteration early, or true if processing should continue.
+// Returns bool which is false when the consumer stopped iteration early, or true if
+// processing should continue.
 func (a *RedisAdapter[K, V]) yieldScannedEntry(ctx context.Context, keyString string, yield func(K, V) bool) bool {
 	_, l := logger.From(ctx, log)
 
@@ -1415,34 +1391,30 @@ func (a *RedisAdapter[K, V]) Values() iter.Seq[V] {
 	}
 }
 
-// GetEntry retrieves the full entry metadata for a key including TTL
-// information.
+// GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
-// Returns Entry[K, V] which contains the value and metadata such
-// as expiry time.
+// Returns Entry[K, V] which contains the value and metadata such as expiry time.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {
 	return a.ProbeEntry(ctx, key)
 }
 
-// ProbeEntry retrieves entry metadata without affecting access
-// patterns or TTL.
+// ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
-// Returns Entry[K, V] which contains the value and metadata such
-// as expiry time.
+// Returns Entry[K, V] which contains the value and metadata such as expiry time.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {
@@ -1538,8 +1510,7 @@ func (a *RedisAdapter[K, V]) EstimatedSize() int {
 
 // Stats returns cache statistics from the Redis server.
 //
-// Returns cache.Stats which contains hit and miss counts from the server's
-// INFO command.
+// Returns cache.Stats which contains hit and miss counts from the server's INFO command.
 func (a *RedisAdapter[K, V]) Stats() cache.Stats {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis Stats exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -1597,11 +1568,11 @@ func (a *RedisAdapter[K, V]) Close(ctx context.Context) error {
 	return nil
 }
 
-// SetExpiresAfter updates the time-to-live for an existing key using the Redis
-// EXPIRE command.
+// SetExpiresAfter updates the time-to-live for an existing key using the Redis EXPIRE
+// command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -1626,8 +1597,8 @@ func (a *RedisAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expires
 
 // GetMaximum returns the Redis maxmemory configuration value.
 //
-// Returns uint64 which is the maximum memory in bytes, or 0 if the value
-// cannot be retrieved or parsed.
+// Returns uint64 which is the maximum memory in bytes, or 0 if the value cannot be
+// retrieved or parsed.
 func (a *RedisAdapter[K, V]) GetMaximum() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis GetMaximum exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -1656,11 +1627,10 @@ func (*RedisAdapter[K, V]) SetMaximum(_ uint64) {
 	l.Warn("SetMaximum is not supported by the Redis provider and will have no effect.")
 }
 
-// WeightedSize returns the memory usage in bytes from the Redis used_memory
-// statistic.
+// WeightedSize returns the memory usage in bytes from the Redis used_memory statistic.
 //
-// Returns uint64 which is the memory usage in bytes, or zero if the statistic
-// cannot be read.
+// Returns uint64 which is the memory usage in bytes, or zero if the statistic cannot be
+// read.
 func (a *RedisAdapter[K, V]) WeightedSize() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis WeightedSize exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -1683,8 +1653,7 @@ func (a *RedisAdapter[K, V]) WeightedSize() uint64 {
 	return 0
 }
 
-// SetRefreshableAfter is a no-op as Redis does not natively support refresh
-// scheduling.
+// SetRefreshableAfter is a no-op as Redis does not natively support refresh scheduling.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //

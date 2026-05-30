@@ -18,7 +18,9 @@
 
 package cssinliner
 
-import "context"
+import (
+	"context"
+)
 
 // FSReaderPort defines the contract for reading files from the filesystem.
 type FSReaderPort interface {

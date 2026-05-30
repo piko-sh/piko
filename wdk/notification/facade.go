@@ -30,16 +30,14 @@ import (
 // Service manages notification providers and operations.
 type Service = notification_domain.Service
 
-// ProviderPort represents the interface that all notification providers
-// must implement. Implement it to create custom or mock providers.
+// ProviderPort represents the interface that all notification providers must implement.
+// Implement it to create custom or mock providers.
 type ProviderPort = notification_domain.NotificationProviderPort
 
-// DispatcherPort represents the interface for asynchronous notification
-// dispatchers.
+// DispatcherPort represents the interface for asynchronous notification dispatchers.
 type DispatcherPort = notification_domain.NotificationDispatcherPort
 
-// NotificationBuilder provides a fluent API for building and sending
-// notifications.
+// NotificationBuilder provides a fluent API for building and sending notifications.
 type NotificationBuilder = notification_domain.NotificationBuilder
 
 // SendParams holds all parameters needed to send a notification.
@@ -98,8 +96,7 @@ const (
 	ProviderStdout = notification_dto.NotificationNameStdout
 )
 
-// NotificationType represents the formatting and structure of notification
-// content.
+// NotificationType represents the formatting and structure of notification content.
 type NotificationType = notification_dto.NotificationType
 
 // DispatcherConfig holds configuration for the notification dispatcher.
@@ -111,12 +108,10 @@ type DeadLetterEntry = notification_dto.DeadLetterEntry
 // RetryConfig defines the retry behaviour for failed operations.
 type RetryConfig = notification_domain.RetryConfig
 
-// DispatcherStats holds counts and timing data about the notification
-// dispatcher.
+// DispatcherStats holds counts and timing data about the notification dispatcher.
 type DispatcherStats = notification_domain.DispatcherStats
 
-// ProviderCapabilities describes the features and limits of a notification
-// provider.
+// ProviderCapabilities describes the features and limits of a notification provider.
 type ProviderCapabilities = notification_domain.ProviderCapabilities
 
 // NewService creates a new notification service instance.
@@ -132,8 +127,7 @@ func NewService() Service {
 	return notification_domain.NewService()
 }
 
-// GetDefaultService returns the notification service initialised by the
-// framework.
+// GetDefaultService returns the notification service initialised by the framework.
 //
 // Returns Service which is the initialised notification service instance.
 // Returns error when the framework has not been bootstrapped.
@@ -152,8 +146,8 @@ func GetDefaultService() (Service, error) {
 	return service, nil
 }
 
-// NewNotificationBuilder creates a new notification builder for composing and
-// sending notifications.
+// NewNotificationBuilder creates a new notification builder for composing and sending
+// notifications.
 //
 // Takes service (Service) which is the notification service to use for sending.
 //
@@ -179,8 +173,8 @@ func NewNotificationBuilder(service Service) (*NotificationBuilder, error) {
 	return service.NewNotification(), nil
 }
 
-// NewNotificationBuilderFromDefault creates a new notification builder using
-// the framework's bootstrapped service.
+// NewNotificationBuilderFromDefault creates a new notification builder using the
+// framework's bootstrapped service.
 //
 // Returns *NotificationBuilder which is the builder ready for use.
 // Returns error when the framework has not been bootstrapped.

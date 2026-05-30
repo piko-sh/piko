@@ -18,15 +18,15 @@
 
 package linguistics_domain
 
-// AnalyserPort defines the interface for the text analysis pipeline.
-// It handles tokenisation, normalisation, stemming, and phonetic encoding.
+// AnalyserPort defines the interface for the text analysis pipeline. It handles
+// tokenisation, normalisation, stemming, and phonetic encoding.
 type AnalyserPort interface {
 	// Analyse performs a full text analysis based on the set mode.
 	//
 	// Takes text (string) which is the input to analyse.
 	//
-	// Returns []Token which contains tokens with their normalised, stemmed,
-	// or phonetic forms filled in.
+	// Returns []Token which contains tokens with their normalised, stemmed, or phonetic
+	// forms filled in.
 	Analyse(text string) []Token
 
 	// AnalyseToStrings returns the normalised token strings for quick processing.
@@ -36,16 +36,16 @@ type AnalyserPort interface {
 	// Returns []string which contains the normalised tokens.
 	AnalyseToStrings(text string) []string
 
-	// AnalyseToStemmed returns the stemmed forms of tokens from the given text.
-	// Only available in Smart mode.
+	// AnalyseToStemmed returns the stemmed forms of tokens from the given text. Only
+	// available in Smart mode.
 	//
 	// Takes text (string) which is the input to analyse.
 	//
 	// Returns []string which contains the stemmed token forms.
 	AnalyseToStemmed(text string) []string
 
-	// AnalyseToPhonetic returns the phonetic codes for each token in the text.
-	// Only works in Smart mode.
+	// AnalyseToPhonetic returns the phonetic codes for each token in the text. Only works in
+	// Smart mode.
 	//
 	// Takes text (string) which is the input to analyse.
 	//
@@ -64,8 +64,8 @@ type AnalyserPort interface {
 	GetMode() AnalysisMode
 }
 
-// TokeniserPort defines the contract for text tokenisation.
-// It splits text into tokens with position and offset tracking.
+// TokeniserPort defines the contract for text tokenisation. It splits text into tokens
+// with position and offset tracking.
 type TokeniserPort interface {
 	// Tokenise splits the input text into tokens.
 	//
@@ -74,8 +74,8 @@ type TokeniserPort interface {
 	// Returns []Token which contains the tokens with their positions and offsets.
 	Tokenise(text string) []Token
 
-	// TokeniseToStrings is a convenience method that returns just the normalised
-	// token strings. Useful when position information is not needed.
+	// TokeniseToStrings is a convenience method that returns just the normalised token
+	// strings. Useful when position information is not needed.
 	//
 	// Takes text (string) which is the input to tokenise.
 	//
@@ -83,8 +83,8 @@ type TokeniserPort interface {
 	TokeniseToStrings(text string) []string
 }
 
-// NormaliserPort defines the interface for text normalisation.
-// It handles Unicode normalisation, diacritic removal, and case folding.
+// NormaliserPort defines the interface for text normalisation. It handles Unicode
+// normalisation, diacritic removal, and case folding.
 type NormaliserPort interface {
 	// Normalise applies all normalisation changes to the input text.
 	//
@@ -101,11 +101,11 @@ type NormaliserPort interface {
 	NormaliseRune(r rune) rune
 }
 
-// StemmerPort defines the contract for multi-language word stemming.
-// It reduces words to their root form using the Snowball algorithm.
+// StemmerPort defines the contract for multi-language word stemming. It reduces words to
+// their root form using the Snowball algorithm.
 type StemmerPort interface {
-	// Stem reduces a word to its root form using the Snowball algorithm. The input
-	// word should already be normalised (lowercase, with diacritics removed).
+	// Stem reduces a word to its root form using the Snowball algorithm. The input word
+	// should already be normalised (lowercase, with diacritics removed).
 	//
 	// Takes word (string) which is the word to stem.
 	//
@@ -116,11 +116,11 @@ type StemmerPort interface {
 	GetLanguage() string
 }
 
-// PhoneticEncoderPort defines the contract for phonetic encoding.
-// It converts words to phonetic codes for "sounds-like" matching.
+// PhoneticEncoderPort defines the contract for phonetic encoding. It converts words to
+// phonetic codes for "sounds-like" matching.
 type PhoneticEncoderPort interface {
-	// Encode returns the main phonetic code for a word.
-	// The input should be in lowercase with no accents.
+	// Encode returns the main phonetic code for a word. The input should be in lowercase
+	// with no accents.
 	//
 	// Takes word (string) which is the word to encode.
 	//
@@ -133,8 +133,8 @@ type PhoneticEncoderPort interface {
 	GetLanguage() string
 }
 
-// StopWordsProviderPort defines the contract for stop words providers.
-// It provides language-specific stop word lists for text analysis.
+// StopWordsProviderPort defines the contract for stop words providers. It provides
+// language-specific stop word lists for text analysis.
 type StopWordsProviderPort interface {
 	// GetStopWords returns the stop words for a given language.
 	//

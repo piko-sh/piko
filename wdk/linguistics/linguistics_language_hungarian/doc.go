@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_language_hungarian registers the Hungarian
-// stemmer, phonetic encoder, and stop words provider as a single
-// blank import. It is a convenience wrapper around the individual
-// Hungarian linguistics sub-packages.
+// Package linguistics_language_hungarian registers the Hungarian stemmer, phonetic
+// encoder, and stop words provider as a single blank import. It is a convenience wrapper
+// around the individual Hungarian linguistics sub-packages.
 package linguistics_language_hungarian

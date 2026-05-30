@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file focuses on the logic required to find and resolve information
-// about methods on Go types.
+// This file focuses on the logic required to find and resolve information about methods
+// on Go types.
 
 import (
 	goast "go/ast"
@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// methodSearchParams holds the fixed values for a method search.
-// This groups related search settings together to keep function calls simple.
+// methodSearchParams holds the fixed values for a method search. This groups related
+// search settings together to keep function calls simple.
 type methodSearchParams struct {
 	// methodName is the name of the method to find.
 	methodName string
@@ -41,18 +41,16 @@ type methodSearchParams struct {
 	importerFilePath string
 }
 
-// FindMethodSignature is the public entry point for finding a method's
-// signature. It orchestrates an initial search and a potential retry search
-// for addressable values.
+// FindMethodSignature is the public entry point for finding a method's signature. It
+// orchestrates an initial search and a potential retry search for addressable values.
 //
-// Takes baseType (goast.Expr) which is the type expression to search for
-// methods on.
+// Takes baseType (goast.Expr) which is the type expression to search for methods on.
 // Takes methodName (string) which is the name of the method to find.
 // Takes importerPackagePath (string) which is the package path of the caller.
 // Takes importerFilePath (string) which is the file path of the caller.
 //
-// Returns *inspector_dto.FunctionSignature which contains the method's
-// signature, or nil if the method is not found.
+// Returns *inspector_dto.FunctionSignature which contains the method's signature, or nil
+// if the method is not found.
 func (ti *TypeQuerier) FindMethodSignature(
 	baseType goast.Expr,
 	methodName,
@@ -88,19 +86,18 @@ func (ti *TypeQuerier) FindMethodSignature(
 	return nil
 }
 
-// runMethodSearch sets up and runs a single method search using a searcher
-// that has already been obtained. It does not manage the searcher's pool.
+// runMethodSearch sets up and runs a single method search using a searcher that has
+// already been obtained. It does not manage the searcher's pool.
 //
 // Takes searcher (*methodSearcher) which provides the search context and state.
 // Takes params (*methodSearchParams) which holds the search settings.
 // Takes baseType (goast.Expr) which is the type expression to search from.
-// Takes isPointerQuery (bool) which indicates if searching for a pointer
-// receiver.
+// Takes isPointerQuery (bool) which indicates if searching for a pointer receiver.
 //
-// Returns *inspector_dto.FunctionSignature which is the found method signature,
-// or nil if not found.
-// Returns *inspector_dto.Type which is the type where the method is defined,
-// or nil if not found.
+// Returns *inspector_dto.FunctionSignature which is the found method signature, or nil if
+// not found.
+// Returns *inspector_dto.Type which is the type where the method is defined, or nil if
+// not found.
 func (ti *TypeQuerier) runMethodSearch(
 	searcher *methodSearcher,
 	params *methodSearchParams,
@@ -119,17 +116,16 @@ func (ti *TypeQuerier) runMethodSearch(
 	return searcher.result, searcher.resultDefiningType
 }
 
-// FindMethodReturnType finds a method and returns the AST for its first
-// return type. It requires the full file-scoped context to correctly resolve
-// the method's receiver type.
+// FindMethodReturnType finds a method and returns the AST for its first return type. It
+// requires the full file-scoped context to correctly resolve the method's receiver type.
 //
 // Takes baseType (goast.Expr) which is the receiver type to search for methods.
 // Takes methodName (string) which is the name of the method to find.
 // Takes importerPackagePath (string) which is the package path for import context.
 // Takes importerFilePath (string) which is the file path for scope resolution.
 //
-// Returns goast.Expr which is the AST of the method's first return type, or
-// nil if the method is not found or has no return values.
+// Returns goast.Expr which is the AST of the method's first return type, or nil if the
+// method is not found or has no return values.
 func (ti *TypeQuerier) FindMethodReturnType(
 	baseType goast.Expr,
 	methodName,
@@ -162,18 +158,17 @@ func (ti *TypeQuerier) FindMethodReturnType(
 	return goastutil.TypeStringToAST(sig.Results[0])
 }
 
-// searchMethodWithPointerRetry searches for a method and retries with a pointer
-// type if the first search fails for external values.
+// searchMethodWithPointerRetry searches for a method and retries with a pointer type if
+// the first search fails for external values.
 //
 // Takes searcher (*methodSearcher) which performs the method lookup.
 // Takes params (*methodSearchParams) which specifies the search criteria.
 // Takes resolvedBaseType (goast.Expr) which is the resolved type to search on.
-// Takes originalBaseType (goast.Expr) which is the original type before
-// resolution.
+// Takes originalBaseType (goast.Expr) which is the original type before resolution.
 // Takes isPointer (bool) which indicates whether the type is already a pointer.
 //
-// Returns *inspector_dto.FunctionSignature which is the found method signature,
-// or nil if not found.
+// Returns *inspector_dto.FunctionSignature which is the found method signature, or nil if
+// not found.
 // Returns *inspector_dto.Type which is the defining type of the method.
 func (ti *TypeQuerier) searchMethodWithPointerRetry(
 	searcher *methodSearcher,
@@ -189,12 +184,12 @@ func (ti *TypeQuerier) searchMethodWithPointerRetry(
 	return sig, defType
 }
 
-// tryGetOriginalMethodReturnType attempts to get the original unsubstituted
-// return type. This is used for non-promoted generic methods where we want to
-// preserve type parameters.
+// tryGetOriginalMethodReturnType attempts to get the original unsubstituted return type.
+// This is used for non-promoted generic methods where we want to preserve type
+// parameters.
 //
-// Should NOT be used when the base type is a generic instantiation with concrete
-// type arguments (e.g. Ref[TeamMember]).
+// Should NOT be used when the base type is a generic instantiation with concrete type
+// arguments (e.g. Ref[TeamMember]).
 //
 // Takes defType (*inspector_dto.Type) which is the type definition to check.
 // Takes resolvedBaseType (goast.Expr) which is the resolved base type expression.
@@ -202,8 +197,8 @@ func (ti *TypeQuerier) searchMethodWithPointerRetry(
 // Takes importerPackagePath (string) which is the importing package path.
 // Takes importerFilePath (string) which is the importing file path.
 //
-// Returns goast.Expr which is the original method return type, or nil if the
-// type cannot be matched or the method is not found.
+// Returns goast.Expr which is the original method return type, or nil if the type cannot
+// be matched or the method is not found.
 func (ti *TypeQuerier) tryGetOriginalMethodReturnType(
 	defType *inspector_dto.Type,
 	resolvedBaseType goast.Expr,
@@ -242,11 +237,9 @@ func (ti *TypeQuerier) isSameType(a, b *inspector_dto.Type) bool {
 	return aPath == bPath && a.Name == b.Name
 }
 
-// findMethodReturnTypeInDTO looks for a method by name and returns its first
-// result type.
+// findMethodReturnTypeInDTO looks for a method by name and returns its first result type.
 //
-// Takes methods ([]*inspector_dto.Method) which is the list of methods to
-// search.
+// Takes methods ([]*inspector_dto.Method) which is the list of methods to search.
 // Takes methodName (string) which is the name of the method to find.
 //
 // Returns goast.Expr which is the first result type, or nil if not found.
@@ -260,20 +253,17 @@ func (*TypeQuerier) findMethodReturnTypeInDTO(methods []*inspector_dto.Method, m
 	return nil
 }
 
-// FindMethodInfo finds a method and returns the full Method DTO including
-// location information. This is used when the caller needs access to
-// definition location (file, line, column).
+// FindMethodInfo finds a method and returns the full Method DTO including location
+// information. This is used when the caller needs access to definition location (file,
+// line, column).
 //
-// Takes baseType (goast.Expr) which is the type expression to search for
-// methods on.
+// Takes baseType (goast.Expr) which is the type expression to search for methods on.
 // Takes methodName (string) which is the name of the method to find.
-// Takes importerPackagePath (string) which is the package path of the importing
-// code.
-// Takes importerFilePath (string) which is the file path of the importing
-// code.
+// Takes importerPackagePath (string) which is the package path of the importing code.
+// Takes importerFilePath (string) which is the file path of the importing code.
 //
-// Returns *inspector_dto.Method which contains the method definition with
-// location details, or nil if not found.
+// Returns *inspector_dto.Method which contains the method definition with location
+// details, or nil if not found.
 func (ti *TypeQuerier) FindMethodInfo(
 	baseType goast.Expr,
 	methodName,
@@ -320,8 +310,8 @@ func (ti *TypeQuerier) FindMethodInfo(
 	return nil
 }
 
-// isExternalValue checks if a type expression refers to a value from an
-// external package (e.g. "models.User").
+// isExternalValue checks if a type expression refers to a value from an external package
+// (e.g. "models.User").
 //
 // Takes baseType (goast.Expr) which is the type expression to check.
 //

@@ -30,11 +30,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var _ DBTX = (*otelDBTX)(nil)
+var (
+	_ DBTX = (*otelDBTX)(nil)
+)
 
-// otelDBTX wraps a DBTX with OpenTelemetry tracing and metrics, creating a
-// span and recording duration metrics for each database call. When the OTel
-// SDK is not configured, no-op providers ensure zero overhead.
+// otelDBTX wraps a DBTX with OpenTelemetry tracing and metrics, creating a span and
+// recording duration metrics for each database call. When the OTel SDK is not configured,
+// no-op providers ensure zero overhead.
 type otelDBTX struct {
 	// inner is the underlying database connection being instrumented.
 	inner DBTX
@@ -55,13 +57,11 @@ type otelDBTX struct {
 // newOTelDBTX creates an instrumented DBTX wrapper.
 //
 // Takes inner (DBTX) which is the underlying database connection.
-// Takes databaseSystem (string) which is the OTel db.system value
-// (e.g. "postgresql", "mysql", "sqlite").
-// Takes databaseNamespace (string) which is the registered database name
-// (e.g. "tasks").
-// Takes resolver (func(string) string) which maps a SQL query string to a
-// human-readable operation name. May be nil, in which case operations are
-// reported as "UNKNOWN".
+// Takes databaseSystem (string) which is the OTel db.system value (e.g. "postgresql",
+// "mysql", "sqlite").
+// Takes databaseNamespace (string) which is the registered database name (e.g. "tasks").
+// Takes resolver (func(string) string) which maps a SQL query string to a human-readable
+// operation name. May be nil, in which case operations are reported as "UNKNOWN".
 //
 // Returns *otelDBTX which implements DBTX with instrumentation.
 func newOTelDBTX(
@@ -79,8 +79,8 @@ func newOTelDBTX(
 	}
 }
 
-// ExecContext executes a query without returning rows, wrapped with a span
-// and metric recording.
+// ExecContext executes a query without returning rows, wrapped with a span and metric
+// recording.
 //
 // Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
@@ -105,8 +105,8 @@ func (o *otelDBTX) ExecContext(ctx context.Context, query string, arguments ...a
 	return result, err
 }
 
-// QueryContext executes a query that returns rows, wrapped with a span and
-// metric recording.
+// QueryContext executes a query that returns rows, wrapped with a span and metric
+// recording.
 //
 // Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
@@ -131,9 +131,9 @@ func (o *otelDBTX) QueryContext(ctx context.Context, query string, arguments ...
 	return rows, err
 }
 
-// QueryRowContext executes a query that returns at most one row, wrapped with
-// a span and duration metric. Errors are deferred to row.Scan and cannot be
-// captured at the DBTX level.
+// QueryRowContext executes a query that returns at most one row, wrapped with a span and
+// duration metric. Errors are deferred to row.Scan and cannot be captured at the DBTX
+// level.
 //
 // Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
@@ -152,13 +152,13 @@ func (o *otelDBTX) QueryRowContext(ctx context.Context, query string, arguments 
 	return row
 }
 
-// resolveOperation maps a SQL query string to a human-readable operation name
-// using the configured resolver.
+// resolveOperation maps a SQL query string to a human-readable operation name using the
+// configured resolver.
 //
 // Takes query (string) which is the SQL query to resolve.
 //
-// Returns string which is the operation name, or "UNKNOWN" when the resolver
-// is nil or returns an empty string.
+// Returns string which is the operation name, or "UNKNOWN" when the resolver is nil or
+// returns an empty string.
 func (o *otelDBTX) resolveOperation(query string) string {
 	if o.resolver != nil {
 		if name := o.resolver(query); name != "" {
@@ -189,8 +189,7 @@ func (o *otelDBTX) startSpan(ctx context.Context, operation string) (context.Con
 //
 // Takes ctx (context.Context) which carries the metric context.
 // Takes operation (string) which is the operation name for metric attributes.
-// Takes start (time.Time) which is the operation start time for duration
-// calculation.
+// Takes start (time.Time) which is the operation start time for duration calculation.
 // Takes err (error) which, when non-nil, increments the error counter.
 func (o *otelDBTX) recordMetrics(ctx context.Context, operation string, start time.Time, err error) {
 	duration := float64(time.Since(start).Milliseconds())

@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ComponentMetadata holds type information taken from TypeScript source code.
-// This replaces the previous decorator-based metadata system.
+// ComponentMetadata holds type information taken from TypeScript source code. This
+// replaces the previous decorator-based metadata system.
 type ComponentMetadata struct {
 	// StateProperties maps property names to their type metadata.
 	StateProperties map[string]*PropertyMetadata
@@ -35,8 +35,7 @@ type ComponentMetadata struct {
 	// Methods maps method names to their metadata.
 	Methods map[string]*MethodMetadata
 
-	// BooleanProps lists state properties with boolean type, used for VDOM
-	// generation.
+	// BooleanProps lists state properties with boolean type, used for VDOM generation.
 	BooleanProps []string
 }
 
@@ -45,8 +44,8 @@ type PropertyMetadata struct {
 	// Name is the property name as it appears in the source code.
 	Name string
 
-	// JSType is the JavaScript type: "string", "number",
-	// "boolean", "array", "object", or "any".
+	// JSType is the JavaScript type: "string", "number", "boolean", "array", "object", or
+	// "any".
 	JSType string
 
 	// ElementType specifies the type of elements for array properties.
@@ -58,15 +57,13 @@ type PropertyMetadata struct {
 	// ValueType is the value type for maps; for Map<K, V> this holds V.
 	ValueType string
 
-	// InitialValue holds the JavaScript expression as a string for use as the
-	// default value.
+	// InitialValue holds the JavaScript expression as a string for use as the default value.
 	InitialValue string
 
 	// Location specifies where this property is defined in the source file.
 	Location ast_domain.Location
 
-	// IsNullable indicates whether this is a union type
-	// containing null or undefined.
+	// IsNullable indicates whether this is a union type containing null or undefined.
 	IsNullable bool
 }
 
@@ -79,11 +76,11 @@ type MethodMetadata struct {
 	Location ast_domain.Location
 }
 
-// GetPropType returns the property type in the format expected by the
-// propTypes getter, matching the Web Components API format.
+// GetPropType returns the property type in the format expected by the propTypes getter,
+// matching the Web Components API format.
 //
-// Returns string which is the formatted type name such as
-// "String", "Number", "Array<String>", or "Map<String,Number>".
+// Returns string which is the formatted type name such as "String", "Number",
+// "Array<String>", or "Map<String,Number>".
 func (p *PropertyMetadata) GetPropType() string {
 	titleCaser := cases.Title(language.English)
 	switch p.JSType {
@@ -113,8 +110,8 @@ func (p *PropertyMetadata) GetPropType() string {
 
 // GetDefaultValue returns the initial value for the defaultProps getter.
 //
-// Returns string which is the property's initial value if set, otherwise a
-// sensible default based on the JavaScript type.
+// Returns string which is the property's initial value if set, otherwise a sensible
+// default based on the JavaScript type.
 func (p *PropertyMetadata) GetDefaultValue() string {
 	if p.InitialValue != "" {
 		return p.InitialValue
@@ -143,11 +140,11 @@ func (p *PropertyMetadata) IsBoolean() bool {
 	return p.JSType == "boolean"
 }
 
-// NewComponentMetadata creates an empty ComponentMetadata with initialised
-// maps and slices ready for use.
+// NewComponentMetadata creates an empty ComponentMetadata with initialised maps and
+// slices ready for use.
 //
-// Returns *ComponentMetadata which contains empty but initialised collections
-// for state properties, methods, and boolean props.
+// Returns *ComponentMetadata which contains empty but initialised collections for state
+// properties, methods, and boolean props.
 func NewComponentMetadata() *ComponentMetadata {
 	return &ComponentMetadata{
 		StateProperties: make(map[string]*PropertyMetadata),

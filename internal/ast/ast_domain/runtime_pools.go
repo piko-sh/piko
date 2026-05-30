@@ -20,15 +20,15 @@
 
 package ast_domain
 
-// Provides object pooling for runtime annotation instances to reduce
-// allocations during template rendering. Implements sync.Pool-based recycling
-// for RuntimeAnnotation objects used in request handling and CSRF protection.
+// Provides object pooling for runtime annotation instances to reduce allocations during
+// template rendering. Implements sync.Pool-based recycling for RuntimeAnnotation objects
+// used in request handling and CSRF protection.
 //
-// Each pool is held behind an atomic.Pointer[sync.Pool] so the Reset* helpers
-// can swap in a fresh pool without racing concurrent Get/Put callers. A direct
-// `pool = sync.Pool{...}` reassignment performs a non-atomic struct copy that
-// tears reads of the (local, localSize) pair under the race detector and can
-// crash with a checkptr violation in sync.indexLocal.
+// Each pool is held behind an atomic.Pointer[sync.Pool] so the Reset* helpers can swap in
+// a fresh pool without racing concurrent Get/Put callers. A direct `pool =
+// sync.Pool{...}` reassignment performs a non-atomic struct copy that tears reads of the
+// (local, localSize) pair under the race detector and can crash with a checkptr violation
+// in sync.indexLocal.
 
 import (
 	"sync"
@@ -38,12 +38,12 @@ import (
 //nolint:revive // pool thresholds
 
 var (
-	// runtimeAnnotationPool provides RuntimeAnnotation values, eliminating
-	// allocations for CSRF annotations after warmup.
+	// runtimeAnnotationPool provides RuntimeAnnotation values, eliminating allocations for
+	// CSRF annotations after warmup.
 	runtimeAnnotationPool atomic.Pointer[sync.Pool]
 
-	// templateASTPool stores reusable TemplateAST instances to eliminate root
-	// AST allocations after warmup.
+	// templateASTPool stores reusable TemplateAST instances to eliminate root AST
+	// allocations after warmup.
 	templateASTPool atomic.Pointer[sync.Pool]
 
 	// rootNodesPool1 reuses []*TemplateNode slices (cap 1).
@@ -108,16 +108,16 @@ func init() {
 	rootNodesPool128.Store(newRootNodesPool(128))
 }
 
-// newRuntimeAnnotationPool builds a fresh sync.Pool whose New func returns
-// a zero-valued RuntimeAnnotation. Used by init and ResetRuntimeAnnotationPool.
+// newRuntimeAnnotationPool builds a fresh sync.Pool whose New func returns a zero-valued
+// RuntimeAnnotation. Used by init and ResetRuntimeAnnotationPool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newRuntimeAnnotationPool() *sync.Pool {
 	return &sync.Pool{New: func() any { return new(RuntimeAnnotation) }}
 }
 
-// newTemplateASTPool builds a fresh sync.Pool whose New func returns a
-// zero-valued TemplateAST. Used by init and ResetTemplateASTPool.
+// newTemplateASTPool builds a fresh sync.Pool whose New func returns a zero-valued
+// TemplateAST. Used by init and ResetTemplateASTPool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newTemplateASTPool() *sync.Pool {
@@ -125,8 +125,8 @@ func newTemplateASTPool() *sync.Pool {
 }
 
 // newRootNodesPool builds a fresh sync.Pool whose New func returns an empty
-// []*TemplateNode of the given capacity. Used by init and
-// ResetTemplateASTPool to populate one bucket of the size-class ladder.
+// []*TemplateNode of the given capacity. Used by init and ResetTemplateASTPool to
+// populate one bucket of the size-class ladder.
 //
 // Takes capacity (int) which is the slice capacity for the bucket.
 //
@@ -156,8 +156,8 @@ func (ast *TemplateAST) Reset() {
 	ast.isPooled = false
 }
 
-// GetRuntimeAnnotation fetches a RuntimeAnnotation from the pool.
-// The returned annotation has all fields set to their zero values.
+// GetRuntimeAnnotation fetches a RuntimeAnnotation from the pool. The returned annotation
+// has all fields set to their zero values.
 //
 // Returns *RuntimeAnnotation which is ready for use.
 func GetRuntimeAnnotation() *RuntimeAnnotation {
@@ -168,8 +168,8 @@ func GetRuntimeAnnotation() *RuntimeAnnotation {
 	return ra
 }
 
-// PutRuntimeAnnotation returns a RuntimeAnnotation to the pool.
-// Resets all fields to zero values before returning.
+// PutRuntimeAnnotation returns a RuntimeAnnotation to the pool. Resets all fields to zero
+// values before returning.
 //
 // Takes ra (*RuntimeAnnotation) which is the annotation to return to the pool.
 func PutRuntimeAnnotation(ra *RuntimeAnnotation) {
@@ -180,14 +180,14 @@ func PutRuntimeAnnotation(ra *RuntimeAnnotation) {
 	runtimeAnnotationPool.Load().Put(ra)
 }
 
-// ResetRuntimeAnnotationPool atomically swaps in a fresh RuntimeAnnotation
-// pool for test isolation. Safe to call concurrently with Get/Put.
+// ResetRuntimeAnnotationPool atomically swaps in a fresh RuntimeAnnotation pool for test
+// isolation. Safe to call concurrently with Get/Put.
 func ResetRuntimeAnnotationPool() {
 	runtimeAnnotationPool.Store(newRuntimeAnnotationPool())
 }
 
-// GetTemplateAST retrieves a TemplateAST from the pool.
-// The returned AST has all fields set to zero and is marked as pooled.
+// GetTemplateAST retrieves a TemplateAST from the pool. The returned AST has all fields
+// set to zero and is marked as pooled.
 //
 // Returns *TemplateAST which is a ready-to-use AST from the pool.
 func GetTemplateAST() *TemplateAST {
@@ -216,14 +216,13 @@ func PutTemplateAST(ast *TemplateAST) {
 
 // GetRootNodesSlice gets a slice from a pool for storing root nodes.
 //
-// The capacity is rounded up to the nearest bucket size (1, 2, 4, 6, 8, 10,
-// 12, 16, 24, 32, 48, 64, 96, 128). For capacity over 128, a new slice is
-// created instead.
+// The capacity is rounded up to the nearest bucket size (1, 2, 4, 6, 8, 10, 12, 16, 24,
+// 32, 48, 64, 96, 128). For capacity over 128, a new slice is created instead.
 //
 // Takes capacity (int) which is the minimum slice capacity needed.
 //
-// Returns []*TemplateNode which is a pooled slice with zero length, or nil if
-// capacity is zero or less.
+// Returns []*TemplateNode which is a pooled slice with zero length, or nil if capacity is
+// zero or less.
 func GetRootNodesSlice(capacity int) []*TemplateNode {
 	if capacity <= 0 {
 		return nil
@@ -305,8 +304,8 @@ func PutRootNodesSlice(s []*TemplateNode) {
 	}
 }
 
-// ResetTemplateASTPool atomically swaps in fresh TemplateAST and rootNodes
-// pools for test isolation. Safe to call concurrently with Get/Put.
+// ResetTemplateASTPool atomically swaps in fresh TemplateAST and rootNodes pools for test
+// isolation. Safe to call concurrently with Get/Put.
 func ResetTemplateASTPool() {
 	templateASTPool.Store(newTemplateASTPool())
 	rootNodesPool1.Store(newRootNodesPool(1))

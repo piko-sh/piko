@@ -62,15 +62,14 @@ references/
 )
 
 const (
-	// agentsStepSelect is the step where the user picks which AI tools to
-	// configure.
+	// agentsStepSelect is the step where the user picks which AI tools to configure.
 	agentsStepSelect = iota
 
 	// agentsStepInstalling is the step where files are being copied.
 	agentsStepInstalling
 
-	// agentsStepGitignore asks whether to add agent files to .gitignore.
-	// Only shown when project-level AGENTS.md was installed.
+	// agentsStepGitignore asks whether to add agent files to .gitignore. Only shown when
+	// project-level AGENTS.md was installed.
 	agentsStepGitignore
 
 	// agentsStepDone is the final step showing a summary before exit.
@@ -78,20 +77,18 @@ const (
 )
 
 const (
-	// agentsUninstallStepSelect is the step where the user picks which
-	// installed agents to remove.
+	// agentsUninstallStepSelect is the step where the user picks which installed agents to
+	// remove.
 	agentsUninstallStepSelect = iota
 
 	// agentsUninstallStepRemoving is the step where files are being deleted.
 	agentsUninstallStepRemoving
 
-	// agentsUninstallStepGitignore asks whether to remove agent entries from
-	// .gitignore. Only shown when AGENTS.md was uninstalled and .gitignore
-	// contains agent entries.
+	// agentsUninstallStepGitignore asks whether to remove agent entries from .gitignore.
+	// Only shown when AGENTS.md was uninstalled and .gitignore contains agent entries.
 	agentsUninstallStepGitignore
 
-	// agentsUninstallStepDone is the final step showing a summary before
-	// exit.
+	// agentsUninstallStepDone is the final step showing a summary before exit.
 	agentsUninstallStepDone
 )
 
@@ -140,8 +137,7 @@ type agentsModel struct {
 
 	wizardbase.WizardBase
 
-	// gitignoreCursor tracks the selected option in the gitignore step
-	// (0 = Yes, 1 = No).
+	// gitignoreCursor tracks the selected option in the gitignore step (0 = Yes, 1 = No).
 	gitignoreCursor int
 
 	// gitignoreUpdated records whether .gitignore was modified.
@@ -279,9 +275,9 @@ func (m *agentsModel) handleKeyMessage(message tea.KeyPressMsg) (tea.Model, tea.
 	return m, nil
 }
 
-// handleEnter processes the enter key press at each step. In the select step,
-// enter toggles a checkbox when the cursor is on a tool item, and only
-// confirms when the cursor is on the "Continue" button.
+// handleEnter processes the enter key press at each step. In the select step, enter
+// toggles a checkbox when the cursor is on a tool item, and only confirms when the cursor
+// is on the "Continue" button.
 //
 // Returns tea.Model which is the updated model after processing.
 // Returns tea.Cmd which is the command to run, or nil if none is needed.
@@ -298,13 +294,13 @@ func (m *agentsModel) handleEnter() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// runSelectedTargetOperations iterates over selected indices and calls operate
-// for each. Returns the collected result strings, or the first error encountered.
+// runSelectedTargetOperations iterates over selected indices and calls operate for each.
+// Returns the collected result strings, or the first error encountered.
 //
 // Takes count (int) which is the total number of targets.
 // Takes selected ([]bool) which marks which indices are active.
-// Takes operate (func(int) (string, error)) which performs the operation for a
-// given index.
+// Takes operate (func(int) (string, error)) which performs the operation for a given
+// index.
 //
 // Returns []string which holds one summary line per operated target.
 // Returns error when any single operation fails.
@@ -390,8 +386,7 @@ type agentsUninstallDoneMessage struct {
 	results []string
 }
 
-// agentsUninstallModel holds the state for the interactive agents uninstaller
-// TUI.
+// agentsUninstallModel holds the state for the interactive agents uninstaller TUI.
 type agentsUninstallModel struct {
 	// err holds any error that occurred.
 	err error
@@ -407,15 +402,14 @@ type agentsUninstallModel struct {
 
 	wizardbase.WizardBase
 
-	// gitignoreCursor tracks the selected option in the gitignore step
-	// (0 = Yes, 1 = No).
+	// gitignoreCursor tracks the selected option in the gitignore step (0 = Yes, 1 = No).
 	gitignoreCursor int
 
 	// gitignoreUpdated records whether .gitignore was modified.
 	gitignoreUpdated bool
 
-	// hasGitignoreEntries indicates whether .gitignore contains agent
-	// entries that can be removed.
+	// hasGitignoreEntries indicates whether .gitignore contains agent entries that can be
+	// removed.
 	hasGitignoreEntries bool
 }
 
@@ -513,8 +507,7 @@ func (m *agentsUninstallModel) View() tea.View {
 	return tea.NewView(s.String())
 }
 
-// uninstalledAgentsMD returns true if the AGENTS.md target was selected
-// for removal.
+// uninstalledAgentsMD returns true if the AGENTS.md target was selected for removal.
 //
 // Returns bool which is true when AGENTS.md was selected.
 func (m *agentsUninstallModel) uninstalledAgentsMD() bool {
@@ -551,8 +544,7 @@ func (m *agentsUninstallModel) handleKeyMessage(message tea.KeyPressMsg) (tea.Mo
 	return m, nil
 }
 
-// handleUninstallEnterKey handles the enter key for uninstall
-// steps.
+// handleUninstallEnterKey handles the enter key for uninstall steps.
 //
 // Returns tea.Model which is the updated model state.
 // Returns tea.Cmd which is the command to run, or nil if none.
@@ -566,8 +558,7 @@ func (m *agentsUninstallModel) handleUninstallEnterKey() (tea.Model, tea.Cmd) {
 	return m.handleEnter()
 }
 
-// navigateUninstall handles up/down navigation for the
-// uninstall model.
+// navigateUninstall handles up/down navigation for the uninstall model.
 //
 // Takes message (tea.KeyPressMsg) which holds the key event.
 // Takes directory (int) which is -1 for up or 1 for down.
@@ -579,9 +570,9 @@ func (m *agentsUninstallModel) navigateUninstall(message tea.KeyPressMsg, direct
 	}
 }
 
-// handleEnter processes the enter key press at each step. In the select step,
-// enter toggles a checkbox when the cursor is on an item, and only confirms
-// when the cursor is on the "Continue" button.
+// handleEnter processes the enter key press at each step. In the select step, enter
+// toggles a checkbox when the cursor is on an item, and only confirms when the cursor is
+// on the "Continue" button.
 //
 // Returns tea.Model which is the updated model after processing.
 // Returns tea.Cmd which is the command to run, or nil if none is needed.
@@ -675,8 +666,7 @@ func RunAgents(arguments []string) int {
 
 // newAgentsModel creates a fresh agentsModel with the available targets.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
 // Returns *agentsModel which is ready for the select step.
 func newAgentsModel(factory safedisk.Factory) *agentsModel {
@@ -722,11 +712,10 @@ func newAgentsModel(factory safedisk.Factory) *agentsModel {
 	}
 }
 
-// newAgentsUninstallModel creates a fresh agentsUninstallModel populated with
-// targets that are currently installed.
+// newAgentsUninstallModel creates a fresh agentsUninstallModel populated with targets
+// that are currently installed.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
 // Returns *agentsUninstallModel which is ready for the select step.
 func newAgentsUninstallModel(factory safedisk.Factory) *agentsUninstallModel {
@@ -784,10 +773,9 @@ func newAgentsUninstallModel(factory safedisk.Factory) *agentsUninstallModel {
 	}
 }
 
-// removeGitignoreEntries removes agent file entries from .gitignore using the
-// provided sandbox for filesystem access. If the exact block inserted by
-// install is found it is removed; otherwise individual agent lines are
-// stripped.
+// removeGitignoreEntries removes agent file entries from .gitignore using the provided
+// sandbox for filesystem access. If the exact block inserted by install is found it is
+// removed; otherwise individual agent lines are stripped.
 //
 // Takes builder (safedisk.Sandbox) which provides sandboxed filesystem access.
 //
@@ -831,9 +819,8 @@ func removeGitignoreEntries(builder safedisk.Sandbox) error {
 	return builder.WriteFile(path, []byte(updated), agentsFilePerms)
 }
 
-// appendGitignoreEntries appends agent file entries to .gitignore using the
-// provided sandbox for filesystem access. Creates the file if it does not
-// exist.
+// appendGitignoreEntries appends agent file entries to .gitignore using the provided
+// sandbox for filesystem access. Creates the file if it does not exist.
 //
 // Takes builder (safedisk.Sandbox) which provides sandboxed filesystem access.
 //
@@ -876,15 +863,13 @@ Run 'piko agents install' to get started.
 `)
 }
 
-// runAgentsInstall shows an interactive TUI for selecting which AI coding
-// tools to configure with Piko framework knowledge, then copies the relevant
-// files to each tool's expected location.
+// runAgentsInstall shows an interactive TUI for selecting which AI coding tools to
+// configure with Piko framework knowledge, then copies the relevant files to each tool's
+// expected location.
 //
-// Takes arguments ([]string) which holds any command-line flags
-// (currently unused).
+// Takes arguments ([]string) which holds any command-line flags (currently unused).
 //
-// Returns int which is the exit code: 0 on success, 1 on error or
-// cancellation.
+// Returns int which is the exit code: 0 on success, 1 on error or cancellation.
 func runAgentsInstall(arguments []string) int {
 	_ = arguments
 
@@ -919,14 +904,12 @@ func runAgentsInstall(arguments []string) int {
 	return 0
 }
 
-// runAgentsUninstall shows an interactive TUI for selecting which installed
-// agent integrations to remove.
+// runAgentsUninstall shows an interactive TUI for selecting which installed agent
+// integrations to remove.
 //
-// Takes arguments ([]string) which holds any command-line flags
-// (currently unused).
+// Takes arguments ([]string) which holds any command-line flags (currently unused).
 //
-// Returns int which is the exit code: 0 on success, 1 on error or
-// cancellation.
+// Returns int which is the exit code: 0 on success, 1 on error or cancellation.
 func runAgentsUninstall(arguments []string) int {
 	_ = arguments
 

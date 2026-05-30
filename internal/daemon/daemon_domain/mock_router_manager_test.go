@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +43,7 @@ func TestMockRouterManager_ReloadRoutes(t *testing.T) {
 		err := mock.ReloadRoutes(context.Background(), nil)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
+		assert.Equal(t, int64(1), mock.ReloadRoutesCallCount.Load())
 	})
 
 	t.Run("delegates to ReloadRoutesFunc", func(t *testing.T) {
@@ -63,7 +62,7 @@ func TestMockRouterManager_ReloadRoutes(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, capturedStore)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
+		assert.Equal(t, int64(1), mock.ReloadRoutesCallCount.Load())
 	})
 
 	t.Run("propagates error from ReloadRoutesFunc", func(t *testing.T) {
@@ -80,7 +79,7 @@ func TestMockRouterManager_ReloadRoutes(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr.Error(), err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
+		assert.Equal(t, int64(1), mock.ReloadRoutesCallCount.Load())
 	})
 }
 
@@ -96,7 +95,7 @@ func TestMockRouterManager_ServeHTTP(t *testing.T) {
 
 		mock.ServeHTTP(w, r)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ServeHTTPCallCount))
+		assert.Equal(t, int64(1), mock.ServeHTTPCallCount.Load())
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
@@ -123,7 +122,7 @@ func TestMockRouterManager_ServeHTTP(t *testing.T) {
 		assert.Equal(t, w, capturedWriter)
 		assert.Equal(t, r, capturedRequest)
 		assert.Equal(t, http.StatusAccepted, w.Code)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ServeHTTPCallCount))
+		assert.Equal(t, int64(1), mock.ServeHTTPCallCount.Load())
 	})
 }
 
@@ -134,12 +133,12 @@ func TestMockRouterManager_ZeroValueIsUsable(t *testing.T) {
 
 	err := mock.ReloadRoutes(context.Background(), nil)
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
+	assert.Equal(t, int64(1), mock.ReloadRoutesCallCount.Load())
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	mock.ServeHTTP(w, r)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ServeHTTPCallCount))
+	assert.Equal(t, int64(1), mock.ServeHTTPCallCount.Load())
 }
 
 func TestMockRouterManager_ConcurrentAccess(t *testing.T) {
@@ -166,8 +165,8 @@ func TestMockRouterManager_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ServeHTTPCallCount))
+	assert.Equal(t, int64(goroutines), mock.ReloadRoutesCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ServeHTTPCallCount.Load())
 }
 
 func TestMockRouterManager_CallCountsAreIndependent(t *testing.T) {
@@ -182,8 +181,8 @@ func TestMockRouterManager_CallCountsAreIndependent(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	mock.ServeHTTP(w, r)
 
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.ReloadRoutesCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ServeHTTPCallCount))
+	assert.Equal(t, int64(2), mock.ReloadRoutesCallCount.Load())
+	assert.Equal(t, int64(1), mock.ServeHTTPCallCount.Load())
 }
 
 func TestMockRouterManager_ImplementsRouterManager(t *testing.T) {

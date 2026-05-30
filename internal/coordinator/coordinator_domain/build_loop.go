@@ -62,8 +62,8 @@ func (s *coordinatorService) notifyWaiters(ctx context.Context, inputHash string
 
 // buildLoop is the sole initiator of builds.
 //
-// It processes build requests from the rebuild trigger channel in an
-// infinite loop until shutdown is signalled.
+// It processes build requests from the rebuild trigger channel in an infinite loop until
+// shutdown is signalled.
 func (s *coordinatorService) buildLoop(ctx context.Context) {
 	defer s.wg.Done()
 	loopCtx := context.WithoutCancel(ctx)
@@ -116,8 +116,7 @@ func (s *coordinatorService) buildLoop(ctx context.Context) {
 
 // triggerBuild sends a build request to the build loop without blocking.
 //
-// Takes request (*coordinator_dto.BuildRequest) which specifies the build to
-// trigger.
+// Takes request (*coordinator_dto.BuildRequest) which specifies the build to trigger.
 func (s *coordinatorService) triggerBuild(ctx context.Context, request *coordinator_dto.BuildRequest) {
 	_, tl := logger_domain.From(ctx, log)
 	select {

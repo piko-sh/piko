@@ -35,21 +35,21 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// Surface represents the collection of public API members to be tested.
-// The key is the simple, exported name of the member (e.g., "MyType"),
-// and the value is the Go entity itself (e.g., MyType{}, MyFunc).
+// Surface represents the collection of public API members to be tested. The key is the
+// simple, exported name of the member (e.g., "MyType"), and the value is the Go entity
+// itself (e.g., MyType{}, MyFunc).
 type Surface map[string]any
 
 // Check runs a golden file test for a given API surface.
 //
-// It creates a YAML version of the API and compares it against a golden file.
-// The test fails if they differ. If you pass the '-update' flag to 'go test',
-// it updates the golden file with the new API output.
+// It creates a YAML version of the API and compares it against a golden file. The test
+// fails if they differ. If you pass the '-update' flag to 'go test', it updates the
+// golden file with the new API output.
 //
 // Takes t (*testing.T) which is the testing context from your test function.
 // Takes surface (Surface) which is the map that defines your public API.
-// Takes goldenFile (string) which is the path to the golden file, usually
-// relative to the test file's folder.
+// Takes goldenFile (string) which is the path to the golden file, usually relative to the
+// test file's folder.
 func Check(t *testing.T, surface Surface, goldenFile string) {
 	t.Helper()
 
@@ -89,8 +89,7 @@ func Check(t *testing.T, surface Surface, goldenFile string) {
 	require.Equal(t, string(expected), buffer.String(), "API surface has changed. Run 'go test -update' to accept the changes.")
 }
 
-// generateAPISnapshotYAML creates a YAML node tree that represents the API
-// surface.
+// generateAPISnapshotYAML creates a YAML node tree that represents the API surface.
 //
 // Takes surface (Surface) which contains the API members to convert to YAML.
 //
@@ -130,9 +129,9 @@ func generateAPISnapshotYAML(surface Surface) (*yaml.Node, error) {
 
 // generateSignature creates a readable text form of an API member.
 //
-// It picks the right format based on the entity's reflect kind. Structs,
-// interfaces, and functions each have their own style. For other kinds such
-// as constants, variables, or type aliases, it returns the type string as is.
+// It picks the right format based on the entity's reflect kind. Structs, interfaces, and
+// functions each have their own style. For other kinds such as constants, variables, or
+// type aliases, it returns the type string as is.
 //
 // Takes name (string) which identifies the API member being documented.
 // Takes entity (any) which is the value to create a signature for.
@@ -166,15 +165,15 @@ func generateSignature(name string, entity any) string {
 	}
 }
 
-// generateStructSignature builds a text view of a struct type, showing its
-// exported fields and methods.
+// generateStructSignature builds a text view of a struct type, showing its exported
+// fields and methods.
 //
 // Takes structType (reflect.Type) which is the struct type to describe.
-// Takes ptrToStructType (reflect.Type) which is the pointer-to-struct type,
-// used to find methods with pointer receivers.
+// Takes ptrToStructType (reflect.Type) which is the pointer-to-struct type, used to find
+// methods with pointer receivers.
 //
-// Returns string which is the formatted struct signature with exported fields
-// and methods.
+// Returns string which is the formatted struct signature with exported fields and
+// methods.
 func generateStructSignature(structType, ptrToStructType reflect.Type) string {
 	var builder strings.Builder
 	builder.WriteString("struct {\n")
@@ -222,8 +221,8 @@ func generateStructSignature(structType, ptrToStructType reflect.Type) string {
 	return builder.String()
 }
 
-// generateInterfaceSignature creates a text form of an interface type for
-// snapshot testing.
+// generateInterfaceSignature creates a text form of an interface type for snapshot
+// testing.
 //
 // Takes typ (reflect.Type) which is the interface type to format.
 //
@@ -257,8 +256,8 @@ func formatType(typ reflect.Type) string {
 //
 // Takes typ (reflect.Type) which is the type to format.
 //
-// Returns string which is the formatted function signature, or the string
-// form of the type if typ is not a function.
+// Returns string which is the formatted function signature, or the string form of the
+// type if typ is not a function.
 func formatFunction(typ reflect.Type) string {
 	if typ.Kind() != reflect.Func {
 		return typ.String()
@@ -277,13 +276,12 @@ func formatFunction(typ reflect.Type) string {
 	return formatMethodSignature(parameters, results, typ.IsVariadic())
 }
 
-// formatMethodSignature builds the "(parameters) results" string for a method or
-// function signature.
+// formatMethodSignature builds the "(parameters) results" string for a method or function
+// signature.
 //
 // Takes parameters ([]string) which contains the parameter type strings.
 // Takes results ([]string) which contains the return type strings.
-// Takes isVariadic (bool) which shows whether the last parameter uses variadic
-// syntax.
+// Takes isVariadic (bool) which shows whether the last parameter uses variadic syntax.
 //
 // Returns string which is the formatted signature, such as "(int, string) error".
 func formatMethodSignature(parameters, results []string, isVariadic bool) string {
@@ -309,8 +307,8 @@ func formatMethodSignature(parameters, results []string, isVariadic bool) string
 //
 // Takes entity (any) which is the value to check.
 //
-// Returns string which describes the kind, such as "Nil", "Interface", "Func",
-// "Struct", "Var", or "Type".
+// Returns string which describes the kind, such as "Nil", "Interface", "Func", "Struct",
+// "Var", or "Type".
 func getEntityType(entity any) string {
 	if entity == nil {
 		return "Nil"

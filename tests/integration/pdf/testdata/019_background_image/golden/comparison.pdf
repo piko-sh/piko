@@ -2,8 +2,8 @@
 %׃כיב
 1 0 obj
 <</Title (Background Image Test)
-/Creator (Mozilla/5.0 \(X11; Linux x86_64\) AppleWebKit/537.36 \(KHTML, like Gecko\) HeadlessChrome/146.0.0.0 Safari/537.36)
-/Producer (Skia/PDF m146)
+/Creator (Mozilla/5.0 \(X11; Linux x86_64\) AppleWebKit/537.36 \(KHTML, like Gecko\) HeadlessChrome/148.0.0.0 Safari/537.36)
+/Producer (Skia/PDF m148)
 /CreationDate (D:19700101000000+00'00')
 /ModDate (D:19700101000000+00'00')>>
 endobj
@@ -23,7 +23,6 @@ endobj
 /ExtGState <</G3 3 0 R>>>>
 /MediaBox [0 0 595.91998 841.91998]
 /Contents 4 0 R
-/StructParents 0
 /Tabs /S
 /Parent 5 0 R>>
 endobj
@@ -45,12 +44,12 @@ xref
 0000000533 00000 n 
 0000000291 00000 n 
 0000000328 00000 n 
-0000000742 00000 n 
-0000000797 00000 n 
+0000000725 00000 n 
+0000000780 00000 n 
 trailer
 <</Size 7
 /Root 6 0 R
 /Info 1 0 R>>
 startxref
-914
+897
 %%EOF

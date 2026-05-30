@@ -18,30 +18,31 @@
 
 package collection_dto
 
-// defaultNavigationOrder is the default sort order for navigation items.
-const defaultNavigationOrder = 999
+const (
+	// defaultNavigationOrder is the default sort order for navigation items.
+	defaultNavigationOrder = 999
+)
 
 // NavigationGroups contains multiple named navigation structures.
 //
-// Each group represents a distinct navigation UI component, enabling a single
-// collection to power multiple navigation contexts (e.g., sidebar, footer,
-// breadcrumbs).
+// Each group represents a distinct navigation UI component, enabling a single collection
+// to power multiple navigation contexts (e.g., sidebar, footer, breadcrumbs).
 //
 // Design Philosophy:
 //   - Multi-context support: One collection can drive multiple navigation UIs
 //   - Named groups: Explicit group names prevent conflicts and aid debugging
 //   - Provider-agnostic: Works identically for markdown and headless CMS
 type NavigationGroups struct {
-	// Groups maps each group name to its navigation tree. Group names are set in
-	// content frontmatter, such as "sidebar", "footer", or "breadcrumb".
+	// Groups maps each group name to its navigation tree. Group names are set in content
+	// frontmatter, such as "sidebar", "footer", or "breadcrumb".
 	Groups map[string]*NavigationTree
 }
 
-// NavigationTree represents a hierarchical navigation structure for a specific
-// group and locale.
+// NavigationTree represents a hierarchical navigation structure for a specific group and
+// locale.
 //
-// The tree is pre-sorted and ready for rendering. All nodes are organised into
-// top-level sections, which may contain subsections and items.
+// The tree is pre-sorted and ready for rendering. All nodes are organised into top-level
+// sections, which may contain subsections and items.
 //
 // Design Characteristics:
 //   - Locale-specific: Each tree represents one language
@@ -54,9 +55,8 @@ type NavigationTree struct {
 
 	// Sections holds the top-level navigation groups.
 	//
-	// These are the root nodes of the tree. Each one represents a major
-	// section or content category. Sorted by Order (ascending), then
-	// Title (alphabetically).
+	// These are the root nodes of the tree. Each one represents a major section or content
+	// category. Sorted by Order (ascending), then Title (alphabetically).
 	Sections []*NavigationNode
 }
 
@@ -72,23 +72,21 @@ type NavigationTree struct {
 //   - Recursive: Children are also NavigationNodes (tree structure)
 //   - Type-agnostic: Check URL to distinguish categories from content
 type NavigationNode struct {
-	// Parent is the parent node; nil for root-level sections.
-	// Used for breadcrumb generation and tree traversal.
+	// Parent is the parent node; nil for root-level sections. Used for breadcrumb generation
+	// and tree traversal.
 	Parent *NavigationNode
 
 	// ContentItem is a reference to the full content item this node represents.
 	//
-	// nil for category nodes (pure grouping, no content).
-	// Populated for content nodes.
+	// nil for category nodes (pure grouping, no content). Populated for content nodes.
 	//
 	// Provides access to full metadata, AST, excerpt, etc.
 	ContentItem *ContentItem
 
 	// ID is the unique identifier for this node within the tree.
 	//
-	// For content nodes, this is usually the slug (e.g. "installation").
-	// For category nodes, this is the section or subsection name
-	// (e.g. "get-started").
+	// For content nodes, this is usually the slug (e.g. "installation"). For category nodes,
+	// this is the section or subsection name (e.g. "get-started").
 	ID string
 
 	// Title is the display name shown in navigation menus.
@@ -107,8 +105,8 @@ type NavigationNode struct {
 	// Empty string if this node is directly under a section.
 	Subsection string
 
-	// URL is the link target for this node. Empty for category nodes that only
-	// group other nodes; set for content nodes such as pages or documents.
+	// URL is the link target for this node. Empty for category nodes that only group other
+	// nodes; set for content nodes such as pages or documents.
 	URL string
 
 	// Icon is an optional icon name for showing in the user interface.
@@ -123,21 +121,21 @@ type NavigationNode struct {
 
 	// Children are the child nodes of this node.
 	//
-	// Empty slice for leaf nodes (actual content pages).
-	// Non-empty for category/section nodes.
+	// Empty slice for leaf nodes (actual content pages). Non-empty for category/section
+	// nodes.
 	//
 	// Pre-sorted by Order (ascending), then Title (alphabetical).
 	Children []*NavigationNode
 
-	// Level indicates the depth in the tree hierarchy. 0 is the top-level
-	// section, 1 is a direct child of a section, 2 is a child of a subsection,
-	// and 3 or higher is reserved for future use.
+	// Level indicates the depth in the tree hierarchy. 0 is the top-level section, 1 is a
+	// direct child of a section, 2 is a child of a subsection, and 3 or higher is reserved
+	// for future use.
 	Level int
 
 	// Order sets the sort position within the parent node.
 	//
-	// Lower values appear first. Nodes with the same Order value are sorted
-	// by Title in alphabetical order.
+	// Lower values appear first. Nodes with the same Order value are sorted by Title in
+	// alphabetical order.
 	//
 	// Default: 999 (appears last).
 	Order int
@@ -149,15 +147,15 @@ type NavigationNode struct {
 	//   - Redirect pages that should not appear in menus
 	//   - Old content kept for backward compatibility
 	//
-	// Hidden nodes are usually filtered out during tree building, so this
-	// field may always be false in practice.
+	// Hidden nodes are usually filtered out during tree building, so the value may
+	// always be false in practice.
 	Hidden bool
 }
 
 // NavigationConfig controls navigation tree building behaviour.
 //
-// This configuration is passed to NavigationBuilder to customise how
-// navigation hierarchies are constructed from flat content lists.
+// This configuration is passed to NavigationBuilder to customise how navigation
+// hierarchies are constructed from flat content lists.
 //
 // Design Philosophy:
 //   - Sensible defaults: Works out-of-the-box for most use cases
@@ -166,31 +164,31 @@ type NavigationNode struct {
 type NavigationConfig struct {
 	// Locale filters the navigation tree to show items from one locale only.
 	//
-	// When empty, items from all locales are included. This returns one tree per
-	// group. If there are items in more than one locale, the first locale found
-	// is used (the order is not fixed).
+	// When empty, items from all locales are included. This returns one tree per group. If
+	// there are items in more than one locale, the first locale found is used (the order is
+	// not fixed).
 	//
-	// When set, only items that match this locale are included. This gives you a
-	// navigation tree for that locale only.
+	// When set, only items that match this locale are included. This gives you a navigation
+	// tree for that locale only.
 	//
 	// Always set Locale when building navigation for a page to get the correct
 	// locale-specific navigation.
 	Locale string
 
-	// DefaultOrder is the fallback order value for items without explicit
-	// ordering. Default is 999 so that unordered items appear after ordered ones.
+	// DefaultOrder is the fallback order value for items without explicit ordering. Default
+	// is 999 so that unordered items appear after ordered ones.
 	DefaultOrder int
 
 	// IncludeHidden determines whether hidden items are included in the tree.
 	//
-	// false (default): Hidden items are filtered out
-	// true: Hidden items are included (useful for admin views)
+	// false (default): Hidden items are filtered out true: Hidden items are included (useful
+	// for admin views)
 	IncludeHidden bool
 
 	// GroupBySection controls whether empty section category nodes appear.
 	//
-	// When true (default), empty sections appear as category nodes.
-	// When false, only sections with content appear.
+	// When true (default), empty sections appear as category nodes. When false, only
+	// sections with content appear.
 	GroupBySection bool
 }
 
@@ -205,8 +203,8 @@ func (n *NavigationNode) IsCategory() bool {
 
 // IsLeaf returns true if this node has no children.
 //
-// Leaf nodes are typically actual content pages, while non-leaf nodes
-// are categories or sections.
+// Leaf nodes are typically actual content pages, while non-leaf nodes are categories or
+// sections.
 //
 // Returns bool which is true when the node has no children.
 func (n *NavigationNode) IsLeaf() bool {

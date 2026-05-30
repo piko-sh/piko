@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	// defaultFuzzySimilarityThreshold is the minimum Jaro-Winkler similarity score
-	// (85%) required for fuzzy matching results.
+	// defaultFuzzySimilarityThreshold is the minimum Jaro-Winkler similarity score (85%)
+	// required for fuzzy matching results.
 	defaultFuzzySimilarityThreshold = 0.85
 
 	// defaultFuzzyMaxResults limits fuzzy matching to the top 3 results.
@@ -45,8 +45,7 @@ var (
 	_ CollectionItemsLoaderPort = (*defaultCollectionItemsLoader)(nil)
 )
 
-// SearchResult represents a single search result with its score and field-level
-// scores.
+// SearchResult represents a single search result with its score and field-level scores.
 type SearchResult struct {
 	// Item is the matched document as a raw map for flexible type conversion.
 	Item map[string]any
@@ -54,8 +53,7 @@ type SearchResult struct {
 	// FieldScores maps field names to their match scores.
 	FieldScores map[string]float64
 
-	// Score is the overall BM25 relevance score (unbounded,
-	// higher is more relevant).
+	// Score is the overall BM25 relevance score (unbounded, higher is more relevant).
 	Score float64
 }
 
@@ -67,19 +65,17 @@ type SearchConfig struct {
 	// Fields specifies which fields to search and their relative weights.
 	Fields []search_dto.SearchField
 
-	// FuzzyThreshold controls fuzzy matching tolerance from 0.0 to 1.0.
-	// Lower values are more strict; higher values allow more typos.
+	// FuzzyThreshold controls fuzzy matching tolerance from 0.0 to 1.0. Lower values are
+	// more strict; higher values allow more typos.
 	FuzzyThreshold float64
 
-	// MinScore filters out results below this BM25 score
-	// threshold; 0 means no filtering.
+	// MinScore filters out results below this BM25 score threshold; 0 means no filtering.
 	MinScore float64
 
 	// Limit sets the maximum number of results to return; 0 means no limit.
 	Limit int
 
-	// Offset skips the first N results for pagination; 0 starts from the
-	// beginning.
+	// Offset skips the first N results for pagination; 0 starts from the beginning.
 	Offset int
 
 	// CaseSensitive determines whether matching is case-sensitive.
@@ -113,8 +109,7 @@ type searchServiceOption func(*searchService)
 // Search implements SearchServicePort.
 //
 // Takes collectionName (string) which identifies the collection to search.
-// Takes currentPageData (map[string]any) which provides context for hydrating
-// results.
+// Takes currentPageData (map[string]any) which provides context for hydrating results.
 // Takes config (SearchConfig) which specifies the search query and options.
 // Takes searchMode (string) which determines which search index to use.
 //
@@ -159,12 +154,11 @@ func (s *searchService) Search(
 	return hydrateSearchResults(queryResults, allItems, currentPageData), nil
 }
 
-// defaultSearchIndexLoader implements SearchIndexLoaderPort using search
-// adapters.
+// defaultSearchIndexLoader implements SearchIndexLoaderPort using search adapters.
 type defaultSearchIndexLoader struct{}
 
-// GetIndex retrieves a search index for the given collection and mode.
-// Implements SearchIndexLoaderPort.
+// GetIndex retrieves a search index for the given collection and mode. Implements
+// SearchIndexLoaderPort.
 //
 // Takes collectionName (string) which identifies the collection to search.
 // Takes searchMode (string) which specifies the search strategy to use.
@@ -175,12 +169,12 @@ func (*defaultSearchIndexLoader) GetIndex(collectionName, searchMode string) (an
 	return search_adapters.GetSearchIndex(collectionName, searchMode)
 }
 
-// defaultCollectionItemsLoader implements CollectionItemsLoaderPort using
-// global functions.
+// defaultCollectionItemsLoader implements CollectionItemsLoaderPort using global
+// functions.
 type defaultCollectionItemsLoader struct{}
 
-// GetAllItems retrieves all items from the named collection.
-// Implements CollectionItemsLoaderPort.
+// GetAllItems retrieves all items from the named collection. Implements
+// CollectionItemsLoaderPort.
 //
 // Takes collectionName (string) which identifies the collection to retrieve.
 //
@@ -192,8 +186,7 @@ func (*defaultCollectionItemsLoader) GetAllItems(collectionName string) ([]map[s
 
 // NewSearchService creates a new search service with the given options.
 //
-// Default implementations are used for any dependencies not explicitly
-// provided.
+// Default implementations are used for any dependencies not explicitly provided.
 //
 // Takes opts (...searchServiceOption) which configures the service behaviour.
 //
@@ -213,11 +206,10 @@ func NewSearchService(opts ...searchServiceOption) SearchServicePort {
 	return s
 }
 
-// ConvertSearchResultToType converts a raw map from a search result into a
-// typed struct.
+// ConvertSearchResultToType converts a raw map from a search result into a typed struct.
 //
-// This helper is used by the runtime facade to convert domain-layer search
-// results into typed results for the caller.
+// This helper is used by the runtime facade to convert domain-layer search results into
+// typed results for the caller.
 //
 // Takes item (map[string]any) which is the raw map from a search result.
 // Takes target (any) which is a pointer to the struct to fill.
@@ -238,11 +230,9 @@ func ConvertSearchResultToType(item map[string]any, target any) error {
 
 // withIndexLoader sets a custom index loader for the search service.
 //
-// Takes loader (SearchIndexLoaderPort) which provides the index loading
-// behaviour.
+// Takes loader (SearchIndexLoaderPort) which provides the index loading behaviour.
 //
-// Returns searchServiceOption which sets up the search service to use the
-// given loader.
+// Returns searchServiceOption which sets up the search service to use the given loader.
 func withIndexLoader(loader SearchIndexLoaderPort) searchServiceOption {
 	return func(s *searchService) {
 		s.indexLoader = loader
@@ -251,11 +241,9 @@ func withIndexLoader(loader SearchIndexLoaderPort) searchServiceOption {
 
 // withItemsLoader sets a custom items loader for the search service.
 //
-// Takes loader (CollectionItemsLoaderPort) which provides the items loading
-// behaviour.
+// Takes loader (CollectionItemsLoaderPort) which provides the items loading behaviour.
 //
-// Returns searchServiceOption which configures the service with the given
-// loader.
+// Returns searchServiceOption which configures the service with the given loader.
 func withItemsLoader(loader CollectionItemsLoaderPort) searchServiceOption {
 	return func(s *searchService) {
 		s.itemsLoader = loader
@@ -264,11 +252,11 @@ func withItemsLoader(loader CollectionItemsLoaderPort) searchServiceOption {
 
 // withQueryProcessorFactory sets a custom query processor factory.
 //
-// Takes factory (queryProcessorFactory) which creates query processors for
-// search operations.
+// Takes factory (queryProcessorFactory) which creates query processors for search
+// operations.
 //
-// Returns searchServiceOption which configures the search service to use the
-// given factory.
+// Returns searchServiceOption which configures the search service to use the given
+// factory.
 func withQueryProcessorFactory(factory queryProcessorFactory) searchServiceOption {
 	return func(s *searchService) {
 		s.queryFactory = factory
@@ -306,56 +294,51 @@ func buildSearchDTO(config SearchConfig) search_dto.SearchConfig {
 	}
 }
 
-// defaultQueryProcessorFactory creates a QueryProcessor for the given index
-// reader.
+// defaultQueryProcessorFactory creates a QueryProcessor for the given index reader.
 //
-// Takes reader (search_domain.IndexReaderPort) which provides access to the
-// search index.
+// Takes reader (search_domain.IndexReaderPort) which provides access to the search index.
 //
-// Returns search_domain.QueryProcessorPort which processes queries against
-// the index.
+// Returns search_domain.QueryProcessorPort which processes queries against the index.
 func defaultQueryProcessorFactory(reader search_domain.IndexReaderPort) search_domain.QueryProcessorPort {
 	return search_domain.NewQueryProcessorForIndex(reader)
 }
 
 // defaultScorerFactory creates a BM25 scorer with default settings.
 //
-// Returns search_domain.ScorerPort which is a scorer using the default BM25
-// settings.
+// Returns search_domain.ScorerPort which is a scorer using the default BM25 settings.
 func defaultScorerFactory() search_domain.ScorerPort {
 	return search_domain.NewBM25Scorer(0, 0)
 }
 
-// newDefaultSearchIndexLoader creates a SearchIndexLoaderPort using the
-// default search adapters.
+// newDefaultSearchIndexLoader creates a SearchIndexLoaderPort using the default search
+// adapters.
 //
-// Returns SearchIndexLoaderPort which provides the standard search index
-// loading behaviour.
+// Returns SearchIndexLoaderPort which provides the standard search index loading
+// behaviour.
 func newDefaultSearchIndexLoader() SearchIndexLoaderPort {
 	return &defaultSearchIndexLoader{}
 }
 
-// newDefaultCollectionItemsLoader creates a CollectionItemsLoaderPort that
-// uses the default global functions for loading.
+// newDefaultCollectionItemsLoader creates a CollectionItemsLoaderPort that uses the
+// default global functions for loading.
 //
-// Returns CollectionItemsLoaderPort which provides collection loading using
-// the standard global implementations.
+// Returns CollectionItemsLoaderPort which provides collection loading using the standard
+// global implementations.
 func newDefaultCollectionItemsLoader() CollectionItemsLoaderPort {
 	return &defaultCollectionItemsLoader{}
 }
 
-// hydrateSearchResults converts query results to SearchResult values by
-// looking up the matching document data.
+// hydrateSearchResults converts query results to SearchResult values by looking up the
+// matching document data.
 //
-// Takes queryResults ([]search_domain.QueryResult) which contains the raw
-// search results to hydrate.
-// Takes allItems ([]map[string]any) which provides the document data indexed
-// by DocumentID.
-// Takes targetPageData (map[string]any) which filters results to a single
-// page when not nil.
+// Takes queryResults ([]search_domain.QueryResult) which contains the raw search results
+// to hydrate.
+// Takes allItems ([]map[string]any) which provides the document data indexed by
+// DocumentID.
+// Takes targetPageData (map[string]any) which filters results to a single page when not
+// nil.
 //
-// Returns []SearchResult which contains the hydrated results with document
-// data attached.
+// Returns []SearchResult which contains the hydrated results with document data attached.
 func hydrateSearchResults(
 	queryResults []search_domain.QueryResult,
 	allItems []map[string]any,
@@ -386,12 +369,10 @@ func hydrateSearchResults(
 	return results
 }
 
-// matchesTargetPage checks if an item matches the target page by comparing
-// their URLs.
+// matchesTargetPage checks if an item matches the target page by comparing their URLs.
 //
 // Takes itemMap (map[string]any) which contains the item data with its URL.
-// Takes targetPageData (map[string]any) which contains the target page data
-// with its URL.
+// Takes targetPageData (map[string]any) which contains the target page data with its URL.
 //
 // Returns bool which is true when both maps have valid URL strings that match.
 func matchesTargetPage(itemMap, targetPageData map[string]any) bool {

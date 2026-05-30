@@ -35,37 +35,32 @@ const (
 	// defaultLang is the default document language tag (BCP 47).
 	defaultLang = "en"
 
-	// catalogKey is the PDF dictionary key for the document catalog
-	// reference in the trailer.
+	// catalogKey is the PDF dictionary key for the document catalog reference in the
+	// trailer.
 	catalogKey = "Root"
 
-	// markInfoKey is the PDF dictionary key for the mark information
-	// dictionary.
+	// markInfoKey is the PDF dictionary key for the mark information dictionary.
 	markInfoKey = "MarkInfo"
 
-	// structTreeRootKey is the PDF dictionary key for the structure tree
-	// root.
+	// structTreeRootKey is the PDF dictionary key for the structure tree root.
 	structTreeRootKey = "StructTreeRoot"
 
 	// langKey is the PDF dictionary key for the document language.
 	langKey = "Lang"
 
-	// viewerPreferencesKey is the PDF dictionary key for viewer
-	// preferences.
+	// viewerPreferencesKey is the PDF dictionary key for viewer preferences.
 	viewerPreferencesKey = "ViewerPreferences"
 
-	// infoKey is the PDF dictionary key for the document information
-	// dictionary reference in the trailer.
+	// infoKey is the PDF dictionary key for the document information dictionary reference in
+	// the trailer.
 	infoKey = "Info"
 )
 
-// PdfUATransformer adds PDF/UA (Universal Accessibility) metadata to a
-// PDF document.
+// PdfUATransformer adds PDF/UA (Universal Accessibility) metadata to a PDF document.
 //
-// It parses the PDF, locates the document catalog, and ensures that the
-// required structural entries are present: MarkInfo, StructTreeRoot, Lang,
-// and ViewerPreferences. All enhancements are additive, so existing entries
-// are preserved.
+// It parses the PDF, locates the document catalog, and ensures that the required
+// structural entries are present: MarkInfo, StructTreeRoot, Lang, and ViewerPreferences.
+// All enhancements are additive, so existing entries are preserved.
 type PdfUATransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -74,10 +69,11 @@ type PdfUATransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*PdfUATransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*PdfUATransformer)(nil)
+)
 
-// New creates a new PDF/UA enhancement transformer with default name and
-// priority.
+// New creates a new PDF/UA enhancement transformer with default name and priority.
 //
 // Returns *PdfUATransformer which is ready for use.
 func New() *PdfUATransformer {
@@ -94,8 +90,8 @@ func (t *PdfUATransformer) Name() string { return t.name }
 
 // Type returns TransformerCompliance.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a
-// compliance transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a compliance
+// transformer.
 func (*PdfUATransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerCompliance
 }
@@ -105,15 +101,14 @@ func (*PdfUATransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *PdfUATransformer) Priority() int { return t.priority }
 
-// Transform applies PDF/UA enhancements to the document catalog. Options
-// must be PdfUAOptions or *PdfUAOptions.
+// Transform applies PDF/UA enhancements to the document catalog. Options must be
+// PdfUAOptions or *PdfUAOptions.
 //
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be PdfUAOptions or *PdfUAOptions.
 //
 // Returns []byte which is the enhanced PDF.
-// Returns error when the PDF cannot be parsed or the enhancements cannot
-// be applied.
+// Returns error when the PDF cannot be parsed or the enhancements cannot be applied.
 func (*PdfUATransformer) Transform(_ context.Context, pdf []byte, options any) ([]byte, error) {
 	if _, err := castOptions(options); err != nil {
 		return nil, err
@@ -172,8 +167,7 @@ func castOptions(options any) (pdfwriter_dto.PdfUAOptions, error) {
 	}
 }
 
-// getCatalog resolves the document catalog dictionary from the writer's
-// trailer.
+// getCatalog resolves the document catalog dictionary from the writer's trailer.
 //
 // Takes writer (*pdfparse.Writer) which provides access to the PDF objects.
 //
@@ -196,11 +190,9 @@ func getCatalog(writer *pdfparse.Writer) (int, pdfparse.Dict, error) {
 	return rootRef.Number, catalogDict, nil
 }
 
-// ensureMarkInfo adds /MarkInfo << /Marked true >> to the catalog if the
-// key is absent.
+// ensureMarkInfo adds /MarkInfo << /Marked true >> to the catalog if the key is absent.
 //
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// modify.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to modify.
 //
 // Returns bool which indicates whether the catalog was modified.
 func ensureMarkInfo(catalogDict *pdfparse.Dict) bool {
@@ -215,15 +207,14 @@ func ensureMarkInfo(catalogDict *pdfparse.Dict) bool {
 	return true
 }
 
-// ensureStructTreeRoot adds a minimal /StructTreeRoot to the catalog if
-// the key is absent.
+// ensureStructTreeRoot adds a minimal /StructTreeRoot to the catalog if the key is
+// absent.
 //
-// The structure tree is created as a new indirect object with Type
-// /StructTreeRoot, an empty /ParentTree number tree, and an empty /K array.
+// The structure tree is created as a new indirect object with Type /StructTreeRoot, an
+// empty /ParentTree number tree, and an empty /K array.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer for adding objects.
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// modify.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to modify.
 //
 // Returns bool which indicates whether the catalog was modified.
 func ensureStructTreeRoot(writer *pdfparse.Writer, catalogDict *pdfparse.Dict) bool {
@@ -243,8 +234,7 @@ func ensureStructTreeRoot(writer *pdfparse.Writer, catalogDict *pdfparse.Dict) b
 
 // ensureLang adds /Lang (en) to the catalog if the key is absent.
 //
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// modify.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to modify.
 //
 // Returns bool which indicates whether the catalog was modified.
 func ensureLang(catalogDict *pdfparse.Dict) bool {
@@ -256,11 +246,10 @@ func ensureLang(catalogDict *pdfparse.Dict) bool {
 	return true
 }
 
-// ensureViewerPreferences adds /ViewerPreferences << /DisplayDocTitle
-// true >> to the catalog if the key is absent.
+// ensureViewerPreferences adds /ViewerPreferences << /DisplayDocTitle true >> to the
+// catalog if the key is absent.
 //
-// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to
-// modify.
+// Takes catalogDict (*pdfparse.Dict) which is the catalog dictionary to modify.
 //
 // Returns bool which indicates whether the catalog was modified.
 func ensureViewerPreferences(catalogDict *pdfparse.Dict) bool {
@@ -275,14 +264,13 @@ func ensureViewerPreferences(catalogDict *pdfparse.Dict) bool {
 	return true
 }
 
-// ensureInfoTitle ensures the document information dictionary has a
-// /Title entry.
+// ensureInfoTitle ensures the document information dictionary has a /Title entry.
 //
-// If no /Info reference exists in the trailer, this is a no-op. If /Info
-// exists but has no /Title, an empty string title is added.
+// If no /Info reference exists in the trailer, this is a no-op. If /Info exists but has
+// no /Title, an empty string title is added.
 //
-// Takes writer (*pdfparse.Writer) which is the PDF writer for reading and
-// modifying objects.
+// Takes writer (*pdfparse.Writer) which is the PDF writer for reading and modifying
+// objects.
 //
 // Returns bool which indicates whether any object was modified.
 func ensureInfoTitle(writer *pdfparse.Writer) bool {

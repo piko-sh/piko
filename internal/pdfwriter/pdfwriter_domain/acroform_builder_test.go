@@ -29,7 +29,10 @@ func TestAcroFormBuilder_Empty(t *testing.T) {
 		t.Fatal("expected HasFields to be false for empty builder")
 	}
 
-	num, refs := b.WriteObjects(&PdfDocumentWriter{}, nil)
+	num, refs, err := b.WriteObjects(&PdfDocumentWriter{}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if num != 0 {
 		t.Fatalf("expected 0 object number, got %d", num)
 	}
@@ -55,7 +58,10 @@ func TestAcroFormBuilder_TextField(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	pageObjNumbers := []int{3}
-	num, refs := b.WriteObjects(writer, pageObjNumbers)
+	num, refs, err := b.WriteObjects(writer, pageObjNumbers)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if num == 0 {
 		t.Fatal("expected non-zero AcroForm object number")
@@ -101,7 +107,9 @@ func TestAcroFormBuilder_Checkbox(t *testing.T) {
 		})
 
 		writer := &PdfDocumentWriter{}
-		b.WriteObjects(writer, []int{3})
+		if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		content := string(writer.Bytes())
 		if !strings.Contains(content, "/FT /Btn") {
@@ -133,7 +141,9 @@ func TestAcroFormBuilder_Checkbox(t *testing.T) {
 		})
 
 		writer := &PdfDocumentWriter{}
-		b.WriteObjects(writer, []int{3})
+		if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		content := string(writer.Bytes())
 		if !strings.Contains(content, "/V /Off") {
@@ -174,7 +184,10 @@ func TestAcroFormBuilder_RadioGroup(t *testing.T) {
 	})
 
 	writer := &PdfDocumentWriter{}
-	num, refs := b.WriteObjects(writer, []int{5})
+	num, refs, err := b.WriteObjects(writer, []int{5})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if num == 0 {
 		t.Fatal("expected non-zero AcroForm object number")
@@ -216,7 +229,9 @@ func TestAcroFormBuilder_Dropdown(t *testing.T) {
 	})
 
 	writer := &PdfDocumentWriter{}
-	b.WriteObjects(writer, []int{3})
+	if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	content := string(writer.Bytes())
 	if !strings.Contains(content, "/FT /Ch") {
@@ -254,13 +269,104 @@ func TestAcroFormBuilder_Flags(t *testing.T) {
 			})
 
 			writer := &PdfDocumentWriter{}
-			b.WriteObjects(writer, []int{3})
+			if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
 			content := string(writer.Bytes())
 			if !strings.Contains(content, tt.expected) {
 				t.Errorf("expected %q in output", tt.expected)
 			}
 		})
+	}
+}
+
+func TestWriteObjects_PushButtonEmitsAppearance(t *testing.T) {
+	t.Parallel()
+
+	b := NewAcroFormBuilder()
+	b.AddField(&FormField{
+		Name:      "submit_btn",
+		FieldType: FormFieldPushButton,
+		Flags:     FormFlagPushButton,
+		Value:     "Submit",
+		Rect:      [4]float64{10, 20, 110, 50},
+		PageIndex: 0,
+		FontSize:  12,
+	})
+
+	writer := &PdfDocumentWriter{}
+	num, refs, err := b.WriteObjects(writer, []int{3})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if num == 0 {
+		t.Fatal("expected non-zero AcroForm object number")
+	}
+	if len(refs[0]) != 1 {
+		t.Fatalf("expected 1 widget ref on page 0, got %d", len(refs[0]))
+	}
+
+	content := string(writer.Bytes())
+
+	if !strings.Contains(content, "/FT /Btn") {
+		t.Error("expected /FT /Btn for push button")
+	}
+	if !strings.Contains(content, "/AP << /N ") {
+		t.Error("expected /AP << /N appearance reference for push button")
+	}
+	if !strings.Contains(content, "/MK << /CA (Submit) >>") {
+		t.Errorf("expected /MK << /CA (Submit) >> for push button, got: %s", content)
+	}
+	if !strings.Contains(content, "/BaseFont /Helvetica") {
+		t.Error("expected Helvetica font in default resources for push button caption")
+	}
+	if strings.Contains(content, "/AS /") {
+		t.Error("push button must not carry an /AS appearance state entry")
+	}
+}
+
+func TestWriteObjects_PushButtonCaptionFallsBackToName(t *testing.T) {
+	t.Parallel()
+
+	b := NewAcroFormBuilder()
+	b.AddField(&FormField{
+		Name:      "noLabel",
+		FieldType: FormFieldPushButton,
+		Flags:     FormFlagPushButton,
+		Rect:      [4]float64{10, 20, 110, 50},
+		PageIndex: 0,
+	})
+
+	writer := &PdfDocumentWriter{}
+	if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	content := string(writer.Bytes())
+	if !strings.Contains(content, "/MK << /CA (noLabel) >>") {
+		t.Errorf("expected caption to fall back to field name, got: %s", content)
+	}
+}
+
+func TestWriteField_UnhandledFieldTypeReturnsError(t *testing.T) {
+	t.Parallel()
+
+	b := NewAcroFormBuilder()
+	b.AddField(&FormField{
+		Name:      "mystery",
+		FieldType: FormFieldType(99),
+		Rect:      [4]float64{10, 20, 110, 50},
+		PageIndex: 0,
+	})
+
+	writer := &PdfDocumentWriter{}
+	_, _, err := b.WriteObjects(writer, []int{3})
+	if err == nil {
+		t.Fatal("expected error for unhandled FormFieldType")
+	}
+	if !strings.Contains(err.Error(), "unhandled FormFieldType") {
+		t.Errorf("expected error to mention 'unhandled FormFieldType', got: %v", err)
 	}
 }
 
@@ -288,7 +394,10 @@ func TestAcroFormBuilder_MultipleFieldsMultiPage(t *testing.T) {
 	})
 
 	writer := &PdfDocumentWriter{}
-	_, refs := b.WriteObjects(writer, []int{5, 6})
+	_, refs, multiErr := b.WriteObjects(writer, []int{5, 6})
+	if multiErr != nil {
+		t.Fatalf("unexpected error: %v", multiErr)
+	}
 
 	if len(refs[0]) != 1 {
 		t.Errorf("expected 1 widget on page 0, got %d", len(refs[0]))

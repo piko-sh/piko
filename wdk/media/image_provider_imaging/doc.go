@@ -16,24 +16,22 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package image_provider_imaging implements the image transformer port
-// using pure Go libraries (disintegration/imaging and nativewebp).
+// Package image_provider_imaging implements the image transformer port using pure Go
+// libraries (disintegration/imaging and nativewebp).
 //
-// This provider requires no CGO or external C libraries, making it
-// straightforward to set up for development and testing. For
-// production use, the vips provider is recommended as it provides
-// lower memory usage, lossy WebP (VP8), AVIF support, and faster
-// encoding.
+// This provider requires no CGO or external C libraries, making it straightforward to set
+// up for development and testing. For production use, the vips provider is recommended as
+// it provides lower memory usage, lossy WebP (VP8), AVIF support, and faster encoding.
 //
-// The pure Go nativewebp encoder uses lossless encoding (VP8L),
-// which requires holding the entire image in memory multiple times
-// and can consume 100-500MB per image depending on resolution.
+// The pure Go nativewebp encoder uses lossless encoding (VP8L), which requires holding
+// the entire image in memory multiple times and can consume 100-500MB per image depending
+// on resolution.
 //
 // Output formats: JPEG, PNG, WebP (lossless only), GIF.
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. Concurrent transforms
-// are limited via a semaphore to prevent memory exhaustion from
-// the WebP encoder's large temporary buffer allocations.
+// All methods are safe for concurrent use. Concurrent transforms are limited via a
+// semaphore to prevent memory exhaustion from the WebP encoder's large temporary buffer
+// allocations.
 package image_provider_imaging

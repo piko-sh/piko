@@ -1,0 +1,14 @@
+{
+  "name": "18_generic_numeric_pipeline",
+  "description": "Generic numeric pipeline. Hand-rolled Sum/Max/Min generic over T Numeric (uint32 | int64). 500 slices per element type. Tests piko's RegisterGeneral + unpackGenericResult dispatch path with two instantiations per outer call.",
+  "args": [],
+  "expected_stdout_sha256": "5fb584465b7d5f38c68448ba3f7a2fcd43b327331e32a58e13187ec07db92e70",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "15d8202c45612e0795f32c00054c4fc97a5b7d2bb84a4a39246a5078ad57cefd",
+    "py/cpython.py": "f90f3e9cfd92c8fd2c48f4b11a00963446167ab5ce9cbc013c646e92f07662ea",
+    "py/pypy.py": "f90f3e9cfd92c8fd2c48f4b11a00963446167ab5ce9cbc013c646e92f07662ea"
+  }
+}

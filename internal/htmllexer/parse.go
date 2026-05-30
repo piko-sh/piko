@@ -18,13 +18,14 @@
 
 package htmllexer
 
-import "bytes"
+import (
+	"bytes"
+)
 
-// identifyTagOpening classifies the markup starting at '<' without consuming
-// any bytes.
+// identifyTagOpening classifies the markup starting at '<' without consuming any bytes.
 //
-// Returns tagOpeningKind which indicates the type of markup, or tagOpeningNone
-// if the '<' is not the start of any recognised markup.
+// Returns tagOpeningKind which indicates the type of markup, or tagOpeningNone if the '<'
+// is not the start of any recognised markup.
 func (l *Lexer) identifyTagOpening() tagOpeningKind {
 	if l.isStartTagOpening() {
 		return tagOpeningStartTag
@@ -57,8 +58,7 @@ func (l *Lexer) identifyTagOpening() tagOpeningKind {
 	return tagOpeningNone
 }
 
-// dispatchTagOpening routes to the correct parser for the identified tag
-// opening kind.
+// dispatchTagOpening routes to the correct parser for the identified tag opening kind.
 //
 // Takes kind (tagOpeningKind) which specifies the type of tag opening to dispatch.
 //
@@ -138,8 +138,7 @@ func (l *Lexer) isDoctypeOpening() bool {
 	return bytes.EqualFold(remaining[:doctypeKeywordLength], []byte("DOCTYPE"))
 }
 
-// isMarkupDeclarationOpening checks for <! that is not a comment, CDATA,
-// or doctype.
+// isMarkupDeclarationOpening checks for <! that is not a comment, CDATA, or doctype.
 //
 // Returns bool which indicates true when the cursor is at a markup declaration opening.
 func (l *Lexer) isMarkupDeclarationOpening() bool {
@@ -148,13 +147,14 @@ func (l *Lexer) isMarkupDeclarationOpening() bool {
 
 // isProcessingInstructionOpening checks for <?.
 //
-// Returns bool which indicates true when the cursor is at a processing instruction opening.
+// Returns bool which indicates true when the cursor is at a processing instruction
+// opening.
 func (l *Lexer) isProcessingInstructionOpening() bool {
 	return l.peek(1) == questionMark
 }
 
-// parseStartTag reads a start tag name, classifies it, and returns the
-// appropriate token type.
+// parseStartTag reads a start tag name, classifies it, and returns the appropriate token
+// type.
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) parseStartTag() TokenType {
@@ -281,8 +281,8 @@ func (l *Lexer) parseCDATA() TokenType {
 	return TextToken
 }
 
-// parseDoctype consumes a <!DOCTYPE ...> declaration silently and continues
-// scanning for the next real token.
+// parseDoctype consumes a <!DOCTYPE ...> declaration silently and continues scanning for
+// the next real token.
 //
 // Returns TokenType which indicates the kind of token produced after the DOCTYPE.
 func (l *Lexer) parseDoctype() TokenType {
@@ -297,8 +297,8 @@ func (l *Lexer) parseDoctype() TokenType {
 	return l.nextContent()
 }
 
-// parseBogusComment consumes a bogus comment (<?...> or <!...>) and returns
-// it as CommentToken.
+// parseBogusComment consumes a bogus comment (<?...> or <!...>) and returns it as
+// CommentToken.
 //
 // Returns TokenType which is always CommentToken.
 func (l *Lexer) parseBogusComment() TokenType {
@@ -322,21 +322,20 @@ func (l *Lexer) parseBogusComment() TokenType {
 
 // parseRawText consumes raw text content until the matching closing tag.
 //
-// Raw-text mode is opaque: only `</tagname` followed by an HTML5 end-tag
-// boundary character (whitespace, `>`, or `/`) ends the block. Sequences
-// that look meaningful in normal HTML (`<!--`, `<![CDATA[`, nested
-// `<tagname>` openings) are treated as plain bytes, because no embedded
-// language we support (JavaScript, TypeScript, Go, CSS, plain text) uses
-// HTML-style comments or CDATA sections.
+// Raw-text mode is opaque: only `</tagname` followed by an HTML5 end-tag boundary
+// character (whitespace, `>`, or `/`) ends the block. Sequences that look meaningful in
+// normal HTML (`<!--`, `<![CDATA[`, nested `<tagname>` openings) are treated as plain
+// bytes, because no embedded language we support (JavaScript, TypeScript, Go, CSS, plain
+// text) uses HTML-style comments or CDATA sections.
 //
-// This deliberately diverges from HTML5's "script data escaped" state,
-// which would let `<!-- ... </script> ... -->` keep the script open.
-// That legacy behaviour exists for 1990s "hide JS from old browsers"
-// patterns and has no modern callers; treating script content as opaque
-// matches every script language's lexer and matches HTML5 RAWTEXT
+// This deliberately diverges from HTML5's "script data escaped" state, which would let
+// `<!-- ... </script> ... -->` keep the script open. That legacy behaviour exists for
+// 1990s "hide JS from old browsers" patterns and has no modern callers; treating script
+// content as opaque matches every script language's lexer and matches HTML5 RAWTEXT
 // semantics for `<style>`, `<textarea>`, and `<title>`.
 //
-// Takes contentStart (int) which specifies the byte offset where the raw text content began.
+// Takes contentStart (int) which specifies the byte offset where the raw text content
+// began.
 //
 // Returns TokenType which indicates the kind of token produced.
 func (l *Lexer) parseRawText(contentStart int) TokenType {
@@ -368,10 +367,10 @@ func (l *Lexer) parseRawText(contentStart int) TokenType {
 	return l.emitRawText(contentStart)
 }
 
-// isClosingTagForRawText checks whether the cursor is at a closing tag that
-// matches the given tag name (case-insensitive) and is followed by an HTML5
-// end-tag boundary character: whitespace, `>`, or `/`. The boundary check
-// prevents false matches like `</scripttype>` ending a `<script>` block.
+// isClosingTagForRawText checks whether the cursor is at a closing tag that matches the
+// given tag name (case-insensitive) and is followed by an HTML5 end-tag boundary
+// character: whitespace, `>`, or `/`. The boundary check prevents false matches like
+// `</scripttype>` ending a `<script>` block.
 //
 // Takes tagName ([]byte) which specifies the expected tag name to match against.
 //
@@ -400,8 +399,8 @@ func (l *Lexer) isClosingTagForRawText(tagName []byte) bool {
 	return isEndTagBoundary(remaining[len(tagName)])
 }
 
-// isEndTagBoundary reports whether the given byte is a valid HTML5 end-tag
-// boundary character: whitespace (per isHTMLWhitespace), `>`, or `/`.
+// isEndTagBoundary reports whether the given byte is a valid HTML5 end-tag boundary
+// character: whitespace (per isHTMLWhitespace), `>`, or `/`.
 //
 // Takes b (byte) which is the byte that follows a tag name.
 //
@@ -419,8 +418,7 @@ func (l *Lexer) matchesCommentClose() bool {
 		l.peek(2) == angleBracketClose
 }
 
-// parseAttribute reads an attribute name and optional value from within a
-// start tag.
+// parseAttribute reads an attribute name and optional value from within a start tag.
 //
 // Returns TokenType which is always AttributeToken.
 func (l *Lexer) parseAttribute() TokenType {
@@ -445,8 +443,8 @@ func (l *Lexer) parseAttribute() TokenType {
 	return AttributeToken
 }
 
-// parseAttributeValue reads the value portion of an attribute after the '='
-// sign. Handles quoted (double or single), and unquoted values.
+// parseAttributeValue reads the value portion of an attribute after the '=' sign. Handles
+// quoted (double or single), and unquoted values.
 func (l *Lexer) parseAttributeValue() {
 	l.advanceOne()
 	l.skipWhitespace()
@@ -467,8 +465,8 @@ func (l *Lexer) parseAttributeValue() {
 	l.parseUnquotedAttributeValue()
 }
 
-// parseQuotedAttributeValue reads a quoted attribute value, consuming the
-// opening and closing delimiter.
+// parseQuotedAttributeValue reads a quoted attribute value, consuming the opening and
+// closing delimiter.
 //
 // Takes delimiter (byte) which specifies the quote character that delimits the value.
 func (l *Lexer) parseQuotedAttributeValue(delimiter byte) {
@@ -486,8 +484,7 @@ func (l *Lexer) parseQuotedAttributeValue(delimiter byte) {
 	l.attributeValue = l.source[valueStart:l.cursor]
 }
 
-// parseUnquotedAttributeValue reads an unquoted attribute value until
-// whitespace or >.
+// parseUnquotedAttributeValue reads an unquoted attribute value until whitespace or >.
 func (l *Lexer) parseUnquotedAttributeValue() {
 	valueStart := l.cursor
 
@@ -503,8 +500,8 @@ func (l *Lexer) parseUnquotedAttributeValue() {
 	l.attributeValue = l.source[valueStart:l.cursor]
 }
 
-// parseForeignContent consumes an entire SVG or Math element including all
-// nested content and the closing tag.
+// parseForeignContent consumes an entire SVG or Math element including all nested content
+// and the closing tag.
 //
 // Takes tokenType (TokenType) which specifies whether to emit SVGToken or MathToken.
 //
@@ -553,8 +550,8 @@ func (l *Lexer) parseForeignContent(tokenType TokenType) TokenType {
 	return tokenType
 }
 
-// isForeignClosingTag checks whether the cursor is at a closing tag matching
-// the given name (case-insensitive).
+// isForeignClosingTag checks whether the cursor is at a closing tag matching the given
+// name (case-insensitive).
 //
 // Takes tagName ([]byte) which specifies the tag name to match against.
 //
@@ -583,8 +580,8 @@ func (l *Lexer) consumeForeignClosingTag() {
 	}
 }
 
-// scanTagName advances the cursor past a tag name (ASCII letters, digits,
-// hyphens, and colons).
+// scanTagName advances the cursor past a tag name (ASCII letters, digits, hyphens, and
+// colons).
 func (l *Lexer) scanTagName() {
 	for !l.atEnd() {
 		current := l.source[l.cursor]
@@ -600,10 +597,10 @@ func (l *Lexer) scanTagName() {
 
 // scanAttributeName advances the cursor past an attribute name.
 //
-// When a forward slash is encountered, scanning stops only if it is immediately
-// followed by '>' (the self-closing '/>' sequence). A standalone '/' is consumed
-// as part of the attribute name to avoid producing zero-length names on stray
-// slashes, which would cause an infinite loop.
+// When a forward slash is encountered, scanning stops only if it is immediately followed
+// by '>' (the self-closing '/>' sequence). A standalone '/' is consumed as part of the
+// attribute name to avoid producing zero-length names on stray slashes, which would cause
+// an infinite loop.
 func (l *Lexer) scanAttributeName() {
 	for !l.atEnd() {
 		current := l.source[l.cursor]
@@ -630,21 +627,23 @@ type specialTagEntry struct {
 	kind tagKindType
 }
 
-// specialTagsByLength indexes tag candidates by their byte length, so
-// classifyTagName can jump directly to the right bucket without scanning
-// irrelevant entries. The array is sized to cover the longest special tag
-// name (plaintext = 9 bytes), so index 0-9 are valid.
-var specialTagsByLength = [10][]specialTagEntry{
-	3: {{name: []byte("svg"), kind: foreignTagSVG}, {name: []byte("xmp"), kind: rawTagXmp}},
-	4: {{name: []byte("math"), kind: foreignTagMath}},
-	5: {{name: []byte("style"), kind: rawTagStyle}, {name: []byte("title"), kind: rawTagTitle}},
-	6: {{name: []byte("script"), kind: rawTagScript}, {name: []byte("iframe"), kind: rawTagIframe}},
-	8: {{name: []byte("textarea"), kind: rawTagTextarea}},
-	9: {{name: []byte("plaintext"), kind: rawTagPlaintext}},
-}
+var (
+	// specialTagsByLength indexes tag candidates by their byte length, so classifyTagName
+	// can jump directly to the right bucket without scanning irrelevant entries. The array
+	// is sized to cover the longest special tag name (plaintext = 9 bytes), so index 0-9 are
+	// valid.
+	specialTagsByLength = [10][]specialTagEntry{
+		3: {{name: []byte("svg"), kind: foreignTagSVG}, {name: []byte("xmp"), kind: rawTagXmp}},
+		4: {{name: []byte("math"), kind: foreignTagMath}},
+		5: {{name: []byte("style"), kind: rawTagStyle}, {name: []byte("title"), kind: rawTagTitle}},
+		6: {{name: []byte("script"), kind: rawTagScript}, {name: []byte("iframe"), kind: rawTagIframe}},
+		8: {{name: []byte("textarea"), kind: rawTagTextarea}},
+		9: {{name: []byte("plaintext"), kind: rawTagPlaintext}},
+	}
+)
 
-// classifyTagName checks whether a tag name is a special element (foreign
-// content or raw text) using a length-indexed lookup to minimise comparisons.
+// classifyTagName checks whether a tag name is a special element (foreign content or raw
+// text) using a length-indexed lookup to minimise comparisons.
 //
 // Takes name ([]byte) which specifies the tag name bytes to classify.
 //
@@ -699,17 +698,19 @@ func isASCIILetter(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
-// htmlWhitespace is a compile-time lookup table for HTML whitespace bytes.
-var htmlWhitespace = [256]bool{
-	' ':  true,
-	'\t': true,
-	'\n': true,
-	'\r': true,
-	'\f': true,
-}
+var (
+	// htmlWhitespace is a compile-time lookup table for HTML whitespace bytes.
+	htmlWhitespace = [256]bool{
+		' ':  true,
+		'\t': true,
+		'\n': true,
+		'\r': true,
+		'\f': true,
+	}
+)
 
-// isHTMLWhitespace reports whether b is an HTML whitespace character (space,
-// tab, newline, carriage return, or form feed).
+// isHTMLWhitespace reports whether b is an HTML whitespace character (space, tab,
+// newline, carriage return, or form feed).
 //
 // Takes b (byte) which specifies the byte to test.
 //

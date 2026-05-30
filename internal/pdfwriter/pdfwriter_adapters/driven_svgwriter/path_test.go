@@ -27,7 +27,9 @@ func approxEqual(a, b, tol float64) bool {
 	return math.Abs(a-b) < tol
 }
 
-const defaultTol = 1e-9
+const (
+	defaultTol = 1e-9
+)
 
 func TestParsePathData_MoveTo_Absolute(t *testing.T) {
 	t.Parallel()

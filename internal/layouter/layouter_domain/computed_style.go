@@ -18,10 +18,11 @@
 
 package layouter_domain
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// CounterEntry represents a single counter-reset or
-// counter-increment operation.
+// CounterEntry represents a single counter-reset or counter-increment operation.
 type CounterEntry struct {
 	// Name holds the counter identifier.
 	Name string
@@ -51,8 +52,7 @@ const (
 	// DimensionUnitPoints represents an absolute length in points.
 	DimensionUnitPoints
 
-	// DimensionUnitPercentage represents a percentage of the containing
-	// block.
+	// DimensionUnitPercentage represents a percentage of the containing block.
 	DimensionUnitPercentage
 
 	// DimensionUnitMinContent represents the CSS "min-content" keyword.
@@ -61,22 +61,19 @@ const (
 	// DimensionUnitMaxContent represents the CSS "max-content" keyword.
 	DimensionUnitMaxContent
 
-	// DimensionUnitFitContent represents the CSS
-	// fit-content(<length-percentage>) function. Value holds
-	// the argument resolved to points.
+	// DimensionUnitFitContent represents the CSS fit-content(<length-percentage>) function.
+	// Value holds the argument resolved to points.
 	DimensionUnitFitContent
 
-	// DimensionUnitFitContentStretch represents the bare CSS
-	// "fit-content" keyword (no argument). At resolution time
-	// the available width is used as the clamp argument.
+	// DimensionUnitFitContentStretch represents the bare CSS "fit-content" keyword (no
+	// argument). At resolution time the available width is used as the clamp argument.
 	DimensionUnitFitContentStretch
 )
 
-// Dimension represents a CSS length value that may be auto, an absolute
-// length in points, or a percentage.
+// Dimension represents a CSS length value that may be auto, an absolute length in points,
+// or a percentage.
 type Dimension struct {
-	// Value holds the numeric value. Meaningless when Unit is
-	// DimensionUnitAuto.
+	// Value holds the numeric value. Meaningless when Unit is DimensionUnitAuto.
 	Value float64
 
 	// Unit identifies how Value should be interpreted.
@@ -105,61 +102,56 @@ const (
 	// GridTrackMaxContent represents the max-content sizing keyword.
 	GridTrackMaxContent
 
-	// GridTrackFitContent represents the fit-content(<length>)
-	// function for grid tracks. Value holds the argument in points.
+	// GridTrackFitContent represents the fit-content(<length>) function for grid tracks.
+	// Value holds the argument in points.
 	GridTrackFitContent
 
-	// GridTrackFitContentPct represents the fit-content(<percentage>)
-	// function for grid tracks. Value holds the raw percentage.
+	// GridTrackFitContentPct represents the fit-content(<percentage>) function for grid
+	// tracks. Value holds the raw percentage.
 	GridTrackFitContentPct
 )
 
 // GridTrack represents a single track definition in a grid template.
 type GridTrack struct {
-	// Value holds the numeric value. Meaningless when Unit is
-	// GridTrackAuto.
+	// Value holds the numeric value. Meaningless when Unit is GridTrackAuto.
 	Value float64
 
 	// Unit identifies how Value should be interpreted.
 	Unit GridTrackUnit
 }
 
-// GridAutoRepeat stores a deferred auto-fill or auto-fit repeat
-// pattern that is expanded at layout time when the container
-// width is known.
+// GridAutoRepeat stores a deferred auto-fill or auto-fit repeat pattern that is expanded
+// at layout time when the container width is known.
 type GridAutoRepeat struct {
 	// Pattern is the track list to repeat.
 	Pattern []GridTrack
 
-	// InsertIndex is the position in the fixed template tracks
-	// where the expanded pattern should be spliced in.
+	// InsertIndex is the position in the fixed template tracks where the expanded pattern
+	// should be spliced in.
 	InsertIndex int
 
-	// AfterCount is the number of fixed tracks that follow the
-	// auto-repeat region in the original track list.
+	// AfterCount is the number of fixed tracks that follow the auto-repeat region in the
+	// original track list.
 	AfterCount int
 
 	// Type is GridAutoRepeatFill or GridAutoRepeatFit.
 	Type GridAutoRepeatType
 }
 
-// GridLine represents a grid placement value for an item's start or
-// end position.
+// GridLine represents a grid placement value for an item's start or end position.
 type GridLine struct {
 	// Line is the 1-based grid line number. Zero means auto-placement.
 	Line int
 
-	// Span is the number of tracks to span. Zero means no span keyword
-	// was used.
+	// Span is the number of tracks to span. Zero means no span keyword was used.
 	Span int
 
 	// IsAuto indicates whether this is auto-placement.
 	IsAuto bool
 }
 
-// BoxShadowValue represents a single box-shadow layer. Box-shadow is a visual
-// property that does not affect layout; it is stored here for consumption by
-// the paint phase.
+// BoxShadowValue represents a single box-shadow layer. Box-shadow is a visual property
+// that does not affect layout; it is stored here for consumption by the paint phase.
 type BoxShadowValue struct {
 	// OffsetX is the horizontal shadow offset in points.
 	OffsetX float64
@@ -180,9 +172,8 @@ type BoxShadowValue struct {
 	Inset bool
 }
 
-// TextShadowValue represents a single text-shadow layer. Text-shadow is a
-// visual property that does not affect layout; it is stored here for
-// consumption by the paint phase.
+// TextShadowValue represents a single text-shadow layer. Text-shadow is a visual property
+// that does not affect layout; it is stored here for consumption by the paint phase.
 type TextShadowValue struct {
 	// OffsetX is the horizontal shadow offset in points.
 	OffsetX float64
@@ -202,8 +193,8 @@ type GradientStop struct {
 	// Colour is the stop colour.
 	Colour Colour
 
-	// Position is the stop position as a fraction (0-1).
-	// A value of -1 indicates auto-placement.
+	// Position is the stop position as a fraction (0-1). A value of -1 indicates
+	// auto-placement.
 	Position float64
 }
 
@@ -215,44 +206,40 @@ type BackgroundImage struct {
 	// Stops holds the colour stops for gradient types.
 	Stops []GradientStop
 
-	// Angle is the gradient angle in degrees for linear
-	// gradients.
+	// Angle is the gradient angle in degrees for linear gradients.
 	Angle float64
 
 	// Type identifies the kind of background image.
 	Type BackgroundImageType
 
-	// Shape is the radial gradient shape (circle or ellipse).
-	// Only meaningful when Type is BackgroundImageRadialGradient.
+	// Shape is the radial gradient shape (circle or ellipse). Only meaningful when Type is
+	// BackgroundImageRadialGradient.
 	Shape RadialGradientShape
 }
 
-// ComputedStyle holds all resolved CSS properties for a single
-// element.
+// ComputedStyle holds all resolved CSS properties for a single element.
 //
-// All length values are in points. Percentages are stored as
-// Dimension values and resolved during layout when the
-// containing block dimensions are known.
+// All length values are in points. Percentages are stored as Dimension values and
+// resolved during layout when the containing block dimensions are known.
 //
-// Fields are ordered to minimise the GC pointer-scan window.
-// All pointer-bearing fields (slices, maps, strings, pointers)
-// are grouped first, then non-pointer fields by descending
-// alignment.
+// Fields are ordered to minimise the GC pointer-scan window. All pointer-bearing fields
+// (slices, maps, strings, pointers) are grouped first, then non-pointer fields by
+// descending alignment.
 type ComputedStyle struct {
-	// GridAutoRepeatColumns holds the deferred auto-fill or auto-fit
-	// repeat pattern for grid columns.
+	// GridAutoRepeatColumns holds the deferred auto-fill or auto-fit repeat pattern for grid
+	// columns.
 	GridAutoRepeatColumns *GridAutoRepeat
 
-	// GridAutoRepeatRows holds the deferred auto-fill or auto-fit
-	// repeat pattern for grid rows.
+	// GridAutoRepeatRows holds the deferred auto-fill or auto-fit repeat pattern for grid
+	// rows.
 	GridAutoRepeatRows *GridAutoRepeat
 
-	// CustomProperties holds the element's CSS custom property values
-	// keyed by property name.
+	// CustomProperties holds the element's CSS custom property values keyed by property
+	// name.
 	CustomProperties map[string]string
 
-	// Strings (16 bytes on 64-bit, ptrdata 8).
-	// FontFamily holds the resolved CSS font-family name.
+	// Strings (16 bytes on 64-bit, ptrdata 8). FontFamily holds the resolved CSS font-family
+	// name.
 	FontFamily string
 
 	// Content holds the resolved CSS content property value.
@@ -294,16 +281,14 @@ type ComputedStyle struct {
 	// GridArea holds the resolved CSS grid-area shorthand name.
 	GridArea string
 
-	// Language holds the element's language tag for hyphenation and
-	// text processing.
+	// Language holds the element's language tag for hyphenation and text processing.
 	Language string
 
-	// TransformValue holds the resolved CSS transform function list
-	// as a string.
+	// TransformValue holds the resolved CSS transform function list as a string.
 	TransformValue string
 
-	// Slices (24 bytes on 64-bit, ptrdata 8).
-	// Filter holds the resolved CSS filter function list.
+	// Slices (24 bytes on 64-bit, ptrdata 8). Filter holds the resolved CSS filter function
+	// list.
 	Filter []FilterValue
 
 	// BackdropFilter holds the resolved CSS backdrop-filter function list.
@@ -321,23 +306,20 @@ type ComputedStyle struct {
 	// CounterIncrement holds the resolved CSS counter-increment operations.
 	CounterIncrement []CounterEntry
 
-	// GridTemplateColumns holds the resolved CSS grid-template-columns
-	// track list.
+	// GridTemplateColumns holds the resolved CSS grid-template-columns track list.
 	GridTemplateColumns []GridTrack
 
-	// GridTemplateRows holds the resolved CSS grid-template-rows
-	// track list.
+	// GridTemplateRows holds the resolved CSS grid-template-rows track list.
 	GridTemplateRows []GridTrack
 
-	// GridAutoColumns holds the resolved CSS grid-auto-columns
-	// track sizes.
+	// GridAutoColumns holds the resolved CSS grid-auto-columns track sizes.
 	GridAutoColumns []GridTrack
 
 	// GridAutoRows holds the resolved CSS grid-auto-rows track sizes.
 	GridAutoRows []GridTrack
 
-	// GridTemplateAreas holds the resolved CSS grid-template-areas
-	// as a row-major string grid.
+	// GridTemplateAreas holds the resolved CSS grid-template-areas as a row-major string
+	// grid.
 	GridTemplateAreas [][]string
 
 	// BgImages holds the resolved CSS background-image layer list.
@@ -346,8 +328,8 @@ type ComputedStyle struct {
 	// TabStops holds the custom tab stop positions for text layout.
 	TabStops []TabStop
 
-	// Colour values (72 bytes each, contain float64 + int, no pointers).
-	// BorderTopColour holds the resolved CSS border-top-color.
+	// Colour values (72 bytes each, contain float64 + int, no pointers). BorderTopColour
+	// holds the resolved CSS border-top-color.
 	BorderTopColour Colour
 
 	// BorderRightColour holds the resolved CSS border-right-color.
@@ -377,8 +359,8 @@ type ComputedStyle struct {
 	// TextStrokeColour holds the resolved CSS -webkit-text-stroke-color.
 	TextStrokeColour Colour
 
-	// GridLine values (24 bytes each, contain int + bool, no pointers).
-	// GridColumnStart holds the resolved CSS grid-column-start placement.
+	// GridLine values (24 bytes each, contain int + bool, no pointers). GridColumnStart
+	// holds the resolved CSS grid-column-start placement.
 	GridColumnStart GridLine
 
 	// GridColumnEnd holds the resolved CSS grid-column-end placement.
@@ -390,8 +372,8 @@ type ComputedStyle struct {
 	// GridRowEnd holds the resolved CSS grid-row-end placement.
 	GridRowEnd GridLine
 
-	// Dimension values (16 bytes each, contain float64 + int, no pointers).
-	// Height holds the resolved CSS height.
+	// Dimension values (16 bytes each, contain float64 + int, no pointers). Height holds the
+	// resolved CSS height.
 	Height Dimension
 
 	// MaxHeight holds the resolved CSS max-height.
@@ -439,8 +421,8 @@ type ComputedStyle struct {
 	// ColumnWidth holds the resolved CSS column-width.
 	ColumnWidth Dimension
 
-	// float64 values (8 bytes each, align 8).
-	// Opacity holds the resolved CSS opacity value (0.0 to 1.0).
+	// float64 values (8 bytes each, align 8). Opacity holds the resolved CSS opacity value
+	// (0.0 to 1.0).
 	Opacity float64
 
 	// PaddingTop holds the resolved CSS padding-top in points.
@@ -536,8 +518,8 @@ type ComputedStyle struct {
 	// TextStrokeWidth holds the resolved CSS -webkit-text-stroke-width in points.
 	TextStrokeWidth float64
 
-	// int values (8 bytes on 64-bit, 4 on 32-bit).
-	// ZIndex holds the resolved CSS z-index stacking order.
+	// int values (8 bytes on 64-bit, 4 on 32-bit). ZIndex holds the resolved CSS z-index
+	// stacking order.
 	ZIndex int
 
 	// FontWeight holds the resolved CSS font-weight (100-900).
@@ -555,8 +537,7 @@ type ComputedStyle struct {
 	// ColumnCount holds the resolved CSS column-count.
 	ColumnCount int
 
-	// int-based enum types (same size as int).
-	// Visibility holds the resolved CSS visibility.
+	// int-based enum types (same size as int). Visibility holds the resolved CSS visibility.
 	Visibility VisibilityType
 
 	// ObjectFit holds the resolved CSS object-fit mode.
@@ -709,28 +690,26 @@ type ComputedStyle struct {
 	// MixBlendMode holds the resolved CSS mix-blend-mode.
 	MixBlendMode BlendModeType
 
-	// bool values (1 byte each, grouped at end to minimise padding).
-	// HasTransform indicates whether the element has a CSS transform applied.
+	// bool values (1 byte each, grouped at end to minimise padding). HasTransform indicates
+	// whether the element has a CSS transform applied.
 	HasTransform bool
 
-	// TextDecorationColourSet indicates whether the text-decoration-color
-	// was explicitly set rather than inherited from the colour property.
+	// TextDecorationColourSet indicates whether the text-decoration-color was explicitly set
+	// rather than inherited from the colour property.
 	TextDecorationColourSet bool
 
-	// LineHeightAuto indicates whether the line-height is set to the
-	// CSS "normal" (auto) value.
+	// LineHeightAuto indicates whether the line-height is set to the CSS "normal" (auto)
+	// value.
 	LineHeightAuto bool
 
 	// ZIndexAuto indicates whether the z-index is set to the CSS "auto" value.
 	ZIndexAuto bool
 
-	// AspectRatioAuto indicates whether the aspect-ratio is set to the
-	// CSS "auto" value.
+	// AspectRatioAuto indicates whether the aspect-ratio is set to the CSS "auto" value.
 	AspectRatioAuto bool
 }
 
-// DimensionAuto returns a Dimension representing the CSS "auto"
-// value.
+// DimensionAuto returns a Dimension representing the CSS "auto" value.
 //
 // Returns the auto Dimension.
 func DimensionAuto() Dimension {
@@ -762,58 +741,52 @@ func (d Dimension) IsAuto() bool {
 	return d.Unit == DimensionUnitAuto
 }
 
-// IsMinContent reports whether this dimension represents
-// "min-content".
+// IsMinContent reports whether this dimension represents "min-content".
 //
 // Returns true when the unit is DimensionUnitMinContent.
 func (d Dimension) IsMinContent() bool {
 	return d.Unit == DimensionUnitMinContent
 }
 
-// IsMaxContent reports whether this dimension represents
-// "max-content".
+// IsMaxContent reports whether this dimension represents "max-content".
 //
 // Returns true when the unit is DimensionUnitMaxContent.
 func (d Dimension) IsMaxContent() bool {
 	return d.Unit == DimensionUnitMaxContent
 }
 
-// IsFitContent reports whether this dimension represents a
-// fit-content sizing keyword or function.
+// IsFitContent reports whether this dimension represents a fit-content sizing keyword or
+// function.
 //
 // Returns true for fit-content or fit-content(<arg>).
 func (d Dimension) IsFitContent() bool {
 	return d.Unit == DimensionUnitFitContent || d.Unit == DimensionUnitFitContentStretch
 }
 
-// IsIntrinsic reports whether this dimension represents an
-// intrinsic sizing keyword (min-content, max-content, or
-// fit-content).
+// IsIntrinsic reports whether this dimension represents an intrinsic sizing keyword
+// (min-content, max-content, or fit-content).
 //
 // Returns true for any intrinsic sizing keyword.
 func (d Dimension) IsIntrinsic() bool {
 	return d.IsMinContent() || d.IsMaxContent() || d.IsFitContent()
 }
 
-// DimensionMinContent returns a Dimension representing the
-// CSS "min-content" keyword.
+// DimensionMinContent returns a Dimension representing the CSS "min-content" keyword.
 //
 // Returns the min-content Dimension.
 func DimensionMinContent() Dimension {
 	return Dimension{Unit: DimensionUnitMinContent}
 }
 
-// DimensionMaxContent returns a Dimension representing the
-// CSS "max-content" keyword.
+// DimensionMaxContent returns a Dimension representing the CSS "max-content" keyword.
 //
 // Returns the max-content Dimension.
 func DimensionMaxContent() Dimension {
 	return Dimension{Unit: DimensionUnitMaxContent}
 }
 
-// DimensionFitContent returns a Dimension representing the
-// CSS fit-content(<argument>) function with a resolved point
-// value as the argument.
+// DimensionFitContent returns a Dimension representing the CSS fit-content(<argument>)
+// function with a resolved point value as the argument.
 //
 // Takes argument (float64) which specifies the clamp limit in points.
 //
@@ -822,9 +795,8 @@ func DimensionFitContent(argument float64) Dimension {
 	return Dimension{Value: argument, Unit: DimensionUnitFitContent}
 }
 
-// DimensionFitContentStretch returns a Dimension representing
-// the bare CSS "fit-content" keyword. The available width is
-// used as the clamp argument at resolution time.
+// DimensionFitContentStretch returns a Dimension representing the bare CSS "fit-content"
+// keyword. The available width is used as the clamp argument at resolution time.
 //
 // Returns the fit-content-stretch Dimension.
 func DimensionFitContentStretch() Dimension {
@@ -833,15 +805,13 @@ func DimensionFitContentStretch() Dimension {
 
 // Resolve returns the absolute value in points.
 //
-// When the unit is auto, the fallback value is returned.
-// When the unit is a percentage, the value is resolved
-// against containingBlockSize.
+// When the unit is auto, the fallback value is returned. When the unit is a percentage,
+// the value is resolved against containingBlockSize.
 //
-// Takes containingBlockSize (float64) which is the size of the
-// containing block used to resolve percentages.
+// Takes containingBlockSize (float64) which is the size of the containing block used to
+// resolve percentages.
 //
-// Takes fallback (float64) which is the value returned when
-// the dimension is auto.
+// Takes fallback (float64) which is the value returned when the dimension is auto.
 //
 // Returns the resolved value in points.
 func (d Dimension) Resolve(containingBlockSize, fallback float64) float64 {
@@ -886,11 +856,10 @@ func DefaultGridLine() GridLine {
 	return GridLine{IsAuto: true}
 }
 
-// InheritedComputedStyle returns a new ComputedStyle that carries
-// only the CSS-inherited properties from the receiver. Non-inherited
-// properties (display, position, float, overflow, dimensions, margins,
-// padding, borders, flex/grid, z-index, opacity, background) are
-// reset to their CSS initial values.
+// InheritedComputedStyle returns a new ComputedStyle that carries only the CSS-inherited
+// properties from the receiver. Non-inherited properties (display, position, float,
+// overflow, dimensions, margins, padding, borders, flex/grid, z-index, opacity,
+// background) are reset to their CSS initial values.
 //
 // Returns the inherited-only ComputedStyle.
 func (s *ComputedStyle) InheritedComputedStyle() ComputedStyle {
@@ -931,8 +900,8 @@ func (s *ComputedStyle) InheritedComputedStyle() ComputedStyle {
 	return result
 }
 
-// DefaultComputedStyle returns a ComputedStyle with all properties
-// set to their CSS initial values.
+// DefaultComputedStyle returns a ComputedStyle with all properties set to their CSS
+// initial values.
 //
 // Returns the default ComputedStyle.
 func DefaultComputedStyle() ComputedStyle {
@@ -965,8 +934,8 @@ func DefaultComputedStyle() ComputedStyle {
 	return style
 }
 
-// applyDefaultTypography sets the initial CSS values for font,
-// text, and colour properties on a ComputedStyle.
+// applyDefaultTypography sets the initial CSS values for font, text, and colour
+// properties on a ComputedStyle.
 //
 // Takes style (*ComputedStyle) which specifies the style to initialise.
 func applyDefaultTypography(style *ComputedStyle) {
@@ -983,9 +952,8 @@ func applyDefaultTypography(style *ComputedStyle) {
 	style.BackgroundColour = ColourTransparent
 }
 
-// applyDefaultFlexAndLayout sets the initial CSS values for
-// flexbox, grid, table, list, pagination, and visual properties
-// on a ComputedStyle.
+// applyDefaultFlexAndLayout sets the initial CSS values for flexbox, grid, table, list,
+// pagination, and visual properties on a ComputedStyle.
 //
 // Takes style (*ComputedStyle) which specifies the style to initialise.
 func applyDefaultFlexAndLayout(style *ComputedStyle) {

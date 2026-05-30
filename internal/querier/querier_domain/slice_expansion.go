@@ -26,27 +26,26 @@ import (
 
 // SliceExpansionSpec describes how one query parameter expands at runtime.
 type SliceExpansionSpec struct {
-	// Placeholder is the original ?N number in the SQL template (1-based).
+	// Placeholder is the original ?N bind-position number in the SQL template (1-based).
 	Placeholder int
 
-	// Count is the number of bind positions this parameter occupies (1 for
-	// scalars, len(slice) for slices, 0 for empty slices).
+	// Count is the number of bind positions this parameter occupies (1 for scalars,
+	// len(slice) for slices, 0 for empty slices).
 	Count int
 }
 
-// placeholderMapping records the new starting bind position and element count
-// for an original placeholder after slice expansion.
+// placeholderMapping records the new starting bind position and element count for an
+// original bind-position number after slice expansion.
 type placeholderMapping struct {
-	// newStart is the first bind position assigned to this placeholder after
-	// renumbering.
+	// newStart is the first bind position assigned to this placeholder after renumbering.
 	newStart int
 
 	// count is the number of bind positions this placeholder occupies.
 	count int
 }
 
-// placeholderOccurrence records the location and metadata of a single ?N
-// placeholder found in a query string.
+// placeholderOccurrence records the location and metadata of a single ?N bind-position
+// token found in a query string.
 type placeholderOccurrence struct {
 	// start is the byte offset of the '?' character in the query string.
 	start int
@@ -61,14 +60,13 @@ type placeholderOccurrence struct {
 	inParens bool
 }
 
-// buildPlaceholderRemap sorts the specs by placeholder number and computes
-// contiguous new bind positions for each original placeholder.
+// buildPlaceholderRemap sorts the specs by bind-position number and computes contiguous
+// new bind positions for each original token.
 //
-// Takes specs ([]SliceExpansionSpec) which describes the expansion for each
-// parameter.
+// Takes specs ([]SliceExpansionSpec) which describes the expansion for each parameter.
 //
-// Returns map[int]placeholderMapping which maps original placeholder numbers
-// to their new positions.
+// Returns map[int]placeholderMapping which maps original bind-position numbers to their
+// new positions.
 func buildPlaceholderRemap(specs []SliceExpansionSpec) map[int]placeholderMapping {
 	sorted := make([]SliceExpansionSpec, len(specs))
 	copy(sorted, specs)
@@ -88,13 +86,12 @@ func buildPlaceholderRemap(specs []SliceExpansionSpec) map[int]placeholderMappin
 	return remap
 }
 
-// findPlaceholderOccurrences scans the query for all ?N tokens and returns
-// their byte positions and parsed placeholder numbers.
+// findPlaceholderOccurrences scans the query for all ?N tokens and returns their byte
+// positions and parsed bind-position numbers.
 //
 // Takes query (string) which is the SQL query to scan.
 //
-// Returns []placeholderOccurrence which contains the found placeholder
-// positions.
+// Returns []placeholderOccurrence which contains the found token positions.
 func findPlaceholderOccurrences(query string) []placeholderOccurrence {
 	var occurrences []placeholderOccurrence
 	i := 0
@@ -123,26 +120,22 @@ func findPlaceholderOccurrences(query string) []placeholderOccurrence {
 	return occurrences
 }
 
-// ExpandSlicePlaceholders rewrites ?N placeholders in a SQL query for
-// slice parameter expansion with correct renumbering. For each
-// parameter whose Count differs from 1, the placeholder is expanded
-// (or collapsed to NULL) and all subsequent ?M placeholders are
+// ExpandSlicePlaceholders rewrites ?N bind-position tokens in a SQL query for slice
+// parameter expansion with correct renumbering. For each parameter whose Count differs
+// from 1, the token is expanded (or collapsed to NULL) and all subsequent ?M tokens are
 // renumbered to maintain contiguous bind positions.
 //
-// Example: given SQL "WHERE status IN (?1) AND priority = ?2" with
-// specs [{1, 3}, {2, 1}], the result is
-// "WHERE status IN (?1,?2,?3) AND priority = ?4".
+// Example: given SQL "WHERE status IN (?1) AND priority = ?2" with specs [{1, 3}, {2,
+// 1}], the result is "WHERE status IN (?1,?2,?3) AND priority = ?4".
 //
-// Empty slices (Count=0) produce (NULL) which matches no rows in an
-// IN clause.
+// Empty slices (Count=0) produce (NULL) which matches no rows in an IN clause.
 //
-// Takes query (string) which is the SQL template containing ?N
-// placeholders to rewrite.
-// Takes specs ([]SliceExpansionSpec) which describes the expansion
-// count for each placeholder.
+// Takes query (string) which is the SQL template containing ?N tokens to rewrite.
+// Takes specs ([]SliceExpansionSpec) which describes the expansion count for each bind
+// position.
 //
-// Returns string which is the rewritten SQL with renumbered and
-// expanded placeholders.
+// Returns string which is the rewritten SQL with renumbered and expanded bind-position
+// tokens.
 func ExpandSlicePlaceholders(query string, specs []SliceExpansionSpec) string {
 	if len(specs) == 0 {
 		return query
@@ -196,12 +189,10 @@ func ExpandSlicePlaceholders(query string, specs []SliceExpansionSpec) string {
 // expandSlice builds a parenthesised list of numbered placeholders:
 // (?start,?start+1,...,?start+count-1).
 //
-// Takes start (int) which is the first bind position number in the
-// expanded list.
+// Takes start (int) which is the first bind position number in the expanded list.
 // Takes count (int) which is the number of placeholders to generate.
 //
-// Returns string which is the parenthesised comma-separated
-// placeholder list.
+// Returns string which is the parenthesised comma-separated placeholder list.
 func expandSlice(start, count int) string {
 	var b strings.Builder
 	b.Grow(count*4 + 2)

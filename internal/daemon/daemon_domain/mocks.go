@@ -20,38 +20,47 @@ package daemon_domain
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync"
 	"sync/atomic"
 )
 
-// MockSignalNotifier is a test double for SignalNotifier where nil function
-// fields use default behaviour and call counts are tracked atomically.
+var (
+	// errMockSignalNotifierCancelled is the cancel cause used by
+	// MockSignalNotifier.NotifyContext when no custom NotifyContextFunc is set.
+	errMockSignalNotifierCancelled = errors.New("mock signal notifier cancelled")
+)
+
+// MockSignalNotifier is a test double for SignalNotifier where nil function fields use
+// default behaviour and call counts are tracked atomically.
 type MockSignalNotifier struct {
-	// cancelFunc stores the cancel function set by NotifyContext
-	// so that Trigger can cancel the derived context.
+	// cancelFunc stores the cancel function set by NotifyContext so that Trigger can cancel
+	// the derived context.
 	cancelFunc atomic.Value
 
-	// notifyContextCalled is closed on the first call to NotifyContext,
-	// giving tests a channel-based wait instead of polling.
+	// notifyContextCalled is closed on the first call to NotifyContext, giving tests a
+	// channel-based wait instead of polling.
 	notifyContextCalled chan struct{}
 
 	// NotifyContextFunc is the function called by NotifyContext.
 	NotifyContextFunc func(parent context.Context) (context.Context, context.CancelFunc)
 
 	// NotifyContextCallCount tracks how many times NotifyContext was called.
-	NotifyContextCallCount int64
+	NotifyContextCallCount atomic.Int64
 
-	// triggered tracks whether Trigger was called, using
-	// atomic compare-and-swap to ensure at-most-once semantics.
+	// triggered tracks whether Trigger was called, using atomic compare-and-swap to ensure
+	// at-most-once semantics.
 	triggered int64
 
-	// notifyContextOnce ensures the notifyContextCalled channel is closed
-	// exactly once, even from a zero-value MockSignalNotifier.
+	// notifyContextOnce ensures the notifyContextCalled channel is closed exactly once, even
+	// from a zero-value MockSignalNotifier.
 	notifyContextOnce sync.Once
 }
 
-var _ SignalNotifier = (*MockSignalNotifier)(nil)
+var (
+	_ SignalNotifier = (*MockSignalNotifier)(nil)
+)
 
 // NewMockSignalNotifier creates a new MockSignalNotifier for testing.
 //
@@ -62,22 +71,24 @@ func NewMockSignalNotifier() *MockSignalNotifier {
 	}
 }
 
-// NotifyContext returns a context that can be cancelled by calling Trigger.
-// If NotifyContextFunc is set, it delegates to that function instead.
+// NotifyContext returns a context that can be cancelled by calling Trigger. If
+// NotifyContextFunc is set, it delegates to that function instead.
 //
 // Takes parent (context.Context) which is the parent context to derive from.
 //
 // Returns context.Context which is the derived context that will be cancelled.
 // Returns context.CancelFunc which cancels the returned context.
 func (n *MockSignalNotifier) NotifyContext(parent context.Context) (context.Context, context.CancelFunc) {
-	atomic.AddInt64(&n.NotifyContextCallCount, 1)
+	n.NotifyContextCallCount.Add(1)
 
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if n.NotifyContextFunc != nil {
 		ctx, cancel = n.NotifyContextFunc(parent)
 	} else {
-		ctx, cancel = context.WithCancel(parent)
+		var causeCancel context.CancelCauseFunc
+		ctx, causeCancel = context.WithCancelCause(parent)
+		cancel = func() { causeCancel(errMockSignalNotifierCancelled) }
 	}
 	n.cancelFunc.Store(cancel)
 
@@ -90,8 +101,8 @@ func (n *MockSignalNotifier) NotifyContext(parent context.Context) (context.Cont
 	return ctx, cancel
 }
 
-// Trigger simulates receiving a shutdown signal by cancelling the context. Use
-// it in tests to trigger graceful shutdown without real OS signals.
+// Trigger simulates receiving a shutdown signal by cancelling the context. Use it in
+// tests to trigger graceful shutdown without real OS signals.
 func (n *MockSignalNotifier) Trigger() {
 	if atomic.CompareAndSwapInt64(&n.triggered, 0, 1) {
 		if cancelFunction, ok := n.cancelFunc.Load().(context.CancelFunc); ok && cancelFunction != nil {
@@ -107,14 +118,13 @@ func (n *MockSignalNotifier) WasTriggered() bool {
 	return atomic.LoadInt64(&n.triggered) == 1
 }
 
-// AwaitNotifyContext returns a channel that is closed when NotifyContext is
-// called for the first time. Tests should select on this instead of polling
-// NotifyContextCalled, eliminating wall-clock timing dependencies.
+// AwaitNotifyContext returns a channel that is closed when NotifyContext is called for
+// the first time. Tests should select on this instead of polling NotifyContextCalled,
+// eliminating wall-clock timing dependencies.
 //
 // Returns <-chan struct{} which is closed once NotifyContext has been called.
 //
-// Concurrency: may spawn a fallback goroutine when the channel was not
-// pre-allocated.
+// Concurrency: may spawn a fallback goroutine when the channel was not pre-allocated.
 func (n *MockSignalNotifier) AwaitNotifyContext() <-chan struct{} {
 	if n.notifyContextCalled == nil {
 		ch := make(chan struct{})
@@ -133,7 +143,7 @@ func (n *MockSignalNotifier) AwaitNotifyContext() <-chan struct{} {
 func (n *MockSignalNotifier) Reset() {
 	atomic.StoreInt64(&n.triggered, 0)
 	n.cancelFunc.Store(context.CancelFunc(nil))
-	atomic.StoreInt64(&n.NotifyContextCallCount, 0)
+	n.NotifyContextCallCount.Store(0)
 	n.notifyContextCalled = make(chan struct{})
 	n.notifyContextOnce = sync.Once{}
 }
@@ -142,5 +152,5 @@ func (n *MockSignalNotifier) Reset() {
 //
 // Returns bool which is true if NotifyContext was called at least once.
 func (n *MockSignalNotifier) NotifyContextCalled() bool {
-	return atomic.LoadInt64(&n.NotifyContextCallCount) > 0
+	return n.NotifyContextCallCount.Load() > 0
 }

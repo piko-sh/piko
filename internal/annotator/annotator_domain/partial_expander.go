@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Expands partial component invocations by inlining their templates into the
-// parent component's AST. Processes styles, handles slots, manages CSS scoping,
-// and produces a flattened AST ready for type checking and linking.
+// Expands partial component invocations by inlining their templates into the parent
+// component's AST. Processes styles, handles slots, manages CSS scoping, and produces a
+// flattened AST ready for type checking and linking.
 
 import (
 	"context"
@@ -74,17 +74,16 @@ const (
 	// attributePartialSrc is the attribute name for partial source content.
 	attributePartialSrc = "partial_src"
 
-	// maxAnnotatorDepth caps the recursion depth of annotator stamping and
-	// transform passes so a maliciously nested template tree cannot overflow
-	// the Go stack. Real templates rarely nest beyond a few dozen levels, so
-	// 256 is generous.
+	// maxAnnotatorDepth caps the recursion depth of annotator stamping and transform passes
+	// so a maliciously nested template tree cannot overflow the Go stack. Real templates
+	// rarely nest beyond a few dozen levels, so 256 is generous.
 	maxAnnotatorDepth = 256
 )
 
-// PartialExpander is a pure, in-memory, recursive AST transformation engine.
-// It transforms a graph of separate component ASTs into a single, flattened
-// AST, stamping every node with its structural context and collecting any
-// structural or validation diagnostics it finds.
+// PartialExpander is a pure, in-memory, recursive AST transformation engine. It
+// transforms a graph of separate component ASTs into a single, flattened AST, stamping
+// every node with its structural context and collecting any structural or validation
+// diagnostics it finds.
 type PartialExpander struct {
 	// resolver handles path resolution for partial template imports.
 	resolver resolver_domain.ResolverPort
@@ -96,8 +95,8 @@ type PartialExpander struct {
 	fsReader FSReaderPort
 }
 
-// styleProcessingContext groups parameters for style block processing to reduce
-// argument count.
+// styleProcessingContext groups parameters for style block processing to reduce argument
+// count.
 type styleProcessingContext struct {
 	// expCtx holds the context for expanding template variables.
 	expCtx *expansionContext
@@ -111,8 +110,7 @@ type styleProcessingContext struct {
 	// hasScopedStyles points to a flag that shows whether scoped styles exist.
 	hasScopedStyles *bool
 
-	// entryPointHashedName is the hashed name of the entry point for CSS
-	// processing.
+	// entryPointHashedName is the hashed name of the entry point for CSS processing.
 	entryPointHashedName string
 
 	// isPage indicates whether the current node is a page-level element.
@@ -139,16 +137,13 @@ func NewPartialExpander(resolver resolver_domain.ResolverPort, cssProcessor *CSS
 
 // Expand runs the expansion stage starting from the given entry point.
 //
-// Takes graph (*annotator_dto.ComponentGraph) which holds all parsed
-// components.
-// Takes entryPointHashedName (string) which is the name of the root component
-// to expand.
+// Takes graph (*annotator_dto.ComponentGraph) which holds all parsed components.
+// Takes entryPointHashedName (string) which is the name of the root component to expand.
 // Takes isPage (bool) which indicates whether the entry point is a page.
 // Takes isEmail (bool) which indicates whether the entry point is an email.
 //
 // Returns *annotator_dto.ExpansionResult which holds the final flattened AST.
-// Returns []*ast_domain.Diagnostic which holds any issues found during
-// expansion.
+// Returns []*ast_domain.Diagnostic which holds any issues found during expansion.
 // Returns error when a fatal system error occurs that cannot be recovered.
 func (exp *PartialExpander) Expand(
 	ctx context.Context,
@@ -188,13 +183,12 @@ func (exp *PartialExpander) Expand(
 	return exp.finaliseExpansion(ctx, expCtx, finalRootNodes, mainComponent)
 }
 
-// processEntryPointStyles processes style blocks for the entry point
-// component.
+// processEntryPointStyles processes style blocks for the entry point component.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes expCtx (*expansionContext) which holds the expansion state.
-// Takes mainComponent (*annotator_dto.ParsedComponent) which is the entry
-// point component to process styles for.
+// Takes mainComponent (*annotator_dto.ParsedComponent) which is the entry point component
+// to process styles for.
 // Takes entryPointHashedName (string) which identifies the entry point.
 // Takes isPage (bool) which indicates if this is a page entry point.
 // Takes isEmail (bool) which indicates if this is an email entry point.
@@ -250,8 +244,7 @@ func (exp *PartialExpander) processEntryPointStyles(
 // processStyleBlock handles a single style block from a Piko SFC.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes styleCtx (*styleProcessingContext) which holds the current processing
-// state.
+// Takes styleCtx (*styleProcessingContext) which holds the current processing state.
 // Takes styleBlock (sfcparser.Style) which is the style block to process.
 // Takes styleContent (*string) which holds the style text content.
 //
@@ -276,11 +269,11 @@ func (exp *PartialExpander) processStyleBlock(
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes expCtx (*expansionContext) which holds the expansion state.
-// Takes mainComponent (*annotator_dto.ParsedComponent) which provides the
-// source component being processed.
+// Takes mainComponent (*annotator_dto.ParsedComponent) which provides the source
+// component being processed.
 // Takes styleContent (string) which contains the raw CSS to process.
-// Takes styleStartLocation (ast_domain.Location) which specifies where the
-// style block begins in the source.
+// Takes styleStartLocation (ast_domain.Location) which specifies where the style block
+// begins in the source.
 //
 // Returns error when CSS processing fails.
 func (exp *PartialExpander) processGlobalStyleBlock(
@@ -307,8 +300,7 @@ func (exp *PartialExpander) processGlobalStyleBlock(
 // Takes styleCtx (*styleProcessingContext) which holds the processing state.
 // Takes styleContent (*string) which contains the CSS to process and scope.
 // Takes scopeID (string) which identifies the scope for CSS isolation.
-// Takes styleStartLocation (ast_domain.Location) which marks the source
-// position.
+// Takes styleStartLocation (ast_domain.Location) which marks the source position.
 //
 // Returns error when CSS processing fails.
 func (exp *PartialExpander) processScopedStyleBlock(
@@ -340,15 +332,14 @@ func (exp *PartialExpander) processScopedStyleBlock(
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes expCtx (*expansionContext) which holds the expansion state.
-// Takes finalRootNodes ([]*ast_domain.TemplateNode) which are the processed
-// template nodes.
-// Takes mainComponent (*annotator_dto.ParsedComponent) which is the main
-// component being expanded.
+// Takes finalRootNodes ([]*ast_domain.TemplateNode) which are the processed template
+// nodes.
+// Takes mainComponent (*annotator_dto.ParsedComponent) which is the main component being
+// expanded.
 //
-// Returns *annotator_dto.ExpansionResult which contains the flat AST, combined
-// CSS, and possible invocations.
-// Returns []*ast_domain.Diagnostic which lists all diagnostics found during
-// expansion.
+// Returns *annotator_dto.ExpansionResult which contains the flat AST, combined CSS, and
+// possible invocations.
+// Returns []*ast_domain.Diagnostic which lists all diagnostics found during expansion.
 // Returns error when CSS assembly fails.
 func (*PartialExpander) finaliseExpansion(
 	ctx context.Context,
@@ -380,11 +371,11 @@ func (*PartialExpander) finaliseExpansion(
 	return result, allDiagnostics, nil
 }
 
-// createEmptyExpansionResult creates an expansion result for components that
-// have no template.
+// createEmptyExpansionResult creates an expansion result for components that have no
+// template.
 //
-// Returns *annotator_dto.ExpansionResult which contains empty or nil values
-// for all fields.
+// Returns *annotator_dto.ExpansionResult which contains empty or nil values for all
+// fields.
 func createEmptyExpansionResult() *annotator_dto.ExpansionResult {
 	return &annotator_dto.ExpansionResult{
 		FlattenedAST: &ast_domain.TemplateAST{
@@ -401,8 +392,8 @@ func createEmptyExpansionResult() *annotator_dto.ExpansionResult {
 	}
 }
 
-// checkForCriticalErrors looks for critical errors in the expansion context,
-// such as circular dependencies.
+// checkForCriticalErrors looks for critical errors in the expansion context, such as
+// circular dependencies.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes expCtx (*expansionContext) which contains the diagnostics to check.
@@ -425,15 +416,14 @@ func checkForCriticalErrors(ctx context.Context, expCtx *expansionContext) error
 	return nil
 }
 
-// fillSlotsInTree replaces slot placeholders in a template tree with the given
-// content.
+// fillSlotsInTree replaces slot placeholders in a template tree with the given content.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which is the tree to process.
-// Takes content (map[string][]*ast_domain.TemplateNode) which maps slot names
-// to their replacement nodes.
+// Takes content (map[string][]*ast_domain.TemplateNode) which maps slot names to their
+// replacement nodes.
 //
-// Returns []*ast_domain.TemplateNode which is a new tree with slots filled.
-// When a slot has no content provided, it uses its default children instead.
+// Returns []*ast_domain.TemplateNode which is a new tree with slots filled. When a slot
+// has no content provided, it uses its default children instead.
 func fillSlotsInTree(nodes []*ast_domain.TemplateNode, content map[string][]*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	resultBuffer := make([]*ast_domain.TemplateNode, 0, len(nodes))
 	for _, node := range nodes {
@@ -455,10 +445,10 @@ func fillSlotsInTree(nodes []*ast_domain.TemplateNode, content map[string][]*ast
 
 // finaliseAST builds and validates the final template AST from parsed nodes.
 //
-// Takes rootNodes ([]*ast_domain.TemplateNode) which contains the parsed root
-// template nodes.
-// Takes mainComponent (*annotator_dto.ParsedComponent) which provides source
-// metadata and diagnostics.
+// Takes rootNodes ([]*ast_domain.TemplateNode) which contains the parsed root template
+// nodes.
+// Takes mainComponent (*annotator_dto.ParsedComponent) which provides source metadata and
+// diagnostics.
 //
 // Returns *ast_domain.TemplateAST which is the validated and tidied AST.
 func finaliseAST(ctx context.Context, rootNodes []*ast_domain.TemplateNode, mainComponent *annotator_dto.ParsedComponent) *ast_domain.TemplateAST {
@@ -476,12 +466,12 @@ func finaliseAST(ctx context.Context, rootNodes []*ast_domain.TemplateNode, main
 	return finalAST
 }
 
-// stampNodesWithPackage adds package and source file details to template nodes.
-// It stamps each node's directives, dynamic attributes, and rich text content,
-// then handles child nodes using recursion.
+// stampNodesWithPackage adds package and source file details to template nodes. It stamps
+// each node's directives, dynamic attributes, and rich text content, then handles child
+// nodes using recursion.
 //
-// To reduce per-node allocations, it pre-allocates a batch of
-// GoGeneratorAnnotation structs and hands out pointers from the batch.
+// To reduce per-node allocations, it pre-allocates a batch of GoGeneratorAnnotation
+// structs and hands out pointers from the batch.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to update.
 // Takes packageAlias (string) which is the package alias to set on each node.
@@ -492,12 +482,11 @@ func stampNodesWithPackage(nodes []*ast_domain.TemplateNode, packageAlias string
 	stampNodesWithPackageRecursive(nodes, packageAlias, sourcePath, arena, new(0))
 }
 
-// countNodesWithoutAnnotation counts nodes that lack a GoAnnotations field,
-// so we can pre-allocate the right number. Recursion is capped at
-// maxAnnotatorDepth so a pathological tree cannot overflow the stack.
+// countNodesWithoutAnnotation counts nodes that lack a GoAnnotations field, so we can
+// pre-allocate the right number. Recursion is capped at maxAnnotatorDepth so a
+// pathological tree cannot overflow the stack.
 //
-// Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to inspect
-// recursively.
+// Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to inspect recursively.
 //
 // Returns int which is the total count of nodes without annotations.
 func countNodesWithoutAnnotation(nodes []*ast_domain.TemplateNode) int {
@@ -510,8 +499,8 @@ func countNodesWithoutAnnotation(nodes []*ast_domain.TemplateNode) int {
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to inspect.
 // Takes depth (int) which is the current recursion depth.
 //
-// Returns int which is the total count of nodes without annotations,
-// truncated at maxAnnotatorDepth.
+// Returns int which is the total count of nodes without annotations, truncated at
+// maxAnnotatorDepth.
 func countNodesWithoutAnnotationAt(nodes []*ast_domain.TemplateNode, depth int) int {
 	if depth >= maxAnnotatorDepth {
 		return 0
@@ -526,14 +515,14 @@ func countNodesWithoutAnnotationAt(nodes []*ast_domain.TemplateNode, depth int) 
 	return count
 }
 
-// stampNodesWithPackageRecursive is the inner recursive implementation that
-// stamps nodes using a pre-allocated arena.
+// stampNodesWithPackageRecursive is the inner recursive implementation that stamps nodes
+// using a pre-allocated arena.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to stamp.
 // Takes packageAlias (string) which is the package alias to set.
 // Takes sourcePath (string) which is the source file path to set.
-// Takes arena ([]ast_domain.GoGeneratorAnnotation) which is the pre-allocated
-// annotation batch.
+// Takes arena ([]ast_domain.GoGeneratorAnnotation) which is the pre-allocated annotation
+// batch.
 // Takes idx (*int) which tracks the next free slot in the arena.
 func stampNodesWithPackageRecursive(
 	nodes []*ast_domain.TemplateNode,
@@ -551,11 +540,10 @@ func stampNodesWithPackageRecursive(
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to stamp.
 // Takes packageAlias (string) which is the package alias to set.
 // Takes sourcePath (string) which is the source file path to set.
-// Takes arena ([]ast_domain.GoGeneratorAnnotation) which is the
-// pre-allocated annotation batch.
+// Takes arena ([]ast_domain.GoGeneratorAnnotation) which is the pre-allocated annotation
+// batch.
 // Takes idx (*int) which tracks the next free slot in the arena.
-// Takes depth (int) which is the current recursion depth, capped at
-// maxAnnotatorDepth.
+// Takes depth (int) which is the current recursion depth, capped at maxAnnotatorDepth.
 func stampNodesWithPackageRecursiveAt(
 	nodes []*ast_domain.TemplateNode,
 	packageAlias string,
@@ -587,12 +575,12 @@ func stampNodesWithPackageRecursiveAt(
 	}
 }
 
-// stampDynamicAttributesWithSourcePath sets the OriginalSourcePath on dynamic
-// attributes that do not already have one. This means attributes from
-// partials are tracked to their source file.
+// stampDynamicAttributesWithSourcePath sets the OriginalSourcePath on dynamic attributes
+// that do not already have one. This means attributes from partials are tracked to their
+// source file.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node whose attributes will
-// be updated.
+// Takes node (*ast_domain.TemplateNode) which is the node whose attributes will be
+// updated.
 // Takes sourcePath (string) which is the path to set on the attributes.
 func stampDynamicAttributesWithSourcePath(node *ast_domain.TemplateNode, sourcePath string) {
 	for i := range node.DynamicAttributes {
@@ -606,12 +594,11 @@ func stampDynamicAttributesWithSourcePath(node *ast_domain.TemplateNode, sourceP
 	}
 }
 
-// stampDirectivesWithSourcePath sets the OriginalSourcePath on directives that
-// do not already have one. This makes sure that directives from partials are
-// tracked as coming from the partial's source file.
+// stampDirectivesWithSourcePath sets the OriginalSourcePath on directives that do not
+// already have one. This makes sure that directives from partials are tracked as coming
+// from the partial's source file.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node whose directives to
-// stamp.
+// Takes node (*ast_domain.TemplateNode) which is the node whose directives to stamp.
 // Takes sourcePath (string) which is the source path to set.
 func stampDirectivesWithSourcePath(node *ast_domain.TemplateNode, sourcePath string) {
 	stampDirective := func(d *ast_domain.Directive) {
@@ -657,12 +644,11 @@ func stampDirectivesWithSourcePath(node *ast_domain.TemplateNode, sourcePath str
 	}
 }
 
-// stampRichTextWithSourcePath sets the source path on RichText parts that do
-// not already have one. This means text from partials can be tracked
-// back to the partial's source file.
+// stampRichTextWithSourcePath sets the source path on RichText parts that do not already
+// have one. This means text from partials can be tracked back to the partial's source
+// file.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node whose RichText parts
-// to stamp.
+// Takes node (*ast_domain.TemplateNode) which is the node whose RichText parts to stamp.
 // Takes sourcePath (string) which is the source path to set.
 func stampRichTextWithSourcePath(node *ast_domain.TemplateNode, sourcePath string) {
 	for i := range node.RichText {
@@ -678,8 +664,7 @@ func stampRichTextWithSourcePath(node *ast_domain.TemplateNode, sourcePath strin
 
 // countErrors returns the number of diagnostics that have error severity.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to
-// count.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to count.
 //
 // Returns int which is the count of diagnostics with error severity.
 func countErrors(diagnostics []*ast_domain.Diagnostic) int {

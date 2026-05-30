@@ -27,27 +27,25 @@ import (
 	"piko.sh/piko/internal/pml/pml_dto"
 )
 
-// MockTransformer is a test double for Transformer where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockTransformer is a test double for Transformer where nil function fields return zero
+// values and call counts are tracked atomically.
 type MockTransformer struct {
-	// TransformFunc is the function called by
-	// Transform.
+	// TransformFunc is the function called by Transform.
 	TransformFunc func(ast *ast_domain.TemplateAST, config *pml_dto.Config) (*ast_domain.TemplateAST, string, []*Error)
 
-	// TransformForEmailFunc is the function called by
-	// TransformForEmail.
+	// TransformForEmailFunc is the function called by TransformForEmail.
 	TransformForEmailFunc func(ast *ast_domain.TemplateAST, config *pml_dto.Config) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error)
 
-	// TransformCallCount tracks how many times
-	// Transform was called.
-	TransformCallCount int64
+	// TransformCallCount tracks how many times Transform was called.
+	TransformCallCount atomic.Int64
 
-	// TransformForEmailCallCount tracks how many times
-	// TransformForEmail was called.
-	TransformForEmailCallCount int64
+	// TransformForEmailCallCount tracks how many times TransformForEmail was called.
+	TransformForEmailCallCount atomic.Int64
 }
 
-var _ Transformer = (*MockTransformer)(nil)
+var (
+	_ Transformer = (*MockTransformer)(nil)
+)
 
 // Transform delegates to TransformFunc if set.
 //
@@ -56,7 +54,7 @@ var _ Transformer = (*MockTransformer)(nil)
 //
 // Returns the input AST, an empty string, and nil if TransformFunc is nil.
 func (m *MockTransformer) Transform(_ context.Context, ast *ast_domain.TemplateAST, config *pml_dto.Config) (*ast_domain.TemplateAST, string, []*Error) {
-	atomic.AddInt64(&m.TransformCallCount, 1)
+	m.TransformCallCount.Add(1)
 	if m.TransformFunc != nil {
 		return m.TransformFunc(ast, config)
 	}
@@ -68,10 +66,10 @@ func (m *MockTransformer) Transform(_ context.Context, ast *ast_domain.TemplateA
 // Takes ast (*ast_domain.TemplateAST) which is the template AST to transform.
 // Takes config (*pml_dto.Config) which provides the transformation settings.
 //
-// Returns the input AST, an empty string, nil asset requests, and nil errors
-// if TransformForEmailFunc is nil.
+// Returns the input AST, an empty string, nil asset requests, and nil errors if
+// TransformForEmailFunc is nil.
 func (m *MockTransformer) TransformForEmail(_ context.Context, ast *ast_domain.TemplateAST, config *pml_dto.Config) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error) {
-	atomic.AddInt64(&m.TransformForEmailCallCount, 1)
+	m.TransformForEmailCallCount.Add(1)
 	if m.TransformForEmailFunc != nil {
 		return m.TransformForEmailFunc(ast, config)
 	}

@@ -18,19 +18,23 @@
 
 package ast_domain
 
-// Validates AST structures for correctness and consistency, checking directive usage, attribute conflicts, and structural integrity.
-// Detects issues like duplicate directives, invalid p-for/p-if combinations, and mismatched source paths in merged attributes.
+// Validates AST structures for correctness and consistency, checking directive usage,
+// attribute conflicts, and structural integrity. Detects issues like duplicate
+// directives, invalid p-for/p-if combinations, and mismatched source paths in merged
+// attributes.
 
 import (
 	"fmt"
 	"strings"
 )
 
-// directivePrefix is the prefix added to directive names for display.
-const directivePrefix = "p-"
+const (
+	// directivePrefix is the prefix added to directive names for display.
+	directivePrefix = "p-"
+)
 
-// ValidateAST checks a template AST for structural and semantic problems.
-// It adds any issues found as diagnostics to the tree.
+// ValidateAST checks a template AST for structural and semantic problems. It adds any
+// issues found as diagnostics to the tree.
 //
 // When tree is nil or has no root nodes, returns without doing anything.
 //
@@ -42,8 +46,8 @@ func ValidateAST(tree *TemplateAST) {
 	validateNodeList(tree.RootNodes, tree)
 }
 
-// HoistDiagnostics gathers all diagnostics from child nodes and moves them to
-// the tree-level diagnostics list.
+// HoistDiagnostics gathers all diagnostics from child nodes and moves them to the
+// tree-level diagnostics list.
 //
 // When the tree or its source path is nil, returns without making changes.
 //
@@ -69,15 +73,15 @@ func HoistDiagnostics(tree *TemplateAST) {
 	})
 }
 
-// hasDifferentSourcePath checks whether two annotations come from different
-// source files. This happens when attributes were merged from different files,
-// such as during partial expansion.
+// hasDifferentSourcePath checks whether two annotations come from different source files.
+// This happens when attributes were merged from different files, such as during partial
+// expansion.
 //
 // Takes pForAnn (*GoGeneratorAnnotation) which is the annotation from p-for.
 // Takes otherAnn (*GoGeneratorAnnotation) which is the annotation to compare.
 //
-// Returns bool which is true if the source paths differ, or false if both come
-// from the same file or if paths cannot be compared.
+// Returns bool which is true if the source paths differ, or false if both come from the
+// same file or if paths cannot be compared.
 func hasDifferentSourcePath(pForAnn, otherAnn *GoGeneratorAnnotation) bool {
 	if pForAnn == nil || otherAnn == nil {
 		return false
@@ -88,8 +92,8 @@ func hasDifferentSourcePath(pForAnn, otherAnn *GoGeneratorAnnotation) bool {
 	return *pForAnn.OriginalSourcePath != *otherAnn.OriginalSourcePath
 }
 
-// validateNodeList checks each node in the list for template errors.
-// It runs checks on element nodes and recurses into child nodes.
+// validateNodeList checks each node in the list for template errors. It runs checks on
+// element nodes and recurses into child nodes.
 //
 // Takes nodes ([]*TemplateNode) which is the list of nodes to check.
 // Takes tree (*TemplateAST) which provides context for error reporting.
@@ -117,9 +121,8 @@ func validateNodeList(nodes []*TemplateNode, tree *TemplateAST) {
 
 // validateAdjacency checks that else-type directives follow valid nodes.
 //
-// Else-type directives (such as p-else and p-else-if) must come straight after
-// an element with p-if or p-else-if. Adds a diagnostic error to the tree when
-// this rule is broken.
+// Else-type directives (such as p-else and p-else-if) must come straight after an element
+// with p-if or p-else-if. Adds a diagnostic error to the tree when this rule is broken.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes previousSibling (*TemplateNode) which is the node before it.
@@ -143,9 +146,9 @@ func validateAdjacency(node, previousSibling *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// validateAttributeConflicts checks for conflicts between static attributes
-// and dynamic bindings on a template node. It adds a warning to the tree when
-// a static attribute would be replaced by a directive or binding.
+// validateAttributeConflicts checks for conflicts between static attributes and dynamic
+// bindings on a template node. It adds a warning to the tree when a static attribute
+// would be replaced by a directive or binding.
 //
 // Takes node (*TemplateNode) which is the node to check for conflicts.
 // Takes tree (*TemplateAST) which receives any warning messages.
@@ -181,8 +184,8 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// validateContentDirectives checks a template node for content directives that
-// conflict or are not needed.
+// validateContentDirectives checks a template node for content directives that conflict
+// or are not needed.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes tree (*TemplateAST) which receives any diagnostics found.
@@ -212,8 +215,8 @@ func validateContentDirectives(node *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// validateRedundantConditionals checks that an element does not have both
-// p-else and p-else-if directives, and adds an error diagnostic if it does.
+// validateRedundantConditionals checks that an element does not have both p-else and
+// p-else-if directives, and adds an error diagnostic if it does.
 //
 // Takes node (*TemplateNode) which is the node to check.
 // Takes tree (*TemplateAST) which receives any error diagnostics.
@@ -226,13 +229,11 @@ func validateRedundantConditionals(node *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// validateDirectivePrecedence checks that p-for is the first directive on an
-// element.
+// validateDirectivePrecedence checks that p-for is the first directive on an element.
 //
-// The p-for directive always runs before other directives, so it should appear
-// first in the source code. Checks all other directives, dynamic attributes,
-// and event handlers. If any appear before p-for, reports a warning to help keep
-// the code clear.
+// The p-for directive always runs before other directives, so it should appear first in
+// the source code. Checks all other directives, dynamic attributes, and event handlers.
+// If any appear before p-for, reports a warning to help keep the code clear.
 //
 // Takes node (*TemplateNode) which is the element node to check.
 // Takes tree (*TemplateAST) which provides the AST for reporting warnings.
@@ -249,9 +250,9 @@ func validateDirectivePrecedence(node *TemplateNode, tree *TemplateAST) {
 	checkDynamicAttributes(node, pForLocation, pForAnn, tree)
 }
 
-// checkStandardDirectives checks that standard directives appear after p-for
-// in source order. Skips the check if the directive comes from a different
-// source file than p-for, for example due to partial expansion.
+// checkStandardDirectives checks that standard directives appear after p-for in source
+// order. Skips the check if the directive comes from a different source file than p-for,
+// for example due to partial expansion.
 //
 // Takes node (*TemplateNode) which contains the directives to check.
 // Takes pForLocation (Location) which marks where the p-for directive is.
@@ -281,8 +282,8 @@ func checkStandardDirectives(node *TemplateNode, pForLocation Location, pForAnn 
 	}
 }
 
-// checkBindDirectives checks that bind directives appear after p-for. It skips
-// the check if the directive comes from a different source file than p-for.
+// checkBindDirectives checks that bind directives appear after p-for. It skips the check
+// if the directive comes from a different source file than p-for.
 //
 // Takes node (*TemplateNode) which contains the bind directives to check.
 // Takes pForLocation (Location) which marks where p-for appears.
@@ -300,9 +301,9 @@ func checkBindDirectives(node *TemplateNode, pForLocation Location, pForAnn *GoG
 	}
 }
 
-// checkEventDirectives checks that event directives do not appear before a
-// p-for directive on the same node. Skips the check if the directive comes
-// from a different source file than p-for.
+// checkEventDirectives checks that event directives do not appear before a p-for
+// directive on the same node. Skips the check if the directive comes from a different
+// source file than p-for.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 // Takes pForLocation (Location) which is the position of the p-for directive.
@@ -313,11 +314,9 @@ func checkEventDirectives(node *TemplateNode, pForLocation Location, pForAnn *Go
 	checkEventDirectiveMap(node.CustomEvents, "p-event:", node, pForLocation, pForAnn, tree)
 }
 
-// checkEventDirectiveMap checks a map of event directives for ordering issues
-// with p-for.
+// checkEventDirectiveMap checks a map of event directives for ordering issues with p-for.
 //
-// Takes eventMap (map[string][]Directive) which maps event names to their
-// directives.
+// Takes eventMap (map[string][]Directive) which maps event names to their directives.
 // Takes prefix (string) which is the directive prefix for error messages.
 // Takes node (*TemplateNode) which is the template node being checked.
 // Takes pForLocation (Location) which is the position of the p-for directive.
@@ -338,9 +337,9 @@ func checkEventDirectiveMap(eventMap map[string][]Directive, prefix string, node
 	}
 }
 
-// checkDynamicAttributes checks that dynamic attributes come after the p-for
-// directive to ensure correct order. Skips the check if the attribute comes
-// from a different source file than p-for.
+// checkDynamicAttributes checks that dynamic attributes come after the p-for directive to
+// ensure correct order. Skips the check if the attribute comes from a different source
+// file than p-for.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 // Takes pForLocation (Location) which is the position of the p-for directive.
@@ -362,15 +361,14 @@ func checkDynamicAttributes(node *TemplateNode, pForLocation Location, pForAnn *
 	}
 }
 
-// addPrecedenceDiagnostic creates and adds a warning about directive order to
-// the AST diagnostics.
+// addPrecedenceDiagnostic creates and adds a warning about directive order to the AST
+// diagnostics.
 //
 // Takes tree (*TemplateAST) which receives the new diagnostic.
 // Takes node (*TemplateNode) which is the element with the ordering issue.
-// Takes violatorName (string) which is the name of the directive that appears
-// before p-for.
-// Takes violatorLocation (Location) which is the source position of the
-// directive.
+// Takes violatorName (string) which is the name of the directive that appears before
+// p-for.
+// Takes violatorLocation (Location) which is the source position of the directive.
 func addPrecedenceDiagnostic(tree *TemplateAST, node *TemplateNode, violatorName string, violatorLocation Location) {
 	message := fmt.Sprintf(
 		"Directive precedence on <%s>: `%s` is written before `p-for`, but `p-for` always has the highest "+
@@ -401,8 +399,8 @@ func validateModelableElement(node *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// validateKeyedForLoop checks that elements with p-for directives also have a
-// p-key binding for efficient updates.
+// validateKeyedForLoop checks that elements with p-for directives also have a p-key
+// binding for efficient updates.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 // Takes tree (*TemplateAST) which receives any warnings found.
@@ -417,14 +415,14 @@ func validateKeyedForLoop(node *TemplateNode, tree *TemplateAST) {
 	}
 }
 
-// findPreviousElementSibling searches backwards through nodes to find the
-// nearest element node before the current position.
+// findPreviousElementSibling searches backwards through nodes to find the nearest element
+// node before the current position.
 //
 // Takes nodes ([]*TemplateNode) which is the list of sibling nodes to search.
 // Takes currentIndex (int) which is the position to start searching from.
 //
-// Returns *TemplateNode which is the previous element sibling, or nil if none
-// exists or if non-whitespace text appears first.
+// Returns *TemplateNode which is the previous element sibling, or nil if none exists or
+// if non-whitespace text appears first.
 func findPreviousElementSibling(nodes []*TemplateNode, currentIndex int) *TemplateNode {
 	for i := currentIndex - 1; i >= 0; i-- {
 		previousNode := nodes[i]
@@ -442,8 +440,7 @@ func findPreviousElementSibling(nodes []*TemplateNode, currentIndex int) *Templa
 //
 // Takes node (*TemplateNode) which is the node to check.
 //
-// Returns *Directive which is the else-if or else directive, or nil if not
-// found.
+// Returns *Directive which is the else-if or else directive, or nil if not found.
 // Returns bool which is true when a directive was found.
 func getElseDirective(node *TemplateNode) (*Directive, bool) {
 	if node.DirElseIf != nil {
@@ -459,8 +456,7 @@ func getElseDirective(node *TemplateNode) (*Directive, bool) {
 //
 // Takes node (*TemplateNode) which is the node to get the directive from.
 //
-// Returns *Directive which is the text or HTML directive, or nil if neither
-// exists.
+// Returns *Directive which is the text or HTML directive, or nil if neither exists.
 func getContentDirective(node *TemplateNode) *Directive {
 	if node.DirText != nil {
 		return node.DirText
@@ -480,19 +476,19 @@ func isElementNode(node *TemplateNode) bool {
 	return node.NodeType == NodeElement
 }
 
-// isValidConditionalPredecessor checks whether a node can come before an else
-// or else-if directive.
+// isValidConditionalPredecessor checks whether a node can come before an else or else-if
+// directive.
 //
 // Takes node (*TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node is not nil and contains an if or
-// else-if directive.
+// Returns bool which is true if the node is not nil and contains an if or else-if
+// directive.
 func isValidConditionalPredecessor(node *TemplateNode) bool {
 	return node != nil && (node.DirIf != nil || node.DirElseIf != nil)
 }
 
-// isModelableElement reports whether the given HTML tag name is a form element
-// that can be bound to a model.
+// isModelableElement reports whether the given HTML tag name is a form element that can
+// be bound to a model.
 //
 // Takes tagName (string) which is the HTML element tag name to check.
 //
@@ -506,8 +502,8 @@ func isModelableElement(tagName string) bool {
 	}
 }
 
-// isWhitespaceOnlyText reports whether the node is a text node that contains
-// only whitespace characters.
+// isWhitespaceOnlyText reports whether the node is a text node that contains only
+// whitespace characters.
 //
 // Takes node (*TemplateNode) which is the node to check.
 //
@@ -529,13 +525,13 @@ func isWhitespaceOnlyText(node *TemplateNode) bool {
 	return true
 }
 
-// hasMeaningfulContent reports whether the node contains any elements or
-// text that is not just whitespace.
+// hasMeaningfulContent reports whether the node contains any elements or text that is not
+// just whitespace.
 //
 // Takes node (*TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node has element children or text
-// children with non-whitespace content.
+// Returns bool which is true if the node has element children or text children with
+// non-whitespace content.
 func hasMeaningfulContent(node *TemplateNode) bool {
 	if len(node.Children) == 0 {
 		return false

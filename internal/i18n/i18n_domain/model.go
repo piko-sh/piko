@@ -18,7 +18,7 @@
 
 package i18n_domain
 
-// Translations maps locale identifiers to their key-value translation pairs.
-// The outer map key is the locale (e.g., "en-GB"), the inner map contains
-// translation keys and values.
+// Translations maps locale identifiers to their key-value translation pairs. The outer
+// map key is the locale (e.g., "en-GB"), the inner map contains translation keys and
+// values.
 type Translations map[string]map[string]string

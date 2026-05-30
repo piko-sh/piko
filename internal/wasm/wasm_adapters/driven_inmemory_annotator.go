@@ -29,13 +29,13 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// NewInMemoryAnnotatorService creates an AnnotatorService set up for in-memory
-// use in WASM contexts.
+// NewInMemoryAnnotatorService creates an AnnotatorService set up for in-memory use in
+// WASM contexts.
 //
 // Takes sources (map[string]string) which maps file paths to their contents.
 // Takes moduleName (string) which is the Go module name for the project.
-// Takes stdlibData (*inspector_dto.TypeData) which is the pre-bundled standard
-// library type data.
+// Takes stdlibData (*inspector_dto.TypeData) which is the pre-bundled standard library
+// type data.
 //
 // Returns annotator_domain.AnnotatorPort which is the configured annotator.
 // Returns error when setup fails.

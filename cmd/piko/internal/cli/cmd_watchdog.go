@@ -35,40 +35,43 @@ import (
 )
 
 const (
-	// watchdogMaxDownloadBytes is the maximum size of profile data the client
-	// will accumulate before aborting (64 MiB).
+	// watchdogMaxDownloadBytes is the maximum size of profile data the client will
+	// accumulate before aborting (64 MiB).
 	watchdogMaxDownloadBytes = 64 * 1024 * 1024
 
-	// watchdogDownloadFilePerms is the file permission used when writing
-	// downloaded watchdog profile files.
+	// watchdogDownloadFilePerms is the file permission used when writing downloaded watchdog
+	// profile files.
 	watchdogDownloadFilePerms = 0o600
 
-	// watchdogDownloadTimeout is the timeout for downloading a watchdog profile,
-	// applied as a buffer on top of the base request timeout.
+	// watchdogDownloadTimeout is the timeout for downloading a watchdog profile, applied as
+	// a buffer on top of the base request timeout.
 	watchdogDownloadTimeout = 60 * time.Second
 
-	// flagNameType is the shared --type flag name used by list, prune,
-	// download, and events subcommands.
+	// flagNameType is the shared --type flag name used by list, prune, download, and events
+	// subcommands.
 	flagNameType = "type"
 )
 
-// watchdogSubcommands maps subcommand names to their handler functions.
-var watchdogSubcommands = map[string]func(ctx context.Context, cc *CommandContext, arguments []string) error{
-	"list":                  watchdogList,
-	"download":              watchdogDownload,
-	"prune":                 watchdogPrune,
-	"status":                watchdogStatus,
-	"contention-diagnostic": watchdogContentionDiagnostic,
-	"history":               watchdogHistory,
-	"events":                watchdogEvents,
-}
+var (
+	// watchdogSubcommands maps subcommand names to their handler functions.
+	watchdogSubcommands = map[string]func(ctx context.Context, cc *CommandContext, arguments []string) error{
+		"list":                  watchdogList,
+		"download":              watchdogDownload,
+		"prune":                 watchdogPrune,
+		"status":                watchdogStatus,
+		"contention-diagnostic": watchdogContentionDiagnostic,
+		"history":               watchdogHistory,
+		"events":                watchdogEvents,
+	}
+)
+var (
 
-// watchdogSubcommandList is a pre-built display string of available
-// subcommands used in error messages.
-var watchdogSubcommandList = buildResourceList(watchdogSubcommands)
+	// watchdogSubcommandList is a pre-built display string of available subcommands used in
+	// error messages.
+	watchdogSubcommandList = buildResourceList(watchdogSubcommands)
+)
 
-// downloadResult holds the outcome of a watchdog profile download for JSON
-// output.
+// downloadResult holds the outcome of a watchdog profile download for JSON output.
 type downloadResult struct {
 	// Filename is the name of the downloaded profile file.
 	Filename string `json:"filename"`
@@ -76,8 +79,8 @@ type downloadResult struct {
 	// FilePath is the absolute path to the saved profile file.
 	FilePath string `json:"filePath"`
 
-	// SidecarPath is the absolute path to the saved sidecar JSON file,
-	// or empty when no sidecar was downloaded.
+	// SidecarPath is the absolute path to the saved sidecar JSON file, or empty when no
+	// sidecar was downloaded.
 	SidecarPath string `json:"sidecarPath,omitempty"`
 
 	// SizeBytes is the number of bytes written for the profile.
@@ -90,11 +93,10 @@ type pruneResult struct {
 	DeletedCount int32 `json:"deletedCount"`
 }
 
-// runWatchdog dispatches to the appropriate watchdog subcommand based on
-// the first positional argument.
+// runWatchdog dispatches to the appropriate watchdog subcommand based on the first
+// positional argument.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which contains the subcommand and its arguments.
 //
 // Returns error when the subcommand is unknown or execution fails.
@@ -113,11 +115,10 @@ func runWatchdog(ctx context.Context, cc *CommandContext, arguments []string) er
 	return handler(ctx, cc, arguments[1:])
 }
 
-// watchdogList queries the server for stored watchdog profiles and displays
-// them in table or JSON format.
+// watchdogList queries the server for stored watchdog profiles and displays them in table
+// or JSON format.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which contains optional flags including --type.
 //
 // Returns error when flag parsing, the RPC, or JSON serialisation fails.
@@ -178,8 +179,7 @@ func watchdogList(ctx context.Context, cc *CommandContext, arguments []string) e
 
 // watchdogListUsage returns a usage function for the watchdog list flag set.
 //
-// Takes fs (*flag.FlagSet) which provides the registered flags for defaults
-// output.
+// Takes fs (*flag.FlagSet) which provides the registered flags for defaults output.
 // Takes cc (*CommandContext) which supplies the stderr writer.
 //
 // Returns func() which prints usage text when invoked.
@@ -201,16 +201,14 @@ Examples:
 	}
 }
 
-// watchdogDownload downloads a stored watchdog profile from the server and
-// writes it to a local file.
+// watchdogDownload downloads a stored watchdog profile from the server and writes it to a
+// local file.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection, output
-// writers, and safedisk factory.
-// Takes arguments ([]string) which contains the filename or --latest flag with
-// --type.
+// Takes cc (*CommandContext) which provides the gRPC connection, output writers, and
+// safedisk factory.
+// Takes arguments ([]string) which contains the filename or --latest flag with --type.
 //
-// Returns error when argument parsing, the download stream, or file writing
-// fails.
+// Returns error when argument parsing, the download stream, or file writing fails.
 func watchdogDownload(ctx context.Context, cc *CommandContext, arguments []string) error {
 	fs := flag.NewFlagSet("watchdog download", flag.ContinueOnError)
 	fs.SetOutput(cc.Stderr)
@@ -256,20 +254,20 @@ func watchdogDownload(ctx context.Context, cc *CommandContext, arguments []strin
 	return displayDownloadResult(cc, filename, filePath, profileData, sidecarPath)
 }
 
-// downloadSidecarBestEffort attempts to fetch the JSON sidecar paired with
-// the given profile.
+// downloadSidecarBestEffort attempts to fetch the JSON sidecar paired with the given
+// profile.
 //
-// Failures are logged to stderr but do not abort the command; the profile
-// is the primary artefact and the sidecar is supplementary.
+// Failures are logged to stderr but do not abort the command; the profile is the primary
+// artefact and the sidecar is supplementary.
 //
 // Takes cc (*CommandContext) which provides the connection and stderr.
-// Takes profileFilename (string) which identifies the .pb.gz file whose
-// sidecar should be fetched.
-// Takes outputDirectory (string) which is the directory the sidecar is written
-// into when present.
+// Takes profileFilename (string) which identifies the .pb.gz file whose sidecar should be
+// fetched.
+// Takes outputDirectory (string) which is the directory the sidecar is written into when
+// present.
 //
-// Returns string which is the path of the saved sidecar, or empty when no
-// sidecar was downloaded.
+// Returns string which is the path of the saved sidecar, or empty when no sidecar was
+// downloaded.
 func downloadSidecarBestEffort(ctx context.Context, cc *CommandContext, profileFilename, outputDirectory string) string {
 	response, err := cc.Conn.WatchdogClient().DownloadSidecar(ctx, &pb.DownloadSidecarRequest{
 		ProfileFilename: profileFilename,
@@ -291,11 +289,9 @@ func downloadSidecarBestEffort(ctx context.Context, cc *CommandContext, profileF
 	return sidecarPath
 }
 
-// watchdogDownloadUsage returns a usage function for the watchdog download
-// flag set.
+// watchdogDownloadUsage returns a usage function for the watchdog download flag set.
 //
-// Takes fs (*flag.FlagSet) which provides the registered flags for defaults
-// output.
+// Takes fs (*flag.FlagSet) which provides the registered flags for defaults output.
 // Takes cc (*CommandContext) which supplies the stderr writer.
 //
 // Returns func() which prints usage text when invoked.
@@ -321,12 +317,10 @@ Examples:
 	}
 }
 
-// resolveDownloadFilename determines the filename to download, either from a
-// positional argument or by querying the server for the latest profile of the
-// given type.
+// resolveDownloadFilename determines the filename to download, either from a positional
+// argument or by querying the server for the latest profile of the given type.
 //
-// Takes positional ([]string) which may contain the filename as the first
-// element.
+// Takes positional ([]string) which may contain the filename as the first element.
 // Takes latest (bool) which indicates whether to fetch the latest profile.
 // Takes typeFilter (string) which specifies the profile type when using latest.
 //
@@ -352,8 +346,8 @@ func resolveDownloadFilename(
 	return positional[0], nil
 }
 
-// resolveLatestFilename queries the server for profiles of the given type and
-// returns the filename of the first (most recent) result.
+// resolveLatestFilename queries the server for profiles of the given type and returns the
+// filename of the first (most recent) result.
 //
 // Takes typeFilter (string) which specifies the profile type to search for.
 //
@@ -373,8 +367,8 @@ func resolveLatestFilename(ctx context.Context, cc *CommandContext, typeFilter s
 	return profiles[0].GetFilename(), nil
 }
 
-// readWatchdogDownloadStream opens a download stream and reads all chunks into
-// a single byte slice.
+// readWatchdogDownloadStream opens a download stream and reads all chunks into a single
+// byte slice.
 //
 // Takes cc (*CommandContext) which provides the gRPC connection.
 // Takes filename (string) which identifies the profile to download.
@@ -418,8 +412,8 @@ func readWatchdogDownloadStream(
 	return profileData, nil
 }
 
-// writeWatchdogProfileFile writes the downloaded profile data to a file in the
-// specified output directory using safedisk.
+// writeWatchdogProfileFile writes the downloaded profile data to a file in the specified
+// output directory using safedisk.
 //
 // Takes cc (*CommandContext) which provides the safedisk factory.
 // Takes filename (string) which is the name of the profile file.
@@ -449,8 +443,7 @@ func writeWatchdogProfileFile(
 	return filePath, nil
 }
 
-// displayDownloadResult formats and prints the result of a watchdog profile
-// download.
+// displayDownloadResult formats and prints the result of a watchdog profile download.
 //
 // Takes cc (*CommandContext) which supplies output writers and format options.
 // Takes filename (string) which is the profile file name.
@@ -491,11 +484,10 @@ func displayDownloadResult(
 	return nil
 }
 
-// watchdogPrune removes stored watchdog profiles from the server, optionally
-// filtered by type.
+// watchdogPrune removes stored watchdog profiles from the server, optionally filtered by
+// type.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which contains optional flags including --type.
 //
 // Returns error when flag parsing, the RPC, or JSON serialisation fails.
@@ -536,8 +528,7 @@ func watchdogPrune(ctx context.Context, cc *CommandContext, arguments []string) 
 
 // watchdogPruneUsage returns a usage function for the watchdog prune flag set.
 //
-// Takes fs (*flag.FlagSet) which provides the registered flags for defaults
-// output.
+// Takes fs (*flag.FlagSet) which provides the registered flags for defaults output.
 // Takes cc (*CommandContext) which supplies the stderr writer.
 //
 // Returns func() which prints usage text when invoked.
@@ -558,11 +549,10 @@ Examples:
 	}
 }
 
-// watchdogStatus queries and displays the current watchdog configuration and
-// runtime state.
+// watchdogStatus queries and displays the current watchdog configuration and runtime
+// state.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 //
 // Returns error when the RPC or JSON serialisation fails.
 func watchdogStatus(ctx context.Context, cc *CommandContext, _ []string) error {
@@ -587,27 +577,25 @@ func watchdogStatus(ctx context.Context, cc *CommandContext, _ []string) error {
 	return nil
 }
 
-// contentionDiagnosticResult captures the outcome of a contention-diagnostic
-// invocation for JSON rendering.
+// contentionDiagnosticResult captures the outcome of a contention-diagnostic invocation
+// for JSON rendering.
 type contentionDiagnosticResult struct {
-	// Error carries the human-readable failure reason from the server when
-	// Started is false.
+	// Error carries the human-readable failure reason from the server when Started is false.
 	Error string `json:"error,omitempty"`
 
-	// Started reports whether the diagnostic actually ran. False values
-	// usually indicate an in-progress / cooldown / stopped condition.
+	// Started reports whether the diagnostic actually ran. False values usually indicate an
+	// in-progress / cooldown / stopped condition.
 	Started bool `json:"started"`
 }
 
-// eventResult is the CLI-side alias for inspector.WatchdogEventResult;
-// both renderers now consume the same JSON-friendly view.
+// eventResult is the CLI-side alias for inspector.WatchdogEventResult; both renderers now
+// consume the same JSON-friendly view.
 type eventResult = inspector.WatchdogEventResult
 
-// watchdogContentionDiagnostic runs the contention diagnostic via the
-// inspector and prints the outcome.
+// watchdogContentionDiagnostic runs the contention diagnostic via the inspector and
+// prints the outcome.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which provides flag arguments.
 //
 // Returns error when flag parsing or the RPC fails.
@@ -658,11 +646,10 @@ Examples:
 	return errors.New("contention diagnostic did not run (unknown reason)")
 }
 
-// watchdogHistory queries the inspector for the startup-history ring and
-// renders it as a table or JSON.
+// watchdogHistory queries the inspector for the startup-history ring and renders it as a
+// table or JSON.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which provides flag arguments.
 //
 // Returns error when flag parsing or the RPC fails.
@@ -708,8 +695,7 @@ Flags:
 
 // watchdogEvents lists or streams watchdog events.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and output
-// writers.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
 // Takes arguments ([]string) which contains optional flags.
 //
 // Returns error when flag parsing or the RPC fails.
@@ -764,19 +750,15 @@ Examples:
 	return renderWatchdogEvents(cc, response.GetEvents(), false)
 }
 
-// streamWatchdogEvents subscribes to the watchdog event stream and renders
-// events as they arrive.
+// streamWatchdogEvents subscribes to the watchdog event stream and renders events as they
+// arrive.
 //
-// Takes cc (*CommandContext) which provides the gRPC connection and
-// output writers.
-// Takes sinceMs (int64) which is the unix-millisecond watermark forwarded
-// to the server.
+// Takes cc (*CommandContext) which provides the gRPC connection and output writers.
+// Takes sinceMs (int64) which is the unix-millisecond watermark forwarded to the server.
 // Takes eventType (string) which filters events by type when non-empty.
-// Takes limit (int) which caps the number of events delivered (0 means
-// unlimited).
+// Takes limit (int) which caps the number of events delivered (0 means unlimited).
 //
-// Returns error when the stream cannot be opened or the receive loop
-// fails.
+// Returns error when the stream cannot be opened or the receive loop fails.
 func streamWatchdogEvents(ctx context.Context, cc *CommandContext, sinceMs int64, eventType string, limit int) error {
 	stream, err := cc.Conn.WatchdogClient().WatchEvents(ctx, &pb.WatchEventsRequest{SinceMs: sinceMs})
 	if err != nil {
@@ -806,18 +788,16 @@ func streamWatchdogEvents(ctx context.Context, cc *CommandContext, sinceMs int64
 	}
 }
 
-// emitWatchdogStreamEvent renders a single streaming event in the active
-// output mode (JSON or table). Extracted from streamWatchdogEvents to
-// keep the main receive loop within the project's cognitive-complexity
-// budget.
+// emitWatchdogStreamEvent renders a single streaming event in the active output mode
+// (JSON or table). Extracted from streamWatchdogEvents to keep the main receive loop
+// within the project's cognitive-complexity budget.
 //
 // Takes cc (*CommandContext) which provides the output writer.
-// Takes p (*Printer) which is the configured Printer for output mode
-// detection.
+// Takes p (*Printer) which is the configured Printer for output mode detection.
 // Takes event (*pb.WatchdogEventMessage) which is the event to render.
 //
-// Returns error when JSON serialisation fails; nil for the tail/table
-// path which writes to stdout best-effort.
+// Returns error when JSON serialisation fails; nil for the tail/table path which writes
+// to stdout best-effort.
 func emitWatchdogStreamEvent(cc *CommandContext, p *Printer, event *pb.WatchdogEventMessage) error {
 	result := inspector.BuildWatchdogEventResult(event)
 	if p.IsJSON() {
@@ -829,8 +809,7 @@ func emitWatchdogStreamEvent(cc *CommandContext, p *Printer, event *pb.WatchdogE
 
 // renderWatchdogEvents prints a slice of proto events as a table or JSON.
 //
-// Takes cc (*CommandContext) which provides the output writer and printer
-// configuration.
+// Takes cc (*CommandContext) which provides the output writer and printer configuration.
 // Takes events ([]*pb.WatchdogEventMessage) which is the slice to render.
 //
 // Returns error when JSON serialisation fails.
@@ -864,8 +843,8 @@ func renderWatchdogEvents(cc *CommandContext, events []*pb.WatchdogEventMessage,
 	return nil
 }
 
-// renderEventLine prints a single event as a one-line tail format
-// suitable for streaming output.
+// renderEventLine prints a single event as a one-line tail format suitable for streaming
+// output.
 //
 // Takes cc (*CommandContext) which provides the stdout writer.
 // Takes event (eventResult) which is the event projection to print.

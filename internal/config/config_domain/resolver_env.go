@@ -24,11 +24,13 @@ import (
 	"os"
 )
 
-// EnvResolver resolves placeholders like "env:VAR_NAME" by looking up the
-// matching environment variable. It implements the Resolver interface.
+// EnvResolver resolves placeholders like "env:VAR_NAME" by looking up the matching
+// environment variable. It implements the Resolver interface.
 type EnvResolver struct{}
 
-var _ = Resolver(&EnvResolver{})
+var (
+	_ = Resolver(&EnvResolver{})
+)
 
 // GetPrefix returns the "env:" prefix.
 //

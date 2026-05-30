@@ -26,13 +26,12 @@ import (
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
-// paintFormVisual draws static visual representations of form controls
-// into the content stream. Only non-interactive decorations like the
-// select dropdown arrow are painted in the content stream.
+// paintFormVisual draws static visual representations of form controls into the content
+// stream. Only non-interactive decorations like the select dropdown arrow are painted in
+// the content stream.
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
-// Takes box (*layouter_domain.LayoutBox) which is the layout box for
-// the form element.
+// Takes box (*layouter_domain.LayoutBox) which is the layout box for the form element.
 func (painter *PdfPainter) paintFormVisual(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if box.SourceNode == nil {
 		return
@@ -48,14 +47,12 @@ func (painter *PdfPainter) paintFormVisual(stream *ContentStream, box *layouter_
 	painter.paintSelectArrow(stream, pdfX, pdfBottom, w, h)
 }
 
-// paintSelectArrow draws a small downward chevron on the right side
-// of a select element to indicate it is a dropdown.
+// paintSelectArrow draws a small downward chevron on the right side of a select element
+// to indicate it is a dropdown.
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
-// Takes x, y (float64) which define the bottom-left corner in PDF
-// coordinates.
-// Takes w, h (float64) which define the width and height of the
-// select element.
+// Takes x, y (float64) which define the bottom-left corner in PDF coordinates.
+// Takes w, h (float64) which define the width and height of the select element.
 func (*PdfPainter) paintSelectArrow(stream *ContentStream, x, y, w, h float64) {
 	stream.SaveState()
 
@@ -73,12 +70,11 @@ func (*PdfPainter) paintSelectArrow(stream *ContentStream, x, y, w, h float64) {
 	stream.RestoreState()
 }
 
-// collectFormField checks whether the box originates from an HTML form
-// element (input, textarea, select, button). If so, it reads the
-// element's attributes and records a FormField for AcroForm generation.
+// collectFormField checks whether the box originates from an HTML form element (input,
+// textarea, select, button). If so, it reads the element's attributes and records a
+// FormField for AcroForm generation.
 //
-// Takes box (*layouter_domain.LayoutBox) which is the layout box to
-// inspect.
+// Takes box (*layouter_domain.LayoutBox) which is the layout box to inspect.
 func (painter *PdfPainter) collectFormField(box *layouter_domain.LayoutBox) {
 	if box.SourceNode == nil {
 		return
@@ -92,14 +88,13 @@ func (painter *PdfPainter) collectFormField(box *layouter_domain.LayoutBox) {
 	painter.acroformBuilder.AddField(field)
 }
 
-// buildFormField creates a FormField from a layout box's source node
-// attributes.
+// buildFormField creates a FormField from a layout box's source node attributes.
 //
-// Takes box (*layouter_domain.LayoutBox) which is the layout box
-// containing the form element's source node.
+// Takes box (*layouter_domain.LayoutBox) which is the layout box containing the form
+// element's source node.
 //
-// Returns *FormField which holds the form field definition, or nil if
-// the box is not a form element.
+// Returns *FormField which holds the form field definition, or nil if the box is not a
+// form element.
 func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormField {
 	node := box.SourceNode
 	tag := node.TagName
@@ -159,12 +154,10 @@ func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormF
 	return field
 }
 
-// populateInputField sets field type and flags based on the input's
-// type attribute.
+// populateInputField sets field type and flags based on the input's type attribute.
 //
 // Takes field (*FormField) which is the form field to populate.
-// Takes attrs (map[string]string) which holds the HTML attributes of
-// the input element.
+// Takes attrs (map[string]string) which holds the HTML attributes of the input element.
 func (*PdfPainter) populateInputField(field *FormField, attrs map[string]string) {
 	inputType := attrs["type"]
 	if inputType == "" {
@@ -206,14 +199,13 @@ func (*PdfPainter) populateInputField(field *FormField, attrs map[string]string)
 	}
 }
 
-// populateSelectField sets field type, flags, and options for a
-// <select> element by reading its <option> children from the AST.
+// populateSelectField sets field type, flags, and options for a <select> element by
+// reading its <option> children from the AST.
 //
 // Takes field (*FormField) which is the form field to populate.
-// Takes box (*layouter_domain.LayoutBox) which provides access to
-// the <option> child nodes.
-// Takes attrs (map[string]string) which holds the HTML attributes of
-// the select element.
+// Takes box (*layouter_domain.LayoutBox) which provides access to the <option> child
+// nodes.
+// Takes attrs (map[string]string) which holds the HTML attributes of the select element.
 func (*PdfPainter) populateSelectField(field *FormField, box *layouter_domain.LayoutBox, attrs map[string]string) {
 	if _, multi := attrs["multiple"]; multi {
 		field.FieldType = FormFieldListBox
@@ -246,11 +238,11 @@ func (*PdfPainter) populateSelectField(field *FormField, box *layouter_domain.La
 	field.DefaultVal = field.Value
 }
 
-// collectFormAttributes extracts all HTML attributes from a source
-// node into a map for convenient lookup.
+// collectFormAttributes extracts all HTML attributes from a source node into a map for
+// convenient lookup.
 //
-// Takes node (*ast_domain.TemplateNode) which is the source node
-// whose attributes are extracted.
+// Takes node (*ast_domain.TemplateNode) which is the source node whose attributes are
+// extracted.
 //
 // Returns map[string]string which maps attribute names to their values.
 func collectFormAttributes(node *ast_domain.TemplateNode) map[string]string {
@@ -263,8 +255,7 @@ func collectFormAttributes(node *ast_domain.TemplateNode) map[string]string {
 
 // extractOptionText returns the text content of an <option> element.
 //
-// Takes node (*ast_domain.TemplateNode) which is the <option> element
-// node.
+// Takes node (*ast_domain.TemplateNode) which is the <option> element node.
 //
 // Returns string which is the concatenated text content.
 func extractOptionText(node *ast_domain.TemplateNode) string {
@@ -280,8 +271,8 @@ func extractOptionText(node *ast_domain.TemplateNode) string {
 	return b.String()
 }
 
-// isEditableFormElement reports whether the tag name is a form element
-// whose content is managed by AcroForm /AP appearance streams.
+// isEditableFormElement reports whether the tag name is a form element whose content is
+// managed by AcroForm /AP appearance streams.
 //
 // Takes tagName (string) which is the HTML tag name to check.
 //

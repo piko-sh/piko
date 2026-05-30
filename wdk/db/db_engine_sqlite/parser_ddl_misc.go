@@ -24,6 +24,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCreateView parses a CREATE VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new view.
+// Returns error when the view name or column list cannot be parsed.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.matchKeyword("TEMP")
@@ -67,6 +71,10 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropView parses a DROP VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the dropped view.
+// Returns error when the view name cannot be parsed.
 func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("VIEW")
@@ -86,6 +94,10 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateIndex parses a CREATE [UNIQUE] INDEX statement.
+//
+// Returns *querier_dto.CatalogueMutation which records the indexed table.
+// Returns error when an identifier cannot be parsed.
 func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.matchKeyword(keywordUNIQUE)
@@ -114,6 +126,10 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropIndex parses a DROP INDEX statement.
+//
+// Returns *querier_dto.CatalogueMutation which records the drop kind.
+// Returns error when the index name cannot be parsed.
 func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("INDEX")
@@ -132,6 +148,14 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateVirtualTable parses a CREATE VIRTUAL TABLE statement and extracts
+// module-specific column shape information.
+//
+// Takes engine (*SQLiteEngine) which supplies type normalisation for inferred columns.
+//
+// Returns *querier_dto.CatalogueMutation which describes the virtual table, or nil when
+// no USING clause is present.
+// Returns error when the table name cannot be parsed.
 func (p *parser) parseCreateVirtualTable(engine *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword("VIRTUAL")
@@ -191,6 +215,13 @@ func (p *parser) parseCreateVirtualTable(engine *SQLiteEngine) (*querier_dto.Cat
 	}, nil
 }
 
+// extractFTS5Columns derives the searchable columns of an FTS5 virtual table from its
+// argument list and appends the synthetic `rank` column.
+//
+// Takes tokens ([]token) which are the argument tokens of the USING clause.
+// Takes engine (*SQLiteEngine) which supplies type normalisation.
+//
+// Returns []querier_dto.Column which is the FTS5 column schema including `rank`.
 func extractFTS5Columns(tokens []token, engine *SQLiteEngine) []querier_dto.Column {
 	segments := splitTokensOnComma(tokens)
 	var columns []querier_dto.Column
@@ -222,6 +253,12 @@ func extractFTS5Columns(tokens []token, engine *SQLiteEngine) []querier_dto.Colu
 	return columns
 }
 
+// isFTS5Option reports whether a comma-delimited segment of an FTS5 argument list is a
+// configuration option rather than a column.
+//
+// Takes segment ([]token) which is one comma-separated argument segment.
+//
+// Returns bool which is true for `name = value` pairs and well-known FTS5 option names.
 func isFTS5Option(segment []token) bool {
 	if len(segment) < 2 {
 		return false
@@ -240,6 +277,14 @@ func isFTS5Option(segment []token) bool {
 	return false
 }
 
+// extractRTreeColumns derives the column schema of an R-Tree virtual table, treating the
+// first column as the integer primary key.
+//
+// Takes tokens ([]token) which are the argument tokens of the USING clause.
+// Takes engine (*SQLiteEngine) which supplies type normalisation.
+//
+// Returns []querier_dto.Column which is the R-Tree column schema.
+// Returns []string which lists the primary key column names.
 func extractRTreeColumns(tokens []token, engine *SQLiteEngine) ([]querier_dto.Column, []string) {
 	segments := splitTokensOnComma(tokens)
 	var columns []querier_dto.Column
@@ -272,6 +317,13 @@ func extractRTreeColumns(tokens []token, engine *SQLiteEngine) ([]querier_dto.Co
 	return columns, primaryKeyColumns
 }
 
+// extractGenericVirtualColumns derives a best-effort text-typed column list for an
+// unrecognised virtual table module.
+//
+// Takes tokens ([]token) which are the argument tokens of the USING clause.
+// Takes engine (*SQLiteEngine) which supplies type normalisation.
+//
+// Returns []querier_dto.Column which is the inferred column schema.
 func extractGenericVirtualColumns(tokens []token, engine *SQLiteEngine) []querier_dto.Column {
 	segments := splitTokensOnComma(tokens)
 	var columns []querier_dto.Column
@@ -299,6 +351,12 @@ func extractGenericVirtualColumns(tokens []token, engine *SQLiteEngine) []querie
 	return columns
 }
 
+// splitTokensOnComma splits tokens on top-level commas, leaving commas inside parentheses
+// alone.
+//
+// Takes tokens ([]token) which are the tokens to split.
+//
+// Returns [][]token which is one slice per top-level comma-separated segment.
 func splitTokensOnComma(tokens []token) [][]token {
 	var segments [][]token
 	var current []token
@@ -325,6 +383,11 @@ func splitTokensOnComma(tokens []token) [][]token {
 	return segments
 }
 
+// parseTableName parses an optionally schema-qualified table name and returns the table
+// portion.
+//
+// Returns string which is the bare table name.
+// Returns error when no identifier is found.
 func (p *parser) parseTableName() (string, error) {
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
@@ -343,6 +406,11 @@ func (p *parser) parseTableName() (string, error) {
 	return name, nil
 }
 
+// parseCreateTrigger parses a CREATE TRIGGER statement up to its target table and ignores
+// the action body.
+//
+// Returns *querier_dto.CatalogueMutation which records the trigger name and target table.
+// Returns error when the trigger name cannot be parsed.
 func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.matchKeyword("TEMP")
@@ -388,6 +456,10 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropTrigger parses a DROP TRIGGER statement.
+//
+// Returns *querier_dto.CatalogueMutation which records the dropped trigger.
+// Returns error when the trigger name cannot be parsed.
 func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("TRIGGER")

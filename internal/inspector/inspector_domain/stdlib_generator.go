@@ -18,10 +18,10 @@
 
 package inspector_domain
 
-// This file provides functionality for generating TypeData containing
-// standard library and Piko framework types. This is used by:
-// 1. The lite builder tests (generates stdlib at test suite startup)
-// 2. The WASM stdlib FBS generator tool (generates embedded stdlib.fbs)
+// This file provides functionality for generating TypeData containing standard library
+// and Piko framework types. This is used by: 1. The lite builder tests (generates stdlib
+// at test suite startup) 2. The WASM stdlib FBS generator tool (generates embedded
+// stdlib.fbs)
 
 import (
 	"context"
@@ -36,8 +36,8 @@ import (
 )
 
 var (
-	// StdlibPackages defines the full set of stdlib packages to include.
-	// These cover the types most commonly used in Piko templates.
+	// StdlibPackages defines the full set of stdlib packages to include. These cover the
+	// types most commonly used in Piko templates.
 	StdlibPackages = []string{
 		"time",
 		"context",
@@ -85,24 +85,21 @@ var (
 )
 
 // GenerateStdlibTypeData creates TypeData containing standard library and Piko types
-// using go/packages for loading and type-checking. The helper is called once at
-// test suite startup for lite builder tests and is used by the WASM stdlib FBS
-// generator tool.
+// using go/packages for loading and type-checking. The helper is called once at test
+// suite startup for lite builder tests and is used by the WASM stdlib FBS generator tool.
 //
-// Returns *inspector_dto.TypeData which contains the type information for
-// standard library and Piko packages in DTO format.
+// Returns *inspector_dto.TypeData which contains the type information for standard
+// library and Piko packages in DTO format.
 // Returns error when package loading or type-checking fails.
 func GenerateStdlibTypeData(ctx context.Context) (*inspector_dto.TypeData, error) {
 	return GenerateStdlibTypeDataWithPackages(ctx, StdlibPackages, PikoPackages)
 }
 
-// GenerateStdlibTypeDataWithPackages creates TypeData for the specified
-// packages. Use it in tests that need a minimal stdlib subset.
+// GenerateStdlibTypeDataWithPackages creates TypeData for the specified packages. Use it
+// in tests that need a minimal stdlib subset.
 //
-// Takes stdlibPackages ([]string) which specifies standard
-// library package patterns.
-// Takes pikoPackages ([]string) which specifies piko
-// package patterns to include.
+// Takes stdlibPackages ([]string) which specifies standard library package patterns.
+// Takes pikoPackages ([]string) which specifies piko package patterns to include.
 //
 // Returns *inspector_dto.TypeData which contains the serialised type data.
 // Returns error when loading, serialising, or validating the packages fails.
@@ -147,9 +144,9 @@ func GenerateStdlibTypeDataWithPackages(ctx context.Context, stdlibPackages, pik
 	return typeData, nil
 }
 
-// loadStdlibPackages loads the given packages from the Go standard library.
-// Unlike the main builder which uses overlays, this loads packages straight
-// from the Go installation and module cache.
+// loadStdlibPackages loads the given packages from the Go standard library. Unlike the
+// main builder which uses overlays, this loads packages straight from the Go installation
+// and module cache.
 //
 // Takes patterns ([]string) which lists the package patterns to load.
 //

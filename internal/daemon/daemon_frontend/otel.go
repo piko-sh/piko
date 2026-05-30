@@ -34,8 +34,7 @@ var (
 	// assetCacheInitCount tracks how many times the asset cache has been set up.
 	assetCacheInitCount metric.Int64Counter
 
-	// assetCacheInitErrorCount counts errors that occur when the asset cache
-	// starts up.
+	// assetCacheInitErrorCount counts errors that occur when the asset cache starts up.
 	assetCacheInitErrorCount metric.Int64Counter
 
 	// assetCacheSize tracks the number of assets held in the cache.
@@ -44,8 +43,7 @@ var (
 	// assetCacheReadCount tracks the total number of asset reads.
 	assetCacheReadCount metric.Int64Counter
 
-	// assetCacheReadErrorCount counts errors that occur when reading from the
-	// asset cache.
+	// assetCacheReadErrorCount counts errors that occur when reading from the asset cache.
 	assetCacheReadErrorCount metric.Int64Counter
 
 	// assetCacheMissCount tracks cache misses when an asset is not found.

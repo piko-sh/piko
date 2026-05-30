@@ -57,7 +57,9 @@ func (m *mockDispatcherInspector) ClearDLQ(_ context.Context, _ string) error {
 	return m.clearDLQError
 }
 
-var _ dispatcher_domain.DispatcherInspector = (*mockDispatcherInspector)(nil)
+var (
+	_ dispatcher_domain.DispatcherInspector = (*mockDispatcherInspector)(nil)
+)
 
 func TestNewDispatcherInspectorService(t *testing.T) {
 	t.Parallel()

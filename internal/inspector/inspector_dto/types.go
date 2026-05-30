@@ -28,35 +28,33 @@ import (
 type StringabilityMethod int
 
 const (
-	// StringableNone means the type has no standard string method.
-	// The emitter falls back to fmt.Sprint(), and the analyser warns the user.
+	// StringableNone means the type has no standard string method. The emitter falls back to
+	// fmt.Sprint(), and the analyser warns the user.
 	StringableNone StringabilityMethod = iota
 
-	// StringablePrimitive means the type is a built-in Go primitive (int, bool, etc.)
-	// that can be converted directly with the strconv package.
+	// StringablePrimitive means the type is a built-in Go primitive (int, bool, etc.) that
+	// can be converted directly with the strconv package.
 	StringablePrimitive
 
-	// StringableViaStringer means the type implements fmt.Stringer (String() string).
-	// This is the highest-priority method for user-defined types.
+	// StringableViaStringer means the type implements fmt.Stringer (String() string). This
+	// is the highest-priority method for user-defined types.
 	StringableViaStringer
 
 	// StringableViaTextMarshaler means the type implements encoding.TextMarshaler
 	// (MarshalText() ([]byte, error)).
 	StringableViaTextMarshaler
 
-	// StringableViaPikoFormatter means the type is a special, known type
-	// (like maths.Money) that has a dedicated, high-performance formatter
-	// in the Piko runtime.
+	// StringableViaPikoFormatter means the type is a special, known type (like maths.Money)
+	// that has a dedicated, high-performance formatter in the Piko runtime.
 	StringableViaPikoFormatter
 
-	// StringableViaJSON means the type is a composite type (map or slice)
-	// that should be encoded to JSON for use in HTML attributes.
-	// This is used for passing complex data structures to JavaScript.
+	// StringableViaJSON means the type is a composite type (map or slice) that should be
+	// encoded to JSON for use in HTML attributes. This is used for passing complex data
+	// structures to JavaScript.
 	StringableViaJSON
 )
 
-// CompositeType groups Go types that have parts, such as maps, slices, and
-// arrays.
+// CompositeType groups Go types that have parts, such as maps, slices, and arrays.
 type CompositeType int
 
 const (
@@ -85,24 +83,24 @@ const (
 	CompositeTypeGeneric
 )
 
-// FunctionSignature represents a simplified, serialisable form of a function
-// or method signature. It stores parameter and return types as strings for use
-// in signature lookup, validation, and call resolution.
+// FunctionSignature represents a simplified, serialisable form of a function or method
+// signature. It stores parameter and return types as strings for use in signature lookup,
+// validation, and call resolution.
 type FunctionSignature struct {
 	// Params holds the type strings for each function parameter.
 	Params []string `json:"params"`
 
-	// ParamNames holds the original parameter names from the Go source code,
-	// in the same order as Params. May be nil for signatures where names were
-	// not captured or are unavailable (e.g., interface method declarations).
+	// ParamNames holds the original parameter names from the Go source code, in the same
+	// order as Params. May be nil for signatures where names were not captured or are
+	// unavailable (e.g., interface method declarations).
 	ParamNames []string `json:"param_names,omitempty"`
 
 	// Results holds the return type strings for the function.
 	Results []string `json:"results"`
 }
 
-// ToSignatureString returns a human-readable string representation of the
-// function signature.
+// ToSignatureString returns a human-readable string representation of the function
+// signature.
 //
 // Returns string which is the formatted signature in the form "func(...) ...".
 func (fs FunctionSignature) ToSignatureString() string {
@@ -114,8 +112,8 @@ func (fs FunctionSignature) ToSignatureString() string {
 	return fmt.Sprintf("func(%s) %s", params, results)
 }
 
-// WorkspaceSymbol represents a symbol (type, function, method) in the workspace
-// with its location information for LSP workspace symbol search.
+// WorkspaceSymbol represents a symbol (type, function, method) in the workspace with its
+// location information for LSP workspace symbol search.
 type WorkspaceSymbol struct {
 	// Name is the symbol identifier used for display and search matching.
 	Name string `json:"name"`
@@ -142,8 +140,8 @@ type WorkspaceSymbol struct {
 	Column int `json:"column"`
 }
 
-// TypeData holds all cached type information for a project.
-// It is the main data structure that is serialised and stored in a cache.
+// TypeData holds all cached type information for a project. It is the main data structure
+// that is serialised and stored in a cache.
 type TypeData struct {
 	// Packages maps import paths to their package data.
 	Packages map[string]*Package `json:"packages"`
@@ -152,10 +150,10 @@ type TypeData struct {
 	FileToPackage map[string]string `json:"file_to_package"`
 }
 
-// Package holds the type information for a single Go package, including its
-// imports, named types, functions, and variables. It is keyed by import path
-// in [TypeData.Packages] and serves as the primary unit of cached type data
-// that the inspector uses for template analysis and code generation.
+// Package holds the type information for a single Go package, including its imports,
+// named types, functions, and variables. It is keyed by import path in TypeData.Packages
+// and serves as the primary unit of cached type data that the inspector uses for template
+// analysis and code generation.
 type Package struct {
 	// FileImports maps file paths to their import alias mappings.
 	FileImports map[string]map[string]string `json:"file_imports"`
@@ -166,8 +164,8 @@ type Package struct {
 	// Funcs maps function names to their definitions for package-level functions.
 	Funcs map[string]*Function `json:"funcs"`
 
-	// Variables maps variable names to their definitions for package-level
-	// variables and constants.
+	// Variables maps variable names to their definitions for package-level variables and
+	// constants.
 	Variables map[string]*Variable `json:"variables,omitempty"`
 
 	// Path is the import path of the package.
@@ -185,8 +183,7 @@ type Type struct {
 	// Name is the declared name of the type.
 	Name string `json:"name"`
 
-	// PackagePath is the full import path of the package where
-	// the type is defined.
+	// PackagePath is the full import path of the package where the type is defined.
 	PackagePath string `json:"package_path"`
 
 	// DefinedInFilePath is the path to the file where the type is defined.
@@ -225,12 +222,10 @@ type Field struct {
 	// DefinitionFilePath is the path to the file where the field is defined.
 	DefinitionFilePath string `json:"definition_file_path,omitempty"`
 
-	// DeclaringPackagePath is the import path of the package
-	// that declares the field.
+	// DeclaringPackagePath is the import path of the package that declares the field.
 	DeclaringPackagePath string `json:"declaring_pkg_path,omitempty"`
 
-	// PackagePath is the import path of the package where
-	// the field's type is defined.
+	// PackagePath is the import path of the package where the field's type is defined.
 	PackagePath string `json:"pkg_path"`
 
 	// UnderlyingTypeString is the type after resolving any type aliases.
@@ -260,8 +255,8 @@ type Field struct {
 	// DefinitionColumn is the column number where the field is defined.
 	DefinitionColumn int `json:"definition_column,omitempty"`
 
-	// IsUnderlyingPrimitive indicates whether the underlying type is a
-	// primitive type such as int, string, or bool.
+	// IsUnderlyingPrimitive indicates whether the underlying type is a primitive type such
+	// as int, string, or bool.
 	IsUnderlyingPrimitive bool `json:"is_underlying_primitive,omitempty"`
 
 	// IsInternalType indicates whether the field's type is a built-in Go type.
@@ -276,13 +271,13 @@ type Field struct {
 	// IsAlias indicates whether the field's type is a type alias.
 	IsAlias bool `json:"is_alias,omitempty"`
 
-	// IsUnderlyingInternalType indicates whether the underlying type is
-	// internal to this project.
+	// IsUnderlyingInternalType indicates whether the underlying type is internal to this
+	// project.
 	IsUnderlyingInternalType bool `json:"is_underlying_internal_type"`
 }
 
-// CompositePart represents a component of a composite type, such as the key
-// or value of a map. It may contain nested parts for complex types.
+// CompositePart represents a component of a composite type, such as the key or value of a
+// map. It may contain nested parts for complex types.
 type CompositePart struct {
 	// Type is the Go type category of the composite part (e.g. "struct", "interface").
 	Type string `json:"type"`
@@ -311,8 +306,8 @@ type CompositePart struct {
 	// IsInternalType indicates whether this part's type is defined within Go itself.
 	IsInternalType bool `json:"is_internal_type"`
 
-	// IsUnderlyingInternalType indicates whether the underlying type belongs
-	// to an internal package.
+	// IsUnderlyingInternalType indicates whether the underlying type belongs to an internal
+	// package.
 	IsUnderlyingInternalType bool `json:"is_underlying_internal_type"`
 
 	// IsGenericPlaceholder indicates whether this part is a generic type parameter.
@@ -336,8 +331,7 @@ type Method struct {
 	// UnderlyingTypeString is the type string after resolving any type aliases.
 	UnderlyingTypeString string `json:"underlying_type_string"`
 
-	// DeclaringPackagePath is the import path of the package
-	// where the method is defined.
+	// DeclaringPackagePath is the import path of the package where the method is defined.
 	DeclaringPackagePath string `json:"declaring_pkg_path,omitempty"`
 
 	// DeclaringTypeName is the name of the type that first defines the method.
@@ -413,18 +407,19 @@ type Variable struct {
 	IsConst bool `json:"is_const,omitempty"`
 }
 
-// knownPikoTags lists the struct tags that Piko recognises and processes.
-var knownPikoTags = []string{
-	"prop",
-	"validate",
-	"default",
-	"factory",
-	"coerce",
-	"query",
-}
+var (
+	// knownPikoTags lists the struct tags that Piko recognises and processes.
+	knownPikoTags = []string{
+		"prop",
+		"validate",
+		"default",
+		"factory",
+		"coerce",
+		"query",
+	}
+)
 
-// ParseStructTag parses a raw struct tag string and extracts known Piko tag
-// values.
+// ParseStructTag parses a raw struct tag string and extracts known Piko tag values.
 //
 // Takes rawTag (string) which is the raw struct tag, including backticks.
 //

@@ -18,8 +18,8 @@
 
 // Package cache_dto defines data transfer objects for the cache hexagon.
 //
-// It covers configuration options, cache entry representations, search
-// schemas, statistics tracking, and value transformation configuration.
+// It covers configuration options, cache entry representations, search schemas,
+// statistics tracking, and value transformation configuration.
 //
 // # Loaders
 //

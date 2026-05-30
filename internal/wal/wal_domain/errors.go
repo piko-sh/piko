@@ -18,38 +18,39 @@
 
 package wal_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrCorrupted indicates the WAL contains invalid data that failed CRC validation.
-	// During recovery, the WAL is truncated at the corruption point, preserving
-	// valid entries before it.
+	// During recovery, the WAL is truncated at the corruption point, preserving valid
+	// entries before it.
 	ErrCorrupted = errors.New("wal: corrupted entry detected")
 
 	// ErrWALClosed indicates an operation was attempted on a closed WAL.
 	ErrWALClosed = errors.New("wal: already closed")
 
-	// ErrInvalidVersion indicates an unsupported WAL format version.
-	// This typically occurs when trying to read a WAL created by a newer version
-	// of the software.
+	// ErrInvalidVersion indicates an unsupported WAL format version. This typically occurs
+	// when trying to read a WAL created by a newer version of the software.
 	ErrInvalidVersion = errors.New("wal: unsupported format version")
 
-	// ErrSnapshotNotFound indicates no snapshot file exists.
-	// Not necessarily an error during recovery; it may indicate a fresh start.
+	// ErrSnapshotNotFound indicates no snapshot file exists. Not necessarily an error during
+	// recovery; it may indicate a fresh start.
 	ErrSnapshotNotFound = errors.New("wal: snapshot not found")
 
 	// ErrInvalidConfig indicates the WAL configuration is invalid.
 	ErrInvalidConfig = errors.New("wal: invalid configuration")
 
-	// ErrInvalidEntry indicates an entry could not be encoded or decoded
-	// due to invalid data (separate from CRC corruption).
+	// ErrInvalidEntry indicates an entry could not be encoded or decoded due to invalid data
+	// (separate from CRC corruption).
 	ErrInvalidEntry = errors.New("wal: invalid entry")
 
 	// ErrCodecRequired indicates a codec must be provided for the WAL.
 	ErrCodecRequired = errors.New("wal: codec is required")
 
-	// ErrWriterInBadState indicates the WAL encountered a fatal I/O error and
-	// rejects all subsequent writes. The WAL file may be in an inconsistent
-	// state and should not be written to further.
+	// ErrWriterInBadState indicates the WAL encountered a fatal I/O error and rejects all
+	// subsequent writes. The WAL file may be in an inconsistent state and should not be
+	// written to further.
 	ErrWriterInBadState = errors.New("wal: writer in bad state after I/O failure")
 )

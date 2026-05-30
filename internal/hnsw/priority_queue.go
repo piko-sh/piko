@@ -18,8 +18,8 @@
 
 package hnsw
 
-// priorityQueueItem pairs a node with its distance to the query vector.
-// Storing the distance avoids repeated calculations during heap operations.
+// priorityQueueItem pairs a node with its distance to the query vector. Storing the
+// distance avoids repeated calculations during heap operations.
 type priorityQueueItem[K comparable] struct {
 	// node is the heap node that this queue item wraps.
 	node *node[K]
@@ -28,11 +28,10 @@ type priorityQueueItem[K comparable] struct {
 	distance float32
 }
 
-// priorityQueue is a binary heap of priorityQueueItem values ordered by
-// cached distance.
+// priorityQueue is a binary heap of priorityQueueItem values ordered by cached distance.
 //
-// When max is false (min-heap), the nearest item is at the root and popped
-// first. When max is true (max-heap), the farthest item is at the root.
+// When max is false (min-heap), the nearest item is at the root and popped first. When
+// max is true (max-heap), the farthest item is at the root.
 type priorityQueue[K comparable] struct {
 	// items holds the heap elements in priority order.
 	items []priorityQueueItem[K]
@@ -41,8 +40,8 @@ type priorityQueue[K comparable] struct {
 	max bool
 }
 
-// less reports whether the item at index i should be closer to the root
-// than the item at index j.
+// less reports whether the item at index i should be closer to the root than the item at
+// index j.
 //
 // Takes i (int) which is the index of the first item to compare.
 // Takes j (int) which is the index of the second item to compare.
@@ -57,8 +56,7 @@ func (priorityQueue *priorityQueue[K]) less(i, j int) bool {
 
 // push adds an item to the heap.
 //
-// Takes item (priorityQueueItem[K]) which is the node and distance pair to
-// add.
+// Takes item (priorityQueueItem[K]) which is the node and distance pair to add.
 func (priorityQueue *priorityQueue[K]) push(item priorityQueueItem[K]) {
 	priorityQueue.items = append(priorityQueue.items, item)
 	priorityQueue.siftUp(len(priorityQueue.items) - 1)
@@ -66,8 +64,8 @@ func (priorityQueue *priorityQueue[K]) push(item priorityQueueItem[K]) {
 
 // pop removes and returns the root element.
 //
-// Returns priorityQueueItem[K] which is the nearest (min-heap) or farthest
-// (max-heap) item.
+// Returns priorityQueueItem[K] which is the nearest (min-heap) or farthest (max-heap)
+// item.
 func (priorityQueue *priorityQueue[K]) pop() priorityQueueItem[K] {
 	item := priorityQueue.items[0]
 	last := len(priorityQueue.items) - 1
@@ -87,8 +85,8 @@ func (priorityQueue *priorityQueue[K]) peek() priorityQueueItem[K] {
 	return priorityQueue.items[0]
 }
 
-// replacePeek replaces the root element and re-heapifies.
-// More efficient than pop + push for maintaining a fixed-size heap.
+// replacePeek replaces the root element and re-heapifies. More efficient than pop + push
+// for maintaining a fixed-size heap.
 //
 // Takes item (priorityQueueItem[K]) which is the replacement item.
 func (priorityQueue *priorityQueue[K]) replacePeek(item priorityQueueItem[K]) {
@@ -103,11 +101,11 @@ func (priorityQueue *priorityQueue[K]) len() int {
 	return len(priorityQueue.items)
 }
 
-// heapSort sorts the heap items in-place by distance (nearest first) using
-// classic heapsort. For a max-heap this naturally produces ascending order.
+// heapSort sorts the heap items in-place by distance (nearest first) using classic
+// heapsort. For a max-heap this naturally produces ascending order.
 //
-// After calling heapSort, the items slice is sorted and the heap property is
-// destroyed. The caller can use priorityQueue.items directly as the sorted result.
+// After calling heapSort, the items slice is sorted and the heap property is destroyed.
+// The caller can use priorityQueue.items directly as the sorted result.
 func (priorityQueue *priorityQueue[K]) heapSort() {
 	for end := len(priorityQueue.items) - 1; end > 0; end-- {
 		priorityQueue.items[0], priorityQueue.items[end] = priorityQueue.items[end], priorityQueue.items[0]

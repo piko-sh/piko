@@ -33,41 +33,38 @@ const (
 	// defaultScrollStepDelay is the default pause between scroll steps.
 	defaultScrollStepDelay = 500 * time.Millisecond
 
-	// defaultNetworkIdleTimeout is the default maximum time to wait for
-	// network idle after scrolling.
+	// defaultNetworkIdleTimeout is the default maximum time to wait for network idle after
+	// scrolling.
 	defaultNetworkIdleTimeout = 10 * time.Second
 
-	// defaultMaxScrollPasses is the default number of top-to-bottom scroll
-	// passes.
+	// defaultMaxScrollPasses is the default number of top-to-bottom scroll passes.
 	defaultMaxScrollPasses = 3
 )
 
-// ScrollCaptureOptions configures the scroll-and-capture behaviour for
-// triggering lazy-loaded content on external pages.
+// ScrollCaptureOptions configures the scroll-and-capture behaviour for triggering
+// lazy-loaded content on external pages.
 type ScrollCaptureOptions struct {
-	// ScrollStepDelay is the pause between scroll increments, giving
-	// lazy-loaded images time to swap from blurry placeholders to sharp
-	// versions. Default: 500ms.
+	// ScrollStepDelay is the pause between scroll increments, giving lazy-loaded images time
+	// to swap from blurry placeholders to sharp versions. Default: 500ms.
 	ScrollStepDelay time.Duration
 
-	// NetworkIdleDuration is how long the network must be quiet before
-	// considering it idle. Default: 2s.
+	// NetworkIdleDuration is how long the network must be quiet before considering it idle.
+	// Default: 2s.
 	NetworkIdleDuration time.Duration
 
-	// NetworkIdleTimeout is the maximum time to wait for network idle after
-	// scrolling. Default: 10s.
+	// NetworkIdleTimeout is the maximum time to wait for network idle after scrolling.
+	// Default: 10s.
 	NetworkIdleTimeout time.Duration
 
-	// MaxScrollPasses is the maximum number of top-to-bottom scroll passes,
-	// where pages with infinite scroll may grow after the first pass.
-	// Default: 3.
+	// MaxScrollPasses is the maximum number of top-to-bottom scroll passes, allowing
+	// infinite-scroll pages additional passes to grow after each scroll. Default: 3.
 	MaxScrollPasses int
 }
 
 // scrollContainerInfo holds information about the page's scroll container.
 type scrollContainerInfo struct {
-	// Selector is the CSS selector for the scroll container, or empty if the
-	// window is the scroll container.
+	// Selector is the CSS selector for the scroll container, or empty if the window is the
+	// scroll container.
 	Selector string
 
 	// ScrollHeight is the total scrollable height of the container.
@@ -110,9 +107,8 @@ type ChunkScreenshotOptions struct {
 	Scale float64
 }
 
-// chunkCaptureParams bundles the parameters for capturing a
-// single screenshot chunk, keeping the function signature under
-// the argument limit.
+// chunkCaptureParams bundles the parameters for capturing a single screenshot chunk,
+// keeping the function signature under the argument limit.
 type chunkCaptureParams struct {
 	// cdpFormat is the CDP screenshot format enum.
 	cdpFormat page.CaptureScreenshotFormat
@@ -135,8 +131,8 @@ type chunkCaptureParams struct {
 
 // DefaultScrollCaptureOptions returns sensible defaults for scroll capture.
 //
-// Returns ScrollCaptureOptions which is configured with 500ms scroll delay,
-// 2s network idle duration, 10s network idle timeout, and 3 max scroll passes.
+// Returns ScrollCaptureOptions which is configured with 500ms scroll delay, 2s network
+// idle duration, 10s network idle timeout, and 3 max scroll passes.
 func DefaultScrollCaptureOptions() ScrollCaptureOptions {
 	return ScrollCaptureOptions{
 		ScrollStepDelay:     defaultScrollStepDelay,
@@ -146,14 +142,14 @@ func DefaultScrollCaptureOptions() ScrollCaptureOptions {
 	}
 }
 
-// InjectObserverOverride injects a script that runs before any page JavaScript
-// and overrides IntersectionObserver so that every observed element immediately
-// triggers its callback with isIntersecting=true. This forces frameworks like
-// Angular and React that use IntersectionObserver for lazy-loading to load all
-// content eagerly rather than waiting for elements to enter the viewport.
+// InjectObserverOverride injects a script that runs before any page JavaScript and
+// overrides IntersectionObserver so that every observed element immediately triggers its
+// callback with isIntersecting=true. This forces frameworks like Angular and React that
+// use IntersectionObserver for lazy-loading to load all content eagerly rather than
+// waiting for elements to enter the viewport.
 //
-// Must be called before navigation so the override is in place when the page's
-// JavaScript initialises.
+// Must be called before navigation so the override is in place when the page's JavaScript
+// initialises.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 //
@@ -167,10 +163,10 @@ func InjectObserverOverride(ctx context.Context) error {
 	}))
 }
 
-// DismissCookieConsent attempts to find and click a cookie consent accept
-// button, checking known consent libraries (CookieBot, OneTrust, etc.) and
-// falling back to text-matching heuristics for generic accept buttons on a
-// best-effort basis where errors are ignored since not all pages have banners.
+// DismissCookieConsent attempts to find and click a cookie consent accept button,
+// checking known consent libraries (CookieBot, OneTrust, etc.) and falling back to
+// text-matching heuristics for generic accept buttons on a best-effort basis where errors
+// are ignored since not all pages have banners.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 func DismissCookieConsent(ctx context.Context) {
@@ -184,14 +180,12 @@ func DismissCookieConsent(ctx context.Context) {
 	}
 }
 
-// NavigateToURL navigates to an absolute URL and waits for the page to load
-// and stabilise. Unlike the test-oriented Navigate, this does not prepend a
-// server URL.
+// NavigateToURL navigates to an absolute URL and waits for the page to load and
+// stabilise. Unlike the test-oriented Navigate, this does not prepend a server URL.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 // Takes url (string) which is the absolute URL to navigate to.
-// Takes timeout (time.Duration) which is the maximum time to wait for
-// navigation.
+// Takes timeout (time.Duration) which is the maximum time to wait for navigation.
 //
 // Returns error when navigation fails or the page does not become ready.
 func NavigateToURL(ctx context.Context, url string, timeout time.Duration) error {
@@ -215,9 +209,9 @@ func NavigateToURL(ctx context.Context, url string, timeout time.Duration) error
 }
 
 // ScrollForLazyContent scrolls through a page incrementally to trigger
-// IntersectionObserver-based lazy loading. It detects whether the page uses
-// a nested scroll container (common in Angular/React SPAs) or the normal
-// window scroll, and scrolls the correct element.
+// IntersectionObserver-based lazy loading. It detects whether the page uses a nested
+// scroll container (common in Angular/React SPAs) or the normal window scroll, and
+// scrolls the correct element.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 // Takes opts (ScrollCaptureOptions) which configures scroll behaviour.
@@ -247,10 +241,9 @@ func ScrollForLazyContent(ctx context.Context, opts ScrollCaptureOptions) error 
 	return nil
 }
 
-// UnwrapScrollContainer removes overflow/height constraints from the page so
-// that chromedp.FullScreenshot can capture the entire page content. This is
-// necessary for SPA sites that use a nested scroll container with
-// html,body{height:100%;overflow:hidden}.
+// UnwrapScrollContainer removes overflow/height constraints from the page so that
+// chromedp.FullScreenshot can capture the entire page content. This is necessary for SPA
+// sites that use a nested scroll container with html,body{height:100%;overflow:hidden}.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 //
@@ -281,13 +274,12 @@ func UnwrapScrollContainer(ctx context.Context) error {
 	return nil
 }
 
-// ForceLoadAllImages removes loading="lazy" from all images, forces the
-// browser to start fetching them, and waits for all images to complete.
-// Call this after UnwrapScrollContainer and before taking a screenshot.
+// ForceLoadAllImages removes loading="lazy" from all images, forces the browser to start
+// fetching them, and waits for all images to complete. Call this after
+// UnwrapScrollContainer and before taking a screenshot.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
-// Takes timeout (time.Duration) which is the maximum time to wait for all
-// images to load.
+// Takes timeout (time.Duration) which is the maximum time to wait for all images to load.
 //
 // Returns error when the JavaScript evaluation fails.
 func ForceLoadAllImages(ctx context.Context, timeout time.Duration) error {
@@ -320,8 +312,8 @@ func GetFullPageHTML(ctx context.Context) (string, error) {
 	return html, nil
 }
 
-// FullPageScreenshot captures a PNG screenshot of the entire page, including
-// content below the viewport.
+// FullPageScreenshot captures a PNG screenshot of the entire page, including content
+// below the viewport.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 //
@@ -338,9 +330,9 @@ func FullPageScreenshot(ctx context.Context) ([]byte, error) {
 	return buffer, nil
 }
 
-// FullPageScreenshotWithFormat captures a screenshot of the entire page in the
-// specified format and quality. Unlike FullPageScreenshot which always produces
-// PNG, this supports JPEG and WebP output.
+// FullPageScreenshotWithFormat captures a screenshot of the entire page in the specified
+// format and quality. Unlike FullPageScreenshot which always produces PNG, this supports
+// JPEG and WebP output.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 // Takes format (ScreenshotFormat) which specifies the image format.
@@ -381,15 +373,14 @@ func FullPageScreenshotWithFormat(
 	return buffer, nil
 }
 
-// FullPageScreenshotChunks captures the full page as viewport-sized chunks.
-// Each chunk is at most viewportWidth x viewportHeight pixels (before scaling),
-// making them suitable for APIs with per-image dimension limits.
+// FullPageScreenshotChunks captures the full page as viewport-sized chunks. Each chunk is
+// at most viewportWidth x viewportHeight pixels (before scaling), making them suitable
+// for APIs with per-image dimension limits.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 // Takes viewportWidth (int64) which is the configured viewport width.
 // Takes viewportHeight (int64) which is the configured viewport height.
-// Takes opts (ChunkScreenshotOptions) which configures format, quality, and
-// scale.
+// Takes opts (ChunkScreenshotOptions) which configures format, quality, and scale.
 //
 // Returns []ScreenshotChunk which contains the ordered image chunks.
 // Returns error when any chunk capture fails.
@@ -442,9 +433,9 @@ func FullPageScreenshotChunks(
 	return chunks, nil
 }
 
-// GetFullPageHTMLWithShadow captures the complete page HTML including
-// serialised shadow DOM content. Shadow roots are emitted as
-// <template shadowrootmode="open"> elements within the captured HTML.
+// GetFullPageHTMLWithShadow captures the complete page HTML including serialised shadow
+// DOM content. Shadow roots are emitted as <template shadowrootmode="open"> elements
+// within the captured HTML.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 //
@@ -463,8 +454,8 @@ func GetFullPageHTMLWithShadow(ctx context.Context) (string, error) {
 	return html, nil
 }
 
-// findScrollContainer detects whether the page scrolls via the window or via
-// a nested container (common in Angular/React SPAs that set
+// findScrollContainer detects whether the page scrolls via the window or via a nested
+// container (common in Angular/React SPAs that set
 // html,body{height:100%;overflow:hidden}).
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
@@ -487,15 +478,13 @@ func findScrollContainer(ctx context.Context) (scrollContainerInfo, error) {
 	}, nil
 }
 
-// mapGetString safely extracts a string value from a map,
-// returning the zero value when the key is absent or the value
-// is not a string.
+// mapGetString safely extracts a string value from a map, returning the zero value when
+// the key is absent or the value is not a string.
 //
 // Takes m (map[string]any) which is the map to read from.
 // Takes key (string) which is the key to look up.
 //
-// Returns string which is the value, or empty when absent or
-// not a string.
+// Returns string which is the value, or empty when absent or not a string.
 func mapGetString(m map[string]any, key string) string {
 	v, ok := m[key]
 	if !ok {
@@ -508,15 +497,13 @@ func mapGetString(m map[string]any, key string) string {
 	return s
 }
 
-// mapGetFloat64 safely extracts a float64 value from a map,
-// returning 0 when the key is absent or the value is not a
-// float64.
+// mapGetFloat64 safely extracts a float64 value from a map, returning 0 when the key is
+// absent or the value is not a float64.
 //
 // Takes m (map[string]any) which is the map to read from.
 // Takes key (string) which is the key to look up.
 //
-// Returns float64 which is the value, or 0 when absent or not
-// a float64.
+// Returns float64 which is the value, or 0 when absent or not a float64.
 func mapGetFloat64(m map[string]any, key string) float64 {
 	v, ok := m[key]
 	if !ok {
@@ -551,12 +538,12 @@ func getPageDimensions(ctx context.Context) (pageDimensions, error) {
 	}, nil
 }
 
-// scrollTo scrolls either the window or a specific container element to the
-// given Y position.
+// scrollTo scrolls either the window or a specific container element to the given Y
+// position.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
-// Takes selector (string) which is the CSS selector of the scroll container,
-// or empty string to scroll the window.
+// Takes selector (string) which is the CSS selector of the scroll container, or empty
+// string to scroll the window.
 // Takes y (float64) which is the target scroll position in pixels.
 //
 // Returns error when the scroll operation fails.
@@ -582,17 +569,15 @@ func scrollTo(ctx context.Context, selector string, y float64) error {
 	return nil
 }
 
-// getScrollDimensions returns the scroll height and client height of either
-// the window or a specific container element.
+// getScrollDimensions returns the scroll height and client height of either the window or
+// a specific container element.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
-// Takes selector (string) which is the CSS selector of the scroll container,
-// or empty string for the window.
+// Takes selector (string) which is the CSS selector of the scroll container, or empty
+// string for the window.
 //
-// Returns scrollHeight (float64) which is the total scrollable
-// height.
-// Returns clientHeight (float64) which is the visible viewport
-// height.
+// Returns scrollHeight (float64) which is the total scrollable height.
+// Returns clientHeight (float64) which is the visible viewport height.
 // Returns err (error) when the JavaScript evaluation fails.
 func getScrollDimensions(
 	ctx context.Context, selector string,
@@ -616,19 +601,16 @@ func getScrollDimensions(
 		nil
 }
 
-// runScrollPass performs a single top-to-bottom scroll pass and
-// reports whether the page grew.
+// runScrollPass performs a single top-to-bottom scroll pass and reports whether the page
+// grew.
 //
-// Takes ctx (context.Context) which is the chromedp browser
-// context.
-// Takes selector (string) which is the CSS selector of the
-// scroll container, or empty string for the window.
+// Takes ctx (context.Context) which is the chromedp browser context.
+// Takes selector (string) which is the CSS selector of the scroll container, or empty
+// string for the window.
 // Takes pass (int) which is the zero-based pass index.
-// Takes opts (ScrollCaptureOptions) which configures scroll
-// timing and limits.
+// Takes opts (ScrollCaptureOptions) which configures scroll timing and limits.
 //
-// Returns grown (bool) which is true when the page height
-// increased during this pass.
+// Returns grown (bool) which is true when the page height increased during this pass.
 // Returns err (error) when a scroll operation fails.
 func runScrollPass(
 	ctx context.Context,
@@ -673,12 +655,11 @@ func runScrollPass(
 	return newSH > previousScrollHeight, nil
 }
 
-// waitNetworkIdle waits for network activity to cease. This is best-effort;
-// timeout errors are ignored since some pages have persistent connections.
+// waitNetworkIdle waits for network activity to cease. This is best-effort; timeout
+// errors are ignored since some pages have persistent connections.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
-// Takes idleDuration (time.Duration) which is how long the network must be
-// quiet.
+// Takes idleDuration (time.Duration) which is how long the network must be quiet.
 // Takes timeout (time.Duration) which is the maximum time to wait.
 func waitNetworkIdle(ctx context.Context, idleDuration, timeout time.Duration) {
 	js, err := scripts.Execute("wait_network_idle.js.tmpl", map[string]any{
@@ -693,8 +674,8 @@ func waitNetworkIdle(ctx context.Context, idleDuration, timeout time.Duration) {
 	_ = chromedp.Run(ctx, chromedp.Evaluate(js, &result, chromedp.EvalAsValue))
 }
 
-// waitForVisibleImages waits for images currently in or near the viewport to
-// finish loading. This is best-effort; timeout errors are ignored.
+// waitForVisibleImages waits for images currently in or near the viewport to finish
+// loading. This is best-effort; timeout errors are ignored.
 //
 // Takes ctx (context.Context) which is the chromedp browser context.
 // Takes timeout (time.Duration) which is the maximum time to wait.
@@ -710,15 +691,12 @@ func waitForVisibleImages(ctx context.Context, timeout time.Duration) {
 	_ = chromedp.Run(ctx, chromedp.Evaluate(js, &result, chromedp.EvalAsValue))
 }
 
-// captureChunk captures a single screenshot chunk at the given
-// Y offset.
+// captureChunk captures a single screenshot chunk at the given Y offset.
 //
-// Takes ctx (context.Context) which is the chromedp browser
-// context.
-// Takes p (chunkCaptureParams) which holds the format, quality,
-// scale, and dimension settings.
-// Takes y (float64) which is the vertical offset in pixels for
-// this chunk.
+// Takes ctx (context.Context) which is the chromedp browser context.
+// Takes p (chunkCaptureParams) which holds the format, quality, scale, and dimension
+// settings.
+// Takes y (float64) which is the vertical offset in pixels for this chunk.
 //
 // Returns []byte which contains the image data for this chunk.
 // Returns error when the screenshot capture fails.
@@ -754,11 +732,10 @@ func captureChunk(
 
 // toCDPFormat converts a ScreenshotFormat to the CDP protocol format enum.
 //
-// Takes format (ScreenshotFormat) which is the internal screenshot format to
-// convert.
+// Takes format (ScreenshotFormat) which is the internal screenshot format to convert.
 //
-// Returns page.CaptureScreenshotFormat which is the corresponding CDP protocol
-// format, defaulting to PNG for unrecognised values.
+// Returns page.CaptureScreenshotFormat which is the corresponding CDP protocol format,
+// defaulting to PNG for unrecognised values.
 func toCDPFormat(format ScreenshotFormat) page.CaptureScreenshotFormat {
 	switch format {
 	case ScreenshotFormatJPEG:

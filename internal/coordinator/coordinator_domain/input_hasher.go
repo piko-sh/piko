@@ -42,9 +42,11 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// hashingFileReadWorkers is the number of workers that read and hash files at
-// the same time.
-const hashingFileReadWorkers = 16
+const (
+	// hashingFileReadWorkers is the number of workers that read and hash files at the same
+	// time.
+	hashingFileReadWorkers = 16
+)
 
 // fileHashResult holds the path, hash, and content of a single hashed file.
 type fileHashResult struct {
@@ -58,12 +60,11 @@ type fileHashResult struct {
 	content []byte
 }
 
-// hashAndReadFile reads a file and computes its xxhash, using a cached hash
-// when available and valid but still reading the file content in all cases.
+// hashAndReadFile reads a file and computes its xxhash, using a cached hash when
+// available and valid but still reading the file content in all cases.
 //
 // Takes path (string) which specifies the file path to read and hash.
-// Takes modTime (time.Time) which is the file modification time used for
-// cache lookups.
+// Takes modTime (time.Time) which is the file modification time used for cache lookups.
 //
 // Returns hash (string) which is the hex-encoded xxhash digest.
 // Returns content ([]byte) which contains the raw file bytes.
@@ -108,14 +109,13 @@ func (s *coordinatorService) hashAndReadFile(
 	return hash, content, nil
 }
 
-// processFileForHash gets file information and computes its hash.
-// This is used by computeFileHashesWithCache for parallel file processing.
+// processFileForHash gets file information and computes its hash. This is used by
+// computeFileHashesWithCache for parallel file processing.
 //
 // Takes path (string) which specifies the file path to process.
 //
 // Returns fileHashResult which contains the path, hash, and file content.
-// Returns error when the file cannot be read or its information cannot be
-// retrieved.
+// Returns error when the file cannot be read or its information cannot be retrieved.
 func (s *coordinatorService) processFileForHash(ctx context.Context, path string) (fileHashResult, error) {
 	info, err := s.statFile(ctx, path)
 	if err != nil {
@@ -130,14 +130,13 @@ func (s *coordinatorService) processFileForHash(ctx context.Context, path string
 	return fileHashResult{path: path, hash: hash, content: content}, nil
 }
 
-// statFile returns file info for a path, using the sandbox when available
-// or falling back to creating a temporary sandbox for the file's directory.
+// statFile returns file info for a path, using the sandbox when available or falling back
+// to creating a temporary sandbox for the file's directory.
 //
 // Takes path (string) which specifies the file path to stat.
 //
 // Returns fs.FileInfo which contains the file metadata.
-// Returns error when the sandbox cannot be created or the file cannot be
-// accessed.
+// Returns error when the sandbox cannot be created or the file cannot be accessed.
 func (s *coordinatorService) statFile(ctx context.Context, path string) (fs.FileInfo, error) {
 	baseDir := s.resolver.GetBaseDir()
 
@@ -169,20 +168,19 @@ func (s *coordinatorService) statFile(ctx context.Context, path string) (fs.File
 	return sandbox.Stat(filepath.Base(path))
 }
 
-// calculateInputHash creates a stable hash from all relevant inputs.
-// It uses the file hash cache (if available) to improve performance via
-// stat-then-read.
+// calculateInputHash creates a stable hash from all relevant inputs. It uses the file
+// hash cache (if available) to improve performance via stat-then-read.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the source
-// files to include in the hash.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the source files to
+// include in the hash.
 // Takes buildOpts (*buildOptions) which may contain a resolver override.
 //
 // Returns string which is the hex-encoded hash of all inputs.
 // Returns map[string][]byte which contains the source file contents by path.
 // Returns error when file discovery or hashing fails.
 //
-// Action files in actions/ are included as part of Go file hashing, so action
-// changes are automatically detected.
+// Action files in actions/ are included as part of Go file hashing, so action changes are
+// automatically detected.
 func (s *coordinatorService) calculateInputHash(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -218,9 +216,9 @@ func (s *coordinatorService) calculateInputHash(
 	return hash, allSourceContents, nil
 }
 
-// getEffectiveResolver returns the resolver to use for this build.
-// If buildOpts contains a resolver override, it is used; otherwise the
-// coordinator's default resolver is returned.
+// getEffectiveResolver returns the resolver to use for this build. If buildOpts contains
+// a resolver override, it is used; otherwise the coordinator's default resolver is
+// returned.
 //
 // Takes buildOpts (*buildOptions) which may contain a resolver override.
 //
@@ -232,15 +230,13 @@ func (s *coordinatorService) getEffectiveResolver(buildOpts *buildOptions) resol
 	return s.resolver
 }
 
-// discoverAndSortAllSourcePaths finds all .pk and .go files relevant to
-// the build.
+// discoverAndSortAllSourcePaths finds all .pk and .go files relevant to the build.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting
-// points for dependency discovery.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting points for
+// dependency discovery.
 // Takes resolver (ResolverPort) which provides path resolution.
 //
-// Returns []string which contains deduplicated, sorted paths to all source
-// files.
+// Returns []string which contains deduplicated, sorted paths to all source files.
 // Returns error when component or Go file discovery fails.
 func (s *coordinatorService) discoverAndSortAllSourcePaths(
 	ctx context.Context,
@@ -278,15 +274,13 @@ func (s *coordinatorService) discoverAndSortAllSourcePaths(
 	return sortedPaths, nil
 }
 
-// computeFileHashesWithCache computes xxhash digests for all
-// paths using a stat-then-read method. It returns both the hashes
-// for cache key calculation and the file contents for later
-// processing.
+// computeFileHashesWithCache computes xxhash digests for all paths using a stat-then-read
+// method. It returns both the hashes for cache key calculation and the file contents for
+// later processing.
 //
 // Takes paths ([]string) which lists the file paths to hash.
 //
-// Returns map[string]string which maps file paths to their
-// xxhash digests.
+// Returns map[string]string which maps file paths to their xxhash digests.
 // Returns map[string][]byte which maps file paths to their contents.
 // Returns error when reading or hashing any file fails.
 //
@@ -296,9 +290,8 @@ func (s *coordinatorService) discoverAndSortAllSourcePaths(
 //   - If cache hit: skips file read and uses the cached hash.
 //   - If cache miss: reads the file, computes the hash, and updates the cache.
 //
-// In incremental builds where only one or two files change out of many, this
-// reduces I/O from reading all files to doing stat calls plus reading only
-// the changed files.
+// In incremental builds where only one or two files change out of many, this reduces I/O
+// from reading all files to doing stat calls plus reading only the changed files.
 func (s *coordinatorService) computeFileHashesWithCache(ctx context.Context, paths []string) (map[string]string, map[string][]byte, error) {
 	g, gCtx := errgroup.WithContext(ctx)
 	jobs := make(chan string, len(paths))
@@ -317,12 +310,10 @@ func (s *coordinatorService) computeFileHashesWithCache(ctx context.Context, pat
 
 // startHashWorkers starts workers to process file hash jobs.
 //
-// Takes g (*errgroup.Group) which manages the workers and
-// collects errors.
-// Takes jobs (<-chan string) which provides file paths for
-// workers to process.
-// Takes results (chan<- fileHashResult) which receives the
-// computed hash results from each worker.
+// Takes g (*errgroup.Group) which manages the workers and collects errors.
+// Takes jobs (<-chan string) which provides file paths for workers to process.
+// Takes results (chan<- fileHashResult) which receives the computed hash results from
+// each worker.
 func (s *coordinatorService) startHashWorkers(ctx context.Context, g *errgroup.Group, jobs <-chan string, results chan<- fileHashResult) {
 	for range hashingFileReadWorkers {
 		g.Go(func() error {
@@ -357,8 +348,8 @@ func (s *coordinatorService) hashWorkerLoop(ctx context.Context, jobs <-chan str
 // Takes jobs (chan<- string) which receives paths for workers to process.
 // Takes paths ([]string) which contains the file paths to send.
 //
-// Safe for concurrent use. Spawns a goroutine that sends paths until all
-// are sent or the context is cancelled, then closes the jobs channel.
+// Safe for concurrent use. Spawns a goroutine that sends paths until all are sent or the
+// context is cancelled, then closes the jobs channel.
 func (*coordinatorService) enqueueHashJobs(ctx context.Context, jobs chan<- string, paths []string) {
 	go func() {
 		defer close(jobs)
@@ -372,8 +363,7 @@ func (*coordinatorService) enqueueHashJobs(ctx context.Context, jobs chan<- stri
 	}()
 }
 
-// collectOriginalGoFilePaths walks the project directory to find all relevant
-// .go files.
+// collectOriginalGoFilePaths walks the project directory to find all relevant .go files.
 //
 // Takes resolver (ResolverPort) which provides the base directory path.
 //
@@ -421,10 +411,10 @@ func (s *coordinatorService) collectOriginalGoFilePaths(ctx context.Context, res
 
 // collectAllPKFilePaths walks the project tree and returns all .pk file paths.
 //
-// Unlike the BFS-based hasherDependencyDiscoverer.Discover(), this finds all
-// .pk files regardless of which entry points are being built. This is used by
-// the introspection hash so that the hash remains stable whether a full build
-// or a targeted rebuild (with a subset of entry points) is performed.
+// Unlike the BFS-based hasherDependencyDiscoverer.Discover(), this finds all .pk files
+// regardless of which entry points are being built. This is used by the introspection
+// hash so that the hash remains stable whether a full build or a targeted rebuild (with a
+// subset of entry points) is performed.
 //
 // Takes resolver (ResolverPort) which provides the base directory.
 //
@@ -470,14 +460,14 @@ func (s *coordinatorService) collectAllPKFilePaths(ctx context.Context, resolver
 	return pkFilePaths, err
 }
 
-// getOrCreateSandbox returns the existing baseDirSandbox if it matches the
-// requested baseDir, or creates a temporary one.
+// getOrCreateSandbox returns the existing baseDirSandbox if it matches the requested
+// baseDir, or creates a temporary one.
 //
 // Takes baseDir (string) which specifies the directory path for the sandbox.
 //
 // Returns safedisk.Sandbox which is the existing or newly created sandbox.
-// Returns bool which indicates a new sandbox was created and must be closed
-// by the caller.
+// Returns bool which indicates a new sandbox was created and must be closed by the
+// caller.
 // Returns error when the sandbox cannot be created.
 func (s *coordinatorService) getOrCreateSandbox(baseDir string) (safedisk.Sandbox, bool, error) {
 	if s.baseDirSandbox != nil && s.baseDirSandboxPath == baseDir {
@@ -500,8 +490,8 @@ func (s *coordinatorService) getOrCreateSandbox(baseDir string) (safedisk.Sandbo
 //
 // Takes name (string) which is the directory name to check.
 //
-// Returns error when the directory should be skipped (returns fs.SkipDir for
-// hidden directories, vendor, dist, and node_modules directories).
+// Returns error when the directory should be skipped (returns fs.SkipDir for hidden
+// directories, vendor, dist, and node_modules directories).
 func (*coordinatorService) handleDirEntry(name string) error {
 	if len(name) > 1 && name[0] == '.' {
 		return fs.SkipDir
@@ -514,26 +504,25 @@ func (*coordinatorService) handleDirEntry(name string) error {
 	}
 }
 
-// calculateIntrospectionHash creates a deterministic hash from script blocks
-// and .go files. This is the Tier 1 hash that determines if expensive type
-// introspection results can be reused.
+// calculateIntrospectionHash creates a deterministic hash from script blocks and .go
+// files. This is the Tier 1 hash that determines if expensive type introspection results
+// can be reused.
 //
-// Takes buildOpts (*buildOptions) which provides build configuration for
-// resolving source paths.
+// Takes buildOpts (*buildOptions) which provides build configuration for resolving source
+// paths.
 //
 // Returns string which is the computed hash of introspection-affecting content.
 // Returns map[string]string which maps file paths to their individual hashes.
 // Returns error when file discovery or hashing fails.
 //
-// The key insight is that type introspection (packages.Load()) only depends on
-// the <script> blocks from .pk files and all .go files in the project.
-// Changes to <template>, <style>, or <i18n> blocks do not affect type
-// introspection. By hashing only the introspection-affecting content, we can
-// detect when template-only changes occur and skip the expensive introspection
-// phase.
+// The key insight is that type introspection (packages.Load()) only depends on the
+// <script> blocks from .pk files and all .go files in the project. Changes to <template>,
+// <style>, or <i18n> blocks do not affect type introspection. By hashing only the
+// introspection-affecting content, we can detect when template-only changes occur and
+// skip the expensive introspection phase.
 //
-// Action files in actions/ are included as part of Go file hashing, so action
-// changes are automatically detected.
+// Action files in actions/ are included as part of Go file hashing, so action changes are
+// automatically detected.
 func (s *coordinatorService) calculateIntrospectionHash(
 	ctx context.Context,
 	_ []annotator_dto.EntryPoint,
@@ -591,8 +580,8 @@ func (s *coordinatorService) calculateIntrospectionHash(
 	return hash, scriptHashes, nil
 }
 
-// hasherDependencyDiscoverer finds all .pk file paths for an input hasher.
-// It focuses on speed and path collection rather than detailed error messages.
+// hasherDependencyDiscoverer finds all .pk file paths for an input hasher. It focuses on
+// speed and path collection rather than detailed error messages.
 type hasherDependencyDiscoverer struct {
 	// resolver handles path resolution for module and import lookups.
 	resolver resolver_domain.ResolverPort
@@ -603,10 +592,9 @@ type hasherDependencyDiscoverer struct {
 
 // Discover finds all .pk files reachable from the given entry points.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for file reading and import resolution.
-// Takes entryPointPaths ([]string) which specifies the starting paths to
-// search from.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for file
+// reading and import resolution.
+// Takes entryPointPaths ([]string) which specifies the starting paths to search from.
 //
 // Returns []string which contains all discovered file paths.
 // Returns error when entry points cannot be processed or imports fail.
@@ -627,8 +615,8 @@ func (d *hasherDependencyDiscoverer) Discover(ctx context.Context, entryPointPat
 
 // enqueueEntryPoints resolves entry point paths and adds them to the queue.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for path resolution.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for path
+// resolution.
 // Takes paths ([]string) which contains the entry point paths to process.
 // Takes queue (*[]string) which receives the resolved paths for processing.
 // Takes visited (map[string]bool) which tracks paths already processed.
@@ -651,8 +639,8 @@ func (d *hasherDependencyDiscoverer) enqueueEntryPoints(ctx context.Context, pat
 
 // processImportQueue discovers imports from each file in the queue.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for file reading and import resolution.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for file
+// reading and import resolution.
 // Takes queue (*[]string) which holds the file paths to process.
 // Takes visited (map[string]bool) which tracks already processed files.
 //
@@ -669,8 +657,8 @@ func (d *hasherDependencyDiscoverer) processImportQueue(ctx context.Context, que
 
 // discoverImportsFromFile extracts and resolves imports from a single file.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for file reading and import resolution.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for file
+// reading and import resolution.
 // Takes currentPath (string) which is the file path to extract imports from.
 // Takes queue (*[]string) which collects resolved paths for processing.
 // Takes visited (map[string]bool) which tracks paths already found.
@@ -696,8 +684,8 @@ func (d *hasherDependencyDiscoverer) discoverImportsFromFile(ctx context.Context
 
 // resolveEntryPoint resolves a single entry point path to an absolute path.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for path resolution.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for path
+// resolution.
 // Takes path (string) which is the entry point path to resolve.
 // Takes moduleName (string) which is the module name for path prefixing.
 //
@@ -722,14 +710,13 @@ func (d *hasherDependencyDiscoverer) resolveEntryPoint(ctx context.Context, path
 
 // extractPKImports reads a .pk file and returns its .pk import paths.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals
-// for file reading.
+// Takes ctx (context.Context) which carries cancellation and deadline signals for file
+// reading.
 // Takes currentPath (string) which specifies the path to the .pk file to read.
 //
-// Returns []string which contains the import paths ending in .pk found in the
-// file's Go script section.
-// Returns error when reading the file, parsing the SFC, or parsing Go imports
-// fails.
+// Returns []string which contains the import paths ending in .pk found in the file's Go
+// script section.
+// Returns error when reading the file, parsing the SFC, or parsing Go imports fails.
 func (d *hasherDependencyDiscoverer) extractPKImports(ctx context.Context, currentPath string) ([]string, error) {
 	fileData, err := d.fsReader.ReadFile(ctx, currentPath)
 	if err != nil {
@@ -764,8 +751,7 @@ func (d *hasherDependencyDiscoverer) extractPKImports(ctx context.Context, curre
 
 // collectHashResults gathers results from a channel into maps.
 //
-// Takes results (<-chan fileHashResult) which yields file hash results to
-// collect.
+// Takes results (<-chan fileHashResult) which yields file hash results to collect.
 // Takes capacity (int) which sets the starting size for the result maps.
 //
 // Returns map[string]string which maps file paths to their hash strings.
@@ -792,8 +778,8 @@ func isRelevantGoFile(name string) bool {
 
 // getEntrypointPaths extracts the path strings from a list of entry points.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which contains the entry
-// points to get paths from.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which contains the entry points to get
+// paths from.
 //
 // Returns []string which contains the path from each entry point.
 func getEntrypointPaths(entryPoints []annotator_dto.EntryPoint) []string {
@@ -806,16 +792,14 @@ func getEntrypointPaths(entryPoints []annotator_dto.EntryPoint) []string {
 
 // hashIntrospectionContent hashes source files that affect type introspection.
 //
-// For .pk files, only the <script> block is hashed. For .go files, the entire
-// content is hashed.
+// For .pk files, only the <script> block is hashed. For .go files, the entire content is
+// hashed.
 //
 // Takes hasher (*xxhash.Digest) which accumulates the hash state.
 // Takes sortedPaths ([]string) which lists the file paths in sorted order.
-// Takes allSourceContents (map[string][]byte) which maps paths to file
-// contents.
+// Takes allSourceContents (map[string][]byte) which maps paths to file contents.
 //
-// Returns map[string]string which maps file paths to script hashes for cache
-// validation.
+// Returns map[string]string which maps file paths to script hashes for cache validation.
 // Returns error when script extraction fails for a .pk file.
 func hashIntrospectionContent(
 	hasher *xxhash.Digest,
@@ -846,19 +830,15 @@ func hashIntrospectionContent(
 	return scriptHashes, nil
 }
 
-// extractScriptBlockContent parses a .pk file and extracts only the <script>
-// block content, returning the script text, its xxhash, and any parsing
-// error, or empty strings when no script block is present.
+// extractScriptBlockContent parses a .pk file and extracts only the <script> block
+// content, returning the script text, its xxhash, and any parsing error, or empty strings
+// when no script block is present.
 //
-// Takes filePath (string) which identifies the file for hash
-// calculation.
-// Takes fileContent ([]byte) which contains the raw .pk file bytes to
-// parse.
+// Takes filePath (string) which identifies the file for hash calculation.
+// Takes fileContent ([]byte) which contains the raw .pk file bytes to parse.
 //
-// Returns scriptContent (string) which is the extracted Go script block
-// text.
-// Returns scriptHash (string) which is the hex-encoded xxhash of the
-// script content.
+// Returns scriptContent (string) which is the extracted Go script block text.
+// Returns scriptHash (string) which is the hex-encoded xxhash of the script content.
 // Returns err (error) when the SFC cannot be parsed.
 func extractScriptBlockContent(filePath string, fileContent []byte) (scriptContent string, scriptHash string, err error) {
 	sfcResult, err := sfcparser.Parse(fileContent)

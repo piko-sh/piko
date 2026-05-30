@@ -25,10 +25,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// queryAnalyser is the Phase 2 orchestrator that transforms raw SQL queries
-// into fully typed AnalysedQuery results. It coordinates directive parsing,
-// scope chain construction, type resolution, nullability propagation, and
-// diagnostic analysis.
+// queryAnalyser is the analysis-stage orchestrator that transforms raw SQL queries into
+// fully typed AnalysedQuery results. It coordinates directive parsing, scope chain
+// construction, type resolution, nullability propagation, and diagnostic analysis.
 type queryAnalyser struct {
 	// engine holds the SQL engine port used for parsing and analysis.
 	engine EnginePort
@@ -42,8 +41,8 @@ type queryAnalyser struct {
 	// typeResolver holds the resolver used to determine output column and parameter types.
 	typeResolver *typeResolver
 
-	// nullabilityPropagator holds the propagator used to
-	// adjust nullability based on joins and directives.
+	// nullabilityPropagator holds the propagator used to adjust nullability based on joins
+	// and directives.
 	nullabilityPropagator *nullabilityPropagator
 
 	// diagnosticAnalyser holds the analyser used to produce additional warnings and hints.
@@ -53,18 +52,15 @@ type queryAnalyser struct {
 	validator *queryValidator
 }
 
-// newQueryAnalyser creates a query analyser with all
-// sub-components initialised from the given engine and
-// catalogue.
+// newQueryAnalyser creates a query analyser with all sub-components initialised from the
+// given engine and catalogue.
 //
-// Takes engine (EnginePort) which provides SQL parsing,
-// analysis, and type resolution capabilities.
+// Takes engine (EnginePort) which provides SQL parsing, analysis, and type resolution
+// capabilities.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds
-// the database schema metadata.
+// Takes catalogue (*querier_dto.Catalogue) which holds the database schema metadata.
 //
-// Returns *queryAnalyser which holds the fully
-// initialised analyser.
+// Returns *queryAnalyser which holds the fully initialised analyser.
 func newQueryAnalyser(engine EnginePort, catalogue *querier_dto.Catalogue) *queryAnalyser {
 	functionResolver := newFunctionResolver(engine.BuiltinFunctions(), catalogue, engine)
 
@@ -79,9 +75,9 @@ func newQueryAnalyser(engine EnginePort, catalogue *querier_dto.Catalogue) *quer
 	}
 }
 
-// queryTypeResolution holds the results of query type resolution, grouping
-// the resolved output columns, parameters, scope chain, data-modification
-// flag, and any diagnostics produced during resolution.
+// queryTypeResolution holds the results of query type resolution, grouping the resolved
+// output columns, parameters, scope chain, data-modification flag, and any diagnostics
+// produced during resolution.
 type queryTypeResolution struct {
 	// scope holds the fully populated scope chain for the query.
 	scope *scopeChain
@@ -95,30 +91,25 @@ type queryTypeResolution struct {
 	// diagnostics holds any warnings or errors produced during type resolution.
 	diagnostics []querier_dto.SourceError
 
-	// calledDataModifyingFunction indicates whether the query invokes a data-modifying function.
+	// calledDataModifyingFunction indicates whether the query invokes a data-modifying
+	// function.
 	calledDataModifyingFunction bool
 }
 
-// AnalyseQuery performs the full analysis pipeline on a
-// single query block.
+// AnalyseQuery performs the full analysis pipeline on a single query block.
 //
-// The pipeline proceeds in order: parse directives,
-// parse SQL, raw analysis, build scope chain, resolve
-// CTEs, resolve output columns, resolve parameters,
-// propagate nullability, validate, and assemble the
-// final AnalysedQuery.
+// The pipeline proceeds in order: parse directives, parse SQL, raw analysis, build scope
+// chain, resolve CTEs, resolve output columns, resolve parameters, propagate nullability,
+// validate, and assemble the final AnalysedQuery.
 //
-// Takes ctx (context.Context) which controls
-// cancellation of the analysis.
+// Takes ctx (context.Context) which controls cancellation of the analysis.
 //
-// Takes block (queryBlock) which holds the raw SQL text
-// and line information.
+// Takes block (queryBlock) which holds the raw SQL text and line information.
 //
-// Returns *querier_dto.AnalysedQuery which holds the
-// fully analysed query, or nil if analysis fails early.
+// Returns *querier_dto.AnalysedQuery which holds the fully analysed query, or nil if
+// analysis fails early.
 //
-// Returns []querier_dto.SourceError which holds all
-// diagnostics produced during analysis.
+// Returns []querier_dto.SourceError which holds all diagnostics produced during analysis.
 func (a *queryAnalyser) AnalyseQuery(
 	ctx context.Context,
 	block queryBlock,
@@ -177,21 +168,18 @@ func (a *queryAnalyser) AnalyseQuery(
 	return query, allDiagnostics
 }
 
-// extractDirectiveMetadata extracts the query name,
-// command, and query-level directives from a parsed
-// directive block.
+// extractDirectiveMetadata extracts the query name, command, and query-level directives
+// from a parsed directive block.
 //
-// Takes directiveBlock (*querier_dto.DirectiveBlock)
-// which holds the parsed directive block.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed directive
+// block.
 //
-// Returns string which holds the query name, or empty
-// if no name directive was found.
+// Returns string which holds the query name, or empty if no name directive was found.
 //
-// Returns querier_dto.QueryCommand which holds the
-// query command type.
+// Returns querier_dto.QueryCommand which holds the query command type.
 //
-// Returns *querier_dto.QueryDirectives which holds the
-// extracted query-level directive settings.
+// Returns *querier_dto.QueryDirectives which holds the extracted query-level directive
+// settings.
 func extractDirectiveMetadata(
 	directiveBlock *querier_dto.DirectiveBlock,
 ) (string, querier_dto.QueryCommand, *querier_dto.QueryDirectives) {
@@ -206,27 +194,21 @@ func extractDirectiveMetadata(
 	return queryName, queryCommand, extractQueryDirectives(directiveBlock)
 }
 
-// runDiagnostics executes diagnostic analysis on the
-// assembled query to produce additional warnings and
-// hints.
+// runDiagnostics executes diagnostic analysis on the assembled query to produce
+// additional warnings and hints.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds
-// the assembled query to analyse.
+// Takes query (*querier_dto.AnalysedQuery) which holds the assembled query to analyse.
 //
-// Takes rawAnalysis (*querier_dto.RawQueryAnalysis)
-// which holds the raw analysis result.
+// Takes rawAnalysis (*querier_dto.RawQueryAnalysis) which holds the raw analysis result.
 //
-// Takes scope (*scopeChain) which holds the resolved
-// scope chain.
+// Takes scope (*scopeChain) which holds the resolved scope chain.
 //
-// Takes directiveBlock (*querier_dto.DirectiveBlock)
-// which holds the parsed directive block.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed directive
+// block.
 //
-// Takes filename (string) which specifies the source
-// file path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostic warnings or hints.
+// Returns []querier_dto.SourceError which holds any diagnostic warnings or hints.
 func (a *queryAnalyser) runDiagnostics(
 	query *querier_dto.AnalysedQuery,
 	rawAnalysis *querier_dto.RawQueryAnalysis,
@@ -243,23 +225,19 @@ func (a *queryAnalyser) runDiagnostics(
 	})
 }
 
-// parseQueryStatements parses the SQL in a query block
-// and produces a raw analysis result.
+// parseQueryStatements parses the SQL in a query block and produces a raw analysis
+// result.
 //
-// Takes block (queryBlock) which holds the raw SQL text
-// and line information.
+// Takes block (queryBlock) which holds the raw SQL text and line information.
 //
-// Takes filename (string) which specifies the source
-// file path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Takes queryName (string) which specifies the query
-// name for error messages.
+// Takes queryName (string) which specifies the query name for error messages.
 //
-// Returns *querier_dto.RawQueryAnalysis which holds the
-// raw analysis result, or nil if parsing fails.
+// Returns *querier_dto.RawQueryAnalysis which holds the raw analysis result, or nil if
+// parsing fails.
 //
-// Returns []querier_dto.SourceError which holds any
-// parse or analysis errors.
+// Returns []querier_dto.SourceError which holds any parse or analysis errors.
 func (a *queryAnalyser) parseQueryStatements(
 	block queryBlock,
 	filename string,
@@ -299,27 +277,23 @@ func (a *queryAnalyser) parseQueryStatements(
 	return rawAnalysis, diagnostics
 }
 
-// resolveQueryTypes builds the scope chain and resolves
-// all output column and parameter types for a query.
+// resolveQueryTypes builds the scope chain and resolves all output column and parameter
+// types for a query.
 //
-// Takes ctx (context.Context) which controls
-// cancellation of the resolution.
+// Takes ctx (context.Context) which controls cancellation of the resolution.
 //
-// Takes rawAnalysis (*querier_dto.RawQueryAnalysis)
-// which holds the raw analysis result to resolve types
-// for.
+// Takes rawAnalysis (*querier_dto.RawQueryAnalysis) which holds the raw analysis result
+// to resolve types for.
 //
-// Takes directiveBlock (*querier_dto.DirectiveBlock)
-// which holds the parsed parameter directives.
+// Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed parameter
+// directives.
 //
-// Takes block (queryBlock) which holds the raw SQL text
-// and line information.
+// Takes block (queryBlock) which holds the raw SQL text and line information.
 //
-// Takes filename (string) which specifies the source
-// file path for error reporting.
+// Takes filename (string) which specifies the source file path for error reporting.
 //
-// Returns queryTypeResolution which holds the resolved
-// columns, parameters, scope, and diagnostics.
+// Returns queryTypeResolution which holds the resolved columns, parameters, scope, and
+// diagnostics.
 func (a *queryAnalyser) resolveQueryTypes(
 	ctx context.Context,
 	rawAnalysis *querier_dto.RawQueryAnalysis,

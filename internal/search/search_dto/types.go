@@ -19,31 +19,29 @@
 package search_dto
 
 const (
-	// defaultFuzzyThreshold is the default threshold for
-	// fuzzy matching similarity.
+	// defaultFuzzyThreshold is the default threshold for fuzzy matching similarity.
 	defaultFuzzyThreshold = 0.3
 
-	// defaultFuzzySimilarityThreshold is the minimum similarity score needed for
-	// fuzzy matches.
+	// defaultFuzzySimilarityThreshold is the minimum similarity score needed for fuzzy
+	// matches.
 	defaultFuzzySimilarityThreshold = 0.85
 
-	// defaultFuzzyMaxResults is the largest number of
-	// fuzzy search results to return.
+	// defaultFuzzyMaxResults is the largest number of fuzzy search results to return.
 	defaultFuzzyMaxResults = 3
 )
 
-// SearchConfig holds settings for search operations. It includes query terms,
-// field weights, fuzzy matching options, and pagination controls.
+// SearchConfig holds settings for search operations. It includes query terms, field
+// weights, fuzzy matching options, and pagination controls.
 type SearchConfig struct {
 	// Query is the search text to match against indexed fields.
 	Query string
 
-	// Fields specifies which fields to search and their weights.
-	// If empty, all string fields are searched with equal weight.
+	// Fields specifies which fields to search and their weights. If empty, all string fields
+	// are searched with equal weight.
 	Fields []SearchField
 
-	// FuzzyThreshold controls how fuzzy the matching is, where 0.0 means exact
-	// match only and 1.0 means very loose matching. Default is 0.3.
+	// FuzzyThreshold controls how fuzzy the matching is, where 0.0 means exact match only
+	// and 1.0 means very loose matching. Default is 0.3.
 	FuzzyThreshold float64
 
 	// Limit sets the maximum number of results to return; 0 means no limit.
@@ -52,26 +50,25 @@ type SearchConfig struct {
 	// Offset is the number of results to skip for pagination.
 	Offset int
 
-	// MinScore filters out results below this score threshold.
-	// Default is 0.0 which includes all matches.
+	// MinScore filters out results below this score threshold. Default is 0.0 which includes
+	// all matches.
 	MinScore float64
 
-	// CaseSensitive enables case-sensitive matching when set to true.
-	// Default is false, which uses case-insensitive matching.
+	// CaseSensitive enables case-sensitive matching when set to true. Default is false,
+	// which uses case-insensitive matching.
 	CaseSensitive bool
 
-	// EnableFuzzyFallback enables Jaro-Winkler fuzzy matching as a fallback
-	// when exact and phonetic matching fail in Smart mode. Default: true.
+	// EnableFuzzyFallback enables Jaro-Winkler fuzzy matching as a fallback when exact and
+	// phonetic matching fail in Smart mode. Default: true.
 	EnableFuzzyFallback bool
 
-	// FuzzySimilarityThreshold sets the minimum similarity for
-	// fuzzy matches (0.0-1.0), where higher values mean stricter
-	// matching with typical values of 0.80-0.90. Default: 0.85.
+	// FuzzySimilarityThreshold sets the minimum similarity for fuzzy matches (0.0-1.0),
+	// where higher values mean stricter matching with typical values of 0.80-0.90. Default:
+	// 0.85.
 	FuzzySimilarityThreshold float64
 
-	// FuzzyMaxResults limits the number of fuzzy matches to expand
-	// the query with, preventing over-expansion that could return
-	// too many irrelevant results. Default: 3.
+	// FuzzyMaxResults limits the number of fuzzy matches to expand the query with,
+	// preventing over-expansion that could return too many irrelevant results. Default: 3.
 	FuzzyMaxResults int
 }
 
@@ -80,9 +77,8 @@ type SearchField struct {
 	// Name is the field name to search.
 	Name string
 
-	// Weight is the importance multiplier applied during scoring.
-	// Default: 1.0
-	// Higher values (e.g., 2.0) make matches in the field more important.
+	// Weight is the importance multiplier applied during scoring. Default: 1.0 Higher values
+	// (e.g., 2.0) make matches in the field more important.
 	Weight float64
 }
 

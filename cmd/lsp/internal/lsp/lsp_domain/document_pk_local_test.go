@@ -1701,4 +1701,6 @@ type Response struct {
 	}
 }
 
-var _ *ast_domain.ResolvedTypeInfo
+var (
+	_ *ast_domain.ResolvedTypeInfo
+)

@@ -18,7 +18,9 @@
 
 package formatter
 
-import "piko.sh/piko/internal/formatter/formatter_domain"
+import (
+	"piko.sh/piko/internal/formatter/formatter_domain"
+)
 
 // FormatterService formats Piko template (.pk) files.
 type FormatterService = formatter_domain.FormatterService

@@ -29,15 +29,15 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// ModuleContextManager lazily creates and caches ModuleContext instances for
-// each Go module in the workspace. When analysing a file, it walks up to find
-// the nearest go.mod and returns the corresponding cached context.
+// ModuleContextManager lazily creates and caches ModuleContext instances for each Go
+// module in the workspace. When analysing a file, it walks up to find the nearest go.mod
+// and returns the corresponding cached context.
 //
-// This enables correct import resolution for nested modules like testdata
-// directories that have their own go.mod files.
+// This enables correct import resolution for nested modules like testdata directories
+// that have their own go.mod files.
 type ModuleContextManager struct {
-	// sandboxFactory creates sandboxes for filesystem access. When nil,
-	// no-op sandboxes are used as a fallback.
+	// sandboxFactory creates sandboxes for filesystem access. When nil, no-op sandboxes are
+	// used as a fallback.
 	sandboxFactory safedisk.Factory
 
 	// contexts maps module root paths to their cached contexts.
@@ -53,15 +53,13 @@ type ModuleContextManager struct {
 	mu sync.RWMutex
 }
 
-// NewModuleContextManager creates a new manager with the given base
-// configuration.
+// NewModuleContextManager creates a new manager with the given base configuration.
 //
-// Takes basePathsConfig (*config.PathsConfig) which provides the base path
-// settings that will be cloned for each module context.
-// Takes fallbackModuleRoot (string) which is used when a file is not inside
-// any go.mod.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access. When nil, no-op sandboxes are used as a fallback.
+// Takes basePathsConfig (*config.PathsConfig) which provides the base path settings that
+// will be cloned for each module context.
+// Takes fallbackModuleRoot (string) which is used when a file is not inside any go.mod.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
+// nil, no-op sandboxes are used as a fallback.
 //
 // Returns *ModuleContextManager which is ready to provide module contexts.
 func NewModuleContextManager(basePathsConfig *config.PathsConfig, fallbackModuleRoot string, factory safedisk.Factory) *ModuleContextManager {
@@ -73,15 +71,14 @@ func NewModuleContextManager(basePathsConfig *config.PathsConfig, fallbackModule
 	}
 }
 
-// GetContextForFile returns the ModuleContext for the Go module containing the
-// given file. It caches contexts by module root to avoid repeated go.mod
-// lookups and resolver initialisation.
+// GetContextForFile returns the ModuleContext for the Go module containing the given
+// file. It caches contexts by module root to avoid repeated go.mod lookups and resolver
+// initialisation.
 //
-// Takes filePath (string) which is the absolute path to the file being
-// analysed.
+// Takes filePath (string) which is the absolute path to the file being analysed.
 //
-// Returns *ModuleContext which contains the resolver and entry points for the
-// file's module.
+// Returns *ModuleContext which contains the resolver and entry points for the file's
+// module.
 // Returns error when the module context cannot be created.
 //
 // Safe for concurrent use.
@@ -134,8 +131,8 @@ func (m *ModuleContextManager) GetContextForFile(ctx context.Context, filePath s
 	return mc, nil
 }
 
-// InvalidateAll clears all cached module contexts. Call this when workspace
-// folders change or when a go.mod file is modified.
+// InvalidateAll clears all cached module contexts. Call this when workspace folders
+// change or when a go.mod file is modified.
 //
 // Safe for concurrent use.
 func (m *ModuleContextManager) InvalidateAll(ctx context.Context) {
@@ -161,10 +158,9 @@ func (m *ModuleContextManager) InvalidateModule(ctx context.Context, moduleRoot 
 	l.Debug("Invalidated module context", logger_domain.String("moduleRoot", moduleRoot))
 }
 
-// InvalidateAllEntryPoints marks the cached entry points as stale on all
-// cached module contexts, forcing rediscovery on the next analysis. Called
-// when files are created, deleted, or renamed and the set of entry points
-// may have changed.
+// InvalidateAllEntryPoints marks the cached entry points as stale on all cached module
+// contexts, forcing rediscovery on the next analysis. Called when files are created,
+// deleted, or renamed and the set of entry points may have changed.
 //
 // Safe for concurrent use.
 func (m *ModuleContextManager) InvalidateAllEntryPoints() {
@@ -175,8 +171,8 @@ func (m *ModuleContextManager) InvalidateAllEntryPoints() {
 	}
 }
 
-// GetCachedContextCount returns the number of cached module contexts. This is
-// primarily useful for testing and debugging.
+// GetCachedContextCount returns the number of cached module contexts. This is primarily
+// useful for testing and debugging.
 //
 // Returns int which is the number of cached contexts.
 //

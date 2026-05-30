@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	// noopClock is a package-level real clock used by NoopCounterStore to provide
-	// a window start time without requiring a constructor.
+	// noopClock is a package-level real clock used by NoopCounterStore to provide a window
+	// start time without requiring a constructor.
 	noopClock = clock.RealClock()
 
 	_ ratelimiter_domain.TokenBucketStorePort = NoopTokenBucketStore{}
@@ -37,9 +37,8 @@ var (
 	_ ratelimiter_domain.CounterStorePort = NoopCounterStore{}
 )
 
-// NoopTokenBucketStore is a no-op implementation of TokenBucketStorePort that
-// always allows requests. Used when rate limiting is disabled or the cache is
-// unavailable.
+// NoopTokenBucketStore is a no-op implementation of TokenBucketStorePort that always
+// allows requests. Used when rate limiting is disabled or the cache is unavailable.
 type NoopTokenBucketStore struct{}
 
 // TryTake always returns true (allowed).
@@ -65,15 +64,15 @@ func (NoopTokenBucketStore) DeleteBucket(_ context.Context, _ string) error {
 	return nil
 }
 
-// NoopCounterStore is a no-op implementation of CounterStorePort that always
-// returns zero. Used when rate limiting is disabled or the cache is unavailable.
+// NoopCounterStore is a no-op implementation of CounterStorePort that always returns
+// zero. Used when rate limiting is disabled or the cache is unavailable.
 type NoopCounterStore struct{}
 
-// IncrementAndGet always returns a zero count with the current time as window
-// start (no counting).
+// IncrementAndGet always returns a zero count with the current time as window start (no
+// counting).
 //
-// Returns ratelimiter_dto.CounterResult which contains zero count and the
-// current time as window start.
+// Returns ratelimiter_dto.CounterResult which contains zero count and the current time as
+// window start.
 // Returns error which is always nil for this no-op implementation.
 func (NoopCounterStore) IncrementAndGet(_ context.Context, _ string, _ int64, _ time.Duration) (ratelimiter_dto.CounterResult, error) {
 	return ratelimiter_dto.CounterResult{

@@ -29,8 +29,8 @@ type marshalFunc[V any] func(value V) ([]byte, error)
 // unmarshalFunc is a function type that converts bytes into a value of type V.
 type unmarshalFunc[V any] func(data []byte, target *V) error
 
-// baseEncoder is a generic encoder that implements AnyEncoder.
-// It wraps marshal and unmarshal functions to create an encoder for a type.
+// baseEncoder is a generic encoder that implements AnyEncoder. It wraps marshal and
+// unmarshal functions to create an encoder for a type.
 type baseEncoder[V any] struct {
 	// marshalFunction converts values to bytes for encoding.
 	marshalFunction marshalFunc[V]
@@ -42,8 +42,11 @@ type baseEncoder[V any] struct {
 	handlesType reflect.Type
 }
 
-var _ EncoderPort[any] = (*baseEncoder[any])(nil)
-var _ AnyEncoder = (*baseEncoder[any])(nil)
+var (
+	_ EncoderPort[any] = (*baseEncoder[any])(nil)
+
+	_ AnyEncoder = (*baseEncoder[any])(nil)
+)
 
 // Marshal converts a typed value to bytes using the configured marshal function.
 //
@@ -55,8 +58,8 @@ func (s *baseEncoder[V]) Marshal(value V) ([]byte, error) {
 	return s.marshalFunction(value)
 }
 
-// Unmarshal reconstructs a typed value from bytes using the configured
-// unmarshal function.
+// Unmarshal reconstructs a typed value from bytes using the configured unmarshal
+// function.
 //
 // Takes data ([]byte) which contains the encoded bytes to decode.
 // Takes target (*V) which receives the decoded value.
@@ -66,14 +69,14 @@ func (s *baseEncoder[V]) Unmarshal(data []byte, target *V) error {
 	return s.unmarshalFunction(data, target)
 }
 
-// MarshalAny performs runtime type checking before delegating to the typed
-// Marshal method.
+// MarshalAny performs runtime type checking before delegating to the typed Marshal
+// method.
 //
 // Takes value (any) which is the value to encode.
 //
 // Returns []byte which contains the encoded data.
-// Returns error when the value's type does not match this encoder's target
-// type or when encoding fails.
+// Returns error when the value's type does not match this encoder's target type or when
+// encoding fails.
 func (s *baseEncoder[V]) MarshalAny(value any) ([]byte, error) {
 	v, ok := value.(V)
 	if !ok {
@@ -82,8 +85,8 @@ func (s *baseEncoder[V]) MarshalAny(value any) ([]byte, error) {
 	return s.Marshal(v)
 }
 
-// UnmarshalAny creates a zero value of type V, unmarshals the data into it,
-// and returns it as any. The caller must type-assert the result back to V.
+// UnmarshalAny creates a zero value of type V, unmarshals the data into it, and returns
+// it as any. The caller must type-assert the result back to V.
 //
 // Takes data ([]byte) which contains the encoded data to unmarshal.
 //
@@ -97,16 +100,16 @@ func (s *baseEncoder[V]) UnmarshalAny(data []byte) (any, error) {
 	return target, nil
 }
 
-// HandlesType returns the reflect.Type that this encoder operates on.
-// This is used by the registry to match values to encoders at runtime.
+// HandlesType returns the reflect.Type that this encoder operates on. This is used by the
+// registry to match values to encoders at runtime.
 //
 // Returns reflect.Type which identifies the type this encoder handles.
 func (s *baseEncoder[V]) HandlesType() reflect.Type {
 	return s.handlesType
 }
 
-// NewEncoder creates a new encoder from marshal/unmarshal function pairs.
-// This is the primary factory function for creating custom encoders.
+// NewEncoder creates a new encoder from marshal/unmarshal function pairs. This is the
+// primary factory function for creating custom encoders.
 //
 // Takes marshal (marshalFunc[V]) which converts values to bytes.
 // Takes unmarshal (unmarshalFunc[V]) which converts bytes back to values.

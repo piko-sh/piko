@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package tui_domain defines the core business logic, port interfaces,
-// and UI components for the terminal-based monitoring tool.
+// Package tui_domain defines the core business logic, port interfaces, and UI components
+// for the terminal-based monitoring tool.
 //
-// It defines provider port interfaces for data fetching, the [Panel]
-// interface and [BasePanel] base type for UI sections, reusable widgets
-// (sparklines, tables, search boxes, status bars), the generic
-// [AssetViewer] for list-based panels, and the main [Service] that
-// orchestrates the Bubble Tea program lifecycle. Provider ports are
-// implemented by adapters in sibling packages (e.g. provider_grpc);
-// [Service] accepts a [Providers] struct for dependency injection and
-// manages background data refresh via an internal orchestrator.
+// It defines provider port interfaces for data fetching, the [Panel] interface and
+// [BasePanel] base type for UI sections, reusable widgets (sparklines, tables, search
+// boxes, status bars), the generic [AssetViewer] for list-based panels, and the main
+// [Service] that orchestrates the Bubble Tea program lifecycle. Provider ports are
+// implemented by adapters in sibling packages (e.g. provider_grpc); [Service] accepts a
+// [Providers] struct for dependency injection and manages background data refresh via an
+// internal orchestrator.
 package tui_domain

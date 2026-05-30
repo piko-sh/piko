@@ -18,21 +18,23 @@
 
 package collection_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// MockSearchIndexLoader is a test double for SearchIndexLoaderPort that
-// returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockSearchIndexLoader is a test double for SearchIndexLoaderPort that returns zero
+// values from nil function fields and tracks call counts atomically.
 type MockSearchIndexLoader struct {
 	// GetIndexFunc is the function called by GetIndex.
 	GetIndexFunc func(collectionName, searchMode string) (any, error)
 
-	// GetIndexCallCount tracks how many times GetIndex
-	// was called.
-	GetIndexCallCount int64
+	// GetIndexCallCount tracks how many times GetIndex was called.
+	GetIndexCallCount atomic.Int64
 }
 
-var _ SearchIndexLoaderPort = (*MockSearchIndexLoader)(nil)
+var (
+	_ SearchIndexLoaderPort = (*MockSearchIndexLoader)(nil)
+)
 
 // GetIndex delegates to GetIndexFunc if set.
 //
@@ -41,7 +43,7 @@ var _ SearchIndexLoaderPort = (*MockSearchIndexLoader)(nil)
 //
 // Returns (nil, nil) if GetIndexFunc is nil.
 func (m *MockSearchIndexLoader) GetIndex(collectionName, searchMode string) (any, error) {
-	atomic.AddInt64(&m.GetIndexCallCount, 1)
+	m.GetIndexCallCount.Add(1)
 	if m.GetIndexFunc != nil {
 		return m.GetIndexFunc(collectionName, searchMode)
 	}

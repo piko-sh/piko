@@ -16,8 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package vector_cache implements llm_domain.VectorStorePort by
-// delegating to the cache system. Each namespace maps to a separate
-// cache instance; the underlying cache provider (otter, Redis,
-// Valkey) handles vector indexing and similarity search.
+// Package vector_cache implements llm_domain.VectorStorePort by delegating to the cache
+// system. Each namespace maps to a separate cache instance; the underlying cache provider
+// (otter, Redis, Valkey) handles vector indexing and similarity search.
 package vector_cache

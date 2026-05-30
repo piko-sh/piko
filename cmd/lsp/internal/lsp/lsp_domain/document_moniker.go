@@ -26,14 +26,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// GetMonikers returns unique identifiers for the symbol at the given position.
-// These identifiers work across different code repositories and serve as stable
-// references for code intelligence features.
+// GetMonikers returns unique identifiers for the symbol at the given position. These
+// identifiers work across different code repositories and serve as stable references for
+// code intelligence features.
 //
 // Takes position (protocol.Position) which specifies the cursor position to query.
 //
-// Returns []protocol.Moniker which contains the monikers for the symbol,
-// typically one per symbol.
+// Returns []protocol.Moniker which contains the monikers for the symbol, typically one
+// per symbol.
 // Returns error when the moniker computation fails.
 func (d *document) GetMonikers(ctx context.Context, position protocol.Position) ([]protocol.Moniker, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -61,10 +61,8 @@ func (d *document) GetMonikers(ctx context.Context, position protocol.Position) 
 
 // buildMonikerFromAnnotation constructs a Moniker from a GoGeneratorAnnotation.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type
-// and symbol info.
-// Takes expression (ast_domain.Expression) which is the expression
-// for name extraction.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type and symbol info.
+// Takes expression (ast_domain.Expression) which is the expression for name extraction.
 //
 // Returns []protocol.Moniker which contains the constructed moniker.
 // Returns error when moniker construction fails.
@@ -104,9 +102,9 @@ func (*document) buildMonikerFromAnnotation(
 	}}, nil
 }
 
-// buildMonikerIdentifier constructs the moniker identifier string.
-// Format: "package_path#symbol_name" (e.g., a GitHub-hosted module path followed
-// by "#MyType") or just "symbol_name" for local symbols without a package path.
+// buildMonikerIdentifier constructs the moniker identifier string. Format:
+// "package_path#symbol_name" (e.g., a GitHub-hosted module path followed by "#MyType") or
+// just "symbol_name" for local symbols without a package path.
 //
 // Takes packagePath (string) which is the canonical package path.
 // Takes symbolName (string) which is the symbol name.
@@ -121,14 +119,12 @@ func buildMonikerIdentifier(packagePath, symbolName string) string {
 
 // determineMonikerUniqueness finds the scope in which a moniker is unique.
 //
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which provides package
-// information.
-// Takes symbolName (string) which is the symbol name to check for export
-// status.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which provides package information.
+// Takes symbolName (string) which is the symbol name to check for export status.
 //
-// Returns protocol.UniquenessLevel which shows the uniqueness scope: global
-// for exported symbols from known packages, project for unexported symbols
-// with a package path, or document for local variables.
+// Returns protocol.UniquenessLevel which shows the uniqueness scope: global for exported
+// symbols from known packages, project for unexported symbols with a package path, or
+// document for local variables.
 func determineMonikerUniqueness(resolvedType *ast_domain.ResolvedTypeInfo, symbolName string) protocol.UniquenessLevel {
 	if resolvedType != nil && resolvedType.CanonicalPackagePath != "" && isMonikerExportedName(symbolName) {
 		return protocol.UniquenessLevelGlobal
@@ -139,8 +135,7 @@ func determineMonikerUniqueness(resolvedType *ast_domain.ResolvedTypeInfo, symbo
 	return protocol.UniquenessLevelDocument
 }
 
-// determineMonikerKind determines if the symbol is exported, imported, or
-// local.
+// determineMonikerKind determines if the symbol is exported, imported, or local.
 //
 // Takes resolvedType (*ast_domain.ResolvedTypeInfo) which provides export info.
 // Takes symbolName (string) which is the symbol name to check export status.
@@ -158,8 +153,7 @@ func determineMonikerKind(resolvedType *ast_domain.ResolvedTypeInfo, symbolName 
 
 // extractMonikerSymbolName gets the symbol name from an expression.
 //
-// Takes expression (ast_domain.Expression) which is the expression
-// to get the name from.
+// Takes expression (ast_domain.Expression) which is the expression to get the name from.
 //
 // Returns string which is the symbol name, or empty if not found.
 func extractMonikerSymbolName(expression ast_domain.Expression) string {

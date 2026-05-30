@@ -51,8 +51,7 @@ type EmailBuilder struct {
 	*baseEmailBuilder
 }
 
-// TemplatedEmailBuilder composes emails using Piko templates with type-safe
-// props.
+// TemplatedEmailBuilder composes emails using Piko templates with type-safe props.
 type TemplatedEmailBuilder[PropsT any] struct {
 	// templater renders email templates.
 	templater TemplaterAdapterPort
@@ -100,8 +99,7 @@ func (b *baseEmailBuilder) Cc(addresses ...string) *baseEmailBuilder {
 
 // Bcc adds BCC recipient email addresses.
 //
-// Takes addresses (...string) which are the email addresses to add
-// as BCC.
+// Takes addresses (...string) which are the email addresses to add as BCC.
 //
 // Returns *baseEmailBuilder for method chaining.
 func (b *baseEmailBuilder) Bcc(addresses ...string) *baseEmailBuilder {
@@ -155,8 +153,7 @@ func (b *baseEmailBuilder) Provider(name string) *baseEmailBuilder {
 	return b
 }
 
-// Immediate forces the email to be sent immediately, bypassing the dispatcher
-// queue.
+// Immediate forces the email to be sent immediately, bypassing the dispatcher queue.
 //
 // Returns *baseEmailBuilder for method chaining.
 func (b *baseEmailBuilder) Immediate() *baseEmailBuilder {
@@ -164,8 +161,8 @@ func (b *baseEmailBuilder) Immediate() *baseEmailBuilder {
 	return b
 }
 
-// ProviderOption sets a provider-specific option key/value to be passed through
-// to the adapter.
+// ProviderOption sets a provider-specific option key/value to be passed through to the
+// adapter.
 //
 // Takes key (string) which identifies the option name.
 // Takes value (any) which provides the option value.
@@ -201,8 +198,7 @@ func (b *EmailBuilder) Cc(addresses ...string) *EmailBuilder {
 
 // Bcc adds BCC recipient email addresses.
 //
-// Takes addresses (...string) which are the email addresses to add
-// as BCC.
+// Takes addresses (...string) which are the email addresses to add as BCC.
 //
 // Returns *EmailBuilder for method chaining.
 func (b *EmailBuilder) Bcc(addresses ...string) *EmailBuilder {
@@ -242,8 +238,7 @@ func (b *EmailBuilder) BodyHTML(html string) *EmailBuilder {
 
 // BodyPlain sets the plain text body content.
 //
-// Takes plain (string) which is the plain text content for the email
-// body.
+// Takes plain (string) which is the plain text content for the email body.
 //
 // Returns *EmailBuilder for method chaining.
 func (b *EmailBuilder) BodyPlain(plain string) *EmailBuilder {
@@ -273,8 +268,7 @@ func (b *EmailBuilder) Provider(name string) *EmailBuilder {
 	return b
 }
 
-// Immediate forces the email to be sent immediately, bypassing the dispatcher
-// queue.
+// Immediate forces the email to be sent immediately, bypassing the dispatcher queue.
 //
 // Returns *EmailBuilder for method chaining.
 func (b *EmailBuilder) Immediate() *EmailBuilder {
@@ -282,8 +276,8 @@ func (b *EmailBuilder) Immediate() *EmailBuilder {
 	return b
 }
 
-// ProviderOption sets a provider-specific option key/value to be passed through
-// to the adapter.
+// ProviderOption sets a provider-specific option key/value to be passed through to the
+// adapter.
 //
 // Takes key (string) which identifies the option name.
 // Takes value (any) which provides the option value.
@@ -316,8 +310,7 @@ func (b *TemplatedEmailBuilder[PropsT]) Cc(addresses ...string) *TemplatedEmailB
 
 // Bcc adds BCC recipient email addresses.
 //
-// Takes addresses (...string) which are the email addresses to add
-// as BCC.
+// Takes addresses (...string) which are the email addresses to add as BCC.
 //
 // Returns *TemplatedEmailBuilder[PropsT] for method chaining.
 func (b *TemplatedEmailBuilder[PropsT]) Bcc(addresses ...string) *TemplatedEmailBuilder[PropsT] {
@@ -357,8 +350,8 @@ func (b *TemplatedEmailBuilder[PropsT]) Props(props PropsT) *TemplatedEmailBuild
 
 // Request sets the HTTP request context for the template rendering.
 //
-// Takes request (*http.Request) which provides the HTTP context for
-// resolving template paths.
+// Takes request (*http.Request) which provides the HTTP context for resolving template
+// paths.
 //
 // Returns *TemplatedEmailBuilder[PropsT] for method chaining.
 func (b *TemplatedEmailBuilder[PropsT]) Request(request *http.Request) *TemplatedEmailBuilder[PropsT] {
@@ -366,11 +359,10 @@ func (b *TemplatedEmailBuilder[PropsT]) Request(request *http.Request) *Template
 	return b
 }
 
-// BodyTemplate sets the template path to use for rendering the email body.
-// The template will be rendered when Send() is called.
+// BodyTemplate sets the template path to use for rendering the email body. The template
+// will be rendered when Send() is called.
 //
-// Takes templatePath (string) which is the path to the email template
-// file.
+// Takes templatePath (string) which is the path to the email template file.
 //
 // Returns *TemplatedEmailBuilder[PropsT] for method chaining.
 func (b *TemplatedEmailBuilder[PropsT]) BodyTemplate(templatePath string) *TemplatedEmailBuilder[PropsT] {
@@ -379,8 +371,8 @@ func (b *TemplatedEmailBuilder[PropsT]) BodyTemplate(templatePath string) *Templ
 	return b
 }
 
-// BodyPlain sets a custom plain text body that overrides the template's
-// generated plain text.
+// BodyPlain sets a custom plain text body that overrides the template's generated plain
+// text.
 //
 // Takes plain (string) which is the plain text content to use.
 //
@@ -390,11 +382,10 @@ func (b *TemplatedEmailBuilder[PropsT]) BodyPlain(plain string) *TemplatedEmailB
 	return b
 }
 
-// PremailerOptions allows overriding the default premailer settings for this
-// specific email.
+// PremailerOptions allows overriding the default premailer settings for this specific
+// email.
 //
-// Takes opts (premailer.Options) which provides the CSS inlining
-// settings to use.
+// Takes opts (premailer.Options) which provides the CSS inlining settings to use.
 //
 // Returns *TemplatedEmailBuilder[PropsT] for method chaining.
 func (b *TemplatedEmailBuilder[PropsT]) PremailerOptions(opts premailer.Options) *TemplatedEmailBuilder[PropsT] {
@@ -424,8 +415,7 @@ func (b *TemplatedEmailBuilder[PropsT]) Provider(name string) *TemplatedEmailBui
 	return b
 }
 
-// Immediate forces the email to be sent immediately, bypassing the dispatcher
-// queue.
+// Immediate forces the email to be sent immediately, bypassing the dispatcher queue.
 //
 // Returns *TemplatedEmailBuilder[PropsT] for method chaining.
 func (b *TemplatedEmailBuilder[PropsT]) Immediate() *TemplatedEmailBuilder[PropsT] {
@@ -433,8 +423,7 @@ func (b *TemplatedEmailBuilder[PropsT]) Immediate() *TemplatedEmailBuilder[Props
 	return b
 }
 
-// ProviderOption sets a provider-specific option to be passed through to
-// the adapter.
+// ProviderOption sets a provider-specific option to be passed through to the adapter.
 //
 // Takes key (string) which identifies the option name.
 // Takes value (any) which provides the option value.
@@ -445,9 +434,8 @@ func (b *TemplatedEmailBuilder[PropsT]) ProviderOption(key string, value any) *T
 	return b
 }
 
-// dispatchOrSend decides whether to queue or send an email.
-// It queues the email through the dispatcher if one is set, or sends the email
-// straight away through a provider.
+// dispatchOrSend decides whether to queue or send an email. It queues the email through
+// the dispatcher if one is set, or sends the email straight away through a provider.
 //
 // Returns error when queuing fails or the provider cannot send the email.
 func (b *baseEmailBuilder) dispatchOrSend(ctx context.Context) error {
@@ -475,11 +463,11 @@ func (b *baseEmailBuilder) dispatchOrSend(ctx context.Context) error {
 
 // Do checks and sends the email that has been built.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// By default, it uses the dispatcher if one is set up. This can be changed
-// with methods like Immediate and Provider.
+// By default, it uses the dispatcher if one is set up. This can be changed with methods
+// like Immediate and Provider.
 //
 // Returns error when the email is not valid or sending fails.
 func (b *EmailBuilder) Do(ctx context.Context) error {
@@ -510,8 +498,8 @@ func (b *EmailBuilder) Do(ctx context.Context) error {
 
 // getPremailerOptions returns the premailer settings for template rendering.
 //
-// Returns premailer.Options which contains the configured settings, or
-// sensible defaults if none were set.
+// Returns premailer.Options which contains the configured settings, or sensible defaults
+// if none were set.
 func (b *TemplatedEmailBuilder[PropsT]) getPremailerOptions() premailer.Options {
 	if b.premailerOptions != nil {
 		return *b.premailerOptions
@@ -524,11 +512,9 @@ func (b *TemplatedEmailBuilder[PropsT]) getPremailerOptions() premailer.Options 
 	}
 }
 
-// renderTemplate renders the email template and populates the params with
-// the result.
+// renderTemplate renders the email template and populates the params with the result.
 //
-// Returns error when the templating service is not configured or rendering
-// fails.
+// Returns error when the templating service is not configured or rendering fails.
 func (b *TemplatedEmailBuilder[PropsT]) renderTemplate(ctx context.Context) error {
 	if b.templater == nil {
 		return errTemplaterNotConfigured
@@ -552,14 +538,14 @@ func (b *TemplatedEmailBuilder[PropsT]) renderTemplate(ctx context.Context) erro
 
 // Do checks and sends the email using the template.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// It renders the template just before sending. If a custom BodyPlain has been
-// set, it will not be replaced by the template's plain text.
+// It renders the template just before sending. If a custom BodyPlain has been set, it
+// will not be replaced by the template's plain text.
 //
-// Returns error when template rendering fails, parameter checking fails, or
-// the email cannot be sent.
+// Returns error when template rendering fails, parameter checking fails, or the email
+// cannot be sent.
 func (b *TemplatedEmailBuilder[PropsT]) Do(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before sending templated email: %w", err)
@@ -597,11 +583,11 @@ func (b *TemplatedEmailBuilder[PropsT]) Do(ctx context.Context) error {
 	})
 }
 
-// resolveAndAttachAssets fetches email assets and attaches them to the email
-// params. This helper method reduces nesting in the Send method.
+// resolveAndAttachAssets fetches email assets and attaches them to the email params. This
+// helper method reduces nesting in the Send method.
 //
-// Takes requests ([]*email_dto.EmailAssetRequest) which lists the assets to
-// fetch and attach.
+// Takes requests ([]*email_dto.EmailAssetRequest) which lists the assets to fetch and
+// attach.
 func (b *TemplatedEmailBuilder[PropsT]) resolveAndAttachAssets(ctx context.Context, requests []*email_dto.EmailAssetRequest) {
 	ctx, l := logger_domain.From(ctx, log)
 	if len(requests) == 0 || b.assetResolver == nil {
@@ -618,11 +604,11 @@ func (b *TemplatedEmailBuilder[PropsT]) resolveAndAttachAssets(ctx context.Conte
 	b.attachResolvedAssets(ctx, attachments, failureCount)
 }
 
-// logAssetResolutionErrors logs any errors from asset resolution and returns
-// the count of failures.
+// logAssetResolutionErrors logs any errors from asset resolution and returns the count of
+// failures.
 //
-// Takes requests ([]*email_dto.EmailAssetRequest) which provides source paths
-// and identifiers for error context.
+// Takes requests ([]*email_dto.EmailAssetRequest) which provides source paths and
+// identifiers for error context.
 // Takes errors ([]error) which contains resolution errors to check and log.
 //
 // Returns int which is the number of errors found.
@@ -643,11 +629,9 @@ func (*TemplatedEmailBuilder[PropsT]) logAssetResolutionErrors(ctx context.Conte
 	return failureCount
 }
 
-// attachResolvedAssets adds resolved attachments to the email and logs the
-// result.
+// attachResolvedAssets adds resolved attachments to the email and logs the result.
 //
-// Takes attachments ([]*email_dto.Attachment) which contains the resolved
-// assets to add.
+// Takes attachments ([]*email_dto.Attachment) which contains the resolved assets to add.
 // Takes failureCount (int) which tracks how many asset resolutions failed.
 func (b *TemplatedEmailBuilder[PropsT]) attachResolvedAssets(ctx context.Context, attachments []*email_dto.Attachment, failureCount int) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -672,17 +656,17 @@ func (b *TemplatedEmailBuilder[PropsT]) attachResolvedAssets(ctx context.Context
 
 // Build creates and returns a copy of the email parameters.
 //
-// Use it to create an email that can be changed before being added to a
-// bulk send, without affecting the original builder.
+// Use it to create an email that can be changed before being added to a bulk send,
+// without affecting the original builder.
 //
 // Returns email_dto.SendParams which contains the complete email settings.
 func (b *EmailBuilder) Build() email_dto.SendParams {
 	return buildParamsCopy(b.params)
 }
 
-// Clone creates a deep copy of the EmailBuilder, allowing for the creation
-// of an email template that can be modified and used multiple times.
-// This is the recommended approach for composing bulk emails.
+// Clone creates a deep copy of the EmailBuilder, allowing for the creation of an email
+// template that can be modified and used multiple times. This is the recommended approach
+// for composing bulk emails.
 //
 // Returns *EmailBuilder which is an independent copy of the builder.
 func (b *EmailBuilder) Clone() *EmailBuilder {
@@ -705,11 +689,10 @@ func (b *TemplatedEmailBuilder[PropsT]) Build() email_dto.SendParams {
 	return buildParamsCopy(b.params)
 }
 
-// Clone creates a deep copy of the TemplatedEmailBuilder, allowing for the
-// creation of an email template that can be modified and used multiple times.
+// Clone creates a deep copy of the TemplatedEmailBuilder, allowing for the creation of an
+// email template that can be modified and used multiple times.
 //
-// Returns *TemplatedEmailBuilder[PropsT] which is an independent copy
-// of the builder.
+// Returns *TemplatedEmailBuilder[PropsT] which is an independent copy of the builder.
 func (b *TemplatedEmailBuilder[PropsT]) Clone() *TemplatedEmailBuilder[PropsT] {
 	var premailerOptsCopy *premailer.Options
 	if b.premailerOptions != nil {
@@ -735,8 +718,7 @@ func (b *TemplatedEmailBuilder[PropsT]) Clone() *TemplatedEmailBuilder[PropsT] {
 
 // buildParamsCopy performs a deep copy of SendParams.
 //
-// Takes params (*email_dto.SendParams) which provides the source parameters
-// to copy.
+// Takes params (*email_dto.SendParams) which provides the source parameters to copy.
 //
 // Returns email_dto.SendParams which is an independent copy of the input.
 func buildParamsCopy(params *email_dto.SendParams) email_dto.SendParams {

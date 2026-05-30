@@ -53,7 +53,9 @@ func TestEvalTimeout(t *testing.T) {
 	defer cancel()
 
 	_, err := service.Eval(ctx, `
-import "os"
+import (
+	"os"
+)
 x := 0
 for {
 	x++
@@ -114,7 +116,9 @@ func TestMaxExecutionTime(t *testing.T) {
 	service.UseSymbols(newOSSymbols())
 
 	_, err := service.Eval(context.Background(), `
-import "os"
+import (
+	"os"
+)
 x := 0
 for {
 	x++
@@ -141,7 +145,9 @@ func TestEvalCancelDuringExecution(t *testing.T) {
 	}()
 
 	_, err := service.Eval(ctx, `
-import "os"
+import (
+	"os"
+)
 x := 0
 for {
 	x++

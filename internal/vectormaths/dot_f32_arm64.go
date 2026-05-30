@@ -22,8 +22,8 @@ package vectormaths
 
 // dotF32 computes the dot product of two float32 slices using ARM NEON SIMD.
 //
-// Uses 4 float32s per iteration. NEON is part of the base arm64 ISA and always
-// available, so no runtime feature detection is required.
+// Uses 4 float32s per iteration. NEON is part of the base arm64 ISA and always available,
+// so no runtime feature detection is required.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.

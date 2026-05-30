@@ -24,6 +24,9 @@ import (
 )
 
 // MariaDB returns an EngineConfig for MariaDB databases.
+//
+// Returns db.EngineConfig which wires the MariaDB engine, driver name, and migration
+// dialect.
 func MariaDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "mysql",

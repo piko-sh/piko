@@ -288,13 +288,13 @@ func TestWithSingleflightMemoryThreshold(t *testing.T) {
 
 func TestServiceStats_Uptime(t *testing.T) {
 	t.Run("Uptime returns zero for zero StartTime", func(t *testing.T) {
-		stats := storage_domain.ServiceStats{}
+		stats := &storage_domain.ServiceStats{}
 		assert.Equal(t, time.Duration(0), stats.Uptime())
 	})
 
 	t.Run("Uptime returns correct duration", func(t *testing.T) {
 		startTime := time.Now().Add(-5 * time.Minute)
-		stats := storage_domain.ServiceStats{
+		stats := &storage_domain.ServiceStats{
 			StartTime: startTime,
 		}
 
@@ -310,7 +310,7 @@ func TestServiceStats_UptimeAt(t *testing.T) {
 	mockClock := clock.NewMockClock(initialTime)
 	startTime := mockClock.Now()
 
-	stats := storage_domain.ServiceStats{
+	stats := &storage_domain.ServiceStats{
 		StartTime: startTime,
 	}
 
@@ -408,25 +408,25 @@ func TestServiceStats(t *testing.T) {
 	initialTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	mockClock := clock.NewMockClock(initialTime)
 	startTime := mockClock.Now()
-	stats := storage_domain.ServiceStats{
-		StartTime:            startTime,
-		TotalOperations:      100,
-		SuccessfulOperations: 95,
-		FailedOperations:     5,
-		RetryAttempts:        10,
-		CacheHits:            50,
-		CacheMisses:          50,
-		DLQEntries:           2,
+	stats := &storage_domain.ServiceStats{
+		StartTime: startTime,
 	}
+	stats.TotalOperations.Store(100)
+	stats.SuccessfulOperations.Store(95)
+	stats.FailedOperations.Store(5)
+	stats.RetryAttempts.Store(10)
+	stats.CacheHits.Store(50)
+	stats.CacheMisses.Store(50)
+	stats.DLQEntries.Store(2)
 
 	assert.Equal(t, startTime, stats.StartTime)
-	assert.Equal(t, int64(100), stats.TotalOperations)
-	assert.Equal(t, int64(95), stats.SuccessfulOperations)
-	assert.Equal(t, int64(5), stats.FailedOperations)
-	assert.Equal(t, int64(10), stats.RetryAttempts)
-	assert.Equal(t, int64(50), stats.CacheHits)
-	assert.Equal(t, int64(50), stats.CacheMisses)
-	assert.Equal(t, int64(2), stats.DLQEntries)
+	assert.Equal(t, int64(100), stats.TotalOperations.Load())
+	assert.Equal(t, int64(95), stats.SuccessfulOperations.Load())
+	assert.Equal(t, int64(5), stats.FailedOperations.Load())
+	assert.Equal(t, int64(10), stats.RetryAttempts.Load())
+	assert.Equal(t, int64(50), stats.CacheHits.Load())
+	assert.Equal(t, int64(50), stats.CacheMisses.Load())
+	assert.Equal(t, int64(2), stats.DLQEntries.Load())
 
 	mockClock.Advance(2 * time.Hour)
 	uptime := stats.UptimeAt(mockClock.Now())

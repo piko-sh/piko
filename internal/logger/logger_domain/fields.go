@@ -61,7 +61,7 @@ const (
 	// KeyError is the standard key for error details in log entries.
 	KeyError = "error"
 
-	// KeyRuntimeEnvironment is the key for the detected runtime environment
-	// (e.g. "kubernetes", "aws-lambda", "cloud-run").
+	// KeyRuntimeEnvironment is the key for the detected runtime environment (e.g.
+	// "kubernetes", "aws-lambda", "cloud-run").
 	KeyRuntimeEnvironment = "runtime.environment"
 )

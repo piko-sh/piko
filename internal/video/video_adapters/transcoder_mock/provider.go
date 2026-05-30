@@ -21,7 +21,7 @@ package transcoder_mock
 import (
 	"bytes"
 	"context"
-	_ "embed"
+	_ "embed" // embeds the bundled fixture thumbnail/sample bytes used by the mock
 	"io"
 	"slices"
 	"sync"
@@ -41,8 +41,7 @@ const (
 	// defaultMockWidth is the default video width in pixels for mock data.
 	defaultMockWidth = 1920
 
-	// defaultMockHeight is the default height in pixels for mock video
-	// capabilities.
+	// defaultMockHeight is the default height in pixels for mock video capabilities.
 	defaultMockHeight = 1080
 
 	// defaultMockFramerate is the default frame rate for mock video capabilities.
@@ -53,10 +52,10 @@ const (
 )
 
 var (
-	// mockThumbnailJPEG is a minimal 1x1 pixel JPEG image used as placeholder
-	// thumbnail data.
+	// mockThumbnailJPEG is a minimal 1x1 pixel JPEG image used as placeholder thumbnail
+	// data.
 	//
-	//go:embed mock_thumbnail.jpg
+	// go:embed mock_thumbnail.jpg
 	mockThumbnailJPEG []byte
 
 	_ video_domain.TranscoderPort = (*Provider)(nil)
@@ -64,9 +63,8 @@ var (
 	_ video_domain.StreamingTranscoderPort = (*Provider)(nil)
 )
 
-// TranscodeCall records the parameters passed to a single call of the
-// Transcode method. It allows tests to inspect what the service is asking
-// the transcoder to do.
+// TranscodeCall records the parameters passed to a single call of the Transcode method.
+// It allows tests to inspect what the service is asking the transcoder to do.
 type TranscodeCall struct {
 	// InputData is a copy of the raw video bytes passed to the transcoder.
 	InputData []byte
@@ -99,10 +97,10 @@ type ExtractThumbnailCall struct {
 	Spec video_dto.ThumbnailSpec
 }
 
-// Provider is a thread-safe, in-memory mock implementation of TranscoderPort
-// and StreamingTranscoderPort. It is designed for unit and integration testing
-// of the video service, allowing for call inspection and simulation of both
-// successful transcodes and errors.
+// Provider is a thread-safe, in-memory mock implementation of TranscoderPort and
+// StreamingTranscoderPort. It is designed for unit and integration testing of the video
+// service, allowing for call inspection and simulation of both successful transcodes and
+// errors.
 type Provider struct {
 	// errToReturn is the error to return from Transform and Transcode calls.
 	errToReturn error
@@ -113,31 +111,30 @@ type Provider struct {
 	// extractCapabilitiesCalls records all calls made to ExtractCapabilities.
 	extractCapabilitiesCalls []ExtractCapabilitiesCall
 
-	// transcodeHLSCalls records all HLS transcoding calls made to the mock
-	// provider.
+	// transcodeHLSCalls records all HLS transcoding calls made to the mock provider.
 	transcodeHLSCalls []TranscodeHLSCall
 
 	// extractThumbnailCalls records all calls made to ExtractThumbnail for test
 	// verification.
 	extractThumbnailCalls []ExtractThumbnailCall
 
-	// outputDataToReturn holds the byte data to write to output during
-	// Transform or Transcode calls; nil means no data is returned.
+	// outputDataToReturn holds the byte data to write to output during Transform or
+	// Transcode calls; nil means no data is returned.
 	outputDataToReturn []byte
 
-	// thumbnailDataToReturn holds the byte data to return from ExtractThumbnail;
-	// nil means use default behaviour.
+	// thumbnailDataToReturn holds the byte data to return from ExtractThumbnail; nil means
+	// use default behaviour.
 	thumbnailDataToReturn []byte
 
 	// supportedCodecs lists the video codecs this provider can process.
 	supportedCodecs []string
 
-	// hlsResultToReturn is the HLS result to return from TranscodeHLS;
-	// empty MasterPlaylistContent means use default behaviour.
+	// hlsResultToReturn is the HLS result to return from TranscodeHLS; empty
+	// MasterPlaylistContent means use default behaviour.
 	hlsResultToReturn video_dto.HLSResult
 
-	// capabilitiesToReturn holds the video capabilities to return from
-	// ExtractCapabilities; empty VideoCodec means use actual extraction.
+	// capabilitiesToReturn holds the video capabilities to return from ExtractCapabilities;
+	// empty VideoCodec means use actual extraction.
 	capabilitiesToReturn video_dto.VideoCapabilities
 
 	// slowTranscodeDuration is the delay duration for simulated slow transcodes.
@@ -146,8 +143,7 @@ type Provider struct {
 	// mu guards concurrent access to Provider's mutable fields.
 	mu sync.RWMutex
 
-	// simulateSlowTranscode enables artificial delay during transcoding for
-	// testing.
+	// simulateSlowTranscode enables artificial delay during transcoding for testing.
 	simulateSlowTranscode bool
 }
 
@@ -172,9 +168,8 @@ func NewProvider() *Provider {
 	}
 }
 
-// Transcode simulates a video transcode operation. It records the call and
-// returns either a configured error/result or, by default, passes the input
-// through to output.
+// Transcode simulates a video transcode operation. It records the call and returns either
+// a configured error/result or, by default, passes the input through to output.
 //
 // Takes input (io.Reader) which provides the video data to transcode.
 // Takes spec (video_dto.TranscodeSpec) which specifies the transcode settings.
@@ -219,8 +214,7 @@ func (p *Provider) Transcode(_ context.Context, input io.Reader, spec video_dto.
 //
 // Takes input (io.Reader) which provides the video data to analyse.
 //
-// Returns video_dto.VideoCapabilities which contains the extracted or mock
-// capabilities.
+// Returns video_dto.VideoCapabilities which contains the extracted or mock capabilities.
 // Returns error when reading input fails or a configured error is set.
 //
 // Safe for concurrent use; protects internal state with a mutex.
@@ -377,8 +371,8 @@ func (p *Provider) SetError(err error) {
 	p.errToReturn = err
 }
 
-// SetTranscodeResult configures the mock to return specific transcoded output
-// data on the next Transcode call.
+// SetTranscodeResult configures the mock to return specific transcoded output data on the
+// next Transcode call.
 //
 // Takes data ([]byte) which specifies the output data to return.
 //
@@ -389,11 +383,10 @@ func (p *Provider) SetTranscodeResult(data []byte) {
 	p.outputDataToReturn = data
 }
 
-// SetCapabilitiesResult configures the mock to return specific capabilities
-// on the next ExtractCapabilities call.
+// SetCapabilitiesResult configures the mock to return specific capabilities on the next
+// ExtractCapabilities call.
 //
-// Takes caps (video_dto.VideoCapabilities) which specifies the capabilities
-// to return.
+// Takes caps (video_dto.VideoCapabilities) which specifies the capabilities to return.
 //
 // Safe for concurrent use.
 func (p *Provider) SetCapabilitiesResult(caps video_dto.VideoCapabilities) {
@@ -414,8 +407,8 @@ func (p *Provider) SetHLSResult(result video_dto.HLSResult) {
 	p.hlsResultToReturn = result
 }
 
-// SetThumbnailResult configures the mock to return specific thumbnail data
-// on the next ExtractThumbnail call.
+// SetThumbnailResult configures the mock to return specific thumbnail data on the next
+// ExtractThumbnail call.
 //
 // Takes data ([]byte) which specifies the thumbnail data to return.
 //
@@ -437,11 +430,10 @@ func (p *Provider) SetSupportedCodecs(codecs []string) {
 	p.supportedCodecs = codecs
 }
 
-// SimulateSlowTranscode configures the mock to sleep for the specified duration
-// during Transcode calls, simulating a slow transcode operation.
+// SimulateSlowTranscode configures the mock to sleep for the specified duration during
+// Transcode calls, simulating a slow transcode operation.
 //
-// Takes duration (time.Duration) which specifies how long Transcode should
-// sleep.
+// Takes duration (time.Duration) which specifies how long Transcode should sleep.
 //
 // Safe for concurrent use.
 func (p *Provider) SimulateSlowTranscode(duration time.Duration) {
@@ -451,12 +443,10 @@ func (p *Provider) SimulateSlowTranscode(duration time.Duration) {
 	p.slowTranscodeDuration = duration
 }
 
-// GetTranscodeCalls returns a copy of all recorded calls made to the
-// Transcode method. Returning a copy prevents the test from modifying the
-// mock's internal state.
+// GetTranscodeCalls returns a copy of all recorded calls made to the Transcode method.
+// Returning a copy prevents the test from modifying the mock's internal state.
 //
-// Returns []TranscodeCall which contains copies of all recorded transcode
-// calls.
+// Returns []TranscodeCall which contains copies of all recorded transcode calls.
 //
 // Safe for concurrent use; uses a read lock to protect access.
 func (p *Provider) GetTranscodeCalls() []TranscodeCall {
@@ -468,11 +458,9 @@ func (p *Provider) GetTranscodeCalls() []TranscodeCall {
 	return callsCopy
 }
 
-// GetExtractCapabilitiesCalls returns a copy of all recorded
-// ExtractCapabilities calls.
+// GetExtractCapabilitiesCalls returns a copy of all recorded ExtractCapabilities calls.
 //
-// Returns []ExtractCapabilitiesCall which contains a copy of all recorded
-// calls.
+// Returns []ExtractCapabilitiesCall which contains a copy of all recorded calls.
 //
 // Safe for concurrent use; protected by a read lock.
 func (p *Provider) GetExtractCapabilitiesCalls() []ExtractCapabilitiesCall {
@@ -498,13 +486,11 @@ func (p *Provider) GetTranscodeHLSCalls() []TranscodeHLSCall {
 	return callsCopy
 }
 
-// GetExtractThumbnailCalls returns a copy of all recorded ExtractThumbnail
-// calls.
+// GetExtractThumbnailCalls returns a copy of all recorded ExtractThumbnail calls.
 //
 // Returns []ExtractThumbnailCall which contains a copy of all recorded calls.
 //
-// Safe for concurrent use. Uses a read lock to protect access to the call
-// history.
+// Safe for concurrent use. Uses a read lock to protect access to the call history.
 func (p *Provider) GetExtractThumbnailCalls() []ExtractThumbnailCall {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -514,8 +500,8 @@ func (p *Provider) GetExtractThumbnailCalls() []ExtractThumbnailCall {
 	return callsCopy
 }
 
-// GetCallCounts returns the number of calls made to each method.
-// Useful for quick assertions without inspecting full call details.
+// GetCallCounts returns the number of calls made to each method. Useful for quick
+// assertions without inspecting full call details.
 //
 // Returns transcode (int) which is the number of Transcode calls.
 // Returns extractCaps (int) which is the number of ExtractCapabilities calls.
@@ -530,8 +516,8 @@ func (p *Provider) GetCallCounts() (transcode, extractCaps, hlsTranscode, extrac
 	return len(p.transcodeCalls), len(p.extractCapabilitiesCalls), len(p.transcodeHLSCalls), len(p.extractThumbnailCalls)
 }
 
-// Reset clears all recorded calls and configured return values/errors,
-// preparing the mock for a new, isolated test case.
+// Reset clears all recorded calls and configured return values/errors, preparing the mock
+// for a new, isolated test case.
 //
 // Safe for concurrent use.
 func (p *Provider) Reset() {

@@ -30,15 +30,15 @@ const (
 	percentSuffix = "%"
 )
 
-// resolveGradientFill resolves a url(#id) fill reference to a gradient
-// and paints the current path with it.
+// resolveGradientFill resolves a url(#id) fill reference to a gradient and paints the
+// current path with it.
 //
 // Takes rc (*renderContext) which provides the PDF stream and defs map.
 // Takes ref (string) which is the gradient element id to look up.
 // Takes style (*Style) which provides the fill rule for clipping.
 //
-// Returns bool which is true if a gradient was applied, false if the
-// caller should fall back to solid fill.
+// Returns bool which is true if a gradient was applied, false if the caller should fall
+// back to solid fill.
 func resolveGradientFill(rc *renderContext, ref string, style *Style) bool {
 	node, ok := rc.defs[ref]
 	if !ok {
@@ -54,8 +54,8 @@ func resolveGradientFill(rc *renderContext, ref string, style *Style) bool {
 	return false
 }
 
-// paintLinearGradient registers a linear gradient shading and paints
-// it into the current clipped path.
+// paintLinearGradient registers a linear gradient shading and paints it into the current
+// clipped path.
 //
 // Takes rc (*renderContext) which provides the PDF stream and shading manager.
 // Takes node (*Node) which is the linearGradient element with stops and coordinates.
@@ -94,8 +94,8 @@ func paintLinearGradient(rc *renderContext, node *Node, style *Style) bool {
 	return true
 }
 
-// paintRadialGradient registers a radial gradient shading and paints
-// it into the current clipped path.
+// paintRadialGradient registers a radial gradient shading and paints it into the current
+// clipped path.
 //
 // Takes rc (*renderContext) which provides the PDF stream and shading manager.
 // Takes node (*Node) which is the radialGradient element with stops and coordinates.
@@ -131,13 +131,12 @@ func paintRadialGradient(rc *renderContext, node *Node, style *Style) bool {
 	return true
 }
 
-// parseGradientStops extracts colour stops from a gradient element's
-// <stop> children.
+// parseGradientStops extracts colour stops from a gradient element's <stop> children.
 //
 // Takes node (*Node) which is the gradient element containing stop children.
 //
-// Returns []pdfwriter_domain.ResolvedStop which holds the parsed and
-// normalised gradient stops.
+// Returns []pdfwriter_domain.ResolvedStop which holds the parsed and normalised gradient
+// stops.
 func parseGradientStops(node *Node) []pdfwriter_domain.ResolvedStop {
 	var stops []pdfwriter_domain.ResolvedStop
 
@@ -172,8 +171,8 @@ func parseGradientStops(node *Node) []pdfwriter_domain.ResolvedStop {
 	return stops
 }
 
-// applyInlineStopStyle parses a stop element's inline style attribute
-// and applies any stop-color or stop-opacity declarations.
+// applyInlineStopStyle parses a stop element's inline style attribute and applies any
+// stop-color or stop-opacity declarations.
 //
 // Takes styleAttr (string) which is the inline style attribute value.
 // Takes r (float64) which is the current red component.
@@ -208,11 +207,11 @@ func applyInlineStopStyle(styleAttr string, r, g, b, a float64) (red float64, gr
 	return r, g, b, a
 }
 
-// normaliseStopPositions fills in missing (negative) stop positions by
-// interpolating between neighbouring known positions.
+// normaliseStopPositions fills in missing (negative) stop positions by interpolating
+// between neighbouring known positions.
 //
-// Takes stops ([]pdfwriter_domain.ResolvedStop) which is the slice of
-// stops to normalise in place.
+// Takes stops ([]pdfwriter_domain.ResolvedStop) which is the slice of stops to normalise
+// in place.
 func normaliseStopPositions(stops []pdfwriter_domain.ResolvedStop) {
 	if len(stops) > 0 && stops[0].Position < 0 {
 		stops[0].Position = 0
@@ -230,8 +229,8 @@ func normaliseStopPositions(stops []pdfwriter_domain.ResolvedStop) {
 	}
 }
 
-// findNextKnownPosition returns the position of the next stop with a
-// non-negative position after index i, defaulting to 1.0.
+// findNextKnownPosition returns the position of the next stop with a non-negative
+// position after index i, defaulting to 1.0.
 //
 // Takes stops ([]pdfwriter_domain.ResolvedStop) which is the stop slice to search.
 // Takes i (int) which is the index to start searching after.
@@ -246,13 +245,13 @@ func findNextKnownPosition(stops []pdfwriter_domain.ResolvedStop, i int) float64
 	return 1.0
 }
 
-// parseStopOffset parses a gradient stop offset value, handling both
-// percentage and decimal formats.
+// parseStopOffset parses a gradient stop offset value, handling both percentage and
+// decimal formats.
 //
 // Takes s (string) which is the offset attribute value.
 //
-// Returns float64 which is the normalised offset in the range 0 to 1,
-// or -1 if the value is empty or unparseable.
+// Returns float64 which is the normalised offset in the range 0 to 1, or -1 if the value
+// is empty or unparseable.
 func parseStopOffset(s string) float64 {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -272,8 +271,8 @@ func parseStopOffset(s string) float64 {
 	return clamp01(v)
 }
 
-// parseStopColour extracts the stop-color attribute from a stop element
-// and returns its RGBA components.
+// parseStopColour extracts the stop-color attribute from a stop element and returns its
+// RGBA components.
 //
 // Takes node (*Node) which is the stop element to read the colour from.
 //
@@ -294,8 +293,8 @@ func parseStopColour(node *Node) (r, g, b, a float64) {
 	return c.R, c.G, c.B, c.A
 }
 
-// gradientCoord reads a named coordinate attribute from a gradient node,
-// handling percentage values and falling back to a default.
+// gradientCoord reads a named coordinate attribute from a gradient node, handling
+// percentage values and falling back to a default.
 //
 // Takes node (*Node) which is the gradient element.
 // Takes name (string) which is the attribute name to read.

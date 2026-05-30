@@ -37,6 +37,6 @@ type OpenViewingData struct {
 }
 
 type PropertyData struct {
-	Title       fields.Text                     `json:"title"`
+	Title       fields.Text                      `json:"title"`
 	OpenViewing fields.Embedded[OpenViewingData] `json:"open_viewing"`
 }

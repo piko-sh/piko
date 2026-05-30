@@ -1,0 +1,4 @@
+{
+  "description": "runtime.NumGoroutine returns the count of Go-level goroutines. Source asserts n > 0 internally and returns 'ok' so the parity check is stable across hosts.",
+  "expected": "ok"
+}

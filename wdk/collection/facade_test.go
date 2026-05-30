@@ -208,4 +208,6 @@ func TestSentinelErrors(t *testing.T) {
 	})
 }
 
-var _ SimpleProvider = (*mockSimpleProvider)(nil)
+var (
+	_ SimpleProvider = (*mockSimpleProvider)(nil)
+)

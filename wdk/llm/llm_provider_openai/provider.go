@@ -40,10 +40,10 @@ import (
 )
 
 const (
-	// httpClientTimeout is a top-level HTTP client timeout that bounds requests
-	// even when the caller does not supply a per-request deadline. It is
-	// generous enough to allow long-running completions but prevents stuck
-	// connections from leaking goroutines indefinitely.
+	// httpClientTimeout is a top-level HTTP client timeout that bounds requests even when
+	// the caller does not supply a per-request deadline. It is generous enough to allow
+	// long-running completions but prevents stuck connections from leaking goroutines
+	// indefinitely.
 	httpClientTimeout = 30 * time.Minute
 )
 
@@ -53,44 +53,46 @@ type openaiProvider struct {
 	// config holds the provider configuration settings.
 	config Config
 
-	// closeContext is the provider-level context whose cancellation signals
-	// background stream goroutines to exit.
+	// closeContext is the provider-level context whose cancellation signals background
+	// stream goroutines to exit.
 	closeContext context.Context
 
-	// closeCancel cancels closeContext on Close to signal in-flight stream
-	// goroutines to wind down.
+	// closeCancel cancels closeContext on Close to signal in-flight stream goroutines to
+	// wind down.
 	closeCancel context.CancelCauseFunc
 
-	// httpClient is the underlying *http.Client injected into the OpenAI SDK;
-	// retained so tests can verify the configured top-level timeout and idle
-	// connections can be released on Close.
+	// httpClient is the underlying *http.Client injected into the OpenAI SDK; retained so
+	// tests can verify the configured top-level timeout and idle connections can be released
+	// on Close.
 	httpClient *http.Client
 
 	// defaultModel is the model name to use when not specified in a request.
 	defaultModel string
 
-	// defaultEmbeddingModel is the embedding model name to use when not
-	// specified in a request.
+	// defaultEmbeddingModel is the embedding model name to use when not specified in a
+	// request.
 	defaultEmbeddingModel string
 
 	// client is the OpenAI API client for making requests.
 	client openai.Client
 
-	// streamWaitGroup tracks active streaming goroutines so Close can wait for
-	// them to drain.
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for them to
+	// drain.
 	streamWaitGroup sync.WaitGroup
 
 	// closeOnce guards Close so it is idempotent.
 	closeOnce sync.Once
 
-	// embeddingDimensions is the default vector dimension for the configured
-	// embedding model.
+	// embeddingDimensions is the default vector dimension for the configured embedding
+	// model.
 	embeddingDimensions int
 }
 
-var _ llm_domain.LLMProviderPort = (*openaiProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*openaiProvider)(nil)
 
-var _ llm_domain.EmbeddingProviderPort = (*openaiProvider)(nil)
+	_ llm_domain.EmbeddingProviderPort = (*openaiProvider)(nil)
+)
 
 // Complete sends a completion request to OpenAI.
 //
@@ -132,9 +134,9 @@ func (p *openaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	return p.convertResponse(completion), nil
 }
 
-// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP
-// edges can sanitise it before returning to the user. Non-4xx errors are
-// returned unchanged so retry classification continues to work.
+// sanitiseProviderError wraps a 4xx provider error in a safeerror so that HTTP edges can
+// sanitise it before returning to the user. Non-4xx errors are returned unchanged so
+// retry classification continues to work.
 //
 // Takes err (error) which is the error to inspect.
 // Takes safeMessage (string) which is shown to end users for 4xx errors.
@@ -154,8 +156,7 @@ func (*openaiProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output.
+// SupportsStructuredOutput reports whether the provider supports structured output.
 //
 // Returns bool which is true if structured output is supported.
 func (*openaiProvider) SupportsStructuredOutput() bool {
@@ -169,8 +170,8 @@ func (*openaiProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is true if penalties are supported.
 func (*openaiProvider) SupportsPenalties() bool { return true }
@@ -180,14 +181,12 @@ func (*openaiProvider) SupportsPenalties() bool { return true }
 // Returns bool which is true if seed is supported.
 func (*openaiProvider) SupportsSeed() bool { return true }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
 // Returns bool which is true if parallel tool calls are supported.
 func (*openaiProvider) SupportsParallelToolCalls() bool { return true }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is true if message names are supported.
 func (*openaiProvider) SupportsMessageName() bool { return true }
@@ -220,14 +219,13 @@ func (p *openaiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 	return result, nil
 }
 
-// Close releases resources held by the provider, cancelling any in-flight
-// stream goroutines and waiting for them to drain within a bounded timeout.
+// Close releases resources held by the provider, cancelling any in-flight stream
+// goroutines and waiting for them to drain within a bounded timeout.
 //
 // Returns error when the close drain exceeds its bounded wait.
 //
-// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
-// signal active stream goroutines, then waits on streamWaitGroup before
-// returning.
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to signal
+// active stream goroutines, then waits on streamWaitGroup before returning.
 func (p *openaiProvider) Close(ctx context.Context) error {
 	var closeErr error
 	p.closeOnce.Do(func() {
@@ -266,15 +264,12 @@ func (p *openaiProvider) DefaultModel() string {
 	return p.defaultModel
 }
 
-// Embed generates embeddings for the given input texts via the OpenAI
-// embeddings API.
+// Embed generates embeddings for the given input texts via the OpenAI embeddings API.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the generated
-// embeddings.
+// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
 func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Embed")
@@ -339,8 +334,7 @@ func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 
 // ListEmbeddingModels returns available embedding models from OpenAI.
 //
-// Returns []llm_dto.ModelInfo which contains the filtered list of embedding
-// models.
+// Returns []llm_dto.ModelInfo which contains the filtered list of embedding models.
 // Returns error when the API request to list models fails.
 func (p *openaiProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.ModelInfo, error) {
 	page, err := p.client.Models.List(ctx)
@@ -363,8 +357,8 @@ func (p *openaiProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.Mod
 	return result, nil
 }
 
-// EmbeddingDimensions returns the default vector dimension for the configured
-// embedding model.
+// EmbeddingDimensions returns the default vector dimension for the configured embedding
+// model.
 //
 // Returns int which is the vector dimension.
 func (p *openaiProvider) EmbeddingDimensions() int {
@@ -373,12 +367,12 @@ func (p *openaiProvider) EmbeddingDimensions() int {
 
 // buildChatParams converts a CompletionRequest to OpenAI ChatCompletionNewParams.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion settings to convert.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion settings to
+// convert.
 // Takes model (string) which specifies the OpenAI model identifier.
 //
-// Returns openai.ChatCompletionNewParams which contains the converted parameters
-// ready for the OpenAI API.
+// Returns openai.ChatCompletionNewParams which contains the converted parameters ready
+// for the OpenAI API.
 func (p *openaiProvider) buildChatParams(request *llm_dto.CompletionRequest, model string) openai.ChatCompletionNewParams {
 	params := openai.ChatCompletionNewParams{
 		Model:    model,
@@ -430,8 +424,8 @@ func (p *openaiProvider) buildChatParams(request *llm_dto.CompletionRequest, mod
 //
 // Takes messages ([]llm_dto.Message) which contains the messages to convert.
 //
-// Returns []openai.ChatCompletionMessageParamUnion which contains the
-// converted messages ready for the OpenAI API.
+// Returns []openai.ChatCompletionMessageParamUnion which contains the converted messages
+// ready for the OpenAI API.
 func (p *openaiProvider) convertMessages(messages []llm_dto.Message) []openai.ChatCompletionMessageParamUnion {
 	result := make([]openai.ChatCompletionMessageParamUnion, len(messages))
 	for i, message := range messages {
@@ -444,8 +438,8 @@ func (p *openaiProvider) convertMessages(messages []llm_dto.Message) []openai.Ch
 //
 // Takes message (llm_dto.Message) which is the message to convert.
 //
-// Returns openai.ChatCompletionMessageParamUnion which is the converted
-// message in OpenAI's expected format.
+// Returns openai.ChatCompletionMessageParamUnion which is the converted message in
+// OpenAI's expected format.
 func (p *openaiProvider) convertMessage(message llm_dto.Message) openai.ChatCompletionMessageParamUnion {
 	switch message.Role {
 	case llm_dto.RoleSystem:
@@ -467,14 +461,13 @@ func (p *openaiProvider) convertMessage(message llm_dto.Message) openai.ChatComp
 	}
 }
 
-// convertAssistantMessage converts an assistant message,
-// handling tool calls when present.
+// convertAssistantMessage converts an assistant message, handling tool calls when
+// present.
 //
-// Takes message (llm_dto.Message) which is the assistant message to
-// convert.
+// Takes message (llm_dto.Message) which is the assistant message to convert.
 //
-// Returns openai.ChatCompletionMessageParamUnion which is the
-// converted message in OpenAI format.
+// Returns openai.ChatCompletionMessageParamUnion which is the converted message in OpenAI
+// format.
 func (*openaiProvider) convertAssistantMessage(message llm_dto.Message) openai.ChatCompletionMessageParamUnion {
 	if len(message.ToolCalls) > 0 {
 		toolCalls := make([]openai.ChatCompletionMessageToolCallUnionParam, len(message.ToolCalls))
@@ -510,14 +503,13 @@ func (*openaiProvider) convertAssistantMessage(message llm_dto.Message) openai.C
 	return am
 }
 
-// convertUserMessage converts a user message, handling
-// multimodal content parts when present.
+// convertUserMessage converts a user message, handling multimodal content parts when
+// present.
 //
-// Takes message (llm_dto.Message) which is the user message to
-// convert.
+// Takes message (llm_dto.Message) which is the user message to convert.
 //
-// Returns openai.ChatCompletionMessageParamUnion which is the
-// converted message in OpenAI format.
+// Returns openai.ChatCompletionMessageParamUnion which is the converted message in OpenAI
+// format.
 func (p *openaiProvider) convertUserMessage(message llm_dto.Message) openai.ChatCompletionMessageParamUnion {
 	var um openai.ChatCompletionMessageParamUnion
 	if len(message.ContentParts) > 0 {
@@ -531,14 +523,12 @@ func (p *openaiProvider) convertUserMessage(message llm_dto.Message) openai.Chat
 	return um
 }
 
-// convertContentParts converts multimodal content parts to OpenAI content part
-// format.
+// convertContentParts converts multimodal content parts to OpenAI content part format.
 //
-// Takes parts ([]llm_dto.ContentPart) which contains the content parts to
-// convert.
+// Takes parts ([]llm_dto.ContentPart) which contains the content parts to convert.
 //
-// Returns []openai.ChatCompletionContentPartUnionParam which contains the
-// converted content parts for the OpenAI API.
+// Returns []openai.ChatCompletionContentPartUnionParam which contains the converted
+// content parts for the OpenAI API.
 func (*openaiProvider) convertContentParts(parts []llm_dto.ContentPart) []openai.ChatCompletionContentPartUnionParam {
 	result := make([]openai.ChatCompletionContentPartUnionParam, 0, len(parts))
 	for _, part := range parts {
@@ -551,11 +541,10 @@ func (*openaiProvider) convertContentParts(parts []llm_dto.ContentPart) []openai
 
 // convertTools converts llm_dto.ToolDefinition slice to OpenAI format.
 //
-// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions
-// to convert.
+// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions to convert.
 //
-// Returns []openai.ChatCompletionToolUnionParam which contains the converted
-// tool parameters ready for OpenAI API calls.
+// Returns []openai.ChatCompletionToolUnionParam which contains the converted tool
+// parameters ready for OpenAI API calls.
 func (p *openaiProvider) convertTools(tools []llm_dto.ToolDefinition) []openai.ChatCompletionToolUnionParam {
 	result := make([]openai.ChatCompletionToolUnionParam, len(tools))
 	for i, tool := range tools {
@@ -585,9 +574,9 @@ func (p *openaiProvider) convertTools(tools []llm_dto.ToolDefinition) []openai.C
 //
 // Takes choice (*llm_dto.ToolChoice) which specifies the tool choice setting.
 //
-// Returns openai.ChatCompletionToolChoiceOptionUnionParam which is the OpenAI
-// equivalent of the tool choice. Defaults to auto if the choice type is not
-// recognised or if a function choice lacks function details.
+// Returns openai.ChatCompletionToolChoiceOptionUnionParam which is the OpenAI equivalent
+// of the tool choice. Defaults to auto if the choice type is not recognised or if a
+// function choice lacks function details.
 func (*openaiProvider) convertToolChoice(choice *llm_dto.ToolChoice) openai.ChatCompletionToolChoiceOptionUnionParam {
 	switch choice.Type {
 	case llm_dto.ToolChoiceTypeAuto:
@@ -618,12 +607,12 @@ func (*openaiProvider) convertToolChoice(choice *llm_dto.ToolChoice) openai.Chat
 
 // convertResponseFormat converts llm_dto.ResponseFormat to OpenAI format.
 //
-// Takes format (*llm_dto.ResponseFormat) which specifies the desired response
-// format type and optional JSON schema configuration.
+// Takes format (*llm_dto.ResponseFormat) which specifies the desired response format type
+// and optional JSON schema configuration.
 //
 // Returns openai.ChatCompletionNewParamsResponseFormatUnion which is the
-// OpenAI-compatible format specification, defaulting to text format when the
-// type is unrecognised or when JSON schema format lacks schema details.
+// OpenAI-compatible format specification, defaulting to text format when the type is
+// unrecognised or when JSON schema format lacks schema details.
 func (p *openaiProvider) convertResponseFormat(format *llm_dto.ResponseFormat) openai.ChatCompletionNewParamsResponseFormatUnion {
 	switch format.Type {
 	case llm_dto.ResponseFormatText:
@@ -662,8 +651,8 @@ func (p *openaiProvider) convertResponseFormat(format *llm_dto.ResponseFormat) o
 //
 // Takes schema (*llm_dto.JSONSchema) which is the schema to convert.
 //
-// Returns map[string]any which is the converted schema, or nil if the schema
-// is nil or conversion fails.
+// Returns map[string]any which is the converted schema, or nil if the schema is nil or
+// conversion fails.
 func (*openaiProvider) schemaToMap(schema *llm_dto.JSONSchema) map[string]any {
 	if schema == nil {
 		return nil
@@ -683,8 +672,8 @@ func (*openaiProvider) schemaToMap(schema *llm_dto.JSONSchema) map[string]any {
 //
 // Takes completion (*openai.ChatCompletion) which is the raw OpenAI response.
 //
-// Returns *llm_dto.CompletionResponse which contains the converted response
-// with choices, messages, tool calls, and usage statistics.
+// Returns *llm_dto.CompletionResponse which contains the converted response with choices,
+// messages, tool calls, and usage statistics.
 func (p *openaiProvider) convertResponse(completion *openai.ChatCompletion) *llm_dto.CompletionResponse {
 	choices := make([]llm_dto.Choice, len(completion.Choices))
 	for i := range completion.Choices {
@@ -825,16 +814,13 @@ func isOAEmbeddingModel(id string) bool {
 	return strings.HasPrefix(id, "text-embedding")
 }
 
-// convertSingleContentPart converts a single content part to
-// OpenAI format.
+// convertSingleContentPart converts a single content part to OpenAI format.
 //
-// Takes part (llm_dto.ContentPart) which is the content part to
-// convert.
+// Takes part (llm_dto.ContentPart) which is the content part to convert.
 //
-// Returns openai.ChatCompletionContentPartUnionParam which is
-// the converted part.
-// Returns bool which is true if the conversion succeeded, or
-// false when the part cannot be converted.
+// Returns openai.ChatCompletionContentPartUnionParam which is the converted part.
+// Returns bool which is true if the conversion succeeded, or false when the part cannot
+// be converted.
 func convertSingleContentPart(
 	part llm_dto.ContentPart,
 ) (openai.ChatCompletionContentPartUnionParam, bool) {

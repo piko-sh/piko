@@ -23,15 +23,16 @@ import (
 	"strings"
 )
 
-// dumpTextTruncationLimit is the maximum number of runes to
-// display for a text run before truncating with an ellipsis.
-const dumpTextTruncationLimit = 50
+const (
+	// dumpTextTruncationLimit is the maximum number of runes to display for a text run
+	// before truncating with an ellipsis.
+	dumpTextTruncationLimit = 50
+)
 
-// DumpLayoutTree returns a human-readable text representation of the
-// layout box tree, suitable for golden file comparison.
+// DumpLayoutTree returns a human-readable text representation of the layout box tree,
+// suitable for golden file comparison.
 //
-// Takes root (*LayoutBox) which is the root of the layout box tree
-// to serialise.
+// Takes root (*LayoutBox) which is the root of the layout box tree to serialise.
 //
 // Returns string which is the formatted tree representation.
 func DumpLayoutTree(root *LayoutBox) string {
@@ -44,12 +45,10 @@ func DumpLayoutTree(root *LayoutBox) string {
 	return builder.String()
 }
 
-// dumpBox writes the formatted representation of a single
-// layout box and its children into the builder at the given
-// indentation level.
+// dumpBox writes the formatted representation of a single layout box and its children
+// into the builder at the given indentation level.
 //
-// Takes builder (*strings.Builder) which accumulates the
-// output text.
+// Takes builder (*strings.Builder) which accumulates the output text.
 // Takes box (*LayoutBox) which is the box to serialise.
 // Takes indent (int) which is the current nesting depth.
 func dumpBox(builder *strings.Builder, box *LayoutBox, indent int) {
@@ -79,17 +78,13 @@ func dumpBox(builder *strings.Builder, box *LayoutBox, indent int) {
 	}
 }
 
-// dumpStyleDetails writes non-default style properties for a
-// layout box into the builder with the given indentation
-// prefix. It delegates to sub-functions for box-model
-// spacing, typography, visual effects, and border styles.
+// dumpStyleDetails writes non-default style properties for a layout box into the builder
+// with the given indentation prefix. It delegates to sub-functions for box-model spacing,
+// typography, visual effects, and border styles.
 //
-// Takes builder (*strings.Builder) which accumulates the
-// output text.
-// Takes box (*LayoutBox) which is the box whose styles are
-// written.
-// Takes prefix (string) which is the indentation to prepend
-// to each line.
+// Takes builder (*strings.Builder) which accumulates the output text.
+// Takes box (*LayoutBox) which is the box whose styles are written.
+// Takes prefix (string) which is the indentation to prepend to each line.
 func dumpStyleDetails(builder *strings.Builder, box *LayoutBox, prefix string) {
 	dumpBoxModelSpacing(builder, box, prefix)
 	dumpTypographyDetails(builder, box, prefix)
@@ -97,8 +92,8 @@ func dumpStyleDetails(builder *strings.Builder, box *LayoutBox, prefix string) {
 	dumpBorderStyleDetails(builder, box, prefix)
 }
 
-// dumpBoxModelSpacing writes non-zero padding, margin, and border
-// widths for a layout box.
+// dumpBoxModelSpacing writes non-zero padding, margin, and border widths for a layout
+// box.
 //
 // Takes builder (*strings.Builder) which accumulates the output text.
 // Takes box (*LayoutBox) which is the box whose spacing is written.
@@ -120,8 +115,8 @@ func dumpBoxModelSpacing(builder *strings.Builder, box *LayoutBox, prefix string
 	}
 }
 
-// dumpTypographyDetails writes non-default display, position, font,
-// colour, and text decoration properties for a layout box.
+// dumpTypographyDetails writes non-default display, position, font, colour, and text
+// decoration properties for a layout box.
 //
 // Takes builder (*strings.Builder) which accumulates the output text.
 // Takes box (*LayoutBox) which is the box whose typography is written.
@@ -171,9 +166,8 @@ func dumpTypographyDetails(builder *strings.Builder, box *LayoutBox, prefix stri
 	}
 }
 
-// dumpVisualEffects writes non-default opacity, visibility,
-// transform, overflow, outline, and shadow properties for a layout
-// box.
+// dumpVisualEffects writes non-default opacity, visibility, transform, overflow, outline,
+// and shadow properties for a layout box.
 //
 // Takes builder (*strings.Builder) which accumulates the output text.
 // Takes box (*LayoutBox) which is the box whose visual effects are written.
@@ -212,9 +206,8 @@ func dumpVisualEffects(builder *strings.Builder, box *LayoutBox, prefix string) 
 	}
 }
 
-// dumpBorderStyleDetails writes non-default, non-solid border style
-// values for each side of a layout box that has a non-zero border
-// width.
+// dumpBorderStyleDetails writes non-default, non-solid border style values for each side
+// of a layout box that has a non-zero border width.
 //
 // Takes builder (*strings.Builder) which accumulates the output text.
 // Takes box (*LayoutBox) which is the box whose border styles are written.

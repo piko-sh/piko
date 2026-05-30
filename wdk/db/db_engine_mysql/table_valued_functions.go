@@ -22,10 +22,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// tableValuedFunctionColumns maps MySQL table-valued function names to their
-// output column definitions. MySQL's primary table-valued function is
-// JSON_TABLE (MySQL 8.0+), whose columns are defined by the user's COLUMNS
-// clause rather than being fixed - the DML analyser handles those
-// user-specified column definitions via the AS clause. This map is
-// intentionally empty for now.
-var tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{}
+var (
+	// tableValuedFunctionColumns maps table-valued function names to columns.
+	//
+	// MySQL's primary table-valued function is JSON_TABLE (MySQL 8.0+), whose columns are
+	// defined by the user's COLUMNS clause rather than being fixed. The DML analyser handles
+	// those user-specified column definitions via the AS clause, so this map remains empty.
+	tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{}
+)

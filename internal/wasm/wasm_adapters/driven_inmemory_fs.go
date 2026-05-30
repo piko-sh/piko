@@ -46,11 +46,11 @@ const (
 	pathSep = "/"
 )
 
-// InMemoryFSReader implements FSReaderPort using an in-memory file map.
-// It is used for WASM contexts where file system access is not available.
+// InMemoryFSReader implements FSReaderPort using an in-memory file map. It is used for
+// WASM contexts where file system access is not available.
 //
-// The reader supports both exact path matches and path normalisation,
-// making it flexible for different path formats used by callers.
+// The reader supports both exact path matches and path normalisation, making it flexible
+// for different path formats used by callers.
 type InMemoryFSReader struct {
 	// files maps file paths to their content as byte slices.
 	files map[string][]byte
@@ -67,8 +67,8 @@ var (
 	_ generator_domain.FSWriterPort = (*InMemoryFSWriter)(nil)
 )
 
-// NewInMemoryFSReader creates a new in-memory file reader from a map of file
-// paths to their contents.
+// NewInMemoryFSReader creates a new in-memory file reader from a map of file paths to
+// their contents.
 //
 // Takes files (map[string]string) which maps file paths to their contents.
 //
@@ -82,8 +82,8 @@ func NewInMemoryFSReader(files map[string]string) *InMemoryFSReader {
 	return &InMemoryFSReader{files: byteFiles}
 }
 
-// NewInMemoryFSReaderFromBytes creates an in-memory file reader from a map of
-// file paths to their byte contents.
+// NewInMemoryFSReaderFromBytes creates an in-memory file reader from a map of file paths
+// to their byte contents.
 //
 // Takes files (map[string][]byte) which maps file paths to their contents.
 //
@@ -156,8 +156,8 @@ func (r *InMemoryFSReader) GetFiles() map[string][]byte {
 	return result
 }
 
-// InMemoryFSWriter implements FSWriterPort using an in-memory file map.
-// It captures written files for retrieval in WASM or testing contexts.
+// InMemoryFSWriter implements FSWriterPort using an in-memory file map. It captures
+// written files for retrieval in WASM or testing contexts.
 type InMemoryFSWriter struct {
 	// written maps file paths to their contents.
 	written map[string][]byte
@@ -194,19 +194,18 @@ func (w *InMemoryFSWriter) WriteFile(_ context.Context, filePath string, data []
 	return nil
 }
 
-// ReadDir reads the directory at the given path and returns a list of
-// directory entries sorted by filename.
+// ReadDir reads the directory at the given path and returns a list of directory entries
+// sorted by filename.
 //
-// This implementation synthesises directory entries from the in-memory files
-// that have paths starting with the given directory.
+// This implementation synthesises directory entries from the in-memory files that have
+// paths starting with the given directory.
 //
 // Takes dirname (string) which specifies the directory path to read.
 //
 // Returns []os.DirEntry which contains the directory entries.
 // Returns error when the directory cannot be read.
 //
-// Safe for concurrent use; uses a read lock to protect access to the
-// underlying file map.
+// Safe for concurrent use; uses a read lock to protect access to the underlying file map.
 func (w *InMemoryFSWriter) ReadDir(dirname string) ([]os.DirEntry, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -276,8 +275,7 @@ func (w *InMemoryFSWriter) RemoveAll(path string) error {
 	return nil
 }
 
-// GetWrittenFiles returns a copy of all files written to the in-memory file
-// system.
+// GetWrittenFiles returns a copy of all files written to the in-memory file system.
 //
 // Returns map[string][]byte which maps paths to contents.
 //

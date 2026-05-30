@@ -79,8 +79,8 @@ func runComputeOpsTests(t *testing.T, config StringConfig) {
 	})
 }
 
-// testComputeCreateNew verifies that Compute creates a new cache entry when
-// the key does not exist.
+// testComputeCreateNew verifies that Compute creates a new cache entry when the key does
+// not exist.
 //
 // Takes t (*testing.T) which provides test control and error reporting.
 // Takes config (StringConfig) which supplies the cache provider factory.
@@ -119,8 +119,8 @@ func testComputeCreateNew(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeUpdateExisting verifies that Compute correctly updates an
-// existing cache entry.
+// testComputeUpdateExisting verifies that Compute correctly updates an existing cache
+// entry.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache configuration to test.
@@ -189,8 +189,7 @@ func testComputeDelete(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeNoop verifies that Compute with Noop action leaves the value
-// unchanged.
+// testComputeNoop verifies that Compute with Noop action leaves the value unchanged.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -219,8 +218,8 @@ func testComputeNoop(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeIfAbsentAbsent verifies that ComputeIfAbsent calls the compute
-// function and returns the computed value when the key is absent.
+// testComputeIfAbsentAbsent verifies that ComputeIfAbsent calls the compute function and
+// returns the computed value when the key is absent.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache configuration to test.
@@ -250,8 +249,8 @@ func testComputeIfAbsentAbsent(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeIfAbsentPresent tests that ComputeIfAbsent returns the existing
-// value without calling the compute function when the key is already present.
+// testComputeIfAbsentPresent tests that ComputeIfAbsent returns the existing value
+// without calling the compute function when the key is already present.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -282,8 +281,8 @@ func testComputeIfAbsentPresent(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeIfPresentAbsent verifies that ComputeIfPresent does not call the
-// compute function when the key is absent from the cache.
+// testComputeIfPresentAbsent verifies that ComputeIfPresent does not call the compute
+// function when the key is absent from the cache.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and test settings.
@@ -310,8 +309,8 @@ func testComputeIfPresentAbsent(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeIfPresentPresent verifies that ComputeIfPresent calls the
-// compute function and updates the value when the key exists.
+// testComputeIfPresentPresent verifies that ComputeIfPresent calls the compute function
+// and updates the value when the key exists.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -348,8 +347,8 @@ func testComputeIfPresentPresent(t *testing.T, config StringConfig) {
 	}
 }
 
-// testComputeWithTTL verifies that ComputeWithTTL correctly stores a value
-// with a custom TTL.
+// testComputeWithTTL verifies that ComputeWithTTL correctly stores a value with a custom
+// TTL.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache configuration to test.

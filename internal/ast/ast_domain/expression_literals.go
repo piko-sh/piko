@@ -18,8 +18,10 @@
 
 package ast_domain
 
-// Defines literal expression types for constant values including strings, numbers, booleans, dates, times, and durations.
-// Provides implementations for all literal types with cloning, transformation, and string representation methods for template expressions.
+// Defines literal expression types for constant values including strings, numbers,
+// booleans, dates, times, and durations. Provides implementations for all literal types
+// with cloning, transformation, and string representation methods for template
+// expressions.
 
 import (
 	"maps"
@@ -28,8 +30,10 @@ import (
 	"strings"
 )
 
-// literalQuote is the single quote character used to wrap literal values.
-const literalQuote = "'"
+const (
+	// literalQuote is the single quote character used to wrap literal values.
+	literalQuote = "'"
+)
 
 // StringLiteral represents a string constant in an expression.
 type StringLiteral struct {
@@ -53,15 +57,13 @@ func (sl *StringLiteral) String() string {
 	return strconv.Quote(sl.Value)
 }
 
-// GetSourceLength returns the byte length of this expression in the original
-// source.
+// GetSourceLength returns the byte length of this expression in the original source.
 //
 // Returns int which is the number of bytes the expression takes in source.
 func (sl *StringLiteral) GetSourceLength() int { return sl.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers
-// transformed. For literals this is a no-op as they contain no identifiers,
-// but the annotation is kept.
+// TransformIdentifiers returns a copy of the literal with identifiers transformed. For
+// literals this is a no-op as they contain no identifiers, but the annotation is kept.
 //
 // Takes f (func(...)) which transforms identifier names.
 //
@@ -77,8 +79,7 @@ func (sl *StringLiteral) TransformIdentifiers(_ func(string) string) Expression 
 
 // Clone creates a deep copy of the StringLiteral.
 //
-// Returns Expression which is the cloned literal, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned literal, or nil if the receiver is nil.
 func (sl *StringLiteral) Clone() Expression {
 	if sl == nil {
 		return nil
@@ -141,18 +142,15 @@ func (il *IntegerLiteral) String() string {
 	return strconv.FormatInt(il.Value, 10)
 }
 
-// GetSourceLength returns the byte length of this expression in the original
-// source.
+// GetSourceLength returns the byte length of this expression in the original source.
 //
 // Returns int which is the number of bytes the expression takes up.
 func (il *IntegerLiteral) GetSourceLength() int { return il.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers
-// transformed. This is a no-op for integer literals as they contain no
-// identifiers.
+// TransformIdentifiers returns a copy of the literal with identifiers transformed. This
+// is a no-op for integer literals as they contain no identifiers.
 //
-// Takes f (func(...)) which transforms identifier names. This is ignored for
-// literals.
+// Takes f (func(...)) which transforms identifier names. This is ignored for literals.
 //
 // Returns Expression which is a copy of this literal.
 func (il *IntegerLiteral) TransformIdentifiers(_ func(string) string) Expression {
@@ -166,8 +164,7 @@ func (il *IntegerLiteral) TransformIdentifiers(_ func(string) string) Expression
 
 // Clone creates a deep copy of the IntegerLiteral.
 //
-// Returns Expression which is the cloned literal, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned literal, or nil if the receiver is nil.
 func (il *IntegerLiteral) Clone() Expression {
 	if il == nil {
 		return nil
@@ -223,8 +220,7 @@ type FloatLiteral struct {
 	SourceLength int
 }
 
-// GetSourceLength returns the length in bytes of this expression in the
-// original source.
+// GetSourceLength returns the length in bytes of this expression in the original source.
 //
 // Returns int which is the byte length of the expression.
 func (fl *FloatLiteral) GetSourceLength() int { return fl.SourceLength }
@@ -236,9 +232,8 @@ func (fl *FloatLiteral) String() string {
 	return strconv.FormatFloat(fl.Value, 'f', -1, 64)
 }
 
-// TransformIdentifiers returns a copy of this literal with identifiers
-// changed. For float literals, this has no effect as they contain no
-// identifiers.
+// TransformIdentifiers returns a copy of this literal with identifiers changed. For float
+// literals, this has no effect as they contain no identifiers.
 //
 // Takes f (func(...)) which changes identifier names.
 //
@@ -254,8 +249,8 @@ func (fl *FloatLiteral) TransformIdentifiers(_ func(string) string) Expression {
 
 // Clone creates a deep copy of the FloatLiteral.
 //
-// Returns Expression which is a new FloatLiteral with copied values, or nil
-// if the receiver is nil.
+// Returns Expression which is a new FloatLiteral with copied values, or nil if the
+// receiver is nil.
 func (fl *FloatLiteral) Clone() Expression {
 	if fl == nil {
 		return nil
@@ -284,8 +279,8 @@ func (fl *FloatLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (fl *FloatLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return fl.GoAnnotations
 }
@@ -297,8 +292,8 @@ func (fl *FloatLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	fl.GoAnnotations = ann
 }
 
-// DecimalLiteral for high-precision numbers.
-// The value is stored as a string to preserve the exact precision from the source.
+// DecimalLiteral for high-precision numbers. The value is stored as a string to preserve
+// the exact precision from the source.
 type DecimalLiteral struct {
 	// GoAnnotations holds Go-specific generator settings; nil uses defaults.
 	GoAnnotations *GoGeneratorAnnotation
@@ -320,15 +315,14 @@ func (dl *DecimalLiteral) String() string {
 	return dl.Value + decimalSuffix
 }
 
-// GetSourceLength returns the byte length of this decimal literal as it
-// appeared in the original source.
+// GetSourceLength returns the byte length of this decimal literal as it appeared in the
+// original source.
 //
 // Returns int which is the number of bytes.
 func (dl *DecimalLiteral) GetSourceLength() int { return dl.SourceLength }
 
-// TransformIdentifiers returns a copy of this literal with identifiers
-// transformed. This has no effect for decimal literals as they contain no
-// identifiers.
+// TransformIdentifiers returns a copy of this literal with identifiers transformed. This
+// has no effect for decimal literals as they contain no identifiers.
 //
 // Takes f (func(...)) which transforms identifier names.
 //
@@ -344,8 +338,8 @@ func (dl *DecimalLiteral) TransformIdentifiers(_ func(string) string) Expression
 
 // Clone creates a deep copy of the DecimalLiteral.
 //
-// Returns Expression which is a new DecimalLiteral with copied values, or nil
-// if the receiver is nil.
+// Returns Expression which is a new DecimalLiteral with copied values, or nil if the
+// receiver is nil.
 func (dl *DecimalLiteral) Clone() Expression {
 	if dl == nil {
 		return nil
@@ -374,8 +368,8 @@ func (dl *DecimalLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (dl *DecimalLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return dl.GoAnnotations
 }
@@ -387,14 +381,13 @@ func (dl *DecimalLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	dl.GoAnnotations = ann
 }
 
-// BigIntLiteral for arbitrary-precision integers.
-// The value is stored as a string to preserve the exact precision from the source.
+// BigIntLiteral for arbitrary-precision integers. The value is stored as a string to
+// preserve the exact precision from the source.
 type BigIntLiteral struct {
 	// GoAnnotations holds settings for Go code generation.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// Value holds the string form of the big integer literal as written in
-	// source.
+	// Value holds the string form of the big integer literal as written in source.
 	Value string
 
 	// RelativeLocation is the position of this literal in the source code.
@@ -404,22 +397,21 @@ type BigIntLiteral struct {
 	SourceLength int
 }
 
-// String returns the string representation of the big integer literal with
-// suffix.
+// String returns the string representation of the big integer literal with suffix.
 //
 // Returns string which is the value followed by the big integer suffix.
 func (bil *BigIntLiteral) String() string {
 	return bil.Value + bigIntSuffix
 }
 
-// GetSourceLength returns the length of this expression in bytes as it
-// appears in the original source code.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source code.
 //
 // Returns int which is the byte length of the expression.
 func (bil *BigIntLiteral) GetSourceLength() int { return bil.SourceLength }
 
-// TransformIdentifiers returns a copy of this literal with identifiers
-// changed. This has no effect for literals as they contain no identifiers.
+// TransformIdentifiers returns a copy of this literal with identifiers changed. This has
+// no effect for literals as they contain no identifiers.
 //
 // Takes f (func(...)) which changes identifier names.
 //
@@ -435,8 +427,7 @@ func (bil *BigIntLiteral) TransformIdentifiers(_ func(string) string) Expression
 
 // Clone creates a deep copy of the BigIntLiteral.
 //
-// Returns Expression which is a copy of the receiver, or nil if the receiver
-// is nil.
+// Returns Expression which is a copy of the receiver, or nil if the receiver is nil.
 func (bil *BigIntLiteral) Clone() Expression {
 	if bil == nil {
 		return nil
@@ -464,8 +455,8 @@ func (bil *BigIntLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (bil *BigIntLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return bil.GoAnnotations
 }
@@ -477,8 +468,8 @@ func (bil *BigIntLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	bil.GoAnnotations = ann
 }
 
-// DateTimeLiteral holds an absolute date and time value.
-// The value is stored as an ISO 8601 formatted string.
+// DateTimeLiteral holds an absolute date and time value. The value is stored as an ISO
+// 8601 formatted string.
 type DateTimeLiteral struct {
 	// GoAnnotations holds settings for Go code generation for this literal.
 	GoAnnotations *GoGeneratorAnnotation
@@ -500,18 +491,17 @@ func (dtl *DateTimeLiteral) String() string {
 	return "dt" + literalQuote + dtl.Value + literalQuote
 }
 
-// GetSourceLength returns the length of this expression in bytes as it
-// appears in the original source code.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source code.
 //
 // Returns int which is the byte length of the expression.
 func (dtl *DateTimeLiteral) GetSourceLength() int { return dtl.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers
-// transformed. This is a no-op for date-time literals as they contain no
-// identifiers.
+// TransformIdentifiers returns a copy of the literal with identifiers transformed. This
+// is a no-op for date-time literals as they contain no identifiers.
 //
-// Takes f (func(...)) which transforms identifier strings. This parameter is
-// unused for literals.
+// Takes f (func(...)) which transforms identifier strings. This parameter is unused for
+// literals.
 //
 // Returns Expression which is a new DateTimeLiteral with the same values.
 func (dtl *DateTimeLiteral) TransformIdentifiers(_ func(string) string) Expression {
@@ -525,8 +515,8 @@ func (dtl *DateTimeLiteral) TransformIdentifiers(_ func(string) string) Expressi
 
 // Clone creates a deep copy of the DateTimeLiteral.
 //
-// Returns Expression which is a new DateTimeLiteral with copied values, or nil
-// if the receiver is nil.
+// Returns Expression which is a new DateTimeLiteral with copied values, or nil if the
+// receiver is nil.
 func (dtl *DateTimeLiteral) Clone() Expression {
 	if dtl == nil {
 		return nil
@@ -555,8 +545,8 @@ func (dtl *DateTimeLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (dtl *DateTimeLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return dtl.GoAnnotations
 }
@@ -568,8 +558,8 @@ func (dtl *DateTimeLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	dtl.GoAnnotations = ann
 }
 
-// DurationLiteral for time duration values.
-// The value is stored as a string parsable by time.ParseDuration.
+// DurationLiteral for time duration values. The value is stored as a string parsable by
+// time.ParseDuration.
 type DurationLiteral struct {
 	// GoAnnotations holds settings for Go code generation for this literal.
 	GoAnnotations *GoGeneratorAnnotation
@@ -596,8 +586,8 @@ func (dl *DurationLiteral) String() string {
 // Returns int which is the byte length of the source text.
 func (dl *DurationLiteral) GetSourceLength() int { return dl.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers changed.
-// This is a no-op for literals as they contain no identifiers to transform.
+// TransformIdentifiers returns a copy of the literal with identifiers changed. This is a
+// no-op for literals as they contain no identifiers to transform.
 //
 // Takes f (func(...)) which would change identifier names (unused for literals).
 //
@@ -613,8 +603,7 @@ func (dl *DurationLiteral) TransformIdentifiers(_ func(string) string) Expressio
 
 // Clone creates a deep copy of the DurationLiteral.
 //
-// Returns Expression which is the cloned literal, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned literal, or nil if the receiver is nil.
 func (dl *DurationLiteral) Clone() Expression {
 	if dl == nil {
 		return nil
@@ -643,8 +632,8 @@ func (dl *DurationLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for this node, or nil
-// if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for this node, or nil if none is
+// set.
 func (dl *DurationLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return dl.GoAnnotations
 }
@@ -656,8 +645,8 @@ func (dl *DurationLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	dl.GoAnnotations = ann
 }
 
-// DateLiteral represents an absolute date value without a time component.
-// The value is stored as a string in YYYY-MM-DD format.
+// DateLiteral represents an absolute date value without a time component. The value is
+// stored as a string in YYYY-MM-DD format.
 type DateLiteral struct {
 	// GoAnnotations holds settings for Go code generation.
 	GoAnnotations *GoGeneratorAnnotation
@@ -674,20 +663,18 @@ type DateLiteral struct {
 
 // String returns the string representation of the date literal.
 //
-// Returns string which is the date literal formatted with a "d" prefix and
-// quotes.
+// Returns string which is the date literal formatted with a "d" prefix and quotes.
 func (dl *DateLiteral) String() string {
 	return "d" + literalQuote + dl.Value + literalQuote
 }
 
-// GetSourceLength returns the length in bytes of this expression in the
-// original source.
+// GetSourceLength returns the length in bytes of this expression in the original source.
 //
 // Returns int which is the byte length of the expression.
 func (dl *DateLiteral) GetSourceLength() int { return dl.SourceLength }
 
-// TransformIdentifiers returns a copy of this date literal unchanged.
-// This is a no-op for literals as they contain no identifiers.
+// TransformIdentifiers returns a copy of this date literal unchanged. This is a no-op for
+// literals as they contain no identifiers.
 //
 // Takes f (func(...)) which transforms identifier names.
 //
@@ -703,8 +690,8 @@ func (dl *DateLiteral) TransformIdentifiers(_ func(string) string) Expression {
 
 // Clone creates a deep copy of the DateLiteral.
 //
-// Returns Expression which is a new DateLiteral with copied values, or nil if
-// the receiver is nil.
+// Returns Expression which is a new DateLiteral with copied values, or nil if the
+// receiver is nil.
 func (dl *DateLiteral) Clone() Expression {
 	if dl == nil {
 		return nil
@@ -733,8 +720,8 @@ func (dl *DateLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (dl *DateLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return dl.GoAnnotations
 }
@@ -746,8 +733,8 @@ func (dl *DateLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	dl.GoAnnotations = ann
 }
 
-// RuneLiteral represents a single character literal in the AST.
-// It implements the Expression interface and stores the value as a rune.
+// RuneLiteral represents a single character literal in the AST. It implements the
+// Expression interface and stores the value as a rune.
 type RuneLiteral struct {
 	// GoAnnotations holds the Go code generator annotation for this rune literal.
 	GoAnnotations *GoGeneratorAnnotation
@@ -774,9 +761,8 @@ func (rl *RuneLiteral) String() string {
 // Returns int which is the number of bytes this literal takes in the source.
 func (rl *RuneLiteral) GetSourceLength() int { return rl.SourceLength }
 
-// TransformIdentifiers returns a copy of this rune literal unchanged.
-// Rune literals do not contain identifiers, so the transform function is
-// not applied.
+// TransformIdentifiers returns a copy of this rune literal unchanged. Rune literals do
+// not contain identifiers, so the transform function is not applied.
 //
 // Takes f (func(...)) which would transform identifier names if any existed.
 //
@@ -833,8 +819,8 @@ func (rl *RuneLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	rl.GoAnnotations = ann
 }
 
-// TimeLiteral represents an absolute time-only value.
-// The value is stored as an HH:mm:ss formatted string.
+// TimeLiteral represents an absolute time-only value. The value is stored as an HH:mm:ss
+// formatted string.
 type TimeLiteral struct {
 	// GoAnnotations holds the code generation annotation for this literal.
 	GoAnnotations *GoGeneratorAnnotation
@@ -856,14 +842,14 @@ func (tl *TimeLiteral) String() string {
 	return "t" + literalQuote + tl.Value + literalQuote
 }
 
-// GetSourceLength returns the length of this expression in bytes as it appears
-// in the original source code.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source code.
 //
 // Returns int which is the byte length of the expression.
 func (tl *TimeLiteral) GetSourceLength() int { return tl.SourceLength }
 
-// TransformIdentifiers returns a copy of this time literal unchanged.
-// This is a no-op for literals as they contain no identifiers.
+// TransformIdentifiers returns a copy of this time literal unchanged. This is a no-op for
+// literals as they contain no identifiers.
 //
 // Takes f (func(...)) which is ignored for literals.
 //
@@ -879,8 +865,7 @@ func (tl *TimeLiteral) TransformIdentifiers(_ func(string) string) Expression {
 
 // Clone creates a deep copy of the TimeLiteral.
 //
-// Returns Expression which is the cloned literal, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned literal, or nil if the receiver is nil.
 func (tl *TimeLiteral) Clone() Expression {
 	if tl == nil {
 		return nil
@@ -948,8 +933,8 @@ func (bl *BooleanLiteral) String() string {
 // Returns int which is the number of bytes this expression spans.
 func (bl *BooleanLiteral) GetSourceLength() int { return bl.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers
-// changed. Boolean literals have no identifiers, so the copy is the same.
+// TransformIdentifiers returns a copy of the literal with identifiers changed. Boolean
+// literals have no identifiers, so the copy is the same.
 //
 // Takes f (func(...)) which changes identifier names.
 //
@@ -965,8 +950,7 @@ func (bl *BooleanLiteral) TransformIdentifiers(_ func(string) string) Expression
 
 // Clone creates a deep copy of the BooleanLiteral.
 //
-// Returns Expression which is the cloned literal, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned literal, or nil if the receiver is nil.
 func (bl *BooleanLiteral) Clone() Expression {
 	if bl == nil {
 		return nil
@@ -995,8 +979,8 @@ func (bl *BooleanLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (bl *BooleanLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return bl.GoAnnotations
 }
@@ -1008,8 +992,8 @@ func (bl *BooleanLiteral) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	bl.GoAnnotations = ann
 }
 
-// NilLiteral represents a nil value in an expression.
-// It implements the Expression interface.
+// NilLiteral represents a nil value in an expression. It implements the Expression
+// interface.
 type NilLiteral struct {
 	// GoAnnotations holds Go-specific generator annotations; nil if none is set.
 	GoAnnotations *GoGeneratorAnnotation
@@ -1033,9 +1017,9 @@ func (*NilLiteral) String() string {
 // Returns int which is the byte length of the expression in the source code.
 func (nl *NilLiteral) GetSourceLength() int { return nl.SourceLength }
 
-// TransformIdentifiers returns a copy of the literal with identifiers
-// transformed. For nil literals, this returns an unchanged copy since there
-// are no identifiers to transform.
+// TransformIdentifiers returns a copy of the literal with identifiers transformed. For
+// nil literals, this returns an unchanged copy since there are no identifiers to
+// transform.
 //
 // Takes f (func(...)) which transforms identifier names.
 //
@@ -1050,8 +1034,7 @@ func (nl *NilLiteral) TransformIdentifiers(_ func(string) string) Expression {
 
 // Clone creates a deep copy of the NilLiteral.
 //
-// Returns Expression which is the cloned nil literal, or nil if the receiver
-// is nil.
+// Returns Expression which is the cloned nil literal, or nil if the receiver is nil.
 func (nl *NilLiteral) Clone() Expression {
 	if nl == nil {
 		return nil
@@ -1079,8 +1062,8 @@ func (nl *NilLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (nl *NilLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return nl.GoAnnotations
 }
@@ -1097,29 +1080,25 @@ type ObjectLiteral struct {
 	// Pairs maps property names to their expression values.
 	Pairs map[string]Expression
 
-	// GoAnnotations holds the Go code generator annotation for this
-	// object literal.
+	// GoAnnotations holds the Go code generator annotation for this object literal.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// RelativeLocation is the source position of this literal in
-	// the original code.
+	// RelativeLocation is the source position of this literal in the original code.
 	RelativeLocation Location
 
-	// SourceLength is the byte length of this literal in the source
-	// code.
+	// SourceLength is the byte length of this literal in the source code.
 	SourceLength int
 }
 
-// GetSourceLength returns the length of this expression in bytes as it appears
-// in the original source code.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source code.
 //
 // Returns int which is the byte length of the expression.
 func (ol *ObjectLiteral) GetSourceLength() int { return ol.SourceLength }
 
 // String returns the text form of the object literal.
 //
-// Returns string which is the literal in a JSON-like format with keys in
-// sorted order.
+// Returns string which is the literal in a JSON-like format with keys in sorted order.
 func (ol *ObjectLiteral) String() string {
 	keys := slices.Sorted(maps.Keys(ol.Pairs))
 
@@ -1141,8 +1120,8 @@ func (ol *ObjectLiteral) String() string {
 	return b.String()
 }
 
-// TransformIdentifiers applies a function to all identifiers in the object's
-// values, working through nested expressions.
+// TransformIdentifiers applies a function to all identifiers in the object's values,
+// working through nested expressions.
 //
 // Takes f (func(string) string) which transforms each identifier string.
 //
@@ -1162,8 +1141,7 @@ func (ol *ObjectLiteral) TransformIdentifiers(f func(string) string) Expression 
 
 // Clone creates a deep copy of the ObjectLiteral.
 //
-// Returns Expression which is the cloned object, or nil if the receiver is
-// nil.
+// Returns Expression which is the cloned object, or nil if the receiver is nil.
 func (ol *ObjectLiteral) Clone() Expression {
 	if ol == nil {
 		return nil
@@ -1195,8 +1173,7 @@ func (ol *ObjectLiteral) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation, or nil if none is
-// set.
+// Returns *GoGeneratorAnnotation which is the annotation, or nil if none is set.
 func (ol *ObjectLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return ol.GoAnnotations
 }
@@ -1223,19 +1200,17 @@ type TernaryExpression struct {
 	// GoAnnotations holds generator annotations from Go code comments.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// RelativeLocation is the source location of this expression in
-	// the original source.
+	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
-	// SourceLength is the length in bytes of this expression in the
-	// source code.
+	// SourceLength is the length in bytes of this expression in the source code.
 	SourceLength int
 }
 
 // String returns the text form of the ternary expression.
 //
-// Returns string which is the expression formatted as
-// "(condition ? consequent : alternate)".
+// Returns string which is the expression formatted as "(condition ? consequent :
+// alternate)".
 func (te *TernaryExpression) String() string {
 	condString := te.Condition.String()
 	consString := te.Consequent.String()
@@ -1255,19 +1230,16 @@ func (te *TernaryExpression) String() string {
 	return builder.String()
 }
 
-// GetSourceLength returns the byte length of this expression in the source
-// code.
+// GetSourceLength returns the byte length of this expression in the source code.
 //
 // Returns int which is the length in bytes.
 func (te *TernaryExpression) GetSourceLength() int { return te.SourceLength }
 
-// TransformIdentifiers recursively transforms all identifiers in the ternary
-// expression.
+// TransformIdentifiers recursively transforms all identifiers in the ternary expression.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
-// Returns Expression which is a new TernaryExpression with all identifiers
-// transformed.
+// Returns Expression which is a new TernaryExpression with all identifiers transformed.
 func (te *TernaryExpression) TransformIdentifiers(f func(string) string) Expression {
 	return &TernaryExpression{
 		Condition:        te.Condition.TransformIdentifiers(f),
@@ -1281,9 +1253,8 @@ func (te *TernaryExpression) TransformIdentifiers(f func(string) string) Express
 
 // Clone creates a deep copy of the TernaryExpression.
 //
-// Returns Expression which is a new TernaryExpression with all
-// fields copied, or nil
-// if the receiver is nil.
+// Returns Expression which is a new TernaryExpression with all fields copied, or nil if
+// the receiver is nil.
 func (te *TernaryExpression) Clone() Expression {
 	if te == nil {
 		return nil
@@ -1326,8 +1297,8 @@ func (te *TernaryExpression) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 	te.GoAnnotations = ann
 }
 
-// ArrayLiteral represents an array of expressions in the abstract syntax tree.
-// It implements the Expression interface.
+// ArrayLiteral represents an array of expressions in the abstract syntax tree. It
+// implements the Expression interface.
 type ArrayLiteral struct {
 	// GoAnnotations holds settings for Go code generation for this array literal.
 	GoAnnotations *GoGeneratorAnnotation
@@ -1344,8 +1315,8 @@ type ArrayLiteral struct {
 
 // String returns the string representation of the array literal.
 //
-// Returns string which is the formatted array with elements separated by
-// commas and enclosed in square brackets.
+// Returns string which is the formatted array with elements separated by commas and
+// enclosed in square brackets.
 func (al *ArrayLiteral) String() string {
 	var b strings.Builder
 	_, _ = b.WriteRune('[')
@@ -1363,12 +1334,10 @@ func (al *ArrayLiteral) String() string {
 
 // GetSourceLength returns the length of the array literal in the source code.
 //
-// Returns int which is the byte length of this expression in the original
-// source.
+// Returns int which is the byte length of this expression in the original source.
 func (al *ArrayLiteral) GetSourceLength() int { return al.SourceLength }
 
-// TransformIdentifiers recursively transforms all identifiers in the array's
-// elements.
+// TransformIdentifiers recursively transforms all identifiers in the array's elements.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
@@ -1388,8 +1357,7 @@ func (al *ArrayLiteral) TransformIdentifiers(f func(string) string) Expression {
 
 // Clone returns a deep copy of the array literal.
 //
-// Returns Expression which is the cloned array literal, or nil if the
-// receiver is nil.
+// Returns Expression which is the cloned array literal, or nil if the receiver is nil.
 func (al *ArrayLiteral) Clone() Expression {
 	if al == nil {
 		return nil

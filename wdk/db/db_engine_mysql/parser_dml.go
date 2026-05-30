@@ -24,6 +24,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// analyseSelect parses a SELECT statement into a raw query analysis.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
+// Returns error when parsing fails.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -70,6 +74,7 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// skipSelectModifiers consumes optional SELECT modifier keywords.
 func (p *parser) skipSelectModifiers() {
 	for p.isAnyKeyword(keywordALL, "DISTINCT", "HIGH_PRIORITY", "STRAIGHT_JOIN",
 		"SQL_SMALL_RESULT", "SQL_BIG_RESULT", "SQL_BUFFER_RESULT",
@@ -78,6 +83,12 @@ func (p *parser) skipSelectModifiers() {
 	}
 }
 
+// parseCTEListIfPresent parses a WITH CTE list onto the analysis.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the CTE definitions when
+// present.
+//
+// Returns error when CTE parsing fails.
 func (p *parser) parseCTEListIfPresent(analysis *querier_dto.RawQueryAnalysis) error {
 	if !p.isKeyword(keywordWITH) {
 		return nil
@@ -90,6 +101,12 @@ func (p *parser) parseCTEListIfPresent(analysis *querier_dto.RawQueryAnalysis) e
 	return nil
 }
 
+// parseFromClauseIfPresent parses a FROM clause onto the analysis.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the tables and joins when
+// a FROM clause is present.
+//
+// Returns error when FROM parsing fails.
 func (p *parser) parseFromClauseIfPresent(analysis *querier_dto.RawQueryAnalysis) error {
 	if !p.matchKeyword(keywordFROM) {
 		return nil
@@ -103,6 +120,12 @@ func (p *parser) parseFromClauseIfPresent(analysis *querier_dto.RawQueryAnalysis
 	return nil
 }
 
+// parseCompoundBranches collects UNION, INTERSECT, and EXCEPT branches.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives any compound branches
+// appended.
+//
+// Returns error when a branch query fails to parse.
 func (p *parser) parseCompoundBranches(analysis *querier_dto.RawQueryAnalysis) error {
 	for {
 		compoundOperator := p.parseCompoundQuery()
@@ -121,6 +144,7 @@ func (p *parser) parseCompoundBranches(analysis *querier_dto.RawQueryAnalysis) e
 	return nil
 }
 
+// parseOrderByIfPresent consumes an optional ORDER BY clause.
 func (p *parser) parseOrderByIfPresent() {
 	if p.matchKeyword(keywordORDER) {
 		p.matchKeyword(keywordBY)
@@ -128,18 +152,27 @@ func (p *parser) parseOrderByIfPresent() {
 	}
 }
 
+// parseLimitOffsetIfPresent consumes an optional LIMIT or OFFSET clause.
 func (p *parser) parseLimitOffsetIfPresent() {
 	if p.isKeyword(keywordLIMIT) || p.isKeyword(keywordOFFSET) {
 		p.parseLimitOffset()
 	}
 }
 
+// finaliseAnalysis copies parser-collected state onto the analysis.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the parameter references,
+// derived tables, and table-valued functions.
 func (p *parser) finaliseAnalysis(analysis *querier_dto.RawQueryAnalysis) {
 	analysis.ParameterReferences = p.parameterRefs
 	analysis.RawDerivedTables = p.rawDerivedTables
 	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 }
 
+// analyseInsert parses an INSERT or REPLACE statement.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
+// Returns error when parsing fails.
 func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -176,6 +209,9 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// parseOptionalAlias consumes an optional AS-prefixed alias identifier.
+//
+// Returns string which is the alias when present, else the empty string.
 func (p *parser) parseOptionalAlias() string {
 	if p.matchKeyword(keywordAS) {
 		if p.current().kind == tokenIdentifier {
@@ -185,6 +221,10 @@ func (p *parser) parseOptionalAlias() string {
 	return ""
 }
 
+// parseInsertColumnList parses the optional INSERT column-name list.
+//
+// Returns []string which is the list of column names, or nil when absent.
+// Returns error when the list is malformed.
 func (p *parser) parseInsertColumnList() ([]string, error) {
 	if p.current().kind == tokenLeftParen && !p.isKeyword(keywordSELECT) && !p.isKeyword(keywordVALUES) {
 		return p.parseColumnList()
@@ -192,6 +232,10 @@ func (p *parser) parseInsertColumnList() ([]string, error) {
 	return nil, nil
 }
 
+// parseInsertValues dispatches to the appropriate INSERT body parser.
+//
+// Takes tableName (string) which is the target table name.
+// Takes columnNames ([]string) which are the target column names.
 func (p *parser) parseInsertValues(tableName string, columnNames []string) {
 	if p.matchKeyword(keywordVALUES) || p.matchKeyword("VALUE") {
 		p.parseValuesClause(tableName, columnNames)
@@ -202,6 +246,12 @@ func (p *parser) parseInsertValues(tableName string, columnNames []string) {
 	}
 }
 
+// parseReturningIfPresent parses an optional RETURNING clause.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the returning flag and
+// output columns.
+//
+// Returns error when the returning clause cannot be parsed.
 func (p *parser) parseReturningIfPresent(analysis *querier_dto.RawQueryAnalysis) error {
 	if !p.matchKeyword(keywordRETURNING) {
 		return nil
@@ -215,6 +265,10 @@ func (p *parser) parseReturningIfPresent(analysis *querier_dto.RawQueryAnalysis)
 	return nil
 }
 
+// analyseUpdate parses an UPDATE statement.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
+// Returns error when parsing fails.
 func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -254,6 +308,11 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// parseUpdateTableReferences parses the table list of an UPDATE.
+//
+// Returns []querier_dto.TableReference which lists each referenced table.
+// Returns []querier_dto.JoinClause which lists any join clauses.
+// Returns error when a join clause fails to parse.
 func (p *parser) parseUpdateTableReferences() ([]querier_dto.TableReference, []querier_dto.JoinClause, error) {
 	var tables []querier_dto.TableReference
 	var joins []querier_dto.JoinClause
@@ -281,6 +340,13 @@ func (p *parser) parseUpdateTableReferences() ([]querier_dto.TableReference, []q
 	return tables, joins, nil
 }
 
+// analyseDelete parses a DELETE statement.
+//
+// Dispatches to the simple or multi-table variant based on the keyword that follows
+// DELETE.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
+// Returns error when parsing fails.
 func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -296,6 +362,13 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	return p.parseMultiTableDelete(analysis)
 }
 
+// parseSimpleDelete parses a single-table DELETE FROM statement.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is populated with the parsed
+// table, WHERE clause, and RETURNING data.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the same analysis value.
+// Returns error when parsing fails.
 func (p *parser) parseSimpleDelete(analysis *querier_dto.RawQueryAnalysis) (*querier_dto.RawQueryAnalysis, error) {
 	p.mustKeyword(keywordFROM)
 
@@ -318,6 +391,13 @@ func (p *parser) parseSimpleDelete(analysis *querier_dto.RawQueryAnalysis) (*que
 	return analysis, nil
 }
 
+// parseMultiTableDelete parses a multi-table DELETE statement.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is populated with FROM tables,
+// joins, and WHERE clause data.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the same analysis value.
+// Returns error when parsing fails.
 func (p *parser) parseMultiTableDelete(analysis *querier_dto.RawQueryAnalysis) (*querier_dto.RawQueryAnalysis, error) {
 	for p.current().kind == tokenIdentifier {
 		_, name := p.mustSchemaQualifiedName()
@@ -349,6 +429,9 @@ func (p *parser) parseMultiTableDelete(analysis *querier_dto.RawQueryAnalysis) (
 	return analysis, nil
 }
 
+// parseDeleteAlias parses an optional table alias in a DELETE statement.
+//
+// Returns string which is the alias when present, else the empty string.
 func (p *parser) parseDeleteAlias() string {
 	if p.matchKeyword(keywordAS) {
 		if p.current().kind == tokenIdentifier {
@@ -362,6 +445,10 @@ func (p *parser) parseDeleteAlias() string {
 	return ""
 }
 
+// analyseValues parses a top-level VALUES statement.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
+// Returns error when parsing fails.
 func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
 
@@ -394,6 +481,10 @@ func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// parseColumnList parses a parenthesised list of column identifiers.
+//
+// Returns []string which is the parsed column names.
+// Returns error when the opening parenthesis is missing or a name is invalid.
 func (p *parser) parseColumnList() ([]string, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, fmt.Errorf("expected '(' at position %d", p.current().position)

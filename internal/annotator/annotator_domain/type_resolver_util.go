@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Provides utility functions for type resolution including stringability checks, type comparison, and diagnostic helpers.
-// Supports the type resolver with common operations for determining type compatibility and formatting type information.
+// Provides utility functions for type resolution including stringability checks, type
+// comparison, and diagnostic helpers. Supports the type resolver with common operations
+// for determining type compatibility and formatting type information.
 
 import (
 	"fmt"
@@ -33,15 +34,15 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// unmapVirtualLocationToOriginal converts a position from a virtual .go file
-// back to the original .pk file coordinates.
+// unmapVirtualLocationToOriginal converts a position from a virtual .go file back to the
+// original .pk file coordinates.
 //
 // Takes ctx (*AnalysisContext) which provides the current package path.
-// Takes virtualLocation (ast_domain.Location) which specifies the position in the
-// virtual file.
+// Takes virtualLocation (ast_domain.Location) which specifies the position in the virtual
+// file.
 //
-// Returns ast_domain.Location which contains the mapped position in the
-// original file, or the unchanged location if no mapping exists.
+// Returns ast_domain.Location which contains the mapped position in the original file, or
+// the unchanged location if no mapping exists.
 func (tr *TypeResolver) unmapVirtualLocationToOriginal(
 	ctx *AnalysisContext,
 	virtualLocation ast_domain.Location,
@@ -62,12 +63,10 @@ func (tr *TypeResolver) unmapVirtualLocationToOriginal(
 
 // logAnn returns a string form of an annotation for logging.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to
-// format.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to format.
 //
-// Returns string which is the type as a string, "<nil>" if the annotation or
-// its resolved type is nil, or "<unresolved>" if the type could not be turned
-// into a string.
+// Returns string which is the type as a string, "<nil>" if the annotation or its resolved
+// type is nil, or "<unresolved>" if the type could not be turned into a string.
 func (*TypeResolver) logAnn(ann *ast_domain.GoGeneratorAnnotation) string {
 	if ann == nil || ann.ResolvedType == nil {
 		return "<nil>"
@@ -81,11 +80,10 @@ func (*TypeResolver) logAnn(ann *ast_domain.GoGeneratorAnnotation) string {
 
 // getPropertyName extracts the property name from a member expression.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// extract from.
+// Takes expression (ast_domain.Expression) which is the expression to extract from.
 //
-// Returns string which is the property name, or empty if the expression is
-// not a member expression with an identifier property.
+// Returns string which is the property name, or empty if the expression is not a member
+// expression with an identifier property.
 func getPropertyName(expression ast_domain.Expression) string {
 	if member, ok := expression.(*ast_domain.MemberExpression); ok {
 		if identifier, isIdent := member.Property.(*ast_domain.Identifier); isIdent {
@@ -101,8 +99,7 @@ func getPropertyName(expression ast_domain.Expression) string {
 // When expression is nil, returns without doing anything.
 //
 // Takes expression (ast_domain.Expression) which is the target expression.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to
-// attach.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to attach.
 func setAnnotationOnExpression(expression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation) {
 	if expression == nil {
 		return
@@ -110,14 +107,12 @@ func setAnnotationOnExpression(expression ast_domain.Expression, ann *ast_domain
 	expression.SetGoAnnotation(ann)
 }
 
-// getAnnotationFromExpression extracts the Go generator annotation from an
-// expression.
+// getAnnotationFromExpression extracts the Go generator annotation from an expression.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// extract from.
+// Takes expression (ast_domain.Expression) which is the expression to extract from.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the annotation, or nil
-// if expression is nil.
+// Returns *ast_domain.GoGeneratorAnnotation which is the annotation, or nil if expression
+// is nil.
 func getAnnotationFromExpression(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	if expression == nil {
 		return nil
@@ -127,15 +122,15 @@ func getAnnotationFromExpression(expression ast_domain.Expression) *ast_domain.G
 
 // handleUndefinedIdentifier creates a diagnostic for an undefined identifier.
 //
-// Takes ctx (*AnalysisContext) which provides the symbol table for
-// suggestions and the diagnostics collector.
-// Takes n (*ast_domain.Identifier) which is the undefined identifier
-// that triggered the error.
-// Takes location (ast_domain.Location) which specifies the source location
-// of the identifier for the diagnostic.
+// Takes ctx (*AnalysisContext) which provides the symbol table for suggestions and the
+// diagnostics collector.
+// Takes n (*ast_domain.Identifier) which is the undefined identifier that triggered the
+// error.
+// Takes location (ast_domain.Location) which specifies the source location of the
+// identifier for the diagnostic.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a fallback
-// annotation with the "any" type for error recovery.
+// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation with the "any"
+// type for error recovery.
 func handleUndefinedIdentifier(ctx *AnalysisContext, n *ast_domain.Identifier, location ast_domain.Location, _ int) *ast_domain.GoGeneratorAnnotation {
 	message := fmt.Sprintf("Undefined variable: %s", n.Name)
 	suggestion := findClosestMatch(n.Name, ctx.Symbols.AllSymbolNames())
@@ -161,18 +156,17 @@ func handleUndefinedIdentifier(ctx *AnalysisContext, n *ast_domain.Identifier, l
 // handleUnexportedFunctionAccess creates a diagnostic for an unexported function.
 //
 // This provides a helpful error message when users try to access an unexported
-// (lowercase) function from a template. Template code is generated separately
-// and can only access exported (capitalised) functions.
+// (lowercase) function from a template. Template code is generated separately and can
+// only access exported (capitalised) functions.
 //
-// Takes ctx (*AnalysisContext) which provides the diagnostics collector
-// and logger.
-// Takes n (*ast_domain.Identifier) which is the unexported identifier
-// that triggered the error.
-// Takes location (ast_domain.Location) which specifies the source location
-// for the diagnostic.
+// Takes ctx (*AnalysisContext) which provides the diagnostics collector and logger.
+// Takes n (*ast_domain.Identifier) which is the unexported identifier that triggered the
+// error.
+// Takes location (ast_domain.Location) which specifies the source location for the
+// diagnostic.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a fallback
-// annotation with the "any" type for error recovery.
+// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation with the "any"
+// type for error recovery.
 func handleUnexportedFunctionAccess(ctx *AnalysisContext, n *ast_domain.Identifier, location ast_domain.Location, _ int) *ast_domain.GoGeneratorAnnotation {
 	capitalised := capitaliseFirstLetter(n.Name)
 	message := fmt.Sprintf("Cannot access unexported function '%s' from template. Rename to '%s' (capitalised) to make it accessible.", n.Name, capitalised)
@@ -196,8 +190,8 @@ func handleUnexportedFunctionAccess(ctx *AnalysisContext, n *ast_domain.Identifi
 //
 // Takes s (string) which is the input string to change.
 //
-// Returns string which is the input with its first letter in uppercase, or the
-// original string if empty or already uppercase.
+// Returns string which is the input with its first letter in uppercase, or the original
+// string if empty or already uppercase.
 func capitaliseFirstLetter(s string) string {
 	if len(s) == 0 {
 		return s
@@ -208,15 +202,14 @@ func capitaliseFirstLetter(s string) string {
 	return s
 }
 
-// createBlankIdentifierAnnotation creates an annotation for the blank
-// identifier "_".
+// createBlankIdentifierAnnotation creates an annotation for the blank identifier "_".
 //
-// The blank identifier is a special Go syntax element used to discard values.
-// In p-for expressions like "(_, item) in collection", users can use "_" to
-// indicate they do not need the index variable.
+// The blank identifier is a special Go syntax element used to discard values. In p-for
+// expressions like "(_, item) in collection", users can use "_" to indicate they do not
+// need the index variable.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which represents an int type
-// because loop indices are integers, but the actual value will be discarded.
+// Returns *ast_domain.GoGeneratorAnnotation which represents an int type because loop
+// indices are integers, but the actual value will be discarded.
 func createBlankIdentifierAnnotation() *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,

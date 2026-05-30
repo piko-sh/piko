@@ -16,15 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package monitoring_api provides generated Protocol Buffer and gRPC
-// code for the Piko monitoring API (piko.monitoring.v1).
+// Package monitoring_api provides generated Protocol Buffer and gRPC code for the Piko
+// monitoring API (piko.monitoring.v1).
 //
-// All code in this package is generated from monitoring.proto by
-// protoc-gen-go and protoc-gen-go-grpc. Do not edit the generated
-// files directly. Modify the proto definition and regenerate instead.
+// All code in this package is generated from monitoring.proto by protoc-gen-go and
+// protoc-gen-go-grpc. Do not edit the generated files directly. Modify the proto
+// definition and regenerate instead.
 //
-// The package defines the wire-format messages and gRPC service stubs
-// used by the monitoring module's adapters. It sits at the boundary
-// between the transport layer and the domain, providing the concrete
-// types that adapters serialise to and deserialise from.
+// The package defines the wire-format messages and gRPC service stubs used by the
+// monitoring module's adapters. It sits at the boundary between the transport layer and
+// the domain, providing the concrete types that adapters serialise to and deserialise
+// from.
 package monitoring_api

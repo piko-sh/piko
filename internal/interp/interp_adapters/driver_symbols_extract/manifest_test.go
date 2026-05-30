@@ -114,6 +114,63 @@ packages:
 	require.NotContains(t, configs, "strings")
 }
 
+func TestManifestGenericFallback(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accepts_known_values", func(t *testing.T) {
+		t.Parallel()
+		for _, mode := range []string{"auto", "reflect", "panic"} {
+			yamlContent := `
+package: test_symbols
+output: path/to/output
+packages:
+  - slices:
+      element_types: [string, int]
+      generic_fallback: ` + mode + `
+`
+			tmpFile := t.TempDir() + "/test-manifest.yaml"
+			require.NoError(t, writeTestFile(tmpFile, yamlContent))
+			manifest, err := LoadManifest(tmpFile)
+			require.NoError(t, err, "mode=%s", mode)
+			configs := manifest.GenericConfigs()
+			require.Equal(t, mode, configs["slices"].GenericFallback)
+		}
+	})
+
+	t.Run("default_is_empty_string", func(t *testing.T) {
+		t.Parallel()
+		yamlContent := `
+package: test_symbols
+output: path/to/output
+packages:
+  - slices:
+      element_types: [string]
+`
+		tmpFile := t.TempDir() + "/test-manifest.yaml"
+		require.NoError(t, writeTestFile(tmpFile, yamlContent))
+		manifest, err := LoadManifest(tmpFile)
+		require.NoError(t, err)
+		require.Empty(t, manifest.GenericConfigs()["slices"].GenericFallback)
+	})
+
+	t.Run("rejects_unknown_value", func(t *testing.T) {
+		t.Parallel()
+		yamlContent := `
+package: test_symbols
+output: path/to/output
+packages:
+  - slices:
+      element_types: [string]
+      generic_fallback: bogus
+`
+		tmpFile := t.TempDir() + "/test-manifest.yaml"
+		require.NoError(t, writeTestFile(tmpFile, yamlContent))
+		_, err := LoadManifest(tmpFile)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+}
+
 func TestManifestImportPaths(t *testing.T) {
 	t.Parallel()
 
@@ -193,6 +250,34 @@ func TestPackageConfigTypesForFunc(t *testing.T) {
 	require.Equal(t, []string{"byte"}, element)
 	require.Equal(t, []string{"string"}, key)
 	require.Equal(t, []string{"int", "bool"}, valueTypes)
+}
+
+func TestLoadManifestWithGenericFunctions(t *testing.T) {
+	t.Parallel()
+
+	yamlContent := `
+package: test_symbols
+output: path/to/output
+packages:
+  - sync:
+      generic_functions:
+        OnceValue: [[int]]
+        OnceValues: [[int, error]]
+`
+
+	tmpFile := t.TempDir() + "/test-manifest.yaml"
+	require.NoError(t, writeTestFile(tmpFile, yamlContent))
+
+	manifest, err := LoadManifest(tmpFile)
+	require.NoError(t, err)
+
+	configs := manifest.GenericConfigs()
+	require.Contains(t, configs, "sync")
+
+	syncConfig := configs["sync"]
+	require.True(t, syncConfig.IsGeneric())
+	require.Equal(t, [][]string{{"int"}}, syncConfig.GenericInstantiations["OnceValue"])
+	require.Equal(t, [][]string{{"int", "error"}}, syncConfig.GenericInstantiations["OnceValues"])
 }
 
 func TestLoadManifestWithFunctionsMapping(t *testing.T) {

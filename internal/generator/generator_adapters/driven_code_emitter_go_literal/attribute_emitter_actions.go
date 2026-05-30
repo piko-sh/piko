@@ -27,32 +27,31 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// maxFixedArityArgs is the maximum number of arguments supported by fixed-arity
-// encoders.
-const maxFixedArityArgs = 4
+const (
+	// maxFixedArityArgs is the maximum number of arguments supported by fixed-arity
+	// encoders.
+	maxFixedArityArgs = 4
+)
 
 // emitEventHandlers processes all event directives for a template node.
 //
 // It handles two cases:
-//  1. Action/helper modifier: Creates base64 JSON payload for action and helper
-//     event handlers. The generated JS in actions.gen.ts handles the actual
-//     remote call dispatch via ActionBuilder.
-//  2. No modifier with HasClientScript: Creates base64 JSON payload for PK
-//     client handlers. DOMBinder looks up the function in PageContext, which
-//     the PK module fills in.
+//  1. Action/helper modifier: Creates base64 JSON payload for action and helper event
+//     handlers. The generated JS in actions.gen.ts handles the actual remote call
+//     dispatch via ActionBuilder.
+//  2. No modifier with HasClientScript: Creates base64 JSON payload for PK client
+//     handlers. DOMBinder looks up the function in PageContext, which the PK module fills
+//     in.
 //
-// Standard Go handlers (no modifier, no client script) are skipped. The
-// runtime handles these through AST node directives, not HTML attributes.
+// Standard Go handlers (no modifier, no client script) are skipped. The runtime handles
+// these through AST node directives, not HTML attributes.
 //
-// Takes nodeVar (*goast.Ident) which identifies the node variable in the
-// generated code.
-// Takes node (*ast_domain.TemplateNode) which contains the event directives
-// to process.
+// Takes nodeVar (*goast.Ident) which identifies the node variable in the generated code.
+// Takes node (*ast_domain.TemplateNode) which contains the event directives to process.
 //
-// Returns []goast.Stmt which contains the generated statements for event
-// attribute assignments.
-// Returns []*ast_domain.Diagnostic which contains any errors found during
-// processing.
+// Returns []goast.Stmt which contains the generated statements for event attribute
+// assignments.
+// Returns []*ast_domain.Diagnostic which contains any errors found during processing.
 func (ae *attributeEmitter) emitEventHandlers(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	var allStmts []goast.Stmt
 	var allDiags []*ast_domain.Diagnostic
@@ -95,24 +94,24 @@ func (ae *attributeEmitter) emitEventHandlers(nodeVar *goast.Ident, node *ast_do
 	return allStmts, allDiags
 }
 
-// resolveEventHandlerEmission checks if an event directive should produce an
-// HTML attribute and returns the attribute name.
+// resolveEventHandlerEmission checks if an event directive should produce an HTML
+// attribute and returns the attribute name.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes eventName (string) which is the event name for the attribute key.
-// Takes node (*ast_domain.TemplateNode) which is the parent node that holds
-// the directive; used for source path lookup when the directive has none.
+// Takes node (*ast_domain.TemplateNode) which is the parent node that holds the
+// directive; used for source path lookup when the directive has none.
 //
 // Returns string which is the p-on:* or p-event:* attribute name.
 // Returns bool which is true if the directive should produce an HTML attribute.
 //
 // Emission rules:
-//   - Action/helper modifiers: Always emit (e.g. p-on:click.prevent). Event
-//     modifiers from the directive are appended to the attribute name so that
-//     DOMBinder can apply them at runtime.
+//   - Action/helper modifiers: Always emit (e.g. p-on:click.prevent). Event modifiers
+//     from the directive are appended to the attribute name so that DOMBinder can apply
+//     them at runtime.
 //   - No modifier with HasClientScript: Emit (e.g. p-on:click) for DOMBinder.
-//   - No modifier without client script: Do not emit (Go runtime handles this
-//     through AST directives).
+//   - No modifier without client script: Do not emit (Go runtime handles this through AST
+//     directives).
 func (ae *attributeEmitter) resolveEventHandlerEmission(d *ast_domain.Directive, eventName string, node *ast_domain.TemplateNode) (string, bool) {
 	prefix := "p-on:"
 	if d.Type != ast_domain.DirectiveOn {
@@ -136,17 +135,16 @@ func (ae *attributeEmitter) resolveEventHandlerEmission(d *ast_domain.Directive,
 	}
 }
 
-// directiveHasClientScript checks whether a directive comes from a component
-// with a client-side script. It first checks the directive's source path, then
-// the parent node's source path, and finally falls back to the main component's
-// HasClientScript setting.
+// directiveHasClientScript checks whether a directive comes from a component with a
+// client-side script. It first checks the directive's source path, then the parent node's
+// source path, and finally falls back to the main component's HasClientScript setting.
 //
-// Event handlers from embedded partials are then emitted even when the parent
-// page has no client script of its own.
+// Event handlers from embedded partials are then emitted even when the parent page has no
+// client script of its own.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
-// Takes node (*ast_domain.TemplateNode) which is the parent node containing
-// the directive; used as fallback if the directive lacks its own annotations.
+// Takes node (*ast_domain.TemplateNode) which is the parent node containing the
+// directive; used as fallback if the directive lacks its own annotations.
 //
 // Returns bool which is true if the directive's source has a client script.
 func (ae *attributeEmitter) directiveHasClientScript(d *ast_domain.Directive, node *ast_domain.TemplateNode) bool {
@@ -171,20 +169,16 @@ func (ae *attributeEmitter) directiveHasClientScript(d *ast_domain.Directive, no
 	return ae.emitter.config.HasClientScript
 }
 
-// buildActionPayload creates a DirectWriter with base64-encoded JSON
-// payload for remote, helper, or client event handlers.
+// buildActionPayload creates a DirectWriter with base64-encoded JSON payload for remote,
+// helper, or client event handlers.
 //
-// Takes d (ast_domain.Directive) which specifies the directive to
-// process.
+// Takes d (ast_domain.Directive) which specifies the directive to process.
 //
-// Returns statements ([]goast.Stmt) which contains the statements to
-// build the payload.
-// Returns dwVarExpr (goast.Expr) which is the DirectWriter variable
-// for AttributeWriters.
-// Returns bufferPointerVarExpr (goast.Expr) which is the buffer
-// pointer variable for nil check.
-// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any
-// validation errors.
+// Returns statements ([]goast.Stmt) which contains the statements to build the payload.
+// Returns dwVarExpr (goast.Expr) which is the DirectWriter variable for AttributeWriters.
+// Returns bufferPointerVarExpr (goast.Expr) which is the buffer pointer variable for nil
+// check.
+// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any validation errors.
 func (ae *attributeEmitter) buildActionPayload(
 	d ast_domain.Directive,
 	_ *ast_domain.TemplateNode,
@@ -199,13 +193,12 @@ func (ae *attributeEmitter) buildActionPayload(
 	return append(argStmts, payloadStmts...), dwVar, bufferPointerVar, argDiags
 }
 
-// normaliseAndValidateDirectiveExpression converts a directive expression to a
-// call expression and checks that it is valid.
+// normaliseAndValidateDirectiveExpression converts a directive expression to a call
+// expression and checks that it is valid.
 //
 // Takes d (ast_domain.Directive) which is the directive to process.
 //
-// Returns *ast_domain.CallExpression which is the call expression form of the
-// directive.
+// Returns *ast_domain.CallExpression which is the call expression form of the directive.
 // Returns *ast_domain.Identifier which is the function name from the callee.
 // Returns *ast_domain.Diagnostic which describes any error found.
 func (ae *attributeEmitter) normaliseAndValidateDirectiveExpression(d ast_domain.Directive) (*ast_domain.CallExpression, *ast_domain.Identifier, *ast_domain.Diagnostic) {
@@ -239,8 +232,8 @@ func (ae *attributeEmitter) normaliseAndValidateDirectiveExpression(d ast_domain
 // buildActionArgumentuments builds the ActionArgument constructors for all call
 // arguments.
 //
-// Takes arguments ([]ast_domain.Expression) which contains the expressions to
-// convert into action arguments.
+// Takes arguments ([]ast_domain.Expression) which contains the expressions to convert
+// into action arguments.
 //
 // Returns []goast.Expr which contains the generated argument constructors.
 // Returns []goast.Stmt which contains any statements needed for the arguments.
@@ -260,17 +253,15 @@ func (ae *attributeEmitter) buildActionArgumentuments(arguments []ast_domain.Exp
 	return goArgConstructors, allStmts, allDiags
 }
 
-// buildSingleActionArgument builds a single ActionArgument
-// constructor, handling both fixed and changing arguments.
+// buildSingleActionArgument builds a single ActionArgument constructor, handling both
+// fixed and changing arguments.
 //
-// Takes argument (ast_domain.Expression) which is the expression
-// to convert into an ActionArgument.
+// Takes argument (ast_domain.Expression) which is the expression to convert into an
+// ActionArgument.
 //
 // Returns goast.Expr which is the constructed ActionArgument composite literal.
-// Returns []goast.Stmt which contains statements that must run before the
-// expression.
-// Returns []*ast_domain.Diagnostic which contains any problems found during
-// conversion.
+// Returns []goast.Stmt which contains statements that must run before the expression.
+// Returns []*ast_domain.Diagnostic which contains any problems found during conversion.
 func (ae *attributeEmitter) buildSingleActionArgument(argument ast_domain.Expression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
 	argType, argValue, prereqs, diagnostics := ae.emitActionArgumentValue(argument)
 
@@ -305,19 +296,19 @@ func (ae *attributeEmitter) buildSingleActionArgument(argument ast_domain.Expres
 	return constructor, prereqs, diagnostics
 }
 
-// emitActionArgumentValue outputs the value for an action argument, using a
-// simpler path for fixed literals.
+// emitActionArgumentValue outputs the value for an action argument, using a fast path for
+// fixed literals.
 //
 // Takes argument (ast_domain.Expression) which is the expression to output.
 //
-// Returns argType (string) which shows the argument type: "s" for static,
-// "v" for variable, "e" for event placeholder, or "f" for form placeholder.
-// Returns value (goast.Expr) which is the resulting Go expression. This is
-// nil for "e" and "f" types.
-// Returns prereqs ([]goast.Stmt) which holds any statements that must run
-// before the value can be used.
-// Returns diagnostics ([]*ast_domain.Diagnostic) which holds any errors or
-// warnings found.
+// Returns argType (string) which is the argument type: "s" for static, "v" for variable,
+// "e" for event placeholder, or "f" for form placeholder.
+// Returns value (goast.Expr) which is the resulting Go expression; nil for "e" and "f"
+// types.
+// Returns prereqs ([]goast.Stmt) which holds any statements that must run before the
+// value can be used.
+// Returns diagnostics ([]*ast_domain.Diagnostic) which holds any errors or warnings
+// found.
 func (ae *attributeEmitter) emitActionArgumentValue(argument ast_domain.Expression) (argType string, value goast.Expr, prereqs []goast.Stmt, diagnostics []*ast_domain.Diagnostic) {
 	if identifier, ok := argument.(*ast_domain.Identifier); ok {
 		if identifier.Name == "$event" {
@@ -339,25 +330,19 @@ func (ae *attributeEmitter) emitActionArgumentValue(argument ast_domain.Expressi
 	}
 }
 
-// buildPayloadEncodingStatements builds statements that encode the
-// payload to base64 JSON using a pooled DirectWriter for
-// zero-allocation rendering.
+// buildPayloadEncodingStatements builds statements that encode the payload to base64 JSON
+// using a pooled DirectWriter for zero-allocation rendering.
 //
-// For argCount <= 4, uses fixed-arity encoder functions to avoid
-// slice allocation. For argCount > 4, falls back to the slice-based
-// variadic form.
+// For argCount <= 4, uses fixed-arity encoder functions to avoid slice allocation. For
+// argCount > 4, falls back to the slice-based variadic form.
 //
-// Takes functionName (string) which specifies the function name for
-// the payload.
-// Takes argConstructors ([]goast.Expr) which provides the argument
-// builder expressions.
+// Takes functionName (string) which specifies the function name for the payload.
+// Takes argConstructors ([]goast.Expr) which provides the argument builder expressions.
 //
-// Returns dwVarExpr (goast.Expr) which is the DirectWriter variable
-// for AttributeWriters.
-// Returns bufferPointerVarExpr (goast.Expr) which is the buffer
-// pointer variable for nil check.
-// Returns statements ([]goast.Stmt) which contains the statements
-// that do the encoding.
+// Returns dwVarExpr (goast.Expr) which is the DirectWriter variable for AttributeWriters.
+// Returns bufferPointerVarExpr (goast.Expr) which is the buffer pointer variable for nil
+// check.
+// Returns statements ([]goast.Stmt) which contains the statements that do the encoding.
 //
 // Generated code pattern (fixed-arity, 0-4 args):
 //
@@ -394,16 +379,13 @@ func (ae *attributeEmitter) buildPayloadEncodingStatements(functionName string, 
 	return dwVarExpr, bufferPointerVarExpr, statements
 }
 
-// buildEncodeActionPayloadCall builds a call expression to encode an action
-// payload.
+// buildEncodeActionPayloadCall builds a call expression to encode an action payload.
 //
-// Uses fixed-arity arena functions when argCount <= 4 to avoid slice
-// allocation. All variants use arena-aware functions to eliminate sync.Pool
-// allocations.
+// Uses fixed-arity arena functions when argCount <= 4 to avoid slice allocation. All
+// variants use arena-aware functions to eliminate sync.Pool allocations.
 //
 // Takes functionName (string) which is the action function name.
-// Takes argConstructors ([]goast.Expr) which are the ActionArgument composite
-// literals.
+// Takes argConstructors ([]goast.Expr) which are the ActionArgument composite literals.
 //
 // Returns goast.Expr which is the call expression for the encoder.
 func (*attributeEmitter) buildEncodeActionPayloadCall(functionName string, argConstructors []goast.Expr) goast.Expr {
@@ -436,16 +418,15 @@ func (*attributeEmitter) buildEncodeActionPayloadCall(functionName string, argCo
 	}
 }
 
-// buildEventAttributeName constructs the full HTML attribute name for an event
-// directive, appending any user-facing modifiers after the event name.
+// buildEventAttributeName constructs the full HTML attribute name for an event directive,
+// appending any user-facing modifiers after the event name.
 //
 // Takes prefix (string) which is "p-on:" or "p-event:".
 // Takes eventName (string) which is the DOM event name (e.g., "click").
-// Takes modifiers ([]string) which holds user-facing modifiers (e.g.,
-// ["prevent", "stop"]).
+// Takes modifiers ([]string) which holds user-facing modifiers (e.g., ["prevent",
+// "stop"]).
 //
-// Returns string which is the complete attribute name (e.g.,
-// "p-on:click.prevent.stop").
+// Returns string which is the complete attribute name (e.g., "p-on:click.prevent.stop").
 func buildEventAttributeName(prefix, eventName string, modifiers []string) string {
 	if len(modifiers) == 0 {
 		return fmt.Sprintf("%s%s", prefix, eventName)
@@ -455,16 +436,15 @@ func buildEventAttributeName(prefix, eventName string, modifiers []string) strin
 
 // normaliseToCallExpr converts an expression to a CallExpr.
 //
-// This handles both CallExpr and Identifier cases. When the expression is a
-// CallExpr, it returns it directly. When the expression is an Identifier
-// (bare handler name like "handler"), it wraps it in a new CallExpr with an
-// implicit $event argument, making bare handler equivalent to handler($event).
+// This handles both CallExpr and Identifier cases. When the expression is a CallExpr, it
+// returns it directly. When the expression is an Identifier (bare handler name like
+// "handler"), it wraps it in a new CallExpr with an implicit $event argument, making bare
+// handler equivalent to handler($event).
 //
 // Takes expression (ast_domain.Expression) which is the expression to convert.
 //
-// Returns *ast_domain.CallExpression which is the converted call
-// expression, or nil if the expression is neither a CallExpr nor
-// an Identifier.
+// Returns *ast_domain.CallExpression which is the converted call expression, or nil if
+// the expression is neither a CallExpr nor an Identifier.
 func normaliseToCallExpr(expression ast_domain.Expression) *ast_domain.CallExpression {
 	if ce, isCall := expression.(*ast_domain.CallExpression); isCall {
 		return ce
@@ -487,9 +467,8 @@ func normaliseToCallExpr(expression ast_domain.Expression) *ast_domain.CallExpre
 	return nil
 }
 
-// selectActionEncoderFunc returns the fixed-arity arena encoder function name
-// for the given argument count. Uses arena-aware functions to eliminate
-// sync.Pool allocations.
+// selectActionEncoderFunc returns the fixed-arity arena encoder function name for the
+// given argument count. Uses arena-aware functions to eliminate sync.Pool allocations.
 //
 // Takes argCount (int) which specifies the number of arguments to encode.
 //

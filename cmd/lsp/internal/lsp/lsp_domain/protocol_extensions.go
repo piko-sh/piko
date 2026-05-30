@@ -18,10 +18,12 @@
 
 package lsp_domain
 
-import "go.lsp.dev/protocol"
+import (
+	"go.lsp.dev/protocol"
+)
 
-// InlayHint represents an inline annotation displayed in the editor.
-// It can show type information, parameter names, or other hints.
+// InlayHint represents an inline annotation displayed in the editor. It can show type
+// information, parameter names, or other hints.
 type InlayHint struct {
 	// Label is the text to display for the hint.
 	Label string `json:"label"`
@@ -86,8 +88,8 @@ type TypeHierarchyItem struct {
 	SelectionRange protocol.Range `json:"selectionRange"`
 }
 
-// TypeHierarchyPrepareParams is the parameter for the
-// textDocument/prepareTypeHierarchy request.
+// TypeHierarchyPrepareParams is the parameter for the textDocument/prepareTypeHierarchy
+// request.
 type TypeHierarchyPrepareParams struct {
 	protocol.TextDocumentPositionParams
 }

@@ -19,14 +19,13 @@
 package tui_domain
 
 const (
-	// twoColumnPrimaryFraction is the fraction of width allocated to the
-	// primary pane in the two-column layout.
+	// twoColumnPrimaryFraction is the fraction of width allocated to the primary pane in the
+	// two-column layout.
 	twoColumnPrimaryFraction = 0.62
 )
 
-// TwoColumnLayout renders two panes side-by-side. The focused panel is
-// allocated to the primary slot; an associated panel (chosen by the
-// PaneAssigner) takes the detail slot.
+// TwoColumnLayout renders two panes side-by-side. The focused panel is allocated to the
+// primary slot; an associated panel (chosen by the PaneAssigner) takes the detail slot.
 type TwoColumnLayout struct{}
 
 // NewTwoColumnLayout returns the canonical two-column layout.
@@ -48,9 +47,9 @@ func (*TwoColumnLayout) MaxPanes() int { return 2 }
 
 // Allocate splits the layout rectangle into a primary and detail pane.
 //
-// When the rectangle is too narrow to fit two panes at their minimum width the
-// layout falls back to a single full-width pane, so callers always receive
-// at least one rectangle when there is room for any content.
+// When the rectangle is too narrow to fit two panes at their minimum width the layout
+// falls back to a single full-width pane, so callers always receive at least one
+// rectangle when there is room for any content.
 //
 // Takes width (int) which is the layout area width.
 // Takes height (int) which is the layout area height.

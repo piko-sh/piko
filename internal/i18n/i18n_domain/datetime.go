@@ -33,17 +33,15 @@ const (
 	// DateTimeStyleMedium is a moderate format (e.g., "15 Jan 2024", "15:04:05").
 	DateTimeStyleMedium
 
-	// DateTimeStyleLong is a detailed format (e.g., "15 January 2024", "15:04:05
-	// GMT").
+	// DateTimeStyleLong is a detailed format (e.g., "15 January 2024", "15:04:05 GMT").
 	DateTimeStyleLong
 
-	// DateTimeStyleFull is the most detailed format (e.g., "Monday, 15 January
-	// 2024").
+	// DateTimeStyleFull is the most detailed format (e.g., "Monday, 15 January 2024").
 	DateTimeStyleFull
 )
 
-// DateTime wraps a time.Time value with formatting options for localised
-// rendering. It implements fmt.Stringer.
+// DateTime wraps a time.Time value with formatting options for localised rendering. It
+// implements fmt.Stringer.
 type DateTime struct {
 	// Time is the underlying timestamp value.
 	Time time.Time
@@ -65,8 +63,8 @@ type DateTime struct {
 //
 // Takes t (time.Time) which specifies the time value to wrap.
 //
-// Returns DateTime which is configured with medium style and all display
-// options disabled.
+// Returns DateTime which is configured with medium style and all display options
+// disabled.
 func NewDateTime(t time.Time) DateTime {
 	return DateTime{
 		Time:         t,
@@ -79,8 +77,7 @@ func NewDateTime(t time.Time) DateTime {
 
 // DateOnly returns a copy configured to format only the date.
 //
-// Returns DateTime which has date formatting enabled and time formatting
-// disabled.
+// Returns DateTime which has date formatting enabled and time formatting disabled.
 func (dt DateTime) DateOnly() DateTime {
 	dt.OnlyDate = true
 	dt.OnlyTime = false
@@ -136,8 +133,8 @@ func (dt DateTime) Full() DateTime {
 	return dt
 }
 
-// localePatterns holds date and time format patterns for a locale.
-// Patterns use Go's time.Format reference time (Mon Jan 2 15:04:05 MST 2006).
+// localePatterns holds date and time format patterns for a locale. Patterns use Go's
+// time.Format reference time (Mon Jan 2 15:04:05 MST 2006).
 type localePatterns struct {
 	// DateShort is the Go time format pattern for short date style.
 	DateShort string
@@ -177,8 +174,8 @@ var (
 		TimeFull:   "15:04:05 MST",
 	}
 
-	// localeFormats maps locale codes to their date/time patterns. Locales are
-	// matched by prefix, so "en-GB" matches before falling back to "en".
+	// localeFormats maps locale codes to their date/time patterns. Locales are matched by
+	// prefix, so "en-GB" matches before falling back to "en".
 	localeFormats = map[string]localePatterns{
 		"en-GB": {
 			DateShort:  "02/01/2006",
@@ -453,8 +450,7 @@ var (
 	}
 )
 
-// Format formats the DateTime according to its configuration and the given
-// locale.
+// Format formats the DateTime according to its configuration and the given locale.
 //
 // Takes locale (string) which specifies the locale for formatting.
 //
@@ -534,8 +530,8 @@ func FormatDateTime(t time.Time, locale string, style DateTimeStyle, dateOnly, t
 // Takes t (time.Time) which specifies the time value to wrap.
 // Takes style (DateTimeStyle) which determines how the time is formatted.
 //
-// Returns DateTime which contains the time with the given style and default
-// display options.
+// Returns DateTime which contains the time with the given style and default display
+// options.
 func newDateTimeWithStyle(t time.Time, style DateTimeStyle) DateTime {
 	return DateTime{
 		Time:         t,
@@ -546,8 +542,8 @@ func newDateTimeWithStyle(t time.Time, style DateTimeStyle) DateTime {
 	}
 }
 
-// getPatternsForLocale returns the format patterns for a locale.
-// It tries an exact match first, then falls back to the base language.
+// getPatternsForLocale returns the format patterns for a locale. It tries an exact match
+// first, then falls back to the base language.
 //
 // Takes locale (string) which specifies the locale code to look up.
 //

@@ -23,14 +23,13 @@ import (
 	"time"
 )
 
-// ProvidersInspector exposes the read-only provider-info API surface
-// the CLI uses for `piko get providers` / `piko describe provider`. It
-// is the data port for ProvidersPanel.
+// ProvidersInspector exposes the read-only provider-info API surface the CLI uses for
+// `piko get providers` / `piko describe provider`. It is the data port for
+// ProvidersPanel.
 type ProvidersInspector interface {
 	Provider
 
-	// ListProviders returns every registered provider grouped by
-	// resource type.
+	// ListProviders returns every registered provider grouped by resource type.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//
@@ -49,14 +48,13 @@ type ProvidersInspector interface {
 	DescribeProvider(ctx context.Context, resourceType, name string) (*ProviderDetail, error)
 }
 
-// ProviderEntry is a single registered provider as listed by the
-// ProviderInfo service.
+// ProviderEntry is a single registered provider as listed by the ProviderInfo service.
 type ProviderEntry struct {
 	// Values is the column-keyed metadata returned by the service.
 	Values map[string]string
 
-	// ResourceType is the kind of resource the provider serves
-	// (artefacts, tasks, workflows, ...).
+	// ResourceType is the kind of resource the provider serves (artefacts, tasks, workflows,
+	// ...).
 	ResourceType string
 
 	// Name is the provider identifier within its type.
@@ -74,12 +72,11 @@ type ProviderDetail struct {
 	// Name is the provider identifier within its type.
 	Name string
 
-	// Sections holds the labelled key/value groups returned by
-	// DescribeProvider.
+	// Sections holds the labelled key/value groups returned by DescribeProvider.
 	Sections []ProviderSection
 
-	// SubResources lists the addressable sub-resources owned by the
-	// provider; may be empty when sub-resources are unsupported.
+	// SubResources lists the addressable sub-resources owned by the provider; may be empty
+	// when sub-resources are unsupported.
 	SubResources []ProviderSubResource
 }
 
@@ -101,8 +98,8 @@ type ProviderField struct {
 	Value string
 }
 
-// ProviderSubResource is a child resource owned by a provider, with
-// arbitrary key/value metadata.
+// ProviderSubResource is a child resource owned by a provider, with arbitrary key/value
+// metadata.
 type ProviderSubResource struct {
 	// Values holds arbitrary metadata.
 	Values map[string]string
@@ -114,8 +111,8 @@ type ProviderSubResource struct {
 	Name string
 }
 
-// DLQInspector exposes the dispatcher summaries + DLQ entries surface
-// of the gRPC API. It is the data port for DLQPanel.
+// DLQInspector exposes the dispatcher summaries + DLQ entries surface of the gRPC API. It
+// is the data port for DLQPanel.
 type DLQInspector interface {
 	Provider
 
@@ -127,8 +124,7 @@ type DLQInspector interface {
 	// Returns error when the call fails.
 	DispatcherSummaries(ctx context.Context) ([]DispatcherSummary, error)
 
-	// ListDLQEntries returns the dead-letter-queue entries for a
-	// dispatcher type.
+	// ListDLQEntries returns the dead-letter-queue entries for a dispatcher type.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	// Takes dispatcherType (string) which selects the dispatcher.
@@ -147,15 +143,14 @@ type DispatcherSummary struct {
 	// QueuedItems is the count currently queued.
 	QueuedItems int32
 
-	// DeadLetterCount is the count of entries in the dead-letter
-	// queue awaiting human attention.
+	// DeadLetterCount is the count of entries in the dead-letter queue that require human
+	// attention.
 	DeadLetterCount int32
 
 	// TotalProcessed is the lifetime count of processed items.
 	TotalProcessed int64
 
-	// TotalSuccessful is the lifetime count of items that completed
-	// successfully.
+	// TotalSuccessful is the lifetime count of items that completed successfully.
 	TotalSuccessful int64
 
 	// TotalFailed is the lifetime count of items that ended in failure.
@@ -185,17 +180,15 @@ type DLQEntry struct {
 	// Type is the dispatcher kind that produced this entry.
 	Type string
 
-	// OriginalError is the error message captured at the failing
-	// attempt.
+	// OriginalError is the error message captured at the failing attempt.
 	OriginalError string
 
-	// TotalAttempts is the count of retries before the entry was
-	// dead-lettered.
+	// TotalAttempts is the count of retries before the entry was dead-lettered.
 	TotalAttempts int32
 }
 
-// RateLimiterInspector exposes the GetRateLimiterStatus RPC. It is the
-// data port for RateLimiterPanel.
+// RateLimiterInspector exposes the GetRateLimiterStatus RPC. It is the data port for
+// RateLimiterPanel.
 type RateLimiterInspector interface {
 	Provider
 
@@ -208,8 +201,7 @@ type RateLimiterInspector interface {
 	GetStatus(ctx context.Context) (*RateLimiterStatus, error)
 }
 
-// RateLimiterStatus mirrors the GetRateLimiterStatusResponse fields the
-// TUI surfaces.
+// RateLimiterStatus mirrors the GetRateLimiterStatusResponse fields the TUI surfaces.
 type RateLimiterStatus struct {
 	// TokenBucketStore identifies the token-bucket backing store.
 	TokenBucketStore string
@@ -220,8 +212,7 @@ type RateLimiterStatus struct {
 	// FailPolicy is the configured fail-open / fail-closed mode.
 	FailPolicy string
 
-	// KeyPrefix is the namespace under which rate-limit keys are
-	// stored.
+	// KeyPrefix is the namespace under which rate-limit keys are stored.
 	KeyPrefix string
 
 	// TotalChecks is the lifetime count of rate-limit checks.
@@ -237,8 +228,8 @@ type RateLimiterStatus struct {
 	TotalErrors int64
 }
 
-// ProfilingInspector exposes the profiling control + capture surface.
-// It is the data port for ProfilingPanel.
+// ProfilingInspector exposes the profiling control + capture surface. It is the data port
+// for ProfilingPanel.
 type ProfilingInspector interface {
 	Provider
 
@@ -250,9 +241,9 @@ type ProfilingInspector interface {
 	// Returns error when the call fails.
 	Status(ctx context.Context) (*ProfilingStatus, error)
 
-	// Enable turns on the server's on-demand profiling for a fixed
-	// window. The set of profiles exposed is decided by the server
-	// build, so callers cannot select individual profile kinds.
+	// Enable turns on the server's on-demand profiling for a fixed window. The set of
+	// profiles exposed is decided by the server build, so callers cannot select individual
+	// profile kinds.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//
@@ -268,10 +259,9 @@ type ProfilingInspector interface {
 
 	// Capture takes a one-shot profile and returns the raw bytes.
 	//
-	// Takes ctx (context.Context) for cancellation; the call also
-	// observes duration as a deadline.
-	// Takes profile (string) which is the profile kind ("cpu",
-	// "heap", ...).
+	// Takes ctx (context.Context) for cancellation; the call also observes duration as a
+	// deadline.
+	// Takes profile (string) which is the profile kind ("cpu", "heap", ...).
 	// Takes duration (time.Duration) which is the sampling window.
 	//
 	// Returns []byte with the pprof-encoded profile data.
@@ -281,16 +271,15 @@ type ProfilingInspector interface {
 
 // ProfilingStatus mirrors the GetProfilingStatusResponse surface.
 type ProfilingStatus struct {
-	// ExpiresAt is when on-demand profiling will turn itself off;
-	// zero when no expiry is set.
+	// ExpiresAt is when on-demand profiling will turn itself off; zero when no expiry is
+	// set.
 	ExpiresAt time.Time
 
-	// PprofBaseURL is the base URL exposed by the server for net/http
-	// pprof endpoints, when on-demand profiling is enabled.
+	// PprofBaseURL is the base URL exposed by the server for net/http pprof endpoints, when
+	// on-demand profiling is enabled.
 	PprofBaseURL string
 
-	// AvailableProfiles is the set of profile kinds the server can
-	// produce in this build.
+	// AvailableProfiles is the set of profile kinds the server can produce in this build.
 	AvailableProfiles []string
 
 	// Remaining is how long is left before automatic disable.

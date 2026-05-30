@@ -16,25 +16,23 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package notification_domain coordinates the sending of notifications
-// through a pluggable provider registry.
+// Package notification_domain coordinates the sending of notifications through a
+// pluggable provider registry.
 //
 // It defines port interfaces ([Service], [NotificationProviderPort],
-// [NotificationDispatcherPort]), a fluent builder for composing
-// notifications, and an asynchronous dispatcher with batching,
-// exponential-backoff retry, circuit breakers, and dead letter queue
-// support.
+// [NotificationDispatcherPort]), a fluent builder for composing notifications, and an
+// asynchronous dispatcher with batching, exponential-backoff retry, circuit breakers, and
+// dead letter queue support.
 //
 // # Context handling
 //
-// All terminal operations ([NotificationBuilder.Do]) honour context
-// cancellation and deadlines. If the context is already cancelled or has
-// exceeded its deadline, the operation returns immediately with the
-// context's error.
+// All terminal operations ([NotificationBuilder.Do]) honour context cancellation and
+// deadlines. If the context is already cancelled or has exceeded its deadline, the
+// operation returns immediately with the context's error.
 //
 // # Thread safety
 //
-// The [Service] implementation and [NotificationDispatcher] are safe for
-// concurrent use. Provider registration, dispatcher operations, and
-// notification sending are all protected by appropriate mutexes.
+// The [Service] implementation and [NotificationDispatcher] are safe for concurrent use.
+// Provider registration, dispatcher operations, and notification sending are all
+// protected by appropriate mutexes.
 package notification_domain

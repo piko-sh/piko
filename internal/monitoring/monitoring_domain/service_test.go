@@ -34,7 +34,9 @@ type mockSpanProcessor struct{}
 func (m *mockSpanProcessor) Shutdown(_ context.Context) error   { return nil }
 func (m *mockSpanProcessor) ForceFlush(_ context.Context) error { return nil }
 
-var _ SpanProcessor = (*mockSpanProcessor)(nil)
+var (
+	_ SpanProcessor = (*mockSpanProcessor)(nil)
+)
 
 type mockMetricReader struct{}
 
@@ -59,7 +61,9 @@ func (m *mockMetricsCollectorAdapter) Reader() MetricReader {
 	return &mockMetricReader{}
 }
 
-var _ MetricsCollectorAdapter = (*mockMetricsCollectorAdapter)(nil)
+var (
+	_ MetricsCollectorAdapter = (*mockMetricsCollectorAdapter)(nil)
+)
 
 type mockTransportServer struct {
 	address     string
@@ -81,7 +85,9 @@ func (m *mockTransportServer) Address() string {
 	return m.address
 }
 
-var _ TransportServer = (*mockTransportServer)(nil)
+var (
+	_ TransportServer = (*mockTransportServer)(nil)
+)
 
 func newTestFactories(spanProcessor SpanProcessor, metricsAdapter *mockMetricsCollectorAdapter) ServiceFactories {
 	return ServiceFactories{

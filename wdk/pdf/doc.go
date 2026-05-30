@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pdf provides a builder-based interface for rendering PDF documents
-// from Piko templates, with support for metadata, watermarks, PDF/A
-// conformance, accessibility tagging, page labels, SVG vector rendering,
-// custom fonts, and post-processing transformations.
+// Package pdf provides a builder-based interface for rendering PDF documents from Piko
+// templates, with support for metadata, watermarks, PDF/A conformance, accessibility
+// tagging, page labels, SVG vector rendering, custom fonts, and post-processing
+// transformations.
 //
-// If the Piko framework has been bootstrapped (daemon mode),
-// [GetDefaultService] returns the pre-configured service instance. For
-// standalone use (tests, CLI), create a service from a compiled manifest
-// with [NewServiceFromManifest].
+// If the Piko framework has been bootstrapped (daemon mode), [GetDefaultService] returns
+// the pre-configured service instance. For standalone use (tests, CLI), create a service
+// from a compiled manifest with [NewServiceFromManifest].
 //
 // # Daemon usage
 //
@@ -52,6 +51,6 @@
 //
 // # Thread safety
 //
-// [Service] and [RenderBuilder] are safe for concurrent use. Each call
-// to NewRender creates an independent builder instance.
+// [Service] and [RenderBuilder] are safe for concurrent use. Each call to NewRender
+// creates an independent builder instance.
 package pdf

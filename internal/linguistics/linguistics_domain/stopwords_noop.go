@@ -18,32 +18,34 @@
 
 package linguistics_domain
 
-// NoOpStopWordsProvider implements StopWordsProviderPort and returns empty maps.
-// It is the default when no stop words provider is set, allowing the system to
-// work without stop word filtering.
+// NoOpStopWordsProvider implements StopWordsProviderPort and returns empty maps. It is
+// the default when no stop words provider is set, allowing the system to work without
+// stop word filtering.
 type NoOpStopWordsProvider struct{}
 
-var _ StopWordsProviderPort = (*NoOpStopWordsProvider)(nil)
+var (
+	_ StopWordsProviderPort = (*NoOpStopWordsProvider)(nil)
+)
 
-// NewNoOpStopWordsProvider creates a stop words provider that does nothing.
-// The provider returns empty stop word maps for all languages.
+// NewNoOpStopWordsProvider creates a stop words provider that does nothing. The provider
+// returns empty stop word maps for all languages.
 //
-// Returns *NoOpStopWordsProvider which implements StopWordsProviderPort but
-// provides no stop words.
+// Returns *NoOpStopWordsProvider which implements StopWordsProviderPort but provides no
+// stop words.
 func NewNoOpStopWordsProvider() *NoOpStopWordsProvider {
 	return &NoOpStopWordsProvider{}
 }
 
-// GetStopWords returns an empty map for any language. Satisfies the
-// StopWordsProviderPort interface without providing any actual stop words.
+// GetStopWords returns an empty map for any language. Satisfies the StopWordsProviderPort
+// interface without providing any actual stop words.
 //
 // Returns map[string]bool which is always an empty map.
 func (*NoOpStopWordsProvider) GetStopWords(_ string) map[string]bool {
 	return make(map[string]bool)
 }
 
-// SupportedLanguages returns an empty slice.
-// This provider does not support any languages.
+// SupportedLanguages returns an empty slice. This provider does not support any
+// languages.
 //
 // Returns []string which is always an empty slice.
 func (*NoOpStopWordsProvider) SupportedLanguages() []string {

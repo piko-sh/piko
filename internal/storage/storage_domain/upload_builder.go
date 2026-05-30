@@ -28,11 +28,10 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// UploadBuilder composes and executes object uploads. It sets upload parameters
-// like metadata, transforms, and content-addressing.
+// UploadBuilder composes and executes object uploads. It sets upload parameters like
+// metadata, transforms, and content-addressing.
 //
-// Usage:
-// err := service.NewUpload(reader).
+// Usage: err := service.NewUpload(reader).
 //
 //	WithKey("path/to/image.jpg").
 //	WithContentType("image/jpeg").
@@ -57,8 +56,8 @@ type UploadBuilder struct {
 //
 // Takes reader (io.Reader) which contains the object's data to upload.
 //
-// Returns *UploadBuilder which provides a fluent interface for configuring
-// the upload before execution.
+// Returns *UploadBuilder which provides a fluent interface for configuring the upload
+// before execution.
 func (s *service) NewUpload(reader io.Reader) *UploadBuilder {
 	return &UploadBuilder{
 		service:       s,
@@ -92,8 +91,7 @@ func (b *UploadBuilder) Key(key string) *UploadBuilder {
 
 // Repository sets the destination repository for the object.
 //
-// If not called, the upload will go to the default repository
-// (StorageRepositoryDefault).
+// If not called, the upload will go to the default repository (StorageRepositoryDefault).
 //
 // Takes repo (string) which specifies the repository name.
 //
@@ -103,8 +101,7 @@ func (b *UploadBuilder) Repository(repo string) *UploadBuilder {
 	return b
 }
 
-// ContentType sets the MIME type of the object (e.g., "image/jpeg",
-// "application/pdf").
+// ContentType sets the MIME type of the object (e.g., "image/jpeg", "application/pdf").
 //
 // Takes contentType (string) which specifies the MIME type for the upload.
 //
@@ -114,9 +111,8 @@ func (b *UploadBuilder) ContentType(contentType string) *UploadBuilder {
 	return b
 }
 
-// Size sets the total size of the object in bytes.
-// This is important for optimising uploads (e.g., enabling multipart) and for
-// validation.
+// Size sets the total size of the object in bytes. This is important for optimising
+// uploads (e.g., enabling multipart) and for validation.
 //
 // Takes size (int64) which specifies the object size in bytes.
 //
@@ -128,8 +124,7 @@ func (b *UploadBuilder) Size(size int64) *UploadBuilder {
 
 // Metadata attaches custom key-value metadata to the object.
 //
-// Takes metadata (map[string]string) which contains the key-value pairs to
-// attach.
+// Takes metadata (map[string]string) which contains the key-value pairs to attach.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) Metadata(metadata map[string]string) *UploadBuilder {
@@ -137,8 +132,8 @@ func (b *UploadBuilder) Metadata(metadata map[string]string) *UploadBuilder {
 	return b
 }
 
-// Provider specifies a non-default storage provider for this upload.
-// If not called, the service's default provider will be used.
+// Provider specifies a non-default storage provider for this upload. If not called, the
+// service's default provider will be used.
 //
 // Takes name (string) which identifies the storage provider to use.
 //
@@ -148,14 +143,13 @@ func (b *UploadBuilder) Provider(name string) *UploadBuilder {
 	return b
 }
 
-// CAS enables Content-Addressable Storage for this upload. The object's
-// key will be generated from its content hash; the key specified in To() will
-// be ignored.
+// CAS enables Content-Addressable Storage for this upload. The object's key will be
+// generated from its content hash; the key specified in To() will be ignored.
 //
-// Takes algorithm (string) which specifies the hash algorithm to use, either
-// "sha256" (default) or "md5".
-// Takes expectedHash (...string) which optionally provides a hash to verify
-// against; the upload will fail if the computed hash does not match.
+// Takes algorithm (string) which specifies the hash algorithm to use, either "sha256"
+// (default) or "md5".
+// Takes expectedHash (...string) which optionally provides a hash to verify against; the
+// upload will fail if the computed hash does not match.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) CAS(algorithm string, expectedHash ...string) *UploadBuilder {
@@ -167,12 +161,12 @@ func (b *UploadBuilder) CAS(algorithm string, expectedHash ...string) *UploadBui
 	return b
 }
 
-// Transformer adds a stream transformer to the upload pipeline by name.
-// Call multiple times to chain transformers in order of priority.
+// Transformer adds a stream transformer to the upload pipeline by name. Call multiple
+// times to chain transformers in order of priority.
 //
 // Takes name (string) which is the registered name of the transformer.
-// Takes options (...any) which provides transformer-specific options
-// such as an encryption key. Only the first option is used if provided.
+// Takes options (...any) which provides transformer-specific options such as an
+// encryption key. Only the first option is used if provided.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) Transformer(name string, options ...any) *UploadBuilder {
@@ -189,12 +183,11 @@ func (b *UploadBuilder) Transformer(name string, options ...any) *UploadBuilder 
 	return b
 }
 
-// Multipart configures and enables multipart uploading, which is ideal
-// for large files. If not called, the service may still enable multipart
-// automatically based on file size.
+// Multipart configures and enables multipart uploading, which is ideal for large files.
+// If not called, the service may still enable multipart automatically based on file size.
 //
-// Takes config (storage_dto.MultipartUploadConfig) which specifies the
-// multipart upload settings.
+// Takes config (storage_dto.MultipartUploadConfig) which specifies the multipart upload
+// settings.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) Multipart(config storage_dto.MultipartUploadConfig) *UploadBuilder {
@@ -202,9 +195,8 @@ func (b *UploadBuilder) Multipart(config storage_dto.MultipartUploadConfig) *Upl
 	return b
 }
 
-// Dispatch queues the upload for asynchronous processing via the storage
-// dispatcher. If no dispatcher is configured, the call has no effect and the
-// upload remains synchronous.
+// Dispatch queues the upload for asynchronous processing via the storage dispatcher. If
+// no dispatcher is configured, the call has no effect and the upload remains synchronous.
 //
 // Returns *UploadBuilder which allows method chaining.
 func (b *UploadBuilder) Dispatch() *UploadBuilder {
@@ -214,14 +206,13 @@ func (b *UploadBuilder) Dispatch() *UploadBuilder {
 
 // Do runs the upload operation that was set up with this builder.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// By default, the operation runs at once and waits to finish. Use Dispatch to
-// queue it for later instead.
+// By default, the operation runs at once and waits to finish. Use Dispatch to queue it
+// for later instead.
 //
-// Returns error when the upload fails or the dispatcher cannot queue the
-// operation.
+// Returns error when the upload fails or the dispatcher cannot queue the operation.
 func (b *UploadBuilder) Do(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("uploading object: %w", err)
@@ -241,15 +232,12 @@ func (b *UploadBuilder) Do(ctx context.Context) error {
 	return s.PutObject(ctx, name, b.params)
 }
 
-// Build finalises the construction of the upload spec for bulk upload
-// operations.
+// Build finalises the construction of the upload spec for bulk upload operations.
 //
 // Consumes the reader and can only be called once.
 //
-// Returns storage_dto.PutObjectSpec which contains the configured upload
-// specification.
-// Returns error when the reader has already been consumed or was never
-// provided.
+// Returns storage_dto.PutObjectSpec which contains the configured upload specification.
+// Returns error when the reader has already been consumed or was never provided.
 func (b *UploadBuilder) Build() (storage_dto.PutObjectSpec, error) {
 	if b.params.Reader == nil {
 		return storage_dto.PutObjectSpec{}, errors.New("reader has already been consumed or was never provided")
@@ -266,10 +254,9 @@ func (b *UploadBuilder) Build() (storage_dto.PutObjectSpec, error) {
 
 // Clone creates a deep copy of the UploadBuilder for use as a template.
 //
-// Use it to create an upload template that can be modified and used
-// multiple times. The underlying io.Reader is not cloned and will be
-// nil in the new builder. You must provide a new reader to the cloned
-// builder before executing the upload.
+// Use it to create an upload template that can be modified and used multiple times. The
+// underlying io.Reader is not cloned and will be nil in the new builder. You must provide
+// a new reader to the cloned builder before executing the upload.
 //
 // Returns *UploadBuilder which is the deep copy with a nil reader.
 func (b *UploadBuilder) Clone() *UploadBuilder {

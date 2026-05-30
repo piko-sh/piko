@@ -22,27 +22,32 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "dutch"
+const (
 
-// stopWords contains common Dutch stop words.
-var stopWords = map[string]bool{
-	"de": true, "het": true, "een": true,
-	"ik": true, "je": true, "jij": true, "u": true, "hij": true, "zij": true, "ze": true, "wij": true, "we": true, "jullie": true,
-	"mij": true, "me": true, "jou": true, "hem": true, "haar": true, "ons": true, "hen": true, "hun": true,
-	"mijn": true, "jouw": true, "uw": true, "zijn": true, "onze": true,
-	"in": true, "op": true, "aan": true, "van": true, "voor": true, "met": true, "naar": true, "om": true, "bij": true, "tot": true, "uit": true, "over": true, "door": true,
-	"en": true, "of": true, "maar": true, "want": true, "dus": true, "dat": true, "die": true, "wie": true, "wat": true, "waar": true, "wanneer": true, "hoe": true,
-	"is": true, "was": true, "waren": true, "ben": true, "bent": true, "wordt": true, "worden": true, "werd": true, "werden": true,
-	"heeft": true, "hebben": true, "had": true, "hadden": true, "kan": true, "kunnen": true, "kon": true, "konden": true,
-	"zal": true, "zullen": true, "zou": true, "zouden": true, "moet": true, "moeten": true,
-	"dit": true, "deze": true,
-	"niet": true, "geen": true, "wel": true, "ook": true, "nog": true, "al": true, "er": true, "hier": true, "daar": true,
-	"nu": true, "dan": true, "zo": true, "als": true, "meer": true, "veel": true, "te": true, "zeer": true,
-}
+	// Language is the language code for this provider.
+	Language = "dutch"
+)
 
-// Provider supplies Dutch stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+var (
+	// stopWords contains common Dutch stop words.
+	stopWords = map[string]bool{
+		"de": true, "het": true, "een": true,
+		"ik": true, "je": true, "jij": true, "u": true, "hij": true, "zij": true, "ze": true, "wij": true, "we": true, "jullie": true,
+		"mij": true, "me": true, "jou": true, "hem": true, "haar": true, "ons": true, "hen": true, "hun": true,
+		"mijn": true, "jouw": true, "uw": true, "zijn": true, "onze": true,
+		"in": true, "op": true, "aan": true, "van": true, "voor": true, "met": true, "naar": true, "om": true, "bij": true, "tot": true, "uit": true, "over": true, "door": true,
+		"en": true, "of": true, "maar": true, "want": true, "dus": true, "dat": true, "die": true, "wie": true, "wat": true, "waar": true, "wanneer": true, "hoe": true,
+		"is": true, "was": true, "waren": true, "ben": true, "bent": true, "wordt": true, "worden": true, "werd": true, "werden": true,
+		"heeft": true, "hebben": true, "had": true, "hadden": true, "kan": true, "kunnen": true, "kon": true, "konden": true,
+		"zal": true, "zullen": true, "zou": true, "zouden": true, "moet": true, "moeten": true,
+		"dit": true, "deze": true,
+		"niet": true, "geen": true, "wel": true, "ook": true, "nog": true, "al": true, "er": true, "hier": true, "daar": true,
+		"nu": true, "dan": true, "zo": true, "als": true, "meer": true, "veel": true, "te": true, "zeer": true,
+	}
+)
+
+// Provider supplies Dutch stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the Dutch stop words.
@@ -61,12 +66,14 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new Dutch stop words provider instance.
 //
-// Use this with linguistics_domain.RegisterStopWordsProviderFactory for
-// explicit registration.
+// Use this with linguistics_domain.RegisterStopWordsProviderFactory for explicit
+// registration.
 //
 // Returns linguistics_domain.StopWordsProviderPort which is the provider.
 // Returns error when the provider cannot be created.

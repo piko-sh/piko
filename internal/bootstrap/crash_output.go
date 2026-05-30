@@ -30,54 +30,58 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// crashOutputFileMode is the permission mode used for the crash output file.
-// Restricted to owner-read/write because crash output may contain process
-// memory addresses and stack frames the operator does not want world-readable.
-const crashOutputFileMode = 0o600
+const (
+	// crashOutputFileMode is the permission mode used for the crash output file. Restricted
+	// to owner-read/write because crash output may contain process memory addresses and
+	// stack frames the operator does not want world-readable.
+	crashOutputFileMode = 0o600
 
-// crashOutputPathLogField is the structured-log field name used when reporting
-// the crash output file path. Centralised so the value matches across all
-// callers.
-const crashOutputPathLogField = "path"
+	// crashOutputPathLogField is the structured-log field name used when reporting the crash
+	// output file path. Centralised so the value matches across all callers.
+	crashOutputPathLogField = "path"
+)
 
-// validTracebackLevels is the set of values accepted by SetTraceback. The
-// runtime treats any other value as "single" silently, which makes typos
-// hard to spot, so we validate explicitly to surface them.
-var validTracebackLevels = map[string]struct{}{
-	"none":   {},
-	"single": {},
-	"all":    {},
-	"system": {},
-	"crash":  {},
-	"wer":    {},
-}
+var (
+	// validTracebackLevels is the set of values accepted by SetTraceback. The runtime treats
+	// any other value as "single" silently, which makes typos hard to spot, so we validate
+	// explicitly to surface them.
+	validTracebackLevels = map[string]struct{}{
+		"none":   {},
+		"single": {},
+		"all":    {},
+		"system": {},
+		"crash":  {},
+		"wer":    {},
+	}
+)
+var (
 
-// ErrInvalidCrashTracebackLevel is returned when the user supplies an
-// unrecognised GOTRACEBACK level via WithCrashTraceback.
-var ErrInvalidCrashTracebackLevel = errors.New("invalid crash traceback level")
+	// ErrInvalidCrashTracebackLevel is returned when the user supplies an unrecognised
+	// GOTRACEBACK level via WithCrashTraceback.
+	ErrInvalidCrashTracebackLevel = errors.New("invalid crash traceback level")
+)
 
-// InstallCrashOutput configures the Go runtime to mirror unrecovered panic
-// output and fatal-error tracebacks based on the container's crash settings.
-// It must be called before any application goroutines are spawned because
-// the runtime takes ownership of the file descriptor for its lifetime.
+// InstallCrashOutput configures the Go runtime to mirror unrecovered panic output and
+// fatal-error tracebacks based on the container's crash settings. It must be called
+// before any application goroutines are spawned because the runtime takes ownership of
+// the file descriptor for its lifetime.
 //
-// The function is best-effort: any failure to open the crash file is logged
-// at Warn level but does NOT propagate, so a misconfigured crash path cannot
-// prevent the process from starting. SetTraceback errors do propagate
-// because they indicate a programming error in option construction (an
-// invalid level constant).
+// The function is best-effort: any failure to open the crash file is logged at Warn level
+// but does NOT propagate, so a misconfigured crash path cannot prevent the process from
+// starting. SetTraceback errors do propagate because they indicate a programming error in
+// option construction (an invalid level constant).
 //
-// Path validation is delegated to a safedisk sandbox rooted at the parent
-// directory of the configured path. The sandbox catches typos, traversal,
-// and unwritable parents at Open time. The actual file is then opened with
-// os.OpenFile because runtime/debug.SetCrashOutput requires *os.File and
-// safedisk's FileHandle interface intentionally hides the underlying type.
+// Path validation is delegated to a safedisk sandbox rooted at the parent directory of
+// the configured path. The sandbox catches typos, traversal, and unwritable parents at
+// Open time. The actual file is then opened with os.OpenFile because
+// runtime/debug.SetCrashOutput requires *os.File and safedisk's FileHandle interface
+// intentionally hides the underlying type.
 //
-// Takes container (*Container) which provides the configured crash output
-// path and traceback level.
+// Takes container (*Container) which provides the configured crash output path and
+// traceback level.
 //
-// Returns func() which releases the crash file descriptor on shutdown, or
-// nil when no file was opened.
+// Returns func() which releases the crash file descriptor on shutdown, or nil when no
+// file was opened.
 // Returns error when the configured traceback level is invalid.
 func InstallCrashOutput(ctx context.Context, container *Container) (closeFn func(), err error) {
 	if container == nil {
@@ -107,15 +111,14 @@ func InstallCrashOutput(ctx context.Context, container *Container) (closeFn func
 	return openAndRegisterCrashFile(ctx, cleanPath)
 }
 
-// applyCrashTraceback validates and applies the configured GOTRACEBACK level
-// when one is provided. An invalid level surfaces as an error so callers can
-// treat it as a programming mistake in option construction.
+// applyCrashTraceback validates and applies the configured GOTRACEBACK level when one is
+// provided. An invalid level surfaces as an error so callers can treat it as a
+// programming mistake in option construction.
 //
-// Takes level (string) which is the GOTRACEBACK level to apply; empty is a
-// no-op.
+// Takes level (string) which is the GOTRACEBACK level to apply; empty is a no-op.
 //
-// Returns error wrapping ErrInvalidCrashTracebackLevel when level is not a
-// recognised GOTRACEBACK constant.
+// Returns error wrapping ErrInvalidCrashTracebackLevel when level is not a recognised
+// GOTRACEBACK constant.
 func applyCrashTraceback(ctx context.Context, level string) error {
 	if level == "" {
 		return nil
@@ -132,17 +135,16 @@ func applyCrashTraceback(ctx context.Context, level string) error {
 	return nil
 }
 
-// openAndRegisterCrashFile opens the validated path with os.OpenFile (the
-// runtime API requires *os.File) and registers it with
-// runtime/debug.SetCrashOutput.
+// openAndRegisterCrashFile opens the validated path with os.OpenFile (the runtime API
+// requires *os.File) and registers it with runtime/debug.SetCrashOutput.
 //
-// Takes cleanPath (string) which is the safedisk-validated absolute file
-// path to open in append mode.
+// Takes cleanPath (string) which is the safedisk-validated absolute file path to open in
+// append mode.
 //
-// Returns func() which detaches the FD from the runtime and closes it, or
-// nil when the file could not be opened or registered (best-effort).
-// Returns error which is currently always nil and exists for symmetry with
-// callers that may surface a real error in the future.
+// Returns func() which detaches the FD from the runtime and closes it, or nil when the
+// file could not be opened or registered (best-effort).
+// Returns error which is always nil and exists for symmetry with callers that may surface
+// a real error.
 func openAndRegisterCrashFile(ctx context.Context, cleanPath string) (func(), error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -176,17 +178,16 @@ func openAndRegisterCrashFile(ctx context.Context, cleanPath string) (func(), er
 
 // validateCrashOutputPath sandbox-validates the crash output path.
 //
-// The safedisk sandbox catches relative paths that escape the parent
-// (".." traversal), parent directories that don't exist or aren't
-// writable, and symlink-based escapes (subject to the sandbox
-// implementation).
+// The safedisk sandbox catches relative paths that escape the parent (".." traversal),
+// parent directories that don't exist or aren't writable, and symlink-based escapes
+// (subject to the sandbox implementation).
 //
-// Takes path (string) which is the operator-supplied crash output file
-// path, possibly relative or unclean.
+// Takes path (string) which is the operator-supplied crash output file path, possibly
+// relative or unclean.
 //
 // Returns string which is the cleaned absolute path on success.
-// Returns error which wraps the underlying safedisk failure when the
-// path cannot be sandbox-validated.
+// Returns error which wraps the underlying safedisk failure when the path cannot be
+// sandbox-validated.
 func validateCrashOutputPath(path string) (string, error) {
 	cleanPath := filepath.Clean(path)
 	parent := filepath.Dir(cleanPath)

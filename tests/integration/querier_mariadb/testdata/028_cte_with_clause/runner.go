@@ -61,8 +61,8 @@ func main() {
 
 	result := map[string]any{
 		"subtree_from_electronics": subtree,
-		"ancestors_of_iphones":    ancestors,
-		"root_categories":         roots,
+		"ancestors_of_iphones":     ancestors,
+		"root_categories":          roots,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

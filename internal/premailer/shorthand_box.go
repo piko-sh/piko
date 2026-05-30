@@ -38,14 +38,13 @@ type fourValues struct {
 	d string
 }
 
-// expandFourValues applies the CSS 1-4 value shorthand expansion pattern,
-// returning the four resolved values in order (first, second, third, fourth).
+// expandFourValues applies the CSS 1-4 value shorthand expansion pattern, returning the
+// four resolved values in order (first, second, third, fourth).
 //
 // Takes value (string) which contains the space-delimited shorthand values.
 //
 // Returns fourValues which contains the resolved values.
-// Returns bool which is false when the input is empty or has more than four
-// values.
+// Returns bool which is false when the input is empty or has more than four values.
 func expandFourValues(value string) (fourValues, bool) {
 	values := splitSpaceDelimited(value)
 	switch len(values) {
@@ -62,11 +61,11 @@ func expandFourValues(value string) (fourValues, bool) {
 	}
 }
 
-// expandFourValueShorthand expands CSS shorthand properties that follow the
-// standard 1-4 value pattern into individual directional properties.
+// expandFourValueShorthand expands CSS shorthand properties that follow the standard 1-4
+// value pattern into individual directional properties.
 //
-// Handles margin, padding, border-width, border-style, and border-colour which
-// all follow the same pattern:
+// Handles margin, padding, border-width, border-style, and border-colour which all follow
+// the same pattern:
 //   - 1 value: all sides
 //   - 2 values: top/bottom, right/left
 //   - 3 values: top, right/left, bottom
@@ -74,11 +73,11 @@ func expandFourValues(value string) (fourValues, bool) {
 //
 // Takes prefix (string) which is the property name prefix (e.g. "margin").
 // Takes value (string) which contains the space-delimited shorthand values.
-// Takes suffix (...string) which provides an optional property suffix
-// (e.g. "width" for border-width).
+// Takes suffix (...string) which provides an optional property suffix (e.g. "width" for
+// border-width).
 //
-// Returns map[string]string which maps each directional property name to its
-// value, or nil when the input is empty or has more than four values.
+// Returns map[string]string which maps each directional property name to its value, or
+// nil when the input is empty or has more than four values.
 func expandFourValueShorthand(prefix, value string, suffix ...string) map[string]string {
 	fv, ok := expandFourValues(value)
 	if !ok {
@@ -99,14 +98,13 @@ func expandFourValueShorthand(prefix, value string, suffix ...string) map[string
 	}
 }
 
-// expandBorderShorthand expands a border shorthand value into separate border
-// properties for all four sides. This helps email clients like Outlook display
-// borders correctly.
+// expandBorderShorthand expands a border shorthand value into separate border properties
+// for all four sides. This helps email clients like Outlook display borders correctly.
 //
 // Takes value (string) which is the border shorthand (e.g. "1px solid black").
 //
-// Returns map[string]string which contains the expanded border properties for
-// all four sides, or nil if the value is empty or has no valid properties.
+// Returns map[string]string which contains the expanded border properties for all four
+// sides, or nil if the value is empty or has no valid properties.
 func expandBorderShorthand(value string) map[string]string {
 	parts := splitSpaceDelimited(value)
 	if len(parts) == 0 {
@@ -150,14 +148,13 @@ func expandBorderShorthand(value string) map[string]string {
 }
 
 // expandDirectionalBorderShorthand expands a directional border shorthand like
-// "border-top: 1px solid black" into separate width, style, and colour
-// properties.
+// "border-top: 1px solid black" into separate width, style, and colour properties.
 //
 // Takes direction (string) which specifies the border side (e.g. "top").
 // Takes value (string) which contains the shorthand value to expand.
 //
-// Returns map[string]string which maps each property name to its value, or nil
-// when the value is empty or contains no valid parts.
+// Returns map[string]string which maps each property name to its value, or nil when the
+// value is empty or contains no valid parts.
 func expandDirectionalBorderShorthand(direction, value string) map[string]string {
 	parts := splitSpaceDelimited(value)
 	if len(parts) == 0 {
@@ -192,16 +189,16 @@ func expandDirectionalBorderShorthand(direction, value string) map[string]string
 	return result
 }
 
-// expandWidthStyleColour parses a CSS shorthand value containing up to three
-// tokens (width, style, colour) and returns each as a separate longhand
-// property using the supplied prefix.
+// expandWidthStyleColour parses a CSS shorthand value containing up to three tokens
+// (width, style, colour) and returns each as a separate longhand property using the
+// supplied prefix.
 //
 // Takes prefix (string) which is the CSS property prefix (e.g. "outline" or
 // "column-rule").
 // Takes value (string) which is the shorthand value to expand.
 //
-// Returns map[string]string which maps each longhand property to its value,
-// or nil when the value is empty or has no valid parts.
+// Returns map[string]string which maps each longhand property to its value, or nil when
+// the value is empty or has no valid parts.
 func expandWidthStyleColour(prefix, value string) map[string]string {
 	parts := splitSpaceDelimited(value)
 	if len(parts) == 0 {
@@ -236,28 +233,28 @@ func expandWidthStyleColour(prefix, value string) map[string]string {
 	return result
 }
 
-// expandOutlineShorthand expands a CSS outline shorthand value into its
-// separate properties.
+// expandOutlineShorthand expands a CSS outline shorthand value into its separate
+// properties.
 //
-// Outline uses the same format as border (width, style, colour) but applies
-// to all sides at once.
+// Outline uses the same format as border (width, style, colour) but applies to all sides
+// at once.
 //
 // Takes value (string) which is the shorthand value like "1px solid black".
 //
-// Returns map[string]string which contains the expanded properties, or nil
-// when the value is empty or has no valid outline parts.
+// Returns map[string]string which contains the expanded properties, or nil when the value
+// is empty or has no valid outline parts.
 func expandOutlineShorthand(value string) map[string]string {
 	return expandWidthStyleColour("outline", value)
 }
 
-// expandColumnRuleShorthand splits a column-rule shorthand value into its
-// separate width, style, and colour longhand properties. The syntax matches
-// the outline shorthand: <width> || <style> || <colour> in any order.
+// expandColumnRuleShorthand splits a column-rule shorthand value into its separate width,
+// style, and colour longhand properties. The syntax matches the outline shorthand:
+// <width> || <style> || <colour> in any order.
 //
 // Takes value (string) which is the column-rule shorthand value to expand.
 //
-// Returns map[string]string which contains the expanded column-rule
-// properties, or nil when the value cannot be parsed.
+// Returns map[string]string which contains the expanded column-rule properties, or nil
+// when the value cannot be parsed.
 func expandColumnRuleShorthand(value string) map[string]string {
 	return expandWidthStyleColour("column-rule", value)
 }
@@ -266,8 +263,8 @@ func expandColumnRuleShorthand(value string) map[string]string {
 //
 // Takes value (string) which is the shorthand border-radius CSS value.
 //
-// Returns map[string]string which maps each corner property to its value, or
-// nil when the input is empty or has more than four values.
+// Returns map[string]string which maps each corner property to its value, or nil when the
+// input is empty or has more than four values.
 func expandBorderRadiusShorthand(value string) map[string]string {
 	fv, ok := expandFourValues(value)
 	if !ok {
@@ -287,8 +284,8 @@ func expandBorderRadiusShorthand(value string) map[string]string {
 //
 // Takes value (string) which is the CSS value to check.
 //
-// Returns bool which is true if the value is a valid border width keyword
-// (thin, medium, thick) or a length unit (px, em, rem, pt, %, or 0).
+// Returns bool which is true if the value is a valid border width keyword (thin, medium,
+// thick) or a length unit (px, em, rem, pt, %, or 0).
 func isBorderWidth(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	if value == "thin" || value == "medium" || value == "thick" {
@@ -313,8 +310,8 @@ func isBorderStyle(value string) bool {
 	return slices.Contains(styles, value)
 }
 
-// isOutlineWidth checks whether a value is a valid outline width.
-// Outline widths use the same values as border widths.
+// isOutlineWidth checks whether a value is a valid outline width. Outline widths use the
+// same values as border widths.
 //
 // Takes value (string) which is the CSS value to check.
 //
@@ -323,8 +320,8 @@ func isOutlineWidth(value string) bool {
 	return isBorderWidth(value)
 }
 
-// isOutlineStyle checks whether a value is a valid outline style.
-// Outline styles use the same values as border styles.
+// isOutlineStyle checks whether a value is a valid outline style. Outline styles use the
+// same values as border styles.
 //
 // Takes value (string) which is the style value to check.
 //

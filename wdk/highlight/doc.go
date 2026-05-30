@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package highlight provides syntax highlighting for code blocks in
-// Piko applications.
+// Package highlight provides syntax highlighting for code blocks in Piko applications.
 //
-// Defines the [Highlighter] interface that backends must implement to convert
-// source code into highlighted HTML. Import a specific adapter package and pass
-// the highlighter to the Piko server.
+// Defines the [Highlighter] interface that backends must implement to convert source code
+// into highlighted HTML. Import a specific adapter package and pass the highlighter to
+// the Piko server.
 package highlight

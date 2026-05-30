@@ -27,8 +27,8 @@ import (
 
 // Definition handles go-to-definition requests for symbols in the document.
 //
-// Takes params (*protocol.DefinitionParams) which specifies the document and
-// position to find the definition for.
+// Takes params (*protocol.DefinitionParams) which specifies the document and position to
+// find the definition for.
 //
 // Returns []protocol.Location which contains the definition locations found.
 // Returns error when the definition lookup fails.

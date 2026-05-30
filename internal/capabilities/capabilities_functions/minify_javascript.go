@@ -24,14 +24,16 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
-// minifierJS holds the pre-configured JavaScript minifier instance.
-var minifierJS *minify.M
+var (
+	// minifierJS holds the pre-configured JavaScript minifier instance.
+	minifierJS *minify.M
+)
 
-// MinifyJavascript returns a capability function that minifies JavaScript
-// content using the tdewolff/minify library.
+// MinifyJavascript returns a capability function that minifies JavaScript content using
+// the tdewolff/minify library.
 //
-// Returns capabilities_domain.CapabilityFunc which performs JavaScript
-// minification when invoked.
+// Returns capabilities_domain.CapabilityFunc which performs JavaScript minification when
+// invoked.
 func MinifyJavascript() capabilities_domain.CapabilityFunc {
 	return createMinifyCapability(minifyConfig{
 		minifier:    minifierJS,

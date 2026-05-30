@@ -34,7 +34,6 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -49,10 +48,13 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	browserpkg "piko.sh/piko/wdk/browser"
+	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-const assertionTimeout = 10 * time.Second
+const (
+	assertionTimeout = 10 * time.Second
+)
 
 var (
 	update = flag.Bool("update", false, "update golden files")
@@ -592,7 +594,9 @@ func (r *testFSReader) ReadFile(_ context.Context, path string) ([]byte, error) 
 	return os.ReadFile(path)
 }
 
-const testModuleName = "testmodule"
+const (
+	testModuleName = "testmodule"
+)
 
 func hasLibTSFiles(testDir string) bool {
 	libDir := filepath.Join(testDir, "lib")

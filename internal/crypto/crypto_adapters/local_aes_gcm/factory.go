@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/crypto/crypto_dto"
 )
 
-// Factory implements the LocalProviderFactory interface to create AES-GCM
-// encryption providers with a given key for envelope encryption.
+// Factory implements the LocalProviderFactory interface to create AES-GCM encryption
+// providers with a given key for envelope encryption.
 type Factory struct{}
 
 // NewFactory creates a new factory for local AES-GCM providers.
@@ -36,14 +36,12 @@ func NewFactory() *Factory {
 	return &Factory{}
 }
 
-// CreateWithKey creates a new local AES-GCM provider configured with the given
-// key. The key material is accessed within a scoped callback to minimise
-// exposure.
+// CreateWithKey creates a new local AES-GCM provider configured with the given key. The
+// key material is accessed within a scoped callback to minimise exposure.
 //
 // This implements crypto_domain.LocalProviderFactory.CreateWithKey.
 //
-// Takes key (*crypto_dto.SecureBytes) which contains the encryption key
-// material.
+// Takes key (*crypto_dto.SecureBytes) which contains the encryption key material.
 // Takes keyID (string) which identifies the key for later reference.
 //
 // Returns crypto_domain.EncryptionProvider which is the configured provider.

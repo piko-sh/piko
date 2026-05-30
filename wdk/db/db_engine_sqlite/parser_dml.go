@@ -25,10 +25,20 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// isParameterToken reports whether a token kind is one of the placeholder forms.
+//
+// Takes kind (tokenKind) which is the token kind to test.
+//
+// Returns bool which is true for question marks, numbered, and named parameters.
 func isParameterToken(kind tokenKind) bool {
 	return kind == tokenQuestionMark || kind == tokenNumberedParam || kind == tokenNamedParam
 }
 
+// analyseSelect parses a SELECT statement and produces the raw query analysis with output
+// columns, parameters, and table references.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the SELECT.
+// Returns error when the statement fails to parse.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -76,6 +86,12 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// parseSelectBody parses FROM, WHERE, GROUP BY, and HAVING clauses into the analysis
+// record.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the parsed clause data.
+//
+// Returns error when a clause fails to parse.
 func (p *parser) parseSelectBody(analysis *querier_dto.RawQueryAnalysis) error {
 	if p.matchKeyword(keywordFROM) {
 		fromTables, joinClauses, err := p.parseFromClause()
@@ -103,6 +119,13 @@ func (p *parser) parseSelectBody(analysis *querier_dto.RawQueryAnalysis) error {
 	return nil
 }
 
+// parseSelectCompoundBranches parses UNION, INTERSECT, and EXCEPT branches into the
+// analysis record.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives any parsed branch
+// entries.
+//
+// Returns error when a branch fails to parse.
 func (p *parser) parseSelectCompoundBranches(analysis *querier_dto.RawQueryAnalysis) error {
 	for {
 		compoundOperator := p.matchCompoundOperator()
@@ -121,6 +144,8 @@ func (p *parser) parseSelectCompoundBranches(analysis *querier_dto.RawQueryAnaly
 	return nil
 }
 
+// parseSelectTrailer consumes the trailing ORDER BY and LIMIT clauses of a SELECT
+// statement.
 func (p *parser) parseSelectTrailer() {
 	if p.matchKeyword(keywordORDER) {
 		p.matchKeyword("BY")
@@ -132,6 +157,11 @@ func (p *parser) parseSelectTrailer() {
 	}
 }
 
+// analyseInsert parses an INSERT or REPLACE statement and produces the raw query
+// analysis.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the INSERT.
+// Returns error when the statement fails to parse.
 func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -189,6 +219,10 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// analyseUpdate parses an UPDATE statement and produces the raw query analysis.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the UPDATE.
+// Returns error when the statement fails to parse.
 func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -238,6 +272,10 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// analyseDelete parses a DELETE statement and produces the raw query analysis.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the DELETE.
+// Returns error when the statement fails to parse.
 func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
@@ -281,6 +319,11 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// analyseValues parses a bare VALUES statement and produces the raw query analysis.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the VALUES statement, marked
+// read-only.
+// Returns error when the statement fails to parse.
 func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
 
@@ -313,6 +356,10 @@ func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
 	return analysis, nil
 }
 
+// parseValuesFirstRow parses the first row of a VALUES expression and returns synthetic
+// column names for each expression.
+//
+// Returns []querier_dto.RawOutputColumn which describes the first row's columns.
 func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 	var outputColumns []querier_dto.RawOutputColumn
 	var columnIndex int
@@ -333,6 +380,8 @@ func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 	return outputColumns
 }
 
+// skipValuesTrailingRows consumes any rows beyond the first in a VALUES expression while
+// still registering placeholder parameters.
 func (p *parser) skipValuesTrailingRows() {
 	for p.current().kind == tokenComma {
 		p.advance()
@@ -355,6 +404,11 @@ func (p *parser) skipValuesTrailingRows() {
 	}
 }
 
+// parseWithClause parses the WITH clause and returns one definition per common table
+// expression.
+//
+// Returns []querier_dto.RawCTEDefinition which holds the parsed definitions in order.
+// Returns error when a CTE fails to parse.
 func (p *parser) parseWithClause() ([]querier_dto.RawCTEDefinition, error) {
 	p.mustKeyword(keywordWITH)
 	isRecursive := p.matchKeyword("RECURSIVE")
@@ -379,6 +433,12 @@ func (p *parser) parseWithClause() ([]querier_dto.RawCTEDefinition, error) {
 	return definitions, nil
 }
 
+// parseSingleCTE parses one common table expression definition.
+//
+// Takes isRecursive (bool) which is true when the WITH clause is RECURSIVE.
+//
+// Returns querier_dto.RawCTEDefinition which describes the CTE.
+// Returns error when the definition fails to parse.
 func (p *parser) parseSingleCTE(isRecursive bool) (querier_dto.RawCTEDefinition, error) {
 	cteName, err := p.parseIdentifierOrKeyword()
 	if err != nil {
@@ -418,6 +478,11 @@ func (p *parser) parseSingleCTE(isRecursive bool) (querier_dto.RawCTEDefinition,
 	return definition, nil
 }
 
+// parseCTEColumnNames parses the optional column-name list that may follow a CTE name
+// before the AS keyword.
+//
+// Returns []string which is the column-name list, or nil when absent.
+// Returns error when the list is malformed.
 func (p *parser) parseCTEColumnNames() ([]string, error) {
 	if p.current().kind != tokenLeftParen || p.isKeyword(keywordAS) {
 		return nil, nil
@@ -428,6 +493,13 @@ func (p *parser) parseCTEColumnNames() ([]string, error) {
 	return p.parseColumnList()
 }
 
+// buildCTEOutputColumns chooses the output columns advertised by a CTE.
+//
+// Takes columnNames ([]string) which is the explicit CTE column list, if any.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which holds the inner query's analysis.
+//
+// Returns []querier_dto.RawOutputColumn which is the explicit list when provided,
+// otherwise the inner query's columns.
 func buildCTEOutputColumns(
 	columnNames []string,
 	analysis *querier_dto.RawQueryAnalysis,
@@ -442,6 +514,11 @@ func buildCTEOutputColumns(
 	return columns
 }
 
+// peekForAS reports whether a parenthesised group followed by AS lies ahead, used to
+// distinguish CTE column lists from subquery clauses.
+//
+// Returns bool which is true when the lookahead does not find AS after a matching close
+// parenthesis.
 func (p *parser) peekForAS() bool {
 	saved := p.position
 	depth := 0
@@ -467,12 +544,21 @@ func (p *parser) peekForAS() bool {
 	return true
 }
 
+// isFollowedByAS reports whether the token after the supplied position is the AS keyword.
+//
+// Takes position (int) which is the index whose successor is checked.
+//
+// Returns bool which is true when the next token is AS.
 func (p *parser) isFollowedByAS(position int) bool {
 	return position+1 < len(p.tokens) &&
 		p.tokens[position+1].kind == tokenIdentifier &&
 		strings.EqualFold(p.tokens[position+1].value, keywordAS)
 }
 
+// parseSelectList parses the comma-separated select list.
+//
+// Returns []querier_dto.RawOutputColumn which is the parsed output column list.
+// Returns error when an item fails to parse.
 func (p *parser) parseSelectList() ([]querier_dto.RawOutputColumn, error) {
 	var columns []querier_dto.RawOutputColumn
 
@@ -492,6 +578,11 @@ func (p *parser) parseSelectList() ([]querier_dto.RawOutputColumn, error) {
 	return columns, nil
 }
 
+// parseSelectItem parses a single select-list item: star, qualified reference, or
+// expression with optional alias.
+//
+// Returns querier_dto.RawOutputColumn which describes the parsed item.
+// Returns error when the item fails to parse.
 func (p *parser) parseSelectItem() (querier_dto.RawOutputColumn, error) {
 	if p.current().kind == tokenStar {
 		p.advance()
@@ -519,6 +610,11 @@ func (p *parser) parseSelectItem() (querier_dto.RawOutputColumn, error) {
 	return column, nil
 }
 
+// parseQualifiedSelectItem parses an alias-qualified select item such as table.* or
+// table.column.
+//
+// Returns querier_dto.RawOutputColumn which describes the qualified item.
+// Returns error when the item fails to parse.
 func (p *parser) parseQualifiedSelectItem() (querier_dto.RawOutputColumn, error) {
 	tableAlias := p.advance().value
 	p.advance()
@@ -553,6 +649,11 @@ func (p *parser) parseQualifiedSelectItem() (querier_dto.RawOutputColumn, error)
 	return column, nil
 }
 
+// expressionToOutputColumn copies the relevant fields from an expression into an
+// output-column record.
+//
+// Takes expression (querier_dto.Expression) which is the parsed select expression.
+// Takes column (*querier_dto.RawOutputColumn) which receives the derived column metadata.
 func (*parser) expressionToOutputColumn(expression querier_dto.Expression, column *querier_dto.RawOutputColumn) {
 	switch expr := expression.(type) {
 	case *querier_dto.ColumnRefExpression:
@@ -567,6 +668,9 @@ func (*parser) expressionToOutputColumn(expression querier_dto.Expression, colum
 	}
 }
 
+// isSelectTerminator reports whether the current token marks the end of the select list.
+//
+// Returns bool which is true when the token starts a clause that follows the select list.
 func (p *parser) isSelectTerminator() bool {
 	return p.isAnyKeyword(keywordFROM, keywordWHERE, keywordGROUP, keywordHAVING, keywordORDER, keywordLIMIT,
 		keywordUNION, keywordINTERSECT, keywordEXCEPT, keywordON, keywordRETURNING)

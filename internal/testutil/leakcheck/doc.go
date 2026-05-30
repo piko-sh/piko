@@ -16,11 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package leakcheck provides goroutine leak detection for Piko
-// tests.
+// Package leakcheck provides goroutine leak detection for Piko tests.
 //
-// It wraps goleak with standard ignore rules for known background
-// goroutines. Use [VerifyTestMain] in simple TestMain functions
-// that only need leak checking, or [FindLeaks] in TestMain
-// functions that require teardown before exit.
+// It wraps goleak with standard ignore rules for known background goroutines. Use
+// [VerifyTestMain] in simple TestMain functions that only need leak checking, or
+// [FindLeaks] in TestMain functions that require teardown before exit.
 package leakcheck

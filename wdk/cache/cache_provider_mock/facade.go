@@ -23,11 +23,11 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// NewMockProvider creates a new mock provider using the namespace pattern.
-// This is the recommended way to use mock caches in tests.
+// NewMockProvider creates a new mock provider using the namespace pattern. This is the
+// recommended way to use mock caches in tests.
 //
-// The provider maintains a single in-memory map shared across all namespaces.
-// Each namespace becomes a key prefix (e.g., "users:", "products:").
+// The provider maintains a single in-memory map shared across all namespaces. Each
+// namespace becomes a key prefix (e.g., "users:", "products:").
 //
 // Returns cache.Provider which is the configured mock provider ready for use.
 //
@@ -51,11 +51,10 @@ func NewMockProvider() cache.Provider {
 	return provider_mock.NewMockProvider()
 }
 
-// NewMockAdapter creates a standalone mock adapter without a cache service,
-// suitable for unit testing individual components that depend on a cache.
+// NewMockAdapter creates a standalone mock adapter without a cache service, suitable for
+// unit testing individual components that depend on a cache.
 //
-// Returns *MockAdapter[K, V] which is an in-memory cache ready for use in
-// tests.
+// Returns *MockAdapter[K, V] which is an in-memory cache ready for use in tests.
 //
 // Example:
 //

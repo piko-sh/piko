@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sync/atomic"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -42,26 +41,25 @@ const (
 )
 
 var (
-	// errProviderNameEmpty is returned when a storage provider is registered
-	// with an empty name.
+	// errProviderNameEmpty is returned when a storage provider is registered with an empty
+	// name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
-	// errProviderNil is returned when a nil storage provider is supplied
-	// during registration.
+	// errProviderNil is returned when a nil storage provider is supplied during
+	// registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 
-// RegisterProvider adds a storage provider with the given name.
-// It wraps the provider with retry and circuit breaker decorators for
-// resilience, and registers the provider for graceful shutdown.
+// RegisterProvider adds a storage provider with the given name. It wraps the provider
+// with retry and circuit breaker decorators for resilience, and registers the provider
+// for graceful shutdown.
 //
 // Takes ctx (context.Context) for cancellation and logging propagation.
 // Takes name (string) which identifies the provider for later retrieval.
-// Takes provider (StorageProviderPort) which is the storage backend to
-// register.
+// Takes provider (StorageProviderPort) which is the storage backend to register.
 //
-// Returns error when the name is empty, the provider is nil, or a provider
-// with the same name is already registered.
+// Returns error when the name is empty, the provider is nil, or a provider with the same
+// name is already registered.
 //
 // Safe for concurrent use. The default provider must be set separately with
 // SetDefaultProvider.
@@ -109,8 +107,8 @@ func (s *service) RegisterProvider(ctx context.Context, name string, provider St
 	return nil
 }
 
-// SetDefaultProvider sets the provider to use when no specific provider is
-// named in a call.
+// SetDefaultProvider sets the provider to use when no specific provider is named in a
+// call.
 //
 // Takes name (string) which identifies the provider to set as default.
 //
@@ -148,20 +146,20 @@ func (s *service) HasProvider(name string) bool {
 
 // ListProviders returns detailed information about all registered providers.
 //
-// Returns []provider_domain.ProviderInfo which contains provider metadata,
-// health status, and capabilities.
+// Returns []provider_domain.ProviderInfo which contains provider metadata, health status,
+// and capabilities.
 func (s *service) ListProviders(ctx context.Context) []provider_domain.ProviderInfo {
 	return s.registry.ListProviders(ctx)
 }
 
 // getProvider retrieves a storage provider by name.
 //
-// Takes name (string) which specifies the provider to retrieve. If empty, the
-// default provider is used.
+// Takes name (string) which specifies the provider to retrieve. If empty, the default
+// provider is used.
 //
 // Returns StorageProviderPort which is the requested storage provider.
-// Returns error when no provider is specified and no default is set, or when
-// the named provider does not exist.
+// Returns error when no provider is specified and no default is set, or when the named
+// provider does not exist.
 func (s *service) getProvider(ctx context.Context, name string) (StorageProviderPort, error) {
 	providerName := name
 	if providerName == "" {
@@ -214,8 +212,7 @@ func (s *service) GetTransformers() []string {
 	return s.transformerRegistry.GetNames()
 }
 
-// HasTransformer checks if a transformer with the given name has been
-// registered.
+// HasTransformer checks if a transformer with the given name has been registered.
 //
 // Takes name (string) which is the transformer name to look up.
 //
@@ -231,8 +228,7 @@ func (s *service) HasTransformer(name string) bool {
 // RegisterDispatcher registers and starts a storage dispatcher with the service.
 //
 // Takes ctx (context.Context) for cancellation and logging propagation.
-// Takes dispatcher (StorageDispatcherPort) which is the dispatcher to register
-// and start.
+// Takes dispatcher (StorageDispatcherPort) which is the dispatcher to register and start.
 //
 // Returns error when dispatcher is nil or fails to start.
 //
@@ -278,19 +274,19 @@ func (s *service) FlushDispatcher(ctx context.Context) error {
 
 // GetStats returns a snapshot of current service statistics.
 //
-// Returns ServiceStats which contains the current operation counts and timing
-// data.
-func (s *service) GetStats(_ context.Context) ServiceStats {
-	stats := ServiceStats{
-		StartTime:            s.stats.StartTime,
-		TotalOperations:      atomic.LoadInt64(&s.stats.TotalOperations),
-		SuccessfulOperations: atomic.LoadInt64(&s.stats.SuccessfulOperations),
-		FailedOperations:     atomic.LoadInt64(&s.stats.FailedOperations),
-		RetryAttempts:        atomic.LoadInt64(&s.stats.RetryAttempts),
-		CacheHits:            atomic.LoadInt64(&s.stats.CacheHits),
-		CacheMisses:          atomic.LoadInt64(&s.stats.CacheMisses),
-		DLQEntries:           atomic.LoadInt64(&s.stats.DLQEntries),
+// Returns *ServiceStats which contains the current operation counts and timing data. The
+// returned struct is a snapshot; callers may read fields freely but should not retain it
+// for long because the underlying counters will continue to advance.
+func (s *service) GetStats(_ context.Context) *ServiceStats {
+	stats := &ServiceStats{
+		StartTime: s.stats.StartTime,
 	}
-
+	stats.TotalOperations.Store(s.stats.TotalOperations.Load())
+	stats.SuccessfulOperations.Store(s.stats.SuccessfulOperations.Load())
+	stats.FailedOperations.Store(s.stats.FailedOperations.Load())
+	stats.RetryAttempts.Store(s.stats.RetryAttempts.Load())
+	stats.CacheHits.Store(s.stats.CacheHits.Load())
+	stats.CacheMisses.Store(s.stats.CacheMisses.Load())
+	stats.DLQEntries.Store(s.stats.DLQEntries.Load())
 	return stats
 }

@@ -26,6 +26,7 @@ import (
 	"iter"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -1487,8 +1488,8 @@ func TestDiskWAL_AlignedWriteRecoverWithPadding(t *testing.T) {
 	assert.Equal(t, 0, len(data)%4096, "file should be 4KB-aligned during operation")
 
 	hasTrailingZeros := false
-	for i := len(data) - 1; i >= 0; i-- {
-		if data[i] == 0 {
+	for _, byteValue := range slices.Backward(data) {
+		if byteValue == 0 {
 			hasTrailingZeros = true
 		} else {
 			break

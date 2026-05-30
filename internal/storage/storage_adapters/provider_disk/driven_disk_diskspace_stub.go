@@ -22,15 +22,11 @@ package provider_disk
 
 import "fmt"
 
-// getDiskSpace is a stub for platforms where disk space checking
-// is not supported.
+// getDiskSpace is a stub for platforms where disk space checking is not supported.
 //
-// Returns availableMB (uint64) which is always zero on unsupported
-// platforms.
-// Returns totalMB (uint64) which is always zero on unsupported
-// platforms.
-// Returns err (error) which always indicates the platform is
-// unsupported.
+// Returns availableMB (uint64) which is always zero on unsupported platforms.
+// Returns totalMB (uint64) which is always zero on unsupported platforms.
+// Returns err (error) which always indicates the platform is unsupported.
 func getDiskSpace(_ string) (availableMB, totalMB uint64, err error) {
 	return 0, 0, fmt.Errorf("disk space checking is not supported on this platform")
 }

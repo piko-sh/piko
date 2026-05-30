@@ -18,48 +18,41 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// labelDivisionByZero is the branch-target label used by integer division
-// handlers when the divisor is zero.
-const labelDivisionByZero = "dbz"
+const (
+	// labelDivisionByZero is the branch-target label used by integer division handlers when
+	// the divisor is zero.
+	labelDivisionByZero = "dbz"
 
-// arithmeticHandlers returns the complete set of handler definitions for data
-// movement, arithmetic, and bitwise opcodes in the piko bytecode virtual
-// machine.
+	// dataTempScratch0 identifies the scratch register slot allocated for intermediate
+	// values in arithmetic handlers. The asmgen architecture port resolves the index to a
+	// concrete register; this name exists to give the bytecode handler code a
+	// self-documenting alternative to bare integer literals.
+	dataTempScratch0 = 2
+)
+
+// arithmeticHandlers returns the complete set of handler definitions for data movement,
+// arithmetic, and bitwise opcodes in the piko bytecode virtual machine.
 //
-// The returned slice covers every opcode that falls into one of four
-// categories: no-operation (NOP), register-to-register data movement (MoveInt,
-// MoveFloat), constant loading (LoadIntConst, LoadFloatConst, LoadBool,
-// LoadIntConstSmall), integer arithmetic and bitwise operations (AddInt,
-// SubInt, MulInt, DivInt, RemInt, NegInt, IncInt, DecInt, BitAnd, BitOr,
-// BitXor, BitAndNot, BitNot, ShiftLeft, ShiftRight), and floating-point
-// arithmetic (AddFloat, SubFloat, MulFloat, DivFloat, NegFloat). These
-// opcodes are grouped together because they share a common characteristic:
-// they operate exclusively on the integer and float register banks without
-// touching the string bank, the reference bank, or the call stack, and they
-// never branch (with the sole exception of the division-by-zero guard in
-// DivInt and RemInt, which exits the dispatch loop rather than branching to
-// another handler).
+// Covers constant loading, integer arithmetic and bitwise ops, uint arithmetic and
+// bitwise ops, and floating-point arithmetic. All grouped together because they operate
+// exclusively on the int, uint, and float register banks, never branch (DivInt and RemInt
+// exit the dispatch loop on a zero divisor rather than branching to another handler), and
+// use a zero-byte frame with NOSPLIT. The slice order controls the layout of the
+// generated assembly file but not the opcode numbering, which the opcode table fixes
+// separately.
 //
-// Each entry in the returned slice is an asmgen.HandlerDefinition that carries
-// the handler's symbol name, its inline comment (used in the generated assembly
-// source), its frame size and flags (all handlers in this file use a zero-byte
-// frame with NOSPLIT since they never call into Go), and an Emit closure that
-// drives the architecture adapter to produce the platform-specific instruction
-// sequence. The order of entries in the slice determines the order in which the
-// handlers appear in the generated assembly file, but does not affect their
-// opcode numbering, which is determined separately by the opcode table.
-//
-// Returns []asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// complete set of arithmetic and data movement handler definitions.
+// Returns []asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the complete set
+// of arithmetic and data movement handler definitions.
 func arithmeticHandlers() []asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return []asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		handlerNop(),
-		handlerMoveInt(),
-		handlerMoveFloat(),
 		handlerLoadIntConst(),
 		handlerLoadFloatConst(),
+		handlerLoadStringConst(),
+		handlerLoadBoolConst(),
 		handlerLoadBool(),
 		handlerLoadIntConstSmall(),
 		handlerAddInt(),
@@ -67,159 +60,49 @@ func arithmeticHandlers() []asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 		handlerMulInt(),
 		handlerDivInt(),
 		handlerRemInt(),
-		handlerNegInt(),
-		handlerIncInt(),
-		handlerDecInt(),
 		handlerBitAnd(),
 		handlerBitOr(),
 		handlerBitXor(),
 		handlerBitAndNot(),
-		handlerBitNot(),
 		handlerShiftLeft(),
 		handlerShiftRight(),
 		handlerAddFloat(),
 		handlerSubFloat(),
 		handlerMulFloat(),
 		handlerDivFloat(),
-		handlerNegFloat(),
+		handlerAddUint(),
+		handlerSubUint(),
+		handlerMulUint(),
+		handlerBitAndUint(),
+		handlerBitOrUint(),
+		handlerBitXorUint(),
+		handlerBitAndNotUint(),
+		handlerShiftLeftUint(),
+		handlerShiftRightUint(),
 	}
 }
 
-// handlerNop builds the handler definition for the NOP (no-operation) opcode.
+// handlerLoadIntConst builds the handler definition for the LoadIntConst opcode, which
+// loads a 64-bit integer constant from the function's integer constant pool into a
+// virtual integer register.
 //
-// The NOP handler performs no computation whatsoever. It does not extract any
-// operand fields from the instruction word, does not read from or write to any
-// register bank, and has no side effects on the virtual machine state. Its
-// entire body consists of a single call to DispatchNext, which advances the
-// program counter to the next instruction word and jumps to the corresponding
-// handler via the threaded dispatch jump table.
+// Operand A (extracted via ExtractA) is the destination register index; operands B and C
+// combine via ExtractWideBC into a 16-bit unsigned pool index B|(C<<8), giving up to
+// 65536 constants per function. LoadConstant indexes the integer constant pool base
+// scaled by 8 into a data temporary, then StoreToBank writes that temporary into ints[A]
+// before DispatchNext.
 //
-// NOP instructions may appear in the bytecode stream as padding for alignment,
-// as placeholders left behind by optimisation passes that eliminated an
-// instruction, or as explicit no-ops emitted by the compiler for debugging
-// purposes. Because the handler is trivial, it is marked NOSPLIT with a
-// zero-byte frame, meaning it never grows the goroutine stack and can be
-// entered without a stack-bound check.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the NOP opcode.
-func handlerNop() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerNop", Comment: "handlerNop does nothing.",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerMoveInt builds the handler definition for the MoveInt opcode, which
-// copies a 64-bit integer value from one virtual register to another within the
-// integer register bank.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and operand B (the source register index) from
-// bits[16:24] into scratch register 1. Operand C is unused and ignored.
-//
-// The handler reads from the integer register bank (ints[B]) and writes to the
-// integer register bank (ints[A]). It does not touch the float register bank or
-// any other bank. The copy is performed through a general-purpose temporary
-// register: the adapter loads ints[B] into a data temporary (obtained via
-// DataTemporary(2), which selects a scratch register that does not collide with
-// the two already used for A and B), then stores that temporary into ints[A].
-// On amd64 this translates to a MOVQ from the integer bank base (R8) indexed
-// by B into SI, followed by a MOVQ from SI into the bank indexed by A. On
-// arm64 the same pattern uses MOVD through R5. After the store, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the MoveInt opcode.
-func handlerMoveInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerMoveInt", Comment: "handlerMoveInt copies ints[B] to ints[A].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
-			temp := architecture.DataTemporary(2)
-			architecture.LoadFromBank(emitter, asmgen.RegisterBankInteger, scratches[1], temp)
-			architecture.StoreToBank(emitter, asmgen.RegisterBankInteger, temp, scratches[0])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerMoveFloat builds the handler definition for the MoveFloat opcode,
-// which copies a 64-bit IEEE 754 double-precision value from one virtual
-// register to another within the float register bank.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination float register index) from
-// bits[8:16] into scratch register 0, and operand B (the source float register
-// index) from bits[16:24] into scratch register 1. Operand C is unused and
-// ignored.
-//
-// The handler reads from the float register bank (floats[B]) and writes to the
-// float register bank (floats[A]). It does not touch the integer register bank.
-// Unlike handlerMoveInt, the copy must go through a floating-point scratch
-// register rather than a general-purpose one because the float bank uses
-// floating-point load/store instructions (MOVSD on amd64, FMOVD on arm64). The
-// adapter loads floats[B] into the first float scratch register (X0 on amd64,
-// F0 on arm64), then stores that float scratch into floats[A] via the float
-// bank base register (R9 on amd64, R24 on arm64). After the store, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the MoveFloat opcode.
-func handlerMoveFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerMoveFloat", Comment: "handlerMoveFloat copies floats[B] to floats[A].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			floatScratches := architecture.FloatScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
-			architecture.LoadFromBank(emitter, asmgen.RegisterBankFloat, scratches[1], floatScratches[0])
-			architecture.StoreToBank(emitter, asmgen.RegisterBankFloat, floatScratches[0], scratches[0])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerLoadIntConst builds the handler definition for the LoadIntConst
-// opcode, which loads a 64-bit integer constant from the function's integer
-// constant pool into a virtual integer register.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and the wide BC operand (the constant pool index)
-// from bits[16:32] into scratch register 1. The wide BC value is formed by
-// combining B and C into a single 16-bit unsigned index: B occupies the low
-// byte and C the high byte, giving B|(C<<8). This allows the constant pool to
-// hold up to 65536 distinct integer constants per function.
-//
-// The handler reads from the integer constant pool (intConstants[wideBC]) via
-// the adapter's LoadConstant method, which indexes into the constant pool base
-// register (R11 on amd64, R26 on arm64) with the wide BC index scaled by 8
-// (the size of a 64-bit integer). The loaded value is placed into a data
-// temporary register (SI on amd64, R5 on arm64), then stored into the integer
-// register bank at ints[A] via StoreToBank. After the store, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the LoadIntConst opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadIntConst opcode.
 func handlerLoadIntConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerLoadIntConst", Comment: "handlerLoadIntConst loads intConstants[B|(C<<8)] into ints[A].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
 			architecture.ExtractWideBC(emitter, scratches[1])
-			temp := architecture.DataTemporary(2)
+			temp := architecture.DataTemporary(dataTempScratch0)
 			architecture.LoadConstant(emitter, asmgen.RegisterBankInteger, scratches[1], temp)
 			architecture.StoreToBank(emitter, asmgen.RegisterBankInteger, temp, scratches[0])
 			architecture.DispatchNext(emitter)
@@ -227,35 +110,23 @@ func handlerLoadIntConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	}
 }
 
-// handlerLoadFloatConst builds the handler definition for the LoadFloatConst
-// opcode, which loads a 64-bit IEEE 754 double-precision constant from the
-// function's float constant pool directly into a virtual float register.
+// handlerLoadFloatConst builds the handler definition for the LoadFloatConst opcode,
+// which loads a 64-bit IEEE 754 double-precision constant from the function's float
+// constant pool directly into a virtual float register.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination float register index) from
-// bits[8:16] into scratch register 0, and the wide BC operand (the float
-// constant pool index) from bits[16:32] into scratch register 1. As with
-// handlerLoadIntConst, the wide BC value is formed as B|(C<<8), providing a
-// 16-bit unsigned index into the float constant pool.
+// Operand A is the destination float register index; operands B and C combine into the
+// 16-bit pool index B|(C<<8). Unlike handlerLoadIntConst, the float constant pool base
+// lives in the dispatch context rather than a dedicated register, so the handler uses the
+// specialised LoadFloatConstantToBank primitive that loads the base from the context,
+// indexes by the wide BC value, and stores the resulting double into floats[A] in one
+// step.
 //
-// Unlike handlerLoadIntConst, this handler uses the specialised
-// LoadFloatConstantToBank method rather than the generic LoadConstant followed
-// by StoreToBank. This is because the float constant pool base pointer is not
-// held in a dedicated register; instead, it is stored in the dispatch context
-// structure at a fixed offset (offset 72). The adapter must first load that
-// base pointer from the context into a general-purpose scratch register, then
-// index into the float constant array using the wide BC index to load the
-// double into a floating-point scratch register (X0 on amd64, F0 on arm64),
-// and finally store the float scratch into the float bank at floats[A] via the
-// float bank base register (R9 on amd64, R24 on arm64). After the store, the
-// handler dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the LoadFloatConst opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadFloatConst opcode.
 func handlerLoadFloatConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerLoadFloatConst", Comment: "handlerLoadFloatConst loads floatConstants[B|(C<<8)] into floats[A].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -266,128 +137,133 @@ func handlerLoadFloatConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] 
 	}
 }
 
-// handlerLoadBool builds the handler definition for the LoadBool opcode, which
-// stores a boolean literal (encoded as an immediate integer 0 or 1) into a
-// virtual integer register.
+// handlerLoadStringConst builds the handler definition for the LoadStringConst opcode,
+// which loads a 16-byte Go string header from the function's string constant pool into a
+// virtual string register.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and operand B (the boolean value, either 0 for
-// false or 1 for true) from bits[16:24] into scratch register 1. Operand C is
-// unused and ignored.
+// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A is the
+// destination strings-bank register index; operands B|(C<<8) encode the 16-bit constant
+// pool index. The StringConstLoad primitive copies the Data pointer and Length from
+// stringConstants[idx] into strings[A] (both halves of the header).
 //
-// The handler writes to the integer register bank at ints[A]. It does not read
-// from any register bank because the value comes directly from the instruction
-// word itself. The B operand, already sitting in scratch register 1 as a
-// general-purpose value, is stored directly into ints[A] via StoreToBank. No
-// data temporary or floating-point register is needed. On amd64 this amounts
-// to a MOVQ from the scratch register (BX) into the integer bank (R8) indexed
-// by A. On arm64 it is a MOVD from R4 into the integer bank (R23) indexed by
-// A. After the store, the handler dispatches to the next instruction.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadStringConst opcode.
+func handlerLoadStringConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
+		Name: "handlerLoadStringConst", Comment: "handlerLoadStringConst loads stringConstants[B|(C<<8)] into strings[A].",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
+		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
+			scratches := architecture.ScratchRegisters()
+			architecture.ExtractA(emitter, scratches[0])
+			architecture.ExtractWideBC(emitter, scratches[1])
+			architecture.StringConstLoad(emitter, scratches[0], scratches[1])
+			architecture.DispatchNext(emitter)
+		},
+	}
+}
+
+// handlerLoadBoolConst builds the handler definition for the LoadBoolConst opcode, which
+// loads a 1-byte bool constant from the function's bool constant pool into a virtual bool
+// register.
 //
-// Booleans are represented in the VM as ordinary 64-bit integers, with false
-// mapping to 0 and true mapping to 1. This handler is the mechanism by which
-// boolean literals in the source language are materialised into registers.
+// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A is the
+// destination bools-bank register index; operands B|(C<<8) encode the 16-bit constant
+// pool index. The BoolConstLoad primitive copies a single byte from boolConstants[idx]
+// into bools[A].
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the LoadBool opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadBoolConst opcode.
+func handlerLoadBoolConst() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
+		Name: "handlerLoadBoolConst", Comment: "handlerLoadBoolConst loads boolConstants[B|(C<<8)] into bools[A].",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
+		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
+			scratches := architecture.ScratchRegisters()
+			architecture.ExtractA(emitter, scratches[0])
+			architecture.ExtractWideBC(emitter, scratches[1])
+			architecture.BoolConstLoad(emitter, scratches[0], scratches[1])
+			architecture.DispatchNext(emitter)
+		},
+	}
+}
+
+// handlerLoadBool builds the handler definition for the LoadBool opcode, which stores a
+// boolean literal (encoded as an immediate integer 0 or 1) into a virtual integer
+// register.
+//
+// The handler reads B (the destination register index) and C (the boolean value, 0 or 1)
+// from the instruction word and stores C directly into ints[B] via StoreToBank. No data
+// temporary or constant pool indirection is needed because the value sits inside the
+// instruction word. Booleans are represented in the VM as ordinary 64-bit integers, with
+// false mapping to 0 and true to 1.
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadBool opcode.
 func handlerLoadBool() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerLoadBool", Comment: "handlerLoadBool sets ints[A] = B (0 or 1).",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		Name: "handlerLoadBool", Comment: "handlerLoadBool sets ints[B] = C (0 or 1) in tier-1 form (subOpLoadBool).",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractB(emitter, scratches[0])
+			architecture.ExtractC(emitter, scratches[1])
 			architecture.StoreToBank(emitter, asmgen.RegisterBankInteger, scratches[1], scratches[0])
 			architecture.DispatchNext(emitter)
 		},
 	}
 }
 
-// handlerLoadIntConstSmall builds the handler definition for the
-// LoadIntConstSmall opcode, which materialises a small integer constant
-// directly from the instruction word into a virtual integer register, avoiding
-// a constant pool lookup entirely.
+// handlerLoadIntConstSmall builds the handler definition for the LoadIntConstSmall
+// opcode, which materialises a small integer constant directly from the instruction word
+// into a virtual integer register, avoiding a constant pool lookup entirely.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and operand B (the small integer value) from
-// bits[16:24] into scratch register 1. Operand C is unused and ignored.
+// Operand B is the destination register index and operand C is the immediate value (0
+// through 255). The handler stores C directly into ints[B], saving a constant pool entry
+// and the indirection through the constant pool base pointer. Structurally identical to
+// handlerLoadBool, differing only in semantic intent.
 //
-// Because B is an 8-bit unsigned field, the range of values that can be loaded
-// by this opcode is 0 through 255. The compiler emits LoadIntConstSmall
-// instead of LoadIntConst whenever the integer literal fits in this range, as
-// it saves a constant pool entry and avoids the memory indirection through the
-// constant pool base pointer. The value in scratch register 1 is stored
-// directly into the integer register bank at ints[A] via StoreToBank, exactly
-// as in handlerLoadBool. The two handlers are structurally identical; they
-// differ only in semantic intent (boolean literal versus small integer literal).
-//
-// The handler writes to the integer register bank (ints[A]) and does not read
-// from any register bank. After the store, the handler dispatches to the next
-// instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the LoadIntConstSmall opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the LoadIntConstSmall opcode.
 func handlerLoadIntConstSmall() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerLoadIntConstSmall", Comment: "handlerLoadIntConstSmall sets ints[A] = int64(B).",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		Name: "handlerLoadIntConstSmall", Comment: "handlerLoadIntConstSmall sets ints[B] = int64(C) in tier-1 form (subOpLoadIntConstSmall).",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractB(emitter, scratches[0])
+			architecture.ExtractC(emitter, scratches[1])
 			architecture.StoreToBank(emitter, asmgen.RegisterBankInteger, scratches[1], scratches[0])
 			architecture.DispatchNext(emitter)
 		},
 	}
 }
 
-// integerBinaryHandler is a factory function that builds a handler definition
-// for any three-operand integer binary operation of the form
-// ints[A] = ints[B] <op> ints[C].
+// integerBinaryHandler builds a handler definition for any three-operand integer binary
+// operation of the form ints[A] = ints[B] <op> ints[C].
 //
-// Abstracts the common pattern shared by AddInt, SubInt, MulInt, BitAnd, BitOr,
-// BitXor, and BitAndNot. All of these opcodes have identical structure: they
-// extract three 8-bit operand indices (A, B, C) from the instruction word, delegate
-// to the architecture adapter's IntegerBinaryOperation method, and then dispatch to
-// the next instruction. The only difference between them is the operation string
-// passed to the adapter, which selects the concrete ALU instruction.
+// Abstracts the common pattern shared by AddInt, SubInt, MulInt, BitAnd, BitOr, BitXor,
+// and BitAndNot. Each handler extracts the three 8-bit operand indices from the
+// instruction word (laid out [opcode:8 | A:8 | B:8 | C:8]) into scratches, delegates to
+// the architecture adapter's IntegerBinaryOperation, and then dispatches to the next
+// instruction. The operation string ("ADD", "SUB", "MUL", "AND", "OR", "XOR", "ANDNOT")
+// selects the concrete ALU instruction the adapter emits.
 //
-// The operation parameter is a symbolic name ("ADD", "SUB", "MUL", "AND",
-// "OR", "XOR", "ANDNOT") that the architecture adapter maps to a
-// platform-specific mnemonic. On amd64, the adapter loads ints[B] from the
-// integer bank base (R8) into a temporary (SI), applies the ALU instruction
-// with ints[C] as a memory operand (e.g. ADDQ (R8)(CX*8), SI), and stores the
-// result from SI into ints[A]. The ANDNOT case is special on amd64: since x86
-// has no direct AND-NOT instruction, the adapter loads ints[C] into SI, applies
-// NOTQ to invert it, then ANDs with ints[B]. On arm64, the adapter loads both
-// operands into scratch registers (R6, R7), applies the three-operand form of
-// the instruction (e.g. ADD R7, R6, R6), and stores R6 into ints[A]. ARM64
-// natively supports BIC (bit clear) for ANDNOT, so no special case is needed.
-//
-// The name parameter becomes the assembly symbol name for the generated TEXT
-// block. The comment parameter becomes the inline comment in the generated
-// assembly source. All handlers built by this factory use a zero-byte frame
-// with NOSPLIT flags.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. The
-// handler extracts A into scratches[0], B into scratches[1], and C into
-// scratches[2], then passes all three index registers along with the operation
-// string to IntegerBinaryOperation. Both reads and the write target the integer
-// register bank exclusively.
+// On amd64 the adapter loads ints[B] into a scratch, applies the ALU instruction with
+// ints[C] as a memory operand, and stores the result. ANDNOT is special on amd64 because
+// the ISA has no direct AND-NOT, so the adapter NOTs ints[C] before ANDing with ints[B].
+// ARM64 supports BIC natively and needs no special case. All handlers built by this
+// factory use a zero-byte frame with NOSPLIT.
 //
 // Takes name (string) which is the assembly symbol name for the TEXT directive.
 // Takes comment (string) which is the inline comment for the generated assembly.
 // Takes operation (string) which selects the ALU instruction (ADD, SUB, etc.).
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the specified integer binary operation.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the specified integer binary operation.
 func integerBinaryHandler(name, comment, operation string) asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: name, Comment: comment,
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -399,117 +275,208 @@ func integerBinaryHandler(name, comment, operation string) asmgen.HandlerDefinit
 	}
 }
 
-// handlerAddInt builds the handler definition for the AddInt opcode, which
-// performs signed 64-bit integer addition: ints[A] = ints[B] + ints[C].
+// handlerAddInt builds the handler definition for the AddInt opcode, which performs
+// signed 64-bit integer addition: ints[A] = ints[B] + ints[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index, B is the left source, and C is
-// the right source. All three are 8-bit unsigned indices into the integer
-// register bank.
+// Delegates to integerBinaryHandler with operation "ADD". The addition uses
+// two's-complement without overflow trapping, matching Go's wrapping semantics for signed
+// integers.
 //
-// This handler delegates to integerBinaryHandler with operation "ADD". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then ADDQ with ints[C] as a
-// memory operand, then MOVQ to store SI into ints[A]. On arm64 the adapter
-// loads both operands into R6 and R7 and emits ADD R7, R6, R6 followed by a
-// store. The addition is performed in two's-complement without overflow
-// trapping, matching Go's wrapping semantics for signed integers.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the AddInt opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the AddInt opcode.
 func handlerAddInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerAddInt", "handlerAddInt sets ints[A] = ints[B] + ints[C].", "ADD")
 }
 
-// handlerSubInt builds the handler definition for the SubInt opcode, which
-// performs signed 64-bit integer subtraction: ints[A] = ints[B] - ints[C].
+// handlerSubInt builds the handler definition for the SubInt opcode, which performs
+// signed 64-bit integer subtraction: ints[A] = ints[B] - ints[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index, B is the left source (minuend),
-// and C is the right source (subtrahend). All three are 8-bit unsigned indices
-// into the integer register bank.
+// Delegates to integerBinaryHandler with operation "SUB". Uses two's-complement wrapping
+// semantics.
 //
-// This handler delegates to integerBinaryHandler with operation "SUB". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then SUBQ with ints[C] as a
-// memory operand, then MOVQ to store SI into ints[A]. On arm64 the adapter
-// loads both operands into R6 and R7 and emits SUB R7, R6, R6 followed by a
-// store. The subtraction uses two's-complement wrapping semantics.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the SubInt opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the SubInt opcode.
 func handlerSubInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerSubInt", "handlerSubInt sets ints[A] = ints[B] - ints[C].", "SUB")
 }
 
-// handlerMulInt builds the handler definition for the MulInt opcode, which
-// performs signed 64-bit integer multiplication: ints[A] = ints[B] * ints[C].
+// uintBinaryHandler builds a handler for uint64 binary operations.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index, B is the left source
-// (multiplicand), and C is the right source (multiplier). All three are 8-bit
-// unsigned indices into the integer register bank.
+// Uint-bank counterpart to integerBinaryHandler, covering operations of the form uints[A]
+// = uints[B] <op> uints[C]. Delegates to UintBinaryOperation, which loads CTX_UINTS_BASE
+// into a scratch register rather than using the preserved int-bank base. Bit-pattern
+// semantics are identical to the int variant for ADD, SUB, MUL, AND, OR, XOR, and ANDNOT
+// - uint64 wrapping arithmetic matches int64 two's-complement wrapping at the bit level.
+// The two banks differ only in the base pointer used to address them.
 //
-// This handler delegates to integerBinaryHandler with operation "MUL". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then IMULQ with ints[C] as
-// a memory operand. IMULQ is used rather than MULQ because the two-operand
-// form of IMULQ produces the correct low 64 bits of the product regardless of
-// sign, and it does not clobber the DX register (which holds the current
-// instruction word). On arm64 the adapter loads both operands into R6 and R7
-// and emits MUL R7, R6, R6 followed by a store. The multiplication uses
-// two's-complement wrapping semantics, discarding the upper 64 bits.
+// Takes name (string) which is the assembly symbol name for the TEXT directive.
+// Takes comment (string) which is the inline comment for the generated assembly.
+// Takes operation (string) which selects the ALU instruction (ADD, SUB, etc.).
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the MulInt opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the specified uint binary operation.
+func uintBinaryHandler(name, comment, operation string) asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
+		Name: name, Comment: comment,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
+		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
+			scratches := architecture.ScratchRegisters()
+			architecture.ExtractA(emitter, scratches[0])
+			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractC(emitter, scratches[2])
+			architecture.UintBinaryOperation(emitter, operation, scratches[0], scratches[1], scratches[2])
+			architecture.DispatchNext(emitter)
+		},
+	}
+}
+
+// handlerAddUint builds the handler definition for the AddUint opcode, which performs
+// unsigned 64-bit integer addition: uints[A] = uints[B] + uints[C]. Two's-complement
+// wrapping matches uint64 modular arithmetic at the bit level.
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the AddUint opcode.
+func handlerAddUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerAddUint", "handlerAddUint sets uints[A] = uints[B] + uints[C].", "ADD")
+}
+
+// handlerSubUint builds the handler definition for the SubUint opcode, which performs
+// unsigned 64-bit integer subtraction: uints[A] = uints[B] - uints[C].
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the SubUint opcode.
+func handlerSubUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerSubUint", "handlerSubUint sets uints[A] = uints[B] - uints[C].", "SUB")
+}
+
+// handlerMulUint builds the handler definition for the MulUint opcode, which performs
+// unsigned 64-bit integer multiplication: uints[A] = uints[B] * uints[C]. The two-operand
+// IMULQ form on amd64 produces the correct low 64 bits regardless of sign, so it is used
+// for both signed and unsigned mul.
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the MulUint opcode.
+func handlerMulUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerMulUint", "handlerMulUint sets uints[A] = uints[B] * uints[C].", "MUL")
+}
+
+// handlerBitAndUint builds the handler definition for the BitAndUint opcode: uints[A] =
+// uints[B] & uints[C].
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitAndUint opcode.
+func handlerBitAndUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerBitAndUint", "handlerBitAndUint sets uints[A] = uints[B] & uints[C].", "AND")
+}
+
+// handlerBitOrUint builds the handler definition for the BitOrUint opcode: uints[A] =
+// uints[B] | uints[C].
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitOrUint opcode.
+func handlerBitOrUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerBitOrUint", "handlerBitOrUint sets uints[A] = uints[B] | uints[C].", "OR")
+}
+
+// handlerBitXorUint builds the handler definition for the BitXorUint opcode: uints[A] =
+// uints[B] ^ uints[C].
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitXorUint opcode.
+func handlerBitXorUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerBitXorUint", "handlerBitXorUint sets uints[A] = uints[B] ^ uints[C].", "XOR")
+}
+
+// handlerBitAndNotUint builds the handler definition for the BitAndNotUint opcode:
+// uints[A] = uints[B] &^ uints[C].
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitAndNotUint opcode.
+func handlerBitAndNotUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return uintBinaryHandler("handlerBitAndNotUint", "handlerBitAndNotUint sets uints[A] = uints[B] &^ uints[C].", "ANDNOT")
+}
+
+// handlerShiftLeftUint builds the handler definition for the ShiftLeftUint opcode:
+// uints[A] = uints[B] << uint(ints[C]). The shift amount is read from the int bank
+// (mirrors the int variant).
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the ShiftLeftUint opcode.
+func handlerShiftLeftUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
+		Name: "handlerShiftLeftUint", Comment: "handlerShiftLeftUint sets uints[A] = uints[B] << uint(ints[C]).",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
+		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
+			scratches := architecture.ScratchRegisters()
+			architecture.ExtractA(emitter, scratches[0])
+			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractC(emitter, scratches[2])
+			architecture.UintShift(emitter, "LEFT", scratches[0], scratches[1], scratches[2])
+			architecture.DispatchNext(emitter)
+		},
+	}
+}
+
+// handlerShiftRightUint builds the handler definition for the ShiftRightUint opcode:
+// uints[A] = uints[B] >> uint(ints[C]). The right shift is logical (zero-fill), distinct
+// from the int variant's arithmetic shift (sign-fill).
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the ShiftRightUint opcode.
+func handlerShiftRightUint() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
+	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
+		Name: "handlerShiftRightUint", Comment: "handlerShiftRightUint sets uints[A] = uints[B] >> uint(ints[C]).",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
+		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
+			scratches := architecture.ScratchRegisters()
+			architecture.ExtractA(emitter, scratches[0])
+			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractC(emitter, scratches[2])
+			architecture.UintShift(emitter, "RIGHT", scratches[0], scratches[1], scratches[2])
+			architecture.DispatchNext(emitter)
+		},
+	}
+}
+
+// handlerMulInt builds the handler definition for the MulInt opcode, which performs
+// signed 64-bit integer multiplication: ints[A] = ints[B] * ints[C].
+//
+// Delegates to integerBinaryHandler with operation "MUL". On amd64 the adapter emits
+// IMULQ rather than MULQ because the two-operand form returns the correct low 64 bits
+// regardless of sign and does not clobber the DX register (which holds the current
+// instruction word). The multiplication uses two's-complement wrapping and discards the
+// upper 64 bits.
+//
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the MulInt opcode.
 func handlerMulInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerMulInt", "handlerMulInt sets ints[A] = ints[B] * ints[C].", "MUL")
 }
 
-// handlerDivInt builds the handler definition for the DivInt opcode, which
-// performs signed 64-bit integer division: ints[A] = ints[B] / ints[C], with
-// an explicit guard against division by zero.
+// handlerDivInt builds the handler definition for the DivInt opcode, which performs
+// signed 64-bit integer division: ints[A] = ints[B] / ints[C], with an explicit guard
+// against division by zero.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index (quotient), B is the dividend
-// index, and C is the divisor index. All three are 8-bit unsigned indices into
-// the integer register bank.
+// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8] with A the quotient
+// destination, B the dividend, and C the divisor. The handler cannot use
+// integerBinaryHandler because integer division has architecture-specific requirements
+// that differ from a simple two-operand ALU instruction.
 //
-// Unlike the addition, subtraction, and multiplication handlers, this handler
-// cannot use the integerBinaryHandler factory because integer division has
-// special requirements on both architectures that make it fundamentally
-// different from a simple two-operand ALU instruction.
+// On amd64, IDIVQ uses RDX:RAX as the implicit dividend and produces the quotient in RAX,
+// but DX holds the current instruction word (an interpreter invariant), so the adapter
+// saves DX into SI, tests the divisor for zero, sign-extends with CQO, divides, then
+// restores DX from SI. On arm64 the SDIV instruction is simpler but silently returns zero
+// for a zero divisor, so the adapter still emits a CBZ-guarded path to the "dbz" label.
+// The DivisionByZeroExit epilogue stores EXIT_DIV_BY_ZERO and returns to Go. The empty
+// string passed as the remainderDestinationIndex to IntegerDivide signals that no
+// remainder should be stored.
 //
-// On amd64, the IDIVQ instruction requires the dividend in the RDX:RAX
-// register pair and produces the quotient in RAX and the remainder in RDX.
-// Because DX normally holds the current instruction word (a critical
-// interpreter invariant), the adapter must first save DX into SI, then load
-// the divisor into CX, test CX against zero (TESTQ CX, CX), and branch to
-// the "dbz" label if zero. If the divisor is non-zero, the dividend is loaded
-// into AX, CQO sign-extends it into DX:AX, and IDIVQ CX performs the
-// division. The quotient is stored from AX into ints[A], and DX is restored
-// from SI.
-//
-// On arm64, the SDIV instruction is more straightforward (two source registers
-// and one destination), but the zero check is still required because SDIV on
-// arm64 silently returns zero on division by zero rather than faulting, which
-// would be incorrect. The adapter uses CBZ to branch on zero.
-//
-// If the divisor is zero, control falls through to the "dbz" label, where the
-// DivisionByZeroExit method emits instructions that store the current program
-// counter and an EXIT_DIV_BY_ZERO reason code into the dispatch context, then
-// returns to Go. This exits the assembly dispatch loop and allows the Go-level
-// interpreter to raise an appropriate error.
-//
-// The handler reads from the integer register bank (ints[B] and ints[C]) and
-// writes to the integer register bank (ints[A]). The remainder is discarded;
-// for remainder semantics, see handlerRemInt. The empty string passed as the
-// remainderDestinationIndex to IntegerDivide signals that no remainder should
-// be stored.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the DivInt opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the DivInt opcode.
 func handlerDivInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerDivInt", Comment: "handlerDivInt sets ints[A] = ints[B] / ints[C].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -524,41 +491,25 @@ func handlerDivInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	}
 }
 
-// handlerRemInt builds the handler definition for the RemInt opcode, which
-// computes the signed 64-bit integer remainder: ints[A] = ints[B] % ints[C],
-// with an explicit guard against division by zero.
+// handlerRemInt builds the handler definition for the RemInt opcode, which computes the
+// signed 64-bit integer remainder: ints[A] = ints[B] % ints[C], with an explicit guard
+// against division by zero.
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index (remainder), B is the dividend
-// index, and C is the divisor index. All three are 8-bit unsigned indices into
-// the integer register bank.
+// Structurally identical to handlerDivInt with operands A, B, C in the same positions;
+// only the kept result differs. The call to IntegerDivide passes an empty
+// quotientDestinationIndex and the A register as the remainderDestinationIndex. On amd64
+// the remainder emerges in RDX after IDIVQ so the adapter stores DX into ints[A] and
+// restores DX from SI. On arm64 there is no single-instruction remainder, so the adapter
+// computes the quotient via SDIV and derives the remainder as dividend - (quotient *
+// divisor). The zero-divisor guard exits via the "dbz" label and DivisionByZeroExit just
+// like handlerDivInt.
 //
-// This handler is structurally identical to handlerDivInt, with the sole
-// difference being which result is kept. The call to IntegerDivide passes an
-// empty string for the quotientDestinationIndex and the A index register as
-// the remainderDestinationIndex, which is the mirror image of handlerDivInt's
-// call.
-//
-// On amd64, after the IDIVQ instruction, the remainder resides in the RDX
-// register. The adapter stores DX into ints[A] rather than storing AX (the
-// quotient). The DX register is then restored from SI, where the instruction
-// word was saved before the division. On arm64, there is no single-instruction
-// remainder; the adapter computes SDIV to get the quotient, then uses
-// MUL + SUB to derive the remainder as dividend - (quotient x divisor), and
-// stores the result into ints[A].
-//
-// The division-by-zero guard is identical to handlerDivInt: the divisor is
-// tested against zero, and if zero, control falls through to the "dbz" label
-// where DivisionByZeroExit terminates the dispatch loop. The handler reads
-// from the integer register bank (ints[B] and ints[C]) and writes to the
-// integer register bank (ints[A]).
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the RemInt opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the RemInt opcode.
 func handlerRemInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerRemInt", Comment: "handlerRemInt sets ints[A] = ints[B] % ints[C].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -573,261 +524,67 @@ func handlerRemInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	}
 }
 
-// handlerNegInt builds the handler definition for the NegInt opcode, which
-// computes the arithmetic negation of a signed 64-bit integer:
-// ints[A] = -ints[B].
+// handlerBitAnd builds the handler definition for the BitAnd opcode, which performs a
+// bitwise AND of two 64-bit integers: ints[A] = ints[B] & ints[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and operand B (the source register index) from
-// bits[16:24] into scratch register 1. Operand C is unused and ignored.
+// Delegates to integerBinaryHandler with operation "AND".
 //
-// The handler reads from the integer register bank (ints[B]) and writes to the
-// integer register bank (ints[A]). It delegates to the adapter's
-// IntegerUnaryOperation method with the operation string "NEG". On amd64, the
-// adapter loads ints[B] into SI via MOVQ, applies NEGQ SI (which computes
-// 0 - SI in two's complement), and stores SI into ints[A]. On arm64, the
-// adapter loads ints[B] into R5 via MOVD, applies NEG R5, R5, and stores R5
-// into ints[A]. Negation of the minimum int64 value (-2^63) wraps to itself
-// under two's-complement arithmetic. After the store, the handler dispatches
-// to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the NegInt opcode.
-func handlerNegInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerNegInt", Comment: "handlerNegInt sets ints[A] = -ints[B].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
-			architecture.IntegerUnaryOperation(emitter, "NEG", scratches[0], scratches[1])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerIncInt builds the handler definition for the IncInt opcode, which
-// increments a 64-bit integer register in place by one: ints[A] = ints[A] + 1.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts only operand A (the target register index) from bits[8:16]
-// into scratch register 0. Operands B and C are unused and ignored.
-//
-// The handler both reads from and writes to the integer register bank at the
-// same index (ints[A]). It delegates to the adapter's IntegerInPlace method
-// with the operation string "INC". On amd64, the adapter emits a single INCQ
-// instruction that operates directly on the memory location (R8)(A*8) within
-// the integer bank, performing a read-modify-write in one instruction without
-// needing a temporary register. On arm64, the adapter loads ints[A] into R4
-// via MOVD, applies ADD $1, R4, R4, and stores R4 back into ints[A], since
-// arm64 has no memory-direct increment instruction.
-//
-// This opcode is used by the compiler for loop counter increments and other
-// cases where a register is incremented by exactly one, as it is more compact
-// than an AddInt with a constant. After the modification, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the IncInt opcode.
-func handlerIncInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerIncInt", Comment: "handlerIncInt increments ints[A] by one.",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.IntegerInPlace(emitter, "INC", scratches[0])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerDecInt builds the handler definition for the DecInt opcode, which
-// decrements a 64-bit integer register in place by one: ints[A] = ints[A] - 1.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts only operand A (the target register index) from bits[8:16]
-// into scratch register 0. Operands B and C are unused and ignored.
-//
-// The handler both reads from and writes to the integer register bank at the
-// same index (ints[A]). It delegates to the adapter's IntegerInPlace method
-// with the operation string "DEC". On amd64, the adapter emits a single DECQ
-// instruction that operates directly on the memory location (R8)(A*8) within
-// the integer bank, performing a read-modify-write in one instruction. On
-// arm64, the adapter loads ints[A] into R4 via MOVD, applies SUB $1, R4, R4,
-// and stores R4 back, mirroring the IncInt pattern.
-//
-// This opcode is the counterpart of IncInt and is used for countdown loops and
-// similar constructs. After the modification, the handler dispatches to the
-// next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the DecInt opcode.
-func handlerDecInt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerDecInt", Comment: "handlerDecInt decrements ints[A] by one.",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.IntegerInPlace(emitter, "DEC", scratches[0])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerBitAnd builds the handler definition for the BitAnd opcode, which
-// performs a bitwise AND of two 64-bit integers: ints[A] = ints[B] & ints[C].
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination, B is the left source, and C is the right source, all
-// indices into the integer register bank.
-//
-// This handler delegates to integerBinaryHandler with operation "AND". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then ANDQ with ints[C] as a
-// memory operand, then MOVQ to store SI into ints[A]. On arm64 the adapter
-// loads both operands into R6 and R7 and emits AND R7, R6, R6 followed by a
-// store. The operation produces a 1 bit in each position where both inputs
-// have a 1 bit, and a 0 bit otherwise.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the BitAnd opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitAnd opcode.
 func handlerBitAnd() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerBitAnd", "handlerBitAnd sets ints[A] = ints[B] & ints[C].", "AND")
 }
 
-// handlerBitOr builds the handler definition for the BitOr opcode, which
-// performs a bitwise OR of two 64-bit integers: ints[A] = ints[B] | ints[C].
+// handlerBitOr builds the handler definition for the BitOr opcode, which performs a
+// bitwise OR of two 64-bit integers: ints[A] = ints[B] | ints[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination, B is the left source, and C is the right source, all
-// indices into the integer register bank.
+// Delegates to integerBinaryHandler with operation "OR".
 //
-// This handler delegates to integerBinaryHandler with operation "OR". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then ORQ with ints[C] as a
-// memory operand, then MOVQ to store SI into ints[A]. On arm64 the adapter
-// loads both operands into R6 and R7 and emits ORR R7, R6, R6 followed by a
-// store. The operation produces a 1 bit in each position where either or both
-// inputs have a 1 bit.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the BitOr opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitOr opcode.
 func handlerBitOr() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerBitOr", "handlerBitOr sets ints[A] = ints[B] | ints[C].", "OR")
 }
 
-// handlerBitXor builds the handler definition for the BitXor opcode, which
-// performs a bitwise exclusive OR of two 64-bit integers:
-// ints[A] = ints[B] ^ ints[C].
+// handlerBitXor builds the handler definition for the BitXor opcode, which performs a
+// bitwise exclusive OR of two 64-bit integers: ints[A] = ints[B] ^ ints[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination, B is the left source, and C is the right source, all
-// indices into the integer register bank.
+// Delegates to integerBinaryHandler with operation "XOR".
 //
-// This handler delegates to integerBinaryHandler with operation "XOR". On amd64
-// the adapter emits MOVQ to load ints[B] into SI, then XORQ with ints[C] as a
-// memory operand, then MOVQ to store SI into ints[A]. On arm64 the adapter
-// loads both operands into R6 and R7 and emits EOR R7, R6, R6 followed by a
-// store. The operation produces a 1 bit in each position where exactly one of
-// the two inputs has a 1 bit.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the BitXor opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitXor opcode.
 func handlerBitXor() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerBitXor", "handlerBitXor sets ints[A] = ints[B] ^ ints[C].", "XOR")
 }
 
-// handlerBitAndNot builds the handler definition for the BitAndNot opcode,
-// which performs Go's bit-clear (AND-NOT) operation on two 64-bit integers:
-// ints[A] = ints[B] &^ ints[C], equivalent to ints[B] & (^ints[C]).
+// handlerBitAndNot builds the handler definition for the BitAndNot opcode, which performs
+// Go's bit-clear (AND-NOT) operation on two 64-bit integers: ints[A] = ints[B] &^
+// ints[C], equivalent to ints[B] & (^ints[C]).
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination, B is the left source (the value to mask), and C is the
-// right source (the mask to clear), all indices into the integer register bank.
+// Delegates to integerBinaryHandler with operation "ANDNOT". x86 has no native AND-NOT,
+// so the amd64 adapter NOTs ints[C] before ANDing with ints[B]; arm64 emits BIC natively.
 //
-// This handler delegates to integerBinaryHandler with operation "ANDNOT". The
-// adapter handles this operation differently on each architecture. On amd64,
-// there is no native AND-NOT instruction, so the adapter loads ints[C] into
-// SI, applies NOTQ SI to invert the mask, then applies ANDQ with ints[B] as a
-// memory operand to produce the result, and stores SI into ints[A]. On arm64, the
-// BIC (bit clear) instruction natively computes Rd = Rn AND NOT(Rm), so the adapter
-// loads both operands and emits BIC R7, R6, R6 followed by a store.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the BitAndNot opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the BitAndNot opcode.
 func handlerBitAndNot() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return integerBinaryHandler("handlerBitAndNot", "handlerBitAndNot sets ints[A] = ints[B] &^ ints[C].", "ANDNOT")
 }
 
-// handlerBitNot builds the handler definition for the BitNot opcode, which
-// performs a bitwise complement (one's complement) of a 64-bit integer:
-// ints[A] = ^ints[B].
+// handlerShiftLeft builds the handler definition for the ShiftLeft opcode, which performs
+// a logical left shift of a 64-bit integer by a variable amount: ints[A] = ints[B] <<
+// uint(ints[C]).
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination register index) from bits[8:16]
-// into scratch register 0, and operand B (the source register index) from
-// bits[16:24] into scratch register 1. Operand C is unused and ignored.
+// Cannot use the integerBinaryHandler factory because amd64 SHL requires the shift amount
+// in CL. The handler extracts A, B, C and delegates to IntegerShift with direction
+// "LEFT", which loads ints[C] into CX on amd64 (or R7 on arm64) and emits SHLQ / LSL.
+// Both architectures mask the shift amount modulo 64 by ISA.
 //
-// The handler reads from the integer register bank (ints[B]) and writes to the
-// integer register bank (ints[A]). It delegates to the adapter's
-// IntegerUnaryOperation method with the operation string "NOT". On amd64, the
-// adapter loads ints[B] into SI via MOVQ, applies NOTQ SI (which flips every
-// bit), and stores SI into ints[A]. On arm64, the adapter loads ints[B] into
-// R5 via MOVD, applies MVN R5, R5 (move not, the arm64 equivalent of bitwise
-// complement), and stores R5 into ints[A]. After the store, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the BitNot opcode.
-func handlerBitNot() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerBitNot", Comment: "handlerBitNot sets ints[A] = ^ints[B].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
-			architecture.IntegerUnaryOperation(emitter, "NOT", scratches[0], scratches[1])
-			architecture.DispatchNext(emitter)
-		},
-	}
-}
-
-// handlerShiftLeft builds the handler definition for the ShiftLeft opcode,
-// which performs a logical left shift of a 64-bit integer by a variable amount:
-// ints[A] = ints[B] << uint(ints[C]).
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index, B is the value to be shifted, and
-// C is the shift amount. All three are 8-bit unsigned indices into the integer
-// register bank.
-//
-// This handler cannot use the integerBinaryHandler factory because shift
-// instructions have a special constraint on amd64: the shift amount must reside
-// in the CL register (the low 8 bits of RCX). The handler extracts all three
-// operands into scratch registers, then delegates to the adapter's
-// IntegerShift method with direction "LEFT".
-//
-// On amd64, the adapter loads ints[C] (the shift amount) into CX first, then
-// loads ints[B] into SI, applies SHLQ CL, SI (shift left using only the low 6
-// bits of CL as the count, since x86-64 masks shift amounts modulo 64), and
-// stores SI into ints[A]. The CL constraint is a hardware requirement of the
-// x86 ISA and is the reason shifts are not handled by the generic
-// IntegerBinaryOperation path.
-//
-// On arm64, the adapter loads both operands into R6 and R7, then emits
-// LSL R7, R6, R6. ARM64 also masks the shift amount to 0-63 for 64-bit
-// registers. The result is stored into ints[A]. After the store, the handler
-// dispatches to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the ShiftLeft opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the ShiftLeft opcode.
 func handlerShiftLeft() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerShiftLeft", Comment: "handlerShiftLeft sets ints[A] = ints[B] << uint(ints[C]).",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -839,36 +596,21 @@ func handlerShiftLeft() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	}
 }
 
-// handlerShiftRight builds the handler definition for the ShiftRight opcode,
-// which performs an arithmetic right shift of a signed 64-bit integer by a
-// variable amount: ints[A] = ints[B] >> uint(ints[C]).
+// handlerShiftRight builds the handler definition for the ShiftRight opcode, which
+// performs an arithmetic right shift of a signed 64-bit integer by a variable amount:
+// ints[A] = ints[B] >> uint(ints[C]).
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination integer register index, B is the value to be shifted, and
-// C is the shift amount. All three are 8-bit unsigned indices into the integer
-// register bank.
+// Mirrors handlerShiftLeft, delegating to IntegerShift with direction "RIGHT". The amd64
+// adapter emits SARQ (arithmetic shift right, sign-fill) and arm64 emits ASR, matching
+// Go's >> on signed integers. The amd64 CL-register constraint is the same as for
+// ShiftLeft.
 //
-// This handler delegates to the adapter's IntegerShift method with direction
-// "RIGHT", following the same pattern as handlerShiftLeft. The critical
-// difference is the choice of shift instruction: on amd64 the adapter emits
-// SARQ CL, SI (shift arithmetic right), which preserves the sign bit by
-// filling vacated high bits with copies of the original sign bit. On arm64 the
-// adapter emits ASR R7, R6, R6 (arithmetic shift right), which likewise
-// sign-extends. This matches Go's definition of the >> operator on signed
-// integers.
-//
-// As with handlerShiftLeft, on amd64 the shift amount must reside in CL (the
-// low 8 bits of RCX), which is why this handler cannot use the generic
-// integerBinaryHandler factory. The hardware masks the shift amount modulo 64
-// on both platforms. After the store into ints[A], the handler dispatches to
-// the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the ShiftRight opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the ShiftRight opcode.
 func handlerShiftRight() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerShiftRight", Comment: "handlerShiftRight sets ints[A] = ints[B] >> uint(ints[C]).",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -880,52 +622,32 @@ func handlerShiftRight() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	}
 }
 
-// floatBinaryHandler is a factory function that builds a handler definition for
-// any three-operand floating-point binary operation of the form
-// floats[A] = floats[B] <op> floats[C].
+// floatBinaryHandler builds a handler definition for any three-operand floating-point
+// binary operation of the form floats[A] = floats[B] <op> floats[C].
 //
-// Abstracts the common pattern shared by AddFloat, SubFloat, MulFloat, and DivFloat.
-// All of these opcodes have identical structure: they extract three 8-bit operand
-// indices (A, B, C) from the instruction word, delegate to the architecture
-// adapter's FloatBinaryOperation method, and then dispatch to the next instruction.
-// The only difference between them is the operation string passed to the adapter,
-// which selects the concrete floating-point instruction.
+// Abstracts the common pattern shared by AddFloat, SubFloat, MulFloat, and DivFloat. Each
+// handler extracts the three 8-bit operand indices from the instruction word (laid out
+// [opcode:8 | A:8 | B:8 | C:8]) and delegates to the adapter's FloatBinaryOperation,
+// which selects the platform mnemonic from the operation string ("ADD", "SUB", "MUL",
+// "DIV"). On amd64 the adapter uses MOVSD + the corresponding scalar double-precision
+// instruction against the float bank base; on arm64 it uses FMOVD + the three-operand
+// FADDD/FSUBD/FMULD/FDIVD form.
 //
-// The operation parameter is a symbolic name ("ADD", "SUB", "MUL", "DIV") that
-// the architecture adapter maps to a platform-specific mnemonic. On amd64, the
-// adapter loads floats[B] from the float bank base (R9) into XMM register X0
-// using MOVSD, applies the scalar double-precision instruction with floats[C]
-// as a memory operand (e.g. ADDSD (R9)(CX*8), X0), and stores X0 into
-// floats[A] using MOVSD. On arm64, the adapter loads both operands into F0 and
-// F1 using FMOVD, applies the three-operand floating-point instruction (e.g.
-// FADDD F1, F0, F0), and stores F0 into floats[A] using FMOVD.
-//
-// All operations follow IEEE 754 double-precision semantics, including proper
-// handling of infinities, NaN propagation, and signed zeros. Note that
-// DivFloat does not require a division-by-zero guard because IEEE 754
-// floating-point division by zero produces +/-Inf rather than faulting.
-//
-// The name parameter becomes the assembly symbol name for the generated TEXT
-// block. The comment parameter becomes the inline comment in the generated
-// assembly source. All handlers built by this factory use a zero-byte frame
-// with NOSPLIT flags.
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. The
-// handler extracts A into scratches[0], B into scratches[1], and C into
-// scratches[2], then passes all three index registers along with the operation
-// string to FloatBinaryOperation. Both reads and the write target the float
-// register bank exclusively; the integer register bank is not touched.
+// All operations follow IEEE 754 double-precision semantics (infinities, NaN propagation,
+// signed zeros). DivFloat needs no zero-divisor guard because IEEE 754 produces +/-Inf
+// rather than faulting. All handlers built by this factory use a zero-byte frame with
+// NOSPLIT and touch only the float bank.
 //
 // Takes name (string) which is the assembly symbol name for the TEXT directive.
 // Takes comment (string) which is the inline comment for the generated assembly.
 // Takes operation (string) which selects the floating-point instruction.
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the specified float binary operation.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the specified float binary operation.
 func floatBinaryHandler(name, comment, operation string) asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: name, Comment: comment,
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -937,140 +659,53 @@ func floatBinaryHandler(name, comment, operation string) asmgen.HandlerDefinitio
 	}
 }
 
-// handlerAddFloat builds the handler definition for the AddFloat opcode, which
-// performs IEEE 754 double-precision floating-point addition:
-// floats[A] = floats[B] + floats[C].
+// handlerAddFloat builds the handler definition for the AddFloat opcode, which performs
+// IEEE 754 double-precision floating-point addition: floats[A] = floats[B] + floats[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination float register index, B is the left source (augend), and
-// C is the right source (addend). All three are 8-bit unsigned indices into
-// the float register bank.
+// Delegates to floatBinaryHandler with operation "ADD". The result follows IEEE 754
+// rounding rules (round-to-nearest-even by default).
 //
-// This handler delegates to floatBinaryHandler with operation "ADD". On amd64
-// the adapter emits MOVSD to load floats[B] into X0, then ADDSD with
-// floats[C] as a memory operand, then MOVSD to store X0 into floats[A]. On
-// arm64 the adapter loads both operands into F0 and F1 and emits
-// FADDD F1, F0, F0 followed by a store. The result follows IEEE 754 rounding
-// rules (round-to-nearest-even by default).
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the AddFloat opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the AddFloat opcode.
 func handlerAddFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return floatBinaryHandler("handlerAddFloat", "handlerAddFloat sets floats[A] = floats[B] + floats[C].", "ADD")
 }
 
-// handlerSubFloat builds the handler definition for the SubFloat opcode, which
-// performs IEEE 754 double-precision floating-point subtraction:
-// floats[A] = floats[B] - floats[C].
+// handlerSubFloat builds the handler definition for the SubFloat opcode, which performs
+// IEEE 754 double-precision floating-point subtraction: floats[A] = floats[B] -
+// floats[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination float register index, B is the left source (minuend), and
-// C is the right source (subtrahend). All three are 8-bit unsigned indices
-// into the float register bank.
+// Delegates to floatBinaryHandler with operation "SUB". The result follows IEEE 754
+// rounding rules.
 //
-// This handler delegates to floatBinaryHandler with operation "SUB". On amd64
-// the adapter emits MOVSD to load floats[B] into X0, then SUBSD with
-// floats[C] as a memory operand, then MOVSD to store X0 into floats[A]. On
-// arm64 the adapter loads both operands into F0 and F1 and emits
-// FSUBD F1, F0, F0 followed by a store. The result follows IEEE 754 rounding
-// rules.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the SubFloat opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the SubFloat opcode.
 func handlerSubFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return floatBinaryHandler("handlerSubFloat", "handlerSubFloat sets floats[A] = floats[B] - floats[C].", "SUB")
 }
 
-// handlerMulFloat builds the handler definition for the MulFloat opcode, which
-// performs IEEE 754 double-precision floating-point multiplication:
-// floats[A] = floats[B] * floats[C].
+// handlerMulFloat builds the handler definition for the MulFloat opcode, which performs
+// IEEE 754 double-precision floating-point multiplication: floats[A] = floats[B] *
+// floats[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination float register index, B is the left source
-// (multiplicand), and C is the right source (multiplier). All three are 8-bit
-// unsigned indices into the float register bank.
+// Delegates to floatBinaryHandler with operation "MUL". The result follows IEEE 754
+// rounding rules; infinity * zero produces NaN.
 //
-// This handler delegates to floatBinaryHandler with operation "MUL". On amd64
-// the adapter emits MOVSD to load floats[B] into X0, then MULSD with
-// floats[C] as a memory operand, then MOVSD to store X0 into floats[A]. On
-// arm64 the adapter loads both operands into F0 and F1 and emits
-// FMULD F1, F0, F0 followed by a store. The result follows IEEE 754 rounding
-// rules, with special-case handling of infinity x zero producing NaN.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the MulFloat opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the MulFloat opcode.
 func handlerMulFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return floatBinaryHandler("handlerMulFloat", "handlerMulFloat sets floats[A] = floats[B] * floats[C].", "MUL")
 }
 
-// handlerDivFloat builds the handler definition for the DivFloat opcode, which
-// performs IEEE 754 double-precision floating-point division:
-// floats[A] = floats[B] / floats[C].
+// handlerDivFloat builds the handler definition for the DivFloat opcode, which performs
+// IEEE 754 double-precision floating-point division: floats[A] = floats[B] / floats[C].
 //
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. Operand A
-// is the destination float register index, B is the dividend (numerator), and
-// C is the divisor (denominator). All three are 8-bit unsigned indices into
-// the float register bank.
+// Delegates to floatBinaryHandler with operation "DIV". Unlike handlerDivInt no
+// zero-divisor guard is needed: IEEE 754 produces +/-Inf for finite / zero, NaN for zero
+// / zero, and NaN for infinity / infinity, none of which fault on amd64 or arm64.
 //
-// This handler delegates to floatBinaryHandler with operation "DIV". On amd64
-// the adapter emits MOVSD to load floats[B] into X0, then DIVSD with
-// floats[C] as a memory operand, then MOVSD to store X0 into floats[A]. On
-// arm64 the adapter loads both operands into F0 and F1 and emits
-// FDIVD F1, F0, F0 followed by a store.
-//
-// Unlike handlerDivInt, this handler does not require an explicit
-// division-by-zero guard. Under IEEE 754, dividing a finite non-zero value by
-// zero produces +/-Inf (with the sign determined by the signs of the
-// operands), dividing zero by zero produces NaN, and dividing infinity by
-// infinity also produces NaN. None of these cases cause a hardware fault on
-// either amd64 or arm64, so the handler can proceed unconditionally.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the DivFloat opcode.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the DivFloat opcode.
 func handlerDivFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return floatBinaryHandler("handlerDivFloat", "handlerDivFloat sets floats[A] = floats[B] / floats[C].", "DIV")
-}
-
-// handlerNegFloat builds the handler definition for the NegFloat opcode, which
-// negates a 64-bit IEEE 754 double-precision floating-point value:
-// floats[A] = -floats[B].
-//
-// The instruction word is laid out as [opcode:8 | A:8 | B:8 | C:8]. This
-// handler extracts operand A (the destination float register index) from
-// bits[8:16] into scratch register 0, and operand B (the source float register
-// index) from bits[16:24] into scratch register 1. Operand C is unused and
-// ignored.
-//
-// The handler reads from the float register bank (floats[B]) and writes to the
-// float register bank (floats[A]). It delegates to the adapter's
-// FloatUnaryOperation method with the operation string "NEG".
-//
-// On amd64, floating-point negation is performed by toggling the sign bit
-// (bit 63) of the IEEE 754 representation using an XOR. The adapter loads
-// floats[B] into X0 via MOVSD, loads the sign-bit mask 0x8000000000000000
-// into SI via MOVQ, transfers SI into X1 via MOVQ, and applies XORPD X1, X0
-// to flip the sign bit. The result in X0 is then stored into floats[A]. This
-// technique correctly handles all IEEE 754 special values: negating +0.0
-// produces -0.0, negating -Inf produces +Inf, and negating NaN flips the sign
-// bit of the NaN payload while preserving its NaN-ness.
-//
-// On arm64, the adapter loads floats[B] into F0 via FMOVD, applies FNEGD F0,
-// F0 (a dedicated hardware negation instruction that flips the sign bit), and
-// stores F0 into floats[A] via FMOVD. After the store, the handler dispatches
-// to the next instruction.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the NegFloat opcode.
-func handlerNegFloat() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
-	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerNegFloat", Comment: "handlerNegFloat sets floats[A] = -floats[B].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
-		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
-			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
-			architecture.FloatUnaryOperation(emitter, "NEG", scratches[0], scratches[1])
-			architecture.DispatchNext(emitter)
-		},
-	}
 }

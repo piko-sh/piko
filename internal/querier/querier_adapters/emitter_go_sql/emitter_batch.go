@@ -28,31 +28,32 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-var _ = strconv.Itoa
+var (
+	_ = strconv.Itoa
+)
 
-// sqlBatchHandler implements emitter_shared.BatchCopyFromHandler for the
-// database/sql emitter. It generates multi-row INSERT statements with
-// automatic chunking based on the engine's maximum bind variable limit.
+// sqlBatchHandler implements emitter_shared.BatchCopyFromHandler for the database/sql
+// emitter. It generates multi-row INSERT statements with automatic chunking based on the
+// engine's maximum bind variable limit.
 type sqlBatchHandler struct {
-	// strategy holds the SQL dialect strategy used for placeholder style and
-	// bind variable limits.
+	// strategy holds the SQL dialect strategy used for placeholder style and bind variable
+	// limits.
 	strategy *sqlStrategy
 }
 
-// BuildBatchMethod constructs a :batch method that accepts []Params
-// and executes chunked multi-row INSERTs.
+// BuildBatchMethod constructs a :batch method that accepts []Params and executes chunked
+// multi-row INSERTs.
 //
 // The generated method:
 //  1. Returns immediately if params is empty
 //  2. Loops in chunks of maxBindVars/columnsPerRow
-//  3. For each chunk, builds a multi-row VALUES clause
-//     and flattens args
+//  3. For each chunk, builds a multi-row VALUES clause and flattens args
 //  4. Executes the expanded INSERT via ExecContext
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds
-// the parsed query with parameters and SQL text.
-// Takes tracker (*emitter_shared.ImportTracker) which
-// collects import paths required by the generated code.
+// Takes query (*querier_dto.AnalysedQuery) which holds the parsed query with parameters
+// and SQL text.
+// Takes tracker (*emitter_shared.ImportTracker) which collects import paths required by
+// the generated code.
 //
 // Returns ast.Decl which is the batch method declaration.
 func (h *sqlBatchHandler) BuildBatchMethod(
@@ -93,15 +94,13 @@ func (h *sqlBatchHandler) BuildBatchMethod(
 	}
 }
 
-// buildFieldAppends constructs the
-// args = append(args, item.Field) statements for each
+// buildFieldAppends constructs the args = append(args, item.Field) statements for each
 // query parameter.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds
-// the parsed query whose parameters drive the appends.
+// Takes query (*querier_dto.AnalysedQuery) which holds the parsed query whose parameters
+// drive the appends.
 //
-// Returns []ast.Stmt which contains one append statement
-// per parameter.
+// Returns []ast.Stmt which contains one append statement per parameter.
 func buildFieldAppends(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	fieldAppends := make([]ast.Stmt, 0, len(query.Parameters))
 	for i := range query.Parameters {
@@ -120,21 +119,16 @@ func buildFieldAppends(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return fieldAppends
 }
 
-// buildInnerLoopBody constructs the body of the per-item
-// range loop inside each chunk: separator handling, VALUES
-// tuple writing, and field appends.
+// buildInnerLoopBody constructs the body of the per-item range loop inside each chunk:
+// separator handling, VALUES tuple writing, and field appends.
 //
-// Takes strategy (*sqlStrategy) which provides the SQL
-// dialect for placeholder style selection.
-// Takes paramsCount (int) which is the number of
-// parameters per row.
-// Takes valuesTuple (string) which holds the positional
-// placeholder tuple, or empty for numbered params.
-// Takes fieldAppends ([]ast.Stmt) which contains the
-// append statements for each field.
+// Takes strategy (*sqlStrategy) which provides the SQL dialect for placeholder style
+// selection. Takes paramsCount (int) which is the number of parameters per row.
+// Takes valuesTuple (string) which holds the positional placeholder tuple, or empty for
+// numbered params. Takes fieldAppends ([]ast.Stmt) which contains the append statements
+// for each field.
 //
-// Returns []ast.Stmt which is the complete inner loop
-// body.
+// Returns []ast.Stmt which is the complete inner loop body.
 func buildInnerLoopBody(strategy *sqlStrategy, paramsCount int, valuesTuple string, fieldAppends []ast.Stmt) []ast.Stmt {
 	var innerLoopBody []ast.Stmt
 
@@ -180,18 +174,15 @@ func buildInnerLoopBody(strategy *sqlStrategy, paramsCount int, valuesTuple stri
 	return innerLoopBody
 }
 
-// buildChunkBody constructs the statements within each
-// chunk iteration: computing the chunk bounds, allocating
-// args, building VALUES, and executing.
+// buildChunkBody constructs the statements within each chunk iteration: computing the
+// chunk bounds, allocating args, building VALUES, and executing.
 //
-// Takes innerLoopBody ([]ast.Stmt) which holds the
-// per-item loop body statements.
-// Takes maxRowsPerStmt (int) which is the maximum rows
-// per chunk based on bind variable limits.
-// Takes paramsCount (int) which is the number of
-// parameters per row.
-// Takes sqlConstName (string) which is the CamelCase
-// constant name for the base SQL query.
+// Takes innerLoopBody ([]ast.Stmt) which holds the per-item loop body statements.
+// Takes maxRowsPerStmt (int) which is the maximum rows per chunk based on bind variable
+// limits.
+// Takes paramsCount (int) which is the number of parameters per row.
+// Takes sqlConstName (string) which is the CamelCase constant name for the base SQL
+// query.
 //
 // Returns []ast.Stmt which is the complete chunk body.
 func buildChunkBody(innerLoopBody []ast.Stmt, maxRowsPerStmt int, paramsCount int, sqlConstName string) []ast.Stmt {
@@ -246,14 +237,12 @@ func buildChunkBody(innerLoopBody []ast.Stmt, maxRowsPerStmt int, paramsCount in
 	}
 }
 
-// buildBatchMethodBody constructs the top-level method
-// body: the early return for empty params and the chunked
-// for-loop.
+// buildBatchMethodBody constructs the top-level method body: the early return for empty
+// params and the chunked for-loop.
 //
-// Takes chunkBody ([]ast.Stmt) which holds the statements
-// executed within each chunk iteration.
-// Takes maxRowsPerStmt (int) which is the chunk size used
-// as the loop step.
+// Takes chunkBody ([]ast.Stmt) which holds the statements executed within each chunk
+// iteration.
+// Takes maxRowsPerStmt (int) which is the chunk size used as the loop step.
 //
 // Returns []ast.Stmt which is the complete method body.
 func buildBatchMethodBody(chunkBody []ast.Stmt, maxRowsPerStmt int) []ast.Stmt {
@@ -282,19 +271,17 @@ func buildBatchMethodBody(chunkBody []ast.Stmt, maxRowsPerStmt int) []ast.Stmt {
 	}
 }
 
-// BuildCopyFromMethod for database/sql delegates to the
-// same multi-row INSERT pattern as BuildBatchMethod, since
-// there is no COPY protocol in standard SQL.
+// BuildCopyFromMethod for database/sql delegates to the same multi-row INSERT pattern as
+// BuildBatchMethod, since there is no COPY protocol in standard SQL.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds
-// the parsed query with parameters and SQL text.
-// Takes mappings (*querier_dto.TypeMappingTable) which
-// provides Go type mappings for SQL types.
-// Takes tracker (*emitter_shared.ImportTracker) which
-// collects import paths required by the generated code.
+// Takes query (*querier_dto.AnalysedQuery) which holds the parsed query with parameters
+// and SQL text.
+// Takes mappings (*querier_dto.TypeMappingTable) which provides Go type mappings for SQL
+// types.
+// Takes tracker (*emitter_shared.ImportTracker) which collects import paths required by
+// the generated code.
 //
-// Returns ast.Decl which is the copyfrom method
-// declaration.
+// Returns ast.Decl which is the copyfrom method declaration.
 func (h *sqlBatchHandler) BuildCopyFromMethod(
 	query *querier_dto.AnalysedQuery,
 	mappings *querier_dto.TypeMappingTable,
@@ -303,35 +290,30 @@ func (h *sqlBatchHandler) BuildCopyFromMethod(
 	return h.BuildBatchMethod(query, mappings, tracker)
 }
 
-// BatchImportPath returns the import path required by
-// batch command code generation.
+// BatchImportPath returns the import path required by batch command code generation.
 //
 // Returns string which is the "strings" import path.
 func (*sqlBatchHandler) BatchImportPath() string { return importStrings }
 
-// CopyFromImportPath returns the import path required by
-// copyfrom command code generation.
+// CopyFromImportPath returns the import path required by copyfrom command code
+// generation.
 //
 // Returns string which is the "strings" import path.
 func (*sqlBatchHandler) CopyFromImportPath() string { return importStrings }
 
-// NeedsCopyFromParamsStruct reports whether the copyfrom
-// command needs a separate params struct declaration. The
-// database/sql emitter always requires one because it
-// reuses the batch INSERT approach.
+// NeedsCopyFromParamsStruct reports whether the copyfrom command needs a separate params
+// struct declaration. The database/sql emitter always requires one because it reuses the
+// batch INSERT approach.
 //
 // Returns bool which is always true for database/sql.
 func (*sqlBatchHandler) NeedsCopyFromParamsStruct() bool { return true }
 
-// EmitHelperFile generates the batch_helpers.go file
-// containing the pikoBatchExpandValues and optional
-// pikoBatchNumberedTuple helper functions.
+// EmitHelperFile generates the batch_helpers.go file containing the pikoBatchExpandValues
+// and optional pikoBatchNumberedTuple helper functions.
 //
-// Takes packageName (string) which is the Go package name
-// for the generated helper file.
+// Takes packageName (string) which is the Go package name for the generated helper file.
 //
-// Returns *querier_dto.GeneratedFile which holds the
-// helper file name and source content.
+// Returns *querier_dto.GeneratedFile which holds the helper file name and source content.
 func (h *sqlBatchHandler) EmitHelperFile(packageName string) *querier_dto.GeneratedFile {
 	source := emitter_shared.GeneratedFileHeader + batchHelperSource(packageName, h.strategy.UsesNumberedParams())
 	return &querier_dto.GeneratedFile{
@@ -340,19 +322,17 @@ func (h *sqlBatchHandler) EmitHelperFile(packageName string) *querier_dto.Genera
 	}
 }
 
-// BuildCopyFromParamsStruct constructs the params struct
-// declaration for copyfrom queries by delegating to the
-// shared BuildFieldStruct helper.
+// BuildCopyFromParamsStruct constructs the params struct declaration for copyfrom queries
+// by delegating to the shared BuildFieldStruct helper.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds
-// the parsed query whose parameters define struct fields.
-// Takes mappings (*querier_dto.TypeMappingTable) which
-// provides Go type mappings for SQL types.
-// Takes tracker (*emitter_shared.ImportTracker) which
-// collects import paths required by the struct fields.
+// Takes query (*querier_dto.AnalysedQuery) which holds the parsed query whose parameters
+// define struct fields.
+// Takes mappings (*querier_dto.TypeMappingTable) which provides Go type mappings for SQL
+// types.
+// Takes tracker (*emitter_shared.ImportTracker) which collects import paths required by
+// the struct fields.
 //
-// Returns ast.Decl which is the params struct type
-// declaration.
+// Returns ast.Decl which is the params struct type declaration.
 func (*sqlBatchHandler) BuildCopyFromParamsStruct(
 	query *querier_dto.AnalysedQuery,
 	mappings *querier_dto.TypeMappingTable,
@@ -361,20 +341,14 @@ func (*sqlBatchHandler) BuildCopyFromParamsStruct(
 	return emitter_shared.BuildFieldStruct(query.Name+"Params", query.Parameters, mappings, tracker)
 }
 
-// buildValuesTuple constructs the placeholder tuple
-// string for one row.
-// For positional params: "(?, ?, ?)"
-// For numbered params this returns empty because actual
-// numbered tuples are generated at runtime by
-// pikoBatchNumberedTuple.
+// buildValuesTuple constructs the placeholder tuple string for one row. For positional
+// params: "(?, ?, ?)" For numbered params this returns empty because actual numbered
+// tuples are generated at runtime by pikoBatchNumberedTuple.
 //
-// Takes count (int) which is the number of columns per
-// row.
-// Takes numbered (bool) which indicates whether the
-// engine uses numbered ($N) placeholders.
+// Takes count (int) which is the number of columns per row. Takes numbered (bool) which
+// indicates whether the engine uses numbered ($N) placeholders.
 //
-// Returns string which is the placeholder tuple, or
-// empty for numbered params.
+// Returns string which is the placeholder tuple, or empty for numbered params.
 func buildValuesTuple(count int, numbered bool) string {
 	if numbered {
 		return ""
@@ -391,14 +365,12 @@ func buildValuesTuple(count int, numbered bool) string {
 	return string(b)
 }
 
-// batchHelperSource returns the Go source for batch
-// helper functions, emitted as a raw string in
-// batch_helpers.go.
+// batchHelperSource returns the Go source for batch helper functions, emitted as a raw
+// string in batch_helpers.go.
 //
-// Takes packageName (string) which is the Go package
-// name for the generated source.
-// Takes needsNumbered (bool) which indicates whether to
-// include the pikoBatchNumberedTuple helper.
+// Takes packageName (string) which is the Go package name for the generated source.
+// Takes needsNumbered (bool) which indicates whether to include the
+// pikoBatchNumberedTuple helper.
 //
 // Returns string which is the complete Go source text.
 func batchHelperSource(packageName string, needsNumbered bool) string {

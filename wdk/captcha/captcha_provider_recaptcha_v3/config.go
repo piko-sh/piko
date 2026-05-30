@@ -18,7 +18,9 @@
 
 package captcha_provider_recaptcha_v3
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrSiteKeyEmpty is returned when the site key is not set.
@@ -30,12 +32,12 @@ var (
 
 // Config holds configuration for the Google reCAPTCHA v3 captcha provider.
 type Config struct {
-	// SiteKey is the public site key from the Google reCAPTCHA admin console.
-	// This is embedded in the frontend widget.
+	// SiteKey is the public site key from the Google reCAPTCHA admin console. This is
+	// embedded in the frontend widget.
 	SiteKey string
 
-	// SecretKey is the secret key from the Google reCAPTCHA admin console.
-	// This is used server-side to verify tokens.
+	// SecretKey is the secret key from the Google reCAPTCHA admin console. This is used
+	// server-side to verify tokens.
 	SecretKey string
 }
 

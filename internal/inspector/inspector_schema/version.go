@@ -28,14 +28,14 @@ var (
 	// schemaContent holds the embedded FlatBuffers schema from type_data.fbs.
 	schemaContent []byte
 
-	// SchemaHash is the SHA-256 hash of type_data.fbs, computed at init time.
-	// This hash changes whenever the schema file is modified, so the
-	// cache invalidates automatically when the schema evolves.
+	// SchemaHash is the SHA-256 hash of type_data.fbs, computed at init time. This hash
+	// changes whenever the schema file is modified, so the cache invalidates automatically
+	// when the schema evolves.
 	SchemaHash = fbs.ComputeSchemaHash(schemaContent)
 )
 
-// Pack wraps a serialised Inspector FlatBuffer with the schema version hash.
-// The returned slice has format: [32-byte hash][payload].
+// Pack wraps a serialised Inspector FlatBuffer with the schema version hash. The returned
+// slice has format: [32-byte hash][payload].
 //
 // Takes payload ([]byte) which contains the serialised FlatBuffer data.
 //
@@ -46,8 +46,8 @@ func Pack(payload []byte) []byte {
 
 // PackInto writes the schema hash and payload into dst.
 //
-// Takes dst ([]byte) which is the destination buffer that must have length
-// greater than or equal to fbs.PackedSize(len(payload)).
+// Takes dst ([]byte) which is the destination buffer that must have length greater than
+// or equal to fbs.PackedSize(len(payload)).
 // Takes payload ([]byte) which is the data to pack after the schema hash.
 //
 // Returns int which is the number of bytes written.
@@ -64,14 +64,14 @@ func PackInto(dst, payload []byte) int {
 // Takes data ([]byte) which contains the packed FlatBuffer with schema hash.
 //
 // Returns []byte which is the raw FlatBuffer payload.
-// Returns error when the stored hash does not match the current schema version,
-// returning fbs.ErrSchemaVersionMismatch to indicate stale cache data.
+// Returns error when the stored hash does not match the current schema version, returning
+// fbs.ErrSchemaVersionMismatch to indicate stale cache data.
 func Unpack(data []byte) ([]byte, error) {
 	return fbs.Unpack(SchemaHash, data)
 }
 
-// Validate checks if data was serialised with the current schema version.
-// This is a fast check that does not extract the payload.
+// Validate checks if data was serialised with the current schema version. This is a fast
+// check that does not extract the payload.
 //
 // Takes data ([]byte) which is the serialised data to check.
 //

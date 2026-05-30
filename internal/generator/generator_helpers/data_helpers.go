@@ -32,48 +32,47 @@ import (
 )
 
 const (
-	// maxPageDataJSONBytes caps the JSON round-trip that backs
-	// GetData[T]. Real collection items are a few kilobytes at most; a
-	// hard ceiling here prevents a single oversized item from
-	// exhausting memory in an interpreted render.
+	// maxPageDataJSONBytes caps the JSON round-trip that backs GetData[T]. Real collection
+	// items are a few kilobytes at most; a hard ceiling here prevents a single oversized
+	// item from exhausting memory in an interpreted render.
 	maxPageDataJSONBytes = 8 << 20
 
-	// logAttrTargetType is the attribute key used across the
-	// GetDataReflect diagnostic logs; pulled into a constant to keep
-	// the log shape consistent and satisfy revive's add-constant rule.
+	// logAttrTargetType is the attribute key used across the GetDataReflect diagnostic logs;
+	// pulled into a constant to keep the log shape consistent and satisfy revive's
+	// add-constant rule.
 	logAttrTargetType = "target_type"
 )
 
-// errPageDataTooLarge reports that the streamed JSON encoding of the
-// page data would exceed maxPageDataJSONBytes before it finishes
-// writing.
-var errPageDataTooLarge = errors.New("page data exceeds size limit")
+var (
+	// errPageDataTooLarge reports that the streamed JSON encoding of the page data would
+	// exceed maxPageDataJSONBytes before it finishes writing.
+	errPageDataTooLarge = errors.New("page data exceeds size limit")
+)
 
-// boundedWriter accumulates up to limit bytes and returns
-// errPageDataTooLarge once a write would push the total over. Used to
-// abort streaming JSON encoders when input is oversized.
+// boundedWriter accumulates up to limit bytes and returns errPageDataTooLarge once a
+// write would push the total over. Used to abort streaming JSON encoders when input is
+// oversized.
 type boundedWriter struct {
 	// buf collects the bytes accepted so far.
 	buf bytes.Buffer
 
-	// written tracks the cumulative byte count for comparison with
-	// limit on each Write.
+	// written tracks the cumulative byte count for comparison with limit on each Write.
 	written int64
 
-	// limit is the maximum total byte count accepted across all
-	// Write calls.
+	// limit is the maximum total byte count accepted across all Write calls.
 	limit int64
 }
 
-var _ io.Writer = (*boundedWriter)(nil)
+var (
+	_ io.Writer = (*boundedWriter)(nil)
+)
 
-// Write appends data to the buffer when the running total would still
-// fit inside limit.
+// Write appends data to the buffer when the running total would still fit inside limit.
 //
 // Takes data ([]byte) which is the chunk the encoder wants to write.
 //
-// Returns the number of bytes accepted and errPageDataTooLarge when
-// the limit would be exceeded.
+// Returns the number of bytes accepted and errPageDataTooLarge when the limit would be
+// exceeded.
 func (w *boundedWriter) Write(data []byte) (int, error) {
 	remaining := w.limit - w.written
 	if int64(len(data)) > remaining {
@@ -98,8 +97,8 @@ func (w *boundedWriter) Write(data []byte) (int, error) {
 //
 // Takes r (*templater_dto.RequestData) which contains the CollectionData map.
 //
-// Returns T which is the page data converted to the requested type, or the
-// zero value if conversion fails.
+// Returns T which is the page data converted to the requested type, or the zero value if
+// conversion fails.
 func GetData[T any](r *templater_dto.RequestData) T {
 	result, _ := GetDataReflect(r, reflect.TypeFor[T]())
 	value, ok := result.Interface().(T)
@@ -114,16 +113,15 @@ func GetData[T any](r *templater_dto.RequestData) T {
 	return value
 }
 
-// GetDataReflect is the non-generic core used by both GetData and its
-// //piko:link sibling GetDataLink at interpreter runtime.
+// GetDataReflect is the non-generic core used by both GetData and its //piko:link sibling
+// GetDataLink at interpreter runtime.
 //
-// Takes r (*templater_dto.RequestData) which contains the
-// CollectionData map.
+// Takes r (*templater_dto.RequestData) which contains the CollectionData map.
 // Takes tType (reflect.Type) which is the target instantiated type T.
 //
-// Returns a reflect.Value of concrete type tType, either zero or
-// populated from the collection's "page" map via json round-trip, plus
-// a bool reporting whether population succeeded.
+// Returns a reflect.Value of concrete type tType, either zero or populated from the
+// collection's "page" map via json round-trip, plus a bool reporting whether population
+// succeeded.
 func GetDataReflect(r *templater_dto.RequestData, tType reflect.Type) (reflect.Value, bool) {
 	zero := reflect.New(tType).Elem()
 	ctx := context.Background()
@@ -137,17 +135,15 @@ func GetDataReflect(r *templater_dto.RequestData, tType reflect.Type) (reflect.V
 	return decodePageData(ctx, pageData, tType, zero)
 }
 
-// extractPageData returns the `page` entry from the request's
-// CollectionData map, logging a single warn line on every failure
-// path so dev-i operators can see which hop in the chain misfired.
+// extractPageData returns the `page` entry from the request's CollectionData map, logging
+// a single warn line on every failure path so dev-i operators can see which hop in the
+// chain misfired.
 //
-// Takes r (*templater_dto.RequestData) which carries the collection
-// data.
+// Takes r (*templater_dto.RequestData) which carries the collection data.
 // Takes tType (reflect.Type) which is logged for diagnostic context.
 //
-// Returns the page payload and true when the request contained a
-// well-formed CollectionData map with a `page` key; otherwise nil and
-// false.
+// Returns the page payload and true when the request contained a well-formed
+// CollectionData map with a `page` key; otherwise nil and false.
 func extractPageData(ctx context.Context, r *templater_dto.RequestData, tType reflect.Type) (any, bool) {
 	_, l := logger_domain.From(ctx, log)
 	if r == nil {
@@ -182,16 +178,15 @@ func extractPageData(ctx context.Context, r *templater_dto.RequestData, tType re
 	return pageData, true
 }
 
-// decodePageData converts the raw page payload into a reflect.Value of
-// tType, short-circuiting when the payload already has the target type.
+// decodePageData converts the raw page payload into a reflect.Value of tType,
+// short-circuiting when the payload already has the target type.
 //
-// Takes pageData (any) which is the value extracted from the "page"
-// slot.
+// Takes pageData (any) which is the value extracted from the "page" slot.
 // Takes tType (reflect.Type) which is the target type.
 // Takes zero (reflect.Value) which is returned on every failure path.
 //
-// Returns the populated reflect.Value and true on success, or zero and
-// false with a diagnostic log on any failure.
+// Returns the populated reflect.Value and true on success, or zero and false with a
+// diagnostic log on any failure.
 func decodePageData(ctx context.Context, pageData any, tType reflect.Type, zero reflect.Value) (reflect.Value, bool) {
 	if pageData != nil {
 		pageValue := reflect.ValueOf(pageData)
@@ -234,12 +229,10 @@ func decodePageData(ctx context.Context, pageData any, tType reflect.Type, zero 
 	return result.Elem(), true
 }
 
-// safeURLPath returns r.URL().Path when available, or a placeholder
-// when the request has no URL (typical in unit tests that build a
-// bare RequestData).
+// safeURLPath returns r.URL().Path when available, or a placeholder when the request has
+// no URL (typical in unit tests that build a bare RequestData).
 //
-// Takes r (*templater_dto.RequestData) which may or may not hold a
-// URL.
+// Takes r (*templater_dto.RequestData) which may or may not hold a URL.
 //
 // Returns the URL path string, or "<nil-url>".
 func safeURLPath(r *templater_dto.RequestData) string {
@@ -250,9 +243,9 @@ func safeURLPath(r *templater_dto.RequestData) string {
 	return url.Path
 }
 
-// collectionKeys extracts the top-level keys of a CollectionData map
-// for inclusion in diagnostic log output when the expected "page" key
-// is missing. Keys are sorted for deterministic log output.
+// collectionKeys extracts the top-level keys of a CollectionData map for inclusion in
+// diagnostic log output when the expected "page" key is missing. Keys are sorted for
+// deterministic log output.
 //
 // Takes rootMap (map[string]any) which is the CollectionData map.
 //
@@ -266,17 +259,15 @@ func collectionKeys(rootMap map[string]any) []string {
 	return keys
 }
 
-// marshalBounded encodes value as JSON into a buffer that aborts
-// encoding when the byte budget is exceeded. Streaming through a
-// bounded writer avoids the full-size allocation a direct
-// json.Marshal would make on hostile input before size checks run.
+// marshalBounded encodes value as JSON into a buffer that aborts encoding when the byte
+// budget is exceeded. Streaming through a bounded writer avoids the full-size allocation
+// a direct json.Marshal would make on hostile input before size checks run.
 //
 // Takes value (any) which is the JSON-serialisable payload.
 // Takes limitBytes (int) which is the maximum accepted encoded size.
 //
-// Returns the encoded bytes and nil on success; nil and
-// errPageDataTooLarge when the limit is hit mid-stream; nil and the
-// encoder's error otherwise.
+// Returns the encoded bytes and nil on success; nil and errPageDataTooLarge when the
+// limit is hit mid-stream; nil and the encoder's error otherwise.
 func marshalBounded(value any, limitBytes int) ([]byte, error) {
 	writer := &boundedWriter{limit: int64(limitBytes)}
 	encoder := json.NewEncoder(writer)

@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package orchestrator provides task orchestration and workflow
-// management as the facade for the orchestrator hexagon.
+// Package orchestrator provides task orchestration and workflow management as the facade
+// for the orchestrator hexagon.
 //
-// It wires the domain service to its adapters. Callers use
-// [NewService] to create a fully configured orchestrator without
-// interacting with sub-packages directly.
+// It wires the domain service to its adapters. Callers use [NewService] to create a fully
+// configured orchestrator without interacting with sub-packages directly.
 //
 // The returned [Service] is safe for concurrent use.
 package orchestrator

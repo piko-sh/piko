@@ -27,35 +27,35 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
-	// hybridCacheDirPermissions defines the Unix permissions for cache directories.
-	// The value 0750 grants rwxr-x--- (owner: read/write/execute, group: read/execute,
-	// others: none).
+	// hybridCacheDirPermissions defines the Unix permissions for cache directories. The
+	// value 0750 grants rwxr-x--- (owner: read/write/execute, group: read/execute, others:
+	// none).
 	hybridCacheDirPermissions = 0750
 
-	// hybridCacheFilePermissions defines the file permissions for cache files.
-	// 0600 = rw------- (owner: read/write, group: none, others: none).
+	// hybridCacheFilePermissions defines the file permissions for cache files. 0600 =
+	// rw------- (owner: read/write, group: none, others: none).
 	hybridCacheFilePermissions = 0600
 
 	// logFieldPath is the log field key for file paths.
 	logFieldPath = "path"
 )
 
-// hybridRegistryAccessor provides access to hybrid registry operations.
-// It breaks the import cycle by allowing the adapter to interact with the
-// registry without importing the domain package.
+// hybridRegistryAccessor provides access to hybrid registry operations. It breaks the
+// import cycle by allowing the adapter to interact with the registry without importing
+// the domain package.
 type hybridRegistryAccessor interface {
 	// Register stores a build-time snapshot for use at runtime.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes providerName (string) which identifies the data provider.
 	// Takes collectionName (string) which names the collection to register.
 	// Takes blob ([]byte) which contains the snapshot data.
@@ -63,17 +63,15 @@ type hybridRegistryAccessor interface {
 	// Takes config (HybridConfig) which specifies the collection settings.
 	Register(ctx context.Context, providerName, collectionName string, blob []byte, etag string, config collection_dto.HybridConfig)
 
-	// GetBlob returns the current FlatBuffer blob and whether revalidation is
-	// needed.
+	// GetBlob returns the current FlatBuffer blob and whether revalidation is needed.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes providerName (string) which identifies the data provider.
 	// Takes collectionName (string) which identifies the collection to retrieve.
 	//
 	// Returns blob ([]byte) which contains the FlatBuffer data.
-	// Returns needsRevalidation (bool) which indicates if the blob should be
-	// refreshed.
+	// Returns needsRevalidation (bool) which indicates if the blob should be refreshed.
 	GetBlob(ctx context.Context, providerName, collectionName string) (blob []byte, needsRevalidation bool)
 
 	// GetETag returns the current ETag for a hybrid collection.
@@ -118,12 +116,11 @@ type persistedHybridEntry struct {
 // DiskHybridCacheOption configures a disk-based hybrid cache.
 type DiskHybridCacheOption func(*diskHybridCache)
 
-// diskHybridCache is a thread-safe, on-disk implementation of
-// HybridPersistencePort.
+// diskHybridCache is a thread-safe, on-disk implementation of HybridPersistencePort.
 //
-// It saves hybrid collection state to a JSON file so data is kept when the
-// process restarts. The in-memory state is managed by the hybrid registry;
-// this adapter only handles reading and writing the file.
+// It saves hybrid collection state to a JSON file so data is kept when the process
+// restarts. The in-memory state is managed by the hybrid registry; this adapter only
+// handles reading and writing the file.
 //
 // Design choices:
 //   - JSON format for easy reading and debugging
@@ -134,9 +131,8 @@ type diskHybridCache struct {
 	// registry holds cache entries by provider and collection name.
 	registry hybridRegistryAccessor
 
-	// sandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil and sandbox is nil, this factory is used instead of
-	// safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
+	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
 	// sandbox handles safe file operations for cache storage.
@@ -206,10 +202,9 @@ func (d *diskHybridCache) Load(ctx context.Context) error {
 
 // Persist writes the current hybrid cache state from the registry to disk.
 //
-// Uses an atomic write method to prevent data loss if the process stops
-// during the write. First, it converts the state to JSON. Then it writes to
-// a temporary file. Finally, it renames the temp file to the target path,
-// which is atomic on POSIX systems.
+// Uses an atomic write method to prevent data loss if the process stops during the write.
+// First, it converts the state to JSON. Then it writes to a temporary file. Finally, it
+// renames the temp file to the target path, which is atomic on POSIX systems.
 //
 // Returns error when JSON conversion fails or the file cannot be written.
 //
@@ -253,13 +248,11 @@ func (d *diskHybridCache) Persist(ctx context.Context) error {
 	return nil
 }
 
-// registerEntriesFromCache decodes and registers each persisted entry with
-// the registry.
+// registerEntriesFromCache decodes and registers each persisted entry with the registry.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes entries ([]persistedHybridEntry) which contains the persisted entries
-// to restore.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes entries ([]persistedHybridEntry) which contains the persisted entries to restore.
 //
 // Returns int which is the number of entries that were registered.
 func (d *diskHybridCache) registerEntriesFromCache(ctx context.Context, entries []persistedHybridEntry) int {
@@ -300,11 +293,11 @@ func (d *diskHybridCache) registerEntriesFromCache(ctx context.Context, entries 
 
 // collectEntriesFromRegistry gathers all hybrid entries from the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 //
-// Returns []persistedHybridEntry which contains all valid entries with their
-// current blob data and ETags.
+// Returns []persistedHybridEntry which contains all valid entries with their current blob
+// data and ETags.
 func (d *diskHybridCache) collectEntriesFromRegistry(ctx context.Context) []persistedHybridEntry {
 	keys := d.registry.List()
 	entries := make([]persistedHybridEntry, 0, len(keys))
@@ -345,12 +338,12 @@ func (d *diskHybridCache) collectEntriesFromRegistry(ctx context.Context) []pers
 
 // writeFileAtomic writes data to the cache file using atomic rename.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes data ([]byte) which contains the content to write to the cache file.
 //
-// Returns error when the directory cannot be created, the temporary file
-// cannot be written, or the atomic rename fails.
+// Returns error when the directory cannot be created, the temporary file cannot be
+// written, or the atomic rename fails.
 func (d *diskHybridCache) writeFileAtomic(ctx context.Context, data []byte) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -379,8 +372,8 @@ func (d *diskHybridCache) writeFileAtomic(ctx context.Context, data []byte) erro
 	return nil
 }
 
-// WithHybridCacheSandbox injects a custom sandbox for testing.
-// If not provided, a real sandbox is created from the cache directory.
+// WithHybridCacheSandbox injects a custom sandbox for testing. If not provided, a real
+// sandbox is created from the cache directory.
 //
 // Takes sandbox (safedisk.Sandbox) which provides the sandbox to use.
 //
@@ -391,8 +384,8 @@ func WithHybridCacheSandbox(sandbox safedisk.Sandbox) DiskHybridCacheOption {
 	}
 }
 
-// WithHybridCacheSandboxFactory sets a factory for creating sandboxes when no
-// sandbox is directly injected.
+// WithHybridCacheSandboxFactory sets a factory for creating sandboxes when no sandbox is
+// directly injected.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes for cache storage.
 //
@@ -405,15 +398,14 @@ func WithHybridCacheSandboxFactory(factory safedisk.Factory) DiskHybridCacheOpti
 
 // newDiskHybridCache creates a new disk-backed hybrid cache adapter.
 //
-// The parent folder is created if it does not exist. When sandbox creation
-// fails, returns a cache with persistence turned off.
+// The parent folder is created if it does not exist. When sandbox creation fails, returns
+// a cache with persistence turned off.
 //
-// Takes cacheFilePath (string) which is the full path to the JSON file for
-// storing data.
-// Takes registry (hybridRegistryAccessor) which is the hybrid registry to read
-// from and write to.
-// Takes opts (variadic DiskHybridCacheOption) which allows optional
-// configuration such as injecting a custom sandbox for testing.
+// Takes cacheFilePath (string) which is the full path to the JSON file for storing data.
+// Takes registry (hybridRegistryAccessor) which is the hybrid registry to read from and
+// write to.
+// Takes opts (variadic DiskHybridCacheOption) which allows optional configuration such as
+// injecting a custom sandbox for testing.
 //
 // Returns *diskHybridCache which is the configured cache adapter.
 func newDiskHybridCache(

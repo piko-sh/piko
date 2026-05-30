@@ -25,7 +25,9 @@ import (
 	"testing"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 func TestQuerierSQLiteIntegration(t *testing.T) {
 	if testing.Short() {

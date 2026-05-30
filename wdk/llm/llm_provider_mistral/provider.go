@@ -41,19 +41,21 @@ const (
 	// toolTypeFunction is the type value for function tools in the Mistral API.
 	toolTypeFunction = "function"
 
-	// httpClientTimeout is the time limit for HTTP requests to the Mistral API.
-	// 30 minutes provides a generous upper bound for long-running completions
-	// while preventing stuck connections from leaking goroutines indefinitely.
+	// httpClientTimeout is the time limit for HTTP requests to the Mistral API. 30 minutes
+	// provides a generous upper bound for long-running completions while preventing stuck
+	// connections from leaking goroutines indefinitely.
 	httpClientTimeout = 30 * time.Minute
 
-	// maxLLMResponseBytes bounds the size of a third-party HTTP response body to
-	// prevent unbounded memory consumption from a hostile or malfunctioning peer.
+	// maxLLMResponseBytes bounds the size of a third-party HTTP response body to prevent
+	// unbounded memory consumption from a hostile or malfunctioning peer.
 	maxLLMResponseBytes = 16 * 1024 * 1024
 )
 
-// errResponseTruncated indicates a provider response exceeded the configured
-// size cap and was truncated.
-var errResponseTruncated = errors.New("mistral response exceeded maximum size")
+var (
+	// errResponseTruncated indicates a provider response exceeded the configured size cap
+	// and was truncated.
+	errResponseTruncated = errors.New("mistral response exceeded maximum size")
+)
 
 // readBoundedBody reads up to maxLLMResponseBytes+1 bytes from body and reports
 // truncation when the cap is exceeded.
@@ -74,8 +76,8 @@ func readBoundedBody(body io.Reader) ([]byte, error) {
 	return data, nil
 }
 
-// decodeBoundedJSON decodes JSON from body with a size cap to prevent
-// unbounded memory consumption.
+// decodeBoundedJSON decodes JSON from body with a size cap to prevent unbounded memory
+// consumption.
 //
 // Takes body (io.Reader) which is the response body to decode.
 // Takes target (any) which receives the decoded value.
@@ -89,11 +91,11 @@ func decodeBoundedJSON(body io.Reader, target any) error {
 	return json.Unmarshal(data, target)
 }
 
-// drainAndClose drains any remaining bytes from response.Body before closing
-// so that the underlying TCP connection can be reused by the HTTP client.
+// drainAndClose drains any remaining bytes from response.Body before closing so that the
+// underlying TCP connection can be reused by the HTTP client.
 //
-// Takes response (*http.Response) which is the response whose body should be
-// drained and closed.
+// Takes response (*http.Response) which is the response whose body should be drained and
+// closed.
 func drainAndClose(response *http.Response) {
 	_, _ = io.Copy(io.Discard, response.Body)
 	_ = response.Body.Close()
@@ -102,47 +104,49 @@ func drainAndClose(response *http.Response) {
 // mistralProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Mistral AI.
 type mistralProvider struct {
-	// closeContext is the provider-level context whose cancellation signals
-	// background stream goroutines to exit.
+	// closeContext is the provider-level context whose cancellation signals background
+	// stream goroutines to exit.
 	closeContext context.Context
 
 	// client is the HTTP client used for API requests.
 	client *http.Client
 
-	// closeCancel cancels the provider-level context to signal shutdown to any
-	// in-flight stream goroutines.
+	// closeCancel cancels the provider-level context to signal shutdown to any in-flight
+	// stream goroutines.
 	closeCancel context.CancelCauseFunc
 
 	// defaultModel is the model identifier used when none is specified.
 	defaultModel string
 
-	// defaultEmbeddingModel is the embedding model name to use when not
-	// specified in a request.
+	// defaultEmbeddingModel is the embedding model name to use when not specified in a
+	// request.
 	defaultEmbeddingModel string
 
 	// config holds the provider configuration settings.
 	config Config
 
-	// streamWaitGroup tracks active streaming goroutines so Close can wait for
-	// them to drain.
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for them to
+	// drain.
 	streamWaitGroup sync.WaitGroup
 
-	// embeddingDimensions is the default vector dimension for the configured
-	// embedding model.
+	// embeddingDimensions is the default vector dimension for the configured embedding
+	// model.
 	embeddingDimensions int
 
 	// closeOnce ensures Close is idempotent.
 	closeOnce sync.Once
 }
 
-var _ llm_domain.LLMProviderPort = (*mistralProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*mistralProvider)(nil)
 
-var _ llm_domain.EmbeddingProviderPort = (*mistralProvider)(nil)
+	_ llm_domain.EmbeddingProviderPort = (*mistralProvider)(nil)
+)
 
 // Complete sends a completion request to Mistral.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the
-// messages and model settings for the completion.
+// Takes request (*llm_dto.CompletionRequest) which specifies the messages and model
+// settings for the completion.
 //
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the request to Mistral fails.
@@ -183,23 +187,21 @@ type mistralRequest struct {
 	// Temperature controls randomness in the response; range 0.0 to 1.0.
 	Temperature *float64 `json:"temperature,omitempty"`
 
-	// MaxTokens is the maximum number of tokens to generate; nil uses the
-	// model default.
+	// MaxTokens is the maximum number of tokens to generate; nil uses the model default.
 	MaxTokens *int `json:"max_tokens,omitempty"`
 
-	// TopP controls nucleus sampling probability mass; nil uses the model
-	// default.
+	// TopP controls nucleus sampling probability mass; nil uses the model default.
 	TopP *float64 `json:"top_p,omitempty"`
 
 	// ResponseFormat specifies the desired output format; nil uses the default.
 	ResponseFormat *mistralResponseFormat `json:"response_format,omitempty"`
 
-	// FrequencyPenalty penalises tokens based on how often they have appeared
-	// so far; nil uses the model default.
+	// FrequencyPenalty penalises tokens based on how often they have appeared so far; nil
+	// uses the model default.
 	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty"`
 
-	// PresencePenalty penalises tokens that have appeared at all so far; nil
-	// uses the model default.
+	// PresencePenalty penalises tokens that have appeared at all so far; nil uses the model
+	// default.
 	PresencePenalty *float64 `json:"presence_penalty,omitempty"`
 
 	// RandomSeed is an optional seed for random number generation.
@@ -229,13 +231,12 @@ type mistralMessage struct {
 	// Role specifies the message sender, such as "user", "assistant", or "system".
 	Role string `json:"role"`
 
-	// Content holds the message body as raw JSON. For text-only messages this
-	// is a JSON string; for multimodal messages it is a JSON array of content
-	// part objects.
+	// Content holds the message body as raw JSON. For text-only messages this is a JSON
+	// string; for multimodal messages it is a JSON array of content part objects.
 	Content stdjson.RawMessage `json:"content"`
 
-	// Name is an optional name for the message author, used to distinguish
-	// between multiple participants with the same role.
+	// Name is an optional name for the message author, used to distinguish between multiple
+	// participants with the same role.
 	Name string `json:"name,omitempty"`
 
 	// ToolCallID is the identifier of the tool call this message responds to.
@@ -245,8 +246,7 @@ type mistralMessage struct {
 	ToolCalls []mistralToolCall `json:"tool_calls,omitempty"`
 }
 
-// mistralContentPart represents a single content part in a multimodal Mistral
-// message.
+// mistralContentPart represents a single content part in a multimodal Mistral message.
 type mistralContentPart struct {
 	// ImageURL holds the image URL reference for image content parts.
 	ImageURL *mistralImageURL `json:"image_url,omitempty"`
@@ -306,8 +306,7 @@ type mistralFunction struct {
 	Description string `json:"description,omitempty"`
 }
 
-// mistralToolChoiceFunction represents a specific tool choice targeting a named
-// function.
+// mistralToolChoiceFunction represents a specific tool choice targeting a named function.
 type mistralToolChoiceFunction struct {
 	// Type specifies the tool type; always "function".
 	Type string `json:"type"`
@@ -316,8 +315,7 @@ type mistralToolChoiceFunction struct {
 	Function mistralToolChoiceFunctionName `json:"function"`
 }
 
-// mistralToolChoiceFunctionName identifies a function by name for tool choice
-// selection.
+// mistralToolChoiceFunctionName identifies a function by name for tool choice selection.
 type mistralToolChoiceFunctionName struct {
 	// Name is the name of the function to select.
 	Name string `json:"name"`
@@ -393,8 +391,7 @@ func (*mistralProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports whether the provider supports structured
-// output.
+// SupportsStructuredOutput reports whether the provider supports structured output.
 //
 // Returns bool which is true if structured output is supported.
 func (*mistralProvider) SupportsStructuredOutput() bool {
@@ -408,8 +405,8 @@ func (*mistralProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is true if penalties are supported.
 func (*mistralProvider) SupportsPenalties() bool { return true }
@@ -419,14 +416,12 @@ func (*mistralProvider) SupportsPenalties() bool { return true }
 // Returns bool which is true if seed is supported.
 func (*mistralProvider) SupportsSeed() bool { return true }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
 // Returns bool which is false as Mistral does not support parallel tool calls.
 func (*mistralProvider) SupportsParallelToolCalls() bool { return false }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is true if message names are supported.
 func (*mistralProvider) SupportsMessageName() bool { return true }
@@ -485,14 +480,13 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 	return result, nil
 }
 
-// Close releases resources held by the Mistral provider, signalling any
-// in-flight stream goroutines to exit and waiting for them to drain.
+// Close releases resources held by the Mistral provider, signalling any in-flight stream
+// goroutines to exit and waiting for them to drain.
 //
 // Returns error when resources cannot be released within the bounded wait.
 //
-// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
-// signal active stream goroutines, waits on streamWaitGroup, then closes idle
-// HTTP connections.
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to signal
+// active stream goroutines, waits on streamWaitGroup, then closes idle HTTP connections.
 func (p *mistralProvider) Close(ctx context.Context) error {
 	var closeErr error
 	p.closeOnce.Do(func() {
@@ -565,15 +559,12 @@ type mistralEmbedData struct {
 	Index int `json:"index"`
 }
 
-// Embed generates embeddings for the given input texts via the Mistral
-// embeddings API.
+// Embed generates embeddings for the given input texts via the Mistral embeddings API.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the generated
-// embeddings.
+// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
 func (p *mistralProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Embed")
@@ -605,9 +596,9 @@ func (p *mistralProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingR
 	return convertEmbedResponse(apiResp), nil
 }
 
-// ListEmbeddingModels returns available models from the Mistral API.
-// Mistral does not distinguish between completion and embedding models in
-// its listing API, so this returns all available models.
+// ListEmbeddingModels returns available models from the Mistral API. Mistral does not
+// distinguish between completion and embedding models in its listing API, so this returns
+// all available models.
 //
 // Returns []llm_dto.ModelInfo which contains model metadata.
 // Returns error when the API request fails.
@@ -615,25 +606,21 @@ func (p *mistralProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.Mo
 	return p.ListModels(ctx)
 }
 
-// EmbeddingDimensions returns the default vector dimension for the configured
-// embedding model.
+// EmbeddingDimensions returns the default vector dimension for the configured embedding
+// model.
 //
 // Returns int which is the vector dimension.
 func (p *mistralProvider) EmbeddingDimensions() int {
 	return p.embeddingDimensions
 }
 
-// doEmbedRequest sends the embedding HTTP request and decodes
-// the response.
+// doEmbedRequest sends the embedding HTTP request and decodes the response.
 //
-// Takes model (string) which specifies the Mistral embedding
-// model to use.
+// Takes model (string) which specifies the Mistral embedding model to use.
 // Takes input ([]string) which contains the texts to embed.
 //
-// Returns *mistralEmbedResponse which holds the decoded API
-// response.
-// Returns error when the request fails or the API returns a
-// non-OK status.
+// Returns *mistralEmbedResponse which holds the decoded API response.
+// Returns error when the request fails or the API returns a non-OK status.
 func (p *mistralProvider) doEmbedRequest(
 	ctx context.Context, model string, input []string,
 ) (*mistralEmbedResponse, error) {
@@ -679,8 +666,7 @@ func (p *mistralProvider) doEmbedRequest(
 
 // buildRequest converts a CompletionRequest to Mistral's request format.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the completion
-// settings.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion settings.
 // Takes model (string) which specifies the Mistral model to use.
 // Takes stream (bool) which indicates whether to stream the response.
 //
@@ -782,11 +768,10 @@ func (p *mistralProvider) convertMessage(message llm_dto.Message) mistralMessage
 	return mm
 }
 
-// convertContentParts converts multimodal content parts to Mistral's
-// OpenAI-compatible content array format.
+// convertContentParts converts multimodal content parts to Mistral's OpenAI-compatible
+// content array format.
 //
-// Takes parts ([]llm_dto.ContentPart) which contains the content parts to
-// convert.
+// Takes parts ([]llm_dto.ContentPart) which contains the content parts to convert.
 //
 // Returns stdjson.RawMessage which is the JSON-encoded content array.
 func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson.RawMessage {
@@ -823,8 +808,7 @@ func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson
 
 // convertTools converts llm_dto.ToolDefinition slice to Mistral format.
 //
-// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions
-// to convert.
+// Takes tools ([]llm_dto.ToolDefinition) which contains the tool definitions to convert.
 //
 // Returns []mistralTool which contains the converted tools in Mistral format.
 func (p *mistralProvider) convertTools(tools []llm_dto.ToolDefinition) []mistralTool {
@@ -873,8 +857,8 @@ func (*mistralProvider) convertToolChoice(choice *llm_dto.ToolChoice) any {
 
 // convertResponseFormat converts llm_dto.ResponseFormat to Mistral format.
 //
-// Takes format (*llm_dto.ResponseFormat) which specifies the desired response
-// format type.
+// Takes format (*llm_dto.ResponseFormat) which specifies the desired response format
+// type.
 //
 // Returns *mistralResponseFormat which contains the Mistral-specific format
 // configuration.
@@ -891,8 +875,8 @@ func (*mistralProvider) convertResponseFormat(format *llm_dto.ResponseFormat) *m
 //
 // Takes schema (*llm_dto.JSONSchema) which is the schema to convert.
 //
-// Returns map[string]any which is the converted schema, or nil if the schema
-// is nil or conversion fails.
+// Returns map[string]any which is the converted schema, or nil if the schema is nil or
+// conversion fails.
 func (*mistralProvider) schemaToMap(schema *llm_dto.JSONSchema) map[string]any {
 	if schema == nil {
 		return nil
@@ -951,11 +935,9 @@ func (p *mistralProvider) doRequest(ctx context.Context, apiReq *mistralRequest)
 
 // convertResponse converts Mistral's response to llm_dto.CompletionResponse.
 //
-// Takes response (*mistralResponse) which is the raw response
-// from the Mistral API.
+// Takes response (*mistralResponse) which is the raw response from the Mistral API.
 //
-// Returns *llm_dto.CompletionResponse which is the normalised completion
-// response.
+// Returns *llm_dto.CompletionResponse which is the normalised completion response.
 func (p *mistralProvider) convertResponse(response *mistralResponse) *llm_dto.CompletionResponse {
 	choices := make([]llm_dto.Choice, len(response.Choices))
 	for i, choice := range response.Choices {
@@ -1046,14 +1028,11 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	}, nil
 }
 
-// convertEmbedResponse converts the raw Mistral embedding
-// response to the domain DTO.
+// convertEmbedResponse converts the raw Mistral embedding response to the domain DTO.
 //
-// Takes apiResp (*mistralEmbedResponse) which is the raw API
-// response to convert.
+// Takes apiResp (*mistralEmbedResponse) which is the raw API response to convert.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the
-// normalised embeddings.
+// Returns *llm_dto.EmbeddingResponse which contains the normalised embeddings.
 func convertEmbedResponse(apiResp *mistralEmbedResponse) *llm_dto.EmbeddingResponse {
 	embeddings := make([]llm_dto.Embedding, len(apiResp.Data))
 	for i := range apiResp.Data {
@@ -1095,19 +1074,19 @@ func marshalStringContent(s string) stdjson.RawMessage {
 }
 
 // classifyMistralAPIError converts a non-OK Mistral response into either a
-// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error.
-// The caller is responsible for draining and closing the response body
-// (typically via a deferred drainAndClose).
+// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error. The caller is
+// responsible for draining and closing the response body (typically via a deferred
+// drainAndClose).
 //
 // Takes response (*http.Response) which is the non-OK upstream response.
-// Takes errorContext (string) which prefixes the error message
-// (e.g. "mistral API error", "mistral embedding API error").
-// Takes rejectMessage (string) which is the user-safe message used when the
-// status code is a 4xx client error.
+// Takes errorContext (string) which prefixes the error message (e.g. "mistral API error",
+// "mistral embedding API error").
+// Takes rejectMessage (string) which is the user-safe message used when the status code
+// is a 4xx client error.
 //
 // Returns error which carries the classified upstream failure with a
-// *llm_domain.ProviderError underneath so retry classification and
-// Retry-After hints flow through.
+// *llm_domain.ProviderError underneath so retry classification and Retry-After hints flow
+// through.
 func classifyMistralAPIError(response *http.Response, errorContext, rejectMessage string) error {
 	respBody, readErr := readBoundedBody(response.Body)
 	detail := http.StatusText(response.StatusCode)

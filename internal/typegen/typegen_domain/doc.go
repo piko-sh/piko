@@ -16,31 +16,28 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package typegen_domain handles TypeScript type definition management
-// and LSP intellisense for the Piko frontend framework.
+// Package typegen_domain handles TypeScript type definition management and LSP
+// intellisense for the Piko frontend framework.
 //
-// It writes TypeScript definition files (.d.ts) to disk for IDE
-// integration and supplies completion data for the LSP server's
-// piko.* and action.* namespaces. Port interfaces define the
-// contracts that adapters implement for type info and action manifest
+// It writes TypeScript definition files (.d.ts) to disk for IDE integration and supplies
+// completion data for the LSP server's piko.* and action.* namespaces. Port interfaces
+// define the contracts that adapters implement for type info and action manifest
 // provisioning.
 //
 // # Type definition sources
 //
-// Type definitions come from two sources. piko-ide.d.ts holds
-// hand-maintained type declarations for the piko namespace, used by
-// IDE plugins for autocomplete. piko-actions.d.ts holds embedded stub
-// definitions for server-side actions (these will be generated from
-// Go action handlers in future).
+// Type definitions come from two sources. piko-ide.d.ts holds hand-maintained type
+// declarations for the piko namespace, used by IDE plugins for autocomplete.
+// piko-actions.d.ts holds embedded stub definitions for server-side actions, generated
+// from Go action handlers.
 //
 // # Output location
 //
-// Type definitions are written to {project_root}/dist/ts/. The
-// IntelliJ plugin reads them directly for IDE integration, and the
-// daemon serves them at /_piko/dist/ts/ for remote access.
+// Type definitions are written to {project_root}/dist/ts/. The IntelliJ plugin reads them
+// directly for IDE integration, and the daemon serves them at /_piko/dist/ts/ for remote
+// access.
 //
 // # Thread safety
 //
-// Both [TypeDefinitionService] and [TypeInfoService] are safe for
-// concurrent use.
+// Both [TypeDefinitionService] and [TypeInfoService] are safe for concurrent use.
 package typegen_domain

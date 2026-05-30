@@ -27,59 +27,50 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// MockTemplaterService is a test double for TemplaterService that returns
-// zero values from nil function fields and tracks call counts atomically.
+// MockTemplaterService is a test double for TemplaterService that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockTemplaterService struct {
-	// ProbePageFunc is the function called by
-	// ProbePage.
+	// ProbePageFunc is the function called by ProbePage.
 	ProbePageFunc func(ctx context.Context, page templater_dto.PageDefinition, request *http.Request, websiteConfig *config.WebsiteConfig) (*templater_dto.PageProbeResult, error)
 
-	// RenderPageFunc is the function called by
-	// RenderPage.
+	// RenderPageFunc is the function called by RenderPage.
 	RenderPageFunc func(ctx context.Context, request RenderRequest) error
 
-	// ProbePartialFunc is the function called by
-	// ProbePartial.
+	// ProbePartialFunc is the function called by ProbePartial.
 	ProbePartialFunc func(ctx context.Context, page templater_dto.PageDefinition, request *http.Request, websiteConfig *config.WebsiteConfig) (*templater_dto.PageProbeResult, error)
 
-	// RenderPartialFunc is the function called by
-	// RenderPartial.
+	// RenderPartialFunc is the function called by RenderPartial.
 	RenderPartialFunc func(ctx context.Context, request RenderRequest) error
 
-	// SetRunnerFunc is the function called by
-	// SetRunner.
+	// SetRunnerFunc is the function called by SetRunner.
 	SetRunnerFunc func(r ManifestRunnerPort)
 
-	// ProbePageCallCount tracks how many times
-	// ProbePage was called.
-	ProbePageCallCount int64
+	// ProbePageCallCount tracks how many times ProbePage was called.
+	ProbePageCallCount atomic.Int64
 
-	// RenderPageCallCount tracks how many times
-	// RenderPage was called.
-	RenderPageCallCount int64
+	// RenderPageCallCount tracks how many times RenderPage was called.
+	RenderPageCallCount atomic.Int64
 
-	// ProbePartialCallCount tracks how many times
-	// ProbePartial was called.
-	ProbePartialCallCount int64
+	// ProbePartialCallCount tracks how many times ProbePartial was called.
+	ProbePartialCallCount atomic.Int64
 
-	// RenderPartialCallCount tracks how many times
-	// RenderPartial was called.
-	RenderPartialCallCount int64
+	// RenderPartialCallCount tracks how many times RenderPartial was called.
+	RenderPartialCallCount atomic.Int64
 
-	// SetRunnerCallCount tracks how many times
-	// SetRunner was called.
-	SetRunnerCallCount int64
+	// SetRunnerCallCount tracks how many times SetRunner was called.
+	SetRunnerCallCount atomic.Int64
 }
 
-var _ TemplaterService = (*MockTemplaterService)(nil)
+var (
+	_ TemplaterService = (*MockTemplaterService)(nil)
+)
 
 // ProbePage probes a page to gather metadata and validation information.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes page (templater_dto.PageDefinition) which describes the page to probe.
 // Takes request (*http.Request) which is the incoming HTTP request.
-// Takes websiteConfig (*config.WebsiteConfig) which provides the
-// website configuration.
+// Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
 //
 // Returns (*PageProbeResult, error), or (nil, nil) if ProbePageFunc is nil.
 func (m *MockTemplaterService) ProbePage(
@@ -88,7 +79,7 @@ func (m *MockTemplaterService) ProbePage(
 	request *http.Request,
 	websiteConfig *config.WebsiteConfig,
 ) (*templater_dto.PageProbeResult, error) {
-	atomic.AddInt64(&m.ProbePageCallCount, 1)
+	m.ProbePageCallCount.Add(1)
 	if m.ProbePageFunc != nil {
 		return m.ProbePageFunc(ctx, page, request, websiteConfig)
 	}
@@ -102,7 +93,7 @@ func (m *MockTemplaterService) ProbePage(
 //
 // Returns error, or nil if RenderPageFunc is nil.
 func (m *MockTemplaterService) RenderPage(ctx context.Context, request RenderRequest) error {
-	atomic.AddInt64(&m.RenderPageCallCount, 1)
+	m.RenderPageCallCount.Add(1)
 	if m.RenderPageFunc != nil {
 		return m.RenderPageFunc(ctx, request)
 	}
@@ -114,18 +105,16 @@ func (m *MockTemplaterService) RenderPage(ctx context.Context, request RenderReq
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes page (templater_dto.PageDefinition) which describes the partial to probe.
 // Takes request (*http.Request) which is the incoming HTTP request.
-// Takes websiteConfig (*config.WebsiteConfig) which provides the
-// website configuration.
+// Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
 //
-// Returns (*PageProbeResult, error), or (nil, nil) if ProbePartialFunc
-// is nil.
+// Returns (*PageProbeResult, error), or (nil, nil) if ProbePartialFunc is nil.
 func (m *MockTemplaterService) ProbePartial(
 	ctx context.Context,
 	page templater_dto.PageDefinition,
 	request *http.Request,
 	websiteConfig *config.WebsiteConfig,
 ) (*templater_dto.PageProbeResult, error) {
-	atomic.AddInt64(&m.ProbePartialCallCount, 1)
+	m.ProbePartialCallCount.Add(1)
 	if m.ProbePartialFunc != nil {
 		return m.ProbePartialFunc(ctx, page, request, websiteConfig)
 	}
@@ -139,7 +128,7 @@ func (m *MockTemplaterService) ProbePartial(
 //
 // Returns error, or nil if RenderPartialFunc is nil.
 func (m *MockTemplaterService) RenderPartial(ctx context.Context, request RenderRequest) error {
-	atomic.AddInt64(&m.RenderPartialCallCount, 1)
+	m.RenderPartialCallCount.Add(1)
 	if m.RenderPartialFunc != nil {
 		return m.RenderPartialFunc(ctx, request)
 	}
@@ -150,7 +139,7 @@ func (m *MockTemplaterService) RenderPartial(ctx context.Context, request Render
 //
 // Takes r (ManifestRunnerPort) which is the runner to assign.
 func (m *MockTemplaterService) SetRunner(r ManifestRunnerPort) {
-	atomic.AddInt64(&m.SetRunnerCallCount, 1)
+	m.SetRunnerCallCount.Add(1)
 	if m.SetRunnerFunc != nil {
 		m.SetRunnerFunc(r)
 	}

@@ -18,9 +18,9 @@
 
 //go:build never
 
-// This file exists only to prevent 'go mod tidy' from removing the piko dependency.
-// The piko dependency is required for component annotations and code generation,
-// but does not appear in any compilable source files in this library.
+// This file exists only to prevent 'go mod tidy' from removing the piko dependency. The
+// piko dependency is required for component annotations and code generation, but does not
+// appear in any compilable source files in this library.
 package ui_components
 
 import _ "piko.sh/piko"

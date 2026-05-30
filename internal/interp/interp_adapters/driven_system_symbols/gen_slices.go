@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"sort"
 )
 
 func wrappedSlicesAll(s any) any {
@@ -14,16 +15,32 @@ func wrappedSlicesAll(s any) any {
 		return slices.All(typedArg)
 	case []int:
 		return slices.All(typedArg)
+	case []int8:
+		return slices.All(typedArg)
+	case []int16:
+		return slices.All(typedArg)
+	case []int32:
+		return slices.All(typedArg)
 	case []int64:
 		return slices.All(typedArg)
-	case []float64:
+	case []uint:
 		return slices.All(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.All(typedArg)
+	case []uint16:
+		return slices.All(typedArg)
+	case []uint32:
+		return slices.All(typedArg)
+	case []uint64:
+		return slices.All(typedArg)
+	case []float32:
+		return slices.All(typedArg)
+	case []float64:
 		return slices.All(typedArg)
 	case []bool:
 		return slices.All(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.All: unsupported type %T", s))
+		return reflectSlicesAll(s)
 	}
 }
 func wrappedSlicesAppendSeq(s any, seq func(yield func(v any) bool)) any {
@@ -40,22 +57,70 @@ func wrappedSlicesAppendSeq(s any, seq func(yield func(v any) bool)) any {
 				return yield(coerce[int](v))
 			})
 		})
+	case []int8:
+		return slices.AppendSeq(typedArg, func(yield func(v int8) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[int8](v))
+			})
+		})
+	case []int16:
+		return slices.AppendSeq(typedArg, func(yield func(v int16) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[int16](v))
+			})
+		})
+	case []int32:
+		return slices.AppendSeq(typedArg, func(yield func(v int32) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[int32](v))
+			})
+		})
 	case []int64:
 		return slices.AppendSeq(typedArg, func(yield func(v int64) bool) {
 			seq(func(v any) bool {
 				return yield(coerce[int64](v))
 			})
 		})
+	case []uint:
+		return slices.AppendSeq(typedArg, func(yield func(v uint) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[uint](v))
+			})
+		})
+	case []uint8:
+		return slices.AppendSeq(typedArg, func(yield func(v uint8) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[uint8](v))
+			})
+		})
+	case []uint16:
+		return slices.AppendSeq(typedArg, func(yield func(v uint16) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[uint16](v))
+			})
+		})
+	case []uint32:
+		return slices.AppendSeq(typedArg, func(yield func(v uint32) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[uint32](v))
+			})
+		})
+	case []uint64:
+		return slices.AppendSeq(typedArg, func(yield func(v uint64) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[uint64](v))
+			})
+		})
+	case []float32:
+		return slices.AppendSeq(typedArg, func(yield func(v float32) bool) {
+			seq(func(v any) bool {
+				return yield(coerce[float32](v))
+			})
+		})
 	case []float64:
 		return slices.AppendSeq(typedArg, func(yield func(v float64) bool) {
 			seq(func(v any) bool {
 				return yield(coerce[float64](v))
-			})
-		})
-	case []byte:
-		return slices.AppendSeq(typedArg, func(yield func(v byte) bool) {
-			seq(func(v any) bool {
-				return yield(coerce[byte](v))
 			})
 		})
 	case []bool:
@@ -65,7 +130,7 @@ func wrappedSlicesAppendSeq(s any, seq func(yield func(v any) bool)) any {
 			})
 		})
 	default:
-		panic(fmt.Sprintf("slices.AppendSeq: unsupported type %T", s))
+		return reflectSlicesAppendSeq(s, seq)
 	}
 }
 func wrappedSlicesBackward(s any) any {
@@ -74,16 +139,32 @@ func wrappedSlicesBackward(s any) any {
 		return slices.Backward(typedArg)
 	case []int:
 		return slices.Backward(typedArg)
+	case []int8:
+		return slices.Backward(typedArg)
+	case []int16:
+		return slices.Backward(typedArg)
+	case []int32:
+		return slices.Backward(typedArg)
 	case []int64:
 		return slices.Backward(typedArg)
-	case []float64:
+	case []uint:
 		return slices.Backward(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.Backward(typedArg)
+	case []uint16:
+		return slices.Backward(typedArg)
+	case []uint32:
+		return slices.Backward(typedArg)
+	case []uint64:
+		return slices.Backward(typedArg)
+	case []float32:
+		return slices.Backward(typedArg)
+	case []float64:
 		return slices.Backward(typedArg)
 	case []bool:
 		return slices.Backward(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Backward: unsupported type %T", s))
+		return reflectSlicesBackward(s)
 	}
 }
 func wrappedSlicesBinarySearch(x any, target any) (int, bool) {
@@ -92,14 +173,30 @@ func wrappedSlicesBinarySearch(x any, target any) (int, bool) {
 		return slices.BinarySearch(typedArg, coerce[string](target))
 	case []int:
 		return slices.BinarySearch(typedArg, coerce[int](target))
+	case []int8:
+		return slices.BinarySearch(typedArg, coerce[int8](target))
+	case []int16:
+		return slices.BinarySearch(typedArg, coerce[int16](target))
+	case []int32:
+		return slices.BinarySearch(typedArg, coerce[int32](target))
 	case []int64:
 		return slices.BinarySearch(typedArg, coerce[int64](target))
+	case []uint:
+		return slices.BinarySearch(typedArg, coerce[uint](target))
+	case []uint8:
+		return slices.BinarySearch(typedArg, coerce[uint8](target))
+	case []uint16:
+		return slices.BinarySearch(typedArg, coerce[uint16](target))
+	case []uint32:
+		return slices.BinarySearch(typedArg, coerce[uint32](target))
+	case []uint64:
+		return slices.BinarySearch(typedArg, coerce[uint64](target))
+	case []float32:
+		return slices.BinarySearch(typedArg, coerce[float32](target))
 	case []float64:
 		return slices.BinarySearch(typedArg, coerce[float64](target))
-	case []byte:
-		return slices.BinarySearch(typedArg, coerce[byte](target))
 	default:
-		panic(fmt.Sprintf("slices.BinarySearch: unsupported type %T", x))
+		return reflectSlicesBinarySearch(x, target)
 	}
 }
 func wrappedSlicesBinarySearchFunc(x any, target any, cmpArg func(p0 any, p1 any) int) (int, bool) {
@@ -112,16 +209,48 @@ func wrappedSlicesBinarySearchFunc(x any, target any, cmpArg func(p0 any, p1 any
 		return slices.BinarySearchFunc(typedArg, coerce[int](target), func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		return slices.BinarySearchFunc(typedArg, coerce[int8](target), func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		return slices.BinarySearchFunc(typedArg, coerce[int16](target), func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		return slices.BinarySearchFunc(typedArg, coerce[int32](target), func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		return slices.BinarySearchFunc(typedArg, coerce[int64](target), func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		return slices.BinarySearchFunc(typedArg, coerce[float64](target), func(p0 float64, p1 float64) int {
+	case []uint:
+		return slices.BinarySearchFunc(typedArg, coerce[uint](target), func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		return slices.BinarySearchFunc(typedArg, coerce[byte](target), func(p0 byte, p1 byte) int {
+	case []uint8:
+		return slices.BinarySearchFunc(typedArg, coerce[uint8](target), func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		return slices.BinarySearchFunc(typedArg, coerce[uint16](target), func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		return slices.BinarySearchFunc(typedArg, coerce[uint32](target), func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		return slices.BinarySearchFunc(typedArg, coerce[uint64](target), func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		return slices.BinarySearchFunc(typedArg, coerce[float32](target), func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		return slices.BinarySearchFunc(typedArg, coerce[float64](target), func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -129,7 +258,7 @@ func wrappedSlicesBinarySearchFunc(x any, target any, cmpArg func(p0 any, p1 any
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.BinarySearchFunc: unsupported type %T", x))
+		return reflectSlicesBinarySearchFunc(x, target, cmpArg)
 	}
 }
 func wrappedSlicesChunk(s any, n int) any {
@@ -138,16 +267,32 @@ func wrappedSlicesChunk(s any, n int) any {
 		return slices.Chunk(typedArg, n)
 	case []int:
 		return slices.Chunk(typedArg, n)
+	case []int8:
+		return slices.Chunk(typedArg, n)
+	case []int16:
+		return slices.Chunk(typedArg, n)
+	case []int32:
+		return slices.Chunk(typedArg, n)
 	case []int64:
 		return slices.Chunk(typedArg, n)
-	case []float64:
+	case []uint:
 		return slices.Chunk(typedArg, n)
-	case []byte:
+	case []uint8:
+		return slices.Chunk(typedArg, n)
+	case []uint16:
+		return slices.Chunk(typedArg, n)
+	case []uint32:
+		return slices.Chunk(typedArg, n)
+	case []uint64:
+		return slices.Chunk(typedArg, n)
+	case []float32:
+		return slices.Chunk(typedArg, n)
+	case []float64:
 		return slices.Chunk(typedArg, n)
 	case []bool:
 		return slices.Chunk(typedArg, n)
 	default:
-		panic(fmt.Sprintf("slices.Chunk: unsupported type %T", s))
+		return reflectSlicesChunk(s, n)
 	}
 }
 func wrappedSlicesClip(s any) any {
@@ -156,16 +301,32 @@ func wrappedSlicesClip(s any) any {
 		return slices.Clip(typedArg)
 	case []int:
 		return slices.Clip(typedArg)
+	case []int8:
+		return slices.Clip(typedArg)
+	case []int16:
+		return slices.Clip(typedArg)
+	case []int32:
+		return slices.Clip(typedArg)
 	case []int64:
 		return slices.Clip(typedArg)
-	case []float64:
+	case []uint:
 		return slices.Clip(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.Clip(typedArg)
+	case []uint16:
+		return slices.Clip(typedArg)
+	case []uint32:
+		return slices.Clip(typedArg)
+	case []uint64:
+		return slices.Clip(typedArg)
+	case []float32:
+		return slices.Clip(typedArg)
+	case []float64:
 		return slices.Clip(typedArg)
 	case []bool:
 		return slices.Clip(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Clip: unsupported type %T", s))
+		return reflectSlicesClip(s)
 	}
 }
 func wrappedSlicesClone(s any) any {
@@ -174,16 +335,32 @@ func wrappedSlicesClone(s any) any {
 		return slices.Clone(typedArg)
 	case []int:
 		return slices.Clone(typedArg)
+	case []int8:
+		return slices.Clone(typedArg)
+	case []int16:
+		return slices.Clone(typedArg)
+	case []int32:
+		return slices.Clone(typedArg)
 	case []int64:
 		return slices.Clone(typedArg)
-	case []float64:
+	case []uint:
 		return slices.Clone(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.Clone(typedArg)
+	case []uint16:
+		return slices.Clone(typedArg)
+	case []uint32:
+		return slices.Clone(typedArg)
+	case []uint64:
+		return slices.Clone(typedArg)
+	case []float32:
+		return slices.Clone(typedArg)
+	case []float64:
 		return slices.Clone(typedArg)
 	case []bool:
 		return slices.Clone(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Clone: unsupported type %T", s))
+		return reflectSlicesClone(s)
 	}
 }
 func wrappedSlicesCompact(s any) any {
@@ -192,16 +369,32 @@ func wrappedSlicesCompact(s any) any {
 		return slices.Compact(typedArg)
 	case []int:
 		return slices.Compact(typedArg)
+	case []int8:
+		return slices.Compact(typedArg)
+	case []int16:
+		return slices.Compact(typedArg)
+	case []int32:
+		return slices.Compact(typedArg)
 	case []int64:
 		return slices.Compact(typedArg)
-	case []float64:
+	case []uint:
 		return slices.Compact(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.Compact(typedArg)
+	case []uint16:
+		return slices.Compact(typedArg)
+	case []uint32:
+		return slices.Compact(typedArg)
+	case []uint64:
+		return slices.Compact(typedArg)
+	case []float32:
+		return slices.Compact(typedArg)
+	case []float64:
 		return slices.Compact(typedArg)
 	case []bool:
 		return slices.Compact(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Compact: unsupported type %T", s))
+		return reflectSlicesCompact(s)
 	}
 }
 func wrappedSlicesCompactFunc(s any, eq func(p0 any, p1 any) bool) any {
@@ -214,16 +407,48 @@ func wrappedSlicesCompactFunc(s any, eq func(p0 any, p1 any) bool) any {
 		return slices.CompactFunc(typedArg, func(p0 int, p1 int) bool {
 			return eq(p0, p1)
 		})
+	case []int8:
+		return slices.CompactFunc(typedArg, func(p0 int8, p1 int8) bool {
+			return eq(p0, p1)
+		})
+	case []int16:
+		return slices.CompactFunc(typedArg, func(p0 int16, p1 int16) bool {
+			return eq(p0, p1)
+		})
+	case []int32:
+		return slices.CompactFunc(typedArg, func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
 	case []int64:
 		return slices.CompactFunc(typedArg, func(p0 int64, p1 int64) bool {
 			return eq(p0, p1)
 		})
-	case []float64:
-		return slices.CompactFunc(typedArg, func(p0 float64, p1 float64) bool {
+	case []uint:
+		return slices.CompactFunc(typedArg, func(p0 uint, p1 uint) bool {
 			return eq(p0, p1)
 		})
-	case []byte:
-		return slices.CompactFunc(typedArg, func(p0 byte, p1 byte) bool {
+	case []uint8:
+		return slices.CompactFunc(typedArg, func(p0 uint8, p1 uint8) bool {
+			return eq(p0, p1)
+		})
+	case []uint16:
+		return slices.CompactFunc(typedArg, func(p0 uint16, p1 uint16) bool {
+			return eq(p0, p1)
+		})
+	case []uint32:
+		return slices.CompactFunc(typedArg, func(p0 uint32, p1 uint32) bool {
+			return eq(p0, p1)
+		})
+	case []uint64:
+		return slices.CompactFunc(typedArg, func(p0 uint64, p1 uint64) bool {
+			return eq(p0, p1)
+		})
+	case []float32:
+		return slices.CompactFunc(typedArg, func(p0 float32, p1 float32) bool {
+			return eq(p0, p1)
+		})
+	case []float64:
+		return slices.CompactFunc(typedArg, func(p0 float64, p1 float64) bool {
 			return eq(p0, p1)
 		})
 	case []bool:
@@ -231,7 +456,7 @@ func wrappedSlicesCompactFunc(s any, eq func(p0 any, p1 any) bool) any {
 			return eq(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.CompactFunc: unsupported type %T", s))
+		return reflectSlicesCompactFunc(s, eq)
 	}
 }
 func wrappedSlicesCompare(s1 any, s2 any) int {
@@ -240,14 +465,30 @@ func wrappedSlicesCompare(s1 any, s2 any) int {
 		return slices.Compare(typedArg, s2.([]string))
 	case []int:
 		return slices.Compare(typedArg, s2.([]int))
+	case []int8:
+		return slices.Compare(typedArg, s2.([]int8))
+	case []int16:
+		return slices.Compare(typedArg, s2.([]int16))
+	case []int32:
+		return slices.Compare(typedArg, s2.([]int32))
 	case []int64:
 		return slices.Compare(typedArg, s2.([]int64))
+	case []uint:
+		return slices.Compare(typedArg, s2.([]uint))
+	case []uint8:
+		return slices.Compare(typedArg, s2.([]uint8))
+	case []uint16:
+		return slices.Compare(typedArg, s2.([]uint16))
+	case []uint32:
+		return slices.Compare(typedArg, s2.([]uint32))
+	case []uint64:
+		return slices.Compare(typedArg, s2.([]uint64))
+	case []float32:
+		return slices.Compare(typedArg, s2.([]float32))
 	case []float64:
 		return slices.Compare(typedArg, s2.([]float64))
-	case []byte:
-		return slices.Compare(typedArg, s2.([]byte))
 	default:
-		panic(fmt.Sprintf("slices.Compare: unsupported type %T", s1))
+		return reflectSlicesCompare(s1, s2)
 	}
 }
 func wrappedSlicesCompareFunc(s1 any, s2 any, cmpArg func(p0 any, p1 any) int) int {
@@ -260,16 +501,48 @@ func wrappedSlicesCompareFunc(s1 any, s2 any, cmpArg func(p0 any, p1 any) int) i
 		return slices.CompareFunc(typedArg, s2.([]int), func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		return slices.CompareFunc(typedArg, s2.([]int8), func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		return slices.CompareFunc(typedArg, s2.([]int16), func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		return slices.CompareFunc(typedArg, s2.([]int32), func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		return slices.CompareFunc(typedArg, s2.([]int64), func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		return slices.CompareFunc(typedArg, s2.([]float64), func(p0 float64, p1 float64) int {
+	case []uint:
+		return slices.CompareFunc(typedArg, s2.([]uint), func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		return slices.CompareFunc(typedArg, s2.([]byte), func(p0 byte, p1 byte) int {
+	case []uint8:
+		return slices.CompareFunc(typedArg, s2.([]uint8), func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		return slices.CompareFunc(typedArg, s2.([]uint16), func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		return slices.CompareFunc(typedArg, s2.([]uint32), func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		return slices.CompareFunc(typedArg, s2.([]uint64), func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		return slices.CompareFunc(typedArg, s2.([]float32), func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		return slices.CompareFunc(typedArg, s2.([]float64), func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -277,7 +550,7 @@ func wrappedSlicesCompareFunc(s1 any, s2 any, cmpArg func(p0 any, p1 any) int) i
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.CompareFunc: unsupported type %T", s1))
+		return reflectSlicesCompareFunc(s1, s2, cmpArg)
 	}
 }
 func wrappedSlicesConcat(slicesArg ...any) any {
@@ -298,22 +571,70 @@ func wrappedSlicesConcat(slicesArg ...any) any {
 			typed[i] = coerce[[]int](v)
 		}
 		return slices.Concat(typed...)
+	case []int8:
+		typed := make([][]int8, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]int8](v)
+		}
+		return slices.Concat(typed...)
+	case []int16:
+		typed := make([][]int16, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]int16](v)
+		}
+		return slices.Concat(typed...)
+	case []int32:
+		typed := make([][]int32, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]int32](v)
+		}
+		return slices.Concat(typed...)
 	case []int64:
 		typed := make([][]int64, len(slicesArg))
 		for i, v := range slicesArg {
 			typed[i] = coerce[[]int64](v)
 		}
 		return slices.Concat(typed...)
+	case []uint:
+		typed := make([][]uint, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]uint](v)
+		}
+		return slices.Concat(typed...)
+	case []uint8:
+		typed := make([][]uint8, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]uint8](v)
+		}
+		return slices.Concat(typed...)
+	case []uint16:
+		typed := make([][]uint16, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]uint16](v)
+		}
+		return slices.Concat(typed...)
+	case []uint32:
+		typed := make([][]uint32, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]uint32](v)
+		}
+		return slices.Concat(typed...)
+	case []uint64:
+		typed := make([][]uint64, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]uint64](v)
+		}
+		return slices.Concat(typed...)
+	case []float32:
+		typed := make([][]float32, len(slicesArg))
+		for i, v := range slicesArg {
+			typed[i] = coerce[[]float32](v)
+		}
+		return slices.Concat(typed...)
 	case []float64:
 		typed := make([][]float64, len(slicesArg))
 		for i, v := range slicesArg {
 			typed[i] = coerce[[]float64](v)
-		}
-		return slices.Concat(typed...)
-	case []byte:
-		typed := make([][]byte, len(slicesArg))
-		for i, v := range slicesArg {
-			typed[i] = coerce[[]byte](v)
 		}
 		return slices.Concat(typed...)
 	case []bool:
@@ -323,7 +644,7 @@ func wrappedSlicesConcat(slicesArg ...any) any {
 		}
 		return slices.Concat(typed...)
 	default:
-		panic(fmt.Sprintf("slices.Concat: unsupported type %T", slicesArg[0]))
+		return reflectSlicesConcat(slicesArg...)
 	}
 }
 func wrappedSlicesContains(s any, v any) bool {
@@ -332,16 +653,32 @@ func wrappedSlicesContains(s any, v any) bool {
 		return slices.Contains(typedArg, coerce[string](v))
 	case []int:
 		return slices.Contains(typedArg, coerce[int](v))
+	case []int8:
+		return slices.Contains(typedArg, coerce[int8](v))
+	case []int16:
+		return slices.Contains(typedArg, coerce[int16](v))
+	case []int32:
+		return slices.Contains(typedArg, coerce[int32](v))
 	case []int64:
 		return slices.Contains(typedArg, coerce[int64](v))
+	case []uint:
+		return slices.Contains(typedArg, coerce[uint](v))
+	case []uint8:
+		return slices.Contains(typedArg, coerce[uint8](v))
+	case []uint16:
+		return slices.Contains(typedArg, coerce[uint16](v))
+	case []uint32:
+		return slices.Contains(typedArg, coerce[uint32](v))
+	case []uint64:
+		return slices.Contains(typedArg, coerce[uint64](v))
+	case []float32:
+		return slices.Contains(typedArg, coerce[float32](v))
 	case []float64:
 		return slices.Contains(typedArg, coerce[float64](v))
-	case []byte:
-		return slices.Contains(typedArg, coerce[byte](v))
 	case []bool:
 		return slices.Contains(typedArg, coerce[bool](v))
 	default:
-		panic(fmt.Sprintf("slices.Contains: unsupported type %T", s))
+		return reflectSlicesContains(s, v)
 	}
 }
 func wrappedSlicesContainsFunc(s any, f func(p0 any) bool) bool {
@@ -354,16 +691,48 @@ func wrappedSlicesContainsFunc(s any, f func(p0 any) bool) bool {
 		return slices.ContainsFunc(typedArg, func(p0 int) bool {
 			return f(p0)
 		})
+	case []int8:
+		return slices.ContainsFunc(typedArg, func(p0 int8) bool {
+			return f(p0)
+		})
+	case []int16:
+		return slices.ContainsFunc(typedArg, func(p0 int16) bool {
+			return f(p0)
+		})
+	case []int32:
+		return slices.ContainsFunc(typedArg, func(p0 int32) bool {
+			return f(p0)
+		})
 	case []int64:
 		return slices.ContainsFunc(typedArg, func(p0 int64) bool {
 			return f(p0)
 		})
-	case []float64:
-		return slices.ContainsFunc(typedArg, func(p0 float64) bool {
+	case []uint:
+		return slices.ContainsFunc(typedArg, func(p0 uint) bool {
 			return f(p0)
 		})
-	case []byte:
-		return slices.ContainsFunc(typedArg, func(p0 byte) bool {
+	case []uint8:
+		return slices.ContainsFunc(typedArg, func(p0 uint8) bool {
+			return f(p0)
+		})
+	case []uint16:
+		return slices.ContainsFunc(typedArg, func(p0 uint16) bool {
+			return f(p0)
+		})
+	case []uint32:
+		return slices.ContainsFunc(typedArg, func(p0 uint32) bool {
+			return f(p0)
+		})
+	case []uint64:
+		return slices.ContainsFunc(typedArg, func(p0 uint64) bool {
+			return f(p0)
+		})
+	case []float32:
+		return slices.ContainsFunc(typedArg, func(p0 float32) bool {
+			return f(p0)
+		})
+	case []float64:
+		return slices.ContainsFunc(typedArg, func(p0 float64) bool {
 			return f(p0)
 		})
 	case []bool:
@@ -371,7 +740,7 @@ func wrappedSlicesContainsFunc(s any, f func(p0 any) bool) bool {
 			return f(p0)
 		})
 	default:
-		panic(fmt.Sprintf("slices.ContainsFunc: unsupported type %T", s))
+		return reflectSlicesContainsFunc(s, f)
 	}
 }
 func wrappedSlicesDelete(s any, i int, j int) any {
@@ -380,16 +749,32 @@ func wrappedSlicesDelete(s any, i int, j int) any {
 		return slices.Delete(typedArg, i, j)
 	case []int:
 		return slices.Delete(typedArg, i, j)
+	case []int8:
+		return slices.Delete(typedArg, i, j)
+	case []int16:
+		return slices.Delete(typedArg, i, j)
+	case []int32:
+		return slices.Delete(typedArg, i, j)
 	case []int64:
 		return slices.Delete(typedArg, i, j)
-	case []float64:
+	case []uint:
 		return slices.Delete(typedArg, i, j)
-	case []byte:
+	case []uint8:
+		return slices.Delete(typedArg, i, j)
+	case []uint16:
+		return slices.Delete(typedArg, i, j)
+	case []uint32:
+		return slices.Delete(typedArg, i, j)
+	case []uint64:
+		return slices.Delete(typedArg, i, j)
+	case []float32:
+		return slices.Delete(typedArg, i, j)
+	case []float64:
 		return slices.Delete(typedArg, i, j)
 	case []bool:
 		return slices.Delete(typedArg, i, j)
 	default:
-		panic(fmt.Sprintf("slices.Delete: unsupported type %T", s))
+		return reflectSlicesDelete(s, i, j)
 	}
 }
 func wrappedSlicesDeleteFunc(s any, del func(p0 any) bool) any {
@@ -402,16 +787,48 @@ func wrappedSlicesDeleteFunc(s any, del func(p0 any) bool) any {
 		return slices.DeleteFunc(typedArg, func(p0 int) bool {
 			return del(p0)
 		})
+	case []int8:
+		return slices.DeleteFunc(typedArg, func(p0 int8) bool {
+			return del(p0)
+		})
+	case []int16:
+		return slices.DeleteFunc(typedArg, func(p0 int16) bool {
+			return del(p0)
+		})
+	case []int32:
+		return slices.DeleteFunc(typedArg, func(p0 int32) bool {
+			return del(p0)
+		})
 	case []int64:
 		return slices.DeleteFunc(typedArg, func(p0 int64) bool {
 			return del(p0)
 		})
-	case []float64:
-		return slices.DeleteFunc(typedArg, func(p0 float64) bool {
+	case []uint:
+		return slices.DeleteFunc(typedArg, func(p0 uint) bool {
 			return del(p0)
 		})
-	case []byte:
-		return slices.DeleteFunc(typedArg, func(p0 byte) bool {
+	case []uint8:
+		return slices.DeleteFunc(typedArg, func(p0 uint8) bool {
+			return del(p0)
+		})
+	case []uint16:
+		return slices.DeleteFunc(typedArg, func(p0 uint16) bool {
+			return del(p0)
+		})
+	case []uint32:
+		return slices.DeleteFunc(typedArg, func(p0 uint32) bool {
+			return del(p0)
+		})
+	case []uint64:
+		return slices.DeleteFunc(typedArg, func(p0 uint64) bool {
+			return del(p0)
+		})
+	case []float32:
+		return slices.DeleteFunc(typedArg, func(p0 float32) bool {
+			return del(p0)
+		})
+	case []float64:
+		return slices.DeleteFunc(typedArg, func(p0 float64) bool {
 			return del(p0)
 		})
 	case []bool:
@@ -419,7 +836,7 @@ func wrappedSlicesDeleteFunc(s any, del func(p0 any) bool) any {
 			return del(p0)
 		})
 	default:
-		panic(fmt.Sprintf("slices.DeleteFunc: unsupported type %T", s))
+		return reflectSlicesDeleteFunc(s, del)
 	}
 }
 func wrappedSlicesEqual(s1 any, s2 any) bool {
@@ -428,16 +845,32 @@ func wrappedSlicesEqual(s1 any, s2 any) bool {
 		return slices.Equal(typedArg, s2.([]string))
 	case []int:
 		return slices.Equal(typedArg, s2.([]int))
+	case []int8:
+		return slices.Equal(typedArg, s2.([]int8))
+	case []int16:
+		return slices.Equal(typedArg, s2.([]int16))
+	case []int32:
+		return slices.Equal(typedArg, s2.([]int32))
 	case []int64:
 		return slices.Equal(typedArg, s2.([]int64))
+	case []uint:
+		return slices.Equal(typedArg, s2.([]uint))
+	case []uint8:
+		return slices.Equal(typedArg, s2.([]uint8))
+	case []uint16:
+		return slices.Equal(typedArg, s2.([]uint16))
+	case []uint32:
+		return slices.Equal(typedArg, s2.([]uint32))
+	case []uint64:
+		return slices.Equal(typedArg, s2.([]uint64))
+	case []float32:
+		return slices.Equal(typedArg, s2.([]float32))
 	case []float64:
 		return slices.Equal(typedArg, s2.([]float64))
-	case []byte:
-		return slices.Equal(typedArg, s2.([]byte))
 	case []bool:
 		return slices.Equal(typedArg, s2.([]bool))
 	default:
-		panic(fmt.Sprintf("slices.Equal: unsupported type %T", s1))
+		return reflectSlicesEqual(s1, s2)
 	}
 }
 func wrappedSlicesEqualFunc(s1 any, s2 any, eq func(p0 any, p1 any) bool) bool {
@@ -450,16 +883,48 @@ func wrappedSlicesEqualFunc(s1 any, s2 any, eq func(p0 any, p1 any) bool) bool {
 		return slices.EqualFunc(typedArg, s2.([]int), func(p0 int, p1 int) bool {
 			return eq(p0, p1)
 		})
+	case []int8:
+		return slices.EqualFunc(typedArg, s2.([]int8), func(p0 int8, p1 int8) bool {
+			return eq(p0, p1)
+		})
+	case []int16:
+		return slices.EqualFunc(typedArg, s2.([]int16), func(p0 int16, p1 int16) bool {
+			return eq(p0, p1)
+		})
+	case []int32:
+		return slices.EqualFunc(typedArg, s2.([]int32), func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
 	case []int64:
 		return slices.EqualFunc(typedArg, s2.([]int64), func(p0 int64, p1 int64) bool {
 			return eq(p0, p1)
 		})
-	case []float64:
-		return slices.EqualFunc(typedArg, s2.([]float64), func(p0 float64, p1 float64) bool {
+	case []uint:
+		return slices.EqualFunc(typedArg, s2.([]uint), func(p0 uint, p1 uint) bool {
 			return eq(p0, p1)
 		})
-	case []byte:
-		return slices.EqualFunc(typedArg, s2.([]byte), func(p0 byte, p1 byte) bool {
+	case []uint8:
+		return slices.EqualFunc(typedArg, s2.([]uint8), func(p0 uint8, p1 uint8) bool {
+			return eq(p0, p1)
+		})
+	case []uint16:
+		return slices.EqualFunc(typedArg, s2.([]uint16), func(p0 uint16, p1 uint16) bool {
+			return eq(p0, p1)
+		})
+	case []uint32:
+		return slices.EqualFunc(typedArg, s2.([]uint32), func(p0 uint32, p1 uint32) bool {
+			return eq(p0, p1)
+		})
+	case []uint64:
+		return slices.EqualFunc(typedArg, s2.([]uint64), func(p0 uint64, p1 uint64) bool {
+			return eq(p0, p1)
+		})
+	case []float32:
+		return slices.EqualFunc(typedArg, s2.([]float32), func(p0 float32, p1 float32) bool {
+			return eq(p0, p1)
+		})
+	case []float64:
+		return slices.EqualFunc(typedArg, s2.([]float64), func(p0 float64, p1 float64) bool {
 			return eq(p0, p1)
 		})
 	case []bool:
@@ -467,7 +932,7 @@ func wrappedSlicesEqualFunc(s1 any, s2 any, eq func(p0 any, p1 any) bool) bool {
 			return eq(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.EqualFunc: unsupported type %T", s1))
+		return reflectSlicesEqualFunc(s1, s2, eq)
 	}
 }
 func wrappedSlicesGrow(s any, n int) any {
@@ -476,16 +941,32 @@ func wrappedSlicesGrow(s any, n int) any {
 		return slices.Grow(typedArg, n)
 	case []int:
 		return slices.Grow(typedArg, n)
+	case []int8:
+		return slices.Grow(typedArg, n)
+	case []int16:
+		return slices.Grow(typedArg, n)
+	case []int32:
+		return slices.Grow(typedArg, n)
 	case []int64:
 		return slices.Grow(typedArg, n)
-	case []float64:
+	case []uint:
 		return slices.Grow(typedArg, n)
-	case []byte:
+	case []uint8:
+		return slices.Grow(typedArg, n)
+	case []uint16:
+		return slices.Grow(typedArg, n)
+	case []uint32:
+		return slices.Grow(typedArg, n)
+	case []uint64:
+		return slices.Grow(typedArg, n)
+	case []float32:
+		return slices.Grow(typedArg, n)
+	case []float64:
 		return slices.Grow(typedArg, n)
 	case []bool:
 		return slices.Grow(typedArg, n)
 	default:
-		panic(fmt.Sprintf("slices.Grow: unsupported type %T", s))
+		return reflectSlicesGrow(s, n)
 	}
 }
 func wrappedSlicesIndex(s any, v any) int {
@@ -494,16 +975,32 @@ func wrappedSlicesIndex(s any, v any) int {
 		return slices.Index(typedArg, coerce[string](v))
 	case []int:
 		return slices.Index(typedArg, coerce[int](v))
+	case []int8:
+		return slices.Index(typedArg, coerce[int8](v))
+	case []int16:
+		return slices.Index(typedArg, coerce[int16](v))
+	case []int32:
+		return slices.Index(typedArg, coerce[int32](v))
 	case []int64:
 		return slices.Index(typedArg, coerce[int64](v))
+	case []uint:
+		return slices.Index(typedArg, coerce[uint](v))
+	case []uint8:
+		return slices.Index(typedArg, coerce[uint8](v))
+	case []uint16:
+		return slices.Index(typedArg, coerce[uint16](v))
+	case []uint32:
+		return slices.Index(typedArg, coerce[uint32](v))
+	case []uint64:
+		return slices.Index(typedArg, coerce[uint64](v))
+	case []float32:
+		return slices.Index(typedArg, coerce[float32](v))
 	case []float64:
 		return slices.Index(typedArg, coerce[float64](v))
-	case []byte:
-		return slices.Index(typedArg, coerce[byte](v))
 	case []bool:
 		return slices.Index(typedArg, coerce[bool](v))
 	default:
-		panic(fmt.Sprintf("slices.Index: unsupported type %T", s))
+		return reflectSlicesIndex(s, v)
 	}
 }
 func wrappedSlicesIndexFunc(s any, f func(p0 any) bool) int {
@@ -516,16 +1013,48 @@ func wrappedSlicesIndexFunc(s any, f func(p0 any) bool) int {
 		return slices.IndexFunc(typedArg, func(p0 int) bool {
 			return f(p0)
 		})
+	case []int8:
+		return slices.IndexFunc(typedArg, func(p0 int8) bool {
+			return f(p0)
+		})
+	case []int16:
+		return slices.IndexFunc(typedArg, func(p0 int16) bool {
+			return f(p0)
+		})
+	case []int32:
+		return slices.IndexFunc(typedArg, func(p0 int32) bool {
+			return f(p0)
+		})
 	case []int64:
 		return slices.IndexFunc(typedArg, func(p0 int64) bool {
 			return f(p0)
 		})
-	case []float64:
-		return slices.IndexFunc(typedArg, func(p0 float64) bool {
+	case []uint:
+		return slices.IndexFunc(typedArg, func(p0 uint) bool {
 			return f(p0)
 		})
-	case []byte:
-		return slices.IndexFunc(typedArg, func(p0 byte) bool {
+	case []uint8:
+		return slices.IndexFunc(typedArg, func(p0 uint8) bool {
+			return f(p0)
+		})
+	case []uint16:
+		return slices.IndexFunc(typedArg, func(p0 uint16) bool {
+			return f(p0)
+		})
+	case []uint32:
+		return slices.IndexFunc(typedArg, func(p0 uint32) bool {
+			return f(p0)
+		})
+	case []uint64:
+		return slices.IndexFunc(typedArg, func(p0 uint64) bool {
+			return f(p0)
+		})
+	case []float32:
+		return slices.IndexFunc(typedArg, func(p0 float32) bool {
+			return f(p0)
+		})
+	case []float64:
+		return slices.IndexFunc(typedArg, func(p0 float64) bool {
 			return f(p0)
 		})
 	case []bool:
@@ -533,7 +1062,7 @@ func wrappedSlicesIndexFunc(s any, f func(p0 any) bool) int {
 			return f(p0)
 		})
 	default:
-		panic(fmt.Sprintf("slices.IndexFunc: unsupported type %T", s))
+		return reflectSlicesIndexFunc(s, f)
 	}
 }
 func wrappedSlicesInsert(s any, i int, v ...any) any {
@@ -550,22 +1079,70 @@ func wrappedSlicesInsert(s any, i int, v ...any) any {
 			typedVariadic[i] = coerce[int](v)
 		}
 		return slices.Insert(typedArg, i, typedVariadic...)
+	case []int8:
+		typedVariadic := make([]int8, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int8](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []int16:
+		typedVariadic := make([]int16, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int16](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []int32:
+		typedVariadic := make([]int32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int32](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
 	case []int64:
 		typedVariadic := make([]int64, len(v))
 		for i, v := range v {
 			typedVariadic[i] = coerce[int64](v)
 		}
 		return slices.Insert(typedArg, i, typedVariadic...)
+	case []uint:
+		typedVariadic := make([]uint, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []uint8:
+		typedVariadic := make([]uint8, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint8](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []uint16:
+		typedVariadic := make([]uint16, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint16](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []uint32:
+		typedVariadic := make([]uint32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint32](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []uint64:
+		typedVariadic := make([]uint64, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint64](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
+	case []float32:
+		typedVariadic := make([]float32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[float32](v)
+		}
+		return slices.Insert(typedArg, i, typedVariadic...)
 	case []float64:
 		typedVariadic := make([]float64, len(v))
 		for i, v := range v {
 			typedVariadic[i] = coerce[float64](v)
-		}
-		return slices.Insert(typedArg, i, typedVariadic...)
-	case []byte:
-		typedVariadic := make([]byte, len(v))
-		for i, v := range v {
-			typedVariadic[i] = coerce[byte](v)
 		}
 		return slices.Insert(typedArg, i, typedVariadic...)
 	case []bool:
@@ -575,7 +1152,7 @@ func wrappedSlicesInsert(s any, i int, v ...any) any {
 		}
 		return slices.Insert(typedArg, i, typedVariadic...)
 	default:
-		panic(fmt.Sprintf("slices.Insert: unsupported type %T", s))
+		return reflectSlicesInsert(s, i, v...)
 	}
 }
 func wrappedSlicesIsSorted(x any) bool {
@@ -584,14 +1161,30 @@ func wrappedSlicesIsSorted(x any) bool {
 		return slices.IsSorted(typedArg)
 	case []int:
 		return slices.IsSorted(typedArg)
+	case []int8:
+		return slices.IsSorted(typedArg)
+	case []int16:
+		return slices.IsSorted(typedArg)
+	case []int32:
+		return slices.IsSorted(typedArg)
 	case []int64:
+		return slices.IsSorted(typedArg)
+	case []uint:
+		return slices.IsSorted(typedArg)
+	case []uint8:
+		return slices.IsSorted(typedArg)
+	case []uint16:
+		return slices.IsSorted(typedArg)
+	case []uint32:
+		return slices.IsSorted(typedArg)
+	case []uint64:
+		return slices.IsSorted(typedArg)
+	case []float32:
 		return slices.IsSorted(typedArg)
 	case []float64:
 		return slices.IsSorted(typedArg)
-	case []byte:
-		return slices.IsSorted(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.IsSorted: unsupported type %T", x))
+		return reflectSlicesIsSorted(x)
 	}
 }
 func wrappedSlicesIsSortedFunc(x any, cmpArg func(p0 any, p1 any) int) bool {
@@ -604,16 +1197,48 @@ func wrappedSlicesIsSortedFunc(x any, cmpArg func(p0 any, p1 any) int) bool {
 		return slices.IsSortedFunc(typedArg, func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		return slices.IsSortedFunc(typedArg, func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		return slices.IsSortedFunc(typedArg, func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		return slices.IsSortedFunc(typedArg, func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		return slices.IsSortedFunc(typedArg, func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		return slices.IsSortedFunc(typedArg, func(p0 float64, p1 float64) int {
+	case []uint:
+		return slices.IsSortedFunc(typedArg, func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		return slices.IsSortedFunc(typedArg, func(p0 byte, p1 byte) int {
+	case []uint8:
+		return slices.IsSortedFunc(typedArg, func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		return slices.IsSortedFunc(typedArg, func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		return slices.IsSortedFunc(typedArg, func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		return slices.IsSortedFunc(typedArg, func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		return slices.IsSortedFunc(typedArg, func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		return slices.IsSortedFunc(typedArg, func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -621,7 +1246,7 @@ func wrappedSlicesIsSortedFunc(x any, cmpArg func(p0 any, p1 any) int) bool {
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.IsSortedFunc: unsupported type %T", x))
+		return reflectSlicesIsSortedFunc(x, cmpArg)
 	}
 }
 func wrappedSlicesMax(x any) any {
@@ -630,14 +1255,30 @@ func wrappedSlicesMax(x any) any {
 		return slices.Max(typedArg)
 	case []int:
 		return slices.Max(typedArg)
+	case []int8:
+		return slices.Max(typedArg)
+	case []int16:
+		return slices.Max(typedArg)
+	case []int32:
+		return slices.Max(typedArg)
 	case []int64:
+		return slices.Max(typedArg)
+	case []uint:
+		return slices.Max(typedArg)
+	case []uint8:
+		return slices.Max(typedArg)
+	case []uint16:
+		return slices.Max(typedArg)
+	case []uint32:
+		return slices.Max(typedArg)
+	case []uint64:
+		return slices.Max(typedArg)
+	case []float32:
 		return slices.Max(typedArg)
 	case []float64:
 		return slices.Max(typedArg)
-	case []byte:
-		return slices.Max(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Max: unsupported type %T", x))
+		return reflectSlicesMax(x)
 	}
 }
 func wrappedSlicesMaxFunc(x any, cmpArg func(p0 any, p1 any) int) any {
@@ -650,16 +1291,48 @@ func wrappedSlicesMaxFunc(x any, cmpArg func(p0 any, p1 any) int) any {
 		return slices.MaxFunc(typedArg, func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		return slices.MaxFunc(typedArg, func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		return slices.MaxFunc(typedArg, func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		return slices.MaxFunc(typedArg, func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		return slices.MaxFunc(typedArg, func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		return slices.MaxFunc(typedArg, func(p0 float64, p1 float64) int {
+	case []uint:
+		return slices.MaxFunc(typedArg, func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		return slices.MaxFunc(typedArg, func(p0 byte, p1 byte) int {
+	case []uint8:
+		return slices.MaxFunc(typedArg, func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		return slices.MaxFunc(typedArg, func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		return slices.MaxFunc(typedArg, func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		return slices.MaxFunc(typedArg, func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		return slices.MaxFunc(typedArg, func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		return slices.MaxFunc(typedArg, func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -667,7 +1340,7 @@ func wrappedSlicesMaxFunc(x any, cmpArg func(p0 any, p1 any) int) any {
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.MaxFunc: unsupported type %T", x))
+		return reflectMinMaxFuncFallback(x, cmpArg, false)
 	}
 }
 func wrappedSlicesMin(x any) any {
@@ -676,14 +1349,30 @@ func wrappedSlicesMin(x any) any {
 		return slices.Min(typedArg)
 	case []int:
 		return slices.Min(typedArg)
+	case []int8:
+		return slices.Min(typedArg)
+	case []int16:
+		return slices.Min(typedArg)
+	case []int32:
+		return slices.Min(typedArg)
 	case []int64:
+		return slices.Min(typedArg)
+	case []uint:
+		return slices.Min(typedArg)
+	case []uint8:
+		return slices.Min(typedArg)
+	case []uint16:
+		return slices.Min(typedArg)
+	case []uint32:
+		return slices.Min(typedArg)
+	case []uint64:
+		return slices.Min(typedArg)
+	case []float32:
 		return slices.Min(typedArg)
 	case []float64:
 		return slices.Min(typedArg)
-	case []byte:
-		return slices.Min(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Min: unsupported type %T", x))
+		return reflectSlicesMin(x)
 	}
 }
 func wrappedSlicesMinFunc(x any, cmpArg func(p0 any, p1 any) int) any {
@@ -696,16 +1385,48 @@ func wrappedSlicesMinFunc(x any, cmpArg func(p0 any, p1 any) int) any {
 		return slices.MinFunc(typedArg, func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		return slices.MinFunc(typedArg, func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		return slices.MinFunc(typedArg, func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		return slices.MinFunc(typedArg, func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		return slices.MinFunc(typedArg, func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		return slices.MinFunc(typedArg, func(p0 float64, p1 float64) int {
+	case []uint:
+		return slices.MinFunc(typedArg, func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		return slices.MinFunc(typedArg, func(p0 byte, p1 byte) int {
+	case []uint8:
+		return slices.MinFunc(typedArg, func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		return slices.MinFunc(typedArg, func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		return slices.MinFunc(typedArg, func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		return slices.MinFunc(typedArg, func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		return slices.MinFunc(typedArg, func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		return slices.MinFunc(typedArg, func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -713,7 +1434,7 @@ func wrappedSlicesMinFunc(x any, cmpArg func(p0 any, p1 any) int) any {
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.MinFunc: unsupported type %T", x))
+		return reflectMinMaxFuncFallback(x, cmpArg, true)
 	}
 }
 func wrappedSlicesRepeat(x any, count int) any {
@@ -722,16 +1443,32 @@ func wrappedSlicesRepeat(x any, count int) any {
 		return slices.Repeat(typedArg, count)
 	case []int:
 		return slices.Repeat(typedArg, count)
+	case []int8:
+		return slices.Repeat(typedArg, count)
+	case []int16:
+		return slices.Repeat(typedArg, count)
+	case []int32:
+		return slices.Repeat(typedArg, count)
 	case []int64:
 		return slices.Repeat(typedArg, count)
-	case []float64:
+	case []uint:
 		return slices.Repeat(typedArg, count)
-	case []byte:
+	case []uint8:
+		return slices.Repeat(typedArg, count)
+	case []uint16:
+		return slices.Repeat(typedArg, count)
+	case []uint32:
+		return slices.Repeat(typedArg, count)
+	case []uint64:
+		return slices.Repeat(typedArg, count)
+	case []float32:
+		return slices.Repeat(typedArg, count)
+	case []float64:
 		return slices.Repeat(typedArg, count)
 	case []bool:
 		return slices.Repeat(typedArg, count)
 	default:
-		panic(fmt.Sprintf("slices.Repeat: unsupported type %T", x))
+		return reflectSlicesRepeat(x, count)
 	}
 }
 func wrappedSlicesReplace(s any, i int, j int, v ...any) any {
@@ -748,22 +1485,70 @@ func wrappedSlicesReplace(s any, i int, j int, v ...any) any {
 			typedVariadic[i] = coerce[int](v)
 		}
 		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []int8:
+		typedVariadic := make([]int8, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int8](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []int16:
+		typedVariadic := make([]int16, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int16](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []int32:
+		typedVariadic := make([]int32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[int32](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
 	case []int64:
 		typedVariadic := make([]int64, len(v))
 		for i, v := range v {
 			typedVariadic[i] = coerce[int64](v)
 		}
 		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []uint:
+		typedVariadic := make([]uint, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []uint8:
+		typedVariadic := make([]uint8, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint8](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []uint16:
+		typedVariadic := make([]uint16, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint16](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []uint32:
+		typedVariadic := make([]uint32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint32](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []uint64:
+		typedVariadic := make([]uint64, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[uint64](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
+	case []float32:
+		typedVariadic := make([]float32, len(v))
+		for i, v := range v {
+			typedVariadic[i] = coerce[float32](v)
+		}
+		return slices.Replace(typedArg, i, j, typedVariadic...)
 	case []float64:
 		typedVariadic := make([]float64, len(v))
 		for i, v := range v {
 			typedVariadic[i] = coerce[float64](v)
-		}
-		return slices.Replace(typedArg, i, j, typedVariadic...)
-	case []byte:
-		typedVariadic := make([]byte, len(v))
-		for i, v := range v {
-			typedVariadic[i] = coerce[byte](v)
 		}
 		return slices.Replace(typedArg, i, j, typedVariadic...)
 	case []bool:
@@ -773,7 +1558,7 @@ func wrappedSlicesReplace(s any, i int, j int, v ...any) any {
 		}
 		return slices.Replace(typedArg, i, j, typedVariadic...)
 	default:
-		panic(fmt.Sprintf("slices.Replace: unsupported type %T", s))
+		return reflectSlicesReplace(s, i, j, v...)
 	}
 }
 func wrappedSlicesReverse(s any) {
@@ -782,16 +1567,33 @@ func wrappedSlicesReverse(s any) {
 		slices.Reverse(typedArg)
 	case []int:
 		slices.Reverse(typedArg)
+	case []int8:
+		slices.Reverse(typedArg)
+	case []int16:
+		slices.Reverse(typedArg)
+	case []int32:
+		slices.Reverse(typedArg)
 	case []int64:
 		slices.Reverse(typedArg)
-	case []float64:
+	case []uint:
 		slices.Reverse(typedArg)
-	case []byte:
+	case []uint8:
+		slices.Reverse(typedArg)
+	case []uint16:
+		slices.Reverse(typedArg)
+	case []uint32:
+		slices.Reverse(typedArg)
+	case []uint64:
+		slices.Reverse(typedArg)
+	case []float32:
+		slices.Reverse(typedArg)
+	case []float64:
 		slices.Reverse(typedArg)
 	case []bool:
 		slices.Reverse(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Reverse: unsupported type %T", s))
+		reflectSlicesReverse(s)
+		return
 	}
 }
 func wrappedSlicesSort(x any) {
@@ -800,14 +1602,31 @@ func wrappedSlicesSort(x any) {
 		slices.Sort(typedArg)
 	case []int:
 		slices.Sort(typedArg)
+	case []int8:
+		slices.Sort(typedArg)
+	case []int16:
+		slices.Sort(typedArg)
+	case []int32:
+		slices.Sort(typedArg)
 	case []int64:
+		slices.Sort(typedArg)
+	case []uint:
+		slices.Sort(typedArg)
+	case []uint8:
+		slices.Sort(typedArg)
+	case []uint16:
+		slices.Sort(typedArg)
+	case []uint32:
+		slices.Sort(typedArg)
+	case []uint64:
+		slices.Sort(typedArg)
+	case []float32:
 		slices.Sort(typedArg)
 	case []float64:
 		slices.Sort(typedArg)
-	case []byte:
-		slices.Sort(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Sort: unsupported type %T", x))
+		reflectSlicesSort(x)
+		return
 	}
 }
 func wrappedSlicesSortFunc(x any, cmpArg func(p0 any, p1 any) int) {
@@ -820,16 +1639,48 @@ func wrappedSlicesSortFunc(x any, cmpArg func(p0 any, p1 any) int) {
 		slices.SortFunc(typedArg, func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		slices.SortFunc(typedArg, func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		slices.SortFunc(typedArg, func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		slices.SortFunc(typedArg, func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		slices.SortFunc(typedArg, func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		slices.SortFunc(typedArg, func(p0 float64, p1 float64) int {
+	case []uint:
+		slices.SortFunc(typedArg, func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		slices.SortFunc(typedArg, func(p0 byte, p1 byte) int {
+	case []uint8:
+		slices.SortFunc(typedArg, func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		slices.SortFunc(typedArg, func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		slices.SortFunc(typedArg, func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		slices.SortFunc(typedArg, func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		slices.SortFunc(typedArg, func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		slices.SortFunc(typedArg, func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -837,7 +1688,7 @@ func wrappedSlicesSortFunc(x any, cmpArg func(p0 any, p1 any) int) {
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.SortFunc: unsupported type %T", x))
+		reflectSortFuncFallback(x, cmpArg)
 	}
 }
 func wrappedSlicesSortStableFunc(x any, cmpArg func(p0 any, p1 any) int) {
@@ -850,16 +1701,48 @@ func wrappedSlicesSortStableFunc(x any, cmpArg func(p0 any, p1 any) int) {
 		slices.SortStableFunc(typedArg, func(p0 int, p1 int) int {
 			return cmpArg(p0, p1)
 		})
+	case []int8:
+		slices.SortStableFunc(typedArg, func(p0 int8, p1 int8) int {
+			return cmpArg(p0, p1)
+		})
+	case []int16:
+		slices.SortStableFunc(typedArg, func(p0 int16, p1 int16) int {
+			return cmpArg(p0, p1)
+		})
+	case []int32:
+		slices.SortStableFunc(typedArg, func(p0 int32, p1 int32) int {
+			return cmpArg(p0, p1)
+		})
 	case []int64:
 		slices.SortStableFunc(typedArg, func(p0 int64, p1 int64) int {
 			return cmpArg(p0, p1)
 		})
-	case []float64:
-		slices.SortStableFunc(typedArg, func(p0 float64, p1 float64) int {
+	case []uint:
+		slices.SortStableFunc(typedArg, func(p0 uint, p1 uint) int {
 			return cmpArg(p0, p1)
 		})
-	case []byte:
-		slices.SortStableFunc(typedArg, func(p0 byte, p1 byte) int {
+	case []uint8:
+		slices.SortStableFunc(typedArg, func(p0 uint8, p1 uint8) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint16:
+		slices.SortStableFunc(typedArg, func(p0 uint16, p1 uint16) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint32:
+		slices.SortStableFunc(typedArg, func(p0 uint32, p1 uint32) int {
+			return cmpArg(p0, p1)
+		})
+	case []uint64:
+		slices.SortStableFunc(typedArg, func(p0 uint64, p1 uint64) int {
+			return cmpArg(p0, p1)
+		})
+	case []float32:
+		slices.SortStableFunc(typedArg, func(p0 float32, p1 float32) int {
+			return cmpArg(p0, p1)
+		})
+	case []float64:
+		slices.SortStableFunc(typedArg, func(p0 float64, p1 float64) int {
 			return cmpArg(p0, p1)
 		})
 	case []bool:
@@ -867,7 +1750,7 @@ func wrappedSlicesSortStableFunc(x any, cmpArg func(p0 any, p1 any) int) {
 			return cmpArg(p0, p1)
 		})
 	default:
-		panic(fmt.Sprintf("slices.SortStableFunc: unsupported type %T", x))
+		reflectSortFuncFallback(x, cmpArg)
 	}
 }
 func wrappedSlicesValues(s any) any {
@@ -876,17 +1759,59 @@ func wrappedSlicesValues(s any) any {
 		return slices.Values(typedArg)
 	case []int:
 		return slices.Values(typedArg)
+	case []int8:
+		return slices.Values(typedArg)
+	case []int16:
+		return slices.Values(typedArg)
+	case []int32:
+		return slices.Values(typedArg)
 	case []int64:
 		return slices.Values(typedArg)
-	case []float64:
+	case []uint:
 		return slices.Values(typedArg)
-	case []byte:
+	case []uint8:
+		return slices.Values(typedArg)
+	case []uint16:
+		return slices.Values(typedArg)
+	case []uint32:
+		return slices.Values(typedArg)
+	case []uint64:
+		return slices.Values(typedArg)
+	case []float32:
+		return slices.Values(typedArg)
+	case []float64:
 		return slices.Values(typedArg)
 	case []bool:
 		return slices.Values(typedArg)
 	default:
-		panic(fmt.Sprintf("slices.Values: unsupported type %T", s))
+		return reflectSlicesValues(s)
 	}
+}
+func reflectMinMaxFuncFallback(x any, cmpArg func(p0 any, p1 any) int, takeMin bool) any {
+	rv := reflect.ValueOf(x)
+	if rv.Kind() != reflect.Slice || rv.Len() == 0 {
+		panic(fmt.Sprintf("slices.Min/MaxFunc: unsupported type %T or empty slice", x))
+	}
+	best := rv.Index(0).Interface()
+	for i := 1; i < rv.Len(); i++ {
+		candidate := rv.Index(i).Interface()
+		cmp := cmpArg(candidate, best)
+		if (takeMin && cmp < 0) || (!takeMin && cmp > 0) {
+			best = candidate
+		}
+	}
+	return best
+}
+func reflectSortFuncFallback(x any, cmpArg func(p0 any, p1 any) int) {
+	rv := reflect.ValueOf(x)
+	if rv.Kind() != reflect.Slice {
+		panic(fmt.Sprintf("slices.SortFunc: unsupported type %T", x))
+	}
+	sort.SliceStable(rv.Interface(), func(i, j int) bool {
+		a := rv.Index(i).Interface()
+		b := rv.Index(j).Interface()
+		return cmpArg(a, b) < 0
+	})
 }
 func init() {
 	Symbols["slices"] = map[string]reflect.Value{"All": reflect.ValueOf(wrappedSlicesAll), "AppendSeq": reflect.ValueOf(wrappedSlicesAppendSeq), "Backward": reflect.ValueOf(wrappedSlicesBackward), "BinarySearch": reflect.ValueOf(wrappedSlicesBinarySearch), "BinarySearchFunc": reflect.ValueOf(wrappedSlicesBinarySearchFunc), "Chunk": reflect.ValueOf(wrappedSlicesChunk), "Clip": reflect.ValueOf(wrappedSlicesClip), "Clone": reflect.ValueOf(wrappedSlicesClone), "Compact": reflect.ValueOf(wrappedSlicesCompact), "CompactFunc": reflect.ValueOf(wrappedSlicesCompactFunc), "Compare": reflect.ValueOf(wrappedSlicesCompare), "CompareFunc": reflect.ValueOf(wrappedSlicesCompareFunc), "Concat": reflect.ValueOf(wrappedSlicesConcat), "Contains": reflect.ValueOf(wrappedSlicesContains), "ContainsFunc": reflect.ValueOf(wrappedSlicesContainsFunc), "Delete": reflect.ValueOf(wrappedSlicesDelete), "DeleteFunc": reflect.ValueOf(wrappedSlicesDeleteFunc), "Equal": reflect.ValueOf(wrappedSlicesEqual), "EqualFunc": reflect.ValueOf(wrappedSlicesEqualFunc), "Grow": reflect.ValueOf(wrappedSlicesGrow), "Index": reflect.ValueOf(wrappedSlicesIndex), "IndexFunc": reflect.ValueOf(wrappedSlicesIndexFunc), "Insert": reflect.ValueOf(wrappedSlicesInsert), "IsSorted": reflect.ValueOf(wrappedSlicesIsSorted), "IsSortedFunc": reflect.ValueOf(wrappedSlicesIsSortedFunc), "Max": reflect.ValueOf(wrappedSlicesMax), "MaxFunc": reflect.ValueOf(wrappedSlicesMaxFunc), "Min": reflect.ValueOf(wrappedSlicesMin), "MinFunc": reflect.ValueOf(wrappedSlicesMinFunc), "Repeat": reflect.ValueOf(wrappedSlicesRepeat), "Replace": reflect.ValueOf(wrappedSlicesReplace), "Reverse": reflect.ValueOf(wrappedSlicesReverse), "Sort": reflect.ValueOf(wrappedSlicesSort), "SortFunc": reflect.ValueOf(wrappedSlicesSortFunc), "SortStableFunc": reflect.ValueOf(wrappedSlicesSortStableFunc), "Values": reflect.ValueOf(wrappedSlicesValues)}

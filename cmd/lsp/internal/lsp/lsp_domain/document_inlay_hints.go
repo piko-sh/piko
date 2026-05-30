@@ -30,14 +30,15 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// printerTabWidth is the tab width used when formatting type expressions.
-const printerTabWidth = 4
+const (
+	// printerTabWidth is the tab width used when formatting type expressions.
+	printerTabWidth = 4
+)
 
-// GetInlayHints returns inlay hints for the given range.
-// Inlay hints show type annotations and parameter names inline in the editor.
+// GetInlayHints returns inlay hints for the given range. Inlay hints show type
+// annotations and parameter names inline in the editor.
 //
-// Takes textRange (protocol.Range) which specifies the visible
-// range to get hints for.
+// Takes textRange (protocol.Range) which specifies the visible range to get hints for.
 //
 // Returns []InlayHint which contains the hints to display.
 // Returns error when hint generation fails.
@@ -69,8 +70,8 @@ func (d *document) GetInlayHints(ctx context.Context, textRange protocol.Range) 
 // collectForLoopTypeHints collects type hints for p-for loop variables.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the for loop to analyse.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides symbol
-// information for type resolution.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides symbol information
+// for type resolution.
 // Takes textRange (protocol.Range) which limits hints to the visible range.
 //
 // Returns []InlayHint which contains type hints for each loop variable.
@@ -118,12 +119,11 @@ func (d *document) collectForLoopTypeHints(
 
 // extractLoopVariables extracts variable names from a p-for directive.
 //
-// Takes directive (*ast_domain.Directive) which contains the loop expression
-// to parse.
+// Takes directive (*ast_domain.Directive) which contains the loop expression to parse.
 //
-// Returns []string which contains the extracted variable names, excluding
-// blank identifiers. Returns nil when the directive is nil, has no expression,
-// or has no valid assignment.
+// Returns []string which contains the extracted variable names, excluding blank
+// identifiers.
+// Returns nil when the directive is nil, has no expression, or has no valid assignment.
 func extractLoopVariables(directive *ast_domain.Directive) []string {
 	if directive == nil || directive.RawExpression == "" {
 		return nil
@@ -152,17 +152,16 @@ func extractLoopVariables(directive *ast_domain.Directive) []string {
 	return vars
 }
 
-// getDirectiveHintPosition returns the position where a type hint should appear
-// for a loop variable in a p-for directive.
+// getDirectiveHintPosition returns the position where a type hint should appear for a
+// loop variable in a p-for directive.
 //
-// Takes directive (*ast_domain.Directive) which is the p-for directive
-// containing the loop variable.
-// Takes varName (string) which is the name of the loop variable to
-// locate.
+// Takes directive (*ast_domain.Directive) which is the p-for directive containing the
+// loop variable.
+// Takes varName (string) which is the name of the loop variable to locate.
 //
-// Returns protocol.Position which is the position immediately after the
-// variable name where the type hint should be inserted. Returns a zero
-// position if the directive is nil or the variable is not found.
+// Returns protocol.Position which is the position immediately after the variable name
+// where the type hint should be inserted.
+// Returns a zero position if the directive is nil or the variable is not found.
 func getDirectiveHintPosition(directive *ast_domain.Directive, varName string, _ string) protocol.Position {
 	if directive == nil {
 		return protocol.Position{}
@@ -187,11 +186,11 @@ func getDirectiveHintPosition(directive *ast_domain.Directive, varName string, _
 
 // formatInlayTypeExpr formats a ResolvedTypeInfo for display as a hint.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to format.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to format.
 //
-// Returns string which contains the formatted type expression, or an empty
-// string if the input is nil or formatting fails.
+// Returns string which contains the formatted type expression, or an empty string if the
+// input is nil or formatting fails.
 func formatInlayTypeExpr(typeInfo *ast_domain.ResolvedTypeInfo) string {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return ""

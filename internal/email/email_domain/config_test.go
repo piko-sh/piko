@@ -18,7 +18,9 @@
 
 package email_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestDefaultServiceConfig(t *testing.T) {
 	config := defaultServiceConfig()

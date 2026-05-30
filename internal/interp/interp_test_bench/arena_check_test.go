@@ -68,14 +68,16 @@ n`
 	fmt.Printf("  Result: %v\n", result)
 }
 
-var concatOnlyCode = `const size = 100
-var s string
-for r := 0; r < size*2; r++ {
-	if r%2 == 0 {
-		s += string(rune(r))
+var (
+	concatOnlyCode = `const size = 100
+	var s string
+	for r := 0; r < size*2; r++ {
+		if r%2 == 0 {
+			s += string(rune(r))
+		}
 	}
-}
-len(s)`
+	len(s)`
+)
 
 func BenchmarkPiko_ConcatOnly(b *testing.B) {
 	service := interp_domain.NewService()

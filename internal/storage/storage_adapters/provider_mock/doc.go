@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_mock implements a mock storage provider for
-// testing. It is a thread-safe, in-memory implementation of
-// storage_domain.StorageProviderPort with call inspection, state
-// verification, and per-method error injection.
+// Package provider_mock implements a mock storage provider for testing. It is a
+// thread-safe, in-memory implementation of storage_domain.StorageProviderPort with call
+// inspection, state verification, and per-method error injection.
 //
 // All methods are safe for concurrent use.
 package provider_mock

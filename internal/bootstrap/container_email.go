@@ -37,8 +37,8 @@ import (
 
 // AddEmailProvider registers a named email provider for sending emails.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (EmailProviderPort) which handles email delivery.
@@ -50,29 +50,26 @@ func (c *Container) AddEmailProvider(name string, provider email_domain.EmailPro
 	registerCloseableForShutdown(c.GetAppContext(), "EmailProvider-"+name, provider)
 }
 
-// SetEmailDefaultProvider sets the default email provider to use when none is
-// given.
+// SetEmailDefaultProvider sets the default email provider to use when none is given.
 //
 // Takes name (string) which is the provider name to set as default.
 func (c *Container) SetEmailDefaultProvider(name string) {
 	c.emailDefaultProvider = name
 }
 
-// SetEmailDispatcherConfig configures the email dispatcher for async email
-// sending.
+// SetEmailDispatcherConfig configures the email dispatcher for async email sending.
 //
-// Takes config (*email_dto.DispatcherConfig) which specifies the dispatcher
-// settings.
+// Takes config (*email_dto.DispatcherConfig) which specifies the dispatcher settings.
 func (c *Container) SetEmailDispatcherConfig(config *email_dto.DispatcherConfig) {
 	c.emailDispatcherConfig = config
 	c.hasEmailDispatcher = true
 }
 
-// SetEmailDeadLetterAdapter sets the dead letter queue adapter for failed
-// email deliveries.
+// SetEmailDeadLetterAdapter sets the dead letter queue adapter for failed email
+// deliveries.
 //
-// If the adapter implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the adapter implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes dlq (email_domain.DeadLetterPort) which handles failed email messages.
 func (c *Container) SetEmailDeadLetterAdapter(dlq email_domain.DeadLetterPort) {
@@ -80,8 +77,7 @@ func (c *Container) SetEmailDeadLetterAdapter(dlq email_domain.DeadLetterPort) {
 	registerCloseableForShutdown(c.GetAppContext(), "EmailDeadLetterAdapter", dlq)
 }
 
-// GetEmailService returns the email service, creating a default one if none
-// was provided.
+// GetEmailService returns the email service, creating a default one if none was provided.
 //
 // Returns email_domain.Service which is the configured email service.
 // Returns error when the default email service cannot be created.
@@ -100,9 +96,9 @@ func (c *Container) GetEmailService() (email_domain.Service, error) {
 
 // createDefaultEmailService builds and sets up the default email service.
 //
-// It gets the email templater, picks a base provider, sets up an optional
-// dispatcher, and creates an asset resolver for CID embedding. Any errors are
-// stored in c.emailErr rather than returned.
+// It gets the email templater, picks a base provider, sets up an optional dispatcher, and
+// creates an asset resolver for CID embedding. Any errors are stored in c.emailErr rather
+// than returned.
 func (c *Container) createDefaultEmailService() {
 	ctx := c.GetAppContext()
 	ctx, l := logger_domain.From(ctx, log)
@@ -148,14 +144,12 @@ func (c *Container) createDefaultEmailService() {
 	c.emailService = s
 }
 
-// selectEmailBaseProvider selects the base email provider based on
-// configuration.
+// selectEmailBaseProvider selects the base email provider based on configuration.
 //
 // Returns string which is the name of the selected provider.
-// Returns email_domain.EmailProviderPort which is the selected email
-// provider.
-// Returns error when the configured provider is not registered or the
-// default provider fails to initialise.
+// Returns email_domain.EmailProviderPort which is the selected email provider.
+// Returns error when the configured provider is not registered or the default provider
+// fails to initialise.
 func (c *Container) selectEmailBaseProvider(ctx context.Context) (baseName string, baseProvider email_domain.EmailProviderPort, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if len(c.emailProviders) > 0 {
@@ -187,11 +181,11 @@ func (c *Container) selectEmailBaseProvider(ctx context.Context) (baseName strin
 
 // createEmailDispatcher creates an email dispatcher if configured.
 //
-// Takes baseProvider (email_domain.EmailProviderPort) which provides the
-// underlying email sending capability.
+// Takes baseProvider (email_domain.EmailProviderPort) which provides the underlying email
+// sending capability.
 //
-// Returns email_domain.EmailDispatcherPort which is the configured dispatcher,
-// or nil if email dispatching is not enabled.
+// Returns email_domain.EmailDispatcherPort which is the configured dispatcher, or nil if
+// email dispatching is not enabled.
 func (c *Container) createEmailDispatcher(baseProvider email_domain.EmailProviderPort) email_domain.EmailDispatcherPort {
 	if !c.hasEmailDispatcher {
 		return nil
@@ -226,8 +220,8 @@ func (c *Container) registerEmailProviders(s email_domain.Service, baseName stri
 	return c.setDefaultEmailProvider(s, baseName)
 }
 
-// registerAdditionalEmailProviders registers all user-supplied email providers
-// except the base provider which is already registered by the service constructor.
+// registerAdditionalEmailProviders registers all user-supplied email providers except the
+// base provider which is already registered by the service constructor.
 //
 // Takes s (email_domain.Service) which receives the provider registrations.
 // Takes baseName (string) which identifies the already-registered base provider.
@@ -246,8 +240,8 @@ func (c *Container) registerAdditionalEmailProviders(s email_domain.Service, bas
 	return nil
 }
 
-// ensureDefaultEmailProvider creates and registers a default stdout provider
-// if none were supplied.
+// ensureDefaultEmailProvider creates and registers a default stdout provider if none were
+// supplied.
 //
 // Takes s (email_domain.Service) which handles provider registration.
 // Takes baseName (string) which is the base provider to try first.
@@ -291,20 +285,19 @@ func (c *Container) setDefaultEmailProvider(s email_domain.Service, baseName str
 	return nil
 }
 
-// SetEmailTemplateService sets the email template service.
-// Called by the daemon builder to set the service built using the
-// selected manifest runner.
+// SetEmailTemplateService sets the email template service. Called by the daemon builder
+// to set the service built using the selected manifest runner.
 //
 // Takes s (EmailTemplateService) which provides email template operations.
 func (c *Container) SetEmailTemplateService(s templater_domain.EmailTemplateService) {
 	c.emailTemplateService = s
 }
 
-// GetEmailTemplateService returns the EmailTemplateService previously registered
-// by the daemon builder.
+// GetEmailTemplateService returns the EmailTemplateService previously registered by the
+// daemon builder.
 //
-// Returns templater_domain.EmailTemplateService which provides email template
-// operations, or nil if not yet initialised.
+// Returns templater_domain.EmailTemplateService which provides email template operations,
+// or nil if not yet initialised.
 func (c *Container) GetEmailTemplateService() templater_domain.EmailTemplateService {
 	return c.emailTemplateService
 }

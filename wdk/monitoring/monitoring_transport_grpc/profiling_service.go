@@ -34,27 +34,29 @@ import (
 )
 
 const (
-	// captureChunkSize is the maximum size of each streaming chunk when
-	// delivering captured profile data.
+	// captureChunkSize is the maximum size of each streaming chunk when delivering captured
+	// profile data.
 	captureChunkSize = 32 * 1024
 
-	// maxCaptureBytes is the maximum total profile size delivered via gRPC.
-	// Larger profiles should use the pprof HTTP server directly.
+	// maxCaptureBytes is the maximum total profile size delivered via gRPC. Larger profiles
+	// should use the pprof HTTP server directly.
 	maxCaptureBytes = 64 * 1024 * 1024
 
-	// maxTCPPort is the highest valid TCP port number. Used to validate
-	// caller-supplied profiling port values.
+	// maxTCPPort is the highest valid TCP port number. Used to validate caller-supplied
+	// profiling port values.
 	maxTCPPort = 65535
 )
 
-// errCaptureLimitExceeded is returned when a profile capture exceeds
-// maxCaptureBytes during writing.
-var errCaptureLimitExceeded = errors.New("profile capture exceeded size limit")
+var (
+	// errCaptureLimitExceeded is returned when a profile capture exceeds maxCaptureBytes
+	// during writing.
+	errCaptureLimitExceeded = errors.New("profile capture exceeded size limit")
+)
 
-// limitedBuffer wraps bytes.Buffer with a maximum size enforced during
-// writing. Once the accumulated data exceeds the limit, all subsequent
-// writes return errCaptureLimitExceeded immediately, preventing the full
-// profile from being buffered in memory before the size check.
+// limitedBuffer wraps bytes.Buffer with a maximum size enforced during writing. Once the
+// accumulated data exceeds the limit, all subsequent writes return
+// errCaptureLimitExceeded immediately, preventing the full profile from being buffered in
+// memory before the size check.
 type limitedBuffer struct {
 	// buffer holds the accumulated profile data.
 	buffer bytes.Buffer
@@ -62,13 +64,13 @@ type limitedBuffer struct {
 	// limit is the maximum number of bytes the buffer may hold.
 	limit int
 
-	// exceeded is set once a write would breach the limit, causing all
-	// subsequent writes to fail immediately.
+	// exceeded is set once a write would breach the limit, causing all subsequent writes to
+	// fail immediately.
 	exceeded bool
 }
 
-// newLimitedBuffer creates a limitedBuffer that rejects writes once the
-// total written bytes exceed limit.
+// newLimitedBuffer creates a limitedBuffer that rejects writes once the total written
+// bytes exceed limit.
 //
 // Takes limit (int) which is the maximum byte count before writes are rejected.
 //
@@ -77,8 +79,8 @@ func newLimitedBuffer(limit int) *limitedBuffer {
 	return &limitedBuffer{limit: limit}
 }
 
-// Write appends data to the buffer, returning errCaptureLimitExceeded if
-// the write would cause the buffer to exceed the configured limit.
+// Write appends data to the buffer, returning errCaptureLimitExceeded if the write would
+// cause the buffer to exceed the configured limit.
 //
 // Takes data ([]byte) which is the bytes to append.
 //
@@ -122,8 +124,8 @@ type ProfilingService struct {
 
 // NewProfilingService creates a new ProfilingService.
 //
-// Takes controller (monitoring_domain.ProfilingController) which manages
-// the profiling lifecycle.
+// Takes controller (monitoring_domain.ProfilingController) which manages the profiling
+// lifecycle.
 //
 // Returns *ProfilingService ready for gRPC registration.
 func NewProfilingService(controller monitoring_domain.ProfilingController) *ProfilingService {
@@ -132,8 +134,8 @@ func NewProfilingService(controller monitoring_domain.ProfilingController) *Prof
 
 // EnableProfiling starts the pprof server and configures runtime profiling rates.
 //
-// Takes request (*pb.EnableProfilingRequest) which specifies duration, port,
-// and sampling rates.
+// Takes request (*pb.EnableProfilingRequest) which specifies duration, port, and sampling
+// rates.
 //
 // Returns *pb.EnableProfilingResponse which contains the active session details.
 // Returns error when validation fails or the controller returns an error.
@@ -173,8 +175,8 @@ func (s *ProfilingService) EnableProfiling(ctx context.Context, request *pb.Enab
 
 // DisableProfiling stops the pprof server and resets runtime profiling rates.
 //
-// Returns *pb.DisableProfilingResponse which carries the prior enabled
-// state of the profiling session.
+// Returns *pb.DisableProfilingResponse which carries the prior enabled state of the
+// profiling session.
 // Returns error when the controller fails to disable profiling.
 func (s *ProfilingService) DisableProfiling(ctx context.Context, _ *pb.DisableProfilingRequest) (*pb.DisableProfilingResponse, error) {
 	wasEnabled, err := s.controller.Disable(ctx)
@@ -189,8 +191,8 @@ func (s *ProfilingService) DisableProfiling(ctx context.Context, _ *pb.DisablePr
 
 // GetProfilingStatus returns the current profiling state.
 //
-// Returns *pb.GetProfilingStatusResponse which contains enabled state, rates,
-// and available profiles.
+// Returns *pb.GetProfilingStatusResponse which contains enabled state, rates, and
+// available profiles.
 // Returns error (always nil; included for interface compliance).
 func (s *ProfilingService) GetProfilingStatus(ctx context.Context, _ *pb.GetProfilingStatusRequest) (*pb.GetProfilingStatusResponse, error) {
 	profilingStatus := s.controller.Status(ctx)
@@ -213,13 +215,12 @@ func (s *ProfilingService) GetProfilingStatus(ctx context.Context, _ *pb.GetProf
 	return response, nil
 }
 
-// CaptureProfile captures a Go runtime profile and streams the data back
-// in chunks.
+// CaptureProfile captures a Go runtime profile and streams the data back in chunks.
 //
-// Takes request (*pb.CaptureProfileRequest) which specifies the profile type
-// and optional duration.
-// Takes stream (pb.ProfilingService_CaptureProfileServer) which receives the
-// chunked profile data.
+// Takes request (*pb.CaptureProfileRequest) which specifies the profile type and optional
+// duration.
+// Takes stream (pb.ProfilingService_CaptureProfileServer) which receives the chunked
+// profile data.
 //
 // Returns error when validation, capture, or streaming fails.
 func (s *ProfilingService) CaptureProfile(request *pb.CaptureProfileRequest, stream pb.ProfilingService_CaptureProfileServer) error {
@@ -254,8 +255,8 @@ func (s *ProfilingService) CaptureProfile(request *pb.CaptureProfileRequest, str
 	return sendProfileChunks(stream, captureBuffer.Bytes(), warning)
 }
 
-// sendProfileChunks writes profile data to the stream in fixed-size chunks,
-// attaching any server warning to the first chunk.
+// sendProfileChunks writes profile data to the stream in fixed-size chunks, attaching any
+// server warning to the first chunk.
 //
 // Takes stream (pb.ProfilingService_CaptureProfileServer) which receives each chunk.
 // Takes data ([]byte) which is the complete profile payload.

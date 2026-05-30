@@ -29,26 +29,25 @@ const (
 	// uuidByteLength is the number of bytes in a UUID (128 bits / 8).
 	uuidByteLength = 16
 
-	// ShortUUIDLength is the length of a base64url-encoded UUID without padding.
-	// A UUID is 16 bytes, which encodes to 22 base64 characters.
+	// ShortUUIDLength is the length of a base64url-encoded UUID without padding. A UUID is
+	// 16 bytes, which encodes to 22 base64 characters.
 	ShortUUIDLength = 22
 
-	// ShortUUIDBase58Length is the typical length of a base58-encoded UUID.
-	// Base58 output can vary in length, so values may be 21 or 22 characters.
+	// ShortUUIDBase58Length is the typical length of a base58-encoded UUID. Base58 output
+	// can vary in length, so values may be 21 or 22 characters.
 	ShortUUIDBase58Length = 22
 )
 
 var (
-	// Base64URLEncoding is a pre-initialised, concurrency-safe
-	// encoding using the URL-safe Base64 alphabet (RFC 4648),
-	// where '-' and '_' replace '+' and '/' for URL safety.
+	// Base64URLEncoding is a pre-initialised, concurrency-safe encoding using the URL-safe
+	// Base64 alphabet (RFC 4648), where '-' and '_' replace '+' and '/' for URL safety.
 	Base64URLEncoding *Encoding
 )
 
 // UUIDToShortString converts a UUID to a short, URL-safe string.
 //
-// The result is a 22-character string using base64url encoding (RFC 4648).
-// This is the shortest standard way to show a UUID as text.
+// The result is a 22-character string using base64url encoding (RFC 4648). This is the
+// shortest standard way to show a UUID as text.
 //
 // Takes id (uuid.UUID) which is the UUID to convert.
 //
@@ -62,8 +61,8 @@ func UUIDToShortString(id uuid.UUID) string {
 // Takes s (string) which is the 22-character encoded string to decode.
 //
 // Returns uuid.UUID which is the decoded UUID.
-// Returns error when the string is not a valid 22-character base64url encoding
-// or does not decode to exactly 16 bytes.
+// Returns error when the string is not a valid 22-character base64url encoding or does
+// not decode to exactly 16 bytes.
 func ShortStringToUUID(s string) (uuid.UUID, error) {
 	if len(s) != ShortUUIDLength {
 		return uuid.Nil, fmt.Errorf("invalid short UUID length: expected %d, got %d", ShortUUIDLength, len(s))
@@ -83,9 +82,9 @@ func ShortStringToUUID(s string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// UUIDToBase58String encodes a UUID to a base58 string that excludes visually
-// ambiguous characters (0, O, I, l), producing a 21-22 character output ideal
-// for user-facing identifiers.
+// UUIDToBase58String encodes a UUID to a base58 string that excludes visually ambiguous
+// characters (0, O, I, l), producing a 21-22 character output ideal for user-facing
+// identifiers.
 //
 // Takes id (uuid.UUID) which is the UUID to encode.
 //
@@ -99,8 +98,8 @@ func UUIDToBase58String(id uuid.UUID) string {
 // Takes s (string) which is the base58-encoded string to convert.
 //
 // Returns uuid.UUID which is the decoded UUID.
-// Returns error when the string is not valid base58 or does not decode to
-// 16 bytes or fewer.
+// Returns error when the string is not valid base58 or does not decode to 16 bytes or
+// fewer.
 func Base58StringToUUID(s string) (uuid.UUID, error) {
 	data, err := DecodeBytesBase58(s)
 	if err != nil {
@@ -117,8 +116,8 @@ func Base58StringToUUID(s string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// MustShortStringToUUID is like ShortStringToUUID but panics on error.
-// Use this only when you are certain the input is valid.
+// MustShortStringToUUID is like ShortStringToUUID but panics on error. Use this only when
+// you are certain the input is valid.
 //
 // Takes s (string) which is the 22-character encoded string to decode.
 //
@@ -133,8 +132,8 @@ func MustShortStringToUUID(s string) uuid.UUID {
 	return id
 }
 
-// MustBase58StringToUUID is like Base58StringToUUID but panics on error.
-// Use this only when you are certain the input is valid.
+// MustBase58StringToUUID is like Base58StringToUUID but panics on error. Use this only
+// when you are certain the input is valid.
 //
 // Takes s (string) which is the base58-encoded string to decode.
 //

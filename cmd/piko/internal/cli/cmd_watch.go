@@ -39,8 +39,8 @@ const (
 )
 
 var (
-	// watchResourceList is the sorted, comma-separated list of available watch
-	// resources, derived from the watchResources dispatch map.
+	// watchResourceList is the sorted, comma-separated list of available watch resources,
+	// derived from the watchResources dispatch map.
 	watchResourceList = buildResourceList(watchResources)
 
 	// watchResources maps resource names to their watch handler functions.
@@ -52,27 +52,23 @@ var (
 	}
 )
 
-// watchUpdate is the interface shared by all streaming watch
-// update messages.
+// watchUpdate is the interface shared by all streaming watch update messages.
 type watchUpdate interface {
-	// GetTimestampMs returns the update timestamp in
-	// milliseconds since the Unix epoch.
+	// GetTimestampMs returns the update timestamp in milliseconds since the Unix epoch.
 	GetTimestampMs() int64
 }
 
-// watchStream abstracts a gRPC server streaming receiver so
-// that the shared streaming loop can work with different
-// update types.
+// watchStream abstracts a gRPC server streaming receiver so that the shared streaming
+// loop can work with different update types.
 type watchStream[T watchUpdate] interface {
 	// Recv receives the next update from the stream.
 	Recv() (T, error)
 }
 
-// statusSummary provides a common interface for task and
-// artefact summary types that share Status and Count fields.
+// statusSummary provides a common interface for task and artefact summary types that
+// share Status and Count fields.
 type statusSummary interface {
-	// GetStatus returns the status label for this summary
-	// entry.
+	// GetStatus returns the status label for this summary entry.
 	GetStatus() string
 
 	// GetCount returns the number of items with this status.
@@ -122,8 +118,8 @@ func runWatch(ctx context.Context, cc *CommandContext, arguments []string) error
 // Takes p (*Printer) which controls the output format.
 // Takes interval (time.Duration) which sets the update frequency.
 //
-// Returns error when the stream cannot be started or an error occurs
-// while receiving updates.
+// Returns error when the stream cannot be started or an error occurs while receiving
+// updates.
 func watchHealth(ctx context.Context, conn monitoringConnection, w io.Writer, p *Printer, interval time.Duration) error {
 	stream, err := conn.HealthClient().WatchHealth(ctx, &pb.WatchHealthRequest{
 		IntervalMs: interval.Milliseconds(),
@@ -162,15 +158,14 @@ func watchHealth(ctx context.Context, conn monitoringConnection, w io.Writer, p 
 	}
 }
 
-// streamWatch runs the shared receive-render loop for all streaming watch
-// handlers.
+// streamWatch runs the shared receive-render loop for all streaming watch handlers.
 //
 // Takes stream (watchStream[T]) which provides the gRPC update stream.
 // Takes w (io.Writer) which receives the formatted output.
 // Takes p (*Printer) which controls output formatting.
 // Takes resourceName (string) which is the label shown in the header.
-// Takes render (func(io.Writer, *Printer, T)) which renders resource-specific
-// content for each update.
+// Takes render (func(io.Writer, *Printer, T)) which renders resource-specific content for
+// each update.
 //
 // Returns error when the stream fails with a non-terminal error.
 func streamWatch[T watchUpdate](
@@ -231,8 +226,8 @@ func renderTaskUpdate(w io.Writer, p *Printer, update *pb.TasksUpdate) {
 	renderRecentTasks(w, p, update.GetRecentTasks())
 }
 
-// renderStatusSummaries writes a status summary section for any slice of
-// status/count pairs.
+// renderStatusSummaries writes a status summary section for any slice of status/count
+// pairs.
 //
 // Takes w (io.Writer) which receives the formatted output.
 // Takes p (*Printer) which provides colourised status formatting.
@@ -280,8 +275,8 @@ func renderRecentTasks(w io.Writer, p *Printer, tasks []*pb.TaskListItem) {
 // Takes p (*Printer) which handles output formatting and colouring.
 // Takes interval (time.Duration) which sets the update frequency.
 //
-// Returns error when the stream cannot be started or an unexpected error
-// occurs during receive.
+// Returns error when the stream cannot be started or an unexpected error occurs during
+// receive.
 func watchArtefacts(ctx context.Context, conn monitoringConnection, w io.Writer, p *Printer, interval time.Duration) error {
 	stream, err := conn.RegistryClient().WatchArtefacts(ctx, &pb.WatchArtefactsRequest{
 		IntervalMs: interval.Milliseconds(),
@@ -293,8 +288,7 @@ func watchArtefacts(ctx context.Context, conn monitoringConnection, w io.Writer,
 	return streamWatch(stream, w, p, "Artefacts", renderArtefactUpdate)
 }
 
-// renderArtefactUpdate renders the text output for a single artefact watch
-// update.
+// renderArtefactUpdate renders the text output for a single artefact watch update.
 //
 // Takes w (io.Writer) which receives the formatted output.
 // Takes p (*Printer) which provides colourised status formatting.
@@ -308,8 +302,7 @@ func renderArtefactUpdate(w io.Writer, p *Printer, update *pb.ArtefactsUpdate) {
 //
 // Takes w (io.Writer) which receives the table header label.
 // Takes p (*Printer) which renders the table.
-// Takes artefacts ([]*pb.ArtefactListItem) which contains the artefacts to
-// display.
+// Takes artefacts ([]*pb.ArtefactListItem) which contains the artefacts to display.
 func renderRecentArtefacts(w io.Writer, p *Printer, artefacts []*pb.ArtefactListItem) {
 	if len(artefacts) == 0 {
 		return
@@ -337,8 +330,8 @@ func renderRecentArtefacts(w io.Writer, p *Printer, artefacts []*pb.ArtefactList
 // Takes p (*Printer) which handles output formatting.
 // Takes interval (time.Duration) which sets the update frequency.
 //
-// Returns error when the stream cannot be started or an error occurs
-// while receiving updates.
+// Returns error when the stream cannot be started or an error occurs while receiving
+// updates.
 func watchMetrics(ctx context.Context, conn monitoringConnection, w io.Writer, p *Printer, interval time.Duration) error {
 	stream, err := conn.MetricsClient().WatchMetrics(ctx, &pb.WatchMetricsRequest{
 		IntervalMs: interval.Milliseconds(),

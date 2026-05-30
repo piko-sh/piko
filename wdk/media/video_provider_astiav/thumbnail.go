@@ -33,26 +33,24 @@ import (
 	"golang.org/x/image/webp"
 )
 
-var _ = webp.Decode
+var (
+	_ = webp.Decode
+)
 
 const (
-	// rgbChannelCount is the number of colour channels in an
-	// RGB pixel.
+	// rgbChannelCount is the number of colour channels in an RGB pixel.
 	rgbChannelCount = 3
 
-	// rgbaChannelCount is the number of colour channels in an
-	// RGBA pixel.
+	// rgbaChannelCount is the number of colour channels in an RGBA pixel.
 	rgbaChannelCount = 4
 
 	// alphaOpaque is the fully opaque alpha channel value.
 	alphaOpaque = 255
 
-	// defaultQuality is the default JPEG encoding quality
-	// (1-100).
+	// defaultQuality is the default JPEG encoding quality (1-100).
 	defaultQuality = 85
 
-	// rgbaAlphaOffset is the byte offset of the alpha channel within an RGBA
-	// pixel.
+	// rgbaAlphaOffset is the byte offset of the alpha channel within an RGBA pixel.
 	rgbaAlphaOffset = 3
 )
 
@@ -77,11 +75,10 @@ func encodeRGBFrameToImage(frame *astiav.Frame, format string, quality int) ([]b
 	return encodeImageFormat(img, format, quality)
 }
 
-// rgbFrameToRGBAImage copies RGB24 pixel data from an FFmpeg
-// frame into a standard library RGBA image.
+// rgbFrameToRGBAImage copies RGB24 pixel data from an FFmpeg frame into a standard
+// library RGBA image.
 //
-// Takes frame (*astiav.Frame) which contains the RGB24
-// source pixel data.
+// Takes frame (*astiav.Frame) which contains the RGB24 source pixel data.
 //
 // Returns *image.RGBA which is the converted RGBA image.
 // Returns error when frame data cannot be read.
@@ -118,11 +115,9 @@ func rgbFrameToRGBAImage(frame *astiav.Frame) (*image.RGBA, error) {
 	return img, nil
 }
 
-// encodeImageFormat encodes an RGBA image into the specified
-// format (png or jpeg).
+// encodeImageFormat encodes an RGBA image into the specified format (png or jpeg).
 //
-// Takes img (*image.RGBA) which is the source image to
-// encode.
+// Takes img (*image.RGBA) which is the source image to encode.
 // Takes format (string) which specifies the output format.
 // Takes quality (int) which sets the JPEG quality (1-100).
 //

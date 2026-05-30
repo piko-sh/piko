@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package inspector_dto defines the types used to represent Go type
-// information extracted during static analysis.
+// Package inspector_dto defines the types used to represent Go type information extracted
+// during static analysis.
 //
-// These types are designed for serialisation and caching so that type
-// metadata can be stored and retrieved efficiently. The package also
-// includes optimised JSON serialisation via Sonic with precompiled
-// encoders.
+// These types are designed for serialisation and caching so that type metadata can be
+// stored and retrieved efficiently. The package also includes optimised JSON
+// serialisation via Sonic with precompiled encoders.
 package inspector_dto

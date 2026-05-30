@@ -93,8 +93,8 @@ type MockStemmer struct {
 //
 // Takes word (string) which is the word to stem.
 //
-// Returns string which is the stemmed word, or the original word if no
-// stem mapping exists.
+// Returns string which is the stemmed word, or the original word if no stem mapping
+// exists.
 func (m *MockStemmer) Stem(word string) string {
 	if m.StemFunc != nil {
 		return m.StemFunc(word)
@@ -120,8 +120,7 @@ func (m *MockStemmer) GetLanguage() string {
 	return LanguageEnglish
 }
 
-// MockPhoneticEncoder is a mock implementation of PhoneticEncoderPort for
-// testing.
+// MockPhoneticEncoder is a mock implementation of PhoneticEncoderPort for testing.
 type MockPhoneticEncoder struct {
 	// EncodeFunc is called by Encode; if nil, falls back to PhoneticMap.
 	EncodeFunc func(word string) string
@@ -195,8 +194,8 @@ func (m *mockNormaliser) Normalise(text string) string {
 //
 // Takes r (rune) which is the character to normalise.
 //
-// Returns rune which is the normalised character, or a lowercase version if
-// no custom function is set.
+// Returns rune which is the normalised character, or a lowercase version if no custom
+// function is set.
 func (m *mockNormaliser) NormaliseRune(r rune) rune {
 	if m.NormaliseRuneFunc != nil {
 		return m.NormaliseRuneFunc(r)

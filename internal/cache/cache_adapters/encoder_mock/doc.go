@@ -18,9 +18,9 @@
 
 // Package encoder_mock implements the cache encoder port for testing.
 //
-// This adapter wraps JSON serialisation with a recognisable "MOCK:<type>:"
-// prefix, making it straightforward to verify in tests that the correct
-// encoder was selected and invoked.
+// This adapter wraps JSON serialisation with a recognisable "MOCK:<type>:" prefix, making
+// it straightforward to verify in tests that the correct encoder was selected and
+// invoked.
 //
 // # Usage
 //

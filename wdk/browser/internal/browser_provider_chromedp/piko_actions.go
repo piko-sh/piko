@@ -23,13 +23,14 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
-	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
+	"piko.sh/piko/wdk/json"
 )
 
-// PikoFrameworkURL is the URL where the Piko framework JavaScript bundle is
-// served.
-const PikoFrameworkURL = "/_piko/dist/ppframework.core.es.js"
+const (
+	// PikoFrameworkURL is the URL where the Piko framework JavaScript bundle is served.
+	PikoFrameworkURL = "/_piko/dist/ppframework.core.es.js"
+)
 
 // PikoBusEmit sends an event to the Piko event bus in the browser.
 //
@@ -37,8 +38,8 @@ const PikoFrameworkURL = "/_piko/dist/ppframework.core.es.js"
 // Takes eventName (string) which is the name of the event to send.
 // Takes detail (map[string]any) which holds optional data for the event.
 //
-// Returns error when the detail cannot be converted to JSON or when the
-// browser fails to send the event.
+// Returns error when the detail cannot be converted to JSON or when the browser fails to
+// send the event.
 func PikoBusEmit(ctx *ActionContext, eventName string, detail map[string]any) error {
 	detailJSON, err := json.Marshal(detail)
 	if err != nil {
@@ -57,8 +58,8 @@ func PikoBusEmit(ctx *ActionContext, eventName string, detail map[string]any) er
 	return nil
 }
 
-// PikoBusWaitForEvent waits for an event on the Piko event bus.
-// It sets up a temporary listener and waits for the named event.
+// PikoBusWaitForEvent waits for an event on the Piko event bus. It sets up a temporary
+// listener and waits for the named event.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes eventName (string) which names the event to wait for.
@@ -93,8 +94,8 @@ func PikoBusWaitForEvent(ctx *ActionContext, eventName string, timeout time.Dura
 	return nil, nil
 }
 
-// PikoPartialReload triggers a reload of a Piko partial element. The partial
-// is found by its name, which is the value of the pk-partial attribute.
+// PikoPartialReload triggers a reload of a Piko partial element. The partial is found by
+// its name, which is the value of the pk-partial attribute.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes partialName (string) which identifies the partial to reload.
@@ -105,22 +106,22 @@ func PikoPartialReload(ctx *ActionContext, partialName string, data map[string]a
 	return TriggerPartialReload(ctx, partialName, data, nil)
 }
 
-// PikoPartialReloadWithOptions reloads a Piko partial with explicit
-// reconciliation options.
+// PikoPartialReloadWithOptions reloads a Piko partial with explicit reconciliation
+// options.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which provides optional reload data.
-// Takes opts (*PartialReloadOptions) which selects mode / owned / preserve
-// attribute behaviour; pass nil for the default merge mode.
+// Takes opts (*PartialReloadOptions) which selects mode / owned / preserve attribute
+// behaviour; pass nil for the default merge mode.
 //
 // Returns error when the partial cannot be reloaded.
 func PikoPartialReloadWithOptions(ctx *ActionContext, partialName string, data map[string]any, opts *PartialReloadOptions) error {
 	return TriggerPartialReload(ctx, partialName, data, opts)
 }
 
-// PikoWaitForPartialReload waits for a Piko partial to finish reloading.
-// Call it after triggering a reload to ensure the DOM has been updated.
+// PikoWaitForPartialReload waits for a Piko partial to finish reloading. Call it after
+// triggering a reload to ensure the DOM has been updated.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes partialName (string) which identifies the partial to wait for.
@@ -131,8 +132,8 @@ func PikoWaitForPartialReload(ctx *ActionContext, partialName string, timeout ti
 	return WaitForPartialReload(ctx, partialName, timeout)
 }
 
-// PikoGetPartialState retrieves the current state of a Piko partial element.
-// This includes whether it's loading, its last reload timestamp, etc.
+// PikoGetPartialState retrieves the current state of a Piko partial element. This
+// includes whether it's loading, its last reload timestamp, etc.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes partialName (string) which identifies the partial.
@@ -160,8 +161,8 @@ func PikoGetPartialState(ctx *ActionContext, partialName string) (map[string]any
 	return nil, fmt.Errorf("unexpected partial state type: %T", result)
 }
 
-// PikoCheckBusEventReceived checks if a specific event was received on the bus.
-// Use it in test assertions to verify event communication.
+// PikoCheckBusEventReceived checks if a specific event was received on the bus. Use it in
+// test assertions to verify event communication.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes eventName (string) which identifies the event to check.
@@ -181,8 +182,8 @@ func PikoCheckBusEventReceived(ctx *ActionContext, eventName string) (bool, erro
 	return received, nil
 }
 
-// PikoSetupEventLog initialises event logging on the page for testing.
-// This must be called before events are emitted to capture them.
+// PikoSetupEventLog initialises event logging on the page for testing. This must be
+// called before events are emitted to capture them.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 //
@@ -197,8 +198,8 @@ func PikoSetupEventLog(ctx *ActionContext) error {
 	return nil
 }
 
-// PikoGetEventLog retrieves the captured event log from the page.
-// This requires PikoSetupEventLog to have been called first.
+// PikoGetEventLog retrieves the captured event log from the page. This requires
+// PikoSetupEventLog to have been called first.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 //
@@ -241,8 +242,8 @@ func PikoClearEventLog(ctx *ActionContext) error {
 	return nil
 }
 
-// PikoDispatchFragmentMorph triggers a fragment morph operation on an element.
-// Fragment morphing is used for efficiently updating DOM fragments.
+// PikoDispatchFragmentMorph triggers a fragment morph operation on an element. Fragment
+// morphing is used for efficiently updating DOM fragments.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the target element.
@@ -262,8 +263,8 @@ func PikoDispatchFragmentMorph(ctx *ActionContext, selector, newHTML string) err
 	return nil
 }
 
-// PikoDebugGetPartialInfo returns debug information about a partial element.
-// This provides read-only access to internal lifecycle state for E2E testing.
+// PikoDebugGetPartialInfo returns debug information about a partial element. This
+// provides read-only access to internal lifecycle state for E2E testing.
 //
 // The returned map contains:
 //   - exists: bool - whether the partial has lifecycle state registered
@@ -301,8 +302,8 @@ func PikoDebugGetPartialInfo(ctx *ActionContext, selector string) (map[string]an
 	return m, nil
 }
 
-// PikoDebugIsConnected checks if a partial element is currently connected.
-// A connected partial is one that is in the DOM and has had onConnected fired.
+// PikoDebugIsConnected checks if a partial element is currently connected. A connected
+// partial is one that is in the DOM and has had onConnected fired.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the partial element.
@@ -322,9 +323,8 @@ func PikoDebugIsConnected(ctx *ActionContext, selector string) (bool, error) {
 	return result, nil
 }
 
-// PikoDebugGetCleanupCount returns the number of registered cleanup functions
-// for a partial element. This includes both element-scoped and lifecycle
-// cleanups.
+// PikoDebugGetCleanupCount returns the number of registered cleanup functions for a
+// partial element. This includes both element-scoped and lifecycle cleanups.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the partial element.
@@ -344,14 +344,14 @@ func PikoDebugGetCleanupCount(ctx *ActionContext, selector string) (int, error) 
 	return int(result), nil
 }
 
-// PikoDebugGetRegisteredCallbacks returns the names of registered lifecycle
-// callbacks for a partial element.
+// PikoDebugGetRegisteredCallbacks returns the names of registered lifecycle callbacks for
+// a partial element.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes selector (string) which identifies the partial element.
 //
-// Returns []string which contains callback names such as "onConnected",
-// "onDisconnected", and others.
+// Returns []string which contains callback names such as "onConnected", "onDisconnected",
+// and others.
 // Returns error when the callbacks cannot be retrieved.
 func PikoDebugGetRegisteredCallbacks(ctx *ActionContext, selector string) ([]string, error) {
 	js := scripts.MustExecute("piko_debug_get_callbacks.js.tmpl", map[string]any{
@@ -373,8 +373,8 @@ func PikoDebugGetRegisteredCallbacks(ctx *ActionContext, selector string) ([]str
 	return callbacks, nil
 }
 
-// PikoDebugGetAllConnectedPartials returns selectors for all currently
-// connected partial elements in the DOM.
+// PikoDebugGetAllConnectedPartials returns selectors for all currently connected partial
+// elements in the DOM.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 //
@@ -398,8 +398,8 @@ func PikoDebugGetAllConnectedPartials(ctx *ActionContext) ([]string, error) {
 	return selectors, nil
 }
 
-// PikoDebugIsAvailable checks if the debug API is available in the browser.
-// The debug API is exposed on window.__pikoDebug when the Piko framework loads.
+// PikoDebugIsAvailable checks if the debug API is available in the browser. The debug API
+// is exposed on window.__pikoDebug when the Piko framework loads.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 //

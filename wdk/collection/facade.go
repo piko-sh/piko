@@ -28,8 +28,8 @@ import (
 
 // CollectionProvider is the primary interface for data source adapters.
 //
-// Every data source (CMS, database, API, etc.) must implement CollectionProvider
-// to integrate with the Piko collection system.
+// Every data source (CMS, database, API, etc.) must implement CollectionProvider to
+// integrate with the Piko collection system.
 //
 // The interface supports three provider types:
 //   - Static: All data fetched at build time
@@ -39,24 +39,24 @@ type CollectionProvider = collection_domain.CollectionProvider
 
 // RuntimeProvider defines the interface for providers that operate at runtime.
 //
-// Dynamic and Hybrid providers must implement RuntimeProvider AND register it
-// with the runtime when the application starts.
+// Dynamic and Hybrid providers must implement RuntimeProvider AND register it with the
+// runtime when the application starts.
 type RuntimeProvider = collection_domain.RuntimeProvider
 
 // ProviderType indicates how a provider fetches and handles data.
 type ProviderType = collection_domain.ProviderType
 
 const (
-	// ProviderTypeStatic indicates a provider whose data is fetched at build time.
-	// All content is embedded in the binary, resulting in zero runtime overhead.
+	// ProviderTypeStatic indicates a provider whose data is fetched at build time. All
+	// content is embedded in the binary, resulting in zero runtime overhead.
 	ProviderTypeStatic = collection_domain.ProviderTypeStatic
 
-	// ProviderTypeDynamic indicates all data is fetched at runtime.
-	// Ideal for: E-commerce products, user-generated content, real-time data.
+	// ProviderTypeDynamic indicates all data is fetched at runtime. Ideal for: E-commerce
+	// products, user-generated content, real-time data.
 	ProviderTypeDynamic = collection_domain.ProviderTypeDynamic
 
-	// ProviderTypeHybrid indicates data is fetched at both build and runtime.
-	// This implements the Incremental Static Regeneration (ISR) pattern.
+	// ProviderTypeHybrid indicates data is fetched at both build and runtime. This
+	// implements the Incremental Static Regeneration (ISR) pattern.
 	ProviderTypeHybrid = collection_domain.ProviderTypeHybrid
 
 	// FilterOpEquals is the equals operator for exact value matching.
@@ -119,14 +119,14 @@ const (
 
 // ContentItem represents a single piece of content from any provider.
 //
-// This is the universal representation of content that works across all
-// data sources - markdown files, CMS entries, database records, etc.
+// This is the universal representation of content that works across all data sources -
+// markdown files, CMS entries, database records, etc.
 type ContentItem = collection_dto.ContentItem
 
 // CollectionInfo describes a collection offered by a provider.
 //
-// This is returned by DiscoverCollections() to inform the framework about
-// available collections and their schemas.
+// This is returned by DiscoverCollections() to inform the framework about available
+// collections and their schemas.
 type CollectionInfo = collection_dto.CollectionInfo
 
 // ProviderConfig contains configuration for a collection provider.
@@ -136,8 +136,8 @@ type ProviderConfig = collection_dto.ProviderConfig
 
 // FetchOptions contains options for fetching collection data.
 //
-// These options are parsed from the user's GetCollection() call arguments
-// and passed to providers during data fetching.
+// These options are parsed from the user's GetCollection() call arguments and passed to
+// providers during data fetching.
 type FetchOptions = collection_dto.FetchOptions
 
 // CacheConfig specifies caching behaviour for data fetching.
@@ -156,8 +156,8 @@ type RuntimeFetcherCode = collection_dto.RuntimeFetcherCode
 // RetryConfig specifies retry behaviour for failed fetches.
 type RetryConfig = collection_dto.RetryConfig
 
-// FieldProjection specifies which fields to include/exclude from responses.
-// This reduces payload size by omitting fields the client doesn't need.
+// FieldProjection specifies which fields to include/exclude from responses. This reduces
+// payload size by omitting fields the client doesn't need.
 type FieldProjection = collection_dto.FieldProjection
 
 // Filter represents a single condition used to query collections.
@@ -186,8 +186,8 @@ type HybridRevalidationResult = collection_dto.HybridRevalidationResult
 
 // SimpleProvider is an interface for providers that only need basic operations.
 //
-// Use it for providers that don't need to implement the full
-// CollectionProvider interface with AST-based code generation.
+// Use it for providers that don't need to implement the full CollectionProvider interface
+// with AST-based code generation.
 type SimpleProvider interface {
 	// Name returns the unique name for this provider.
 	Name() string
@@ -195,8 +195,8 @@ type SimpleProvider interface {
 	// Type returns how this provider's data should be handled.
 	Type() ProviderType
 
-	// DiscoverCollections scans the provider's data source and returns
-	// information about available collections.
+	// DiscoverCollections scans the provider's data source and returns information about
+	// available collections.
 	DiscoverCollections(ctx context.Context, config ProviderConfig) ([]CollectionInfo, error)
 
 	// FetchContent retrieves all content from a collection.
@@ -212,8 +212,8 @@ type SimpleProvider interface {
 
 // SimpleProviderAdapter wraps a SimpleProvider to implement CollectionProvider.
 //
-// This adapter makes it easy to create providers without implementing
-// AST-based code generation methods.
+// This adapter makes it easy to create providers without implementing AST-based code
+// generation methods.
 type SimpleProviderAdapter struct {
 	// provider is the underlying SimpleProvider being adapted.
 	provider SimpleProvider
@@ -223,8 +223,8 @@ type SimpleProviderAdapter struct {
 //
 // Takes provider (SimpleProvider) which is the provider to wrap.
 //
-// Returns *SimpleProviderAdapter which wraps the provider for use with the
-// standard provider interface.
+// Returns *SimpleProviderAdapter which wraps the provider for use with the standard
+// provider interface.
 func NewSimpleProviderAdapter(provider SimpleProvider) *SimpleProviderAdapter {
 	return &SimpleProviderAdapter{provider: provider}
 }
@@ -253,11 +253,10 @@ func (a *SimpleProviderAdapter) DiscoverCollections(ctx context.Context, config 
 	return a.provider.DiscoverCollections(ctx, config)
 }
 
-// ValidateTargetType checks if a user's target struct is compatible.
-// The simple adapter accepts all types.
+// ValidateTargetType checks if a user's target struct is compatible. The simple adapter
+// accepts all types.
 //
-// Returns error when the target type is incompatible; always nil for this
-// adapter.
+// Returns error when the target type is incompatible; always nil for this adapter.
 func (*SimpleProviderAdapter) ValidateTargetType(_ ast.Expr) error {
 	return nil
 }
@@ -272,8 +271,8 @@ func (a *SimpleProviderAdapter) FetchStaticContent(ctx context.Context, collecti
 	return a.provider.FetchContent(ctx, collectionName, nil)
 }
 
-// GenerateRuntimeFetcher generates Go code for fetching data at runtime.
-// The simple adapter returns an error as it does not support code generation.
+// GenerateRuntimeFetcher generates Go code for fetching data at runtime. The simple
+// adapter returns an error as it does not support code generation.
 //
 // Returns *RuntimeFetcherCode which is always nil for this adapter.
 // Returns error when called, as code generation is not supported.
@@ -298,22 +297,20 @@ func (a *SimpleProviderAdapter) ComputeETag(ctx context.Context, collectionName 
 
 // ValidateETag checks if the current content matches an expected ETag.
 //
-// Takes collectionName (string) which identifies the collection to
-// validate.
-// Takes expectedETag (string) which is the ETag value to compare
-// against the current content.
+// Takes collectionName (string) which identifies the collection to validate.
+// Takes expectedETag (string) which is the ETag value to compare against the current
+// content.
 //
-// Returns currentETag (string) which is the current ETag of the
-// collection content.
-// Returns changed (bool) which is true if the content has changed
-// since the expected ETag was generated.
+// Returns currentETag (string) which is the current ETag of the collection content.
+// Returns changed (bool) which is true if the content has changed since the expected ETag
+// was generated.
 // Returns err (error) when the validation cannot be performed.
 func (a *SimpleProviderAdapter) ValidateETag(ctx context.Context, collectionName string, expectedETag string, _ collection_dto.ContentSource) (currentETag string, changed bool, err error) {
 	return a.provider.ValidateETag(ctx, collectionName, expectedETag)
 }
 
-// GenerateRevalidator generates Go code for runtime ETag validation.
-// The simple adapter returns an error as it doesn't support code generation.
+// GenerateRevalidator generates Go code for runtime ETag validation. The simple adapter
+// returns an error as it doesn't support code generation.
 //
 // Returns *RuntimeFetcherCode which is always nil for this adapter.
 // Returns error when called, as code generation is not supported.
@@ -363,8 +360,7 @@ func PaginateItems(items []*ContentItem, pagination *PaginationOptions) []*Conte
 // CalculatePaginationMeta calculates pagination metadata.
 //
 // Takes total (int) which is the total number of items.
-// Takes pagination (*PaginationOptions) which specifies the page size and
-// offset.
+// Takes pagination (*PaginationOptions) which specifies the page size and offset.
 //
 // Returns *PaginationMeta which contains the calculated pagination details.
 func CalculatePaginationMeta(total int, pagination *PaginationOptions) *PaginationMeta {

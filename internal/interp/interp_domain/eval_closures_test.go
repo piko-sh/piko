@@ -229,10 +229,10 @@ func TestClosureCaptureUintAndComplex(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "capture_uint",
@@ -297,10 +297,10 @@ func TestClosureCaptureInLoopBody(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "range_shadow_captures_last",

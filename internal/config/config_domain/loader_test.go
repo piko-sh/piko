@@ -55,7 +55,9 @@ func (c *customType) UnmarshalText(text []byte) error {
 	return nil
 }
 
-var _ encoding.TextUnmarshaler = (*customType)(nil)
+var (
+	_ encoding.TextUnmarshaler = (*customType)(nil)
+)
 
 type mockResolver struct{}
 
@@ -69,7 +71,9 @@ func (m *mockResolver) Resolve(_ context.Context, value string) (string, error) 
 	return "", fmt.Errorf("mock secret %q not found", value)
 }
 
-var _ Resolver = (*mockResolver)(nil)
+var (
+	_ Resolver = (*mockResolver)(nil)
+)
 
 func TestIsNil(t *testing.T) {
 	type testStruct struct{}

@@ -31,36 +31,37 @@ import (
 )
 
 const (
-	// defaultL2MaxFailures is the number of failures allowed before the circuit
-	// breaker opens for multi-level caches.
+	// defaultL2MaxFailures is the number of failures allowed before the circuit breaker
+	// opens for multi-level caches.
 	defaultL2MaxFailures = 5
 
-	// defaultL2OpenTimeoutSeconds is the default timeout in seconds for opening
-	// the level 2 cache.
+	// defaultL2OpenTimeoutSeconds is the default timeout in seconds for opening the level 2
+	// cache.
 	defaultL2OpenTimeoutSeconds = 30
 
-	// logKeyReason is the log attribute key for explaining why a feature is
-	// limited or unavailable.
+	// logKeyReason is the log attribute key for explaining why a feature is limited or
+	// unavailable.
 	logKeyReason = "reason"
 )
 
 var (
-	// transformerBlueprints holds the registered transformer blueprint factories keyed by name.
+	// transformerBlueprints holds the registered transformer blueprint factories keyed by
+	// name.
 	transformerBlueprints = make(map[string]TransformerBlueprintFactory)
 
 	// transformerBlueprintsMutex guards concurrent access to transformerBlueprints.
 	transformerBlueprintsMutex sync.RWMutex
 
-	// multiLevelAdapterConstructor holds the registered constructor for creating
-	// multi-level cache adapters.
+	// multiLevelAdapterConstructor holds the registered constructor for creating multi-level
+	// cache adapters.
 	multiLevelAdapterConstructor MultiLevelAdapterConstructor
 
 	// multiLevelAdapterMutex guards concurrent access to multiLevelAdapterConstructor.
 	multiLevelAdapterMutex sync.RWMutex
 )
 
-// MultiLevelAdapterConstructor is a function type that creates a multi-level
-// cache adapter from provider ports and configuration.
+// MultiLevelAdapterConstructor is a function type that creates a multi-level cache
+// adapter from provider ports and configuration.
 type MultiLevelAdapterConstructor func(
 	ctx context.Context,
 	name string,
@@ -69,15 +70,14 @@ type MultiLevelAdapterConstructor func(
 	config any,
 ) (any, error)
 
-// TransformerBlueprintFactory creates a transformer from its settings.
-// The config parameter can be nil, a map[string]any, or a specific struct.
+// TransformerBlueprintFactory creates a transformer from its settings. The config
+// parameter can be nil, a map[string]any, or a specific struct.
 type TransformerBlueprintFactory func(config any) (CacheTransformerPort, error)
 
-// CacheBuilder creates cache instances with a fluent interface. It simplifies
-// setup by handling registries, transformers, and encoders.
+// CacheBuilder creates cache instances with a fluent interface. It simplifies setup by
+// handling registries, transformers, and encoders.
 //
-// Usage:
-// cache, err := cache_domain.NewCacheBuilder[string, User](service).
+// Usage: cache, err := cache_domain.NewCacheBuilder[string, User](service).
 //
 //	WithProvider("redis").
 //	WithMaximumSize(10000).
@@ -115,8 +115,7 @@ type CacheBuilder[K comparable, V any] struct {
 	// clock provides time functions for cache expiry.
 	clock cache_dto.Clock
 
-	// weigher calculates the weight of a cache entry; nil uses a default weight of
-	// 1.
+	// weigher calculates the weight of a cache entry; nil uses a default weight of 1.
 	weigher func(key K, value V) uint32
 
 	// onAtomicDeletion is called when a single cache entry is removed.
@@ -137,8 +136,7 @@ type CacheBuilder[K comparable, V any] struct {
 	// namespace is the prefix for cache keys to prevent key conflicts.
 	namespace string
 
-	// factoryBlueprint is the template string used to create cache factory
-	// instances.
+	// factoryBlueprint is the template string used to create cache factory instances.
 	factoryBlueprint string
 
 	// l2ProviderName is the name of the level-2 cache provider.
@@ -184,9 +182,8 @@ type transformerSpec struct {
 	name string
 }
 
-// Provider specifies which cache provider to use (e.g., "otter", "redis",
-// "mock"), defaulting to the service's default provider and mutually
-// exclusive with MultiLevel.
+// Provider specifies which cache provider to use (e.g., "otter", "redis", "mock"),
+// defaulting to the service's default provider and mutually exclusive with MultiLevel.
 //
 // Takes name (string) which identifies the cache provider to use.
 //
@@ -196,10 +193,9 @@ func (b *CacheBuilder[K, V]) Provider(name string) *CacheBuilder[K, V] {
 	return b
 }
 
-// Namespace sets the namespace for this cache instance, which becomes the key
-// prefix for connection-pooled providers like Redis (e.g., "users:") or is
-// used for metrics and logging in in-memory providers like Otter, defaulting
-// to "default".
+// Namespace sets the namespace for this cache instance, which becomes the key prefix for
+// connection-pooled providers like Redis (e.g., "users:") or is used for metrics and
+// logging in in-memory providers like Otter, defaulting to "default".
 //
 // Takes namespace (string) which is the namespace prefix for cache keys.
 //
@@ -209,17 +205,16 @@ func (b *CacheBuilder[K, V]) Namespace(namespace string) *CacheBuilder[K, V] {
 	return b
 }
 
-// FactoryBlueprint specifies a registered factory blueprint to use for creating
-// the cache. This enables the creation of fully-typed caches for
-// domain-specific types without circular dependencies between the cache hexagon
-// and domain hexagons.
+// FactoryBlueprint specifies a registered factory blueprint to use for creating the
+// cache. This enables the creation of fully-typed caches for domain-specific types
+// without circular dependencies between the cache hexagon and domain hexagons.
 //
-// Factory blueprints are registered by domain adapter packages via init()
-// functions using RegisterProviderFactory(). This pattern allows each domain to
-// teach the cache hexagon how to create typed caches for its specific types.
+// Factory blueprints are registered by domain adapter packages via init() functions using
+// RegisterProviderFactory(). This pattern allows each domain to teach the cache hexagon
+// how to create typed caches for its specific types.
 //
-// Do not use FactoryBlueprint with Provider or MultiLevel. The factory
-// blueprint handles provider selection internally.
+// Do not use FactoryBlueprint with Provider or MultiLevel. The factory blueprint handles
+// provider selection internally.
 //
 // Takes name (string) which identifies the registered factory blueprint.
 //
@@ -229,20 +224,18 @@ func (b *CacheBuilder[K, V]) FactoryBlueprint(name string) *CacheBuilder[K, V] {
 	return b
 }
 
-// MultiLevel configures a multi-level cache with separate L1 and L2 providers.
-// This is a high-level convenience method that handles the complex construction
-// of a multi-level cache with circuit breaker protection for the L2 layer.
+// MultiLevel configures a multi-level cache with separate L1 and L2 providers. This is a
+// high-level convenience method that handles the complex construction of a multi-level
+// cache with circuit breaker protection for the L2 layer.
 //
 // Parameters:
 //   - l1Provider: The name of the local/fast cache provider (e.g., "otter")
-//   - l2Provider: The name of the remote/distributed cache provider (e.g.,
-//     "redis")
+//   - l2Provider: The name of the remote/distributed cache provider (e.g., "redis")
 //
 // Advanced configuration can be done with L1Options and L2Options.
 //
 // Takes l1Provider (string) which names the local/fast cache provider.
-// Takes l2Provider (string) which names the remote/distributed cache
-// provider.
+// Takes l2Provider (string) which names the remote/distributed cache provider.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) MultiLevel(l1Provider, l2Provider string) *CacheBuilder[K, V] {
@@ -260,8 +253,8 @@ func (b *CacheBuilder[K, V]) MultiLevel(l1Provider, l2Provider string) *CacheBui
 	return b
 }
 
-// L1Options sets provider-specific configuration for the L1 cache in a
-// multi-level setup. Should only be used after calling MultiLevel.
+// L1Options sets provider-specific configuration for the L1 cache in a multi-level setup.
+// Should only be used after calling MultiLevel.
 //
 // Takes options (any) which provides provider-specific L1 configuration.
 //
@@ -271,8 +264,8 @@ func (b *CacheBuilder[K, V]) L1Options(options any) *CacheBuilder[K, V] {
 	return b
 }
 
-// L2Options sets provider-specific configuration for the L2 cache in a
-// multi-level setup. Should only be used after calling MultiLevel.
+// L2Options sets provider-specific configuration for the L2 cache in a multi-level setup.
+// Should only be used after calling MultiLevel.
 //
 // Takes options (any) which provides provider-specific L2 configuration.
 //
@@ -282,18 +275,18 @@ func (b *CacheBuilder[K, V]) L2Options(options any) *CacheBuilder[K, V] {
 	return b
 }
 
-// L2CircuitBreaker configures the circuit breaker settings for the L2 provider.
-// This protects your application from cascading failures if the remote cache
-// becomes unavailable.
+// L2CircuitBreaker configures the circuit breaker settings for the L2 provider. This
+// protects your application from cascading failures if the remote cache becomes
+// unavailable.
 //
 // Parameters:
 //   - maxFailures: Number of consecutive failures before opening the circuit
 //   - openTimeout: How long to wait before attempting to close the circuit
 //
-// Takes maxFailures (int) which is the number of consecutive failures
-// before opening the circuit.
-// Takes openTimeout (time.Duration) which is how long to wait before
-// attempting to close the circuit.
+// Takes maxFailures (int) which is the number of consecutive failures before opening the
+// circuit.
+// Takes openTimeout (time.Duration) which is how long to wait before attempting to close
+// the circuit.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) L2CircuitBreaker(maxFailures int, openTimeout time.Duration) *CacheBuilder[K, V] {
@@ -302,9 +295,8 @@ func (b *CacheBuilder[K, V]) L2CircuitBreaker(maxFailures int, openTimeout time.
 	return b
 }
 
-// Options sets provider-specific configuration options via a provider's
-// Config struct (e.g., provider_redis.Config) that the provider factory
-// type-asserts and applies.
+// Options sets provider-specific configuration options via a provider's Config struct
+// (e.g., provider_redis.Config) that the provider factory type-asserts and applies.
 //
 // Takes options (any) which is the provider-specific configuration struct.
 //
@@ -314,9 +306,8 @@ func (b *CacheBuilder[K, V]) Options(options any) *CacheBuilder[K, V] {
 	return b
 }
 
-// MaximumSize sets the maximum number of entries the cache may contain. The
-// cache will evict entries that are less likely to be used as it approaches
-// this limit.
+// MaximumSize sets the maximum number of entries the cache may contain. The cache will
+// evict entries that are less likely to be used as it approaches this limit.
 //
 // Takes size (int) which is the maximum number of entries allowed.
 //
@@ -326,8 +317,8 @@ func (b *CacheBuilder[K, V]) MaximumSize(size int) *CacheBuilder[K, V] {
 	return b
 }
 
-// MaximumWeight sets the maximum weight of entries the cache may contain.
-// This requires also calling Weigher to define how entries are weighed.
+// MaximumWeight sets the maximum weight of entries the cache may contain. This requires
+// also calling Weigher to define how entries are weighed.
 //
 // Takes weight (uint64) which is the maximum total weight allowed.
 //
@@ -339,8 +330,8 @@ func (b *CacheBuilder[K, V]) MaximumWeight(weight uint64) *CacheBuilder[K, V] {
 
 // InitialCapacity sets the minimum initial capacity for the cache.
 //
-// Takes capacity (int) which specifies the minimum size for internal data
-// structures, avoiding expensive resizing operations.
+// Takes capacity (int) which specifies the minimum size for internal data structures,
+// avoiding expensive resizing operations.
 //
 // Returns *CacheBuilder[K, V] for further configuration.
 func (b *CacheBuilder[K, V]) InitialCapacity(capacity int) *CacheBuilder[K, V] {
@@ -348,11 +339,10 @@ func (b *CacheBuilder[K, V]) InitialCapacity(capacity int) *CacheBuilder[K, V] {
 	return b
 }
 
-// Weigher sets a function to calculate the weight of each cache entry.
-// This is required when using MaximumWeight.
+// Weigher sets a function to calculate the weight of each cache entry. This is required
+// when using MaximumWeight.
 //
-// Takes weigher (func(key K, value V) uint32) which computes the weight of
-// each entry.
+// Takes weigher (func(key K, value V) uint32) which computes the weight of each entry.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Weigher(weigher func(key K, value V) uint32) *CacheBuilder[K, V] {
@@ -360,18 +350,15 @@ func (b *CacheBuilder[K, V]) Weigher(weigher func(key K, value V) uint32) *Cache
 	return b
 }
 
-// Transformer adds a cache value transformer by name from globally registered
-// blueprints, callable multiple times to chain transformers that execute in
-// priority order.
+// Transformer adds a cache value transformer by name from globally registered blueprints,
+// callable multiple times to chain transformers that execute in priority order.
 //
 // Parameters:
 //   - name: The transformer name (e.g., "zstd", "crypto-service")
-//   - config: Optional configuration (variadic, can be omitted or a single
-//     config value)
+//   - config: Optional configuration (variadic, can be omitted or a single config value)
 //
 // Takes name (string) which identifies the registered transformer blueprint.
-// Takes transformerConfig (...any) which is optional
-// configuration for the transformer.
+// Takes transformerConfig (...any) which is optional configuration for the transformer.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Transformer(name string, transformerConfig ...any) *CacheBuilder[K, V] {
@@ -388,9 +375,8 @@ func (b *CacheBuilder[K, V]) Transformer(name string, transformerConfig ...any) 
 	return b
 }
 
-// Compression adds zstd compression to the cache values.
-// This is a convenience method that configures the zstd transformer
-// automatically.
+// Compression adds zstd compression to the cache values. This is a convenience method
+// that configures the zstd transformer automatically.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Compression() *CacheBuilder[K, V] {
@@ -403,11 +389,10 @@ func (b *CacheBuilder[K, V]) Compression() *CacheBuilder[K, V] {
 }
 
 // Encryption adds encryption to cache values by automatically configuring the
-// crypto-service transformer with the global crypto service obtained from
-// bootstrap at build time.
+// crypto-service transformer with the global crypto service obtained from bootstrap at
+// build time.
 //
-// For explicit crypto service injection (e.g. in tests), use
-// EncryptionWithService.
+// For explicit crypto service injection (e.g. in tests), use EncryptionWithService.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Encryption() *CacheBuilder[K, V] {
@@ -419,9 +404,8 @@ func (b *CacheBuilder[K, V]) Encryption() *CacheBuilder[K, V] {
 	return b
 }
 
-// EncryptionWithService adds encryption using an explicit crypto service
-// instance. Use it in tests or when a specific crypto service configuration
-// is needed.
+// EncryptionWithService adds encryption using an explicit crypto service instance. Use it
+// in tests or when a specific crypto service configuration is needed.
 //
 // The service parameter must implement crypto_domain.CryptoServicePort.
 //
@@ -437,8 +421,8 @@ func (b *CacheBuilder[K, V]) EncryptionWithService(service any) *CacheBuilder[K,
 	return b
 }
 
-// Encoder registers a type-specific encoder. Use it to apply efficient binary
-// formats (like Gob) for specific types.
+// Encoder registers a type-specific encoder. Use it to apply efficient binary formats
+// (like Gob) for specific types.
 //
 // For better compile-time type safety, prefer TypedEncoder when possible.
 //
@@ -450,15 +434,14 @@ func (b *CacheBuilder[K, V]) Encoder(encoder AnyEncoder) *CacheBuilder[K, V] {
 	return b
 }
 
-// TypedEncoder registers a type-specific encoder with compile-time type safety.
-// Verifies that the encoder's type matches the cache's value type V, preventing
-// runtime type errors.
+// TypedEncoder registers a type-specific encoder with compile-time type safety. Verifies
+// that the encoder's type matches the cache's value type V, preventing runtime type
+// errors.
 //
-// This is the recommended method for registering encoders as it catches type
-// mismatches at compile time rather than runtime.
+// This is the recommended method for registering encoders as it catches type mismatches
+// at compile time rather than runtime.
 //
-// Takes encoder (EncoderPort[V]) which is the type-safe encoder to
-// register.
+// Takes encoder (EncoderPort[V]) which is the type-safe encoder to register.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) TypedEncoder(encoder EncoderPort[V]) *CacheBuilder[K, V] {
@@ -466,11 +449,10 @@ func (b *CacheBuilder[K, V]) TypedEncoder(encoder EncoderPort[V]) *CacheBuilder[
 	return b
 }
 
-// DefaultEncoder sets the fallback encoder for types without specific encoders.
-// If not called, JSON encoding is used as the default.
+// DefaultEncoder sets the fallback encoder for types without specific encoders. If not
+// called, JSON encoding is used as the default.
 //
-// Takes encoder (AnyEncoder) which is the fallback encoder for unmatched
-// types.
+// Takes encoder (AnyEncoder) which is the fallback encoder for unmatched types.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) DefaultEncoder(encoder AnyEncoder) *CacheBuilder[K, V] {
@@ -480,8 +462,8 @@ func (b *CacheBuilder[K, V]) DefaultEncoder(encoder AnyEncoder) *CacheBuilder[K,
 
 // ExpiryCalculator configures dynamic expiry times for cache entries.
 //
-// The calculator determines when entries expire based on their creation,
-// update, or access.
+// The calculator determines when entries expire based on their creation, update, or
+// access.
 //
 // Takes calculator (ExpiryCalculator[K, V]) which computes expiry times.
 //
@@ -491,11 +473,11 @@ func (b *CacheBuilder[K, V]) ExpiryCalculator(calculator cache_dto.ExpiryCalcula
 	return b
 }
 
-// RefreshCalculator configures automatic background refresh for cache entries.
-// Stale entries are refreshed asynchronously while still serving the old value.
+// RefreshCalculator configures automatic background refresh for cache entries. Stale
+// entries are refreshed asynchronously while still serving the old value.
 //
-// Takes calculator (RefreshCalculator[K, V]) which determines when and how
-// cache entries should be refreshed.
+// Takes calculator (RefreshCalculator[K, V]) which determines when and how cache entries
+// should be refreshed.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) RefreshCalculator(calculator cache_dto.RefreshCalculator[K, V]) *CacheBuilder[K, V] {
@@ -503,11 +485,10 @@ func (b *CacheBuilder[K, V]) RefreshCalculator(calculator cache_dto.RefreshCalcu
 	return b
 }
 
-// OnDeletion sets a callback to be invoked when entries are deleted.
-// The callback runs asynchronously after the deletion completes.
+// OnDeletion sets a callback to be invoked when entries are deleted. The callback runs
+// asynchronously after the deletion completes.
 //
-// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which handles
-// deletion events.
+// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which handles deletion events.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) OnDeletion(callback func(e cache_dto.DeletionEvent[K, V])) *CacheBuilder[K, V] {
@@ -515,12 +496,11 @@ func (b *CacheBuilder[K, V]) OnDeletion(callback func(e cache_dto.DeletionEvent[
 	return b
 }
 
-// OnAtomicDeletion sets a callback to be invoked during the atomic deletion
-// operation. Use this when the callback must execute as part of the deletion
-// transaction.
+// OnAtomicDeletion sets a callback to be invoked during the atomic deletion operation.
+// Use this when the callback must execute as part of the deletion transaction.
 //
-// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which handles
-// atomic deletion events.
+// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which handles atomic deletion
+// events.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) OnAtomicDeletion(callback func(e cache_dto.DeletionEvent[K, V])) *CacheBuilder[K, V] {
@@ -528,11 +508,9 @@ func (b *CacheBuilder[K, V]) OnAtomicDeletion(callback func(e cache_dto.Deletion
 	return b
 }
 
-// StatsRecorder sets a custom statistics recorder for tracking cache
-// performance.
+// StatsRecorder sets a custom statistics recorder for tracking cache performance.
 //
-// Takes recorder (cache_dto.StatsRecorder) which collects cache performance
-// metrics.
+// Takes recorder (cache_dto.StatsRecorder) which collects cache performance metrics.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) StatsRecorder(recorder cache_dto.StatsRecorder) *CacheBuilder[K, V] {
@@ -540,8 +518,8 @@ func (b *CacheBuilder[K, V]) StatsRecorder(recorder cache_dto.StatsRecorder) *Ca
 	return b
 }
 
-// Executor sets a custom executor for asynchronous tasks (deletion callbacks,
-// refreshes). By default, goroutines are used.
+// Executor sets a custom executor for asynchronous tasks (deletion callbacks, refreshes).
+// By default, goroutines are used.
 //
 // Takes executor (func(operation func())) which runs asynchronous cache tasks.
 //
@@ -551,11 +529,10 @@ func (b *CacheBuilder[K, V]) Executor(executor func(operation func())) *CacheBui
 	return b
 }
 
-// Clock sets a custom clock for time-based operations. This is primarily useful
-// for testing caches with expiration or refresh policies.
+// Clock sets a custom clock for time-based operations. This is primarily useful for
+// testing caches with expiration or refresh policies.
 //
-// Takes clock (cache_dto.Clock) which provides time functions for expiry
-// calculations.
+// Takes clock (cache_dto.Clock) which provides time functions for expiry calculations.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Clock(clock cache_dto.Clock) *CacheBuilder[K, V] {
@@ -563,24 +540,20 @@ func (b *CacheBuilder[K, V]) Clock(clock cache_dto.Clock) *CacheBuilder[K, V] {
 	return b
 }
 
-// Searchable configures the cache with a search schema for
-// full-text search and structured query operations, defining
-// which fields of cached values are searchable and how they
-// should be indexed.
+// Searchable configures the cache with a search schema for full-text search and
+// structured query operations, defining which fields of cached values are searchable and
+// how they should be indexed.
 //
-// When a search schema is configured, providers that support
-// search (Otter, RediSearch) build internal structures for
-// efficient searching, Search() and Query() become available,
-// and SupportsSearch() returns true. When no schema is
-// configured (default), Search() and Query() return
-// ErrSearchNotSupported and SupportsSearch() returns false.
+// When a search schema is configured, providers that support search (Otter, RediSearch)
+// build internal structures for efficient searching, Search() and Query() become
+// available, and SupportsSearch() returns true. When no schema is configured (default),
+// Search() and Query() return ErrSearchNotSupported and SupportsSearch() returns false.
 //
-// Searchable cannot be used with transformers (Compression,
-// Encryption) because transformed values are stored as bytes,
-// not structured data.
+// Searchable cannot be used with transformers (Compression, Encryption) because
+// transformed values are stored as bytes, not structured data.
 //
-// Takes schema (*cache_dto.SearchSchema) which defines the
-// searchable fields and their types.
+// Takes schema (*cache_dto.SearchSchema) which defines the searchable fields and their
+// types.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Searchable(schema *cache_dto.SearchSchema) *CacheBuilder[K, V] {
@@ -591,8 +564,8 @@ func (b *CacheBuilder[K, V]) Searchable(schema *cache_dto.SearchSchema) *CacheBu
 // validateSearchSchema checks that all fields in the search schema have valid
 // configuration.
 //
-// Returns error when any field has an empty name, when a vector field has a
-// non-positive dimension, or when a vector field has an empty distance metric.
+// Returns error when any field has an empty name, when a vector field has a non-positive
+// dimension, or when a vector field has an empty distance metric.
 func (b *CacheBuilder[K, V]) validateSearchSchema() error {
 	if b.searchSchema == nil {
 		return nil
@@ -613,8 +586,7 @@ func (b *CacheBuilder[K, V]) validateSearchSchema() error {
 
 // Logger sets a custom logger for the cache.
 //
-// Takes logger (cache_dto.Logger) which handles log output for cache
-// operations.
+// Takes logger (cache_dto.Logger) which handles log output for cache operations.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Logger(logger cache_dto.Logger) *CacheBuilder[K, V] {
@@ -622,23 +594,20 @@ func (b *CacheBuilder[K, V]) Logger(logger cache_dto.Logger) *CacheBuilder[K, V]
 	return b
 }
 
-// Expiration is a convenience method equivalent to WriteExpiration that sets
-// a fixed expiration time for all entries via an ExpiryCalculator.
+// Expiration is a convenience method equivalent to WriteExpiration that sets a fixed
+// expiration time for all entries via an ExpiryCalculator.
 //
-// Takes duration (time.Duration) which is the fixed expiry time for all
-// entries.
+// Takes duration (time.Duration) which is the fixed expiry time for all entries.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) Expiration(duration time.Duration) *CacheBuilder[K, V] {
 	return b.WriteExpiration(duration)
 }
 
-// WriteExpiration sets a fixed TTL applied on creation and updates only
-// (not reset on reads), ideal for data with a natural expiration time
-// regardless of access patterns.
+// WriteExpiration sets a fixed TTL applied on creation and updates only (not reset on
+// reads), ideal for data with a natural expiration time regardless of access patterns.
 //
-// Takes duration (time.Duration) which is the TTL applied on creation and
-// update.
+// Takes duration (time.Duration) which is the TTL applied on creation and update.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) WriteExpiration(duration time.Duration) *CacheBuilder[K, V] {
@@ -646,12 +615,11 @@ func (b *CacheBuilder[K, V]) WriteExpiration(duration time.Duration) *CacheBuild
 	return b
 }
 
-// AccessExpiration sets a "sliding" TTL that is reset on every access (read,
-// write, or update), ideal for session data that should remain cached as long
-// as it continues to be used, mimicking Otter's ExpiryAccessing behaviour.
+// AccessExpiration sets a "sliding" TTL that is reset on every access (read, write, or
+// update), ideal for session data that should remain cached as long as it continues to be
+// used, mimicking Otter's ExpiryAccessing behaviour.
 //
-// Takes duration (time.Duration) which is the sliding TTL reset on every
-// access.
+// Takes duration (time.Duration) which is the sliding TTL reset on every access.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) AccessExpiration(duration time.Duration) *CacheBuilder[K, V] {
@@ -659,15 +627,14 @@ func (b *CacheBuilder[K, V]) AccessExpiration(duration time.Duration) *CacheBuil
 	return b
 }
 
-// writeExpiryCalculator applies a time-to-live only on write operations such
-// as create and update. Read operations do not reset the expiry timer.
+// writeExpiryCalculator applies a time-to-live only on write operations such as create
+// and update. Read operations do not reset the expiry timer.
 type writeExpiryCalculator[K comparable, V any] struct {
 	// duration is how long until the content expires.
 	duration time.Duration
 }
 
-// ExpireAfterCreate returns the duration after which a newly created entry
-// should expire.
+// ExpireAfterCreate returns the duration after which a newly created entry should expire.
 //
 // Takes cache_dto.Entry[K, V] which is the newly created cache entry.
 //
@@ -676,8 +643,8 @@ func (c *writeExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) t
 	return c.duration
 }
 
-// ExpireAfterUpdate returns the duration after which an entry expires following
-// an update.
+// ExpireAfterUpdate returns the duration after which an entry expires following an
+// update.
 //
 // Takes cache_dto.Entry[K, V] which is the existing cache entry.
 // Takes V which is the new value being written.
@@ -696,15 +663,15 @@ func (*writeExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) time.
 	return -1
 }
 
-// accessExpiryCalculator applies a time-to-live to all operations.
-// Each access resets the expiry timer, giving sliding expiry behaviour.
+// accessExpiryCalculator applies a time-to-live to all operations. Each access resets the
+// expiry timer, giving sliding expiry behaviour.
 type accessExpiryCalculator[K comparable, V any] struct {
 	// duration is the time period before access expires.
 	duration time.Duration
 }
 
-// ExpireAfterCreate returns the configured sliding expiry duration for
-// a newly created cache entry.
+// ExpireAfterCreate returns the configured sliding expiry duration for a newly created
+// cache entry.
 //
 // Takes cache_dto.Entry[K, V] which is the newly created entry.
 //
@@ -713,8 +680,8 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) 
 	return c.duration
 }
 
-// ExpireAfterUpdate returns the duration after which an entry expires following
-// an update.
+// ExpireAfterUpdate returns the duration after which an entry expires following an
+// update.
 //
 // Takes cache_dto.Entry[K, V] which is the existing cache entry.
 // Takes V which is the new value being set.
@@ -724,8 +691,7 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterUpdate(cache_dto.Entry[K, V], 
 	return c.duration
 }
 
-// ExpireAfterRead returns the duration after which an entry expires following
-// a read.
+// ExpireAfterRead returns the duration after which an entry expires following a read.
 //
 // Takes Entry[K, V] which is the cache entry being accessed.
 //
@@ -743,15 +709,12 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) ti
 //   - Constructs multi-level caches when WithMultiLevel was called
 //   - Returns a fully configured, ready-to-use Cache[K, V]
 //
-// When transformers or custom encoders are used, the returned
-// cache is a *TransformerWrapper which implements the core Cache
-// methods but may not implement all advanced methods like
-// Compute, ComputeIfAbsent, etc.
+// When transformers or custom encoders are used, the returned cache is a
+// *TransformerWrapper which implements the core Cache methods but may not implement all
+// advanced methods like Compute, ComputeIfAbsent, etc.
 //
-// Returns Cache[K, V] which is the fully configured cache
-// instance.
-// Returns error when validation, provider creation, or wiring
-// fails.
+// Returns Cache[K, V] which is the fully configured cache instance.
+// Returns error when validation, provider creation, or wiring fails.
 func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 	if err := b.validateSearchSchema(); err != nil {
 		return nil, fmt.Errorf("validating search schema: %w", err)
@@ -776,8 +739,8 @@ func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 	return b.buildWrappedCache(ctx)
 }
 
-// buildFromBlueprint creates a cache using a registered factory blueprint.
-// This enables domain-specific type support without circular dependencies.
+// buildFromBlueprint creates a cache using a registered factory blueprint. This enables
+// domain-specific type support without circular dependencies.
 //
 // Returns Cache[K, V] which is the cache created by the factory blueprint.
 // Returns error when the blueprint is not found or factory creation fails.
@@ -868,8 +831,8 @@ func (b *CacheBuilder[K, V]) buildSimpleCache(_ context.Context) (Cache[K, V], e
 	return cache, nil
 }
 
-// setupTransformerRegistry creates and fills a transformer registry from the
-// builder's configuration.
+// setupTransformerRegistry creates and fills a transformer registry from the builder's
+// configuration.
 //
 // Returns *TransformerRegistry which contains all registered transformers.
 // Returns *cache_dto.TransformConfig which holds the transformer settings.
@@ -923,8 +886,8 @@ func (b *CacheBuilder[K, V]) createTransformer(spec transformerSpec) (CacheTrans
 	return transformer, nil
 }
 
-// setupEncoderRegistry creates and populates an encoder registry from
-// the builder's configuration.
+// setupEncoderRegistry creates and populates an encoder registry from the builder's
+// configuration.
 //
 // Returns *EncodingRegistry which contains the registered encoders.
 // Returns error when an encoder fails to register.
@@ -977,11 +940,10 @@ func (b *CacheBuilder[K, V]) createBaseByteCache(_ context.Context) (ProviderPor
 
 // selectEncoderForWrapper determines the appropriate encoder for the wrapper.
 //
-// Takes registry (*EncodingRegistry) which provides type-to-encoder
-// mappings.
+// Takes registry (*EncodingRegistry) which provides type-to-encoder mappings.
 //
-// Returns []wrapperOption[K, V] which contains the encoder option for the
-// wrapper, or nil if no suitable encoder is found.
+// Returns []wrapperOption[K, V] which contains the encoder option for the wrapper, or nil
+// if no suitable encoder is found.
 func (b *CacheBuilder[K, V]) selectEncoderForWrapper(registry *EncodingRegistry) []wrapperOption[K, V] {
 	if registry == nil {
 		return nil
@@ -1006,10 +968,9 @@ func (b *CacheBuilder[K, V]) selectEncoderForWrapper(registry *EncodingRegistry)
 
 // buildWrappedCache creates a cache with transformation/encoding wrapper.
 //
-// Returns *transformerWrapper[K, V] which wraps the base cache with
-// encoding and transformation logic.
-// Returns error when registry setup, base cache creation, or wrapper
-// construction fails.
+// Returns *transformerWrapper[K, V] which wraps the base cache with encoding and
+// transformation logic.
+// Returns error when registry setup, base cache creation, or wrapper construction fails.
 func (b *CacheBuilder[K, V]) buildWrappedCache(ctx context.Context) (*transformerWrapper[K, V], error) {
 	b.warnAboutTransformerLimitations(ctx)
 
@@ -1039,8 +1000,8 @@ func (b *CacheBuilder[K, V]) buildWrappedCache(ctx context.Context) (*transforme
 	return wrapper, nil
 }
 
-// buildMultiLevelCache creates a multi-level cache by constructing L1 and L2
-// providers and wrapping them with the MultiLevelAdapter.
+// buildMultiLevelCache creates a multi-level cache by constructing L1 and L2 providers
+// and wrapping them with the MultiLevelAdapter.
 //
 // Returns Cache[K, V] which is the combined multi-level cache instance.
 // Returns error when L1/L2 creation or adapter construction fails.
@@ -1058,13 +1019,12 @@ func (b *CacheBuilder[K, V]) buildMultiLevelCache(ctx context.Context) (Cache[K,
 	return multilevelProvider, nil
 }
 
-// createL1L2Providers creates and returns the L1 and L2 cache providers for
-// multi-level caching. Both providers are type-asserted to ProviderPort to
-// ensure they implement the required interface.
+// createL1L2Providers creates and returns the L1 and L2 cache providers for multi-level
+// caching. Both providers are type-asserted to ProviderPort to ensure they implement the
+// required interface.
 //
 // Returns l1 (ProviderPort[K, V]) which is the L1 (local/fast) provider.
-// Returns l2 (ProviderPort[K, V]) which is the L2 (remote/distributed)
-// provider.
+// Returns l2 (ProviderPort[K, V]) which is the L2 (remote/distributed) provider.
 // Returns err (error) when provider creation or type assertion fails.
 func (b *CacheBuilder[K, V]) createL1L2Providers(_ context.Context) (l1 ProviderPort[K, V], l2 ProviderPort[K, V], err error) {
 	l1Cache, err := NewCache[K, V](b.service, b.buildL1Options())
@@ -1088,8 +1048,8 @@ func (b *CacheBuilder[K, V]) createL1L2Providers(_ context.Context) (l1 Provider
 	return l1Provider, l2Provider, nil
 }
 
-// buildL1Options constructs the cache options for the L1 (local/fast) cache
-// layer. L1 includes size/weight limits and local capacity settings.
+// buildL1Options constructs the cache options for the L1 (local/fast) cache layer. L1
+// includes size/weight limits and local capacity settings.
 //
 // Returns cache_dto.Options[K, V] which contains the L1 configuration.
 func (b *CacheBuilder[K, V]) buildL1Options() cache_dto.Options[K, V] {
@@ -1112,9 +1072,9 @@ func (b *CacheBuilder[K, V]) buildL1Options() cache_dto.Options[K, V] {
 	}
 }
 
-// buildL2Options constructs the cache options for the L2 (remote/distributed)
-// cache layer. L2 excludes size/weight limits as those are typically managed by
-// the remote system.
+// buildL2Options constructs the cache options for the L2 (remote/distributed) cache
+// layer. L2 excludes size/weight limits as those are typically managed by the remote
+// system.
 //
 // Returns cache_dto.Options[K, V] which contains the L2 configuration.
 func (b *CacheBuilder[K, V]) buildL2Options() cache_dto.Options[K, V] {
@@ -1133,18 +1093,14 @@ func (b *CacheBuilder[K, V]) buildL2Options() cache_dto.Options[K, V] {
 	}
 }
 
-// createMultiLevelAdapter is a helper to construct the multi-level adapter.
-// This is separated to allow for easier testing and to handle the import
-// dependency.
+// createMultiLevelAdapter is a helper to construct the multi-level adapter. This is
+// separated to allow for easier testing and to handle the import dependency.
 //
-// Takes l1 (ProviderPort[K, V]) which is the L1 (local/fast) cache
-// provider.
-// Takes l2 (ProviderPort[K, V]) which is the L2 (remote/distributed) cache
-// provider.
+// Takes l1 (ProviderPort[K, V]) which is the L1 (local/fast) cache provider.
+// Takes l2 (ProviderPort[K, V]) which is the L2 (remote/distributed) cache provider.
 //
 // Returns Cache[K, V] which is the multi-level cache adapter.
-// Returns error when the constructor is not registered or adapter creation
-// fails.
+// Returns error when the constructor is not registered or adapter creation fails.
 func (b *CacheBuilder[K, V]) createMultiLevelAdapter(
 	ctx context.Context,
 	l1 ProviderPort[K, V],
@@ -1186,14 +1142,14 @@ func (b *CacheBuilder[K, V]) createMultiLevelAdapter(
 	return multilevelAdapter, nil
 }
 
-// warnIfUnbounded logs a WARN at Build time when the cache has neither
-// a MaximumSize nor a MaximumWeight set. Unbounded caches are the most
-// common cache-related memory hazard, so we surface them at startup so
-// operators can audit which namespaces have opted out of bounding.
+// warnIfUnbounded logs a WARN at Build time when the cache has neither a MaximumSize nor
+// a MaximumWeight set. Unbounded caches are the most common cache-related memory hazard,
+// so we surface them at startup so operators can audit which namespaces have opted out of
+// bounding.
 //
-// Multi-level (L1+L2) caches use buildL1Options/buildL2Options paths;
-// the L2 layer is intentionally exempt because remote caches enforce
-// their own eviction policy server-side.
+// Multi-level (L1+L2) caches use buildL1Options/buildL2Options paths; the L2 layer is
+// intentionally exempt because remote caches enforce their own eviction policy
+// server-side.
 func (b *CacheBuilder[K, V]) warnIfUnbounded(ctx context.Context) {
 	if b.maximumSize > 0 || b.maximumWeight > 0 {
 		return
@@ -1204,9 +1160,9 @@ func (b *CacheBuilder[K, V]) warnIfUnbounded(ctx context.Context) {
 		logger_domain.String("provider", b.providerName))
 }
 
-// warnAboutTransformerLimitations logs warnings when features are set up
-// that will not work with TransformerWrapper. This helps users understand the
-// limits of transformer-based caches and prevents silent failures.
+// warnAboutTransformerLimitations logs warnings when features are set up that will not
+// work with TransformerWrapper. This helps users understand the limits of
+// transformer-based caches and prevents silent failures.
 func (b *CacheBuilder[K, V]) warnAboutTransformerLimitations(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -1257,8 +1213,8 @@ func (b *CacheBuilder[K, V]) warnAboutTransformerLimitations(ctx context.Context
 	}
 }
 
-// resolveConvenienceTransformer creates transformer instances using the global
-// blueprint registry.
+// resolveConvenienceTransformer creates transformer instances using the global blueprint
+// registry.
 //
 // Takes name (string) which identifies the transformer blueprint to use.
 // Takes config (any) which provides configuration for the transformer.
@@ -1281,8 +1237,8 @@ func (*CacheBuilder[K, V]) resolveConvenienceTransformer(name string, config any
 
 // adaptWeigher returns a weigher function for byte slice values.
 //
-// Returns func(key K, value []byte) uint32 which is always nil because the
-// wrapped cache weighs based on byte size rather than the original typed values.
+// Returns func(key K, value []byte) uint32 which is always nil because the wrapped cache
+// weighs based on byte size rather than the original typed values.
 func (b *CacheBuilder[K, V]) adaptWeigher() func(key K, value []byte) uint32 {
 	if b.weigher == nil {
 		return nil
@@ -1290,8 +1246,8 @@ func (b *CacheBuilder[K, V]) adaptWeigher() func(key K, value []byte) uint32 {
 	return nil
 }
 
-// adaptExpiryCalculator returns nil because expiry calculators cannot
-// be adapted for byte-level caches without deserialising the value.
+// adaptExpiryCalculator returns nil because expiry calculators cannot be adapted for
+// byte-level caches without deserialising the value.
 //
 // Returns cache_dto.ExpiryCalculator[K, []byte] which is always nil.
 func (b *CacheBuilder[K, V]) adaptExpiryCalculator() cache_dto.ExpiryCalculator[K, []byte] {
@@ -1303,8 +1259,8 @@ func (b *CacheBuilder[K, V]) adaptExpiryCalculator() cache_dto.ExpiryCalculator[
 
 // adaptOnDeletion returns a deletion callback adapter.
 //
-// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil
-// because deletion callbacks cannot be adapted without deserialisation.
+// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil because deletion
+// callbacks cannot be adapted without deserialisation.
 func (b *CacheBuilder[K, V]) adaptOnDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
 	if b.onDeletion == nil {
 		return nil
@@ -1312,11 +1268,11 @@ func (b *CacheBuilder[K, V]) adaptOnDeletion() func(e cache_dto.DeletionEvent[K,
 	return nil
 }
 
-// adaptOnAtomicDeletion returns nil because atomic deletion callbacks cannot
-// be adapted without deserialisation.
+// adaptOnAtomicDeletion returns nil because atomic deletion callbacks cannot be adapted
+// without deserialisation.
 //
-// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil for
-// this builder.
+// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil for this
+// builder.
 func (b *CacheBuilder[K, V]) adaptOnAtomicDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
 	if b.onAtomicDeletion == nil {
 		return nil
@@ -1324,9 +1280,8 @@ func (b *CacheBuilder[K, V]) adaptOnAtomicDeletion() func(e cache_dto.DeletionEv
 	return nil
 }
 
-// adaptRefreshCalculator returns nil because refresh calculators
-// cannot be adapted for byte-level caches without deserialising the
-// value.
+// adaptRefreshCalculator returns nil because refresh calculators cannot be adapted for
+// byte-level caches without deserialising the value.
 //
 // Returns cache_dto.RefreshCalculator[K, []byte] which is always nil.
 func (b *CacheBuilder[K, V]) adaptRefreshCalculator() cache_dto.RefreshCalculator[K, []byte] {
@@ -1336,8 +1291,8 @@ func (b *CacheBuilder[K, V]) adaptRefreshCalculator() cache_dto.RefreshCalculato
 	return nil
 }
 
-// Clone creates a deep copy of the CacheBuilder, allowing for the creation
-// of a cache template that can be modified and used multiple times.
+// Clone creates a deep copy of the CacheBuilder, allowing for the creation of a cache
+// template that can be modified and used multiple times.
 //
 // Returns *CacheBuilder[K, V] which is an independent copy of this builder.
 func (b *CacheBuilder[K, V]) Clone() *CacheBuilder[K, V] {
@@ -1371,12 +1326,12 @@ func (b *CacheBuilder[K, V]) Clone() *CacheBuilder[K, V] {
 	return cloned
 }
 
-// RegisterMultiLevelAdapterConstructor registers the constructor for creating
-// multi-level adapters. This should be called by the provider_multilevel
-// package in its init function.
+// RegisterMultiLevelAdapterConstructor registers the constructor for creating multi-level
+// adapters. This should be called by the provider_multilevel package in its init
+// function.
 //
-// Takes constructor (MultiLevelAdapterConstructor) which provides the factory
-// function for creating multi-level cache adapters.
+// Takes constructor (MultiLevelAdapterConstructor) which provides the factory function
+// for creating multi-level cache adapters.
 //
 // Panics if a constructor has already been registered.
 //
@@ -1391,10 +1346,9 @@ func RegisterMultiLevelAdapterConstructor(constructor MultiLevelAdapterConstruct
 	multiLevelAdapterConstructor = constructor
 }
 
-// RegisterTransformerBlueprint registers a factory function for creating
-// transformers by name, so the builder can use simple methods like
-// WithTransformer("zstd") without needing the caller to import transformer
-// packages or build factory functions.
+// RegisterTransformerBlueprint registers a factory function for creating transformers by
+// name, so the builder can use simple methods like WithTransformer("zstd") without
+// needing the caller to import transformer packages or build factory functions.
 //
 // Transformer adapters should call this in their init() function:
 //
@@ -1410,8 +1364,7 @@ func RegisterMultiLevelAdapterConstructor(constructor MultiLevelAdapterConstruct
 //	}
 //
 // Takes name (string) which identifies the transformer for lookup.
-// Takes factory (TransformerBlueprintFactory) which creates transformer
-// instances.
+// Takes factory (TransformerBlueprintFactory) which creates transformer instances.
 //
 // Panics if a transformer with the given name is already registered.
 //
@@ -1428,11 +1381,9 @@ func RegisterTransformerBlueprint(name string, factory TransformerBlueprintFacto
 
 // NewCacheBuilder creates a cache builder for the specified key-value types.
 //
-// Takes service (Service) which provides access to cache providers and
-// configuration.
+// Takes service (Service) which provides access to cache providers and configuration.
 //
-// Returns *CacheBuilder[K, V] which is the new builder ready for
-// configuration.
+// Returns *CacheBuilder[K, V] which is the new builder ready for configuration.
 func NewCacheBuilder[K comparable, V any](service Service) *CacheBuilder[K, V] {
 	return &CacheBuilder[K, V]{
 		service:      service,
@@ -1441,11 +1392,10 @@ func NewCacheBuilder[K comparable, V any](service Service) *CacheBuilder[K, V] {
 	}
 }
 
-// getMultiLevelAdapterConstructor gets the registered multi-level adapter
-// constructor.
+// getMultiLevelAdapterConstructor gets the registered multi-level adapter constructor.
 //
-// Returns MultiLevelAdapterConstructor which is the registered constructor, or
-// nil if none has been registered.
+// Returns MultiLevelAdapterConstructor which is the registered constructor, or nil if
+// none has been registered.
 // Returns bool which is true if a constructor has been registered.
 //
 // Safe for use by multiple goroutines at the same time.
@@ -1459,8 +1409,7 @@ func getMultiLevelAdapterConstructor() (MultiLevelAdapterConstructor, bool) {
 //
 // Takes name (string) which is the unique identifier of the transformer.
 //
-// Returns TransformerBlueprintFactory which is the factory for creating the
-// transformer.
+// Returns TransformerBlueprintFactory which is the factory for creating the transformer.
 // Returns bool which is true if the transformer was found, false otherwise.
 //
 // Safe for concurrent use by multiple goroutines.

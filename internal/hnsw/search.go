@@ -28,11 +28,11 @@ import (
 //
 // Takes query ([]float32) which is the vector to search for.
 // Takes topK (int) which is the maximum number of results to return.
-// Takes efSearch (int) which is the search-time candidate list size. A value
-// of 0 uses the graph's default.
+// Takes efSearch (int) which is the search-time candidate list size. A value of 0 uses
+// the graph's default.
 //
-// Returns []Result[K] sorted by distance (nearest first). Returns nil for
-// an empty graph or zero topK.
+// Returns []Result[K] sorted by distance (nearest first).
+// Returns nil for an empty graph or zero topK.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) Search(query []float32, topK, efSearch int) []Result[K] {
@@ -90,9 +90,9 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) []Result[K] {
 // Takes candidateCount (int) which is the candidate list size (beam width).
 // Takes layer (int) which is the layer to search.
 //
-// Returns []priorityQueueItem[K] sorted by distance (nearest first),
-// containing at most candidateCount items. Each item's distance field holds
-// the pre-computed distance to target.
+// Returns []priorityQueueItem[K] sorted by distance (nearest first), containing at most
+// candidateCount items. Each item's distance field holds the pre-computed distance to
+// target.
 //
 // Caller must hold at least a read lock.
 func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount, layer int) []priorityQueueItem[K] {
@@ -152,9 +152,9 @@ func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount,
 	return sorted
 }
 
-// distance computes the distance between two vectors using the graph's metric.
-// For similarity metrics (cosine, dot product), the distance is 1 - similarity
-// so that lower values mean closer vectors.
+// distance computes the distance between two vectors using the graph's metric. For
+// similarity metrics (cosine, dot product), the distance is 1 - similarity so that lower
+// values mean closer vectors.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
@@ -164,15 +164,15 @@ func (g *Graph[K]) distance(a, b []float32) float32 {
 	return g.distanceFunction(a, b)
 }
 
-// euclideanDistance computes the squared Euclidean distance between two
-// vectors. Using squared distance avoids the sqrt call while keeping the
-// correct ordering for comparisons.
+// euclideanDistance computes the squared Euclidean distance between two vectors. Using
+// squared distance avoids the sqrt call while keeping the correct ordering for
+// comparisons.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
 //
-// Returns float32 which is the squared distance, or MaxFloat32 if the vectors
-// have different lengths.
+// Returns float32 which is the squared distance, or MaxFloat32 if the vectors have
+// different lengths.
 func euclideanDistance(a, b []float32) float32 {
 	if len(a) != len(b) {
 		return float32(math.MaxFloat32)

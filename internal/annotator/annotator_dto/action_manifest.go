@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ActionManifest contains all discovered actions from the actions/ directory.
-// It is populated during Phase 1 of the annotator pipeline and stored in
-// VirtualModule for downstream consumers (generator, typegen, LSP).
+// ActionManifest contains all discovered actions from the actions/ directory. It is
+// populated by the annotator pipeline and stored in VirtualModule for downstream
+// consumers (generator, typegen, LSP).
 type ActionManifest struct {
 	// Actions is the list of all discovered actions.
 	Actions []ActionDefinition
@@ -65,30 +65,26 @@ func (m *ActionManifest) GetAction(name string) *ActionDefinition {
 	return m.ByName[name]
 }
 
-// ActionDefinition represents a discovered action from the actions/ directory.
-// This is the primary data structure for action metadata throughout the
-// pipeline.
+// ActionDefinition represents a discovered action from the actions/ directory. This is
+// the primary data structure for action metadata throughout the pipeline.
 type ActionDefinition struct {
-	// OutputType describes the Call method return type.
-	// May be nil if the action returns nothing or only error.
+	// OutputType describes the Call method return type. May be nil if the action returns
+	// nothing or only error.
 	OutputType *ActionTypeInfo
 
 	// Capabilities holds optional interface implementations.
 	Capabilities ActionCapabilities
 
-	// Go Metadata
-	// StructName is the name of the Go struct that implements this action, for
+	// Go Metadata StructName is the name of the Go struct that implements this action, for
 	// example "ContactAction".
 	StructName string
 
-	// Identity
-	// Name is the dot-notation action name derived from the file path, such as
+	// Identity Name is the dot-notation action name derived from the file path, such as
 	// "email.contact" from actions/email/contact.go.
 	Name string
 
-	// TSFunctionName is the camelCase function name used in TypeScript code.
-	// It is derived from the action name; for example, "email.contact" becomes
-	// "emailContact".
+	// TSFunctionName is the camelCase function name used in TypeScript code. It is derived
+	// from the action name; for example, "email.contact" becomes "emailContact".
 	TSFunctionName string
 
 	// FilePath is the path to the action file relative to the project root.
@@ -97,35 +93,31 @@ type ActionDefinition struct {
 	// PackagePath is the fully qualified Go package path.
 	PackagePath string
 
-	// PackageName is the Go package name, which is the last component of the
-	// package path.
+	// PackageName is the Go package name, which is the last component of the package path.
 	PackageName string
 
-	// Configuration
-	// HTTPMethod is the HTTP method (default: "POST").
-	// Set via MethodOverridable interface.
+	// Configuration HTTPMethod is the HTTP method (default: "POST"). Set via
+	// MethodOverridable interface.
 	HTTPMethod string
 
-	// Documentation
-	// Description is the godoc comment for the action struct.
+	// Documentation Description is the godoc comment for the action struct.
 	Description string
 
-	// Call Signature
-	// CallParams describes each parameter of the Call method, in order.
-	// May be empty if the action takes no parameters.
+	// Call Signature CallParams describes each parameter of the Call method, in order. May
+	// be empty if the action takes no parameters.
 	CallParams []ActionTypeInfo
 
-	// StructLine is the 1-based line number of the action struct declaration
-	// in the source file. Used for go-to-definition navigation.
+	// StructLine is the 1-based line number of the action struct declaration in the source
+	// file. Used for go-to-definition navigation.
 	StructLine int
 
-	// HasError indicates whether the Call method returns an error.
-	// This is almost always true for actions.
+	// HasError indicates whether the Call method returns an error. This is almost always
+	// true for actions.
 	HasError bool
 }
 
-// Method returns the HTTP method for this action.
-// Implements the ActionInfoProvider interface for annotator validation.
+// Method returns the HTTP method for this action. Implements the ActionInfoProvider
+// interface for annotator validation.
 //
 // Returns string which is the HTTP method, defaulting to POST if not set.
 func (a *ActionDefinition) Method() string {
@@ -135,47 +127,44 @@ func (a *ActionDefinition) Method() string {
 	return a.HTTPMethod
 }
 
-// GetCallParamTypes returns the parameter types of the action's Call method.
-// Implements the ActionParamProvider interface for argument validation.
+// GetCallParamTypes returns the parameter types of the action's Call method. Implements
+// the ActionParamProvider interface for argument validation.
 //
-// Returns []ActionTypeInfo which describes each parameter, or nil if the
-// action takes no parameters.
+// Returns []ActionTypeInfo which describes each parameter, or nil if the action takes no
+// parameters.
 func (a *ActionDefinition) GetCallParamTypes() []ActionTypeInfo {
 	return a.CallParams
 }
 
-// ActionCapabilities tracks which optional interfaces an action implements.
-// These are detected by looking for specific method signatures on the action
-// struct.
+// ActionCapabilities tracks which optional interfaces an action implements. These are
+// detected by looking for specific method signatures on the action struct.
 type ActionCapabilities struct {
 	// RateLimit contains rate limiting configuration if HasRateLimit is true.
 	RateLimit *RateLimitConfig
 
-	// ResourceLimits contains resource constraint configuration if
-	// HasResourceLimits is true.
+	// ResourceLimits contains resource constraint configuration if HasResourceLimits is
+	// true.
 	ResourceLimits *ResourceLimitConfig
 
 	// CacheConfig contains caching configuration if HasCacheConfig is true.
 	CacheConfig *CacheConfig
 
-	// HasSSE indicates if the action implements SSECapable (StreamProgress
-	// method).
+	// HasSSE indicates if the action implements SSECapable (StreamProgress method).
 	HasSSE bool
 
-	// HasMiddlewares indicates if the action implements MiddlewareCapable
-	// (Middlewares method).
+	// HasMiddlewares indicates if the action implements MiddlewareCapable (Middlewares
+	// method).
 	HasMiddlewares bool
 
-	// HasRateLimit indicates whether the action implements RateLimitable
-	// (RateLimit method).
+	// HasRateLimit indicates whether the action implements RateLimitable (RateLimit method).
 	HasRateLimit bool
 
-	// HasResourceLimits indicates if the action implements ResourceLimitable
-	// (has a ResourceLimits method).
+	// HasResourceLimits indicates if the action implements ResourceLimitable (has a
+	// ResourceLimits method).
 	HasResourceLimits bool
 
-	// HasCacheConfig indicates if the action implements Cacheable via the
-	// CacheConfig method.
+	// HasCacheConfig indicates if the action implements Cacheable via the CacheConfig
+	// method.
 	HasCacheConfig bool
 }
 
@@ -184,17 +173,15 @@ type ActionTypeInfo struct {
 	// Name is the type name (e.g., "ContactInput", "ContactResponse").
 	Name string
 
-	// ParamName is the original parameter name from the Go method signature
-	// (e.g., "input" from "func (a Action) Call(input ContactInput)").
-	// Empty for output types.
+	// ParamName is the original parameter name from the Go method signature (e.g., "input"
+	// from "func (a Action) Call(input ContactInput)"). Empty for output types.
 	ParamName string
 
-	// PackagePath is the fully qualified Go package path where the type is
-	// defined.
+	// PackagePath is the fully qualified Go package path where the type is defined.
 	PackagePath string
 
-	// PackageName is the declared Go package name (e.g., "arguments" for a
-	// package in directory "args"). May differ from the last path segment.
+	// PackageName is the declared Go package name (e.g., "arguments" for a package in
+	// directory "args"). May differ from the last path segment.
 	PackageName string
 
 	// TSType is the equivalent TypeScript type.
@@ -203,8 +190,7 @@ type ActionTypeInfo struct {
 	// Description is the godoc comment for the type.
 	Description string
 
-	// Fields contains the struct fields (for struct types).
-	// Empty for primitive types.
+	// Fields contains the struct fields (for struct types). Empty for primitive types.
 	Fields []ActionFieldInfo
 
 	// IsPointer indicates if this is a pointer type.
@@ -213,8 +199,7 @@ type ActionTypeInfo struct {
 
 // ActionFieldInfo describes a field within a struct type.
 type ActionFieldInfo struct {
-	// NestedType contains the type info for nested struct fields.
-	// nil for primitive types.
+	// NestedType contains the type info for nested struct fields. nil for primitive types.
 	NestedType *ActionTypeInfo
 
 	// Name is the Go field name.
@@ -271,8 +256,7 @@ type ResourceLimitConfig struct {
 	// MaxMemoryUsage is the maximum memory usage in bytes.
 	MaxMemoryUsage int64
 
-	// SSE-specific limits
-	// MaxSSEDuration is the maximum SSE connection duration.
+	// SSE-specific limits MaxSSEDuration is the maximum SSE connection duration.
 	MaxSSEDuration time.Duration
 
 	// SSEHeartbeatInterval is the interval between SSE heartbeat messages.
@@ -291,9 +275,9 @@ type CacheConfig struct {
 	HasCustomKeyFunc bool
 }
 
-// ActionCandidate holds preliminary action information before type resolution.
-// This is populated during the AST scanning phase (Stage 1.6) and later
-// enriched with full type information during Stage 3.5.
+// ActionCandidate holds the initial action information gathered before type resolution.
+// It is populated during the AST scanning phase (Stage 1.6) and later enriched with full
+// type information during Stage 3.5.
 type ActionCandidate struct {
 	// FilePath is the absolute path to the action file.
 	FilePath string
@@ -319,7 +303,7 @@ type ActionCandidate struct {
 	// DocComment is the godoc comment for the struct.
 	DocComment string
 
-	// StructLine is the 1-based line number of the struct declaration in the
-	// source file. Captured from the Go AST during discovery.
+	// StructLine is the 1-based line number of the struct declaration in the source file.
+	// Captured from the Go AST during discovery.
 	StructLine int
 }

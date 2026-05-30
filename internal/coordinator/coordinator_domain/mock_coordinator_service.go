@@ -25,25 +25,22 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// MockCoordinatorService is a test double for CoordinatorService where nil
-// function fields return zero values and call counts are tracked atomically.
+// MockCoordinatorService is a test double for CoordinatorService where nil function
+// fields return zero values and call counts are tracked atomically.
 type MockCoordinatorService struct {
 	// SubscribeFunc is the function called by Subscribe.
 	SubscribeFunc func(name string) (<-chan BuildNotification, UnsubscribeFunc)
 
-	// RequestRebuildFunc is the function called by
-	// RequestRebuild.
+	// RequestRebuildFunc is the function called by RequestRebuild.
 	RequestRebuildFunc func(ctx context.Context, entryPoints []annotator_dto.EntryPoint, opts ...BuildOption)
 
 	// GetResultFunc is the function called by GetResult.
 	GetResultFunc func(ctx context.Context, entryPoints []annotator_dto.EntryPoint, opts ...BuildOption) (*annotator_dto.ProjectAnnotationResult, error)
 
-	// GetOrBuildProjectFunc is the function called by
-	// GetOrBuildProject.
+	// GetOrBuildProjectFunc is the function called by GetOrBuildProject.
 	GetOrBuildProjectFunc func(ctx context.Context, entryPoints []annotator_dto.EntryPoint, opts ...BuildOption) (*annotator_dto.ProjectAnnotationResult, error)
 
-	// GetLastSuccessfulBuildFunc is the function called by
-	// GetLastSuccessfulBuild.
+	// GetLastSuccessfulBuildFunc is the function called by GetLastSuccessfulBuild.
 	GetLastSuccessfulBuildFunc func() (*annotator_dto.ProjectAnnotationResult, bool)
 
 	// InvalidateFunc is the function called by Invalidate.
@@ -52,45 +49,41 @@ type MockCoordinatorService struct {
 	// ShutdownFunc is the function called by Shutdown.
 	ShutdownFunc func(ctx context.Context)
 
-	// SubscribeCallCount tracks how many times Subscribe
-	// was called.
-	SubscribeCallCount int64
+	// SubscribeCallCount tracks how many times Subscribe was called.
+	SubscribeCallCount atomic.Int64
 
-	// RequestRebuildCallCount tracks how many times
-	// RequestRebuild was called.
-	RequestRebuildCallCount int64
+	// RequestRebuildCallCount tracks how many times RequestRebuild was called.
+	RequestRebuildCallCount atomic.Int64
 
-	// GetResultCallCount tracks how many times GetResult
-	// was called.
-	GetResultCallCount int64
+	// GetResultCallCount tracks how many times GetResult was called.
+	GetResultCallCount atomic.Int64
 
-	// GetOrBuildProjectCallCount tracks how many times
-	// GetOrBuildProject was called.
-	GetOrBuildProjectCallCount int64
+	// GetOrBuildProjectCallCount tracks how many times GetOrBuildProject was called.
+	GetOrBuildProjectCallCount atomic.Int64
 
-	// GetLastSuccessfulBuildCallCount tracks how many times
-	// GetLastSuccessfulBuild was called.
-	GetLastSuccessfulBuildCallCount int64
+	// GetLastSuccessfulBuildCallCount tracks how many times GetLastSuccessfulBuild was
+	// called.
+	GetLastSuccessfulBuildCallCount atomic.Int64
 
-	// InvalidateCallCount tracks how many times Invalidate
-	// was called.
-	InvalidateCallCount int64
+	// InvalidateCallCount tracks how many times Invalidate was called.
+	InvalidateCallCount atomic.Int64
 
-	// ShutdownCallCount tracks how many times Shutdown
-	// was called.
-	ShutdownCallCount int64
+	// ShutdownCallCount tracks how many times Shutdown was called.
+	ShutdownCallCount atomic.Int64
 }
 
-var _ CoordinatorService = (*MockCoordinatorService)(nil)
+var (
+	_ CoordinatorService = (*MockCoordinatorService)(nil)
+)
 
 // Subscribe registers a listener for build notifications.
 //
 // Takes name (string) which identifies the subscriber.
 //
-// Returns (<-chan BuildNotification, UnsubscribeFunc), or a closed channel and
-// no-op func if SubscribeFunc is nil.
+// Returns (<-chan BuildNotification, UnsubscribeFunc), or a closed channel and no-op func
+// if SubscribeFunc is nil.
 func (m *MockCoordinatorService) Subscribe(name string) (<-chan BuildNotification, UnsubscribeFunc) {
-	atomic.AddInt64(&m.SubscribeCallCount, 1)
+	m.SubscribeCallCount.Add(1)
 	if m.SubscribeFunc != nil {
 		return m.SubscribeFunc(name)
 	}
@@ -102,14 +95,13 @@ func (m *MockCoordinatorService) Subscribe(name string) (<-chan BuildNotificatio
 // RequestRebuild schedules a build after a debounce period.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which lists
-// the components to build.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 func (m *MockCoordinatorService) RequestRebuild(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
 	opts ...BuildOption,
 ) {
-	atomic.AddInt64(&m.RequestRebuildCallCount, 1)
+	m.RequestRebuildCallCount.Add(1)
 	if m.RequestRebuildFunc != nil {
 		m.RequestRebuildFunc(ctx, entryPoints, opts...)
 	}
@@ -117,19 +109,16 @@ func (m *MockCoordinatorService) RequestRebuild(
 
 // GetResult returns the last successful build result, blocking on first run.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signals.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which lists
-// the components to build.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 //
-// Returns (*ProjectAnnotationResult, error), or (nil, nil) if
-// GetResultFunc is nil.
+// Returns (*ProjectAnnotationResult, error), or (nil, nil) if GetResultFunc is nil.
 func (m *MockCoordinatorService) GetResult(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
 	opts ...BuildOption,
 ) (*annotator_dto.ProjectAnnotationResult, error) {
-	atomic.AddInt64(&m.GetResultCallCount, 1)
+	m.GetResultCallCount.Add(1)
 	if m.GetResultFunc != nil {
 		return m.GetResultFunc(ctx, entryPoints, opts...)
 	}
@@ -138,19 +127,17 @@ func (m *MockCoordinatorService) GetResult(
 
 // GetOrBuildProject retrieves a cached build result or triggers a new build.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signals.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which lists
-// the components to build.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 //
-// Returns (*ProjectAnnotationResult, error), or (nil, nil) if
-// GetOrBuildProjectFunc is nil.
+// Returns (*ProjectAnnotationResult, error), or (nil, nil) if GetOrBuildProjectFunc is
+// nil.
 func (m *MockCoordinatorService) GetOrBuildProject(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
 	opts ...BuildOption,
 ) (*annotator_dto.ProjectAnnotationResult, error) {
-	atomic.AddInt64(&m.GetOrBuildProjectCallCount, 1)
+	m.GetOrBuildProjectCallCount.Add(1)
 	if m.GetOrBuildProjectFunc != nil {
 		return m.GetOrBuildProjectFunc(ctx, entryPoints, opts...)
 	}
@@ -159,10 +146,10 @@ func (m *MockCoordinatorService) GetOrBuildProject(
 
 // GetLastSuccessfulBuild returns the most recent successful build from memory.
 //
-// Returns (*ProjectAnnotationResult, bool), or (nil, false) if
-// GetLastSuccessfulBuildFunc is nil.
+// Returns (*ProjectAnnotationResult, bool), or (nil, false) if GetLastSuccessfulBuildFunc
+// is nil.
 func (m *MockCoordinatorService) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnnotationResult, bool) {
-	atomic.AddInt64(&m.GetLastSuccessfulBuildCallCount, 1)
+	m.GetLastSuccessfulBuildCallCount.Add(1)
 	if m.GetLastSuccessfulBuildFunc != nil {
 		return m.GetLastSuccessfulBuildFunc()
 	}
@@ -173,7 +160,7 @@ func (m *MockCoordinatorService) GetLastSuccessfulBuild() (*annotator_dto.Projec
 //
 // Returns error, or nil if InvalidateFunc is nil.
 func (m *MockCoordinatorService) Invalidate(ctx context.Context) error {
-	atomic.AddInt64(&m.InvalidateCallCount, 1)
+	m.InvalidateCallCount.Add(1)
 	if m.InvalidateFunc != nil {
 		return m.InvalidateFunc(ctx)
 	}
@@ -182,10 +169,9 @@ func (m *MockCoordinatorService) Invalidate(ctx context.Context) error {
 
 // Shutdown performs a graceful shutdown of the coordinator service.
 //
-// Takes ctx (context.Context) which carries logging context for shutdown
-// operations.
+// Takes ctx (context.Context) which carries logging context for shutdown operations.
 func (m *MockCoordinatorService) Shutdown(ctx context.Context) {
-	atomic.AddInt64(&m.ShutdownCallCount, 1)
+	m.ShutdownCallCount.Add(1)
 	if m.ShutdownFunc != nil {
 		m.ShutdownFunc(ctx)
 	}

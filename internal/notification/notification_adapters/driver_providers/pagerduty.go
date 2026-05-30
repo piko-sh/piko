@@ -27,18 +27,19 @@ import (
 	"os"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"github.com/cespare/xxhash/v2"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
 	"piko.sh/piko/internal/safeerror"
 )
 
-var _ notification_domain.NotificationProviderPort = (*PagerDutyProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*PagerDutyProvider)(nil)
+)
 
 const (
-	// pagerDutyEventsURL is the PagerDuty Events API v2 endpoint for sending
-	// alerts.
+	// pagerDutyEventsURL is the PagerDuty Events API v2 endpoint for sending alerts.
 	pagerDutyEventsURL = "https://events.pagerduty.com/v2/enqueue"
 
 	// pagerDutySummaryMaxLength is the maximum length of a PagerDuty summary.
@@ -50,8 +51,7 @@ const (
 	// httpStatusSuccessMin is the minimum HTTP status code for success responses.
 	httpStatusSuccessMin = 200
 
-	// httpStatusSuccessMax is the upper bound (exclusive) for successful HTTP
-	// status codes.
+	// httpStatusSuccessMax is the upper bound (exclusive) for successful HTTP status codes.
 	httpStatusSuccessMax = 300
 )
 
@@ -82,14 +82,12 @@ type pagerDutyPayload struct {
 	Class string `json:"class,omitempty"`
 }
 
-// pagerDutyEvent represents a complete PagerDuty event including payload and
-// routing.
+// pagerDutyEvent represents a complete PagerDuty event including payload and routing.
 type pagerDutyEvent struct {
 	// Payload contains the event details sent to PagerDuty.
 	Payload pagerDutyPayload `json:"payload"`
 
-	// RoutingKey is the integration key for routing the event to the correct
-	// service.
+	// RoutingKey is the integration key for routing the event to the correct service.
 	RoutingKey string `json:"routing_key"`
 
 	// EventAction specifies the type of event (trigger, acknowledge, or resolve).
@@ -99,8 +97,8 @@ type pagerDutyEvent struct {
 	DedupKey string `json:"dedup_key"`
 }
 
-// PagerDutyProvider sends alerts to PagerDuty using the Events API v2.
-// It implements NotificationProviderPort.
+// PagerDutyProvider sends alerts to PagerDuty using the Events API v2. It implements
+// NotificationProviderPort.
 type PagerDutyProvider struct {
 	// httpClient sends HTTP requests to the PagerDuty API.
 	httpClient *http.Client
@@ -111,11 +109,11 @@ type PagerDutyProvider struct {
 
 // Send delivers a notification to PagerDuty.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// details to send.
+// Takes params (*notification_dto.SendParams) which contains the notification details to
+// send.
 //
-// Returns error when payload formatting fails, request creation fails, the HTTP
-// request fails, or PagerDuty returns a non-success status code.
+// Returns error when payload formatting fails, request creation fails, the HTTP request
+// fails, or PagerDuty returns a non-success status code.
 func (p *PagerDutyProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := p.formatPagerDutyPayload(params)
 	if err != nil {
@@ -147,8 +145,8 @@ func (p *PagerDutyProvider) Send(ctx context.Context, params *notification_dto.S
 
 // SendBulk sends multiple notifications.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notification parameters to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+// parameters to send.
 //
 // Returns error when any notification fails to send.
 func (p *PagerDutyProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -162,16 +160,15 @@ func (p *PagerDutyProvider) SendBulk(ctx context.Context, notifications []*notif
 
 // SupportsBulkSending reports whether PagerDuty supports bulk sending.
 //
-// Returns bool which is always false as PagerDuty does not support bulk
-// sending.
+// Returns bool which is always false as PagerDuty does not support bulk sending.
 func (*PagerDutyProvider) SupportsBulkSending() bool {
 	return false
 }
 
 // GetCapabilities returns the capabilities of the PagerDuty provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features and limits of this provider.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// and limits of this provider.
 func (*PagerDutyProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: false,
@@ -190,11 +187,10 @@ func (*PagerDutyProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// formatPagerDutyPayload converts notification params to PagerDuty Events API
-// format.
+// formatPagerDutyPayload converts notification params to PagerDuty Events API format.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to format.
 //
 // Returns []byte which is the JSON-encoded PagerDuty event payload.
 // Returns error when JSON marshalling fails.
@@ -218,8 +214,8 @@ func (p *PagerDutyProvider) formatPagerDutyPayload(params *notification_dto.Send
 // NewPagerDutyProvider creates a new PagerDuty notification provider.
 //
 // Takes routingKey (string) which is the PagerDuty integration key.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.
@@ -238,9 +234,8 @@ func NewPagerDutyProvider(routingKey string, client *http.Client) notification_d
 // Takes title (string) which is the preferred summary text if not empty.
 // Takes message (string) which is used as the summary when title is empty.
 //
-// Returns string which is the summary, truncated to at most
-// pagerDutySummaryMaxLength runes. Truncation is rune-aware so multi-byte
-// UTF-8 sequences are never split.
+// Returns string which is the summary, truncated to at most pagerDutySummaryMaxLength
+// runes. Truncation is rune-aware so multi-byte UTF-8 sequences are never split.
 func buildSummary(title, message string) string {
 	summary := message
 	if title != "" {
@@ -251,11 +246,11 @@ func buildSummary(title, message string) string {
 
 // getSource returns the source hostname or a fallback.
 //
-// Takes contextSource (string) which provides a fallback value if the hostname
-// cannot be determined.
+// Takes contextSource (string) which provides a fallback value if the hostname cannot be
+// determined.
 //
-// Returns string which is the hostname, the context source, or the default
-// value "piko-application".
+// Returns string which is the hostname, the context source, or the default value
+// "piko-application".
 func getSource(contextSource string) string {
 	source, _ := os.Hostname()
 	return cmp.Or(source, contextSource, "piko-application")
@@ -263,8 +258,8 @@ func getSource(contextSource string) string {
 
 // buildCustomDetails builds the custom details map for PagerDuty.
 //
-// Takes params (*notification_dto.SendParams) which provides the notification
-// content and context to include in the details.
+// Takes params (*notification_dto.SendParams) which provides the notification content and
+// context to include in the details.
 //
 // Returns map[string]any which contains the formatted details for the alert.
 func buildCustomDetails(params *notification_dto.SendParams) map[string]any {
@@ -291,8 +286,8 @@ func buildCustomDetails(params *notification_dto.SendParams) map[string]any {
 // Takes title (string) which provides the primary text for the hash.
 // Takes source (string) which provides optional additional text for the hash.
 //
-// Returns string which is the hexadecimal hash, truncated to the maximum
-// PagerDuty dedup key length.
+// Returns string which is the hexadecimal hash, truncated to the maximum PagerDuty dedup
+// key length.
 func buildDedupKey(title, source string) string {
 	hasher := xxhash.New()
 	_, _ = hasher.WriteString(title)
@@ -308,11 +303,10 @@ func buildDedupKey(title, source string) string {
 
 // priorityToPagerDutySeverity maps notification priority to PagerDuty severity.
 //
-// Takes priority (NotificationPriority) which is the notification priority to
-// convert.
+// Takes priority (NotificationPriority) which is the notification priority to convert.
 //
-// Returns string which is the PagerDuty severity level (critical, error,
-// warning, or info).
+// Returns string which is the PagerDuty severity level (critical, error, warning, or
+// info).
 func priorityToPagerDutySeverity(priority notification_dto.NotificationPriority) string {
 	switch priority {
 	case notification_dto.PriorityCritical:

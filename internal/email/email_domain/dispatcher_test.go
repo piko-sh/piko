@@ -34,7 +34,7 @@ import (
 type controlledBulkFakeProvider struct {
 	controlledFakeProvider
 	bulkSendCalls       [][]*email_dto.SendParams
-	individualSendCount int64
+	individualSendCount atomic.Int64
 	mu                  sync.Mutex
 	supportsBulk        bool
 	failBulk            bool
@@ -48,7 +48,7 @@ func newControlledBulkFakeProvider(supportsBulk bool) *controlledBulkFakeProvide
 }
 
 func (p *controlledBulkFakeProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
-	atomic.AddInt64(&p.individualSendCount, 1)
+	p.individualSendCount.Add(1)
 	return p.controlledFakeProvider.Send(ctx, params)
 }
 
@@ -86,7 +86,7 @@ func (p *controlledBulkFakeProvider) getBulkSendCallCount() int {
 }
 
 func (p *controlledBulkFakeProvider) getIndividualSendCount() int64 {
-	return atomic.LoadInt64(&p.individualSendCount)
+	return p.individualSendCount.Load()
 }
 
 func setupDispatcherTestWithBulk(t *testing.T, config *email_dto.DispatcherConfig, provider *controlledBulkFakeProvider) (d *EmailDispatcher, dlq *controlledFakeDLQ, ctx context.Context, cleanup func()) {

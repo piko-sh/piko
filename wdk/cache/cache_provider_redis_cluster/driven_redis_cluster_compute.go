@@ -103,8 +103,8 @@ func (a *RedisClusterAdapter[K, V]) executeComputeActionPresent(ctx context.Cont
 	return nil
 }
 
-// handleComputeResult is the shared implementation for processing the result
-// of a compute transaction attempt.
+// handleComputeResult is the shared implementation for processing the result of a compute
+// transaction attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -141,8 +141,8 @@ func (a *RedisClusterAdapter[K, V]) handleComputeResult(ctx context.Context, key
 	return zero, false, false, fmt.Errorf("%s transaction error: %w", opName, err)
 }
 
-// handleComputeRetryResult processes the result of a Compute transaction
-// attempt. Delegates to handleComputeResult with reordered return values.
+// handleComputeRetryResult processes the result of a Compute transaction attempt.
+// Delegates to handleComputeResult with reordered return values.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -159,11 +159,11 @@ func (a *RedisClusterAdapter[K, V]) handleComputeRetryResult(ctx context.Context
 	return s, v, f, e
 }
 
-// Compute atomically updates a cache entry using a compute function with
-// optimistic locking. Computes and writes the new value in one round trip.
+// Compute atomically updates a cache entry using a compute function with optimistic
+// locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -219,8 +219,7 @@ func (a *RedisClusterAdapter[K, V]) Compute(ctx context.Context, key K, computeF
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 // Takes didCompute (*bool) which is set to true if the value was computed.
 //
-// Returns error when the existence check fails or the transaction cannot
-// complete.
+// Returns error when the existence check fails or the transaction cannot complete.
 func (a *RedisClusterAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Context, tx *redis.Tx, keyString string, computeFunction func() V, didCompute *bool) error {
 	exists, err := tx.Exists(ctx, keyString).Result()
 	if err != nil {
@@ -243,8 +242,8 @@ func (a *RedisClusterAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Con
 	return txErr
 }
 
-// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent
-// transaction attempt.
+// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
@@ -253,10 +252,8 @@ func (a *RedisClusterAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Con
 // Takes didCompute (bool) which tracks whether the compute function was called.
 //
 // Returns value (V) which is the cached value if found.
-// Returns computed (bool) which indicates if the value was computed on this
-// attempt.
-// Returns shouldRetry (bool) which indicates if the transaction should be
-// retried.
+// Returns computed (bool) which indicates if the value was computed on this attempt.
+// Returns shouldRetry (bool) which indicates if the transaction should be retried.
 // Returns retErr (error) which is any non-retryable error encountered.
 func (a *RedisClusterAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, key K, keyString string, err error, didCompute bool) (value V, computed bool, shouldRetry bool, retErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -281,11 +278,10 @@ func (a *RedisClusterAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Cont
 	return zero, false, false, fmt.Errorf("ComputeIfAbsent transaction error: %w", err)
 }
 
-// ComputeIfAbsent atomically computes and stores a value only if the key is
-// not present.
+// ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key to look up or compute.
@@ -329,8 +325,7 @@ func (a *RedisClusterAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, 
 //
 // Takes tx (*redis.Tx) which is the transaction for the watch operation.
 // Takes keyString (string) which is the cache key to compute.
-// Takes computeFunction (func(...)) which computes the new value from the existing
-// one.
+// Takes computeFunction (func(...)) which computes the new value from the existing one.
 //
 // Returns error when the fetch or transaction fails.
 func (a *RedisClusterAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Context, tx *redis.Tx, keyString string, computeFunction func(oldValue V) (V, cache.ComputeAction)) error {
@@ -349,39 +344,35 @@ func (a *RedisClusterAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Co
 	return txErr
 }
 
-// handleComputeIfPresentResult processes the result of a ComputeIfPresent
-// transaction attempt.
+// handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
-// Takes keyString (string) which is the string representation of the key for
-// logging.
+// Takes keyString (string) which is the string representation of the key for logging.
 // Takes err (error) which is the error from the transaction attempt, if any.
 // Takes attempt (int) which is the current retry attempt number.
 //
 // Returns value (V) which is the computed value if the operation succeeded.
-// Returns found (bool) which indicates whether the key was present and
-// computed.
-// Returns shouldRetry (bool) which indicates whether the caller should retry
-// the transaction.
+// Returns found (bool) which indicates whether the key was present and computed.
+// Returns shouldRetry (bool) which indicates whether the caller should retry the
+// transaction.
 // Returns retErr (error) which is any non-retryable error encountered.
 func (a *RedisClusterAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, key K, keyString string, err error, attempt int) (value V, found bool, shouldRetry bool, retErr error) {
 	return a.handleComputeResult(ctx, key, keyString, "ComputeIfPresent", err, attempt)
 }
 
-// ComputeIfPresent atomically updates a value only if the key exists in the
-// cache.
+// ComputeIfPresent atomically updates a value only if the key exists in the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to update.
-// Takes computeFunction (func(...)) which computes the new value
-// from the old value.
+// Takes computeFunction (func(...)) which computes the new value from the old value.
 //
-// Returns V which is the computed value, or the zero value if the key was not
-// found or the operation failed.
+// Returns V which is the computed value, or the zero value if the key was not found or
+// the operation failed.
 // Returns bool which indicates whether the key existed and was updated.
 // Returns error when the operation fails.
 func (a *RedisClusterAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, computeFunction func(oldValue V) (newValue V, action cache.ComputeAction)) (V, bool, error) {
@@ -414,8 +405,8 @@ func (a *RedisClusterAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K,
 	return *new(V), false, fmt.Errorf("ComputeIfPresent max retries exceeded for key %q", keyString)
 }
 
-// executeComputeActionWithTTL executes the compute action within a Redis
-// pipeline with optional custom TTL.
+// executeComputeActionWithTTL executes the compute action within a Redis pipeline with
+// optional custom TTL.
 //
 // Takes pipe (redis.Pipeliner) which is the pipeline to queue commands on.
 // Takes keyString (string) which is the cache key to operate on.
@@ -456,8 +447,8 @@ func (a *RedisClusterAdapter[K, V]) executeComputeActionWithTTL(
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.

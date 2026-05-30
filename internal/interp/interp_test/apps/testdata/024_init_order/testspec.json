@@ -1,0 +1,4 @@
+{
+  "description": "Multiple init() functions across files run in source-file order",
+  "expected": "init_a init_b init_c entry"
+}

@@ -34,7 +34,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testSpec struct {
 	Description             string               `json:"description"`

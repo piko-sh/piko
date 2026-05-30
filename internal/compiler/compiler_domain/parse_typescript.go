@@ -44,12 +44,11 @@ func NewTypeScriptParser() *TypeScriptParser {
 	}
 }
 
-// ParseTypeScript parses TypeScript code using esbuild's parser. This properly
-// handles TypeScript syntax including type assertions (as Type).
+// ParseTypeScript parses TypeScript code using esbuild's parser. This properly handles
+// TypeScript syntax including type assertions (as Type).
 //
-// Deferred log errors (e.g. "super" used outside a class method) are ignored.
-// Use ParseTypeScriptStrict for user-authored scripts where such errors should
-// surface.
+// Deferred log errors (e.g. "super" used outside a class method) are ignored. Use
+// ParseTypeScriptStrict for user-authored scripts where such errors should surface.
 //
 // Takes source (string) which contains the TypeScript source code to parse.
 // Takes filename (string) which identifies the file for error messages.
@@ -60,10 +59,10 @@ func (*TypeScriptParser) ParseTypeScript(source string, filename string) (*js_as
 	return parseTypeScript(source, filename, false)
 }
 
-// ParseTypeScriptStrict parses TypeScript code and treats deferred parser
-// errors as failures. Use this for user-authored scripts where errors like
-// duplicate variable declarations must be caught at compile time rather than
-// silently producing broken output.
+// ParseTypeScriptStrict parses TypeScript code and treats deferred parser errors as
+// failures. Use this for user-authored scripts where errors like duplicate variable
+// declarations must be caught at compile time rather than silently producing broken
+// output.
 //
 // Takes source (string) which contains the TypeScript source code to parse.
 // Takes filename (string) which identifies the file for error messages.
@@ -87,18 +86,17 @@ func parserOptions() js_parser.Options {
 
 // parseTypeScript is the shared implementation for lenient and strict parsing.
 //
-// When strict is true, the deferred log is checked for errors even when the
-// parser returned ok=true. This catches issues like duplicate declarations
-// where esbuild logs an error but does not panic.
+// When strict is true, the deferred log is checked for errors even when the parser
+// returned ok=true. This catches issues like duplicate declarations where esbuild logs an
+// error but does not panic.
 //
 // Takes source (string) which contains the TypeScript source code to parse.
 // Takes filename (string) which identifies the file for error messages.
-// Takes strict (bool) which enables strict mode where deferred parser errors
-// cause failure.
+// Takes strict (bool) which enables strict mode where deferred parser errors cause
+// failure.
 //
 // Returns *js_ast.AST which is the parsed abstract syntax tree.
-// Returns error when parsing fails or, in strict mode, when the parser logged
-// any errors.
+// Returns error when parsing fails or, in strict mode, when the parser logged any errors.
 func parseTypeScript(source string, filename string, strict bool) (*js_ast.AST, error) {
 	parseLog := logger.NewDeferLog(logger.DeferLogAll, nil)
 
@@ -138,15 +136,14 @@ func parseTypeScript(source string, filename string, strict bool) (*js_ast.AST, 
 	return &result, nil
 }
 
-// formatParserError formats an esbuild parser message into a human-readable
-// string that includes location information when available. When the source
-// line text is present, a diagnostic snippet with a caret is appended.
+// formatParserError formats an esbuild parser message into a human-readable string that
+// includes location information when available. When the source line text is present, a
+// diagnostic snippet with a caret is appended.
 //
-// Takes message (*logger.Msg) which holds the parser error
-// message and optional source location.
+// Takes message (*logger.Msg) which holds the parser error message and optional source
+// location.
 //
-// Returns string which is the formatted error with location and snippet when
-// available.
+// Returns string which is the formatted error with location and snippet when available.
 func formatParserError(message *logger.Msg) string {
 	location := message.Data.Location
 	if location == nil || location.Line == 0 {

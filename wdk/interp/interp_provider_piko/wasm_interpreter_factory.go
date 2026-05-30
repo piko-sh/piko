@@ -29,60 +29,57 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 
-// WASMInterpreterFactory creates Piko bytecode interpreter instances
-// for WASM. It implements wasm_domain.InterpreterFactoryPort.
+// WASMInterpreterFactory creates Piko bytecode interpreter instances for WASM. It
+// implements wasm_domain.InterpreterFactoryPort.
 type WASMInterpreterFactory struct{}
 
 var _ wasm_domain.InterpreterFactoryPort = (*WASMInterpreterFactory)(nil)
 
 // NewWASMInterpreterFactory creates a new WASM interpreter factory.
 //
-// Returns *WASMInterpreterFactory which creates Piko bytecode
-// interpreter services.
+// Returns *WASMInterpreterFactory which creates Piko bytecode interpreter services.
 func NewWASMInterpreterFactory() *WASMInterpreterFactory {
 	return &WASMInterpreterFactory{}
 }
 
-// NewInterpreter creates a new Piko bytecode interpreter service
-// wrapped in a wasmServiceWrapper that supports batch compilation.
+// NewInterpreter creates a new Piko bytecode interpreter service wrapped in a
+// wasmServiceWrapper that supports batch compilation.
 //
-// Returns any which is a *wasmServiceWrapper wrapping a
-// *interp_domain.Service configured for WASM use.
+// Returns any which is a *wasmServiceWrapper wrapping a *interp_domain.Service configured
+// for WASM use.
 func (*WASMInterpreterFactory) NewInterpreter() any {
 	return &wasmServiceWrapper{
 		Service: interp_domain.NewService(),
 	}
 }
 
-// wasmServiceWrapper extends *interp_domain.Service with a
-// CompileAndExecuteWASM method that accepts the source layout used
-// by the WASM interpreter adapter.
+// wasmServiceWrapper extends *interp_domain.Service with a CompileAndExecuteWASM method
+// that accepts the source layout used by the WASM interpreter adapter.
 type wasmServiceWrapper struct {
 	*interp_domain.Service
 }
 
-// GetService returns the underlying interpreter service. This is used
-// by WASMSymbolAdapter.Use to load symbols into the service when the
-// type assertion to *interp_domain.Service fails due to the wrapper.
+// GetService returns the underlying interpreter service. This is used by
+// WASMSymbolAdapter.Use to load symbols into the service when the type assertion to
+// *interp_domain.Service fails due to the wrapper.
 //
 // Returns *interp_domain.Service which is the wrapped service.
 func (w *wasmServiceWrapper) GetService() *interp_domain.Service {
 	return w.Service
 }
 
-// CompileAndExecuteWASM compiles all packages as a single program and
-// executes their init functions. This is the primary compilation path
-// for the Piko bytecode interpreter in WASM.
+// CompileAndExecuteWASM compiles all packages as a single program and executes their init
+// functions. This is the primary compilation path for the Piko bytecode interpreter in
+// WASM.
 //
-// The init functions typically call templater_domain.RegisterASTFunc
-// to register template builders in the global FunctionRegistry.
+// The init functions typically call templater_domain.RegisterASTFunc to register template
+// builders in the global FunctionRegistry.
 //
 // Takes ctx (context.Context) for cancellation and deadlines.
 // Takes mainCode (string) which is the main generated Go source code.
-// Takes packagePath (string) which is the import path for the main
-// package.
-// Takes dependencies (map[string]string) which maps dependency import
-// paths to their generated source code.
+// Takes packagePath (string) which is the import path for the main package.
+// Takes dependencies (map[string]string) which maps dependency import paths to their
+// generated source code.
 //
 // Returns error when compilation or init execution fails.
 func (w *wasmServiceWrapper) CompileAndExecuteWASM(ctx context.Context, mainCode, packagePath string, dependencies map[string]string) error {
@@ -111,16 +108,15 @@ func (w *wasmServiceWrapper) CompileAndExecuteWASM(ctx context.Context, mainCode
 
 // extractModulePath extracts the module path from a full package path.
 //
-// For paths like "playground/internal/pages/home", it returns
-// "playground". For paths without a slash, it returns the path
-// as-is.
+// For paths like "playground/internal/pages/home", it returns "playground". For paths
+// without a slash, it returns the path as-is.
 //
 // Takes packagePath (string) which is the full import path.
 //
 // Returns string which is the module root portion of the path.
 func extractModulePath(packagePath string) string {
-	if idx := strings.Index(packagePath, "/"); idx >= 0 {
-		return packagePath[:idx]
+	if module, _, ok := strings.Cut(packagePath, "/"); ok {
+		return module
 	}
 	return packagePath
 }

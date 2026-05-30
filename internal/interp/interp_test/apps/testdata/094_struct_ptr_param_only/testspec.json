@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package struct-pointer arg only: lib.F takes *lib.Holder, returns Name. No string/address-take. Tests cross-package struct-pointer transfer.",
+  "modulePath": "testpkg",
+  "expected": "world"
+}

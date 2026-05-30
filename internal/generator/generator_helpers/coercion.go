@@ -18,8 +18,8 @@
 
 package generator_helpers
 
-// Provides runtime coercion helpers for converting any/interface{} values to specific types.
-// These are used when the source type is not known at compile time.
+// Provides runtime coercion helpers for converting any/interface{} values to specific
+// types. These are used when the source type is not known at compile time.
 
 import (
 	"fmt"
@@ -120,8 +120,7 @@ func CoerceToInt16(value any) int16 {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float64 which is the converted value, or 0.0 for invalid
-// conversions.
+// Returns float64 which is the converted value, or 0.0 for invalid conversions.
 func CoerceToFloat64(value any) float64 {
 	if value == nil {
 		return 0.0
@@ -150,14 +149,13 @@ func CoerceToFloat64(value any) float64 {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float32 which is the converted value, or 0.0 for invalid
-// conversions.
+// Returns float32 which is the converted value, or 0.0 for invalid conversions.
 func CoerceToFloat32(value any) float32 {
 	return float32(CoerceToFloat64(value))
 }
 
-// CoerceToBool converts any value to a boolean.
-// Uses JavaScript-like truthiness semantics.
+// CoerceToBool converts any value to a boolean. Uses JavaScript-like truthiness
+// semantics.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -190,8 +188,7 @@ func CoerceToBool(value any) bool {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns maths.Decimal which is the converted value, or zero for invalid
-// conversions.
+// Returns maths.Decimal which is the converted value, or zero for invalid conversions.
 func CoerceToDecimal(value any) maths.Decimal {
 	if value == nil {
 		return maths.ZeroDecimal()
@@ -216,8 +213,7 @@ func CoerceToDecimal(value any) maths.Decimal {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns maths.BigInt which is the converted value, or zero for invalid
-// conversions.
+// Returns maths.BigInt which is the converted value, or zero for invalid conversions.
 func CoerceToBigInt(value any) maths.BigInt {
 	if value == nil {
 		return maths.ZeroBigInt()
@@ -292,8 +288,7 @@ func coerceNumericToString(value any) (string, bool) {
 	}
 }
 
-// coerceMathsToString handles maths.Decimal and maths.BigInt conversions to
-// string.
+// coerceMathsToString handles maths.Decimal and maths.BigInt conversions to string.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -332,8 +327,8 @@ func coerceMathsToString(value any) (string, bool) {
 // Takes value (any) which is the value to convert, expected to be time.Time or
 // *time.Time.
 //
-// Returns string which is the RFC3339 formatted time, or empty if conversion
-// fails or the pointer is nil.
+// Returns string which is the RFC3339 formatted time, or empty if conversion fails or the
+// pointer is nil.
 // Returns bool which is true if value was a time type, false otherwise.
 func coerceTimeToString(value any) (string, bool) {
 	switch v := value.(type) {
@@ -407,8 +402,7 @@ func coerceSpecialToInt64(value any) (int64, bool) {
 	}
 }
 
-// coerceMathsToInt64 handles maths.Decimal and maths.BigInt conversions to
-// int64.
+// coerceMathsToInt64 handles maths.Decimal and maths.BigInt conversions to int64.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -508,8 +502,8 @@ func coerceIntToFloat64(value any) (float64, bool) {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float64 which is the converted value (1.0 for true, 0.0 for false,
-// parsed value for strings, or 0.0 if conversion fails).
+// Returns float64 which is the converted value (1.0 for true, 0.0 for false, parsed value
+// for strings, or 0.0 if conversion fails).
 // Returns bool which indicates whether the conversion was handled.
 func coerceSpecialToFloat64(value any) (float64, bool) {
 	switch v := value.(type) {
@@ -526,13 +520,12 @@ func coerceSpecialToFloat64(value any) (float64, bool) {
 	}
 }
 
-// coerceMathsToFloat64 handles maths.Decimal and maths.BigInt conversions to
-// float64.
+// coerceMathsToFloat64 handles maths.Decimal and maths.BigInt conversions to float64.
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float64 which is the converted value, or 0.0 if conversion fails or
-// the value is nil.
+// Returns float64 which is the converted value, or 0.0 if conversion fails or the value
+// is nil.
 // Returns bool which indicates whether the conversion was successful.
 func coerceMathsToFloat64(value any) (float64, bool) {
 	switch v := value.(type) {
@@ -559,8 +552,7 @@ func coerceMathsToFloat64(value any) (float64, bool) {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns float64 which is the converted value, or 0.0 if the type is not
-// numeric.
+// Returns float64 which is the converted value, or 0.0 if the type is not numeric.
 func coerceToFloat64ViaReflect(value any) float64 {
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {
@@ -678,8 +670,8 @@ func coerceTimeToBool(value any) (result bool, handled bool) {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns bool which is true for non-zero numbers, non-empty strings, and
-// non-nil pointers, interfaces, maps, slices, and channels.
+// Returns bool which is true for non-zero numbers, non-empty strings, and non-nil
+// pointers, interfaces, maps, slices, and channels.
 func coerceToBoolViaReflect(value any) bool {
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {
@@ -795,8 +787,8 @@ func coerceOtherToDecimal(value any) (maths.Decimal, bool) {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns maths.Decimal which is the converted value, or zero if the type is
-// not a supported numeric kind.
+// Returns maths.Decimal which is the converted value, or zero if the type is not a
+// supported numeric kind.
 func coerceToDecimalViaReflect(value any) maths.Decimal {
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {
@@ -865,8 +857,8 @@ func coerceOtherToBigInt(value any) (maths.BigInt, bool) {
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns maths.BigInt which is the converted value, or zero if the type is
-// not a supported integer kind.
+// Returns maths.BigInt which is the converted value, or zero if the type is not a
+// supported integer kind.
 func coerceToBigIntViaReflect(value any) maths.BigInt {
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {

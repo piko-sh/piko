@@ -64,22 +64,20 @@ const (
 	// maxURLLength is the maximum URL length before truncation.
 	maxURLLength = 2000
 
-	// httpStatusErrorThreshold is the lowest HTTP status code
-	// treated as an error.
+	// httpStatusErrorThreshold is the lowest HTTP status code treated as an error.
 	httpStatusErrorThreshold = 400
 
-	// maxResponseDiscardSize is the upper bound when draining an
-	// HTTP response body to enable connection reuse (64 KiB).
+	// maxResponseDiscardSize is the upper bound when draining an HTTP response body to
+	// enable connection reuse (64 KiB).
 	maxResponseDiscardSize = 64 << 10
 
-	// maxPooledBufferCapacity is the largest buffer capacity kept in
-	// the pool; buffers that grew beyond this during a spike are
-	// discarded to avoid lasting memory bloat.
+	// maxPooledBufferCapacity is the largest buffer capacity kept in the pool; buffers that
+	// grew beyond this during a spike are discarded to avoid lasting memory bloat.
 	maxPooledBufferCapacity = 256 << 10
 )
 
-// jsonBufferPool provides reusable bytes.Buffer instances for JSON
-// encoding, avoiding allocation on every event send.
+// jsonBufferPool provides reusable bytes.Buffer instances for JSON encoding, avoiding
+// allocation on every event send.
 var jsonBufferPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
@@ -92,9 +90,8 @@ type eventPayload struct {
 	// Props holds custom event properties (max 30 key-value pairs).
 	Props map[string]string `json:"props,omitempty"`
 
-	// Interactive controls whether the event affects bounce rate.
-	// Plausible defaults to true; set to false for background
-	// actions that should not count as user engagement.
+	// Interactive controls whether the event affects bounce rate. Plausible defaults to
+	// true; set to false for background actions that should not count as user engagement.
 	Interactive *bool `json:"interactive,omitempty"`
 
 	// Domain is the site domain registered in Plausible.
@@ -119,26 +116,26 @@ type revenuePayload struct {
 	Amount string `json:"amount"`
 }
 
-// snapshot carries the JSON payload plus per-request headers that
-// cannot be included in the body.
+// snapshot carries the JSON payload plus per-request headers that cannot be included in
+// the body.
 type snapshot struct {
 	// payload is the JSON body to send.
 	payload eventPayload
 
-	// userAgent is set as the User-Agent header (required by
-	// Plausible for device detection).
+	// userAgent is set as the User-Agent header (required by Plausible for device
+	// detection).
 	userAgent string
 
-	// clientIP is set as the X-Forwarded-For header for geo and
-	// unique visitor identification.
+	// clientIP is set as the X-Forwarded-For header for geo and unique visitor
+	// identification.
 	clientIP string
 }
 
-// Option configures a Plausible [Collector].
+// Option configures a Plausible Collector.
 type Option func(*Collector)
 
-// WithEndpoint sets the Plausible API base URL for self-hosted
-// instances. Defaults to "https://plausible.io".
+// WithEndpoint sets the Plausible API base URL for self-hosted instances. Defaults to
+// "https://plausible.io".
 //
 // Takes url (string) which is the base URL (without /api/event).
 //
@@ -151,8 +148,8 @@ func WithEndpoint(url string) Option {
 	}
 }
 
-// WithBatchSize sets the number of events buffered before triggering
-// a flush. Defaults to 10.
+// WithBatchSize sets the number of events buffered before triggering a flush. Defaults to
+// 10.
 //
 // Takes size (int) which is the batch capacity.
 //
@@ -168,8 +165,7 @@ func WithBatchSize(size int) Option {
 	}
 }
 
-// WithFlushInterval sets the time between automatic batch flushes.
-// Defaults to 5 seconds.
+// WithFlushInterval sets the time between automatic batch flushes. Defaults to 5 seconds.
 //
 // Takes d (time.Duration) which is the flush interval.
 //
@@ -185,8 +181,7 @@ func WithFlushInterval(d time.Duration) Option {
 	}
 }
 
-// WithTimeout sets the HTTP client timeout for event POSTs.
-// Defaults to 10 seconds.
+// WithTimeout sets the HTTP client timeout for event POSTs. Defaults to 10 seconds.
 //
 // Takes d (time.Duration) which is the client timeout.
 //
@@ -202,12 +197,10 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
-// WithRetry enables retry with exponential backoff for failed event
-// sends. Only retryable errors (network failures, 5xx) are retried;
-// permanent errors fail immediately.
+// WithRetry enables retry with exponential backoff for failed event sends. Only retryable
+// errors (network failures, 5xx) are retried; permanent errors fail immediately.
 //
-// Takes config (analytics.RetryConfig) which configures the retry
-// behaviour.
+// Takes config (analytics.RetryConfig) which configures the retry behaviour.
 //
 // Returns Option which configures the retry.
 func WithRetry(config analytics.RetryConfig) Option {
@@ -216,12 +209,11 @@ func WithRetry(config analytics.RetryConfig) Option {
 	}
 }
 
-// WithCircuitBreaker enables a circuit breaker that stops sending
-// events after consecutive failures. The circuit reopens after the
-// timeout expires and a probe request succeeds.
+// WithCircuitBreaker enables a circuit breaker that stops sending events after
+// consecutive failures. The circuit reopens after the timeout expires and a probe request
+// succeeds.
 //
-// Takes config (analytics.CircuitBreakerConfig) which configures
-// the circuit breaker.
+// Takes config (analytics.CircuitBreakerConfig) which configures the circuit breaker.
 //
 // Returns Option which configures the circuit breaker.
 func WithCircuitBreaker(config analytics.CircuitBreakerConfig) Option {
@@ -230,8 +222,7 @@ func WithCircuitBreaker(config analytics.CircuitBreakerConfig) Option {
 	}
 }
 
-// withClock sets the clock used by the batcher for timer-based
-// flushes.
+// withClock sets the clock used by the batcher for timer-based flushes.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -242,12 +233,11 @@ func withClock(c clock.Clock) Option {
 	}
 }
 
-// Collector sends analytics events to the Plausible Analytics Events
-// API.
+// Collector sends analytics events to the Plausible Analytics Events API.
 //
-// Events are buffered internally and flushed when the batch reaches
-// batchSize or the flushInterval expires. Each event is sent as a
-// separate HTTP POST (Plausible has no batch endpoint).
+// Events are buffered internally and flushed when the batch reaches batchSize or the
+// flushInterval expires. Each event is sent as a separate HTTP POST (Plausible has no
+// batch endpoint).
 type Collector struct {
 	// batcher manages the buffer, flush loop, and lifecycle.
 	batcher *analytics_domain.Batcher[snapshot]
@@ -261,8 +251,8 @@ type Collector struct {
 	// circuitBreakerConfig holds optional circuit breaker settings.
 	circuitBreakerConfig *analytics_domain.CircuitBreakerConfig
 
-	// propsPool recycles map[string]string instances to avoid
-	// per-event allocation in Collect.
+	// propsPool recycles map[string]string instances to avoid per-event allocation in
+	// Collect.
 	propsPool sync.Pool
 
 	// domain is the site domain registered in Plausible.
@@ -271,8 +261,8 @@ type Collector struct {
 	// endpoint is the Plausible API base URL.
 	endpoint string
 
-	// clock provides time operations for the batcher. Nil defaults
-	// to clock.RealClock() in the batcher.
+	// clock provides time operations for the batcher. Nil defaults to clock.RealClock() in
+	// the batcher.
 	clock clock.Clock
 
 	// flushInterval is the time between automatic flushes.
@@ -282,11 +272,10 @@ type Collector struct {
 	batchSize int
 }
 
-// NewCollector creates an analytics collector that sends events to
-// the Plausible Analytics Events API.
+// NewCollector creates an analytics collector that sends events to the Plausible
+// Analytics Events API.
 //
-// Takes domain (string) which is the site domain registered in
-// your Plausible account.
+// Takes domain (string) which is the site domain registered in your Plausible account.
 // Takes opts (...Option) which configure the collector.
 //
 // Returns analytics.Collector which sends events to Plausible.
@@ -330,8 +319,8 @@ func (c *Collector) Start(ctx context.Context) {
 	c.batcher.Start(ctx)
 }
 
-// Collect copies the event data into the internal buffer. Collect
-// itself never performs I/O.
+// Collect copies the event data into the internal buffer. Collect itself never performs
+// I/O.
 //
 // Takes event (*analytics_dto.Event) which carries the event data.
 //
@@ -397,8 +386,7 @@ func (c *Collector) Flush(ctx context.Context) error {
 	return c.batcher.Flush(ctx)
 }
 
-// Close stops the flush timer and releases resources. Safe to call
-// multiple times.
+// Close stops the flush timer and releases resources. Safe to call multiple times.
 //
 // Returns error which is always nil.
 func (c *Collector) Close(_ context.Context) error {
@@ -412,8 +400,8 @@ func (*Collector) Name() string {
 	return collectorName
 }
 
-// resolveDomain returns the event's hostname if set, falling back
-// to the configured domain.
+// resolveDomain returns the event's hostname if set, falling back to the configured
+// domain.
 //
 // Takes event (*analytics_dto.Event) which may carry a hostname.
 //
@@ -425,8 +413,7 @@ func (c *Collector) resolveDomain(event *analytics_dto.Event) string {
 	return c.domain
 }
 
-// resolveEventName maps the analytics event type to a Plausible
-// event name.
+// resolveEventName maps the analytics event type to a Plausible event name.
 //
 // Takes event (*analytics_dto.Event) which carries the event data.
 //
@@ -447,8 +434,8 @@ func resolveEventName(event *analytics_dto.Event) string {
 	}
 }
 
-// resolveURL constructs an absolute URL for the Plausible payload,
-// truncated to maxURLLength.
+// resolveURL constructs an absolute URL for the Plausible payload, truncated to
+// maxURLLength.
 //
 // Takes event (*analytics_dto.Event) which carries URL data.
 //
@@ -474,8 +461,8 @@ func resolveURL(event *analytics_dto.Event) string {
 	return url
 }
 
-// sendBatch iterates through the batch and sends each event
-// individually (Plausible has no batch endpoint).
+// sendBatch iterates through the batch and sends each event individually (Plausible has
+// no batch endpoint).
 //
 // Takes batch ([]snapshot) which holds the events to send.
 //
@@ -569,8 +556,7 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 	return nil
 }
 
-// acquireProps returns a cleared map from the pool, or allocates a
-// new one on pool miss.
+// acquireProps returns a cleared map from the pool, or allocates a new one on pool miss.
 //
 // Returns map[string]string which is the reusable properties map.
 func (c *Collector) acquireProps() map[string]string {
@@ -588,8 +574,7 @@ func (c *Collector) releaseProps(props map[string]string) {
 	c.propsPool.Put(props)
 }
 
-// releaseSnapshotProps returns all pooled props maps from a batch
-// back to the pool.
+// releaseSnapshotProps returns all pooled props maps from a batch back to the pool.
 //
 // Takes batch ([]snapshot) which holds the snapshots to release.
 func (c *Collector) releaseSnapshotProps(batch []snapshot) {

@@ -29,15 +29,14 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// getSourcePath extracts the source path from an annotation for use in
-// diagnostic messages. The path is converted to a relative path using the
-// emitter's base directory.
+// getSourcePath extracts the source path from an annotation for use in diagnostic
+// messages. The path is converted to a relative path using the emitter's base directory.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// containing the original source path.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation containing
+// the original source path.
 //
-// Returns string which is the relative source path, or an empty string if the
-// annotation or its path is nil.
+// Returns string which is the relative source path, or an empty string if the annotation
+// or its path is nil.
 func (ae *attributeEmitter) getSourcePath(ann *ast_domain.GoGeneratorAnnotation) string {
 	if ann != nil && ann.OriginalSourcePath != nil {
 		return ae.emitter.computeRelativePath(*ann.OriginalSourcePath)
@@ -45,15 +44,15 @@ func (ae *attributeEmitter) getSourcePath(ann *ast_domain.GoGeneratorAnnotation)
 	return ""
 }
 
-// buildAttributeIfNotEmpty builds an if statement that appends an attribute
-// to a slice only when the value is not empty.
+// buildAttributeIfNotEmpty builds an if statement that appends an attribute to a slice
+// only when the value is not empty.
 //
 // Takes attributeSlice (goast.Expr) which is the slice to append to.
 // Takes attributeName (string) which is the name of the HTML attribute.
 // Takes valueVar (goast.Expr) which is the expression for the attribute value.
 //
-// Returns []goast.Stmt which contains the if statement that adds the attribute
-// when the value is not empty.
+// Returns []goast.Stmt which contains the if statement that adds the attribute when the
+// value is not empty.
 func (*attributeEmitter) buildAttributeIfNotEmpty(attributeSlice goast.Expr, attributeName string, valueVar goast.Expr) []goast.Stmt {
 	attributeLiteral := &goast.CompositeLit{
 		Type: cachedIdent(fmt.Sprintf(HTMLAttributeTypeFmt, runtimePackageName)),
@@ -72,8 +71,7 @@ func (*attributeEmitter) buildAttributeIfNotEmpty(attributeSlice goast.Expr, att
 // wrapWithModulePathResolver wraps an expression with a runtime call to
 // ResolveModulePath, enabling @/ alias resolution for dynamic paths at runtime.
 //
-// Takes expression (goast.Expr) which is the expression to wrap
-// with path resolution.
+// Takes expression (goast.Expr) which is the expression to wrap with path resolution.
 //
 // Returns goast.Expr which is a call expression that invokes
 // pikoruntime.ResolveModulePath with the given expression and module name.
@@ -90,21 +88,20 @@ func (ae *attributeEmitter) wrapWithModulePathResolver(expression goast.Expr) go
 	}
 }
 
-// buildDirectWriterAttributeIfNotNil generates an if block that sets the name
-// on a DirectWriter and appends it to AttributeWriters only when the buffer
-// pointer is not nil.
+// buildDirectWriterAttributeIfNotNil generates an if block that sets the name on a
+// DirectWriter and appends it to AttributeWriters only when the buffer pointer is not
+// nil.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable.
 // Takes attributeName (string) which is the name of the HTML attribute.
 // Takes dwVar (goast.Expr) which is the DirectWriter variable.
-// Takes bufferPointerVar (goast.Expr) which is the buffer pointer
-// to check for nil.
+// Takes bufferPointerVar (goast.Expr) which is the buffer pointer to check for nil.
 //
-// Returns []goast.Stmt which contains the if statement that conditionally
-// sets up and appends the DirectWriter.
+// Returns []goast.Stmt which contains the if statement that conditionally sets up and
+// appends the DirectWriter.
 //
-// The generated code checks if bufferPointerVar is not nil, then calls SetName on
-// the DirectWriter and appends it to the node's AttributeWriters slice.
+// The generated code checks if bufferPointerVar is not nil, then calls SetName on the
+// DirectWriter and appends it to the node's AttributeWriters slice.
 func (*attributeEmitter) buildDirectWriterAttributeIfNotNil(nodeVar *goast.Ident, attributeName string, dwVar, bufferPointerVar goast.Expr) []goast.Stmt {
 	ifBody := []goast.Stmt{
 		&goast.ExprStmt{X: &goast.CallExpr{
@@ -121,9 +118,9 @@ func (*attributeEmitter) buildDirectWriterAttributeIfNotNil(nodeVar *goast.Ident
 	return []goast.Stmt{ifStmt}
 }
 
-// isExpressionIntrinsicallySafe recursively analyses an AST expression to determine
-// if it can only produce XSS-safe strings (no HTML special characters). Used to
-// optimise HTML escaping for p-key attributes.
+// isExpressionIntrinsicallySafe recursively analyses an AST expression to determine if it
+// can only produce XSS-safe strings (no HTML special characters). Used to optimise HTML
+// escaping for p-key attributes.
 //
 // Safe expressions include:
 //   - String literals (static text)
@@ -182,13 +179,13 @@ func isSafeBinaryExpr(e *ast_domain.BinaryExpression) bool {
 	return isExpressionIntrinsicallySafe(e.Left) && isExpressionIntrinsicallySafe(e.Right)
 }
 
-// isSafeCallExpr checks if a function call returns output that is safe to use
-// without escaping.
+// isSafeCallExpr checks if a function call returns output that is safe to use without
+// escaping.
 //
 // Takes e (*ast_domain.CallExpression) which is the call expression to check.
 //
-// Returns bool which is true if the call is to a known safe function, such as
-// strconv conversion functions.
+// Returns bool which is true if the call is to a known safe function, such as strconv
+// conversion functions.
 func isSafeCallExpr(e *ast_domain.CallExpression) bool {
 	memberExpr, ok := e.Callee.(*ast_domain.MemberExpression)
 	if !ok {
@@ -230,9 +227,9 @@ func isSafeStrconvFunction(property ast_domain.Expression) bool {
 	return safeStrconvFuncs[propIdent.Name]
 }
 
-// isSafePrimitiveIdentifier checks if an identifier, member, or index
-// expression refers to a safe primitive type. Strings and runes are not
-// considered safe because they may contain user input.
+// isSafePrimitiveIdentifier checks if an identifier, member, or index expression refers
+// to a safe primitive type. Strings and runes are not considered safe because they may
+// contain user input.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
@@ -255,8 +252,8 @@ func isSafePrimitiveIdentifier(expression ast_domain.Expression) bool {
 	return typeIdent.Name != "string" && typeIdent.Name != "rune"
 }
 
-// isSafeTemplateLiteral checks whether a template literal contains only safe
-// embedded expressions.
+// isSafeTemplateLiteral checks whether a template literal contains only safe embedded
+// expressions.
 //
 // Takes e (*ast_domain.TemplateLiteral) which is the template literal to check.
 //
@@ -270,17 +267,14 @@ func isSafeTemplateLiteral(e *ast_domain.TemplateLiteral) bool {
 	return true
 }
 
-// getSpecialisedHelperName returns a helper name for a specific type if one
-// exists.
+// getSpecialisedHelperName returns a helper name for a specific type if one exists.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved
-// type details.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved type details.
 // Takes genericName (string) which is the default helper name to use.
-// Takes specificHelpers (map[string]string) which maps type strings to helper
-// names.
+// Takes specificHelpers (map[string]string) which maps type strings to helper names.
 //
-// Returns string which is the matching helper name if found, or the default
-// name if no match exists.
+// Returns string which is the matching helper name if found, or the default name if no
+// match exists.
 func getSpecialisedHelperName(ann *ast_domain.GoGeneratorAnnotation, genericName string, specificHelpers map[string]string) string {
 	if ann != nil && ann.ResolvedType != nil {
 		typeString := goastutil.ASTToTypeString(ann.ResolvedType.TypeExpression, ann.ResolvedType.PackageAlias)
@@ -291,14 +285,13 @@ func getSpecialisedHelperName(ann *ast_domain.GoGeneratorAnnotation, genericName
 	return genericName
 }
 
-// shouldResolveModulePath checks whether a dynamic attribute should be wrapped
-// with module path resolution.
+// shouldResolveModulePath checks whether a dynamic attribute should be wrapped with
+// module path resolution.
 //
 // Takes tagName (string) which is the HTML element tag name.
 // Takes attributeName (string) which is the attribute name to check.
 //
-// Returns bool which is true for src attributes on piko:svg, piko:img, pml-img,
-// and
+// Returns bool which is true for src attributes on piko:svg, piko:img, pml-img, and
 // piko:video elements.
 func shouldResolveModulePath(tagName, attributeName string) bool {
 	if !strings.EqualFold(attributeName, "src") {

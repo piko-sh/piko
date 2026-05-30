@@ -32,8 +32,8 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// fieldInfo holds pre-computed metadata for a single struct field.
-// Fields are ordered to reduce memory use through alignment.
+// fieldInfo holds pre-computed metadata for a single struct field. Fields are ordered to
+// reduce memory use through alignment.
 type fieldInfo struct {
 	// Type is the reflect.Type of the field, used for conversion and validation.
 	Type reflect.Type
@@ -53,8 +53,8 @@ type fieldInfo struct {
 	// Kind is the reflect.Kind of the field, used for fast type switching.
 	Kind reflect.Kind
 
-	// CanDirect indicates whether the field can be set using direct unsafe access.
-	// True for single-level, non-pointer basic types.
+	// CanDirect indicates whether the field can be set using direct unsafe access. True for
+	// single-level, non-pointer basic types.
 	CanDirect bool
 }
 
@@ -66,18 +66,18 @@ type structInfo struct {
 
 // parseFieldPath extracts the field path from a struct field tag.
 //
-// It checks tags in this order: bind tag first, then json tag, then the Go
-// field name. The function has no side effects.
+// It checks tags in this order: bind tag first, then json tag, then the Go field name.
+// The function has no side effects.
 //
-// Takes field (*reflect.StructField) which points to the struct field to get
-// the path from. A pointer is used to satisfy the hugeParam linter.
-// Takes parentPath (string) which is the dot-separated path of the parent
-// struct for nested fields.
+// Takes field (*reflect.StructField) which points to the struct field to get the path
+// from. A pointer is used to satisfy the hugeParam linter.
+// Takes parentPath (string) which is the dot-separated path of the parent struct for
+// nested fields.
 //
-// Returns currentPath (string) which is the full field path, joined with
-// parentPath if one is provided.
-// Returns ignored (bool) which is true when the field should be skipped
-// because its tag value is "-".
+// Returns currentPath (string) which is the full field path, joined with parentPath if
+// one is provided.
+// Returns ignored (bool) which is true when the field should be skipped because its tag
+// value is "-".
 func parseFieldPath(field *reflect.StructField, parentPath string) (currentPath string, ignored bool) {
 	var fieldName string
 
@@ -109,9 +109,9 @@ func parseFieldPath(field *reflect.StructField, parentPath string) (currentPath 
 	return fieldName, false
 }
 
-// isCustomType checks if a type has built-in conversion logic and should be
-// treated as a terminal field in the cache walk. This stops the walk from
-// going into the inner fields of these types.
+// isCustomType checks if a type has built-in conversion logic and should be treated as a
+// terminal field in the cache walk. This stops the walk from going into the inner fields
+// of these types.
 //
 // Takes t (reflect.Type) which specifies the type to check.
 //
@@ -133,8 +133,8 @@ func isCustomType(t reflect.Type) bool {
 	}
 }
 
-// isPrimitiveKind reports whether the given kind is a simple type that can be
-// set directly using unsafe pointer casting without reflection.
+// isPrimitiveKind reports whether the given kind is a simple type that can be set
+// directly using unsafe pointer casting without reflection.
 //
 // Takes k (reflect.Kind) which is the kind to check.
 //
@@ -152,9 +152,9 @@ func isPrimitiveKind(k reflect.Kind) bool {
 	}
 }
 
-// hasWellKnownConverter reports whether the type has a built-in converter
-// that needs special parsing logic. For example, time.Duration is stored as
-// int64 but must be parsed with time.ParseDuration instead of a simple cast.
+// hasWellKnownConverter reports whether the type has a built-in converter that needs
+// special parsing logic. For example, time.Duration is stored as int64 but must be parsed
+// with time.ParseDuration instead of a simple cast.
 //
 // Takes t (reflect.Type) which is the type to check.
 //
@@ -174,13 +174,13 @@ func hasWellKnownConverter(t reflect.Type) bool {
 	}
 }
 
-// implementsTextUnmarshaler checks whether a type or its pointer form implements
-// the encoding.TextUnmarshaler interface.
+// implementsTextUnmarshaler checks whether a type or its pointer form implements the
+// encoding.TextUnmarshaler interface.
 //
 // Takes t (reflect.Type) which is the type to check.
 //
-// Returns encoding.TextUnmarshaler which is an instance that can call
-// UnmarshalText, or nil if the type does not implement the interface.
+// Returns encoding.TextUnmarshaler which is an instance that can call UnmarshalText, or
+// nil if the type does not implement the interface.
 // Returns bool which is true when the type implements the interface.
 func implementsTextUnmarshaler(t reflect.Type) (encoding.TextUnmarshaler, bool) {
 	ptr := reflect.New(t)

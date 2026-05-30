@@ -21,18 +21,16 @@ package encoder_mock
 import (
 	"fmt"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/json"
 )
 
-// New creates a mock encoder for testing purposes.
-// The mock encoder wraps JSON encoding with a recognisable prefix,
-// so tests can verify that the correct encoder was used.
+// New creates a mock encoder for testing purposes. The mock encoder wraps JSON encoding
+// with a recognisable prefix, so tests can verify that the correct encoder was used.
 //
 // Format: "MOCK:<type>:<json_data>"
 //
-// Returns cache_domain.EncoderPort[V] which is a mock encoder for
-// the specified type.
+// Returns cache_domain.EncoderPort[V] which is a mock encoder for the specified type.
 func New[V any]() cache_domain.EncoderPort[V] {
 	var v V
 	typeName := fmt.Sprintf("%T", v)

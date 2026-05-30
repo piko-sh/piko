@@ -195,7 +195,7 @@ func TestWatchdog_GetStartupHistoryReturnsEntries(t *testing.T) {
 
 	pre := startupHistoryFile{
 		Entries: []startupHistoryEntry{
-			{StartedAt: startTime.Add(-2 * time.Hour), StoppedAt: new(startTime.Add(-time.Hour)), PID: 100, Reason: "clean", Hostname: "alpha", Version: "v1"},
+			{StartedAt: startTime.Add(-2 * time.Hour), StoppedAt: startTime.Add(-time.Hour), PID: 100, Reason: "clean", Hostname: "alpha", Version: "v1"},
 			{StartedAt: startTime.Add(-30 * time.Minute), PID: 200, Hostname: "alpha", Version: "v2"},
 		},
 	}

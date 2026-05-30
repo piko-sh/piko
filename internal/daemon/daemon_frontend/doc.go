@@ -16,17 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package daemon_frontend manages embedded frontend assets and module
-// registration for the Piko development daemon. It handles serving
-// and content-negotiation for compressed static assets (JavaScript,
-// CSS), supports both built-in framework modules and custom
-// user-provided modules, and generates the HTML needed to load them
-// in the browser.
+// Package daemon_frontend manages embedded frontend assets and module registration for
+// the Piko development daemon. It handles serving and content-negotiation for compressed
+// static assets (JavaScript, CSS), supports both built-in framework modules and custom
+// user-provided modules, and generates the HTML needed to load them in the browser.
 //
 // # Usage
 //
-// Initialise the asset store at startup, then retrieve assets by
-// path:
+// Initialise the asset store at startup, then retrieve assets by path:
 //
 //	err := daemon_frontend.InitAssetStore(ctx)
 //	if err != nil {
@@ -44,6 +41,6 @@
 //
 // # Thread safety
 //
-// The asset store is initialised once at startup and is read-only
-// thereafter. All read operations are safe for concurrent use.
+// The asset store is initialised once at startup and is read-only thereafter. All read
+// operations are safe for concurrent use.
 package daemon_frontend
