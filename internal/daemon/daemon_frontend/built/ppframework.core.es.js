@@ -371,12 +371,12 @@ function morphElementNode(fromEl, toEl, isParentPreserved, currentOptions) {
   if (!preserveEl) {
     if (currentOptions.onBeforeElUpdated?.(fromEl, toEl) !== false) {
       morphAttrs(fromEl, toEl, currentOptions);
-      const nativeHandler = nativeSpecialElHandlers[fromEl.nodeName.toUpperCase()];
-      if (nativeHandler) {
-        nativeHandler(fromEl, toEl);
-      } else if (isFormAssociated(fromEl)) {
-        syncCustomElementState(fromEl, toEl);
-      }
+    }
+    const nativeHandler = nativeSpecialElHandlers[fromEl.nodeName.toUpperCase()];
+    if (nativeHandler) {
+      nativeHandler(fromEl, toEl);
+    } else if (isFormAssociated(fromEl)) {
+      syncCustomElementState(fromEl, toEl);
     }
   }
   if (currentOptions.onBeforeElChildrenUpdated?.(fromEl, toEl) !== false) {

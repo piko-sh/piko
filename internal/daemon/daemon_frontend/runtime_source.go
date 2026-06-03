@@ -31,12 +31,12 @@ import (
 
 var (
 	// frameworkCoreJS is the source of the core Piko frontend module
-	// (ppframework.core.es.min.js). Available in every build flavour including WebAssembly,
+	// (ppframework.core.min.es.js). Available in every build flavour including WebAssembly,
 	// where the heavier embed.FS in embedded_frontend_templates.go is excluded behind
 	// `//go:build !js` to keep the WASM binary lean (no source maps, no pre-compressed
 	// variants; just the runtime source the playground iframe needs).
 	//
-	//go:embed built/ppframework.core.es.min.js
+	//go:embed built/ppframework.core.min.es.js
 	frameworkCoreJS string
 
 	// frameworkCoreJSSRI is the build-time-fixed SHA-256 SRI hash of the embedded core
@@ -44,7 +44,7 @@ var (
 	// hash on first call so a tampered or out-of-date bundle fails-closed before a consumer
 	// ever serves it.
 	//
-	//go:embed built/ppframework.core.es.min.js.sri
+	//go:embed built/ppframework.core.min.es.js.sri
 	frameworkCoreJSSRI string
 
 	// frameworkComponentsJS is the source of the components extension module
@@ -89,7 +89,7 @@ var (
 // Returns FrameworkRuntimeSource which is the verified core runtime.
 // Returns error when the embedded bytes do not match the build-time SRI.
 func FrameworkCore() (FrameworkRuntimeSource, error) {
-	return verifyFrameworkSource("ppframework.core.es.min.js", frameworkCoreJS, frameworkCoreJSSRI)
+	return verifyFrameworkSource("ppframework.core.min.es.js", frameworkCoreJS, frameworkCoreJSSRI)
 }
 
 // FrameworkComponents returns the components runtime source paired with its SRI

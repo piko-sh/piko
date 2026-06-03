@@ -152,7 +152,7 @@ func (ro *RenderOrchestrator) CollectMetadata(
 	tempRenderCtx := ro.getRenderContext(ctx, "", nil, request, nil)
 
 	ro.preloadAssetsAndComponentsForTags(
-		ctx, appendDevWidgetTag(metadata.CustomTags), tempRenderCtx)
+		ctx, metadata.CustomTags, tempRenderCtx)
 	addStandardLinkHeaders(tempRenderCtx)
 	addComponentsExtensionLinkHeader(tempRenderCtx)
 	addJSLinkHeaders(metadata.JSScriptMetas, tempRenderCtx)

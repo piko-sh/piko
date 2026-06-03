@@ -310,6 +310,21 @@ describe('fragmentMorpher', () => {
             expect((fromEl as HTMLInputElement).checked).toBe(false);
         });
 
+        it('re-syncs a user-dirtied checkbox even when onBeforeElUpdated short-circuits via isEqualNode', () => {
+            setup('<input type="checkbox" checked>');
+            expect((fromEl as HTMLInputElement).checked).toBe(true);
+
+            (fromEl as HTMLInputElement).checked = false;
+            expect((fromEl as HTMLInputElement).checked).toBe(false);
+            expect(fromEl.hasAttribute('checked')).toBe(true);
+
+            fragmentMorpher(fromEl, '<input type="checkbox" checked>', {
+                onBeforeElUpdated: (from, to) => !(from as Element).isEqualNode(to as Element),
+            });
+
+            expect((fromEl as HTMLInputElement).checked).toBe(true);
+        });
+
         it('should correctly update TEXTAREA value', () => {
             setup('<textarea>old</textarea>');
             fragmentMorpher(fromEl, '<textarea>new</textarea>');
