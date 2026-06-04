@@ -799,7 +799,7 @@ func TestEmbedEmailSVGSprite(t *testing.T) {
 					InnerHTML:  `<path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 				}
-				svg.CachedSymbol = ComputeSymbolString("icon-star", svg)
+				svg.CachedSymbol, svg.CachedDefs, _ = ComputeSymbolAndDefs("icon-star", svg)
 				return []svgSymbolEntry{{id: "icon-star", data: svg}}
 			}(),
 			wantOutputEmpty: false,
@@ -827,12 +827,12 @@ func TestEmbedEmailSVGSprite(t *testing.T) {
 					InnerHTML:  `<path d="M10 20v-6h4v6"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 				}
-				svgHome.CachedSymbol = ComputeSymbolString("icon-home", svgHome)
+				svgHome.CachedSymbol, svgHome.CachedDefs, _ = ComputeSymbolAndDefs("icon-home", svgHome)
 				svgMail := &ParsedSvgData{
 					InnerHTML:  `<rect x="2" y="4" width="20" height="16"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 				}
-				svgMail.CachedSymbol = ComputeSymbolString("icon-mail", svgMail)
+				svgMail.CachedSymbol, svgMail.CachedDefs, _ = ComputeSymbolAndDefs("icon-mail", svgMail)
 				return []svgSymbolEntry{
 					{id: "icon-home", data: svgHome},
 					{id: "icon-mail", data: svgMail},

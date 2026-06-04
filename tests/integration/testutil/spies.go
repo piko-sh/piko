@@ -97,7 +97,7 @@ func (s *SpyRegistryPort) SetSVGData(assetID string, data *render_domain.ParsedS
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if data != nil && data.CachedSymbol == "" {
-		data.CachedSymbol = render_domain.ComputeSymbolString(assetID, data)
+		data.CachedSymbol, data.CachedDefs, _ = render_domain.ComputeSymbolAndDefs(assetID, data)
 	}
 	s.svgData[assetID] = data
 }

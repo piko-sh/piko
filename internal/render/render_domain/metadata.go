@@ -51,16 +51,26 @@ const (
 	// defaultSVGIDSliceCapacity is the starting capacity for SVG ID slices. Set to 32
 	// elements, which is enough for most pages.
 	defaultSVGIDSliceCapacity = 32
+
+	// spriteSheetOpenTag is the sprite root element. It is hidden with a zero-size
+	// absolutely positioned style rather than display:none, because some browsers drop
+	// paint servers such as gradients when their host is display:none.
+	spriteSheetOpenTag = `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">`
 )
 
-// ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol
-// is pre-computed at load time to avoid per-request allocation overhead.
+// ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol and
+// CachedDefs are pre-computed at load time to avoid per-request allocation overhead.
 type ParsedSvgData struct {
 	// InnerHTML is the content between the opening and closing SVG tags.
 	InnerHTML string
 
-	// CachedSymbol is the pre-computed SVG symbol string for this asset.
+	// CachedSymbol is the pre-computed SVG symbol string for this asset, with referenceable
+	// definitions hoisted out and identifiers namespaced.
 	CachedSymbol string
+
+	// CachedDefs holds the asset's referenceable definitions (gradients, patterns, filters,
+	// clip paths, masks, markers) hoisted out of the symbol, or empty when it has none.
+	CachedDefs string
 
 	// Attributes holds the parsed SVG element attributes such as viewBox.
 	Attributes []ast_domain.HTMLAttribute
@@ -370,14 +380,16 @@ func (*RenderOrchestrator) buildSvgSpriteSheet(rctx *renderContext) (string, err
 	}
 
 	symbols := make([]string, len(rctx.requiredSvgSymbols))
+	defs := make([]string, len(rctx.requiredSvgSymbols))
 	for i := range rctx.requiredSvgSymbols {
 		if rctx.requiredSvgSymbols[i].data != nil {
 			symbols[i] = rctx.requiredSvgSymbols[i].data.CachedSymbol
+			defs[i] = rctx.requiredSvgSymbols[i].data.CachedDefs
 			SVGSymbolCount.Add(rctx.originalCtx, 1)
 		}
 	}
 
-	result := assembleSpriteSheet(symbols, rctx)
+	result := assembleSpriteSheet(symbols, defs, rctx)
 
 	cache.Set(cacheKey, strings.Clone(result))
 	return result, nil
@@ -392,54 +404,6 @@ func ShutdownSpriteSheetCache() {
 // ClearSpriteSheetCacheForTesting clears the sprite sheet cache. Only for use in tests.
 func ClearSpriteSheetCacheForTesting() {
 	getSpriteSheetCache().InvalidateAll()
-}
-
-// ComputeSymbolString builds an SVG symbol string from parsed SVG data. This is called
-// once when the SVG loads and is cached in ParsedSvgData.CachedSymbol to avoid repeated
-// memory use per request.
-//
-// Takes id (string) which specifies the symbol identifier.
-// Takes parsedData (*ParsedSvgData) which provides the parsed SVG content.
-//
-// Returns string which contains the formatted symbol element, or an empty string if
-// parsedData is nil.
-//
-// Output format: <symbol id="escaped-id" viewBox="value">innerHTML</symbol>
-func ComputeSymbolString(id string, parsedData *ParsedSvgData) string {
-	if parsedData == nil {
-		return ""
-	}
-
-	var viewBox string
-	for i := range parsedData.Attributes {
-		if parsedData.Attributes[i].Name == "viewBox" {
-			viewBox = parsedData.Attributes[i].Value
-			break
-		}
-	}
-
-	builder := getBuilder()
-
-	estimatedSize := svgSymbolOverhead + len(id) + len(viewBox) + len(parsedData.InnerHTML)
-	builder.Grow(estimatedSize)
-
-	builder.WriteString(`<symbol id="`)
-	builder.WriteString(html.EscapeString(id))
-	_ = builder.WriteByte('"')
-
-	if viewBox != "" {
-		builder.WriteString(` viewBox="`)
-		builder.WriteString(html.EscapeString(viewBox))
-		_ = builder.WriteByte('"')
-	}
-
-	_ = builder.WriteByte('>')
-	builder.WriteString(parsedData.InnerHTML)
-	builder.WriteString(`</symbol>`)
-
-	result := builder.String()
-	putBuilder(builder)
-	return result
 }
 
 // formatComponentNotFoundError creates an error message for when a component cannot be
@@ -708,21 +672,34 @@ func collectAndSortSVGIDs(entries []svgSymbolEntry) []string {
 	return svgIDs
 }
 
-// assembleSpriteSheet builds the final SVG sprite sheet from processed symbols.
+// assembleSpriteSheet builds the final SVG sprite sheet from processed symbols and their
+// hoisted definitions.
 //
 // Uses request-level buffer pooling with zero-copy string conversion. The buffer is kept
-// alive until the request ends, making the conversion safe.
+// alive until the request ends, making the conversion safe. A single shared <defs> block is
+// emitted before the symbols, but only when at least one asset contributed definitions.
 //
 // Takes symbols ([]string) which contains the processed SVG symbol elements.
+// Takes defs ([]string) which holds each asset's hoisted definitions in symbol order.
 // Takes rctx (*renderContext) which provides the pooled buffer and conversion.
 //
 // Returns string which is the complete SVG sprite sheet document.
-func assembleSpriteSheet(symbols []string, rctx *renderContext) string {
-	var totalSize int
+func assembleSpriteSheet(symbols []string, defs []string, rctx *renderContext) string {
+	totalSize := len(spriteSheetOpenTag) + len(`</svg>`)
 	for _, s := range symbols {
 		totalSize += len(s)
 	}
-	totalSize += len(`<svg xmlns="http://www.w3.org/2000/svg" id="sprite" style="display: none;"></svg>`)
+
+	hasDefs := false
+	for _, d := range defs {
+		if d != "" {
+			hasDefs = true
+			totalSize += len(d)
+		}
+	}
+	if hasDefs {
+		totalSize += len(`<defs></defs>`)
+	}
 
 	buffer := rctx.getBuffer()
 
@@ -731,7 +708,16 @@ func assembleSpriteSheet(symbols []string, rctx *renderContext) string {
 		*buffer = newBuf
 	}
 
-	*buffer = append(*buffer, `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" style="display: none;">`...)
+	*buffer = append(*buffer, spriteSheetOpenTag...)
+	if hasDefs {
+		*buffer = append(*buffer, `<defs>`...)
+		for _, d := range defs {
+			if d != "" {
+				*buffer = append(*buffer, d...)
+			}
+		}
+		*buffer = append(*buffer, `</defs>`...)
+	}
 	for _, symbol := range symbols {
 		if symbol != "" {
 			*buffer = append(*buffer, symbol...)

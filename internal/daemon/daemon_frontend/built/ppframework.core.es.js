@@ -4405,6 +4405,48 @@ function createHelperRegistry() {
     }
   };
 }
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+function applyHiddenSpriteStyle(sheet) {
+  sheet.style.position = "absolute";
+  sheet.style.width = "0";
+  sheet.style.height = "0";
+  sheet.style.overflow = "hidden";
+}
+function findChildById(parent, id) {
+  return Array.from(parent.children).find((child) => child.id === id);
+}
+function mergeById(target, source) {
+  Array.from(source.children).forEach((child) => {
+    const id = child.id;
+    if (id) {
+      const existing = findChildById(target, id);
+      if (existing) {
+        existing.replaceWith(child.cloneNode(true));
+      } else {
+        target.appendChild(child.cloneNode(true));
+      }
+      return;
+    }
+    const alreadyPresent = Array.from(target.children).some(
+      (existing) => !existing.id && existing.isEqualNode(child)
+    );
+    if (!alreadyPresent) {
+      target.appendChild(child.cloneNode(true));
+    }
+  });
+}
+function mergeDefinitions(mainSheet, newSheet) {
+  const newDefs = newSheet.querySelector(":scope > defs");
+  if (!newDefs) {
+    return;
+  }
+  let mainDefs = mainSheet.querySelector(":scope > defs");
+  if (!mainDefs) {
+    mainDefs = document.createElementNS(SVG_NAMESPACE, "defs");
+    mainSheet.insertBefore(mainDefs, mainSheet.firstChild);
+  }
+  mergeById(mainDefs, newDefs);
+}
 function createSpriteSheetManager() {
   return {
     merge(newSheet) {
@@ -4415,10 +4457,11 @@ function createSpriteSheetManager() {
       if (!mainSheet) {
         console.warn("SpriteSheetManager: Main sprite sheet with id='sprite' not found. Cannot merge new sprites.");
         newSheet.id = "sprite";
-        newSheet.style.display = "none";
+        applyHiddenSpriteStyle(newSheet);
         document.body.appendChild(newSheet);
         return;
       }
+      mergeDefinitions(mainSheet, newSheet);
       const newSymbols = newSheet.querySelectorAll("symbol");
       newSymbols.forEach((newSymbol) => {
         const symbolId = newSymbol.id;
@@ -4426,7 +4469,7 @@ function createSpriteSheetManager() {
           console.warn("SpriteSheetManager: Found a symbol without an ID, skipping.", newSymbol);
           return;
         }
-        const existingSymbol = mainSheet.querySelector(`symbol[id="${symbolId}"]`);
+        const existingSymbol = findChildById(mainSheet, symbolId);
         if (existingSymbol) {
           existingSymbol.replaceWith(newSymbol.cloneNode(true));
         } else {
@@ -4436,9 +4479,9 @@ function createSpriteSheetManager() {
     },
     ensureExists() {
       if (!document.getElementById("sprite")) {
-        const sheet = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const sheet = document.createElementNS(SVG_NAMESPACE, "svg");
         sheet.id = "sprite";
-        sheet.style.display = "none";
+        applyHiddenSpriteStyle(sheet);
         document.body.appendChild(sheet);
       }
     }

@@ -83,7 +83,7 @@ func NewBenchmarkRegistry() *BenchmarkRegistry {
 				{Name: "fill", Value: "currentColor"},
 			},
 		}
-		parsedData.CachedSymbol = render_domain.ComputeSymbolString(icon, parsedData)
+		parsedData.CachedSymbol, parsedData.CachedDefs, _ = render_domain.ComputeSymbolAndDefs(icon, parsedData)
 		r.svgAssets[icon] = parsedData
 	}
 

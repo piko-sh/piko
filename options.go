@@ -161,6 +161,17 @@ type RegistryMetadataCacheConfig struct {
 // See WithCSP for usage examples.
 type CSPBuilder = security_domain.CSPBuilder
 
+const (
+	// SpamSignalGibberish tags a field for gibberish detection.
+	SpamSignalGibberish = spamdetect_dto.SignalGibberish
+
+	// SpamSignalLinkDensity tags a field for link density analysis.
+	SpamSignalLinkDensity = spamdetect_dto.SignalLinkDensity
+
+	// SpamSignalBlocklist tags a field for blocklist matching.
+	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
+)
+
 var (
 	// CSPSelf allows resources from the same origin (scheme, host, and port).
 	CSPSelf = security_domain.Self
@@ -3751,17 +3762,6 @@ func WithExperimentalCommentStripping(enabled bool) Option {
 func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 	return bootstrap.WithExperimentalDwarfLineDirectives(enabled)
 }
-
-const (
-	// SpamSignalGibberish tags a field for gibberish detection.
-	SpamSignalGibberish = spamdetect_dto.SignalGibberish
-
-	// SpamSignalLinkDensity tags a field for link density analysis.
-	SpamSignalLinkDensity = spamdetect_dto.SignalLinkDensity
-
-	// SpamSignalBlocklist tags a field for blocklist matching.
-	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
-)
 
 var (
 	// NewSpamSchema creates a spam detection schema from entries.

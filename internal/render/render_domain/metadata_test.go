@@ -35,12 +35,12 @@ func TestBuildSvgSpriteSheet_CollectsSymbols(t *testing.T) {
 		InnerHTML:  `<path d="M10 20v-6h4v6"/>`,
 		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 	}
-	svgHome.CachedSymbol = ComputeSymbolString("icon-home", svgHome)
+	svgHome.CachedSymbol, svgHome.CachedDefs, _ = ComputeSymbolAndDefs("icon-home", svgHome)
 	svgUser := &ParsedSvgData{
 		InnerHTML:  `<circle cx="12" cy="12" r="4"/>`,
 		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 	}
-	svgUser.CachedSymbol = ComputeSymbolString("icon-user", svgUser)
+	svgUser.CachedSymbol, svgUser.CachedDefs, _ = ComputeSymbolAndDefs("icon-user", svgUser)
 
 	mockReg := newTestRegistryBuilder().
 		withSVG("icon-home", `<path d="M10 20v-6h4v6"/>`, ast_domain.HTMLAttribute{Name: "viewBox", Value: "0 0 24 24"}).
@@ -74,7 +74,7 @@ func TestBuildSvgSpriteSheet_DeduplicatesSymbols(t *testing.T) {
 		InnerHTML:  `<path d="M0 0"/>`,
 		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 	}
-	svgDup.CachedSymbol = ComputeSymbolString("icon-dup", svgDup)
+	svgDup.CachedSymbol, svgDup.CachedDefs, _ = ComputeSymbolAndDefs("icon-dup", svgDup)
 
 	mockReg := newTestRegistryBuilder().
 		withSVG("icon-dup", `<path d="M0 0"/>`, ast_domain.HTMLAttribute{Name: "viewBox", Value: "0 0 24 24"}).
@@ -122,7 +122,7 @@ func TestBuildSvgSpriteSheet_HandlesParallelProcessing(t *testing.T) {
 			InnerHTML:  `<path d="M0 0"/>`,
 			Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 		}
-		entry.CachedSymbol = ComputeSymbolString(id, entry)
+		entry.CachedSymbol, entry.CachedDefs, _ = ComputeSymbolAndDefs(id, entry)
 		svgEntries[id] = entry
 	}
 	mockReg := rb.build()
@@ -156,7 +156,7 @@ func TestAssembleSpriteSheet_FormatsCorrectly(t *testing.T) {
 		`<symbol id="icon-b" viewBox="0 0 24 24"><path d="B"/></symbol>`,
 	}
 
-	result := assembleSpriteSheet(symbols, rctx)
+	result := assembleSpriteSheet(symbols, nil, rctx)
 
 	assert.True(t, strings.HasPrefix(result, `<svg xmlns="http://www.w3.org/2000/svg" id="sprite"`))
 	assert.True(t, strings.HasSuffix(result, `</svg>`))
@@ -174,7 +174,7 @@ func TestAssembleSpriteSheet_SkipsEmptySymbols(t *testing.T) {
 		`<symbol id="icon-b" viewBox="0 0 24 24"><path d="B"/></symbol>`,
 	}
 
-	result := assembleSpriteSheet(symbols, rctx)
+	result := assembleSpriteSheet(symbols, nil, rctx)
 
 	assert.Contains(t, result, `<symbol id="icon-a"`)
 	assert.Contains(t, result, `<symbol id="icon-b"`)
@@ -186,76 +186,10 @@ func TestAssembleSpriteSheet_SkipsEmptySymbols(t *testing.T) {
 func TestAssembleSpriteSheet_HandlesEmptySymbolList(t *testing.T) {
 	rctx := NewTestRenderContextBuilder().Build()
 
-	result := assembleSpriteSheet([]string{}, rctx)
+	result := assembleSpriteSheet([]string{}, nil, rctx)
 
 	assert.Contains(t, result, `<svg xmlns="http://www.w3.org/2000/svg"`)
 	assert.Contains(t, result, `</svg>`)
-}
-
-func TestComputeSymbolString_FormatsCorrectly(t *testing.T) {
-	testCases := []struct {
-		name       string
-		id         string
-		parsedData *ParsedSvgData
-		expected   []string
-	}{
-		{
-			name: "basic symbol with viewBox",
-			id:   "test-icon",
-			parsedData: &ParsedSvgData{
-				InnerHTML: `<path d="M0 0"/>`,
-				Attributes: []ast_domain.HTMLAttribute{
-					{Name: "viewBox", Value: "0 0 24 24"},
-				},
-			},
-			expected: []string{
-				`<symbol id="test-icon"`,
-				`viewBox="0 0 24 24"`,
-				`<path d="M0 0"/>`,
-				`</symbol>`,
-			},
-		},
-		{
-			name: "symbol without viewBox",
-			id:   "no-viewbox",
-			parsedData: &ParsedSvgData{
-				InnerHTML:  `<rect width="10" height="10"/>`,
-				Attributes: []ast_domain.HTMLAttribute{},
-			},
-			expected: []string{
-				`<symbol id="no-viewbox">`,
-				`<rect width="10" height="10"/>`,
-				`</symbol>`,
-			},
-		},
-		{
-			name: "escapes special characters in ID",
-			id:   `icon<script>`,
-			parsedData: &ParsedSvgData{
-				InnerHTML: `<path/>`,
-				Attributes: []ast_domain.HTMLAttribute{
-					{Name: "viewBox", Value: "0 0 24 24"},
-				},
-			},
-			expected: []string{
-				`&lt;script&gt;`,
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := ComputeSymbolString(tc.id, tc.parsedData)
-			for _, exp := range tc.expected {
-				assert.Contains(t, result, exp)
-			}
-		})
-	}
-}
-
-func TestComputeSymbolString_HandlesNilData(t *testing.T) {
-	result := ComputeSymbolString("test-id", nil)
-	assert.Empty(t, result)
 }
 
 func TestCollectAndSortSVGIDs_SortsDeterministically(t *testing.T) {
@@ -618,7 +552,7 @@ func TestBuildSvgSpriteSheet_UsesPreFetchedData(t *testing.T) {
 			InnerHTML:  `<path d="M0 0"/>`,
 			Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 		}
-		entry.CachedSymbol = ComputeSymbolString(id, entry)
+		entry.CachedSymbol, entry.CachedDefs, _ = ComputeSymbolAndDefs(id, entry)
 		entries[i] = svgSymbolEntry{id: id, data: entry}
 	}
 	mockReg := rb.build()
@@ -713,7 +647,7 @@ func TestBuildSvgSpriteSheet_HandlesMixedNilData(t *testing.T) {
 		InnerHTML:  `<path d="M0 0"/>`,
 		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 	}
-	svgA.CachedSymbol = ComputeSymbolString("icon-a", svgA)
+	svgA.CachedSymbol, svgA.CachedDefs, _ = ComputeSymbolAndDefs("icon-a", svgA)
 
 	mockReg := newTestRegistryBuilder().
 		withSVG("icon-a", `<path d="M0 0"/>`, ast_domain.HTMLAttribute{Name: "viewBox", Value: "0 0 24 24"}).
@@ -737,49 +671,4 @@ func TestBuildSvgSpriteSheet_HandlesMixedNilData(t *testing.T) {
 
 	assert.Contains(t, spriteSheet, `<symbol id="icon-a"`)
 	assert.NotContains(t, spriteSheet, `icon-missing`)
-}
-
-func TestComputeSymbolString_HandlesEmptyInnerHTML(t *testing.T) {
-	parsedData := &ParsedSvgData{
-		InnerHTML: "",
-		Attributes: []ast_domain.HTMLAttribute{
-			{Name: "viewBox", Value: "0 0 24 24"},
-		},
-	}
-
-	result := ComputeSymbolString("empty-svg", parsedData)
-
-	assert.Contains(t, result, `<symbol id="empty-svg"`)
-	assert.Contains(t, result, `</symbol>`)
-}
-
-func TestComputeSymbolString_HandlesNoViewBox(t *testing.T) {
-	parsedData := &ParsedSvgData{
-		InnerHTML: `<path d="M0 0"/>`,
-		Attributes: []ast_domain.HTMLAttribute{
-			{Name: "width", Value: "24"},
-			{Name: "height", Value: "24"},
-		},
-	}
-
-	result := ComputeSymbolString("no-viewbox", parsedData)
-
-	assert.Contains(t, result, `<symbol id="no-viewbox">`)
-	assert.NotContains(t, result, `viewBox=`)
-	assert.Contains(t, result, `<path d="M0 0"/>`)
-}
-
-func TestComputeSymbolString_EscapesViewBoxValue(t *testing.T) {
-	parsedData := &ParsedSvgData{
-		InnerHTML: `<path/>`,
-		Attributes: []ast_domain.HTMLAttribute{
-			{Name: "viewBox", Value: `0 0 24" onload="alert(1)`},
-		},
-	}
-
-	result := ComputeSymbolString("xss-test", parsedData)
-
-	assert.Contains(t, result, "&#34;")
-
-	assert.Contains(t, result, `viewBox="0 0 24&#34; onload=&#34;alert(1)"`)
 }

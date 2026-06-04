@@ -59,6 +59,10 @@ var (
 	// load.
 	svgLoaderItemFailureCount metric.Int64Counter
 
+	// svgTransformFallbackCount tracks the number of SVG assets whose sprite transform fell
+	// back to a verbatim copy because the content was oversized or could not be parsed.
+	svgTransformFallbackCount metric.Int64Counter
+
 	// componentLoadDuration records the duration of component load operations.
 	componentLoadDuration metric.Float64Histogram
 
@@ -136,6 +140,14 @@ func init() {
 	svgLoaderItemFailureCount, err = meter.Int64Counter(
 		"render.adapters.svg_loader_item_failure_count",
 		metric.WithDescription("Number of individual SVG items that failed to load"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	svgTransformFallbackCount, err = meter.Int64Counter(
+		"render.adapters.svg_transform_fallback_count",
+		metric.WithDescription("Number of SVG assets whose sprite transform fell back to a verbatim copy"),
 	)
 	if err != nil {
 		otel.Handle(err)

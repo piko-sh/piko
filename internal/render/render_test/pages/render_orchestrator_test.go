@@ -118,6 +118,27 @@ func TestRenderOrchestrator_GoldenFiles(t *testing.T) {
 
 		assertGolden(t, filepath.Join("golden", "mega_complex_page.golden.html"), buffer.Bytes())
 	})
+
+	t.Run("should hoist and namespace gradients in the sprite against golden file", func(t *testing.T) {
+		render_domain.ClearSpriteSheetCacheForTesting()
+		mockRegistry.OnGetSVG("icons/star.svg", &render_domain.ParsedSvgData{
+			InnerHTML:  `<defs><linearGradient id="paint0_linear" gradientUnits="userSpaceOnUse" gradientTransform="rotate(45)"><stop stop-color="#FFD700"/><stop offset="1" stop-color="#FFA500"/></linearGradient></defs><path fill="url(#paint0_linear)" d="M12 2l3 7h7l-6 4 3 7-7-4-7 4 3-7-6-4h7z"/>`,
+			Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
+		})
+		mockRegistry.OnGetSVG("icons/heart.svg", &render_domain.ParsedSvgData{
+			InnerHTML:  `<defs><linearGradient id="paint0_linear" gradientUnits="userSpaceOnUse"><stop stop-color="#FF0000"/><stop offset="1" stop-color="#AA0000"/></linearGradient></defs><path fill="url(#paint0_linear)" d="M12 21l-9-8a5 5 0 017-7l2 2 2-2a5 5 0 017 7z"/>`,
+			Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
+		})
+
+		ast := fixtures.SvgGradientPageAST()
+		metadata := templater_dto.InternalMetadata{Metadata: templater_dto.Metadata{Title: "Gradient Sprite Test"}}
+
+		var buffer bytes.Buffer
+		err := orchestrator.RenderAST(context.Background(), &buffer, httptest.NewRecorder(), request, render_domain.RenderASTOptions{PageID: "gradient-page", Template: ast, Metadata: &metadata, SiteConfig: &config.WebsiteConfig{}})
+		require.NoError(t, err)
+
+		assertGolden(t, filepath.Join("golden", "svg_sprite_gradients.golden.html"), buffer.Bytes())
+	})
 }
 
 func TestRenderOrchestrator_Unit(t *testing.T) {
