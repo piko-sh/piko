@@ -268,7 +268,7 @@ func (b *testRegistryBuilder) withSVG(id, innerHTML string, attrs ...ast_domain.
 		InnerHTML:  innerHTML,
 		Attributes: attrs,
 	}
-	parsedData.CachedSymbol = ComputeSymbolString(id, parsedData)
+	parsedData.CachedSymbol, parsedData.CachedDefs, _ = ComputeSymbolAndDefs(id, parsedData)
 	b.svgData[id] = parsedData
 	return b
 }

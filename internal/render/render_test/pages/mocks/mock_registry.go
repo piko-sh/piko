@@ -167,12 +167,13 @@ func (m *MockRegistry) OnGetComponent(componentType string, result *render_dto.C
 // Takes assetID (string) which identifies the SVG asset.
 // Takes result (*render_domain.ParsedSvgData) which is the mock data to return.
 //
-// Safe for concurrent use. Pre-computes CachedSymbol to match production behaviour.
+// Safe for concurrent use. Pre-computes CachedSymbol and CachedDefs to match production
+// behaviour.
 func (m *MockRegistry) OnGetSVG(assetID string, result *render_domain.ParsedSvgData) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if result != nil && result.CachedSymbol == "" {
-		result.CachedSymbol = render_domain.ComputeSymbolString(assetID, result)
+		result.CachedSymbol, result.CachedDefs, _ = render_domain.ComputeSymbolAndDefs(assetID, result)
 	}
 	m.svgResults[assetID] = result
 }

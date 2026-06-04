@@ -637,7 +637,7 @@ func processSVGsSequential(
 
 		tagContent, innerHTML := extractTagContent(rawSvg, "svg")
 		attributes := render_domain.ParseSVGAttributes(tagContent)
-		results[artefactID] = buildParsedSVGData(artefactID, attributes, innerHTML)
+		results[artefactID] = buildParsedSVGData(ctx, artefactID, attributes, innerHTML)
 	}
 	return failedIDs
 }
@@ -695,7 +695,7 @@ func processSVGsParallel(
 
 			tagContent, innerHTML := extractTagContent(rawSvg, "svg")
 			attributes := render_domain.ParseSVGAttributes(tagContent)
-			parsedData := buildParsedSVGData(artefactID, attributes, innerHTML)
+			parsedData := buildParsedSVGData(ctx, artefactID, attributes, innerHTML)
 
 			mu.Lock()
 			results[artefactID] = parsedData
@@ -916,8 +916,11 @@ func getRawSVGFromArtefactZeroCopy(
 	return mem.String(*buffer), nil
 }
 
-// buildParsedSVGData creates a ParsedSvgData with all fields populated. Pre-computes the
+// buildParsedSVGData creates a ParsedSvgData with all fields populated, pre-computing the
 // symbol string at load time to avoid per-request allocation overhead.
+//
+// When the sprite transform falls back to a verbatim copy (oversized or unparseable
+// content), it records a metric and warns so the degradation is observable.
 //
 // Takes artefactID (string) which identifies the SVG artefact.
 // Takes attributes ([]ast_domain.HTMLAttribute) which contains the SVG element
@@ -926,13 +929,21 @@ func getRawSVGFromArtefactZeroCopy(
 //
 // Returns *render_domain.ParsedSvgData which is the fully populated SVG data with cached
 // symbol.
-func buildParsedSVGData(artefactID string, attributes []ast_domain.HTMLAttribute, innerHTML string) *render_domain.ParsedSvgData {
+func buildParsedSVGData(ctx context.Context, artefactID string, attributes []ast_domain.HTMLAttribute, innerHTML string) *render_domain.ParsedSvgData {
 	data := &render_domain.ParsedSvgData{
 		Attributes:   attributes,
 		InnerHTML:    innerHTML,
 		CachedSymbol: "",
 	}
-	data.CachedSymbol = render_domain.ComputeSymbolString(artefactID, data)
+
+	var fellBack bool
+	data.CachedSymbol, data.CachedDefs, fellBack = render_domain.ComputeSymbolAndDefs(artefactID, data)
+	if fellBack {
+		ctx, l := logger_domain.From(ctx, log)
+		svgTransformFallbackCount.Add(ctx, 1)
+		l.Warn("SVG sprite transform fell back to a verbatim copy; gradients may not paint and identifiers are not namespaced",
+			logger_domain.String("artefactID", artefactID))
+	}
 	return data
 }
 

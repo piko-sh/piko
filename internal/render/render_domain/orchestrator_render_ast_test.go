@@ -1057,7 +1057,7 @@ func TestBuildSvgSpriteSheetIfNeeded_AdditionalCases(t *testing.T) {
 					InnerHTML:  `<path d="M12 2L15 9"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 				}
-				svgStar.CachedSymbol = ComputeSymbolString("icon-star", svgStar)
+				svgStar.CachedSymbol, svgStar.CachedDefs, _ = ComputeSymbolAndDefs("icon-star", svgStar)
 				mockReg := newTestRegistryBuilder().
 					withSVG("icon-star", `<path d="M12 2L15 9"/>`, ast_domain.HTMLAttribute{
 						Name: "viewBox", Value: "0 0 24 24",
@@ -1094,12 +1094,12 @@ func TestBuildSvgSpriteSheetIfNeeded_AdditionalCases(t *testing.T) {
 					InnerHTML:  `<circle cx="10" cy="10" r="5"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 20 20"}},
 				}
-				svgA.CachedSymbol = ComputeSymbolString("icon-a", svgA)
+				svgA.CachedSymbol, svgA.CachedDefs, _ = ComputeSymbolAndDefs("icon-a", svgA)
 				svgB := &ParsedSvgData{
 					InnerHTML:  `<rect width="10" height="10"/>`,
 					Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 10 10"}},
 				}
-				svgB.CachedSymbol = ComputeSymbolString("icon-b", svgB)
+				svgB.CachedSymbol, svgB.CachedDefs, _ = ComputeSymbolAndDefs("icon-b", svgB)
 				mockReg := newTestRegistryBuilder().
 					withSVG("icon-a", `<circle cx="10" cy="10" r="5"/>`, ast_domain.HTMLAttribute{
 						Name: "viewBox", Value: "0 0 20 20",

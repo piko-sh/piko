@@ -92,7 +92,7 @@ func benchmarkAssembleSpriteSheet(b *testing.B, count int) {
 	b.ResetTimer()
 
 	for b.Loop() {
-		result := assembleSpriteSheet(symbols, rctx)
+		result := assembleSpriteSheet(symbols, nil, rctx)
 		_ = result
 	}
 }

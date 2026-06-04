@@ -1473,7 +1473,7 @@ func TestBuildSvgSpriteSheetIfNeeded_WithSymbols(t *testing.T) {
 		InnerHTML:  `<path d="M10 20v-6h4v6"/>`,
 		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
 	}
-	svgData.CachedSymbol = ComputeSymbolString("icon-home", svgData)
+	svgData.CachedSymbol, svgData.CachedDefs, _ = ComputeSymbolAndDefs("icon-home", svgData)
 
 	mockReg := newTestRegistryBuilder().
 		withSVG("icon-home", `<path d="M10 20v-6h4v6"/>`, ast_domain.HTMLAttribute{Name: "viewBox", Value: "0 0 24 24"}).
