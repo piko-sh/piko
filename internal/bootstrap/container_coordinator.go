@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -38,6 +39,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/generator/generator_adapters/driven_code_emitter_go_literal"
 	"piko.sh/piko/internal/generator/generator_domain"
+	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -149,19 +151,73 @@ func (c *Container) createAnnotatorServiceInstance(
 	}
 
 	return annotator_domain.NewAnnotatorService(c.GetAppContext(), &annotator_domain.AnnotatorServiceConfig{
-		Resolver:            resolver,
-		FSReader:            fsReader,
-		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
-		CSSProcessor:        cssProcessor,
-		PathsConfig:         NewAnnotatorPathsConfig(&c.serverConfig),
-		AssetsConfig:        c.GetAssetsConfig(),
-		Cache:               annotator_adapters.NewComponentCache(),
-		CompilationLogLevel: compilationLogLevel,
-		EnableDebugLogFiles: enableDebugLogFiles,
-		DebugLogDir:         config.CompilerDebugLogDir,
-		CollectionService:   collectionService,
-		ComponentRegistry:   c.GetComponentRegistry(),
+		Resolver:              resolver,
+		FSReader:              fsReader,
+		TypeInspector:         annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
+		CSSProcessor:          cssProcessor,
+		PathsConfig:           NewAnnotatorPathsConfig(&c.serverConfig),
+		AssetsConfig:          c.GetAssetsConfig(),
+		Cache:                 annotator_adapters.NewComponentCache(),
+		CompilationLogLevel:   compilationLogLevel,
+		EnableDebugLogFiles:   enableDebugLogFiles,
+		DebugLogDir:           config.CompilerDebugLogDir,
+		CollectionService:     collectionService,
+		ComponentRegistry:     c.GetComponentRegistry(),
+		GlobalTranslationKeys: c.loadGlobalTranslationKeys(c.GetAppContext()),
 	})
+}
+
+// loadGlobalTranslationKeys returns the union of project-level translation keys across every
+// locale, which the annotator uses to validate T() calls at compile time. It reads the i18n
+// source JSON directly (rather than the built FlatBuffer) so validation always reflects the
+// keys the developer authored, never lagging a build behind.
+//
+// Returns map[string]struct{} which holds the global keys, or nil when no translations are
+// available so global key validation is skipped rather than producing false warnings.
+func (c *Container) loadGlobalTranslationKeys(ctx context.Context) map[string]struct{} {
+	_, l := logger_domain.From(ctx, log)
+
+	baseDir := deref(c.serverConfig.Paths.BaseDir, ".")
+	i18nSourceDir := deref(c.serverConfig.Paths.I18nSourceDir, "locales")
+
+	sandbox, err := c.createSandbox("annotator-i18n-keys", baseDir, safedisk.ModeReadOnly)
+	if err != nil {
+		l.Warn("Could not open i18n source for translation-key validation; T() keys will not be checked",
+			logger_domain.Error(err))
+		return nil
+	}
+	defer func() { _ = sandbox.Close() }()
+
+	entries, err := sandbox.ReadDir(i18nSourceDir)
+	if err != nil {
+		return nil
+	}
+
+	keys := make(map[string]struct{})
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		content, readErr := sandbox.ReadFile(filepath.Join(i18nSourceDir, entry.Name()))
+		if readErr != nil {
+			l.Warn("Could not read i18n source file for translation-key validation",
+				logger_domain.String("file", entry.Name()), logger_domain.Error(readErr))
+			continue
+		}
+		flattened, flattenErr := i18n_domain.ParseAndFlatten(content)
+		if flattenErr != nil {
+			l.Warn("Could not parse i18n source file for translation-key validation",
+				logger_domain.String("file", entry.Name()), logger_domain.Error(flattenErr))
+			continue
+		}
+		for key := range flattened {
+			keys[key] = struct{}{}
+		}
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	return keys
 }
 
 // GetCoordinatorService returns the build coordination service, creating it if necessary.

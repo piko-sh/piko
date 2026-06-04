@@ -182,6 +182,26 @@ func TestGenerateRoutesByStrategy(t *testing.T) {
 		assert.Equal(t, "/de", result["de"])
 	})
 
+	t.Run("preserves trailing slash on non-root directory-index routes", func(t *testing.T) {
+		t.Parallel()
+
+		result := generateRoutesByStrategy("prefix_except_default", "/articles/", "en", locales)
+
+		assert.Equal(t, "/articles/", result["en"])
+		assert.Equal(t, "/fr/articles/", result["fr"])
+		assert.Equal(t, "/de/articles/", result["de"])
+	})
+
+	t.Run("keeps non-index routes without a trailing slash", func(t *testing.T) {
+		t.Parallel()
+
+		result := generateRoutesByStrategy("prefix", "/about", "en", locales)
+
+		assert.Equal(t, "/en/about", result["en"])
+		assert.Equal(t, "/fr/about", result["fr"])
+		assert.Equal(t, "/de/about", result["de"])
+	})
+
 	t.Run("handles empty locales", func(t *testing.T) {
 		t.Parallel()
 

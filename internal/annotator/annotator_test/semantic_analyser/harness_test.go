@@ -106,7 +106,7 @@ func runTestCase(t *testing.T, tc testCase) {
 	resolvedEntryPath, err := resolver.ResolvePKPath(context.Background(), tc.EntryFile, "")
 	require.NoError(t, err, "Failed to resolve entry point module path '%s' for annotation", tc.EntryFile)
 
-	annotationResult, diagnostics, err := annotator_domain.Annotate(context.Background(), linkingResult, typeResolver, resolvedEntryPath, map[string]annotator_domain.ActionInfoProvider{})
+	annotationResult, diagnostics, err := annotator_domain.Annotate(context.Background(), linkingResult, typeResolver, resolvedEntryPath, map[string]annotator_domain.ActionInfoProvider{}, nil)
 
 	if spec.ShouldError {
 		require.Error(t, err, "Expected semantic analysis to fail, but it succeeded for: %s", tc.Name)

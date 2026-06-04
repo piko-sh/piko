@@ -158,7 +158,7 @@ func (p *componentAnnotationPipeline) runLinkingStage(ctx context.Context, expan
 // Returns *annotator_dto.AnnotationResult which contains the annotated AST.
 // Returns error when annotation fails.
 func (p *componentAnnotationPipeline) runAnnotationStage(ctx context.Context, linkingResult *annotator_dto.LinkingResult) (*annotator_dto.AnnotationResult, error) {
-	result, diagnostics, err := Annotate(ctx, linkingResult, p.typeResolver, p.vc.Source.SourcePath, p.actions)
+	result, diagnostics, err := Annotate(ctx, linkingResult, p.typeResolver, p.vc.Source.SourcePath, p.actions, p.service.globalTranslationKeys)
 	if err != nil {
 		return nil, p.handleStageError(ctx, err, "annotation", linkingResult.LinkedAST)
 	}

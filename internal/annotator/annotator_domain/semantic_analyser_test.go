@@ -372,7 +372,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 	t.Run("returns nil for nil virtual component", func(t *testing.T) {
 		t.Parallel()
 
-		result := buildTranslationKeySet(nil)
+		result := buildTranslationKeySet(nil, nil)
 		assert.Nil(t, result)
 	})
 
@@ -380,7 +380,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 		t.Parallel()
 
 		vc := &annotator_dto.VirtualComponent{Source: nil}
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
 		assert.Nil(t, result)
 	})
 
@@ -392,7 +392,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 				LocalTranslations: nil,
 			},
 		}
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
 		assert.Nil(t, result)
 	})
 
@@ -404,7 +404,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 				LocalTranslations: map[string]map[string]string{},
 			},
 		}
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
 		assert.Nil(t, result)
 	})
 
@@ -422,7 +422,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 			},
 		}
 
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
 
 		require.NotNil(t, result)
 		assert.Contains(t, result.LocalKeys, "greeting")
@@ -442,7 +442,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 			},
 		}
 
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
 
 		require.NotNil(t, result)
 		assert.Contains(t, result.LocalKeys, "greeting")
@@ -459,7 +459,61 @@ func TestBuildTranslationKeySet(t *testing.T) {
 				},
 			},
 		}
-		result := buildTranslationKeySet(vc)
+		result := buildTranslationKeySet(vc, nil)
+		assert.Nil(t, result)
+	})
+
+	t.Run("returns non-nil for global keys without local translations", func(t *testing.T) {
+		t.Parallel()
+
+		vc := &annotator_dto.VirtualComponent{
+			Source: &annotator_dto.ParsedComponent{
+				LocalTranslations: nil,
+			},
+		}
+		globalKeys := map[string]struct{}{
+			"home.subtitle": {},
+			"home.title":    {},
+		}
+
+		result := buildTranslationKeySet(vc, globalKeys)
+
+		require.NotNil(t, result)
+		assert.Empty(t, result.LocalKeys)
+		assert.Contains(t, result.GlobalKeys, "home.subtitle")
+		assert.Contains(t, result.GlobalKeys, "home.title")
+	})
+
+	t.Run("populates both local and global keys", func(t *testing.T) {
+		t.Parallel()
+
+		vc := &annotator_dto.VirtualComponent{
+			Source: &annotator_dto.ParsedComponent{
+				LocalTranslations: map[string]map[string]string{
+					"en": {"greeting": "Hello"},
+				},
+			},
+		}
+		globalKeys := map[string]struct{}{"home.subtitle": {}}
+
+		result := buildTranslationKeySet(vc, globalKeys)
+
+		require.NotNil(t, result)
+		assert.Contains(t, result.LocalKeys, "greeting")
+		assert.Contains(t, result.GlobalKeys, "home.subtitle")
+	})
+
+	t.Run("returns nil when both local and global are empty", func(t *testing.T) {
+		t.Parallel()
+
+		vc := &annotator_dto.VirtualComponent{
+			Source: &annotator_dto.ParsedComponent{
+				LocalTranslations: nil,
+			},
+		}
+
+		result := buildTranslationKeySet(vc, map[string]struct{}{})
+
 		assert.Nil(t, result)
 	})
 }

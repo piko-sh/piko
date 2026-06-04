@@ -266,11 +266,33 @@ type RenderRequest struct {
 	// ProbeData holds pre-fetched data from the probe phase.
 	ProbeData *render_dto.ProbeData
 
+	// AutoLocaleHead holds framework-derived locale SEO head values.
+	//
+	// The values (language, canonical, and hreflang alternates) are computed from the page's
+	// registered per-locale route patterns. They are applied to the page metadata only for
+	// fields the page did not set itself, so a value the page assigns in its metadata still
+	// wins. Nil when the page is not localised.
+	AutoLocaleHead *LocaleSEOHead
+
 	// Page defines the page or partial to render.
 	Page templater_dto.PageDefinition
 
 	// IsFragment indicates whether to render a partial page fragment.
 	IsFragment bool
+}
+
+// LocaleSEOHead holds the locale-aware SEO head values the framework derives automatically
+// for a localised page from its registered per-locale route patterns. Pages no longer need
+// to assign these by hand.
+type LocaleSEOHead struct {
+	// Language is the current request locale, for the html lang attribute.
+	Language string
+
+	// CanonicalURL is the absolute canonical URL for the page (the default-locale variant).
+	CanonicalURL string
+
+	// AlternateLinks holds one hreflang entry per supported locale plus x-default.
+	AlternateLinks []map[string]string
 }
 
 // TemplaterService is the main orchestration service for template rendering. It

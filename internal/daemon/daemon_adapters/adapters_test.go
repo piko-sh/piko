@@ -1874,9 +1874,8 @@ func TestSetupBrotliCompressor_ReturnsWriter(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	compressor, ok := setupBrotliCompressor(context.Background(), recorder)
+	compressor := setupBrotliCompressor(context.Background(), recorder)
 
-	assert.True(t, ok, "Should return true on success")
 	assert.NotNil(t, compressor, "Should return compressor")
 	assert.Equal(t, encodingBrotli, recorder.Header().Get(headerContentEncoding), "Should set Content-Encoding header")
 
@@ -1890,9 +1889,8 @@ func TestSetupGzipCompressor_ReturnsWriter(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	compressor, ok := setupGzipCompressor(context.Background(), recorder)
+	compressor := setupGzipCompressor(context.Background(), recorder)
 
-	assert.True(t, ok, "Should return true on success")
 	assert.NotNil(t, compressor, "Should return compressor")
 	assert.Equal(t, encodingGzip, recorder.Header().Get(headerContentEncoding), "Should set Content-Encoding header")
 

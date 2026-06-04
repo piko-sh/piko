@@ -668,7 +668,7 @@ func (m *CacheMiddleware) serveCachedVariant(
 		return
 	}
 
-	etag := variant.MetadataTags.Get(registry_dto.TagEtag)
+	etag := variantETag(variant)
 
 	l.Trace("Preparing response headers",
 		logger_domain.Int64("contentLength", variant.SizeBytes),
@@ -679,7 +679,9 @@ func (m *CacheMiddleware) serveCachedVariant(
 	if encoding := variant.MetadataTags.Get(registry_dto.TagContentEncoding); encoding != "" {
 		h[headerContentEncoding] = []string{encoding}
 	}
-	h[headerETag] = []string{etag}
+	if etag != "" {
+		h[headerETag] = []string{etag}
+	}
 	h[headerCacheControl] = []string{getCacheControlHeader(maxAge)}
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil && pctx.Locale != "" {
 		h[headerVary] = headerValVaryCachePageI18n
@@ -721,9 +723,9 @@ func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request,
 
 	l.Trace("Selected variant", logger_domain.String("variant", result.variantName))
 
-	etag := result.variant.MetadataTags.Get(registry_dto.TagEtag)
+	etag := variantETag(result.variant)
 
-	if r.Header.Get(headerIfNoneMatch) == etag {
+	if etag != "" && r.Header.Get(headerIfNoneMatch) == etag {
 		l.Trace("ETag matched, returning 304 Not Modified")
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -741,7 +743,7 @@ func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request,
 func (*CacheMiddleware) serveJITResult(w http.ResponseWriter, r *http.Request, result *jitResult) {
 	ctx := r.Context()
 	_, l := logger_domain.From(ctx, log)
-	if r.Header.Get(headerIfNoneMatch) == result.ETag {
+	if result.ETag != "" && r.Header.Get(headerIfNoneMatch) == result.ETag {
 		l.Trace("ETag matched, returning 304 Not Modified")
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -895,6 +897,23 @@ func formatCacheKey(hash uint64) string {
 		hash >>= hexNibbleShift
 	}
 	return string(buffer)
+}
+
+// variantETag returns a usable ETag for a cached variant. It prefers the stored ETag tag and
+// falls back to a strong validator derived from the content hash, so a variant persisted
+// without an explicit ETag tag still has a non-empty validator.
+//
+// Takes variant (*registry_dto.Variant) which provides the cached metadata.
+//
+// Returns string which is the ETag, or empty when the variant has no usable validator.
+func variantETag(variant *registry_dto.Variant) string {
+	if etag := variant.MetadataTags.Get(registry_dto.TagEtag); etag != "" {
+		return etag
+	}
+	if variant.ContentHash != "" {
+		return `"` + variant.ContentHash + `"`
+	}
+	return ""
 }
 
 // formatJITETag formats a hash as a quoted ETag string: "jit-" followed by 16 hex digits.
@@ -1075,18 +1094,18 @@ func releaseCompressedResponseWriter(crw *compressedResponseWriter) {
 // propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
-// Returns io.WriteCloser which wraps the response writer with brotli compression.
-// Returns bool which shows whether the compressor was set up with success.
-func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) (io.WriteCloser, bool) {
-	w.Header()[headerContentEncoding] = headerValEncodingBrotli
+// Returns io.WriteCloser which wraps the response in brotli compression, or nil when a
+// pool writer cannot be obtained.
+func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) io.WriteCloser {
 	bw, ok := brotliWriterPool.Get().(*brotli.Writer)
 	if !ok {
 		_, l := logger_domain.From(ctx, log)
 		l.Error("Failed to get brotli writer from pool")
-		return nil, false
+		return nil
 	}
 	bw.Reset(w)
-	return bw, true
+	w.Header()[headerContentEncoding] = headerValEncodingBrotli
+	return bw
 }
 
 // setupGzipCompressor gets a gzip writer from a pool and sets the response headers for
@@ -1096,18 +1115,18 @@ func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) (io.Write
 // propagation.
 // Takes w (http.ResponseWriter) which receives the compression headers.
 //
-// Returns io.WriteCloser which wraps the response with gzip compression.
-// Returns bool which indicates whether the writer was obtained from the pool.
-func setupGzipCompressor(ctx context.Context, w http.ResponseWriter) (io.WriteCloser, bool) {
-	w.Header()[headerContentEncoding] = headerValEncodingGzip
+// Returns io.WriteCloser which wraps the response in gzip compression, or nil when a pool
+// writer cannot be obtained.
+func setupGzipCompressor(ctx context.Context, w http.ResponseWriter) io.WriteCloser {
 	gw, ok := gzipWriterPool.Get().(*gzip.Writer)
 	if !ok {
 		_, l := logger_domain.From(ctx, log)
 		l.Error("Failed to get gzip writer from pool")
-		return nil, false
+		return nil
 	}
 	gw.Reset(w)
-	return gw, true
+	w.Header()[headerContentEncoding] = headerValEncodingGzip
+	return gw
 }
 
 // releaseCompressor returns a compressor to its pool for reuse.
@@ -1115,6 +1134,9 @@ func setupGzipCompressor(ctx context.Context, w http.ResponseWriter) (io.WriteCl
 // Takes compressor (io.WriteCloser) which is the compressor to return.
 // Takes isBrotli (bool) which indicates whether this is a Brotli or gzip compressor.
 func releaseCompressor(compressor io.WriteCloser, isBrotli bool) {
+	if compressor == nil {
+		return
+	}
 	_ = compressor.Close()
 	if isBrotli {
 		(compressor.(*brotli.Writer)).Reset(nil)
@@ -1137,20 +1159,20 @@ func handleNonCacheableStream(w http.ResponseWriter, r *http.Request, next http.
 	acceptEncoding := r.Header.Get("Accept-Encoding")
 
 	var compressor io.WriteCloser
-	var isBrotli, ok bool
+	var isBrotli bool
 
 	switch {
 	case strings.Contains(acceptEncoding, encodingBrotli):
-		compressor, ok = setupBrotliCompressor(r.Context(), w)
+		compressor = setupBrotliCompressor(r.Context(), w)
 		isBrotli = true
 	case strings.Contains(acceptEncoding, encodingGzip):
-		compressor, ok = setupGzipCompressor(r.Context(), w)
+		compressor = setupGzipCompressor(r.Context(), w)
 	default:
 		next.ServeHTTP(w, r)
 		return
 	}
 
-	if !ok {
+	if compressor == nil {
 		next.ServeHTTP(w, r)
 		return
 	}

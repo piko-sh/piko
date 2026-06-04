@@ -318,6 +318,8 @@ func (sa *SemanticAnalyser) buildPartialInvocationMap(activePInfo *ast_domain.Pa
 // Takes entryPointPath (string) which identifies the main component file.
 // Takes actions (map[string]ActionInfoProvider) which provides action metadata for
 // validation.
+// Takes globalTranslationKeys (map[string]struct{}) which holds the project-level
+// translation keys available to T(); pass nil when no project translations are loaded.
 //
 // Returns *annotator_dto.AnnotationResult which contains the annotated AST and analysis
 // context map.
@@ -329,6 +331,7 @@ func Annotate(
 	resolver *TypeResolver,
 	entryPointPath string,
 	actions map[string]ActionInfoProvider,
+	globalTranslationKeys map[string]struct{},
 ) (*annotator_dto.AnnotationResult, []*ast_domain.Diagnostic, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "Annotate")
@@ -349,7 +352,7 @@ func Annotate(
 		return nil, nil, fmt.Errorf("finding main component for %q: %w", entryPointPath, err)
 	}
 
-	rootCtx := setupAndPopulateRootContext(ctx, mainVirtualComponent, resolver, &diagnostics)
+	rootCtx := setupAndPopulateRootContext(ctx, mainVirtualComponent, resolver, &diagnostics, globalTranslationKeys)
 	analysisMap := make(map[*ast_domain.TemplateNode]*AnalysisContext, initialAnalysisMapCapacity)
 	pkValidator := createPKValidator(ctx, mainVirtualComponent)
 
@@ -403,6 +406,7 @@ func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnosti
 // component to analyse.
 // Takes resolver (*TypeResolver) which resolves types during analysis.
 // Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any diagnostic messages.
+// Takes globalTranslationKeys (map[string]struct{}) which holds project-level T() keys.
 //
 // Returns *AnalysisContext which is the filled root context ready for use.
 func setupAndPopulateRootContext(
@@ -410,6 +414,7 @@ func setupAndPopulateRootContext(
 	mainVirtualComponent *annotator_dto.VirtualComponent,
 	resolver *TypeResolver,
 	diagnostics *[]*ast_domain.Diagnostic,
+	globalTranslationKeys map[string]struct{},
 ) *AnalysisContext {
 	ctx, l := logger_domain.From(ctx, log)
 	if l.Enabled(logger_domain.LevelTrace) {
@@ -435,7 +440,7 @@ func setupAndPopulateRootContext(
 	)
 	rootCtx.Logger = l
 
-	rootCtx.TranslationKeys = buildTranslationKeySet(mainVirtualComponent)
+	rootCtx.TranslationKeys = buildTranslationKeySet(mainVirtualComponent, globalTranslationKeys)
 
 	PopulateRootContext(rootCtx, resolver, mainVirtualComponent)
 	l.Trace("[SA-DEBUG] TOP-LEVEL: Populated Root Context")
@@ -444,14 +449,36 @@ func setupAndPopulateRootContext(
 	return rootCtx
 }
 
-// buildTranslationKeySet collects all translation keys from a component.
+// buildTranslationKeySet collects the translation keys available for compile-time validation
+// of a component: the local keys from its own <i18n> block and the project-level global keys
+// usable with T().
 //
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component that holds
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component that holds local
 // translation data.
+// Takes globalTranslationKeys (map[string]struct{}) which holds the project-level keys.
 //
-// Returns *TranslationKeySet which contains the local translation keys, or nil if the
-// component is nil or has no translations.
-func buildTranslationKeySet(vc *annotator_dto.VirtualComponent) *TranslationKeySet {
+// Returns *TranslationKeySet which holds the local and global keys, or nil only when there
+// are no keys of either kind to validate against (so T() and LT() are not checked).
+func buildTranslationKeySet(vc *annotator_dto.VirtualComponent, globalTranslationKeys map[string]struct{}) *TranslationKeySet {
+	localKeys := collectLocalTranslationKeys(vc)
+
+	if len(localKeys) == 0 && len(globalTranslationKeys) == 0 {
+		return nil
+	}
+
+	return &TranslationKeySet{
+		LocalKeys:  localKeys,
+		GlobalKeys: globalTranslationKeys,
+	}
+}
+
+// collectLocalTranslationKeys gathers the union of translation keys defined in a component's
+// own <i18n> block across every locale.
+//
+// Takes vc (*annotator_dto.VirtualComponent) which is the component whose keys are read.
+//
+// Returns map[string]struct{} which holds the local keys, or nil when there are none.
+func collectLocalTranslationKeys(vc *annotator_dto.VirtualComponent) map[string]struct{} {
 	if vc == nil || vc.Source == nil {
 		return nil
 	}
@@ -477,10 +504,7 @@ func buildTranslationKeySet(vc *annotator_dto.VirtualComponent) *TranslationKeyS
 		return nil
 	}
 
-	return &TranslationKeySet{
-		LocalKeys:  localKeys,
-		GlobalKeys: nil,
-	}
+	return localKeys
 }
 
 // findMainComponent finds and checks the main component in the virtual module.

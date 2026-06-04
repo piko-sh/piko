@@ -321,6 +321,8 @@ func TestRegistryService_UpsertArtefact(t *testing.T) {
 		require.Len(t, art.ActualVariants, 1)
 		assert.Equal(t, "source", art.ActualVariants[0].VariantID)
 		assert.Equal(t, expectedFinalKey, art.ActualVariants[0].StorageKey)
+		assert.Equal(t, `"`+expectedHash+`"`, art.ActualVariants[0].MetadataTags.Get(registry_dto.TagEtag),
+			"persisted source variant must carry a content-hash ETag")
 		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
@@ -1613,7 +1615,22 @@ func TestCreateSourceVariant(t *testing.T) {
 	assert.Equal(t, registry_dto.VariantStatusReady, variant.Status)
 	assert.Equal(t, "source", variant.MetadataTags.Get(registry_dto.TagType))
 	assert.Equal(t, "abc123def", variant.MetadataTags.Get(registry_dto.TagHash))
+	assert.Equal(t, `"abc123def"`, variant.MetadataTags.Get(registry_dto.TagEtag))
 }
+
+func TestCreateSourceVariant_EmptyHashOmitsETag(t *testing.T) {
+	variant := registry_domain.CreateSourceVariant(
+		0,
+		"tmp/uuid",
+		"",
+		"source/empty",
+		"text/plain",
+		"local_disk_cache",
+	)
+
+	assert.Empty(t, variant.MetadataTags.Get(registry_dto.TagEtag))
+}
+
 func TestAddVariant_WithChunks(t *testing.T) {
 	artefactID := "video.mp4"
 	existingArtefact := &registry_dto.ArtefactMeta{

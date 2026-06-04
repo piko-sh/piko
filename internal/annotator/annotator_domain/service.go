@@ -102,6 +102,11 @@ type AnnotatorService struct {
 	// logStore holds compilation log entries for the current operation.
 	logStore *CompilationLogStore
 
+	// globalTranslationKeys holds the union of project-level translation keys (across all
+	// locales) usable with T(). Nil when no project translations are loaded, which disables
+	// global key validation.
+	globalTranslationKeys map[string]struct{}
+
 	// pathsConfig holds the path settings needed by the annotator for directory resolution,
 	// route calculation, and asset URL generation.
 	pathsConfig AnnotatorPathsConfig
@@ -147,6 +152,12 @@ type AnnotatorServiceConfig struct {
 	// route calculation, and asset URL generation.
 	PathsConfig AnnotatorPathsConfig
 
+	// GlobalTranslationKeys holds the union of project-level translation keys usable with T().
+	//
+	// Keys span all locales. Nil disables global translation-key validation. The composition
+	// root loads these once from the i18n source directory.
+	GlobalTranslationKeys map[string]struct{}
+
 	// DebugLogDir specifies the directory for debug log files. Defaults to
 	// config.CompilerDebugLogDir.
 	DebugLogDir string
@@ -191,18 +202,19 @@ func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceCon
 	}
 
 	return &AnnotatorService{
-		resolver:          serviceConfig.Resolver,
-		fsReader:          serviceConfig.FSReader,
-		typeInspector:     serviceConfig.TypeInspector,
-		cssProcessor:      serviceConfig.CSSProcessor,
-		pathsConfig:       serviceConfig.PathsConfig,
-		assetsConfig:      assetsConfig,
-		cache:             serviceConfig.Cache,
-		ignoreMatcher:     newIgnoreMatcher(serviceConfig.Resolver.GetBaseDir(), excludePatterns),
-		logStore:          logStore,
-		collectionService: serviceConfig.CollectionService,
-		componentRegistry: serviceConfig.ComponentRegistry,
-		inMemoryMode:      serviceConfig.InMemoryMode,
+		resolver:              serviceConfig.Resolver,
+		fsReader:              serviceConfig.FSReader,
+		typeInspector:         serviceConfig.TypeInspector,
+		cssProcessor:          serviceConfig.CSSProcessor,
+		pathsConfig:           serviceConfig.PathsConfig,
+		assetsConfig:          assetsConfig,
+		globalTranslationKeys: serviceConfig.GlobalTranslationKeys,
+		cache:                 serviceConfig.Cache,
+		ignoreMatcher:         newIgnoreMatcher(serviceConfig.Resolver.GetBaseDir(), excludePatterns),
+		logStore:              logStore,
+		collectionService:     serviceConfig.CollectionService,
+		componentRegistry:     serviceConfig.ComponentRegistry,
+		inMemoryMode:          serviceConfig.InMemoryMode,
 	}, nil
 }
 

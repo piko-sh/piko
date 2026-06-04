@@ -25,7 +25,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/internal/i18n/i18n_domain"
@@ -850,39 +849,6 @@ func GetData[T any](r *templater_dto.RequestData) T {
 func GetDataLink(tType reflect.Type, r *templater_dto.RequestData) reflect.Value {
 	value, _ := generator_helpers.GetDataReflect(r, tType)
 	return value
-}
-
-// GenerateLocaleHead generates internationalisation SEO metadata for a page. It returns
-// the current locale, canonical URL, and alternate hreflang links for all supported
-// locales.
-//
-// Designed to be called from within a component's Render function to populate the
-// Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks fields.
-//
-// Takes r (*templater_dto.RequestData) which provides the current request data.
-// Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
-// Takes pagePath (string) which specifies the page's URL path.
-// Takes supportedLocalesOverride ([]string) which optionally limits the locales used
-// instead of the full config. Pass nil or empty slice to use all locales.
-//
-// Returns locale (string) which is the current request's locale from r.Locale.
-// Returns canonicalURL (string) which is the canonical URL using default locale.
-// Returns alternateLinks ([]map[string]string) which contains hreflang links for SEO.
-func GenerateLocaleHead(
-	r *templater_dto.RequestData,
-	i18nConfig I18nConfig,
-	pagePath string,
-	supportedLocalesOverride []string,
-) (locale string, canonicalURL string, alternateLinks []map[string]string) {
-	internalConfig := &config.WebsiteConfig{
-		I18n: config.I18nConfig{
-			DefaultLocale: i18nConfig.DefaultLocale,
-			Strategy:      i18nConfig.Strategy,
-			Locales:       i18nConfig.Locales,
-		},
-	}
-
-	return generator_helpers.GenerateLocaleHead(r, internalConfig, pagePath, supportedLocalesOverride)
 }
 
 // These functions support Incremental Static Regeneration for collections.

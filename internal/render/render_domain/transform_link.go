@@ -169,15 +169,22 @@ func applyQueryStrategy(href, locale string) string {
 	return href + "?locale=" + locale
 }
 
-// joinLocalePath joins a locale and href into a path like "/en/about". This is faster
-// than path.Join as it skips path cleaning.
+// joinLocalePath joins a locale and href into a path like "/en/about".
+//
+// This is faster than path.Join as it skips path cleaning, but it special-cases the locale
+// root so the homepage resolves to "/fr" rather than "/fr/", and otherwise preserves the
+// href's trailing slash so directory-index links match their registered routes (for example
+// "/articles/" becomes "/fr/articles/").
 //
 // Takes locale (string) which is the locale prefix to add.
 // Takes href (string) which is the path to join after the locale.
 //
 // Returns string which is the full path with the locale prefix.
 func joinLocalePath(locale, href string) string {
-	if len(href) > 0 && href[0] == '/' {
+	if href == "" || href == "/" {
+		return "/" + locale
+	}
+	if href[0] == '/' {
 		return "/" + locale + href
 	}
 	return "/" + locale + "/" + href

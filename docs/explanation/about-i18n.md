@@ -114,7 +114,7 @@ Two cases stretch the model:
 
 ## See also
 
-- [i18n API reference](../reference/i18n-api.md) for the full `T`/`LT` surface, all `*Var` setters, the `DateTime` builder, and `GenerateLocaleHead`.
+- [i18n API reference](../reference/i18n-api.md) for the full `T`/`LT` surface, all `*Var` setters, the `DateTime` builder, and the automatically derived SEO head.
 - [How to add translations to a site](../how-to/i18n/basic-setup.md) for wiring a project from scratch.
 - [How to choose an i18n routing strategy](../how-to/i18n/routing-strategy.md) for the URL options.
 - [How to pluralise translations](../how-to/i18n/pluralisation.md) for the CLDR (Common Locale Data Repository) pipe form.

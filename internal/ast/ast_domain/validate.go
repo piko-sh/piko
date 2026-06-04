@@ -172,6 +172,9 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 	}
 	for i := range node.DynamicAttributes {
 		dynAttr := &node.DynamicAttributes[i]
+		if isMergedAttribute(dynAttr.Name) {
+			continue
+		}
 		if _, exists := staticAttrs[strings.ToLower(dynAttr.Name)]; exists {
 			message := fmt.Sprintf(
 				"The '%s' attribute is defined statically but also targeted by a dynamic ':%s' binding. The dynamic binding will overwrite the static one.",
@@ -182,6 +185,23 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 			tree.Diagnostics = append(tree.Diagnostics, diagnostic)
 		}
 	}
+}
+
+// isMergedAttribute reports whether a dynamic binding for the named attribute is
+// value-merged rather than overwritten.
+//
+// class and style are merged via MergeClasses and MergeStyles, so a static value alongside a
+// dynamic :class or :style is not a conflict and must not be reported.
+//
+// Takes name (string) which is the attribute name.
+//
+// Returns bool which is true when the attribute is value-merged rather than overwritten.
+func isMergedAttribute(name string) bool {
+	switch strings.ToLower(name) {
+	case "class", "style":
+		return true
+	}
+	return false
 }
 
 // validateContentDirectives checks a template node for content directives that conflict

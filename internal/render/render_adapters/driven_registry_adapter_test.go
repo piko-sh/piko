@@ -19,12 +19,16 @@
 package render_adapters
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
@@ -744,4 +748,85 @@ func TestGetRawSVGFromArtefactZeroCopy_NoSuitableVariant_ReturnsError(t *testing
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no suitable variant")
 	assert.Empty(t, result)
+}
+
+func svgArtefactWithMinifiedAndSource() *registry_dto.ArtefactMeta {
+	return &registry_dto.ArtefactMeta{
+		ID: "lib/icons/play.svg",
+		ActualVariants: []registry_dto.Variant{
+			{
+				VariantID:    "minified",
+				MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "minified-svg"}),
+			},
+			{
+				VariantID:    "source",
+				MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "source"}),
+			},
+		},
+	}
+}
+
+func TestGetRawSVGFromArtefactZeroCopy_FallsBackToSourceWhenMinifiedBlobMissing(t *testing.T) {
+	t.Parallel()
+
+	const sourceSVG = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`
+
+	registry := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(_ context.Context, variant *registry_dto.Variant) (io.ReadCloser, error) {
+			if variant.VariantID == "source" {
+				return io.NopCloser(bytes.NewReader([]byte(sourceSVG))), nil
+			}
+			return nil, registry_domain.ErrBlobNotFound
+		},
+	}
+
+	var frozenBuffers []*[]byte
+
+	result, err := getRawSVGFromArtefactZeroCopy(context.Background(), registry, svgArtefactWithMinifiedAndSource(), &frozenBuffers)
+
+	require.NoError(t, err)
+	assert.Equal(t, sourceSVG, result)
+}
+
+func TestGetRawSVGFromArtefactZeroCopy_ErrorsWhenBothBlobsMissing(t *testing.T) {
+	t.Parallel()
+
+	registry := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(context.Context, *registry_dto.Variant) (io.ReadCloser, error) {
+			return nil, registry_domain.ErrBlobNotFound
+		},
+	}
+
+	var frozenBuffers []*[]byte
+
+	result, err := getRawSVGFromArtefactZeroCopy(context.Background(), registry, svgArtefactWithMinifiedAndSource(), &frozenBuffers)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, registry_domain.ErrBlobNotFound)
+	assert.Empty(t, result)
+}
+
+func TestGetRawSVGFromArtefactZeroCopy_DoesNotFallBackOnNonMissingBlobError(t *testing.T) {
+	t.Parallel()
+
+	readErr := errors.New("permission denied")
+	var sourceRequested bool
+
+	registry := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(_ context.Context, variant *registry_dto.Variant) (io.ReadCloser, error) {
+			if variant.VariantID == "source" {
+				sourceRequested = true
+			}
+			return nil, readErr
+		},
+	}
+
+	var frozenBuffers []*[]byte
+
+	result, err := getRawSVGFromArtefactZeroCopy(context.Background(), registry, svgArtefactWithMinifiedAndSource(), &frozenBuffers)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, readErr)
+	assert.Empty(t, result)
+	assert.False(t, sourceRequested, "source fallback must not be attempted on a non-missing-blob error")
 }

@@ -1344,3 +1344,138 @@ func TestTranslateCatchAllForChi(t *testing.T) {
 		})
 	}
 }
+
+func newAutoHeadRequest(locale, path string, params map[string]string) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "https://example.com"+path, nil)
+	ctx := daemon_dto.WithPikoRequestCtx(req.Context(), &daemon_dto.PikoRequestCtx{Locale: locale})
+	if params != nil {
+		routeCtx := chi.NewRouteContext()
+		for key, value := range params {
+			routeCtx.URLParams.Add(key, value)
+		}
+		ctx = context.WithValue(ctx, chi.RouteCtxKey, routeCtx)
+	}
+	return req.WithContext(ctx)
+}
+
+func TestComputeAutoLocaleHead_LocalisedStaticPage(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string {
+			return map[string]string{"en": "/what-we-do/", "fr": "/fr/what-we-do/"}
+		},
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{
+		Locales:       []string{"en", "fr"},
+		DefaultLocale: "en",
+		Strategy:      "prefix_except_default",
+	}}
+	req := newAutoHeadRequest("fr", "/fr/what-we-do/", nil)
+
+	head := computeAutoLocaleHead(req, entry, cfg)
+
+	require.NotNil(t, head)
+	assert.Equal(t, "fr", head.Language)
+	assert.Equal(t, "https://example.com/what-we-do/", head.CanonicalURL)
+	require.Len(t, head.AlternateLinks, 3)
+	assert.Equal(t, map[string]string{"hreflang": "en", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[0])
+	assert.Equal(t, map[string]string{"hreflang": "fr", "href": "https://example.com/fr/what-we-do/"}, head.AlternateLinks[1])
+	assert.Equal(t, map[string]string{"hreflang": "x-default", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[2])
+}
+
+func TestComputeAutoLocaleHead_SingleLocaleReturnsNil(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string { return map[string]string{"en": "/about"} },
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en"}, DefaultLocale: "en"}}
+
+	assert.Nil(t, computeAutoLocaleHead(newAutoHeadRequest("en", "/about", nil), entry, cfg))
+}
+
+func TestComputeAutoLocaleHead_SubstitutesRouteParams(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string {
+			return map[string]string{"en": "/articles/{slug}", "fr": "/fr/articles/{slug}"}
+		},
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en", "fr"}, DefaultLocale: "en"}}
+	req := newAutoHeadRequest("en", "/articles/hello", map[string]string{"slug": "hello"})
+
+	head := computeAutoLocaleHead(req, entry, cfg)
+
+	require.NotNil(t, head)
+	assert.Equal(t, "https://example.com/articles/hello", head.CanonicalURL)
+	assert.Equal(t, "https://example.com/fr/articles/hello", head.AlternateLinks[1]["href"])
+}
+
+func TestSubstituteRouteParams(t *testing.T) {
+	t.Parallel()
+
+	params := map[string]string{"slug": "hello", "locationslug": "/london"}
+
+	assert.Equal(t, "/articles/hello", substituteRouteParams("/articles/{slug}", params))
+	assert.Equal(t, "/docs/hello", substituteRouteParams("/docs/{slug:.+}", params))
+	assert.Equal(t, "/mcs/london/k8s", substituteRouteParams("/mcs{locationslug}/k8s", params))
+	assert.Equal(t, "/x/{unknown}", substituteRouteParams("/x/{unknown}", params))
+	assert.Equal(t, "/static", substituteRouteParams("/static", params))
+}
+
+func TestToggleTrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "/x/", toggleTrailingSlash("/x"))
+	assert.Equal(t, "/x", toggleTrailingSlash("/x/"))
+	assert.Equal(t, "/a/b/", toggleTrailingSlash("/a/b"))
+	assert.Equal(t, "/", toggleTrailingSlash("/"))
+	assert.Equal(t, "", toggleTrailingSlash(""))
+}
+
+func TestRedirectToCanonicalSlash(t *testing.T) {
+	t.Parallel()
+
+	router := chi.NewRouter()
+	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
+	router.Get("/managed-cloud-services/", ok)
+	router.Get("/fr/managed-cloud-services/", ok)
+	router.Get("/managed-cloud-services/aws", ok)
+
+	cases := []struct {
+		path     string
+		redirect bool
+		target   string
+	}{
+		{"/fr/managed-cloud-services", true, "/fr/managed-cloud-services/"},
+		{"/managed-cloud-services", true, "/managed-cloud-services/"},
+		{"/managed-cloud-services/aws/", true, "/managed-cloud-services/aws"},
+		{"/managed-cloud-services/", false, ""},
+		{"/totally-unknown", false, ""},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(http.MethodGet, "https://example.com"+tc.path, nil)
+		rec := httptest.NewRecorder()
+		got := redirectToCanonicalSlash(router, rec, req)
+		assert.Equal(t, tc.redirect, got, "path %s", tc.path)
+		if tc.redirect {
+			assert.Equal(t, http.StatusPermanentRedirect, rec.Code, "path %s", tc.path)
+			assert.Equal(t, tc.target, rec.Header().Get("Location"), "path %s", tc.path)
+		}
+	}
+}
+
+func TestRedirectToCanonicalSlash_PreservesQuery(t *testing.T) {
+	t.Parallel()
+
+	router := chi.NewRouter()
+	router.Get("/fr/articles/", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+
+	req := httptest.NewRequest(http.MethodGet, "https://example.com/fr/articles?page=2", nil)
+	rec := httptest.NewRecorder()
+
+	assert.True(t, redirectToCanonicalSlash(router, rec, req))
+	assert.Equal(t, "/fr/articles/?page=2", rec.Header().Get("Location"))
+}
