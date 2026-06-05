@@ -445,16 +445,17 @@ func (b *interpretedDaemonBuilder) createAnnotatorServiceInstance(
 	}
 
 	return annotator_domain.NewAnnotatorService(ctx, &annotator_domain.AnnotatorServiceConfig{
-		Resolver:            resolver,
-		FSReader:            fsReader,
-		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
-		CSSProcessor:        cssProcessor,
-		PathsConfig:         NewAnnotatorPathsConfig(&b.c.serverConfig),
-		AssetsConfig:        b.c.GetAssetsConfig(),
-		Cache:               annotator_adapters.NewComponentCache(),
-		CompilationLogLevel: slog.LevelWarn,
-		CollectionService:   collectionService,
-		ComponentRegistry:   b.c.GetComponentRegistry(),
+		Resolver:              resolver,
+		FSReader:              fsReader,
+		TypeInspector:         annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
+		CSSProcessor:          cssProcessor,
+		PathsConfig:           NewAnnotatorPathsConfig(&b.c.serverConfig),
+		AssetsConfig:          b.c.GetAssetsConfig(),
+		Cache:                 annotator_adapters.NewComponentCache(),
+		CompilationLogLevel:   slog.LevelWarn,
+		CollectionService:     collectionService,
+		ComponentRegistry:     b.c.GetComponentRegistry(),
+		GlobalTranslationKeys: b.c.loadGlobalTranslationKeys(ctx),
 	})
 }
 

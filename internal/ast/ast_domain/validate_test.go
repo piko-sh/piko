@@ -176,6 +176,33 @@ func TestValidateAST_AttributeConflicts(t *testing.T) {
 		ValidateAST(tree)
 		assert.Empty(t, tree.Diagnostics)
 	})
+
+	t.Run("should NOT warn when static class is used with shorthand :class (they merge)", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<div class="a b" :class="dynamicClass"></div>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics, ":class merges with static class, no warning expected")
+	})
+
+	t.Run("should NOT warn when static style is used with shorthand :style (they merge)", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<div style="color: red;" :style="dynamicStyle"></div>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics, ":style merges with static style, no warning expected")
+	})
+
+	t.Run("should warn when a non-merged attribute conflicts with shorthand binding", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<div id="static" :id="dynamicId"></div>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "attribute is defined statically but also targeted by a dynamic ':id' binding")
+	})
 }
 
 func TestValidateAST_ContentDirectives(t *testing.T) {

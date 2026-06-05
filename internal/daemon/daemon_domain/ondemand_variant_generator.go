@@ -297,10 +297,11 @@ func (g *onDemandVariantGeneratorImpl) executeVariantGeneration(
 		return nil, err
 	}
 
-	outputStream, err := g.transformImage(ctx, sourceVariant, profile, span)
+	outputStream, sourceStream, err := g.transformImage(ctx, sourceVariant, profile, span)
 	if err != nil {
 		return nil, fmt.Errorf("transforming image: %w", err)
 	}
+	defer func() { _ = sourceStream.Close() }()
 	if closer, ok := outputStream.(io.Closer); ok {
 		defer func() { _ = closer.Close() }()
 	}
@@ -323,18 +324,20 @@ func (g *onDemandVariantGeneratorImpl) executeVariantGeneration(
 // Takes span (trace.Span) which provides tracing context for error reporting.
 //
 // Returns io.Reader which streams the transformed image data.
+// Returns io.Closer which is the source stream the caller must close once the output stream
+// has been fully drained, since the transform reads the source lazily.
 // Returns error when the source data cannot be retrieved or transformation fails.
 func (g *onDemandVariantGeneratorImpl) transformImage(
 	ctx context.Context,
 	sourceVariant *registry_dto.Variant,
 	profile *ParsedImageProfile,
 	span trace.Span,
-) (io.Reader, error) {
+) (io.Reader, io.Closer, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	sourceStream, err := g.registryService.GetVariantData(ctx, sourceVariant)
 	if err != nil {
 		l.ReportError(span, err, "Failed to get source variant data")
-		return nil, fmt.Errorf("failed to get source data: %w", err)
+		return nil, nil, fmt.Errorf("failed to get source data: %w", err)
 	}
 
 	capabilityParams := capabilities_domain.CapabilityParams{
@@ -347,12 +350,10 @@ func (g *onDemandVariantGeneratorImpl) transformImage(
 	if err != nil {
 		_ = sourceStream.Close()
 		l.ReportError(span, err, "Image transform capability failed")
-		return nil, fmt.Errorf("image transform failed: %w", err)
+		return nil, nil, fmt.Errorf("image transform failed: %w", err)
 	}
 
-	_ = sourceStream.Close()
-
-	return outputStream, nil
+	return outputStream, sourceStream, nil
 }
 
 // findSourceVariant finds the source variant for an artefact.

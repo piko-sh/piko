@@ -245,8 +245,7 @@ func init() {
 		"CSPSandboxAllowTopNavigationToCustomProtocols": reflect.ValueOf(security_domain.SandboxAllowTopNavigationToCustomProtocols),
 
 		"Translation":        reflect.ValueOf((*i18n_domain.Translation)(nil)),
-		"GenerateLocaleHead": reflect.ValueOf(runtime.GenerateLocaleHead),
-
+		
 		"LevelDebug": reflect.ValueOf(slog.LevelDebug),
 		"LevelInfo":  reflect.ValueOf(slog.LevelInfo),
 		"LevelWarn":  reflect.ValueOf(slog.LevelWarn),

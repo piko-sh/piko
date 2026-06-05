@@ -300,6 +300,9 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 	mountActionRoutes(mountConfig)
 
 	mountConfig.Router.NotFound(func(w http.ResponseWriter, request *http.Request) {
+		if redirectToCanonicalSlash(mountConfig.Router, w, request) {
+			return
+		}
 		if renderErrorPage(request.Context(), w, request, pageErrorContext{
 			Deps:          mountConfig.Deps,
 			Store:         mountConfig.Store,
@@ -940,13 +943,14 @@ func renderAndRespond(
 	tracker := &responseTracker{ResponseWriter: w}
 	renderStartTime := time.Now()
 	err := p.Deps.Templater.RenderPage(ctx, templater_domain.RenderRequest{
-		Page:          *p.PageDef,
-		Writer:        tracker,
-		Response:      tracker,
-		Request:       request,
-		IsFragment:    parseFragmentParam(request),
-		WebsiteConfig: p.Config,
-		ProbeData:     p.PageProbe.ProbeData,
+		Page:           *p.PageDef,
+		Writer:         tracker,
+		Response:       tracker,
+		Request:        request,
+		IsFragment:     parseFragmentParam(request),
+		WebsiteConfig:  p.Config,
+		ProbeData:      p.PageProbe.ProbeData,
+		AutoLocaleHead: computeAutoLocaleHead(request, p.Entry, p.Config),
 	})
 	renderDurMs := time.Since(renderStartTime).Milliseconds()
 	if err != nil {

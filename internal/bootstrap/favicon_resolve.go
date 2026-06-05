@@ -27,6 +27,21 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+// applyCanonicalBaseURL fills the website canonical base URL from the SEO sitemap hostname
+// when it is not already set, so page-head canonical and hreflang URLs share the sitemap
+// origin rather than depending on the live request host (which can be baked stale into
+// cached pages).
+//
+// Takes container (*Container) which provides the website and SEO configuration.
+func applyCanonicalBaseURL(container *Container) {
+	if container.websiteConfig.CanonicalBaseURL != "" {
+		return
+	}
+	if container.seoConfigOverride != nil && container.seoConfigOverride.Sitemap.Hostname != "" {
+		container.websiteConfig.CanonicalBaseURL = container.seoConfigOverride.Sitemap.Hostname
+	}
+}
+
 // resolveFaviconSources resolves any Src fields on favicon definitions in the website
 // config using the resolver for @/ alias expansion, doing nothing if no favicons have Src
 // set.

@@ -47,7 +47,6 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/email/email_provider_mock"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/runtime"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -893,8 +892,9 @@ type Translation = i18n_domain.Translation
 // defines the supported locales, default locale, and URL strategy for i18n
 // routing.
 //
-// Use I18nConfig when calling GenerateLocaleHead to generate SEO metadata for
-// your pages, or when populating WebsiteConfig.I18n via WithWebsiteConfig.
+// Use I18nConfig when populating WebsiteConfig.I18n via WithWebsiteConfig. The
+// framework derives per-page SEO metadata (canonical and hreflang alternates)
+// automatically from the registered locale routes.
 //
 // Strategy values:
 //   - "query-only": Single bare path; locale is read from a query parameter
@@ -924,36 +924,6 @@ func New(opts ...bootstrap.Option) *SSRServer {
 		AppRouter: chi.NewRouter(),
 		options:   opts,
 	}
-}
-
-// GenerateLocaleHead generates internationalisation SEO metadata for a page.
-//
-// Designed to be called from within a component's Render function to populate
-// the Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks
-// fields.
-//
-// Takes r (*RequestData) which provides the current request data.
-// Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
-// Takes pagePath (string) which is the page's URL path (e.g. "/about").
-// Takes supportedLocalesOverride ([]string) which optionally specifies locales to
-// use instead of the full config. Pass nil or empty slice to use all locales from
-// the config.
-//
-// Returns locale (string) which is the current request's locale from r.Locale.
-// Returns canonicalURL (string) which is the canonical URL for this page.
-// Returns alternateLinks ([]map[string]string) which contains hreflang alternate
-// links for SEO.
-func GenerateLocaleHead(
-	r *RequestData,
-	i18nConfig I18nConfig,
-	pagePath string,
-	supportedLocalesOverride []string,
-) (locale string, canonicalURL string, alternateLinks []map[string]string) {
-	return runtime.GenerateLocaleHead(r, runtime.I18nConfig{
-		DefaultLocale: i18nConfig.DefaultLocale,
-		Strategy:      i18nConfig.Strategy,
-		Locales:       i18nConfig.Locales,
-	}, pagePath, supportedLocalesOverride)
 }
 
 // RunHeadless bootstraps Piko's global services for headless use

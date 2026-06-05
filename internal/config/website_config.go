@@ -79,6 +79,13 @@ type WebsiteConfig struct {
 	// Description is a short explanation of the website's purpose.
 	Description string `json:"description" yaml:"description"`
 
+	// CanonicalBaseURL is the absolute site origin used to build canonical and hreflang URLs.
+	//
+	// An example value is "https://example.com". When empty the live request host is used,
+	// which is fine in development but can bake a stale host into cached pages. The bootstrap
+	// populates it from the SEO sitemap hostname so heads and sitemap agree.
+	CanonicalBaseURL string `json:"canonicalBaseUrl" yaml:"canonicalBaseUrl"`
+
 	// Fonts lists external font stylesheets to include in the HTML output.
 	Fonts []FontDefinition `json:"fonts" yaml:"fonts"`
 

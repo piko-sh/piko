@@ -866,6 +866,46 @@ func findJSVariant(variants []registry_dto.Variant) *registry_dto.Variant {
 	return nil
 }
 
+// openSVGVariantStream opens the data stream for the preferred SVG variant.
+//
+// It falls back to the source variant when the preferred variant's blob is transiently
+// missing during a cold-start build. The source blob is materialised before any derived
+// (minified) variant, so it is the reliable fallback; falling back only on a missing blob
+// keeps genuine read failures and parse errors surfaced.
+//
+// Takes registryService (RegistryService) which provides access to variant data.
+// Takes artefact (*ArtefactMeta) which owns the variants.
+// Takes preferred (*Variant) which is the preferred variant to load first.
+//
+// Returns io.ReadCloser which streams the SVG bytes; the caller must close it.
+// Returns error when the preferred stream fails for any reason other than a missing blob, or
+// when both the preferred and source blobs are missing.
+func openSVGVariantStream(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	artefact *registry_dto.ArtefactMeta,
+	preferred *registry_dto.Variant,
+) (io.ReadCloser, error) {
+	svgStream, err := registryService.GetVariantData(ctx, preferred)
+	if err == nil {
+		return svgStream, nil
+	}
+	if !errors.Is(err, registry_domain.ErrBlobNotFound) {
+		return nil, fmt.Errorf("failed to get stream for SVG '%s': %w", artefact.ID, err)
+	}
+
+	sourceVariant := findSVGSourceVariant(artefact)
+	if sourceVariant == nil || sourceVariant == preferred {
+		return nil, fmt.Errorf("failed to get stream for SVG '%s': %w", artefact.ID, err)
+	}
+
+	sourceStream, sourceErr := registryService.GetVariantData(ctx, sourceVariant)
+	if sourceErr != nil {
+		return nil, fmt.Errorf("failed to get source fallback stream for SVG '%s': %w", artefact.ID, sourceErr)
+	}
+	return sourceStream, nil
+}
+
 // getRawSVGFromArtefactZeroCopy loads SVG content using pooled buffers and zero-copy
 // string conversion.
 //
@@ -893,9 +933,9 @@ func getRawSVGFromArtefactZeroCopy(
 		return "", fmt.Errorf("no suitable variant (minified or source) found for SVG artefact '%s'", artefact.ID)
 	}
 
-	svgStream, err := registryService.GetVariantData(ctx, bestVariant)
+	svgStream, err := openSVGVariantStream(ctx, registryService, artefact, bestVariant)
 	if err != nil {
-		return "", fmt.Errorf("failed to get stream for SVG '%s': %w", artefact.ID, err)
+		return "", err
 	}
 	defer func() { _ = svgStream.Close() }()
 
@@ -961,6 +1001,17 @@ func findSVGVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 			return v
 		}
 	}
+	return findSVGSourceVariant(artefact)
+}
+
+// findSVGSourceVariant finds the unminified source variant of an SVG artefact. It is the
+// fallback when the preferred (minified) variant's blob is not yet on disk, since the source
+// blob is materialised before any derived variant.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
+//
+// Returns *registry_dto.Variant which is the source variant, or nil if none exists.
+func findSVGSourceVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
 		if v.MetadataTags.Get(registry_dto.TagType) == "source" {

@@ -431,6 +431,76 @@ func TestGenerateVariant_GeneratesNewVariant_Successfully(t *testing.T) {
 	}
 }
 
+type closeTrackingReadCloser struct {
+	reader io.Reader
+	closed bool
+}
+
+func (c *closeTrackingReadCloser) Read(buffer []byte) (int, error) {
+	if c.closed {
+		return 0, errors.New("read after close")
+	}
+	return c.reader.Read(buffer)
+}
+
+func (c *closeTrackingReadCloser) Close() error {
+	c.closed = true
+	return nil
+}
+
+func TestGenerateVariant_KeepsSourceOpenUntilOutputDrained(t *testing.T) {
+	t.Parallel()
+
+	sourceBytes := []byte("original source image bytes")
+	source := &closeTrackingReadCloser{reader: bytes.NewReader(sourceBytes), closed: false}
+
+	var stored []byte
+
+	mockRegistry := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return source, nil
+		},
+		GetBlobStoreFunc: func(_ string) (registry_domain.BlobStore, error) {
+			return &registry_domain.MockBlobStore{
+				PutFunc: func(_ context.Context, _ string, data io.Reader) error {
+					var buffer bytes.Buffer
+					_, copyErr := io.Copy(&buffer, data)
+					stored = buffer.Bytes()
+					return copyErr
+				},
+			}, nil
+		},
+		AddVariantFunc: func(_ context.Context, _ string, variant *registry_dto.Variant) (*registry_dto.ArtefactMeta, error) {
+			return &registry_dto.ArtefactMeta{
+				ID:             "test-artefact",
+				ActualVariants: []registry_dto.Variant{*variant},
+			}, nil
+		},
+	}
+
+	mockCapability := &capabilities_domain.MockCapabilityService{
+		ExecuteFunc: func(_ context.Context, _ string, input io.Reader, _ capabilities_domain.CapabilityParams) (io.Reader, error) {
+			return io.MultiReader(input), nil
+		},
+	}
+
+	generator := createTestGeneratorWithDeps(t, mockRegistry, mockCapability)
+	artefact := &registry_dto.ArtefactMeta{
+		ID:         "test-artefact",
+		SourcePath: "images/test.png",
+		ActualVariants: []registry_dto.Variant{
+			{VariantID: "source", StorageKey: "source.png"},
+		},
+	}
+
+	result, err := generator.GenerateVariant(context.Background(), artefact, "image_w240_webp")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, sourceBytes, stored, "output must read the full source before the source is closed")
+	require.True(t, source.closed, "source stream must be closed once the output has been drained")
+}
+
 func TestGenerateVariant_ReturnsError_WhenBlobStoreFails(t *testing.T) {
 	t.Parallel()
 

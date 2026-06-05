@@ -213,3 +213,50 @@ func TestWithWebsiteConfig_DefaultIsNil(t *testing.T) {
 
 	assert.Nil(t, c.websiteConfigOverride)
 }
+
+func TestApplyCanonicalBaseURL(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		initialBase string
+		seoOverride *config.SEOConfig
+		wantBase    string
+	}{
+		{
+			name:        "already set is left untouched",
+			initialBase: "https://existing.example",
+			seoOverride: &config.SEOConfig{Sitemap: config.SitemapConfig{Hostname: "https://sitemap.example"}},
+			wantBase:    "https://existing.example",
+		},
+		{
+			name:        "nil seo override leaves it empty",
+			initialBase: "",
+			seoOverride: nil,
+			wantBase:    "",
+		},
+		{
+			name:        "empty sitemap hostname leaves it empty",
+			initialBase: "",
+			seoOverride: &config.SEOConfig{Sitemap: config.SitemapConfig{Hostname: ""}},
+			wantBase:    "",
+		},
+		{
+			name:        "non-empty sitemap hostname is copied across",
+			initialBase: "",
+			seoOverride: &config.SEOConfig{Sitemap: config.SitemapConfig{Hostname: "https://sitemap.example"}},
+			wantBase:    "https://sitemap.example",
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			container := &Container{
+				websiteConfig:     config.WebsiteConfig{CanonicalBaseURL: testCase.initialBase},
+				seoConfigOverride: testCase.seoOverride,
+			}
+			applyCanonicalBaseURL(container)
+			assert.Equal(t, testCase.wantBase, container.websiteConfig.CanonicalBaseURL)
+		})
+	}
+}

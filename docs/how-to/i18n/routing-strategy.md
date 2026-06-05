@@ -88,37 +88,20 @@ Use this strategy for sites with comparable locale weight where no single langua
 
 ## Emit hreflang and canonical links
 
-`piko.GenerateLocaleHead` produces canonical and `hreflang` alternate-link metadata for the current request. It returns the active locale, the canonical URL, and a slice of alternate-link maps suitable for `Metadata.AlternateLinks`.
+Piko emits the canonical URL and `hreflang` alternate-link metadata automatically. When a page declares `SupportedLocales()`, the framework derives `Metadata.Language`, `Metadata.CanonicalURL`, and `Metadata.AlternateLinks` from the page's registered per-locale route patterns, so it needs no per-page SEO code.
 
 ```go
 import "piko.sh/piko"
 
-func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
-    _, canonical, alternates := piko.GenerateLocaleHead(
-        r,
-        piko.I18nConfig{
-            DefaultLocale: "en",
-            Strategy:      "prefix_except_default",
-            Locales:       []string{"en", "fr", "de"},
-        },
-        "/about",
-        SupportedLocales(),
-    )
+func SupportedLocales() []string { return []string{"en", "fr", "de"} }
 
-    return Response{}, piko.Metadata{
-        Title:          props.PageTitle,
-        CanonicalURL:   canonical,
-        AlternateLinks: alternates,
-    }, nil
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    // CanonicalURL and AlternateLinks are derived from the page's locale routes.
+    return Response{}, piko.Metadata{Title: props.PageTitle}, nil
 }
 ```
 
-| Argument | Purpose |
-|---|---|
-| `r` | The current request. |
-| `piko.I18nConfig{...}` | The site's i18n config. Pass the same struct used at bootstrap. |
-| `"/about"` | The page's URL path. The helper adds the locale prefix as needed. |
-| `SupportedLocales()` | The page's locale opt-in. Restricts alternates to the locales this page actually emits. Pass `nil` to use every locale in the config. |
+The canonical origin comes from the configured site URL (the SEO sitemap hostname) when set, otherwise the request host. A page may still set `Metadata.CanonicalURL` or `Metadata.AlternateLinks` explicitly to override the derived values.
 
 > **Note:** `Strategy` is a plain string. There is no `piko.StrategyPrefixExceptDefault` constant. Use the literal `"prefix_except_default"`, `"prefix"`, or `"query-only"`.
 

@@ -152,6 +152,8 @@ func (*templaterService) renderGeneric(
 		return &templater_dto.RedirectRequired{Metadata: internalMeta}
 	}
 
+	applyAutoLocaleHead(&internalMeta, req.AutoLocaleHead)
+
 	l.Trace("Rendering through renderer",
 		logger_domain.String("phase", label),
 		logger_domain.String(logFieldOriginalPath, req.Page.OriginalPath))
@@ -232,4 +234,26 @@ func NewTemplaterService(runner ManifestRunnerPort, renderer RendererPort, i18nS
 // Returns bool which is true if ServerRedirect or ClientRedirect is set.
 func hasRedirect(meta *templater_dto.InternalMetadata) bool {
 	return meta.ServerRedirect != "" || meta.ClientRedirect != ""
+}
+
+// applyAutoLocaleHead fills the locale SEO head fields (language, canonical URL, and
+// hreflang alternates) from the framework-derived values, but only for fields the page did
+// not set itself, so a value the page assigns in its metadata still takes precedence.
+//
+// Takes meta (*templater_dto.InternalMetadata) which is the page metadata to enrich.
+// Takes auto (*LocaleSEOHead) which holds the derived values, or nil when the page is not
+// localised.
+func applyAutoLocaleHead(meta *templater_dto.InternalMetadata, auto *LocaleSEOHead) {
+	if auto == nil {
+		return
+	}
+	if meta.Language == "" {
+		meta.Language = auto.Language
+	}
+	if meta.CanonicalURL == "" {
+		meta.CanonicalURL = auto.CanonicalURL
+	}
+	if len(meta.AlternateLinks) == 0 {
+		meta.AlternateLinks = auto.AlternateLinks
+	}
 }

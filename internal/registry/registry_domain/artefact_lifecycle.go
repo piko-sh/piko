@@ -1224,6 +1224,9 @@ func buildSourceVariant(upload *blobUploadResult, storageBackendID string) regis
 	var tags registry_dto.Tags
 	tags.Set(registry_dto.TagType, logKeySource)
 	tags.Set(registry_dto.TagHash, upload.hash)
+	if upload.hash != "" {
+		tags.Set(registry_dto.TagEtag, `"`+upload.hash+`"`)
+	}
 
 	return registry_dto.Variant{
 		CreatedAt:        time.Now().UTC(),

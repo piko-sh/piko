@@ -10,7 +10,7 @@ nav:
 
 # i18n API
 
-Piko's internationalisation surface has five parts. Configuration via `piko.WithWebsiteConfig`, accessors on `*piko.RequestData`, the `*Translation` fluent builder, the `DateTime` wrapper for date/time variables, and the `GenerateLocaleHead` search-engine optimisation (SEO) helper. Translation sources are JSON files in `locales/<locale>.json` and per-page `<i18n>` blocks. For task recipes see the [basic setup how-to](../how-to/i18n/basic-setup.md), the [routing strategy how-to](../how-to/i18n/routing-strategy.md), and the [pluralisation how-to](../how-to/i18n/pluralisation.md). For the design rationale see [about i18n](../explanation/about-i18n.md).
+Piko's internationalisation surface has four parts. Configuration via `piko.WithWebsiteConfig`, accessors on `*piko.RequestData`, the `*Translation` fluent builder, and the `DateTime` wrapper for date/time variables. Piko derives the search-engine optimisation (SEO) head (canonical URL and `hreflang` alternates) automatically, as described below. Translation sources are JSON files in `locales/<locale>.json` and per-page `<i18n>` blocks. For task recipes see the [basic setup how-to](../how-to/i18n/basic-setup.md), the [routing strategy how-to](../how-to/i18n/routing-strategy.md), and the [pluralisation how-to](../how-to/i18n/pluralisation.md). For the design rationale see [about i18n](../explanation/about-i18n.md).
 
 ## Configuration
 
@@ -306,54 +306,19 @@ When `r.T(key)` or `r.LT(key)` resolves, the lookup walks:
 
 ## SEO metadata
 
-### `piko.GenerateLocaleHead`
+Piko derives the locale SEO head automatically. When a page declares `SupportedLocales()`, the framework fills `Metadata.Language`, `Metadata.CanonicalURL`, and `Metadata.AlternateLinks` from the page's registered per-locale route patterns, so it emits the `<html lang>`, `<link rel="canonical">`, and `<link rel="alternate" hreflang="...">` tags correctly with no per-page code.
 
 ```go
-func GenerateLocaleHead(
-    r *RequestData,
-    i18nConfig I18nConfig,
-    pagePath string,
-    supportedLocalesOverride []string,
-) (locale string, canonicalURL string, alternateLinks []map[string]string)
-```
+func SupportedLocales() []string { return []string{"en", "fr", "de"} }
 
-Produces canonical URL and `hreflang` alternate-link metadata for the current request.
-
-| Argument | Purpose |
-|---|---|
-| `r` | Current request. |
-| `i18nConfig` | The site's i18n config (typically the same struct passed to bootstrap). |
-| `pagePath` | The page's URL path (for example `"/about"`). The helper adds the locale prefix. |
-| `supportedLocalesOverride` | Optional. Pass the page's `SupportedLocales()` list to restrict the alternates to only the locales that page emits. Pass `nil` to use every locale in `i18nConfig`. |
-
-| Return | Purpose |
-|---|---|
-| `locale` | Same as `r.Locale()`; convenient for setting `<html lang>`. |
-| `canonicalURL` | Canonical URL for the active locale's variant of this page. |
-| `alternateLinks` | One map per locale with `"hreflang"` and `"href"` keys, suitable for `<link rel="alternate" hreflang="..." href="..."/>` emission. |
-
-Wire it into a layout partial:
-
-```go
 func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
-    _, canonical, alternates := piko.GenerateLocaleHead(
-        r,
-        piko.I18nConfig{
-            DefaultLocale: "en",
-            Strategy:      "prefix_except_default",
-            Locales:       []string{"en", "fr", "de"},
-        },
-        "/about",
-        SupportedLocales(),
-    )
-
-    return Response{}, piko.Metadata{
-        Title:          props.PageTitle,
-        CanonicalURL:   canonical,
-        AlternateLinks: alternates,
-    }, nil
+    // Language, CanonicalURL and AlternateLinks are derived automatically from
+    // the page's registered locale routes.
+    return Response{}, piko.Metadata{Title: props.PageTitle}, nil
 }
 ```
+
+The canonical origin comes from the configured site URL (the SEO sitemap hostname) when set, otherwise the request host. A page may still set `Metadata.CanonicalURL` or `Metadata.AlternateLinks` explicitly to override the derived values.
 
 ## Locale-aware links
 

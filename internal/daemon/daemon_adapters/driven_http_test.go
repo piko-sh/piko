@@ -1393,6 +1393,112 @@ func TestServeJITResult_NoETagMatch_Returns200(t *testing.T) {
 	assert.Equal(t, "content", recorder.Body.String())
 }
 
+func TestServeJITResult_NoIfNoneMatch_Returns200(t *testing.T) {
+	t.Parallel()
+
+	m := &CacheMiddleware{}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	result := &jitResult{
+		Content:    []byte("fresh content"),
+		ETag:       `"jit-abc123"`,
+		StatusCode: http.StatusOK,
+	}
+
+	m.serveJITResult(recorder, request, result)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "fresh content", recorder.Body.String())
+}
+
+func TestVariantETag(t *testing.T) {
+	t.Parallel()
+
+	var stored registry_dto.Tags
+	stored.Set(registry_dto.TagEtag, `"stored"`)
+
+	testCases := []struct {
+		name    string
+		variant *registry_dto.Variant
+		want    string
+	}{
+		{
+			name:    "prefers stored etag tag",
+			variant: &registry_dto.Variant{MetadataTags: stored, ContentHash: "deadbeef"},
+			want:    `"stored"`,
+		},
+		{
+			name:    "falls back to content hash",
+			variant: &registry_dto.Variant{ContentHash: "deadbeef"},
+			want:    `"deadbeef"`,
+		},
+		{
+			name:    "empty when neither present",
+			variant: &registry_dto.Variant{},
+			want:    "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, variantETag(tc.variant))
+		})
+	}
+}
+
+func TestServeFromCache_EmptyETagNoConditional_Returns200(t *testing.T) {
+	t.Parallel()
+
+	registryService := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("CACHED BODY")), nil
+		},
+	}
+	m := &CacheMiddleware{registryService: registryService}
+
+	artefact := &registry_dto.ArtefactMeta{
+		ActualVariants: []registry_dto.Variant{
+			{VariantID: variantSource, MimeType: "text/html", ContentHash: "abc123"},
+		},
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	m.serveFromCache(recorder, request, artefact, 0)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "CACHED BODY", recorder.Body.String())
+	assert.Equal(t, `"abc123"`, recorder.Header().Get("Etag"))
+}
+
+func TestServeFromCache_ContentHashConditional_Returns304(t *testing.T) {
+	t.Parallel()
+
+	registryService := &registry_domain.MockRegistryService{
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("CACHED BODY")), nil
+		},
+	}
+	m := &CacheMiddleware{registryService: registryService}
+
+	artefact := &registry_dto.ArtefactMeta{
+		ActualVariants: []registry_dto.Variant{
+			{VariantID: variantSource, MimeType: "text/html", ContentHash: "abc123"},
+		},
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.Header.Set("If-None-Match", `"abc123"`)
+
+	m.serveFromCache(recorder, request, artefact, 0)
+
+	assert.Equal(t, http.StatusNotModified, recorder.Code)
+	assert.Empty(t, recorder.Body.String())
+}
+
 func TestHandleNonCacheableStream_NoCompression_PassesThrough(t *testing.T) {
 	t.Parallel()
 

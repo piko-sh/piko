@@ -123,6 +123,8 @@ func ConfigAndContainer(ctx context.Context, deps *Dependencies, opts ...Option)
 		container.websiteConfig = config.WebsiteConfig{}
 	}
 
+	applyCanonicalBaseURL(container)
+
 	resolveFaviconSources(container)
 
 	l.Internal("Initialising logger from configuration...")

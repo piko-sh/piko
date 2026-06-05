@@ -1529,9 +1529,8 @@ func TestSetupBrotliCompressor_SetsContentEncodingHeader(t *testing.T) {
 	t.Parallel()
 
 	recorder := httptest.NewRecorder()
-	compressor, ok := setupBrotliCompressor(context.Background(), recorder)
+	compressor := setupBrotliCompressor(context.Background(), recorder)
 
-	assert.True(t, ok)
 	assert.NotNil(t, compressor)
 	assert.Equal(t, "br", recorder.Header().Get("Content-Encoding"))
 
@@ -1544,9 +1543,8 @@ func TestSetupGzipCompressor_SetsContentEncodingHeader(t *testing.T) {
 	t.Parallel()
 
 	recorder := httptest.NewRecorder()
-	compressor, ok := setupGzipCompressor(context.Background(), recorder)
+	compressor := setupGzipCompressor(context.Background(), recorder)
 
-	assert.True(t, ok)
 	assert.NotNil(t, compressor)
 	assert.Equal(t, "gzip", recorder.Header().Get("Content-Encoding"))
 
