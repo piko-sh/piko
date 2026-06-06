@@ -50,6 +50,7 @@ use (
 	./wdk/config/config_resolver_vault
 	./wdk/crypto/crypto_provider_aws_kms
 	./wdk/crypto/crypto_provider_gcp_kms
+	./wdk/crypto/crypto_signer_mldsa
 	./wdk/db/db_catalogue_postgres
 	./wdk/db/db_catalogue_sqlite
 	./wdk/db/db_driver_d1
@@ -203,6 +204,7 @@ replace (
 	piko.sh/piko/wdk/config/config_resolver_vault v0.0.0 => ./wdk/config/config_resolver_vault
 	piko.sh/piko/wdk/crypto/crypto_provider_aws_kms v0.0.0 => ./wdk/crypto/crypto_provider_aws_kms
 	piko.sh/piko/wdk/crypto/crypto_provider_gcp_kms v0.0.0 => ./wdk/crypto/crypto_provider_gcp_kms
+	piko.sh/piko/wdk/crypto/crypto_signer_mldsa v0.0.0 => ./wdk/crypto/crypto_signer_mldsa
 	piko.sh/piko/wdk/db/db_catalogue_postgres v0.0.0 => ./wdk/db/db_catalogue_postgres
 	piko.sh/piko/wdk/db/db_catalogue_sqlite v0.0.0 => ./wdk/db/db_catalogue_sqlite
 	piko.sh/piko/wdk/db/db_driver_d1 v0.0.0 => ./wdk/db/db_driver_d1
