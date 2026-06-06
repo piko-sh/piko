@@ -147,8 +147,8 @@ type NavigationNode struct {
 	//   - Redirect pages that should not appear in menus
 	//   - Old content kept for backward compatibility
 	//
-	// Hidden nodes are usually filtered out during tree building, so the value may
-	// always be false in practice.
+	// Hidden nodes are usually filtered out during tree building, so the value may always be
+	// false in practice.
 	Hidden bool
 }
 

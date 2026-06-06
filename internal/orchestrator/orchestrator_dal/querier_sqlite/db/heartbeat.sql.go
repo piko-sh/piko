@@ -9,12 +9,12 @@ WHERE status = 'PROCESSING'
 AND updated_at < ?;`
 
 type GetStaleProcessingTaskCountRow struct {
-	Count int32
+	Count int64 `json:"count"`
 }
 
-func (queries *Queries) GetStaleProcessingTaskCount(ctx context.Context, p1 int32) (GetStaleProcessingTaskCountRow, error) {
+func (queries *Queries) GetStaleProcessingTaskCount(ctx context.Context, updatedAt int64) (GetStaleProcessingTaskCountRow, error) {
 	var row GetStaleProcessingTaskCountRow
-	err := queries.reader.QueryRowContext(ctx, getstaleprocessingtaskcount, p1).Scan(&row.Count)
+	err := queries.reader.QueryRowContext(ctx, getstaleprocessingtaskcount, updatedAt).Scan(&row.Count)
 	if err != nil {
 		return GetStaleProcessingTaskCountRow{}, err
 	}
@@ -26,11 +26,11 @@ SET updated_at = ?
 WHERE id = ? AND status = 'PROCESSING';`
 
 type UpdateTaskHeartbeatParams struct {
-	P1 int32
-	P2 string
+	UpdatedAt int64
+	ID        string
 }
 
 func (queries *Queries) UpdateTaskHeartbeat(ctx context.Context, params UpdateTaskHeartbeatParams) error {
-	_, err := queries.writer.ExecContext(ctx, updatetaskheartbeat, params.P1, params.P2)
+	_, err := queries.writer.ExecContext(ctx, updatetaskheartbeat, params.UpdatedAt, params.ID)
 	return err
 }

@@ -1,19 +1,19 @@
 {
   "all_notes": [
     {
-      "Body": "Body one",
-      "ID": 1,
-      "Title": "First"
+      "body": "Body one",
+      "id": 1,
+      "title": "First"
     },
     {
-      "Body": "Body two",
-      "ID": 2,
-      "Title": "Second"
+      "body": "Body two",
+      "id": 2,
+      "title": "Second"
     }
   ],
   "note": {
-    "Body": "Body one",
-    "ID": 1,
-    "Title": "First"
+    "body": "Body one",
+    "id": 1,
+    "title": "First"
   }
 }

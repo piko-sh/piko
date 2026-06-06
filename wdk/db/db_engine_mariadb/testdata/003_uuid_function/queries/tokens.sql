@@ -1,7 +1,5 @@
--- piko.name: GenerateToken
--- piko.command: one
+-- piko.query(name: GenerateToken, command: one)
 SELECT UUID() AS token_value;
 
--- piko.name: InsertToken
--- piko.command: exec
+-- piko.query(name: InsertToken, command: exec)
 INSERT INTO tokens (token) VALUES (?);

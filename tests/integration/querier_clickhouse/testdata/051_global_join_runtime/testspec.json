@@ -1,0 +1,3 @@
+{
+  "description": "GLOBAL LEFT JOIN serialises the right-hand side once and broadcasts it to all shards. On a single-node test this is observationally identical to a regular JOIN, but the parser must accept the GLOBAL keyword without rejecting the statement. The runner exercises the joined query end-to-end on a single shard."
+}

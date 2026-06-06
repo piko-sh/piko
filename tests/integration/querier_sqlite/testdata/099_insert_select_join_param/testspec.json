@@ -1,0 +1,4 @@
+{
+  "description": "Bug#1: INSERT ... SELECT ... INNER JOIN ... WHERE retains the SELECT body's FROM/JOIN scope, so the body's source aliases 's' and 'a' resolve and both declared parameters are referenced against the body scope. Previously the SELECT source was dropped, producing Q001 (unknown alias 's') and Q042 (parameter declared but not referenced). expectedDiagnostics:[] pins both away, and the generated INSERT ... SELECT executes and archives only the active account's sessions.",
+  "expectedDiagnostics": []
+}

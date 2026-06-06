@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "logs.sql",
-    "SQL": "-- piko.name: GetLogCount\n-- piko.command: one\nSELECT count_logs() AS total;",
+    "SQL": "-- piko.query(name: GetLogCount, command: one)\nSELECT count_logs() AS total;",
     "Name": "GetLogCount",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "total",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -43,22 +48,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "logs.sql",
-    "SQL": "-- piko.name: ListLogs\n-- piko.command: many\nSELECT id, message, created_at FROM logs;",
+    "SQL": "-- piko.query(name: ListLogs, command: many)\nSELECT id, message, created_at FROM logs;",
     "Name": "ListLogs",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "logs",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "logs",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +82,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "message",
         "SourceTable": "logs",
+        "SourceSchema": "",
         "SourceColumn": "message",
+        "SourceQualifier": "logs",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "logs",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "logs",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -135,10 +155,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

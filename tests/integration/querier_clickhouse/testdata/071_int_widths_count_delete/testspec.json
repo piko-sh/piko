@@ -1,0 +1,1 @@
+{"description": "Integer widths (UInt64/Int64/Int32) round-trip without truncation, toInt64(count()) is typed int64, and a lightweight DELETE FROM ... WHERE {param} binds its parameter"}

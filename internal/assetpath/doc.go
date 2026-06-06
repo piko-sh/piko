@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package assetpath provides predicates and transformations for asset source paths
-// used throughout the Piko asset pipeline.
+// Package assetpath provides predicates and transformations for asset source paths used
+// throughout the Piko asset pipeline.
 //
 // Source paths in templates and configuration files (e.g. piko:img src, favicon src) must
 // be transformed into served URLs before rendering. Centralises that logic so the

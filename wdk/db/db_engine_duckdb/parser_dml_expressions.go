@@ -28,6 +28,11 @@ import (
 //
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
+	if p.expressionDepth >= p.maxParseDepth {
+		return &querier_dto.UnknownExpression{}
+	}
+	p.expressionDepth++
+	defer func() { p.expressionDepth-- }()
 	return p.parseOrExpression()
 }
 
@@ -359,7 +364,7 @@ func (p *parser) parsePrimaryExpression() querier_dto.Expression {
 	switch tok.kind {
 	case tokenNumber:
 		return p.parseNumberLiteral(tok)
-	case tokenString:
+	case tokenString, tokenDollarString:
 		p.advance()
 		return &querier_dto.LiteralExpression{TypeName: "text"}
 	case tokenBitString:
@@ -396,10 +401,32 @@ func (p *parser) parseNumberLiteral(tok token) querier_dto.Expression {
 // Returns querier_dto.Expression which is an UnknownExpression placeholder for the
 // parameter value.
 func (p *parser) parseParameterExpression() querier_dto.Expression {
+	paramPosition := p.position
 	parameterToken := p.current()
 	p.advance()
-	p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextUnknown, nil, nil)
+
+	context := querier_dto.ParameterContextUnknown
+	var columnRef *querier_dto.ColumnReference
+	if ref := p.insertProjectionColumnRef(); ref != nil {
+		context = querier_dto.ParameterContextAssignment
+		columnRef = ref
+	}
+
+	p.registerParameterFromToken(parameterToken, context, columnRef, nil)
+	p.recordFunctionArgumentMetadata(paramPosition)
 	return &querier_dto.UnknownExpression{}
+}
+
+// insertProjectionColumnRef returns the INSERT target column reference for the projection
+// item currently being parsed, or nil when no INSERT ... SELECT projection is active or
+// the ordinal is past the declared column list.
+//
+// Returns *querier_dto.ColumnReference which names the target table and column, or nil.
+func (p *parser) insertProjectionColumnRef() *querier_dto.ColumnReference {
+	if p.insertProjectionColumns == nil {
+		return nil
+	}
+	return p.columnRefForIndex(p.insertProjectionTable, p.insertProjectionColumns, p.insertProjectionIndex)
 }
 
 // parseParenthesisedExpression parses a parenthesised expression or subquery.
@@ -646,7 +673,47 @@ func (p *parser) parseIsSuffix(left querier_dto.Expression) querier_dto.Expressi
 		return &querier_dto.IsNullExpression{Inner: left, Negated: negated}
 	}
 
-	return &querier_dto.IsNullExpression{Inner: left, Negated: negated}
+	return p.parseIsOperandComparison(left, negated)
+}
+
+// parseIsOperandComparison handles the null-safe equality form "col IS <value>" (and "col
+// IS NOT <value>") that DuckDB, like SQLite, treats as equality.
+//
+// It parses the right-hand operand and attaches the left-hand column reference to any
+// placeholder seen on the right, so a bare parameter takes the column's type, like "col =
+// <param>" does. This mirrors the IN-list and BETWEEN suffixes; reached only when the
+// token after IS [NOT] is not one of the recognised NULL / DISTINCT / TRUE / FALSE /
+// UNKNOWN forms.
+//
+// Takes left (querier_dto.Expression) which is the left-hand side of IS.
+// Takes negated (bool) which is true when a NOT keyword followed IS.
+//
+// Returns querier_dto.Expression which is the resulting null-safe comparison expression.
+func (p *parser) parseIsOperandComparison(left querier_dto.Expression, negated bool) querier_dto.Expression {
+	parameterCountBefore := p.parameterCount
+	right := p.parseBitwiseExpression()
+
+	var columnReference *querier_dto.ColumnReference
+	if columnExpression, ok := left.(*querier_dto.ColumnRefExpression); ok {
+		columnReference = &querier_dto.ColumnReference{
+			TableAlias: columnExpression.TableAlias,
+			ColumnName: columnExpression.ColumnName,
+		}
+	}
+	if columnReference != nil {
+		for i := range p.parameterRefs {
+			if p.parameterRefs[i].Number > parameterCountBefore && p.parameterRefs[i].ColumnReference == nil {
+				p.parameterRefs[i].Context = querier_dto.ParameterContextComparison
+				p.parameterRefs[i].ColumnReference = columnReference
+			}
+		}
+	}
+
+	operator := "IS"
+	if negated {
+		operator = "IS NOT"
+	}
+	return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: right}
 }
 
 // parseInListSuffix parses an IN (...) list or subquery predicate.
@@ -664,6 +731,9 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		}
 		childParser := newParser(innerTokens)
 		childParser.parameterCount = p.parameterCount
+		childParser.analysisDepth = p.analysisDepth
+		childParser.expressionDepth = p.expressionDepth
+		childParser.maxParseDepth = p.maxParseDepth
 		innerAnalysis, analyseError := childParser.analyseSelect()
 		if analyseError != nil {
 			return &querier_dto.UnknownExpression{}

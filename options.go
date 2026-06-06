@@ -61,53 +61,59 @@ const (
 	// WatchdogPriorityCritical indicates imminent system instability.
 	WatchdogPriorityCritical = monitoring_domain.WatchdogPriorityCritical
 
-	// ModuleAnalytics provides Google Analytics (GA4) support through hooks.
-	// It tracks page views, navigation, server actions, modal opens, and errors.
+	// ModuleAnalytics provides Google Analytics (GA4) support through hooks. It tracks page
+	// views, navigation, server actions, modal opens, and errors.
 	ModuleAnalytics = daemon_frontend.ModuleAnalytics
 
-	// ModuleModals provides helper functions for modal dialogues. It exports
-	// showModal, closeModal, updateModal, and reloadPartial.
+	// ModuleModals provides helper functions for modal dialogues. It exports showModal,
+	// closeModal, updateModal, and reloadPartial.
 	ModuleModals = daemon_frontend.ModuleModals
 
-	// ModuleToasts provides toast notification helpers. It exports showToast which
-	// takes a message, variant, and duration.
+	// ModuleToasts provides toast notification helpers. It exports showToast which takes a
+	// message, variant, and duration.
 	ModuleToasts = daemon_frontend.ModuleToasts
 
-	// defaultRegistryCacheMaxWeightMB is the default maximum cache size in
-	// megabytes.
+	// defaultRegistryCacheMaxWeightMB is the default maximum cache size in megabytes.
 	defaultRegistryCacheMaxWeightMB = 256
 
-	// defaultRegistryCacheTTLMinutes is the default TTL for cache entries in
-	// minutes.
+	// defaultRegistryCacheTTLMinutes is the default TTL for cache entries in minutes.
 	defaultRegistryCacheTTLMinutes = 30
 
 	// bytesPerMB is the number of bytes in a megabyte.
 	bytesPerMB = 1024 * 1024
 
-	// CORPSameOrigin restricts resources to same-origin requests only.
-	// This is the default and most secure option.
+	// CORPSameOrigin restricts resources to same-origin requests only. This is the default
+	// and most secure option.
 	CORPSameOrigin = "same-origin"
 
 	// CORPSameSite allows resources to be loaded by same-site requests.
 	CORPSameSite = "same-site"
 
-	// CORPCrossOrigin allows resources to be loaded by any origin.
-	// Use this for headless CMS scenarios where resources are served to
-	// frontends on different origins.
+	// CORPCrossOrigin allows resources to be loaded by any origin. Use this for headless CMS
+	// scenarios where resources are served to frontends on different origins.
 	CORPCrossOrigin = "cross-origin"
+
+	// SpamSignalGibberish tags a field for gibberish detection.
+	SpamSignalGibberish = spamdetect_dto.SignalGibberish
+
+	// SpamSignalLinkDensity tags a field for link density analysis.
+	SpamSignalLinkDensity = spamdetect_dto.SignalLinkDensity
+
+	// SpamSignalBlocklist tags a field for blocklist matching.
+	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
 )
 
-// CSSResetOption is a functional option for configuring the CSS reset feature.
-// It is used as a sub-option of WithCSSReset.
+// CSSResetOption is a functional option for configuring the CSS reset feature. It is used
+// as a sub-option of WithCSSReset.
 type CSSResetOption = bootstrap.CSSResetOption
 
-// FrontendModule represents a built-in Piko frontend module.
-// These are optional JavaScript bundles that add features like analytics,
-// modals, or toasts to the core framework.
+// FrontendModule represents a built-in Piko frontend module. These are optional
+// JavaScript bundles that add features like analytics, modals, or toasts to the core
+// framework.
 type FrontendModule = daemon_frontend.FrontendModule
 
-// AnalyticsConfig is an alias for the frontend analytics settings.
-// It configures Google Analytics (GA4) integration.
+// AnalyticsConfig is an alias for the frontend analytics settings. It configures Google
+// Analytics (GA4) integration.
 type AnalyticsConfig = daemon_frontend.AnalyticsConfig
 
 // ModalsConfig provides settings for the Modals module.
@@ -119,8 +125,8 @@ type ToastsConfig = daemon_frontend.ToastsConfig
 // MonitoringOption sets up the gRPC monitoring service.
 type MonitoringOption = bootstrap.MonitoringOption
 
-// MetricsExporter is the interface for metrics exporters.
-// Implementations provide OTEL metric reader integration and HTTP handlers.
+// MetricsExporter is the interface for metrics exporters. Implementations provide OTEL
+// metric reader integration and HTTP handlers.
 type MetricsExporter = monitoring_domain.MetricsExporter
 
 // MonitoringTLSOption configures TLS settings for the monitoring gRPC server.
@@ -129,48 +135,33 @@ type MonitoringTLSOption = bootstrap.MonitoringTLSOption
 // ProfilingOption configures the pprof HTTP debug server.
 type ProfilingOption = bootstrap.ProfilingOption
 
-// GeneratorProfilingOption configures profiling for short-lived generator
-// builds that capture profiles to disk.
+// GeneratorProfilingOption configures profiling for short-lived generator builds that
+// capture profiles to disk.
 type GeneratorProfilingOption = bootstrap.GeneratorProfilingOption
 
-// RegistryMetadataCacheConfig configures the metadata cache for the Registry
-// service. This cache stores artefact metadata to reduce database queries and
-// improve performance.
+// RegistryMetadataCacheConfig configures the metadata cache for the Registry service.
+// This cache stores artefact metadata to reduce database queries and improve performance.
 type RegistryMetadataCacheConfig struct {
-	// MaxWeight is the maximum total weight (in bytes) the cache may hold,
-	// calculated by a custom weigher that estimates the memory footprint of
-	// each artefact metadata entry and evicting the least recently used
-	// entries when the limit is reached.
-	// Default: 256 MB (256 * 1024 * 1024).
+	// MaxWeight is the maximum total weight (in bytes) the cache may hold, calculated by a
+	// custom weigher that estimates the memory footprint of each artefact metadata entry and
+	// evicting the least recently used entries when the limit is reached. Default: 256 MB
+	// (256 * 1024 * 1024).
 	MaxWeight uint64
 
-	// TTL is the time-to-live for cached entries, using access-based
-	// expiration that resets on every read to implement a sliding window
-	// policy ideal for keeping frequently accessed artefacts in cache.
-	// Default: 30 minutes.
+	// TTL is the time-to-live for cached entries, using access-based expiration that resets
+	// on every read to implement a sliding window policy ideal for keeping frequently
+	// accessed artefacts in cache. Default: 30 minutes.
 	TTL time.Duration
 
-	// StatsEnabled enables collection of cache performance statistics,
-	// reserved for future functionality and currently having no effect
-	// since statistics are always available via the cache's Stats() method.
-	// Default: false.
+	// StatsEnabled enables collection of cache performance statistics, reserved for future
+	// functionality and currently having no effect since statistics are always available via
+	// the cache's Stats() method. Default: false.
 	StatsEnabled bool
 }
 
-// CSPBuilder is a helper for creating Content-Security-Policy headers.
-// See WithCSP for usage examples.
+// CSPBuilder is a helper for creating Content-Security-Policy headers. See WithCSP for
+// usage examples.
 type CSPBuilder = security_domain.CSPBuilder
-
-const (
-	// SpamSignalGibberish tags a field for gibberish detection.
-	SpamSignalGibberish = spamdetect_dto.SignalGibberish
-
-	// SpamSignalLinkDensity tags a field for link density analysis.
-	SpamSignalLinkDensity = spamdetect_dto.SignalLinkDensity
-
-	// SpamSignalBlocklist tags a field for blocklist matching.
-	SpamSignalBlocklist = spamdetect_dto.SignalBlocklist
-)
 
 var (
 	// CSPSelf allows resources from the same origin (scheme, host, and port).
@@ -179,23 +170,23 @@ var (
 	// CSPNone disallows all resources for the directive.
 	CSPNone = security_domain.None
 
-	// CSPUnsafeInline allows inline scripts and styles.
-	// Warning: This significantly reduces CSP protection against XSS.
+	// CSPUnsafeInline allows inline scripts and styles. Warning: This significantly reduces
+	// CSP protection against XSS.
 	CSPUnsafeInline = security_domain.UnsafeInline
 
-	// CSPUnsafeEval allows use of eval() and similar dynamic code execution.
-	// Warning: This significantly reduces CSP protection against XSS.
+	// CSPUnsafeEval allows use of eval() and similar dynamic code execution. Warning: This
+	// significantly reduces CSP protection against XSS.
 	CSPUnsafeEval = security_domain.UnsafeEval
 
 	// CSPUnsafeHashes allows specific inline event handlers based on their hash.
 	CSPUnsafeHashes = security_domain.UnsafeHashes
 
-	// CSPStrictDynamic allows scripts loaded by trusted scripts to execute.
-	// When present, 'self' and URL-based allowlists are ignored for script-src.
+	// CSPStrictDynamic allows scripts loaded by trusted scripts to execute. When present,
+	// 'self' and URL-based allowlists are ignored for script-src.
 	CSPStrictDynamic = security_domain.StrictDynamic
 
-	// CSPReportSample tells the browser to include a sample of the code that
-	// broke the rules in violation reports.
+	// CSPReportSample tells the browser to include a sample of the code that broke the rules
+	// in violation reports.
 	CSPReportSample = security_domain.ReportSample
 
 	// CSPWasmUnsafeEval permits WebAssembly code to run.
@@ -210,27 +201,27 @@ var (
 	// CSPHTTPS allows any resource loaded over HTTPS.
 	CSPHTTPS = security_domain.HTTPS
 
-	// CSPHTTP allows any resource loaded over HTTP.
-	// Warning: Using HTTP reduces security; prefer HTTPS.
+	// CSPHTTP allows any resource loaded over HTTP. Warning: Using HTTP reduces security;
+	// prefer HTTPS.
 	CSPHTTP = security_domain.HTTP
 
 	// CSPRequestToken is a placeholder for dynamic per-request tokens.
 	//
-	// When used, the security middleware generates a unique cryptographic token for
-	// each request and replaces this placeholder in the CSP header. Use CSPTokenAttr in
-	// templates to add the token attribute to inline scripts and styles.
+	// When used, the security middleware generates a unique cryptographic token for each
+	// request and replaces this placeholder in the CSP header. Use CSPTokenAttr in templates
+	// to add the token attribute to inline scripts and styles.
 	CSPRequestToken = security_domain.RequestTokenPlaceholder
 
-	// CSPHost creates a source from a host specification such as
-	// "cdn.example.com", "*.example.com", or "https://cdn.example.com".
+	// CSPHost creates a source from a host specification such as "cdn.example.com",
+	// "*.example.com", or "https://cdn.example.com".
 	CSPHost = security_domain.Host
 
-	// CSPScheme creates a source from a URL scheme.
-	// The scheme should include the trailing colon (e.g., "wss:").
+	// CSPScheme creates a source from a URL scheme. The scheme should include the trailing
+	// colon (e.g., "wss:").
 	CSPScheme = security_domain.Scheme
 
-	// CSPSHA256 creates a source from a base64-encoded SHA-256 hash. Use this for
-	// allowing specific inline scripts or styles by their content hash.
+	// CSPSHA256 creates a source from a base64-encoded SHA-256 hash. Use this for allowing
+	// specific inline scripts or styles by their content hash.
 	CSPSHA256 = security_domain.SHA256
 
 	// CSPSHA384 creates a source from a base64-encoded SHA-384 hash.
@@ -239,31 +230,31 @@ var (
 	// CSPSHA512 creates a source from a base64-encoded SHA-512 hash.
 	CSPSHA512 = security_domain.SHA512
 
-	// CSPStaticToken creates a source from a specific token value.
-	// For dynamic per-request tokens, use CSPRequestToken instead.
+	// CSPStaticToken creates a source from a specific token value. For dynamic per-request
+	// tokens, use CSPRequestToken instead.
 	CSPStaticToken = security_domain.RequestToken
 
-	// CSPPolicyName creates a Trusted Types policy name source.
-	// Policy names are unquoted in the CSP header output.
+	// CSPPolicyName creates a Trusted Types policy name source. Policy names are unquoted in
+	// the CSP header output.
 	//
-	// Example:
-	// builder.TrustedTypes(
-	//     piko.CSPPolicyName("default"),
-	//     piko.CSPPolicyName("dompurify"),
-	// )
-	// // outputs: trusted-types default dompurify
+	// Example: builder.TrustedTypes(
+	//
+	// 	piko.CSPPolicyName("default"),
+	// 	piko.CSPPolicyName("dompurify"),
+	//
+	// ) // outputs: trusted-types default dompurify
 	CSPPolicyName = security_domain.PolicyName
 
-	// CSPScript is the 'script' keyword for require-trusted-types-for directive.
-	// This is used internally; prefer using RequireTrustedTypesFor() method.
+	// CSPScript is the 'script' keyword for require-trusted-types-for directive. This is
+	// used internally; prefer using RequireTrustedTypesFor() method.
 	CSPScript = security_domain.Script
 
-	// CSPAllowDuplicates is the 'allow-duplicates' keyword for the trusted-types
-	// directive. This enables creating multiple policies with the same name.
+	// CSPAllowDuplicates is the 'allow-duplicates' keyword for the trusted-types directive.
+	// This enables creating multiple policies with the same name.
 	CSPAllowDuplicates = security_domain.AllowDuplicates
 
-	// CSPWildcard is the wildcard (*) for trusted-types directive.
-	// Allows creating policies with any unique names.
+	// CSPWildcard is the wildcard (*) for trusted-types directive. Allows creating policies
+	// with any unique names.
 	CSPWildcard = security_domain.Wildcard
 
 	// CSPSandboxAllowDownloads enables file downloads.
@@ -278,64 +269,106 @@ var (
 	// CSPSandboxAllowOrientationLock allows the page to lock the screen direction.
 	CSPSandboxAllowOrientationLock = security_domain.SandboxAllowOrientationLock
 
-	// CSPSandboxAllowPointerLock enables the Pointer Lock API in sandboxed
-	// content.
+	// CSPSandboxAllowPointerLock enables the Pointer Lock API in sandboxed content.
 	CSPSandboxAllowPointerLock = security_domain.SandboxAllowPointerLock
 
 	// CSPSandboxAllowPopups enables window.open() and similar.
 	CSPSandboxAllowPopups = security_domain.SandboxAllowPopups
 
-	// CSPSandboxAllowPopupsToEscapeSandbox enables popups to open unsandboxed
-	// windows.
+	// CSPSandboxAllowPopupsToEscapeSandbox enables popups to open unsandboxed windows.
 	CSPSandboxAllowPopupsToEscapeSandbox = security_domain.SandboxAllowPopupsToEscapeSandbox
 
-	// CSPSandboxAllowPresentation enables the Presentation API in sandboxed
-	// content.
+	// CSPSandboxAllowPresentation enables the Presentation API in sandboxed content.
 	CSPSandboxAllowPresentation = security_domain.SandboxAllowPresentation
 
-	// CSPSandboxAllowSameOrigin allows sandboxed content to be treated as being
-	// from the same origin.
+	// CSPSandboxAllowSameOrigin allows sandboxed content to be treated as being from the
+	// same origin.
 	CSPSandboxAllowSameOrigin = security_domain.SandboxAllowSameOrigin
 
 	// CSPSandboxAllowScripts allows JavaScript to run in a sandboxed iframe.
 	CSPSandboxAllowScripts = security_domain.SandboxAllowScripts
 
-	// CSPSandboxAllowStorageAccessByUserActivation enables the Storage Access API
-	// with user gesture.
+	// CSPSandboxAllowStorageAccessByUserActivation enables the Storage Access API with user
+	// gesture.
 	CSPSandboxAllowStorageAccessByUserActivation = security_domain.SandboxAllowStorageAccessByUserActivation
 
-	// CSPSandboxAllowTopNavigation allows the page to move the top-level window
-	// to a new address.
+	// CSPSandboxAllowTopNavigation allows the page to move the top-level window to a new
+	// address.
 	CSPSandboxAllowTopNavigation = security_domain.SandboxAllowTopNavigation
 
-	// CSPSandboxAllowTopNavigationByUserActivation enables top navigation with
-	// user gesture.
+	// CSPSandboxAllowTopNavigationByUserActivation enables top navigation with user gesture.
 	CSPSandboxAllowTopNavigationByUserActivation = security_domain.SandboxAllowTopNavigationByUserActivation
 
-	// CSPSandboxAllowTopNavigationToCustomProtocols enables top navigation to
-	// custom protocols.
+	// CSPSandboxAllowTopNavigationToCustomProtocols enables top navigation to custom
+	// protocols.
 	CSPSandboxAllowTopNavigationToCustomProtocols = security_domain.SandboxAllowTopNavigationToCustomProtocols
+
+	// NewSpamSchema creates a spam detection schema from entries.
+	NewSpamSchema = spamdetect_dto.NewSchema
+
+	// SpamTextField creates a schema entry for a text form field.
+	SpamTextField = spamdetect_dto.TextField
+
+	// SpamHoneypot declares the honeypot field key in a schema.
+	SpamHoneypot = spamdetect_dto.Honeypot
+
+	// SpamTiming declares the timing timestamp field key in a schema.
+	SpamTiming = spamdetect_dto.Timing
+
+	// SpamThreshold sets the score threshold for a schema.
+	SpamThreshold = spamdetect_dto.Threshold
+
+	// SpamFieldGroup composes multiple field entries for reuse.
+	SpamFieldGroup = spamdetect_dto.FieldGroup
+
+	// SpamEmailField creates a schema entry for an email field.
+	SpamEmailField = spamdetect_dto.EmailField
+
+	// SpamPhoneField creates a schema entry for a phone field.
+	SpamPhoneField = spamdetect_dto.PhoneField
+
+	// SpamNameField creates a schema entry for a name field.
+	SpamNameField = spamdetect_dto.NameField
+
+	// SpamURLField creates a schema entry for a URL field.
+	SpamURLField = spamdetect_dto.URLField
+
+	// SpamTypedField creates a schema entry with a custom field type.
+	SpamTypedField = spamdetect_dto.TypedField
+
+	// SpamDetectorWeight sets the scoring weight for a detector.
+	SpamDetectorWeight = spamdetect_dto.DetectorWeight
+
+	// SpamDetectorConfig sets per-schema config for a detector.
+	SpamDetectorConfig = spamdetect_dto.DetectorConfig
+
+	// SpamLanguage sets the expected content language.
+	SpamLanguage = spamdetect_dto.Language
+
+	// SpamMeta declares a static metadata key-value pair.
+	SpamMeta = spamdetect_dto.Meta
+
+	// SpamCaptureHeader declares an HTTP header to capture.
+	SpamCaptureHeader = spamdetect_dto.CaptureHeader
 )
 
-// ReportingEndpoint defines a single reporting endpoint for the
-// Reporting-Endpoints header. These endpoints can be referenced by CSP
-// report-to directives and other reporting APIs.
+// ReportingEndpoint defines a single reporting endpoint for the Reporting-Endpoints
+// header. These endpoints can be referenced by CSP report-to directives and other
+// reporting APIs.
 type ReportingEndpoint = config.ReportingEndpoint
 
 // TLSOption configures TLS settings for the main server. Use with WithTLS.
 type TLSOption = bootstrap.TLSOption
 
-// HealthTLSOption configures TLS settings for the health probe server. Use
-// with WithHealthTLS.
+// HealthTLSOption configures TLS settings for the health probe server. Use with
+// WithHealthTLS.
 type HealthTLSOption = bootstrap.HealthTLSOption
 
 // WithEventBus provides a custom EventBus implementation.
 //
-// Takes bus (orchestrator_domain.EventBus) which specifies the event bus to
-// use.
+// Takes bus (orchestrator_domain.EventBus) which specifies the event bus to use.
 //
-// Returns Option which configures the application to use the provided event
-// bus.
+// Returns Option which configures the application to use the provided event bus.
 func WithEventBus(bus orchestrator_domain.EventBus) Option {
 	return bootstrap.WithEventBus(bus)
 }
@@ -351,8 +384,7 @@ func WithRegistryService(service registry_domain.RegistryService) Option {
 
 // WithCapabilityService provides a custom CapabilityService implementation.
 //
-// Takes service (capabilities.Service) which is the custom capability service to
-// use.
+// Takes service (capabilities.Service) which is the custom capability service to use.
 //
 // Returns Option which configures the bootstrap with the given service.
 func WithCapabilityService(service capabilities.Service) Option {
@@ -361,8 +393,7 @@ func WithCapabilityService(service capabilities.Service) Option {
 
 // WithOrchestratorService provides a custom OrchestratorService implementation.
 //
-// Takes service (OrchestratorService) which is the service to use for
-// orchestration.
+// Takes service (OrchestratorService) which is the service to use for orchestration.
 //
 // Returns Option which configures the application with the given service.
 func WithOrchestratorService(service orchestrator_domain.OrchestratorService) Option {
@@ -371,24 +402,23 @@ func WithOrchestratorService(service orchestrator_domain.OrchestratorService) Op
 
 // WithI18nService provides a custom I18nService implementation.
 //
-// Takes service (i18n_domain.Service) which is the internationalisation service to
-// use.
+// Takes service (i18n_domain.Service) which is the internationalisation service to use.
 //
 // Returns Option which configures the application to use the provided service.
 func WithI18nService(service i18n_domain.Service) Option {
 	return bootstrap.WithI18nService(service)
 }
 
-// WithMemoryRegistryCache configures the default RegistryService to be built
-// with an in-memory cache.
+// WithMemoryRegistryCache configures the default RegistryService to be built with an
+// in-memory cache.
 //
 // Returns Option which applies the memory cache configuration.
 func WithMemoryRegistryCache() Option {
 	return bootstrap.WithMemoryRegistryCache()
 }
 
-// WithJSONTypeInspectorCache configures the TypeInspectorManager to use a
-// JSON file-based cache.
+// WithJSONTypeInspectorCache configures the TypeInspectorManager to use a JSON file-based
+// cache.
 //
 // Returns Option which applies the JSON cache configuration.
 func WithJSONTypeInspectorCache() Option {
@@ -404,9 +434,9 @@ func WithCSRFSecret(key []byte) Option {
 	return bootstrap.WithCSRFSecret(key)
 }
 
-// WithConfigResolvers allows for injecting custom configuration resolvers.
-// This is the primary mechanism for integrating with secret managers like
-// AWS Secrets Manager, GCP Secret Manager, or HashiCorp Vault.
+// WithConfigResolvers allows for injecting custom configuration resolvers. This is the
+// primary mechanism for integrating with secret managers like AWS Secrets Manager, GCP
+// Secret Manager, or HashiCorp Vault.
 //
 // Takes resolvers (...ConfigResolver) which provide custom resolution logic.
 //
@@ -415,10 +445,9 @@ func WithConfigResolvers(resolvers ...ConfigResolver) Option {
 	return bootstrap.WithConfigResolvers(resolvers...)
 }
 
-// WithShutdownDrainDelay sets the duration to wait after marking the instance
-// as not ready (readiness returns 503) before shutting down the HTTP server.
-// This gives load balancers time to deregister the instance during rolling
-// deploys.
+// WithShutdownDrainDelay sets the duration to wait after marking the instance as not
+// ready (readiness returns 503) before shutting down the HTTP server. This gives load
+// balancers time to deregister the instance during rolling deploys.
 //
 // Default: 0s in dev mode, 3s in production.
 //
@@ -429,28 +458,25 @@ func WithShutdownDrainDelay(delay time.Duration) Option {
 	return bootstrap.WithShutdownDrainDelay(delay)
 }
 
-// WithCacheProvider registers a named cache provider instance with the default
-// cache service. If multiple providers are registered, use
-// WithDefaultCacheProvider to specify which one is the default.
+// WithCacheProvider registers a named cache provider instance with the default cache
+// service. If multiple providers are registered, use WithDefaultCacheProvider to specify
+// which one is the default.
 //
-// Cache providers implement the Provider interface, which creates namespaced
-// Cache[K, V] instances on demand, so a single provider (e.g., a Redis
-// connection pool) can serve multiple typed caches.
+// Cache providers implement the Provider interface, which creates namespaced Cache[K, V]
+// instances on demand, so a single provider (e.g., a Redis connection pool) can serve
+// multiple typed caches.
 //
 // Takes name (string) which identifies this provider for later reference.
 // Takes provider (cache_domain.Provider) which creates cache instances.
 //
 // Returns Option which configures the container with the cache provider.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko"
 //	cache_provider_otter "piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 //
-// )
-// otterProvider := cache_provider_otter.NewOtterProvider()
-// app := piko.New(
+// ) otterProvider := cache_provider_otter.NewOtterProvider() app := piko.New(
 //
 //	piko.WithCacheProvider("otter", otterProvider),
 //	piko.WithDefaultCacheProvider("otter"),
@@ -462,17 +488,14 @@ func WithCacheProvider(name string, provider cache_domain.Provider) Option {
 	}
 }
 
-// WithDefaultCacheProvider sets the name of the provider to use for default
-// cache creation. A provider with this name must be registered via
-// WithCacheProvider.
+// WithDefaultCacheProvider sets the name of the provider to use for default cache
+// creation. A provider with this name must be registered via WithCacheProvider.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
-// Returns Option which configures the container with the default cache
-// provider.
+// Returns Option which configures the container with the default cache provider.
 //
-// Example:
-// app := piko.New(
+// Example: app := piko.New(
 //
 //	piko.WithCacheProvider("redis", redisProvider),
 //	piko.WithCacheProvider("otter", otterProvider),
@@ -485,25 +508,21 @@ func WithDefaultCacheProvider(name string) Option {
 	}
 }
 
-// WithCacheService sets a fully configured cache service instance. This
-// overrides the default cache service creation and provider registration.
+// WithCacheService sets a fully configured cache service instance. This overrides the
+// default cache service creation and provider registration.
 //
 // Takes service (cache_domain.Service) which is the configured cache service.
 //
 // Returns Option which applies the cache service to the container.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko/wdk/cache"
 //	"piko.sh/piko/wdk/cache/cache_provider_otter"
 //
-// )
-// // Create a custom cache service
-// cacheService := cache.NewService("otter")
+// ) // Create a custom cache service cacheService := cache.NewService("otter")
 // otterFactory := cache_provider_otter.NewOtterProviderFactory[string, []byte]()
-// cacheService.RegisterProvider("otter", otterFactory)
-// // Use it when initialising Piko
+// cacheService.RegisterProvider("otter", otterFactory) // Use it when initialising Piko
 // server, err := piko.New(
 //
 //	piko.WithCacheService(cacheService),
@@ -515,33 +534,33 @@ func WithCacheService(service cache_domain.Service) Option {
 	}
 }
 
-// WithHybridCacheMaxBytes overrides the framework default weight cap on
-// the hybrid-collections cache.
+// WithHybridCacheMaxBytes overrides the framework default weight cap on the
+// hybrid-collections cache.
 //
-// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
-// framework default in place.
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the framework default in
+// place.
 //
 // Returns Option which configures the cap on the container.
 func WithHybridCacheMaxBytes(maxBytes uint64) Option {
 	return bootstrap.WithHybridCacheMaxBytes(maxBytes)
 }
 
-// WithHybridCacheWriteExpiration overrides the framework default
-// write-expiration on the hybrid-collections cache.
+// WithHybridCacheWriteExpiration overrides the framework default write-expiration on the
+// hybrid-collections cache.
 //
-// Takes expiration (time.Duration) which is the write-expiration;
-// zero or negative leaves the framework default in place.
+// Takes expiration (time.Duration) which is the write-expiration; zero or negative leaves
+// the framework default in place.
 //
 // Returns Option which configures the expiration on the container.
 func WithHybridCacheWriteExpiration(expiration time.Duration) Option {
 	return bootstrap.WithHybridCacheWriteExpiration(expiration)
 }
 
-// WithActionResponseCacheMaxBytes overrides the framework default
-// weight cap on the action-response cache.
+// WithActionResponseCacheMaxBytes overrides the framework default weight cap on the
+// action-response cache.
 //
-// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the
-// framework default in place.
+// Takes maxBytes (uint64) which is the cap in bytes; zero leaves the framework default in
+// place.
 //
 // Returns Option which configures the cap on the container.
 func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
@@ -550,21 +569,19 @@ func WithActionResponseCacheMaxBytes(maxBytes uint64) Option {
 
 // WithCSSTreeShaking enables CSS tree-shaking during scaffold generation.
 //
-// When enabled, unused CSS rules (based on static HTML analysis) are removed
-// from the final output, reducing CSS bundle size.
+// When enabled, unused CSS rules (based on static HTML analysis) are removed from the
+// final output, reducing CSS bundle size.
 //
 // Returns Option which configures the server to enable CSS tree-shaking.
 //
-// WARNING: Tree-shaking removes CSS for classes that are not present in
-// static HTML. Classes added dynamically via JavaScript (e.g., via
-// classList.add()) will be removed unless added to the safelist using
-// WithCSSTreeShakingSafelist.
+// WARNING: Tree-shaking removes CSS for classes that are not present in static HTML.
+// Classes added dynamically via JavaScript (e.g., via classList.add()) will be removed
+// unless added to the safelist using WithCSSTreeShakingSafelist.
 //
-// By default, CSS tree-shaking is DISABLED to prevent accidentally removing
-// styles needed for dynamic functionality.
+// By default, CSS tree-shaking is DISABLED to prevent accidentally removing styles needed
+// for dynamic functionality.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithCSSTreeShaking(),
 //	piko.WithCSSTreeShakingSafelist("open", "active", "hidden", "visible"),
@@ -574,23 +591,21 @@ func WithCSSTreeShaking() Option {
 	return Option(bootstrap.WithCSSTreeShaking(true))
 }
 
-// WithCSSTreeShakingSafelist specifies CSS class names that should never be
-// removed by tree-shaking, even when CSSTreeShaking is enabled.
+// WithCSSTreeShakingSafelist specifies CSS class names that should never be removed by
+// tree-shaking, even when CSSTreeShaking is enabled.
 //
-// Use this for classes that are added dynamically via JavaScript, such as
-// modal open states, visibility toggles, or animation classes.
+// Use this for classes that are added dynamically via JavaScript, such as modal open
+// states, visibility toggles, or animation classes.
 //
 // Class names should be specified without the leading dot.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithCSSTreeShaking(),
 //	piko.WithCSSTreeShakingSafelist("open", "active", "hidden", "visible"),
 //
-// )
-// This preserves CSS rules for .open, .active, .hidden, and .visible even if
-// those classes don't appear in the static HTML.
+// ) This preserves CSS rules for .open, .active, .hidden, and .visible even if those
+// classes don't appear in the static HTML.
 //
 // Takes classes (...string) which lists the CSS class names to preserve.
 //
@@ -599,22 +614,21 @@ func WithCSSTreeShakingSafelist(classes ...string) Option {
 	return Option(bootstrap.WithCSSTreeShakingSafelist(classes))
 }
 
-// WithCSSReset enables the CSS reset for PK files (pages, partials, emails).
-// Without sub-options, the simple default reset is used which zeroes margins
-// and padding and sets border-box sizing on all elements.
+// WithCSSReset enables the CSS reset for PK files (pages, partials, emails). Without
+// sub-options, the simple default reset is used which zeroes margins and padding and sets
+// border-box sizing on all elements.
 //
-// Use WithCSSResetComplete to switch to the comprehensive legacy reset that
-// includes element-level resets, typography defaults, heading sizes via theme
-// variables, and focus-ring styles.
+// Use WithCSSResetComplete to switch to the comprehensive legacy reset that includes
+// element-level resets, typography defaults, heading sizes via theme variables, and
+// focus-ring styles.
 //
 // Use WithCSSResetPKOverride to provide entirely custom CSS reset content.
 //
-// When WithCSSReset is not called, no CSS reset is included in the generated
-// theme CSS.
+// When WithCSSReset is not called, no CSS reset is included in the generated theme CSS.
 //
-// Takes opts (...CSSResetOption) which provides optional settings:
-// - WithCSSResetComplete(): selects the comprehensive legacy reset.
-// - WithCSSResetPKOverride(css): overrides with custom CSS content.
+// Takes opts (...CSSResetOption) which provides optional settings: -
+// WithCSSResetComplete(): selects the comprehensive legacy reset. -
+// WithCSSResetPKOverride(css): overrides with custom CSS content.
 //
 // Returns Option which configures the server's CSS reset behaviour.
 //
@@ -635,18 +649,17 @@ func WithCSSReset(opts ...CSSResetOption) Option {
 	return Option(bootstrap.WithCSSReset(opts...))
 }
 
-// WithCSSResetComplete selects the comprehensive legacy CSS reset instead of
-// the simple default. The comprehensive reset includes element-level resets,
-// typography defaults, heading sizes via theme variables, and focus-ring
-// styles.
+// WithCSSResetComplete selects the comprehensive legacy CSS reset instead of the simple
+// default. The comprehensive reset includes element-level resets, typography defaults,
+// heading sizes via theme variables, and focus-ring styles.
 //
 // Returns CSSResetOption which switches to the complete reset preset.
 func WithCSSResetComplete() CSSResetOption {
 	return bootstrap.WithCSSResetComplete()
 }
 
-// WithCSSResetPKOverride replaces the default CSS reset with custom CSS
-// content for PK files (pages, partials, emails).
+// WithCSSResetPKOverride replaces the default CSS reset with custom CSS content for PK
+// files (pages, partials, emails).
 //
 // Takes css (string) which is the custom CSS reset content.
 //
@@ -657,20 +670,17 @@ func WithCSSResetPKOverride(css string) CSSResetOption {
 
 // WithCryptoService provides a fully configured crypto service instance.
 //
-// Use it in advanced scenarios where you need complete control over service
-// construction.
+// Use it in advanced scenarios where you need complete control over service construction.
 //
-// For most use cases, prefer using WithCryptoProvider and
-// WithDefaultCryptoProvider instead.
+// For most use cases, prefer using WithCryptoProvider and WithDefaultCryptoProvider
+// instead.
 //
-// Takes service (crypto_domain.CryptoServicePort) which is the custom crypto
-// service to use.
+// Takes service (crypto_domain.CryptoServicePort) which is the custom crypto service to
+// use.
 //
 // Returns Option which configures the server to use the provided service.
 //
-// Example:
-// customService := crypto.NewService(myProvider, myConfig)
-// server := piko.New(
+// Example: customService := crypto.NewService(myProvider, myConfig) server := piko.New(
 //
 //	piko.WithCryptoService(customService),
 //
@@ -679,31 +689,26 @@ func WithCryptoService(service crypto_domain.CryptoServicePort) Option {
 	return bootstrap.WithCryptoService(service)
 }
 
-// WithCryptoProvider registers a named encryption provider instance with the
-// default crypto service.
+// WithCryptoProvider registers a named encryption provider instance with the default
+// crypto service.
 //
-// Multiple providers can be registered (e.g., one for development, one for
-// production). Use WithDefaultCryptoProvider to specify which provider is
-// active.
+// Multiple providers can be registered (e.g., one for development, one for production).
+// Use WithDefaultCryptoProvider to specify which provider is active.
 //
 // Takes name (string) which identifies the provider for later reference.
-// Takes provider (crypto_domain.EncryptionProvider) which handles encryption
-// operations.
+// Takes provider (crypto_domain.EncryptionProvider) which handles encryption operations.
 //
 // Returns Option which configures the container with the named provider.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko"
 //	"piko.sh/piko/wdk/crypto/crypto_provider_aws_kms"
 //	"piko.sh/piko/wdk/crypto/crypto_provider_local_aes_gcm"
 //
-// )
-// // Register multiple providers
-// localProvider, _ := crypto_provider_local_aes_gcm.NewProvider(ctx, localConfig)
-// awsProvider, _ := crypto_provider_aws_kms.NewAWSKMSProvider(ctx, awsConfig)
-// server := piko.New(
+// ) // Register multiple providers localProvider, _ :=
+// crypto_provider_local_aes_gcm.NewProvider(ctx, localConfig) awsProvider, _ :=
+// crypto_provider_aws_kms.NewAWSKMSProvider(ctx, awsConfig) server := piko.New(
 //
 //	piko.WithCryptoProvider("local", localProvider),
 //	piko.WithCryptoProvider("aws_kms", awsProvider),
@@ -716,19 +721,17 @@ func WithCryptoProvider(name string, provider crypto_domain.EncryptionProvider) 
 	}
 }
 
-// WithDefaultCryptoProvider sets the name of the provider to use for
-// encryption operations. A provider with this name must be registered via
-// WithCryptoProvider.
+// WithDefaultCryptoProvider sets the name of the provider to use for encryption
+// operations. A provider with this name must be registered via WithCryptoProvider.
 //
-// Use it to switch between providers (e.g., local for dev, KMS for production)
-// without changing application code.
+// Use it to switch between providers (e.g., local for dev, KMS for production) without
+// changing application code.
 //
 // Takes name (string) which specifies the registered provider to use.
 //
 // Returns Option which configures the default crypto provider.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithCryptoProvider("local", localProvider),
 //	piko.WithCryptoProvider("aws_kms", awsProvider),
@@ -741,15 +744,14 @@ func WithDefaultCryptoProvider(name string) Option {
 	}
 }
 
-// WithCaptchaProvider registers a named captcha provider instance with the
-// default captcha service.
+// WithCaptchaProvider registers a named captcha provider instance with the default
+// captcha service.
 //
-// Multiple providers can be registered. Use WithDefaultCaptchaProvider to
-// specify which provider is active.
+// Multiple providers can be registered. Use WithDefaultCaptchaProvider to specify which
+// provider is active.
 //
 // Takes name (string) which identifies the provider for later reference.
-// Takes provider (captcha_domain.CaptchaProvider) which handles captcha
-// verification.
+// Takes provider (captcha_domain.CaptchaProvider) which handles captcha verification.
 //
 // Returns Option which configures the container with the captcha provider.
 //
@@ -772,13 +774,11 @@ func WithCaptchaProvider(name string, provider captcha_domain.CaptchaProvider) O
 }
 
 // WithDefaultCaptchaProvider sets the name of the provider to use for captcha
-// verification. A provider with this name must be registered via
-// WithCaptchaProvider.
+// verification. A provider with this name must be registered via WithCaptchaProvider.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
-// Returns Option which configures the container with the default captcha
-// provider.
+// Returns Option which configures the container with the default captcha provider.
 func WithDefaultCaptchaProvider(name string) Option {
 	return func(c *bootstrap.Container) {
 		c.SetCaptchaDefaultProvider(name)
@@ -794,9 +794,9 @@ func WithEmailService(service email_domain.Service) Option {
 	return bootstrap.WithEmailService(service)
 }
 
-// WithEmailProvider registers a named email provider instance with the
-// default email service. If multiple providers are registered, use
-// WithDefaultEmailProvider to specify which one is the default.
+// WithEmailProvider registers a named email provider instance with the default email
+// service. If multiple providers are registered, use WithDefaultEmailProvider to specify
+// which one is the default.
 //
 // Takes name (string) which identifies this provider for later reference.
 // Takes provider (email_domain.EmailProviderPort) which handles email sending.
@@ -808,25 +808,23 @@ func WithEmailProvider(name string, provider email_domain.EmailProviderPort) Opt
 	}
 }
 
-// WithDefaultEmailProvider sets the name of the provider to use for default
-// email sending. A provider with this name must be registered via
-// WithEmailProvider.
+// WithDefaultEmailProvider sets the name of the provider to use for default email
+// sending. A provider with this name must be registered via WithEmailProvider.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
-// Returns Option which configures the container with the default email
-// provider.
+// Returns Option which configures the container with the default email provider.
 func WithDefaultEmailProvider(name string) Option {
 	return func(c *bootstrap.Container) {
 		c.SetEmailDefaultProvider(name)
 	}
 }
 
-// WithEmailDispatcher enables and configures the background dispatcher for the
-// default email service.
+// WithEmailDispatcher enables and configures the background dispatcher for the default
+// email service.
 //
-// Takes dispatcherConfig (email_dto.DispatcherConfig) which controls batching,
-// retries, and queue sizes.
+// Takes dispatcherConfig (email_dto.DispatcherConfig) which controls batching, retries,
+// and queue sizes.
 //
 // Returns Option which applies the dispatcher configuration to the container.
 func WithEmailDispatcher(dispatcherConfig email_dto.DispatcherConfig) Option {
@@ -835,12 +833,11 @@ func WithEmailDispatcher(dispatcherConfig email_dto.DispatcherConfig) Option {
 	}
 }
 
-// WithEmailDeadLetterQueue provides a custom dead letter queue implementation
-// used by the dispatcher. If omitted, an in-memory DLQ will be used by default
-// when a dispatcher is enabled.
+// WithEmailDeadLetterQueue provides a custom dead letter queue implementation used by the
+// dispatcher. If omitted, an in-memory DLQ will be used by default when a dispatcher is
+// enabled.
 //
-// Takes dlq (email_domain.DeadLetterPort) which handles failed email delivery
-// attempts.
+// Takes dlq (email_domain.DeadLetterPort) which handles failed email delivery attempts.
 //
 // Returns Option which configures the container with the provided DLQ.
 func WithEmailDeadLetterQueue(dlq email_domain.DeadLetterPort) Option {
@@ -849,39 +846,30 @@ func WithEmailDeadLetterQueue(dlq email_domain.DeadLetterPort) Option {
 	}
 }
 
-// WithEventsProvider sets a custom events provider, overriding the default
-// GoChannel provider.
-//
-// Use this to configure NATS JetStream, PostgreSQL, SQLite, or a custom
+// WithEventsProvider sets a custom events provider, overriding the default GoChannel
 // provider.
 //
-// Example with NATS JetStream:
-// import "piko.sh/piko/wdk/events/events_provider_nats"
+// Use this to configure NATS JetStream, PostgreSQL, SQLite, or a custom provider.
+//
+// Example with NATS JetStream: import "piko.sh/piko/wdk/events/events_provider_nats"
 // provider, _ := events_provider_nats.NewNATSProvider(ctx,
 //
 //	events_provider_nats.Config{URL: "nats://localhost:4222"},
 //
-// )
-// provider.Start(ctx)
-// app := piko.New(
+// ) provider.Start(ctx) app := piko.New(
 //
 //	piko.WithEventsProvider(provider),
 //
-// )
-// Example with custom GoChannel configuration:
-// import "piko.sh/piko/wdk/events/events_provider_gochannel"
-// channelConfig := events_provider_gochannel.DefaultConfig()
-// channelConfig.OutputChannelBuffer = 2048
+// ) Example with custom GoChannel configuration: import
+// "piko.sh/piko/wdk/events/events_provider_gochannel" channelConfig :=
+// events_provider_gochannel.DefaultConfig() channelConfig.OutputChannelBuffer = 2048
 // provider, _ := events_provider_gochannel.NewGoChannelProvider(channelConfig)
-// provider.Start(ctx)
-// app := piko.New(
+// provider.Start(ctx) app := piko.New(
 //
 //	piko.WithEventsProvider(provider),
 //
-// )
-// The provider must be started (via Start()) before passing it to
-// WithEventsProvider. If you pass an unstarted provider, the container will
-// not start it automatically.
+// ) The provider must be started (via Start()) before passing it to WithEventsProvider.
+// If you pass an unstarted provider, the container will not start it automatically.
 //
 // Takes provider (events_domain.Provider) which is the events provider to use.
 //
@@ -892,24 +880,20 @@ func WithEventsProvider(provider events_domain.Provider) Option {
 	}
 }
 
-// WithFrontendModule enables a built-in frontend module to be loaded
-// site-wide. The module's JavaScript will be automatically preloaded and
-// executed on every page.
+// WithFrontendModule enables a built-in frontend module to be loaded site-wide. The
+// module's JavaScript will be automatically preloaded and executed on every page.
 //
-// The optional config parameter allows passing configuration to the module.
-// Use the appropriate config type for each module:
+// The optional config parameter allows passing configuration to the module. Use the
+// appropriate config type for each module:
 //   - AnalyticsConfig for ModuleAnalytics
 //   - ModalsConfig for ModuleModals
 //   - ToastsConfig for ModuleToasts
 //
-// Example without config:
-// server := piko.New(
+// Example without config: server := piko.New(
 //
 //	piko.WithFrontendModule(piko.ModuleModals),
 //
-// )
-// Example with config:
-// server := piko.New(
+// ) Example with config: server := piko.New(
 //
 //	piko.WithFrontendModule(piko.ModuleAnalytics, piko.AnalyticsConfig{
 //	    TrackingIDs: []string{"G-XXXXXXXXXX", "G-YYYYYYYYYY"},
@@ -926,29 +910,25 @@ func WithFrontendModule(module FrontendModule, moduleConfig ...any) Option {
 	return bootstrap.WithFrontendModule(module, moduleConfig...)
 }
 
-// WithCustomFrontendModule registers a custom frontend JavaScript module.
-// The module will be served at /_piko/dist/ppframework.{name}.min.js and
-// automatically included in all pages.
+// WithCustomFrontendModule registers a custom frontend JavaScript module. The module will
+// be served at /_piko/dist/ppframework.{name}.min.js and automatically included in all
+// pages.
 //
-// The content should be provided via go:embed at compile time to ensure
-// the module is bundled into the binary:
-// //go:embed static/js/tracking.js
-// var trackingJS []byte
-// server := piko.New(
+// The content should be provided via go:embed at compile time to ensure the module is
+// bundled into the binary: //go:embed static/js/tracking.js var trackingJS []byte server
+// := piko.New(
 //
 //	piko.WithCustomFrontendModule("tracking", trackingJS),
 //
-// )
-// The optional config parameter allows passing configuration to the module:
-// server := piko.New(
+// ) The optional config parameter allows passing configuration to the module: server :=
+// piko.New(
 //
 //	piko.WithCustomFrontendModule("tracking", trackingJS, map[string]any{
 //	    "endpoint": "https://analytics.example.com",
 //	    "debug":    true,
 //	}),
 //
-// )
-// The module can access its config via PPFramework.getModuleConfig("tracking").
+// ) The module can access its config via PPFramework.getModuleConfig("tracking").
 //
 // Takes name (string) which identifies the module in the URL and config lookup.
 // Takes content ([]byte) which contains the JavaScript module source code.
@@ -963,11 +943,10 @@ func WithCustomFrontendModule(name string, content []byte, moduleConfig ...map[s
 // WithHighlighter configures syntax highlighting for markdown code blocks.
 //
 // When a highlighter is configured, code blocks in markdown content will be
-// syntax-highlighted using the provided implementation. If no highlighter is
-// configured, code blocks render as plain <pre><code> elements.
+// syntax-highlighted using the provided implementation. If no highlighter is configured,
+// code blocks render as plain <pre><code> elements.
 //
-// Example with Chroma (recommended):
-// import (
+// Example with Chroma (recommended): import (
 //
 //	"piko.sh/piko"
 //	"piko.sh/piko/wdk/highlight/highlight_chroma"
@@ -983,12 +962,11 @@ func WithCustomFrontendModule(name string, content []byte, moduleConfig ...map[s
 //
 //	piko.WithHighlighter(highlighter),
 //
-// )
-// When using WithClasses: true, you must include the appropriate CSS
-// styles in your page for the highlighting to be visible.
+// ) When using WithClasses: true, you must include the appropriate CSS styles in your
+// page for the highlighting to be visible.
 //
-// Takes h (highlight_domain.Highlighter) which provides the syntax
-// highlighting implementation.
+// Takes h (highlight_domain.Highlighter) which provides the syntax highlighting
+// implementation.
 //
 // Returns Option which configures the server to use the given highlighter.
 func WithHighlighter(h highlight_domain.Highlighter) Option {
@@ -997,40 +975,34 @@ func WithHighlighter(h highlight_domain.Highlighter) Option {
 	}
 }
 
-// WithLLMProvider registers a named LLM provider instance with the default LLM
-// service. If multiple providers are registered, use WithDefaultLLMProvider to
-// specify which one is the default.
+// WithLLMProvider registers a named LLM provider instance with the default LLM service.
+// If multiple providers are registered, use WithDefaultLLMProvider to specify which one
+// is the default.
 //
-// LLM providers handle completion and streaming requests to language models.
-// Multiple providers enable fallback scenarios and cost optimisation
-// strategies.
+// LLM providers handle completion and streaming requests to language models. Multiple
+// providers enable fallback scenarios and cost optimisation strategies.
 //
 // Takes name (string) which identifies this provider for later reference.
 // Takes provider (llm_domain.LLMProviderPort) which handles LLM requests.
 //
 // Returns Option which configures the container with the LLM provider.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko"
 //	"piko.sh/piko/wdk/llm/llm_provider_anthropic"
 //	"piko.sh/piko/wdk/llm/llm_provider_openai"
 //
-// )
-// // Create providers
-// anthropicProvider := llm_provider_anthropic.NewProvider(anthropicConfig)
-// openaiProvider := llm_provider_openai.NewProvider(openaiConfig)
-// // Register multiple providers with fallback capability
-// app := piko.New(
+// ) // Create providers anthropicProvider :=
+// llm_provider_anthropic.NewProvider(anthropicConfig) openaiProvider :=
+// llm_provider_openai.NewProvider(openaiConfig) // Register multiple providers with
+// fallback capability app := piko.New(
 //
 //	piko.WithLLMProvider("anthropic", anthropicProvider),
 //	piko.WithLLMProvider("openai", openaiProvider),
 //	piko.WithDefaultLLMProvider("anthropic"),
 //
-// )
-// // Later, use specific provider or fallback
-// llmService, _ := llm.GetDefaultService()
+// ) // Later, use specific provider or fallback llmService, _ := llm.GetDefaultService()
 // response, err := llmService.CompleteWithProvider(ctx, "openai", request)
 func WithLLMProvider(name string, provider llm_domain.LLMProviderPort) Option {
 	return func(c *bootstrap.Container) {
@@ -1038,45 +1010,41 @@ func WithLLMProvider(name string, provider llm_domain.LLMProviderPort) Option {
 	}
 }
 
-// WithDefaultLLMProvider sets the name of the provider to use for default LLM
-// operations. A provider with this name must be registered via WithLLMProvider.
+// WithDefaultLLMProvider sets the name of the provider to use for default LLM operations.
+// A provider with this name must be registered via WithLLMProvider.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
 // Returns Option which configures the container with the default LLM provider.
 //
-// Example:
-// app := piko.New(
+// Example: app := piko.New(
 //
 //	piko.WithLLMProvider("anthropic", anthropicProvider),
 //	piko.WithLLMProvider("openai", openaiProvider),
 //	piko.WithDefaultLLMProvider("anthropic"),
 //
-// )
-// // Default provider is used when no provider is specified
-// llmService, _ := llm.GetDefaultService()
-// response, err := llmService.Complete(ctx, request) // Uses "anthropic"
+// ) // Default provider is used when no provider is specified llmService, _ :=
+// llm.GetDefaultService() response, err := llmService.Complete(ctx, request) // Uses
+// "anthropic"
 func WithDefaultLLMProvider(name string) Option {
 	return func(c *bootstrap.Container) {
 		c.SetLLMDefaultProvider(name)
 	}
 }
 
-// WithEmbeddingProvider registers a standalone embedding provider for
-// embedding-only services such as Voyage AI.
+// WithEmbeddingProvider registers a standalone embedding provider for embedding-only
+// services such as Voyage AI.
 //
-// Unlike WithLLMProvider, this does not register a completion provider.
-// When using an LLM provider that also supports embeddings (e.g. OpenAI,
-// Ollama), embedding support is auto-detected and this option is not needed.
+// Unlike WithLLMProvider, this does not register a completion provider. When using an LLM
+// provider that also supports embeddings (e.g. OpenAI, Ollama), embedding support is
+// auto-detected and this option is not needed.
 //
 // Takes name (string) which identifies this provider.
-// Takes provider (llm_domain.EmbeddingProviderPort) which handles embedding
-// requests.
+// Takes provider (llm_domain.EmbeddingProviderPort) which handles embedding requests.
 //
 // Returns Option which configures the container with the embedding provider.
 //
-// Example:
-// app := piko.New(
+// Example: app := piko.New(
 //
 //	piko.WithLLMProvider("anthropic", anthropicProvider),
 //	piko.WithDefaultLLMProvider("anthropic"),
@@ -1090,52 +1058,47 @@ func WithEmbeddingProvider(name string, provider llm_domain.EmbeddingProviderPor
 	}
 }
 
-// WithDefaultEmbeddingProvider sets the name of the default embedding provider.
-// When set, this takes precedence over any auto-detected embedding support
-// from the default LLM provider.
+// WithDefaultEmbeddingProvider sets the name of the default embedding provider. When set,
+// this takes precedence over any auto-detected embedding support from the default LLM
+// provider.
 //
-// A provider with this name must be registered via WithEmbeddingProvider or
-// be an LLM provider that implements EmbeddingProviderPort.
+// A provider with this name must be registered via WithEmbeddingProvider or be an LLM
+// provider that implements EmbeddingProviderPort.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
-// Returns Option which configures the container with the default embedding
-// provider.
+// Returns Option which configures the container with the default embedding provider.
 func WithDefaultEmbeddingProvider(name string) Option {
 	return func(c *bootstrap.Container) {
 		c.SetDefaultEmbeddingProvider(name)
 	}
 }
 
-// WithLLMService sets a fully configured LLM service instance. This overrides
-// the default LLM service creation and provider registration.
+// WithLLMService sets a fully configured LLM service instance. This overrides the default
+// LLM service creation and provider registration.
 //
 // Takes service (llm_domain.Service) which is the configured LLM service.
 //
 // Returns Option which applies the LLM service to the container.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko"
 //	"piko.sh/piko/wdk/llm"
 //	"piko.sh/piko/wdk/llm/llm_provider_anthropic"
 //
-// )
-// // Create and configure a custom LLM service
-// llmService := llm.NewService("anthropic")
-// anthropicProvider := llm_provider_anthropic.NewProvider(config)
-// llmService.RegisterProvider("anthropic", anthropicProvider)
-// llmService.SetDefaultProvider("anthropic")
-// // Configure budgets and rate limits
+// ) // Create and configure a custom LLM service llmService :=
+// llm.NewService("anthropic") anthropicProvider :=
+// llm_provider_anthropic.NewProvider(config) llmService.RegisterProvider("anthropic",
+// anthropicProvider) llmService.SetDefaultProvider("anthropic") // Configure budgets and
+// rate limits
 //
 //	llmService.SetBudget("user:123", &llm.BudgetConfig{
 //	    MaxDailyCost: 10.0,
 //	})
 //
-// llmService.SetRateLimits("global", 100, 100000)
-// // Use the custom service
-// app := piko.New(
+// llmService.SetRateLimits("global", 100, 100000) // Use the custom service app :=
+// piko.New(
 //
 //	piko.WithLLMService(llmService),
 //
@@ -1146,15 +1109,15 @@ func WithLLMService(service llm_domain.Service) Option {
 	}
 }
 
-// WithMarkdownParser sets the markdown parser implementation used by the
-// collection service for processing markdown content.
+// WithMarkdownParser sets the markdown parser implementation used by the collection
+// service for processing markdown content.
 //
-// When a parser is configured, the collection service will register a markdown
-// content provider that uses it to parse .md files. If no parser is set, the
-// markdown collection provider is not registered.
+// When a parser is configured, the collection service will register a markdown content
+// provider that uses it to parse .md files. If no parser is set, the markdown collection
+// provider is not registered.
 //
-// Takes parser (markdown_domain.MarkdownParserPort) which provides the
-// markdown parsing implementation.
+// Takes parser (markdown_domain.MarkdownParserPort) which provides the markdown parsing
+// implementation.
 //
 // Returns Option which configures the server to use the given parser.
 //
@@ -1176,35 +1139,32 @@ func WithMarkdownParser(parser markdown_domain.MarkdownParserPort) Option {
 //   - Configuring custom storage backends for image caching
 //   - Setting custom security limits and allowed formats
 //
-// Most users should use WithImageTransformer instead to register individual
-// transformers.
+// Most users should use WithImageTransformer instead to register individual transformers.
 //
 // Takes service (image_domain.Service) which provides the image transformation
 // implementation.
 //
 // Returns Option which configures the application to use the given service.
 //
-// Example with vips transformer:
-// import "piko.sh/piko/wdk/media/image_provider_vips"
+// Example with vips transformer: import "piko.sh/piko/wdk/media/image_provider_vips"
 // vipsTransformer, _ := image_provider_vips.NewProvider(config)
 //
 //	transformers := map[string]image_domain.TransformerPort{
 //	    "vips": vipsTransformer,
 //	}
 //
-// imageService, _ := image_domain.NewService(transformers, "vips", config)
-// app := piko.New(piko.WithImageService(imageService))
+// imageService, _ := image_domain.NewService(transformers, "vips", config) app :=
+// piko.New(piko.WithImageService(imageService))
 func WithImageService(service image_domain.Service) Option {
 	return bootstrap.WithImageService(service)
 }
 
-// WithImageProvider registers a named image provider with the image service.
-// The first provider registered becomes the default unless
-// WithDefaultImageProvider is called.
+// WithImageProvider registers a named image provider with the image service. The first
+// provider registered becomes the default unless WithDefaultImageProvider is called.
 //
-// If no providers are registered, the image service will be nil and
-// components like piko:img will gracefully degrade to basic HTML output
-// without responsive image features.
+// If no providers are registered, the image service will be nil and components like
+// piko:img will gracefully degrade to basic HTML output without responsive image
+// features.
 //
 // Takes name (string) which identifies this provider.
 // Takes provider (image_domain.TransformerPort) which provides image transformation
@@ -1212,10 +1172,8 @@ func WithImageService(service image_domain.Service) Option {
 //
 // Returns Option which configures the container with the provider.
 //
-// Example usage:
-// import imaging "piko.sh/piko/wdk/media/image_provider_imaging"
-// imgProvider, _ := imaging.NewProvider(imaging.Config{})
-// app := piko.New(
+// Example usage: import imaging "piko.sh/piko/wdk/media/image_provider_imaging"
+// imgProvider, _ := imaging.NewProvider(imaging.Config{}) app := piko.New(
 //
 //	piko.WithImageProvider("imaging", imgProvider),
 //
@@ -1226,9 +1184,8 @@ func WithImageProvider(name string, provider image_domain.TransformerPort) Optio
 	}
 }
 
-// WithDefaultImageProvider sets which registered provider should be used as
-// the default. A provider with this name must be registered via
-// WithImageProvider.
+// WithDefaultImageProvider sets which registered provider should be used as the default.
+// A provider with this name must be registered via WithImageProvider.
 //
 // Takes name (string) which specifies the registered provider name.
 //
@@ -1239,23 +1196,21 @@ func WithDefaultImageProvider(name string) Option {
 	}
 }
 
-// WithImage configures the image service using an ImageConfig from the builder.
-// This is the recommended way to configure image processing with full control.
+// WithImage configures the image service using an ImageConfig from the builder. This is
+// the recommended way to configure image processing with full control.
 //
-// Takes imageConfig (*image_domain.ImageConfig) which specifies the image
-// processing settings including provider, file size limits, and variants.
+// Takes imageConfig (*image_domain.ImageConfig) which specifies the image processing
+// settings including provider, file size limits, and variants.
 //
 // Returns Option which applies the image configuration to the container.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko/wdk/media"
 //	"piko.sh/piko/wdk/media/image_provider_vips"
 //
-// )
-// vipsProvider, _ := image_provider_vips.NewProvider(image_provider_vips.Config{})
-// app := piko.New(
+// ) vipsProvider, _ := image_provider_vips.NewProvider(image_provider_vips.Config{}) app
+// := piko.New(
 //
 //	piko.WithImage(
 //	    media.Image().
@@ -1275,24 +1230,21 @@ func WithImage(imageConfig *image_domain.ImageConfig) Option {
 // WithVideoService sets a custom video service implementation.
 //
 // This gives full control over video transcoding, including the ability to:
-//   - Use different transcoder adapters (e.g., astiav for FFmpeg-based
-//     transcoding)
+//   - Use different transcoder adapters (e.g., astiav for FFmpeg-based transcoding)
 //   - Configure custom encoding profiles and quality settings
 //   - Set custom security limits and allowed codecs
 //
-// Most users should use WithVideoTranscoder instead to register individual
-// transcoders.
+// Most users should use WithVideoTranscoder instead to register individual transcoders.
 //
-// Example with astiav transcoder:
-// import "piko.sh/piko/wdk/media/video_provider_astiav"
+// Example with astiav transcoder: import "piko.sh/piko/wdk/media/video_provider_astiav"
 // astiavTranscoder, _ := video_provider_astiav.NewProvider(config)
 //
 //	transcoders := map[string]video_domain.TranscoderPort{
 //	    "astiav": astiavTranscoder,
 //	}
 //
-// videoService, _ := video_domain.NewService(transcoders, "astiav", config)
-// app := piko.New(piko.WithVideoService(videoService))
+// videoService, _ := video_domain.NewService(transcoders, "astiav", config) app :=
+// piko.New(piko.WithVideoService(videoService))
 //
 // Takes service (video_domain.Service) which provides the video transcoding
 // implementation.
@@ -1304,13 +1256,11 @@ func WithVideoService(service video_domain.Service) Option {
 	}
 }
 
-// WithVideoProvider registers a named video provider with the video service.
-// The first provider registered becomes the default unless
-// WithDefaultVideoProvider is called.
+// WithVideoProvider registers a named video provider with the video service. The first
+// provider registered becomes the default unless WithDefaultVideoProvider is called.
 //
-// If no providers are registered, the video service will be nil and
-// components like piko:video will gracefully degrade to basic HTML output
-// without transcoding features.
+// If no providers are registered, the video service will be nil and components like
+// piko:video will gracefully degrade to basic HTML output without transcoding features.
 //
 // Takes name (string) which identifies the provider for later reference.
 // Takes provider (video_domain.TranscoderPort) which provides the video transcoding
@@ -1318,10 +1268,8 @@ func WithVideoService(service video_domain.Service) Option {
 //
 // Returns Option which configures the container with the video provider.
 //
-// Example usage:
-// import astiav "piko.sh/piko/wdk/media/video_provider_astiav"
-// vidProvider, _ := astiav.NewProvider(astiav.Config{})
-// app := piko.New(
+// Example usage: import astiav "piko.sh/piko/wdk/media/video_provider_astiav"
+// vidProvider, _ := astiav.NewProvider(astiav.Config{}) app := piko.New(
 //
 //	piko.WithVideoProvider("astiav", vidProvider),
 //
@@ -1332,9 +1280,8 @@ func WithVideoProvider(name string, provider video_domain.TranscoderPort) Option
 	}
 }
 
-// WithDefaultVideoProvider sets which registered provider should be used as
-// the default. A provider with this name must be registered via
-// WithVideoProvider.
+// WithDefaultVideoProvider sets which registered provider should be used as the default.
+// A provider with this name must be registered via WithVideoProvider.
 //
 // Takes name (string) which is the identifier of the provider to use.
 //
@@ -1345,9 +1292,9 @@ func WithDefaultVideoProvider(name string) Option {
 	}
 }
 
-// WithNotificationProvider registers a named notification provider instance
-// with the default notification service. If multiple providers are registered,
-// use WithDefaultNotificationProvider to specify which one is the default.
+// WithNotificationProvider registers a named notification provider instance with the
+// default notification service. If multiple providers are registered, use
+// WithDefaultNotificationProvider to specify which one is the default.
 //
 // Takes name (string) which identifies this provider for later reference.
 // Takes provider (notification_domain.NotificationProviderPort) which handles
@@ -1355,15 +1302,12 @@ func WithDefaultVideoProvider(name string) Option {
 //
 // Returns Option which configures the container with the notification provider.
 //
-// Example:
-// import (
+// Example: import (
 //
 //	"piko.sh/piko"
 //	"piko.sh/piko/wdk/notification/notification_provider_webhook"
 //
-// )
-// webhookProvider := notification_provider_webhook.NewProvider(config)
-// app := piko.New(
+// ) webhookProvider := notification_provider_webhook.NewProvider(config) app := piko.New(
 //
 //	piko.WithNotificationProvider("webhook", webhookProvider),
 //	piko.WithDefaultNotificationProvider("webhook"),
@@ -1375,17 +1319,15 @@ func WithNotificationProvider(name string, provider notification_domain.Notifica
 	}
 }
 
-// WithDefaultNotificationProvider sets the name of the provider to use for
-// default notification sending. A provider with this name must be registered
-// via WithNotificationProvider.
+// WithDefaultNotificationProvider sets the name of the provider to use for default
+// notification sending. A provider with this name must be registered via
+// WithNotificationProvider.
 //
 // Takes name (string) which specifies the provider name to use as default.
 //
-// Returns Option which configures the container with the default notification
-// provider.
+// Returns Option which configures the container with the default notification provider.
 //
-// Example:
-// app := piko.New(
+// Example: app := piko.New(
 //
 //	piko.WithNotificationProvider("webhook", webhookProvider),
 //	piko.WithNotificationProvider("email", emailNotifier),
@@ -1398,8 +1340,8 @@ func WithDefaultNotificationProvider(name string) Option {
 	}
 }
 
-// WithMonitoringAddress sets the gRPC server listen address for monitoring.
-// Default: ":9091".
+// WithMonitoringAddress sets the gRPC server listen address for monitoring. Default:
+// ":9091".
 //
 // Takes addr (string) which specifies the address and port to listen on.
 //
@@ -1408,8 +1350,8 @@ func WithMonitoringAddress(addr string) MonitoringOption {
 	return bootstrap.WithMonitoringAddress(addr)
 }
 
-// WithMonitoringBindAddress sets the network address for the monitoring server
-// to bind to. Default is "127.0.0.1" (localhost only for security).
+// WithMonitoringBindAddress sets the network address for the monitoring server to bind
+// to. Default is "127.0.0.1" (localhost only for security).
 //
 // Takes addr (string) which specifies the network address to bind to.
 //
@@ -1418,9 +1360,9 @@ func WithMonitoringBindAddress(addr string) MonitoringOption {
 	return bootstrap.WithMonitoringBindAddress(addr)
 }
 
-// WithMonitoringAutoNextPort enables automatic port selection for the
-// monitoring server. When the configured port is already in use, the server
-// tries consecutive ports up to 100 attempts.
+// WithMonitoringAutoNextPort enables automatic port selection for the monitoring server.
+// When the configured port is already in use, the server tries consecutive ports up to
+// 100 attempts.
 //
 // Takes enabled (bool) which controls whether auto-port selection is active.
 //
@@ -1429,16 +1371,16 @@ func WithMonitoringAutoNextPort(enabled bool) MonitoringOption {
 	return bootstrap.WithMonitoringAutoNextPort(enabled)
 }
 
-// WithMonitoringTLS enables TLS for the monitoring gRPC server. Sub-options
-// configure certificate paths, mTLS, and hot-reload settings.
+// WithMonitoringTLS enables TLS for the monitoring gRPC server. Sub-options configure
+// certificate paths, mTLS, and hot-reload settings.
 //
-// Takes opts (...MonitoringTLSOption) which provides optional TLS settings:
-// - WithMonitoringTLSCertFile("/path/to/cert.pem"): sets the certificate.
-// - WithMonitoringTLSKeyFile("/path/to/key.pem"): sets the private key.
-// - WithMonitoringTLSClientCA("/path/to/ca.pem"): enables mTLS.
-// - WithMonitoringTLSClientAuth("require_and_verify"): sets client auth mode.
-// - WithMonitoringTLSMinVersion("1.3"): sets minimum TLS version.
-// - WithMonitoringTLSHotReload(true): enables certificate hot-reload.
+// Takes opts (...MonitoringTLSOption) which provides optional TLS settings: -
+// WithMonitoringTLSCertFile("/path/to/cert.pem"): sets the certificate. -
+// WithMonitoringTLSKeyFile("/path/to/key.pem"): sets the private key. -
+// WithMonitoringTLSClientCA("/path/to/ca.pem"): enables mTLS. -
+// WithMonitoringTLSClientAuth("require_and_verify"): sets client auth mode. -
+// WithMonitoringTLSMinVersion("1.3"): sets minimum TLS version. -
+// WithMonitoringTLSHotReload(true): enables certificate hot-reload.
 //
 // Returns MonitoringOption which configures TLS on the monitoring service.
 func WithMonitoringTLS(opts ...MonitoringTLSOption) MonitoringOption {
@@ -1463,8 +1405,7 @@ func WithMonitoringTLSKeyFile(path string) MonitoringTLSOption {
 	return bootstrap.WithMonitoringTLSKeyFile(path)
 }
 
-// WithMonitoringTLSClientCA sets the client CA file for mTLS on the monitoring
-// server.
+// WithMonitoringTLSClientCA sets the client CA file for mTLS on the monitoring server.
 //
 // Takes path (string) which specifies the client CA file path.
 //
@@ -1473,8 +1414,8 @@ func WithMonitoringTLSClientCA(path string) MonitoringTLSOption {
 	return bootstrap.WithMonitoringTLSClientCA(path)
 }
 
-// WithMonitoringTLSClientAuth sets the client certificate verification mode for
-// the monitoring server.
+// WithMonitoringTLSClientAuth sets the client certificate verification mode for the
+// monitoring server.
 //
 // Takes authType (string) which specifies the auth mode.
 //
@@ -1483,8 +1424,7 @@ func WithMonitoringTLSClientAuth(authType string) MonitoringTLSOption {
 	return bootstrap.WithMonitoringTLSClientAuth(authType)
 }
 
-// WithMonitoringTLSMinVersion sets the minimum TLS version for the monitoring
-// server.
+// WithMonitoringTLSMinVersion sets the minimum TLS version for the monitoring server.
 //
 // Takes version (string) which specifies the minimum version ("1.2" or "1.3").
 //
@@ -1493,8 +1433,8 @@ func WithMonitoringTLSMinVersion(version string) MonitoringTLSOption {
 	return bootstrap.WithMonitoringTLSMinVersion(version)
 }
 
-// WithMonitoringTLSHotReload enables or disables automatic certificate reload
-// for the monitoring server.
+// WithMonitoringTLSHotReload enables or disables automatic certificate reload for the
+// monitoring server.
 //
 // Takes enabled (bool) which controls hot-reload behaviour.
 //
@@ -1503,33 +1443,29 @@ func WithMonitoringTLSHotReload(enabled bool) MonitoringTLSOption {
 	return bootstrap.WithMonitoringTLSHotReload(enabled)
 }
 
-// WithMonitoring enables the gRPC monitoring server for TUI integration.
-// The monitoring server exposes telemetry data (metrics, traces, system stats)
-// via gRPC on port 9091 by default.
+// WithMonitoring enables the gRPC monitoring server for TUI integration. The monitoring
+// server exposes telemetry data (metrics, traces, system stats) via gRPC on port 9091 by
+// default.
 //
 // When enabled, the following gRPC services are available:
 //   - HealthService - Basic health checks
 //   - MetricsService - OTEL metrics, traces, system stats, file descriptors
-//   - OrchestratorInspectorService - Task and workflow status (if orchestrator
-//     enabled)
+//   - OrchestratorInspectorService - Task and workflow status (if orchestrator enabled)
 //   - RegistryInspectorService - Artefact status (if registry enabled)
 //
-// The monitoring service also provides span processors and metric readers for
-// integration with the OTEL SDK, allowing traces and metrics to be captured
-// for the TUI without requiring external backends like Jaeger or Prometheus.
+// The monitoring service also provides span processors and metric readers for integration
+// with the OTEL SDK, allowing traces and metrics to be captured for the TUI without
+// requiring external backends like Jaeger or Prometheus.
 //
 // Takes opts (...MonitoringOption) which configures the monitoring server.
 //
 // Returns Option which enables monitoring when passed to New.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithMonitoring(),
 //
-// )
-// With custom configuration:
-// server := piko.New(
+// ) With custom configuration: server := piko.New(
 //
 //	piko.WithMonitoring(
 //	    piko.WithMonitoringAddress(":9092"),
@@ -1541,8 +1477,7 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 	return bootstrap.WithMonitoring(opts...)
 }
 
-// WithMonitoringTransport sets the transport factory for the monitoring
-// service.
+// WithMonitoringTransport sets the transport factory for the monitoring service.
 //
 // Example:
 //
@@ -1550,18 +1485,17 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 //	    piko.WithMonitoringTransport(monitoring_transport_grpc.Transport()),
 //	)
 //
-// Takes factory (monitoring_domain.TransportFactory) which creates the
-// transport server.
+// Takes factory (monitoring_domain.TransportFactory) which creates the transport server.
 //
 // Returns MonitoringOption which configures the transport on the service.
 func WithMonitoringTransport(factory monitoring_domain.TransportFactory) MonitoringOption {
 	return bootstrap.WithMonitoringTransport(factory)
 }
 
-// WithMonitoringOtelFactories overrides the default noop monitoring service
-// factories with real OTEL SDK implementations. Use this with the factories
-// from logger_otel_sdk.OtelServiceFactories() to enable SDK-backed span
-// processing and metrics collection.
+// WithMonitoringOtelFactories overrides the default noop monitoring service factories
+// with real OTEL SDK implementations. Use this with the factories from
+// logger_otel_sdk.OtelServiceFactories() to enable SDK-backed span processing and metrics
+// collection.
 //
 // Example:
 //
@@ -1569,47 +1503,45 @@ func WithMonitoringTransport(factory monitoring_domain.TransportFactory) Monitor
 //	    piko.WithMonitoringOtelFactories(logger_otel_sdk.OtelServiceFactories()),
 //	)
 //
-// Takes factories (monitoring_domain.ServiceFactories) which provides the
-// span processor and metrics collector factories.
+// Takes factories (monitoring_domain.ServiceFactories) which provides the span processor
+// and metrics collector factories.
 //
 // Returns MonitoringOption which configures the factories on the service.
 func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) MonitoringOption {
 	return bootstrap.WithMonitoringOtelFactories(factories)
 }
 
-// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on
-// the container's cgroup memory limit. This prevents OOM kills in
-// containerised deployments by making the garbage collector aware of the
-// memory ceiling.
+// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on the
+// container's cgroup memory limit. This prevents OOM kills in containerised deployments
+// by making the garbage collector aware of the memory ceiling.
 //
-// Takes provider (func() (int64, error)) which detects and applies the
-// memory limit. Use the automemlimit WDK module for a ready-made provider.
+// Takes provider (func() (int64, error)) which detects and applies the memory limit. Use
+// the automemlimit WDK module for a ready-made provider.
 //
 // Returns Option which configures automatic memory limit detection.
 func WithAutoMemoryLimit(provider func() (int64, error)) Option {
 	return bootstrap.WithAutoMemoryLimit(provider)
 }
 
-// WithDiagnosticDirectory sets a single root directory for all runtime
-// diagnostic artefacts: the crash mirror file (dir/crash.log) and the
-// watchdog's profile / sidecar / startup-history files (dir/profiles).
+// WithDiagnosticDirectory sets a single root directory for all runtime diagnostic
+// artefacts: the crash mirror file (dir/crash.log) and the watchdog's profile / sidecar /
+// startup-history files (dir/profiles).
 //
-// Takes directory (string) which is the root directory for diagnostic
-// artefacts.
+// Takes directory (string) which is the root directory for diagnostic artefacts.
 //
 // Returns Option which sets the diagnostic directory on the container.
 func WithDiagnosticDirectory(directory string) Option {
 	return bootstrap.WithDiagnosticDirectory(directory)
 }
 
-// WithCrashOutput configures runtime/debug.SetCrashOutput so the Go runtime
-// mirrors fatal-error output (panics, stack overflows, concurrent map
-// writes, OOM aborts) to the given file path. The file is opened in append
-// mode so captures from earlier crashes are preserved, and the runtime
-// retains ownership of the file descriptor for the process lifetime.
+// WithCrashOutput configures runtime/debug.SetCrashOutput so the Go runtime mirrors
+// fatal-error output (panics, stack overflows, concurrent map writes, OOM aborts) to the
+// given file path. The file is opened in append mode so captures from earlier crashes are
+// preserved, and the runtime retains ownership of the file descriptor for the process
+// lifetime.
 //
-// When the file cannot be opened the feature is disabled silently and a
-// warning is logged. Crash output must never block startup.
+// When the file cannot be opened the feature is disabled silently and a warning is
+// logged. Crash output must never block startup.
 //
 // Pass an empty path to leave the feature disabled (default).
 //
@@ -1620,11 +1552,10 @@ func WithCrashOutput(path string) Option {
 	return bootstrap.WithCrashOutput(path)
 }
 
-// WithCrashTraceback sets the GOTRACEBACK level via
-// runtime/debug.SetTraceback. Valid levels are "none", "single" (Go
-// default), "all", "system", "crash" (raises SIGABRT after the traceback so
-// the kernel or systemd-coredump can capture a coredump), and "wer"
-// (Windows error reporting).
+// WithCrashTraceback sets the GOTRACEBACK level via runtime/debug.SetTraceback. Valid
+// levels are "none", "single" (Go default), "all", "system", "crash" (raises SIGABRT
+// after the traceback so the kernel or systemd-coredump can capture a coredump), and
+// "wer" (Windows error reporting).
 //
 // Takes level (string) which is the traceback level.
 //
@@ -1633,10 +1564,9 @@ func WithCrashTraceback(level string) Option {
 	return bootstrap.WithCrashTraceback(level)
 }
 
-// WithMonitoringProfiling enables the remote profiling gRPC service, allowing
-// operators to toggle pprof on and off at runtime via the monitoring endpoint.
-// Without this option, the ProfilingService is not registered and profiling
-// cannot be controlled remotely.
+// WithMonitoringProfiling enables the remote profiling gRPC service, allowing operators
+// to toggle pprof on and off at runtime via the monitoring endpoint. Without this option,
+// the ProfilingService is not registered and profiling cannot be controlled remotely.
 //
 // Usage:
 //
@@ -1659,9 +1589,9 @@ func WithMonitoringProfiling() MonitoringOption {
 // WatchdogOption configures the runtime watchdog.
 type WatchdogOption = bootstrap.WatchdogOption
 
-// WithMonitoringWatchdog enables the runtime watchdog that monitors heap
-// memory, goroutine counts, and GC pressure, automatically capturing
-// diagnostic profiles when anomalies are detected.
+// WithMonitoringWatchdog enables the runtime watchdog that monitors heap memory,
+// goroutine counts, and GC pressure, automatically capturing diagnostic profiles when
+// anomalies are detected.
 //
 // Takes opts (...WatchdogOption) which configure thresholds and behaviour.
 //
@@ -1670,8 +1600,8 @@ func WithMonitoringWatchdog(opts ...WatchdogOption) MonitoringOption {
 	return bootstrap.WithMonitoringWatchdog(opts...)
 }
 
-// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of
-// GOMEMLIMIT (0.0-1.0). Default: 0.85.
+// WithWatchdogHeapThresholdPercent sets the heap threshold as a fraction of GOMEMLIMIT
+// (0.0-1.0). Default: 0.85.
 //
 // Takes percent (float64) which is the threshold fraction.
 //
@@ -1680,8 +1610,8 @@ func WithWatchdogHeapThresholdPercent(percent float64) WatchdogOption {
 	return bootstrap.WithWatchdogHeapThresholdPercent(percent)
 }
 
-// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes,
-// used when GOMEMLIMIT is not configured. Default: 512 MiB.
+// WithWatchdogHeapThresholdBytes sets the absolute heap threshold in bytes, used when
+// GOMEMLIMIT is not configured. Default: 512 MiB.
 //
 // Takes thresholdBytes (uint64) which is the threshold in bytes.
 //
@@ -1690,8 +1620,8 @@ func WithWatchdogHeapThresholdBytes(thresholdBytes uint64) WatchdogOption {
 	return bootstrap.WithWatchdogHeapThresholdBytes(thresholdBytes)
 }
 
-// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a
-// goroutine profile capture. Default: 10,000.
+// WithWatchdogGoroutineThreshold sets the goroutine count that triggers a goroutine
+// profile capture. Default: 10,000.
 //
 // Takes threshold (int) which is the goroutine count threshold.
 //
@@ -1700,11 +1630,9 @@ func WithWatchdogGoroutineThreshold(threshold int) WatchdogOption {
 	return bootstrap.WithWatchdogGoroutineThreshold(threshold)
 }
 
-// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime
-// metrics.
+// WithWatchdogCheckInterval sets how often the watchdog evaluates runtime metrics.
 //
-// Shorter intervals detect anomalies faster at negligible CPU cost.
-// Default: 500ms.
+// Shorter intervals detect anomalies faster at negligible CPU cost. Default: 500ms.
 //
 // Takes interval (time.Duration) which is the check period.
 //
@@ -1713,8 +1641,8 @@ func WithWatchdogCheckInterval(interval time.Duration) WatchdogOption {
 	return bootstrap.WithWatchdogCheckInterval(interval)
 }
 
-// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles
-// per type (heap, goroutine).
+// WithWatchdogMaxProfilesPerType sets the maximum number of stored profiles per type
+// (heap, goroutine).
 //
 // Oldest profiles are rotated out. Default: 5.
 //
@@ -1725,8 +1653,8 @@ func WithWatchdogMaxProfilesPerType(count int) WatchdogOption {
 	return bootstrap.WithWatchdogMaxProfilesPerType(count)
 }
 
-// WithWatchdogCooldown sets the minimum duration between consecutive profile
-// captures for the same metric type. Default: 2 minutes.
+// WithWatchdogCooldown sets the minimum duration between consecutive profile captures for
+// the same metric type. Default: 2 minutes.
 //
 // Takes duration (time.Duration) which is the cooldown period.
 //
@@ -1735,8 +1663,8 @@ func WithWatchdogCooldown(duration time.Duration) WatchdogOption {
 	return bootstrap.WithWatchdogCooldown(duration)
 }
 
-// WithWatchdogProfileDirectory sets the local directory for profile storage.
-// Default: os.TempDir()/piko-watchdog.
+// WithWatchdogProfileDirectory sets the local directory for profile storage. Default:
+// os.TempDir()/piko-watchdog.
 //
 // Takes directory (string) which is the directory path.
 //
@@ -1745,25 +1673,24 @@ func WithWatchdogProfileDirectory(directory string) WatchdogOption {
 	return bootstrap.WithWatchdogProfileDirectory(directory)
 }
 
-// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside
-// each capture so the user can compute a diff between consecutive captures
-// using `go tool pprof -diff_base`.
+// WithWatchdogDeltaProfiling enables storing a baseline heap profile alongside each
+// capture so the user can compute a diff between consecutive captures using `go tool
+// pprof -diff_base`.
 //
 // Returns WatchdogOption which enables delta profiling.
 func WithWatchdogDeltaProfiling() WatchdogOption {
 	return bootstrap.WithWatchdogDeltaProfiling()
 }
 
-// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture.
-// When enabled, each goroutine profile firing also writes a human-readable
-// .stacks.txt sidecar containing the full stack of every goroutine
-// (pprof debug=2 output), alongside the existing aggregated .pb.gz binary
-// profile.
+// WithWatchdogIncludeGoroutineStacks toggles per-goroutine stack capture. When enabled,
+// each goroutine profile firing also writes a human-readable .stacks.txt sidecar
+// containing the full stack of every goroutine (pprof debug=2 output), alongside the
+// existing aggregated .pb.gz binary profile.
 //
-// Useful when investigating goroutine leaks where you need to know the exact
-// call site or closure-captured arguments (e.g. which channel a publisher
-// blocks on). Disabled by default because the sidecar can be tens of
-// megabytes per dump for processes with many thousand goroutines.
+// Useful when investigating goroutine leaks where you need to know the exact call site or
+// closure-captured arguments (e.g. which channel a publisher blocks on). Disabled by
+// default because the sidecar can be tens of megabytes per dump for processes with many
+// thousand goroutines.
 //
 // Takes enabled (bool) which toggles the feature.
 //
@@ -1772,8 +1699,8 @@ func WithWatchdogIncludeGoroutineStacks(enabled bool) WatchdogOption {
 	return bootstrap.WithWatchdogIncludeGoroutineStacks(enabled)
 }
 
-// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit
-// above which RSS triggers a profile capture. Default: 0.85.
+// WithWatchdogRSSThresholdPercent sets the fraction of the cgroup memory limit above
+// which RSS triggers a profile capture. Default: 0.85.
 //
 // Takes percent (float64) which is the threshold fraction (0.0-1.0).
 //
@@ -1782,8 +1709,8 @@ func WithWatchdogRSSThresholdPercent(percent float64) WatchdogOption {
 	return bootstrap.WithWatchdogRSSThresholdPercent(percent)
 }
 
-// WithWatchdogFDPressureThresholdPercent sets the fraction of the soft
-// RLIMIT_NOFILE above which the watchdog emits an FD pressure warning.
+// WithWatchdogFDPressureThresholdPercent sets the fraction of the soft RLIMIT_NOFILE
+// above which the watchdog emits an FD pressure warning.
 //
 // Default is 0.80; pass 0 to disable the rule.
 //
@@ -1794,8 +1721,8 @@ func WithWatchdogFDPressureThresholdPercent(percent float64) WatchdogOption {
 	return bootstrap.WithWatchdogFDPressureThresholdPercent(percent)
 }
 
-// WithWatchdogSchedulerLatencyP99Threshold sets the p99 scheduler latency
-// above which the watchdog emits a scheduler-latency warning.
+// WithWatchdogSchedulerLatencyP99Threshold sets the p99 scheduler latency above which the
+// watchdog emits a scheduler-latency warning.
 //
 // Default is 10ms; pass zero to disable the rule.
 //
@@ -1806,11 +1733,11 @@ func WithWatchdogSchedulerLatencyP99Threshold(threshold time.Duration) WatchdogO
 	return bootstrap.WithWatchdogSchedulerLatencyP99Threshold(threshold)
 }
 
-// WithWatchdogMaxWarningsPerWindow sets the maximum number of warning-only
-// events permitted within a single CaptureWindow.
+// WithWatchdogMaxWarningsPerWindow sets the maximum number of warning-only events
+// permitted within a single CaptureWindow.
 //
-// Default is 10. Warnings have their own budget separate from profile
-// captures so flapping warnings cannot crowd out real captures.
+// Default is 10. Warnings have their own budget separate from profile captures so
+// flapping warnings cannot crowd out real captures.
 //
 // Takes count (int) which is the maximum warnings per window.
 //
@@ -1819,18 +1746,17 @@ func WithWatchdogMaxWarningsPerWindow(count int) WatchdogOption {
 	return bootstrap.WithWatchdogMaxWarningsPerWindow(count)
 }
 
-// WithWatchdogContinuousProfiling enables the continuous-profiling loop
-// which captures routine profile snapshots so post-mortem operators have
-// recent profiles even when no threshold breach occurred. Default
-// behaviour is disabled (opt-in).
+// WithWatchdogContinuousProfiling enables the continuous-profiling loop which captures
+// routine profile snapshots so post-mortem operators have recent profiles even when no
+// threshold breach occurred. Default behaviour is disabled (opt-in).
 //
 // Returns WatchdogOption which enables continuous profiling.
 func WithWatchdogContinuousProfiling() WatchdogOption {
 	return bootstrap.WithWatchdogContinuousProfiling()
 }
 
-// WithWatchdogContinuousProfilingInterval sets the interval between routine
-// profile captures.
+// WithWatchdogContinuousProfilingInterval sets the interval between routine profile
+// captures.
 //
 // Default is 10 minutes; validation enforces a minimum of 1 minute.
 //
@@ -1841,8 +1767,8 @@ func WithWatchdogContinuousProfilingInterval(interval time.Duration) WatchdogOpt
 	return bootstrap.WithWatchdogContinuousProfilingInterval(interval)
 }
 
-// WithWatchdogContinuousProfilingTypes sets the profile types captured each
-// routine interval.
+// WithWatchdogContinuousProfilingTypes sets the profile types captured each routine
+// interval.
 //
 // Default is ["heap"]. Allowed values are heap, goroutine, and allocs.
 //
@@ -1853,8 +1779,8 @@ func WithWatchdogContinuousProfilingTypes(types ...string) WatchdogOption {
 	return bootstrap.WithWatchdogContinuousProfilingTypes(types...)
 }
 
-// WithWatchdogContinuousProfilingRetention sets the maximum number of
-// routine profile files retained per type. Default: 6.
+// WithWatchdogContinuousProfilingRetention sets the maximum number of routine profile
+// files retained per type. Default: 6.
 //
 // Takes count (int) which is the retention cap.
 //
@@ -1863,17 +1789,16 @@ func WithWatchdogContinuousProfilingRetention(count int) WatchdogOption {
 	return bootstrap.WithWatchdogContinuousProfilingRetention(count)
 }
 
-// WithWatchdogContinuousProfilingNotify enables informational notifications
-// for each routine capture. Default behaviour is suppression to avoid
-// flooding notifiers.
+// WithWatchdogContinuousProfilingNotify enables informational notifications for each
+// routine capture. Default behaviour is suppression to avoid flooding notifiers.
 //
 // Returns WatchdogOption which enables routine-capture notifications.
 func WithWatchdogContinuousProfilingNotify() WatchdogOption {
 	return bootstrap.WithWatchdogContinuousProfilingNotify()
 }
 
-// WithWatchdogContentionDiagnosticWindow sets the duration during which
-// block + mutex profiling are active during a contention diagnostic.
+// WithWatchdogContentionDiagnosticWindow sets the duration during which block + mutex
+// profiling are active during a contention diagnostic.
 //
 // Default is 60s; allowed range is 1s to 5m.
 //
@@ -1884,19 +1809,17 @@ func WithWatchdogContentionDiagnosticWindow(window time.Duration) WatchdogOption
 	return bootstrap.WithWatchdogContentionDiagnosticWindow(window)
 }
 
-// WithWatchdogContentionDiagnosticAutoFire enables automatic
-// contention-diagnostic firing when scheduler-latency events repeat.
-// Default behaviour is manual (operator must call RunContentionDiagnostic).
+// WithWatchdogContentionDiagnosticAutoFire enables automatic contention-diagnostic firing
+// when scheduler-latency events repeat. Default behaviour is manual (operator must call
+// RunContentionDiagnostic).
 //
-// Returns WatchdogOption which enables automatic contention diagnostic
-// firing.
+// Returns WatchdogOption which enables automatic contention diagnostic firing.
 func WithWatchdogContentionDiagnosticAutoFire() WatchdogOption {
 	return bootstrap.WithWatchdogContentionDiagnosticAutoFire()
 }
 
-// WithWatchdogContentionDiagnosticBlockProfileRate sets the runtime block
-// profile rate during a contention diagnostic. Default: 1e6 (one sample
-// per 1ms of blocking).
+// WithWatchdogContentionDiagnosticBlockProfileRate sets the runtime block profile rate
+// during a contention diagnostic. Default: 1e6 (one sample per 1ms of blocking).
 //
 // Takes rate (int) which is the runtime block profile rate.
 //
@@ -1905,8 +1828,8 @@ func WithWatchdogContentionDiagnosticBlockProfileRate(rate int) WatchdogOption {
 	return bootstrap.WithWatchdogContentionDiagnosticBlockProfileRate(rate)
 }
 
-// WithWatchdogContentionDiagnosticMutexProfileFraction sets the runtime
-// mutex profile fraction during a contention diagnostic. Default: 100.
+// WithWatchdogContentionDiagnosticMutexProfileFraction sets the runtime mutex profile
+// fraction during a contention diagnostic. Default: 100.
 //
 // Takes fraction (int) which is the runtime mutex profile fraction.
 //
@@ -1918,8 +1841,7 @@ func WithWatchdogContentionDiagnosticMutexProfileFraction(fraction int) Watchdog
 // WatchdogNotifier delivers watchdog event notifications to external systems.
 type WatchdogNotifier = monitoring_domain.WatchdogNotifier
 
-// WatchdogProfileUploader uploads captured diagnostic profiles to remote
-// storage.
+// WatchdogProfileUploader uploads captured diagnostic profiles to remote storage.
 type WatchdogProfileUploader = monitoring_domain.WatchdogProfileUploader
 
 // WatchdogEvent describes a notable runtime event detected by the watchdog.
@@ -1931,9 +1853,9 @@ type WatchdogEventType = monitoring_domain.WatchdogEventType
 // WatchdogEventPriority indicates the urgency of a watchdog event.
 type WatchdogEventPriority = monitoring_domain.WatchdogEventPriority
 
-// WithWatchdogNotifier sets the notification delivery mechanism for watchdog
-// events. When set, the watchdog sends notifications to external systems when
-// thresholds are breached or errors occur.
+// WithWatchdogNotifier sets the notification delivery mechanism for watchdog events. When
+// set, the watchdog sends notifications to external systems when thresholds are breached
+// or errors occur.
 //
 // Takes notifier (WatchdogNotifier) which delivers event notifications.
 //
@@ -1942,9 +1864,8 @@ func WithWatchdogNotifier(notifier WatchdogNotifier) MonitoringOption {
 	return bootstrap.WithWatchdogNotifier(notifier)
 }
 
-// WithWatchdogProfileUploader sets the remote storage backend for watchdog
-// profile uploads. When set, captured profiles are uploaded after being
-// written to local disk.
+// WithWatchdogProfileUploader sets the remote storage backend for watchdog profile
+// uploads. When set, captured profiles are uploaded after being written to local disk.
 //
 // Takes uploader (WatchdogProfileUploader) which handles remote storage.
 //
@@ -1962,8 +1883,7 @@ func WithProfilingPort(port int) ProfilingOption {
 	return bootstrap.WithProfilingPort(port)
 }
 
-// WithProfilingBindAddress sets the network address for the pprof server to
-// bind to.
+// WithProfilingBindAddress sets the network address for the pprof server to bind to.
 //
 // Takes addr (string) which specifies the bind address.
 //
@@ -1973,8 +1893,8 @@ func WithProfilingBindAddress(addr string) ProfilingOption {
 }
 
 // WithProfilingBlockRate sets the block profiling rate. After calling
-// runtime.SetBlockProfileRate, the profiler samples one blocking event per
-// this many nanoseconds of blocking.
+// runtime.SetBlockProfileRate, the profiler samples one blocking event per this many
+// nanoseconds of blocking.
 //
 // Takes rate (int) which specifies the sampling rate in nanoseconds.
 //
@@ -1983,8 +1903,8 @@ func WithProfilingBlockRate(rate int) ProfilingOption {
 	return bootstrap.WithProfilingBlockRate(rate)
 }
 
-// WithProfilingMutexFraction sets the mutex profiling fraction. On average
-// 1/n mutex contention events are reported.
+// WithProfilingMutexFraction sets the mutex profiling fraction. On average 1/n mutex
+// contention events are reported.
 //
 // Takes fraction (int) which specifies the sampling fraction.
 //
@@ -1993,9 +1913,8 @@ func WithProfilingMutexFraction(fraction int) ProfilingOption {
 	return bootstrap.WithProfilingMutexFraction(fraction)
 }
 
-// WithProfilingMemProfileRate sets the memory profiling
-// sample rate; 0 uses the Go runtime default of 512KB and
-// lower values capture smaller allocations at higher cost.
+// WithProfilingMemProfileRate sets the memory profiling sample rate; 0 uses the Go
+// runtime default of 512KB and lower values capture smaller allocations at higher cost.
 //
 // Takes rate (int) which specifies the sampling rate in bytes.
 //
@@ -2004,19 +1923,18 @@ func WithProfilingMemProfileRate(rate int) ProfilingOption {
 	return bootstrap.WithProfilingMemProfileRate(rate)
 }
 
-// WithProfilingRollingTrace enables an in-memory rolling execution trace buffer
-// for the profiling server. The trace window can later be downloaded from
+// WithProfilingRollingTrace enables an in-memory rolling execution trace buffer for the
+// profiling server. The trace window can later be downloaded from
 // `/_piko/profiler/trace/recent`.
 //
-// Returns ProfilingOption which enables rolling trace capture with safe
-// defaults.
+// Returns ProfilingOption which enables rolling trace capture with safe defaults.
 func WithProfilingRollingTrace() ProfilingOption {
 	return bootstrap.WithProfilingRollingTrace()
 }
 
-// WithProfilingRollingTraceMinAge sets how much recent trace history the rolling
-// trace recorder should try to retain. Implicitly enables rolling trace capture
-// if not already enabled.
+// WithProfilingRollingTraceMinAge sets how much recent trace history the rolling trace
+// recorder should try to retain. Implicitly enables rolling trace capture if not already
+// enabled.
 //
 // Takes minAge (time.Duration) which specifies the retention target.
 //
@@ -2025,9 +1943,8 @@ func WithProfilingRollingTraceMinAge(minAge time.Duration) ProfilingOption {
 	return bootstrap.WithProfilingRollingTraceMinAge(minAge)
 }
 
-// WithProfilingRollingTraceMaxBytes sets the in-memory budget hint for the
-// rolling trace recorder. Implicitly enables rolling trace capture if not
-// already enabled.
+// WithProfilingRollingTraceMaxBytes sets the in-memory budget hint for the rolling trace
+// recorder. Implicitly enables rolling trace capture if not already enabled.
 //
 // Takes maxBytes (uint64) which specifies the approximate buffer size.
 //
@@ -2036,24 +1953,23 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 	return bootstrap.WithProfilingRollingTraceMaxBytes(maxBytes)
 }
 
-// WithProfiling enables the pprof HTTP debug server. The server exposes
-// profiling endpoints at /_piko/debug/pprof/ on a dedicated port (default 6060).
+// WithProfiling enables the pprof HTTP debug server. The server exposes profiling
+// endpoints at /_piko/debug/pprof/ on a dedicated port (default 6060).
 //
 // When enabled, block and mutex profiling rates are configured so that
 // /_piko/debug/pprof/block and /_piko/debug/pprof/mutex return meaningful data.
 //
-// The server starts during application bootstrap and stops during graceful
-// shutdown.
+// The server starts during application bootstrap and stops during graceful shutdown.
 //
-// Takes opts (...ProfilingOption) which provides optional settings:
-// - WithProfilingPort(6060): sets the HTTP listen port.
-// - WithProfilingBindAddress("localhost"): sets the bind address.
-// - WithProfilingBlockRate(1000): sets the block profile rate.
-// - WithProfilingMutexFraction(10): sets the mutex profile fraction.
-// - WithProfilingMemProfileRate(0): sets the memory profile sample rate.
-// - WithProfilingRollingTrace(): enables bounded rolling trace capture.
-// - WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age.
-// - WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
+// Takes opts (...ProfilingOption) which provides optional settings: -
+// WithProfilingPort(6060): sets the HTTP listen port. -
+// WithProfilingBindAddress("localhost"): sets the bind address. -
+// WithProfilingBlockRate(1000): sets the block profile rate. -
+// WithProfilingMutexFraction(10): sets the mutex profile fraction. -
+// WithProfilingMemProfileRate(0): sets the memory profile sample rate. -
+// WithProfilingRollingTrace(): enables bounded rolling trace capture. -
+// WithProfilingRollingTraceMinAge(15 * time.Second): adjusts retained trace age. -
+// WithProfilingRollingTraceMaxBytes(16 * 1024 * 1024): adjusts trace buffer size.
 //
 // Returns Option which configures the container with profiling settings.
 //
@@ -2074,8 +1990,7 @@ func WithProfiling(opts ...ProfilingOption) Option {
 	return bootstrap.WithProfiling(opts...)
 }
 
-// WithGeneratorProfilingOutputDir sets the directory for captured profile
-// files.
+// WithGeneratorProfilingOutputDir sets the directory for captured profile files.
 //
 // Takes directory (string) which specifies the output directory path.
 //
@@ -2084,8 +1999,7 @@ func WithGeneratorProfilingOutputDir(directory string) GeneratorProfilingOption 
 	return bootstrap.WithGeneratorProfilingOutputDir(directory)
 }
 
-// WithGeneratorProfilingBlockRate sets the block profiling rate for generator
-// profiling.
+// WithGeneratorProfilingBlockRate sets the block profiling rate for generator profiling.
 //
 // Takes rate (int) which specifies the sampling rate in nanoseconds.
 //
@@ -2094,8 +2008,8 @@ func WithGeneratorProfilingBlockRate(rate int) GeneratorProfilingOption {
 	return bootstrap.WithGeneratorProfilingBlockRate(rate)
 }
 
-// WithGeneratorProfilingMutexFraction sets the mutex profiling fraction for
-// generator profiling.
+// WithGeneratorProfilingMutexFraction sets the mutex profiling fraction for generator
+// profiling.
 //
 // Takes fraction (int) which specifies the sampling fraction.
 //
@@ -2104,8 +2018,8 @@ func WithGeneratorProfilingMutexFraction(fraction int) GeneratorProfilingOption 
 	return bootstrap.WithGeneratorProfilingMutexFraction(fraction)
 }
 
-// WithGeneratorProfilingMemProfileRate sets the memory profiling sample rate
-// for generator profiling. 0 uses the Go runtime default.
+// WithGeneratorProfilingMemProfileRate sets the memory profiling sample rate for
+// generator profiling. 0 uses the Go runtime default.
 //
 // Takes rate (int) which specifies the sampling rate in bytes.
 //
@@ -2114,21 +2028,20 @@ func WithGeneratorProfilingMemProfileRate(rate int) GeneratorProfilingOption {
 	return bootstrap.WithGeneratorProfilingMemProfileRate(rate)
 }
 
-// WithGeneratorProfiling enables profiling for short-lived generator builds.
-// CPU, trace, heap, block, mutex, goroutine, and allocs profiles are captured
-// to disk in the specified output directory (default "./profiles").
+// WithGeneratorProfiling enables profiling for short-lived generator builds. CPU, trace,
+// heap, block, mutex, goroutine, and allocs profiles are captured to disk in the
+// specified output directory (default "./profiles").
 //
-// Unlike WithProfiling, this does not start an HTTP server. Instead, it wraps
-// the build execution: profiling starts before the build and profiles are
-// written when the build completes.
+// Unlike WithProfiling, this does not start an HTTP server. Instead, it wraps the build
+// execution: profiling starts before the build and profiles are written when the build
+// completes.
 //
-// Takes opts (...GeneratorProfilingOption) which provides optional settings:
-// - WithGeneratorProfilingOutputDir("./profiles"): sets the output directory.
-// - WithGeneratorProfilingBlockRate(1): sets the block profile rate.
-// - WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction.
+// Takes opts (...GeneratorProfilingOption) which provides optional settings: -
+// WithGeneratorProfilingOutputDir("./profiles"): sets the output directory. -
+// WithGeneratorProfilingBlockRate(1): sets the block profile rate. -
+// WithGeneratorProfilingMutexFraction(1): sets the mutex profile fraction.
 //
-// Returns Option which configures the container with generator profiling
-// settings.
+// Returns Option which configures the container with generator profiling settings.
 //
 // Example:
 //
@@ -2147,22 +2060,19 @@ func WithGeneratorProfiling(opts ...GeneratorProfilingOption) Option {
 	return bootstrap.WithGeneratorProfiling(opts...)
 }
 
-// WithMetricsExporter configures a metrics exporter for the health probe
-// server. When enabled, OTEL metrics are exposed at /metrics on port 9090 by
-// default.
+// WithMetricsExporter configures a metrics exporter for the health probe server. When
+// enabled, OTEL metrics are exposed at /metrics on port 9090 by default.
 //
-// The exporter integrates with the OTEL MeterProvider, so all metrics
-// recorded through OTEL instrumentation will be available for scraping.
+// The exporter integrates with the OTEL MeterProvider, so all metrics recorded through
+// OTEL instrumentation will be available for scraping.
 //
-// Example with Prometheus:
-// import prometheus "piko.sh/piko/wdk/metrics/metrics_exporter_prometheus"
-// server := piko.New(
+// Example with Prometheus: import prometheus
+// "piko.sh/piko/wdk/metrics/metrics_exporter_prometheus" server := piko.New(
 //
 //	piko.WithMetricsExporter(prometheus.New()),
 //
-// )
-// The metrics endpoint path can be configured via the healthProbe.metricsPath
-// config option.
+// ) The metrics endpoint path can be configured via the healthProbe.metricsPath config
+// option.
 //
 // Takes exporter (MetricsExporter) which provides the metrics export backend.
 //
@@ -2171,10 +2081,9 @@ func WithMetricsExporter(exporter MetricsExporter) Option {
 	return bootstrap.WithMetricsExporter(exporter)
 }
 
-// WithDatabase registers a named SQL database connection for the registry or
-// orchestrator subsystem. When a database named "registry" or "orchestrator"
-// is registered, piko uses a SQL-backed DAL instead of the default otter
-// in-memory backend for that subsystem.
+// WithDatabase registers a named SQL database connection for the registry or orchestrator
+// subsystem. When a database named "registry" or "orchestrator" is registered, piko uses
+// a SQL-backed DAL instead of the default otter in-memory backend for that subsystem.
 //
 // Available driver packages:
 //   - db_driver_sqlite_cgo: CGO SQLite (maximum performance)
@@ -2194,12 +2103,12 @@ func WithMetricsExporter(exporter MetricsExporter) Option {
 //
 //	app := piko.New(
 //	    piko.WithDatabase(db.DatabaseNameRegistry, &db.DatabaseRegistration{
-//	        DB:           db_driver_sqlite_cgo.Open("data/registry.db", db_driver_sqlite_cgo.Config{}),
+//	        DB:           db_driver_sqlite_cgo.Open(ctx, "data/registry.db", db_driver_sqlite_cgo.Config{}),
 //	        EngineConfig: db_engine_sqlite.SQLite(),
 //	        MigrationFS:  db_schema_registry_sqlite.Migrations,
 //	    }),
 //	    piko.WithDatabase(db.DatabaseNameOrchestrator, &db.DatabaseRegistration{
-//	        DB:           db_driver_sqlite_cgo.Open("data/orchestrator.db", db_driver_sqlite_cgo.Config{}),
+//	        DB:           db_driver_sqlite_cgo.Open(ctx, "data/orchestrator.db", db_driver_sqlite_cgo.Config{}),
 //	        EngineConfig: db_engine_sqlite.SQLite(),
 //	        MigrationFS:  db_schema_orchestrator_sqlite.Migrations,
 //	    }),
@@ -2208,8 +2117,8 @@ func WithMetricsExporter(exporter MetricsExporter) Option {
 // Takes name (string) which identifies the database (db.DatabaseNameRegistry or
 // db.DatabaseNameOrchestrator for framework subsystems, or any custom name for
 // application databases).
-// Takes registration (*bootstrap.DatabaseRegistration) which provides the connection
-// and migration configuration.
+// Takes registration (*bootstrap.DatabaseRegistration) which provides the connection and
+// migration configuration.
 //
 // Returns Option which registers the database with the application.
 func WithDatabase(name string, registration *bootstrap.DatabaseRegistration) Option {
@@ -2218,11 +2127,10 @@ func WithDatabase(name string, registration *bootstrap.DatabaseRegistration) Opt
 
 // WithPMLTransformer sets a custom PML transformation engine.
 //
-// Use it to customise the PikoML to HTML transformation process. If not
-// provided, a default transformer with all built-in components will be used.
+// Use it to customise the PikoML to HTML transformation process. If not provided, a
+// default transformer with all built-in components will be used.
 //
-// Takes transformer (pml_domain.Transformer) which handles the PikoML to HTML
-// conversion.
+// Takes transformer (pml_domain.Transformer) which handles the PikoML to HTML conversion.
 //
 // Returns Option which configures the container with the custom transformer.
 func WithPMLTransformer(transformer pml_domain.Transformer) Option {
@@ -2231,11 +2139,11 @@ func WithPMLTransformer(transformer pml_domain.Transformer) Option {
 	}
 }
 
-// DefaultRegistryMetadataCacheConfig returns the default configuration for the
-// Registry metadata cache.
+// DefaultRegistryMetadataCacheConfig returns the default configuration for the Registry
+// metadata cache.
 //
-// Returns RegistryMetadataCacheConfig which provides sensible defaults with
-// 256 MB max weight, 30 minute TTL, and stats disabled.
+// Returns RegistryMetadataCacheConfig which provides sensible defaults with 256 MB max
+// weight, 30 minute TTL, and stats disabled.
 func DefaultRegistryMetadataCacheConfig() RegistryMetadataCacheConfig {
 	return RegistryMetadataCacheConfig{
 		MaxWeight:    defaultRegistryCacheMaxWeightMB * bytesPerMB,
@@ -2244,24 +2152,19 @@ func DefaultRegistryMetadataCacheConfig() RegistryMetadataCacheConfig {
 	}
 }
 
-// WithRegistryMetadataCacheConfig configures the Registry service's metadata
-// cache. The metadata cache stores artefact metadata to reduce database queries
-// and improve Registry performance, especially for frequently accessed
-// artefacts.
+// WithRegistryMetadataCacheConfig configures the Registry service's metadata cache. The
+// metadata cache stores artefact metadata to reduce database queries and improve Registry
+// performance, especially for frequently accessed artefacts.
 //
-// The cache uses weight-based eviction (calculated by the approximate memory
-// size of artefact metadata) and access-based expiration (TTL resets on every
-// read).
+// The cache uses weight-based eviction (calculated by the approximate memory size of
+// artefact metadata) and access-based expiration (TTL resets on every read).
 //
-// Takes registryCacheConfig (RegistryMetadataCacheConfig) which specifies the
-// cache settings including maximum weight, TTL, and whether stats are enabled.
+// Takes registryCacheConfig (RegistryMetadataCacheConfig) which specifies the cache
+// settings including maximum weight, TTL, and whether stats are enabled.
 //
 // Returns Option which configures the metadata cache when applied.
 //
-// Example:
-// import "piko.sh/piko"
-// import "time"
-// server, err := piko.New(
+// Example: import "piko.sh/piko" import "time" server, err := piko.New(
 //
 //	piko.WithRegistryMetadataCacheConfig(piko.RegistryMetadataCacheConfig{
 //	    MaxWeight:    512 * 1024 * 1024, // 512 MB
@@ -2280,13 +2183,12 @@ func WithRegistryMetadataCacheConfig(registryCacheConfig RegistryMetadataCacheCo
 	}
 }
 
-// NewCSPBuilder creates a new CSP builder with no directives configured.
-// This is the starting point for building a Content-Security-Policy.
+// NewCSPBuilder creates a new CSP builder with no directives configured. This is the
+// starting point for building a Content-Security-Policy.
 //
 // Returns *CSPBuilder which is ready for chaining directive methods.
 //
-// Example:
-// builder := piko.NewCSPBuilder().
+// Example: builder := piko.NewCSPBuilder().
 //
 //	DefaultSrc(piko.CSPSelf).
 //	ScriptSrc(piko.CSPSelf, piko.CSPHost("cdn.example.com")).
@@ -2295,20 +2197,17 @@ func NewCSPBuilder() *CSPBuilder {
 	return security_domain.NewCSPBuilder()
 }
 
-// WithCSP configures the Content-Security-Policy header using a
-// builder function.
+// WithCSP configures the Content-Security-Policy header using a builder function.
 //
-// Takes configure (func(*CSPBuilder)) which is a callback that
-// receives a CSPBuilder for configuring CSP directives.
+// Takes configure (func(*CSPBuilder)) which is a callback that receives a CSPBuilder for
+// configuring CSP directives.
 //
 // Returns Option which applies the CSP configuration to the server.
 //
-// The builder function receives a CSPBuilder that you configure
-// with your desired directives. The resulting policy is applied
-// to all HTTP responses.
+// The builder function receives a CSPBuilder that you configure with your desired
+// directives. The resulting policy is applied to all HTTP responses.
 //
-// Example - Simple custom policy:
-// server := piko.New(
+// Example - Simple custom policy: server := piko.New(
 //
 //	piko.WithCSP(func(b *piko.CSPBuilder) {
 //		b.DefaultSrc(piko.CSPSelf).
@@ -2316,18 +2215,14 @@ func NewCSPBuilder() *CSPBuilder {
 //			StyleSrc(piko.CSPSelf, piko.CSPUnsafeInline)
 //	}),
 //
-// )
-// Example - Extend Piko defaults:
-// server := piko.New(
+// ) Example - Extend Piko defaults: server := piko.New(
 //
 //	piko.WithCSP(func(b *piko.CSPBuilder) {
 //		b.WithPikoDefaults().
 //			ScriptSrc(piko.CSPSelf, piko.CSPHost("analytics.example.com"))
 //	}),
 //
-// )
-// Example - Report-only mode for testing:
-// server := piko.New(
+// ) Example - Report-only mode for testing: server := piko.New(
 //
 //	piko.WithCSP(func(b *piko.CSPBuilder) {
 //		b.WithPikoDefaults().
@@ -2335,9 +2230,7 @@ func NewCSPBuilder() *CSPBuilder {
 //			ReportToDirective("csp-violations")
 //	}),
 //
-// )
-// Example - Dynamic per-request tokens for strict CSP:
-// server := piko.New(
+// ) Example - Dynamic per-request tokens for strict CSP: server := piko.New(
 //
 //	piko.WithCSP(func(b *piko.CSPBuilder) {
 //		b.DefaultSrc(piko.CSPSelf).
@@ -2345,22 +2238,21 @@ func NewCSPBuilder() *CSPBuilder {
 //			StyleSrc(piko.CSPSelf, piko.CSPRequestToken)
 //	}),
 //
-// )
-// When using CSPRequestToken, add the token attribute to inline elements in
-// templates:
-// <script {{ .CSPTokenAttr }}>...</script>
-// <style {{ .CSPTokenAttr }}>...</style>
+// ) When using CSPRequestToken, add the token attribute to inline elements in templates:
+// <script {{ .CSPTokenAttr }}>...</script> <style {{ .CSPTokenAttr }}>...</style>
 func WithCSP(configure func(*CSPBuilder)) Option {
 	return func(c *bootstrap.Container) {
 		builder := security_domain.NewCSPBuilder()
-		configure(builder)
+		if configure != nil {
+			configure(builder)
+		}
 		c.SetCSPConfig(builder)
 	}
 }
 
-// WithCSPString sets the Content-Security-Policy header directly from a string.
-// This is an escape hatch for complex cases that don't fit the builder pattern,
-// or for migrating existing CSP configurations.
+// WithCSPString sets the Content-Security-Policy header directly from a string. This is
+// an escape hatch for complex cases that don't fit the builder pattern, or for migrating
+// existing CSP configurations.
 //
 // Pass an empty string to disable the CSP header entirely.
 //
@@ -2368,15 +2260,11 @@ func WithCSP(configure func(*CSPBuilder)) Option {
 //
 // Returns Option which configures the CSP header on the container.
 //
-// Example:
-// // Use a pre-existing policy string
-// server := piko.New(
+// Example: // Use a pre-existing policy string server := piko.New(
 //
 //	piko.WithCSPString("default-src 'self'; script-src 'self' cdn.example.com"),
 //
-// )
-// // Disable CSP entirely
-// server := piko.New(
+// ) // Disable CSP entirely server := piko.New(
 //
 //	piko.WithCSPString(""),
 //
@@ -2387,10 +2275,9 @@ func WithCSPString(policy string) Option {
 	}
 }
 
-// WithPikoDefaultCSP configures the Content-Security-Policy with Piko's
-// recommended default settings. This provides a secure baseline that works
-// with Piko's built-in features including font loading, inline styles,
-// and the async font loader script.
+// WithPikoDefaultCSP configures the Content-Security-Policy with Piko's recommended
+// default settings. This provides a secure baseline that works with Piko's built-in
+// features including font loading, inline styles, and the async font loader script.
 //
 // The default policy includes:
 //   - default-src 'self'
@@ -2402,8 +2289,7 @@ func WithCSPString(policy string) Option {
 //
 // Returns Option which applies the default CSP configuration to the server.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithPikoDefaultCSP(),
 //
@@ -2416,9 +2302,8 @@ func WithPikoDefaultCSP() Option {
 }
 
 // WithStrictCSP configures a strict Content Security Policy following Google's
-// recommendations, using per-request tokens and 'strict-dynamic' for script
-// execution to provide strong XSS protection while allowing dynamically loaded
-// scripts.
+// recommendations, using per-request tokens and 'strict-dynamic' for script execution to
+// provide strong XSS protection while allowing dynamically loaded scripts.
 //
 // The policy includes:
 //   - default-src 'self'
@@ -2431,12 +2316,10 @@ func WithPikoDefaultCSP() Option {
 //
 // Returns Option which applies the strict CSP configuration to the server.
 //
-// IMPORTANT: This policy uses request tokens. Templates must use
-// {{ .CSPTokenAttr }} on inline script and style elements:
-// <script {{ .CSPTokenAttr }}>console.log("safe");</script>
-// <style {{ .CSPTokenAttr }}>.my-class { color: red; }</style>
-// Example:
-// server := piko.New(
+// IMPORTANT: This policy uses request tokens. Templates must use {{ .CSPTokenAttr }} on
+// inline script and style elements: <script {{ .CSPTokenAttr
+// }}>console.log("safe");</script> <style {{ .CSPTokenAttr }}>.my-class { color: red;
+// }</style> Example: server := piko.New(
 //
 //	piko.WithStrictCSP(),
 //
@@ -2452,9 +2335,9 @@ func WithStrictCSP() Option {
 //
 // Returns Option which applies a relaxed CSP policy to the server.
 //
-// WARNING: This policy allows 'unsafe-inline' and 'unsafe-eval', which
-// significantly reduces XSS protection. Use only when migrating legacy
-// code that cannot be updated to use token-based CSP or content hashes.
+// WARNING: This policy allows 'unsafe-inline' and 'unsafe-eval', which significantly
+// reduces XSS protection. Use only when migrating legacy code that cannot be updated to
+// use token-based CSP or content hashes.
 //
 // The policy includes:
 //   - default-src 'self'
@@ -2465,8 +2348,7 @@ func WithStrictCSP() Option {
 //   - connect-src 'self'
 //   - frame-ancestors 'self' (clickjacking protection)
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithRelaxedCSP(),
 //
@@ -2478,9 +2360,9 @@ func WithRelaxedCSP() Option {
 	}
 }
 
-// WithAPICSP configures a minimal CSP policy for JSON API servers.
-// This policy blocks all resource types, which protects against cases where
-// the API accidentally serves HTML content (e.g., error pages with user input).
+// WithAPICSP configures a minimal CSP policy for JSON API servers. This policy blocks all
+// resource types, which protects against cases where the API accidentally serves HTML
+// content (e.g., error pages with user input).
 //
 // The policy includes:
 //   - default-src 'none' (blocks everything by default)
@@ -2492,8 +2374,7 @@ func WithRelaxedCSP() Option {
 //
 // Returns Option which applies the API CSP configuration to the server.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithAPICSP(),
 //
@@ -2505,18 +2386,17 @@ func WithAPICSP() Option {
 	}
 }
 
-// WithReportingEndpoints enables the Reporting-Endpoints HTTP header and
-// configures the specified reporting endpoints. These endpoints can be
-// referenced by CSP report-to directives and other web platform reporting APIs
-// (Network Error Logging, Deprecation Reports, Crash Reports).
+// WithReportingEndpoints enables the Reporting-Endpoints HTTP header and configures the
+// specified reporting endpoints. These endpoints can be referenced by CSP report-to
+// directives and other web platform reporting APIs (Network Error Logging, Deprecation
+// Reports, Crash Reports).
 //
-// Takes endpoints (...ReportingEndpoint) which specifies the reporting
-// endpoints to configure.
+// Takes endpoints (...ReportingEndpoint) which specifies the reporting endpoints to
+// configure.
 //
 // Returns Option which configures the server with the reporting endpoints.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithReportingEndpoints(
 //		piko.ReportingEndpoint{
@@ -2533,30 +2413,25 @@ func WithAPICSP() Option {
 //			ReportToDirective("csp-violations")
 //	}),
 //
-// )
-// The resulting headers will be:
-// Reporting-Endpoints: csp-violations="...", deprecations="..."
-// Content-Security-Policy: ...; report-to csp-violations
+// ) The resulting headers will be: Reporting-Endpoints: csp-violations="...",
+// deprecations="..." Content-Security-Policy: ...; report-to csp-violations
 func WithReportingEndpoints(endpoints ...ReportingEndpoint) Option {
 	return func(c *bootstrap.Container) {
 		c.SetReportingEndpoints(endpoints)
 	}
 }
 
-// WithCrossOriginResourcePolicy sets the Cross-Origin-Resource-Policy header
-// value. This header controls which origins can load resources from this
-// server.
+// WithCrossOriginResourcePolicy sets the Cross-Origin-Resource-Policy header value. This
+// header controls which origins can load resources from this server.
 //
-// Takes policy (string) which specifies the CORP policy. Use one of:
-// - CORPSameOrigin (default): Only same-origin requests can load resources
-// - CORPSameSite: Same-site requests can load resources
-// - CORPCrossOrigin: Any origin can load resources (required for headless
-// CMS)
+// Takes policy (string) which specifies the CORP policy. Use one of: - CORPSameOrigin
+// (default): Only same-origin requests can load resources - CORPSameSite: Same-site
+// requests can load resources - CORPCrossOrigin: Any origin can load resources (required
+// for headless CMS)
 //
 // Returns Option which configures the CORP header on the container.
 //
-// Example - Enable cross-origin resource sharing for headless CMS:
-// server := piko.New(
+// Example - Enable cross-origin resource sharing for headless CMS: server := piko.New(
 //
 //	piko.WithCrossOriginResourcePolicy(piko.CORPCrossOrigin),
 //
@@ -2567,21 +2442,20 @@ func WithCrossOriginResourcePolicy(policy string) Option {
 	}
 }
 
-// WithTrustedProxies configures the CIDR ranges of reverse proxies trusted to
-// set X-Forwarded-For headers. When a request arrives from one of these ranges,
-// the real client IP is extracted from forwarding headers rather than using the
-// connection IP directly.
+// WithTrustedProxies configures the CIDR ranges of reverse proxies trusted to set
+// X-Forwarded-For headers. When a request arrives from one of these ranges, the real
+// client IP is extracted from forwarding headers rather than using the connection IP
+// directly.
 //
-// Common values include RFC 1918 private ranges: "10.0.0.0/8",
-// "172.16.0.0/12", "192.168.0.0/16". For Cloudflare deployments, add their
-// published IP ranges from https://www.cloudflare.com/ips/.
+// Common values include RFC 1918 private ranges: "10.0.0.0/8", "172.16.0.0/12",
+// "192.168.0.0/16". For Cloudflare deployments, add their published IP ranges from
+// https://www.cloudflare.com/ips/.
 //
 // Takes cidrs (...string) which are the CIDR ranges to trust.
 //
 // Returns Option which configures the trusted proxy list on the server.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithTrustedProxies("10.0.0.0/8", "172.16.0.0/12"),
 //
@@ -2590,12 +2464,12 @@ func WithTrustedProxies(cidrs ...string) Option {
 	return bootstrap.WithTrustedProxies(cidrs...)
 }
 
-// WithCloudflareEnabled enables trust of the CF-Connecting-IP header from
-// trusted proxies.
+// WithCloudflareEnabled enables trust of the CF-Connecting-IP header from trusted
+// proxies.
 //
-// When false (the default), the header is ignored even from trusted proxies.
-// Enable this only when Cloudflare is your edge proxy and its IP ranges are
-// listed in WithTrustedProxies.
+// When false (the default), the header is ignored even from trusted proxies. Enable this
+// only when Cloudflare is your edge proxy and its IP ranges are listed in
+// WithTrustedProxies.
 //
 // Takes enabled (bool) which controls whether CF-Connecting-IP is trusted.
 //
@@ -2604,16 +2478,15 @@ func WithCloudflareEnabled(enabled bool) Option {
 	return bootstrap.WithCloudflareEnabled(enabled)
 }
 
-// WithRateLimitEnabled enables or disables HTTP request rate limiting.
-// Rate limiting is disabled by default to prevent accidental self-limiting
-// when deployed behind a reverse proxy without WithTrustedProxies configured.
+// WithRateLimitEnabled enables or disables HTTP request rate limiting. Rate limiting is
+// disabled by default to prevent accidental self-limiting when deployed behind a reverse
+// proxy without WithTrustedProxies configured.
 //
 // Takes enabled (bool) which controls whether rate limiting is active.
 //
 // Returns Option which configures rate limiting on the server.
 //
-// Example:
-// server := piko.New(
+// Example: server := piko.New(
 //
 //	piko.WithTrustedProxies("10.0.0.0/8"),
 //	piko.WithRateLimitEnabled(true),
@@ -2625,9 +2498,9 @@ func WithRateLimitEnabled(enabled bool) Option {
 
 // WithCSRFTokenMaxAge sets the fallback maximum age for CSRF tokens.
 //
-// The primary expiry mechanism is cookie rotation; this setting acts as a
-// safety net for tokens backed by cookies that persist beyond their expected
-// lifetime. When d is 0 or negative, the default of 30 days is used.
+// The primary expiry mechanism is cookie rotation; this setting acts as a safety net for
+// tokens backed by cookies that persist beyond their expected lifetime. When d is 0 or
+// negative, the default of 30 days is used.
 //
 // Takes d (time.Duration) which specifies the maximum token age.
 //
@@ -2636,8 +2509,8 @@ func WithCSRFTokenMaxAge(d time.Duration) Option {
 	return bootstrap.WithCSRFTokenMaxAge(d)
 }
 
-// WithCSRFSecFetchSiteEnforcement controls whether browser requests must
-// include CSRF tokens when the Sec-Fetch-Site header is present.
+// WithCSRFSecFetchSiteEnforcement controls whether browser requests must include CSRF
+// tokens when the Sec-Fetch-Site header is present.
 //
 // Takes enabled (bool) which controls whether enforcement is active.
 //
@@ -2646,8 +2519,8 @@ func WithCSRFSecFetchSiteEnforcement(enabled bool) Option {
 	return bootstrap.WithCSRFSecFetchSiteEnforcement(enabled)
 }
 
-// WithStartupBanner controls whether the startup information banner is
-// displayed when the server starts. Defaults to true.
+// WithStartupBanner controls whether the startup information banner is displayed when the
+// server starts. Defaults to true.
 //
 // Takes enabled (bool) which specifies whether the banner is shown.
 //
@@ -2656,17 +2529,17 @@ func WithStartupBanner(enabled bool) Option {
 	return bootstrap.WithStartupBanner(enabled)
 }
 
-// WithIAmACatPerson swaps the large pixel-art mascot in the startup banner
-// for the small ASCII art version. Defaults to false.
+// WithIAmACatPerson swaps the large pixel-art mascot in the startup banner for the small
+// ASCII art version. Defaults to false.
 //
 // Returns Option which configures the mascot preference.
 func WithIAmACatPerson() Option {
 	return bootstrap.WithIAmACatPerson()
 }
 
-// WithWatchMode controls whether file system watching for hot-reloading is
-// enabled. This is typically derived from the run mode (dev -> true,
-// prod -> false) and does not need to be set manually.
+// WithWatchMode controls whether file system watching for hot-reloading is enabled. This
+// is typically derived from the run mode (dev -> true, prod -> false) and does not need
+// to be set manually.
 //
 // Takes enabled (bool) which controls whether watch mode is active.
 //
@@ -2675,8 +2548,8 @@ func WithWatchMode(enabled bool) Option {
 	return bootstrap.WithWatchMode(enabled)
 }
 
-// WithE2EMode controls whether E2E test pages and partials are included in
-// the build. WARNING: Never enable in production.
+// WithE2EMode controls whether E2E test pages and partials are included in the build.
+// WARNING: Never enable in production.
 //
 // Takes enabled (bool) which controls whether E2E mode is active.
 //
@@ -2685,9 +2558,8 @@ func WithE2EMode(enabled bool) Option {
 	return bootstrap.WithE2EMode(enabled)
 }
 
-// WithStorageService overrides the default storage service with a custom
-// implementation. Use it for testing or providing a fully configured service
-// with custom behaviour.
+// WithStorageService overrides the default storage service with a custom implementation.
+// Use it for testing or providing a fully configured service with custom behaviour.
 //
 // Takes service (storage_domain.Service) which is the custom storage service.
 //
@@ -2698,9 +2570,9 @@ func WithStorageService(service storage_domain.Service) Option {
 	}
 }
 
-// WithStorageProvider registers a named storage provider instance with the
-// default storage service. If multiple providers are registered, use
-// WithDefaultStorageProvider to specify which one is the default.
+// WithStorageProvider registers a named storage provider instance with the default
+// storage service. If multiple providers are registered, use WithDefaultStorageProvider
+// to specify which one is the default.
 //
 // Takes name (string) which identifies the storage provider.
 // Takes provider (StorageProviderPort) which is the storage provider instance.
@@ -2712,34 +2584,31 @@ func WithStorageProvider(name string, provider storage_domain.StorageProviderPor
 	}
 }
 
-// WithSystemStorageProvider registers a storage provider for Piko internal
-// operations such as registry blob storage.
+// WithSystemStorageProvider registers a storage provider for Piko internal operations
+// such as registry blob storage.
 //
-// If not set, Piko internals will use the "default" provider. Set it to
-// separate application storage from Piko's internal storage needs.
+// If not set, Piko internals will use the "default" provider. Set it to separate
+// application storage from Piko's internal storage needs.
 //
-// Example: Use GCS for app storage but keep Piko internals on local disk:
-// piko.New(
+// Example: Use GCS for app storage but keep Piko internals on local disk: piko.New(
 //
 //	piko.WithStorageProvider("default", gcsProvider),  // App uses GCS
 //	piko.WithSystemStorageProvider(diskProvider),      // Piko uses disk
 //
 // )
 //
-// Takes provider (StorageProviderPort) which provides the storage
-// backend for Piko internal operations.
+// Takes provider (StorageProviderPort) which provides the storage backend for Piko
+// internal operations.
 //
-// Returns Option which configures the container with the system storage
-// provider.
+// Returns Option which configures the container with the system storage provider.
 func WithSystemStorageProvider(provider storage_domain.StorageProviderPort) Option {
 	return func(c *bootstrap.Container) {
 		c.AddStorageProvider(storage_dto.StorageProviderSystem, provider)
 	}
 }
 
-// WithDefaultStorageProvider sets the name of the provider to use for default
-// storage operations. A provider with this name must be registered via
-// WithStorageProvider.
+// WithDefaultStorageProvider sets the name of the provider to use for default storage
+// operations. A provider with this name must be registered via WithStorageProvider.
 //
 // Takes name (string) which specifies the registered provider name.
 //
@@ -2750,11 +2619,11 @@ func WithDefaultStorageProvider(name string) Option {
 	}
 }
 
-// WithStorageDispatcher enables and configures the background dispatcher for
-// the default storage service.
+// WithStorageDispatcher enables and configures the background dispatcher for the default
+// storage service.
 //
-// Takes storageDispatcherConfig (storage_domain.DispatcherConfig) which
-// controls batching, retries, and queue sizes.
+// Takes storageDispatcherConfig (storage_domain.DispatcherConfig) which controls
+// batching, retries, and queue sizes.
 //
 // Returns Option which configures the dispatcher on the container.
 func WithStorageDispatcher(storageDispatcherConfig storage_domain.DispatcherConfig) Option {
@@ -2763,15 +2632,15 @@ func WithStorageDispatcher(storageDispatcherConfig storage_domain.DispatcherConf
 	}
 }
 
-// WithStoragePresignBaseURL sets the base URL prefix for presigned storage
-// URLs. This is essential when Piko is used as a headless CMS where content is
-// consumed by a frontend on a different host or port.
+// WithStoragePresignBaseURL sets the base URL prefix for presigned storage URLs. This is
+// essential when Piko is used as a headless CMS where content is consumed by a frontend
+// on a different host or port.
 //
 // Without this option, presigned URLs will be relative paths that do not work
 // cross-origin.
 //
-// Takes baseURL (string) which is the full base URL including scheme and host,
-// e.g., "http://localhost:8080" or "https://cms.example.com".
+// Takes baseURL (string) which is the full base URL including scheme and host, e.g.,
+// "http://localhost:8080" or "https://cms.example.com".
 //
 // Returns Option which configures the presign base URL on the storage service.
 func WithStoragePresignBaseURL(baseURL string) Option {
@@ -2782,15 +2651,13 @@ func WithStoragePresignBaseURL(baseURL string) Option {
 
 // WithStoragePublicBaseURL sets the base URL for public storage URLs.
 //
-// When set, public URLs are generated as absolute URLs
-// (e.g., "http://localhost:8080/_piko/storage/public/...").
-// When empty, URLs are generated as relative paths
-// (e.g., "/_piko/storage/public/...").
-// This is required when the website and CMS/API run on different ports
-// or hosts.
+// When set, public URLs are generated as absolute URLs (e.g.,
+// "http://localhost:8080/_piko/storage/public/..."). When empty, URLs are generated as
+// relative paths (e.g., "/_piko/storage/public/..."). This is required when the website
+// and CMS/API run on different ports or hosts.
 //
-// Takes baseURL (string) which is the full base URL including scheme and
-// host, e.g., "http://localhost:8080" or "https://cms.example.com".
+// Takes baseURL (string) which is the full base URL including scheme and host, e.g.,
+// "http://localhost:8080" or "https://cms.example.com".
 //
 // Returns Option which configures the public base URL on the storage service.
 func WithStoragePublicBaseURL(baseURL string) Option {
@@ -2799,13 +2666,12 @@ func WithStoragePublicBaseURL(baseURL string) Option {
 	}
 }
 
-// WithValidator provides a struct validator implementation. Any type that
-// implements the bootstrap.StructValidator interface (a single Struct(any) error
-// method) can be used.
+// WithValidator provides a struct validator implementation. Any type that implements the
+// bootstrap.StructValidator interface (a single Struct(any) error method) can be used.
 //
-// The recommended implementation is the validation_provider_playground WDK
-// module, which provides a go-playground/validator backed validator with
-// Piko's built-in Money and Decimal validation rules pre-registered.
+// The recommended implementation is the validation_provider_playground WDK module, which
+// provides a go-playground/validator backed validator with Piko's built-in Money and
+// Decimal validation rules pre-registered.
 //
 // When no validator is configured, struct validation is skipped entirely.
 //
@@ -2856,17 +2722,17 @@ func WithPort(port int) Option {
 	return bootstrap.WithPort(port)
 }
 
-// WithTLS enables TLS/HTTPS for the main server. Sub-options configure
-// certificate paths, mTLS, and hot-reload settings.
+// WithTLS enables TLS/HTTPS for the main server. Sub-options configure certificate paths,
+// mTLS, and hot-reload settings.
 //
-// Takes opts (...TLSOption) which provides optional TLS configuration:
-// - WithTLSCertFile("/path/to/cert.pem"): sets the certificate path.
-// - WithTLSKeyFile("/path/to/key.pem"): sets the private key path.
-// - WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA.
-// - WithTLSClientAuth("require_and_verify"): sets client auth mode.
-// - WithTLSMinVersion("1.3"): sets minimum TLS version.
-// - WithTLSHotReload(true): enables certificate hot-reload.
-// - WithTLSRedirectHTTP("80"): starts an HTTP-to-HTTPS redirect listener.
+// Takes opts (...TLSOption) which provides optional TLS configuration: -
+// WithTLSCertFile("/path/to/cert.pem"): sets the certificate path. -
+// WithTLSKeyFile("/path/to/key.pem"): sets the private key path. -
+// WithTLSClientCA("/path/to/ca.pem"): enables mTLS with client CA. -
+// WithTLSClientAuth("require_and_verify"): sets client auth mode. -
+// WithTLSMinVersion("1.3"): sets minimum TLS version. - WithTLSHotReload(true): enables
+// certificate hot-reload. - WithTLSRedirectHTTP("80"): starts an HTTP-to-HTTPS redirect
+// listener.
 //
 // Returns Option which configures the container with TLS settings.
 func WithTLS(opts ...TLSOption) Option {
@@ -2891,8 +2757,8 @@ func WithTLSKeyFile(path string) TLSOption {
 	return bootstrap.WithTLSKeyFile(path)
 }
 
-// WithTLSClientCA sets the path to a PEM-encoded CA bundle for mTLS client
-// certificate verification.
+// WithTLSClientCA sets the path to a PEM-encoded CA bundle for mTLS client certificate
+// verification.
 //
 // Takes path (string) which specifies the client CA file path.
 //
@@ -2901,9 +2767,8 @@ func WithTLSClientCA(path string) TLSOption {
 	return bootstrap.WithTLSClientCA(path)
 }
 
-// WithTLSClientAuth sets the client certificate verification mode. Valid
-// values are "none", "request", "require", "verify", and
-// "require_and_verify".
+// WithTLSClientAuth sets the client certificate verification mode. Valid values are
+// "none", "request", "require", "verify", and "require_and_verify".
 //
 // Takes authType (string) which specifies the auth mode.
 //
@@ -2912,8 +2777,7 @@ func WithTLSClientAuth(authType string) TLSOption {
 	return bootstrap.WithTLSClientAuth(authType)
 }
 
-// WithTLSMinVersion sets the minimum TLS version. Valid values are "1.2"
-// and "1.3".
+// WithTLSMinVersion sets the minimum TLS version. Valid values are "1.2" and "1.3".
 //
 // Takes version (string) which specifies the minimum version.
 //
@@ -2922,8 +2786,8 @@ func WithTLSMinVersion(version string) TLSOption {
 	return bootstrap.WithTLSMinVersion(version)
 }
 
-// WithTLSHotReload enables or disables automatic certificate reload when
-// certificate files change on disk.
+// WithTLSHotReload enables or disables automatic certificate reload when certificate
+// files change on disk.
 //
 // Takes enabled (bool) which controls hot-reload behaviour.
 //
@@ -2932,12 +2796,11 @@ func WithTLSHotReload(enabled bool) TLSOption {
 	return bootstrap.WithTLSHotReload(enabled)
 }
 
-// WithTLSRedirectHTTP starts a plain HTTP listener on the given port that
-// 301-redirects all requests to the HTTPS server. Use this to redirect
-// http://example.com to https://example.com.
+// WithTLSRedirectHTTP starts a plain HTTP listener on the given port that 301-redirects
+// all requests to the HTTPS server. Use this to redirect http://example.com to
+// https://example.com.
 //
-// Takes port (int) which specifies the HTTP port to listen on (e.g. 80
-// or 8080).
+// Takes port (int) which specifies the HTTP port to listen on (e.g. 80 or 8080).
 //
 // Returns TLSOption which configures the redirect listener.
 func WithTLSRedirectHTTP(port int) TLSOption {
@@ -2971,8 +2834,7 @@ func WithHealthTLSKeyFile(path string) HealthTLSOption {
 	return bootstrap.WithHealthTLSKeyFile(path)
 }
 
-// WithHealthTLSMinVersion sets the minimum TLS version for the health probe
-// server.
+// WithHealthTLSMinVersion sets the minimum TLS version for the health probe server.
 //
 // Takes version (string) which specifies the minimum version ("1.2" or "1.3").
 //
@@ -2995,10 +2857,9 @@ func WithDevHotreload() Option {
 	return bootstrap.WithDevHotreload()
 }
 
-// WithAuthProvider registers an authentication provider that Piko calls on
-// every request to resolve the auth state. The resolved AuthContext is
-// available via RequestData.Auth() in pages and ActionMetadata.Auth() in
-// actions.
+// WithAuthProvider registers an authentication provider that Piko calls on every request
+// to resolve the auth state. The resolved AuthContext is available via RequestData.Auth()
+// in pages and ActionMetadata.Auth() in actions.
 //
 // Takes provider (AuthProvider) which resolves auth state from HTTP requests.
 //
@@ -3011,8 +2872,8 @@ func WithAuthProvider(provider AuthProvider) Option {
 //
 // Requires WithAuthProvider to be set; ignored without it.
 //
-// Takes authGuardConfig (AuthGuardConfig) which specifies public paths, login
-// redirect, and optional custom handler.
+// Takes authGuardConfig (AuthGuardConfig) which specifies public paths, login redirect,
+// and optional custom handler.
 //
 // Returns Option which configures the auth guard.
 func WithAuthGuard(authGuardConfig AuthGuardConfig) Option {
@@ -3020,8 +2881,7 @@ func WithAuthGuard(authGuardConfig AuthGuardConfig) Option {
 }
 
 // IsAuthenticated reports whether the request has a valid auth session.
-// Returns false when r is nil, the context is missing, or no auth provider
-// is configured.
+// Returns false when r is nil, the context is missing, or no auth provider is configured.
 //
 // Takes r (*RequestData) which is the current request to check.
 //
@@ -3034,27 +2894,26 @@ func IsAuthenticated(r *RequestData) bool {
 	return auth != nil && auth.IsAuthenticated()
 }
 
-// WithBackendAnalytics registers one or more backend analytics
-// collectors. When at least one collector is registered, the analytics
-// middleware is automatically installed in the HTTP request chain
-// (after auth, before rate limiting) and fires page view events for
+// WithBackendAnalytics registers one or more backend analytics collectors. When at least
+// one collector is registered, the analytics middleware is automatically installed in the
+// HTTP request chain (after auth, before rate limiting) and fires page view events for
 // every request.
 //
-// Takes collectors (...AnalyticsCollector) which handle event delivery
-// to external analytics backends.
+// Takes collectors (...AnalyticsCollector) which handle event delivery to external
+// analytics backends.
 //
 // Returns Option which registers the collectors.
 func WithBackendAnalytics(collectors ...AnalyticsCollector) Option {
 	return bootstrap.WithBackendAnalytics(collectors...)
 }
 
-// CaptchaOptions groups the captcha provider's per-deployment settings.
-// The provider implementation itself is selected via WithDefaultCaptchaProvider
-// and registered via WithCaptchaProvider.
+// CaptchaOptions groups the captcha provider's per-deployment settings. The provider
+// implementation itself is selected via WithDefaultCaptchaProvider and registered via
+// WithCaptchaProvider.
 type CaptchaOptions = bootstrap.CaptchaOptions
 
-// WithPublicDomain sets the public domain used for CORS allowed origins and
-// absolute URLs. Empty string allows all origins.
+// WithPublicDomain sets the public domain used for CORS allowed origins and absolute
+// URLs. Empty string allows all origins.
 //
 // Takes domain (string) which is the value to apply.
 //
@@ -3072,8 +2931,8 @@ func WithForceHTTPS(enabled bool) Option {
 	return bootstrap.WithForceHTTPS(enabled)
 }
 
-// WithRequestTimeout sets the maximum duration for dynamic HTTP requests.
-// Zero disables the timeout middleware.
+// WithRequestTimeout sets the maximum duration for dynamic HTTP requests. Zero disables
+// the timeout middleware.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3082,8 +2941,8 @@ func WithRequestTimeout(d time.Duration) Option {
 	return bootstrap.WithRequestTimeout(d)
 }
 
-// WithMaxConcurrentRequests sets the maximum number of in-flight requests
-// the server will process simultaneously. Zero disables the limit.
+// WithMaxConcurrentRequests sets the maximum number of in-flight requests the server will
+// process simultaneously. Zero disables the limit.
 //
 // Takes n (int) which is the value to apply.
 //
@@ -3092,8 +2951,7 @@ func WithMaxConcurrentRequests(n int) Option {
 	return bootstrap.WithMaxConcurrentRequests(n)
 }
 
-// WithActionMaxBodyBytes sets the maximum size in bytes for action request
-// bodies.
+// WithActionMaxBodyBytes sets the maximum size in bytes for action request bodies.
 //
 // Takes n (int64) which is the value to apply.
 //
@@ -3102,8 +2960,7 @@ func WithActionMaxBodyBytes(n int64) Option {
 	return bootstrap.WithActionMaxBodyBytes(n)
 }
 
-// WithMaxMultipartFormBytes sets the maximum in-memory size for multipart
-// form data.
+// WithMaxMultipartFormBytes sets the maximum in-memory size for multipart form data.
 //
 // Takes n (int64) which is the value to apply.
 //
@@ -3112,8 +2969,8 @@ func WithMaxMultipartFormBytes(n int64) Option {
 	return bootstrap.WithMaxMultipartFormBytes(n)
 }
 
-// WithDefaultMaxSSEDuration sets the maximum lifetime for SSE connections
-// that do not specify their own limit. Zero means unlimited.
+// WithDefaultMaxSSEDuration sets the maximum lifetime for SSE connections that do not
+// specify their own limit. Zero means unlimited.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3122,8 +2979,8 @@ func WithDefaultMaxSSEDuration(d time.Duration) Option {
 	return bootstrap.WithDefaultMaxSSEDuration(d)
 }
 
-// WithAutoNextPort enables automatic port selection for the main HTTP server
-// when the configured port is already in use.
+// WithAutoNextPort enables automatic port selection for the main HTTP server when the
+// configured port is already in use.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -3132,8 +2989,8 @@ func WithAutoNextPort(enabled bool) Option {
 	return bootstrap.WithAutoNextPort(enabled)
 }
 
-// WithEncryptionKey sets the base64-encoded 32-byte encryption key for the
-// default local AES-GCM crypto provider.
+// WithEncryptionKey sets the base64-encoded 32-byte encryption key for the default local
+// AES-GCM crypto provider.
 //
 // Takes key (string) which is the value to apply.
 //
@@ -3142,8 +2999,8 @@ func WithEncryptionKey(key string) Option {
 	return bootstrap.WithEncryptionKey(key)
 }
 
-// WithDataKeyCacheTTL configures how long decrypted data keys are cached for
-// KMS providers. Zero disables caching.
+// WithDataKeyCacheTTL configures how long decrypted data keys are cached for KMS
+// providers. Zero disables caching.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3161,8 +3018,8 @@ func WithDataKeyCacheMaxSize(n int) Option {
 	return bootstrap.WithDataKeyCacheMaxSize(n)
 }
 
-// WithSecurityHeaders sets the HTTP security header policy. Pass a fully
-// populated SecurityHeadersConfig.
+// WithSecurityHeaders sets the HTTP security header policy. Pass a fully populated
+// SecurityHeadersConfig.
 //
 // Takes headers (SecurityHeadersConfig) which is the value to apply.
 //
@@ -3171,8 +3028,8 @@ func WithSecurityHeaders(headers SecurityHeadersConfig) Option {
 	return bootstrap.WithSecurityHeaders(headers)
 }
 
-// WithCookieSecurity sets the secure cookie defaults applied to all cookies
-// the framework writes.
+// WithCookieSecurity sets the secure cookie defaults applied to all cookies the framework
+// writes.
 //
 // Takes cookies (CookieSecurityConfig) which is the value to apply.
 //
@@ -3181,8 +3038,8 @@ func WithCookieSecurity(cookies CookieSecurityConfig) Option {
 	return bootstrap.WithCookieSecurity(cookies)
 }
 
-// WithRateLimit sets the request rate limiting configuration. Disabled by
-// default; pass Enabled=true to activate.
+// WithRateLimit sets the request rate limiting configuration. Disabled by default; pass
+// Enabled=true to activate.
 //
 // Takes rl (RateLimitConfig) which is the value to apply.
 //
@@ -3209,8 +3066,8 @@ func WithReporting(r ReportingConfig) Option {
 	return bootstrap.WithReporting(r)
 }
 
-// WithCaptcha sets the per-deployment captcha settings (site key, secret,
-// score threshold).
+// WithCaptcha sets the per-deployment captcha settings (site key, secret, score
+// threshold).
 //
 // Takes opts (CaptchaOptions) which is the value to apply.
 //
@@ -3237,8 +3094,8 @@ func WithGCPKMS(k GCPKMSConfig) Option {
 	return bootstrap.WithGCPKMS(k)
 }
 
-// WithDeprecatedKeyIDs lists key IDs that remain valid for decryption but
-// are not used for new encryption.
+// WithDeprecatedKeyIDs lists key IDs that remain valid for decryption but are not used
+// for new encryption.
 //
 // Takes ids (...string) which is the value to apply.
 //
@@ -3247,11 +3104,11 @@ func WithDeprecatedKeyIDs(ids ...string) Option {
 	return bootstrap.WithDeprecatedKeyIDs(ids...)
 }
 
-// WithLogLevel sets the application log level. Accepts standard slog level
-// strings: "debug", "info", "warn", "error".
+// WithLogLevel sets the application log level. Accepts standard slog level strings:
+// "debug", "info", "warn", "error".
 //
-// PIKO_LOG_LEVEL environment variable, when set, overrides this option for
-// the bootstrap logger before any options apply.
+// PIKO_LOG_LEVEL environment variable, when set, overrides this option for the bootstrap
+// logger before any options apply.
 //
 // Takes level (string) which is the value to apply.
 //
@@ -3269,8 +3126,8 @@ func WithLogger(cfg logger_dto.Config) Option {
 	return bootstrap.WithLogger(cfg)
 }
 
-// WithDatabaseDriver selects the database backend.
-// Valid values: "sqlite" (default), "postgres", "d1".
+// WithDatabaseDriver selects the database backend. Valid values: "sqlite" (default),
+// "postgres", "d1".
 //
 // Takes driver (string) which is the value to apply.
 //
@@ -3288,8 +3145,7 @@ func WithPostgresURL(url string) Option {
 	return bootstrap.WithPostgresURL(url)
 }
 
-// WithPostgresMaxConns sets the maximum number of connections in the
-// PostgreSQL pool.
+// WithPostgresMaxConns sets the maximum number of connections in the PostgreSQL pool.
 //
 // Takes n (int32) which is the value to apply.
 //
@@ -3298,8 +3154,8 @@ func WithPostgresMaxConns(n int32) Option {
 	return bootstrap.WithPostgresMaxConns(n)
 }
 
-// WithPostgresMinConns sets the minimum number of connections kept in the
-// PostgreSQL pool.
+// WithPostgresMinConns sets the minimum number of connections kept in the PostgreSQL
+// pool.
 //
 // Takes n (int32) which is the value to apply.
 //
@@ -3362,8 +3218,8 @@ func WithOTLPEndpoint(endpoint string) Option {
 	return bootstrap.WithOTLPEndpoint(endpoint)
 }
 
-// WithOTLPProtocol sets the OTLP transport protocol.
-// Valid values: "grpc", "http", "https".
+// WithOTLPProtocol sets the OTLP transport protocol. Valid values: "grpc", "http",
+// "https".
 //
 // Takes protocol (string) which is the value to apply.
 //
@@ -3390,8 +3246,8 @@ func WithOTLPHeaders(headers map[string]string) Option {
 	return bootstrap.WithOTLPHeaders(headers)
 }
 
-// WithOTLPInsecureTLS controls whether TLS certificate verification is
-// disabled for the OTLP connection.
+// WithOTLPInsecureTLS controls whether TLS certificate verification is disabled for the
+// OTLP connection.
 //
 // Takes insecure (bool) which is the value to apply.
 //
@@ -3409,8 +3265,7 @@ func WithHealthEnabled(enabled bool) Option {
 	return bootstrap.WithHealthEnabled(enabled)
 }
 
-// WithHealthBindAddress sets the network address to bind the health probe
-// server to.
+// WithHealthBindAddress sets the network address to bind the health probe server to.
 //
 // Takes addr (string) which is the value to apply.
 //
@@ -3419,8 +3274,8 @@ func WithHealthBindAddress(addr string) Option {
 	return bootstrap.WithHealthBindAddress(addr)
 }
 
-// WithHealthMetricsEnabled controls whether the Prometheus metrics endpoint
-// is exposed on the health probe server.
+// WithHealthMetricsEnabled controls whether the Prometheus metrics endpoint is exposed on
+// the health probe server.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -3429,8 +3284,7 @@ func WithHealthMetricsEnabled(enabled bool) Option {
 	return bootstrap.WithHealthMetricsEnabled(enabled)
 }
 
-// WithHealthMetricsPath sets the URL path for the Prometheus metrics
-// endpoint.
+// WithHealthMetricsPath sets the URL path for the Prometheus metrics endpoint.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -3457,8 +3311,7 @@ func WithHealthReadyPath(path string) Option {
 	return bootstrap.WithHealthReadyPath(path)
 }
 
-// WithHealthCheckTimeout sets the maximum time for each individual health
-// check.
+// WithHealthCheckTimeout sets the maximum time for each individual health check.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3467,8 +3320,7 @@ func WithHealthCheckTimeout(d time.Duration) Option {
 	return bootstrap.WithHealthCheckTimeout(d)
 }
 
-// WithHealthAutoNextPort enables automatic port selection for the health
-// probe server.
+// WithHealthAutoNextPort enables automatic port selection for the health probe server.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -3488,47 +3340,47 @@ func WithHealthProbePort(port int) Option {
 
 // WithBaseDir sets the root directory of the website project.
 //
-// Takes dir (string) which is the value to apply.
+// Takes directory (string) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithBaseDir(dir string) Option {
-	return bootstrap.WithBaseDir(dir)
+func WithBaseDir(directory string) Option {
+	return bootstrap.WithBaseDir(directory)
 }
 
 // WithComponentsSourceDir sets the directory for .pkc/.sfc component files.
 //
-// Takes dir (string) which is the value to apply.
+// Takes directory (string) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithComponentsSourceDir(dir string) Option {
-	return bootstrap.WithComponentsSourceDir(dir)
+func WithComponentsSourceDir(directory string) Option {
+	return bootstrap.WithComponentsSourceDir(directory)
 }
 
 // WithPagesSourceDir sets the directory for page definition files.
 //
-// Takes dir (string) which is the value to apply.
+// Takes directory (string) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithPagesSourceDir(dir string) Option {
-	return bootstrap.WithPagesSourceDir(dir)
+func WithPagesSourceDir(directory string) Option {
+	return bootstrap.WithPagesSourceDir(directory)
 }
 
 // WithPartialsSourceDir sets the directory for partial definition files.
 //
-// Takes dir (string) which is the value to apply.
+// Takes directory (string) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithPartialsSourceDir(dir string) Option {
-	return bootstrap.WithPartialsSourceDir(dir)
+func WithPartialsSourceDir(directory string) Option {
+	return bootstrap.WithPartialsSourceDir(directory)
 }
 
 // WithEmailsSourceDir sets the directory for email template source files.
 //
-// Takes dir (string) which is the value to apply.
+// Takes directory (string) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithEmailsSourceDir(dir string) Option {
-	return bootstrap.WithEmailsSourceDir(dir)
+func WithEmailsSourceDir(directory string) Option {
+	return bootstrap.WithEmailsSourceDir(directory)
 }
 
 // WithPdfsSourceDir sets the directory for PDF template source files.
@@ -3558,8 +3410,7 @@ func WithAssetsSourceDir(dir string) Option {
 	return bootstrap.WithAssetsSourceDir(dir)
 }
 
-// WithI18nSourceDir sets the directory containing locale and translation
-// JSON files.
+// WithI18nSourceDir sets the directory containing locale and translation JSON files.
 //
 // Takes dir (string) which is the value to apply.
 //
@@ -3595,8 +3446,7 @@ func WithActionServePath(path string) Option {
 	return bootstrap.WithActionServePath(path)
 }
 
-// WithLibServePath sets the URL path prefix for serving internal library
-// files.
+// WithLibServePath sets the URL path prefix for serving internal library files.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -3605,8 +3455,7 @@ func WithLibServePath(path string) Option {
 	return bootstrap.WithLibServePath(path)
 }
 
-// WithDistServePath sets the URL path prefix for serving frontend
-// distribution files.
+// WithDistServePath sets the URL path prefix for serving frontend distribution files.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -3615,8 +3464,7 @@ func WithDistServePath(path string) Option {
 	return bootstrap.WithDistServePath(path)
 }
 
-// WithArtefactServePath sets the URL path prefix for serving compiled
-// assets.
+// WithArtefactServePath sets the URL path prefix for serving compiled assets.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -3625,8 +3473,8 @@ func WithArtefactServePath(path string) Option {
 	return bootstrap.WithArtefactServePath(path)
 }
 
-// WithDefaultServeMode selects the default page serving mode.
-// Valid values: "preview" (dynamic) or "render" (static).
+// WithDefaultServeMode selects the default page serving mode. Valid values: "preview"
+// (dynamic) or "render" (static).
 //
 // Takes mode (string) which is the value to apply.
 //
@@ -3653,8 +3501,7 @@ func WithStoragePresignSecret(secret string) Option {
 	return bootstrap.WithStoragePresignSecret(secret)
 }
 
-// WithStoragePresignDefaultExpiry sets the default validity duration for
-// presigned URLs.
+// WithStoragePresignDefaultExpiry sets the default validity duration for presigned URLs.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3663,8 +3510,7 @@ func WithStoragePresignDefaultExpiry(d time.Duration) Option {
 	return bootstrap.WithStoragePresignDefaultExpiry(d)
 }
 
-// WithStoragePresignMaxExpiry sets the maximum validity duration for
-// presigned URLs.
+// WithStoragePresignMaxExpiry sets the maximum validity duration for presigned URLs.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -3673,8 +3519,7 @@ func WithStoragePresignMaxExpiry(d time.Duration) Option {
 	return bootstrap.WithStoragePresignMaxExpiry(d)
 }
 
-// WithStoragePresignDefaultMaxSize sets the default maximum upload size in
-// bytes.
+// WithStoragePresignDefaultMaxSize sets the default maximum upload size in bytes.
 //
 // Takes size (int64) which is the value to apply.
 //
@@ -3683,8 +3528,7 @@ func WithStoragePresignDefaultMaxSize(size int64) Option {
 	return bootstrap.WithStoragePresignDefaultMaxSize(size)
 }
 
-// WithStoragePresignMaxMaxSize sets the absolute maximum upload size in
-// bytes.
+// WithStoragePresignMaxMaxSize sets the absolute maximum upload size in bytes.
 //
 // Takes size (int64) which is the value to apply.
 //
@@ -3693,8 +3537,7 @@ func WithStoragePresignMaxMaxSize(size int64) Option {
 	return bootstrap.WithStoragePresignMaxMaxSize(size)
 }
 
-// WithStoragePresignRateLimit sets the per-IP rate limit for presigned upload
-// requests.
+// WithStoragePresignRateLimit sets the per-IP rate limit for presigned upload requests.
 //
 // Takes rpm (int) which is the value to apply.
 //
@@ -3712,9 +3555,9 @@ func WithI18nDefaultLocale(locale string) Option {
 	return bootstrap.WithI18nDefaultLocale(locale)
 }
 
-// WithSRI controls whether Subresource Integrity (SRI) hashes are added to
-// script and link tags in rendered HTML. Enabled by default; disable for
-// development environments where assets change frequently.
+// WithSRI controls whether Subresource Integrity (SRI) hashes are added to script and
+// link tags in rendered HTML. Enabled by default; disable for development environments
+// where assets change frequently.
 //
 // Takes enabled (bool) which controls whether integrity attributes are emitted.
 //
@@ -3725,9 +3568,8 @@ func WithSRI(enabled bool) Option {
 
 // WithExperimentalPrerendering toggles prerendering of pages during build.
 //
-// When enabled, eligible pages are rendered to HTML at build time rather than
-// per request. Email templates are never prerendered regardless of this
-// setting.
+// When enabled, eligible pages are rendered to HTML at build time rather than per
+// request. Email templates are never prerendered regardless of this setting.
 //
 // Takes enabled (bool) which specifies whether prerendering is active.
 //
@@ -3736,7 +3578,8 @@ func WithExperimentalPrerendering(enabled bool) Option {
 	return bootstrap.WithExperimentalPrerendering(enabled)
 }
 
-// WithExperimentalCommentStripping toggles stripping of HTML comments from generated output.
+// WithExperimentalCommentStripping toggles stripping of HTML comments from generated
+// output.
 //
 // When enabled, <!-- ... --> comments are omitted from rendered HTML.
 //
@@ -3747,74 +3590,22 @@ func WithExperimentalCommentStripping(enabled bool) Option {
 	return bootstrap.WithExperimentalCommentStripping(enabled)
 }
 
-// WithExperimentalDwarfLineDirectives toggles DWARF-compatible line
-// directives in generated Go code.
+// WithExperimentalDwarfLineDirectives toggles DWARF-compatible line directives in
+// generated Go code.
 //
-// When enabled, the generator emits "//line file:line" (no space) which the
-// Go compiler embeds in DWARF debug info, allowing debuggers like Delve to
-// map breakpoints back to .pk source files. Disabled by default; the
-// generator emits a plain "// line file:line" comment.
+// When enabled, the generator emits "//line file:line" (no space) which the Go compiler
+// embeds in DWARF debug info, allowing debuggers like Delve to map breakpoints back to
+// .pk source files. Disabled by default; the generator emits a plain "// line file:line"
+// comment.
 //
-// Takes enabled (bool) which specifies whether DWARF line directives are
-// active.
+// Takes enabled (bool) which specifies whether DWARF line directives are active.
 //
 // Returns Option which the bootstrap consumes when applied.
 func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 	return bootstrap.WithExperimentalDwarfLineDirectives(enabled)
 }
 
-var (
-	// NewSpamSchema creates a spam detection schema from entries.
-	NewSpamSchema = spamdetect_dto.NewSchema
-
-	// SpamTextField creates a schema entry for a text form field.
-	SpamTextField = spamdetect_dto.TextField
-
-	// SpamHoneypot declares the honeypot field key in a schema.
-	SpamHoneypot = spamdetect_dto.Honeypot
-
-	// SpamTiming declares the timing timestamp field key in a schema.
-	SpamTiming = spamdetect_dto.Timing
-
-	// SpamThreshold sets the score threshold for a schema.
-	SpamThreshold = spamdetect_dto.Threshold
-
-	// SpamFieldGroup composes multiple field entries for reuse.
-	SpamFieldGroup = spamdetect_dto.FieldGroup
-
-	// SpamEmailField creates a schema entry for an email field.
-	SpamEmailField = spamdetect_dto.EmailField
-
-	// SpamPhoneField creates a schema entry for a phone field.
-	SpamPhoneField = spamdetect_dto.PhoneField
-
-	// SpamNameField creates a schema entry for a name field.
-	SpamNameField = spamdetect_dto.NameField
-
-	// SpamURLField creates a schema entry for a URL field.
-	SpamURLField = spamdetect_dto.URLField
-
-	// SpamTypedField creates a schema entry with a custom field type.
-	SpamTypedField = spamdetect_dto.TypedField
-
-	// SpamDetectorWeight sets the scoring weight for a detector.
-	SpamDetectorWeight = spamdetect_dto.DetectorWeight
-
-	// SpamDetectorConfig sets per-schema config for a detector.
-	SpamDetectorConfig = spamdetect_dto.DetectorConfig
-
-	// SpamLanguage sets the expected content language.
-	SpamLanguage = spamdetect_dto.Language
-
-	// SpamMeta declares a static metadata key-value pair.
-	SpamMeta = spamdetect_dto.Meta
-
-	// SpamCaptureHeader declares an HTTP header to capture.
-	SpamCaptureHeader = spamdetect_dto.CaptureHeader
-)
-
-// WithSpamDetector registers a named spam detection detector with the
-// service.
+// WithSpamDetector registers a named spam detection detector with the service.
 //
 // Takes name (string) which identifies the detector.
 // Takes detector (spamdetect_domain.Detector) which handles spam analysis.
@@ -3829,11 +3620,9 @@ func WithSpamDetector(name string, detector spamdetect_domain.Detector) Option {
 	}
 }
 
-// WithSpamFeedbackStore configures the feedback persistence backend for
-// spam detection.
+// WithSpamFeedbackStore configures the feedback persistence backend for spam detection.
 //
-// Takes store (spamdetect_domain.FeedbackStore) which persists spam/ham
-// feedback.
+// Takes store (spamdetect_domain.FeedbackStore) which persists spam/ham feedback.
 //
 // Returns Option which configures the feedback store.
 func WithSpamFeedbackStore(store spamdetect_domain.FeedbackStore) Option {

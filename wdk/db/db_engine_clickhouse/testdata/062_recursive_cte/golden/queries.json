@@ -1,0 +1,111 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "q.sql",
+    "SQL": "-- piko.query(TreePath, many)\nWITH RECURSIVE walk AS (\n    SELECT id, parent_id FROM tree WHERE id = {root:UInt64}\n    UNION ALL\n    SELECT t.id, t.parent_id FROM tree t INNER JOIN walk w ON w.id = t.parent_id\n)\nSELECT id, parent_id FROM walk;",
+    "Name": "TreePath",
+    "CountSQL": "",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "root",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0,
+        "Context": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "id",
+        "SourceTable": "walk",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "walk",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "parent_id",
+        "SourceTable": "walk",
+        "SourceSchema": "",
+        "SourceColumn": "parent_id",
+        "SourceQualifier": "walk",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
+  }
+]

@@ -1,5 +1,4 @@
--- piko.name: FormattedSchedule
--- piko.command: many
+-- piko.query(name: FormattedSchedule, command: many)
 SELECT
     id,
     title,

@@ -55,6 +55,12 @@ func (r *typeResolver) resolveExpressionType(
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
 	}
 
+	if r.expressionDepth >= maxExpressionResolveDepth {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+	}
+	r.expressionDepth++
+	defer func() { r.expressionDepth-- }()
+
 	feature := expressionFeature(expression)
 	if feature != 0 && !r.engine.SupportedExpressions().Has(feature) {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
@@ -159,6 +165,7 @@ func (r *typeResolver) resolveFunctionCallExpression(
 			anyArgumentNullable = true
 			continue
 		}
+
 		argumentType, argumentNullable, _ := r.resolveExpressionType(argument, scope, dataModifying)
 		argumentTypes = append(argumentTypes, argumentType)
 		if argumentNullable {
@@ -168,7 +175,9 @@ func (r *typeResolver) resolveFunctionCallExpression(
 
 	match, resolveError := r.functionResolver.Resolve(expression.FunctionName, expression.Schema, argumentTypes)
 	if resolveError != nil {
-		*dataModifying = true
+		if dataModifying != nil {
+			*dataModifying = true
+		}
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
 			fmt.Errorf("%s: %s", resolveError.Code, resolveError.Message)
 	}
@@ -177,7 +186,7 @@ func (r *typeResolver) resolveFunctionCallExpression(
 			fmt.Errorf("%s: nil function match for %s during type resolution", querier_dto.CodeInternalNilGuard, expression.FunctionName)
 	}
 
-	if match.dataAccess != querier_dto.DataAccessReadOnly {
+	if match.dataAccess != querier_dto.DataAccessReadOnly && dataModifying != nil {
 		*dataModifying = true
 	}
 
@@ -224,6 +233,7 @@ func (r *typeResolver) resolveCoalesceExpression(
 		if argument == nil {
 			continue
 		}
+
 		argumentType, argumentNullable, _ := r.resolveExpressionType(argument, scope, dataModifying)
 		resultType = r.commonSupertype(resultType, argumentType)
 		if !argumentNullable {
@@ -325,12 +335,13 @@ func (r *typeResolver) resolveBinaryOpExpression(
 			EngineName: querier_dto.CanonicalText,
 		}, nullable, nil
 	case "->", "#>":
+
 		if leftType.Category == querier_dto.TypeCategoryJSON {
 			return leftType, true, nil
 		}
 		return querier_dto.SQLType{
 			Category:   leftType.Category,
-			EngineName: "json",
+			EngineName: querier_dto.CanonicalJSON,
 		}, true, nil
 	case "->>", "#>>":
 		return querier_dto.SQLType{
@@ -409,6 +420,7 @@ func (r *typeResolver) resolveCaseWhenExpression(
 			nullable = true
 			continue
 		}
+
 		branchType, branchNullable, _ := r.resolveExpressionType(branch.Result, scope, dataModifying)
 		resultType = r.commonSupertype(resultType, branchType)
 		if branchNullable {
@@ -460,8 +472,23 @@ func (r *typeResolver) resolveWindowFunctionExpression(
 // Returns querier_dto.SQLType which holds the resolved type with category and metadata
 // populated.
 func (r *typeResolver) resolveCustomType(sqlType querier_dto.SQLType) querier_dto.SQLType {
+	return r.resolveCustomTypeDepth(sqlType, 0)
+}
+
+// resolveCustomTypeDepth is resolveCustomType with a recursion bound on the array
+// ElementType chain so a pathologically deep (or cyclic) array type cannot overflow the
+// goroutine stack, mirroring the maxExpressionResolveDepth ceiling used elsewhere.
+//
+// Takes sqlType (querier_dto.SQLType) which specifies the type to resolve.
+// Takes depth (int) which bounds the ElementType recursion.
+//
+// Returns querier_dto.SQLType which holds the resolved type.
+func (r *typeResolver) resolveCustomTypeDepth(sqlType querier_dto.SQLType, depth int) querier_dto.SQLType {
+	if depth >= maxExpressionResolveDepth {
+		return sqlType
+	}
 	if sqlType.Category == querier_dto.TypeCategoryArray && sqlType.ElementType != nil {
-		resolved := r.resolveCustomType(*sqlType.ElementType)
+		resolved := r.resolveCustomTypeDepth(*sqlType.ElementType, depth+1)
 		if resolved.Category != sqlType.ElementType.Category {
 			sqlType.ElementType = &resolved
 		}
@@ -470,7 +497,14 @@ func (r *typeResolver) resolveCustomType(sqlType querier_dto.SQLType) querier_dt
 	if sqlType.Category != querier_dto.TypeCategoryUnknown || sqlType.EngineName == "" {
 		return sqlType
 	}
-	for _, schema := range r.catalogue.Schemas {
+	if r.catalogue == nil {
+		return sqlType
+	}
+	for _, schemaName := range sortedKeys(r.catalogue.Schemas) {
+		schema := r.catalogue.Schemas[schemaName]
+		if schema == nil {
+			continue
+		}
 		if enum, exists := schema.Enums[sqlType.EngineName]; exists {
 			sqlType.Category = querier_dto.TypeCategoryEnum
 			sqlType.EnumValues = enum.Values
@@ -506,12 +540,15 @@ func (r *typeResolver) resolveScalarSubqueryExpression(
 	outerScope *scopeChain,
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
+	if expression == nil {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+	}
 	if expression.InnerQuery == nil || len(expression.InnerQuery.OutputColumns) == 0 {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
 	}
 
 	innerScope := newScopeChain(querier_dto.ScopeKindQuery, outerScope)
-	r.addRawTablesToScope(expression.InnerQuery, innerScope)
+	r.addRawTablesToScope(expression.InnerQuery, innerScope, 0)
 
 	firstColumn := expression.InnerQuery.OutputColumns[0]
 	if firstColumn.Expression == nil {
@@ -544,6 +581,9 @@ func (r *typeResolver) resolveArraySubscriptExpression(
 	scope *scopeChain,
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
+	if expression == nil {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+	}
 	arrayType, _, err := r.resolveExpressionType(expression.Array, scope, dataModifying)
 	if err != nil {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, err
@@ -594,6 +634,9 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 	scope *scopeChain,
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
+	if expression == nil {
+		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+	}
 	structType, nullable, err := r.resolveExpressionType(expression.Struct, scope, dataModifying)
 	if err != nil {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, err
@@ -608,40 +651,229 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
 }
 
-// addRawTablesToScope registers tables from a raw query analysis into the given scope by
-// looking them up in the catalogue. Both FROM tables and JOIN clause tables are
-// registered.
+// addRawTablesToScope registers the FROM, JOIN, and FROM-clause derived-table relations
+// of a raw query analysis into the given scope by resolving each against the catalogue.
+//
+// A relation may be a base table or a view; a view is folded into a synthetic table
+// carrying its resolved columns (mirroring resolveTableReference) so a subquery whose
+// FROM or JOIN names a view still has that view's columns and alias in scope. A
+// FROM-clause derived table (a parenthesised SELECT, including an unaliased ROW_NUMBER()
+// OVER table) has its projected columns resolved against its own inner scope and
+// registered, so a column or parameter in an EXISTS, scalar, derived, or predicate
+// subquery whose FROM is itself a derived table still resolves; without the derived-table
+// case such a reference raised a spurious Q001.
 //
 // Takes raw (*querier_dto.RawQueryAnalysis) which specifies the raw query with table
 // references.
 // Takes scope (*scopeChain) which specifies the scope to populate with resolved tables.
-func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, scope *scopeChain) {
+// Takes depth (int) which bounds the derived-table recursion (a derived table may itself
+// contain derived tables); it shares the subquery bound maxExpressionResolveDepth.
+func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, scope *scopeChain, depth int) {
+	r.addRawCTEsToScope(raw.CTEDefinitions, scope, depth)
 	for _, tableReference := range raw.FromTables {
-		schemaName := tableReference.Schema
-		if schemaName == "" {
-			schemaName = r.catalogue.DefaultSchema
-		}
-		schema, exists := r.catalogue.Schemas[schemaName]
-		if !exists {
+		if r.addCTEReferenceToScope(tableReference, querier_dto.JoinInner, scope) {
 			continue
 		}
-		if table, tableExists := schema.Tables[tableReference.Name]; tableExists {
+		if table := r.catalogueRelation(tableReference); table != nil {
 			_ = scope.AddTable(tableReference, querier_dto.JoinInner, table)
 		}
 	}
 	for _, joinClause := range raw.JoinClauses {
-		schemaName := joinClause.Table.Schema
-		if schemaName == "" {
-			schemaName = r.catalogue.DefaultSchema
-		}
-		schema, exists := r.catalogue.Schemas[schemaName]
-		if !exists {
+		if r.addCTEReferenceToScope(joinClause.Table, joinClause.Kind, scope) {
 			continue
 		}
-		if table, tableExists := schema.Tables[joinClause.Table.Name]; tableExists {
+		if table := r.catalogueRelation(joinClause.Table); table != nil {
 			_ = scope.AddTable(joinClause.Table, joinClause.Kind, table)
 		}
 	}
+	if depth >= maxExpressionResolveDepth {
+		return
+	}
+	for index := range raw.RawDerivedTables {
+		r.addRawDerivedTableToScope(&raw.RawDerivedTables[index], scope, depth)
+	}
+}
+
+// addRawCTEsToScope resolves each WITH-clause CTE definition of an inner subquery and
+// registers it in the given scope.
+//
+// A scalar, EXISTS, predicate, or nested-derived subquery that declares its own WITH
+// clause (for example (WITH c AS (...) SELECT id FROM c)) would otherwise have its CTE
+// columns resolve to Unknown, because addRawTablesToScope only walked FROM/JOIN/derived
+// relations. This mirrors the top-level derived-table path which resolves CTEs via the
+// query analyser, removing that asymmetry. CTEs are resolved in order so a later CTE body
+// can reference an earlier one.
+//
+// Takes cteDefinitions ([]querier_dto.RawCTEDefinition) which are the inner query's CTEs.
+// Takes scope (*scopeChain) which receives the resolved CTEs.
+// Takes depth (int) which bounds recursion into a CTE body's own relations, sharing the
+// subquery bound maxExpressionResolveDepth.
+func (r *typeResolver) addRawCTEsToScope(
+	cteDefinitions []querier_dto.RawCTEDefinition,
+	scope *scopeChain,
+	depth int,
+) {
+	if depth >= maxExpressionResolveDepth {
+		return
+	}
+	for index := range cteDefinitions {
+		r.addSingleCTEToScope(&cteDefinitions[index], scope)
+	}
+}
+
+// addSingleCTEToScope resolves one CTE definition's projected columns and registers them
+// under the CTE's name via AddCTE.
+//
+// The columns are resolved against an inner scope built from the CTE body's own relations
+// (chained to scope so an earlier CTE in the same WITH clause remains visible). Columns
+// that fail to resolve are omitted from the CTE's exposed column set.
+//
+// Takes cteDefinition (*querier_dto.RawCTEDefinition) which is the unresolved CTE.
+// Takes scope (*scopeChain) which receives the resolved CTE and supplies earlier CTEs.
+func (r *typeResolver) addSingleCTEToScope(
+	cteDefinition *querier_dto.RawCTEDefinition,
+	scope *scopeChain,
+) {
+	innerScope := newScopeChain(querier_dto.ScopeKindCTE, scope)
+	for _, tableReference := range cteDefinition.FromTables {
+		if r.addCTEReferenceToScope(tableReference, querier_dto.JoinInner, innerScope) {
+			continue
+		}
+		if table := r.catalogueRelation(tableReference); table != nil {
+			_ = innerScope.AddTable(tableReference, querier_dto.JoinInner, table)
+		}
+	}
+	for _, joinClause := range cteDefinition.JoinClauses {
+		if r.addCTEReferenceToScope(joinClause.Table, joinClause.Kind, innerScope) {
+			continue
+		}
+		if table := r.catalogueRelation(joinClause.Table); table != nil {
+			_ = innerScope.AddTable(joinClause.Table, joinClause.Kind, table)
+		}
+	}
+
+	var dataModifying bool
+	var columns []querier_dto.ScopedColumn
+	for columnIndex := range cteDefinition.OutputColumns {
+		resolvedColumns, resolveError := r.resolveSingleOutputColumn(
+			cteDefinition.OutputColumns[columnIndex], innerScope, &dataModifying,
+		)
+		if resolveError != nil {
+			continue
+		}
+		for resolvedIndex := range resolvedColumns {
+			columns = append(columns, querier_dto.ScopedColumn{
+				Name:     resolvedColumns[resolvedIndex].Name,
+				SQLType:  resolvedColumns[resolvedIndex].SQLType,
+				Nullable: resolvedColumns[resolvedIndex].Nullable,
+			})
+		}
+	}
+	scope.AddCTE(cteDefinition.Name, columns)
+}
+
+// addCTEReferenceToScope promotes a FROM/JOIN reference that names an already resolved
+// CTE into a scoped table under its alias.
+//
+// Registering the CTE as a table lets an unqualified or qualified column lookup in the
+// subquery resolve against the CTE's columns. The return reports whether the reference
+// matched a CTE (and was registered), so the caller falls back to a catalogue lookup
+// otherwise.
+//
+// Takes reference (querier_dto.TableReference) which is the FROM/JOIN relation reference.
+// Takes joinKind (querier_dto.JoinKind) which carries outer-join nullability for the
+// alias.
+// Takes scope (*scopeChain) which already holds the resolved CTEs and receives the table.
+//
+// Returns bool which is true when the reference named a resolved CTE.
+func (*typeResolver) addCTEReferenceToScope(
+	reference querier_dto.TableReference,
+	joinKind querier_dto.JoinKind,
+	scope *scopeChain,
+) bool {
+	cte, exists := scope.ctes[strings.ToLower(reference.Name)]
+	if !exists {
+		return false
+	}
+	alias := reference.Alias
+	if alias == "" {
+		alias = reference.Name
+	}
+	scope.AddCTEAsTable(alias, cte.columns, joinKind)
+	return true
+}
+
+// addRawDerivedTableToScope resolves one FROM-clause derived table's projected columns
+// and registers them under the derived table's alias.
+//
+// The columns are resolved against an inner scope built from the derived table's own
+// relations (chained to scope so a LATERAL derived table can still reference the
+// enclosing query). Columns that fail to resolve are omitted from the derived table's
+// exposed column set.
+//
+// Takes rawDerived (*querier_dto.RawDerivedTableReference) which is the unresolved
+// derived table.
+// Takes scope (*scopeChain) which receives the resolved derived table.
+// Takes depth (int) which bounds the recursion into nested derived tables.
+func (r *typeResolver) addRawDerivedTableToScope(
+	rawDerived *querier_dto.RawDerivedTableReference,
+	scope *scopeChain,
+	depth int,
+) {
+	if rawDerived.InnerQuery == nil {
+		return
+	}
+	innerScope := newScopeChain(querier_dto.ScopeKindSubquery, scope)
+	r.addRawTablesToScope(rawDerived.InnerQuery, innerScope, depth+1)
+
+	var dataModifying bool
+	var columns []querier_dto.ScopedColumn
+	for columnIndex := range rawDerived.InnerQuery.OutputColumns {
+		resolvedColumns, resolveError := r.resolveSingleOutputColumn(
+			rawDerived.InnerQuery.OutputColumns[columnIndex], innerScope, &dataModifying,
+		)
+		if resolveError != nil {
+			continue
+		}
+		for resolvedIndex := range resolvedColumns {
+			columns = append(columns, querier_dto.ScopedColumn{
+				Name:     resolvedColumns[resolvedIndex].Name,
+				SQLType:  resolvedColumns[resolvedIndex].SQLType,
+				Nullable: resolvedColumns[resolvedIndex].Nullable,
+			})
+		}
+	}
+	scope.AddDerivedTable(querier_dto.DerivedTableReference{
+		Alias:    rawDerived.Alias,
+		Columns:  columns,
+		JoinKind: rawDerived.JoinKind,
+	})
+}
+
+// catalogueRelation resolves a FROM/JOIN reference to its catalogue entry: a base table
+// when one exists, otherwise a synthetic table built from a matching view (so the view's
+// columns and alias enter the scope), or nil when neither is found.
+//
+// Takes reference (querier_dto.TableReference) which gives the schema and name to
+// resolve.
+//
+// Returns *querier_dto.Table which holds the resolved table, view-as-table, or nil.
+func (r *typeResolver) catalogueRelation(reference querier_dto.TableReference) *querier_dto.Table {
+	schemaName := reference.Schema
+	if schemaName == "" {
+		schemaName = r.catalogue.DefaultSchema
+	}
+	schema, exists := r.catalogue.Schemas[schemaName]
+	if !exists {
+		return nil
+	}
+	if table, tableExists := schema.Tables[reference.Name]; tableExists {
+		return table
+	}
+	if view, viewExists := schema.Views[reference.Name]; viewExists {
+		return &querier_dto.Table{Name: view.Name, Schema: view.Schema, Columns: view.Columns}
+	}
+	return nil
 }
 
 // commonSupertype returns the common supertype of two SQL types following the engine's

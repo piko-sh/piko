@@ -1,0 +1,17 @@
+{
+  "active_rows_affected": 2,
+  "archived_count": {
+    "archived_count": 2
+  },
+  "archived_tokens": [
+    {
+      "account_id": 1,
+      "session_token": "tok-a"
+    },
+    {
+      "account_id": 1,
+      "session_token": "tok-b"
+    }
+  ],
+  "inactive_rows_affected": 0
+}

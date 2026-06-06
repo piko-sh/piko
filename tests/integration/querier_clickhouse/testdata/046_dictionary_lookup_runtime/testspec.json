@@ -1,0 +1,3 @@
+{
+  "description": "Dictionary lookup with hashed layout. A small in-memory source table is wrapped by a dictionary using SOURCE(CLICKHOUSE(table='...')) and LAYOUT(HASHED), then queried via dictGet to resolve a foreign-key column to a name. Verifies that the parser accepts CREATE DICTIONARY DDL and that dictGet is callable from a SELECT."
+}

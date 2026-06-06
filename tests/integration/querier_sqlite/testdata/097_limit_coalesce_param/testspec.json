@@ -1,0 +1,4 @@
+{
+  "description": "B2: a parameter nested in a compound LIMIT value (COALESCE) is registered rather than reported as declared-but-unreferenced, and the query executes correctly",
+  "expectedDiagnostics": []
+}

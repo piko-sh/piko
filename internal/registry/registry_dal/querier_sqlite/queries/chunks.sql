@@ -1,5 +1,4 @@
--- piko.name: InsertVariantChunk
--- piko.command: exec
+-- piko.query(name: InsertVariantChunk, command: exec)
 INSERT INTO variant_chunk (
   artefact_id,
   variant_id,
@@ -14,8 +13,7 @@ INSERT INTO variant_chunk (
   duration_seconds
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
--- piko.name: GetChunksForVariant
--- piko.command: many
+-- piko.query(name: GetChunksForVariant, command: many)
 SELECT
   chunk_id,
   storage_key,
@@ -30,9 +28,8 @@ FROM variant_chunk
 WHERE artefact_id = ? AND variant_id = ?
 ORDER BY sequence_number ASC;
 
--- piko.name: GetChunksForVariants
--- piko.command: many
--- ?2 as piko.slice(variant_ids)
+-- piko.query(name: GetChunksForVariants, command: many)
+-- ?2 as piko.param(variant_ids, kind: slice)
 SELECT
   artefact_id,
   variant_id,
@@ -49,17 +46,14 @@ FROM variant_chunk
 WHERE artefact_id = ?1 AND variant_id IN (?2)
 ORDER BY artefact_id, variant_id, sequence_number ASC;
 
--- piko.name: DeleteChunksForVariant
--- piko.command: exec
+-- piko.query(name: DeleteChunksForVariant, command: exec)
 DELETE FROM variant_chunk
 WHERE artefact_id = ? AND variant_id = ?;
 
--- piko.name: CountChunksForVariant
--- piko.command: one
+-- piko.query(name: CountChunksForVariant, command: one)
 SELECT COUNT(*) FROM variant_chunk
 WHERE artefact_id = ? AND variant_id = ?;
 
--- piko.name: FindArtefactByChunkStorageKey
--- piko.command: one
+-- piko.query(name: FindArtefactByChunkStorageKey, command: one)
 SELECT DISTINCT artefact_id FROM variant_chunk
 WHERE storage_key = ? LIMIT 1;

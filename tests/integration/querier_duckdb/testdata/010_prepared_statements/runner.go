@@ -28,11 +28,11 @@ func main() {
 		os.Exit(1)
 	}
 	directQueries := db.New(conn)
-	if err := directQueries.InsertNote(ctx, db.InsertNoteParams{P1: int32(1), P2: "First", P3: "Body one"}); err != nil {
+	if err := directQueries.InsertNote(ctx, db.InsertNoteParams{ID: int32(1), Title: "First", Body: "Body one"}); err != nil {
 		fmt.Fprintln(os.Stderr, "Insert 1:", err)
 		os.Exit(1)
 	}
-	if err := directQueries.InsertNote(ctx, db.InsertNoteParams{P1: int32(2), P2: "Second", P3: "Body two"}); err != nil {
+	if err := directQueries.InsertNote(ctx, db.InsertNoteParams{ID: int32(2), Title: "Second", Body: "Body two"}); err != nil {
 		fmt.Fprintln(os.Stderr, "Insert 2:", err)
 		os.Exit(1)
 	}

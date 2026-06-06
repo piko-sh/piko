@@ -58,8 +58,8 @@ const (
 	// tokenEnd is an element end tag.
 	tokenEnd
 
-	// tokenVerbatim is a comment, CDATA section, processing instruction, or doctype,
-	// emitted unchanged.
+	// tokenVerbatim is a comment, CDATA section, processing instruction, or doctype, emitted
+	// unchanged.
 	tokenVerbatim
 
 	// tokenStyleText is the raw body of a <style> element, where url(#id) references are
@@ -70,8 +70,8 @@ const (
 	tokenScriptText
 )
 
-// svgTagAttribute holds one parsed attribute of a start tag, preserving the original quote
-// character so the value can be re-serialised without changing its escaping.
+// svgTagAttribute holds one parsed attribute of a start tag, preserving the original
+// quote character so the value can be re-serialised without changing its escaping.
 type svgTagAttribute struct {
 	// name is the attribute name with its original case (for example xlink:href).
 	name string
@@ -105,8 +105,8 @@ type svgToken struct {
 	selfClose bool
 }
 
-// svgFrame tracks one open element while serialising, recording where its tags and children
-// are written and where to resume writing once it closes.
+// svgFrame tracks one open element while serialising, recording where its tags and
+// children are written and where to resume writing once it closes.
 type svgFrame struct {
 	// tagDestination is the builder receiving this element's own tags and children.
 	tagDestination *strings.Builder
@@ -121,8 +121,8 @@ type svgFrame struct {
 	emitTags bool
 }
 
-// svgRewriter routes tokens into the symbol body or the hoisted definitions while rewriting
-// identifiers and references.
+// svgRewriter routes tokens into the symbol body or the hoisted definitions while
+// rewriting identifiers and references.
 type svgRewriter struct {
 	// rename maps each original identifier to its namespaced form.
 	rename map[string]string
@@ -161,14 +161,15 @@ var (
 	}
 )
 
-// ComputeSymbolAndDefs builds the sprite symbol body and the hoisted definitions for an SVG
-// asset. It runs once per asset at load time and the results are cached in ParsedSvgData.
+// ComputeSymbolAndDefs builds the sprite symbol body and the hoisted definitions for an
+// SVG asset. It runs once per asset at load time and the results are cached in
+// ParsedSvgData.
 //
-// Referenceable definitions (gradients, patterns, filters, clip paths, masks, markers, and
-// the contents of any <defs>) are moved out of the symbol into the returned definitions
-// string so they resolve in document scope. Every identifier defined in the asset is
-// namespaced with a per-asset prefix and every reference is rewritten, so two assets
-// sharing an identifier such as paint0_linear cannot collide in the shared sprite.
+// Referenceable definitions (gradients, patterns, filters, clip paths, masks, markers,
+// and the contents of any <defs>) are moved out of the symbol into the returned
+// definitions string so they resolve in document scope. Every identifier defined in the
+// asset is namespaced with a per-asset prefix and every reference is rewritten, so two
+// assets sharing an identifier such as paint0_linear cannot collide in the shared sprite.
 //
 // Takes id (string) which specifies the symbol identifier.
 // Takes parsedData (*ParsedSvgData) which provides the parsed SVG content.
@@ -176,8 +177,8 @@ var (
 // Returns symbol which is the formatted <symbol> element.
 // Returns defs which holds the asset's hoisted definitions, or empty when none exist.
 // Returns fellBack which is true when the asset needed the transform but oversized or
-// malformed content forced a verbatim copy, so callers can surface the degradation.
-// All outputs are zero when parsedData is nil.
+// malformed content forced a verbatim copy, so callers can surface the degradation. All
+// outputs are zero when parsedData is nil.
 func ComputeSymbolAndDefs(id string, parsedData *ParsedSvgData) (symbol string, defs string, fellBack bool) {
 	if parsedData == nil {
 		return "", "", false
@@ -212,8 +213,8 @@ func extractViewBox(attributes []ast_domain.HTMLAttribute) string {
 	return ""
 }
 
-// writeSymbol formats a <symbol> element with an escaped identifier and viewBox wrapping the
-// given content.
+// writeSymbol formats a <symbol> element with an escaped identifier and viewBox wrapping
+// the given content.
 //
 // Takes id (string) which specifies the symbol identifier.
 // Takes viewBox (string) which is the viewBox attribute value, or empty.
@@ -244,8 +245,8 @@ func writeSymbol(id, viewBox, content string) string {
 	return result
 }
 
-// svgIDPrefix derives a deterministic, collision-resistant prefix for an asset. It
-// hashes the artefact identifier because artefact identifiers may contain characters such as
+// svgIDPrefix derives a deterministic, collision-resistant prefix for an asset. It hashes
+// the artefact identifier because artefact identifiers may contain characters such as
 // slashes and dots that are awkward inside identifiers and url() references.
 //
 // Takes artefactID (string) which identifies the asset.
@@ -258,8 +259,8 @@ func svgIDPrefix(artefactID string) string {
 }
 
 // svgNeedsTransform reports whether the inner SVG content contains anything the transform
-// must act on. Plain icons with no definitions and no internal references take the verbatim
-// fast path.
+// must act on. Plain icons with no definitions and no internal references take the
+// verbatim fast path.
 //
 // Takes inner (string) which is the SVG fragment content.
 //
@@ -274,8 +275,8 @@ func svgNeedsTransform(inner string) bool {
 	return containsHoistElement(inner)
 }
 
-// containsHoistElement reports whether the inner content mentions any element the transform
-// hoists into the shared definitions.
+// containsHoistElement reports whether the inner content mentions any element the
+// transform hoists into the shared definitions.
 //
 // Takes inner (string) which is the SVG fragment content.
 //
@@ -292,8 +293,8 @@ func containsHoistElement(inner string) bool {
 	return false
 }
 
-// isHoistElement reports whether an element with the given name is itself hoisted into the
-// shared definitions. The <defs> wrapper is handled separately because its children
+// isHoistElement reports whether an element with the given name is itself hoisted into
+// the shared definitions. The <defs> wrapper is handled separately because its children
 // are flattened into the shared block rather than hoisted as one element.
 //
 // Takes name (string) which is the element name.
@@ -304,16 +305,17 @@ func isHoistElement(name string) bool {
 	return ok
 }
 
-// transformSVG tokenises the inner content, namespaces every identifier with the prefix, and
-// serialises the result into a symbol body and a hoisted definitions string.
+// transformSVG tokenises the inner content, namespaces every identifier with the prefix,
+// and serialises the result into a symbol body and a hoisted definitions string.
 //
 // Takes prefix (string) which namespaces every identifier in the asset.
 // Takes inner (string) which is the SVG fragment content.
 //
 // Returns body which is the transformed symbol content.
 // Returns defs which holds the hoisted definitions.
-// Returns ok which is false when the content is oversized, exceeds the token or identifier
-// limits, or is structurally malformed, so the caller falls back to a verbatim copy.
+// Returns ok which is false when the content is oversized, exceeds the token or
+// identifier limits, or is structurally malformed, so the caller falls back to a verbatim
+// copy.
 func transformSVG(prefix, inner string) (body string, defs string, ok bool) {
 	if len(inner) > maxSVGTransformInputBytes {
 		return "", "", false
@@ -359,7 +361,8 @@ func collectSVGIDs(tokens []svgToken, prefix string) map[string]string {
 // Takes prefix (string) which namespaces each identifier.
 // Takes renameMap (map[string]string) which receives the mappings.
 //
-// Returns bool which is true when the identifier cap is exceeded and collection should stop.
+// Returns bool which is true when the identifier cap is exceeded and collection should
+// stop.
 func collectTokenIDs(token svgToken, prefix string, renameMap map[string]string) bool {
 	for _, attribute := range token.attributes {
 		if attribute.name != "id" || !attribute.hasValue || attribute.value == "" {
@@ -382,7 +385,8 @@ func collectTokenIDs(token svgToken, prefix string, renameMap map[string]string)
 // Takes tokens ([]svgToken) which are the tokenised asset.
 // Takes renameMap (map[string]string) which maps identifiers to their namespaced form.
 //
-// Returns body and defs as built strings, and ok false when the tag structure is unbalanced.
+// Returns body and defs as built strings, and ok false when the tag structure is
+// unbalanced.
 func serialiseSVG(tokens []svgToken, renameMap map[string]string) (body string, defs string, ok bool) {
 	bodyBuilder := getBuilder()
 	defsBuilder := getBuilder()
@@ -428,9 +432,10 @@ func (rewriter *svgRewriter) writeToken(token svgToken) bool {
 	return true
 }
 
-// openElement writes a start tag and, for non-self-closing elements, pushes a frame so its
-// children and end tag route to the same destination. Definition elements route to the defs
-// builder; a <defs> wrapper is flattened by routing its children without emitting its tags.
+// openElement writes a start tag and, for non-self-closing elements, pushes a frame so
+// its children and end tag route to the same destination. Definition elements route to
+// the defs builder; a <defs> wrapper is flattened by routing its children without
+// emitting its tags.
 //
 // Takes token (svgToken) which is the start tag to open.
 func (rewriter *svgRewriter) openElement(token svgToken) {
@@ -512,9 +517,9 @@ func writeStartTag(builder *strings.Builder, token svgToken, renameMap map[strin
 	}
 }
 
-// rewriteAttributeValue rewrites a single attribute value: identifier definitions, fragment
-// references on href attributes, and url(#id) references everywhere else (which also covers
-// inline style declarations).
+// rewriteAttributeValue rewrites a single attribute value: identifier definitions,
+// fragment references on href attributes, and url(#id) references everywhere else (which
+// also covers inline style declarations).
 //
 // Takes name (string) which is the attribute name.
 // Takes value (string) which is the raw attribute value.
@@ -534,8 +539,8 @@ func rewriteAttributeValue(name, value string, renameMap map[string]string) stri
 	return rewriteURLRefs(value, renameMap)
 }
 
-// isHrefAttribute reports whether the attribute holds a fragment reference, covering
-// both href and namespaced forms such as xlink:href.
+// isHrefAttribute reports whether the attribute holds a fragment reference, covering both
+// href and namespaced forms such as xlink:href.
 //
 // Takes name (string) which is the attribute name.
 //
@@ -599,8 +604,8 @@ func rewriteURLRefs(value string, renameMap map[string]string) string {
 	return builder.String()
 }
 
-// rewriteOneURL rewrites a single url(...) segment when it is a local fragment
-// reference to a namespaced identifier, otherwise it returns the segment unchanged.
+// rewriteOneURL rewrites a single url(...) segment when it is a local fragment reference
+// to a namespaced identifier, otherwise it returns the segment unchanged.
 //
 // Takes segment (string) which is a single url(...) reference.
 // Takes renameMap (map[string]string) which maps identifiers to their namespaced form.
@@ -628,13 +633,14 @@ func rewriteOneURL(segment string, renameMap map[string]string) string {
 	return urlReferencePrefix + quote + "#" + renamed + quote + ")"
 }
 
-// tokeniseSVG splits inner SVG content into an ordered token stream. The bodies of <style>
-// and <script> elements are captured whole so their contents are never mis-parsed as markup.
+// tokeniseSVG splits inner SVG content into an ordered token stream. The bodies of
+// <style> and <script> elements are captured whole so their contents are never mis-parsed
+// as markup.
 //
 // Takes content (string) which is the SVG fragment to tokenise.
 //
-// Returns the token stream, and ok false when a construct is unterminated or the token limit
-// is exceeded.
+// Returns the token stream, and ok false when a construct is unterminated or the token
+// limit is exceeded.
 func tokeniseSVG(content string) (tokens []svgToken, ok bool) {
 	position := 0
 
@@ -675,8 +681,8 @@ func tokeniseText(content string, position int) (token svgToken, consumed int) {
 	return svgToken{kind: tokenText, raw: content[position : position+next]}, next
 }
 
-// tokeniseMarkup parses the markup construct starting at position (a comment, CDATA section,
-// processing instruction, doctype, end tag, or start tag).
+// tokeniseMarkup parses the markup construct starting at position (a comment, CDATA
+// section, processing instruction, doctype, end tag, or start tag).
 //
 // Takes content (string) which is the SVG fragment.
 // Takes position (int) which is the offset of the markup construct.
@@ -736,8 +742,8 @@ func sliceUntil(content string, position int, opening, closing string) (segment 
 	return content[position : position+total], total, true
 }
 
-// tokeniseStartTag parses a start tag at position. For <style> and <script> it also captures
-// the element body and matching end tag so the body is treated as opaque text.
+// tokeniseStartTag parses a start tag at position. For <style> and <script> it also
+// captures the element body and matching end tag so the body is treated as opaque text.
 //
 // Takes content (string) which is the SVG fragment.
 // Takes position (int) which is the offset of the start tag.
@@ -839,8 +845,8 @@ func indexTagEnd(content string, position int) int {
 	return -1
 }
 
-// splitTagName separates the element name from the remaining attribute text inside a start
-// tag.
+// splitTagName separates the element name from the remaining attribute text inside a
+// start tag.
 //
 // Takes inner (string) which is the tag content between < and >.
 //
@@ -858,8 +864,8 @@ func splitTagName(inner string) (name string, attributeBody string) {
 	return inner[:index], inner[index:]
 }
 
-// parseTagAttributes parses the attributes of a start tag, preserving names, values, and the
-// original quote character for each.
+// parseTagAttributes parses the attributes of a start tag, preserving names, values, and
+// the original quote character for each.
 //
 // Takes body (string) which is the attribute text after the element name.
 //
@@ -914,8 +920,8 @@ func parseOneTagAttribute(body string, position int) (attribute svgTagAttribute,
 // Takes body (string) which is the attribute text.
 // Takes position (int) which is the offset where the value begins.
 //
-// Returns the raw value, the quote character (a double quote for unquoted values), and the
-// position after the value.
+// Returns the raw value, the quote character (a double quote for unquoted values), and
+// the position after the value.
 func parseTagAttributeValue(body string, position int) (value string, quote byte, newPosition int) {
 	quote = body[position]
 	if quote == '"' || quote == '\'' {
@@ -938,8 +944,8 @@ func parseTagAttributeValue(body string, position int) (value string, quote byte
 	return body[valueStart:position], '"', position
 }
 
-// indexCloseTag finds the </name> sequence that closes a raw-text element, matching the name
-// case-insensitively.
+// indexCloseTag finds the </name> sequence that closes a raw-text element, matching the
+// name case-insensitively.
 //
 // Takes content (string) which is the SVG fragment.
 // Takes from (int) which is the offset to search from.

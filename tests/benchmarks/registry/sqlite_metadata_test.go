@@ -39,7 +39,7 @@ import (
 )
 
 var (
-	blackholeArtefact *registry_dto.ArtefactMeta
+	blackholeArtefact  *registry_dto.ArtefactMeta
 	blackholeArtefacts []*registry_dto.ArtefactMeta
 )
 
@@ -283,33 +283,33 @@ func seedBenchmarkDataWithID(t testing.TB, dbConn *sql.DB, q *registry_db.Querie
 	qtx := q.WithTx(tx)
 
 	err = qtx.UpsertArtefact(context.Background(), registry_db.UpsertArtefactParams{
-		P1: art.ID,
-		P2: art.SourcePath,
-		P3: int32(art.CreatedAt.Unix()),
-		P4: int32(art.UpdatedAt.Unix()),
-		P5: fbsData,
+		ID:         art.ID,
+		SourcePath: art.SourcePath,
+		CreatedAt:  art.CreatedAt.Unix(),
+		UpdatedAt:  art.UpdatedAt.Unix(),
+		DataFbs:    fbsData,
 	})
 	require.NoError(t, err)
 
 	for i := range art.ActualVariants {
 		v := &art.ActualVariants[i]
 		err := qtx.InsertVariant(context.Background(), registry_db.InsertVariantParams{
-			P1: art.ID,
-			P2: v.VariantID,
-			P3: v.StorageKey,
-			P4: v.StorageBackendID,
-			P5: v.MimeType,
-			P6: int32(v.SizeBytes),
-			P7: string(v.Status),
-			P8: int32(v.CreatedAt.Unix()),
+			ArtefactID:       art.ID,
+			VariantID:        v.VariantID,
+			StorageKey:       v.StorageKey,
+			StorageBackendID: v.StorageBackendID,
+			MimeType:         v.MimeType,
+			SizeBytes:        v.SizeBytes,
+			Status:           string(v.Status),
+			CreatedAt:        v.CreatedAt.Unix(),
 		})
 		require.NoError(t, err)
 		for key, value := range v.MetadataTags.All() {
 			err := qtx.InsertVariantTag(context.Background(), registry_db.InsertVariantTagParams{
-				P1: art.ID,
-				P2: v.VariantID,
-				P3: key,
-				P4: value,
+				ArtefactID: art.ID,
+				VariantID:  v.VariantID,
+				TagKey:     key,
+				TagValue:   value,
 			})
 			require.NoError(t, err)
 		}
@@ -318,13 +318,13 @@ func seedBenchmarkDataWithID(t testing.TB, dbConn *sql.DB, q *registry_db.Querie
 	for i := range art.DesiredProfiles {
 		np := &art.DesiredProfiles[i]
 		err := qtx.InsertDesiredProfile(context.Background(), registry_db.InsertDesiredProfileParams{
-			P1: art.ID,
-			P2: np.Name,
-			P3: np.Profile.CapabilityName,
-			P4: string(np.Profile.Priority),
-			P5: "{}",
-			P6: "{}",
-			P7: "[\"source\"]",
+			ArtefactID:     art.ID,
+			Name:           np.Name,
+			CapabilityName: np.Profile.CapabilityName,
+			Priority:       string(np.Profile.Priority),
+			ParamsJSON:     "{}",
+			TagsJSON:       "{}",
+			DependsOnJSON:  "[\"source\"]",
 		})
 		require.NoError(t, err)
 	}

@@ -211,3 +211,61 @@ func TestCollectFunctionCalls(t *testing.T) {
 		})
 	}
 }
+
+func TestCollectFunctionCallsReturnsSortedOrder(t *testing.T) {
+	t.Parallel()
+
+	analysis := &querier_dto.RawQueryAnalysis{
+		OutputColumns: []querier_dto.RawOutputColumn{
+			{Expression: &querier_dto.FunctionCallExpression{FunctionName: "zeta"}},
+			{Expression: &querier_dto.FunctionCallExpression{FunctionName: "alpha"}},
+			{Expression: &querier_dto.FunctionCallExpression{FunctionName: "mid"}},
+		},
+	}
+
+	result := collectFunctionCalls(analysis)
+
+	assert.Equal(t, []string{"alpha", "mid", "zeta"}, result,
+		"collected function names must be returned in deterministic sorted order")
+}
+
+func TestCollectFunctionCallsIsDepthBounded(t *testing.T) {
+	t.Parallel()
+
+	var nested querier_dto.Expression = &querier_dto.LiteralExpression{}
+	for range 100000 {
+		nested = &querier_dto.BinaryOpExpression{Left: nested, Right: &querier_dto.LiteralExpression{}}
+	}
+	top := &querier_dto.FunctionCallExpression{
+		FunctionName: "outer",
+		Arguments:    []querier_dto.Expression{nested},
+	}
+
+	result := collectFunctionCalls(&querier_dto.RawQueryAnalysis{
+		OutputColumns: []querier_dto.RawOutputColumn{{Expression: top}},
+	})
+
+	assert.Equal(t, []string{"outer"}, result)
+}
+
+func TestCollectFunctionCallsDescendsIntoSubqueries(t *testing.T) {
+	t.Parallel()
+
+	scalar := &querier_dto.ScalarSubqueryExpression{InnerQuery: &querier_dto.RawQueryAnalysis{
+		OutputColumns: []querier_dto.RawOutputColumn{
+			{Expression: &querier_dto.FunctionCallExpression{FunctionName: "scalar_fn"}},
+		},
+	}}
+	analysis := &querier_dto.RawQueryAnalysis{
+		OutputColumns: []querier_dto.RawOutputColumn{{Expression: scalar}},
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{
+			{OutputColumns: []querier_dto.RawOutputColumn{
+				{Expression: &querier_dto.FunctionCallExpression{FunctionName: "predicate_fn"}},
+			}},
+		},
+	}
+
+	result := collectFunctionCalls(analysis)
+	sort.Strings(result)
+	assert.Equal(t, []string{"predicate_fn", "scalar_fn"}, result)
+}

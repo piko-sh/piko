@@ -1,9 +1,7 @@
--- piko.name: InsertCategory
--- piko.command: exec
+-- piko.query(name: InsertCategory, command: exec)
 INSERT INTO categories (id, name, parent_id) VALUES (?, ?, ?);
 
--- piko.name: GetSubtree
--- piko.command: many
+-- piko.query(name: GetSubtree, command: many)
 WITH RECURSIVE subtree AS (
     SELECT id, name, parent_id, 0 AS depth FROM categories WHERE id = ?
     UNION ALL
@@ -11,8 +9,7 @@ WITH RECURSIVE subtree AS (
 )
 SELECT id, name, parent_id, depth FROM subtree ORDER BY depth, id;
 
--- piko.name: GetAncestors
--- piko.command: many
+-- piko.query(name: GetAncestors, command: many)
 WITH RECURSIVE ancestors AS (
     SELECT id, name, parent_id, 0 AS depth FROM categories WHERE id = ?
     UNION ALL
@@ -20,8 +17,7 @@ WITH RECURSIVE ancestors AS (
 )
 SELECT id, name, depth FROM ancestors ORDER BY depth;
 
--- piko.name: ListRootCategories
--- piko.command: many
+-- piko.query(name: ListRootCategories, command: many)
 WITH roots AS (
     SELECT id, name FROM categories WHERE parent_id IS NULL
 )

@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/wdk/email"
 )
 
-// sendContactInternalEmail sends a notification email to The Norman Kitchen staff
-// about a new contact form submission.
+// sendContactInternalEmail sends a notification email to The Norman Kitchen staff about a
+// new contact form submission.
 func sendContactInternalEmail(ctx context.Context, props dto.ContactInternalEmailProps) error {
 	builder, err := email.NewTemplatedEmailBuilderFromDefault[dto.ContactInternalEmailProps]()
 	if err != nil {
@@ -41,8 +41,8 @@ func sendContactInternalEmail(ctx context.Context, props dto.ContactInternalEmai
 		Do(ctx)
 }
 
-// sendContactConfirmationEmail sends a confirmation email to the user who submitted
-// the contact form.
+// sendContactConfirmationEmail sends a confirmation email to the user who submitted the
+// contact form.
 func sendContactConfirmationEmail(ctx context.Context, toEmail string, props dto.ContactConfirmationEmailProps) error {
 	builder, err := email.NewTemplatedEmailBuilderFromDefault[dto.ContactConfirmationEmailProps]()
 	if err != nil {

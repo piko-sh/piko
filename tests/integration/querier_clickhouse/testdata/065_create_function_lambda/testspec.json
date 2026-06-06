@@ -1,0 +1,3 @@
+{
+  "description": "CREATE FUNCTION times_two AS x -> x * 2 exercises the lambda-body analyser. The catalogue records the inferred return type from the multiplicative body so the generated Compute method's result column carries a non-Unknown shape rather than collapsing to any. The runner calls Compute(ctx) (the SELECT uses a constant argument to bypass the v1 limit that nested {name:Type} placeholders are not surfaced through projection-list expressions) and confirms ClickHouse evaluated the lambda to 42 at runtime."
+}

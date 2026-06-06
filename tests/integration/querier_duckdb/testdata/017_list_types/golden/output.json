@@ -1,11 +1,11 @@
 {
   "count_tags": {
-    "ID": 1,
-    "TagCount": 2
+    "id": 1,
+    "tag_count": 2
   },
   "get_tags_data": {
-    "ID": 1,
-    "Name": "post1",
-    "Tags": "[go, rust]"
+    "id": 1,
+    "name": "post1",
+    "tags": "[go, rust]"
   }
 }

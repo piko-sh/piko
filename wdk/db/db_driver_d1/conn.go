@@ -77,27 +77,36 @@ func (*d1Conn) Close() error {
 // Returns driver.Tx which collects statements for batch execution.
 // Returns error when a transaction is already active.
 func (c *d1Conn) Begin() (driver.Tx, error) {
+	return c.begin(context.Background())
+}
+
+// BeginTx starts a new transaction with the given context and options.
+//
+// D1 does not support isolation levels or read-only transactions, so the options are
+// ignored, but the context is captured so the deferred batch Commit can honour
+// cancellation and deadlines.
+//
+// Returns driver.Tx which collects statements for batch execution.
+// Returns error when a transaction is already active.
+func (c *d1Conn) BeginTx(ctx context.Context, _ driver.TxOptions) (driver.Tx, error) {
+	return c.begin(ctx)
+}
+
+// begin creates a deferred D1 transaction, capturing ctx so the eventual batched Commit
+// can honour cancellation and deadlines.
+//
+// Returns driver.Tx which collects statements for batch execution.
+// Returns error when a transaction is already active.
+func (c *d1Conn) begin(ctx context.Context) (driver.Tx, error) {
 	if c.activeTx != nil {
 		return nil, errors.New("db_driver_d1: a transaction is already active on this connection")
 	}
 
 	tx := &d1Tx{
 		conn:       c,
+		ctx:        ctx,
 		statements: make([]batchStatement, 0),
 	}
 	c.activeTx = tx
 	return tx, nil
-}
-
-// BeginTx starts a new transaction with the given context and options. D1 does not
-// support isolation levels or read-only transactions, so opts is ignored.
-//
-// Takes ctx (context.Context) which is unused since D1 transactions are deferred to
-// Commit time.
-// Takes opts (driver.TxOptions) which is ignored.
-//
-// Returns driver.Tx which collects statements for batch execution.
-// Returns error when a transaction is already active.
-func (c *d1Conn) BeginTx(_ context.Context, _ driver.TxOptions) (driver.Tx, error) {
-	return c.Begin()
 }

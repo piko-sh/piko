@@ -135,7 +135,7 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 	ctx := context.Background()
 
 	engine := db_engine_cockroachdb.NewCockroachDBEngine()
-	emitter := emitter_go.NewGoEmitter()
+	emitter := emitter_go.NewGoEmitterForDialect(engine.Dialect())
 
 	migrationDirectory, err := filepath.Abs(filepath.Join(testCaseDirectory, "migrations"))
 	require.NoError(t, err)
@@ -156,7 +156,7 @@ func generateCode(t *testing.T, testCaseDirectory string, spec testSpec) []queri
 		TypeOverrides:      spec.TypeOverrides,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "db", databaseConfig)
 	require.NoError(t, generateError)
 	require.NotNil(t, result)
 
@@ -323,11 +323,13 @@ func normaliseIDFields(value any) {
 	switch typed := value.(type) {
 	case map[string]any:
 		for key, child := range typed {
-			if key == "ID" {
-				typed[key] = float64(0)
-			} else {
-				normaliseIDFields(child)
+			if key == "ID" || key == "id" {
+				if _, isNumber := child.(float64); isNumber {
+					typed[key] = float64(0)
+					continue
+				}
 			}
+			normaliseIDFields(child)
 		}
 	case []any:
 		for _, child := range typed {

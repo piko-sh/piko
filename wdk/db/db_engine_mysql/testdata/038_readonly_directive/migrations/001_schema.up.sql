@@ -12,14 +12,14 @@ BEGIN
     RETURN val * 2;
 END //
 
--- piko.readonly
+-- piko.migration(readonly: true)
 CREATE FUNCTION overridden_readonly_func(val INT) RETURNS INT
 MODIFIES SQL DATA
 BEGIN
     RETURN val * 2;
 END //
 
--- piko.readonly(false)
+-- piko.migration(readonly: false)
 CREATE FUNCTION overridden_not_readonly_func(val INT) RETURNS INT
 DETERMINISTIC NO SQL
 BEGIN

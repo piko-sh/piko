@@ -43,10 +43,10 @@ func main() {
 
 	noteText := "Express delivery requested"
 	order1, err := queries.InsertOrder(ctx, db.InsertOrderParams{
-		P1: int32(1),
-		P2: int32(5000),
-		P3: "confirmed",
-		P4: &noteText,
+		CustomerID: int32(1),
+		Total:      int32(5000),
+		Status:     "confirmed",
+		Notes:      &noteText,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -54,10 +54,10 @@ func main() {
 	}
 
 	order2, err := queries.InsertOrder(ctx, db.InsertOrderParams{
-		P1: int32(1),
-		P2: int32(3000),
-		P3: "pending",
-		P4: nil,
+		CustomerID: int32(1),
+		Total:      int32(3000),
+		Status:     "pending",
+		Notes:      nil,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -65,10 +65,10 @@ func main() {
 	}
 
 	order3, err := queries.InsertOrder(ctx, db.InsertOrderParams{
-		P1: int32(2),
-		P2: int32(7500),
-		P3: "shipped",
-		P4: nil,
+		CustomerID: int32(2),
+		Total:      int32(7500),
+		Status:     "shipped",
+		Notes:      nil,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

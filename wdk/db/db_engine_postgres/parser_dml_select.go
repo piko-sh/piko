@@ -25,6 +25,15 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+const (
+	// schemaQualifiedCallLookahead is the index offset from the cursor at which a
+	// schema-qualified table-valued function call's opening paren must sit.
+	//
+	// The layout is ident(0) . ident(2) ((3). The pre-check guards against tokens that fall
+	// off the end of the stream.
+	schemaQualifiedCallLookahead = 3
+)
+
 // parseCTEList parses the WITH list of common table expressions.
 //
 // Returns []querier_dto.RawCTEDefinition which holds the parsed CTE entries.
@@ -113,6 +122,9 @@ func (p *parser) skipMaterialisationHint() {
 // Returns *parser which is the child parser used so callers can inherit parameter state.
 func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysis, *parser) {
 	cteParser := newParser(cteTokens)
+	cteParser.analysisDepth = p.analysisDepth
+	cteParser.expressionDepth = p.expressionDepth
+	cteParser.maxParseDepth = p.maxParseDepth
 	var cteAnalysis *querier_dto.RawQueryAnalysis
 	var analyseErr error
 
@@ -191,6 +203,8 @@ func (*parser) populateCTEDefinition(
 	definition.FromTables = analysis.FromTables
 	definition.JoinClauses = analysis.JoinClauses
 	definition.CompoundBranches = analysis.CompoundBranches
+
+	definition.ParameterReferences = analysis.ParameterReferences
 }
 
 // peekForAS reports whether the matching ')' is followed by an AS keyword.
@@ -259,12 +273,20 @@ func (p *parser) parseColumnList() ([]string, error) {
 func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 	var columns []querier_dto.RawOutputColumn
 
+	if p.insertProjectionColumns != nil {
+		p.insertProjectionIndex = 0
+	}
+
 	for {
 		column, err := p.parseOneOutputColumn()
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, column)
+
+		if p.insertProjectionColumns != nil {
+			p.insertProjectionIndex++
+		}
 
 		if p.current().kind != tokenComma {
 			break
@@ -280,6 +302,10 @@ func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 // Returns querier_dto.RawOutputColumn which describes the parsed column.
 // Returns error when alias parsing fails.
 func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
+	if column, ok, aliasErr := p.parseInsertProjectionParameterColumn(); ok {
+		return column, aliasErr
+	}
+
 	if p.current().kind == tokenStar {
 		p.advance()
 		return querier_dto.RawOutputColumn{IsStar: true}, nil
@@ -324,6 +350,48 @@ func (p *parser) parseOutputColumnAlias(column *querier_dto.RawOutputColumn) err
 		column.Name = p.advance().value
 	}
 	return nil
+}
+
+// parseInsertProjectionParameterColumn handles an INSERT ... SELECT projection item that
+// is itself a bare parameter with an optional inline cast.
+//
+// It attaches the positional INSERT target column reference and the Assignment context so
+// the resolver types the placeholder from the target column. This mirrors the VALUES
+// path, which binds a bare-parameter value element to its target column via
+// columnRefForIndex. Items that are not a direct bare parameter, such as a literal, a
+// column, or a function call wrapping a parameter, fall through to the generic expression
+// parser so a nested placeholder is still classified as a function argument rather than
+// an assignment.
+//
+// Returns querier_dto.RawOutputColumn which is the parsed projection column when the item
+// was a bare parameter.
+// Returns bool which is true when a bare-parameter projection item was consumed.
+// Returns error which is non-nil when the optional column alias failed to parse.
+func (p *parser) parseInsertProjectionParameterColumn() (querier_dto.RawOutputColumn, bool, error) {
+	if p.insertProjectionColumns == nil || !isParameterToken(p.current().kind) {
+		return querier_dto.RawOutputColumn{}, false, nil
+	}
+
+	columnRef := p.columnRefForIndex(p.insertProjectionTable, p.insertProjectionColumns, p.insertProjectionIndex)
+	if columnRef == nil {
+		return querier_dto.RawOutputColumn{}, false, nil
+	}
+
+	parameterToken := p.current()
+	p.advance()
+
+	var castType *querier_dto.SQLType
+	if p.current().kind == tokenCast {
+		castType = p.consumeInlineCast()
+	}
+
+	p.registerParameterFromToken(parameterToken, querier_dto.ParameterContextAssignment, columnRef, castType)
+
+	column := querier_dto.RawOutputColumn{Expression: &querier_dto.UnknownExpression{}}
+	if aliasErr := p.parseOutputColumnAlias(&column); aliasErr != nil {
+		return querier_dto.RawOutputColumn{}, true, aliasErr
+	}
+	return column, true, nil
 }
 
 // parseReturningClause parses a RETURNING column list.
@@ -518,8 +586,24 @@ func (p *parser) isSubqueryStart() bool {
 //
 // Returns bool which is true when an identifier is followed by '('.
 func (p *parser) isTableValuedFunctionStart() bool {
-	return p.current().kind == tokenIdentifier && p.peek().kind == tokenLeftParen &&
-		!p.isAnyKeyword(keywordSELECT, keywordWITH, keywordVALUES)
+	if p.current().kind != tokenIdentifier {
+		return false
+	}
+	if p.isAnyKeyword(keywordSELECT, keywordWITH, keywordVALUES) {
+		return false
+	}
+	if p.peek().kind == tokenLeftParen {
+		return true
+	}
+
+	if p.peek().kind != tokenDot {
+		return false
+	}
+	if p.position+schemaQualifiedCallLookahead >= len(p.tokens) {
+		return false
+	}
+	return p.tokens[p.position+2].kind == tokenIdentifier &&
+		p.tokens[p.position+schemaQualifiedCallLookahead].kind == tokenLeftParen
 }
 
 // parseDerivedTable parses a parenthesised subquery used as a table source.
@@ -533,8 +617,7 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 		return collectError
 	}
 
-	childParser := newParser(innerTokens)
-	childParser.parameterCount = p.parameterCount
+	childParser := p.newChildParser(innerTokens)
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return analyseError
@@ -568,11 +651,66 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 //
 // Takes joinKind (querier_dto.JoinKind) which classifies the join context.
 func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
-	functionName := strings.ToLower(p.advance().value)
-	p.advance()
+	schemaName, functionName := p.consumeTVFName()
 
+	qualifiedName := functionName
+	if schemaName != "" {
+		qualifiedName = schemaName + "." + functionName
+	}
+
+	p.advance()
+	p.skipTVFArgumentList(qualifiedName)
+	if p.matchKeyword(keywordWITH) {
+		p.matchKeyword("ORDINALITY")
+	}
+
+	alias, columnDefinitions := p.parseTVFAliasAndColumns(functionName)
+
+	p.rawTableValuedFunctions = append(p.rawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
+		FunctionName:      qualifiedName,
+		Alias:             alias,
+		ColumnDefinitions: columnDefinitions,
+		JoinKind:          joinKind,
+	})
+}
+
+// consumeTVFName consumes the optional schema qualifier and function identifier of a
+// table-valued function call. After this returns the cursor sits on the opening `(`.
+//
+// Returns schemaName (string) which is the schema qualifier, or "" when the call was
+// unqualified.
+// Returns functionName (string) which is the lower-cased identifier of the called
+// function.
+func (p *parser) consumeTVFName() (schemaName string, functionName string) {
+	functionName = strings.ToLower(p.advance().value)
+	if p.current().kind == tokenDot && p.peek().kind == tokenIdentifier {
+		p.advance()
+		schemaName = functionName
+		functionName = strings.ToLower(p.advance().value)
+	}
+	return schemaName, functionName
+}
+
+// skipTVFArgumentList walks past the comma-separated argument list inside a TVF call and
+// consumes the closing `)`. parseExpression handles each argument so parameter references
+// inside the TVF call are still captured by the parser's analysis state.
+//
+// Each top-level placeholder argument is tagged with the FunctionArgument context, the
+// schema-qualified function name, and its zero-based argument ordinal so the resolver can
+// type the placeholder from the matched TVF signature's declared argument. Only
+// references still missing an enclosing function name are tagged, leaving a nested call's
+// own tagging intact, and a non-placeholder argument (a literal, column, or expression)
+// still consumes its ordinal so a placeholder maps to the correct argument slot.
+//
+// Takes qualifiedName (string) which is the lower-cased, optionally schema-qualified
+// function name recorded on the TVF reference.
+func (p *parser) skipTVFArgumentList(qualifiedName string) {
+	ordinal := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
+		referenceCountBefore := len(p.parameterRefs)
 		p.parseExpression()
+		p.tagTableValuedFunctionArguments(qualifiedName, ordinal, referenceCountBefore)
+		ordinal++
 		if p.current().kind != tokenComma {
 			break
 		}
@@ -581,13 +719,46 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
+}
 
-	if p.matchKeyword(keywordWITH) {
-		p.matchKeyword("ORDINALITY")
+// tagTableValuedFunctionArguments tags the parameter references appended while parsing a
+// single top-level table-valued function argument with the enclosing function name and
+// the argument ordinal. References already carrying an enclosing function name (set by a
+// nested call) are left untouched.
+//
+// Takes qualifiedName (string) which is the lower-cased, optionally schema-qualified
+// function name.
+// Takes ordinal (int) which is the zero-based top-level argument slot.
+// Takes referenceCountBefore (int) which is the parameterRefs length captured before
+// parsing the argument.
+func (p *parser) tagTableValuedFunctionArguments(qualifiedName string, ordinal int, referenceCountBefore int) {
+	for index := referenceCountBefore; index < len(p.parameterRefs); index++ {
+		if p.parameterRefs[index].Context != querier_dto.ParameterContextUnknown ||
+			p.parameterRefs[index].EnclosingFunctionName != "" {
+			continue
+		}
+		p.parameterRefs[index].Context = querier_dto.ParameterContextFunctionArgument
+		p.parameterRefs[index].EnclosingFunctionName = qualifiedName
+		p.parameterRefs[index].ArgumentOrdinal = ordinal
 	}
+}
 
-	alias := functionName
-	var columnDefinitions []querier_dto.TVFColumnDefinition
+// parseTVFAliasAndColumns parses an optional `AS alias [(col defs)]` trailer on a
+// table-valued function reference.
+//
+// The bare identifier form without AS is also accepted when it does not introduce a JOIN
+// or another SELECT terminator. The alias defaults to the function name when no explicit
+// alias is present.
+//
+// Takes functionName (string) which is the default alias used when the caller did not
+// specify one.
+//
+// Returns alias (string) which is the resolved alias.
+// Returns columnDefinitions ([]querier_dto.TVFColumnDefinition) which is the parsed
+// column definition list when an explicit `(col defs)` trailer was supplied, or nil
+// otherwise.
+func (p *parser) parseTVFAliasAndColumns(functionName string) (alias string, columnDefinitions []querier_dto.TVFColumnDefinition) {
+	alias = functionName
 	if p.matchKeyword(keywordAS) {
 		if p.current().kind == tokenIdentifier {
 			alias = p.advance().value
@@ -595,16 +766,12 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 		if p.current().kind == tokenLeftParen {
 			columnDefinitions = p.parseTVFColumnDefinitions()
 		}
-	} else if p.current().kind == tokenIdentifier && !p.isJoinKeyword() && !p.isSelectTerminator() {
+		return alias, columnDefinitions
+	}
+	if p.current().kind == tokenIdentifier && !p.isJoinKeyword() && !p.isSelectTerminator() {
 		alias = p.advance().value
 	}
-
-	p.rawTableValuedFunctions = append(p.rawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
-		FunctionName:      functionName,
-		Alias:             alias,
-		ColumnDefinitions: columnDefinitions,
-		JoinKind:          joinKind,
-	})
+	return alias, columnDefinitions
 }
 
 // parseTVFColumnDefinitions parses the column definition list of a TVF reference.
@@ -619,10 +786,8 @@ func (p *parser) parseTVFColumnDefinitions() []querier_dto.TVFColumnDefinition {
 		}
 		name := p.advance().value
 		var typeName string
-		if p.current().kind == tokenIdentifier && p.current().kind != tokenRightParen {
-			if !p.isAnyKeyword(",") && p.current().kind != tokenComma {
-				typeName = p.parseCastTypeName()
-			}
+		if p.current().kind == tokenIdentifier {
+			typeName = p.parseCastTypeName()
 		}
 		definitions = append(definitions, querier_dto.TVFColumnDefinition{
 			Name:     name,

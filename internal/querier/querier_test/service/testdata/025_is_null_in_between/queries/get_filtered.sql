@@ -1,5 +1,4 @@
--- piko.name: GetFilteredItems
--- piko.command: many
+-- piko.query(name: GetFilteredItems, command: many)
 SELECT
   id,
   name,

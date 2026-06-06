@@ -11,10 +11,13 @@
             {
               "Name": "id",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -26,7 +29,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -38,10 +42,13 @@
             {
               "Name": "name",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -53,7 +60,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -65,10 +73,13 @@
             {
               "Name": "waypoints",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -95,7 +106,8 @@
                         "StructFields": null,
                         "KeyType": null,
                         "UnionMembers": null,
-                        "Category": 1
+                        "Category": 1,
+                        "Nullable": false
                       }
                     },
                     {
@@ -111,13 +123,15 @@
                         "StructFields": null,
                         "KeyType": null,
                         "UnionMembers": null,
-                        "Category": 1
+                        "Category": 1,
+                        "Nullable": false
                       }
                     }
                   ],
                   "KeyType": null,
                   "UnionMembers": null,
-                  "Category": 15
+                  "Category": 15,
+                  "Nullable": false
                 },
                 "EngineName": "list",
                 "Schema": "",
@@ -125,7 +139,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 13
+                "Category": 13,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -137,10 +152,13 @@
             {
               "Name": "metadata",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_schema.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -160,7 +178,8 @@
                     "StructFields": null,
                     "KeyType": null,
                     "UnionMembers": null,
-                    "Category": 0
+                    "Category": 0,
+                    "Nullable": false
                   },
                   "EngineName": "list",
                   "Schema": "",
@@ -168,7 +187,8 @@
                   "StructFields": null,
                   "KeyType": null,
                   "UnionMembers": null,
-                  "Category": 13
+                  "Category": 13,
+                  "Nullable": false
                 },
                 "EngineName": "map",
                 "Schema": "",
@@ -185,10 +205,12 @@
                   "StructFields": null,
                   "KeyType": null,
                   "UnionMembers": null,
-                  "Category": 4
+                  "Category": 4,
+                  "Nullable": false
                 },
                 "UnionMembers": null,
-                "Category": 16
+                "Category": 16,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,

@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "combined.sql",
-    "SQL": "-- piko.name: GetPositionalCombined\n-- piko.command: many\nSELECT l.id, l.label, r.id AS right_id, r.score\nFROM left_values l POSITIONAL JOIN right_values r;",
+    "SQL": "-- piko.query(name: GetPositionalCombined, command: many)\nSELECT l.id, l.label, r.id AS right_id, r.score\nFROM left_values l POSITIONAL JOIN right_values r;",
     "Name": "GetPositionalCombined",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "left_values",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "l",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "label",
         "SourceTable": "left_values",
+        "SourceSchema": "",
         "SourceColumn": "label",
+        "SourceQualifier": "l",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "right_id",
         "SourceTable": "right_values",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "r",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "score",
         "SourceTable": "right_values",
+        "SourceSchema": "",
         "SourceColumn": "score",
+        "SourceQualifier": "r",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,7 +104,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -109,9 +126,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

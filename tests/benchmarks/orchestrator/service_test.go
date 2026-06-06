@@ -249,17 +249,17 @@ func BenchmarkScheduler_PromoteTasks(b *testing.B) {
 			payloadBytes, _ := json.Marshal(task.Payload)
 			configBytes, _ := json.Marshal(task.Config)
 			params := orchestrator_db.CreateTaskParams{
-				P1:  task.ID,
-				P2:  task.WorkflowID,
-				P3:  task.Executor,
-				P4:  safeconv.IntToInt32(int(task.Config.Priority)),
-				P5:  string(payloadBytes),
-				P6:  string(configBytes),
-				P7:  string(task.Status),
-				P8:  safeconv.Int64ToInt32(task.ExecuteAt.Unix()),
-				P9:  safeconv.IntToInt32(task.Attempt),
-				P10: safeconv.Int64ToInt32(task.CreatedAt.Unix()),
-				P11: safeconv.Int64ToInt32(task.UpdatedAt.Unix()),
+				ID:         task.ID,
+				WorkflowID: task.WorkflowID,
+				Executor:   task.Executor,
+				Priority:   safeconv.IntToInt32(int(task.Config.Priority)),
+				Payload:    string(payloadBytes),
+				Config:     string(configBytes),
+				Status:     string(task.Status),
+				ExecuteAt:  task.ExecuteAt.Unix(),
+				Attempt:    safeconv.IntToInt32(task.Attempt),
+				CreatedAt:  task.CreatedAt.Unix(),
+				UpdatedAt:  task.UpdatedAt.Unix(),
 			}
 			if err := qtx.CreateTask(ctx, params); err != nil {
 				_ = tx.Rollback()

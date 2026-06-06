@@ -38,9 +38,9 @@ func main() {
 
 	queries := db.New(conn)
 	fetched, err := queries.FetchByPriorityStatusesAndActive(ctx, db.FetchByPriorityStatusesAndActiveParams{
-		P1:       int32(2),
+		Priority: int32(2),
 		Statuses: []string{"PENDING", "PROCESSING", "RETRYING"},
-		P3:       int32(1),
+		Active:   int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "FetchByPriorityStatusesAndActive:", err)

@@ -1,5 +1,4 @@
--- piko.name: GetCustomerStats
--- piko.command: many
+-- piko.query(name: GetCustomerStats, command: many)
 WITH order_totals AS (
     SELECT customer_id, SUM(amount) AS total_amount, COUNT(*) AS order_count
     FROM orders

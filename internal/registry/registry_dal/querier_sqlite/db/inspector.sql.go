@@ -8,11 +8,11 @@ const listallartefactswithdata = `SELECT id, source_path, created_at, updated_at
 FROM artefact;`
 
 type ListAllArtefactsWithDataRow struct {
-	ID         string
-	SourcePath string
-	CreatedAt  int32
-	UpdatedAt  int32
-	DataFbs    []byte
+	ID         string `json:"id"`
+	SourcePath string `json:"source_path"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DataFbs    []byte `json:"data_fbs"`
 }
 
 func (queries *Queries) ListAllArtefactsWithData(ctx context.Context) ([]ListAllArtefactsWithDataRow, error) {
@@ -41,15 +41,15 @@ ORDER BY updated_at DESC
 LIMIT ?;`
 
 type ListRecentArtefactsWithDataRow struct {
-	ID         string
-	SourcePath string
-	CreatedAt  int32
-	UpdatedAt  int32
-	DataFbs    []byte
+	ID         string `json:"id"`
+	SourcePath string `json:"source_path"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DataFbs    []byte `json:"data_fbs"`
 }
 
-func (queries *Queries) ListRecentArtefactsWithData(ctx context.Context, p1 int32) ([]ListRecentArtefactsWithDataRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, listrecentartefactswithdata, p1)
+func (queries *Queries) ListRecentArtefactsWithData(ctx context.Context, limit int) ([]ListRecentArtefactsWithDataRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, listrecentartefactswithdata, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +73,8 @@ FROM variant
 GROUP BY status;`
 
 type ListVariantStatusCountsRow struct {
-	Status       string
-	VariantCount int32
+	Status       string `json:"status"`
+	VariantCount int64  `json:"variant_count"`
 }
 
 func (queries *Queries) ListVariantStatusCounts(ctx context.Context) ([]ListVariantStatusCountsRow, error) {

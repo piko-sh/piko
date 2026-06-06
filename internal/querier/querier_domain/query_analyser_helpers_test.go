@@ -19,6 +19,7 @@
 package querier_domain
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestComputeDynamicFlags(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		parameters         []*querier_dto.ParameterDirective
+		parameters         []querier_dto.QueryParameter
 		wantDynamic        bool
 		wantDynamicColumns []string
 	}{
@@ -44,73 +45,74 @@ func TestComputeDynamicFlags(t *testing.T) {
 		},
 		{
 			name: "regular param does not set dynamic",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "user_id", Kind: querier_dto.ParameterDirectiveParam},
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "user_id"},
 			},
 			wantDynamic:        false,
 			wantDynamicColumns: nil,
 		},
 		{
 			name: "slice param does not set dynamic",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "ids", Kind: querier_dto.ParameterDirectiveSlice},
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "ids", IsSlice: true},
 			},
 			wantDynamic:        false,
 			wantDynamicColumns: nil,
 		},
 		{
 			name: "optional param sets dynamic",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "email", Kind: querier_dto.ParameterDirectiveOptional},
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "email", IsOptional: true},
 			},
 			wantDynamic:        true,
 			wantDynamicColumns: nil,
 		},
 		{
 			name: "sortable param sets dynamic and collects columns",
-			parameters: []*querier_dto.ParameterDirective{
+			parameters: []querier_dto.QueryParameter{
 				{
-					Name:    "sort",
-					Kind:    querier_dto.ParameterDirectiveSortable,
-					Columns: []string{"name", "created_at"},
+					Number:          1,
+					Name:            "sort",
+					Kind:            querier_dto.ParameterDirectiveSortable,
+					SortableColumns: []string{"name", "created_at"},
 				},
 			},
 			wantDynamic:        true,
 			wantDynamicColumns: []string{"name", "created_at"},
 		},
 		{
-			name: "limit param sets dynamic",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "page_size", Kind: querier_dto.ParameterDirectiveLimit},
+			name: "limit param with max bound sets dynamic",
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "page_size", Context: querier_dto.ParameterContextLimit, MaxLimit: new(100)},
 			},
 			wantDynamic:        true,
 			wantDynamicColumns: nil,
 		},
 		{
-			name: "offset param sets dynamic",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "page_offset", Kind: querier_dto.ParameterDirectiveOffset},
+			name: "limit param without clamp config is not dynamic",
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "limit", Context: querier_dto.ParameterContextLimit},
 			},
-			wantDynamic:        true,
+			wantDynamic:        false,
+			wantDynamicColumns: nil,
+		},
+		{
+			name: "offset param without clamp config is not dynamic",
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "page_offset", Context: querier_dto.ParameterContextOffset},
+			},
+			wantDynamic:        false,
 			wantDynamicColumns: nil,
 		},
 		{
 			name: "combined dynamic params accumulate columns",
-			parameters: []*querier_dto.ParameterDirective{
-				{Name: "user_id", Kind: querier_dto.ParameterDirectiveParam},
-				{Name: "email", Kind: querier_dto.ParameterDirectiveOptional},
-				{
-					Name:    "sort",
-					Kind:    querier_dto.ParameterDirectiveSortable,
-					Columns: []string{"name"},
-				},
-				{Name: "page_size", Kind: querier_dto.ParameterDirectiveLimit},
-				{Name: "page_offset", Kind: querier_dto.ParameterDirectiveOffset},
-				{
-					Name:    "order",
-					Kind:    querier_dto.ParameterDirectiveSortable,
-					Columns: []string{"email", "id"},
-				},
+			parameters: []querier_dto.QueryParameter{
+				{Number: 1, Name: "user_id"},
+				{Number: 2, Name: "email", IsOptional: true},
+				{Number: 3, Name: "sort", Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"name"}},
+				{Number: 4, Name: "page_size", Context: querier_dto.ParameterContextLimit, DefaultLimit: new(20)},
+				{Number: 5, Name: "page_offset", Context: querier_dto.ParameterContextOffset},
+				{Number: 6, Name: "order", Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"email", "id"}},
 			},
 			wantDynamic:        true,
 			wantDynamicColumns: []string{"name", "email", "id"},
@@ -125,78 +127,6 @@ func TestComputeDynamicFlags(t *testing.T) {
 
 			assert.Equal(t, testCase.wantDynamic, gotDynamic)
 			assert.Equal(t, testCase.wantDynamicColumns, gotColumns)
-		})
-	}
-}
-
-func TestAppendUniqueColumns(t *testing.T) {
-	t.Parallel()
-
-	intType := querier_dto.SQLType{EngineName: "integer", Category: querier_dto.TypeCategoryInteger}
-	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
-
-	tests := []struct {
-		name     string
-		base     []querier_dto.AllowedColumn
-		table    *querier_dto.Table
-		seen     map[string]struct{}
-		expected []querier_dto.AllowedColumn
-	}{
-		{
-			name:     "nil table returns base unchanged",
-			base:     []querier_dto.AllowedColumn{{Name: "id", SQLType: intType}},
-			table:    nil,
-			seen:     map[string]struct{}{"id": {}},
-			expected: []querier_dto.AllowedColumn{{Name: "id", SQLType: intType}},
-		},
-		{
-			name: "no overlap appends all columns",
-			base: nil,
-			table: &querier_dto.Table{
-				Name: "users",
-				Columns: []querier_dto.Column{
-					{Name: "id", SQLType: intType},
-					{Name: "email", SQLType: textType},
-				},
-			},
-			seen: make(map[string]struct{}),
-			expected: []querier_dto.AllowedColumn{
-				{Name: "id", SQLType: intType},
-				{Name: "email", SQLType: textType},
-			},
-		},
-		{
-			name: "duplicates are skipped",
-			base: []querier_dto.AllowedColumn{{Name: "id", SQLType: intType}},
-			table: &querier_dto.Table{
-				Name: "orders",
-				Columns: []querier_dto.Column{
-					{Name: "id", SQLType: intType},
-					{Name: "total", SQLType: intType},
-				},
-			},
-			seen: map[string]struct{}{"id": {}},
-			expected: []querier_dto.AllowedColumn{
-				{Name: "id", SQLType: intType},
-				{Name: "total", SQLType: intType},
-			},
-		},
-		{
-			name:     "empty table columns returns base unchanged",
-			base:     []querier_dto.AllowedColumn{{Name: "id", SQLType: intType}},
-			table:    &querier_dto.Table{Name: "empty"},
-			seen:     map[string]struct{}{"id": {}},
-			expected: []querier_dto.AllowedColumn{{Name: "id", SQLType: intType}},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := appendUniqueColumns(testCase.base, testCase.seen, testCase.table)
-
-			assert.Equal(t, testCase.expected, got)
 		})
 	}
 }
@@ -733,7 +663,7 @@ func TestResolveEmbedDirectives(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := resolveEmbedDirectives(testCase.sql, testCase.columns, testCase.scope)
+			got := resolveEmbedDirectives(nil, testCase.sql, testCase.columns, testCase.scope)
 
 			assert.Equal(t, testCase.expected, got)
 		})
@@ -949,8 +879,12 @@ func TestBuildScopeChain(t *testing.T) {
 
 		assert.Empty(t, diagnostics)
 
-		assert.Empty(t, scope.tables)
 		assert.Contains(t, scope.ctes, "recent_users")
+		require.Contains(t, scope.tables, "recent_users",
+			"FROM-referenced CTE should be promoted into scope.tables so unqualified column resolution is deterministic")
+		promoted := scope.tables["recent_users"]
+		require.Len(t, promoted.Columns, 1)
+		assert.Equal(t, "id", promoted.Columns[0].Name)
 	})
 
 	t.Run("FROM table matching CTE with different alias registers alias", func(t *testing.T) {
@@ -1192,38 +1126,29 @@ func TestAssembleQuery(t *testing.T) {
 		assert.False(t, got.ReadOnly)
 	})
 
-	t.Run("dynamic runtime populates allowed columns", func(t *testing.T) {
+	t.Run("dynamic runtime populates allowed columns from the projection", func(t *testing.T) {
 		t.Parallel()
-
-		catalogue := newTestCatalogue("public")
-		catalogue.Schemas["public"].Tables["users"] = &querier_dto.Table{
-			Name: "users",
-			Columns: []querier_dto.Column{
-				{Name: "id", SQLType: intType},
-				{Name: "email", SQLType: textType},
-			},
-		}
 
 		analyser := &queryAnalyser{
 			engine:    &mockEngine{},
-			catalogue: catalogue,
+			catalogue: newTestCatalogue("public"),
 		}
 
 		directives := &querier_dto.QueryDirectives{
 			DynamicRuntime: true,
 		}
 
-		rawAnalysis := &querier_dto.RawQueryAnalysis{
-			FromTables: []querier_dto.TableReference{
-				{Name: "users"},
-			},
-		}
-
 		got := analyser.assembleQuery(assembleQueryInput{
-			queryName:   "DynamicUsers",
-			directives:  directives,
-			rawAnalysis: rawAnalysis,
-			block:       queryBlock{sql: "SELECT * FROM users"},
+			queryName:  "DynamicUsers",
+			directives: directives,
+			rawAnalysis: &querier_dto.RawQueryAnalysis{
+				FromTables: []querier_dto.TableReference{{Name: "users"}},
+			},
+			outputColumns: []querier_dto.OutputColumn{
+				{Name: "id", SourceColumn: "id", SQLType: intType},
+				{Name: "email", SourceColumn: "email", SQLType: textType},
+			},
+			block: queryBlock{sql: "SELECT id, email FROM users"},
 		})
 
 		require.Len(t, got.AllowedColumns, 2)
@@ -1355,117 +1280,175 @@ func TestExtractAllowedColumns(t *testing.T) {
 	intType := querier_dto.SQLType{EngineName: "integer", Category: querier_dto.TypeCategoryInteger}
 	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
 
-	t.Run("no FROM tables returns empty", func(t *testing.T) {
+	t.Run("no output columns returns empty", func(t *testing.T) {
 		t.Parallel()
 
-		catalogue := newTestCatalogue("public")
-		analyser := &queryAnalyser{
-			engine:    &mockEngine{},
-			catalogue: catalogue,
-		}
-
-		raw := &querier_dto.RawQueryAnalysis{}
-
-		got := analyser.extractAllowedColumns(raw)
+		got := extractAllowedColumns(nil)
 
 		assert.Empty(t, got)
 	})
 
-	t.Run("collects columns from FROM tables", func(t *testing.T) {
+	t.Run("keys on output name and emits the qualified source expression", func(t *testing.T) {
 		t.Parallel()
 
-		catalogue := newTestCatalogue("public")
-		catalogue.Schemas["public"].Tables["users"] = &querier_dto.Table{
-			Name: "users",
-			Columns: []querier_dto.Column{
-				{Name: "id", SQLType: intType},
-				{Name: "name", SQLType: textType},
-			},
-		}
-
-		analyser := &queryAnalyser{
-			engine:    &mockEngine{},
-			catalogue: catalogue,
-		}
-
-		raw := &querier_dto.RawQueryAnalysis{
-			FromTables: []querier_dto.TableReference{
-				{Name: "users"},
-			},
-		}
-
-		got := analyser.extractAllowedColumns(raw)
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "id", SourceColumn: "id", SourceQualifier: "users", SQLType: intType},
+			{Name: "name", SourceColumn: "name", SourceQualifier: "users", SQLType: textType},
+		})
 
 		require.Len(t, got, 2)
 		assert.Equal(t, "id", got[0].Name)
+		assert.Equal(t, "users.id", got[0].SourceExpression)
+		assert.Equal(t, intType, got[0].SQLType)
 		assert.Equal(t, "name", got[1].Name)
+		assert.Equal(t, "users.name", got[1].SourceExpression)
 	})
 
-	t.Run("collects columns from JOIN tables without duplicates", func(t *testing.T) {
+	t.Run("keys on the alias and resolves it to the real source column", func(t *testing.T) {
 		t.Parallel()
 
-		catalogue := newTestCatalogue("public")
-		catalogue.Schemas["public"].Tables["users"] = &querier_dto.Table{
-			Name: "users",
-			Columns: []querier_dto.Column{
-				{Name: "id", SQLType: intType},
-				{Name: "name", SQLType: textType},
-			},
-		}
-		catalogue.Schemas["public"].Tables["orders"] = &querier_dto.Table{
-			Name: "orders",
-			Columns: []querier_dto.Column{
-				{Name: "id", SQLType: intType},
-				{Name: "total", SQLType: intType},
-			},
-		}
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "public_handle", SourceColumn: "handle", SourceQualifier: "p", SQLType: textType},
+		})
 
-		analyser := &queryAnalyser{
-			engine:    &mockEngine{},
-			catalogue: catalogue,
-		}
+		require.Len(t, got, 1)
+		assert.Equal(t, "public_handle", got[0].Name)
+		assert.Equal(t, "p.handle", got[0].SourceExpression)
+	})
 
-		raw := &querier_dto.RawQueryAnalysis{
-			FromTables: []querier_dto.TableReference{
-				{Name: "users"},
-			},
-			JoinClauses: []querier_dto.JoinClause{
-				{
-					Table: querier_dto.TableReference{Name: "orders"},
-					Kind:  querier_dto.JoinInner,
-				},
-			},
-		}
+	t.Run("emits a bare source expression when no qualifier is known", func(t *testing.T) {
+		t.Parallel()
 
-		got := analyser.extractAllowedColumns(raw)
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "id", SourceColumn: "id", SQLType: intType},
+		})
 
-		require.Len(t, got, 3)
+		require.Len(t, got, 1)
+		assert.Equal(t, "id", got[0].Name)
+		assert.Equal(t, "id", got[0].SourceExpression)
+	})
+
+	t.Run("excludes expression columns that have no source column", func(t *testing.T) {
+		t.Parallel()
+
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "id", SourceColumn: "id", SourceQualifier: "t", SQLType: intType},
+			{Name: "total", SourceColumn: "", SQLType: intType},
+		})
+
+		require.Len(t, got, 1)
+		assert.Equal(t, "id", got[0].Name)
+	})
+
+	t.Run("deduplicates a repeated output name", func(t *testing.T) {
+		t.Parallel()
+
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "id", SourceColumn: "id", SourceQualifier: "a", SQLType: intType},
+			{Name: "id", SourceColumn: "id", SourceQualifier: "b", SQLType: intType},
+		})
+
+		require.Len(t, got, 1)
+		assert.Equal(t, "id", got[0].Name)
+		assert.Equal(t, "a.id", got[0].SourceExpression, "first projected column wins")
+	})
+
+	t.Run("a column on a FROM table but absent from the projection is not allowed", func(t *testing.T) {
+		t.Parallel()
+
+		got := extractAllowedColumns([]querier_dto.OutputColumn{
+			{Name: "id", SourceColumn: "id", SQLType: intType},
+			{Name: "name", SourceColumn: "name", SQLType: textType},
+		})
+
 		names := make([]string, len(got))
 		for i, col := range got {
 			names[i] = col.Name
 		}
-		assert.Contains(t, names, "id")
-		assert.Contains(t, names, "name")
-		assert.Contains(t, names, "total")
+		assert.NotContains(t, names, "secret")
 	})
+}
 
-	t.Run("unknown table is safely skipped", func(t *testing.T) {
-		t.Parallel()
+func TestResolveCompoundBranches_UnresolvedColumnDoesNotRaiseArityError(t *testing.T) {
+	t.Parallel()
 
-		catalogue := newTestCatalogue("public")
-		analyser := &queryAnalyser{
-			engine:    &mockEngine{},
-			catalogue: catalogue,
-		}
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
 
-		raw := &querier_dto.RawQueryAnalysis{
-			FromTables: []querier_dto.TableReference{
-				{Name: "nonexistent"},
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["users"] = newTestTable("users",
+		querier_dto.Column{Name: "id", SQLType: intType},
+		querier_dto.Column{Name: "name", SQLType: textType},
+	)
+	analyser := newQueryAnalyser(&mockEngine{}, catalogue)
+
+	primaryColumns := []querier_dto.OutputColumn{
+		{Name: "id", SQLType: intType},
+		{Name: "name", SQLType: textType},
+	}
+
+	branches := []querier_dto.RawCompoundBranch{
+		{
+			Operator: querier_dto.CompoundUnion,
+			Query: &querier_dto.RawQueryAnalysis{
+				FromTables: []querier_dto.TableReference{{Name: "users"}},
+				OutputColumns: []querier_dto.RawOutputColumn{
+					{ColumnName: "id"},
+					{ColumnName: "no_such_col"},
+				},
 			},
+		},
+	}
+
+	diagnostics := analyser.resolveCompoundBranches(context.Background(), branches, primaryColumns, nil)
+
+	for _, diagnostic := range diagnostics {
+		assert.NotEqual(t, querier_dto.CodeCompoundColumnCount, diagnostic.Code,
+			"a dropped unresolved branch column must not raise the arity-mismatch error")
+		assert.NotEqual(t, querier_dto.SeverityError, diagnostic.Severity,
+			"only the unknown-column warning should surface, never a generation-blocking error")
+	}
+	require.NotEmpty(t, diagnostics, "the unknown column must still produce its own diagnostic")
+}
+
+func TestResolveCompoundBranches_GenuineArityMismatchStillReported(t *testing.T) {
+	t.Parallel()
+
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["users"] = newTestTable("users",
+		querier_dto.Column{Name: "id", SQLType: intType},
+		querier_dto.Column{Name: "name", SQLType: textType},
+	)
+	analyser := newQueryAnalyser(&mockEngine{}, catalogue)
+
+	primaryColumns := []querier_dto.OutputColumn{
+		{Name: "id", SQLType: intType},
+		{Name: "name", SQLType: textType},
+	}
+
+	branches := []querier_dto.RawCompoundBranch{
+		{
+			Operator: querier_dto.CompoundUnion,
+			Query: &querier_dto.RawQueryAnalysis{
+				FromTables: []querier_dto.TableReference{{Name: "users"}},
+				OutputColumns: []querier_dto.RawOutputColumn{
+					{ColumnName: "id"},
+				},
+			},
+		},
+	}
+
+	diagnostics := analyser.resolveCompoundBranches(context.Background(), branches, primaryColumns, nil)
+
+	foundArityError := false
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == querier_dto.CodeCompoundColumnCount {
+			foundArityError = true
+			assert.Equal(t, querier_dto.SeverityError, diagnostic.Severity)
 		}
-
-		got := analyser.extractAllowedColumns(raw)
-
-		assert.Empty(t, got)
-	})
+	}
+	assert.True(t, foundArityError, "a genuine arity mismatch must still be reported")
 }

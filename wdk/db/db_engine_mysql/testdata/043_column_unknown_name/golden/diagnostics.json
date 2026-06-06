@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "users.sql",
+    "Message": "piko.column references unknown output column \"does_not_exist\"",
+    "Code": "Q036",
+    "Suggestion": "",
+    "Line": 2,
+    "Column": 16,
+    "EndLine": 2,
+    "EndColumn": 30,
+    "Severity": 0
+  }
+]

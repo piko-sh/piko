@@ -1,5 +1,4 @@
--- piko.name: GetSettingValue
--- piko.command: one
+-- piko.query(name: GetSettingValue, command: one)
 SELECT
     id,
     COALESCE(user_value, default_value) AS effective_value,

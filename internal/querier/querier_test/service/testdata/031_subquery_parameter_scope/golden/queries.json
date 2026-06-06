@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "exists_with_param.sql",
-    "SQL": "-- piko.name: HasProfileLink\n-- piko.command: one\nSELECT id\nFROM profiles\nWHERE EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1 AND profile_id = profiles.id);",
+    "SQL": "-- piko.query(name: HasProfileLink, command: one)\nSELECT id\nFROM profiles\nWHERE EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1 AND profile_id = profiles.id);",
     "Name": "HasProfileLink",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,7 +53,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -68,16 +75,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "list_profiles_for_user.sql",
-    "SQL": "-- piko.name: ListProfilesForUser\n-- piko.command: many\nSELECT id, name, role\nFROM profiles\nWHERE id IN (SELECT profile_id FROM user_profiles WHERE user_id = $1)\nORDER BY name;",
+    "SQL": "-- piko.query(name: ListProfilesForUser, command: many)\nSELECT id, name, role\nFROM profiles\nWHERE id IN (SELECT profile_id FROM user_profiles WHERE user_id = $1)\nORDER BY name;",
     "Name": "ListProfilesForUser",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -95,20 +105,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -121,16 +136,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -143,16 +162,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "role",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "role",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -165,7 +188,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -186,16 +210,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "scalar_subquery_with_param.sql",
-    "SQL": "-- piko.name: GetLinkedProfileID\n-- piko.command: one\nSELECT (SELECT profile_id FROM user_profiles WHERE user_id = $1 LIMIT 1) AS pid\nFROM profiles\nLIMIT 1;",
+    "SQL": "-- piko.query(name: GetLinkedProfileID, command: one)\nSELECT (SELECT profile_id FROM user_profiles WHERE user_id = $1 LIMIT 1) AS pid\nFROM profiles\nLIMIT 1;",
     "Name": "GetLinkedProfileID",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -213,20 +240,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "pid",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -239,7 +271,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 18,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -260,9 +293,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,4 +1,2 @@
--- piko.name: GetRecordNullable
--- piko.command: one
--- piko.nullable: true
+-- piko.query(name: GetRecordNullable, command: one, nullable: true)
 SELECT id, value, optional_num FROM records WHERE id = ?;

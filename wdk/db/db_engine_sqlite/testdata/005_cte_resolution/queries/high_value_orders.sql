@@ -1,5 +1,4 @@
--- piko.name: GetHighValueOrders
--- piko.command: many
+-- piko.query(name: GetHighValueOrders, command: many)
 WITH high_value AS (
   SELECT id, customer_name, amount
   FROM orders

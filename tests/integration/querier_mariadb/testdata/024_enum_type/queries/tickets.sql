@@ -1,15 +1,11 @@
--- piko.name: InsertTicket
--- piko.command: exec
+-- piko.query(name: InsertTicket, command: exec)
 INSERT INTO tickets (title, priority, status) VALUES (?, ?, ?);
 
--- piko.name: GetTicket
--- piko.command: one
+-- piko.query(name: GetTicket, command: one)
 SELECT id, title, priority, status FROM tickets WHERE id = ?;
 
--- piko.name: ListByPriority
--- piko.command: many
+-- piko.query(name: ListByPriority, command: many)
 SELECT id, title, priority, status FROM tickets WHERE priority = ? ORDER BY id;
 
--- piko.name: ListAll
--- piko.command: many
+-- piko.query(name: ListAll, command: many)
 SELECT id, title, priority, status FROM tickets ORDER BY id;

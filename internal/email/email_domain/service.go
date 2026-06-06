@@ -576,6 +576,44 @@ func NewTemplatedEmail[PropsT any](s Service) (*TemplatedEmailBuilder[PropsT], e
 	}, nil
 }
 
+// NewFailedTemplatedEmail returns a templated email builder in a permanent error state so a
+// caller that did not check a constructor error still gets a panic-safe fluent chain.
+//
+// Every chainable method records against a throwaway parameter set and Do reports buildError
+// without attempting to send. This keeps best-effort senders (which discard the constructor
+// error) from dereferencing a nil builder when no default email service is registered.
+//
+// Takes buildError (error) which is the construction failure to surface from Do.
+//
+// Returns *TemplatedEmailBuilder[PropsT] which is a non-nil builder in an error state.
+func NewFailedTemplatedEmail[PropsT any](buildError error) *TemplatedEmailBuilder[PropsT] {
+	return &TemplatedEmailBuilder[PropsT]{
+		baseEmailBuilder: &baseEmailBuilder{
+			params:     &email_dto.SendParams{},
+			buildError: buildError,
+		},
+	}
+}
+
+// NewFailedEmailBuilder returns a plain email builder in a permanent error state so a caller
+// that did not check a constructor error still gets a panic-safe fluent chain.
+//
+// The chainable methods record against a throwaway parameter set and Do reports buildError
+// without attempting to send, which keeps best-effort senders from dereferencing a nil
+// builder.
+//
+// Takes buildError (error) which is the construction failure to surface from Do.
+//
+// Returns *EmailBuilder which is a non-nil builder in an error state.
+func NewFailedEmailBuilder(buildError error) *EmailBuilder {
+	return &EmailBuilder{
+		baseEmailBuilder: &baseEmailBuilder{
+			params:     &email_dto.SendParams{},
+			buildError: buildError,
+		},
+	}
+}
+
 // handleBulkSend sends a batch of emails using the given provider.
 //
 // When the batch is empty, returns nil without doing anything.

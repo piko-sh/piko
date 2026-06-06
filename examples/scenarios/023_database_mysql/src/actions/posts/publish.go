@@ -23,8 +23,8 @@ type PublishInput struct {
 	ID int32 `json:"id" validate:"required"`
 }
 
-// PublishResponse is returned after a successful publish. It is intentionally
-// empty because the client reloads the page to reflect the change.
+// PublishResponse is returned after a successful publish. It is intentionally empty
+// because the client reloads the page to reflect the change.
 type PublishResponse struct{}
 
 // Call marks the specified post as published.

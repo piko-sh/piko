@@ -2,8 +2,9 @@
   {
     "InsertTable": "tokens",
     "Filename": "create_token.sql",
-    "SQL": "-- piko.name: CreateToken\n-- piko.command: one\nINSERT INTO tokens (value) VALUES ($1) RETURNING id, value;",
+    "SQL": "-- piko.query(name: CreateToken, command: one)\nINSERT INTO tokens (value) VALUES ($1) RETURNING id, value;",
     "Name": "CreateToken",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "tokens",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "tokens",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 8
+          "Category": 8,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "tokens",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "tokens",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,7 +79,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -92,9 +103,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

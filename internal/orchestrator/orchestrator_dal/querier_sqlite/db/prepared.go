@@ -5,6 +5,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -30,42 +31,28 @@ func Prepare(ctx context.Context, db *sql.DB) (*PreparedDBTX, error) {
 	}
 	return &PreparedDBTX{db: db, stmts: stmts}, nil
 }
-func (prepared *PreparedDBTX) getOrPrepare(ctx context.Context, query string) (*sql.Stmt, error) {
+func (prepared *PreparedDBTX) cachedStatement(query string) *sql.Stmt {
 	prepared.mu.RLock()
-	statement, ok := prepared.stmts[query]
-	prepared.mu.RUnlock()
-	if ok {
-		return statement, nil
-	}
-	prepared.mu.Lock()
-	defer prepared.mu.Unlock()
-	if statement, ok = prepared.stmts[query]; ok {
-		return statement, nil
-	}
-	statement, err := prepared.db.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	prepared.stmts[query] = statement
-	return statement, nil
+	defer prepared.mu.RUnlock()
+	return prepared.stmts[query]
 }
 func (prepared *PreparedDBTX) ExecContext(ctx context.Context, query string, arguments ...any) (sql.Result, error) {
-	statement, err := prepared.getOrPrepare(ctx, query)
-	if err != nil {
+	statement := prepared.cachedStatement(query)
+	if statement == nil {
 		return prepared.db.ExecContext(ctx, query, arguments...)
 	}
 	return statement.ExecContext(ctx, arguments...)
 }
 func (prepared *PreparedDBTX) QueryContext(ctx context.Context, query string, arguments ...any) (*sql.Rows, error) {
-	statement, err := prepared.getOrPrepare(ctx, query)
-	if err != nil {
+	statement := prepared.cachedStatement(query)
+	if statement == nil {
 		return prepared.db.QueryContext(ctx, query, arguments...)
 	}
 	return statement.QueryContext(ctx, arguments...)
 }
 func (prepared *PreparedDBTX) QueryRowContext(ctx context.Context, query string, arguments ...any) *sql.Row {
-	statement, err := prepared.getOrPrepare(ctx, query)
-	if err != nil {
+	statement := prepared.cachedStatement(query)
+	if statement == nil {
 		return prepared.db.QueryRowContext(ctx, query, arguments...)
 	}
 	return statement.QueryRowContext(ctx, arguments...)
@@ -73,15 +60,21 @@ func (prepared *PreparedDBTX) QueryRowContext(ctx context.Context, query string,
 func (prepared *PreparedDBTX) BeginTx(ctx context.Context, options *sql.TxOptions) (*sql.Tx, error) {
 	return prepared.db.BeginTx(ctx, options)
 }
+func (prepared *PreparedDBTX) PingContext(ctx context.Context) error {
+	return prepared.db.PingContext(ctx)
+}
+func (prepared *PreparedDBTX) UnderlyingDB() *sql.DB {
+	return prepared.db
+}
 func (prepared *PreparedDBTX) Close() error {
 	prepared.mu.Lock()
 	defer prepared.mu.Unlock()
-	var firstError error
+	var closeErrors []error
 	for _, statement := range prepared.stmts {
-		if err := statement.Close(); err != nil && firstError == nil {
-			firstError = err
+		if err := statement.Close(); err != nil {
+			closeErrors = append(closeErrors, err)
 		}
 	}
 	prepared.stmts = make(map[string]*sql.Stmt)
-	return firstError
+	return errors.Join(closeErrors...)
 }

@@ -1,0 +1,1 @@
+{"docs":[{"id":1,"user_name":"alice","user_sub":"[{\"name\":\"alice\",\"email\":\"alice@example.com\"}]","has_email":true},{"id":2,"user_name":"bob","user_sub":"[{\"name\":\"bob\"}]","has_email":false}]}

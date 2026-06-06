@@ -1,0 +1,12 @@
+{
+  "null_payload": {
+    "id": 1,
+    "payload": null
+  },
+  "populated_payload": {
+    "id": 2,
+    "payload": {
+      "k": "v"
+    }
+  }
+}

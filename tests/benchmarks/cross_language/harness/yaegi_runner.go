@@ -41,16 +41,13 @@ import (
 // yaegiOSArgsMu guards os.Args swaps the same way tengo's does.
 var yaegiOSArgsMu sync.Mutex
 
-// YaegiRunner drives the yaegi Go interpreter
-// (github.com/traefik/yaegi) as an in-process library. Compile is
-// timed separately from execute via Interpreter.Compile / Execute.
-// The benchmark's piko_source.go and native_main.go are merged into a
-// single source string before passing to yaegi (its public API does
-// not accept multi-file packages).
+// YaegiRunner drives the yaegi Go interpreter (github.com/traefik/yaegi) as an in-process
+// library. Compile is timed separately from execute via Interpreter.Compile / Execute.
+// The benchmark's piko_source.go and native_main.go are merged into a single source
+// string before passing to yaegi (its public API does not accept multi-file packages).
 type YaegiRunner struct{}
 
-// NewYaegiRunner returns a Runner that drives the yaegi library
-// in-process.
+// NewYaegiRunner returns a Runner that drives the yaegi library in-process.
 func NewYaegiRunner() *YaegiRunner { return &YaegiRunner{} }
 
 // Kind reports the runner identity used in results.
@@ -65,9 +62,9 @@ func (runner *YaegiRunner) Available(ctx context.Context) (bool, string) {
 // Close is a no-op.
 func (runner *YaegiRunner) Close(ctx context.Context) error { _ = ctx; return nil }
 
-// Run reads the benchmark's piko_source.go + native_main.go, merges
-// them, compiles via yaegi.Interpreter.Compile (timed), then executes
-// (timed). Stdout/stderr from the yaegi'd code are captured via pipes.
+// Run reads the benchmark's piko_source.go + native_main.go, merges them, compiles via
+// yaegi.Interpreter.Compile (timed), then executes (timed). Stdout/stderr from the
+// yaegi'd code are captured via pipes.
 func (runner *YaegiRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	srcPath := filepath.Join(benchmarkDir, "go", "piko_source.go")
 	mainPath := filepath.Join(benchmarkDir, "go", "native_main.go")
@@ -121,10 +118,9 @@ func (runner *YaegiRunner) Run(parent context.Context, spec BenchSpec, mode RunM
 	}, nil
 }
 
-// runYaegiSource sets up stdout/stderr capture pipes, swaps os.Args so
-// the running Go code sees `--mode/--k`, then drives compile+execute
-// via the yaegi library. Returns captured streams, compile/wall nanos,
-// and any setup or execution error.
+// runYaegiSource sets up stdout/stderr capture pipes, swaps os.Args so the running Go
+// code sees `--mode/--k`, then drives compile+execute via the yaegi library. Returns
+// captured streams, compile/wall nanos, and any setup or execution error.
 func runYaegiSource(
 	ctx context.Context,
 	source, benchmarkDir string,
@@ -226,8 +222,8 @@ func runYaegiSource(
 	return stdoutResult.buf, stderrResult.buf, compileNanos, wallNanos, nil
 }
 
-// buildYaegiArgv shapes argv so os.Args inside the interpreted Go code
-// matches what `yaegi run` would have produced via subprocess.
+// buildYaegiArgv shapes argv so os.Args inside the interpreted Go code matches what
+// `yaegi run` would have produced via subprocess.
 func buildYaegiArgv(mode RunMode, spec BenchSpec) []string {
 	args := []string{"yaegi-bench"}
 	if mode == ModeInnerLoop {
@@ -239,9 +235,9 @@ func buildYaegiArgv(mode RunMode, spec BenchSpec) []string {
 	return args
 }
 
-// mergeYaegiSource merges piko_source.go and native_main.go into a
-// single Go source string, deduplicating the package declaration and
-// unioning the import block. Yaegi's Compile takes one source string.
+// mergeYaegiSource merges piko_source.go and native_main.go into a single Go source
+// string, deduplicating the package declaration and unioning the import block. Yaegi's
+// Compile takes one source string.
 func mergeYaegiSource(pikoSource, mainSource string) (string, error) {
 	imports := map[string]struct{}{}
 	bodyPiko := stripPackageAndImports(pikoSource, imports)
@@ -279,9 +275,9 @@ var (
 	singleImportInnerRegex = regexp.MustCompile(`(?m)^import\s+((?:[A-Za-z_]\w*\s+)?"[^"]+")`)
 )
 
-// stripPackageAndImports removes `package main` plus any import
-// statement (single or block) from content, recording each import
-// string into the provided set. Returns the residual body.
+// stripPackageAndImports removes `package main` plus any import statement (single or
+// block) from content, recording each import string into the provided set. Returns the
+// residual body.
 func stripPackageAndImports(content string, imports map[string]struct{}) string {
 	content = packageLineRegex.ReplaceAllString(content, "")
 	content = importBlockRegex.ReplaceAllStringFunc(content, func(match string) string {

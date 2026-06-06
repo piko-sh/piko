@@ -1,15 +1,15 @@
 {
   "with_review": {
-    "ID": 1,
     "Reviews": {
-      "ID": 1,
-      "Rating": 5
+      "id": 1,
+      "rating": 5
     },
-    "Title": "The Hobbit"
+    "id": 1,
+    "title": "The Hobbit"
   },
   "without_review": {
-    "ID": 2,
     "Reviews": null,
-    "Title": "1984"
+    "id": 2,
+    "title": "1984"
   }
 }

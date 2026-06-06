@@ -30,19 +30,19 @@ import (
 	"time"
 )
 
-// GoRunner executes a benchmark by shelling out to `go run` on the
-// `<benchmark>/go/` directory. The native Go variant produces the canonical
-// stdout hash for the rest of the suite to verify against.
+// GoRunner executes a benchmark by shelling out to `go run` on the `<benchmark>/go/`
+// directory. The native Go variant produces the canonical stdout hash for the rest of the
+// suite to verify against.
 type GoRunner struct {
 	goBinary string
 
 	goCache string
 }
 
-// NewGoRunner returns a Runner that drives `go run`. The shared GOCACHE
-// path lets the warmup runs absorb cold-build cost so the timed runs see
-// only execution time. Pass an empty cachePath for a fresh per-run cache
-// (slower but useful for honestly measuring first-run cost).
+// NewGoRunner returns a Runner that drives `go run`. The shared GOCACHE path lets the
+// warmup runs absorb cold-build cost so the timed runs see only execution time. Pass an
+// empty cachePath for a fresh per-run cache (slower but useful for honestly measuring
+// first-run cost).
 func NewGoRunner(cachePath string) *GoRunner {
 	return &GoRunner{goBinary: "go", goCache: cachePath}
 }
@@ -50,9 +50,9 @@ func NewGoRunner(cachePath string) *GoRunner {
 // Kind reports the runner identity used in results.
 func (runner *GoRunner) Kind() RunnerKind { return RunnerGo }
 
-// Available probes that `go` is on PATH. We do not require any particular
-// version: the suite reports whatever the host go-toolchain provides and
-// records it in the host info block.
+// Available probes that `go` is on PATH. We do not require any particular version: the
+// suite reports whatever the host go-toolchain provides and records it in the host info
+// block.
 func (runner *GoRunner) Available(ctx context.Context) (bool, string) {
 	_ = ctx
 	if _, err := exec.LookPath(runner.goBinary); err != nil {
@@ -67,12 +67,11 @@ func (runner *GoRunner) Close(ctx context.Context) error {
 	return nil
 }
 
-// Run builds the benchmark to a temp binary (timed as compile) then
-// invokes the binary (timed as runtime). Splitting compile from
-// runtime lets the report show go's compile cost separately from
-// its execution cost; the shared GOCACHE means warmup runs absorb
-// the cold-build cost of the standard library, and the per-call
-// `go build` is just our package plus link.
+// Run builds the benchmark to a temp binary (timed as compile) then invokes the binary
+// (timed as runtime). Splitting compile from runtime lets the report show go's compile
+// cost separately from its execution cost; the shared GOCACHE means warmup runs absorb
+// the cold-build cost of the standard library, and the per-call `go build` is just our
+// package plus link.
 func (runner *GoRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	goDirectory := filepath.Join(benchmarkDir, "go")
 
@@ -148,9 +147,9 @@ func (runner *GoRunner) Run(parent context.Context, spec BenchSpec, mode RunMode
 	}, nil
 }
 
-// buildRunnerArgs assembles the flag + positional argv passed to subprocess
-// runners. Inner-loop mode prepends `--mode=inner --k=<K>`; end-to-end mode
-// passes positional args directly. The spec's positional args follow.
+// buildRunnerArgs assembles the flag + positional argv passed to subprocess runners.
+// Inner-loop mode prepends `--mode=inner --k=<K>`; end-to-end mode passes positional args
+// directly. The spec's positional args follow.
 func buildRunnerArgs(mode RunMode, spec BenchSpec) []string {
 	args := []string{}
 	if mode == ModeInnerLoop {

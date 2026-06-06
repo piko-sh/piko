@@ -48,16 +48,16 @@ func main() {
 
 	queries := db.New(conn)
 	topPending, err := queries.FetchTopByIDsAndStatus(ctx, db.FetchTopByIDsAndStatusParams{
-		IDs: []string{"t1", "t2", "t5"},
-		P2:  "PENDING",
+		IDs:    []string{"t1", "t2", "t5"},
+		Status: "PENDING",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "FetchTopByIDsAndStatus (pending):", err)
 		os.Exit(1)
 	}
 	topComplete, err := queries.FetchTopByIDsAndStatus(ctx, db.FetchTopByIDsAndStatusParams{
-		IDs: []string{"t3", "t4"},
-		P2:  "COMPLETE",
+		IDs:    []string{"t3", "t4"},
+		Status: "COMPLETE",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "FetchTopByIDsAndStatus (complete):", err)

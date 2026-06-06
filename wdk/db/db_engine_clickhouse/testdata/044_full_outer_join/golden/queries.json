@@ -1,0 +1,84 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "q.sql",
+    "SQL": "-- piko.query(FullJoin, many)\nSELECT l.id AS l_id, r.id AS r_id FROM left_t l FULL OUTER JOIN right_t r ON l.id = r.id;",
+    "Name": "FullJoin",
+    "CountSQL": "",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "l_id",
+        "SourceTable": "left_t",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "l",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "r_id",
+        "SourceTable": "right_t",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "r",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
+  }
+]

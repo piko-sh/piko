@@ -15,8 +15,8 @@ type ListenOutput struct {
 	Active bool `json:"active"`
 }
 
-// ListenAction streams chat messages to the client via SSE.
-// It subscribes to the hub and forwards messages in real time.
+// ListenAction streams chat messages to the client via SSE. It subscribes to the hub and
+// forwards messages in real time.
 type ListenAction struct {
 	piko.ActionMetadata
 }
@@ -26,17 +26,16 @@ func (a *ListenAction) Call(_ ListenInput) (ListenOutput, error) {
 	return ListenOutput{Active: true}, nil
 }
 
-// StreamProgress subscribes to the chat hub and streams messages.
-// On connect, it replays recent message history. The stream stays
-// open until the client disconnects.
+// StreamProgress subscribes to the chat hub and streams messages. On connect, it replays
+// recent message history. The stream stays open until the client disconnects.
 func (a *ListenAction) StreamProgress(stream *piko.SSEStream) error {
-	// Subscribe BEFORE reading history to avoid missing messages
-	// between the history read and subscription.
+	// Subscribe BEFORE reading history to avoid missing messages between the history read
+	// and subscription.
 	msgCh, unsubscribe := hub.Subscribe()
 	defer unsubscribe()
 
-	// Determine which messages to skip on reconnection.
-	// The Last-Event-ID is the hub message ID of the last received message.
+	// Determine which messages to skip on reconnection. The Last-Event-ID is the hub message
+	// ID of the last received message.
 	var lastSeenID uint64
 	if lastID := stream.LastEventID(); lastID != "" {
 		if parsed, err := strconv.ParseUint(lastID, 10, 64); err == nil {

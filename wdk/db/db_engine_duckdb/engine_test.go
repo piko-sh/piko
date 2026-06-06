@@ -19,6 +19,7 @@
 package db_engine_duckdb
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -643,14 +644,25 @@ func TestResolveFunctionCall(t *testing.T) {
 		assert.Equal(t, "hugeint", result.ReturnType.EngineName)
 	})
 
-	t.Run("sum with large integer returns numeric", func(t *testing.T) {
+	t.Run("sum with large integer returns hugeint", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := engine.ResolveFunctionCall(catalogue, "sum", "",
+			[]querier_dto.SQLType{{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"}})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "hugeint", result.ReturnType.EngineName)
+		assert.Equal(t, querier_dto.TypeCategoryInteger, result.ReturnType.Category)
+	})
+
+	t.Run("sum with hugeint returns hugeint", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := engine.ResolveFunctionCall(catalogue, "sum", "",
 			[]querier_dto.SQLType{{Category: querier_dto.TypeCategoryInteger, EngineName: "hugeint"}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, "numeric", result.ReturnType.EngineName)
+		assert.Equal(t, "hugeint", result.ReturnType.EngineName)
 	})
 
 	t.Run("sum with float returns float8", func(t *testing.T) {
@@ -683,14 +695,26 @@ func TestResolveFunctionCall(t *testing.T) {
 		assert.Equal(t, "float8", result.ReturnType.EngineName)
 	})
 
-	t.Run("avg with integer returns numeric", func(t *testing.T) {
+	t.Run("avg with integer returns float8", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := engine.ResolveFunctionCall(catalogue, "avg", "",
 			[]querier_dto.SQLType{{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}})
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, "numeric", result.ReturnType.EngineName)
+		assert.Equal(t, "float8", result.ReturnType.EngineName)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, result.ReturnType.Category)
+	})
+
+	t.Run("avg with decimal returns float8", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := engine.ResolveFunctionCall(catalogue, "avg", "",
+			[]querier_dto.SQLType{{Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"}})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "float8", result.ReturnType.EngineName)
+		assert.Equal(t, querier_dto.TypeCategoryFloat, result.ReturnType.Category)
 	})
 
 	t.Run("min returns same type", func(t *testing.T) {
@@ -1074,4 +1098,42 @@ func TestCanImplicitCast_FloatToDecimal(t *testing.T) {
 	engine := NewDuckDBEngine()
 	assert.True(t, engine.CanImplicitCast(querier_dto.TypeCategoryFloat, querier_dto.TypeCategoryDecimal),
 		"float to decimal should be allowed")
+}
+
+func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+	t.Parallel()
+
+	engine := NewDuckDBEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindSelect,
+		},
+	}
+
+	analysis, err := engine.AnalyseQuery(nil, statement)
+
+	require.Error(t, err)
+	require.Nil(t, analysis)
+	assert.Contains(t, err.Error(), "panic while analysing query")
+	assert.Contains(t, err.Error(), "stack:")
+}
+
+func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
+	t.Parallel()
+
+	engine := NewDuckDBEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindCreateTable,
+		},
+	}
+
+	mutation, err := engine.ApplyDDL(context.Background(), statement)
+
+	require.Error(t, err)
+	require.Nil(t, mutation)
+	assert.Contains(t, err.Error(), "panic while applying DDL")
+	assert.Contains(t, err.Error(), "stack:")
 }

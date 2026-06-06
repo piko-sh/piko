@@ -30,21 +30,24 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// localeRouteParamPattern matches a route-pattern parameter such as {slug} or {slug:.+}.
-var localeRouteParamPattern = regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[^}]*)?\}`)
+var (
+	// localeRouteParamPattern matches a route-pattern parameter such as {slug} or {slug:.+}.
+	localeRouteParamPattern = regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[^}]*)?\}`)
+)
 
 // redirectToCanonicalSlash redirects a request to its canonical trailing-slash form.
 //
-// It issues a permanent (308) redirect to the trailing-slash-toggled form of the
-// request path when that form matches a registered route but the requested form does
-// not. This gives every page a single canonical URL per locale: directory-index pages
-// are slash-canonical and leaf pages are slashless, and the non-canonical form is
-// redirected to the registered one symmetrically for all locales (so /fr/x redirects to
-// /fr/x/ exactly as /x redirects to /x/). The 308 status preserves the request method.
+// It issues a permanent (308) redirect to the trailing-slash-toggled form of the request
+// path when that form matches a registered route but the requested form does not. This
+// gives every page a single canonical URL per locale: directory-index pages are
+// slash-canonical and leaf pages are slashless, and the non-canonical form is redirected
+// to the registered one symmetrically for all locales (so /fr/x redirects to /fr/x/
+// exactly as /x redirects to /x/). The 308 status preserves the request method.
 //
 // Takes router (chi.Router) whose registered routes are matched against the toggled path.
 // Takes w (http.ResponseWriter) which receives the redirect response.
-// Takes request (*http.Request) which is the incoming request whose path is canonicalised.
+// Takes request (*http.Request) which is the incoming request whose path is
+// canonicalised.
 //
 // Returns bool which is true when a redirect response was written.
 func redirectToCanonicalSlash(router chi.Router, w http.ResponseWriter, request *http.Request) bool {
@@ -68,8 +71,8 @@ func redirectToCanonicalSlash(router chi.Router, w http.ResponseWriter, request 
 	return true
 }
 
-// toggleTrailingSlash returns the path with its trailing slash toggled: a trailing slash is
-// stripped, or one is added when absent. The root path is returned unchanged.
+// toggleTrailingSlash returns the path with its trailing slash toggled: a trailing slash
+// is stripped, or one is added when absent. The root path is returned unchanged.
 //
 // Takes path (string) which is the request path.
 //
@@ -87,16 +90,16 @@ func toggleTrailingSlash(path string) string {
 // computeAutoLocaleHead derives the locale SEO head for a localised page.
 //
 // It builds the head (language, canonical URL, and hreflang alternates) from the page's
-// registered per-locale route patterns, which already carry the correct locale prefixes and
-// trailing slashes. It returns nil when the page has fewer than two locale variants, leaving
-// SEO head generation to the page itself.
+// registered per-locale route patterns, which already carry the correct locale prefixes
+// and trailing slashes. It returns nil when the page has fewer than two locale variants,
+// leaving SEO head generation to the page itself.
 //
 // Takes request (*http.Request) which carries the active locale and matched route params.
 // Takes entry (templater_domain.PageEntryView) which exposes the page's route patterns.
 // Takes websiteConfig (*config.WebsiteConfig) which provides locales and the base URL.
 //
-// Returns *templater_domain.LocaleSEOHead which holds the derived head, or nil when the page
-// is not localised.
+// Returns *templater_domain.LocaleSEOHead which holds the derived head, or nil when the
+// page is not localised.
 func computeAutoLocaleHead(
 	request *http.Request,
 	entry templater_domain.PageEntryView,
@@ -152,8 +155,8 @@ func computeAutoLocaleHead(
 
 // canonicalBaseURL returns the absolute site origin for canonical and hreflang URLs. It
 // prefers the configured WebsiteConfig.CanonicalBaseURL (so cached pages do not bake in a
-// stale request host) and falls back to the live request host, mirroring the request scheme,
-// when unset.
+// stale request host) and falls back to the live request host, mirroring the request
+// scheme, when unset.
 //
 // Takes websiteConfig (*config.WebsiteConfig) which may carry the configured base URL.
 // Takes request (*http.Request) which provides the fallback host and scheme.

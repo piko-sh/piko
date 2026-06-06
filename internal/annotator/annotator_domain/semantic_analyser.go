@@ -449,16 +449,16 @@ func setupAndPopulateRootContext(
 	return rootCtx
 }
 
-// buildTranslationKeySet collects the translation keys available for compile-time validation
-// of a component: the local keys from its own <i18n> block and the project-level global keys
-// usable with T().
+// buildTranslationKeySet collects the translation keys available for compile-time
+// validation of a component: the local keys from its own <i18n> block and the
+// project-level global keys usable with T().
 //
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component that holds local
-// translation data.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component that holds
+// local translation data.
 // Takes globalTranslationKeys (map[string]struct{}) which holds the project-level keys.
 //
-// Returns *TranslationKeySet which holds the local and global keys, or nil only when there
-// are no keys of either kind to validate against (so T() and LT() are not checked).
+// Returns *TranslationKeySet which holds the local and global keys, or nil only when
+// there are no keys of either kind to validate against (so T() and LT() are not checked).
 func buildTranslationKeySet(vc *annotator_dto.VirtualComponent, globalTranslationKeys map[string]struct{}) *TranslationKeySet {
 	localKeys := collectLocalTranslationKeys(vc)
 
@@ -472,8 +472,8 @@ func buildTranslationKeySet(vc *annotator_dto.VirtualComponent, globalTranslatio
 	}
 }
 
-// collectLocalTranslationKeys gathers the union of translation keys defined in a component's
-// own <i18n> block across every locale.
+// collectLocalTranslationKeys gathers the union of translation keys defined in a
+// component's own <i18n> block across every locale.
 //
 // Takes vc (*annotator_dto.VirtualComponent) which is the component whose keys are read.
 //

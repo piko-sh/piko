@@ -2,8 +2,9 @@
   {
     "InsertTable": "unique_emails",
     "Filename": "add_email.sql",
-    "SQL": "-- piko.name: AddEmail\n-- piko.command: exec\nINSERT IGNORE INTO unique_emails (email) VALUES (?);",
+    "SQL": "-- piko.query(name: AddEmail, command: exec)\nINSERT IGNORE INTO unique_emails (email) VALUES (?);",
     "Name": "AddEmail",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -47,9 +50,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

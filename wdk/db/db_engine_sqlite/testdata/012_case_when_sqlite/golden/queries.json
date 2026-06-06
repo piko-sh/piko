@@ -2,36 +2,44 @@
   {
     "InsertTable": "",
     "Filename": "get_labels.sql",
-    "SQL": "-- piko.name: GetOrderLabels\n-- piko.command: many\nSELECT\n  id,\n  CASE WHEN amount \u003e 100 THEN 'large' WHEN amount \u003e 50 THEN 'medium' ELSE 'small' END as size_with_else,\n  CASE WHEN status = 'active' THEN amount END as active_amount\nFROM orders",
+    "SQL": "-- piko.query(name: GetOrderLabels, command: many)\nSELECT\n  id,\n  CASE WHEN amount \u003e 100 THEN 'large' WHEN amount \u003e 50 THEN 'medium' ELSE 'small' END as size_with_else,\n  CASE WHEN status = 'active' THEN amount END as active_amount\nFROM orders",
     "Name": "GetOrderLabels",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "orders",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "orders",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "size_with_else",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "active_amount",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

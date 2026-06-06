@@ -1,17 +1,35 @@
 {
   "merge_metadata": {
-    "ID": 1,
-    "Metadata": "{\"author\": \"Alice\", \"draft\": true, \"status\": \"published\", \"version\": 1, \"priority\": \"high\", \"reviewer\": \"Bob\"}",
-    "Title": "Report"
+    "id": 1,
+    "metadata": {
+      "author": "Alice",
+      "draft": true,
+      "priority": "high",
+      "reviewer": "Bob",
+      "status": "published",
+      "version": 1
+    },
+    "title": "Report"
   },
   "remove_key": {
-    "ID": 1,
-    "Metadata": "{\"author\": \"Alice\", \"status\": \"published\", \"version\": 1, \"priority\": \"high\", \"reviewer\": \"Bob\"}",
-    "Title": "Report"
+    "id": 1,
+    "metadata": {
+      "author": "Alice",
+      "priority": "high",
+      "reviewer": "Bob",
+      "status": "published",
+      "version": 1
+    },
+    "title": "Report"
   },
   "set_nested_field": {
-    "ID": 1,
-    "Metadata": "{\"author\": \"Alice\", \"draft\": true, \"status\": \"published\", \"version\": 1}",
-    "Title": "Report"
+    "id": 1,
+    "metadata": {
+      "author": "Alice",
+      "draft": true,
+      "status": "published",
+      "version": 1
+    },
+    "title": "Report"
   }
 }

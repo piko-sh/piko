@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "products.sql",
-    "SQL": "-- piko.name: ApplyPriceUpdates\n-- piko.command: exec\nUPDATE products\nSET price = price_updates.new_price\nFROM price_updates\nWHERE products.id = price_updates.product_id;",
+    "SQL": "-- piko.query(name: ApplyPriceUpdates, command: exec)\nUPDATE products\nSET price = price_updates.new_price\nFROM price_updates\nWHERE products.id = price_updates.product_id;",
     "Name": "ApplyPriceUpdates",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [],
     "GroupByKey": null,
@@ -20,9 +21,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

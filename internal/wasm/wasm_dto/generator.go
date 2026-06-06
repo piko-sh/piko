@@ -156,8 +156,8 @@ type ManifestPartialEntry struct {
 
 	// JSArtefactID is the client-side JavaScript artefact ID for this partial, when it has a
 	// <script> block. Pages aggregate transitively- referenced partial IDs into
-	// ManifestPageEntry.JSArtefactIDs; JSArtefactID exposes the per-partial value for tooling
-	// that walks the partial graph directly.
+	// ManifestPageEntry.JSArtefactIDs; JSArtefactID exposes the per-partial value for
+	// tooling that walks the partial graph directly.
 	JSArtefactID string `json:"jsArtefactId,omitempty"`
 
 	// StyleBlock contains the aggregated CSS for this partial and its nested partials.

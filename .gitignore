@@ -28,4 +28,5 @@ internal/generator/generator_test_bench/testdata/*/cache/*.bin
 
 # Other
 tmp
+.tmp_*
 __pycache__

@@ -71,65 +71,18 @@ func NewSeedService(
 // Returns int which is the number of seeds applied.
 // Returns error when a seed fails to execute.
 func (s *seedService) Apply(ctx context.Context) (int, error) {
-	_, l := logger_domain.From(ctx, log)
-
-	files, err := readSeedFiles(ctx, s.fileReader, s.directory)
-	if err != nil {
-		return 0, err
-	}
-	if len(files) == 0 {
-		return 0, nil
-	}
+	ctx, l := logger_domain.From(ctx, log)
 
 	if lockErr := s.executor.AcquireSeedLock(ctx); lockErr != nil {
 		return 0, fmt.Errorf("acquiring seed lock: %w", lockErr)
 	}
 	defer func() {
 		if releaseErr := s.executor.ReleaseSeedLock(ctx); releaseErr != nil {
-			l.Warn("Releasing seed lock failed", logger_domain.Error(releaseErr))
+			l.Warn("releasing seed lock failed", logger_domain.Error(releaseErr))
 		}
 	}()
 
-	if err := s.executor.EnsureSeedTable(ctx); err != nil {
-		return 0, fmt.Errorf("ensuring seed table: %w", err)
-	}
-
-	applied, err := s.executor.AppliedSeeds(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("reading applied seeds: %w", err)
-	}
-
-	appliedByVersion := buildAppliedSeedMap(applied)
-	pending := filterPendingSeeds(files, appliedByVersion, l)
-
-	count := 0
-	for _, seed := range pending {
-		if ctx.Err() != nil {
-			return count, ctx.Err()
-		}
-
-		record := querier_dto.SeedRecord{
-			Version:  seed.Version,
-			Name:     seed.Name,
-			Checksum: seed.Checksum,
-			Content:  seed.Content,
-		}
-
-		if execErr := s.executor.ExecuteSeed(ctx, record); execErr != nil {
-			return count, &SeedExecutionError{
-				Version: seed.Version,
-				Name:    seed.Name,
-				Cause:   execErr,
-			}
-		}
-
-		l.Internal("Seed applied",
-			logger_domain.Int64(logFieldVersion, seed.Version),
-			logger_domain.String("name", seed.Name))
-		count++
-	}
-
-	return count, nil
+	return s.applyLocked(ctx)
 }
 
 // Status returns the list of all known seeds and their applied state.
@@ -137,6 +90,8 @@ func (s *seedService) Apply(ctx context.Context) (int, error) {
 // Returns []querier_dto.SeedStatus which lists all seeds.
 // Returns error when the status cannot be determined.
 func (s *seedService) Status(ctx context.Context) ([]querier_dto.SeedStatus, error) {
+	ctx, _ = logger_domain.From(ctx, log)
+
 	files, err := readSeedFiles(ctx, s.fileReader, s.directory)
 	if err != nil {
 		return nil, err
@@ -180,6 +135,17 @@ func (s *seedService) Status(ctx context.Context) ([]querier_dto.SeedStatus, err
 // Returns int which is the number of seeds applied.
 // Returns error when clearing history or applying seeds fails.
 func (s *seedService) Reseed(ctx context.Context) (int, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	if lockErr := s.executor.AcquireSeedLock(ctx); lockErr != nil {
+		return 0, fmt.Errorf("acquiring seed lock: %w", lockErr)
+	}
+	defer func() {
+		if releaseErr := s.executor.ReleaseSeedLock(ctx); releaseErr != nil {
+			l.Warn("releasing seed lock failed", logger_domain.Error(releaseErr))
+		}
+	}()
+
 	if err := s.executor.EnsureSeedTable(ctx); err != nil {
 		return 0, fmt.Errorf("ensuring seed table: %w", err)
 	}
@@ -188,7 +154,70 @@ func (s *seedService) Reseed(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("clearing seed history: %w", err)
 	}
 
-	return s.Apply(ctx)
+	return s.applyLocked(ctx)
+}
+
+// applyLocked executes all pending seed files in version order.
+//
+// It skips those already applied and warns on checksum mismatches. The caller MUST
+// already hold the seed advisory lock: both Apply (a normal run) and Reseed (which clears
+// the history first under the same held lock) funnel through here so the
+// read-modify-write of the seed history always happens under a single lock, never split
+// across an acquire/release boundary.
+//
+// Returns int which is the number of seeds applied.
+// Returns error when a seed fails to execute.
+func (s *seedService) applyLocked(ctx context.Context) (int, error) {
+	_, l := logger_domain.From(ctx, log)
+
+	files, err := readSeedFiles(ctx, s.fileReader, s.directory)
+	if err != nil {
+		return 0, err
+	}
+	if len(files) == 0 {
+		return 0, nil
+	}
+
+	if err := s.executor.EnsureSeedTable(ctx); err != nil {
+		return 0, fmt.Errorf("ensuring seed table: %w", err)
+	}
+
+	applied, err := s.executor.AppliedSeeds(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("reading applied seeds: %w", err)
+	}
+
+	appliedByVersion := buildAppliedSeedMap(applied)
+	pending := filterPendingSeeds(ctx, files, appliedByVersion)
+
+	count := 0
+	for _, seed := range pending {
+		if ctx.Err() != nil {
+			return count, ctx.Err()
+		}
+
+		record := querier_dto.SeedRecord{
+			Version:  seed.Version,
+			Name:     seed.Name,
+			Checksum: seed.Checksum,
+			Content:  seed.Content,
+		}
+
+		if execErr := s.executor.ExecuteSeed(ctx, record); execErr != nil {
+			return count, &SeedExecutionError{
+				Version: seed.Version,
+				Name:    seed.Name,
+				Cause:   execErr,
+			}
+		}
+
+		l.Internal("seed applied",
+			logger_domain.Int64(logFieldVersion, seed.Version),
+			logger_domain.String("name", seed.Name))
+		count++
+	}
+
+	return count, nil
 }
 
 // buildAppliedSeedMap creates a lookup map from version to applied seed.
@@ -211,14 +240,15 @@ func buildAppliedSeedMap(applied []querier_dto.AppliedSeed) map[int64]querier_dt
 // Takes files ([]querier_dto.SeedFile) which holds all seed files to filter.
 // Takes appliedByVersion (map[int64]querier_dto.AppliedSeed) which holds the
 // already-applied seeds.
-// Takes l (logger_domain.Logger) which receives checksum mismatch warnings.
 //
 // Returns []querier_dto.SeedFile which holds only the pending seed files.
 func filterPendingSeeds(
+	ctx context.Context,
 	files []querier_dto.SeedFile,
 	appliedByVersion map[int64]querier_dto.AppliedSeed,
-	l logger_domain.Logger,
 ) []querier_dto.SeedFile {
+	_, l := logger_domain.From(ctx, log)
+
 	pending := make([]querier_dto.SeedFile, 0, len(files))
 
 	for _, file := range files {
@@ -229,7 +259,7 @@ func filterPendingSeeds(
 		}
 
 		if record.Checksum != file.Checksum {
-			l.Warn("Seed file checksum changed since last application",
+			l.Warn("seed file checksum changed since last application",
 				logger_domain.Int64(logFieldVersion, file.Version),
 				logger_domain.String("name", file.Name),
 				logger_domain.String("applied_checksum", record.Checksum),

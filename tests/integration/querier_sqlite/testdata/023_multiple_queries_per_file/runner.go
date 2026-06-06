@@ -31,8 +31,8 @@ func main() {
 	queries := db.New(conn)
 
 	created, err := queries.CreateNote(ctx, db.CreateNoteParams{
-		P1: "First Note",
-		P2: "Body of the first note",
+		Title: "First Note",
+		Body:  "Body of the first note",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -40,15 +40,15 @@ func main() {
 	}
 
 	_, err = queries.CreateNote(ctx, db.CreateNoteParams{
-		P1: "Second Note",
-		P2: "Body of the second note",
+		Title: "Second Note",
+		Body:  "Body of the second note",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	fetched, err := queries.GetNote(ctx, int32(1))
+	fetched, err := queries.GetNote(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -61,15 +61,15 @@ func main() {
 	}
 
 	updatedRows, err := queries.UpdateNoteTitle(ctx, db.UpdateNoteTitleParams{
-		P1: "Updated First Note",
-		P2: int32(1),
+		Title: "Updated First Note",
+		ID:    int64(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	err = queries.DeleteNote(ctx, int32(2))
+	err = queries.DeleteNote(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

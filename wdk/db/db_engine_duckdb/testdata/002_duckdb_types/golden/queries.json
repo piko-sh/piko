@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "duckdb_types.sql",
-    "SQL": "-- piko.name: GetAllDuckDBTypes\n-- piko.command: many\nSELECT id, tiny_val, small_val, big_val, huge_val, utiny_val, usmall_val, uint_val, ubig_val, blob_val, ts_s, ts_ms, ts_ns FROM duckdb_types;",
+    "SQL": "-- piko.query(name: GetAllDuckDBTypes, command: many)\nSELECT id, tiny_val, small_val, big_val, huge_val, utiny_val, usmall_val, uint_val, ubig_val, blob_val, ts_s, ts_ms, ts_ns FROM duckdb_types;",
     "Name": "GetAllDuckDBTypes",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tiny_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "tiny_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "small_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "small_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "big_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "big_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,16 +104,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "huge_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "huge_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -110,16 +130,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "utiny_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "utiny_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -132,16 +156,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "usmall_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "usmall_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -154,16 +182,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "uint_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "uint_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -176,16 +208,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "ubig_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "ubig_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -198,16 +234,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "blob_val",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "blob_val",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -220,16 +260,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "ts_s",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "ts_s",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -242,16 +286,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "ts_ms",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "ts_ms",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -264,16 +312,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "ts_ns",
         "SourceTable": "duckdb_types",
+        "SourceSchema": "",
         "SourceColumn": "ts_ns",
+        "SourceQualifier": "duckdb_types",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -286,7 +338,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -307,9 +360,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

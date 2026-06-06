@@ -1,0 +1,4 @@
+{
+  "description": "EXPLAIN PLAN SELECT 1 returns a textual query plan. The runner bypasses the generated query API (piko does not project EXPLAIN columns) and drives the statement directly through the sql.DB connection. Verifies the response is non-empty and contains the canonical Expression node label.",
+  "skip": false
+}

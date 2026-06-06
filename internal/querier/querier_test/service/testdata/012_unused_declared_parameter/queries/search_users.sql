@@ -1,5 +1,4 @@
--- piko.name: SearchUsers
--- piko.command: many
+-- piko.query(name: SearchUsers, command: many)
 -- $1 as piko.param(userId)
 -- $2 as piko.param(userName)
 -- $3 as piko.param(unused)

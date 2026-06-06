@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"piko.sh/piko/wdk/db/dbjson"
+
 	"querier_test_runner/db"
 )
 
@@ -27,8 +29,8 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertSetting(ctx, db.InsertSettingParams{
-		P1: "user_prefs",
-		P2: `{"theme": "dark", "language": "en", "notifications": true}`,
+		Name:   "user_prefs",
+		Config: dbjson.JSON(`{"theme": "dark", "language": "en", "notifications": true}`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertSetting:", err)
@@ -41,9 +43,9 @@ func main() {
 		os.Exit(1)
 	}
 	err = queries.SetConfigField(ctx, db.SetConfigFieldParams{
-		P1: "$.font_size",
-		P2: "14",
-		P3: int32(1),
+		Config:  dbjson.JSON("$.font_size"),
+		Config2: dbjson.JSON("14"),
+		ID:      int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "SetConfigField:", err)
@@ -56,8 +58,8 @@ func main() {
 		os.Exit(1)
 	}
 	err = queries.ReplaceConfigField(ctx, db.ReplaceConfigFieldParams{
-		P1: "light",
-		P2: int32(1),
+		Config: dbjson.JSON("light"),
+		ID:     int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ReplaceConfigField:", err)
@@ -70,8 +72,8 @@ func main() {
 		os.Exit(1)
 	}
 	err = queries.RemoveConfigField(ctx, db.RemoveConfigFieldParams{
-		P1: "$.notifications",
-		P2: int32(1),
+		Config: dbjson.JSON("$.notifications"),
+		ID:     int32(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "RemoveConfigField:", err)

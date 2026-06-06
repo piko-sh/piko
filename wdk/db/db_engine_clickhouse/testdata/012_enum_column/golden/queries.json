@@ -1,0 +1,145 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "tickets.sql",
+    "SQL": "-- piko.query(GetTicket, one)\nSELECT id, status, priority FROM tickets WHERE id = {tid:UInt64};",
+    "Name": "GetTicket",
+    "CountSQL": "",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "tid",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0,
+        "Context": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "id",
+        "SourceTable": "tickets",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "tickets",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "status",
+        "SourceTable": "tickets",
+        "SourceSchema": "",
+        "SourceColumn": "status",
+        "SourceQualifier": "tickets",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Enum8",
+          "Schema": "",
+          "EnumValues": [
+            "open",
+            "closed",
+            "archived"
+          ],
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 11,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "priority",
+        "SourceTable": "tickets",
+        "SourceSchema": "",
+        "SourceColumn": "priority",
+        "SourceQualifier": "tickets",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Enum16",
+          "Schema": "",
+          "EnumValues": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 11,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 0,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
+  }
+]

@@ -1,3 +1,2 @@
--- piko.name: ListSensors
--- piko.command: many
+-- piko.query(name: ListSensors, command: many)
 SELECT id, name, location FROM sensors;

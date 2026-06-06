@@ -53,13 +53,13 @@ const (
 	defaultSVGIDSliceCapacity = 32
 
 	// spriteSheetOpenTag is the sprite root element. It is hidden with a zero-size
-	// absolutely positioned style rather than display:none, because some browsers drop
-	// paint servers such as gradients when their host is display:none.
+	// absolutely positioned style rather than display:none, because some browsers drop paint
+	// servers such as gradients when their host is display:none.
 	spriteSheetOpenTag = `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">`
 )
 
-// ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol and
-// CachedDefs are pre-computed at load time to avoid per-request allocation overhead.
+// ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol
+// and CachedDefs are pre-computed at load time to avoid per-request allocation overhead.
 type ParsedSvgData struct {
 	// InnerHTML is the content between the opening and closing SVG tags.
 	InnerHTML string
@@ -676,8 +676,9 @@ func collectAndSortSVGIDs(entries []svgSymbolEntry) []string {
 // hoisted definitions.
 //
 // Uses request-level buffer pooling with zero-copy string conversion. The buffer is kept
-// alive until the request ends, making the conversion safe. A single shared <defs> block is
-// emitted before the symbols, but only when at least one asset contributed definitions.
+// alive until the request ends, making the conversion safe. A single shared <defs> block
+// is emitted before the symbols, but only when at least one asset contributed
+// definitions.
 //
 // Takes symbols ([]string) which contains the processed SVG symbol elements.
 // Takes defs ([]string) which holds each asset's hoisted definitions in symbol order.

@@ -647,7 +647,8 @@ func TestScopeChain_ExpandStar(t *testing.T) {
 			wantErrStr: "Q003",
 		},
 		{
-			name: "unqualified returns all columns from all tables",
+
+			name: "unqualified returns all columns from all tables in alias-sorted order",
 			setup: func() *scopeChain {
 				sc := newScopeChain(querier_dto.ScopeKindQuery, nil)
 				cat1 := catalogueTable("users",
@@ -661,7 +662,7 @@ func TestScopeChain_ExpandStar(t *testing.T) {
 				return sc
 			},
 			tableAlias: "",
-			wantCols:   []string{"id", "order_id"},
+			wantCols:   []string{"order_id", "id"},
 		},
 	}
 
@@ -685,14 +686,43 @@ func TestScopeChain_ExpandStar(t *testing.T) {
 				gotNames[i] = c.Name
 			}
 
-			if tt.tableAlias != "" {
-
-				assert.Equal(t, tt.wantCols, gotNames)
-			} else {
-
-				assert.ElementsMatch(t, tt.wantCols, gotNames)
-			}
+			assert.Equal(t, tt.wantCols, gotNames)
 		})
+	}
+}
+
+func TestScopeChain_ExpandStarOrdersColumnsByTableAlias(t *testing.T) {
+	t.Parallel()
+
+	setup := func() *scopeChain {
+		sc := newScopeChain(querier_dto.ScopeKindQuery, nil)
+
+		_ = sc.AddTable(querier_dto.TableReference{Name: "zebra"}, querier_dto.JoinInner, catalogueTable("zebra",
+			catalogueColumn("z_first", querier_dto.TypeCategoryInteger, false),
+			catalogueColumn("z_second", querier_dto.TypeCategoryText, true),
+		))
+		_ = sc.AddTable(querier_dto.TableReference{Name: "apple"}, querier_dto.JoinInner, catalogueTable("apple",
+			catalogueColumn("a_first", querier_dto.TypeCategoryInteger, false),
+			catalogueColumn("a_second", querier_dto.TypeCategoryText, false),
+		))
+		_ = sc.AddTable(querier_dto.TableReference{Name: "mango"}, querier_dto.JoinInner, catalogueTable("mango",
+			catalogueColumn("m_first", querier_dto.TypeCategoryDecimal, false),
+		))
+		return sc
+	}
+
+	wantNames := []string{"a_first", "a_second", "m_first", "z_first", "z_second"}
+
+	for attempt := range 8 {
+		sc := setup()
+		columns, err := sc.ExpandStar("")
+		require.NoError(t, err)
+
+		gotNames := make([]string, len(columns))
+		for i := range columns {
+			gotNames[i] = columns[i].Name
+		}
+		assert.Equal(t, wantNames, gotNames, "expansion must be alias-sorted and stable on attempt %d", attempt)
 	}
 }
 
@@ -791,4 +821,38 @@ func TestIsImplicitRowID(t *testing.T) {
 			assert.Equal(t, tt.want, isImplicitRowID(tt.input))
 		})
 	}
+}
+
+func TestArrayWrappedSQLType_ClampsToMax(t *testing.T) {
+	t.Parallel()
+
+	column := querier_dto.Column{
+		Name:            "values",
+		IsArray:         true,
+		ArrayDimensions: 100,
+		SQLType:         querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText},
+	}
+
+	wrapped := arrayWrappedSQLType(&column)
+
+	depth := 0
+	current := wrapped
+	for current.Category == querier_dto.TypeCategoryArray && current.ElementType != nil {
+		depth++
+		current = *current.ElementType
+	}
+
+	assert.Equal(t, maxArrayDimensions, depth, "array wraps must be clamped to maxArrayDimensions")
+}
+
+func TestArrayWrappedSQLType_RespectsNonArrayColumn(t *testing.T) {
+	t.Parallel()
+
+	column := querier_dto.Column{
+		Name:    "id",
+		IsArray: false,
+		SQLType: querier_dto.SQLType{EngineName: "integer", Category: querier_dto.TypeCategoryInteger},
+	}
+
+	assert.Equal(t, column.SQLType, arrayWrappedSQLType(&column))
 }

@@ -1,0 +1,3 @@
+{
+  "description": "Date32 column round-trip: verifies extended-range dates (1900-01-01 to 2299-12-31) survive insert and read with day-precision."
+}

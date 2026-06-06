@@ -23,8 +23,8 @@ type CreateAction struct {
 
 // CreateInput defines the data the action expects to receive.
 //
-// The json tags map HTML form field names to struct fields. When the form
-// is submitted, Piko deserialises the form data using these tags.
+// The json tags map HTML form field names to struct fields. When the form is submitted,
+// Piko deserialises the form data using these tags.
 type CreateInput struct {
 	ProductID int32 `json:"product_id" validate:"required,gt=0"`
 	Quantity  int32 `json:"quantity" validate:"required,gt=0"`
@@ -36,8 +36,8 @@ type CreateResponse struct {
 	Total float64 `json:"total"`
 }
 
-// Call looks up the product price, calculates the total from price x quantity,
-// and inserts a new order into the database.
+// Call looks up the product price, calculates the total from price x quantity, and
+// inserts a new order into the database.
 func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 	conn, err := db.GetDatabaseConnection("analytics")
 	if err != nil {

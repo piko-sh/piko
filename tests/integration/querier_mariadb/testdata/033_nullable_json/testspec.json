@@ -1,0 +1,3 @@
+{
+  "description": "Nullable JSON column on MariaDB: a NULL row scans into dbjson.JSON as nil, populated round-trips"
+}

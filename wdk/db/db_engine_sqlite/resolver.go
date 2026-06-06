@@ -58,6 +58,11 @@ func (*SQLiteEngine) ResolveFunctionCall(
 // resolveSQLiteIdentityAggregate resolves MIN and MAX which return the same type as their
 // argument.
 //
+// SQLite exposes two overloads. The single-argument form is the aggregate that collapses
+// a column down to its smallest or largest value. The two-or-more argument form is the
+// scalar overload that returns the smallest or largest of its arguments per row, so it
+// must not be flagged as an aggregate.
+//
 // Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
 // call-site arguments.
 //
@@ -72,7 +77,8 @@ func resolveSQLiteIdentityAggregate(argumentTypes []querier_dto.SQLType) (*queri
 	return &querier_dto.FunctionResolution{
 		ReturnType:        argumentTypes[0],
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		IsAggregate:       true,
+		IsAggregate:       len(argumentTypes) == 1,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -95,7 +101,8 @@ func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 
 	switch argumentType.Category {
 	case querier_dto.TypeCategoryInteger:
-		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "integer"}
+
+		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}
 	default:
 		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "real"}
 	}
@@ -104,11 +111,19 @@ func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
 // resolveSQLiteCoalesce resolves COALESCE which returns the type of the first non-unknown
 // argument.
+//
+// The parser normally lowers COALESCE into a dedicated CoalesceExpression that the type
+// resolver handles directly, computing nullability as "nullable only when every argument
+// is nullable". This resolution is a defensive fallback for the rare path where COALESCE
+// reaches function resolution as a plain call. It reports the first known argument type
+// and leaves the conservative nullability behaviour to the resolver, since the dedicated
+// expression path remains authoritative for COALESCE nullability.
 //
 // Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
 // call-site arguments.
@@ -122,6 +137,7 @@ func resolveSQLiteCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Fu
 			return &querier_dto.FunctionResolution{
 				ReturnType:        argumentTypes[index],
 				NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+				DataAccess:        querier_dto.DataAccessReadOnly,
 			}, nil
 		}
 	}
@@ -129,5 +145,6 @@ func resolveSQLiteCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Fu
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }

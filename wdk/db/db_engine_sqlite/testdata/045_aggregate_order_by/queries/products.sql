@@ -1,5 +1,4 @@
--- piko.name: GetCategoryProducts
--- piko.command: many
+-- piko.query(name: GetCategoryProducts, command: many)
 SELECT
   category,
   GROUP_CONCAT(name ORDER BY name ASC) AS sorted_names,

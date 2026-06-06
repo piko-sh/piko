@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "by_category.sql",
-    "SQL": "-- piko.name: DocumentsByCategory\n-- piko.command: many\nSELECT id, title, category, created_at FROM documents WHERE category = ?;",
+    "SQL": "-- piko.query(name: DocumentsByCategory, command: many)\nSELECT id, title, category, created_at FROM documents WHERE category = ?;",
     "Name": "DocumentsByCategory",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "title",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "title",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "category",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "category",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "created_at",
         "SourceTable": "documents",
+        "SourceSchema": "",
         "SourceColumn": "created_at",
+        "SourceQualifier": "documents",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -113,7 +131,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -134,9 +153,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,5 +1,4 @@
--- piko.name: GetUsersWithOrders
--- piko.command: many
+-- piko.query(name: GetUsersWithOrders, command: many)
 SELECT
   id,
   name,

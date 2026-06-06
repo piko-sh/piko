@@ -1,7 +1,6 @@
--- piko.name: FetchByStatuses
--- piko.command: many
--- $1 as piko.slice(statuses)
+-- piko.query(name: FetchByStatuses, command: many)
+-- $1 as piko.param(statuses, kind: slice)
 SELECT id, status
 FROM tasks
-WHERE status = ANY($1)
+WHERE status IN ($1)
 ORDER BY id ASC;

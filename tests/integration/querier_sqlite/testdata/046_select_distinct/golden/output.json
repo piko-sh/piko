@@ -1,13 +1,13 @@
 {
   "sources": [
     {
-      "Source": "api"
+      "source": "api"
     },
     {
-      "Source": "auth"
+      "source": "auth"
     },
     {
-      "Source": "db"
+      "source": "db"
     }
   ]
 }

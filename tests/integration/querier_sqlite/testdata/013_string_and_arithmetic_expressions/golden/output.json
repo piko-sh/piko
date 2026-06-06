@@ -1,9 +1,9 @@
 {
   "product": {
-    "DisplayName": "Widget (Tools)",
-    "ID": 1,
-    "PriceWithTax": 30,
-    "QuantityMinusOne": 9,
-    "TotalValue": 250
+    "display_name": "Widget (Tools)",
+    "id": 1,
+    "price_with_tax": 30,
+    "quantity_minus_one": 9,
+    "total_value": 250
   }
 }

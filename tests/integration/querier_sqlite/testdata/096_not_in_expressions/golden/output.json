@@ -1,74 +1,74 @@
 {
   "active_tasks": [
     {
-      "ID": 3,
-      "Name": "test-app",
-      "Status": "RUNNING"
+      "id": 3,
+      "name": "test-app",
+      "status": "RUNNING"
     },
     {
-      "ID": 4,
-      "Name": "lint-app",
-      "Status": "PENDING"
+      "id": 4,
+      "name": "lint-app",
+      "status": "PENDING"
     },
     {
-      "ID": 7,
-      "Name": "deploy-service",
-      "Status": "RUNNING"
+      "id": 7,
+      "name": "deploy-service",
+      "status": "RUNNING"
     }
   ],
   "not_matching": [
     {
-      "ID": 1,
-      "Name": "build-app"
+      "id": 1,
+      "name": "build-app"
     },
     {
-      "ID": 2,
-      "Name": "deploy-app"
+      "id": 2,
+      "name": "deploy-app"
     },
     {
-      "ID": 3,
-      "Name": "test-app"
+      "id": 3,
+      "name": "test-app"
     },
     {
-      "ID": 4,
-      "Name": "lint-app"
+      "id": 4,
+      "name": "lint-app"
     }
   ],
   "outside_priority": [
     {
-      "ID": 2,
-      "Name": "deploy-app",
-      "Priority": 5
+      "id": 2,
+      "name": "deploy-app",
+      "priority": 5
     },
     {
-      "ID": 4,
-      "Name": "lint-app",
-      "Priority": 1
+      "id": 4,
+      "name": "lint-app",
+      "priority": 1
     },
     {
-      "ID": 7,
-      "Name": "deploy-service",
-      "Priority": 6
+      "id": 7,
+      "name": "deploy-service",
+      "priority": 6
     }
   ],
   "workflow_summary": [
     {
-      "ActiveCount": 1,
-      "CompleteCount": 2,
-      "CreatedAt": 2000,
-      "FailedCount": 0,
-      "TaskCount": 3,
-      "UpdatedAt": 2030,
-      "WorkflowID": 200
+      "active_count": 1,
+      "complete_count": 2,
+      "created_at": 2000,
+      "failed_count": 0,
+      "task_count": 3,
+      "updated_at": 2030,
+      "workflow_id": 200
     },
     {
-      "ActiveCount": 2,
-      "CompleteCount": 1,
-      "CreatedAt": 1000,
-      "FailedCount": 1,
-      "TaskCount": 4,
-      "UpdatedAt": 1040,
-      "WorkflowID": 100
+      "active_count": 2,
+      "complete_count": 1,
+      "created_at": 1000,
+      "failed_count": 1,
+      "task_count": 4,
+      "updated_at": 1040,
+      "workflow_id": 100
     }
   ]
 }

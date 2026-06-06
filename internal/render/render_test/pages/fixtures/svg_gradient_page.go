@@ -22,9 +22,10 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// SvgGradientPageAST returns a page that uses gradient-bearing SVGs. The star icon is used
-// twice to exercise symbol and definition deduplication, and the heart icon ships a gradient
-// with the same Figma-style identifier as the star to exercise per-asset namespacing.
+// SvgGradientPageAST returns a page that uses gradient-bearing SVGs. The star icon is
+// used twice to exercise symbol and definition deduplication, and the heart icon ships a
+// gradient with the same Figma-style identifier as the star to exercise per-asset
+// namespacing.
 //
 // Returns *ast_domain.TemplateAST which contains three piko:svg usages.
 func SvgGradientPageAST() *ast_domain.TemplateAST {

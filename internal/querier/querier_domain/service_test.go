@@ -30,6 +30,22 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+func TestGenerateDatabaseNilConfig(t *testing.T) {
+	t.Parallel()
+
+	svc, err := NewQuerierService(QuerierPorts{
+		Engine:            &mockEngine{},
+		Emitter:           &mockCodeEmitter{},
+		FileReader:        &mockFileReader{},
+		CatalogueProvider: &mockCatalogueProvider{},
+	})
+	require.NoError(t, err)
+
+	result, genErr := svc.GenerateDatabase(context.Background(), "testdb", nil)
+	require.ErrorIs(t, genErr, ErrMissingConfig)
+	assert.Nil(t, result)
+}
+
 func TestNewQuerierService(t *testing.T) {
 	t.Parallel()
 
@@ -264,7 +280,7 @@ func TestQuerierService_GenerateDatabase(t *testing.T) {
 			require.NoError(t, err)
 
 			ctx := context.Background()
-			result, genErr := svc.GenerateDatabase(ctx, "testdb", tt.config, "")
+			result, genErr := svc.GenerateDatabase(ctx, "testdb", tt.config)
 
 			if tt.wantErrMsg != "" {
 				require.Error(t, genErr)

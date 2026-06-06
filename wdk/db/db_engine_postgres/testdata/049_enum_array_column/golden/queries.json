@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "filter_tags.sql",
-    "SQL": "-- piko.name: FilterTags\n-- piko.command: many\nSELECT id, name, tags FROM products WHERE tags @\u003e $1::tag[];",
+    "SQL": "-- piko.query(name: FilterTags, command: many)\nSELECT id, name, tags FROM products WHERE tags @\u003e $1::tag[];",
     "Name": "FilterTags",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -29,7 +30,8 @@
             "StructFields": null,
             "KeyType": null,
             "UnionMembers": null,
-            "Category": 11
+            "Category": 11,
+            "Nullable": false
           },
           "EngineName": "tag[]",
           "Schema": "",
@@ -37,20 +39,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 13
+          "Category": 13,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -63,16 +70,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -85,33 +96,51 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tags",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "tags",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
-          "ElementType": null,
-          "EngineName": "tag",
-          "Schema": "public",
-          "EnumValues": [
-            "featured",
-            "sale",
-            "new"
-          ],
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "tag",
+            "Schema": "public",
+            "EnumValues": [
+              "featured",
+              "sale",
+              "new"
+            ],
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 11,
+            "Nullable": false
+          },
+          "EngineName": "tag[]",
+          "Schema": "",
+          "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 11
+          "Category": 13,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -132,9 +161,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

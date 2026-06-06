@@ -1,0 +1,5 @@
+{
+  "description": "AggregateFunction(uniq, String) columns surface in the generated row struct as []byte (the new TypeCategoryAggregateState mapping in complexMappings). The runner reads two seeded rows, emits each user_id paired with a flag for whether the opaque state blob has a payload, and confirms the field round-trips through database/sql without driver type assertions. The test asserts non-empty state lengths; the exact byte count depends on the engine version's uniq serialisation.",
+  "skip": true,
+  "skipReason": "clickhouse-go/v2 v2.30.0 does not implement Scan for AggregateFunction(uniq, ...) columns and returns 'unsupported column type AggregateFunction(uniq, String)' at runtime; only SimpleAggregateFunction has driver-side support today. The codegen path (TypeCategoryAggregateState -> []byte) is exercised in unit tests so the runtime proof is ready to land as soon as driver support firms up. Unskip once clickhouse-go/v2 implements Scan for AggregateFunction state columns, or rewrite the fixture against SimpleAggregateFunction once the codegen path for that variant also routes through the AggregateState category."
+}

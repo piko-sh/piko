@@ -1,21 +1,17 @@
--- piko.name: GetDesiredProfilesForArtefact
--- piko.command: many
+-- piko.query(name: GetDesiredProfilesForArtefact, command: many)
 SELECT name, capability_name, priority, params_json, tags_json, depends_on_json
 FROM registry_desired_profile
 WHERE artefact_id = $1;
 
--- piko.name: GetDesiredProfilesForArtefactIDs
--- piko.command: many
--- $1 as piko.slice(ids)
+-- piko.query(name: GetDesiredProfilesForArtefactIDs, command: many)
+-- $1 as piko.param(ids, kind: slice)
 SELECT artefact_id, name, capability_name, priority, params_json, tags_json, depends_on_json
 FROM registry_desired_profile
-WHERE artefact_id = ANY($1);
+WHERE artefact_id IN ($1);
 
--- piko.name: InsertDesiredProfile
--- piko.command: exec
+-- piko.query(name: InsertDesiredProfile, command: exec)
 INSERT INTO registry_desired_profile (artefact_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
--- piko.name: DeleteDesiredProfilesForArtefact
--- piko.command: exec
+-- piko.query(name: DeleteDesiredProfilesForArtefact, command: exec)
 DELETE FROM registry_desired_profile WHERE artefact_id = $1;

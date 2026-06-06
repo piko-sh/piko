@@ -1,0 +1,4 @@
+{
+  "description": "min_n(value, n) builds an aggregate state retaining the n smallest values seen, and into_array(state) materialises them as a sorted array. The fixture seeds a mixed value series and verifies that the three smallest doubles surface in ascending order.",
+  "skip": false
+}

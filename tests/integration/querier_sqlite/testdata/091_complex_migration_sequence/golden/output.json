@@ -1,34 +1,34 @@
 {
   "post_counts": [
     {
-      "ID": 1,
-      "Name": "Alice",
-      "PostCount": 2,
-      "Role": "admin"
+      "id": 1,
+      "name": "Alice",
+      "post_count": 2,
+      "role": "admin"
     },
     {
-      "ID": 2,
-      "Name": "Bob",
-      "PostCount": 2,
-      "Role": "user"
+      "id": 2,
+      "name": "Bob",
+      "post_count": 2,
+      "role": "user"
     },
     {
-      "ID": 3,
-      "Name": "Charlie",
-      "PostCount": 1,
-      "Role": "user"
+      "id": 3,
+      "name": "Charlie",
+      "post_count": 1,
+      "role": "user"
     }
   ],
   "regular_users": [
     {
-      "Email": "bob@example.com",
-      "ID": 2,
-      "Name": "Bob"
+      "email": "bob@example.com",
+      "id": 2,
+      "name": "Bob"
     },
     {
-      "Email": "charlie@example.com",
-      "ID": 3,
-      "Name": "Charlie"
+      "email": "charlie@example.com",
+      "id": 3,
+      "name": "Charlie"
     }
   ]
 }

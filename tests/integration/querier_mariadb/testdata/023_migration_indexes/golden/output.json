@@ -1,31 +1,31 @@
 {
   "by_author": [
     {
-      "Author": "Alice",
-      "ID": 1,
-      "Title": "Introduction to MariaDB"
+      "author": "Alice",
+      "id": 1,
+      "title": "Introduction to MariaDB"
     },
     {
-      "Author": "Alice",
-      "ID": 3,
-      "Title": "MariaDB Performance Tuning"
+      "author": "Alice",
+      "id": 3,
+      "title": "MariaDB Performance Tuning"
     }
   ],
   "by_title": {
-    "Author": "Bob",
-    "ID": 2,
-    "Title": "Advanced SQL Queries"
+    "author": "Bob",
+    "id": 2,
+    "title": "Advanced SQL Queries"
   },
   "fulltext": [
     {
-      "Author": "Alice",
-      "ID": 1,
-      "Title": "Introduction to MariaDB"
+      "author": "Alice",
+      "id": 1,
+      "title": "Introduction to MariaDB"
     },
     {
-      "Author": "Alice",
-      "ID": 3,
-      "Title": "MariaDB Performance Tuning"
+      "author": "Alice",
+      "id": 3,
+      "title": "MariaDB Performance Tuning"
     }
   ]
 }

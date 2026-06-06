@@ -115,6 +115,9 @@ const (
 	// paramNameStep is the canonical parameter name "step".
 	paramNameStep = "step"
 
+	// paramNameSequenceName is the canonical parameter name "sequence_name".
+	paramNameSequenceName = "sequence_name"
+
 	// funcNameToChar is the canonical function name "to_char".
 	funcNameToChar = "to_char"
 )

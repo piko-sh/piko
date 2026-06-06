@@ -28,43 +28,53 @@ Each file produces one `<name>.sql.go` under `db/generated/`. The file name is c
 
 ## Annotate every query
 
-Each query needs two headers, `name` and `command`.
+Each query needs a single `piko.query(...)` header. The first two
+arguments are positional: `name` (PascalCase Go method name) and
+`command` (execution kind). Additional flags like `dynamic`,
+`readonly`, `nullable`, `group_by` are optional keyword arguments.
 
 ```sql
--- piko.name: ListTasks
--- piko.command: many
+-- piko.query(ListTasks, many)
 SELECT id, title, completed, created_at
 FROM tasks
 ORDER BY created_at DESC;
 
--- piko.name: GetTask
--- piko.command: one
+-- piko.query(GetTask, one)
 SELECT id, title, completed, created_at
 FROM tasks
 WHERE id = ?;
 
--- piko.name: CreateTask
--- piko.command: one
+-- piko.query(CreateTask, one)
 INSERT INTO tasks (title, created_at) VALUES (?, ?)
 RETURNING id, title, completed, created_at;
 
--- piko.name: ToggleComplete
--- piko.command: exec
+-- piko.query(ToggleComplete, exec)
 UPDATE tasks
 SET completed = CASE WHEN completed = 0 THEN 1 ELSE 0 END
 WHERE id = ?;
 
--- piko.name: DeleteTask
--- piko.command: exec
+-- piko.query(DeleteTask, exec)
 DELETE FROM tasks WHERE id = ?;
 ```
 
-| Header | Purpose |
-|---|---|
-| `-- piko.name: Name` | Method name on the `Queries` struct. PascalCase. Must be unique within the whole `queries/` folder. |
-| `-- piko.command: kind` | One of eight kinds, see below. |
+You may also name every positional. The parser accepts the following
+two equivalent forms:
 
-The supported `piko.command` kinds are:
+```sql
+-- piko.query(GetUser, one)                      -- positional
+-- piko.query(name: GetUser, command: one)       -- keyword-as-positional
+```
+
+Use whichever form reads clearest at the call site. For one-line
+queries the positional form is shorter. For long multi-keyword
+calls, names anchor the reader.
+
+| Position / Key | Purpose |
+|---|---|
+| 1 (positional) `name` | Method name on the `Queries` struct. PascalCase. Must be unique within the whole `queries/` folder. |
+| 2 (positional) `command` | Execution pattern. One of nine kinds. |
+
+The commands you reach for most are `one`, `many`, `exec`, `execrows`, and `execresult`:
 
 | Kind | Returns | Use |
 |---|---|---|
@@ -73,17 +83,18 @@ The supported `piko.command` kinds are:
 | `exec` | `error` only. | `INSERT`, `UPDATE`, `DELETE` where you do not need to inspect the result. |
 | `execrows` | `(int64, error)` - rows affected. | Mutations where the caller needs the affected-row count. |
 | `execresult` | `(sql.Result, error)`. | Mutations where the caller needs `LastInsertId()` or the full `sql.Result`. |
-| `batch` | A batch handle with `Exec` / `Query` / `QueryRow` callbacks. | Submitting multiple parameter sets in a single round-trip when the driver supports batched execution. |
-| `stream` | A row iterator that yields one row at a time. | Large result sets that should not be fully buffered into memory. |
-| `copyfrom` | `(int64, error)` - rows copied. | High-throughput bulk inserts via the driver's COPY protocol (PostgreSQL `COPY FROM`). |
+
+The remaining four (`batch`, `stream`, `copyfrom`, `asyncexec`) cover batched execution, streamed iteration, and bulk COPY inserts. `asyncexec` covers fire-and-forget mutations whose completion the server reports asynchronously, for example ClickHouse `ALTER UPDATE` and `DELETE`. See the [querier reference](../../reference/querier.md) for the full enumeration of all nine kinds and their exact return shapes.
 
 ## Run the generator
+
+Inside your generated (scaffolded) project, run the generator that the scaffold created at `cmd/generator/main.go`:
 
 ```bash
 go run ./cmd/generator/main.go all
 ```
 
-The project's scaffolded generator walks `db/queries/*.sql`, reads your migration schema for type information, and emits Go under `db/generated/`. Re-run after every SQL change. Air-watch (the dev server) runs this on every save automatically.
+This command lives in your project, not in the piko repository itself. The scaffolded generator walks `db/queries/*.sql`, reads your migration schema for type information, and emits Go under `db/generated/`. Re-run after every SQL change. Air-watch (the dev server) runs this on every save automatically.
 
 Do not edit files under `generated/` by hand. The next run overwrites them.
 
@@ -130,35 +141,98 @@ func (a *ListAction) Call(_ piko.NoInput) (ListResponse, error) {
 
 Positional placeholders (`?` for SQLite and MySQL, `$1/$2/...` for Postgres) become Go parameters:
 
-- **One placeholder** becomes a single typed argument: `DeleteTask(ctx, p1 int32) error`.
+- **One placeholder** becomes a single typed argument named after the column it binds to: `DeleteTask(ctx, id int32) error`. Without a `piko.param` directive, Piko infers the name from the bound column.
 - **Multiple placeholders** become a typed params struct: `CreateTask(ctx, params CreateTaskParams) (CreateTaskRow, error)`.
 
 The Go types come from the engine's type inference over the schema. A column declared `TEXT NOT NULL` infers `string`, while `INTEGER NOT NULL` infers `int32` on SQLite (or the appropriate size for the target dialect).
 
 ### Naming parameters with directives
 
-The generator does not rewrite `:name` placeholders into struct fields. Instead, name parameters by adding inline directives that bind a positional placeholder to a Go field name:
+Piko supports `:name` placeholders, but you still bind each to a Go
+field name with a `piko.param` directive line above it. The generator
+does not auto-derive the struct field from the bare `:name`. Name
+parameters by adding a directive line above each placeholder you want
+to bind to a Go field name:
 
 ```sql
--- piko.name: FindUser
--- piko.command: one
--- $1 as piko.param(userID)
--- $2 as piko.optional(email)
+-- piko.query(FindUser, one)
+-- $1 as piko.param(user_id)
+-- $2 as piko.param(email, optional: true)
 SELECT id, name FROM users
 WHERE id = $1 AND ($2 IS NULL OR email = $2);
 ```
 
-`piko.param(<name>)` produces a required field. `piko.optional(<name>)` produces a nullable field that callers may omit. The generator emits `FindUserParams{UserID: ..., Email: ...}` from the directives. The same syntax works with `?1`/`?2` for SQLite and MySQL placeholders.
+`piko.param(<name>)` produces a required field. Adding `optional: true`
+produces a nullable field that callers may omit. When a caller omits
+it, the generator emits a runtime predicate that elides the matching
+WHERE clause. The generator emits `FindUserParams{UserID: ..., Email: ...}`
+from the directives. The same syntax works with `?1`/`?2` for SQLite
+and MySQL placeholders.
 
-Other directives include `piko.limit(<name>)`, `piko.offset(<name>)`, `piko.sortable(<name>)`, and `piko.slice(<name>)` for `IN (?1)` expansions. See the [querier reference](../../reference/querier.md) for the full directive surface.
+`piko.param` is the one parameter directive. Its keyword arguments cover the common cases:
+
+- `optional: true` makes a nullable field. The generator elides the WHERE predicate at call time when the caller passes nil.
+- `kind: slice` expands a Go slice into IN-list placeholders.
+- `default:` and `max:` set a default and an inclusive cap for a numeric (pagination) parameter, for example in a LIMIT or OFFSET clause.
+- `type:` and `nullable:` override the inferred SQL type and nullability.
+
+See the [querier reference](../../reference/querier.md) for the full keyword surface. To validate a dynamic `ORDER BY` against a closed column allow-list, use `piko.sortable` instead (shown below).
+
+Example combining `piko.param` and `piko.sortable`:
+
+```sql
+-- piko.query(BrowseProducts, many)
+-- $1 as piko.param(category, optional: true)
+-- piko.sortable(order_by, columns: [name, price, created_at])
+SELECT id, name, price, category FROM products
+WHERE ($1 IS NULL OR category = $1)
+```
+
+`piko.sortable` is a standalone header. It binds no placeholder, so it
+takes no `$N as` prefix, and you do not write an `ORDER BY` clause in
+the SQL body. The generated builder appends the validated `ORDER BY`
+against the closed column allow-list. The caller selects the sort
+column and direction at runtime through the generated sortable input
+field. Leave off any trailing semicolon on a sortable query, because
+the generator concatenates the appended `ORDER BY` onto the base SQL.
+
+See the [querier reference](../../reference/querier.md) for the full
+directive surface, including `piko.embed` for nested struct
+projections and `piko.migration(readonly:)` for migration-side function overrides.
+
+### Custom Go types per column
+
+Sometimes the analyser cannot infer a column's Go type precisely. You
+may also want to map a column to a custom Go type in a different
+package, such as `uuid.UUID` or your own domain newtype. For both
+cases, use `piko.column`:
+
+```sql
+-- piko.query(GetUserUUID, one)
+-- piko.column(id, go_type: "github.com/google/uuid.UUID")
+SELECT id, email FROM users WHERE id = $1;
+```
+
+The generated row struct field uses `uuid.UUID` and the file imports
+`github.com/google/uuid`. Nullable columns wrap as `*uuid.UUID`. Your
+custom type must implement `sql.Scanner` for `database/sql` engines
+(or the equivalent for `pgx`).
+
+For schema-wide overrides, declare `piko.column` in the migration
+file above the `CREATE TABLE`. Every query that selects the column
+unchanged inherits the override. Casts and function calls drop it.
+
+```sql
+-- piko.column(users.id, go_type: "github.com/google/uuid.UUID")
+CREATE TABLE users (id UUID PRIMARY KEY, ...);
+```
 
 ## Write queries
 
 INSERT that returns the row:
 
 ```sql
--- piko.name: CreateAuthor
--- piko.command: one
+-- piko.query(CreateAuthor, one)
 INSERT INTO authors (name, email) VALUES (?, ?)
 RETURNING id, name, email, created_at;
 ```
@@ -168,26 +242,23 @@ Use `one` when the INSERT has a `RETURNING` clause. Use `exec` when it does not.
 UPDATE that returns nothing:
 
 ```sql
--- piko.name: SetAuthorEmail
--- piko.command: exec
+-- piko.query(SetAuthorEmail, exec)
 UPDATE authors SET email = ? WHERE id = ?;
 ```
 
 DELETE:
 
 ```sql
--- piko.name: DeleteAuthor
--- piko.command: exec
+-- piko.query(DeleteAuthor, exec)
 DELETE FROM authors WHERE id = ?;
 ```
 
 ## Complex read queries
 
-The generator handles joins, CTEs, window functions, subqueries, and analytics-style queries. The `piko.command: many` header tells it to return a slice, and the selected columns become the fields on the generated row type.
+The generator handles joins, CTEs, window functions, subqueries, and analytics-style queries. The `command` argument (`many`) in the `piko.query(...)` header tells it to return a slice, and the selected columns become the fields on the generated row type.
 
 ```sql
--- piko.name: GetTopProductsByRevenue
--- piko.command: many
+-- piko.query(GetTopProductsByRevenue, many)
 WITH ranked AS (
     SELECT
         p.id,
@@ -252,7 +323,7 @@ Route reads to a replica and writes to the primary:
 queries := generated.NewWithReplica(writerDB, readerDB)
 ```
 
-The generated methods route based on command kind. `many` and `one` (without `RETURNING`) go to the reader. `exec` and `one` with `RETURNING` go to the writer.
+The generated methods route on the analysed read-only status of the query. Read-only queries go to the reader, and mutating queries go to the writer. Detection is automatic. You can override it with the `readonly:` keyword on `piko.query`. A `SELECT` that calls a data-modifying function routes to the writer despite being `command:one` or `command:many`.
 
 ## Do not let queries leak into template logic
 

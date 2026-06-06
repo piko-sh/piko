@@ -2,12 +2,14 @@ package recaptchapass
 
 import "piko.sh/piko"
 
-// SubmitAction handles captcha-protected form submissions using Google reCAPTCHA v3 (always pass).
+// SubmitAction handles captcha-protected form submissions using Google reCAPTCHA v3
+// (always pass).
 type SubmitAction struct {
 	piko.ActionMetadata
 }
 
-// CaptchaConfig marks this action as requiring captcha verification via the recaptcha_pass provider.
+// CaptchaConfig marks this action as requiring captcha verification via the
+// recaptcha_pass provider.
 func (SubmitAction) CaptchaConfig() *piko.CaptchaConfig {
 	return &piko.CaptchaConfig{Provider: "recaptcha_pass"}
 }

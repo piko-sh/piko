@@ -1,5 +1,4 @@
--- piko.name: GetDepartmentSummary
--- piko.command: many
+-- piko.query(name: GetDepartmentSummary, command: many)
 SELECT
     d.id,
     d.name,

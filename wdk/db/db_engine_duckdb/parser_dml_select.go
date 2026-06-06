@@ -117,6 +117,9 @@ func (p *parser) skipMaterialisationHint() {
 // the caller.
 func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysis, *parser) {
 	cteParser := newParser(cteTokens)
+	cteParser.analysisDepth = p.analysisDepth
+	cteParser.expressionDepth = p.expressionDepth
+	cteParser.maxParseDepth = p.maxParseDepth
 	var cteAnalysis *querier_dto.RawQueryAnalysis
 	var analyseErr error
 
@@ -196,6 +199,8 @@ func (*parser) populateCTEDefinition(
 	definition.FromTables = analysis.FromTables
 	definition.JoinClauses = analysis.JoinClauses
 	definition.CompoundBranches = analysis.CompoundBranches
+
+	definition.ParameterReferences = analysis.ParameterReferences
 }
 
 // peekForAS looks ahead past a balanced parenthesis run to detect whether a CTE column
@@ -274,11 +279,17 @@ func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 		}
 		columns = append(columns, column)
 
+		if p.insertProjectionColumns != nil {
+			p.insertProjectionIndex++
+		}
+
 		if p.current().kind != tokenComma {
 			break
 		}
 		p.advance()
 	}
+
+	p.insertProjectionColumns = nil
 
 	return columns, nil
 }
@@ -535,7 +546,7 @@ func (p *parser) isJoinOrClauseKeyword() bool {
 // JOIN clause.
 func (p *parser) parseJoinCondition() {
 	if p.matchKeyword(keywordON) {
-		p.parseWhereClause()
+		p.parseJoinConditionExpression()
 		return
 	}
 	if p.matchKeyword(keywordUSING) && p.current().kind == tokenLeftParen {
@@ -594,8 +605,19 @@ func (p *parser) isSubqueryStart() bool {
 // Returns bool which is true when the next tokens form a function call that is not
 // SELECT, WITH, or VALUES.
 func (p *parser) isTableValuedFunctionStart() bool {
-	return p.current().kind == tokenIdentifier && p.peek().kind == tokenLeftParen &&
-		!p.isAnyKeyword(keywordSELECT, keywordWITH, keywordVALUES)
+	if p.current().kind != tokenIdentifier || p.isAnyKeyword(keywordSELECT, keywordWITH, keywordVALUES) {
+		return false
+	}
+	if p.peek().kind == tokenLeftParen {
+		return true
+	}
+
+	if p.peek().kind != tokenDot {
+		return false
+	}
+	return p.position+schemaQualifiedCallLookahead < len(p.tokens) &&
+		p.tokens[p.position+2].kind == tokenIdentifier &&
+		p.tokens[p.position+schemaQualifiedCallLookahead].kind == tokenLeftParen
 }
 
 // parseDerivedTable parses a parenthesised SELECT subquery and records it on the
@@ -613,6 +635,9 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return analyseError
@@ -648,9 +673,10 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 // Takes joinKind (querier_dto.JoinKind) which records how the call is joined into the
 // FROM clause.
 func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
-	functionName := strings.ToLower(p.advance().value)
+	schemaName, functionName := p.consumeTVFName()
 	p.advance()
 
+	parameterCountBefore := p.parameterCount
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		p.parseExpression()
 		if p.current().kind != tokenComma {
@@ -661,6 +687,7 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
+	p.markParametersAsFunctionArguments(parameterCountBefore)
 
 	if p.matchKeyword(keywordWITH) {
 		p.matchKeyword("ORDINALITY")
@@ -679,12 +706,35 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 		alias = p.advance().value
 	}
 
+	qualifiedName := functionName
+	if schemaName != "" {
+		qualifiedName = schemaName + "." + functionName
+	}
+
 	p.rawTableValuedFunctions = append(p.rawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
-		FunctionName:      functionName,
+		FunctionName:      qualifiedName,
 		Alias:             alias,
 		ColumnDefinitions: columnDefinitions,
 		JoinKind:          joinKind,
 	})
+}
+
+// consumeTVFName consumes the optional schema qualifier and function identifier of a
+// table-valued function call, leaving the cursor on the opening '('. The qualified name
+// is recorded lower-cased so it matches the EnclosingFunctionName recorded on the call's
+// argument placeholders and the name the shared resolver looks the function up by.
+//
+// Returns schemaName (string) which is the schema qualifier, or "" when the call was
+// unqualified.
+// Returns functionName (string) which is the lower-cased function identifier.
+func (p *parser) consumeTVFName() (schemaName string, functionName string) {
+	functionName = strings.ToLower(p.advance().value)
+	if p.current().kind == tokenDot && p.peek().kind == tokenIdentifier {
+		p.advance()
+		schemaName = functionName
+		functionName = strings.ToLower(p.advance().value)
+	}
+	return schemaName, functionName
 }
 
 // parseTVFColumnDefinitions parses an explicit column definition list attached to a

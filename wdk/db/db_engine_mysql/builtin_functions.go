@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -31,25 +32,23 @@ import (
 // Returns *querier_dto.FunctionCatalogue which is the populated catalogue.
 func buildFunctionCatalogue(extraFunctions func(*FunctionCatalogueBuilder)) *querier_dto.FunctionCatalogue {
 	builder := &FunctionCatalogueBuilder{
-		Catalogue: &querier_dto.FunctionCatalogue{
-			Functions: make(map[string][]*querier_dto.FunctionSignature),
-		},
-		integer:   querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
-		bigint:    querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
-		float:     querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
-		double:    querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-		decimal:   querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-		text:      querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		varchar:   querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-		boolean:   querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
-		bytea:     querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
-		date:      querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-		time:      querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-		datetime:  querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
-		timestamp: querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-		json:      querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
-		geometry:  querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
-		any:       querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
+		CatalogueBuilder: engine_shared.NewCatalogueBuilder(),
+		integer:          querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
+		bigint:           querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+		float:            querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
+		double:           querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		decimal:          querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		text:             querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		varchar:          querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+		boolean:          querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
+		bytea:            querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+		date:             querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
+		time:             querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
+		datetime:         querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
+		timestamp:        querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		json:             querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		geometry:         querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
+		any:              querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 	}
 
 	builder.registerMathFunctions()
@@ -73,8 +72,9 @@ func buildFunctionCatalogue(extraFunctions func(*FunctionCatalogueBuilder)) *que
 // flavour option functions (such as MariaDB) can register additional functions via
 // WithExtraFunctions.
 type FunctionCatalogueBuilder struct {
-	// Catalogue accumulates registered function entries as the builder runs.
-	Catalogue *querier_dto.FunctionCatalogue
+	// CatalogueBuilder provides the shared registration mechanism (Add, Args, NullOnNull,
+	// NeverNull, CalledOnNull) and the Catalogue being assembled.
+	*engine_shared.CatalogueBuilder
 
 	// integer holds the cached MySQL INT type.
 	integer querier_dto.SQLType
@@ -124,6 +124,12 @@ type FunctionCatalogueBuilder struct {
 	// any holds the wildcard type used for polymorphic argument slots.
 	any querier_dto.SQLType
 }
+
+// Arg names a single function argument and its SQL type. It aliases the shared toolkit's
+// Arg so existing call sites keep using the bare name; the registration methods (Add,
+// Args, NullOnNull, NeverNull, CalledOnNull) are promoted from the embedded shared
+// builder.
+type Arg = engine_shared.Arg
 
 // Integer returns the MySQL INT type.
 //
@@ -200,77 +206,6 @@ func (b *FunctionCatalogueBuilder) JSON() querier_dto.SQLType { return b.json }
 // Returns querier_dto.SQLType which is the cached GEOMETRY descriptor.
 func (b *FunctionCatalogueBuilder) Geometry() querier_dto.SQLType { return b.geometry }
 
-// Add registers a function signature under the given name.
-//
-// Built-in functions are always marked as read-only since none of them modify data.
-//
-// Takes name (string) which is the function name to register under.
-// Takes signature (*querier_dto.FunctionSignature) which describes the function being
-// registered.
-func (b *FunctionCatalogueBuilder) Add(name string, signature *querier_dto.FunctionSignature) {
-	signature.Name = name
-	signature.DataAccess = querier_dto.DataAccessReadOnly
-	b.Catalogue.Functions[name] = append(b.Catalogue.Functions[name], signature)
-}
-
-// Args builds a slice of FunctionArgument from alternating (name, type) pairs.
-//
-// Takes pairs (...any) which holds alternating string names and SQLType values.
-//
-// Returns []querier_dto.FunctionArgument which is the constructed argument list.
-func (*FunctionCatalogueBuilder) Args(pairs ...any) []querier_dto.FunctionArgument {
-	arguments := make([]querier_dto.FunctionArgument, 0, len(pairs)/2)
-	for i := 0; i+1 < len(pairs); i += 2 {
-		name, nameOk := pairs[i].(string)
-		sqlType, typeOk := pairs[i+1].(querier_dto.SQLType)
-		if nameOk && typeOk {
-			arguments = append(arguments, querier_dto.FunctionArgument{Name: name, Type: sqlType})
-		}
-	}
-	return arguments
-}
-
-// NullOnNull registers a function that returns NULL when any argument is NULL.
-//
-// Takes name (string) which is the function name.
-// Takes arguments ([]querier_dto.FunctionArgument) which is the argument list.
-// Takes returnType (querier_dto.SQLType) which is the function's return type.
-func (b *FunctionCatalogueBuilder) NullOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
-	b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-	})
-}
-
-// NeverNull registers a function that never returns NULL.
-//
-// Takes name (string) which is the function name.
-// Takes arguments ([]querier_dto.FunctionArgument) which is the argument list.
-// Takes returnType (querier_dto.SQLType) which is the function's return type.
-func (b *FunctionCatalogueBuilder) NeverNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
-	b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
-}
-
-// CalledOnNull registers a function that is called even when arguments are NULL.
-//
-// The result may or may not be NULL depending on the function.
-//
-// Takes name (string) which is the function name.
-// Takes arguments ([]querier_dto.FunctionArgument) which is the argument list.
-// Takes returnType (querier_dto.SQLType) which is the function's return type.
-func (b *FunctionCatalogueBuilder) CalledOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
-	b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
-}
-
 // Aggregate registers an aggregate function.
 //
 // Takes name (string) which is the function name.
@@ -317,30 +252,30 @@ func (b *FunctionCatalogueBuilder) Variadic(name string, arguments []querier_dto
 
 // registerMathFunctions registers mathematical functions.
 func (b *FunctionCatalogueBuilder) registerMathFunctions() {
-	b.NullOnNull("abs", b.Args(paramNameX, b.integer), b.integer)
-	b.NullOnNull("ceil", b.Args(paramNameX, b.double), b.integer)
-	b.NullOnNull("ceiling", b.Args(paramNameX, b.double), b.integer)
-	b.NullOnNull("floor", b.Args(paramNameX, b.double), b.integer)
-	b.NullOnNull("round", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("round", b.Args(paramNameX, b.double, "d", b.integer), b.double)
-	b.NullOnNull("truncate", b.Args(paramNameX, b.double, "d", b.integer), b.double)
-	b.NullOnNull("sign", b.Args(paramNameX, b.double), b.integer)
-	b.NullOnNull("sqrt", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("power", b.Args(paramNameX, b.double, paramNameY, b.double), b.double)
-	b.NullOnNull("pow", b.Args(paramNameX, b.double, paramNameY, b.double), b.double)
-	b.NullOnNull("exp", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("ln", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("log", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("log", b.Args("base", b.double, paramNameX, b.double), b.double)
-	b.NullOnNull("log2", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("log10", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("mod", b.Args(paramNameX, b.double, paramNameY, b.double), b.integer)
+	b.NullOnNull("abs", b.Args(Arg{Name: paramNameX, Type: b.integer}), b.integer)
+	b.NullOnNull("ceil", b.Args(Arg{Name: paramNameX, Type: b.double}), b.integer)
+	b.NullOnNull("ceiling", b.Args(Arg{Name: paramNameX, Type: b.double}), b.integer)
+	b.NullOnNull("floor", b.Args(Arg{Name: paramNameX, Type: b.double}), b.integer)
+	b.NullOnNull("round", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("round", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: "d", Type: b.integer}), b.double)
+	b.NullOnNull("truncate", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: "d", Type: b.integer}), b.double)
+	b.NullOnNull("sign", b.Args(Arg{Name: paramNameX, Type: b.double}), b.integer)
+	b.NullOnNull("sqrt", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("power", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: paramNameY, Type: b.double}), b.double)
+	b.NullOnNull("pow", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: paramNameY, Type: b.double}), b.double)
+	b.NullOnNull("exp", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("ln", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("log", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("log", b.Args(Arg{Name: "base", Type: b.double}, Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("log2", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("log10", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("mod", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: paramNameY, Type: b.double}), b.integer)
 	b.NeverNull("pi", nil, b.double)
 	b.NeverNull("rand", nil, b.double)
-	b.NullOnNull("rand", b.Args("seed", b.integer), b.double)
-	b.NullOnNull("degrees", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("radians", b.Args(paramNameX, b.double), b.double)
-	b.NullOnNull("crc32", b.Args(paramNameExpression, b.text), b.integer)
+	b.NullOnNull("rand", b.Args(Arg{Name: "seed", Type: b.integer}), b.double)
+	b.NullOnNull("degrees", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("radians", b.Args(Arg{Name: paramNameX, Type: b.double}), b.double)
+	b.NullOnNull("crc32", b.Args(Arg{Name: paramNameExpression, Type: b.text}), b.integer)
 }
 
 // registerStringFunctions registers string manipulation functions.
@@ -358,14 +293,14 @@ func (b *FunctionCatalogueBuilder) registerStringFunctions() {
 // registerStringVariadicFunctions registers CONCAT and CONCAT_WS.
 func (b *FunctionCatalogueBuilder) registerStringVariadicFunctions() {
 	b.Add("concat", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.text,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsVariadic:        true,
 		MinArguments:      1,
 	})
 	b.Add("concat_ws", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameSeparator, b.text, paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameSeparator, Type: b.text}, Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.text,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsVariadic:        true,
@@ -374,65 +309,69 @@ func (b *FunctionCatalogueBuilder) registerStringVariadicFunctions() {
 }
 
 // registerStringLengthFunctions registers the string-length functions.
+//
+//nolint:dupl // structurally similar single-string functions
 func (b *FunctionCatalogueBuilder) registerStringLengthFunctions() {
-	b.NullOnNull("length", b.Args(paramNameString, b.text), b.integer)
-	b.NullOnNull("char_length", b.Args(paramNameString, b.text), b.integer)
-	b.NullOnNull("character_length", b.Args(paramNameString, b.text), b.integer)
-	b.NullOnNull("octet_length", b.Args(paramNameString, b.text), b.integer)
+	b.NullOnNull("length", b.Args(Arg{Name: paramNameString, Type: b.text}), b.integer)
+	b.NullOnNull("char_length", b.Args(Arg{Name: paramNameString, Type: b.text}), b.integer)
+	b.NullOnNull("character_length", b.Args(Arg{Name: paramNameString, Type: b.text}), b.integer)
+	b.NullOnNull("octet_length", b.Args(Arg{Name: paramNameString, Type: b.text}), b.integer)
 }
 
 // registerStringCaseFunctions registers case-conversion functions.
+//
+//nolint:dupl // structurally similar single-string functions
 func (b *FunctionCatalogueBuilder) registerStringCaseFunctions() {
-	b.NullOnNull("lower", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("lcase", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("upper", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("ucase", b.Args(paramNameString, b.text), b.text)
+	b.NullOnNull("lower", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("lcase", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("upper", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("ucase", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
 }
 
 // registerStringTrimFunctions registers TRIM, LTRIM and RTRIM.
 func (b *FunctionCatalogueBuilder) registerStringTrimFunctions() {
-	b.NullOnNull("trim", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("ltrim", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("rtrim", b.Args(paramNameString, b.text), b.text)
+	b.NullOnNull("trim", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("ltrim", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("rtrim", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
 }
 
 // registerStringPaddingFunctions registers LPAD and RPAD overloads.
 func (b *FunctionCatalogueBuilder) registerStringPaddingFunctions() {
-	b.NullOnNull("lpad", b.Args(paramNameString, b.text, paramNameLength, b.integer, "pad", b.text), b.text)
-	b.NullOnNull("lpad", b.Args(paramNameString, b.text, paramNameLength, b.integer), b.text)
-	b.NullOnNull("rpad", b.Args(paramNameString, b.text, paramNameLength, b.integer, "pad", b.text), b.text)
-	b.NullOnNull("rpad", b.Args(paramNameString, b.text, paramNameLength, b.integer), b.text)
+	b.NullOnNull("lpad", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}, Arg{Name: "pad", Type: b.text}), b.text)
+	b.NullOnNull("lpad", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
+	b.NullOnNull("rpad", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}, Arg{Name: "pad", Type: b.text}), b.text)
+	b.NullOnNull("rpad", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
 }
 
 // registerStringTransformFunctions registers REPEAT, REPLACE, REVERSE, SUBSTRING, LEFT
 // and RIGHT.
 func (b *FunctionCatalogueBuilder) registerStringTransformFunctions() {
-	b.NullOnNull("repeat", b.Args(paramNameString, b.text, paramNameCount, b.integer), b.text)
-	b.NullOnNull("replace", b.Args(paramNameString, b.text, "from_str", b.text, "to_str", b.text), b.text)
-	b.NullOnNull("reverse", b.Args(paramNameString, b.text), b.text)
-	b.NullOnNull("substring", b.Args(paramNameString, b.text, paramNameStart, b.integer), b.text)
-	b.NullOnNull("substring", b.Args(paramNameString, b.text, paramNameStart, b.integer, paramNameLength, b.integer), b.text)
-	b.NullOnNull("substr", b.Args(paramNameString, b.text, paramNameStart, b.integer), b.text)
-	b.NullOnNull("substr", b.Args(paramNameString, b.text, paramNameStart, b.integer, paramNameLength, b.integer), b.text)
-	b.NullOnNull("left", b.Args(paramNameString, b.text, paramNameLength, b.integer), b.text)
-	b.NullOnNull("right", b.Args(paramNameString, b.text, paramNameLength, b.integer), b.text)
+	b.NullOnNull("repeat", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameCount, Type: b.integer}), b.text)
+	b.NullOnNull("replace", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: "from_str", Type: b.text}, Arg{Name: "to_str", Type: b.text}), b.text)
+	b.NullOnNull("reverse", b.Args(Arg{Name: paramNameString, Type: b.text}), b.text)
+	b.NullOnNull("substring", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameStart, Type: b.integer}), b.text)
+	b.NullOnNull("substring", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameStart, Type: b.integer}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
+	b.NullOnNull("substr", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameStart, Type: b.integer}), b.text)
+	b.NullOnNull("substr", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameStart, Type: b.integer}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
+	b.NullOnNull("left", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
+	b.NullOnNull("right", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameLength, Type: b.integer}), b.text)
 }
 
 // registerStringSearchFunctions registers LOCATE and INSTR.
 func (b *FunctionCatalogueBuilder) registerStringSearchFunctions() {
-	b.NullOnNull("locate", b.Args(paramNameSubstring, b.text, paramNameString, b.text), b.integer)
-	b.NullOnNull("locate", b.Args(paramNameSubstring, b.text, paramNameString, b.text, paramNameStart, b.integer), b.integer)
-	b.NullOnNull("instr", b.Args(paramNameString, b.text, paramNameSubstring, b.text), b.integer)
+	b.NullOnNull("locate", b.Args(Arg{Name: paramNameSubstring, Type: b.text}, Arg{Name: paramNameString, Type: b.text}), b.integer)
+	b.NullOnNull("locate", b.Args(Arg{Name: paramNameSubstring, Type: b.text}, Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameStart, Type: b.integer}), b.integer)
+	b.NullOnNull("instr", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameSubstring, Type: b.text}), b.integer)
 }
 
 // registerStringMiscFunctions registers miscellaneous string functions.
 func (b *FunctionCatalogueBuilder) registerStringMiscFunctions() {
-	b.NullOnNull("ascii", b.Args(paramNameString, b.text), b.integer)
-	b.NullOnNull("hex", b.Args(paramNameX, b.any), b.text)
-	b.NullOnNull("unhex", b.Args(paramNameString, b.text), b.bytea)
-	b.NullOnNull("space", b.Args(paramNameN, b.integer), b.text)
-	b.NullOnNull("format", b.Args(paramNameX, b.double, paramNameD, b.integer), b.text)
-	b.NullOnNull("format", b.Args(paramNameX, b.double, paramNameD, b.integer, paramNameLocale, b.text), b.text)
+	b.NullOnNull("ascii", b.Args(Arg{Name: paramNameString, Type: b.text}), b.integer)
+	b.NullOnNull("hex", b.Args(Arg{Name: paramNameX, Type: b.any}), b.text)
+	b.NullOnNull("unhex", b.Args(Arg{Name: paramNameString, Type: b.text}), b.bytea)
+	b.NullOnNull("space", b.Args(Arg{Name: paramNameN, Type: b.integer}), b.text)
+	b.NullOnNull("format", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: paramNameD, Type: b.integer}), b.text)
+	b.NullOnNull("format", b.Args(Arg{Name: paramNameX, Type: b.double}, Arg{Name: paramNameD, Type: b.integer}, Arg{Name: paramNameLocale, Type: b.text}), b.text)
 }
 
 // registerDateTimeFunctions registers date and time functions.
@@ -454,41 +393,41 @@ func (b *FunctionCatalogueBuilder) registerDateTimeCurrentFunctions() {
 
 // registerDateTimeExtractionFunctions registers date/time component extraction functions.
 func (b *FunctionCatalogueBuilder) registerDateTimeExtractionFunctions() {
-	b.NullOnNull("date", b.Args(paramNameExpression, b.datetime), b.date)
-	b.NullOnNull("time", b.Args(paramNameExpression, b.datetime), b.time)
-	b.NullOnNull("year", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("month", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("day", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("dayofmonth", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("hour", b.Args(paramNameTime, b.time), b.integer)
-	b.NullOnNull("minute", b.Args(paramNameTime, b.time), b.integer)
-	b.NullOnNull("second", b.Args(paramNameTime, b.time), b.integer)
-	b.NullOnNull("dayofweek", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("dayofyear", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("week", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("week", b.Args(paramNameDate, b.date, "mode", b.integer), b.integer)
-	b.NullOnNull("quarter", b.Args(paramNameDate, b.date), b.integer)
-	b.NullOnNull("last_day", b.Args(paramNameDate, b.date), b.date)
+	b.NullOnNull("date", b.Args(Arg{Name: paramNameExpression, Type: b.datetime}), b.date)
+	b.NullOnNull("time", b.Args(Arg{Name: paramNameExpression, Type: b.datetime}), b.time)
+	b.NullOnNull("year", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("month", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("day", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("dayofmonth", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("hour", b.Args(Arg{Name: paramNameTime, Type: b.time}), b.integer)
+	b.NullOnNull("minute", b.Args(Arg{Name: paramNameTime, Type: b.time}), b.integer)
+	b.NullOnNull("second", b.Args(Arg{Name: paramNameTime, Type: b.time}), b.integer)
+	b.NullOnNull("dayofweek", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("dayofyear", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("week", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("week", b.Args(Arg{Name: paramNameDate, Type: b.date}, Arg{Name: "mode", Type: b.integer}), b.integer)
+	b.NullOnNull("quarter", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.integer)
+	b.NullOnNull("last_day", b.Args(Arg{Name: paramNameDate, Type: b.date}), b.date)
 }
 
 // registerDateTimeFormatFunctions registers date/time formatting and parsing functions.
 func (b *FunctionCatalogueBuilder) registerDateTimeFormatFunctions() {
-	b.NullOnNull("date_format", b.Args(paramNameDate, b.datetime, paramNameFormat, b.text), b.text)
-	b.NullOnNull("str_to_date", b.Args(paramNameString, b.text, paramNameFormat, b.text), b.datetime)
-	b.NullOnNull("from_unixtime", b.Args(paramNameTimestamp, b.bigint), b.datetime)
-	b.NullOnNull("from_unixtime", b.Args(paramNameTimestamp, b.bigint, paramNameFormat, b.text), b.text)
+	b.NullOnNull("date_format", b.Args(Arg{Name: paramNameDate, Type: b.datetime}, Arg{Name: paramNameFormat, Type: b.text}), b.text)
+	b.NullOnNull("str_to_date", b.Args(Arg{Name: paramNameString, Type: b.text}, Arg{Name: paramNameFormat, Type: b.text}), b.datetime)
+	b.NullOnNull("from_unixtime", b.Args(Arg{Name: paramNameTimestamp, Type: b.bigint}), b.datetime)
+	b.NullOnNull("from_unixtime", b.Args(Arg{Name: paramNameTimestamp, Type: b.bigint}, Arg{Name: paramNameFormat, Type: b.text}), b.text)
 	b.CalledOnNull("unix_timestamp", nil, b.bigint)
-	b.NullOnNull("unix_timestamp", b.Args(paramNameDate, b.datetime), b.bigint)
+	b.NullOnNull("unix_timestamp", b.Args(Arg{Name: paramNameDate, Type: b.datetime}), b.bigint)
 }
 
 // registerDateTimeArithmeticFunctions registers date/time arithmetic functions.
 func (b *FunctionCatalogueBuilder) registerDateTimeArithmeticFunctions() {
-	b.NullOnNull("datediff", b.Args(paramNameExpr1, b.date, paramNameExpr2, b.date), b.integer)
-	b.NullOnNull("timediff", b.Args(paramNameExpr1, b.time, paramNameExpr2, b.time), b.time)
-	b.NullOnNull("timestampdiff", b.Args(paramNameUnit, b.text, paramNameExpr1, b.datetime, paramNameExpr2, b.datetime), b.bigint)
-	b.NullOnNull("timestampadd", b.Args(paramNameUnit, b.text, paramNameInterval, b.integer, paramNameDatetime, b.datetime), b.datetime)
-	b.NullOnNull("date_add", b.Args(paramNameDate, b.datetime, "interval", b.any), b.datetime)
-	b.NullOnNull("date_sub", b.Args(paramNameDate, b.datetime, "interval", b.any), b.datetime)
+	b.NullOnNull("datediff", b.Args(Arg{Name: paramNameExpr1, Type: b.date}, Arg{Name: paramNameExpr2, Type: b.date}), b.integer)
+	b.NullOnNull("timediff", b.Args(Arg{Name: paramNameExpr1, Type: b.time}, Arg{Name: paramNameExpr2, Type: b.time}), b.time)
+	b.NullOnNull("timestampdiff", b.Args(Arg{Name: paramNameUnit, Type: b.text}, Arg{Name: paramNameExpr1, Type: b.datetime}, Arg{Name: paramNameExpr2, Type: b.datetime}), b.bigint)
+	b.NullOnNull("timestampadd", b.Args(Arg{Name: paramNameUnit, Type: b.text}, Arg{Name: paramNameInterval, Type: b.integer}, Arg{Name: paramNameDatetime, Type: b.datetime}), b.datetime)
+	b.NullOnNull("date_add", b.Args(Arg{Name: paramNameDate, Type: b.datetime}, Arg{Name: "interval", Type: b.any}), b.datetime)
+	b.NullOnNull("date_sub", b.Args(Arg{Name: paramNameDate, Type: b.datetime}, Arg{Name: "interval", Type: b.any}), b.datetime)
 }
 
 // registerJSONFunctions registers JSON functions.
@@ -501,29 +440,29 @@ func (b *FunctionCatalogueBuilder) registerJSONFunctions() {
 
 // registerJSONAccessFunctions registers JSON accessor functions.
 func (b *FunctionCatalogueBuilder) registerJSONAccessFunctions() {
-	b.NullOnNull("json_extract", b.Args(paramNameJSON, b.json, paramNamePath, b.text), b.json)
-	b.NullOnNull("json_unquote", b.Args(paramNameJSON, b.json), b.text)
+	b.NullOnNull("json_extract", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}), b.json)
+	b.NullOnNull("json_unquote", b.Args(Arg{Name: paramNameJSON, Type: b.json}), b.text)
 }
 
 // registerJSONMutationFunctions registers JSON mutation functions.
 func (b *FunctionCatalogueBuilder) registerJSONMutationFunctions() {
-	b.NullOnNull("json_set", b.Args(paramNameJSON, b.json, paramNamePath, b.text, paramNameValue, b.any), b.json)
-	b.NullOnNull("json_insert", b.Args(paramNameJSON, b.json, paramNamePath, b.text, paramNameValue, b.any), b.json)
-	b.NullOnNull("json_replace", b.Args(paramNameJSON, b.json, paramNamePath, b.text, paramNameValue, b.any), b.json)
-	b.NullOnNull("json_remove", b.Args(paramNameJSON, b.json, paramNamePath, b.text), b.json)
+	b.NullOnNull("json_set", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}, Arg{Name: paramNameValue, Type: b.any}), b.json)
+	b.NullOnNull("json_insert", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}, Arg{Name: paramNameValue, Type: b.any}), b.json)
+	b.NullOnNull("json_replace", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}, Arg{Name: paramNameValue, Type: b.any}), b.json)
+	b.NullOnNull("json_remove", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}), b.json)
 }
 
 // registerJSONBuildFunctions registers JSON construction functions.
 func (b *FunctionCatalogueBuilder) registerJSONBuildFunctions() {
 	b.Add("json_object", &querier_dto.FunctionSignature{
-		Arguments:         b.Args("key", b.text, paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: "key", Type: b.text}, Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.json,
 		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
 		IsVariadic:        true,
 		MinArguments:      0,
 	})
 	b.Add("json_array", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.json,
 		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
 		IsVariadic:        true,
@@ -533,15 +472,15 @@ func (b *FunctionCatalogueBuilder) registerJSONBuildFunctions() {
 
 // registerJSONIntrospectionFunctions registers JSON introspection functions.
 func (b *FunctionCatalogueBuilder) registerJSONIntrospectionFunctions() {
-	b.NullOnNull("json_contains", b.Args(paramNameTarget, b.json, "candidate", b.json), b.boolean)
-	b.NullOnNull("json_contains", b.Args(paramNameTarget, b.json, "candidate", b.json, paramNamePath, b.text), b.boolean)
-	b.NullOnNull("json_contains_path", b.Args(paramNameJSON, b.json, "one_or_all", b.text, paramNamePath, b.text), b.boolean)
-	b.NullOnNull("json_type", b.Args(paramNameJSON, b.json), b.text)
-	b.NullOnNull("json_valid", b.Args(paramNameValue, b.any), b.boolean)
-	b.NullOnNull("json_length", b.Args(paramNameJSON, b.json), b.integer)
-	b.NullOnNull("json_length", b.Args(paramNameJSON, b.json, paramNamePath, b.text), b.integer)
-	b.NullOnNull("json_keys", b.Args(paramNameJSON, b.json), b.json)
-	b.NullOnNull("json_keys", b.Args(paramNameJSON, b.json, paramNamePath, b.text), b.json)
+	b.NullOnNull("json_contains", b.Args(Arg{Name: paramNameTarget, Type: b.json}, Arg{Name: "candidate", Type: b.json}), b.boolean)
+	b.NullOnNull("json_contains", b.Args(Arg{Name: paramNameTarget, Type: b.json}, Arg{Name: "candidate", Type: b.json}, Arg{Name: paramNamePath, Type: b.text}), b.boolean)
+	b.NullOnNull("json_contains_path", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: "one_or_all", Type: b.text}, Arg{Name: paramNamePath, Type: b.text}), b.boolean)
+	b.NullOnNull("json_type", b.Args(Arg{Name: paramNameJSON, Type: b.json}), b.text)
+	b.NullOnNull("json_valid", b.Args(Arg{Name: paramNameValue, Type: b.any}), b.boolean)
+	b.NullOnNull("json_length", b.Args(Arg{Name: paramNameJSON, Type: b.json}), b.integer)
+	b.NullOnNull("json_length", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}), b.integer)
+	b.NullOnNull("json_keys", b.Args(Arg{Name: paramNameJSON, Type: b.json}), b.json)
+	b.NullOnNull("json_keys", b.Args(Arg{Name: paramNameJSON, Type: b.json}, Arg{Name: paramNamePath, Type: b.text}), b.json)
 }
 
 // registerAggregateFunctions registers aggregate functions.
@@ -552,30 +491,30 @@ func (b *FunctionCatalogueBuilder) registerAggregateFunctions() {
 		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
 	})
 	b.Add("count", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameX, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.any}),
 		ReturnType:        b.bigint,
 		IsAggregate:       true,
 		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
 	})
 
-	b.Aggregate("sum", b.Args(paramNameX, b.any), b.decimal)
-	b.Aggregate("avg", b.Args(paramNameX, b.any), b.double)
-	b.Aggregate("min", b.Args(paramNameX, b.any), b.any)
-	b.Aggregate("max", b.Args(paramNameX, b.any), b.any)
+	b.Aggregate("sum", b.Args(Arg{Name: paramNameX, Type: b.any}), b.decimal)
+	b.Aggregate("avg", b.Args(Arg{Name: paramNameX, Type: b.any}), b.double)
+	b.Aggregate("min", b.Args(Arg{Name: paramNameX, Type: b.any}), b.any)
+	b.Aggregate("max", b.Args(Arg{Name: paramNameX, Type: b.any}), b.any)
 
 	b.Add("group_concat", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameExpression, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameExpression, Type: b.any}),
 		ReturnType:        b.text,
 		IsAggregate:       true,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 	})
 
-	b.Aggregate("bit_and", b.Args(paramNameX, b.any), b.any)
-	b.Aggregate("bit_or", b.Args(paramNameX, b.any), b.any)
-	b.Aggregate("bit_xor", b.Args(paramNameX, b.any), b.any)
+	b.Aggregate("bit_and", b.Args(Arg{Name: paramNameX, Type: b.any}), b.any)
+	b.Aggregate("bit_or", b.Args(Arg{Name: paramNameX, Type: b.any}), b.any)
+	b.Aggregate("bit_xor", b.Args(Arg{Name: paramNameX, Type: b.any}), b.any)
 
-	b.Aggregate("std", b.Args(paramNameX, b.any), b.double)
-	b.Aggregate("stddev", b.Args(paramNameX, b.any), b.double)
+	b.Aggregate("std", b.Args(Arg{Name: paramNameX, Type: b.any}), b.double)
+	b.Aggregate("stddev", b.Args(Arg{Name: paramNameX, Type: b.any}), b.double)
 }
 
 // registerWindowFunctions registers window functions.
@@ -583,9 +522,9 @@ func (b *FunctionCatalogueBuilder) registerWindowFunctions() {
 	b.Window("row_number", nil, b.bigint)
 	b.Window("rank", nil, b.bigint)
 	b.Window("dense_rank", nil, b.bigint)
-	b.Window("ntile", b.Args(paramNameN, b.integer), b.integer)
+	b.Window("ntile", b.Args(Arg{Name: paramNameN, Type: b.integer}), b.integer)
 
-	windowValueArgs := b.Args(paramNameExpression, b.any, "offset", b.integer, "default", b.any)
+	windowValueArgs := b.Args(Arg{Name: paramNameExpression, Type: b.any}, Arg{Name: "offset", Type: b.integer}, Arg{Name: "default", Type: b.any})
 
 	b.Add("lag", &querier_dto.FunctionSignature{
 		Arguments:         windowValueArgs,
@@ -600,19 +539,19 @@ func (b *FunctionCatalogueBuilder) registerWindowFunctions() {
 		MinArguments:      1,
 	})
 
-	b.CalledOnNull("first_value", b.Args(paramNameExpression, b.any), b.any)
-	b.CalledOnNull("last_value", b.Args(paramNameExpression, b.any), b.any)
-	b.CalledOnNull("nth_value", b.Args(paramNameExpression, b.any, paramNameN, b.integer), b.any)
+	b.CalledOnNull("first_value", b.Args(Arg{Name: paramNameExpression, Type: b.any}), b.any)
+	b.CalledOnNull("last_value", b.Args(Arg{Name: paramNameExpression, Type: b.any}), b.any)
+	b.CalledOnNull("nth_value", b.Args(Arg{Name: paramNameExpression, Type: b.any}, Arg{Name: paramNameN, Type: b.integer}), b.any)
 }
 
 // registerConditionalFunctions registers conditional expression functions.
 func (b *FunctionCatalogueBuilder) registerConditionalFunctions() {
-	b.CalledOnNull("if", b.Args(paramNameCondition, b.boolean, paramNameThen, b.any, paramNameElse, b.any), b.text)
-	b.CalledOnNull("ifnull", b.Args(paramNameExpr1, b.any, paramNameExpr2, b.any), b.any)
-	b.CalledOnNull("nullif", b.Args(paramNameExpr1, b.any, paramNameExpr2, b.any), b.any)
+	b.CalledOnNull("if", b.Args(Arg{Name: paramNameCondition, Type: b.boolean}, Arg{Name: paramNameThen, Type: b.any}, Arg{Name: paramNameElse, Type: b.any}), b.text)
+	b.CalledOnNull("ifnull", b.Args(Arg{Name: paramNameExpr1, Type: b.any}, Arg{Name: paramNameExpr2, Type: b.any}), b.any)
+	b.CalledOnNull("nullif", b.Args(Arg{Name: paramNameExpr1, Type: b.any}, Arg{Name: paramNameExpr2, Type: b.any}), b.any)
 
 	b.Add("coalesce", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.any,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsVariadic:        true,
@@ -620,16 +559,16 @@ func (b *FunctionCatalogueBuilder) registerConditionalFunctions() {
 	})
 
 	b.Add("greatest", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.any,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
 		IsVariadic:        true,
 		MinArguments:      1,
 	})
 	b.Add("least", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(paramNameValue, b.any),
+		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.any}),
 		ReturnType:        b.any,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
 		IsVariadic:        true,
 		MinArguments:      1,
 	})
@@ -647,7 +586,15 @@ func (b *FunctionCatalogueBuilder) registerSystemFunctions() {
 }
 
 // registerTypeConversionFunctions registers type conversion functions.
+//
+// INET6_ATON / INET6_NTOA are standard MySQL functions since 5.6.3, so they live in the
+// base catalogue rather than the MariaDB-specific set; on plain MySQL they would
+// otherwise resolve untyped.
 func (b *FunctionCatalogueBuilder) registerTypeConversionFunctions() {
-	b.NullOnNull("inet_aton", b.Args(paramNameExpression, b.text), b.bigint)
-	b.NullOnNull("inet_ntoa", b.Args(paramNameExpression, b.bigint), b.text)
+	varbinary := querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"}
+
+	b.NullOnNull("inet_aton", b.Args(Arg{Name: paramNameExpression, Type: b.text}), b.bigint)
+	b.NullOnNull("inet_ntoa", b.Args(Arg{Name: paramNameExpression, Type: b.bigint}), b.text)
+	b.NullOnNull("inet6_aton", b.Args(Arg{Name: "address", Type: b.varchar}), varbinary)
+	b.NullOnNull("inet6_ntoa", b.Args(Arg{Name: paramNameValue, Type: varbinary}), b.varchar)
 }

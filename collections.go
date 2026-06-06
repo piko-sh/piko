@@ -73,16 +73,14 @@ const (
 	SortDesc = runtime.SortDesc
 )
 
-// These types are used for working with collections, filtering, and sorting.
-
 type (
-	// Section represents a heading in markdown content (h2-h6).
-	// Used for building Table of Contents (flat list).
+	// Section represents a heading in markdown content (h2-h6). Used for building Table of
+	// Contents (flat list).
 	Section = runtime.Section
 
-	// SectionNode represents a hierarchical section entry for table of contents.
-	// Unlike Section (which is flat), SectionNode contains nested children
-	// for building tree-structured navigation.
+	// SectionNode represents a hierarchical section entry for table of contents. Unlike
+	// Section (which is flat), SectionNode contains nested children for building
+	// tree-structured navigation.
 	SectionNode = runtime.SectionNode
 
 	// SectionTreeOption is a functional option for configuring GetSectionsTree.
@@ -116,33 +114,27 @@ type (
 	SearchOption = runtime.SearchOption
 )
 
-// These types and functions enable hierarchical navigation generation from
-// collections. Navigation is automatically derived from frontmatter metadata in
-// your content files.
-
 type (
-	// NavigationGroups contains multiple named navigation structures. Each group
-	// represents a distinct navigation UI such as sidebar, footer, or breadcrumb.
+	// NavigationGroups contains multiple named navigation structures. Each group represents
+	// a distinct navigation UI such as sidebar, footer, or breadcrumb.
 	NavigationGroups = runtime.NavigationGroups
 
-	// NavigationTree represents a hierarchical navigation structure for a specific
-	// locale.
+	// NavigationTree represents a hierarchical navigation structure for a specific locale.
 	NavigationTree = runtime.NavigationTree
 
-	// NavigationNode represents a single node in the navigation hierarchy.
-	// Nodes can be categories (grouping) or content pages (with URLs).
+	// NavigationNode represents a single node in the navigation hierarchy. Nodes can be
+	// categories (grouping) or content pages (with URLs).
 	NavigationNode = runtime.NavigationNode
 
 	// NavigationConfig controls how navigation trees are built.
 	NavigationConfig = runtime.NavigationConfig
 )
 
-// GetData retrieves the page data from CollectionData and converts it to type
-// T. This provides type-safe access to collection data in Render functions.
+// GetData retrieves the page data from CollectionData and converts it to type T. This
+// provides type-safe access to collection data in Render functions.
 //
-// The function extracts page data from the collection root map and performs
-// automatic type conversion using JSON marshalling/unmarshalling, which
-// handles:
+// The function extracts page data from the collection root map and performs automatic
+// type conversion using JSON marshalling/unmarshalling, which handles:
 //   - Field name matching (case-sensitive)
 //   - Type coercion (int to float, etc.)
 //   - Nested structure conversion
@@ -150,8 +142,8 @@ type (
 //
 // Takes r (*RequestData) which contains the CollectionData to extract from.
 //
-// Returns T which is the page data converted to the requested type, or the zero
-// value if conversion fails.
+// Returns T which is the page data converted to the requested type, or the zero value if
+// conversion fails.
 //
 //piko:link GetDataLink
 func GetData[T any](r *RequestData) T {
@@ -160,25 +152,25 @@ func GetData[T any](r *RequestData) T {
 
 // GetDataLink is the //piko:link sibling for GetData.
 //
-// The interpreter dispatches to GetDataLink when compiling piko.GetData[T](r)
-// in a .pk file whose T is a user-defined struct. The first argument is the
-// instantiated T supplied by the interpreter; the remaining signature mirrors
-// GetData's non-generic parameters.
+// The interpreter dispatches to GetDataLink when compiling piko.GetData[T](r) in a .pk
+// file whose T is a user-defined struct. The first argument is the instantiated T
+// supplied by the interpreter; the remaining signature mirrors GetData's non-generic
+// parameters.
 //
-// Takes tType (reflect.Type) which is the instantiated type the user wrote inside
-// the brackets (e.g. Post from piko.GetData[Post](r)).
+// Takes tType (reflect.Type) which is the instantiated type the user wrote inside the
+// brackets (e.g. Post from piko.GetData[Post](r)).
 // Takes r (*RequestData) which contains the CollectionData to extract from.
 //
-// Returns a reflect.Value of concrete type tType carrying the page
-// data, or a zero value of tType if conversion fails.
+// Returns a reflect.Value of concrete type tType carrying the page data, or a zero value
+// of tType if conversion fails.
 func GetDataLink(tType reflect.Type, r *RequestData) reflect.Value {
 	value, _ := generator_helpers.GetDataReflect(r, tType)
 	return value
 }
 
 // GetSections extracts the table of contents sections from collection data.
-// Returns a list of headings found in markdown content, useful for building
-// a ToC sidebar.
+// Returns a list of headings found in markdown content, useful for building a ToC
+// sidebar.
 //
 // Takes r (*RequestData) which provides the collection data to extract from.
 //
@@ -198,10 +190,9 @@ func GetSections(r *RequestData) []Section {
 	return runtime.GetSections(r)
 }
 
-// GetSectionsTree extracts sections from collection data and builds a
-// hierarchical tree. Unlike GetSections which returns a flat list, this returns
-// nested SectionNode structures suitable for rendering a table of contents with
-// proper nesting.
+// GetSectionsTree extracts sections from collection data and builds a hierarchical tree.
+// Unlike GetSections which returns a flat list, this returns nested SectionNode
+// structures suitable for rendering a table of contents with proper nesting.
 //
 // Takes r (*RequestData) which contains the collection data to extract from.
 // Takes opts (...SectionTreeOption) which configures level filtering.
@@ -224,34 +215,32 @@ func GetSectionsTree(r *RequestData, opts ...SectionTreeOption) []SectionNode {
 	return runtime.GetSectionsTree(r, opts...)
 }
 
-// WithMinLevel sets the minimum heading level to include (default: 2).
-// Headings below this level are filtered out.
+// WithMinLevel sets the minimum heading level to include (default: 2). Headings below
+// this level are filtered out.
 //
 // Takes level (int) which specifies the minimum heading level.
 //
 // Returns SectionTreeOption which configures the section tree filtering.
 //
-// Example:
-// tree := piko.GetSectionsTree(r, piko.WithMinLevel(2)) // Start from h2
+// Example: tree := piko.GetSectionsTree(r, piko.WithMinLevel(2)) // Start from h2
 func WithMinLevel(level int) SectionTreeOption {
 	return runtime.WithMinLevel(level)
 }
 
-// WithMaxLevel sets the maximum heading level to include (default: 4).
-// Headings above this level are filtered out.
+// WithMaxLevel sets the maximum heading level to include (default: 4). Headings above
+// this level are filtered out.
 //
 // Takes level (int) which specifies the maximum heading level to include.
 //
 // Returns SectionTreeOption which configures the section tree builder.
 //
-// Example:
-// tree := piko.GetSectionsTree(r, piko.WithMaxLevel(3)) // Only h2 and h3
+// Example: tree := piko.GetSectionsTree(r, piko.WithMaxLevel(3)) // Only h2 and h3
 func WithMaxLevel(level int) SectionTreeOption {
 	return runtime.WithMaxLevel(level)
 }
 
-// DefaultNavigationConfig returns a NavigationConfig with sensible defaults.
-// Use this when you do not need custom configuration.
+// DefaultNavigationConfig returns a NavigationConfig with sensible defaults. Use this
+// when you do not need custom configuration.
 //
 // Returns NavigationConfig which provides ready-to-use navigation settings.
 func DefaultNavigationConfig() NavigationConfig {
@@ -260,8 +249,8 @@ func DefaultNavigationConfig() NavigationConfig {
 
 // GetAllCollectionItems retrieves all items from a static collection.
 //
-// Retrieves all items in a collection without their content ASTs, suitable for
-// building navigation, sitemaps, or indexes.
+// Retrieves all items in a collection without their content ASTs, suitable for building
+// navigation, sitemaps, or indexes.
 //
 // Takes collectionName (string) which specifies the collection to retrieve.
 //
@@ -271,14 +260,14 @@ func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 	return runtime.GetAllCollectionItems(collectionName)
 }
 
-// BuildNavigationFromMetadata constructs hierarchical navigation from
-// collection metadata.
+// BuildNavigationFromMetadata constructs hierarchical navigation from collection
+// metadata.
 //
-// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees
-// based on the "Navigation" field in each item's metadata.
+// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees based on
+// the "Navigation" field in each item's metadata.
 //
-// The navigation metadata should follow the layout below:
-// metadata["Navigation"] = NavigationMetadata with Groups["sidebar"], etc.
+// The navigation metadata should follow the layout below: metadata["Navigation"] =
+// NavigationMetadata with Groups["sidebar"], etc.
 //
 // Takes items ([]map[string]interface{}) which is a slice of metadata maps from a
 // collection.
@@ -308,11 +297,11 @@ func BuildNavigationFromMetadata(ctx context.Context, items []map[string]any, co
 	return runtime.BuildNavigationFromMetadata(ctx, items, config)
 }
 
-// SearchCollection performs fuzzy text search on collection data.
-// Results are ranked by relevance score (0.0 - 1.0).
+// SearchCollection performs fuzzy text search on collection data. Results are ranked by
+// relevance score (0.0 - 1.0).
 //
-// Searches both static (markdown) and dynamic (CMS) collections with
-// configurable fuzzy matching.
+// Searches both static (markdown) and dynamic (CMS) collections with configurable fuzzy
+// matching.
 //
 // Takes r (*RequestData) which provides the request context.
 // Takes collectionName (string) which identifies the collection to search.
@@ -343,16 +332,14 @@ func SearchCollection[T any](r *RequestData, collectionName string, query string
 	return runtime.SearchCollection[T](r, collectionName, query, opts...)
 }
 
-// SearchCollectionLink is the //piko:link sibling for SearchCollection.
-// The interpreter dispatches here when a .pk file calls
-// piko.SearchCollection[T](r, ...) with a user-defined T.
+// SearchCollectionLink is the //piko:link sibling for SearchCollection. The interpreter
+// dispatches here when a .pk file calls piko.SearchCollection[T](r, ...) with a
+// user-defined T.
 //
-// Takes tType (reflect.Type) which is the instantiated T.
-// Remaining parameters mirror SearchCollection's non-type-parameter
-// signature.
+// Takes tType (reflect.Type) which is the instantiated T. Remaining parameters mirror
+// SearchCollection's non-type-parameter signature.
 //
-// Returns a reflect.Value wrapping []SearchResult[T] plus any search
-// error.
+// Returns a reflect.Value wrapping []SearchResult[T] plus any search error.
 func SearchCollectionLink(
 	tType reflect.Type,
 	r *RequestData,
@@ -363,11 +350,11 @@ func SearchCollectionLink(
 	return runtime.SearchCollectionLink(tType, r, collectionName, query, opts...)
 }
 
-// QuickSearch performs a simple fuzzy search and returns just the matched items
-// without scores.
+// QuickSearch performs a simple fuzzy search and returns just the matched items without
+// scores.
 //
-// This is a convenience wrapper around SearchCollection for simple use cases.
-// It uses default search settings:
+// This is a convenience wrapper around SearchCollection for simple use cases. It uses
+// default search settings:
 //   - Fuzzy threshold: 0.3
 //   - Searches all string fields
 //   - Returns top 10 results
@@ -394,9 +381,8 @@ func QuickSearch[T any](r *RequestData, collectionName string, query string) ([]
 
 // QuickSearchLink is the //piko:link sibling for QuickSearch.
 //
-// Takes tType (reflect.Type) which is the instantiated T.
-// Remaining parameters mirror QuickSearch's non-type-parameter
-// signature.
+// Takes tType (reflect.Type) which is the instantiated T. Remaining parameters mirror
+// QuickSearch's non-type-parameter signature.
 //
 // Returns a reflect.Value wrapping []T plus any search error.
 func QuickSearchLink(
@@ -416,8 +402,7 @@ func QuickSearchLink(
 //
 // Returns Filter which is the constructed filter condition.
 //
-// Example:
-// filter := piko.NewFilter("status", piko.FilterOpEquals, "published")
+// Example: filter := piko.NewFilter("status", piko.FilterOpEquals, "published")
 func NewFilter(field string, operator FilterOperator, value any) Filter {
 	return runtime.NewFilter(field, operator, value)
 }
@@ -428,8 +413,7 @@ func NewFilter(field string, operator FilterOperator, value any) Filter {
 //
 // Returns FilterGroup which contains the combined filters.
 //
-// Example:
-// filters := piko.And(
+// Example: filters := piko.And(
 //
 //	piko.NewFilter("status", piko.FilterOpEquals, "published"),
 //	piko.NewFilter("featured", piko.FilterOpEquals, true),
@@ -445,8 +429,7 @@ func And(filters ...Filter) FilterGroup {
 //
 // Returns FilterGroup which contains the combined filters.
 //
-// Example:
-// filters := piko.Or(
+// Example: filters := piko.Or(
 //
 //	piko.NewFilter("category", piko.FilterOpEquals, "tech"),
 //	piko.NewFilter("category", piko.FilterOpEquals, "science"),
@@ -463,8 +446,7 @@ func Or(filters ...Filter) FilterGroup {
 //
 // Returns SortOption which is the configured sorting option.
 //
-// Example:
-// sort := piko.NewSortOption("publishedAt", piko.SortDesc)
+// Example: sort := piko.NewSortOption("publishedAt", piko.SortDesc)
 func NewSortOption(field string, order SortOrder) SortOption {
 	return runtime.NewSortOption(field, order)
 }
@@ -476,21 +458,19 @@ func NewSortOption(field string, order SortOrder) SortOption {
 //
 // Returns PaginationOptions which contains the configured pagination settings.
 //
-// Example:
-// pagination := piko.NewPaginationOptions(10, 20)  // Limit 10, Offset 20
+// Example: pagination := piko.NewPaginationOptions(10, 20) // Limit 10, Offset 20
 func NewPaginationOptions(limit, offset int) PaginationOptions {
 	return runtime.NewPaginationOptions(limit, offset)
 }
 
 // WithSearchFields specifies which fields to search with their weights.
 //
-// Takes fields (...SearchField) which defines the searchable fields and their
-// relative weights.
+// Takes fields (...SearchField) which defines the searchable fields and their relative
+// weights.
 //
 // Returns SearchOption which configures field-specific search behaviour.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "golang",
+// Example: results := piko.SearchCollection[Post](r, "blog", "golang",
 //
 //	piko.WithSearchFields(
 //	    piko.SearchField{Name: "Title", Weight: 2.0},
@@ -500,15 +480,14 @@ func WithSearchFields(fields ...SearchField) SearchOption {
 	return runtime.WithSearchFields(fields...)
 }
 
-// WithFuzzyThreshold sets the fuzzy matching threshold for search operations.
-// Values range from 0.0 to 1.0, with 0.3 as the default.
+// WithFuzzyThreshold sets the fuzzy matching threshold for search operations. Values
+// range from 0.0 to 1.0, with 0.3 as the default.
 //
 // Takes threshold (float64) which specifies the matching tolerance level.
 //
 // Returns SearchOption which configures the search with the given threshold.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "golang",
+// Example: results := piko.SearchCollection[Post](r, "blog", "golang",
 //
 //	piko.WithFuzzyThreshold(0.5))  // More lenient matching
 func WithFuzzyThreshold(threshold float64) SearchOption {
@@ -521,8 +500,7 @@ func WithFuzzyThreshold(threshold float64) SearchOption {
 //
 // Returns SearchOption which configures the search limit.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "golang",
+// Example: results := piko.SearchCollection[Post](r, "blog", "golang",
 //
 //	piko.WithSearchLimit(20))
 func WithSearchLimit(limit int) SearchOption {
@@ -533,8 +511,8 @@ func WithSearchLimit(limit int) SearchOption {
 //
 // Takes offset (int) which specifies the number of results to skip.
 //
-// Returns SearchOption which configures the search to skip the specified
-// number of results.
+// Returns SearchOption which configures the search to skip the specified number of
+// results.
 func WithSearchOffset(offset int) SearchOption {
 	return runtime.WithSearchOffset(offset)
 }
@@ -543,11 +521,9 @@ func WithSearchOffset(offset int) SearchOption {
 //
 // Takes score (float64) which specifies the minimum relevance threshold.
 //
-// Returns SearchOption which configures the search to exclude low-scoring
-// results.
+// Returns SearchOption which configures the search to exclude low-scoring results.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "golang",
+// Example: results := piko.SearchCollection[Post](r, "blog", "golang",
 //
 //	piko.WithMinScore(0.5))  // Only highly relevant results
 func WithMinScore(score float64) SearchOption {
@@ -560,8 +536,7 @@ func WithMinScore(score float64) SearchOption {
 //
 // Returns SearchOption which configures the search behaviour.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "GoLang",
+// Example: results := piko.SearchCollection[Post](r, "blog", "GoLang",
 //
 //	piko.WithCaseSensitive(true))
 func WithCaseSensitive(sensitive bool) SearchOption {
@@ -570,19 +545,16 @@ func WithCaseSensitive(sensitive bool) SearchOption {
 
 // WithSearchMode sets the search mode to use.
 //
-// Valid values: "fast" (default) or "smart" (with stemming and phonetic
-// matching).
+// Valid values: "fast" (default) or "smart" (with stemming and phonetic matching).
 //
-// Fast mode uses basic tokenisation and exact matching, optimised for speed.
-// Smart mode uses stemming, phonetic encoding, and fuzzy matching for better
-// recall.
+// Fast mode uses basic tokenisation and exact matching, optimised for speed. Smart mode
+// uses stemming, phonetic encoding, and fuzzy matching for better recall.
 //
 // Takes mode (string) which specifies the search mode ("fast" or "smart").
 //
 // Returns SearchOption which configures the search behaviour.
 //
-// Example:
-// results := piko.SearchCollection[Post](r, "blog", "running",
+// Example: results := piko.SearchCollection[Post](r, "blog", "running",
 //
 //	piko.WithSearchMode("smart"))  // Matches "run", "runs", "running"
 func WithSearchMode(mode string) SearchOption {

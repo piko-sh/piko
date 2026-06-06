@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "unknown_table.sql",
-    "SQL": "-- piko.name: GetFromNonexistent\n-- piko.command: many\nSELECT id, name FROM nonexistent WHERE id = ?",
+    "SQL": "-- piko.query(name: GetFromNonexistent, command: many)\nSELECT id, name FROM nonexistent WHERE id = ?",
     "Name": "GetFromNonexistent",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -15,19 +16,21 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [],
@@ -45,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

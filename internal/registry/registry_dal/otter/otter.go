@@ -966,13 +966,13 @@ func (d *DAL) ListVariantSummary(_ context.Context) ([]registry_domain.VariantSu
 
 // ListRecentArtefacts returns the most recently updated artefacts.
 //
-// Takes limit (int32) which specifies the maximum number to return.
+// Takes limit (int) which specifies the maximum number to return.
 //
 // Returns []registry_domain.ArtefactListItem which contains the artefact data.
 // Returns error which is always nil.
 //
 // Safe for concurrent use. Protected by a read lock.
-func (d *DAL) ListRecentArtefacts(_ context.Context, limit int32) ([]registry_domain.ArtefactListItem, error) {
+func (d *DAL) ListRecentArtefacts(_ context.Context, limit int) ([]registry_domain.ArtefactListItem, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -992,7 +992,7 @@ func (d *DAL) ListRecentArtefacts(_ context.Context, limit int32) ([]registry_do
 		}
 	}
 
-	count := min(int(limit), len(items))
+	count := min(limit, len(items))
 	results := make([]registry_domain.ArtefactListItem, count)
 	for i := range count {
 		artefact := items[i].artefact

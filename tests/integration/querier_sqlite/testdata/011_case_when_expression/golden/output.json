@@ -1,25 +1,25 @@
 {
   "orders": [
     {
-      "ID": 1,
-      "PriceCategory": "high",
-      "ShippedTotal": 150,
-      "Status": "shipped",
-      "Total": 150
+      "id": 1,
+      "price_category": "high",
+      "shipped_total": 150,
+      "status": "shipped",
+      "total": 150
     },
     {
-      "ID": 2,
-      "PriceCategory": "medium",
-      "ShippedTotal": null,
-      "Status": "pending",
-      "Total": 75
+      "id": 2,
+      "price_category": "medium",
+      "shipped_total": null,
+      "status": "pending",
+      "total": 75
     },
     {
-      "ID": 3,
-      "PriceCategory": "low",
-      "ShippedTotal": 30,
-      "Status": "shipped",
-      "Total": 30
+      "id": 3,
+      "price_category": "low",
+      "shipped_total": 30,
+      "status": "shipped",
+      "total": 30
     }
   ]
 }

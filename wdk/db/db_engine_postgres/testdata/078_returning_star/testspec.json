@@ -1,0 +1,3 @@
+{
+  "description": "RETURNING * expansion across UPDATE / INSERT / DELETE, including the CTE-prefixed UPDATE pattern (WITH ... UPDATE ... WHERE id IN (cte) RETURNING *) used by politepages-piko's scheduler. The star must expand to every column of the target table so the emitted row type carries the right fields and the Scan call binds them."
+}

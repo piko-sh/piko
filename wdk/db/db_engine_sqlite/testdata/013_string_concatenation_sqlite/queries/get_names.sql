@@ -1,5 +1,4 @@
--- piko.name: GetFullNames
--- piko.command: many
+-- piko.query(name: GetFullNames, command: many)
 SELECT
   id,
   first_name || ' ' || last_name as full_name,

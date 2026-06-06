@@ -271,6 +271,23 @@ func TestSeedExecutor_ImplementsLockingPort(t *testing.T) {
 	require.NoError(t, err, "no-op SQLite lock release must succeed")
 }
 
+func TestSeedExecutor_AcquireSeedLockRejectsDoubleAcquire(t *testing.T) {
+	t.Parallel()
+
+	store := newFakeSeedStore()
+	database := openFakeSeedDB(store)
+	t.Cleanup(func() { _ = database.Close() })
+
+	executor := migration_sql.NewSeedExecutor(database, migration_sql.PostgresDialect())
+
+	require.NoError(t, executor.AcquireSeedLock(t.Context()), "first acquire should succeed")
+	t.Cleanup(func() { _ = executor.ReleaseSeedLock(t.Context()) })
+
+	secondErr := executor.AcquireSeedLock(t.Context())
+	require.Error(t, secondErr, "second acquire without release must be refused")
+	require.ErrorContains(t, secondErr, "already held")
+}
+
 func TestSeedExecutor_AdvisoryLockSerialisesConcurrentRuns(t *testing.T) {
 	t.Parallel()
 
@@ -291,15 +308,15 @@ func TestSeedExecutor_AdvisoryLockSerialisesConcurrentRuns(t *testing.T) {
 				done <- acquireErr
 				return
 			}
-			defer func() {
-				_ = executor.ReleaseSeedLock(t.Context())
-			}()
-			done <- executor.ExecuteSeed(t.Context(), querier_dto.SeedRecord{
+			seedErr := executor.ExecuteSeed(t.Context(), querier_dto.SeedRecord{
 				Version:  int64(200 + runIndex),
 				Name:     fmt.Sprintf("seed_%d", runIndex),
 				Checksum: "chk",
 				Content:  []byte("/* seed body N */"),
 			})
+
+			releaseErr := executor.ReleaseSeedLock(t.Context())
+			done <- errors.Join(seedErr, releaseErr)
 		}()
 	}
 

@@ -1,0 +1,3 @@
+{
+  "description": "Insert sparse readings then query with time_bucket_gapfill + locf to fill missing buckets with the last observed value. Exercises the gapfill family that exists in the function catalogue but has no direct postgres analogue."
+}

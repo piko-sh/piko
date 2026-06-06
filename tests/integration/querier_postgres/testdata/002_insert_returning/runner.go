@@ -35,10 +35,10 @@ func main() {
 
 	bodyText := "This is the body"
 	post, err := queries.CreatePost(ctx, db.CreatePostParams{
-		P1: "Hello World",
-		P2: &bodyText,
-		P3: int32(42),
-		P4: false,
+		Title:     "Hello World",
+		Body:      &bodyText,
+		AuthorID:  int32(42),
+		Published: false,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

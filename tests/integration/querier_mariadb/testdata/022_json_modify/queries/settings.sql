@@ -1,19 +1,14 @@
--- piko.name: InsertSetting
--- piko.command: exec
+-- piko.query(name: InsertSetting, command: exec)
 INSERT INTO settings (name, config) VALUES (?, ?);
 
--- piko.name: GetSetting
--- piko.command: one
+-- piko.query(name: GetSetting, command: one)
 SELECT id, name, config FROM settings WHERE id = ?;
 
--- piko.name: SetConfigField
--- piko.command: exec
+-- piko.query(name: SetConfigField, command: exec)
 UPDATE settings SET config = JSON_SET(config, ?, ?) WHERE id = ?;
 
--- piko.name: ReplaceConfigField
--- piko.command: exec
+-- piko.query(name: ReplaceConfigField, command: exec)
 UPDATE settings SET config = JSON_REPLACE(config, '$.theme', ?) WHERE id = ?;
 
--- piko.name: RemoveConfigField
--- piko.command: exec
+-- piko.query(name: RemoveConfigField, command: exec)
 UPDATE settings SET config = JSON_REMOVE(config, ?) WHERE id = ?;

@@ -1,29 +1,29 @@
 {
   "after_delete": [
     {
-      "DeptID": 2,
-      "ID": 3,
-      "Name": "Charlie"
+      "dept_id": 2,
+      "id": 3,
+      "name": "Charlie"
     }
   ],
   "before_delete": [
     {
-      "DeptID": 1,
-      "ID": 1,
-      "Name": "Alice"
+      "dept_id": 1,
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "DeptID": 1,
-      "ID": 2,
-      "Name": "Bob"
+      "dept_id": 1,
+      "id": 2,
+      "name": "Bob"
     },
     {
-      "DeptID": 2,
-      "ID": 3,
-      "Name": "Charlie"
+      "dept_id": 2,
+      "id": 3,
+      "name": "Charlie"
     }
   ],
   "count_after": {
-    "Total": 1
+    "total": 1
   }
 }

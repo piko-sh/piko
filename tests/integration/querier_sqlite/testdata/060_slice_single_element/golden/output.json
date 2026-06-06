@@ -1,21 +1,21 @@
 {
   "multi_element": [
     {
-      "ID": "t1",
-      "Status": "PENDING",
-      "Title": "Low"
+      "id": "t1",
+      "status": "PENDING",
+      "title": "Low"
     },
     {
-      "ID": "t2",
-      "Status": "PENDING",
-      "Title": "High"
+      "id": "t2",
+      "status": "PENDING",
+      "title": "High"
     }
   ],
   "single_element": [
     {
-      "ID": "t1",
-      "Status": "PENDING",
-      "Title": "Low"
+      "id": "t1",
+      "status": "PENDING",
+      "title": "Low"
     }
   ]
 }

@@ -1,3 +1,2 @@
--- piko.name: CreateProduct
--- piko.command: exec
+-- piko.query(name: CreateProduct, command: exec)
 INSERT INTO products (name, price, quantity) VALUES (?, ?, ?);

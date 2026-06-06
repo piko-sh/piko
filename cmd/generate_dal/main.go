@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_engine_postgres"
 	"piko.sh/piko/wdk/db/db_engine_sqlite"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -86,12 +87,32 @@ func (r *fileReader) ReadDir(_ context.Context, directory string) ([]os.DirEntry
 }
 
 // main generates Go data-access-layer files from SQL migrations and query definitions. It
-// expects two arguments: a base directory containing migrations/ and queries/
-// subdirectories, and a Go package name for the generated code.
+// expects a base directory containing migrations/ and queries/ subdirectories, a Go
+// package name for the generated code, and an optional dialect (sqlite or postgres,
+// default sqlite).
 func main() {
 	if err := run(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
+	}
+}
+
+// selectEngine returns the SQL engine for the requested dialect.
+//
+// Takes dialect (string) which names the target dialect, either "sqlite" (the default for
+// an empty value) or "postgres".
+//
+// Returns querier_domain.EnginePort which is the engine that parses and analyses the
+// dialect.
+// Returns error when the dialect is not recognised.
+func selectEngine(dialect string) (querier_domain.EnginePort, error) {
+	switch dialect {
+	case "", "sqlite":
+		return db_engine_sqlite.NewSQLiteEngine(), nil
+	case "postgres":
+		return db_engine_postgres.NewPostgresEngine(), nil
+	default:
+		return nil, fmt.Errorf("unsupported dialect %q (want sqlite or postgres)", dialect)
 	}
 }
 
@@ -100,10 +121,19 @@ func main() {
 // Returns error when arguments are missing or generation fails.
 func run() error {
 	if len(os.Args) < minimumArgCount {
-		return errors.New("usage: generate_dal <base_dir> <package_name>")
+		return errors.New("usage: generate_dal <base_dir> <package_name> [dialect]")
 	}
 	base := os.Args[1]
 	pkgName := os.Args[2]
+	dialect := "sqlite"
+	if len(os.Args) > minimumArgCount {
+		dialect = os.Args[minimumArgCount]
+	}
+
+	engine, err := selectEngine(dialect)
+	if err != nil {
+		return err
+	}
 
 	factory, err := safedisk.NewCLIFactory(".")
 	if err != nil {
@@ -112,8 +142,8 @@ func run() error {
 
 	ctx := context.Background()
 	service, err := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
-		Engine:     db_engine_sqlite.NewSQLiteEngine(),
-		Emitter:    emitter_go_sql.NewSQLEmitter(),
+		Engine:     engine,
+		Emitter:    emitter_go_sql.NewSQLEmitterForDialect(engine.Dialect()),
 		FileReader: &fileReader{factory: factory},
 	})
 	if err != nil {
@@ -126,7 +156,7 @@ func run() error {
 	result, err := service.GenerateDatabase(ctx, pkgName, &querier_dto.DatabaseConfig{
 		MigrationDirectory: migDir,
 		QueryDirectory:     queryDir,
-	}, "")
+	})
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)
 	}

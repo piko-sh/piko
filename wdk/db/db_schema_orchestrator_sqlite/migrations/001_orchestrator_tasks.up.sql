@@ -27,17 +27,17 @@ CREATE TABLE IF NOT EXISTS tasks (
   result TEXT,
 
   status TEXT NOT NULL,
-  execute_at INTEGER NOT NULL,
+  execute_at BIGINT NOT NULL,
   attempt INTEGER NOT NULL DEFAULT 0,
   last_error TEXT,
 
   deduplication_key TEXT,
 
   recovery_node_id TEXT,
-  recovery_expires_at INTEGER,
+  recovery_expires_at BIGINT,
 
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_fetch_due ON tasks (status, priority DESC, execute_at ASC);
@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS workflow_receipts (
   node_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING',
   error_message TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  resolved_at INTEGER
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  resolved_at BIGINT
 );
 
 CREATE INDEX IF NOT EXISTS idx_workflow_receipts_workflow_id

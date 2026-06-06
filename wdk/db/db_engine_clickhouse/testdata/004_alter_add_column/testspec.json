@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TABLE ... ADD COLUMN extends the schema. Verifies the catalogue reflects the added column in subsequent queries."
+}

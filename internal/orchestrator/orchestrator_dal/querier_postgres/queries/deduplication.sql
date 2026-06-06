@@ -1,9 +1,4 @@
--- PostgreSQL uses a unique partial index on deduplication_key for active
--- statuses, so deduplication is enforced via ON CONFLICT DO NOTHING on
--- CreateTaskWithDedup rather than a separate check query.
-
--- piko.name: CreateTaskWithDedup
--- piko.command: exec
+-- piko.query(name: CreateTaskWithDedup, command: execrows)
 INSERT INTO orchestrator_tasks (
     id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at, deduplication_key
 ) VALUES (

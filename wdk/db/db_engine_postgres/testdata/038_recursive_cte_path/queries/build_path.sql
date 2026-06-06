@@ -1,5 +1,4 @@
--- piko.name: BuildPath
--- piko.command: many
+-- piko.query(name: BuildPath, command: many)
 WITH RECURSIVE path AS (
     SELECT id, name, name AS full_path
     FROM categories

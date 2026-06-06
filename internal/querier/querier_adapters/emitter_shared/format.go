@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/goastutil"
@@ -43,10 +44,39 @@ const (
 
 	// decimalRadix holds the base-10 radix used for number parsing.
 	decimalRadix = 10
+
+	// maxPlaceholderDigits bounds the digit run consumed when parsing a numbered
+	// placeholder.
+	//
+	// A pathological input SQL such as `$999999999999999999999` cannot overflow the int
+	// accumulator. The sane bind-variable ceiling (defaultMaxBindVariablesFallback, 65535)
+	// is five digits, so five digits leaves ample headroom while keeping the parsed value
+	// well within int on every supported platform.
+	maxPlaceholderDigits = 5
+
+	// maxFormattedFileBytes is the upper limit on a single generated Go file emitted by
+	// FormatFileWithAST. Codegen runs offline so the cap stays generous; the guard exists to
+	// surface pathological inputs (a runaway analyser, malformed declarations) before the
+	// caller writes a multi-megabyte artefact to disk and the build step times out.
+	maxFormattedFileBytes = 16 << 20
+
+	// clickHouseParamNamePrefix is prepended to every ClickHouse parameter name.
+	//
+	// It applies in both the `{name:Type}` placeholder and the `clickhouse.Named` binding.
+	// ClickHouse rejects a parameter whose name is a reserved keyword, so a query with
+	// `LIMIT {limit:Int32}` fails to parse on the server. Prefixing every name, not only the
+	// ones that collide, keeps the rewrite injective so two parameters can never alias, and
+	// needs no reserved-word list to maintain.
+	clickHouseParamNamePrefix = "p_"
 )
 
 // FormatFileWithAST builds a complete Go source file using goastutil.FormatAST which
 // provides goimports processing.
+//
+// Codegen runs offline so the output size is normally bounded by the analyser's view of
+// the schema; the maxFormattedFileBytes ceiling is a defensive sentinel that turns a
+// runaway emit pass into a clear error rather than letting the caller persist a
+// multi-megabyte artefact that the downstream compiler would reject after a long delay.
 //
 // Takes packageName (string) which is the Go package name.
 // Takes tracker (*ImportTracker) which holds collected import paths.
@@ -72,8 +102,13 @@ func FormatFileWithAST(
 		return nil, fmt.Errorf("formatting Go AST: %w", err)
 	}
 
+	outputSize := len(GeneratedFileHeader) + len(formatted)
+	if outputSize > maxFormattedFileBytes {
+		return nil, fmt.Errorf("formatted file exceeded %d bytes (got %d)", maxFormattedFileBytes, outputSize)
+	}
+
 	var result bytes.Buffer
-	result.Grow(len(GeneratedFileHeader) + len(formatted))
+	result.Grow(outputSize)
 	_, _ = result.WriteString(GeneratedFileHeader)
 	_, _ = result.Write(formatted)
 
@@ -112,7 +147,7 @@ func StripDirectiveComments(sql string) string {
 //
 // Returns bool which is true when the line matches a directive pattern.
 func isDirectiveLine(trimmed string) bool {
-	if strings.HasPrefix(trimmed, "-- piko.") {
+	if strings.HasPrefix(trimmed, "-- piko(") || strings.HasPrefix(trimmed, "-- piko.") {
 		return true
 	}
 	if !strings.HasPrefix(trimmed, directiveCommentPrefix) || len(trimmed) <= len(directiveCommentPrefix) {
@@ -146,13 +181,11 @@ func RewriteNamedParameters(sql string, parameters []querier_dto.QueryParameter)
 	builder.Grow(len(sql))
 	position := 0
 	for position < len(sql) {
-		character := sql[position]
-		if character == '\'' {
-			end := skipSQLStringLiteral(sql, position)
-			builder.WriteString(sql[position:end])
-			position = end
+		if next, skipped := copySQLNoise(sql, position, &builder); skipped {
+			position = next
 			continue
 		}
+		character := sql[position]
 		if character == ':' || character == '@' || character == '$' {
 			end := rewriteNamedToken(sql, position, nameToNumber, &builder)
 			if end > position {
@@ -164,6 +197,211 @@ func RewriteNamedParameters(sql string, parameters []querier_dto.QueryParameter)
 		position++
 	}
 	return builder.String()
+}
+
+// RewriteBracedNamedToPositional rewrites ClickHouse `{name:Type}` named placeholders to
+// `$N` positional placeholders, where N is the matching parameter's positional number.
+//
+// The clickhouse-go driver binds a query either entirely by name or entirely by position
+// and rejects one that mixes the two styles. The runtime builder appends positional `$N`
+// placeholders for its dynamic predicates, so a dynamic query whose base SQL still
+// carried `{name:Type}` placeholders failed at bind time. Rewriting the base placeholders
+// to the same positional form keeps the whole dynamic query bindable.
+//
+// Takes sql (string) which is the SQL text containing `{name:Type}` placeholders.
+// Takes parameters ([]querier_dto.QueryParameter) which provide the name-to-number
+// mapping.
+//
+// Returns string which is the SQL with each `{name:Type}` placeholder replaced by `$N`.
+func RewriteBracedNamedToPositional(sql string, parameters []querier_dto.QueryParameter) string {
+	if len(parameters) == 0 {
+		return sql
+	}
+	nameToNumber := make(map[string]int, len(parameters))
+	for index := range parameters {
+		nameToNumber[parameters[index].Name] = parameters[index].Number
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(sql))
+	position := 0
+	for position < len(sql) {
+		if next, skipped := copySQLNoise(sql, position, &builder); skipped {
+			position = next
+			continue
+		}
+		if sql[position] == '{' {
+			end := rewriteBracedToken(sql, position, nameToNumber, &builder)
+			if end > position {
+				position = end
+				continue
+			}
+		}
+		builder.WriteByte(sql[position])
+		position++
+	}
+	return builder.String()
+}
+
+// rewriteBracedToken rewrites a single `{name:Type}` placeholder at position to `$N`
+// using nameToNumber, writing the replacement into builder.
+//
+// The token is left verbatim (position is returned unchanged) when it is not a
+// well-formed `{name:Type}` placeholder or when the name is not a known parameter, so
+// braces that are not placeholders pass through untouched.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the offset of the opening brace.
+// Takes nameToNumber (map[string]int) which maps a parameter name to its number.
+// Takes builder (*strings.Builder) which receives the `$N` replacement.
+//
+// Returns int which is the offset just past the closing brace when a placeholder was
+// rewritten, otherwise position unchanged.
+func rewriteBracedToken(sql string, position int, nameToNumber map[string]int, builder *strings.Builder) int {
+	closing := strings.IndexByte(sql[position:], '}')
+	if closing < 0 {
+		return position
+	}
+	closing += position
+	colon := strings.IndexByte(sql[position+1:closing], ':')
+	if colon < 0 {
+		return position
+	}
+	name := strings.TrimSpace(sql[position+1 : position+1+colon])
+	number, found := nameToNumber[name]
+	if !found {
+		return position
+	}
+	builder.WriteByte('$')
+	builder.WriteString(strconv.Itoa(number))
+	return closing + 1
+}
+
+// ClickHouseWireParamName returns the wire name a ClickHouse parameter is bound under, so
+// a parameter named after a reserved keyword cannot reach the server's SQL parser
+// verbatim.
+//
+// PrefixBracedNamedParameters applies the same transform to the matching `{name:Type}`
+// placeholder, so the placeholder and its `clickhouse.Named` binding always agree.
+//
+// Takes name (string) which is the parameter's declared name.
+//
+// Returns string which is the prefixed wire name.
+func ClickHouseWireParamName(name string) string {
+	return clickHouseParamNamePrefix + name
+}
+
+// PrefixBracedNamedParameters rewrites each ClickHouse `{name:Type}` placeholder so its
+// name carries the wire prefix that ClickHouseWireParamName binds the value under.
+//
+// ClickHouse rejects a server-side parameter whose name is a reserved keyword, so piko
+// binds every parameter under a prefixed name; the placeholder must carry the same prefix
+// or the driver cannot match the binding. String literals and comments are skipped so a
+// brace inside them is left untouched.
+//
+// Takes sql (string) which is the SQL text containing `{name:Type}` placeholders.
+// Takes parameters ([]querier_dto.QueryParameter) which name the known placeholders.
+//
+// Returns string which is the SQL with each known placeholder name prefixed.
+func PrefixBracedNamedParameters(sql string, parameters []querier_dto.QueryParameter) string {
+	if len(parameters) == 0 {
+		return sql
+	}
+	known := make(map[string]bool, len(parameters))
+	for index := range parameters {
+		known[parameters[index].Name] = true
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(sql) + len(parameters)*len(clickHouseParamNamePrefix))
+	position := 0
+	for position < len(sql) {
+		if next, skipped := copySQLNoise(sql, position, &builder); skipped {
+			position = next
+			continue
+		}
+		if sql[position] == '{' {
+			end := prefixBracedToken(sql, position, known, &builder)
+			if end > position {
+				position = end
+				continue
+			}
+		}
+		builder.WriteByte(sql[position])
+		position++
+	}
+	return builder.String()
+}
+
+// prefixBracedToken rewrites a single `{name:Type}` placeholder at position so its name
+// carries clickHouseParamNamePrefix, writing the replacement into builder, when name is a
+// known parameter.
+//
+// The token is left verbatim (position returned unchanged) when it is not a well-formed
+// `{name:Type}` placeholder or names an unknown parameter, so a brace that is not a
+// placeholder passes through. The name is trimmed so the emitted name matches
+// ClickHouseWireParamName exactly, and the `:Type` portion is preserved verbatim.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the offset of the opening brace.
+// Takes known (map[string]bool) which holds every recognised parameter name.
+// Takes builder (*strings.Builder) which receives the rewritten placeholder.
+//
+// Returns int which is the offset past the closing brace when rewritten, else position.
+func prefixBracedToken(sql string, position int, known map[string]bool, builder *strings.Builder) int {
+	closing := strings.IndexByte(sql[position:], '}')
+	if closing < 0 {
+		return position
+	}
+	closing += position
+	colon := strings.IndexByte(sql[position+1:closing], ':')
+	if colon < 0 {
+		return position
+	}
+	name := strings.TrimSpace(sql[position+1 : position+1+colon])
+	if !known[name] {
+		return position
+	}
+	builder.WriteByte('{')
+	builder.WriteString(clickHouseParamNamePrefix)
+	builder.WriteString(name)
+	builder.WriteString(sql[position+1+colon : closing])
+	builder.WriteByte('}')
+	return closing + 1
+}
+
+// copySQLNoise advances past a SQL string literal or comment at the cursor, copying the
+// verbatim source bytes into builder.
+//
+// Keeping the comment or literal intact, the helper centralises the "skip + write"
+// pattern that RewriteNamedParameters and RenumberParametersExcluding share, keeping
+// their main loops under the cognitive-complexity limit.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the cursor offset to test.
+// Takes builder (*strings.Builder) which receives the verbatim noise bytes.
+//
+// Returns nextPosition (int) which is the index just past the skipped span when a noise
+// token was consumed, otherwise unchanged.
+// Returns skipped (bool) which is true when literal or comment bytes were consumed.
+func copySQLNoise(sql string, position int, builder *strings.Builder) (nextPosition int, skipped bool) {
+	character := sql[position]
+	if character == '\'' {
+		end := skipSQLStringLiteral(sql, position)
+		builder.WriteString(sql[position:end])
+		return end, true
+	}
+	if character == '-' && position+1 < len(sql) && sql[position+1] == '-' {
+		end := skipSQLLineComment(sql, position)
+		builder.WriteString(sql[position:end])
+		return end, true
+	}
+	if character == '/' && position+1 < len(sql) && sql[position+1] == '*' {
+		end := skipSQLBlockComment(sql, position)
+		builder.WriteString(sql[position:end])
+		return end, true
+	}
+	return position, false
 }
 
 // buildNameToNumberMap constructs a map from parameter name to its 1-based positional
@@ -180,7 +418,7 @@ func buildNameToNumberMap(sql string, parameters []querier_dto.QueryParameter) (
 	hasNamedParameters := false
 	for index := range parameters {
 		parameter := &parameters[index]
-		if parameter.Name == fmt.Sprintf("p%d", parameter.Number) {
+		if isDefaultParameterName(parameter.Name, parameter.Number) {
 			continue
 		}
 		nameToNumber[parameter.Name] = parameter.Number
@@ -192,6 +430,33 @@ func buildNameToNumberMap(sql string, parameters []querier_dto.QueryParameter) (
 		}
 	}
 	return nameToNumber, hasNamedParameters
+}
+
+// isDefaultParameterName reports whether name is the synthesised positional default form
+// `p<number>` (for example "p3" for number 3), parsing the digits in place so the check
+// allocates nothing rather than formatting a comparison string per parameter.
+//
+// Takes name (string) which is the parameter's declared name.
+// Takes number (int) which is the parameter's 1-based positional number.
+//
+// Returns bool which is true when name is exactly the default `p<number>` form.
+func isDefaultParameterName(name string, number int) bool {
+	if len(name) < 2 || name[0] != 'p' {
+		return false
+	}
+
+	if name[1] == '0' && len(name) > 2 {
+		return false
+	}
+	parsed := 0
+	for index := 1; index < len(name); index++ {
+		character := name[index]
+		if character < '0' || character > '9' {
+			return false
+		}
+		parsed = parsed*decimalRadix + int(character-'0')
+	}
+	return parsed == number
 }
 
 // skipSQLStringLiteral advances past a single-quoted SQL string literal starting at
@@ -264,31 +529,241 @@ func isIdentPart(character byte) bool {
 	return isIdentStart(character) || (character >= '0' && character <= '9')
 }
 
-// StripOrderByClause removes the ORDER BY clause from SQL text and trims trailing
-// whitespace.
+// StripOrderByClause removes the top-level ORDER BY clause from SQL text and trims
+// trailing whitespace.
+//
+// The keyword scan steps through the SQL one byte at a time so single-quoted string
+// literals and line / block comments are skipped before each ORDER BY or
+// terminator-keyword match. Without this, a literal like `ORDER BY 'before LIMIT 10' DESC
+// LIMIT 5` would stop at the LIMIT inside the quoted string, leaving a malformed query.
+// Identifier-boundary checks also prevent matching FOR inside an identifier such as
+// for_each_user_id.
+//
+// Parenthesis depth is tracked so only an ORDER BY at the top level (depth 0) is
+// stripped. A nested subquery's ORDER BY sits inside parentheses (depth > 0) and is
+// preserved, since removing it would alter the subquery's meaning. The paired terminator
+// (LIMIT / OFFSET / FETCH / FOR) is likewise only honoured at depth 0 so a terminator
+// buried in a later subquery does not bound the strip.
 //
 // Takes sql (string) which is the SQL text potentially containing an ORDER BY clause.
 //
-// Returns string which is the SQL without the ORDER BY clause.
+// Returns string which is the SQL without the top-level ORDER BY clause.
 func StripOrderByClause(sql string) string {
-	upper := strings.ToUpper(sql)
-	orderByIndex := strings.LastIndex(upper, "ORDER BY")
+	orderByIndex := findLastTopLevelKeywordIndex(sql, "ORDER BY")
 	if orderByIndex == -1 {
 		return sql
 	}
 
-	rest := upper[orderByIndex+orderByKeywordLength:]
 	endIndex := len(sql)
+	scanStart := orderByIndex + orderByKeywordLength
+
 	for _, keyword := range []string{"LIMIT", "OFFSET", "FETCH", "FOR"} {
-		keywordIndex := strings.Index(rest, keyword)
-		if keywordIndex != -1 {
-			endIndex = orderByIndex + orderByKeywordLength + keywordIndex
-			break
+		keywordIndex := findTopLevelKeywordIndex(sql, scanStart, keyword)
+		if keywordIndex != -1 && keywordIndex < endIndex {
+			endIndex = keywordIndex
 		}
 	}
 
 	result := sql[:orderByIndex] + sql[endIndex:]
 	return strings.TrimSpace(result)
+}
+
+// findTopLevelKeywordIndex locates the first depth-0 occurrence of keyword whose match
+// index is at or after minPosition.
+//
+// It always scans from the start of sql so parenthesis depth is computed correctly: an
+// opening parenthesis raises the depth and a closing one lowers it, while parentheses
+// inside string literals or `--` / `/* */` comments are ignored because those spans are
+// skipped wholesale. Matches found at depth greater than zero (inside a subquery) are
+// stepped over so a nested ORDER BY or LIMIT cannot be mistaken for a top-level clause.
+//
+// Takes sql (string) which is the SQL to scan.
+// Takes minPosition (int) which is the lowest match index the caller will accept.
+// Takes keyword (string) which is the upper-cased token to find.
+//
+// Returns int which is the matched index at depth 0, or -1 when no such match exists
+// before end of input.
+func findTopLevelKeywordIndex(sql string, minPosition int, keyword string) int {
+	depth := 0
+	position := 0
+	for position < len(sql) {
+		if nextPosition, skipped := advancePastSQLNoise(sql, position); skipped {
+			position = nextPosition
+			continue
+		}
+		matchIndex, nextPosition, stop := scanTopLevelKeywordStep(sql, position, minPosition, keyword, &depth)
+		if stop {
+			return matchIndex
+		}
+		position = nextPosition
+	}
+	return -1
+}
+
+// findLastTopLevelKeywordIndex locates the last depth-0 occurrence of keyword in a single
+// forward pass.
+//
+// It scans the SQL once, tracking parenthesis depth and skipping string literals and `--`
+// / `/* */` comments wholesale, recording the most recent boundary-correct match found at
+// depth zero. A single pass replaces the earlier scan-from-start-per-occurrence loop,
+// which was O(n*k) for n bytes and k occurrences of the keyword.
+//
+// Takes sql (string) which is the SQL to scan.
+// Takes keyword (string) which is the upper-cased token to find.
+//
+// Returns int which is the last matched index at depth 0, or -1 when no such match
+// exists.
+func findLastTopLevelKeywordIndex(sql string, keyword string) int {
+	lastMatch := -1
+	depth := 0
+	position := 0
+	for position < len(sql) {
+		if nextPosition, skipped := advancePastSQLNoise(sql, position); skipped {
+			position = nextPosition
+			continue
+		}
+		switch sql[position] {
+		case '(':
+			depth++
+			position++
+			continue
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+			position++
+			continue
+		}
+		candidate, ok := tryMatchKeyword(sql, position, keyword)
+		if !ok {
+			if candidate < 0 {
+				break
+			}
+			position = candidate
+			continue
+		}
+		if depth == 0 {
+			lastMatch = position
+		}
+		position++
+	}
+	return lastMatch
+}
+
+// scanTopLevelKeywordStep advances the keyword scan by one byte.
+//
+// It tracks parenthesis nesting through depth and, on a boundary-correct match at depth
+// zero past minPosition, reports the hit. End of input is also reported as a stop so the
+// caller can return -1.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the current cursor offset on a real SQL byte.
+// Takes minPosition (int) which is the lowest match index the caller accepts.
+// Takes keyword (string) which is the upper-cased token to find.
+// Takes depth (*int) which is the running parenthesis depth, mutated in place.
+//
+// Returns matchIndex (int) which is the depth-0 hit, or -1 at end of input.
+// Returns nextPosition (int) which is where the scan should resume when not stopping.
+// Returns stop (bool) which is true when matchIndex is final.
+func scanTopLevelKeywordStep(sql string, position, minPosition int, keyword string, depth *int) (matchIndex, nextPosition int, stop bool) {
+	switch sql[position] {
+	case '(':
+		*depth++
+		return -1, position + 1, false
+	case ')':
+		if *depth > 0 {
+			*depth--
+		}
+		return -1, position + 1, false
+	}
+	candidate, ok := tryMatchKeyword(sql, position, keyword)
+	if !ok {
+		if candidate < 0 {
+			return -1, position, true
+		}
+		return -1, candidate, false
+	}
+	if *depth == 0 && position >= minPosition {
+		return position, position, true
+	}
+	return -1, position + 1, false
+}
+
+// advancePastSQLNoise reports whether position sits on a SQL string literal or comment
+// opener; when true the second return is the index just past the noise so the outer scan
+// can resume on real SQL bytes.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the current cursor offset.
+//
+// Returns nextPosition (int) which is the index after the skipped span.
+// Returns skipped (bool) which is true when literal or comment bytes were consumed.
+func advancePastSQLNoise(sql string, position int) (nextPosition int, skipped bool) {
+	character := sql[position]
+	if character == '\'' {
+		return skipSQLStringLiteral(sql, position), true
+	}
+	if character == '-' && position+1 < len(sql) && sql[position+1] == '-' {
+		return skipSQLLineComment(sql, position), true
+	}
+	if character == '/' && position+1 < len(sql) && sql[position+1] == '*' {
+		return skipSQLBlockComment(sql, position), true
+	}
+	return position, false
+}
+
+// tryMatchKeyword reports whether sql[position:] starts with an identifier-bounded,
+// case-insensitive occurrence of keyword. When the match fails because the body or
+// boundary mismatches, the caller is told to advance by one byte; when the remaining
+// input is too short, the helper signals end-of-scan via a negative advanceTo value.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the candidate match start.
+// Takes keyword (string) which is the upper-cased keyword.
+//
+// Returns advanceTo (int) which is the index the outer scan should jump to on failure, or
+// a negative value when the input is exhausted.
+// Returns matched (bool) which is true on a boundary-correct match.
+func tryMatchKeyword(sql string, position int, keyword string) (advanceTo int, matched bool) {
+	keywordLength := len(keyword)
+	if position+keywordLength > len(sql) {
+		return -1, false
+	}
+	if !equalFoldASCII(sql[position:position+keywordLength], keyword) {
+		return position + 1, false
+	}
+	if position > 0 && isIdentPart(sql[position-1]) {
+		return position + 1, false
+	}
+	if position+keywordLength < len(sql) && isIdentPart(sql[position+keywordLength]) {
+		return position + 1, false
+	}
+	return position, true
+}
+
+// equalFoldASCII reports whether two ASCII byte slices match after upper- casing the
+// lower-case half. The right operand is assumed to already be upper case so the helper
+// only folds the left operand and avoids the allocation of strings.EqualFold for hot SQL
+// scans.
+//
+// Takes sample (string) which is the byte range to test.
+// Takes upper (string) which is the upper-cased reference.
+//
+// Returns bool which is true when the operands are equal under upper-case folding.
+func equalFoldASCII(sample, upper string) bool {
+	if len(sample) != len(upper) {
+		return false
+	}
+	for index := range len(sample) {
+		character := sample[index]
+		if character >= 'a' && character <= 'z' {
+			character -= 'a' - 'A'
+		}
+		if character != upper[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // RenumberParametersExcluding rewrites $N and ?N placeholders in SQL to close gaps left
@@ -308,10 +783,8 @@ func RenumberParametersExcluding(sql string, excluded map[int]bool) string {
 	position := 0
 
 	for position < len(sql) {
-		if sql[position] == '\'' {
-			end := skipSQLStringLiteral(sql, position)
-			builder.WriteString(sql[position:end])
-			position = end
+		if next, skipped := copySQLNoise(sql, position, &builder); skipped {
+			position = next
 			continue
 		}
 
@@ -345,6 +818,10 @@ func isParameterPrefix(sql string, position int) bool {
 // renumberPlaceholder parses a $N or ?N positional marker, applies the exclusion offset,
 // writes the renumbered marker, and returns the new position.
 //
+// A digit run longer than maxPlaceholderDigits cannot name a real bind variable, so the
+// marker is copied verbatim rather than renumbered; this also keeps the int accumulator
+// from overflowing on a pathological input such as `$999999999999999999999`.
+//
 // Takes sql (string) which is the SQL text containing the marker.
 // Takes position (int) which is the starting index of the marker prefix.
 // Takes excluded (map[int]bool) which holds the excluded parameter numbers.
@@ -356,6 +833,11 @@ func renumberPlaceholder(sql string, position int, excluded map[int]bool, builde
 	end := position + 1
 	for end < len(sql) && sql[end] >= '0' && sql[end] <= '9' {
 		end++
+	}
+
+	if end-(position+1) > maxPlaceholderDigits {
+		builder.WriteString(sql[position:end])
+		return end
 	}
 
 	number := 0
@@ -372,4 +854,135 @@ func renumberPlaceholder(sql string, position int, excluded map[int]bool, builde
 
 	fmt.Fprintf(builder, "%c%d", prefix, number-offset)
 	return end
+}
+
+// PlaceholderOccurrenceOrder returns the bind number of every `?N` or `$N` placeholder in
+// the SQL, in occurrence order.
+//
+// Bare `?` (without a trailing digit) yields a synthetic ordinal so callers can still
+// emit one argument per occurrence; SQL string literals and `--`/`/* ... */` comments are
+// skipped so directive lines and embedded `?` characters do not pollute the list.
+//
+// Takes sql (string) which is the SQL text to scan.
+//
+// Returns []int which is the list of bind numbers, one entry per placeholder in source
+// order. Returns nil when the SQL contains no placeholders.
+func PlaceholderOccurrenceOrder(sql string) []int {
+	var ordering []int
+	bareOrdinal := 0
+	position := 0
+	for position < len(sql) {
+		nextPosition, entry, hasEntry, ordinalDelta := stepPlaceholderScan(sql, position, bareOrdinal)
+		if hasEntry {
+			ordering = append(ordering, entry)
+		}
+		bareOrdinal += ordinalDelta
+		position = nextPosition
+	}
+	return ordering
+}
+
+// stepPlaceholderScan consumes one position in sql, returning the updated cursor, any
+// placeholder ordinal to append, and the bare-question-mark counter increment.
+//
+// It reads bareOrdinal so it can numerically extend bare `?` placeholders the same way
+// the original inline loop did.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the current cursor offset.
+// Takes bareOrdinal (int) which is the running bare `?` counter.
+//
+// Returns nextPosition (int) which is where the scan should resume.
+// Returns entry (int) which is the placeholder ordinal to append when hasEntry.
+// Returns hasEntry (bool) which is true when entry should be appended.
+// Returns ordinalDelta (int) which is the amount to add to bareOrdinal.
+func stepPlaceholderScan(sql string, position, bareOrdinal int) (nextPosition, entry int, hasEntry bool, ordinalDelta int) {
+	character := sql[position]
+	if character == '\'' {
+		return skipSQLStringLiteral(sql, position), 0, false, 0
+	}
+	if character == '-' && position+1 < len(sql) && sql[position+1] == '-' {
+		return skipSQLLineComment(sql, position), 0, false, 0
+	}
+	if character == '/' && position+1 < len(sql) && sql[position+1] == '*' {
+		return skipSQLBlockComment(sql, position), 0, false, 0
+	}
+	if character != '?' && character != '$' {
+		return position + 1, 0, false, 0
+	}
+	if position+1 < len(sql) && sql[position+1] >= '1' && sql[position+1] <= '9' {
+		next, number := readNumericPlaceholder(sql, position+1)
+		return next, number, true, 0
+	}
+	if character == '?' {
+		return position + 1, bareOrdinal + 1, true, 1
+	}
+	return position + 1, 0, false, 0
+}
+
+// readNumericPlaceholder reads digits starting at position, returning the cursor just
+// past the last digit and the decoded integer.
+//
+// It is used to interpret `$1`, `$10`, etc. A digit run longer than maxPlaceholderDigits
+// cannot name a real bind variable, so the decoded value is left at the over-length
+// sentinel (one past defaultMaxBindVariablesFallback) which no parameter Number can
+// match; the cursor still advances past the whole run. This keeps the int accumulator
+// from overflowing on a pathological input such as `$999999999999999999999`.
+//
+// Takes sql (string) which is the SQL being scanned.
+// Takes position (int) which is the index of the first digit.
+//
+// Returns nextPosition (int) which is the index just past the last digit.
+// Returns number (int) which is the decoded placeholder ordinal, or the over-length
+// sentinel when the digit run is too long.
+func readNumericPlaceholder(sql string, position int) (nextPosition, number int) {
+	start := position
+	for position < len(sql) && sql[position] >= '0' && sql[position] <= '9' {
+		position++
+	}
+	if position-start > maxPlaceholderDigits {
+		return position, defaultMaxBindVariablesFallback + 1
+	}
+	for _, digit := range sql[start:position] {
+		number = number*decimalRadix + int(digit-'0')
+	}
+	return position, number
+}
+
+// skipSQLLineComment advances past a `--` line comment starting at position, stopping at
+// the newline or end-of-string.
+//
+// Takes sql (string) which holds the SQL text.
+// Takes position (int) which is the index of the first `-` of the comment.
+//
+// Returns int which is the index of the character after the comment terminator.
+func skipSQLLineComment(sql string, position int) int {
+	for position < len(sql) && sql[position] != '\n' {
+		position++
+	}
+	if position < len(sql) {
+		position++
+	}
+	return position
+}
+
+// skipSQLBlockComment advances past a `/* ... */` block comment starting at position,
+// stopping at the closing delimiter or end-of-string.
+//
+// SQL block comments do not nest in standard syntax so a simple two-byte match is
+// sufficient.
+//
+// Takes sql (string) which holds the SQL text.
+// Takes position (int) which is the index of the leading `/` of the comment.
+//
+// Returns int which is the index of the character after the closing `*/`.
+func skipSQLBlockComment(sql string, position int) int {
+	position += 2
+	for position+1 < len(sql) {
+		if sql[position] == '*' && sql[position+1] == '/' {
+			return position + 2
+		}
+		position++
+	}
+	return len(sql)
 }

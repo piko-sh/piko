@@ -19,12 +19,13 @@
 package querier_domain
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -40,13 +41,6 @@ const (
 
 	// logFieldVersion holds the structured log field name for migration version numbers.
 	logFieldVersion = "version"
-)
-
-var (
-	// noTransactionDirective is the marker that opts a migration out of transaction
-	// wrapping. If this appears as the first line of a migration file, the executor runs the
-	// SQL without BEGIN/COMMIT.
-	noTransactionDirective = []byte("-- piko:no-transaction")
 )
 
 // MigrationServiceOption configures optional behaviour of the migration service.
@@ -282,8 +276,6 @@ func (service *migrationService) applyUpMigrations(
 		return 0, checksumError
 	}
 
-	service.warnSkippedMigrations(ctx, pending, applied)
-
 	if lockError := service.acquireLock(ctx); lockError != nil {
 		return 0, &LockAcquisitionError{Cause: lockError}
 	}
@@ -294,11 +286,17 @@ func (service *migrationService) applyUpMigrations(
 		return 0, fmt.Errorf("reading applied versions under lock: %w", appliedError)
 	}
 
+	if checksumError := validateChecksums(upFiles, applied); checksumError != nil {
+		return 0, checksumError
+	}
+
 	pending = computePending(upFiles, applied)
 	pending = filterByTargetVersion(pending, targetVersion)
 	if len(pending) == 0 {
 		return 0, nil
 	}
+
+	service.warnSkippedMigrations(ctx, pending, applied)
 
 	downChecksumsByVersion := buildDownChecksumMap(allFiles)
 
@@ -335,6 +333,11 @@ func (service *migrationService) rollbackMigrations(
 		return 0, fmt.Errorf(errorFormatEnsuringMigrationTable, ensureError)
 	}
 
+	if lockError := service.acquireLock(ctx); lockError != nil {
+		return 0, &LockAcquisitionError{Cause: lockError}
+	}
+	defer service.releaseLock(context.WithoutCancel(ctx))
+
 	applied, appliedError := service.executor.AppliedVersions(ctx)
 	if appliedError != nil {
 		return 0, fmt.Errorf(errorFormatReadingAppliedVersions, appliedError)
@@ -348,11 +351,6 @@ func (service *migrationService) rollbackMigrations(
 	if rollbackCount == 0 {
 		return 0, nil
 	}
-
-	if lockError := service.acquireLock(ctx); lockError != nil {
-		return 0, &LockAcquisitionError{Cause: lockError}
-	}
-	defer service.releaseLock(context.WithoutCancel(ctx))
 
 	return service.executeRollbacks(ctx, applied, rollbackCount, downFilesByVersion)
 }
@@ -641,6 +639,11 @@ func (service *migrationService) executeRollbacks(
 	steps int,
 	downFilesByVersion map[int64]querier_dto.MigrationFile,
 ) (int, error) {
+	applied = slices.Clone(applied)
+	slices.SortFunc(applied, func(a, b querier_dto.AppliedMigration) int {
+		return cmp.Compare(a.Version, b.Version)
+	})
+
 	rollbackVersions := make([]int64, 0, steps)
 	for i := len(applied) - 1; i >= len(applied)-steps; i-- {
 		rollbackVersions = append(rollbackVersions, applied[i].Version)
@@ -792,7 +795,9 @@ func (service *migrationService) runBeforeRunHooks(
 		PendingVersions: versions,
 	}
 	for _, hook := range service.beforeRunHooks {
-		if hookError := hook(ctx, hookContext); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration before-run-hook", func() error {
+			return hook(ctx, hookContext)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -821,7 +826,9 @@ func (service *migrationService) runBeforeRunHooksFromVersions(
 		PendingVersions: versions,
 	}
 	for _, hook := range service.beforeRunHooks {
-		if hookError := hook(ctx, hookContext); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration before-run-hook", func() error {
+			return hook(ctx, hookContext)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -857,7 +864,9 @@ func (service *migrationService) runAfterRunHooks(
 		PendingVersions: versions,
 	}
 	for _, hook := range service.afterRunHooks {
-		if hookError := hook(ctx, hookContext, applied); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration after-run-hook", func() error {
+			return hook(ctx, hookContext, applied)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -888,7 +897,9 @@ func (service *migrationService) runAfterRunHooksFromVersions(
 		PendingVersions: versions,
 	}
 	for _, hook := range service.afterRunHooks {
-		if hookError := hook(ctx, hookContext, applied); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration after-run-hook", func() error {
+			return hook(ctx, hookContext, applied)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -907,7 +918,9 @@ func (service *migrationService) runBeforeMigrationHooks(
 	hookContext MigrationHookContext,
 ) error {
 	for _, hook := range service.beforeMigrationHooks {
-		if hookError := hook(ctx, hookContext); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration before-hook", func() error {
+			return hook(ctx, hookContext)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -926,7 +939,9 @@ func (service *migrationService) runAfterMigrationHooks(
 	hookContext MigrationHookContext,
 ) error {
 	for _, hook := range service.afterMigrationHooks {
-		if hookError := hook(ctx, hookContext); hookError != nil {
+		if hookError := goroutine.SafeCall(ctx, "migration after-hook", func() error {
+			return hook(ctx, hookContext)
+		}); hookError != nil {
 			return hookError
 		}
 	}
@@ -1069,6 +1084,9 @@ func computeRollbackSteps(
 	targetVersion *int64,
 ) int {
 	if steps != nil {
+		if *steps < 0 {
+			return 0
+		}
 		if *steps > len(applied) {
 			return len(applied)
 		}
@@ -1190,13 +1208,305 @@ func detectSkippedMigrations(
 	return skipped
 }
 
-// hasNoTransactionDirective checks whether the migration content starts with the --
-// piko:no-transaction directive.
+// hasNoTransactionDirective reports whether a migration must run outside a transaction.
+//
+// This is true when any statement carries an explicit `-- piko.migration(no_transaction:
+// true)` directive, or when a statement is auto-detected as non-transactional such as
+// CREATE INDEX CONCURRENTLY or VACUUM. A migration with no such statement runs in a
+// single transaction.
+//
+// Detection is lexically aware: the content is scanned with string literals,
+// dollar-quoted bodies, quoted identifiers, and comments removed before keywords are
+// matched, so a literal or a dollar-quoted function body that only mentions CONCURRENTLY
+// or begins a line with VACUUM cannot strip transactional safety. Only the code text of
+// each statement is inspected, and VACUUM is matched only as the first keyword of a
+// statement.
 //
 // Takes content ([]byte) which holds the migration file content.
 //
-// Returns bool which is true if the first line matches the no-transaction directive.
+// Returns bool which is true if the migration must run without BEGIN/COMMIT.
 func hasNoTransactionDirective(content []byte) bool {
-	firstLine, _, _ := bytes.Cut(content, []byte{'\n'})
-	return bytes.Equal(bytes.TrimSpace(firstLine), noTransactionDirective)
+	source := string(content)
+	if scanMigrationCommentDirective(source) {
+		return true
+	}
+	return slices.ContainsFunc(scanMigrationStatementCode(source), statementRequiresNoTransaction)
+}
+
+// scanMigrationCommentDirective reports whether any line comment in the migration carries
+// an explicit `piko.migration(no_transaction: true)` directive. Comments are inspected
+// per physical line so a single-line directive is recognised regardless of the
+// surrounding statement structure.
+//
+// Takes source (string) which is the migration file content.
+//
+// Returns bool which is true when an explicit no-transaction directive is present.
+func scanMigrationCommentDirective(source string) bool {
+	for line := range strings.SplitSeq(source, "\n") {
+		body, isComment := migrationCommentBody(strings.TrimSpace(line))
+		if !isComment {
+			continue
+		}
+		if value, matched := migrationDirectiveBool(body, "no_transaction"); matched && value {
+			return true
+		}
+	}
+	return false
+}
+
+// scanMigrationStatementCode splits the migration into its executable statements with
+// string literals, dollar-quoted bodies, quoted identifiers, and comments removed.
+//
+// Each statement is returned as upper-cased code text. Removing literal and comment text
+// first means a CONCURRENTLY mention inside a string or a dollar-quoted body, or a VACUUM
+// that only begins a line inside such a body, can never be mistaken for a statement
+// keyword.
+//
+// Takes source (string) which is the migration file content.
+//
+// Returns []string which holds the upper-cased, literal-free code of each non-empty
+// statement.
+func scanMigrationStatementCode(source string) []string {
+	var statements []string
+	var current strings.Builder
+	index := 0
+	for index < len(source) {
+		consumed, isTerminator := skipMigrationNonCode(source, index)
+		if consumed > 0 {
+			current.WriteByte(' ')
+			index += consumed
+			continue
+		}
+		if isTerminator {
+			appendStatementCode(&statements, &current)
+			index++
+			continue
+		}
+		current.WriteByte(byteToUpper(source[index]))
+		index++
+	}
+	appendStatementCode(&statements, &current)
+	return statements
+}
+
+// skipMigrationNonCode reports how many bytes of non-code text begin at index in source.
+//
+// A non-zero count covers a line comment, block comment, single-quoted string,
+// double-quoted identifier, or dollar-quoted block; the second return reports whether
+// index marks a top-level statement terminator (`;`). A zero count with a false
+// terminator means index is ordinary code.
+//
+// Takes source (string) which is the migration file content.
+// Takes index (int) which is the byte offset to inspect.
+//
+// Returns int which is the number of non-code bytes consumed (zero when index is code).
+// Returns bool which is true when index marks a statement terminator.
+func skipMigrationNonCode(source string, index int) (int, bool) {
+	character := source[index]
+	switch {
+	case character == ';':
+		return 0, true
+	case character == '-' && index+1 < len(source) && source[index+1] == '-':
+		return skipToLineEnd(source, index) - index, false
+	case character == '#':
+		return skipToLineEnd(source, index) - index, false
+	case character == '/' && index+1 < len(source) && source[index+1] == '*':
+		return skipBlockComment(source, index) - index, false
+	case character == '\'' || character == '"':
+		end, _ := skipStringLiteral(source, index, character)
+		return end - index, false
+	case character == '$':
+		if end, ok := skipDollarQuotedBlock(source, index); ok {
+			return end - index, false
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+}
+
+// appendStatementCode trims and stores the accumulated statement code when non-empty,
+// then resets the builder for the next statement.
+//
+// Takes statements (*[]string) which collects each statement's code text.
+// Takes current (*strings.Builder) which holds the in-progress statement code.
+func appendStatementCode(statements *[]string, current *strings.Builder) {
+	trimmed := strings.TrimSpace(current.String())
+	if trimmed != "" {
+		*statements = append(*statements, trimmed)
+	}
+	current.Reset()
+}
+
+// skipToLineEnd returns the index of the newline that ends the comment beginning at
+// start, or the length of source when the comment runs to end of input.
+//
+// Takes source (string) which is the migration file content.
+// Takes start (int) which is the byte offset of the comment opener.
+//
+// Returns int which is the index just past the comment body (at the newline or end).
+func skipToLineEnd(source string, start int) int {
+	index := start
+	for index < len(source) && source[index] != '\n' {
+		index++
+	}
+	return index
+}
+
+// skipBlockComment returns the index just past a `/* ... */` block comment beginning at
+// start.
+//
+// An unterminated block comment is treated as running to end of input.
+//
+// Takes source (string) which is the migration file content.
+// Takes start (int) which is the byte offset of the opening `/*`.
+//
+// Returns int which is the index just past the closing `*/` (or end of input).
+func skipBlockComment(source string, start int) int {
+	index := start + 2
+	for index+1 < len(source) {
+		if source[index] == '*' && source[index+1] == '/' {
+			return index + 2
+		}
+		index++
+	}
+	return len(source)
+}
+
+// skipDollarQuotedBlock returns the index just past a Postgres-style dollar-quoted block
+// (`$$...$$` or `$tag$...$tag$`) beginning at start, and whether start indeed opened one.
+// An unterminated block is treated as running to end of input.
+//
+// Takes source (string) which is the migration file content.
+// Takes start (int) which is the byte offset of the leading '$'.
+//
+// Returns int which is the index just past the closing tag (or end of input).
+// Returns bool which is true when start opened a dollar-quoted block.
+func skipDollarQuotedBlock(source string, start int) (int, bool) {
+	tag, openLen, ok := readDollarTag(source, start)
+	if !ok {
+		return start, false
+	}
+	closer := "$" + tag + "$"
+	index := start + openLen
+	for index < len(source) {
+		if source[index] == '$' && strings.HasPrefix(source[index:], closer) {
+			return index + len(closer), true
+		}
+		index++
+	}
+	return len(source), true
+}
+
+// readDollarTag inspects the dollar-quote opener at start and returns its inner tag, the
+// number of bytes the opener spans, and whether start marks a valid opener. A valid tag
+// is a possibly-empty run of identifier characters bounded by '$' on each side, so `$1`
+// (a positional parameter) is rejected.
+//
+// Takes source (string) which is the migration file content.
+// Takes start (int) which is the byte offset of the leading '$'.
+//
+// Returns string which is the inner tag (empty for `$$`).
+// Returns int which is the number of bytes the opener spans.
+// Returns bool which is true when start marks a valid dollar-quote opener.
+func readDollarTag(source string, start int) (string, int, bool) {
+	if start >= len(source) || source[start] != '$' {
+		return "", 0, false
+	}
+	end := start + 1
+	for end < len(source) && source[end] != '$' {
+		if !isIdentifierPart(source[end]) {
+			return "", 0, false
+		}
+		end++
+	}
+	if end >= len(source) {
+		return "", 0, false
+	}
+	return source[start+1 : end], end - start + 1, true
+}
+
+// byteToUpper upper-cases an ASCII letter, leaving every other byte unchanged.
+//
+// Takes character (byte) which is the byte to fold.
+//
+// Returns byte which is the upper-cased ASCII letter or the original byte.
+func byteToUpper(character byte) byte {
+	if character >= 'a' && character <= 'z' {
+		return character - ('a' - 'A')
+	}
+	return character
+}
+
+// migrationCommentBody returns the directive text of a line comment (after a -- or #
+// prefix) and whether the line was a comment.
+//
+// Takes trimmed (string) which is the whitespace-trimmed source line.
+//
+// Returns string which is the comment body after the prefix.
+// Returns bool which is true when the line was a comment.
+func migrationCommentBody(trimmed string) (string, bool) {
+	if rest, ok := strings.CutPrefix(trimmed, "--"); ok {
+		return strings.TrimSpace(rest), true
+	}
+	if rest, ok := strings.CutPrefix(trimmed, "#"); ok {
+		return strings.TrimSpace(rest), true
+	}
+	return "", false
+}
+
+// statementRequiresNoTransaction reports whether an upper-cased, literal-free statement
+// is one of the known statements that cannot run inside a transaction.
+//
+// The CONCURRENTLY keyword covers CREATE/DROP INDEX CONCURRENTLY and REINDEX
+// CONCURRENTLY, and VACUUM cannot run inside a transaction either. The keyword is matched
+// at word boundaries, and VACUUM only as the leading keyword, so an identifier that
+// contains either substring does not strip transaction safety from an otherwise atomic
+// migration. Because the input has already had string literals and quoted bodies removed,
+// a mention inside a literal or function body cannot reach this check.
+//
+// Takes upperStatement (string) which is the upper-cased, literal-free statement code.
+//
+// Returns bool which is true when the statement cannot run inside a transaction.
+func statementRequiresNoTransaction(upperStatement string) bool {
+	return containsWholeWord(upperStatement, "CONCURRENTLY") || hasLeadingWord(upperStatement, "VACUUM")
+}
+
+// containsWholeWord reports whether word appears in haystack delimited by non-identifier
+// characters on both sides (or the string boundary).
+//
+// Takes haystack (string) which is the text to search.
+// Takes word (string) which is the whole word to look for.
+//
+// Returns bool which is true when word appears as a whole word in haystack.
+func containsWholeWord(haystack, word string) bool {
+	start := 0
+	for {
+		index := strings.Index(haystack[start:], word)
+		if index < 0 {
+			return false
+		}
+		begin := start + index
+		end := begin + len(word)
+		beforeOK := begin == 0 || !isIdentifierPart(haystack[begin-1])
+		afterOK := end == len(haystack) || !isIdentifierPart(haystack[end])
+		if beforeOK && afterOK {
+			return true
+		}
+		start = begin + 1
+	}
+}
+
+// hasLeadingWord reports whether line begins with word followed by a non-identifier
+// character or end of string (so "VACUUM" matches but "VACUUMING" does not).
+//
+// Takes line (string) which is the text whose prefix is tested.
+// Takes word (string) which is the leading word to look for.
+//
+// Returns bool which is true when line begins with word as a whole word.
+func hasLeadingWord(line, word string) bool {
+	if !strings.HasPrefix(line, word) {
+		return false
+	}
+	return len(line) == len(word) || !isIdentifierPart(line[len(word)])
 }

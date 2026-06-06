@@ -1037,7 +1037,7 @@ func TestCatalogueBuilder_ApplyCreateFunction(t *testing.T) {
 func TestCatalogueBuilder_ApplyDropFunction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("drops function by name when no signature provided", func(t *testing.T) {
+	t.Run("returns error when mutation is missing function signature", func(t *testing.T) {
 		t.Parallel()
 
 		builder, _ := setupBuilder()
@@ -1052,8 +1052,9 @@ func TestCatalogueBuilder_ApplyDropFunction(t *testing.T) {
 			TableName:  "greet",
 		})
 
-		require.NoError(t, err)
-		assert.NotContains(t, builder.Catalogue().Schemas["public"].Functions, "greet")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "DROP FUNCTION mutation missing function signature")
+		assert.Contains(t, builder.Catalogue().Schemas["public"].Functions, "greet")
 	})
 
 	t.Run("drops all overloads when signature has no arguments", func(t *testing.T) {
@@ -1610,7 +1611,7 @@ func TestCatalogueBuilder_ApplyMigration(t *testing.T) {
 					{Location: 0, Length: 50},
 				}, nil
 			},
-			applyDDLFn: func(_ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+			applyDDLFn: func(_ context.Context, _ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 				return &querier_dto.CatalogueMutation{
 					Kind:       querier_dto.MutationCreateTable,
 					SchemaName: "public",
@@ -1651,7 +1652,7 @@ func TestCatalogueBuilder_ApplyMigration(t *testing.T) {
 					{Location: 21, Length: 30},
 				}, nil
 			},
-			applyDDLFn: func(_ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+			applyDDLFn: func(_ context.Context, _ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 				callCount++
 				if callCount == 1 {
 					return nil, errors.New("unsupported DDL")
@@ -1690,7 +1691,7 @@ func TestCatalogueBuilder_ApplyMigration(t *testing.T) {
 					{Location: 0, Length: 10},
 				}, nil
 			},
-			applyDDLFn: func(_ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+			applyDDLFn: func(_ context.Context, _ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 				return nil, nil
 			},
 		}
@@ -1770,6 +1771,96 @@ func TestScanBodyForDML(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestScanBodyForCalledFunctions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		body     string
+		expected []string
+	}{
+		{
+			name:     "PERFORM of a writing helper records the callee",
+			body:     "BEGIN PERFORM write_audit(NEW.id); RETURN NEW; END;",
+			expected: []string{"write_audit"},
+		},
+		{
+			name:     "schema-qualified call recorded under its dotted form",
+			body:     "BEGIN PERFORM audit.write_event(NEW.id); END;",
+			expected: []string{"audit.write_event"},
+		},
+		{
+			name:     "control-flow keywords before a paren are not callees",
+			body:     "BEGIN IF (x > 0) THEN PERFORM touch(x); END IF; END;",
+			expected: []string{"touch"},
+		},
+		{
+			name:     "whitespace between name and paren still matches",
+			body:     "BEGIN PERFORM do_thing  (1); END;",
+			expected: []string{"do_thing"},
+		},
+		{
+			name:     "body with no calls returns nil",
+			body:     "BEGIN x := 1; END;",
+			expected: nil,
+		},
+		{
+			name:     "empty body returns nil",
+			body:     "",
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := scanBodyForCalledFunctions(tt.body)
+			assert.ElementsMatch(t, tt.expected, result)
+		})
+	}
+}
+
+func TestCatalogueBuilder_PlpgsqlBodyCallingWriterIsModifying(t *testing.T) {
+	t.Parallel()
+
+	builder, _ := setupBuilder()
+	ctx := context.Background()
+
+	writer := &querier_dto.FunctionSignature{
+		Name:       "write_audit",
+		Language:   "plpgsql",
+		DataAccess: querier_dto.DataAccessModifiesData,
+		Arguments: []querier_dto.FunctionArgument{
+			{Name: "id", Type: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}},
+		},
+	}
+	builder.catalogue.Schemas["public"].Functions["write_audit"] = []*querier_dto.FunctionSignature{writer}
+
+	err := builder.applyMutation(ctx, &querier_dto.CatalogueMutation{
+		Kind:       querier_dto.MutationCreateFunction,
+		SchemaName: "public",
+		FunctionSignature: &querier_dto.FunctionSignature{
+			Name:     "on_insert_trigger",
+			Language: "plpgsql",
+			BodySQL:  "BEGIN PERFORM write_audit(NEW.id); RETURN NEW; END;",
+		},
+	})
+	require.NoError(t, err)
+
+	caller := builder.Catalogue().Schemas["public"].Functions["on_insert_trigger"][0]
+	assert.Contains(t, caller.CalledFunctions, "write_audit",
+		"the indirect callee must be recorded so propagation can reach it")
+	assert.Equal(t, querier_dto.DataAccessReadOnly, caller.DataAccess,
+		"the keyword scan alone cannot see the write before propagation")
+
+	propagateDataAccess(builder.Catalogue())
+
+	caller = builder.Catalogue().Schemas["public"].Functions["on_insert_trigger"][0]
+	assert.Equal(t, querier_dto.DataAccessModifiesData, caller.DataAccess,
+		"propagation must promote a plpgsql body that calls a writing function")
 }
 
 func TestCatalogueBuilder_ApplyMutation_UnknownKind(t *testing.T) {
@@ -1885,4 +1976,113 @@ func TestCatalogueBuilder_OriginPropagation(t *testing.T) {
 		table := builder.Catalogue().Schemas["public"].Tables["users"]
 		assert.Equal(t, origin, table.Columns[1].Origin)
 	})
+}
+
+func TestSyntheticTableReturnTypeName_DistinguishesByCategory(t *testing.T) {
+	t.Parallel()
+
+	scalar := &querier_dto.FunctionSignature{
+		Name: "udf_x",
+		Arguments: []querier_dto.FunctionArgument{
+			{Name: "input", Type: querier_dto.SQLType{
+				EngineName: "text",
+				Category:   querier_dto.TypeCategoryText,
+			}},
+		},
+	}
+	array := &querier_dto.FunctionSignature{
+		Name: "udf_x",
+		Arguments: []querier_dto.FunctionArgument{
+			{Name: "input", Type: querier_dto.SQLType{
+				EngineName: "text",
+				Category:   querier_dto.TypeCategoryArray,
+			}},
+		},
+	}
+
+	require.NotEqual(t, syntheticTableReturnTypeName(scalar), syntheticTableReturnTypeName(array),
+		"category must be encoded in synthetic name to disambiguate overloads")
+}
+
+func TestSyntheticTableReturnTypeName_DistinguishesByEngineName(t *testing.T) {
+	t.Parallel()
+
+	textSignature := &querier_dto.FunctionSignature{
+		Name: "udf_y",
+		Arguments: []querier_dto.FunctionArgument{
+			{Name: "input", Type: querier_dto.SQLType{
+				EngineName: "text",
+				Category:   querier_dto.TypeCategoryText,
+			}},
+		},
+	}
+	intSignature := &querier_dto.FunctionSignature{
+		Name: "udf_y",
+		Arguments: []querier_dto.FunctionArgument{
+			{Name: "input", Type: querier_dto.SQLType{
+				EngineName: "integer",
+				Category:   querier_dto.TypeCategoryInteger,
+			}},
+		},
+	}
+
+	require.NotEqual(t, syntheticTableReturnTypeName(textSignature), syntheticTableReturnTypeName(intSignature))
+}
+
+func TestCatalogueBuilder_ApplyAsyncDataMutations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("async update", func(t *testing.T) {
+		t.Parallel()
+
+		builder, _ := setupBuilder()
+		ctx := context.Background()
+
+		err := builder.applyMutation(ctx, &querier_dto.CatalogueMutation{
+			Kind:       querier_dto.MutationAsyncDataUpdate,
+			SchemaName: "public",
+			TableName:  "users",
+			EngineSpecific: map[string]string{
+				"ASYNC_BODY": "UPDATE name = 'x' WHERE id = 1",
+			},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("async delete", func(t *testing.T) {
+		t.Parallel()
+
+		builder, _ := setupBuilder()
+		ctx := context.Background()
+
+		err := builder.applyMutation(ctx, &querier_dto.CatalogueMutation{
+			Kind:       querier_dto.MutationAsyncDataDelete,
+			SchemaName: "public",
+			TableName:  "users",
+			EngineSpecific: map[string]string{
+				"ASYNC_BODY": "DELETE WHERE id = 1",
+			},
+		})
+		require.NoError(t, err)
+	})
+}
+
+func TestCatalogueBuilder_MutationHandlersComplete(t *testing.T) {
+	t.Parallel()
+
+	explicitSwitchKinds := map[querier_dto.MutationKind]struct{}{
+		querier_dto.MutationCreateFunction: {},
+		querier_dto.MutationCreateView:     {},
+	}
+
+	for index := range int(querier_dto.MutationKindCount) {
+		kind := querier_dto.MutationKind(index)
+		if _, isExplicit := explicitSwitchKinds[kind]; isExplicit {
+			continue
+		}
+		if mutationHandlers[kind] != nil {
+			continue
+		}
+		t.Errorf("mutation kind %d has no handler and is not in the explicit switch", kind)
+	}
 }

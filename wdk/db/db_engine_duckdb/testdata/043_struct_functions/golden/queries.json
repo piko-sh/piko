@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "profiles.sql",
-    "SQL": "-- piko.name: ListProfiles\n-- piko.command: many\nSELECT id, name, details FROM profiles;",
+    "SQL": "-- piko.query(name: ListProfiles, command: many)\nSELECT id, name, details FROM profiles;",
     "Name": "ListProfiles",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "details",
         "SourceTable": "profiles",
+        "SourceSchema": "",
         "SourceColumn": "details",
+        "SourceQualifier": "profiles",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -77,7 +89,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               }
             },
             {
@@ -93,13 +106,15 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               }
             }
           ],
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 15
+          "Category": 15,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -120,22 +135,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "profiles.sql",
-    "SQL": "-- piko.name: GetStructPacked\n-- piko.command: many\nSELECT id, struct_pack(a := name, b := id) AS packed FROM profiles;",
+    "SQL": "-- piko.query(name: GetStructPacked, command: many)\nSELECT id, struct_pack(a := name, b := id) AS packed FROM profiles;",
     "Name": "GetStructPacked",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "struct_pack",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -148,7 +169,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 15
+          "Category": 15,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -168,10 +190,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

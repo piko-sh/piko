@@ -1,5 +1,4 @@
--- piko.name: CheckDuplicateActiveTask
--- piko.command: one
+-- piko.query(name: CheckDuplicateActiveTask, command: one)
 SELECT EXISTS(
     SELECT 1 FROM tasks
     WHERE deduplication_key = ?

@@ -1,0 +1,22 @@
+{
+  "dropped": [
+    {
+      "ChunkName": {
+        "dropped_chunk": "_timescaledb_internal._hyper_21_25_chunk"
+      }
+    },
+    {
+      "ChunkName": {
+        "dropped_chunk": "_timescaledb_internal._hyper_21_26_chunk"
+      }
+    },
+    {
+      "ChunkName": {
+        "dropped_chunk": "_timescaledb_internal._hyper_21_27_chunk"
+      }
+    }
+  ],
+  "remaining": {
+    "row_count": 2
+  }
+}

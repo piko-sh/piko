@@ -1,0 +1,3 @@
+{
+  "description": "SQL/JSON path helpers JSON_VALUE, JSON_QUERY, and JSON_EXISTS. The fixture seeds rows with a JSON body containing a nested object and verifies that the three functions return the path's scalar string, the sub-object as text, and a boolean existence flag respectively."
+}

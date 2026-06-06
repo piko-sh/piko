@@ -1,5 +1,4 @@
--- piko.name: ListCustomersWithMaxInvoice
--- piko.command: many
+-- piko.query(name: ListCustomersWithMaxInvoice, command: many)
 SELECT
     c.id,
     c.name,

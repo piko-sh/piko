@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "products_with_max.sql",
-    "SQL": "-- piko.name: GetProductsWithMaxPrice\n-- piko.command: many\nSELECT name, price, (SELECT max(price) FROM products WHERE category = ?) AS max_price FROM products WHERE category = ?",
+    "SQL": "-- piko.query(name: GetProductsWithMaxPrice, command: many)\nSELECT name, price, (SELECT max(price) FROM products WHERE category = ?) AS max_price FROM products WHERE category = ?",
     "Name": "GetProductsWithMaxPrice",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -45,20 +48,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "products",
+        "SourceSchema": "",
         "SourceColumn": "price",
+        "SourceQualifier": "products",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "max_price",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +131,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -136,9 +153,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

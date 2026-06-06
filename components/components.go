@@ -28,22 +28,21 @@ const (
 )
 
 var (
-	// m3eAssets lists module-root-relative directories whose files should be
-	// seeded into the registry alongside M3E PKC source files. These provide
-	// SVG icons referenced by piko:svg elements within the components.
+	// m3eAssets lists module-root-relative directories whose files should be seeded into the
+	// registry alongside M3E PKC source files. These provide SVG icons referenced by
+	// piko:svg elements within the components.
 	m3eAssets = []string{"lib/icons"}
 
-	// m2Assets lists module-root-relative directories whose files should be
-	// seeded into the registry alongside M2 PKC source files. These provide
-	// SVG icons referenced by piko:svg elements within the components.
+	// m2Assets lists module-root-relative directories whose files should be seeded into the
+	// registry alongside M2 PKC source files. These provide SVG icons referenced by piko:svg
+	// elements within the components.
 	m2Assets = []string{"lib/icons"}
 )
 
-// Piko returns component definitions for the built-in piko-* components
-// (e.g. piko-counter, piko-card).
+// Piko returns component definitions for the built-in piko-* components (e.g.
+// piko-counter, piko-card).
 //
-// Returns []ComponentDefinition which contains the built-in piko-*
-// component definitions.
+// Returns []ComponentDefinition which contains the built-in piko-* component definitions.
 func Piko() []component_dto.ComponentDefinition {
 	return []component_dto.ComponentDefinition{
 		{TagName: "piko-counter", SourcePath: "piko/piko-counter.pkc", ModulePath: modulePath, IsExternal: true},
@@ -51,23 +50,21 @@ func Piko() []component_dto.ComponentDefinition {
 	}
 }
 
-// Example returns component definitions for the example-* components.
-// These are provided as reference implementations and for testing.
+// Example returns component definitions for the example-* components. These are provided
+// as reference implementations and for testing.
 //
-// Returns []ComponentDefinition which contains the example-*
-// component definitions.
+// Returns []ComponentDefinition which contains the example-* component definitions.
 func Example() []component_dto.ComponentDefinition {
 	return []component_dto.ComponentDefinition{
 		{TagName: "example-greeting", SourcePath: "example/example-greeting.pkc", ModulePath: modulePath, IsExternal: true},
 	}
 }
 
-// M2 returns component definitions for components based on the Material
-// Design 2 specification. These components use the m2-* tag prefix and
-// integrate into the M3E design system for theming.
+// M2 returns component definitions for components based on the Material Design 2
+// specification. These components use the m2-* tag prefix and integrate into the M3E
+// design system for theming.
 //
-// Returns []ComponentDefinition which contains the m2-* component
-// definitions.
+// Returns []ComponentDefinition which contains the m2-* component definitions.
 func M2() []component_dto.ComponentDefinition { //nolint:revive // intentional acronym
 	return []component_dto.ComponentDefinition{
 		{TagName: "m2-data-table", SourcePath: "m2/m2-data-table.pkc", ModulePath: modulePath, IsExternal: true, AssetPaths: m2Assets},
@@ -78,11 +75,10 @@ func M2() []component_dto.ComponentDefinition { //nolint:revive // intentional a
 	}
 }
 
-// M3E returns component definitions for the Material Design 3 Expressive
-// component library. All components use the m3e-* tag prefix.
+// M3E returns component definitions for the Material Design 3 Expressive component
+// library. All components use the m3e-* tag prefix.
 //
-// Returns []ComponentDefinition which contains the m3e-* component
-// definitions.
+// Returns []ComponentDefinition which contains the m3e-* component definitions.
 func M3E() []component_dto.ComponentDefinition { //nolint:revive // intentional acronym
 	return []component_dto.ComponentDefinition{
 		{TagName: "m3e-badge", SourcePath: "m3e/m3e-badge.pkc", ModulePath: modulePath, IsExternal: true, AssetPaths: m3eAssets},
@@ -134,23 +130,21 @@ func M3E() []component_dto.ComponentDefinition { //nolint:revive // intentional 
 	}
 }
 
-// Dev returns component definitions for the developer tools overlay widget.
-// These components are intended for dev mode only and are NOT included in All().
+// Dev returns component definitions for the developer tools overlay widget. These
+// components are intended for dev mode only and are NOT included in All().
 //
-// Returns []ComponentDefinition which contains the dev-only component
-// definitions.
+// Returns []ComponentDefinition which contains the dev-only component definitions.
 func Dev() []component_dto.ComponentDefinition {
 	return []component_dto.ComponentDefinition{
 		{TagName: "piko-dev-widget", SourcePath: "dev/piko-dev-widget.pkc", ModulePath: modulePath, IsExternal: true},
 	}
 }
 
-// All returns component definitions for every built-in component across all
-// categories. Dev components are excluded; use Dev() to register them
-// separately in dev mode.
+// All returns component definitions for every built-in component across all categories.
+// Dev components are excluded; use Dev() to register them separately in dev mode.
 //
-// Returns []ComponentDefinition which contains definitions from all
-// component categories combined.
+// Returns []ComponentDefinition which contains definitions from all component categories
+// combined.
 func All() []component_dto.ComponentDefinition {
 	piko := Piko()
 	example := Example()

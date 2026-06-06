@@ -109,6 +109,26 @@ const (
 	// paramNameText is the canonical parameter name for a text argument.
 	paramNameText = "text"
 
+	// paramNameSequence is the canonical parameter name for a sequence reference argument.
+	paramNameSequence = "sequence"
+
 	// funcNameToChar is the canonical name for the to_char conversion function.
 	funcNameToChar = "to_char"
+
+	// paramNameConfig is the canonical parameter name for a tsearch configuration name.
+	paramNameConfig = "config"
+
+	// paramNameVector is the canonical parameter name for a tsvector argument.
+	paramNameVector = "vector"
+
+	// paramNameQuery is the canonical parameter name for a tsquery argument.
+	paramNameQuery = "query"
+
+	// paramNameDocument is the canonical parameter name for a text document argument in
+	// full-text search functions.
+	paramNameDocument = "document"
+
+	// funcNameTSHeadline is the canonical name for the ts_headline full-text search
+	// highlighter.
+	funcNameTSHeadline = "ts_headline"
 )

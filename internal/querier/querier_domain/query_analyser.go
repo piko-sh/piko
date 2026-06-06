@@ -102,8 +102,6 @@ type queryTypeResolution struct {
 // chain, resolve CTEs, resolve output columns, resolve parameters, propagate nullability,
 // validate, and assemble the final AnalysedQuery.
 //
-// Takes ctx (context.Context) which controls cancellation of the analysis.
-//
 // Takes block (queryBlock) which holds the raw SQL text and line information.
 //
 // Returns *querier_dto.AnalysedQuery which holds the fully analysed query, or nil if
@@ -145,11 +143,13 @@ func (a *queryAnalyser) AnalyseQuery(
 	parameters := resolution.parameters
 	scope := resolution.scope
 
-	outputColumns = resolveEmbedDirectives(block.sql, outputColumns, scope)
+	outputColumns = resolveEmbedDirectives(directiveBlock, block.sql, outputColumns, scope)
 	outputColumns = a.nullabilityPropagator.PropagateOutputNullability(outputColumns, directives, scope, rawAnalysis.GroupByColumns)
+	outputColumns = a.applyQueryColumnOverrides(outputColumns, directiveBlock, filename, &allDiagnostics)
+	outputColumns = a.propagateCatalogueColumnOverrides(outputColumns, directiveBlock)
 	parameters = a.nullabilityPropagator.PropagateParameterNullability(parameters, directiveBlock.Parameters)
 
-	isDynamic, dynamicColumns := computeDynamicFlags(directiveBlock.Parameters)
+	isDynamic, dynamicColumns := computeDynamicFlags(parameters)
 	directives.DynamicOrderByColumns = append(directives.DynamicOrderByColumns, dynamicColumns...)
 
 	query := a.assembleQuery(assembleQueryInput{
@@ -164,7 +164,7 @@ func (a *queryAnalyser) AnalyseQuery(
 		rawAnalysis:   rawAnalysis,
 	})
 
-	allDiagnostics = append(allDiagnostics, a.runDiagnostics(query, rawAnalysis, scope, directiveBlock, filename)...)
+	allDiagnostics = append(allDiagnostics, a.runDiagnostics(query, rawAnalysis, scope, directiveBlock, filename, allDiagnostics)...)
 	return query, allDiagnostics
 }
 
@@ -208,6 +208,9 @@ func extractDirectiveMetadata(
 //
 // Takes filename (string) which specifies the source file path for error reporting.
 //
+// Takes priorDiagnostics ([]querier_dto.SourceError) which holds the diagnostics already
+// collected for this query so passes can avoid double-reporting one.
+//
 // Returns []querier_dto.SourceError which holds any diagnostic warnings or hints.
 func (a *queryAnalyser) runDiagnostics(
 	query *querier_dto.AnalysedQuery,
@@ -215,13 +218,16 @@ func (a *queryAnalyser) runDiagnostics(
 	scope *scopeChain,
 	directiveBlock *querier_dto.DirectiveBlock,
 	filename string,
+	priorDiagnostics []querier_dto.SourceError,
 ) []querier_dto.SourceError {
 	return a.diagnosticAnalyser.Analyse(&diagnosticContext{
 		Query:               query,
 		RawAnalysis:         rawAnalysis,
 		Scope:               scope,
+		Engine:              a.engine,
 		ParameterDirectives: directiveBlock.Parameters,
 		Filename:            filename,
+		ExistingDiagnostics: priorDiagnostics,
 	})
 }
 
@@ -280,8 +286,6 @@ func (a *queryAnalyser) parseQueryStatements(
 // resolveQueryTypes builds the scope chain and resolves all output column and parameter
 // types for a query.
 //
-// Takes ctx (context.Context) which controls cancellation of the resolution.
-//
 // Takes rawAnalysis (*querier_dto.RawQueryAnalysis) which holds the raw analysis result
 // to resolve types for.
 //
@@ -318,13 +322,16 @@ func (a *queryAnalyser) resolveQueryTypes(
 	derivedDiagnostics := a.resolveRawDerivedTables(ctx, rawAnalysis.RawDerivedTables, scope)
 	diagnostics = append(diagnostics, addFileLocation(derivedDiagnostics, filename, block.startLine)...)
 
+	arrayJoinDiagnostics := a.resolveArrayJoinClauses(rawAnalysis.ArrayJoinClauses, scope)
+	diagnostics = append(diagnostics, addFileLocation(arrayJoinDiagnostics, filename, block.startLine)...)
+
 	outputColumns, dataModifying, outputDiagnostics := a.typeResolver.ResolveOutputColumns(ctx, rawAnalysis.OutputColumns, scope)
 	diagnostics = append(diagnostics, addFileLocation(outputDiagnostics, filename, block.startLine)...)
 
-	compoundDiagnostics := a.resolveCompoundBranches(ctx, rawAnalysis.CompoundBranches, outputColumns)
+	compoundDiagnostics := a.resolveCompoundBranches(ctx, rawAnalysis.CompoundBranches, outputColumns, scope)
 	diagnostics = append(diagnostics, addFileLocation(compoundDiagnostics, filename, block.startLine)...)
 
-	parameters, parameterDiagnostics := a.typeResolver.ResolveParameters(ctx, rawAnalysis.ParameterReferences, scope, directiveBlock.Parameters)
+	parameters, parameterDiagnostics := a.typeResolver.ResolveParameters(ctx, rawAnalysis, scope, directiveBlock.Parameters)
 	diagnostics = append(diagnostics, addFileLocation(parameterDiagnostics, filename, block.startLine)...)
 
 	return queryTypeResolution{

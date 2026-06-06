@@ -73,8 +73,8 @@ func GetEmailService() (email_domain.Service, error) {
 	return container.GetEmailService()
 }
 
-// GetI18nService returns the global internationalisation service instance. Safe to
-// call from multiple goroutines.
+// GetI18nService returns the global internationalisation service instance. Safe to call
+// from multiple goroutines.
 //
 // Returns i18n_domain.Service which is the configured i18n service.
 // Returns error when the framework is not initialised or the service cannot be created.
@@ -285,8 +285,8 @@ func GetPdfWriterService() (pdfwriter_domain.PdfWriterService, error) {
 	return svc, nil
 }
 
-// GetNotificationService returns the global notification service instance. Safe to
-// call from multiple goroutines.
+// GetNotificationService returns the global notification service instance. Safe to call
+// from multiple goroutines.
 //
 // Returns notification_domain.Service which is the configured notification service.
 // Returns error when the framework is not initialised or the service cannot be created.
@@ -379,8 +379,8 @@ func GetSeedService(name string) (querier_domain.SeedServicePort, error) {
 
 // initialiseGlobalServices stores the container reference for global service access.
 //
-// Called after the container is fully set up. Safe to call more than once; only the
-// first call has any effect.
+// Called after the container is fully set up. Safe to call more than once; only the first
+// call has any effect.
 //
 // Takes container (*Container) which is the fully set up service container to store for
 // global access.

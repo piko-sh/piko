@@ -92,7 +92,7 @@ func runTestCase(t *testing.T, testCaseDirectory string) {
 		CustomFunctions:    spec.CustomFunctions,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig)
 
 	if spec.ShouldError {
 		assert.Error(t, generateError, "expected GenerateDatabase to return an error")

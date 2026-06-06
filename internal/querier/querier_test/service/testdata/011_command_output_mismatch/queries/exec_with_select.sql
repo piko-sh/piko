@@ -1,3 +1,2 @@
--- piko.name: ExecWithSelect
--- piko.command: exec
+-- piko.query(name: ExecWithSelect, command: exec)
 SELECT id, name FROM users

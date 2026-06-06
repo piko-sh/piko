@@ -1,32 +1,20 @@
--- piko.name: BareReadOnly
--- piko.command: many
--- piko.readonly
+-- piko.query(name: BareReadOnly, command: many, readonly: true)
 SELECT id, name FROM items;
 
--- piko.name: ExplicitReadOnlyTrue
--- piko.command: many
--- piko.readonly(true)
+-- piko.query(name: ExplicitReadOnlyTrue, command: many, readonly: true)
 SELECT id, name FROM items;
 
--- piko.name: ExplicitReadOnlyFalse
--- piko.command: many
--- piko.readonly(false)
+-- piko.query(name: ExplicitReadOnlyFalse, command: many, readonly: false)
 SELECT id, name FROM items;
 
--- piko.name: OverrideVolatileToReadOnly
--- piko.command: one
--- piko.readonly
+-- piko.query(name: OverrideVolatileToReadOnly, command: one, readonly: true)
 SELECT volatile_func($1::integer) AS result;
 
--- piko.name: InsertOverriddenToReadOnly
--- piko.command: exec
--- piko.readonly
+-- piko.query(name: InsertOverriddenToReadOnly, command: exec, readonly: true)
 INSERT INTO items (name, quantity) VALUES ($1, $2);
 
--- piko.name: MigrationOverriddenReadOnly
--- piko.command: one
+-- piko.query(name: MigrationOverriddenReadOnly, command: one)
 SELECT overridden_readonly_func($1::integer) AS result;
 
--- piko.name: MigrationOverriddenNotReadOnly
--- piko.command: one
+-- piko.query(name: MigrationOverriddenNotReadOnly, command: one)
 SELECT overridden_not_readonly_func($1::integer) AS result;

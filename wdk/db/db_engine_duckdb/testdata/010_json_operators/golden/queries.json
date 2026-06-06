@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "events.sql",
-    "SQL": "-- piko.name: GetEventName\n-- piko.command: many\nSELECT id, payload-\u003e\u003e'name' AS event_name FROM events;",
+    "SQL": "-- piko.query(name: GetEventName, command: many)\nSELECT id, payload-\u003e\u003e'name' AS event_name FROM events;",
     "Name": "GetEventName",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "event_name",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -65,22 +74,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "events.sql",
-    "SQL": "-- piko.name: GetEventMetadata\n-- piko.command: many\nSELECT id, payload-\u003e'metadata' AS metadata FROM events;",
+    "SQL": "-- piko.query(name: GetEventMetadata, command: many)\nSELECT id, payload-\u003e'metadata' AS metadata FROM events;",
     "Name": "GetEventMetadata",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "metadata",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 7
+          "Category": 7,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -135,10 +155,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

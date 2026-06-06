@@ -21,7 +21,9 @@ package db_engine_sqlite
 import (
 	"fmt"
 	"strings"
-	"unicode"
+	"unicode/utf8"
+
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 )
 
 // tokenKind classifies a lexed SQL token.
@@ -101,6 +103,16 @@ type tokeniser struct {
 	position int
 }
 
+var (
+	// dialectConfig declares SQLite lexical rules for the shared scanners: plain "--" line
+	// comments, non-nesting block comments, and 0x hexadecimal integer literals (SQLite has
+	// no 0o octal or 0b binary forms).
+	dialectConfig = engine_shared.DialectConfig{
+		Comments: engine_shared.CommentRules{},
+		Numbers:  engine_shared.NumberRules{HexPrefix: true},
+	}
+)
+
 // tokenise scans a SQL string into a flat sequence of tokens.
 //
 // Takes input (string) which is the SQL source text to lex.
@@ -131,7 +143,9 @@ func tokenise(input string) ([]token, error) {
 // Returns token which is the lexed token, or tokenEOF when input is exhausted.
 // Returns error when an unterminated literal or unexpected character is encountered.
 func (t *tokeniser) next() (token, error) {
-	t.skipWhitespaceAndComments()
+	if err := t.skipWhitespaceAndComments(); err != nil {
+		return token{}, err
+	}
 
 	if t.position >= len(t.input) {
 		return token{kind: tokenEOF, position: t.position}, nil
@@ -203,66 +217,23 @@ func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 		return t.readNumber()
 	case (character == 'x' || character == 'X') && t.position+1 < len(t.input) && t.input[t.position+1] == '\'':
 		return t.readBlobLiteral()
-	case isIdentStart(character):
-		return t.readIdentifier()
-	default:
-		return t.readOperator()
 	}
+
+	leading, _ := utf8.DecodeRuneInString(t.input[t.position:])
+	if isIdentStart(leading) {
+		return t.readIdentifier()
+	}
+	return t.readOperator()
 }
 
 // skipWhitespaceAndComments advances past spaces, tabs, newlines, line comments, and
 // block comments.
-func (t *tokeniser) skipWhitespaceAndComments() {
-	for t.position < len(t.input) {
-		character := t.input[t.position]
-
-		if character == ' ' || character == '\t' || character == '\n' || character == '\r' {
-			t.position++
-			continue
-		}
-
-		if t.skipLineComment() {
-			continue
-		}
-
-		if t.skipBlockComment() {
-			continue
-		}
-
-		break
-	}
-}
-
-// skipLineComment consumes a `-- ...` SQL line comment up to the next newline.
 //
-// Returns bool which is true when a line comment was consumed.
-func (t *tokeniser) skipLineComment() bool {
-	if t.position+1 >= len(t.input) || t.input[t.position] != '-' || t.input[t.position+1] != '-' {
-		return false
-	}
-	t.position += 2
-	for t.position < len(t.input) && t.input[t.position] != '\n' {
-		t.position++
-	}
-	return true
-}
-
-// skipBlockComment consumes a `/* ... */` SQL block comment.
-//
-// Returns bool which is true when a block comment was consumed.
-func (t *tokeniser) skipBlockComment() bool {
-	if t.position+1 >= len(t.input) || t.input[t.position] != '/' || t.input[t.position+1] != '*' {
-		return false
-	}
-	t.position += 2
-	for t.position+1 < len(t.input) {
-		if t.input[t.position] == '*' && t.input[t.position+1] == '/' {
-			t.position += 2
-			return true
-		}
-		t.position++
-	}
-	return true
+// Returns error when a block comment is left unterminated.
+func (t *tokeniser) skipWhitespaceAndComments() error {
+	position, err := dialectConfig.Comments.SkipWhitespaceAndComments(t.input, t.position)
+	t.position = position
+	return err
 }
 
 // readString lexes a single-quoted SQL string literal with doubled-quote escaping.
@@ -271,25 +242,14 @@ func (t *tokeniser) skipBlockComment() bool {
 // Returns error when the literal is unterminated.
 func (t *tokeniser) readString() (token, error) {
 	startPosition := t.position
-	t.position++
 
-	var builder strings.Builder
-	for t.position < len(t.input) {
-		character := t.input[t.position]
-		if character == '\'' {
-			t.position++
-			if t.position < len(t.input) && t.input[t.position] == '\'' {
-				builder.WriteByte('\'')
-				t.position++
-				continue
-			}
-			return token{kind: tokenString, value: builder.String(), position: startPosition}, nil
-		}
-		builder.WriteByte(character)
-		t.position++
+	value, position, ok := engine_shared.ScanDoubledDelimiter(t.input, t.position, '\'')
+	if !ok {
+		return token{}, fmt.Errorf("unterminated string literal at position %d", startPosition)
 	}
+	t.position = position
 
-	return token{}, fmt.Errorf("unterminated string literal at position %d", startPosition)
+	return token{kind: tokenString, value: value, position: startPosition}, nil
 }
 
 // readQuotedIdentifier lexes a double-quote or backtick identifier with doubled-quote
@@ -301,25 +261,14 @@ func (t *tokeniser) readString() (token, error) {
 // Returns error when the identifier is unterminated.
 func (t *tokeniser) readQuotedIdentifier(quote byte) (token, error) {
 	startPosition := t.position
-	t.position++
 
-	var builder strings.Builder
-	for t.position < len(t.input) {
-		character := t.input[t.position]
-		if character == quote {
-			t.position++
-			if t.position < len(t.input) && t.input[t.position] == quote {
-				builder.WriteByte(quote)
-				t.position++
-				continue
-			}
-			return token{kind: tokenIdentifier, value: builder.String(), position: startPosition}, nil
-		}
-		builder.WriteByte(character)
-		t.position++
+	value, position, ok := engine_shared.ScanDoubledDelimiter(t.input, t.position, quote)
+	if !ok {
+		return token{}, fmt.Errorf("unterminated quoted identifier at position %d", startPosition)
 	}
+	t.position = position
 
-	return token{}, fmt.Errorf("unterminated quoted identifier at position %d", startPosition)
+	return token{kind: tokenIdentifier, value: value, position: startPosition}, nil
 }
 
 // readBracketIdentifier lexes a `[name]` bracketed identifier.
@@ -351,8 +300,12 @@ func (t *tokeniser) readBracketIdentifier() (token, error) {
 func (t *tokeniser) readNumber() (token, error) {
 	startPosition := t.position
 
-	if t.readHexPrefix() {
-		t.consumeWhile(isHexDigit)
+	position, matched, err := dialectConfig.Numbers.TryReadPrefixedNumber(t.input, t.position)
+	if err != nil {
+		return token{}, err
+	}
+	if matched {
+		t.position = position
 		return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
 	}
 
@@ -361,21 +314,6 @@ func (t *tokeniser) readNumber() (token, error) {
 	t.readExponentPart()
 
 	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
-}
-
-// readHexPrefix consumes a `0x` or `0X` hexadecimal prefix.
-//
-// Returns bool which is true when the prefix was consumed.
-func (t *tokeniser) readHexPrefix() bool {
-	if t.input[t.position] != '0' || t.position+1 >= len(t.input) {
-		return false
-	}
-	next := t.input[t.position+1]
-	if next != 'x' && next != 'X' {
-		return false
-	}
-	t.position += 2
-	return true
 }
 
 // readFractionalPart consumes the `.digits` portion of a numeric literal when present.
@@ -416,12 +354,20 @@ func (t *tokeniser) consumeWhile(predicate func(byte) bool) {
 
 // readIdentifier lexes an unquoted identifier.
 //
+// Advances by UTF-8 rune width so multi-byte code points (Unicode letters or digits
+// inside an identifier body, for example accented or non-Latin letters) are not truncated
+// mid-code-point as they would be by a byte-at-a-time scan.
+//
 // Returns token which is the lexed identifier token.
 // Returns error which is currently always nil.
 func (t *tokeniser) readIdentifier() (token, error) {
 	startPosition := t.position
-	for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
-		t.position++
+	for t.position < len(t.input) {
+		character, width := utf8.DecodeRuneInString(t.input[t.position:])
+		if !isIdentPart(character) {
+			break
+		}
+		t.position += width
 	}
 	return token{kind: tokenIdentifier, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
@@ -451,8 +397,12 @@ func (t *tokeniser) readQuestionParam() (token, error) {
 func (t *tokeniser) readNamedParam() (token, error) {
 	startPosition := t.position
 	t.position++
-	for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
-		t.position++
+	for t.position < len(t.input) {
+		character, width := utf8.DecodeRuneInString(t.input[t.position:])
+		if !isIdentPart(character) {
+			break
+		}
+		t.position += width
 	}
 	return token{kind: tokenNamedParam, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
@@ -479,6 +429,15 @@ func (t *tokeniser) readBlobLiteral() (token, error) {
 	return token{}, fmt.Errorf("unterminated blob literal at position %d", startPosition)
 }
 
+var (
+	// twoCharOperators lists every two-character SQL operator recognised by the lexer. It is
+	// package-level so readOperator does not allocate a fresh map on each operator token.
+	twoCharOperators = map[string]bool{
+		"<=": true, ">=": true, "<>": true, "!=": true, "||": true,
+		"<<": true, ">>": true,
+	}
+)
+
 // readOperator lexes a one- or two-character operator including the JSON arrow operators.
 //
 // Returns token which is the lexed operator token.
@@ -496,14 +455,9 @@ func (t *tokeniser) readOperator() (token, error) {
 		return token{kind: tokenArrow, value: "->", position: startPosition}, nil
 	}
 
-	twoCharOps := map[string]bool{
-		"<=": true, ">=": true, "<>": true, "!=": true, "||": true,
-		"<<": true, ">>": true,
-	}
-
 	if t.position+1 < len(t.input) {
 		twoChar := t.input[t.position : t.position+2]
-		if twoCharOps[twoChar] {
+		if twoCharOperators[twoChar] {
 			t.position += 2
 			return token{kind: tokenOperator, value: twoChar, position: startPosition}, nil
 		}
@@ -527,35 +481,29 @@ func isDigit(character byte) bool {
 	return character >= '0' && character <= '9'
 }
 
-// isHexDigit reports whether character is a hexadecimal digit.
+// isIdentStart reports whether the rune may start an unquoted identifier.
 //
-// Takes character (byte) which is the byte to test.
+// Runes below utf8.RuneSelf take an ASCII fast-path covering letters and the underscore;
+// any other rune is accepted when unicode.IsLetter reports it as a letter, so non-ASCII
+// identifiers using accented or non-Latin letters tokenise correctly.
 //
-// Returns bool which is true for '0'-'9', 'a'-'f', or 'A'-'F'.
-func isHexDigit(character byte) bool {
-	return isDigit(character) ||
-		(character >= 'a' && character <= 'f') ||
-		(character >= 'A' && character <= 'F')
+// Takes character (rune) which is the decoded code point to test.
+//
+// Returns bool which is true for ASCII letters, the underscore, or any Unicode letter.
+func isIdentStart(character rune) bool {
+	return engine_shared.IsIdentStart(character)
 }
 
-// isIdentStart reports whether character may start an unquoted identifier.
+// isIdentPart reports whether the rune may continue an unquoted identifier after the
+// first character.
 //
-// Takes character (byte) which is the byte to test.
+// This extends the identifier-start set with decimal digits, so for runes below
+// utf8.RuneSelf the ASCII digit check is inlined, while any other rune is accepted when
+// unicode.IsLetter or unicode.IsDigit reports it.
 //
-// Returns bool which is true for letters, underscore, or any non-ASCII Unicode letter
-// byte.
-func isIdentStart(character byte) bool {
-	return (character >= 'a' && character <= 'z') ||
-		(character >= 'A' && character <= 'Z') ||
-		character == '_' ||
-		character > maxASCIICodePoint && unicode.IsLetter(rune(character))
-}
-
-// isIdentPart reports whether character may continue an unquoted identifier.
-//
-// Takes character (byte) which is the byte to test.
+// Takes character (rune) which is the decoded code point to test.
 //
 // Returns bool which is true for identifier starts and decimal digits.
-func isIdentPart(character byte) bool {
-	return isIdentStart(character) || isDigit(character)
+func isIdentPart(character rune) bool {
+	return engine_shared.IsIdentPart(character)
 }

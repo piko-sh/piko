@@ -32,21 +32,20 @@ import (
 	"piko.sh/piko/internal/interp/interp_domain"
 )
 
-// benchmarkCallDepthLimit is the call-depth ceiling the in-process
-// piko runner uses, well above the interpreter's default. Benchmarks
-// run recursive-descent parsers and tree walks on much larger inputs
-// than a typical embedded user would, and the default is intentionally
-// constrained for safety; here we lift it so a benchmark's wall time
+// benchmarkCallDepthLimit is the call-depth ceiling the in-process piko runner uses, well
+// above the interpreter's default. Benchmarks run recursive-descent parsers and tree
+// walks on much larger inputs than a typical embedded user would, and the default is
+// intentionally constrained for safety; here we lift it so a benchmark's wall time
 // reflects the cost of the algorithm, not piko's safety bound.
 const benchmarkCallDepthLimit = 200000
 
-// PikoRunner executes a benchmark in-process via the piko interpreter. It
-// loads the canonical Go source from `<benchmark>/go/piko_source.go` and
-// calls either `Run` (end-to-end) or `RunInner` (inner-loop) by name.
+// PikoRunner executes a benchmark in-process via the piko interpreter. It loads the
+// canonical Go source from `<benchmark>/go/piko_source.go` and calls either `Run`
+// (end-to-end) or `RunInner` (inner-loop) by name.
 type PikoRunner struct{}
 
-// NewPikoRunner returns a Runner that drives piko in-process. No setup is
-// required ahead of Available/Run.
+// NewPikoRunner returns a Runner that drives piko in-process. No setup is required ahead
+// of Available/Run.
 func NewPikoRunner() *PikoRunner { return &PikoRunner{} }
 
 // Kind reports the runner identity used in results.
@@ -64,13 +63,12 @@ func (runner *PikoRunner) Close(ctx context.Context) error {
 	return nil
 }
 
-// Run compiles `<dir>/go/piko_source.go` together with a generated wrapper
-// that selects the entrypoint and (for ModeInnerLoop) hard-codes the K
-// iteration count, then invokes the wrapper. ExecuteEntrypoint is
-// parameterless so the wrapper is how we thread spec data into the
-// in-process invocation. The first return value is the per-run Result. The
-// second return value is non-nil only on framework-level failures that
-// should abort the suite (e.g. source file missing).
+// Run compiles `<dir>/go/piko_source.go` together with a generated wrapper that selects
+// the entrypoint and (for ModeInnerLoop) hard-codes the K iteration count, then invokes
+// the wrapper. ExecuteEntrypoint is parameterless so the wrapper is how we thread spec
+// data into the in-process invocation. The first return value is the per-run Result. The
+// second return value is non-nil only on framework-level failures that should abort the
+// suite (e.g. source file missing).
 func (runner *PikoRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	sourcePath := filepath.Join(benchmarkDir, "go", "piko_source.go")
 	sourceBytes, err := os.ReadFile(sourcePath)
@@ -135,12 +133,11 @@ func (runner *PikoRunner) Run(parent context.Context, spec BenchSpec, mode RunMo
 	}, nil
 }
 
-// generateWrapper synthesises a tiny `entrypoint.go` file that piko
-// compiles alongside the benchmark source. The wrapper defines a single
-// parameterless function `EntrypointRun` that calls either `Run()` (for
-// ModeEndToEnd) or `RunInner(K)` with K hard-coded (for ModeInnerLoop).
-// This keeps the piko entry-point shape parameterless while still letting
-// the harness vary spec.KInner per run.
+// generateWrapper synthesises a tiny `entrypoint.go` file that piko compiles alongside
+// the benchmark source. The wrapper defines a single parameterless function
+// `EntrypointRun` that calls either `Run()` (for ModeEndToEnd) or `RunInner(K)` with K
+// hard-coded (for ModeInnerLoop). This keeps the piko entry-point shape parameterless
+// while still letting the harness vary spec.KInner per run.
 func generateWrapper(mode RunMode, spec BenchSpec) string {
 	if mode == ModeInnerLoop {
 		return fmt.Sprintf(`package main
@@ -161,14 +158,12 @@ func EntrypointRun() string {
 // decodePikoResult normalises whatever the entrypoint returned into the
 // (canonical-string, inner-nanos) tuple the harness expects.
 //
-// For ModeEndToEnd: piko's Run() returns a string; the inner-nanos field is
-// always zero.
+// For ModeEndToEnd: piko's Run() returns a string; the inner-nanos field is always zero.
 //
-// For ModeInnerLoop: piko's RunInner(k) returns two values which the
-// interpreter exposes to native callers as a `[]any` (or similar). We
-// inspect the shape defensively rather than relying on an exact API
-// contract so a future tweak to the runtime's multi-return surface does
-// not silently break the harness.
+// For ModeInnerLoop: piko's RunInner(k) returns two values which the interpreter exposes
+// to native callers as a `[]any` (or similar). We inspect the shape defensively rather
+// than relying on an exact API contract so a future tweak to the runtime's multi-return
+// surface does not silently break the harness.
 func decodePikoResult(raw any, mode RunMode) (string, int64) {
 	if mode == ModeEndToEnd {
 		if asString, ok := raw.(string); ok {
@@ -218,11 +213,10 @@ func anyToInt64(value any) int64 {
 	}
 }
 
-// pikoSelfPeakRSSKB samples the current process's peak resident-set-size in
-// KiB. Because piko is in-process, the captured RSS is the test binary's
-// RSS, which is dominated by Go runtime and unrelated test infrastructure;
-// it is not directly comparable to per-process RSS for the subprocess
-// runners. The Markdown report footnotes this.
+// pikoSelfPeakRSSKB samples the current process's peak resident-set-size in KiB. Because
+// piko is in-process, the captured RSS is the test binary's RSS, which is dominated by Go
+// runtime and unrelated test infrastructure; it is not directly comparable to per-process
+// RSS for the subprocess runners. The Markdown report footnotes this.
 func pikoSelfPeakRSSKB() int64 {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)

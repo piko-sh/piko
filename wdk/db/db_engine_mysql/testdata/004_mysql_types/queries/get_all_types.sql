@@ -1,5 +1,4 @@
--- piko.name: GetAllTypes
--- piko.command: one
+-- piko.query(name: GetAllTypes, command: one)
 SELECT
     id, tiny_col, small_col, medium_col, int_col, big_col,
     float_col, double_col, decimal_col,

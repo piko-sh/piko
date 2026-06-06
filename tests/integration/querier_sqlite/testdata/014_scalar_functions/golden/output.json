@@ -1,20 +1,20 @@
 {
   "with_optional": {
-    "ContentLength": 11,
-    "ID": 1,
-    "Lowered": "hello world",
-    "OptionalLength": 13,
-    "OptionalLowered": "optional text",
-    "Prefix": "Hello",
-    "Uppered": "HELLO WORLD"
+    "content_length": 11,
+    "id": 1,
+    "lowered": "hello world",
+    "optional_length": 13,
+    "optional_lowered": "optional text",
+    "prefix": "Hello",
+    "uppered": "HELLO WORLD"
   },
   "without_optional": {
-    "ContentLength": 7,
-    "ID": 2,
-    "Lowered": "testing",
-    "OptionalLength": null,
-    "OptionalLowered": null,
-    "Prefix": "Testi",
-    "Uppered": "TESTING"
+    "content_length": 7,
+    "id": 2,
+    "lowered": "testing",
+    "optional_length": null,
+    "optional_lowered": null,
+    "prefix": "Testi",
+    "uppered": "TESTING"
   }
 }

@@ -44,9 +44,8 @@ const (
 	testConnMaxLifetime = 1 * time.Hour
 )
 
-// OpenTestDB creates a new SQLite database connection for testing. It
-// automatically detects whether to use CGO (sqlite3) or pure Go (sqlite)
-// driver.
+// OpenTestDB creates a new SQLite database connection for testing. It automatically
+// detects whether to use CGO (sqlite3) or pure Go (sqlite) driver.
 //
 // Takes t (testing.TB) for error reporting.
 // Takes dsn (string) which is the data source name for the database.
@@ -75,8 +74,7 @@ func OpenTestDB(t testing.TB, dsn string) *sql.DB {
 	return db
 }
 
-// RunRegistryMigrations runs the registry database migrations on the given
-// path.
+// RunRegistryMigrations runs the registry database migrations on the given path.
 //
 // Takes path (string) which specifies the file path to the database.
 //
@@ -92,8 +90,7 @@ func RunRegistryMigrations(path string) error {
 	return runQuerierMigrations(database, db_schema_registry_sqlite.Migrations, "registry")
 }
 
-// RunOrchestratorMigrations runs orchestrator database migrations on the given
-// path.
+// RunOrchestratorMigrations runs orchestrator database migrations on the given path.
 //
 // Takes path (string) specifying the file path to the database.
 //
@@ -109,9 +106,8 @@ func RunOrchestratorMigrations(path string) error {
 	return runQuerierMigrations(database, db_schema_orchestrator_sqlite.Migrations, "orchestrator")
 }
 
-// RunRegistryMigrationsOnDB runs registry migrations on an existing database
-// connection. Use it for in-memory databases where the connection must stay
-// open.
+// RunRegistryMigrationsOnDB runs registry migrations on an existing database connection.
+// Use it for in-memory databases where the connection must stay open.
 //
 // Takes db (*sql.DB) which is the existing database connection.
 //
@@ -120,9 +116,8 @@ func RunRegistryMigrationsOnDB(db *sql.DB) error {
 	return runQuerierMigrations(db, db_schema_registry_sqlite.Migrations, "registry")
 }
 
-// RunOrchestratorMigrationsOnDB runs orchestrator migrations on an existing
-// database connection. Use it for in-memory databases where the connection
-// must stay open.
+// RunOrchestratorMigrationsOnDB runs orchestrator migrations on an existing database
+// connection. Use it for in-memory databases where the connection must stay open.
 //
 // Takes db (*sql.DB) which is the existing database connection.
 //
@@ -131,8 +126,8 @@ func RunOrchestratorMigrationsOnDB(db *sql.DB) error {
 	return runQuerierMigrations(db, db_schema_orchestrator_sqlite.Migrations, "orchestrator")
 }
 
-// detectSQLiteDriver returns the appropriate SQLite driver name based on
-// which drivers are registered.
+// detectSQLiteDriver returns the appropriate SQLite driver name based on which drivers
+// are registered.
 //
 // Returns string which is the driver name to use for database connections.
 func detectSQLiteDriver() string {
@@ -143,8 +138,7 @@ func detectSQLiteDriver() string {
 	return "sqlite"
 }
 
-// runQuerierMigrations applies database migrations using the querier migration
-// service.
+// runQuerierMigrations applies database migrations using the querier migration service.
 func runQuerierMigrations(database *sql.DB, migrationFS fs.FS, name string) error {
 	executor := migration_sql.NewExecutor(database, migration_sql.SQLiteDialect())
 	fileReader := migration_sql.NewFSFileReader(migrationFS)

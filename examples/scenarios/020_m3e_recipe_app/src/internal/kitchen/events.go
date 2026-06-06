@@ -27,8 +27,8 @@ type Event struct {
 // Sequence is an ordered chain of events that play consecutively.
 type Sequence []Event
 
-// Sequences is the pool of multi-part event chains. Each chain plays
-// in order, with standalone events interleaved between them.
+// Sequences is the pool of multi-part event chains. Each chain plays in order, with
+// standalone events interleaved between them.
 var Sequences = []Sequence{
 	// Gerald the Mouse
 	{
@@ -222,8 +222,8 @@ var Sequences = []Sequence{
 	},
 }
 
-// Standalone is the pool of one-off kitchen events, shuffled randomly
-// between the sequence chains.
+// Standalone is the pool of one-off kitchen events, shuffled randomly between the
+// sequence chains.
 var Standalone = []Event{
 	{Text: "Chef has eaten 4 slices of cheddar during prep. This is a new personal best.", Category: "chef"},
 	{Text: "Customer asked if we have vegan cheese. The mice held an emergency meeting.", Category: "mouse"},

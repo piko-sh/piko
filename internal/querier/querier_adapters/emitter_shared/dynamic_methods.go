@@ -63,15 +63,15 @@ func buildDynamicOneQueryStatements(
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :one method AST node.
-func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy) *ast.FuncDecl {
+func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
 	sortParameter := FindSortableParameter(query)
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	statements := BuildParamsInitStatements(query)
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CompositeLit(goastutil.CachedIdent(rowTypeName)))...)
 		if sortParameter != nil {
 			statements = append(statements, BuildSortableQueryAppend(*sortParameter)...)
 		}
@@ -91,7 +91,7 @@ func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStra
 				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
 				strategy.QueryRowMethod(),
 			),
-			BuildSortableDynamicQueryArgs(query)...,
+			BuildSortableDynamicQueryArgs(query, strategy)...,
 		)
 		statements = append(statements, buildDynamicOneQueryStatements(rowTypeName, queryRowCall, scanArguments, query)...)
 	} else {
@@ -100,7 +100,7 @@ func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStra
 				goastutil.SelectorExprFrom(goastutil.CachedIdent(IdentQueriesReceiver), strategy.ConnectionField(query)),
 				strategy.QueryRowMethod(),
 			),
-			BuildDynamicQueryArgs(query)...,
+			BuildDynamicQueryArgs(query, strategy)...,
 		)
 		statements = append(statements, buildDynamicOneQueryStatements(rowTypeName, queryRowCall, scanArguments, query)...)
 	}
@@ -127,15 +127,15 @@ func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStra
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :many method AST node.
-func BuildDynamicManyMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy) *ast.FuncDecl {
+func BuildDynamicManyMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {
 	rowTypeName := query.Name + "Row"
 	sortParameter := FindSortableParameter(query)
-	scanArguments := BuildScanArgs(query)
+	scanArguments := BuildScanArgs(query, strategy, mappings)
 
 	statements := BuildParamsInitStatements(query)
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CachedIdent(IdentNil))...)
 		if sortParameter != nil {
 			statements = append(statements, BuildSortableQueryAppend(*sortParameter)...)
 		}
@@ -143,10 +143,10 @@ func BuildDynamicManyMethod(query *querier_dto.AnalysedQuery, strategy MethodStr
 		statements = append(statements, BuildRowsIterationBodyFromSliceCall(rowTypeName, dbCall, scanArguments, query)...)
 	} else if sortParameter != nil {
 		statements = append(statements, BuildSortableQueryInit(query, *sortParameter)...)
-		queryArguments := BuildSortableDynamicQueryArgs(query)
+		queryArguments := BuildSortableDynamicQueryArgs(query, strategy)
 		statements = append(statements, BuildRowsIterationBody(rowTypeName, queryArguments, scanArguments, query, strategy)...)
 	} else {
-		queryArguments := BuildDynamicQueryArgs(query)
+		queryArguments := BuildDynamicQueryArgs(query, strategy)
 		statements = append(statements, BuildRowsIterationBody(rowTypeName, queryArguments, scanArguments, query, strategy)...)
 	}
 
@@ -174,13 +174,13 @@ func BuildDynamicExecMethod(query *querier_dto.AnalysedQuery, strategy MethodStr
 	statements := BuildParamsInitStatements(query)
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy)...)
 		statements = append(statements,
 			goastutil.DefineStmtMulti([]string{IdentBlank, IdentErr}, SliceDBCall(strategy, query, strategy.ExecMethod())),
 			goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
 		)
 	} else {
-		queryArguments := BuildDynamicQueryArgs(query)
+		queryArguments := BuildDynamicQueryArgs(query, strategy)
 		statements = append(statements,
 			goastutil.DefineStmtMulti([]string{IdentBlank, IdentErr}, strategy.DBCall(strategy.ConnectionField(query), strategy.ExecMethod(), queryArguments)),
 			goastutil.ReturnStmt(goastutil.CachedIdent(IdentErr)),
@@ -208,10 +208,10 @@ func BuildDynamicExecResultMethod(query *querier_dto.AnalysedQuery, strategy Met
 	statements := BuildParamsInitStatements(query)
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.CachedIdent(IdentNil))...)
 		statements = append(statements, goastutil.ReturnStmt(SliceDBCall(strategy, query, strategy.ExecMethod())))
 	} else {
-		queryArguments := BuildDynamicQueryArgs(query)
+		queryArguments := BuildDynamicQueryArgs(query, strategy)
 		statements = append(statements, goastutil.ReturnStmt(strategy.DBCall(strategy.ConnectionField(query), strategy.ExecMethod(), queryArguments)))
 	}
 
@@ -239,7 +239,7 @@ func BuildDynamicExecRowsMethod(query *querier_dto.AnalysedQuery, strategy Metho
 	statements := BuildParamsInitStatements(query)
 
 	if NeedsSliceExpansion(query, strategy) {
-		statements = append(statements, BuildSliceExpansionPreamble(query)...)
+		statements = append(statements, BuildSliceExpansionPreamble(query, strategy, goastutil.IntLit(0))...)
 		dbCall := SliceDBCall(strategy, query, strategy.ExecMethod())
 		statements = append(statements,
 			goastutil.DefineStmtMulti([]string{IdentResults, IdentErr}, dbCall),
@@ -251,7 +251,7 @@ func BuildDynamicExecRowsMethod(query *querier_dto.AnalysedQuery, strategy Metho
 			),
 		)
 	} else {
-		queryArguments := BuildDynamicQueryArgs(query)
+		queryArguments := BuildDynamicQueryArgs(query, strategy)
 		field := strategy.ConnectionField(query)
 		statements = append(statements, strategy.BuildExecRowsBody(queryArguments, field)...)
 	}

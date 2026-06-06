@@ -1,0 +1,3 @@
+{
+  "description": "Insert hypertable rows that span multiple chunks (one per day), then call drop_chunks(older_than) to delete chunks before a cutoff. Verifies the chunk-management function family at runtime and that rows from dropped chunks no longer appear in queries."
+}

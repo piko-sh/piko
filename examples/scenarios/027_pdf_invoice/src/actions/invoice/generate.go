@@ -11,8 +11,8 @@ import (
 	"testmodule/internal/dto"
 )
 
-// GenerateAction renders a PDF invoice from form input and returns it as
-// base64-encoded bytes.
+// GenerateAction renders a PDF invoice from form input and returns it as base64-encoded
+// bytes.
 //
 //	action.invoice.Generate($form)
 type GenerateAction struct {

@@ -1,0 +1,3 @@
+{
+  "description": "IPv4 column round-trip: inserts and reads IPv4 addresses. Verifies that the codegen produces a working Go type for IPv4 and that the native driver preserves the dotted-quad representation."
+}

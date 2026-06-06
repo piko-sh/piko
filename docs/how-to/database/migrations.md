@@ -26,7 +26,9 @@ db/
     002_add_comments.down.sql
 ```
 
-The prefix is the version key. The migration runner parses `int64` from the leading digits of the filename, so any pattern that starts with digits works. Use zero-padded integers (`001`, `002`) or full timestamps (`20260115`, `20260115143000`). Anything after the digits - including a `T` separator or descriptive name - is decorative and never participates in version comparison. Pick one scheme and stick with it.
+Every file must follow the `{version}_{name}.{up|down}.sql` convention: a numeric version prefix, then a mandatory `_` separator and a non-empty descriptive name, then `.up.sql` or `.down.sql`. The runner parses the version as an `int64` from the leading digits and uses it for ordering. The descriptive name does not participate in version comparison. Use zero-padded integers (`001_initial`) or timestamps (`20260115_initial`), and pick one scheme and stick with it.
+
+Files that do not match are silently skipped. A bare-numeric name with no `_name` segment (`20260115143000.up.sql`) and a name with a `T` separator before the `_` (`20260115T143000_init.up.sql`) both fail to match, so the runner skips them.
 
 A minimal pair:
 
@@ -126,7 +128,7 @@ Swap `db.SQLiteDialect()` for your target database:
 
 | Dialect | Lock style | Notes |
 |---|---|---|
-| `db.SQLiteDialect()` | No-op (`NoOpLock`) | SQLite has no advisory locks. The dialect installs a no-op lock and relies on SQLite's own single-writer serialisation; the migration runner does not add anything on top. |
+| `db.SQLiteDialect()` | No-op (`NoOpLock`) | SQLite has no advisory locks. The dialect installs a no-op lock and relies on SQLite's own single-writer serialisation. The migration runner does not add anything on top. |
 | `db.PostgresDialect()` | Advisory lock | Standard Postgres deployments. |
 | `db.PostgresPgBouncerDialect()` | Table-based lock | For Postgres behind PgBouncer in transaction mode, where advisory locks do not persist across queries. |
 | `db.MySQLDialect()` | `GET_LOCK()` | Works for MySQL and MariaDB. |
@@ -166,10 +168,10 @@ For a checksum-only audit that does not touch any pending migrations, call `migr
 
 ## Skip the transaction wrapper
 
-By default the executor wraps each migration in `BEGIN`/`COMMIT`. Some statements (`CREATE INDEX CONCURRENTLY` on PostgreSQL, `VACUUM` on SQLite, certain DDL on MySQL) refuse to run inside a transaction. Add the directive `-- piko:no-transaction` as the first line of the migration file to opt that file out of transaction wrapping:
+By default the executor wraps each migration in `BEGIN`/`COMMIT`. Some statements (`CREATE INDEX CONCURRENTLY` on PostgreSQL, `VACUUM` on SQLite, certain DDL on MySQL) refuse to run inside a transaction. Add `-- piko.migration(no_transaction: true)` above a statement to opt the migration out of transaction wrapping (CREATE INDEX CONCURRENTLY and VACUUM are auto-detected):
 
 ```sql
--- piko:no-transaction
+-- piko.migration(no_transaction: true)
 CREATE INDEX CONCURRENTLY tasks_completed_idx ON tasks (completed);
 ```
 
@@ -197,7 +199,7 @@ If a process dies mid-migration, the row in `piko_migrations` keeps `dirty = 1` 
 
 If the dirty record does not line up with the next pending file, the run fails fast with a domain-level dirty-migration error. This happens when the file is missing, when someone renumbered it, or when it sits behind other unrelated pending versions. The run refuses to apply anything else until the operator resolves the inconsistency.
 
-## Recover from checksum mismatch
+## Recover from a checksum mismatch
 
 If you edit an applied migration file after it ran, `Up` returns `db.ChecksumMismatchError`. The service protects against silently losing track of schema evolution. Options to recover:
 
@@ -259,7 +261,7 @@ This pattern groups database startup with its health probe (see the [health chec
 ## See also
 
 - [Querier reference](../../reference/querier.md).
-- [How to writing queries](queries.md).
-- [How to swapping database engines](swapping-engines.md).
-- [How to lifecycle](../lifecycle.md) for running migrations as a managed lifecycle component.
+- [How to write queries](queries.md).
+- [How to swap database engines](swapping-engines.md).
+- [Lifecycle how-to](../lifecycle.md) for running migrations as a managed lifecycle component.
 - Scenarios: [022 SQLite](../../../examples/scenarios/022_database_sqlite/), [023 MySQL](../../../examples/scenarios/023_database_mysql/), [024 PostgreSQL](../../../examples/scenarios/024_database_postgres/).

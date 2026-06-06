@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "union_widen.sql",
-    "SQL": "-- piko.name: UnionWiden\n-- piko.command: many\nSELECT val FROM narrow\nUNION ALL\nSELECT val FROM wide;",
+    "SQL": "-- piko.query(name: UnionWiden, command: many)\nSELECT val FROM narrow\nUNION ALL\nSELECT val FROM wide;",
     "Name": "UnionWiden",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "val",
         "SourceTable": "narrow",
+        "SourceSchema": "",
         "SourceColumn": "val",
+        "SourceQualifier": "narrow",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

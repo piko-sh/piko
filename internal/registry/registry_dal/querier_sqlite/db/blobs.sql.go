@@ -11,16 +11,16 @@ WHERE storage_key = ?
 RETURNING ref_count;`
 
 type DecrementBlobRefCountParams struct {
-	P1 int32
-	P2 string
+	LastReferencedAt int64
+	StorageKey       string
 }
 type DecrementBlobRefCountRow struct {
-	RefCount int32
+	RefCount int32 `json:"ref_count"`
 }
 
 func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params DecrementBlobRefCountParams) (DecrementBlobRefCountRow, error) {
 	var row DecrementBlobRefCountRow
-	err := queries.writer.QueryRowContext(ctx, decrementblobrefcount, params.P1, params.P2).Scan(&row.RefCount)
+	err := queries.writer.QueryRowContext(ctx, decrementblobrefcount, params.LastReferencedAt, params.StorageKey).Scan(&row.RefCount)
 	if err != nil {
 		return DecrementBlobRefCountRow{}, err
 	}
@@ -29,20 +29,20 @@ func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params Decrem
 
 const deleteblobreferenceifzero = `DELETE FROM blob_reference WHERE storage_key = ? AND ref_count = 0;`
 
-func (queries *Queries) DeleteBlobReferenceIfZero(ctx context.Context, p1 string) error {
-	_, err := queries.writer.ExecContext(ctx, deleteblobreferenceifzero, p1)
+func (queries *Queries) DeleteBlobReferenceIfZero(ctx context.Context, storageKey string) error {
+	_, err := queries.writer.ExecContext(ctx, deleteblobreferenceifzero, storageKey)
 	return err
 }
 
 const getblobrefcount = `SELECT ref_count FROM blob_reference WHERE storage_key = ?;`
 
 type GetBlobRefCountRow struct {
-	RefCount int32
+	RefCount int32 `json:"ref_count"`
 }
 
-func (queries *Queries) GetBlobRefCount(ctx context.Context, p1 string) (GetBlobRefCountRow, error) {
+func (queries *Queries) GetBlobRefCount(ctx context.Context, storageKey string) (GetBlobRefCountRow, error) {
 	var row GetBlobRefCountRow
-	err := queries.reader.QueryRowContext(ctx, getblobrefcount, p1).Scan(&row.RefCount)
+	err := queries.reader.QueryRowContext(ctx, getblobrefcount, storageKey).Scan(&row.RefCount)
 	if err != nil {
 		return GetBlobRefCountRow{}, err
 	}
@@ -57,21 +57,21 @@ ON CONFLICT(storage_key) DO UPDATE SET
 RETURNING ref_count;`
 
 type IncrementBlobRefCountParams struct {
-	P1 string
-	P2 string
-	P3 string
-	P4 int32
-	P5 string
-	P6 int32
-	P7 int32
+	StorageKey       string
+	StorageBackendID string
+	ContentHash      string
+	SizeBytes        int64
+	MimeType         string
+	CreatedAt        int64
+	LastReferencedAt int64
 }
 type IncrementBlobRefCountRow struct {
-	RefCount int32
+	RefCount int32 `json:"ref_count"`
 }
 
 func (queries *Queries) IncrementBlobRefCount(ctx context.Context, params IncrementBlobRefCountParams) (IncrementBlobRefCountRow, error) {
 	var row IncrementBlobRefCountRow
-	err := queries.writer.QueryRowContext(ctx, incrementblobrefcount, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7).Scan(&row.RefCount)
+	err := queries.writer.QueryRowContext(ctx, incrementblobrefcount, params.StorageKey, params.StorageBackendID, params.ContentHash, params.SizeBytes, params.MimeType, params.CreatedAt, params.LastReferencedAt).Scan(&row.RefCount)
 	if err != nil {
 		return IncrementBlobRefCountRow{}, err
 	}

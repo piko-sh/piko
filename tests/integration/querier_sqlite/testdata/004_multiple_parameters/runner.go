@@ -37,8 +37,8 @@ func main() {
 	queries := db.New(conn)
 
 	user, err := queries.GetUserByNameAndEmail(ctx, db.GetUserByNameAndEmailParams{
-		P1: "Alice",
-		P2: "alice@example.com",
+		Name:  "Alice",
+		Email: "alice@example.com",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

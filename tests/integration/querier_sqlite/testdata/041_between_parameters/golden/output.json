@@ -1,19 +1,19 @@
 {
   "events": [
     {
-      "EventDate": "2025-03-20",
-      "ID": 2,
-      "Name": "Spring"
+      "event_date": "2025-03-20",
+      "id": 2,
+      "name": "Spring"
     },
     {
-      "EventDate": "2025-06-21",
-      "ID": 3,
-      "Name": "Summer"
+      "event_date": "2025-06-21",
+      "id": 3,
+      "name": "Summer"
     },
     {
-      "EventDate": "2025-09-22",
-      "ID": 4,
-      "Name": "Autumn"
+      "event_date": "2025-09-22",
+      "id": 4,
+      "name": "Autumn"
     }
   ]
 }

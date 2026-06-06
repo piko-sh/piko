@@ -38,10 +38,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// PythonRunner executes a benchmark by spawning the host's `python3` or
-// `pypy3` interpreter on the corresponding `<benchmark>/py/<file>.py`. This
-// is the host-Python fallback path; the testcontainers-backed runner
-// (ContainerPythonRunner below) is the default.
+// PythonRunner executes a benchmark by spawning the host's `python3` or `pypy3`
+// interpreter on the corresponding `<benchmark>/py/<file>.py`. This is the host-Python
+// fallback path; the testcontainers-backed runner (ContainerPythonRunner below) is the
+// default.
 type PythonRunner struct {
 	kind RunnerKind
 
@@ -99,10 +99,10 @@ func (runner *PythonRunner) Close(ctx context.Context) error {
 	return nil
 }
 
-// Run invokes the interpreter via the shared `_python_driver.py` which
-// times Python's `compile()` step separately from the workload's run()
-// invocations. Stdout is the canonical result hashed against the spec;
-// stderr carries the INNER_ELAPSED_NS and COMPILE_NANOS markers.
+// Run invokes the interpreter via the shared `_python_driver.py` which times Python's
+// `compile()` step separately from the workload's run() invocations. Stdout is the
+// canonical result hashed against the spec; stderr carries the INNER_ELAPSED_NS and
+// COMPILE_NANOS markers.
 func (runner *PythonRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	benchmarksRoot := filepath.Dir(benchmarkDir)
 	driverPath := filepath.Join(benchmarksRoot, "_python_driver.py")
@@ -152,8 +152,8 @@ func (runner *PythonRunner) Run(parent context.Context, spec BenchSpec, mode Run
 	}, nil
 }
 
-// PythonVersionString probes the interpreter for a one-line version
-// identification, used to populate the HostInfo block in the report.
+// PythonVersionString probes the interpreter for a one-line version identification, used
+// to populate the HostInfo block in the report.
 func PythonVersionString(parent context.Context, binary string) string {
 	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
 	defer cancel()
@@ -164,11 +164,10 @@ func PythonVersionString(parent context.Context, binary string) string {
 	return strings.TrimSpace(string(output))
 }
 
-// ContainerPythonRunner runs a benchmark inside a long-lived Docker
-// container managed by testcontainers-go. One container per Python flavour
-// is started lazily on first Run and reused for every subsequent
-// invocation. The benchmarks directory is bind-mounted read-only at
-// /benchmarks inside the container.
+// ContainerPythonRunner runs a benchmark inside a long-lived Docker container managed by
+// testcontainers-go. One container per Python flavour is started lazily on first Run and
+// reused for every subsequent invocation. The benchmarks directory is bind-mounted
+// read-only at /benchmarks inside the container.
 type ContainerPythonRunner struct {
 	kind RunnerKind
 
@@ -193,9 +192,8 @@ type ContainerPythonRunner struct {
 	availableMessage string
 }
 
-// NewContainerCPythonRunner returns a containerised CPython runner using
-// the given image (e.g. "python:3.13-slim"). Container is not started
-// until first Run / Available call.
+// NewContainerCPythonRunner returns a containerised CPython runner using the given image
+// (e.g. "python:3.13-slim"). Container is not started until first Run / Available call.
 func NewContainerCPythonRunner(image, hostBenchDir string) *ContainerPythonRunner {
 	return &ContainerPythonRunner{
 		kind:           RunnerCPython,
@@ -206,8 +204,8 @@ func NewContainerCPythonRunner(image, hostBenchDir string) *ContainerPythonRunne
 	}
 }
 
-// NewContainerPyPyRunner returns a containerised PyPy runner using the
-// given image (e.g. "pypy:3.10-slim").
+// NewContainerPyPyRunner returns a containerised PyPy runner using the given image (e.g.
+// "pypy:3.10-slim").
 func NewContainerPyPyRunner(image, hostBenchDir string) *ContainerPythonRunner {
 	return &ContainerPythonRunner{
 		kind:           RunnerPyPy,
@@ -221,8 +219,8 @@ func NewContainerPyPyRunner(image, hostBenchDir string) *ContainerPythonRunner {
 // Kind reports the runner identity used in results.
 func (runner *ContainerPythonRunner) Kind() RunnerKind { return runner.kind }
 
-// Available probes Docker availability by attempting to start the
-// container. The result is cached for the suite lifetime.
+// Available probes Docker availability by attempting to start the container. The result
+// is cached for the suite lifetime.
 func (runner *ContainerPythonRunner) Available(ctx context.Context) (bool, string) {
 	if runner.availableProbed {
 		return runner.available, runner.availableMessage
@@ -249,9 +247,8 @@ func (runner *ContainerPythonRunner) Close(ctx context.Context) error {
 	return terminateError
 }
 
-// ensureStarted lazily creates and starts the container the first time it
-// is needed. Concurrent callers are serialised; only the first one starts
-// the container.
+// ensureStarted lazily creates and starts the container the first time it is needed.
+// Concurrent callers are serialised; only the first one starts the container.
 func (runner *ContainerPythonRunner) ensureStarted(parent context.Context) error {
 	runner.startMu.Lock()
 	defer runner.startMu.Unlock()
@@ -294,8 +291,8 @@ func (runner *ContainerPythonRunner) ensureStarted(parent context.Context) error
 	return nil
 }
 
-// Run dispatches `python3 /benchmarks/<spec.Name>/py/cpython.py <flags>`
-// inside the long-lived container.
+// Run dispatches `python3 /benchmarks/<spec.Name>/py/cpython.py <flags>` inside the
+// long-lived container.
 func (runner *ContainerPythonRunner) Run(parent context.Context, spec BenchSpec, mode RunMode, benchmarkDir string) (Result, error) {
 	_ = benchmarkDir
 	if err := runner.ensureStarted(parent); err != nil {
@@ -359,11 +356,10 @@ func (runner *ContainerPythonRunner) Run(parent context.Context, spec BenchSpec,
 	}, nil
 }
 
-// demultiplexDockerStream parses Docker's frame-tagged exec output stream
-// and splits it into stdout and stderr buffers. Each frame begins with an
-// 8-byte header: byte 0 is the stream identifier (1=stdout, 2=stderr),
-// bytes 1-3 are reserved, bytes 4-7 are the payload size big-endian, then
-// the payload follows.
+// demultiplexDockerStream parses Docker's frame-tagged exec output stream and splits it
+// into stdout and stderr buffers. Each frame begins with an 8-byte header: byte 0 is the
+// stream identifier (1=stdout, 2=stderr), bytes 1-3 are reserved, bytes 4-7 are the
+// payload size big-endian, then the payload follows.
 func demultiplexDockerStream(stream io.Reader) ([]byte, []byte, error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 	header := make([]byte, 8)

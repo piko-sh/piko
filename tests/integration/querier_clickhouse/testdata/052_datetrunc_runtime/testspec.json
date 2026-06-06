@@ -1,0 +1,3 @@
+{
+  "description": "dateTrunc('month', ts) buckets timestamp rows down to the month start. Verifies that the resolver picks up the (String, DateTime) overload, that the grouping works at runtime, and that the result column is returned as a DateTime."
+}

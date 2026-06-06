@@ -1,0 +1,3 @@
+{
+  "description": "EXCHANGE TABLES a AND b atomically swaps the underlying storage of two MergeTree tables. The migration creates two tables seeded with distinct rows, runs an EXCHANGE TABLES statement, then a query reads from the original names to verify the contents have been swapped end-to-end."
+}

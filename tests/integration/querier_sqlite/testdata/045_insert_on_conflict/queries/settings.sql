@@ -1,5 +1,4 @@
--- piko.name: UpsertSetting
--- piko.command: exec
+-- piko.query(name: UpsertSetting, command: exec)
 -- ?1 as piko.param(key)
 -- ?2 as piko.param(value)
 INSERT INTO settings (key, value) VALUES (?1, ?2)

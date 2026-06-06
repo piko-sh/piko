@@ -1,0 +1,3 @@
+{
+  "description": "IPv6 column round-trip: inserts and reads IPv6 addresses, including IPv4-mapped and link-local forms. Verifies codegen and driver fidelity for 128-bit address space."
+}

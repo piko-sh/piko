@@ -247,6 +247,9 @@ func lookupBuiltinType(lowered string, modifiers []int) querier_dto.SQLType {
 }
 
 // applyModifiers writes numeric modifier values onto a SQLType according to its category.
+// A precision or length must be at least one and a scale at least zero, and every value
+// must be within maxTypeModifierValue; out-of-range modifiers are ignored rather than
+// written into the catalogue.
 //
 // Takes sqlType (*querier_dto.SQLType) which is mutated in place.
 // Takes modifiers ([]int) which holds the modifier values to apply.
@@ -256,22 +259,48 @@ func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 	}
 	switch sqlType.Category {
 	case querier_dto.TypeCategoryDecimal:
-		if len(modifiers) >= 1 {
-			sqlType.Precision = new(modifiers[0])
-		}
-		if len(modifiers) >= 2 {
-			sqlType.Scale = new(modifiers[1])
-		}
+		assignPositiveModifier(&sqlType.Precision, modifiers, 0)
+		assignScaleModifier(&sqlType.Scale, modifiers, 1)
 	case querier_dto.TypeCategoryText:
-		if len(modifiers) >= 1 {
-			sqlType.Length = new(modifiers[0])
-		}
+		assignPositiveModifier(&sqlType.Length, modifiers, 0)
 	case querier_dto.TypeCategoryTemporal:
-		if len(modifiers) >= 1 {
-			sqlType.Precision = new(modifiers[0])
-		}
+		assignPositiveModifier(&sqlType.Precision, modifiers, 0)
 	default:
 	}
+}
+
+// assignPositiveModifier writes the modifier at index into target when it is present and
+// is a positive value within the accepted ceiling.
+//
+// Takes target (**int) which receives a pointer to the validated value.
+// Takes modifiers ([]int) which holds the candidate values.
+// Takes index (int) which is the position of the candidate within modifiers.
+func assignPositiveModifier(target **int, modifiers []int, index int) {
+	if index >= len(modifiers) {
+		return
+	}
+	value := modifiers[index]
+	if value < 1 || value > maxTypeModifierValue {
+		return
+	}
+	*target = new(value)
+}
+
+// assignScaleModifier writes the modifier at index into target when it is present and is
+// a non-negative scale within the accepted ceiling.
+//
+// Takes target (**int) which receives a pointer to the validated value.
+// Takes modifiers ([]int) which holds the candidate values.
+// Takes index (int) which is the position of the candidate within modifiers.
+func assignScaleModifier(target **int, modifiers []int, index int) {
+	if index >= len(modifiers) {
+		return
+	}
+	value := modifiers[index]
+	if value < 0 || value > maxTypeModifierValue {
+		return
+	}
+	*target = new(value)
 }
 
 // integerPromotionRank returns the width rank for an integer type.

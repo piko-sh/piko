@@ -1,12 +1,12 @@
 {
   "dequeued": {
-    "ID": 4,
-    "Payload": "critical task"
+    "id": 4,
+    "payload": "critical task"
   },
   "exists_false": {
-    "Found": false
+    "found": false
   },
   "exists_true": {
-    "Found": true
+    "found": true
   }
 }

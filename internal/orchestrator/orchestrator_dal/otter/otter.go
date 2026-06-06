@@ -575,14 +575,14 @@ func (d *DAL) ListTaskSummary(_ context.Context) ([]orchestrator_domain.TaskSumm
 
 // ListRecentTasks returns the most recently updated tasks.
 //
-// Takes limit (int32) which specifies the maximum number of tasks to return.
+// Takes limit (int) which specifies the maximum number of tasks to return.
 //
 // Returns []orchestrator_domain.TaskListItem which contains the task data for display.
 // Returns error when the query fails.
 //
 // Safe for concurrent use. Snapshots the task slice under a read lock, releases the lock,
 // then sorts outside it so concurrent readers are not blocked by the O(n log n) sort.
-func (d *DAL) ListRecentTasks(_ context.Context, limit int32) ([]orchestrator_domain.TaskListItem, error) {
+func (d *DAL) ListRecentTasks(_ context.Context, limit int) ([]orchestrator_domain.TaskListItem, error) {
 	d.mu.RLock()
 	tasks := make([]*orchestrator_domain.Task, 0, d.tasks.EstimatedSize())
 	for _, task := range d.tasks.All() {
@@ -594,7 +594,7 @@ func (d *DAL) ListRecentTasks(_ context.Context, limit int32) ([]orchestrator_do
 		return cmp.Compare(b.UpdatedAt.UnixNano(), a.UpdatedAt.UnixNano())
 	})
 
-	count := min(int(limit), len(tasks))
+	count := min(limit, len(tasks))
 	results := make([]orchestrator_domain.TaskListItem, count)
 	for i := range count {
 		task := tasks[i]
@@ -621,14 +621,14 @@ func (d *DAL) ListRecentTasks(_ context.Context, limit int32) ([]orchestrator_do
 
 // ListWorkflowSummary returns workflow-level aggregates.
 //
-// Takes limit (int32) which specifies the maximum number of workflows to return.
+// Takes limit (int) which specifies the maximum number of workflows to return.
 //
 // Returns []orchestrator_domain.WorkflowSummary which contains aggregated workflow data
 // sorted by most recently updated.
 // Returns error when the query fails.
 //
 // Safe for concurrent use; holds a read lock for the duration of the call.
-func (d *DAL) ListWorkflowSummary(_ context.Context, limit int32) ([]orchestrator_domain.WorkflowSummary, error) {
+func (d *DAL) ListWorkflowSummary(_ context.Context, limit int) ([]orchestrator_domain.WorkflowSummary, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -646,7 +646,7 @@ func (d *DAL) ListWorkflowSummary(_ context.Context, limit int32) ([]orchestrato
 		return cmp.Compare(b.agg.updatedAt, a.agg.updatedAt)
 	})
 
-	count := min(int(limit), len(sorted))
+	count := min(limit, len(sorted))
 	results := make([]orchestrator_domain.WorkflowSummary, count)
 	for i := range count {
 		results[i] = orchestrator_domain.WorkflowSummary{
@@ -1265,7 +1265,6 @@ func (d *DAL) listFailedTasksLocked(_ context.Context) ([]*orchestrator_domain.T
 
 // createTaskLocked stores a task without acquiring the lock. Caller must hold mu.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes task (*orchestrator_domain.Task) which is the task to store.
 //
 // Returns error when the storage operation fails.

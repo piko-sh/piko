@@ -1,7 +1,6 @@
-// Package db provides embedded SQLite migration files for the task manager
-// database. Pass Migrations as the MigrationFS field in a DatabaseRegistration
-// to apply the schema automatically, or use it directly with a
-// MigrationService.
+// Package db provides embedded SQLite migration files for the task manager database. Pass
+// Migrations as the MigrationFS field in a DatabaseRegistration to apply the schema
+// automatically, or use it directly with a MigrationService.
 package db
 
 import "embed"

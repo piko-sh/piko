@@ -26,8 +26,18 @@ import (
 
 // parseExpression parses a full SQL expression at the current position.
 //
+// Bounds parenthesis-driven recursion. A stack overflow here is a fatal, non-recoverable
+// Go error, so the cap (not the engine's recover guard) is what keeps deeply nested input
+// from crashing the host. On overflow it returns an unknown expression rather than
+// descending further.
+//
 // Returns querier_dto.Expression which is the parsed expression.
 func (p *parser) parseExpression() querier_dto.Expression {
+	if p.expressionDepth >= p.maxParseDepth {
+		return &querier_dto.UnknownExpression{}
+	}
+	p.expressionDepth++
+	defer func() { p.expressionDepth-- }()
 	return p.parseOrExpression()
 }
 
@@ -685,8 +695,7 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		if collectError != nil {
 			return &querier_dto.UnknownExpression{}
 		}
-		childParser := newParser(innerTokens)
-		childParser.parameterCount = p.parameterCount
+		childParser := p.newChildParser(innerTokens)
 		innerAnalysis, analyseError := childParser.analyseSelect()
 		if analyseError != nil {
 			return &querier_dto.UnknownExpression{}
@@ -699,7 +708,7 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		}
 	}
 
-	parameterCountBefore := p.parameterCount
+	referenceCountBefore := len(p.parameterRefs)
 	values := p.parseParenthesisedExpressionList()
 
 	var columnReference *querier_dto.ColumnReference
@@ -709,12 +718,10 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 			ColumnName: columnExpression.ColumnName,
 		}
 	}
-	for i := range p.parameterRefs {
-		if p.parameterRefs[i].Number > parameterCountBefore {
-			p.parameterRefs[i].Context = querier_dto.ParameterContextInList
-			if columnReference != nil {
-				p.parameterRefs[i].ColumnReference = columnReference
-			}
+	for i := referenceCountBefore; i < len(p.parameterRefs); i++ {
+		p.parameterRefs[i].Context = querier_dto.ParameterContextInList
+		if columnReference != nil {
+			p.parameterRefs[i].ColumnReference = columnReference
 		}
 	}
 
@@ -731,7 +738,7 @@ func (p *parser) parseBetweenSuffix(left querier_dto.Expression) querier_dto.Exp
 	p.advance()
 	p.matchKeyword("SYMMETRIC")
 
-	parameterCountBefore := p.parameterCount
+	referenceCountBefore := len(p.parameterRefs)
 	low := p.parseAddExpression()
 	p.matchKeyword(keywordAND)
 	high := p.parseAddExpression()
@@ -743,12 +750,10 @@ func (p *parser) parseBetweenSuffix(left querier_dto.Expression) querier_dto.Exp
 			ColumnName: columnExpression.ColumnName,
 		}
 	}
-	for i := range p.parameterRefs {
-		if p.parameterRefs[i].Number > parameterCountBefore {
-			p.parameterRefs[i].Context = querier_dto.ParameterContextBetween
-			if columnReference != nil {
-				p.parameterRefs[i].ColumnReference = columnReference
-			}
+	for i := referenceCountBefore; i < len(p.parameterRefs); i++ {
+		p.parameterRefs[i].Context = querier_dto.ParameterContextBetween
+		if columnReference != nil {
+			p.parameterRefs[i].ColumnReference = columnReference
 		}
 	}
 

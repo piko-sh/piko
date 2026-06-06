@@ -19,10 +19,12 @@
 package service_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -180,7 +182,7 @@ func (engine *mockEngine) ParseStatements(sql string) ([]querier_dto.ParsedState
 	return results, nil
 }
 
-func (engine *mockEngine) ApplyDDL(statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+func (engine *mockEngine) ApplyDDL(_ context.Context, statement querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 	rawIndex, ok := statement.Raw.(mockStatementIndex)
 	if !ok {
 		return nil, fmt.Errorf("mock engine: unexpected statement raw type %T", statement.Raw)
@@ -231,6 +233,13 @@ func (engine *mockEngine) AnalyseQuery(
 	}
 
 	return convertRawAnalysis(analysis), nil
+}
+
+func (*mockEngine) RewriteSelectAsCount(
+	originalSQL string,
+	analysis *querier_dto.RawQueryAnalysis,
+) (string, bool, error) {
+	return querier_domain.RewriteSelectAsCount(originalSQL, analysis)
 }
 
 func (engine *mockEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
@@ -286,6 +295,10 @@ func (*mockEngine) SupportsReturning() bool {
 
 func (*mockEngine) Dialect() string {
 	return "mock"
+}
+
+func (*mockEngine) SupportsAsyncMutations() bool {
+	return false
 }
 
 func (*mockEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {

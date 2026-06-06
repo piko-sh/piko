@@ -1,22 +1,22 @@
 {
   "stats": [
     {
-      "CustomerID": 1,
-      "OrderCount": 2,
-      "Tier": "high",
-      "TotalAmount": 125
+      "customer_id": 1,
+      "order_count": 2,
+      "tier": "high",
+      "total_amount": 125
     },
     {
-      "CustomerID": 2,
-      "OrderCount": 1,
-      "Tier": "low",
-      "TotalAmount": 30
+      "customer_id": 2,
+      "order_count": 1,
+      "tier": "low",
+      "total_amount": 30
     },
     {
-      "CustomerID": 3,
-      "OrderCount": 1,
-      "Tier": "high",
-      "TotalAmount": 200
+      "customer_id": 3,
+      "order_count": 1,
+      "tier": "high",
+      "total_amount": 200
     }
   ]
 }

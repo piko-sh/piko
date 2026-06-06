@@ -1,96 +1,96 @@
 {
   "leaves": [
     {
-      "ID": 4,
-      "Name": "Laptops"
+      "id": 4,
+      "name": "Laptops"
     },
     {
-      "ID": 5,
-      "Name": "Shirts"
+      "id": 5,
+      "name": "Shirts"
     },
     {
-      "ID": 6,
-      "Name": "Android"
+      "id": 6,
+      "name": "Android"
     },
     {
-      "ID": 7,
-      "Name": "iOS"
+      "id": 7,
+      "name": "iOS"
     }
   ],
   "subtree": [
     {
-      "Depth": 0,
-      "ID": 1,
-      "Name": "Electronics",
-      "ParentID": null
+      "depth": 0,
+      "id": 1,
+      "name": "Electronics",
+      "parent_id": null
     },
     {
-      "Depth": 1,
-      "ID": 3,
-      "Name": "Phones",
-      "ParentID": 1
+      "depth": 1,
+      "id": 3,
+      "name": "Phones",
+      "parent_id": 1
     },
     {
-      "Depth": 1,
-      "ID": 4,
-      "Name": "Laptops",
-      "ParentID": 1
+      "depth": 1,
+      "id": 4,
+      "name": "Laptops",
+      "parent_id": 1
     },
     {
-      "Depth": 2,
-      "ID": 6,
-      "Name": "Android",
-      "ParentID": 3
+      "depth": 2,
+      "id": 6,
+      "name": "Android",
+      "parent_id": 3
     },
     {
-      "Depth": 2,
-      "ID": 7,
-      "Name": "iOS",
-      "ParentID": 3
+      "depth": 2,
+      "id": 7,
+      "name": "iOS",
+      "parent_id": 3
     }
   ],
   "tree": [
     {
-      "Depth": 0,
-      "ID": 1,
-      "Name": "Electronics",
-      "ParentID": null
+      "depth": 0,
+      "id": 1,
+      "name": "Electronics",
+      "parent_id": null
     },
     {
-      "Depth": 0,
-      "ID": 2,
-      "Name": "Clothing",
-      "ParentID": null
+      "depth": 0,
+      "id": 2,
+      "name": "Clothing",
+      "parent_id": null
     },
     {
-      "Depth": 1,
-      "ID": 3,
-      "Name": "Phones",
-      "ParentID": 1
+      "depth": 1,
+      "id": 3,
+      "name": "Phones",
+      "parent_id": 1
     },
     {
-      "Depth": 1,
-      "ID": 4,
-      "Name": "Laptops",
-      "ParentID": 1
+      "depth": 1,
+      "id": 4,
+      "name": "Laptops",
+      "parent_id": 1
     },
     {
-      "Depth": 1,
-      "ID": 5,
-      "Name": "Shirts",
-      "ParentID": 2
+      "depth": 1,
+      "id": 5,
+      "name": "Shirts",
+      "parent_id": 2
     },
     {
-      "Depth": 2,
-      "ID": 6,
-      "Name": "Android",
-      "ParentID": 3
+      "depth": 2,
+      "id": 6,
+      "name": "Android",
+      "parent_id": 3
     },
     {
-      "Depth": 2,
-      "ID": 7,
-      "Name": "iOS",
-      "ParentID": 3
+      "depth": 2,
+      "id": 7,
+      "name": "iOS",
+      "parent_id": 3
     }
   ]
 }

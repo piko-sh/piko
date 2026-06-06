@@ -47,14 +47,13 @@ type EntryPoint struct {
 	IsPublic bool
 }
 
-// DiscoverTestCases scans a testdata directory for test case directories.
-// It expects directories named with a numeric prefix (e.g., "01_some_test").
+// DiscoverTestCases scans a testdata directory for test case directories. It expects
+// directories named with a numeric prefix (e.g., "01_some_test").
 //
-// Takes testdataRoot (string) which specifies the path to the testdata
-// directory to scan.
+// Takes testdataRoot (string) which specifies the path to the testdata directory to scan.
 //
-// Returns []TestCase which contains the discovered test cases sorted by their
-// numeric prefix.
+// Returns []TestCase which contains the discovered test cases sorted by their numeric
+// prefix.
 // Returns error when the directory cannot be read or a path cannot be resolved.
 func DiscoverTestCases(testdataRoot string) ([]TestCase, error) {
 	entries, err := os.ReadDir(testdataRoot)
@@ -91,16 +90,16 @@ func DiscoverTestCases(testdataRoot string) ([]TestCase, error) {
 	return testCases, nil
 }
 
-// DiscoverEntryPoints scans a source directory for .pk template files.
-// It returns entry points with their paths relative to the module root.
+// DiscoverEntryPoints scans a source directory for .pk template files. It returns entry
+// points with their paths relative to the module root.
 //
 // Takes srcDir (string) which specifies the root source directory to scan.
 // Takes moduleName (string) which identifies the module for path resolution.
 // Takes pagesDir (string) which specifies the subdirectory containing pages.
 // Takes partialsDir (string) which specifies the subdirectory containing partials.
 //
-// Returns []EntryPoint which contains discovered templates from both pages and
-// partials directories.
+// Returns []EntryPoint which contains discovered templates from both pages and partials
+// directories.
 // Returns error when a directory cannot be read.
 func DiscoverEntryPoints(srcDir, moduleName, pagesDir, partialsDir string) ([]EntryPoint, error) {
 	var entryPoints []EntryPoint

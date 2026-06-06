@@ -1,3 +1,2 @@
--- piko.name: DeleteAccount
--- piko.command: exec
+-- piko.query(name: DeleteAccount, command: exec)
 DELETE FROM accounts WHERE id = ?;

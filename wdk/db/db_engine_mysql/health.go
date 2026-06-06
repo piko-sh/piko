@@ -46,7 +46,6 @@ const (
 // Collects database size, threads connected, and replication lag. Each query handles its
 // own errors independently so a single failing diagnostic does not prevent others.
 //
-// Takes ctx (context.Context) which bounds the lifetime of the queries.
 // Takes database (*sql.DB) which is the MySQL connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is the collected set of diagnostics.
@@ -60,7 +59,6 @@ func (*MySQLEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.Data
 
 // checkMySQLDatabaseSize queries the size of the current database.
 //
-// Takes ctx (context.Context) which bounds the query lifetime.
 // Takes database (*sql.DB) which is the MySQL connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds the database size diagnostic.
@@ -86,7 +84,6 @@ func checkMySQLDatabaseSize(ctx context.Context, database *sql.DB) []db.Database
 
 // checkMySQLThreadsConnected reads the global Threads_connected status.
 //
-// Takes ctx (context.Context) which bounds the query lifetime.
 // Takes database (*sql.DB) which is the MySQL connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds the threads connected diagnostic.
@@ -108,15 +105,22 @@ func checkMySQLThreadsConnected(ctx context.Context, database *sql.DB) []db.Data
 // Tries SHOW REPLICA STATUS first, then falls back to SHOW SLAVE STATUS for older MySQL
 // versions.
 //
-// Takes ctx (context.Context) which bounds the query lifetime.
 // Takes database (*sql.DB) which is the MySQL connection pool.
 //
-// Returns []db.DatabaseHealthDiagnostic which is nil when no replication is configured,
-// else a single lag diagnostic.
+// Returns []db.DatabaseHealthDiagnostic which is nil when no replication is configured, a
+// single lag diagnostic when a replica is present, or an UNKNOWN diagnostic when the
+// status query genuinely fails.
 func checkMySQLReplicationLag(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
-	lag, found := queryReplicationLag(ctx, database, "SHOW REPLICA STATUS")
+	lag, found, err := queryReplicationLag(ctx, database, "SHOW REPLICA STATUS")
 	if !found {
-		lag, found = queryReplicationLag(ctx, database, "SHOW SLAVE STATUS")
+		lag, found, err = queryReplicationLag(ctx, database, "SHOW SLAVE STATUS")
+	}
+	if err != nil {
+		return []db.DatabaseHealthDiagnostic{{
+			Name:    "replication_lag",
+			State:   "UNKNOWN",
+			Message: fmt.Sprintf("replica status query failed: %v", err),
+		}}
 	}
 	if !found {
 		return nil
@@ -143,28 +147,34 @@ func checkMySQLReplicationLag(ctx context.Context, database *sql.DB) []db.Databa
 // queryReplicationLag scans a replica status query for Seconds_Behind.
 //
 // Tolerates schema differences between MySQL versions by inspecting column names and
-// accepting either Seconds_Behind_Source or Seconds_Behind_Master.
+// accepting either Seconds_Behind_Source or Seconds_Behind_Master. It distinguishes a
+// server that is not a replica (no rows, or no lag column, or a NULL lag) from a genuine
+// query, iteration, scan, or parse failure.
 //
-// Takes ctx (context.Context) which bounds the query lifetime.
 // Takes database (*sql.DB) which is the MySQL connection pool.
 // Takes query (string) which is the SQL to execute.
 //
 // Returns int64 which is the lag in seconds when found.
 // Returns bool which is true when a lag value was extracted.
-func queryReplicationLag(ctx context.Context, database *sql.DB, query string) (int64, bool) {
+// Returns error which is non-nil only on a genuine failure (not for a non-replica
+// server).
+func queryReplicationLag(ctx context.Context, database *sql.DB, query string) (int64, bool, error) {
 	rows, err := database.QueryContext(ctx, query)
 	if err != nil {
-		return 0, false
+		return 0, false, fmt.Errorf("executing %q: %w", query, err)
 	}
 	defer func() { _ = rows.Close() }()
 
 	if !rows.Next() {
-		return 0, false
+		if rowsError := rows.Err(); rowsError != nil {
+			return 0, false, fmt.Errorf("iterating %q: %w", query, rowsError)
+		}
+		return 0, false, nil
 	}
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return 0, false
+		return 0, false, fmt.Errorf("reading columns for %q: %w", query, err)
 	}
 
 	values := make([]sql.NullString, len(columns))
@@ -174,23 +184,41 @@ func queryReplicationLag(ctx context.Context, database *sql.DB, query string) (i
 	}
 
 	if err := rows.Scan(scanArguments...); err != nil {
-		return 0, false
+		return 0, false, fmt.Errorf("scanning %q: %w", query, err)
 	}
 
+	return scanReplicationLagColumns(columns, values)
+}
+
+// scanReplicationLagColumns extracts the Seconds_Behind value from a scanned replica
+// status row.
+//
+// It accepts either Seconds_Behind_Source or Seconds_Behind_Master to tolerate schema
+// differences between MySQL versions, and distinguishes a server that is not a replica
+// (no lag column, or a NULL lag) from a genuine parse failure.
+//
+// Takes columns ([]string) which are the column names from the result set.
+// Takes values ([]sql.NullString) which are the scanned values aligned with columns.
+//
+// Returns int64 which is the lag in seconds when found.
+// Returns bool which is true when a lag value was extracted.
+// Returns error which is non-nil only when the lag value fails to parse.
+func scanReplicationLagColumns(columns []string, values []sql.NullString) (int64, bool, error) {
 	for i, column := range columns {
-		if column == "Seconds_Behind_Source" || column == "Seconds_Behind_Master" {
-			if !values[i].Valid {
-				return 0, false
-			}
-			lag, parseError := strconv.ParseInt(values[i].String, 10, 64)
-			if parseError != nil {
-				return 0, false
-			}
-			return lag, true
+		if column != "Seconds_Behind_Source" && column != "Seconds_Behind_Master" {
+			continue
 		}
+		if !values[i].Valid {
+			return 0, false, nil
+		}
+		lag, parseError := strconv.ParseInt(values[i].String, 10, 64)
+		if parseError != nil {
+			return 0, false, fmt.Errorf("parsing %s value %q: %w", column, values[i].String, parseError)
+		}
+		return lag, true, nil
 	}
 
-	return 0, false
+	return 0, false, nil
 }
 
 // formatBytes renders a byte count in human-readable binary units.

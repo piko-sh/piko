@@ -1,19 +1,19 @@
 {
   "summary": [
     {
-      "Product": "Bravo",
-      "SaleCount": 1,
-      "TotalSales": 200
+      "product": "Bravo",
+      "sale_count": 1,
+      "total_sales": 200
     },
     {
-      "Product": "Alpha",
-      "SaleCount": 2,
-      "TotalSales": 150
+      "product": "Alpha",
+      "sale_count": 2,
+      "total_sales": 150
     },
     {
-      "Product": "Charlie",
-      "SaleCount": 3,
-      "TotalSales": 150
+      "product": "Charlie",
+      "sale_count": 3,
+      "total_sales": 150
     }
   ]
 }

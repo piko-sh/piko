@@ -22,6 +22,31 @@ import (
 	"fmt"
 )
 
+// DuplicateSeedVersionError is returned when two seed files share the same version (for
+// example two 001_*.sql files). The downstream version-keyed map would otherwise silently
+// drop one of them; this names both files so the collision is resolved before any seed
+// runs.
+type DuplicateSeedVersionError struct {
+	// FirstFilename holds the filename first seen for the version.
+	FirstFilename string
+
+	// SecondFilename holds the conflicting filename for the same version.
+	SecondFilename string
+
+	// Version holds the shared numeric version.
+	Version int64
+}
+
+// Error returns a human-readable message naming both conflicting files.
+//
+// Returns string which contains the version and both filenames.
+func (e *DuplicateSeedVersionError) Error() string {
+	return fmt.Sprintf(
+		"duplicate seed for version %d: %s and %s",
+		e.Version, e.FirstFilename, e.SecondFilename,
+	)
+}
+
 // SeedExecutionError wraps an error from executing a seed's SQL content, carrying the
 // seed identity for diagnostics.
 type SeedExecutionError struct {

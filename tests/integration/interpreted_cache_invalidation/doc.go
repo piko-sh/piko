@@ -16,12 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package cache_invalidation_test verifies cache invalidation
-// behaviour during interpreted-mode rebuilds.
+// Package cache_invalidation_test verifies cache invalidation behaviour during
+// interpreted-mode rebuilds.
 //
-// [CacheSpy] and [IntrospectionCacheSpy] wrap real cache
-// implementations to record hit, miss, and get counts. The
-// integration tests use staged file patches to simulate source
-// changes and assert that caches are correctly invalidated when
-// content is modified.
+// [CacheSpy] and [IntrospectionCacheSpy] wrap real cache implementations to record hit,
+// miss, and get counts. The integration tests use staged file patches to simulate source
+// changes and assert that caches are correctly invalidated when content is modified.
 package cache_invalidation_test

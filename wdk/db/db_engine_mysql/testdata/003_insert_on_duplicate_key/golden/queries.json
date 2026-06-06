@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_setting.sql",
-    "SQL": "-- piko.name: GetSetting\n-- piko.command: one\nSELECT key_name, value, updated_at FROM settings WHERE key_name = ?;",
+    "SQL": "-- piko.query(name: GetSetting, command: one)\nSELECT key_name, value, updated_at FROM settings WHERE key_name = ?;",
     "Name": "GetSetting",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "key_name",
         "SourceTable": "settings",
+        "SourceSchema": "",
         "SourceColumn": "key_name",
+        "SourceQualifier": "settings",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "settings",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "settings",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "updated_at",
         "SourceTable": "settings",
+        "SourceSchema": "",
         "SourceColumn": "updated_at",
+        "SourceQualifier": "settings",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,7 +105,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -112,16 +127,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "settings",
     "Filename": "upsert_setting.sql",
-    "SQL": "-- piko.name: UpsertSetting\n-- piko.command: exec\nINSERT INTO settings (key_name, value)\nVALUES (?, ?)\nON DUPLICATE KEY UPDATE value = VALUES(value);",
+    "SQL": "-- piko.query(name: UpsertSetting, command: exec)\nINSERT INTO settings (key_name, value)\nVALUES (?, ?)\nON DUPLICATE KEY UPDATE value = VALUES(value);",
     "Name": "UpsertSetting",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -139,13 +157,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -163,13 +183,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -190,9 +212,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -1,0 +1,13 @@
+{
+  "null_tags": {
+    "id": 1,
+    "tags": null
+  },
+  "populated_tags": {
+    "id": 2,
+    "tags": [
+      "a",
+      "b"
+    ]
+  }
+}

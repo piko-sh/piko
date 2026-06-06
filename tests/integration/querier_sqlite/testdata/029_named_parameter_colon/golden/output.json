@@ -1,7 +1,7 @@
 {
   "found_user": {
-    "Email": "alice@example.com",
-    "ID": 1,
-    "Name": "Alice"
+    "email": "alice@example.com",
+    "id": 1,
+    "name": "Alice"
   }
 }

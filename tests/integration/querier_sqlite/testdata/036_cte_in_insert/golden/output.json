@@ -1,12 +1,12 @@
 {
   "copied": [
     {
-      "ID": 2,
-      "Value": "long value"
+      "id": 2,
+      "value": "long value"
     },
     {
-      "ID": 4,
-      "Value": "another long"
+      "id": 4,
+      "value": "another long"
     }
   ]
 }

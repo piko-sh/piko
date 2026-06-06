@@ -1,18 +1,15 @@
--- piko.name: GetProductBySku
--- piko.command: one
+-- piko.query(name: GetProductBySku, command: one)
 SELECT id, sku, name, category, price
 FROM products
 WHERE sku = $1;
 
--- piko.name: ListActiveByCategory
--- piko.command: many
+-- piko.query(name: ListActiveByCategory, command: many)
 SELECT id, sku, name, price
 FROM products
 WHERE category = $1 AND active = true
 ORDER BY price;
 
--- piko.name: FindByAttributes
--- piko.command: many
+-- piko.query(name: FindByAttributes, command: many)
 SELECT id, sku, name, attributes
 FROM products
 WHERE attributes @> $1::jsonb

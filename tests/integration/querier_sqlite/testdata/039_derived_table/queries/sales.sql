@@ -1,5 +1,4 @@
--- piko.name: GetProductSummary
--- piko.command: many
+-- piko.query(name: GetProductSummary, command: many)
 SELECT sub.product, sub.total_sales, sub.sale_count
 FROM (
     SELECT product, SUM(amount) AS total_sales, COUNT(*) AS sale_count

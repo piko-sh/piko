@@ -1,11 +1,9 @@
--- piko.name: UpdateTaskHeartbeat
--- piko.command: exec
+-- piko.query(name: UpdateTaskHeartbeat, command: exec)
 UPDATE tasks
 SET updated_at = ?
 WHERE id = ? AND status = 'PROCESSING';
 
--- piko.name: GetStaleProcessingTaskCount
--- piko.command: one
+-- piko.query(name: GetStaleProcessingTaskCount, command: one)
 SELECT COUNT(*) FROM tasks
 WHERE status = 'PROCESSING'
 AND updated_at < ?;

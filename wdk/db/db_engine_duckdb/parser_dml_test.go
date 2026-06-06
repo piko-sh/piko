@@ -80,6 +80,64 @@ func analyseQuery(t *testing.T, catalogue *querier_dto.Catalogue, sql string) *q
 	return analysis
 }
 
+func TestAnalyseQuery_ExistsSubqueryExposesInnerQueryParameters(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, nil,
+		`SELECT EXISTS(SELECT 1 FROM orchestrator_tasks WHERE workflow_id = $1 AND status = $2) AS has_incomplete`)
+
+	require.Len(t, analysis.OutputColumns, 1)
+	exists, ok := analysis.OutputColumns[0].Expression.(*querier_dto.ExistsExpression)
+	require.Truef(t, ok, "EXISTS output column should carry an ExistsExpression, got %T", analysis.OutputColumns[0].Expression)
+	require.NotNil(t, exists.InnerQuery)
+
+	require.Len(t, exists.InnerQuery.FromTables, 1)
+	assert.Equal(t, "orchestrator_tasks", exists.InnerQuery.FromTables[0].Name)
+
+	require.NotEmpty(t, exists.InnerQuery.ParameterReferences)
+	first := exists.InnerQuery.ParameterReferences[0]
+	require.NotNil(t, first.ColumnReference)
+	assert.Equal(t, "workflow_id", first.ColumnReference.ColumnName)
+}
+
+func TestAnalyseQuery_WherePredicateSubqueryCaptured(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, nil,
+		`SELECT a.id FROM accounts a WHERE a.id = (SELECT MAX(av2.id) FROM account_versions av2 WHERE av2.id < $1)`)
+
+	require.Len(t, analysis.PredicateSubqueries, 1)
+	inner := analysis.PredicateSubqueries[0]
+	require.NotNil(t, inner)
+	require.Len(t, inner.FromTables, 1)
+	assert.Equal(t, "account_versions", inner.FromTables[0].Name)
+	assert.Equal(t, "av2", inner.FromTables[0].Alias)
+	require.NotEmpty(t, analysis.ParameterReferences)
+}
+
+func TestAnalyseQuery_WhereParenthesisedExpressionNotCaptured(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, nil, `SELECT a.id FROM accounts a WHERE (a.id + 1) = $1`)
+	assert.Empty(t, analysis.PredicateSubqueries)
+}
+
+func TestAnalyseQuery_SetCaseComparisonParameterTypedFromOperand(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+	analysis := analyseQuery(t, catalogue,
+		`UPDATE users SET name = CASE WHEN id >= $1 THEN 'flagged' ELSE name END WHERE email = $2`)
+
+	require.NotEmpty(t, analysis.ParameterReferences)
+	caseParameter := analysis.ParameterReferences[0]
+	assert.Equal(t, querier_dto.ParameterContextComparison, caseParameter.Context,
+		"a parameter compared against a column must use comparison context, not assignment")
+	require.NotNil(t, caseParameter.ColumnReference)
+	assert.Equal(t, "id", caseParameter.ColumnReference.ColumnName,
+		"the parameter must be typed from the compared column (id), not the SET target (name)")
+}
+
 func TestAnalyseQuery_Select(t *testing.T) {
 	t.Parallel()
 
@@ -781,9 +839,9 @@ func TestAnalyseQuery_LikeParameterContext(t *testing.T) {
 	catalogue := buildTestCatalogue()
 
 	tests := []struct {
+		assertions func(t *testing.T, a *querier_dto.RawQueryAnalysis)
 		name       string
 		sql        string
-		assertions func(t *testing.T, a *querier_dto.RawQueryAnalysis)
 	}{
 		{
 			name: "LIKE pattern with direct column LHS",
@@ -965,6 +1023,27 @@ func TestAnalyseQuery_Insert(t *testing.T) {
 		require.Len(t, analysis.InsertColumns, 2)
 		assert.Equal(t, "user_id", analysis.InsertColumns[0])
 		assert.Equal(t, "total", analysis.InsertColumns[1])
+
+		require.NotNil(t, analysis.InsertSelect)
+		require.NotEmpty(t, analysis.InsertSelect.FromTables)
+		assert.Equal(t, "users", analysis.InsertSelect.FromTables[0].Name)
+	})
+
+	t.Run("INSERT with joined SELECT source retains joins and where params", func(t *testing.T) {
+		t.Parallel()
+
+		analysis := analyseQuery(t, catalogue, `INSERT INTO orders (user_id, total) `+
+			`SELECT u.id, o.amount FROM users u INNER JOIN orgs o ON o.id = u.org_id `+
+			`WHERE u.id > $1 AND o.amount > $2 `+
+			`ON CONFLICT (user_id) DO NOTHING`)
+
+		assert.Equal(t, "orders", analysis.InsertTable)
+		require.NotNil(t, analysis.InsertSelect)
+		require.NotEmpty(t, analysis.InsertSelect.FromTables)
+		assert.Equal(t, "users", analysis.InsertSelect.FromTables[0].Name)
+		require.NotEmpty(t, analysis.InsertSelect.JoinClauses)
+		assert.Equal(t, "orgs", analysis.InsertSelect.JoinClauses[0].Table.Name)
+		require.Len(t, analysis.InsertSelect.ParameterReferences, 2)
 	})
 
 	t.Run("INSERT with CTE", func(t *testing.T) {
@@ -2160,4 +2239,176 @@ func TestParseStatements_Multiple(t *testing.T) {
 	stmts, err := engine.ParseStatements(`SELECT 1; SELECT 2`)
 	require.NoError(t, err)
 	require.Len(t, stmts, 2, "should split multiple statements on semicolons")
+}
+
+func TestAnalyseQuery_HasWhereClause(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	tests := []struct {
+		name string
+		sql  string
+		want bool
+	}{
+		{name: "SELECT with WHERE", sql: "SELECT id FROM users WHERE id = $1", want: true},
+		{name: "SELECT without WHERE", sql: "SELECT id FROM users", want: false},
+		{name: "UPDATE with WHERE", sql: "UPDATE users SET name = $1 WHERE id = $2", want: true},
+		{name: "UPDATE without WHERE", sql: "UPDATE users SET name = $1", want: false},
+		{name: "DELETE with WHERE", sql: "DELETE FROM users WHERE id = $1", want: true},
+		{name: "DELETE without WHERE", sql: "DELETE FROM users", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := analyseQuery(t, catalogue, tt.sql)
+			require.NotNil(t, analysis)
+			assert.Equal(t, tt.want, analysis.HasWhereClause)
+		})
+	}
+}
+
+func TestAnalyseQuery_FromTVFArgumentMetadata(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+	analysis := analyseQuery(t, catalogue,
+		`SELECT * FROM content.get_pages_with_latest_version($3, $1, $2)`)
+
+	require.Len(t, analysis.RawTableValuedFunctions, 1)
+	assert.Equal(t, "content.get_pages_with_latest_version", analysis.RawTableValuedFunctions[0].FunctionName)
+
+	require.Len(t, analysis.ParameterReferences, 3)
+	byNumber := map[int]querier_dto.RawParameterReference{}
+	for _, parameter := range analysis.ParameterReferences {
+		byNumber[parameter.Number] = parameter
+	}
+
+	for number, wantOrdinal := range map[int]int{3: 0, 1: 1, 2: 2} {
+		parameter := byNumber[number]
+		assert.Equalf(t, querier_dto.ParameterContextFunctionArgument, parameter.Context,
+			"$%d should be a function argument", number)
+		assert.Equalf(t, "content.get_pages_with_latest_version", parameter.EnclosingFunctionName,
+			"$%d enclosing function name", number)
+		assert.Equalf(t, wantOrdinal, parameter.ArgumentOrdinal, "$%d argument ordinal", number)
+	}
+}
+
+func TestAnalyseQuery_ScalarFunctionArgumentMetadata(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+	analysis := analyseQuery(t, catalogue, `SELECT STRING_TO_ARRAY($2, '/') FROM users`)
+
+	require.Len(t, analysis.ParameterReferences, 1)
+	parameter := analysis.ParameterReferences[0]
+	assert.Equal(t, querier_dto.ParameterContextFunctionArgument, parameter.Context)
+	assert.Equal(t, "string_to_array", parameter.EnclosingFunctionName)
+	assert.Equal(t, 0, parameter.ArgumentOrdinal)
+}
+
+func TestAnalyseQuery_NestedFunctionArgumentOrdinalIsolation(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+	analysis := analyseQuery(t, catalogue, `SELECT outer_fn($1, inner_fn($2, $3)) FROM users`)
+
+	require.Len(t, analysis.ParameterReferences, 3)
+	byNumber := map[int]querier_dto.RawParameterReference{}
+	for _, parameter := range analysis.ParameterReferences {
+		byNumber[parameter.Number] = parameter
+	}
+
+	assert.Equal(t, "outer_fn", byNumber[1].EnclosingFunctionName)
+	assert.Equal(t, 0, byNumber[1].ArgumentOrdinal)
+
+	assert.Equal(t, "inner_fn", byNumber[2].EnclosingFunctionName)
+	assert.Equal(t, 0, byNumber[2].ArgumentOrdinal)
+
+	assert.Equal(t, "inner_fn", byNumber[3].EnclosingFunctionName)
+	assert.Equal(t, 1, byNumber[3].ArgumentOrdinal)
+}
+
+func TestAnalyseQuery_InsertSelectProjectionParameterMapping(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+	analysis := analyseQuery(t, catalogue,
+		`INSERT INTO users (id, name, email) SELECT $1, COALESCE($2, 'x'), $3 FROM users WHERE id = $4`)
+
+	require.Len(t, analysis.ParameterReferences, 4)
+	byNumber := map[int]querier_dto.RawParameterReference{}
+	for _, parameter := range analysis.ParameterReferences {
+		byNumber[parameter.Number] = parameter
+	}
+
+	wantColumns := map[int]string{1: "id", 2: "name", 3: "email"}
+	for number, wantColumn := range wantColumns {
+		parameter := byNumber[number]
+		assert.Equalf(t, querier_dto.ParameterContextAssignment, parameter.Context,
+			"$%d should be an assignment", number)
+		require.NotNilf(t, parameter.ColumnReference, "$%d should carry a column reference", number)
+		assert.Equalf(t, "users", parameter.ColumnReference.TableAlias, "$%d target table", number)
+		assert.Equalf(t, wantColumn, parameter.ColumnReference.ColumnName, "$%d target column", number)
+	}
+
+	where := byNumber[4]
+	assert.Equal(t, querier_dto.ParameterContextComparison, where.Context)
+	require.NotNil(t, where.ColumnReference)
+	assert.Equal(t, "id", where.ColumnReference.ColumnName)
+}
+
+func TestAnalyseQuery_IsComparisonParameterTypedFromColumn(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	tests := []struct {
+		name string
+		sql  string
+	}{
+		{name: "IS in WHERE", sql: `SELECT id FROM users WHERE name IS $1`},
+		{name: "IS NOT in WHERE", sql: `SELECT id FROM users WHERE name IS NOT $1`},
+		{name: "IS nested in CASE", sql: `SELECT CASE WHEN name IS $1 THEN 1 ELSE 0 END FROM users`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := analyseQuery(t, catalogue, tt.sql)
+			require.Len(t, analysis.ParameterReferences, 1)
+			parameter := analysis.ParameterReferences[0]
+			assert.Equal(t, querier_dto.ParameterContextComparison, parameter.Context)
+			require.NotNil(t, parameter.ColumnReference)
+			assert.Equal(t, "name", parameter.ColumnReference.ColumnName)
+		})
+	}
+}
+
+func TestAnalyseQuery_IsNullRegistersNoParameter(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	for _, sql := range []string{
+		`SELECT id FROM users WHERE name IS NULL`,
+		`SELECT id FROM users WHERE name IS NOT NULL`,
+	} {
+		analysis := analyseQuery(t, catalogue, sql)
+		assert.Emptyf(t, analysis.ParameterReferences, "%q should register no parameter", sql)
+	}
+}
+
+func TestAnalyseQuery_DollarParameterOverflowFallsBackToZero(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	analysis := analyseQuery(t, catalogue,
+		`SELECT id FROM users WHERE id = $99999999999999999999999999`)
+
+	require.Len(t, analysis.ParameterReferences, 1)
+	assert.Equal(t, 0, analysis.ParameterReferences[0].Number,
+		"an unparseable $N number should fall back to 0, not overflow to MaxInt64")
 }

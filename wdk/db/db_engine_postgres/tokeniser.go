@@ -21,7 +21,9 @@ package db_engine_postgres
 import (
 	"fmt"
 	"strings"
-	"unicode"
+	"unicode/utf8"
+
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 )
 
 // tokenKind enumerates the lexical token categories produced by the tokeniser.
@@ -97,12 +99,6 @@ const (
 	// tokenEOF marks the end of input.
 	tokenEOF
 )
-const (
-
-	// maxASCII is the highest ASCII code point; bytes above this require Unicode handling
-	// for identifier classification.
-	maxASCII = 127
-)
 
 // token is a single lexical token produced by the tokeniser.
 type token struct {
@@ -124,6 +120,15 @@ type tokeniser struct {
 	// position is the current byte offset within input.
 	position int
 }
+
+var (
+	// dialectConfig declares Postgres lexical rules for the shared scanners: nested block
+	// comments and 0x/0o/0b base-prefixed integer literals.
+	dialectConfig = engine_shared.DialectConfig{
+		Comments: engine_shared.CommentRules{NestedBlockComments: true},
+		Numbers:  engine_shared.NumberRules{HexPrefix: true, OctalPrefix: true, BinaryPrefix: true},
+	}
+)
 
 // tokenise scans input and returns the full token stream.
 //
@@ -154,7 +159,9 @@ func tokenise(input string) ([]token, error) {
 // Returns token which is the scanned token.
 // Returns error when a lexical error occurs.
 func (t *tokeniser) next() (token, error) {
-	t.skipWhitespaceAndComments()
+	if err := t.skipWhitespaceAndComments(); err != nil {
+		return token{}, err
+	}
 
 	if t.position >= len(t.input) {
 		return token{kind: tokenEOF, position: t.position}, nil
@@ -225,62 +232,22 @@ func (t *tokeniser) readMultiCharToken(character byte) (token, error) {
 		return t.readBitString()
 	case isDigit(character):
 		return t.readNumber()
-	case isIdentStart(character):
-		return t.readIdentifier()
-	default:
-		return t.readOperator()
 	}
+
+	leading, _ := utf8.DecodeRuneInString(t.input[t.position:])
+	if isIdentStart(leading) {
+		return t.readIdentifier()
+	}
+	return t.readOperator()
 }
 
 // skipWhitespaceAndComments advances past whitespace and comments.
-func (t *tokeniser) skipWhitespaceAndComments() {
-	for t.position < len(t.input) {
-		character := t.input[t.position]
-
-		if character == ' ' || character == '\t' || character == '\n' || character == '\r' {
-			t.position++
-			continue
-		}
-
-		if character == '-' && t.position+1 < len(t.input) && t.input[t.position+1] == '-' {
-			t.skipLineComment()
-			continue
-		}
-
-		if character == '/' && t.position+1 < len(t.input) && t.input[t.position+1] == '*' {
-			t.skipBlockComment()
-			continue
-		}
-
-		break
-	}
-}
-
-// skipLineComment advances past a -- comment up to the next newline.
-func (t *tokeniser) skipLineComment() {
-	t.position += 2
-	for t.position < len(t.input) && t.input[t.position] != '\n' {
-		t.position++
-	}
-}
-
-// skipBlockComment advances past a /* ... */ block comment, honouring nesting.
-func (t *tokeniser) skipBlockComment() {
-	t.position += 2
-	depth := 1
-	for t.position+1 < len(t.input) && depth > 0 {
-		if t.input[t.position] == '/' && t.input[t.position+1] == '*' {
-			depth++
-			t.position += 2
-			continue
-		}
-		if t.input[t.position] == '*' && t.input[t.position+1] == '/' {
-			depth--
-			t.position += 2
-			continue
-		}
-		t.position++
-	}
+//
+// Returns error when a block comment is left unterminated.
+func (t *tokeniser) skipWhitespaceAndComments() error {
+	position, err := dialectConfig.Comments.SkipWhitespaceAndComments(t.input, t.position)
+	t.position = position
+	return err
 }
 
 // readString reads a single-quoted string literal.
@@ -303,25 +270,14 @@ func (t *tokeniser) readString() (token, error) {
 // Returns error when the literal is unterminated.
 func (t *tokeniser) readDelimitedLiteral(delimiter byte, kind tokenKind, errorDescription string) (token, error) {
 	startPosition := t.position
-	t.position++
 
-	var builder strings.Builder
-	for t.position < len(t.input) {
-		character := t.input[t.position]
-		if character == delimiter {
-			t.position++
-			if t.position < len(t.input) && t.input[t.position] == delimiter {
-				builder.WriteByte(delimiter)
-				t.position++
-				continue
-			}
-			return token{kind: kind, value: builder.String(), position: startPosition}, nil
-		}
-		builder.WriteByte(character)
-		t.position++
+	value, position, ok := engine_shared.ScanDoubledDelimiter(t.input, t.position, delimiter)
+	if !ok {
+		return token{}, fmt.Errorf("unterminated %s at position %d", errorDescription, startPosition)
 	}
+	t.position = position
 
-	return token{}, fmt.Errorf("unterminated %s at position %d", errorDescription, startPosition)
+	return token{kind: kind, value: value, position: startPosition}, nil
 }
 
 // readEscapeString reads an E'...' Postgres escape string literal.
@@ -394,8 +350,13 @@ func (t *tokeniser) readQuotedIdentifier() (token, error) {
 func (t *tokeniser) readNumber() (token, error) {
 	startPosition := t.position
 
-	if tok, matched := t.tryReadPrefixedNumber(startPosition); matched {
-		return tok, nil
+	position, matched, err := dialectConfig.Numbers.TryReadPrefixedNumber(t.input, t.position)
+	if err != nil {
+		return token{}, err
+	}
+	if matched {
+		t.position = position
+		return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
 	}
 
 	t.consumeDigits()
@@ -403,75 +364,6 @@ func (t *tokeniser) readNumber() (token, error) {
 	t.consumeExponentPart()
 
 	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, nil
-}
-
-// tryReadPrefixedNumber reads a 0x, 0o, or 0b prefixed number when present.
-//
-// Takes startPosition (int) which is the start offset of the candidate literal.
-//
-// Returns token which is the produced number token when matched is true.
-// Returns bool which is true when a prefixed literal was consumed.
-func (t *tokeniser) tryReadPrefixedNumber(startPosition int) (token, bool) {
-	if t.input[t.position] != '0' || t.position+1 >= len(t.input) {
-		return token{}, false
-	}
-
-	next := t.input[t.position+1]
-	validator := prefixedNumberValidator(next)
-	if validator == nil {
-		return token{}, false
-	}
-
-	t.position += 2
-	t.consumeWhile(validator)
-
-	return token{kind: tokenNumber, value: t.input[startPosition:t.position], position: startPosition}, true
-}
-
-// prefixedNumberValidator returns the digit validator for a base prefix byte.
-//
-// Takes prefix (byte) which is the second byte of a 0X-style literal.
-//
-// Returns func(byte) bool which validates digits for the chosen base, or nil when prefix
-// does not denote a recognised base.
-func prefixedNumberValidator(prefix byte) func(byte) bool {
-	switch prefix {
-	case 'x', 'X':
-		return isHexDigit
-	case 'o', 'O':
-		return isOctalDigit
-	case 'b', 'B':
-		return isBinaryDigit
-	default:
-		return nil
-	}
-}
-
-// consumeWhile advances the cursor while predicate accepts the next byte.
-//
-// Takes predicate (func(byte) bool) which decides whether to keep consuming.
-func (t *tokeniser) consumeWhile(predicate func(byte) bool) {
-	for t.position < len(t.input) && predicate(t.input[t.position]) {
-		t.position++
-	}
-}
-
-// isOctalDigit reports whether character is an octal digit.
-//
-// Takes character (byte) which is the byte to classify.
-//
-// Returns bool which is true when character is between '0' and '7'.
-func isOctalDigit(character byte) bool {
-	return character >= '0' && character <= '7'
-}
-
-// isBinaryDigit reports whether character is a binary digit.
-//
-// Takes character (byte) which is the byte to classify.
-//
-// Returns bool which is true when character is '0' or '1'.
-func isBinaryDigit(character byte) bool {
-	return character == '0' || character == '1'
 }
 
 // consumeDigits advances the cursor over decimal digits.
@@ -507,12 +399,20 @@ func (t *tokeniser) consumeExponentPart() {
 
 // readIdentifier reads an unquoted identifier.
 //
+// The cursor advances by UTF-8 rune width so multi-byte code points (Unicode letters or
+// digits inside an identifier body) are not truncated mid-code-point as they would be by
+// a byte-at-a-time scan.
+//
 // Returns token which is the identifier token.
 // Returns error which is always nil; declared for caller uniformity.
 func (t *tokeniser) readIdentifier() (token, error) {
 	startPosition := t.position
-	for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
-		t.position++
+	for t.position < len(t.input) {
+		character, width := utf8.DecodeRuneInString(t.input[t.position:])
+		if !isIdentPart(character) {
+			break
+		}
+		t.position += width
 	}
 	return token{kind: tokenIdentifier, value: t.input[startPosition:t.position], position: startPosition}, nil
 }
@@ -526,7 +426,15 @@ func (t *tokeniser) readDollarToken() (token, error) {
 
 	if t.position+1 < len(t.input) && isDigit(t.input[t.position+1]) {
 		t.position++
+		number := 0
 		for t.position < len(t.input) && isDigit(t.input[t.position]) {
+			number = number*decimalBase + int(t.input[t.position]-'0')
+			if number > maxDollarParameterNumber {
+				return token{}, fmt.Errorf(
+					"invalid parameter number at position %d: exceeds maximum of %d",
+					startPosition, maxDollarParameterNumber,
+				)
+			}
 			t.position++
 		}
 		return token{kind: tokenDollarParam, value: t.input[startPosition:t.position], position: startPosition}, nil
@@ -544,20 +452,26 @@ func (t *tokeniser) readDollarQuotedString() (token, error) {
 	t.position++
 
 	var tag string
-	if t.position < len(t.input) && t.input[t.position] == '$' {
+	leadingTagRune, _ := utf8.DecodeRuneInString(t.input[t.position:])
+	switch {
+	case t.position < len(t.input) && t.input[t.position] == '$':
 		t.position++
 		tag = ""
-	} else if t.position < len(t.input) && isIdentStart(t.input[t.position]) {
+	case t.position < len(t.input) && isIdentStart(leadingTagRune):
 		tagStart := t.position
-		for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
-			t.position++
+		for t.position < len(t.input) {
+			character, width := utf8.DecodeRuneInString(t.input[t.position:])
+			if !isIdentPart(character) {
+				break
+			}
+			t.position += width
 		}
 		if t.position >= len(t.input) || t.input[t.position] != '$' {
 			return token{}, fmt.Errorf("invalid dollar-quoted string at position %d", startPosition)
 		}
 		tag = t.input[tagStart:t.position]
 		t.position++
-	} else {
+	default:
 		return token{}, fmt.Errorf("unexpected character after $ at position %d", startPosition)
 	}
 
@@ -587,10 +501,15 @@ func (t *tokeniser) readColonToken() (token, error) {
 		return token{kind: tokenCast, value: "::", position: startPosition}, nil
 	}
 
-	if t.position+1 < len(t.input) && isIdentStart(t.input[t.position+1]) {
+	parameterRune, _ := utf8.DecodeRuneInString(t.input[t.position+1:])
+	if t.position+1 < len(t.input) && isIdentStart(parameterRune) {
 		t.position++
-		for t.position < len(t.input) && isIdentPart(t.input[t.position]) {
-			t.position++
+		for t.position < len(t.input) {
+			character, width := utf8.DecodeRuneInString(t.input[t.position:])
+			if !isIdentPart(character) {
+				break
+			}
+			t.position += width
 		}
 		return token{kind: tokenNamedParam, value: t.input[startPosition:t.position], position: startPosition}, nil
 	}
@@ -682,6 +601,7 @@ var (
 		"<=": true, ">=": true, "<>": true, "!=": true, "||": true,
 		"<<": true, ">>": true, "&&": true, "@>": true, "<@": true,
 		"~*": true, "!~": true,
+		"@@": true,
 	}
 )
 
@@ -737,34 +657,29 @@ func isDigit(character byte) bool {
 	return character >= '0' && character <= '9'
 }
 
-// isHexDigit reports whether character is a hexadecimal digit.
+// isIdentStart reports whether the rune may begin an identifier.
 //
-// Takes character (byte) which is the byte to classify.
+// ASCII letters and the underscore take a fast path; runes beyond the ASCII range are
+// accepted when unicode.IsLetter reports them as letters, so identifiers named with
+// accented or non-Latin letters begin correctly.
 //
-// Returns bool which is true when character is a hex digit in either case.
-func isHexDigit(character byte) bool {
-	return isDigit(character) ||
-		(character >= 'a' && character <= 'f') ||
-		(character >= 'A' && character <= 'F')
-}
-
-// isIdentStart reports whether character may begin an identifier.
-//
-// Takes character (byte) which is the byte to classify.
+// Takes character (rune) which is the rune to classify.
 //
 // Returns bool which is true for letters, underscore, or non-ASCII letters.
-func isIdentStart(character byte) bool {
-	return (character >= 'a' && character <= 'z') ||
-		(character >= 'A' && character <= 'Z') ||
-		character == '_' ||
-		character > maxASCII && unicode.IsLetter(rune(character))
+func isIdentStart(character rune) bool {
+	return engine_shared.IsIdentStart(character)
 }
 
-// isIdentPart reports whether character may appear within an identifier.
+// isIdentPart reports whether the rune may appear within an identifier after the first
+// character, namely an identifier-start rune or a digit.
 //
-// Takes character (byte) which is the byte to classify.
+// ASCII runes take a fast path; runes beyond the ASCII range are accepted when
+// unicode.IsLetter or unicode.IsDigit reports them, so Unicode letters and digits inside
+// an identifier body are preserved.
 //
-// Returns bool which is true for identifier-start bytes or decimal digits.
-func isIdentPart(character byte) bool {
-	return isIdentStart(character) || isDigit(character)
+// Takes character (rune) which is the rune to classify.
+//
+// Returns bool which is true for identifier-start runes or decimal digits.
+func isIdentPart(character rune) bool {
+	return engine_shared.IsIdentPart(character)
 }

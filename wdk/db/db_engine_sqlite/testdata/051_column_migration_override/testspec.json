@@ -1,0 +1,3 @@
+{
+  "description": "Migration-level piko.column declared above CREATE TABLE propagates the go_type override through every passthrough query. A second query that casts the column drops the override."
+}

@@ -1,0 +1,4 @@
+{
+  "description": "Bug#2: a scalar subquery in WHERE position whose body carries a parameter qualified by a subquery-local alias (av2.id < ?2). Previously the WHERE token scan flattened the parameter into the top-level list with no structural carrier, so av2 was resolved against the outer scope (only a and av) and raised a false Q001 'unknown table or alias av2'. The first query (no parameter inside the subquery) was silently clean only because the subquery was dropped from analysis. Both queries are now structurally captured: expectedDiagnostics:[] pins the false Q001 away, and the generated code executes both correlated-subquery queries returning the correct version rows.",
+  "expectedDiagnostics": []
+}

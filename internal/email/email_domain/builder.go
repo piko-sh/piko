@@ -39,6 +39,10 @@ type baseEmailBuilder struct {
 	// params holds the email settings as they are built.
 	params *email_dto.SendParams
 
+	// buildError records a construction failure so a builder handed back from a failed
+	// constructor reports it from Do instead of dereferencing a nil service.
+	buildError error
+
 	// providerName specifies a non-default email provider; empty uses the default.
 	providerName string
 
@@ -471,6 +475,9 @@ func (b *baseEmailBuilder) dispatchOrSend(ctx context.Context) error {
 //
 // Returns error when the email is not valid or sending fails.
 func (b *EmailBuilder) Do(ctx context.Context) error {
+	if b.buildError != nil {
+		return b.buildError
+	}
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before sending email: %w", err)
 	}
@@ -547,6 +554,9 @@ func (b *TemplatedEmailBuilder[PropsT]) renderTemplate(ctx context.Context) erro
 // Returns error when template rendering fails, parameter checking fails, or the email
 // cannot be sent.
 func (b *TemplatedEmailBuilder[PropsT]) Do(ctx context.Context) error {
+	if b.buildError != nil {
+		return b.buildError
+	}
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before sending templated email: %w", err)
 	}
@@ -676,6 +686,7 @@ func (b *EmailBuilder) Clone() *EmailBuilder {
 			params:        new(buildParamsCopy(b.params)),
 			providerName:  b.providerName,
 			immediateSend: b.immediateSend,
+			buildError:    b.buildError,
 		},
 	}
 }
@@ -705,6 +716,7 @@ func (b *TemplatedEmailBuilder[PropsT]) Clone() *TemplatedEmailBuilder[PropsT] {
 			params:        new(buildParamsCopy(b.params)),
 			providerName:  b.providerName,
 			immediateSend: b.immediateSend,
+			buildError:    b.buildError,
 		},
 		templater:        b.templater,
 		assetResolver:    b.assetResolver,

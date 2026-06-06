@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "cast_values.sql",
-    "SQL": "-- piko.name: CastValues\n-- piko.command: many\nSELECT\n    id,\n    CAST(raw_value AS DECIMAL(10, 2)) AS numeric_value,\n    CAST(raw_value AS SIGNED) AS int_value\nFROM measurements;",
+    "SQL": "-- piko.query(name: CastValues, command: many)\nSELECT\n    id,\n    CAST(raw_value AS DECIMAL(10, 2)) AS numeric_value,\n    CAST(raw_value AS SIGNED) AS int_value\nFROM measurements;",
     "Name": "CastValues",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "measurements",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "measurements",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "numeric_value",
-        "SourceTable": "",
-        "SourceColumn": "",
+        "SourceTable": "measurements",
+        "SourceSchema": "",
+        "SourceColumn": "raw_value",
+        "SourceQualifier": "measurements",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "int_value",
-        "SourceTable": "",
-        "SourceColumn": "",
+        "SourceTable": "measurements",
+        "SourceSchema": "",
+        "SourceColumn": "raw_value",
+        "SourceQualifier": "measurements",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,7 +78,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 18
+          "Category": 18,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -87,9 +100,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

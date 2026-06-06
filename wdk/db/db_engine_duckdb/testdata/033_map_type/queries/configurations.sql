@@ -1,3 +1,2 @@
--- piko.name: ListConfigurations
--- piko.command: many
+-- piko.query(name: ListConfigurations, command: many)
 SELECT id, name, settings FROM configurations;

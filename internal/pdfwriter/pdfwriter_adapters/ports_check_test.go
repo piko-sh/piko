@@ -23,6 +23,6 @@ import (
 )
 
 var (
-	_ pdfwriter_domain.LayoutPort = (*LayouterAdapter)(nil)
+	_ pdfwriter_domain.LayoutPort         = (*LayouterAdapter)(nil)
 	_ pdfwriter_domain.TemplateRunnerPort = (*TemplateRunnerAdapter)(nil)
 )

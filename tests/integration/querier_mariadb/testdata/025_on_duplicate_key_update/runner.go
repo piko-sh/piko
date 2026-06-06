@@ -26,8 +26,8 @@ func main() {
 
 	queries := db.New(conn)
 	err = queries.UpsertEntry(ctx, db.UpsertEntryParams{
-		P1: "colour",
-		P2: "red",
+		LookupKey: "colour",
+		Value:     "red",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpsertEntry 1:", err)
@@ -35,8 +35,8 @@ func main() {
 	}
 
 	err = queries.UpsertEntry(ctx, db.UpsertEntryParams{
-		P1: "language",
-		P2: "Go",
+		LookupKey: "language",
+		Value:     "Go",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpsertEntry 2:", err)
@@ -49,8 +49,8 @@ func main() {
 		os.Exit(1)
 	}
 	err = queries.UpsertEntry(ctx, db.UpsertEntryParams{
-		P1: "colour",
-		P2: "blue",
+		LookupKey: "colour",
+		Value:     "blue",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpsertEntry update:", err)
@@ -63,8 +63,8 @@ func main() {
 		os.Exit(1)
 	}
 	err = queries.UpsertEntry(ctx, db.UpsertEntryParams{
-		P1: "colour",
-		P2: "green",
+		LookupKey: "colour",
+		Value:     "green",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpsertEntry update 2:", err)

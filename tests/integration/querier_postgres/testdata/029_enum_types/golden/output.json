@@ -1,56 +1,56 @@
 {
   "acc_1": {
-    "ID": 1,
-    "Status": "active",
-    "Username": "alice"
+    "id": 1,
+    "status": "active",
+    "username": "alice"
   },
   "acc_2": {
-    "ID": 2,
-    "Status": "inactive",
-    "Username": "bob"
+    "id": 2,
+    "status": "inactive",
+    "username": "bob"
   },
   "acc_3": {
-    "ID": 3,
-    "Status": "active",
-    "Username": "charlie"
+    "id": 3,
+    "status": "active",
+    "username": "charlie"
   },
   "acc_4": {
-    "ID": 4,
-    "Status": "suspended",
-    "Username": "diana"
+    "id": 4,
+    "status": "suspended",
+    "username": "diana"
   },
   "active_accounts": [
     {
-      "ID": 1,
-      "Status": "active",
-      "Username": "alice"
+      "id": 1,
+      "status": "active",
+      "username": "alice"
     },
     {
-      "ID": 3,
-      "Status": "active",
-      "Username": "charlie"
+      "id": 3,
+      "status": "active",
+      "username": "charlie"
     }
   ],
   "all_accounts": [
     {
-      "ID": 1,
-      "Status": "active",
-      "Username": "alice"
+      "id": 1,
+      "status": "active",
+      "username": "alice"
     },
     {
-      "ID": 2,
-      "Status": "inactive",
-      "Username": "bob"
+      "id": 2,
+      "status": "inactive",
+      "username": "bob"
     },
     {
-      "ID": 3,
-      "Status": "active",
-      "Username": "charlie"
+      "id": 3,
+      "status": "active",
+      "username": "charlie"
     },
     {
-      "ID": 4,
-      "Status": "suspended",
-      "Username": "diana"
+      "id": 4,
+      "status": "suspended",
+      "username": "diana"
     }
   ]
 }

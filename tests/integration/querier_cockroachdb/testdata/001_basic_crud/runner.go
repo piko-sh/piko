@@ -33,13 +33,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	user, err := queries.InsertUser(ctx, db.InsertUserParams{P1: "Alice", P2: "alice@example.com"})
+	user, err := queries.InsertUser(ctx, db.InsertUserParams{Name: "Alice", Email: "alice@example.com"})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	_, err = queries.InsertUser(ctx, db.InsertUserParams{P1: "Bob", P2: "bob@example.com"})
+	_, err = queries.InsertUser(ctx, db.InsertUserParams{Name: "Bob", Email: "bob@example.com"})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -99,29 +100,16 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	parenDepth := 0
-	for i := paramPosition - 1; i >= 0; i-- {
-		tok := p.tokens[i]
-		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			parenDepth++
-			continue
-		case tokenLeftParen:
-			parenDepth--
-			continue
-		}
-		if parenDepth > 0 || tok.kind != tokenIdentifier {
-			continue
-		}
-		keyword := strings.ToUpper(tok.value)
-		if isLikeBoundaryKeyword(keyword) {
-			return 0, false
-		}
-		if isLikePatternKeyword(keyword) {
-			return i, true
-		}
-	}
-	return 0, false
+	return engine_shared.FindEnclosingLikeOperator(paramPosition,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -318,21 +306,14 @@ func isLikePatternKeyword(keyword string) bool {
 }
 
 // isLikeBoundaryKeyword reports whether a keyword ends the predicate that could contain a
-// LIKE pattern, so the backward walk should stop.
+// LIKE pattern, so the backward walk should stop. It defers to the shared clause-boundary
+// keyword set so every engine recognises the same boundaries.
 //
 // Takes keyword (string) which is the upper-case identifier value.
 //
 // Returns bool which is true at any clause or boolean boundary.
 func isLikeBoundaryKeyword(keyword string) bool {
-	switch keyword {
-	case "AND", "OR", "WHERE", "HAVING", "ON", "WHEN", "THEN", "ELSE", "CASE",
-		"FROM", "GROUP", "ORDER", "LIMIT", "OFFSET", "RETURNING",
-		"UNION", "INTERSECT", "EXCEPT", "BY",
-		"SELECT", "INSERT", "UPDATE", "DELETE", "VALUES", "SET",
-		"ESCAPE":
-		return true
-	}
-	return false
+	return engine_shared.IsClauseBoundaryKeyword(keyword)
 }
 
 // resolveContextFromPrecedingOperator inspects the operator immediately before
@@ -446,19 +427,13 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 // Returns int which is the enclosing `(` index, or -1 when position is not inside any
 // group.
 func (p *parser) findEnclosingParen(position int) int {
-	depth := 0
-	for i := position - 1; i >= 0; i-- {
-		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case tokenRightParen:
-			depth++
-		case tokenLeftParen:
-			if depth == 0 {
-				return i
-			}
-			depth--
-		}
-	}
-	return -1
+	return engine_shared.FindEnclosingParen(position,
+		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
+		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
+		func(index int) bool {
+			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
+		},
+	)
 }
 
 // extractColumnReferenceBeforeIN extracts the column reference one token before an IN

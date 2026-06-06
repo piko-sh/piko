@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "unknown_function.sql",
-    "SQL": "-- piko.name: GetProcessed\n-- piko.command: many\nSELECT id, nonexistent_func(name) AS processed FROM users WHERE id = ?",
+    "SQL": "-- piko.query(name: GetProcessed, command: many)\nSELECT id, nonexistent_func(name) AS processed FROM users WHERE id = ?",
     "Name": "GetProcessed",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -15,41 +16,73 @@
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
           "ElementType": null,
-          "EngineName": "integer",
+          "EngineName": "int8",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "processed",
+        "SourceTable": "",
+        "SourceSchema": "",
+        "SourceColumn": "",
+        "SourceQualifier": "",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 18,
+          "Nullable": false
+        },
+        "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       }
@@ -68,9 +101,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

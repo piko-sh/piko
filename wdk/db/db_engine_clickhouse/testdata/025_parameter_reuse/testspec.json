@@ -1,0 +1,3 @@
+{
+  "description": "The same `{name:Type}` placeholder appearing twice resolves to a single parameter number. Verifies dedup logic."
+}

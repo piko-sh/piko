@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "sales.sql",
-    "SQL": "-- piko.name: GetLatestSalePerRegion\n-- piko.command: many\nSELECT id, region, amount, sale_date\nFROM sales\nQUALIFY row_number() OVER (PARTITION BY region ORDER BY sale_date DESC) = 1;",
+    "SQL": "-- piko.query(name: GetLatestSalePerRegion, command: many)\nSELECT id, region, amount, sale_date\nFROM sales\nQUALIFY row_number() OVER (PARTITION BY region ORDER BY sale_date DESC) = 1;",
     "Name": "GetLatestSalePerRegion",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "sales",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "QUALIFY",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "region",
         "SourceTable": "sales",
+        "SourceSchema": "",
         "SourceColumn": "region",
+        "SourceQualifier": "QUALIFY",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,16 +52,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "amount",
         "SourceTable": "sales",
+        "SourceSchema": "",
         "SourceColumn": "amount",
+        "SourceQualifier": "QUALIFY",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -66,16 +78,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "sale_date",
         "SourceTable": "sales",
+        "SourceSchema": "",
         "SourceColumn": "sale_date",
+        "SourceQualifier": "QUALIFY",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -88,7 +104,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -109,9 +126,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

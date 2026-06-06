@@ -60,13 +60,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	withReview, err := queries.GetBookWithReview(ctx, int32(1))
+	withReview, err := queries.GetBookWithReview(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetBookWithReview (1):", err)
 		os.Exit(1)
 	}
 
-	withoutReview, err := queries.GetBookWithReview(ctx, int32(2))
+	withoutReview, err := queries.GetBookWithReview(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetBookWithReview (2):", err)
 		os.Exit(1)

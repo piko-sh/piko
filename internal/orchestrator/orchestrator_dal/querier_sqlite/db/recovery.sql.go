@@ -10,14 +10,14 @@ WHERE id = ? AND status = 'PROCESSING'
   AND (recovery_node_id IS NULL OR recovery_expires_at < ?);`
 
 type ClaimTaskForRecoveryParams struct {
-	P1 *string
-	P2 *int32
-	P3 string
-	P4 *int32
+	RecoveryNodeID     *string
+	RecoveryExpiresAt  *int64
+	ID                 string
+	RecoveryExpiresAt2 *int64
 }
 
 func (queries *Queries) ClaimTaskForRecovery(ctx context.Context, params ClaimTaskForRecoveryParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, claimtaskforrecovery, params.P1, params.P2, params.P3, params.P4)
+	results, err := queries.writer.ExecContext(ctx, claimtaskforrecovery, params.RecoveryNodeID, params.RecoveryExpiresAt, params.ID, params.RecoveryExpiresAt2)
 	if err != nil {
 		return 0, err
 	}
@@ -32,18 +32,18 @@ ORDER BY updated_at ASC
 LIMIT ?;`
 
 type GetStaleTasksForRecoveryParams struct {
-	P1 int32
-	P2 *int32
-	P3 int32
+	UpdatedAt         int64
+	RecoveryExpiresAt *int64
+	Limit             int
 }
 type GetStaleTasksForRecoveryRow struct {
-	ID         string
-	WorkflowID string
-	Attempt    int32
+	ID         string `json:"id"`
+	WorkflowID string `json:"workflow_id"`
+	Attempt    int32  `json:"attempt"`
 }
 
 func (queries *Queries) GetStaleTasksForRecovery(ctx context.Context, params GetStaleTasksForRecoveryParams) ([]GetStaleTasksForRecoveryRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getstaletasksforrecovery, params.P1, params.P2, params.P3)
+	rows, err := queries.reader.QueryContext(ctx, getstaletasksforrecovery, params.UpdatedAt, params.RecoveryExpiresAt, params.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -76,16 +76,16 @@ WHERE
     AND status = 'PROCESSING';`
 
 type RecoverClaimedTasksParams struct {
-	P1 any
-	P2 any
-	P3 *string
-	P4 int32
-	P5 int32
-	P6 *string
+	Attempt        int32
+	Attempt2       int32
+	LastError      *string
+	UpdatedAt      int64
+	ExecuteAt      int64
+	RecoveryNodeID *string
 }
 
 func (queries *Queries) RecoverClaimedTasks(ctx context.Context, params RecoverClaimedTasksParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, recoverclaimedtasks, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6)
+	results, err := queries.writer.ExecContext(ctx, recoverclaimedtasks, params.Attempt, params.Attempt2, params.LastError, params.UpdatedAt, params.ExecuteAt, params.RecoveryNodeID)
 	if err != nil {
 		return 0, err
 	}
@@ -104,16 +104,16 @@ WHERE
     AND updated_at < ?;`
 
 type RecoverStaleTasksParams struct {
-	P1 any
-	P2 any
-	P3 *string
-	P4 int32
-	P5 int32
-	P6 int32
+	Attempt    int32
+	Attempt2   int32
+	LastError  *string
+	UpdatedAt  int64
+	ExecuteAt  int64
+	UpdatedAt2 int64
 }
 
 func (queries *Queries) RecoverStaleTasks(ctx context.Context, params RecoverStaleTasksParams) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, recoverstaletasks, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6)
+	results, err := queries.writer.ExecContext(ctx, recoverstaletasks, params.Attempt, params.Attempt2, params.LastError, params.UpdatedAt, params.ExecuteAt, params.UpdatedAt2)
 	if err != nil {
 		return 0, err
 	}
@@ -124,8 +124,8 @@ const releaserecoveryleases = `UPDATE tasks
 SET recovery_node_id = NULL, recovery_expires_at = NULL
 WHERE recovery_node_id = ?;`
 
-func (queries *Queries) ReleaseRecoveryLeases(ctx context.Context, p1 *string) (int64, error) {
-	results, err := queries.writer.ExecContext(ctx, releaserecoveryleases, p1)
+func (queries *Queries) ReleaseRecoveryLeases(ctx context.Context, recoveryNodeID *string) (int64, error) {
+	results, err := queries.writer.ExecContext(ctx, releaserecoveryleases, recoveryNodeID)
 	if err != nil {
 		return 0, err
 	}

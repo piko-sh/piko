@@ -33,7 +33,7 @@ func main() {
 	}
 
 	queries := db.New(conn)
-	if err := queries.Upsert(ctx, db.UpsertParams{P1: "foo", P2: "bar"}); err != nil {
+	if err := queries.Upsert(ctx, db.UpsertParams{Key: "foo", Value: "bar"}); err != nil {
 		fmt.Fprintln(os.Stderr, "Upsert 1:", err)
 		os.Exit(1)
 	}
@@ -43,7 +43,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Get after insert:", err)
 		os.Exit(1)
 	}
-	if err := queries.Upsert(ctx, db.UpsertParams{P1: "foo", P2: "baz"}); err != nil {
+	if err := queries.Upsert(ctx, db.UpsertParams{Key: "foo", Value: "baz"}); err != nil {
 		fmt.Fprintln(os.Stderr, "Upsert 2:", err)
 		os.Exit(1)
 	}

@@ -18,8 +18,8 @@
 
 package fortunes
 
-// Cheese is the pool of cheese-themed fortunes that the mouse oracle
-// dispenses to those brave enough to ask.
+// Cheese is the pool of cheese-themed fortunes that the mouse oracle dispenses to those
+// brave enough to ask.
 var Cheese = []string{
 	"The Camembert sees all. It whispers: add more garlic.",
 	"You will encounter a cheese you cannot pronounce. Buy it anyway.",

@@ -1,0 +1,3 @@
+{
+  "description": "ALTER TABLE events DELETE WHERE ts < {cutoff:DateTime} is annotated with the asyncexec piko command so the emitter attaches the async-semantics doc comment and surfaces an error-only signature. The runner seeds three rows with varied timestamps, calls PurgeOld with a cutoff that purges the older two, and confirms the mutation completes (mutations_sync=2 forces the connection to wait so the assertion does not race the background mutation)."
+}

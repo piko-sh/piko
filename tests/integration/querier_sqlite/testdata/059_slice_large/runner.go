@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i := int32(1); i <= 200; i++ {
+	for i := int64(1); i <= 200; i++ {
 		_, err = conn.ExecContext(ctx, `INSERT INTO items (id, name) VALUES (?, ?)`, i, fmt.Sprintf("item_%d", i))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -41,9 +41,9 @@ func main() {
 
 	queries := db.New(conn)
 
-	ids := make([]int32, 150)
+	ids := make([]int64, 150)
 	for i := range ids {
-		ids[i] = int32(i + 1)
+		ids[i] = int64(i + 1)
 	}
 
 	rows, err := queries.FetchByIDs(ctx, db.FetchByIDsParams{

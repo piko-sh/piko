@@ -48,13 +48,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	book1, err := queries.GetBookWithAuthor(ctx, int32(1))
+	book1, err := queries.GetBookWithAuthor(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetBookWithAuthor (1):", err)
 		os.Exit(1)
 	}
 
-	book2, err := queries.GetBookWithAuthor(ctx, int32(2))
+	book2, err := queries.GetBookWithAuthor(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetBookWithAuthor (2):", err)
 		os.Exit(1)

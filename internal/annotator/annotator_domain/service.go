@@ -152,7 +152,8 @@ type AnnotatorServiceConfig struct {
 	// route calculation, and asset URL generation.
 	PathsConfig AnnotatorPathsConfig
 
-	// GlobalTranslationKeys holds the union of project-level translation keys usable with T().
+	// GlobalTranslationKeys holds the union of project-level translation keys usable with
+	// T().
 	//
 	// Keys span all locales. Nil disables global translation-key validation. The composition
 	// root loads these once from the i18n source directory.

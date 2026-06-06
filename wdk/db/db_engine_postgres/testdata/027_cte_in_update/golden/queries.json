@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "reconcile_balances.sql",
-    "SQL": "-- piko.name: ReconcileBalances\n-- piko.command: many\nWITH account_totals AS (\n    SELECT account_id, SUM(amount) AS total\n    FROM transactions\n    GROUP BY account_id\n)\nUPDATE accounts SET balance = at.total\nFROM account_totals at\nWHERE accounts.id = at.account_id\nRETURNING accounts.id, accounts.balance;",
+    "SQL": "-- piko.query(name: ReconcileBalances, command: many)\nWITH account_totals AS (\n    SELECT account_id, SUM(amount) AS total\n    FROM transactions\n    GROUP BY account_id\n)\nUPDATE accounts SET balance = at.total\nFROM account_totals at\nWHERE accounts.id = at.account_id\nRETURNING accounts.id, accounts.balance;",
     "Name": "ReconcileBalances",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "balance",
         "SourceTable": "accounts",
+        "SourceSchema": "",
         "SourceColumn": "balance",
+        "SourceQualifier": "accounts",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -65,9 +74,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

@@ -12,8 +12,8 @@ type EchoOutput struct {
 	Message string `json:"message"`
 }
 
-// EchoAction is a simple echo endpoint with rate limiting.
-// See https://piko.sh/docs/how-to/actions/advanced-patterns#rate-limiting
+// EchoAction is a simple echo endpoint with rate limiting. See
+// https://piko.sh/docs/how-to/actions/advanced-patterns#rate-limiting
 type EchoAction struct {
 	piko.ActionMetadata
 }
@@ -22,8 +22,8 @@ func (a *EchoAction) Call(input EchoInput) (EchoOutput, error) {
 	return EchoOutput{Message: input.Message}, nil
 }
 
-// RateLimit restricts this action to 3 requests/min per IP.
-// Exceeding the limit returns HTTP 429 with Retry-After headers.
+// RateLimit restricts this action to 3 requests/min per IP. Exceeding the limit returns
+// HTTP 429 with Retry-After headers.
 func (a *EchoAction) RateLimit() *piko.RateLimit {
 	return &piko.RateLimit{
 		KeyFunc:           piko.RateLimitByIP,

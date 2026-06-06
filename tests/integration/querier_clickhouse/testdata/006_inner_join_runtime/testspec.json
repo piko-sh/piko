@@ -1,0 +1,3 @@
+{
+  "description": "INNER JOIN runtime: two tables joined on a foreign key produce a flattened row shape. Verifies that the generated Go struct combines columns from both sides and that the driver scans them correctly."
+}

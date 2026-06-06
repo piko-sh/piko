@@ -1,0 +1,12 @@
+{
+  "null_row": {
+    "id": 1,
+    "payload": null
+  },
+  "populated_row": {
+    "id": 2,
+    "payload": {
+      "k": "v"
+    }
+  }
+}

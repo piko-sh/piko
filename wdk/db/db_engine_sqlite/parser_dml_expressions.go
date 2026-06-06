@@ -25,9 +25,41 @@ import (
 )
 
 var (
-	// expressionTerminators lists keywords that end an expression scan when encountered at
-	// parenthesis depth zero.
+	// expressionTerminators lists keywords that terminate a free-form SQL expression.
+	//
+	// JOIN-introducing keywords are included so that a JOIN's ON expression stops at the
+	// next JOIN rather than swallowing the subsequent JOIN clause, which would prevent the
+	// next joined table from being added to the scope chain and leave its projected columns
+	// typed as `any`. Mirrors the same fix applied to the postgres / mysql / duckdb engines.
 	expressionTerminators = map[string]bool{
+		keywordGROUP: true, keywordHAVING: true, keywordORDER: true, keywordLIMIT: true,
+		keywordUNION: true, keywordINTERSECT: true, keywordEXCEPT: true,
+		keywordRETURNING: true, keywordSET: true, keywordON: true,
+		keywordFROM: true, keywordWHERE: true,
+		keywordJOIN: true, "INNER": true, "LEFT": true, "RIGHT": true,
+		"FULL": true, "CROSS": true, "NATURAL": true,
+	}
+
+	// joinKeywordTerminators is the subset of expressionTerminators whose tokens are also
+	// valid SQL function names.
+	//
+	// LEFT(), RIGHT() and similar tokens are functions when immediately followed by an
+	// opening parenthesis rather than JOIN starters, so the terminator check must skip them
+	// to avoid prematurely ending the surrounding expression and quietly dropping any
+	// parameters that follow.
+	joinKeywordTerminators = map[string]bool{
+		"INNER": true, "LEFT": true, "RIGHT": true, "FULL": true, "CROSS": true, "NATURAL": true,
+	}
+
+	// whereExpressionTerminators is the terminator set used for WHERE / HAVING expressions.
+	//
+	// It deliberately omits the JOIN-introducing keywords (JOIN, INNER, LEFT, RIGHT, FULL,
+	// CROSS, NATURAL) because those are all legal unquoted column names in SQLite, and a
+	// WHERE/HAVING predicate never legitimately starts a JOIN at top level. Including them
+	// treated a column named `left`/`right`/`inner` etc. as a clause boundary and quietly
+	// dropped every parameter that followed it. The ON-clause scan keeps the JOIN keywords
+	// via expressionTerminators.
+	whereExpressionTerminators = map[string]bool{
 		keywordGROUP: true, keywordHAVING: true, keywordORDER: true, keywordLIMIT: true,
 		keywordUNION: true, keywordINTERSECT: true, keywordEXCEPT: true,
 		keywordRETURNING: true, keywordSET: true, keywordON: true,
@@ -35,35 +67,44 @@ var (
 	}
 )
 
-// parseWhereExpression consumes the WHERE expression, registering any parameters that
-// appear within it.
+// parseWhereExpression skips a WHERE / HAVING predicate, stopping at the first
+// clause-level terminator that does not double as a column name.
 func (p *parser) parseWhereExpression() {
-	p.parseExpressionUntilTerminator()
+	p.parseExpressionUntilTerminator(whereExpressionTerminators)
 }
 
-// parseExpressionUntilTerminator advances over tokens until reaching an expression
-// terminator at depth zero.
-func (p *parser) parseExpressionUntilTerminator() {
+// parseJoinConditionExpression skips a JOIN ON predicate. A join condition is genuinely
+// followed by the next JOIN, so the JOIN-introducing keywords remain terminators here
+// (via expressionTerminators); the handleExpressionTerminator function-call exemption
+// still distinguishes LEFT()/RIGHT() calls from JOIN starters.
+func (p *parser) parseJoinConditionExpression() {
+	p.parseExpressionUntilTerminator(expressionTerminators)
+}
+
+// parseExpressionUntilTerminator advances over tokens until reaching a terminator from
+// the supplied set at depth zero.
+//
+// Takes terminators (map[string]bool) which is the set of clause-level keywords that end
+// the scan.
+func (p *parser) parseExpressionUntilTerminator(terminators map[string]bool) {
 	depth := 0
 	for !p.atEnd() {
 		tok := p.current()
 
-		if tok.kind == tokenLeftParen {
-			depth++
-			p.advance()
-			continue
+		nextDepth, stop, handled := p.handleExpressionParen(tok, depth)
+		if stop {
+			break
 		}
-		if tok.kind == tokenRightParen {
-			if depth == 0 {
-				break
-			}
-			depth--
-			p.advance()
+		if handled {
+			depth = nextDepth
 			continue
 		}
 
-		if depth == 0 && isExpressionTerminator(tok) {
-			break
+		if depth == 0 && isExpressionTerminator(tok, terminators) {
+			if p.handleExpressionTerminator(tok) {
+				break
+			}
+			continue
 		}
 
 		if isParameterToken(tok.kind) {
@@ -75,18 +116,72 @@ func (p *parser) parseExpressionUntilTerminator() {
 	}
 }
 
+// handleExpressionParen processes a parenthesis token within an expression scan. Returns
+// the next depth value, whether to break the outer loop (unmatched right paren at depth
+// zero), and whether the token was a parenthesis at all (and thus already consumed).
+//
+// Takes tok (token) which is the token under consideration.
+// Takes depth (int) which is the current parenthesis nesting depth.
+//
+// Returns nextDepth (int) which is the updated nesting depth.
+// Returns stop (bool) which is true when the outer loop should break.
+// Returns handled (bool) which is true when the token was consumed here.
+func (p *parser) handleExpressionParen(tok token, depth int) (nextDepth int, stop bool, handled bool) {
+	if tok.kind == tokenLeftParen {
+		if p.isSubqueryStart() {
+			if innerAnalysis, ok := p.analyseSubqueryBody(); ok {
+				p.predicateSubqueries = append(p.predicateSubqueries, innerAnalysis)
+			}
+			return depth, false, true
+		}
+		p.advance()
+		return depth + 1, false, true
+	}
+	if tok.kind == tokenRightParen {
+		if depth == 0 {
+			return depth, true, true
+		}
+		p.advance()
+		return depth - 1, false, true
+	}
+	return depth, false, false
+}
+
+// handleExpressionTerminator distinguishes a real JOIN keyword from a function call
+// sharing the same name (LEFT(), RIGHT(), etc.). Consumes the identifier when it is
+// followed by an opening parenthesis, returning false so the caller continues; otherwise
+// returns true so the caller breaks out of the expression scan.
+//
+// Takes tok (token) which is the candidate terminator token.
+//
+// Returns bool which is true when the caller should break.
+func (p *parser) handleExpressionTerminator(tok token) bool {
+	if joinKeywordTerminators[strings.ToUpper(tok.value)] && p.peek().kind == tokenLeftParen {
+		p.advance()
+		return false
+	}
+	return true
+}
+
 // isExpressionTerminator reports whether the token is a clause-level keyword that ends an
 // expression scan.
 //
 // Takes tok (token) which is the token to inspect.
 //
 // Returns bool which is true when the token ends the expression.
-func isExpressionTerminator(tok token) bool {
-	return tok.kind == tokenIdentifier && expressionTerminators[strings.ToUpper(tok.value)]
+func isExpressionTerminator(tok token, terminators map[string]bool) bool {
+	return tok.kind == tokenIdentifier && terminators[strings.ToUpper(tok.value)]
 }
 
 // handleParameterInExpression registers a parameter token seen while scanning an
 // expression, attaching context information when known.
+//
+// When the flat scan classifies the placeholder as a function argument it also records
+// the enclosing function name and the 0-based argument ordinal on the freshly registered
+// parameter, so the analyser can look the function up and back-propagate the declared
+// argument type. The AST function-call path records the same metadata via
+// markFunctionArgumentParameters; this branch covers the flat WHERE/ON scan path (for
+// example LENGTH(?) > 0) which never descends into parseFunctionArguments.
 func (p *parser) handleParameterInExpression() {
 	paramPosition := p.position
 	parameterToken := p.current()
@@ -106,6 +201,16 @@ func (p *parser) handleParameterInExpression() {
 
 	p.advance()
 	p.registerParameterFromToken(parameterToken, context, columnRef, castType)
+
+	if context == querier_dto.ParameterContextFunctionArgument {
+		if name, ordinal, ok := p.enclosingFunctionArgument(paramPosition); ok {
+			lastIndex := len(p.parameterRefs) - 1
+			if lastIndex >= 0 && p.parameterRefs[lastIndex].EnclosingFunctionName == "" {
+				p.parameterRefs[lastIndex].EnclosingFunctionName = name
+				p.parameterRefs[lastIndex].ArgumentOrdinal = ordinal
+			}
+		}
+	}
 }
 
 // isComparisonOperator reports whether the supplied operator is a SQL comparison
@@ -126,6 +231,11 @@ func isComparisonOperator(operator string) bool {
 //
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
+	if p.expressionDepth >= p.maxParseDepth {
+		return &querier_dto.UnknownExpression{}
+	}
+	p.expressionDepth++
+	defer func() { p.expressionDepth-- }()
 	return p.parseOrExpression()
 }
 
@@ -288,16 +398,47 @@ func (p *parser) parseJSONAccessExpression() querier_dto.Expression {
 	return left
 }
 
-// parseIsNullSuffix parses the IS [NOT] NULL suffix after a left operand.
+// parseIsNullSuffix parses the IS [NOT] NULL suffix after a left operand, or the SQLite
+// null-safe equality form col IS [NOT] <operand> when the operand is not NULL.
+//
+// IS NULL / IS NOT NULL return an IsNullExpression as before. For the null-safe equality
+// form (for example col IS ?) the operand is parsed so the token stream stays
+// synchronised, and any placeholder it introduces is tagged with the LHS column reference
+// exactly as col = ? is, so a col IS ? nested inside a function argument, subquery or
+// CASE is typed from the column rather than left untyped. This mirrors the flat-scan IS
+// handling.
 //
 // Takes left (querier_dto.Expression) which holds the inner expression.
 //
-// Returns querier_dto.Expression which is the parsed IsNull expression.
+// Returns querier_dto.Expression which is the parsed IsNull or comparison expression.
 func (p *parser) parseIsNullSuffix(left querier_dto.Expression) querier_dto.Expression {
 	p.advance()
 	negated := p.matchKeyword(keywordNOT)
-	p.matchKeyword("NULL")
-	return &querier_dto.IsNullExpression{Inner: left, Negated: negated}
+	if p.matchKeyword("NULL") {
+		return &querier_dto.IsNullExpression{Inner: left, Negated: negated}
+	}
+
+	parameterCountBefore := p.parameterCount
+	right := p.parseBitwiseExpression()
+
+	if columnExpression, ok := left.(*querier_dto.ColumnRefExpression); ok {
+		columnReference := &querier_dto.ColumnReference{
+			TableAlias: columnExpression.TableAlias,
+			ColumnName: columnExpression.ColumnName,
+		}
+		for i := range p.parameterRefs {
+			if p.parameterRefs[i].Number > parameterCountBefore && p.parameterRefs[i].ColumnReference == nil {
+				p.parameterRefs[i].Context = querier_dto.ParameterContextComparison
+				p.parameterRefs[i].ColumnReference = columnReference
+			}
+		}
+	}
+
+	operator := "IS"
+	if negated {
+		operator = "IS NOT"
+	}
+	return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: right}
 }
 
 // parseInListSuffix parses the IN (...) suffix and tags any parameters inside it with the
@@ -579,10 +720,11 @@ func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 func (p *parser) parseFunctionCall(functionName string) querier_dto.Expression {
 	p.advance()
 
-	arguments := p.parseFunctionArguments()
+	loweredName := strings.ToLower(functionName)
+	arguments := p.parseFunctionArguments(loweredName)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: strings.ToLower(functionName),
+		FunctionName: loweredName,
 		Schema:       "",
 		Arguments:    arguments,
 	}
@@ -608,8 +750,19 @@ func (p *parser) parseFunctionCall(functionName string) querier_dto.Expression {
 // parseFunctionArguments parses the parenthesised arguments of a function call and tags
 // any newly-seen parameters as function arguments.
 //
+// Each top-level argument expression consumes one 0-based ordinal slot (a literal, a
+// column or a sub-expression still advances the slot), so a placeholder sitting directly
+// in the call's argument list is tagged with the enclosing function name and the slot it
+// occupied. A placeholder nested inside an inner call was already tagged by that inner
+// call's parseFunctionArguments, so the Context==ParameterContextUnknown guard leaves it
+// untouched and the inner metadata is not clobbered.
+//
+// Takes loweredName (string) which is the lower-cased enclosing function name recorded on
+// each placeholder so the analyser can look the function up and back-propagate the
+// declared argument type.
+//
 // Returns []querier_dto.Expression which holds the parsed argument expressions.
-func (p *parser) parseFunctionArguments() []querier_dto.Expression {
+func (p *parser) parseFunctionArguments(loweredName string) []querier_dto.Expression {
 	var arguments []querier_dto.Expression
 
 	if p.current().kind == tokenStar {
@@ -628,13 +781,15 @@ func (p *parser) parseFunctionArguments() []querier_dto.Expression {
 		return arguments
 	}
 
-	parameterCountBefore := p.parameterCount
-
+	argumentOrdinal := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.isKeyword(keywordORDER) {
 			break
 		}
+		refsCountBefore := len(p.parameterRefs)
 		arguments = append(arguments, p.parseExpression())
+		p.markFunctionArgumentParameters(refsCountBefore, loweredName, argumentOrdinal)
+		argumentOrdinal++
 		if p.current().kind != tokenComma {
 			break
 		}
@@ -647,14 +802,31 @@ func (p *parser) parseFunctionArguments() []querier_dto.Expression {
 		p.advance()
 	}
 
-	for i := range p.parameterRefs {
-		if p.parameterRefs[i].Number > parameterCountBefore &&
-			p.parameterRefs[i].Context == querier_dto.ParameterContextUnknown {
+	return arguments
+}
+
+// markFunctionArgumentParameters tags every placeholder registered while parsing one
+// top-level function argument with the function-argument context, the enclosing function
+// name and the argument's 0-based ordinal slot. Placeholders that an inner call already
+// tagged are skipped via the Context==ParameterContextUnknown guard, so a nested call's
+// metadata is preserved.
+//
+// The boundary is the parameterRefs slice length rather than the parameter-count
+// watermark: references are always appended, so refsCountBefore..end is exactly the set
+// added by this argument, which is correct even for out-of-order numbered placeholders
+// (for example ?3 then ?1) where the watermark would not advance.
+//
+// Takes refsCountBefore (int) which is len(parameterRefs) before the argument was parsed.
+// Takes loweredName (string) which is the lower-cased enclosing function name.
+// Takes argumentOrdinal (int) which is the 0-based slot the argument occupies.
+func (p *parser) markFunctionArgumentParameters(refsCountBefore int, loweredName string, argumentOrdinal int) {
+	for i := refsCountBefore; i < len(p.parameterRefs); i++ {
+		if p.parameterRefs[i].Context == querier_dto.ParameterContextUnknown {
 			p.parameterRefs[i].Context = querier_dto.ParameterContextFunctionArgument
+			p.parameterRefs[i].EnclosingFunctionName = loweredName
+			p.parameterRefs[i].ArgumentOrdinal = argumentOrdinal
 		}
 	}
-
-	return arguments
 }
 
 // parseFunctionOrderByClause consumes the optional ORDER BY clause that may appear inside
@@ -776,20 +948,10 @@ func (p *parser) skipFrameBound() {
 // Returns querier_dto.Expression which is the parsed scalar subquery, or
 // UnknownExpression on failure.
 func (p *parser) parseScalarSubquery() querier_dto.Expression {
-	innerTokens, collectError := p.collectParenthesised()
-	if collectError != nil {
+	innerAnalysis, ok := p.analyseSubqueryBody()
+	if !ok {
 		return &querier_dto.UnknownExpression{}
 	}
-
-	childParser := newParser(innerTokens)
-	childParser.parameterCount = p.parameterCount
-	innerAnalysis, analyseError := childParser.analyseSelect()
-	if analyseError != nil {
-		return &querier_dto.UnknownExpression{}
-	}
-	p.parameterCount = childParser.parameterCount
-	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
-
 	return &querier_dto.ScalarSubqueryExpression{InnerQuery: innerAnalysis}
 }
 
@@ -798,21 +960,40 @@ func (p *parser) parseScalarSubquery() querier_dto.Expression {
 //
 // Returns querier_dto.Expression which is the parsed EXISTS expression, empty on failure.
 func (p *parser) parseExistsSubquery() querier_dto.Expression {
+	innerAnalysis, ok := p.analyseSubqueryBody()
+	if !ok {
+		return &querier_dto.ExistsExpression{}
+	}
+	return &querier_dto.ExistsExpression{InnerQuery: innerAnalysis}
+}
+
+// analyseSubqueryBody collects a parenthesised subquery, analyses it in a child parser
+// that inherits the parameter and depth state, and splices the child's parameter results
+// back.
+//
+// Shared by the scalar and EXISTS subquery parsers.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the inner subquery.
+// Returns bool which is true when the subquery was collected and analysed successfully.
+func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
-		return &querier_dto.ExistsExpression{}
+		return nil, false
 	}
 
 	childParser := newParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
+	childParser.analysisDepth = p.analysisDepth
+	childParser.expressionDepth = p.expressionDepth
+	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
-		return &querier_dto.ExistsExpression{}
+		return nil, false
 	}
 	p.parameterCount = childParser.parameterCount
 	p.parameterRefs = append(p.parameterRefs, childParser.parameterRefs...)
 
-	return &querier_dto.ExistsExpression{InnerQuery: innerAnalysis}
+	return innerAnalysis, true
 }
 
 // parseCastExpression parses a CAST(expression AS type) expression and tags the inner

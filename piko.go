@@ -63,8 +63,8 @@ const (
 	// dirPermOwnerRWX is the file permission for directories (rwxr-x---).
 	dirPermOwnerRWX = 0750
 
-	// defaultComponentStartTimeout is the maximum time allowed for a lifecycle
-	// component to start before the start is considered failed.
+	// defaultComponentStartTimeout is the maximum time allowed for a lifecycle component to
+	// start before the start is considered failed.
 	defaultComponentStartTimeout = 30 * time.Second
 
 	// GenerateModeManifest is the generation mode for manifest output.
@@ -76,8 +76,8 @@ const (
 	// GenerateModeSQL runs the querier code generator against registered databases.
 	GenerateModeSQL = bootstrap.GenerateModeSQL
 
-	// GenerateModeAssets runs annotation to discover template-derived asset
-	// requirements, then builds static assets. Code emission is skipped.
+	// GenerateModeAssets runs annotation to discover template-derived asset requirements,
+	// then builds static assets. Code emission is skipped.
 	GenerateModeAssets = bootstrap.GenerateModeAssets
 
 	// LevelDebug is the debug log level for detailed diagnostic information.
@@ -94,16 +94,15 @@ const (
 )
 
 var (
-	// Version holds the current version of Piko. This can be overridden at build
-	// time using: go build -ldflags "-X piko.sh/piko.Version=1.0.0".
+	// Version holds the current version of Piko. This can be overridden at build time using:
+	// go build -ldflags "-X piko.sh/piko.Version=1.0.0".
 	Version = "0.1.0-alpha"
 
 	// log is the package-level logger for the piko package.
 	log = logger_domain.GetLogger("piko")
 
-	// WithComponents registers external PKC components with the Piko framework,
-	// letting third-party component libraries provide components that can be used
-	// in templates.
+	// WithComponents registers external PKC components with the Piko framework, letting
+	// third-party component libraries provide components that can be used in templates.
 	//
 	// Components registered via WithComponents are validated at startup:
 	//   - Tag names must contain a hyphen (e.g., "my-button", not "button")
@@ -111,62 +110,60 @@ var (
 	//   - Tag names must not use reserved prefixes (piko:, pml-)
 	//   - Duplicate tag names result in a startup error
 	//
-	// Takes components (...ComponentDefinition) which specifies the external
-	// components to register.
+	// Takes components (...ComponentDefinition) which specifies the external components to
+	// register.
 	//
 	// Returns Option which configures the container with the external components.
 	//
-	// Example:
-	// server := piko.New(
-	//     piko.WithComponents(
-	//         piko.ComponentDefinition{
-	//             TagName:    "my-button",
-	//             ModulePath: "github.com/myorg/piko-components",
-	//         },
-	//         piko.ComponentDefinition{
-	//             TagName:    "my-card",
-	//             ModulePath: "github.com/myorg/piko-components",
-	//         },
-	//     ),
+	// Example: server := piko.New(
+	//
+	// 	piko.WithComponents(
+	// 	    piko.ComponentDefinition{
+	// 	        TagName:    "my-button",
+	// 	        ModulePath: "github.com/myorg/piko-components",
+	// 	    },
+	// 	    piko.ComponentDefinition{
+	// 	        TagName:    "my-card",
+	// 	        ModulePath: "github.com/myorg/piko-components",
+	// 	    },
+	// 	),
+	//
 	// )
 	WithComponents = bootstrap.WithComponents
 
-	// WithSEO provides the SEO configuration for sitemap and robots.txt
-	// generation. SEO is only active when this option is provided with an
-	// enabled configuration and a non-empty sitemap hostname.
+	// WithSEO provides the SEO configuration for sitemap and robots.txt generation. SEO is
+	// only active when this option is provided with an enabled configuration and a non-empty
+	// sitemap hostname.
 	WithSEO = bootstrap.WithSEO
 
-	// WithAssets provides the asset configuration including image/video profiles,
-	// screen breakpoints, and default densities for responsive images. These
-	// settings are used at compile time for static asset analysis.
+	// WithAssets provides the asset configuration including image/video profiles, screen
+	// breakpoints, and default densities for responsive images. These settings are used at
+	// compile time for static asset analysis.
 	WithAssets = bootstrap.WithAssets
 
-	// WithWebsiteConfig provides the website configuration programmatically,
-	// replacing the file-based config.json loading entirely. When set, the
-	// config.json file is not read.
+	// WithWebsiteConfig provides the website configuration programmatically, replacing the
+	// file-based config.json loading entirely. When set, the config.json file is not read.
 	//
-	// Use it for programmatic server setup where the website settings are
-	// defined in Go code rather than a JSON file.
+	// Use it for programmatic server setup where the website settings are defined in Go code
+	// rather than a JSON file.
 	WithWebsiteConfig = bootstrap.WithWebsiteConfig
 
-	// WithStandardLoader causes the type inspector to use the
-	// standard golang.org/x/tools/go/packages.Load instead of the
-	// faster quickpackages loader.
+	// WithStandardLoader causes the type inspector to use the standard
+	// golang.org/x/tools/go/packages.Load instead of the faster quickpackages loader.
 	//
-	// This is slower but always stable, since it is maintained by
-	// the Go team. Useful as a fallback when quickpackages
-	// encounters issues with specific dependency configurations
+	// This is slower but always stable, since it is maintained by the Go team. Useful as a
+	// fallback when quickpackages encounters issues with specific dependency configurations
 	// (e.g. complex CGo setups).
 	WithStandardLoader = bootstrap.WithStandardLoader
 )
 
-// SymbolExports is a type alias for registering exported symbols with the
-// template interpreter. It maps package names to symbol names to their values,
-// and is compatible with SymbolExports from the interpreter provider.
+// SymbolExports is a type alias for registering exported symbols with the template
+// interpreter. It maps package names to symbol names to their values, and is compatible
+// with SymbolExports from the interpreter provider.
 type SymbolExports = templater_domain.SymbolExports
 
-// PublicConfig defines the set of configurable options that can be set
-// programmatically when embedding the Piko server.
+// PublicConfig defines the set of configurable options that can be set programmatically
+// when embedding the Piko server.
 type PublicConfig struct {
 	// BaseDir is the base directory path for server files; empty uses the default.
 	BaseDir string
@@ -201,9 +198,9 @@ type SSRServer struct {
 	// symbols holds optional interpreter exports for registration.
 	symbols templater_domain.SymbolExports
 
-	// PreBuildHook is called after the previous daemon is stopped and caches
-	// are invalidated, but before the new daemon starts building. This allows
-	// tests to reset spy statistics in a race-free window.
+	// PreBuildHook is called after the previous daemon is stopped and caches are
+	// invalidated, but before the new daemon starts building. This allows tests to reset spy
+	// statistics in a race-free window.
 	PreBuildHook func()
 
 	// lifecycleComponents holds registered components for lifecycle management.
@@ -213,12 +210,10 @@ type SSRServer struct {
 	options []Option
 }
 
-// Configure appends additional bootstrap options to the server based on the
-// supplied PublicConfig. Equivalent to calling the corresponding With*
-// options at piko.New time.
+// Configure appends additional bootstrap options to the server based on the supplied
+// PublicConfig. Equivalent to calling the corresponding With* options at piko.New time.
 //
-// Takes publicConfig (PublicConfig) which specifies the configuration values
-// to apply.
+// Takes publicConfig (PublicConfig) which specifies the configuration values to apply.
 func (s *SSRServer) Configure(publicConfig PublicConfig) {
 	if publicConfig.Port != 0 {
 		s.options = append(s.options, bootstrap.WithPort(publicConfig.Port))
@@ -235,34 +230,33 @@ func (s *SSRServer) Configure(publicConfig PublicConfig) {
 	s.options = append(s.options, bootstrap.WithWatchMode(publicConfig.WatchMode))
 }
 
-// RegisterLifecycle adds a component to be managed during server startup and
-// shutdown.
+// RegisterLifecycle adds a component to be managed during server startup and shutdown.
 //
-// Components are started in the order they are added. OnStart is called before
-// the HTTP server starts. During shutdown, components are stopped in reverse
-// order (last added, first stopped).
+// Components are started in the order they are added. OnStart is called before the HTTP
+// server starts. During shutdown, components are stopped in reverse order (last added,
+// first stopped).
 //
-// If the component also implements HealthProbe, it will be added to the health
-// monitoring system and shown via the /health, /live, and /ready endpoints.
+// If the component also implements HealthProbe, it will be added to the health monitoring
+// system and shown via the /health, /live, and /ready endpoints.
 //
 // May be called many times, but must be called before Run.
 //
 // Takes component (LifecycleComponent) which is the component to add.
 //
-// Example:
-// ssr := piko.New()
-// ssr.RegisterLifecycle(myDatabaseComponent)
-// ssr.RegisterLifecycle(myCacheComponent)
-// ssr.Run(actions, piko.RunModeDev)
+// Example: ssr := piko.New() ssr.RegisterLifecycle(myDatabaseComponent)
+// ssr.RegisterLifecycle(myCacheComponent) ssr.Run(actions, piko.RunModeDev)
 func (s *SSRServer) RegisterLifecycle(component LifecycleComponent) {
+	if component == nil {
+		return
+	}
 	s.lifecycleComponents = append(s.lifecycleComponents, component)
 	_, l := logger_domain.From(context.Background(), log)
 	l.Internal("Lifecycle component registered", logger_domain.String("component", component.Name()))
 }
 
-// Setup bootstraps the configuration and creates the DI container without
-// starting the server. Use it when you need access to services without
-// running the daemon, such as in tests.
+// Setup bootstraps the configuration and creates the DI container without starting the
+// server. Use it when you need access to services without running the daemon, such as in
+// tests.
 //
 // Returns error when the container fails to initialise.
 func (s *SSRServer) Setup() error {
@@ -281,45 +275,39 @@ func (s *SSRServer) Setup() error {
 
 // WithInterpreterProvider sets the interpreter provider for dev-i mode.
 //
-// This is required when running in RunModeDevInterpreted. The provider
-// creates pooled interpreters with pre-loaded symbols for efficient JIT
-// compilation.
+// This is required when running in RunModeDevInterpreted. The provider creates pooled
+// interpreters with pre-loaded symbols for efficient JIT compilation.
 //
 // Takes provider (templater_domain.InterpreterProviderPort) which provides the
 // interpreter pool and symbol management.
 //
-// Example:
-// import pikointerp "piko.sh/piko/wdk/interp/interp_provider_piko"
-// server := piko.New()
-// server.WithInterpreterProvider(pikointerp.NewProvider())
-// server.Run(actions, piko.RunModeDevInterpreted)
+// Example: import pikointerp "piko.sh/piko/wdk/interp/interp_provider_piko" server :=
+// piko.New() server.WithInterpreterProvider(pikointerp.NewProvider()) server.Run(actions,
+// piko.RunModeDevInterpreted)
 func (s *SSRServer) WithInterpreterProvider(provider templater_domain.InterpreterProviderPort) {
 	s.interpreterProvider = provider
 }
 
 // WithSymbols sets additional exported symbols for the interpreter.
 //
-// These symbols will be registered with the interpreter provider when running
-// in dev-i mode, making custom types and functions available to interpreted
-// template code.
+// These symbols will be registered with the interpreter provider when running in dev-i
+// mode, making custom types and functions available to interpreted template code.
 //
-// Takes symbols (templater_domain.SymbolExports) which provides the symbols to
-// expose.
+// Takes symbols (templater_domain.SymbolExports) which provides the symbols to expose.
 func (s *SSRServer) WithSymbols(symbols templater_domain.SymbolExports) {
 	s.symbols = symbols
 }
 
 // Generate produces a Piko build using the two-phase bootstrap process.
 //
-// For dev-i mode, this also builds the daemon infrastructure to set up routes
-// on the AppRouter, allowing the server to serve requests immediately after
-// generation completes. The daemon is not started; use Run to actually start
-// serving HTTP requests.
+// For dev-i mode, this also builds the daemon infrastructure to set up routes on the
+// AppRouter, allowing the server to serve requests immediately after generation
+// completes. The daemon is not started; use Run to actually start serving HTTP requests.
 //
 // Takes runMode (string) which specifies the execution mode for the build.
 //
-// Returns error when configuration bootstrap fails, interpreter provider is
-// missing for dev-i mode, or the build process fails.
+// Returns error when configuration bootstrap fails, interpreter provider is missing for
+// dev-i mode, or the build process fails.
 func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 	deps := &bootstrap.Dependencies{
 		AppRouter: s.AppRouter,
@@ -337,21 +325,7 @@ func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 	}
 
 	if runMode == RunModeDevInterpreted {
-		if s.daemon != nil {
-			stopCtx, stopCancel := context.WithTimeoutCause(ctx, 10*time.Second,
-				errors.New("stopping previous daemon exceeded 10s timeout"))
-			_ = s.daemon.Stop(stopCtx)
-			stopCancel()
-			s.daemon = nil
-
-			if coordService, err := container.GetCoordinatorService(); err == nil {
-				_ = coordService.Invalidate(ctx)
-			}
-
-			if s.PreBuildHook != nil {
-				s.PreBuildHook()
-			}
-		}
+		s.stopPreviousDaemon(ctx, container)
 
 		daemon, daemonErr := bootstrap.Daemon(ctx, runMode, container, deps)
 		if daemonErr != nil {
@@ -369,12 +343,12 @@ func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 // Takes runMode (string) which specifies the execution mode (prod, dev, or
 // dev-interpreted).
 //
-// Returns error when configuration bootstrap fails, global setup fails,
-// lifecycle components fail to start, daemon bootstrap fails, or the daemon
-// exits with an unexpected error.
+// Returns error when configuration bootstrap fails, global setup fails, lifecycle
+// components fail to start, daemon bootstrap fails, or the daemon exits with an
+// unexpected error.
 //
-// Spawns a goroutine to listen for shutdown signals. The goroutine runs until
-// a shutdown signal is received.
+// Spawns a goroutine to listen for shutdown signals. The goroutine runs until a shutdown
+// signal is received.
 func (s *SSRServer) Run(runMode string) error {
 	ctx := context.Background()
 	ctx, l := logger_domain.From(ctx, log)
@@ -435,10 +409,9 @@ func (s *SSRServer) Run(runMode string) error {
 	return s.startAndRunDaemon(ctx, runMode, container, deps)
 }
 
-// Close performs graceful cleanup of all services created during Generate().
-// Call this after Generate() when you do not intend to call Run(), to ensure
-// background goroutines (orchestrator, coordinator, event bus, cache, etc.)
-// are properly terminated.
+// Close performs graceful cleanup of all services created during Generate(). Call this
+// after Generate() when you do not intend to call Run(), to ensure background goroutines
+// (orchestrator, coordinator, event bus, cache, etc.) are properly terminated.
 //
 // Safe to call multiple times.
 func (*SSRServer) Close() {
@@ -462,11 +435,11 @@ func (s *SSRServer) Stop() error {
 	return s.daemon.Stop(ctx)
 }
 
-// GetHandler returns the HTTP handler for serving requests, or nil if the
-// daemon has not been built yet.
+// GetHandler returns the HTTP handler for serving requests, or nil if the daemon has not
+// been built yet.
 //
-// Use it to test without starting the full server. The daemon must be built
-// first via Generate or Run.
+// Use it to test without starting the full server. The daemon must be built first via
+// Generate or Run.
 //
 // Returns http.Handler which processes incoming HTTP requests.
 func (s *SSRServer) GetHandler() http.Handler {
@@ -476,11 +449,10 @@ func (s *SSRServer) GetHandler() http.Handler {
 	return s.daemon.GetHandler()
 }
 
-// prepareInterpretedDeps configures interpreter-specific dependencies for
-// dev-i mode.
+// prepareInterpretedDeps configures interpreter-specific dependencies for dev-i mode.
 //
-// Takes deps (*bootstrap.Dependencies) which receives the interpreter pool
-// and symbol provider.
+// Takes deps (*bootstrap.Dependencies) which receives the interpreter pool and symbol
+// provider.
 //
 // Returns error when no interpreter provider has been set.
 func (s *SSRServer) prepareInterpretedDeps(deps *bootstrap.Dependencies) error {
@@ -495,9 +467,40 @@ func (s *SSRServer) prepareInterpretedDeps(deps *bootstrap.Dependencies) error {
 	return nil
 }
 
-// ensureContainer creates and initialises the bootstrap Container if one has
-// not already been assigned. Dev mode front-end modules and global setup are
-// applied on first creation.
+// stopPreviousDaemon stops and clears the daemon from a prior dev-interpreted rebuild,
+// invalidates the coordinator service so its cached state is dropped, and runs the
+// pre-build hook. Stop and invalidate failures are logged rather than returned because a
+// rebuild should still proceed; both are best-effort teardown of the previous run.
+//
+// Takes container (*bootstrap.Container) which provides the coordinator service.
+func (s *SSRServer) stopPreviousDaemon(ctx context.Context, container *bootstrap.Container) {
+	if s.daemon == nil {
+		return
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+	stopCtx, stopCancel := context.WithTimeoutCause(ctx, 10*time.Second,
+		errors.New("stopping previous daemon exceeded 10s timeout"))
+	if stopErr := s.daemon.Stop(stopCtx); stopErr != nil {
+		l.Warn("Failed to stop previous daemon during dev rebuild", logger_domain.Error(stopErr))
+	}
+	stopCancel()
+	s.daemon = nil
+
+	if coordService, err := container.GetCoordinatorService(); err == nil {
+		if invalidateErr := coordService.Invalidate(ctx); invalidateErr != nil {
+			l.Warn("Failed to invalidate coordinator service during dev rebuild", logger_domain.Error(invalidateErr))
+		}
+	}
+
+	if s.PreBuildHook != nil {
+		s.PreBuildHook()
+	}
+}
+
+// ensureContainer creates and initialises the bootstrap Container if one has not already
+// been assigned. Dev mode front-end modules and global setup are applied on first
+// creation.
 //
 // Takes deps (*bootstrap.Dependencies) which provides the application dependencies.
 // Takes runMode (string) which specifies the execution mode (prod, dev, or
@@ -534,22 +537,19 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 	return container, nil
 }
 
-// installCrashOutput wires the runtime crash mirror into the running
-// process.
+// installCrashOutput wires the runtime crash mirror into the running process.
 //
-// Called from Run as early as possible, before any application goroutines
-// are spawned, so the runtime can mirror unrecovered panics and fatal
-// errors to the configured file even when stderr is lost (container kill,
-// etc.). The closeFn returned by InstallCrashOutput is registered with the
-// shutdown pipeline so it runs at graceful shutdown alongside other
-// lifecycle cleanup.
+// Called from Run as early as possible, before any application goroutines are spawned, so
+// the runtime can mirror unrecovered panics and fatal errors to the configured file even
+// when stderr is lost (container kill, etc.). The closeFn returned by InstallCrashOutput
+// is registered with the shutdown pipeline so it runs at graceful shutdown alongside
+// other lifecycle cleanup.
 //
-// Takes container (*bootstrap.Container) which provides the configured
-// crash-output path and traceback level.
+// Takes container (*bootstrap.Container) which provides the configured crash-output path
+// and traceback level.
 //
-// Returns error wrapping the bootstrap failure when the configured
-// traceback level is invalid; file-open failures are best-effort and do
-// not propagate.
+// Returns error wrapping the bootstrap failure when the configured traceback level is
+// invalid; file-open failures are best-effort and do not propagate.
 func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.Container) error {
 	crashOutputClose, err := bootstrap.InstallCrashOutput(ctx, container)
 	if err != nil {
@@ -564,11 +564,11 @@ func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.C
 	return nil
 }
 
-// buildDependencies creates the bootstrap dependencies struct from the
-// SSRServer's configured providers.
+// buildDependencies creates the bootstrap dependencies struct from the SSRServer's
+// configured providers.
 //
-// Takes runMode (string) which specifies the server execution mode
-// (RunModeDev, RunModeDevInterpreted, or RunModeProd).
+// Takes runMode (string) which specifies the server execution mode (RunModeDev,
+// RunModeDevInterpreted, or RunModeProd).
 //
 // Returns *bootstrap.Dependencies which contains the configured dependencies.
 // Returns error when dev-i mode is requested but no interpreter provider is set.
@@ -599,8 +599,8 @@ func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, 
 // Takes container (*bootstrap.Container) which provides the application container.
 // Takes deps (*bootstrap.Dependencies) which provides the application dependencies.
 //
-// Returns error when bootstrapping fails, the run mode is invalid, or the
-// daemon exits unexpectedly.
+// Returns error when bootstrapping fails, the run mode is invalid, or the daemon exits
+// unexpectedly.
 func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, container *bootstrap.Container, deps *bootstrap.Dependencies) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -648,9 +648,9 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 	return s.runDaemonForMode(ctx, runMode, l)
 }
 
-// runDaemonForMode selects the appropriate daemon run method based on the
-// mode, executes it, and interprets the result. A normal server-closed error
-// is treated as a graceful stop.
+// runDaemonForMode selects the appropriate daemon run method based on the mode, executes
+// it, and interprets the result. A normal server-closed error is treated as a graceful
+// stop.
 //
 // Takes runMode (string) which selects between prod and dev execution paths.
 // Takes l (logger_domain.Logger) which is the logger for reporting the outcome.
@@ -676,8 +676,8 @@ func (s *SSRServer) runDaemonForMode(ctx context.Context, runMode string, l logg
 	return nil
 }
 
-// startLifecycleComponents calls OnStart on all registered lifecycle
-// components in the order they were added.
+// startLifecycleComponents calls OnStart on all registered lifecycle components in the
+// order they were added.
 //
 // Returns error when any component fails to start within the 30-second timeout.
 func (s *SSRServer) startLifecycleComponents(ctx context.Context) error {
@@ -715,13 +715,13 @@ func (s *SSRServer) startLifecycleComponents(ctx context.Context) error {
 	return nil
 }
 
-// registerLifecycleShutdownHooks registers shutdown hooks with the shutdown
-// system. Components are stopped in reverse order (LIFO), so the last
-// component added is stopped first.
+// registerLifecycleShutdownHooks registers shutdown hooks with the shutdown system.
+// Components are stopped in reverse order (LIFO), so the last component added is stopped
+// first.
 //
-// Registration order matters: shutdown.Cleanup runs registered functions
-// in LIFO order, so iterating forward (oldest-first) means the most recently
-// added component runs first during shutdown.
+// Registration order matters: shutdown.Cleanup runs registered functions in LIFO order,
+// so iterating forward (oldest-first) means the most recently added component runs first
+// during shutdown.
 func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 	if len(s.lifecycleComponents) == 0 {
 		return
@@ -751,12 +751,12 @@ func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 	sl.Internal("Registered shutdown hooks for lifecycle components", logger_domain.Int("count", len(s.lifecycleComponents)))
 }
 
-// registerLifecycleHealthProbes registers health probes for lifecycle
-// components. If a component implements HealthProbe, it adds the component to
-// the health monitoring system.
+// registerLifecycleHealthProbes registers health probes for lifecycle components. If a
+// component implements HealthProbe, it adds the component to the health monitoring
+// system.
 //
-// Takes container (*bootstrap.Container) which provides the health probe
-// registration system.
+// Takes container (*bootstrap.Container) which provides the health probe registration
+// system.
 func (s *SSRServer) registerLifecycleHealthProbes(container *bootstrap.Container) {
 	if len(s.lifecycleComponents) == 0 {
 		return
@@ -783,27 +783,24 @@ func (s *SSRServer) registerLifecycleHealthProbes(container *bootstrap.Container
 	}
 }
 
-// Option is a functional option used to customise the Piko server during
-// initialisation.
+// Option is a functional option used to customise the Piko server during initialisation.
 type Option = bootstrap.Option
 
-// Container is the Dependency Injection container that holds all application
-// services. It is exposed for advanced use cases where direct access to a
-// service is needed.
+// Container is the Dependency Injection container that holds all application services. It
+// is exposed for advanced use cases where direct access to a service is needed.
 type Container = bootstrap.Container
 
-// ConfigResolver enables integration with secret managers such as AWS Secrets
-// Manager or HashiCorp Vault for custom configuration value resolution.
+// ConfigResolver enables integration with secret managers such as AWS Secrets Manager or
+// HashiCorp Vault for custom configuration value resolution.
 type ConfigResolver = config_domain.Resolver
 
 // ComponentDefinition describes a PKC component that can be used in templates.
 //
-// Tag names must contain a hyphen (per Web Components specification) and must
-// not shadow HTML element names or use reserved prefixes (piko:, pml-).
+// Tag names must contain a hyphen (per Web Components specification) and must not shadow
+// HTML element names or use reserved prefixes (piko:, pml-).
 type ComponentDefinition = component_dto.ComponentDefinition
 
-// OtlpConfig holds configuration for OpenTelemetry Protocol exporting.
-// Pass to WithOTLP.
+// OtlpConfig holds configuration for OpenTelemetry Protocol exporting. Pass to WithOTLP.
 type OtlpConfig = config.OtlpConfig
 
 // OtlpTLSConfig holds TLS settings for the OTLP exporter connection.
@@ -812,12 +809,12 @@ type OtlpTLSConfig = config.OtlpTLSConfig
 // LoggerConfig holds settings for the application logger. Pass to WithLogger.
 type LoggerConfig = logger_dto.Config
 
-// StoragePresignConfig configures presigned URL support for storage operations.
-// Pass to WithStoragePresign.
+// StoragePresignConfig configures presigned URL support for storage operations. Pass to
+// WithStoragePresign.
 type StoragePresignConfig = config.StoragePresignConfig
 
-// SecurityHeadersConfig configures HTTP security headers following OWASP
-// best practices. Pass to WithSecurityHeaders.
+// SecurityHeadersConfig configures HTTP security headers following OWASP best practices.
+// Pass to WithSecurityHeaders.
 type SecurityHeadersConfig = config.SecurityHeadersConfig
 
 // CookieSecurityConfig holds secure defaults for HTTP cookies.
@@ -841,8 +838,8 @@ type AWSKMSConfig = config.AWSKMSConfig
 // GCPKMSConfig holds settings for Google Cloud Key Management Service.
 type GCPKMSConfig = config.GCPKMSConfig
 
-// SEOConfig holds settings for SEO artefact generation including sitemap.xml
-// and robots.txt. Use WithSEO to provide this configuration.
+// SEOConfig holds settings for SEO artefact generation including sitemap.xml and
+// robots.txt. Use WithSEO to provide this configuration.
 type SEOConfig = config.SEOConfig
 
 // SitemapConfig holds settings for sitemap.xml generation.
@@ -870,12 +867,11 @@ type ImageAssetsConfig = config.ImageAssetsConfig
 // VideoAssetsConfig holds video-specific asset configuration.
 type VideoAssetsConfig = config.VideoAssetsConfig
 
-// AssetTransformationStep represents a single transformation to apply to an
-// asset.
+// AssetTransformationStep represents a single transformation to apply to an asset.
 type AssetTransformationStep = config.AssetTransformationStep
 
-// WebsiteConfig defines the user-facing properties of the website being
-// served, including theme, favicons, fonts, and i18n settings.
+// WebsiteConfig defines the user-facing properties of the website being served, including
+// theme, favicons, fonts, and i18n settings.
 type WebsiteConfig = config.WebsiteConfig
 
 // FaviconDefinition describes a single favicon link element for a website.
@@ -884,34 +880,32 @@ type FaviconDefinition = config.FaviconDefinition
 // FontDefinition defines a font to be loaded by the website.
 type FontDefinition = config.FontDefinition
 
-// Translation represents a translatable string returned by r.T() and r.LT().
-// It supports variables and pluralisation, and implements fmt.Stringer.
+// Translation represents a translatable string returned by r.T() and r.LT(). It supports
+// variables and pluralisation, and implements fmt.Stringer.
 type Translation = i18n_domain.Translation
 
-// I18nConfig contains the internationalisation configuration for a website. It
-// defines the supported locales, default locale, and URL strategy for i18n
-// routing.
+// I18nConfig contains the internationalisation configuration for a website. It defines
+// the supported locales, default locale, and URL strategy for i18n routing.
 //
-// Use I18nConfig when populating WebsiteConfig.I18n via WithWebsiteConfig. The
-// framework derives per-page SEO metadata (canonical and hreflang alternates)
-// automatically from the registered locale routes.
+// Use I18nConfig when populating WebsiteConfig.I18n via WithWebsiteConfig. The framework
+// derives per-page SEO metadata (canonical and hreflang alternates) automatically from
+// the registered locale routes.
 //
 // Strategy values:
-//   - "query-only": Single bare path; locale is read from a query parameter
-//     or detection (e.g., /about?lang=fr).
-//   - "prefix": All routes are prefixed with the locale (e.g., /en/about,
+//   - "query-only": Single bare path; locale is read from a query parameter or detection
+//     (e.g., /about?lang=fr).
+//   - "prefix": All routes are prefixed with the locale (e.g., /en/about, /fr/about).
+//   - "prefix_except_default": Only non-default locales get a prefix (e.g., /about,
 //     /fr/about).
-//   - "prefix_except_default": Only non-default locales get a prefix (e.g.,
-//     /about, /fr/about).
 type I18nConfig = config.I18nConfig
 
 // New creates and sets up a new SSRServer instance.
 //
-// Configure the server through the supplied With* options. piko reads no
-// configuration files and no environment variables by default. The single
-// exception is the PIKO_LOG_LEVEL environment variable, which is consulted
-// here to seed the bootstrap logger level before options are applied. Any
-// explicit WithLogLevel option in opts overrides it.
+// Configure the server through the supplied With* options. piko reads no configuration
+// files and no environment variables by default. The single exception is the
+// PIKO_LOG_LEVEL environment variable, which is consulted here to seed the bootstrap
+// logger level before options are applied. Any explicit WithLogLevel option in opts
+// overrides it.
 //
 // Takes opts (...bootstrap.Option) which configures the server behaviour.
 //
@@ -926,16 +920,13 @@ func New(opts ...bootstrap.Option) *SSRServer {
 	}
 }
 
-// RunHeadless bootstraps Piko's global services for headless use
-// cases such as CLI tools, import scripts, background workers, and
-// microservices.
+// RunHeadless bootstraps Piko's global services for headless use cases such as CLI tools,
+// import scripts, background workers, and microservices.
 //
-// This initialises the framework's service container (image
-// processing, storage, cache, persistence) without starting an HTTP
-// server, loading configuration files, or setting up frontend assets.
-// Call this before any code that uses framework services via global
-// access functions (e.g., media.GetImageDimensions,
-// storage.GetDefaultService).
+// This initialises the framework's service container (image processing, storage, cache,
+// persistence) without starting an HTTP server, loading configuration files, or setting
+// up frontend assets. Call this before any code that uses framework services via global
+// access functions (e.g., media.GetImageDimensions, storage.GetDefaultService).
 //
 // Takes opts (...Option) which configure providers, identical to New.
 //
@@ -959,8 +950,8 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 	return bootstrap.InitialiseHeadless(opts...)
 }
 
-// InitialiseForTesting initialises Piko's global services with minimal
-// dependencies suitable for unit and integration tests.
+// InitialiseForTesting initialises Piko's global services with minimal dependencies
+// suitable for unit and integration tests.
 //
 // Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache required)
@@ -977,8 +968,7 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 //   - Portable (no external dependencies)
 //   - Clean (no persistent state or files created)
 //
-// Returns *bootstrap.Container which can be used to access services or for
-// cleanup.
+// Returns *bootstrap.Container which can be used to access services or for cleanup.
 //
 // Example usage:
 //
@@ -987,9 +977,9 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 //	    os.Exit(m.Run())
 //	}
 //
-// This initialisation is lightweight and does not start the full daemon.
-// It provides a complete mocked Piko environment suitable for
-// testing. Tests should defer cleanup of any resources if needed.
+// This initialisation is lightweight and does not start the full daemon. It provides a
+// complete mocked Piko environment suitable for testing. Tests should defer cleanup of
+// any resources if needed.
 func InitialiseForTesting() *bootstrap.Container {
 	mockProvider := email_provider_mock.NewMockEmailProvider()
 
@@ -998,11 +988,11 @@ func InitialiseForTesting() *bootstrap.Container {
 
 // performGlobalSetup sets up global services and registers custom modules.
 //
-// Takes container (*bootstrap.Container) which holds the resolved server
-// configuration and custom frontend modules.
+// Takes container (*bootstrap.Container) which holds the resolved server configuration
+// and custom frontend modules.
 //
-// Returns error when logger setup fails, directory creation fails, or module
-// registration fails.
+// Returns error when logger setup fails, directory creation fails, or module registration
+// fails.
 func performGlobalSetup(ctx context.Context, container *bootstrap.Container, devMode bool) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -1035,12 +1025,11 @@ func performGlobalSetup(ctx context.Context, container *bootstrap.Container, dev
 	return nil
 }
 
-// setupFrontendModules configures frontend SRI, custom modules, and module HTML
-// from the container.
+// setupFrontendModules configures frontend SRI, custom modules, and module HTML from the
+// container.
 //
 // Takes l (logger_domain.Logger) which logs diagnostic messages about module setup.
-// Takes container (*bootstrap.Container) which provides frontend module
-// configuration.
+// Takes container (*bootstrap.Container) which provides frontend module configuration.
 //
 // Returns error when a custom frontend module fails to register.
 func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container *bootstrap.Container, devMode bool) error {
@@ -1070,8 +1059,8 @@ func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container
 	return nil
 }
 
-// ensurePikoInternalDir creates the .piko internal directory using a sandboxed
-// filesystem operation.
+// ensurePikoInternalDir creates the .piko internal directory using a sandboxed filesystem
+// operation.
 //
 // Takes baseDir (string) which is the project root directory.
 // Takes internalPath (string) which is the relative path for the internal directory.

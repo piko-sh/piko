@@ -54,11 +54,11 @@ func (m *mockOrchestratorInspector) ListTaskSummary(_ context.Context) ([]orches
 	return m.taskSummary, m.taskSummaryErr
 }
 
-func (m *mockOrchestratorInspector) ListRecentTasks(_ context.Context, _ int32) ([]orchestrator_domain.TaskListItem, error) {
+func (m *mockOrchestratorInspector) ListRecentTasks(_ context.Context, _ int) ([]orchestrator_domain.TaskListItem, error) {
 	return m.recentTasks, m.recentTasksErr
 }
 
-func (m *mockOrchestratorInspector) ListWorkflowSummary(_ context.Context, _ int32) ([]orchestrator_domain.WorkflowSummary, error) {
+func (m *mockOrchestratorInspector) ListWorkflowSummary(_ context.Context, _ int) ([]orchestrator_domain.WorkflowSummary, error) {
 	return m.workflowSummary, m.workflowErr
 }
 

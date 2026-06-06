@@ -1,36 +1,36 @@
 {
   "ranked_scores": [
     {
-      "ID": 2,
-      "Player": "Alice",
-      "RankNumber": 1,
-      "RankPosition": 1,
-      "RunningTotal": 250,
-      "Score": 150
+      "id": 2,
+      "player": "Alice",
+      "rank_number": 1,
+      "rank_position": 1,
+      "running_total": 250,
+      "score": 150
     },
     {
-      "ID": 3,
-      "Player": "Bob",
-      "RankNumber": 2,
-      "RankPosition": 2,
-      "RunningTotal": 120,
-      "Score": 120
+      "id": 3,
+      "player": "Bob",
+      "rank_number": 2,
+      "rank_position": 2,
+      "running_total": 120,
+      "score": 120
     },
     {
-      "ID": 1,
-      "Player": "Alice",
-      "RankNumber": 3,
-      "RankPosition": 3,
-      "RunningTotal": 100,
-      "Score": 100
+      "id": 1,
+      "player": "Alice",
+      "rank_number": 3,
+      "rank_position": 3,
+      "running_total": 100,
+      "score": 100
     },
     {
-      "ID": 4,
-      "Player": "Bob",
-      "RankNumber": 4,
-      "RankPosition": 4,
-      "RunningTotal": 200,
-      "Score": 80
+      "id": 4,
+      "player": "Bob",
+      "rank_number": 4,
+      "rank_position": 4,
+      "running_total": 200,
+      "score": 80
     }
   ]
 }

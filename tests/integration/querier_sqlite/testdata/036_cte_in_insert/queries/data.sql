@@ -1,5 +1,4 @@
--- piko.name: CopyFiltered
--- piko.command: many
+-- piko.query(name: CopyFiltered, command: many)
 WITH filtered AS (
     SELECT id, value FROM source_data WHERE length(value) > 3
 )

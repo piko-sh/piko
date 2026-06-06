@@ -48,7 +48,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	singleEvent, err := queries.GetActiveEvent(ctx, int32(1))
+	singleEvent, err := queries.GetActiveEvent(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

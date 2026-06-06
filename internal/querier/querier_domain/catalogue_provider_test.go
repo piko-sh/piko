@@ -87,7 +87,7 @@ func TestMigrationCatalogueProvider_BuildCatalogue(t *testing.T) {
 						{Location: 0, Length: len(sql)},
 					}, nil
 				},
-				applyDDLFn: func(_ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
+				applyDDLFn: func(_ context.Context, _ querier_dto.ParsedStatement) (*querier_dto.CatalogueMutation, error) {
 					return &querier_dto.CatalogueMutation{
 						Kind:       querier_dto.MutationCreateTable,
 						SchemaName: "public",

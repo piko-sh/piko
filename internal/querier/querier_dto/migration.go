@@ -64,9 +64,11 @@ type AppliedMigration struct {
 	// AppliedAt is when the migration was applied.
 	AppliedAt time.Time
 
-	// LastStatement is the 0-based index of the last successfully executed statement within
-	// this migration. Nil means the migration completed as a single unit without
-	// statement-level tracking (legacy behaviour).
+	// LastStatement is the 0-based index of the last successfully executed statement.
+	//
+	// Nil means the migration completed as a single unit without statement-level tracking.
+	// The sentinel value -1 stored in the database means no statements have completed yet,
+	// which is what the pre-record dirty-migration insert writes before any user SQL runs.
 	LastStatement *int
 
 	// Name is the migration name.
@@ -110,8 +112,12 @@ type MigrationRecord struct {
 	// Version is the migration version number.
 	Version int64
 
-	// SkipUpTo is the 0-based index of statements to skip when retrying a dirty migration
-	// (-1 means execute all from the beginning).
+	// SkipUpTo is the 0-based index of statements to skip when retrying a dirty migration.
+	//
+	// The sentinel value -1 means "execute all statements from the start"; non-negative
+	// values mean "execute statements with index strictly greater than SkipUpTo", so a
+	// SkipUpTo of N indicates that statements 0..N inclusive have already been applied by a
+	// previous run and should not be replayed.
 	SkipUpTo int
 }
 
@@ -121,8 +127,10 @@ type MigrationStatus struct {
 	// AppliedAt is when the migration was applied (zero value if not applied).
 	AppliedAt time.Time
 
-	// LastStatement is the 0-based index of the last successfully applied statement. Only
-	// meaningful when Dirty is true.
+	// LastStatement is the 0-based index of the last successfully applied statement.
+	//
+	// It is only meaningful when Dirty is true. A value of -1 means the migration was
+	// pre-recorded but no statements had completed before the failure.
 	LastStatement *int
 
 	// Name is the migration name.

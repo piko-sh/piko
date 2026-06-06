@@ -21,6 +21,7 @@ package db_engine_mysql
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -102,13 +103,26 @@ const (
 
 	// indexAfterOrReplace is the token index following CREATE OR REPLACE.
 	indexAfterOrReplace = 3
+
+	// defaultMaxParseDepth caps every user-driven recursion in the parser.
+	//
+	// The cap covers analyseSelect (subquery/CTE nesting) and the expression precedence
+	// chain (parenthesis nesting). It is essential because Go raises a fatal,
+	// non-recoverable stack overflow that the engine's recover guards cannot catch, so
+	// deeply nested input would otherwise crash the host process. 256 is far below the
+	// overflow threshold yet out of the way for realistic queries; callers may override it
+	// with WithMaxParseDepth.
+	defaultMaxParseDepth = 256
 )
 
 var (
-
 	// errUnmatchedParenthesis is returned when the parser encounters a parenthesis group
 	// that is not closed before the end of the token stream.
 	errUnmatchedParenthesis = errors.New("unmatched parenthesis")
+
+	// errAnalysisDepthExceeded is the sentinel returned when parser recursion exceeds the
+	// configured maximum parse depth.
+	errAnalysisDepthExceeded = errors.New("mysql: analysis recursion depth exceeded")
 )
 
 // parsedStatement bundles a token slice with its classified statement kind.
@@ -127,21 +141,38 @@ func (*parsedStatement) IsParsedStatement() {}
 // parser holds the mutable state required to walk a single SQL statement and accumulate
 // parameter and table references.
 type parser struct {
+	// namedParameterMap maps named parameter labels to their assigned sequential numbers.
+	namedParameterMap map[string]int
+
+	// insertProjectionTable is the INSERT target table whose columns the current INSERT ...
+	// SELECT projection items are assigned to.
+	//
+	// Empty when not inside an INSERT ... SELECT projection.
+	insertProjectionTable string
+
 	// tokens is the token stream being parsed.
 	tokens []token
 
 	// parameterRefs accumulates references to bind parameters encountered during parsing.
 	parameterRefs []querier_dto.RawParameterReference
 
-	// namedParameterMap maps named parameter labels to their assigned sequential numbers.
-	namedParameterMap map[string]int
-
 	// rawDerivedTables collects parsed derived (subquery) table references.
 	rawDerivedTables []querier_dto.RawDerivedTableReference
+
+	// predicateSubqueries collects subqueries found in a token-scanned predicate position
+	// (WHERE / HAVING / JOIN ON), so the domain layer can resolve each one's parameters
+	// against the subquery's own scope rather than the parent.
+	predicateSubqueries []*querier_dto.RawQueryAnalysis
 
 	// rawTableValuedFunctions collects parsed table-valued function references appearing in
 	// FROM clauses.
 	rawTableValuedFunctions []querier_dto.RawTableValuedFunctionReference
+
+	// insertProjectionColumns is the ordered INSERT target column list whose entries the
+	// INSERT ... SELECT projection items map onto positionally.
+	//
+	// Nil when not inside an INSERT ... SELECT projection.
+	insertProjectionColumns []string
 
 	// position is the index of the next token to consume.
 	position int
@@ -149,7 +180,26 @@ type parser struct {
 	// parameterCount is the running count of parameters assigned so far.
 	parameterCount int
 
-	// hasForUpdate records whether the statement carries a FOR UPDATE clause.
+	// analysisDepth bounds recursion through analyseSelect across compound branches, CTE
+	// bodies, derived tables, scalar subqueries, and EXISTS / IN-subquery expressions. Child
+	// parsers inherit the parent depth so the global cap holds across instances.
+	analysisDepth int
+
+	// expressionDepth bounds recursion through the expression precedence chain so deeply
+	// nested parentheses cannot overflow the stack.
+	expressionDepth int
+
+	// maxParseDepth is the effective cap for analysisDepth and expressionDepth. Zero means
+	// defaultMaxParseDepth; the engine sets it from the dialect and child parsers inherit
+	// it.
+	maxParseDepth int
+
+	// insertProjectionIndex is the zero-based ordinal of the projection item currently being
+	// parsed within the INSERT ... SELECT select list.
+	insertProjectionIndex int
+
+	// hasForUpdate records whether the statement carries a FOR UPDATE / FOR SHARE locking
+	// clause.
 	hasForUpdate bool
 
 	// hasDataModifyingCTE records whether any CTE in the statement performs a data-modifying
@@ -157,14 +207,15 @@ type parser struct {
 	hasDataModifyingCTE bool
 }
 
-// newParser constructs a parser positioned at the start of the given tokens.
+// newParser creates a parser over the token stream seeded with the default depth cap.
 //
-// Takes tokens ([]token) which is the token stream to parse.
+// Takes tokens ([]token) which is the lexed token stream to walk.
 //
-// Returns *parser which is initialised with an empty named parameter map.
+// Returns *parser which is ready to analyse the statement.
 func newParser(tokens []token) *parser {
 	return &parser{
 		tokens:            tokens,
+		maxParseDepth:     defaultMaxParseDepth,
 		namedParameterMap: make(map[string]int),
 	}
 }
@@ -186,6 +237,20 @@ type statementSplitter struct {
 
 	// position is the index of the next token to consume.
 	position int
+
+	// blockDepth tracks open BEGIN...END blocks. MySQL normally uses the DELIMITER directive
+	// to escape trigger/procedure bodies, but migrations that omit DELIMITER must still
+	// parse correctly; counting blocks defensively keeps embedded semicolons attached to the
+	// enclosing statement either way.
+	blockDepth int
+
+	// caseDepth tracks open scalar CASE...END expressions inside a BEGIN...END body.
+	//
+	// A scalar CASE ends with a bare END, so without this counter that inner END would
+	// wrongly decrement blockDepth and the next top-level semicolon would split the
+	// procedure body mid-statement. caseDepth is only incremented while blockDepth is
+	// greater than zero.
+	caseDepth int
 }
 
 // splitStatements divides a token stream into one slice per statement.
@@ -213,13 +278,120 @@ func (s *statementSplitter) run() {
 		if s.handleStatementBoundary(tok) {
 			continue
 		}
+		s.trackBlockKeyword(tok)
 		s.current = append(s.current, tok)
 		s.position++
 	}
 	s.flushCurrent()
 }
 
-// handleDelimiterCommand processes a DELIMITER directive when present.
+// trackBlockKeyword adjusts blockDepth and caseDepth on bare BEGIN / CASE / END
+// identifiers so handleStatementBoundary knows when a semicolon belongs to the enclosing
+// statement.
+//
+// BEGIN only opens a block when the in-flight statement is a procedural definition
+// (CREATE FUNCTION / PROCEDURE / TRIGGER) whose body may legitimately contain a bare
+// BEGIN...END block. A `begin` used as a column name or alias in an ordinary statement
+// (e.g. `SELECT 1 AS begin; SELECT 2;`) must not open a block and swallow the next
+// statement. A leading "BEGIN;" is the MySQL transaction marker, so the in-flight
+// statement must also be non-empty.
+//
+// A scalar CASE...END expression inside a procedural body also ends with a bare END.
+// caseDepth records open CASE constructs (only while inside a block) so a bare END closes
+// the CASE before it can close the BEGIN block. END decrements blockDepth ONLY when it
+// closes the outer BEGIN..END block. The token stream sees END followed by
+// IF/LOOP/WHILE/REPEAT as two separate identifiers; in that case the inner control
+// structure is closing, not the outer block, so depth must stay.
+//
+// Takes tok (token) which is the identifier token under consideration.
+func (s *statementSplitter) trackBlockKeyword(tok token) {
+	if tok.kind != tokenIdentifier {
+		return
+	}
+	if strings.EqualFold(tok.value, "BEGIN") && len(s.current) > 0 && isProceduralStatement(s.current) {
+		s.blockDepth++
+		return
+	}
+	if strings.EqualFold(tok.value, "CASE") && s.blockDepth > 0 {
+		s.caseDepth++
+		return
+	}
+	if strings.EqualFold(tok.value, "END") {
+		s.adjustEndDepth()
+	}
+}
+
+// adjustEndDepth resolves an END identifier against the open CASE and block counters.
+//
+// `END IF` / `END LOOP` / `END WHILE` / `END REPEAT` close inner procedural constructs
+// that did not touch caseDepth, so they are ignored. `END CASE` and a bare END close an
+// open scalar CASE first (so its END cannot leak through to the block), and a bare END
+// otherwise closes the surrounding BEGIN block.
+func (s *statementSplitter) adjustEndDepth() {
+	switch strings.ToUpper(s.peekNextValue()) {
+	case "IF", "LOOP", "WHILE", "REPEAT":
+		return
+	case "CASE":
+		if s.caseDepth > 0 {
+			s.caseDepth--
+		}
+		return
+	}
+	if s.caseDepth > 0 {
+		s.caseDepth--
+		return
+	}
+	if s.blockDepth > 0 {
+		s.blockDepth--
+	}
+}
+
+// peekNextValue returns the value of the token immediately after the current position, or
+// the empty string when the current END is the last token. The token stream does not
+// include whitespace so a single position offset suffices.
+//
+// Returns string which is the next token's value, or empty at end of input.
+func (s *statementSplitter) peekNextValue() string {
+	next := s.position + 1
+	if next >= len(s.tokens) {
+		return ""
+	}
+	return s.tokens[next].value
+}
+
+// isProceduralStatement reports whether the in-flight statement is a procedural
+// definition whose body may contain a bare BEGIN...END block.
+//
+// The qualifying forms are CREATE FUNCTION / PROCEDURE / TRIGGER, optionally with OR
+// REPLACE, DEFINER, or SQL SECURITY clauses in between. Any other leading statement (for
+// example SELECT/INSERT/UPDATE or CREATE TABLE/VIEW) returns false so a `begin`
+// identifier is treated as a plain name, not a block opener. The check is deliberately
+// tolerant of the intervening clauses MySQL allows between CREATE and the object keyword
+// (`CREATE DEFINER = 'user'@'host' PROCEDURE ...`): it only requires the statement to
+// begin with CREATE and to contain FUNCTION/PROCEDURE/TRIGGER as an identifier somewhere
+// before the BEGIN that triggered the check.
+//
+// Takes current ([]token) which is the tokens accumulated for the statement so far.
+//
+// Returns bool which is true for a procedural-body-bearing statement.
+func isProceduralStatement(current []token) bool {
+	if len(current) == 0 || current[0].kind != tokenIdentifier || !strings.EqualFold(current[0].value, "CREATE") {
+		return false
+	}
+	for index := 1; index < len(current); index++ {
+		if current[index].kind != tokenIdentifier {
+			continue
+		}
+		switch strings.ToUpper(current[index].value) {
+		case "FUNCTION", "PROCEDURE", "TRIGGER":
+			return true
+		}
+	}
+	return false
+}
+
+// handleDelimiterCommand consumes a DELIMITER directive, flushing the current statement
+// and recording the new custom delimiter (or clearing it when reset to a semicolon).
 //
 // Takes tok (token) which is the current token under inspection.
 //
@@ -257,6 +429,9 @@ func (s *statementSplitter) handleStatementBoundary(tok token) bool {
 		return false
 	}
 	if tok.kind == tokenSemicolon {
+		if s.blockDepth > 0 {
+			return false
+		}
 		s.flushCurrent()
 		s.position++
 		return true
@@ -422,8 +597,8 @@ func classifyDropStatement(tokens []token) statementKind {
 //
 // Takes tokens ([]token) which is the tokenised ALTER statement.
 //
-// Returns statementKind which is the matched kind, or statementKindUnknown when only
-// ALTER TABLE is currently recognised.
+// Returns statementKind which is statementKindAlterTable for ALTER TABLE and
+// statementKindUnknown for every other ALTER target.
 func classifyAlterStatement(tokens []token) statementKind {
 	if len(tokens) < 2 {
 		return statementKindUnknown
@@ -722,6 +897,27 @@ func (p *parser) mustSchemaQualifiedName() (schema string, name string) {
 	return schema, name
 }
 
+// functionArgumentMetadata carries the enclosing function name and the zero-based
+// argument slot of a placeholder that sits inside a function or table-valued function
+// argument list.
+//
+// The analyser pairs these two facts to look up the matched function signature's declared
+// argument type and back-propagate it onto an otherwise untyped placeholder. Both fields
+// are zero-valued (empty name, zero ordinal) for the common non-function-argument case,
+// leaving the placeholder unaffected.
+type functionArgumentMetadata struct {
+	// enclosingFunctionName is the lower-cased, optionally schema-qualified name of the
+	// function whose argument list the placeholder sits in, recorded exactly as the engine
+	// records the function name on RawTableValuedFunctionReference / FunctionCallExpression.
+	// Empty when the placeholder is not a function argument.
+	enclosingFunctionName string
+
+	// argumentOrdinal is the zero-based position of the placeholder among the enclosing
+	// call's top-level arguments (the argument slot, not the parameter number). Meaningful
+	// only when enclosingFunctionName is non-empty.
+	argumentOrdinal int
+}
+
 // registerParameterFromToken records a bind parameter encountered in the token stream,
 // dispatching to named or sequential registration.
 //
@@ -740,10 +936,83 @@ func (p *parser) registerParameterFromToken(
 	columnReference *querier_dto.ColumnReference,
 	castType *querier_dto.SQLType,
 ) int {
+	return p.registerParameterFromTokenWithFunctionArgument(
+		parameterToken, context, columnReference, castType, functionArgumentMetadata{})
+}
+
+// registerParameterFromTokenWithFunctionArgument records a bind parameter and
+// additionally stamps the enclosing function/TVF argument metadata onto the resulting
+// reference.
+//
+// Used by the flat-scan WHERE/HAVING resolver, which can compute the enclosing function
+// name and argument ordinal directly from the token stream at registration time. The
+// common registerParameterFromToken path forwards an empty functionArgumentMetadata so
+// non-function placeholders are unaffected.
+//
+// Takes parameterToken (token) which is the parameter token being recorded.
+// Takes context (querier_dto.ParameterContext) which describes the syntactic context.
+// Takes columnReference (*querier_dto.ColumnReference) which is the bound column when
+// known.
+// Takes castType (*querier_dto.SQLType) which is the explicit cast type when present.
+// Takes functionArgument (functionArgumentMetadata) which carries the enclosing function
+// name and argument ordinal, empty when the placeholder is not a function argument.
+//
+// Returns int which is the assigned parameter number.
+func (p *parser) registerParameterFromTokenWithFunctionArgument(
+	parameterToken token,
+	context querier_dto.ParameterContext,
+	columnReference *querier_dto.ColumnReference,
+	castType *querier_dto.SQLType,
+	functionArgument functionArgumentMetadata,
+) int {
 	if parameterToken.kind == tokenNamedParam {
-		return p.registerNamedParameter(parameterToken, context, columnReference, castType)
+		return p.registerNamedParameter(parameterToken, context, columnReference, castType, functionArgument)
 	}
-	return p.registerSequentialParameter(context, columnReference, castType)
+	if parameterToken.kind == tokenQuestionMark && len(parameterToken.value) > 1 {
+		return p.registerNumberedQuestionMark(parameterToken, context, columnReference, castType, functionArgument)
+	}
+	return p.registerSequentialParameter(context, columnReference, castType, functionArgument)
+}
+
+// registerNumberedQuestionMark records a '?N' positional bind parameter whose explicit
+// index permits the same number to appear multiple times in the SQL while binding to a
+// single argument slot. Reuse of an index appends another reference with the same Number
+// so downstream merging treats them as one parameter.
+//
+// Takes parameterToken (token) which holds the '?N' token with its numeric suffix.
+// Takes context (querier_dto.ParameterContext) which describes the syntactic context
+// where the parameter occurs.
+// Takes columnReference (*querier_dto.ColumnReference) which is the column the parameter
+// is bound against when known.
+// Takes castType (*querier_dto.SQLType) which is the explicit cast type when the
+// parameter carries one.
+// Takes functionArgument (functionArgumentMetadata) which carries the enclosing function
+// name and argument ordinal, empty when the placeholder is not a function argument.
+//
+// Returns int which is the parameter number from the token's numeric suffix.
+func (p *parser) registerNumberedQuestionMark(
+	parameterToken token,
+	context querier_dto.ParameterContext,
+	columnReference *querier_dto.ColumnReference,
+	castType *querier_dto.SQLType,
+	functionArgument functionArgumentMetadata,
+) int {
+	number, parseError := strconv.Atoi(parameterToken.value[1:])
+	if parseError != nil || number <= 0 {
+		return p.registerSequentialParameter(context, columnReference, castType, functionArgument)
+	}
+	if number > p.parameterCount {
+		p.parameterCount = number
+	}
+	p.parameterRefs = append(p.parameterRefs, querier_dto.RawParameterReference{
+		Number:                number,
+		Context:               context,
+		ColumnReference:       columnReference,
+		CastType:              castType,
+		EnclosingFunctionName: functionArgument.enclosingFunctionName,
+		ArgumentOrdinal:       functionArgument.argumentOrdinal,
+	})
+	return number
 }
 
 // registerSequentialParameter records a positional bind parameter and returns the freshly
@@ -755,20 +1024,25 @@ func (p *parser) registerParameterFromToken(
 // is bound against when known.
 // Takes castType (*querier_dto.SQLType) which is the explicit cast type when the
 // parameter carries one.
+// Takes functionArgument (functionArgumentMetadata) which carries the enclosing function
+// name and argument ordinal, empty when the placeholder is not a function argument.
 //
 // Returns int which is the newly assigned parameter number.
 func (p *parser) registerSequentialParameter(
 	context querier_dto.ParameterContext,
 	columnReference *querier_dto.ColumnReference,
 	castType *querier_dto.SQLType,
+	functionArgument functionArgumentMetadata,
 ) int {
 	p.parameterCount++
 	number := p.parameterCount
 	p.parameterRefs = append(p.parameterRefs, querier_dto.RawParameterReference{
-		Number:          number,
-		Context:         context,
-		ColumnReference: columnReference,
-		CastType:        castType,
+		Number:                number,
+		Context:               context,
+		ColumnReference:       columnReference,
+		CastType:              castType,
+		EnclosingFunctionName: functionArgument.enclosingFunctionName,
+		ArgumentOrdinal:       functionArgument.argumentOrdinal,
 	})
 	return number
 }
@@ -783,6 +1057,8 @@ func (p *parser) registerSequentialParameter(
 // is bound against when known.
 // Takes castType (*querier_dto.SQLType) which is the explicit cast type when the
 // parameter carries one.
+// Takes functionArgument (functionArgumentMetadata) which carries the enclosing function
+// name and argument ordinal, empty when the placeholder is not a function argument.
 //
 // Returns int which is the assigned (or reused) parameter number.
 func (p *parser) registerNamedParameter(
@@ -790,15 +1066,18 @@ func (p *parser) registerNamedParameter(
 	context querier_dto.ParameterContext,
 	columnReference *querier_dto.ColumnReference,
 	castType *querier_dto.SQLType,
+	functionArgument functionArgumentMetadata,
 ) int {
 	name := parameterToken.value[1:]
 	if existingNumber, exists := p.namedParameterMap[name]; exists {
 		p.parameterRefs = append(p.parameterRefs, querier_dto.RawParameterReference{
-			Number:          existingNumber,
-			Name:            name,
-			Context:         context,
-			ColumnReference: columnReference,
-			CastType:        castType,
+			Number:                existingNumber,
+			Name:                  name,
+			Context:               context,
+			ColumnReference:       columnReference,
+			CastType:              castType,
+			EnclosingFunctionName: functionArgument.enclosingFunctionName,
+			ArgumentOrdinal:       functionArgument.argumentOrdinal,
 		})
 		return existingNumber
 	}
@@ -806,11 +1085,13 @@ func (p *parser) registerNamedParameter(
 	number := p.parameterCount
 	p.namedParameterMap[name] = number
 	p.parameterRefs = append(p.parameterRefs, querier_dto.RawParameterReference{
-		Number:          number,
-		Name:            name,
-		Context:         context,
-		ColumnReference: columnReference,
-		CastType:        castType,
+		Number:                number,
+		Name:                  name,
+		Context:               context,
+		ColumnReference:       columnReference,
+		CastType:              castType,
+		EnclosingFunctionName: functionArgument.enclosingFunctionName,
+		ArgumentOrdinal:       functionArgument.argumentOrdinal,
 	})
 	return number
 }

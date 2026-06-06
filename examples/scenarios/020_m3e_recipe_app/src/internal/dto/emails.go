@@ -18,8 +18,9 @@
 
 package dto
 
-// ContactInternalEmailProps contains the props for the internal contact notification email.
-// This email is sent to The Norman Kitchen staff when someone submits the contact form.
+// ContactInternalEmailProps contains the props for the internal contact notification
+// email. This email is sent to The Norman Kitchen staff when someone submits the contact
+// form.
 type ContactInternalEmailProps struct {
 	Name        string `prop:"name"`
 	Email       string `prop:"email"`
@@ -28,8 +29,8 @@ type ContactInternalEmailProps struct {
 	SubmittedAt string `prop:"submitted_at"`
 }
 
-// ContactConfirmationEmailProps contains the props for the user confirmation email.
-// This email is sent to the user to confirm receipt of their contact form submission.
+// ContactConfirmationEmailProps contains the props for the user confirmation email. This
+// email is sent to the user to confirm receipt of their contact form submission.
 type ContactConfirmationEmailProps struct {
 	Name string `prop:"name"`
 }

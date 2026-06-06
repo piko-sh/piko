@@ -34,12 +34,21 @@ type diagnosticContext struct {
 	// Scope holds the scope chain for resolving table and column references.
 	Scope *scopeChain
 
+	// Engine holds the engine port whose capability flags drive passes such as the
+	// async-exec validator. nil means the test harness has not wired an engine; passes that
+	// depend on engine capabilities must nil-check before reading.
+	Engine EnginePort
+
 	// Filename holds the source file name for diagnostic source locations.
 	Filename string
 
 	// ParameterDirectives holds the user-specified parameter type directives parsed from
 	// query comments.
 	ParameterDirectives []*querier_dto.ParameterDirective
+
+	// ExistingDiagnostics holds the diagnostics already produced for this query before the
+	// passes run (directive, parse and type-resolution diagnostics).
+	ExistingDiagnostics []querier_dto.SourceError
 }
 
 // diagnosticPass is a single diagnostic check that inspects a query and produces zero or
@@ -72,8 +81,10 @@ func newDiagnosticAnalyser(catalogue *querier_dto.Catalogue) *diagnosticAnalyser
 			&commandOutputPass{},
 			&dynamicSafetyPass{},
 			&generatedColumnPass{catalogue: catalogue},
+			&columnExistencePass{catalogue: catalogue},
 			&groupByValidationPass{},
 			&sliceCommandValidationPass{},
+			&asyncExecPass{},
 		},
 	}
 }

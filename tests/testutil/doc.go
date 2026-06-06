@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package testutil provides shared test helpers for opening SQLite
-// databases and running migrations.
+// Package testutil provides shared test helpers for opening SQLite databases and running
+// migrations.
 //
-// [OpenTestDB] creates a configured SQLite connection that
-// automatically detects whether to use the CGO or pure-Go driver.
-// The migration helpers ([RunRegistryMigrations],
-// [RunOrchestratorMigrations], and their OnDB variants) apply
-// schema migrations using Piko's querier migration service.
+// [OpenTestDB] creates a configured SQLite connection that automatically detects whether
+// to use the CGO or pure-Go driver. The migration helpers ([RunRegistryMigrations],
+// [RunOrchestratorMigrations], and their OnDB variants) apply schema migrations using
+// Piko's querier migration service.
 package testutil

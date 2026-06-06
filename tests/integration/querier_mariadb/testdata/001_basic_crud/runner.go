@@ -26,13 +26,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	user, err := queries.CreateUser(ctx, db.CreateUserParams{P1: "Alice", P2: "alice@example.com"})
+	user, err := queries.CreateUser(ctx, db.CreateUserParams{Name: "Alice", Email: "alice@example.com"})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	_, err = queries.CreateUser(ctx, db.CreateUserParams{P1: "Bob", P2: "bob@example.com"})
+	_, err = queries.CreateUser(ctx, db.CreateUserParams{Name: "Bob", Email: "bob@example.com"})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

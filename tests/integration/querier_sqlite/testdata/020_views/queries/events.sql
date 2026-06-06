@@ -1,7 +1,5 @@
--- piko.name: ListActiveEvents
--- piko.command: many
+-- piko.query(name: ListActiveEvents, command: many)
 SELECT id, name, event_date FROM active_events ORDER BY event_date;
 
--- piko.name: GetActiveEvent
--- piko.command: one
+-- piko.query(name: GetActiveEvent, command: one)
 SELECT id, name, event_date FROM active_events WHERE id = ?;

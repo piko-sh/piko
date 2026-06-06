@@ -41,17 +41,17 @@ func main() {
 	}
 
 	queries := db.New(conn)
-	nullableWithValues, err := queries.GetRecordNullable(ctx, int32(1))
+	nullableWithValues, err := queries.GetRecordNullable(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetRecordNullable(1):", err)
 		os.Exit(1)
 	}
-	nullableWithNulls, err := queries.GetRecordNullable(ctx, int32(2))
+	nullableWithNulls, err := queries.GetRecordNullable(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetRecordNullable(2):", err)
 		os.Exit(1)
 	}
-	notNullWithValues, err := queries.GetRecordNotNull(ctx, int32(1))
+	notNullWithValues, err := queries.GetRecordNotNull(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetRecordNotNull(1):", err)
 		os.Exit(1)

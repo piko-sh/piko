@@ -56,8 +56,8 @@ type BaseHarness struct {
 // Takes t (*testing.T) which is the test context for reporting failures.
 // Takes tc (TestCase) which defines the test case settings and paths.
 //
-// Returns *BaseHarness which is a partly set up harness ready for further
-// setup via LoadSpec and SetupTempDir.
+// Returns *BaseHarness which is a partly set up harness ready for further setup via
+// LoadSpec and SetupTempDir.
 func NewBaseHarness(t *testing.T, tc TestCase) *BaseHarness {
 	t.Helper()
 
@@ -89,8 +89,8 @@ func (h *BaseHarness) LoadSpec() error {
 
 // SetupTempDir creates a temporary directory and copies the source files.
 //
-// Returns error when the temporary directory cannot be created or when copying
-// the source files fails.
+// Returns error when the temporary directory cannot be created or when copying the source
+// files fails.
 func (h *BaseHarness) SetupTempDir() error {
 	h.T.Helper()
 
@@ -172,8 +172,7 @@ func (h *BaseHarness) AssertGoldenHTML(filename string, actual []byte, msgAndArg
 
 // ReadFile reads a file from the source directory.
 //
-// Takes filePath (string) which specifies the path relative to the source
-// directory.
+// Takes filePath (string) which specifies the path relative to the source directory.
 //
 // Returns []byte which contains the file contents.
 // Returns error when the file cannot be read.
@@ -186,8 +185,7 @@ func (h *BaseHarness) ReadFile(relPath string) []byte {
 
 // ReadTempFile reads a file from the temp directory.
 //
-// Takes relPath (string) which specifies the path relative to the temp
-// directory.
+// Takes relPath (string) which specifies the path relative to the temp directory.
 //
 // Returns []byte which contains the file contents.
 func (h *BaseHarness) ReadTempFile(relPath string) []byte {
@@ -200,8 +198,7 @@ func (h *BaseHarness) ReadTempFile(relPath string) []byte {
 
 // FileExists checks if a file exists in the source directory.
 //
-// Takes relPath (string) which specifies the path relative to the source
-// directory.
+// Takes relPath (string) which specifies the path relative to the source directory.
 //
 // Returns bool which is true if the file exists, false otherwise.
 func (h *BaseHarness) FileExists(relPath string) bool {
@@ -211,8 +208,7 @@ func (h *BaseHarness) FileExists(relPath string) bool {
 
 // TempFileExists checks if a file exists in the temp directory.
 //
-// Takes relPath (string) which specifies the path relative to the temp
-// directory.
+// Takes relPath (string) which specifies the path relative to the temp directory.
 //
 // Returns bool which is true if the file exists and is accessible.
 func (h *BaseHarness) TempFileExists(relPath string) bool {
@@ -236,8 +232,8 @@ func (*FSReader) ReadFile(_ context.Context, filePath string) ([]byte, error) {
 	return os.ReadFile(filePath)
 }
 
-// FSWriter is a no-op file system writer for integration tests.
-// It stops any writes to disk while tests run.
+// FSWriter is a no-op file system writer for integration tests. It stops any writes to
+// disk while tests run.
 type FSWriter struct{}
 
 // WriteFile does nothing and always returns nil.

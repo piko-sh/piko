@@ -11,14 +11,14 @@ type Tasks struct {
 	Config            string  `json:"config"`
 	Result            *string `json:"result"`
 	Status            string  `json:"status"`
-	ExecuteAt         int32   `json:"execute_at"`
+	ExecuteAt         int64   `json:"execute_at"`
 	Attempt           int32   `json:"attempt"`
 	LastError         *string `json:"last_error"`
 	DeduplicationKey  *string `json:"deduplication_key"`
 	RecoveryNodeID    *string `json:"recovery_node_id"`
-	RecoveryExpiresAt *int32  `json:"recovery_expires_at"`
-	CreatedAt         int32   `json:"created_at"`
-	UpdatedAt         int32   `json:"updated_at"`
+	RecoveryExpiresAt *int64  `json:"recovery_expires_at"`
+	CreatedAt         int64   `json:"created_at"`
+	UpdatedAt         int64   `json:"updated_at"`
 }
 type WorkflowReceipts struct {
 	ID           string  `json:"id"`
@@ -26,7 +26,7 @@ type WorkflowReceipts struct {
 	NodeID       string  `json:"node_id"`
 	Status       string  `json:"status"`
 	ErrorMessage *string `json:"error_message"`
-	CreatedAt    int32   `json:"created_at"`
-	UpdatedAt    int32   `json:"updated_at"`
-	ResolvedAt   *int32  `json:"resolved_at"`
+	CreatedAt    int64   `json:"created_at"`
+	UpdatedAt    int64   `json:"updated_at"`
+	ResolvedAt   *int64  `json:"resolved_at"`
 }

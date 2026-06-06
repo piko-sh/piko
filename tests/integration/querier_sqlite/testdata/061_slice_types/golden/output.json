@@ -1,22 +1,22 @@
 [
   {
-    "ID": 1,
-    "Player": "alice",
-    "Score": 100
+    "id": 1,
+    "player": "alice",
+    "score": 100
   },
   {
-    "ID": 2,
-    "Player": "bob",
-    "Score": 200
+    "id": 2,
+    "player": "bob",
+    "score": 200
   },
   {
-    "ID": 3,
-    "Player": "charlie",
-    "Score": 100
+    "id": 3,
+    "player": "charlie",
+    "score": 100
   },
   {
-    "ID": 5,
-    "Player": "eve",
-    "Score": 200
+    "id": 5,
+    "player": "eve",
+    "score": 200
   }
 ]

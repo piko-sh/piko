@@ -237,8 +237,8 @@ func hasRedirect(meta *templater_dto.InternalMetadata) bool {
 }
 
 // applyAutoLocaleHead fills the locale SEO head fields (language, canonical URL, and
-// hreflang alternates) from the framework-derived values, but only for fields the page did
-// not set itself, so a value the page assigns in its metadata still takes precedence.
+// hreflang alternates) from the framework-derived values, but only for fields the page
+// did not set itself, so a value the page assigns in its metadata still takes precedence.
 //
 // Takes meta (*templater_dto.InternalMetadata) which is the page metadata to enrich.
 // Takes auto (*LocaleSEOHead) which holds the derived values, or nil when the page is not

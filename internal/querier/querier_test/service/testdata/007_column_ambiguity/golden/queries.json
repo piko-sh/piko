@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "get_ambiguous.sql",
-    "SQL": "-- piko.name: GetAmbiguous\n-- piko.command: one\nSELECT u.id, name FROM users u JOIN posts p ON p.author_id = u.id",
+    "SQL": "-- piko.query(name: GetAmbiguous, command: one)\nSELECT u.id, name FROM users u JOIN posts p ON p.author_id = u.id",
     "Name": "GetAmbiguous",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "u",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 8
+          "Category": 8,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -36,10 +36,10 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertFile(ctx, db.InsertFileParams{
-		P1: int32(1),
-		P2: "hello.txt",
-		P3: []byte("Hello, World!"),
-		P4: int32(13),
+		ID:      int64(1),
+		Name:    "hello.txt",
+		Content: []byte("Hello, World!"),
+		Size:    int32(13),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertFile 1:", err)
@@ -47,17 +47,17 @@ func main() {
 	}
 
 	err = queries.InsertFile(ctx, db.InsertFileParams{
-		P1: int32(2),
-		P2: "binary.dat",
-		P3: []byte{0x00, 0xFF, 0x42},
-		P4: int32(3),
+		ID:      int64(2),
+		Name:    "binary.dat",
+		Content: []byte{0x00, 0xFF, 0x42},
+		Size:    int32(3),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertFile 2:", err)
 		os.Exit(1)
 	}
 
-	file, err := queries.GetFile(ctx, int32(1))
+	file, err := queries.GetFile(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetFile:", err)
 		os.Exit(1)

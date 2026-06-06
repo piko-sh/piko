@@ -1,0 +1,16 @@
+{
+  "stats_by_group": [
+    {
+      "group_id": 1,
+      "mean_value": 14,
+      "sample_count": 5,
+      "stddev_value": 3.162
+    },
+    {
+      "group_id": 2,
+      "mean_value": 5,
+      "sample_count": 4,
+      "stddev_value": 0
+    }
+  ]
+}

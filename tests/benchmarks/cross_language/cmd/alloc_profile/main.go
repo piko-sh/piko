@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Command alloc_profile reports per-benchmark heap allocation counts for the
-// piko interpreter on the cross-language benchmark suite. Runs each
-// benchmark's RunInner(K) once after a warmup, samples runtime.MemStats
-// before and after, and prints alloc deltas sorted high-to-low.
+// Command alloc_profile reports per-benchmark heap allocation counts for the piko
+// interpreter on the cross-language benchmark suite. Runs each benchmark's RunInner(K)
+// once after a warmup, samples runtime.MemStats before and after, and prints alloc deltas
+// sorted high-to-low.
 //
 // Run from the piko root:
 //
@@ -43,32 +43,31 @@ import (
 )
 
 const (
-	// allocProfileMaxCallDepth is the call-stack ceiling passed to the
-	// interpreter when measuring allocations. Generous enough that deeply
-	// recursive benchmarks do not hit a ceiling that only exists inside
-	// alloc_profile.
+	// allocProfileMaxCallDepth is the call-stack ceiling passed to the interpreter when
+	// measuring allocations. Generous enough that deeply recursive benchmarks do not hit a
+	// ceiling that only exists inside alloc_profile.
 	allocProfileMaxCallDepth = 200_000
 )
 
-// humanIntMillionThreshold and humanIntMillionDivisor format integer
-// counts as "X.YYM" when they reach a million.
+// humanIntMillionThreshold and humanIntMillionDivisor format integer counts as "X.YYM"
+// when they reach a million.
 const (
 	humanIntMillionThreshold = 1_000_000
 
 	humanIntMillionDivisor = 1_000_000.0
 )
 
-// humanIntThousandThreshold and humanIntThousandDivisor format integer
-// counts as "X.YK" when they reach a thousand.
+// humanIntThousandThreshold and humanIntThousandDivisor format integer counts as "X.YK"
+// when they reach a thousand.
 const (
 	humanIntThousandThreshold = 1_000
 
 	humanIntThousandDivisor = 1_000.0
 )
 
-// humanBytesGiBShift, humanBytesMiBShift, humanBytesKiBShift name the
-// bit-shifts humanBytes uses to pick between gibibyte, mebibyte, and
-// kibibyte renderings of a byte count.
+// humanBytesGiBShift, humanBytesMiBShift, humanBytesKiBShift name the bit-shifts
+// humanBytes uses to pick between gibibyte, mebibyte, and kibibyte renderings of a byte
+// count.
 const (
 	humanBytesGiBShift = 30
 
@@ -199,17 +198,16 @@ func EntrypointRun() (string, int64) {
 	return measureExecute(ctx, name, service, compiled)
 }
 
-// loadBenchmarkSources reads spec.json and the Piko source for the
-// given benchmark directory. On any read or parse failure a populated
-// allocResult is returned so the caller can record the failure.
+// loadBenchmarkSources reads spec.json and the Piko source for the given benchmark
+// directory. On any read or parse failure a populated allocResult is returned so the
+// caller can record the failure.
 //
-// Takes name (string) which is the benchmark identifier used for
-// error reporting.
-// Takes dir (string) which is the benchmark directory containing
-// spec.json and go/piko_source.go.
+// Takes name (string) which is the benchmark identifier used for error reporting.
+// Takes dir (string) which is the benchmark directory containing spec.json and
+// go/piko_source.go.
 //
-// Returns the parsed spec, the source bytes, and a nil *allocResult
-// on success, or a populated *allocResult and nil values on failure.
+// Returns the parsed spec, the source bytes, and a nil *allocResult on success, or a
+// populated *allocResult and nil values on failure.
 func loadBenchmarkSources(name, dir string) (benchSpec, []byte, *allocResult) {
 	specPath := filepath.Join(dir, "spec.json")
 	//nolint:gosec // G304: alloc_profile loads benchmark fixtures from the in-repo tests/benchmarks tree; not attacker-controlled
@@ -233,19 +231,15 @@ func loadBenchmarkSources(name, dir string) (benchSpec, []byte, *allocResult) {
 	return spec, sourceBytes, nil
 }
 
-// measureExecute runs one measured execution of the EntrypointRun
-// entry-point and computes per-run allocation and timing deltas.
+// measureExecute runs one measured execution of the EntrypointRun entry-point and
+// computes per-run allocation and timing deltas.
 //
-// Takes ctx (context.Context) which carries the per-benchmark timeout.
-// Takes name (string) which is the benchmark identifier used for
-// error reporting.
-// Takes service (*interp_domain.Service) which is the configured
-// interpreter service.
-// Takes compiled (*interp_domain.CompiledFileSet) which is the
-// already-compiled program.
+// Takes name (string) which is the benchmark identifier used for error reporting.
+// Takes service (*interp_domain.Service) which is the configured interpreter service.
+// Takes compiled (*interp_domain.CompiledFileSet) which is the already-compiled program.
 //
-// Returns the populated allocResult including failure details when
-// the measured execution itself errors.
+// Returns the populated allocResult including failure details when the measured execution
+// itself errors.
 func measureExecute(ctx context.Context, name string, service *interp_domain.Service, compiled *interp_domain.CompiledFileSet) allocResult {
 	//nolint:revive // call-to-gc: alloc-profile baselines the heap before sampling MemStats
 	runtime.GC()

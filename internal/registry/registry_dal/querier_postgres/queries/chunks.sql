@@ -1,5 +1,4 @@
--- piko.name: InsertVariantChunk
--- piko.command: exec
+-- piko.query(name: InsertVariantChunk, command: exec)
 INSERT INTO registry_variant_chunk (
   artefact_id,
   variant_id,
@@ -14,8 +13,7 @@ INSERT INTO registry_variant_chunk (
   duration_seconds
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
--- piko.name: GetChunksForVariant
--- piko.command: many
+-- piko.query(name: GetChunksForVariant, command: many)
 SELECT
   chunk_id,
   storage_key,
@@ -30,9 +28,8 @@ FROM registry_variant_chunk
 WHERE artefact_id = $1 AND variant_id = $2
 ORDER BY sequence_number ASC;
 
--- piko.name: GetChunksForVariants
--- piko.command: many
--- $2 as piko.slice(variant_ids)
+-- piko.query(name: GetChunksForVariants, command: many)
+-- $2 as piko.param(variant_ids, kind: slice)
 SELECT
   artefact_id,
   variant_id,
@@ -46,20 +43,17 @@ SELECT
   created_at,
   duration_seconds
 FROM registry_variant_chunk
-WHERE artefact_id = $1 AND variant_id = ANY($2)
+WHERE artefact_id = $1 AND variant_id IN ($2)
 ORDER BY artefact_id, variant_id, sequence_number ASC;
 
--- piko.name: DeleteChunksForVariant
--- piko.command: exec
+-- piko.query(name: DeleteChunksForVariant, command: exec)
 DELETE FROM registry_variant_chunk
 WHERE artefact_id = $1 AND variant_id = $2;
 
--- piko.name: CountChunksForVariant
--- piko.command: one
+-- piko.query(name: CountChunksForVariant, command: one)
 SELECT COUNT(*) FROM registry_variant_chunk
 WHERE artefact_id = $1 AND variant_id = $2;
 
--- piko.name: FindArtefactByChunkStorageKey
--- piko.command: one
+-- piko.query(name: FindArtefactByChunkStorageKey, command: one)
 SELECT DISTINCT artefact_id FROM registry_variant_chunk
 WHERE storage_key = $1 LIMIT 1;

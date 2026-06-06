@@ -240,7 +240,12 @@ func buildWithTxMethod() *ast.FuncDecl {
 // Returns *ast.FuncDecl which is the RunInTx method declaration.
 func buildRunInTxMethod() *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: queriesReceiver(),
+		Recv: goastutil.FieldList(
+			goastutil.Field(
+				emitter_shared.IdentQueriesReceiver,
+				goastutil.StarExpr(goastutil.CachedIdent(emitter_shared.IdentQueries)),
+			),
+		),
 		Name: goastutil.CachedIdent("RunInTx"),
 		Type: &ast.FuncType{
 			Params: buildRunInTxParams(),

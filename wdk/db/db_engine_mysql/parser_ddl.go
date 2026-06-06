@@ -483,13 +483,7 @@ func (p *parser) parseTypeModifiers() []int {
 	var modifiers []int
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		if p.current().kind == tokenNumber {
-			value := 0
-			for _, character := range p.current().value {
-				if character >= '0' && character <= '9' {
-					value = value*decimalBase + int(character-'0')
-				}
-			}
-			modifiers = append(modifiers, value)
+			modifiers = append(modifiers, parseTypeModifierValue(p.current().value))
 		}
 		p.advance()
 	}
@@ -498,6 +492,27 @@ func (p *parser) parseTypeModifiers() []int {
 	}
 
 	return modifiers
+}
+
+// parseTypeModifierValue accumulates the decimal digits of a numeric type-modifier
+// literal into a bounded int, clamping at maxTypeModifier so an out-of-range modifier
+// becomes a sane upper bound rather than a wrapped (and thus garbage) integer.
+//
+// Takes literal (string) which is the raw numeric token text.
+//
+// Returns int which is the accumulated value, capped at maxTypeModifier.
+func parseTypeModifierValue(literal string) int {
+	value := 0
+	for _, character := range literal {
+		if character < '0' || character > '9' {
+			continue
+		}
+		if value > (maxTypeModifier-int(character-'0'))/decimalBase {
+			return maxTypeModifier
+		}
+		value = value*decimalBase + int(character-'0')
+	}
+	return value
 }
 
 // isMySQLColumnConstraintKeyword reports whether the current token begins a column-level
@@ -667,7 +682,7 @@ func (p *parser) skipStringLiteral() {
 
 // skipMySQLInlineForeignKey consumes an inline column REFERENCES clause.
 func (p *parser) skipMySQLInlineForeignKey() {
-	if p.current().kind == tokenIdentifier {
+	if p.current().kind == tokenIdentifier && !p.isMySQLForeignKeyActionBoundary() {
 		p.mustSchemaQualifiedName()
 	}
 	if p.current().kind == tokenLeftParen {
@@ -676,7 +691,22 @@ func (p *parser) skipMySQLInlineForeignKey() {
 	p.skipForeignKeyActions()
 }
 
-// skipForeignKeyActions consumes ON DELETE/UPDATE referential action clauses.
+// isMySQLForeignKeyActionBoundary reports whether the current token marks the start (or
+// just-past-end) of a foreign-key action / constraint clause. Used by
+// skipMySQLInlineForeignKey to recognise the boundary between the REFERENCES
+// <table>(cols) prefix and the subsequent ON / MATCH / CONSTRAINT-bearing tokens.
+//
+// Returns bool which is true when the current keyword is a recognised action-clause
+// boundary.
+func (p *parser) isMySQLForeignKeyActionBoundary() bool {
+	return p.isAnyKeyword(keywordON, "MATCH", keywordCONSTRAINT,
+		keywordPRIMARY, keywordUNIQUE, keywordKEY, keywordINDEX,
+		keywordCHECK, keywordFOREIGN)
+}
+
+// skipForeignKeyActions consumes the trailing ON DELETE and ON UPDATE referential action
+// clauses of a foreign key, advancing past each action body until the next constraint
+// boundary keyword, comma, or closing parenthesis.
 func (p *parser) skipForeignKeyActions() {
 	for p.matchKeyword(keywordON) {
 		p.matchKeyword("DELETE")

@@ -66,7 +66,7 @@ A collection turns content files into routes. A page template that declares `p-c
 
 ### The querier
 
-When a project needs a real database (SQLite, PostgreSQL, MySQL, DuckDB), the project's scaffolded generator (`cmd/generator/main.go`, run via `go run ./cmd/generator/main.go all`) reads `.sql` files with annotations and emits type-safe Go functions. A query annotated `-- piko.command: many` becomes a function returning `[]Row`. Actions and render functions call the generated querier instead of writing raw SQL strings. See [tutorial 05: data-backed pages](../tutorials/05-data-backed-pages.md) for a guided build and [querier reference](../reference/querier.md) for the annotation grammar.
+When a project needs a real database (SQLite, PostgreSQL, MySQL, DuckDB), the project's scaffolded generator (`cmd/generator/main.go`, run via `go run ./cmd/generator/main.go all`) reads `.sql` files with annotations and emits type-safe Go functions. A query annotated `-- piko.query(name: ListRows, command: many)` becomes a function returning `[]Row`. Actions and render functions call the generated querier instead of writing raw SQL strings. See [tutorial 05: data-backed pages](../tutorials/05-data-backed-pages.md) for a guided build and [querier reference](../reference/querier.md) for the annotation grammar.
 
 ## Runtime services
 

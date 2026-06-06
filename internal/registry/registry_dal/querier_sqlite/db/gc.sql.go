@@ -8,24 +8,27 @@ const addgchint = `INSERT INTO gc_hint (backend_id, storage_key, created_at)
 VALUES (?, ?, ?);`
 
 type AddGCHintParams struct {
-	P1 string
-	P2 string
-	P3 int32
+	BackendID  string
+	StorageKey string
+	CreatedAt  int64
 }
 
 func (queries *Queries) AddGCHint(ctx context.Context, params AddGCHintParams) error {
-	_, err := queries.writer.ExecContext(ctx, addgchint, params.P1, params.P2, params.P3)
+	_, err := queries.writer.ExecContext(ctx, addgchint, params.BackendID, params.StorageKey, params.CreatedAt)
 	return err
 }
 
 const deletegchints = `DELETE FROM gc_hint WHERE id IN (?1);`
 
 type DeleteGCHintsParams struct {
-	IDs []int32
+	IDs []int64
 }
 
 func (queries *Queries) DeleteGCHints(ctx context.Context, params DeleteGCHintsParams) error {
-	query := pikoExpandSlicePlaceholders(deletegchints, []pikoSliceExpansionSpec{{1, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(deletegchints, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return expansionError
+	}
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -40,13 +43,13 @@ ORDER BY id ASC
 LIMIT ?;`
 
 type PopGCHintsRow struct {
-	ID         int32
-	BackendID  string
-	StorageKey string
+	ID         int64  `json:"id"`
+	BackendID  string `json:"backend_id"`
+	StorageKey string `json:"storage_key"`
 }
 
-func (queries *Queries) PopGCHints(ctx context.Context, p1 int32) ([]PopGCHintsRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, popgchints, p1)
+func (queries *Queries) PopGCHints(ctx context.Context, limit int) ([]PopGCHintsRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, popgchints, limit)
 	if err != nil {
 		return nil, err
 	}

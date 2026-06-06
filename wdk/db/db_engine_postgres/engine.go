@@ -19,8 +19,15 @@
 package db_engine_postgres
 
 import (
+	"context"
 	"fmt"
+	"maps"
+	"runtime/debug"
+	"slices"
+	"strings"
 
+	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -47,8 +54,34 @@ type PostgresDialect struct {
 	// PromoteTypeHook overrides the default type promotion when it returns a non-nil result.
 	PromoteTypeHook func(left, right querier_dto.SQLType) *querier_dto.SQLType
 
-	// Name identifies the dialect flavour (e.g. "postgres", "cockroachdb").
+	// Name is the dialect identifier reported by Engine.Dialect().
+	//
+	// The querier uses it to switch on engine-specific emission paths and to route catalogue
+	// diagnostics. It defaults to "postgres" when constructed via NewPostgresEngine;
+	// derivatives such as cockroachdb or timescaledb override it via WithDialectName.
 	Name string
+
+	// StatementExtensions lets child engines recognise and parse SQL statements postgres
+	// does not natively support.
+	//
+	// Extensions are consulted in registration order. Extension claims override built-in
+	// classifications even when the built-in classifier already returned a non-unknown kind;
+	// this is required to recognise function-call-form DDL like TimescaleDB's `SELECT
+	// create_hypertable(...)` which the built-in classifier would otherwise route as a
+	// SELECT. Only kinds in the [StatementKindExtensionBase, ...) reservation range are
+	// honoured; an extension that returns a built-in kind is treated as a misuse and
+	// ignored.
+	StatementExtensions []StatementExtension
+
+	// PostParseHooks run after a built-in DDL handler produces a CatalogueMutation, in
+	// registration order. Used by child engines to enrich existing mutations with
+	// engine-specific metadata.
+	PostParseHooks []PostParseHook
+
+	// MaxParseDepth caps recursion through analyseSelect (subquery, CTE and compound-branch
+	// nesting) and the expression precedence chain (parenthesis nesting). Zero selects
+	// defaultMaxParseDepth.
+	MaxParseDepth int
 }
 
 // Option configures a PostgresDialect.
@@ -126,6 +159,71 @@ func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto
 	}
 }
 
+// WithStatementExtensions registers one or more StatementExtension instances that can
+// recognise and parse SQL the built-in postgres classifier does not handle.
+//
+// Extensions are appended in declaration order; the engine consults them in that order
+// during classification and dispatch. If multiple extensions claim the same statement
+// shape, the first non-zero Classify response wins. Subsequent extensions are ignored for
+// that shape, so the order of registration determines precedence when overlapping
+// ownership is unavoidable. Extensions that return a kind outside the reserved
+// [StatementKindExtensionBase, ...) range are treated as misuse and rejected so they
+// cannot accidentally hijack a built-in handler.
+//
+// Takes extensions (...StatementExtension) which are appended in declaration order.
+//
+// Returns Option which applies the extensions to a PostgresDialect.
+func WithStatementExtensions(extensions ...StatementExtension) Option {
+	return func(dialect *PostgresDialect) {
+		dialect.StatementExtensions = append(dialect.StatementExtensions, extensions...)
+	}
+}
+
+// WithPostParseHook registers a PostParseHook that runs after each built-in DDL handler.
+//
+// Hooks are appended in declaration order; the engine invokes them in that order during
+// ApplyDDL.
+//
+// Takes hook (PostParseHook) which runs after each built-in DDL handler.
+//
+// Returns Option which applies the hook to a PostgresDialect.
+func WithPostParseHook(hook PostParseHook) Option {
+	return func(dialect *PostgresDialect) {
+		dialect.PostParseHooks = append(dialect.PostParseHooks, hook)
+	}
+}
+
+// WithMaxParseDepth sets the maximum parser recursion depth across analysis and
+// expression nesting.
+//
+// Deeply nested user input is otherwise able to overflow the goroutine stack with a
+// fatal, non-recoverable error that the engine's recover guards cannot catch. The default
+// is high (defaultMaxParseDepth) so realistic queries are unaffected; lower it to harden
+// against hostile input or raise it for unusually nested generated queries.
+//
+// Takes depth (int) which is the maximum nesting depth; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the depth cap to a PostgresDialect.
+func WithMaxParseDepth(depth int) Option {
+	return func(dialect *PostgresDialect) {
+		if depth > 0 {
+			dialect.MaxParseDepth = depth
+		}
+	}
+}
+
+// resolvedMaxParseDepth returns the effective parser depth cap, falling back to
+// defaultMaxParseDepth when unset.
+//
+// Returns int which is the effective maximum parse depth.
+func (d PostgresDialect) resolvedMaxParseDepth() int {
+	if d.MaxParseDepth > 0 {
+		return d.MaxParseDepth
+	}
+	return defaultMaxParseDepth
+}
+
 // PostgresEngine implements the querier EnginePort for PostgreSQL.
 type PostgresEngine struct {
 	// functions holds the built-in PostgreSQL function catalogue plus any extra signatures
@@ -160,13 +258,16 @@ func NewPostgresEngine(options ...Option) *PostgresEngine {
 	}
 }
 
-// ParseStatements tokenises and classifies SQL statements for PostgreSQL.
+// ParseStatements tokenises and classifies SQL statements for the PostgreSQL dialect.
 //
-// Takes sql (string) which is the raw SQL source to tokenise and split.
+// It consults registered StatementExtensions when the built-in classifier returns
+// statementKindUnknown so child engines can claim their own statement shapes.
 //
-// Returns []querier_dto.ParsedStatement which lists each parsed statement.
-// Returns error when tokenisation fails.
-func (*PostgresEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
+// Takes sql (string) which is the source SQL to tokenise and classify.
+//
+// Returns []querier_dto.ParsedStatement which holds one entry per parsed statement.
+// Returns error when tokenising the SQL fails.
+func (engine *PostgresEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
 	tokens, tokeniseError := tokenise(sql)
 	if tokeniseError != nil {
 		return nil, fmt.Errorf("tokenising SQL: %w", tokeniseError)
@@ -175,16 +276,52 @@ func (*PostgresEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatemen
 	statementTokens := splitStatements(tokens)
 	results := make([]querier_dto.ParsedStatement, 0, len(statementTokens))
 
-	for _, statementTokenSlice := range statementTokens {
+	for sliceIndex, statementTokenSlice := range statementTokens {
+		if len(statementTokenSlice) == 0 {
+			continue
+		}
 		kind := classifyStatement(statementTokenSlice)
+		extensionOwner := -1
+		if len(engine.dialect.StatementExtensions) > 0 {
+			override, ownerIndex := classifyViaExtensionsIndexed(statementTokenSlice, engine.dialect.StatementExtensions)
+			if override != statementKindUnknown {
+				kind = override
+				extensionOwner = ownerIndex
+			}
+		}
+		location := statementTokenSlice[0].position
 		results = append(results, querier_dto.ParsedStatement{
-			Raw:      &parsedStatement{tokens: statementTokenSlice, kind: kind},
-			Location: statementTokenSlice[0].position,
-			Length:   len(sql),
+			Raw:      &parsedStatement{tokens: statementTokenSlice, kind: kind, extensionOwner: extensionOwner},
+			Location: location,
+			Length:   statementSpanLength(statementTokens, sliceIndex, location, len(sql)),
 		})
 	}
 
 	return results, nil
+}
+
+// statementSpanLength returns the byte length a statement occupies in the source SQL. The
+// span runs from the statement's first token to the first token of the next non-empty
+// statement (so any trailing separator and whitespace belong to the earlier statement);
+// the final statement extends to the end of the source.
+//
+// Takes statementTokens ([][]token) which is the full ordered list of statement token
+// slices.
+// Takes sliceIndex (int) which is the index of the current statement within
+// statementTokens.
+// Takes location (int) which is the source byte offset of the current statement's first
+// token.
+// Takes sourceLength (int) which is the byte length of the whole source SQL.
+//
+// Returns int which is the per-statement byte length.
+func statementSpanLength(statementTokens [][]token, sliceIndex int, location int, sourceLength int) int {
+	for nextIndex := sliceIndex + 1; nextIndex < len(statementTokens); nextIndex++ {
+		nextSlice := statementTokens[nextIndex]
+		if len(nextSlice) > 0 {
+			return nextSlice[0].position - location
+		}
+	}
+	return sourceLength - location
 }
 
 // ddlHandler is a function that parses a DDL statement into a catalogue mutation.
@@ -246,47 +383,100 @@ var (
 
 // ApplyDDL applies a DDL statement to the catalogue for the PostgreSQL dialect.
 //
-// Takes statement (querier_dto.ParsedStatement) which carries the parsed tokens and
-// statement kind.
+// It wraps the per-statement handler with a panic recovery so a malformed statement (e.g.
+// an incomplete multi-action ALTER TABLE that trips a mustKeyword helper inside the
+// parser) becomes a wrapped error rather than crashing the calling apply loop. The
+// recovered stack is logged at warn level so operators can diagnose the inner bug while
+// the returned error stays free of internal symbol paths that have no value to the webdev
+// consuming the diagnostic. It honours ctx.Err() before dispatch so a long-running
+// catalogue build can be cancelled by the caller.
 //
-// Returns *querier_dto.CatalogueMutation which describes the change, or nil when the
-// statement kind has no handler.
-// Returns error when the raw statement payload has an unexpected type or parsing fails.
+// Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
+//
+// Returns mutation (*querier_dto.CatalogueMutation) which describes the catalogue change.
+// Returns error which is non-nil when the statement is malformed, a hook fails, or the
+// context is cancelled.
 func (engine *PostgresEngine) ApplyDDL(
+	ctx context.Context,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.CatalogueMutation, error) {
+) (mutation *querier_dto.CatalogueMutation, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
-	p := newParser(parsed.tokens)
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			mutation = nil
 
-	if int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil {
-		return ddlHandlers[parsed.kind](p, engine)
+			_, logger := logger_domain.From(ctx, log)
+			logger.Warn("postgres: panic while applying DDL",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("postgres: ddl panic: %v", recovered)
+		}
+	}()
+
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
 	}
 
-	return nil, nil
+	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
+
+	mutation, err = engine.dispatchDDL(p, parsed)
+	if err != nil {
+		return mutation, err
+	}
+
+	if len(engine.dialect.PostParseHooks) > 0 {
+		hookCtx := newParserContext(p, engine)
+		for _, hook := range engine.dialect.PostParseHooks {
+			if hookErr := hook(hookCtx, parsed.kind, mutation); hookErr != nil {
+				return mutation, hookErr
+			}
+		}
+	}
+
+	return mutation, nil
 }
 
-// AnalyseQuery performs structural analysis of a PostgreSQL DML statement.
+// AnalyseQuery performs structural analysis of a DML statement for the PostgreSQL
+// dialect.
 //
-// Takes _ (*querier_dto.Catalogue) which is unused at this stage.
-// Takes statement (querier_dto.ParsedStatement) which carries the parsed tokens and
-// statement kind.
+// It wraps the per-statement analyser with a panic recovery so a malformed statement that
+// trips a parser invariant becomes a wrapped error rather than crashing the calling
+// analyser.
 //
-// Returns *querier_dto.RawQueryAnalysis which captures the analysed shape.
-// Returns error when the raw statement payload has an unexpected type or parsing fails.
-func (*PostgresEngine) AnalyseQuery(
+// Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
+//
+// Returns analysis (*querier_dto.RawQueryAnalysis) which describes the query structure.
+// Returns error which is non-nil when the statement type is unexpected or analysis
+// panics.
+func (engine *PostgresEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.RawQueryAnalysis, error) {
+) (analysis *querier_dto.RawQueryAnalysis, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			analysis = nil
+
+			log.Warn("postgres: panic while analysing query",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("postgres: analyse panic: %v", recovered)
+		}
+	}()
+
 	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	switch parsed.kind {
 	case statementKindSelect:
@@ -302,6 +492,25 @@ func (*PostgresEngine) AnalyseQuery(
 	default:
 		return &querier_dto.RawQueryAnalysis{}, nil
 	}
+}
+
+// RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter.
+//
+// The PostgreSQL dialect uses the rewriter's defaults: top-level SELECT/FROM detection
+// with GROUP BY / DISTINCT / window-function wrapping, because nothing about PostgreSQL
+// syntax requires a dialect-specific override.
+//
+// Takes originalSQL (string) which is the source SELECT statement.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which describes the SELECT structure.
+//
+// Returns string which is the rewritten COUNT(*) statement.
+// Returns bool which is true when the rewrite was applied.
+// Returns error when the rewrite fails.
+func (*PostgresEngine) RewriteSelectAsCount(
+	originalSQL string,
+	analysis *querier_dto.RawQueryAnalysis,
+) (string, bool, error) {
+	return querier_domain.RewriteSelectAsCount(originalSQL, analysis)
 }
 
 // BuiltinFunctions returns the PostgreSQL built-in function catalogue.
@@ -353,6 +562,15 @@ func (*PostgresEngine) SupportsReturning() bool {
 	return true
 }
 
+// SupportsAsyncMutations reports that PostgreSQL does not surface asynchronous mutation
+// semantics; all DML completes synchronously from the client's perspective.
+//
+// Returns bool which is always false for PostgreSQL (and the CockroachDB / TimescaleDB
+// derivatives that embed this engine).
+func (*PostgresEngine) SupportsAsyncMutations() bool {
+	return false
+}
+
 // Dialect returns the dialect name for this engine instance.
 //
 // Defaults to "postgres" but derivatives such as CockroachDB override the value via
@@ -399,34 +617,82 @@ func (*PostgresEngine) TableValuedFunctionColumns(functionName string) []querier
 	return result
 }
 
-// TableValuedFunctionColumnsFromCatalogue resolves columns for user functions.
+// TableValuedFunctionColumnsFromCatalogue resolves user-defined functions returning
+// composite, set-of, or inline RETURNS TABLE column lists by looking up the function
+// signature in the catalogue.
 //
-// Looks up the signature and return type in the catalogue, yielding the composite columns
-// when a function yields a set of a composite type.
+// The functionName may be a bare identifier (matched in any schema) or a schema-qualified
+// "schema.name" reference.
 //
-// Takes catalogue (*querier_dto.Catalogue) which is searched for the function and its
-// return type.
-// Takes functionName (string) which is the function to resolve.
+// Takes catalogue (*querier_dto.Catalogue) which holds the registered function
+// signatures.
+// Takes functionName (string) which is the bare or schema-qualified function name.
 //
-// Returns []querier_dto.ScopedColumn which lists the resolved columns, or nil when no
+// Returns []querier_dto.ScopedColumn which lists the output columns, or nil when no
 // matching set-returning function is found.
 func (*PostgresEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
 ) []querier_dto.ScopedColumn {
-	for _, schema := range catalogue.Schemas {
-		signatures, exists := schema.Functions[functionName]
+	schemaName, bareName := splitQualifiedName(functionName)
+
+	if schemaName != "" {
+		schema, exists := catalogue.Schemas[schemaName]
 		if !exists {
+			return nil
+		}
+		return lookupFunctionColumns(catalogue, schema, bareName)
+	}
+
+	for _, schemaName := range slices.Sorted(maps.Keys(catalogue.Schemas)) {
+		schema := catalogue.Schemas[schemaName]
+		if columns := lookupFunctionColumns(catalogue, schema, bareName); columns != nil {
+			return columns
+		}
+	}
+	return nil
+}
+
+// splitQualifiedName splits "schema.name" into ("schema", "name").
+//
+// A bare identifier returns ("", name).
+//
+// Takes qualifiedName (string) which is the bare or schema-qualified name.
+//
+// Returns schema (string) which is the schema part, or empty for a bare name.
+// Returns name (string) which is the bare name part.
+func splitQualifiedName(qualifiedName string) (schema string, name string) {
+	before, after, found := strings.Cut(qualifiedName, ".")
+	if !found {
+		return "", qualifiedName
+	}
+	return before, after
+}
+
+// lookupFunctionColumns finds the first set-returning overload of functionName in the
+// supplied schema and resolves its output columns.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is searched for composite return types.
+// Takes schema (*querier_dto.Schema) which holds the function overloads to inspect.
+// Takes functionName (string) which is the bare function name to look up.
+//
+// Returns []querier_dto.ScopedColumn which lists the output columns, or nil when no
+// set-returning overload resolves to columns.
+func lookupFunctionColumns(
+	catalogue *querier_dto.Catalogue,
+	schema *querier_dto.Schema,
+	functionName string,
+) []querier_dto.ScopedColumn {
+	signatures, exists := schema.Functions[functionName]
+	if !exists {
+		return nil
+	}
+	for _, signature := range signatures {
+		if !signature.ReturnsSet {
 			continue
 		}
-		for _, signature := range signatures {
-			if !signature.ReturnsSet {
-				continue
-			}
-			columns := resolveCompositeColumns(catalogue, schema, signature.ReturnType)
-			if columns != nil {
-				return columns
-			}
+		if columns := resolveCompositeColumns(catalogue, schema, signature.ReturnType); columns != nil {
+			return columns
 		}
 	}
 	return nil
@@ -581,4 +847,41 @@ func (*PostgresEngine) ResolveFunctionCall(
 // when the extension is unknown.
 func (*PostgresEngine) LoadExtensionFunctions(name string) []*querier_dto.FunctionSignature {
 	return lookupExtensionFunctions(name)
+}
+
+// dispatchDDL routes a parsed statement to its handler.
+//
+// Built-in kinds dispatch through the ddlHandlers array; extension kinds (>=
+// StatementKindExtensionBase) dispatch through the cached extensionOwner index recorded
+// on parsedStatement during ParseStatements, avoiding the per-dispatch re-Classify scan.
+// The function rejects any extension kind that did not pass through ParseStatements
+// (extensionOwner == -1) or whose owner index points outside the current extension
+// registry. Both shapes indicate a caller has hand-rolled a parsedStatement with
+// inconsistent fields, so the safer response is to decline and let the post-parse hook
+// chain run rather than risk reading past the registry. It returns (nil, nil) when no
+// handler claims the statement so the post-parse hook chain still runs (hooks may want to
+// observe even non-matched statements).
+//
+// Takes p (*parser) which is positioned at the start of the statement tokens.
+// Takes parsed (*parsedStatement) which carries the statement kind and extension owner.
+//
+// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil.
+// Returns error when the claiming handler fails.
+func (engine *PostgresEngine) dispatchDDL(
+	p *parser,
+	parsed *parsedStatement,
+) (*querier_dto.CatalogueMutation, error) {
+	kind := parsed.kind
+	if kind < StatementKindExtensionBase {
+		if int(kind) < len(ddlHandlers) && ddlHandlers[kind] != nil {
+			return ddlHandlers[kind](p, engine)
+		}
+		return nil, nil
+	}
+	if parsed.extensionOwner < 0 || parsed.extensionOwner >= len(engine.dialect.StatementExtensions) {
+		return nil, nil
+	}
+	ctx := newParserContext(p, engine)
+	owner := engine.dialect.StatementExtensions[parsed.extensionOwner]
+	return owner.Parse(ctx, kind)
 }

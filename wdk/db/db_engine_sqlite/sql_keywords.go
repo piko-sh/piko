@@ -106,6 +106,9 @@ const (
 	// keywordTABLE is the SQL TABLE DDL keyword.
 	keywordTABLE = "TABLE"
 
+	// keywordTRIGGER is the SQL TRIGGER DDL keyword.
+	keywordTRIGGER = "TRIGGER"
+
 	// keywordUNION is the SQL UNION compound operator keyword.
 	keywordUNION = "UNION"
 
@@ -127,7 +130,4 @@ const (
 
 	// doubleArrowOperatorLength is the byte length of the `->>` JSON operator.
 	doubleArrowOperatorLength = 3
-
-	// maxASCIICodePoint is the highest 7-bit ASCII code point.
-	maxASCIICodePoint = 127
 )

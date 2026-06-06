@@ -55,13 +55,17 @@ use (
 	./wdk/db/db_driver_d1
 	./wdk/db/db_driver_sqlite_cgo
 	./wdk/db/db_driver_sqlite_nocgo
+	./wdk/db/db_emitter_clickhouse
 	./wdk/db/db_emitter_pgx
+	./wdk/db/db_engine_clickhouse
 	./wdk/db/db_engine_cockroachdb
+	./wdk/db/db_engine_conformance
 	./wdk/db/db_engine_duckdb
 	./wdk/db/db_engine_mariadb
 	./wdk/db/db_engine_mysql
 	./wdk/db/db_engine_postgres
 	./wdk/db/db_engine_sqlite
+	./wdk/db/db_engine_timescaledb
 	./wdk/email/email_provider_gmail
 	./wdk/email/email_provider_mailchimp_transactional
 	./wdk/email/email_provider_mailgun
@@ -73,6 +77,15 @@ use (
 	./wdk/highlight/highlight_chroma
 	./wdk/interp/interp_provider_piko
 	./wdk/json/json_provider_sonic
+	./wdk/linguistics/linguistics_bigrams_dutch
+	./wdk/linguistics/linguistics_bigrams_english
+	./wdk/linguistics/linguistics_bigrams_french
+	./wdk/linguistics/linguistics_bigrams_german
+	./wdk/linguistics/linguistics_bigrams_hungarian
+	./wdk/linguistics/linguistics_bigrams_norwegian
+	./wdk/linguistics/linguistics_bigrams_russian
+	./wdk/linguistics/linguistics_bigrams_spanish
+	./wdk/linguistics/linguistics_bigrams_swedish
 	./wdk/linguistics/linguistics_language_dutch
 	./wdk/linguistics/linguistics_language_english
 	./wdk/linguistics/linguistics_language_french
@@ -103,15 +116,6 @@ use (
 	./wdk/linguistics/linguistics_stemmer_russian
 	./wdk/linguistics/linguistics_stemmer_spanish
 	./wdk/linguistics/linguistics_stemmer_swedish
-	./wdk/linguistics/linguistics_bigrams_dutch
-	./wdk/linguistics/linguistics_bigrams_english
-	./wdk/linguistics/linguistics_bigrams_french
-	./wdk/linguistics/linguistics_bigrams_german
-	./wdk/linguistics/linguistics_bigrams_hungarian
-	./wdk/linguistics/linguistics_bigrams_norwegian
-	./wdk/linguistics/linguistics_bigrams_russian
-	./wdk/linguistics/linguistics_bigrams_spanish
-	./wdk/linguistics/linguistics_bigrams_swedish
 	./wdk/linguistics/linguistics_stopwords_dutch
 	./wdk/linguistics/linguistics_stopwords_english
 	./wdk/linguistics/linguistics_stopwords_french
@@ -204,13 +208,17 @@ replace (
 	piko.sh/piko/wdk/db/db_driver_d1 v0.0.0 => ./wdk/db/db_driver_d1
 	piko.sh/piko/wdk/db/db_driver_sqlite_cgo v0.0.0 => ./wdk/db/db_driver_sqlite_cgo
 	piko.sh/piko/wdk/db/db_driver_sqlite_nocgo v0.0.0 => ./wdk/db/db_driver_sqlite_nocgo
+	piko.sh/piko/wdk/db/db_emitter_clickhouse v0.0.0 => ./wdk/db/db_emitter_clickhouse
 	piko.sh/piko/wdk/db/db_emitter_pgx v0.0.0 => ./wdk/db/db_emitter_pgx
+	piko.sh/piko/wdk/db/db_engine_clickhouse v0.0.0 => ./wdk/db/db_engine_clickhouse
 	piko.sh/piko/wdk/db/db_engine_cockroachdb v0.0.0 => ./wdk/db/db_engine_cockroachdb
+	piko.sh/piko/wdk/db/db_engine_conformance v0.0.0 => ./wdk/db/db_engine_conformance
 	piko.sh/piko/wdk/db/db_engine_duckdb v0.0.0 => ./wdk/db/db_engine_duckdb
 	piko.sh/piko/wdk/db/db_engine_mariadb v0.0.0 => ./wdk/db/db_engine_mariadb
 	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0 => ./wdk/db/db_engine_mysql
 	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0 => ./wdk/db/db_engine_postgres
 	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0 => ./wdk/db/db_engine_sqlite
+	piko.sh/piko/wdk/db/db_engine_timescaledb v0.0.0 => ./wdk/db/db_engine_timescaledb
 	piko.sh/piko/wdk/email/email_provider_gmail v0.0.0 => ./wdk/email/email_provider_gmail
 	piko.sh/piko/wdk/email/email_provider_mailchimp_transactional v0.0.0 => ./wdk/email/email_provider_mailchimp_transactional
 	piko.sh/piko/wdk/email/email_provider_mailgun v0.0.0 => ./wdk/email/email_provider_mailgun
@@ -222,6 +230,15 @@ replace (
 	piko.sh/piko/wdk/highlight/highlight_chroma v0.0.0 => ./wdk/highlight/highlight_chroma
 	piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0 => ./wdk/interp/interp_provider_piko
 	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0 => ./wdk/json/json_provider_sonic
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_dutch v0.0.0 => ./wdk/linguistics/linguistics_bigrams_dutch
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_english v0.0.0 => ./wdk/linguistics/linguistics_bigrams_english
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_french v0.0.0 => ./wdk/linguistics/linguistics_bigrams_french
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_german v0.0.0 => ./wdk/linguistics/linguistics_bigrams_german
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_hungarian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_hungarian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_norwegian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_norwegian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_russian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_russian
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_spanish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_spanish
+	piko.sh/piko/wdk/linguistics/linguistics_bigrams_swedish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_swedish
 	piko.sh/piko/wdk/linguistics/linguistics_language_dutch v0.0.0 => ./wdk/linguistics/linguistics_language_dutch
 	piko.sh/piko/wdk/linguistics/linguistics_language_english v0.0.0 => ./wdk/linguistics/linguistics_language_english
 	piko.sh/piko/wdk/linguistics/linguistics_language_french v0.0.0 => ./wdk/linguistics/linguistics_language_french
@@ -252,15 +269,6 @@ replace (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_russian v0.0.0 => ./wdk/linguistics/linguistics_stemmer_russian
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_spanish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_spanish
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_swedish v0.0.0 => ./wdk/linguistics/linguistics_stemmer_swedish
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_dutch v0.0.0 => ./wdk/linguistics/linguistics_bigrams_dutch
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_english v0.0.0 => ./wdk/linguistics/linguistics_bigrams_english
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_french v0.0.0 => ./wdk/linguistics/linguistics_bigrams_french
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_german v0.0.0 => ./wdk/linguistics/linguistics_bigrams_german
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_hungarian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_hungarian
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_norwegian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_norwegian
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_russian v0.0.0 => ./wdk/linguistics/linguistics_bigrams_russian
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_spanish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_spanish
-	piko.sh/piko/wdk/linguistics/linguistics_bigrams_swedish v0.0.0 => ./wdk/linguistics/linguistics_bigrams_swedish
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0 => ./wdk/linguistics/linguistics_stopwords_dutch
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 => ./wdk/linguistics/linguistics_stopwords_english
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 => ./wdk/linguistics/linguistics_stopwords_french

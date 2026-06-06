@@ -27,9 +27,9 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertTicket(ctx, db.InsertTicketParams{
-		P1: "Fix login bug",
-		P2: "high",
-		P3: "open",
+		Title:    "Fix login bug",
+		Priority: "high",
+		Status:   "open",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertTicket 1:", err)
@@ -37,9 +37,9 @@ func main() {
 	}
 
 	err = queries.InsertTicket(ctx, db.InsertTicketParams{
-		P1: "Update documentation",
-		P2: "low",
-		P3: "in_progress",
+		Title:    "Update documentation",
+		Priority: "low",
+		Status:   "in_progress",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertTicket 2:", err)
@@ -47,9 +47,9 @@ func main() {
 	}
 
 	err = queries.InsertTicket(ctx, db.InsertTicketParams{
-		P1: "Database migration",
-		P2: "high",
-		P3: "open",
+		Title:    "Database migration",
+		Priority: "high",
+		Status:   "open",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertTicket 3:", err)
@@ -57,9 +57,9 @@ func main() {
 	}
 
 	err = queries.InsertTicket(ctx, db.InsertTicketParams{
-		P1: "Add unit tests",
-		P2: "medium",
-		P3: "closed",
+		Title:    "Add unit tests",
+		Priority: "medium",
+		Status:   "closed",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertTicket 4:", err)

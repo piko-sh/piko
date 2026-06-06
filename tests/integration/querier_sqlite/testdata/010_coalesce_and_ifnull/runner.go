@@ -36,13 +36,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	withCustom, err := queries.GetSettingValue(ctx, int32(1))
+	withCustom, err := queries.GetSettingValue(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	withDefault, err := queries.GetSettingValue(ctx, int32(2))
+	withDefault, err := queries.GetSettingValue(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

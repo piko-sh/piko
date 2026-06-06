@@ -1,0 +1,3 @@
+{
+  "description": "counter_agg(ts, value) builds a counter summary state, and the slope / intercept / first_val / last_val accessors expose the regression and endpoint values. Verifies that all four accessors are catalogued against the CounterSummary state type with float8 return."
+}

@@ -96,14 +96,17 @@ func (s *d1Stmt) Query(args []driver.Value) (driver.Rows, error) {
 // When a transaction is active on the connection, the statement is queued for batch
 // execution on Commit instead of executing immediately.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
 // Returns driver.Result which contains last-insert ID and rows-affected counts.
 // Returns error when the D1 query fails or returns a failure status.
 func (s *d1Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	if s.conn.activeTx != nil {
-		s.conn.activeTx.addStatement(s.query, stringifyNamedParams(args))
+		params, err := stringifyNamedParams(args)
+		if err != nil {
+			return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
+		}
+		s.conn.activeTx.addStatement(s.query, params)
 		return &d1Result{}, nil
 	}
 
@@ -114,7 +117,6 @@ func (s *d1Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (dri
 // support queries within transactions since batch execution cannot return intermediate
 // row results.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
 // Returns driver.Rows which iterates over the query results.
@@ -129,16 +131,20 @@ func (s *d1Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (dr
 
 // execDirect executes the statement immediately against the D1 API.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
 // Returns driver.Result which contains last-insert ID and rows-affected counts.
 // Returns error when the D1 query fails or returns a failure status.
 func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	params, err := stringifyNamedParams(args)
+	if err != nil {
+		return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
+	}
+
 	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
 		DatabaseID: s.conn.databaseID,
 		SQL:        s.query,
-		Parameters: stringifyNamedParams(args),
+		Parameters: params,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
@@ -148,8 +154,10 @@ func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driv
 		return &d1Result{}, nil
 	}
 
-	if results[0].Success != nil && !*results[0].Success {
-		return nil, errors.New("db_driver_d1: exec: D1 query returned failure")
+	for index, result := range results {
+		if successErr := checkD1Success(result); successErr != nil {
+			return nil, fmt.Errorf("db_driver_d1: exec: statement %d: %w", index, successErr)
+		}
 	}
 
 	return &d1Result{
@@ -158,18 +166,41 @@ func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driv
 	}, nil
 }
 
+// checkD1Success reports whether a D1Result indicates the statement succeeded. The D1 API
+// populates Success with a per-statement boolean, so a nil flag means the field was
+// absent from the response and is treated as a failure rather than silently assumed
+// successful.
+//
+// Takes result (cloudflare.D1Result) which is the per-statement result to inspect.
+//
+// Returns error which is non-nil when the result reports failure or omits the success
+// flag.
+func checkD1Success(result cloudflare.D1Result) error {
+	if result.Success == nil {
+		return errors.New("D1 result omitted the success flag")
+	}
+	if !*result.Success {
+		return errors.New("D1 query returned failure")
+	}
+	return nil
+}
+
 // queryDirect executes the statement immediately against the D1 API and returns rows.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
 // Returns driver.Rows which iterates over the query results.
 // Returns error when the D1 query fails or returns a failure status.
 func (s *d1Stmt) queryDirect(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	params, err := stringifyNamedParams(args)
+	if err != nil {
+		return nil, fmt.Errorf("db_driver_d1: query: %w", err)
+	}
+
 	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
 		DatabaseID: s.conn.databaseID,
 		SQL:        s.query,
-		Parameters: stringifyNamedParams(args),
+		Parameters: params,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("db_driver_d1: query: %w", err)
@@ -179,8 +210,10 @@ func (s *d1Stmt) queryDirect(ctx context.Context, args []driver.NamedValue) (dri
 		return &d1Rows{}, nil
 	}
 
-	if results[0].Success != nil && !*results[0].Success {
-		return nil, errors.New("db_driver_d1: query: D1 query returned failure")
+	for index, result := range results {
+		if successErr := checkD1Success(result); successErr != nil {
+			return nil, fmt.Errorf("db_driver_d1: query: statement %d: %w", index, successErr)
+		}
 	}
 
 	rows := &d1Rows{

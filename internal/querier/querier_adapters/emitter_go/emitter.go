@@ -46,6 +46,58 @@ func NewGoEmitter() *GoEmitter {
 	}
 }
 
+// NewGoEmitterForMySQL creates a Go code emitter wired for engines whose driver accepts
+// only anonymous `?` placeholders such as MySQL and MariaDB.
+//
+// It is used by the MariaDB and MySQL test harnesses and production bootstraps so the
+// slice-expansion helper emits valid SQL.
+//
+// Returns *GoEmitter which is ready to emit Go source code for anonymous-marker engines.
+func NewGoEmitterForMySQL() *GoEmitter {
+	return &GoEmitter{
+		sql: emitter_go_sql.NewSQLEmitterForMySQL(),
+	}
+}
+
+// NewGoEmitterForClickHouse creates a Go code emitter that wraps each parameter access in
+// `clickhouse.Named("name", value)` for the ClickHouse driver.
+//
+// The wrapping binds each parameter to the matching `{name:Type}` placeholder, and the
+// generated packages import github.com/ClickHouse/clickhouse-go/v2.
+//
+// Returns *GoEmitter which is ready to emit Go source code for ClickHouse.
+func NewGoEmitterForClickHouse() *GoEmitter {
+	return &GoEmitter{
+		sql: emitter_go_sql.NewSQLEmitterForClickHouse(),
+	}
+}
+
+// NewGoEmitterForPostgres creates a Go code emitter wired for the postgres family
+// (postgres, cockroachdb, timescaledb), whose drivers bind `$N` placeholders
+// positionally.
+//
+// The slice-expansion helper scans and emits `$N` so an expanded IN list is valid
+// postgres SQL.
+//
+// Returns *GoEmitter which is ready to emit Go source code for the postgres family.
+func NewGoEmitterForPostgres() *GoEmitter {
+	return &GoEmitter{
+		sql: emitter_go_sql.NewSQLEmitterForPostgres(),
+	}
+}
+
+// NewGoEmitterForDialect creates a Go code emitter configured for the named engine
+// dialect so generated placeholders match the engine's driver.
+//
+// Takes dialect (string) which is the engine's Dialect() name.
+//
+// Returns *GoEmitter configured for the dialect.
+func NewGoEmitterForDialect(dialect string) *GoEmitter {
+	return &GoEmitter{
+		sql: emitter_go_sql.NewSQLEmitterForDialect(dialect),
+	}
+}
+
 // EmitModels generates Go struct types for each table in the catalogue.
 //
 // Takes packageName (string) which is the Go package name for generated files.

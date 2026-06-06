@@ -1,5 +1,4 @@
--- piko.name: GetCategorySummary
--- piko.command: many
+-- piko.query(name: GetCategorySummary, command: many)
 WITH category_totals AS (
   SELECT
     p.category,
@@ -17,8 +16,7 @@ SELECT
 FROM category_totals
 ORDER BY revenue DESC;
 
--- piko.name: GetTopProducts
--- piko.command: many
+-- piko.query(name: GetTopProducts, command: many)
 SELECT
   p.name,
   p.category,
@@ -31,8 +29,7 @@ GROUP BY p.id, p.name, p.category
 ORDER BY revenue DESC
 LIMIT $1;
 
--- piko.name: GetDailyRevenue
--- piko.command: many
+-- piko.query(name: GetDailyRevenue, command: many)
 SELECT
   (o.ordered_at / 86400) * 86400 as day_timestamp,
   SUM(o.total) as revenue,

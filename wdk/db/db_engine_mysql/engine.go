@@ -19,9 +19,32 @@
 package db_engine_mysql
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"maps"
+	"runtime/debug"
+	"slices"
 
+	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+const (
+	// maxTokensPerStatement bounds the per-statement token stream the parser walks.
+	//
+	// Realistic MySQL statements rarely exceed a few hundred tokens; the 100k headroom
+	// covers generated SQL with large IN lists while still cutting off an adversarial input
+	// that would otherwise drive the analysis and DDL parsers into a very long,
+	// non-cancellable walk. ApplyDDL and AnalyseQuery reject any stream over this budget
+	// before dispatching to the parser.
+	maxTokensPerStatement = 100_000
+)
+
+var (
+	// errTokenBudgetExceeded is returned when a statement's token stream is longer than
+	// maxTokensPerStatement, bounding the work the parser does for a single statement.
+	errTokenBudgetExceeded = errors.New("mysql: per-statement token budget exceeded")
 )
 
 // MySQLDialect holds configuration for a MySQL variant. Flavours such as MariaDB override
@@ -54,12 +77,44 @@ type MySQLDialect struct {
 	// Name is the dialect identifier, e.g. "mysql" or "mariadb".
 	Name string
 
-	// SupportsSequences enables sequence syntax for dialects such as MariaDB.
-	SupportsSequences bool
+	// MaxParseDepth caps recursion through analysis and expression parsing. Zero selects
+	// defaultMaxParseDepth.
+	MaxParseDepth int
 }
 
 // Option configures a MySQLDialect.
 type Option func(*MySQLDialect)
+
+// WithMaxParseDepth sets the maximum parser recursion depth for analysis and expression
+// nesting.
+//
+// Deeply nested user input is otherwise able to overflow the goroutine stack with a
+// fatal, non-recoverable error. The default is high (defaultMaxParseDepth) so realistic
+// queries are unaffected; lower it to harden against hostile input or raise it for
+// unusually nested generated queries.
+//
+// Takes depth (int) which is the maximum nesting depth; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which installs the depth cap on a dialect.
+func WithMaxParseDepth(depth int) Option {
+	return func(dialect *MySQLDialect) {
+		if depth > 0 {
+			dialect.MaxParseDepth = depth
+		}
+	}
+}
+
+// resolvedMaxParseDepth returns the effective parser depth cap, falling back to
+// defaultMaxParseDepth when unset.
+//
+// Returns int which is the effective parser recursion depth cap.
+func (d MySQLDialect) resolvedMaxParseDepth() int {
+	if d.MaxParseDepth > 0 {
+		return d.MaxParseDepth
+	}
+	return defaultMaxParseDepth
+}
 
 // WithDialectName sets the dialect name (e.g. "mariadb").
 //
@@ -154,19 +209,6 @@ func WithReturningSupport(supported bool) Option {
 	}
 }
 
-// WithSequenceSupport enables sequence support.
-//
-// MySQL does not have sequences by default, but MariaDB does.
-//
-// Takes supported (bool) which toggles sequence syntax handling.
-//
-// Returns Option which installs the support flag on a dialect.
-func WithSequenceSupport(supported bool) Option {
-	return func(dialect *MySQLDialect) {
-		dialect.SupportsSequences = supported
-	}
-}
-
 // WithJSONTypeOverride replaces the default JSON type mapping.
 //
 // Takes sqlType (querier_dto.SQLType) which is the custom mapping that replaces the
@@ -232,11 +274,24 @@ func (*MySQLEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, 
 		results = append(results, querier_dto.ParsedStatement{
 			Raw:      &parsedStatement{tokens: statementTokenSlice, kind: kind},
 			Location: statementTokenSlice[0].position,
-			Length:   len(sql),
+			Length:   statementByteLength(statementTokenSlice),
 		})
 	}
 
 	return results, nil
+}
+
+// statementByteLength computes the byte span a statement occupies in the source SQL, from
+// the first token's start to the end of the last token's lexeme.
+//
+// Takes statementTokens ([]token) which are the ordered tokens of a single statement and
+// must hold at least one token.
+//
+// Returns int which is the statement's byte length in the source SQL.
+func statementByteLength(statementTokens []token) int {
+	first := statementTokens[0]
+	last := statementTokens[len(statementTokens)-1]
+	return last.position + len(last.value) - first.position
 }
 
 // ddlHandler is a function that parses a DDL statement into a catalogue mutation.
@@ -273,23 +328,46 @@ var (
 	}
 )
 
-// ApplyDDL applies a DDL statement to the catalogue.
+// ApplyDDL applies a DDL statement to the catalogue for the MySQL dialect.
 //
-// Takes statement (querier_dto.ParsedStatement) which carries the parsed token stream
-// produced by ParseStatements.
+// Wraps the per-statement handler with a panic recovery so a malformed statement becomes
+// a wrapped error rather than crashing the calling apply loop. Honours ctx.Err() before
+// dispatch so the catalogue build loop can be cancelled by the caller, and rejects token
+// streams over maxTokensPerStatement so a single statement cannot drive the parser into a
+// very long, non-cancellable walk.
 //
-// Returns *querier_dto.CatalogueMutation which describes the change, or nil when no DDL
-// handler matches.
-// Returns error when the statement payload type is wrong or parsing fails.
+// Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
+//
+// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil
+// when the statement kind produces no mutation.
+// Returns error when the statement is malformed, the context is cancelled, or the token
+// budget is exceeded.
 func (engine *MySQLEngine) ApplyDDL(
+	ctx context.Context,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.CatalogueMutation, error) {
+) (mutation *querier_dto.CatalogueMutation, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			mutation = nil
+			err = fmt.Errorf("mysql: panic while applying DDL: %v\nstack:\n%s", recovered, debug.Stack())
+		}
+	}()
+
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
+	if len(parsed.tokens) > maxTokensPerStatement {
+		return nil, errTokenBudgetExceeded
+	}
+
 	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	if int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil {
 		return ddlHandlers[parsed.kind](p, engine)
@@ -298,25 +376,39 @@ func (engine *MySQLEngine) ApplyDDL(
 	return nil, nil
 }
 
-// AnalyseQuery performs structural analysis of a DML statement.
+// AnalyseQuery performs structural analysis of a DML statement for the MySQL dialect.
 //
-// Takes _ (*querier_dto.Catalogue) which is the catalogue context (unused).
-// Takes statement (querier_dto.ParsedStatement) which carries the parsed token stream
-// produced by ParseStatements.
+// The analyser is wrapped with a panic recovery so a malformed statement that trips a
+// parser invariant becomes a wrapped error rather than crashing the calling analyser.
+// Token streams over maxTokensPerStatement are rejected so a single statement cannot
+// drive the analyser into a very long walk.
 //
-// Returns *querier_dto.RawQueryAnalysis which summarises the statement shape, or an empty
-// result for statements without DML analysis.
-// Returns error when the statement payload type is wrong or analysis fails.
-func (*MySQLEngine) AnalyseQuery(
+// Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
+//
+// Returns *querier_dto.RawQueryAnalysis which holds the structural analysis result.
+// Returns error when the statement is malformed or the token budget is exceeded.
+func (engine *MySQLEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.RawQueryAnalysis, error) {
+) (analysis *querier_dto.RawQueryAnalysis, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			analysis = nil
+			err = fmt.Errorf("mysql: panic while analysing query: %v\nstack:\n%s", recovered, debug.Stack())
+		}
+	}()
+
+	if len(parsed.tokens) > maxTokensPerStatement {
+		return nil, errTokenBudgetExceeded
+	}
+
 	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	switch parsed.kind {
 	case statementKindSelect:
@@ -332,6 +424,23 @@ func (*MySQLEngine) AnalyseQuery(
 	default:
 		return &querier_dto.RawQueryAnalysis{}, nil
 	}
+}
+
+// RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter. The MySQL
+// dialect uses the rewriter's defaults; native NULLS FIRST/LAST is not supported by MySQL
+// but that is irrelevant to count rewriting.
+//
+// Takes originalSQL (string) which is the SELECT statement to rewrite.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which describes the parsed SELECT.
+//
+// Returns string which is the rewritten COUNT query.
+// Returns bool which is true when the rewrite succeeded.
+// Returns error when the rewrite fails.
+func (*MySQLEngine) RewriteSelectAsCount(
+	originalSQL string,
+	analysis *querier_dto.RawQueryAnalysis,
+) (string, bool, error) {
+	return querier_domain.RewriteSelectAsCount(originalSQL, analysis)
 }
 
 // BuiltinFunctions returns the MySQL built-in function catalogue.
@@ -399,6 +508,15 @@ func (engine *MySQLEngine) Dialect() string {
 	return engine.dialect.Name
 }
 
+// SupportsAsyncMutations reports that MySQL does not surface asynchronous mutation
+// semantics; every DML completes synchronously from the client's perspective. The MariaDB
+// derivative inherits this behaviour through the embedded MySQLEngine.
+//
+// Returns bool which is always false for MySQL and MariaDB.
+func (*MySQLEngine) SupportsAsyncMutations() bool {
+	return false
+}
+
 // SupportedExpressions returns the expression features supported by MySQL.
 //
 // String concatenation via || is excluded because MySQL treats || as logical OR.
@@ -458,7 +576,8 @@ func (*MySQLEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
 ) []querier_dto.ScopedColumn {
-	for _, schema := range catalogue.Schemas {
+	for _, schemaName := range slices.Sorted(maps.Keys(catalogue.Schemas)) {
+		schema := catalogue.Schemas[schemaName]
 		signatures, exists := schema.Functions[functionName]
 		if !exists {
 			continue

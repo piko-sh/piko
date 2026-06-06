@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "count_subquery.sql",
-    "SQL": "-- piko.name: CountDistinct\n-- piko.command: one\nSELECT COUNT(*) AS cnt FROM (SELECT DISTINCT col FROM foo) sub;",
+    "SQL": "-- piko.query(name: CountDistinct, command: one)\nSELECT COUNT(*) AS cnt FROM (SELECT DISTINCT col FROM foo) sub;",
     "Name": "CountDistinct",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "cnt",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,7 +26,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -43,9 +48,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

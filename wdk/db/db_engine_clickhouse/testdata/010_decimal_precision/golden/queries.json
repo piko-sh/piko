@@ -1,0 +1,163 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "prices.sql",
+    "SQL": "-- piko.query(GetPrice, one)\nSELECT id, amount, fee, micro_amount FROM prices WHERE id = {id:UInt64};",
+    "Name": "GetPrice",
+    "CountSQL": "",
+    "Parameters": [
+      {
+        "DefaultLimit": null,
+        "MaxLimit": null,
+        "Name": "id",
+        "SortableColumns": null,
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Number": 1,
+        "Nullable": false,
+        "IsSlice": false,
+        "IsOptional": false,
+        "Kind": 0,
+        "Context": 0
+      }
+    ],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "id",
+        "SourceTable": "prices",
+        "SourceSchema": "",
+        "SourceColumn": "id",
+        "SourceQualifier": "prices",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "UInt64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 0,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "amount",
+        "SourceTable": "prices",
+        "SourceSchema": "",
+        "SourceColumn": "amount",
+        "SourceQualifier": "prices",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 18,
+          "Scale": 4,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Decimal",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "fee",
+        "SourceTable": "prices",
+        "SourceSchema": "",
+        "SourceColumn": "fee",
+        "SourceQualifier": "prices",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 18,
+          "Scale": 2,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Decimal64",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      },
+      {
+        "GoTypeOverride": null,
+        "Name": "micro_amount",
+        "SourceTable": "prices",
+        "SourceSchema": "",
+        "SourceColumn": "micro_amount",
+        "SourceQualifier": "prices",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": 38,
+          "Scale": 8,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "Decimal128",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 2,
+          "Nullable": false
+        },
+        "Nullable": false,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false
+    },
+    "Line": 1,
+    "Command": 0,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
+  }
+]

@@ -26,8 +26,10 @@ import (
 	"strings"
 	"time"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/clock"
 )
 
 const (
@@ -55,24 +57,62 @@ type SeedExecutor struct {
 	// held.
 	pinnedSeedLockConnection *sql.Conn
 
+	// clock is the time source used to stamp seed durations; never nil after
+	// NewSeedExecutor, which defaults it to clock.RealClock().
+	clock clock.Clock
+
 	// dialectConfig holds the dialect-specific SQL and behaviour.
 	dialectConfig DialectConfig
 }
 
 var (
 	_ querier_domain.SeedExecutorPort = (*SeedExecutor)(nil)
+
+	// errSeedLockAlreadyHeld is returned by AcquireSeedLock when a seed-lock connection is
+	// already pinned.
+	//
+	// Acquiring again without releasing would orphan the previously pinned connection and
+	// its advisory lock, so the second acquire is refused rather than leaking it. This
+	// mirrors errLockAlreadyHeld on the migration Executor.
+	errSeedLockAlreadyHeld = errors.New("seed lock already held; release it before acquiring again")
 )
 
 // NewSeedExecutor creates a new SQL-based seed executor.
 //
 // Takes database (*sql.DB) which is the database connection.
 // Takes dialectConfig (DialectConfig) which provides dialect-specific SQL.
+// Takes options (...SeedExecutorOption) which customise the executor, for example
+// WithSeedExecutorClock to inject a deterministic clock in tests.
 //
 // Returns *SeedExecutor which is ready to execute seeds.
-func NewSeedExecutor(database *sql.DB, dialectConfig DialectConfig) *SeedExecutor {
-	return &SeedExecutor{
+func NewSeedExecutor(database *sql.DB, dialectConfig DialectConfig, options ...SeedExecutorOption) *SeedExecutor {
+	executor := &SeedExecutor{
 		database:      database,
 		dialectConfig: dialectConfig,
+		clock:         clock.RealClock(),
+	}
+	for _, option := range options {
+		option(executor)
+	}
+	return executor
+}
+
+// SeedExecutorOption customises a SeedExecutor at construction time.
+type SeedExecutorOption func(*SeedExecutor)
+
+// WithSeedExecutorClock overrides the time source used to record seed durations.
+//
+// The default is clock.RealClock(), and tests inject a mock clock to assert recorded
+// durations deterministically. A nil clock is ignored so the default is preserved.
+//
+// Takes source (clock.Clock) which is the time source to use, ignored when nil.
+//
+// Returns SeedExecutorOption which applies the clock during construction.
+func WithSeedExecutorClock(source clock.Clock) SeedExecutorOption {
+	return func(executor *SeedExecutor) {
+		if source != nil {
+			executor.clock = source
+		}
 	}
 }
 
@@ -111,11 +151,13 @@ func (e *SeedExecutor) AppliedSeeds(ctx context.Context) ([]querier_dto.AppliedS
 		seeds = append(seeds, s)
 	}
 
-	return seeds, rows.Err()
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("iterating applied seeds: %w", rowsErr)
+	}
+	return seeds, nil
 }
 
-// ExecuteSeed runs a single seed's SQL content in a transaction and records it in the
-// history table.
+// ExecuteSeed runs a single seed's SQL content and records it in the history table.
 //
 // The INSERT into piko_seeds is rendered through the dialect's InsertSeedSQLFunc, which
 // yields an idempotent statement (e.g. "ON CONFLICT (version) DO NOTHING" on
@@ -123,36 +165,35 @@ func (e *SeedExecutor) AppliedSeeds(ctx context.Context) ([]querier_dto.AppliedS
 // multiple replicas safe even if both resolve the same seed as pending: the second
 // writer's record insert becomes a no-op rather than a primary-key violation.
 //
+// On engines that do not support transactions (DialectConfig.DisableTransactions, such as
+// ClickHouse), the seed SQL and the idempotent record insert run directly on the pool
+// rather than inside a BeginTx that the engine would reject; the idempotent INSERT still
+// provides the concurrency safety a transaction would otherwise give.
+//
 // Takes seed (querier_dto.SeedRecord) which holds the seed SQL and metadata.
 //
 // Returns error when the seed fails to execute.
 func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRecord) error {
-	start := time.Now()
+	start := e.clock.Now()
+
+	if e.dialectConfig.DisableTransactions {
+		return e.applySeed(ctx, e.database, seed, start)
+	}
 
 	tx, err := e.database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("beginning seed transaction: %w", err)
 	}
-	defer tx.Rollback() //nolint:gosec,revive // rollback after commit is safe
+	defer rollbackSeedTransactionIfActive(ctx, tx)
 
-	if execErr := e.executeSeedSQL(ctx, tx, seed.Content); execErr != nil {
-		return execErr
+	if applyErr := e.applySeed(ctx, tx, seed, start); applyErr != nil {
+		return applyErr
 	}
 
-	durationMs := time.Since(start).Milliseconds()
-
-	insertSQL, insertSQLErr := e.renderSeedInsertSQL()
-	if insertSQLErr != nil {
-		return insertSQLErr
+	if commitErr := tx.Commit(); commitErr != nil {
+		return fmt.Errorf("committing seed %d (%s): %w", seed.Version, seed.Name, commitErr)
 	}
-
-	if _, insertErr := tx.ExecContext(ctx, insertSQL,
-		seed.Version, seed.Name, seed.Checksum, durationMs,
-	); insertErr != nil {
-		return fmt.Errorf("recording seed %d (%s): %w", seed.Version, seed.Name, insertErr)
-	}
-
-	return tx.Commit()
+	return nil
 }
 
 // AcquireSeedLock acquires the dialect-specific advisory lock for seed runs. The lock
@@ -164,10 +205,11 @@ func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRec
 // suffices) but unsafe for multi-replica setups using a dialect that has not been
 // updated; callers in such configurations should ensure SeedLockStrategy is set.
 //
-// Takes ctx (context.Context) for cancellation and timeout control.
-//
 // Returns error when the lock cannot be acquired.
 func (e *SeedExecutor) AcquireSeedLock(ctx context.Context) error {
+	if e.pinnedSeedLockConnection != nil {
+		return errSeedLockAlreadyHeld
+	}
 	strategy := e.dialectConfig.SeedLockStrategy
 	if strategy == nil {
 		strategy = &NoOpLock{}
@@ -182,8 +224,6 @@ func (e *SeedExecutor) AcquireSeedLock(ctx context.Context) error {
 
 // ReleaseSeedLock releases the dialect-specific advisory lock previously acquired by
 // AcquireSeedLock. Safe to call when no lock is held.
-//
-// Takes ctx (context.Context) for cancellation and timeout control.
 //
 // Returns error when the lock cannot be released.
 func (e *SeedExecutor) ReleaseSeedLock(ctx context.Context) error {
@@ -207,6 +247,35 @@ func (e *SeedExecutor) ClearSeedHistory(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("clearing seed history: %w", err)
 	}
+	return nil
+}
+
+// applySeed runs the seed SQL and records its history row on the given runner, which is
+// the transaction on transactional engines or the pool on non-transactional ones.
+//
+// Takes runner (execContextRunner) which executes the SQL.
+// Takes seed (querier_dto.SeedRecord) which holds the seed SQL and metadata.
+// Takes start (time.Time) which marks when execution began, for the recorded duration.
+//
+// Returns error when the seed SQL or the history insert fails.
+func (e *SeedExecutor) applySeed(ctx context.Context, runner execContextRunner, seed querier_dto.SeedRecord, start time.Time) error {
+	if execErr := e.executeSeedSQL(ctx, runner, seed.Content); execErr != nil {
+		return execErr
+	}
+
+	durationMs := e.clock.Now().Sub(start).Milliseconds()
+
+	insertSQL, insertSQLErr := e.renderSeedInsertSQL()
+	if insertSQLErr != nil {
+		return insertSQLErr
+	}
+
+	if _, insertErr := runner.ExecContext(ctx, insertSQL,
+		seed.Version, seed.Name, seed.Checksum, durationMs,
+	); insertErr != nil {
+		return fmt.Errorf("recording seed %d (%s): %w", seed.Version, seed.Name, insertErr)
+	}
+
 	return nil
 }
 
@@ -236,31 +305,54 @@ func (e *SeedExecutor) renderSeedInsertSQL() (string, error) {
 	), nil
 }
 
-// executeSeedSQL executes the seed SQL content against the transaction. When the dialect
-// requires statement splitting (MySQL), individual statements are executed separately.
+// rollbackSeedTransactionIfActive rolls the seed transaction back during deferred
+// cleanup. The sql.ErrTxDone case is the harmless rollback-after-commit path; every other
+// error is logged so operators can spot rollback failures.
 //
-// Takes tx (*sql.Tx) which is the active database transaction.
+// Takes tx (*sql.Tx) which is the seed transaction being released.
+func rollbackSeedTransactionIfActive(ctx context.Context, tx *sql.Tx) {
+	rollbackError := tx.Rollback()
+	if rollbackError == nil || errors.Is(rollbackError, sql.ErrTxDone) {
+		return
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("seed transaction rollback failed",
+		logger_domain.Error(rollbackError),
+	)
+}
+
+// executeSeedSQL executes the seed SQL content against the given runner.
+//
+// When the dialect requires statement splitting (MySQL), individual statements are
+// executed separately.
+//
+// Takes runner (execContextRunner) which executes the SQL.
 // Takes content ([]byte) which holds the raw seed SQL.
 //
 // Returns error when any statement fails to execute.
-func (e *SeedExecutor) executeSeedSQL(ctx context.Context, tx *sql.Tx, content []byte) error {
+func (e *SeedExecutor) executeSeedSQL(ctx context.Context, runner execContextRunner, content []byte) error {
 	if !e.dialectConfig.SplitStatements {
-		_, err := tx.ExecContext(ctx, string(content))
-		return err
+		if _, err := runner.ExecContext(ctx, string(content)); err != nil {
+			return fmt.Errorf("executing seed SQL: %w", err)
+		}
+		return nil
 	}
 
-	statements, splitError := splitStatements(string(content))
+	statements, splitError := splitStatementsWithOptions(string(content), e.dialectConfig.BackslashEscapes)
 	if splitError != nil {
 		return fmt.Errorf("splitting seed statements: %w", splitError)
 	}
 
-	for _, stmt := range statements {
+	for index, stmt := range statements {
 		trimmed := strings.TrimSpace(stmt)
 		if trimmed == "" {
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, trimmed); err != nil {
-			return err
+		if cancelErr := ctx.Err(); cancelErr != nil {
+			return fmt.Errorf("seed cancelled before statement %d: %w", index+1, cancelErr)
+		}
+		if _, err := runner.ExecContext(ctx, trimmed); err != nil {
+			return fmt.Errorf("executing seed statement %d/%d: %w", index+1, len(statements), err)
 		}
 	}
 

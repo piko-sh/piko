@@ -1,5 +1,4 @@
--- piko.name: GetTopLevelWithChildCount
--- piko.command: many
+-- piko.query(name: GetTopLevelWithChildCount, command: many)
 WITH child_counts AS (
     SELECT parent_id, count(*) AS child_count
     FROM categories

@@ -1,0 +1,3 @@
+{
+  "description": "Decimal(P, S) and the short forms Decimal32/64/128/256(S) carry Precision and Scale fields. Short forms imply precision from the bit width."
+}

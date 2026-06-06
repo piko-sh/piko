@@ -628,11 +628,11 @@ func generateRoutesByStrategy(strategy, basePattern, defaultLocale string, local
 
 // joinLocaleRoutePattern prefixes a base route pattern with its locale.
 //
-// It preserves the trailing slash of a non-root directory-index pattern (so
-// "/articles/" becomes "/fr/articles/") which path.Join would otherwise strip, while
-// keeping the locale root free of a trailing slash (so "/" becomes "/fr", not "/fr/").
-// This keeps localised routes consistent with the default-locale slash convention so
-// directory-index links resolve.
+// It preserves the trailing slash of a non-root directory-index pattern (so "/articles/"
+// becomes "/fr/articles/") which path.Join would otherwise strip, while keeping the
+// locale root free of a trailing slash (so "/" becomes "/fr", not "/fr/"). This keeps
+// localised routes consistent with the default-locale slash convention so directory-index
+// links resolve.
 //
 // Takes locale (string) which is the locale prefix to add.
 // Takes basePattern (string) which is the default-locale route pattern.

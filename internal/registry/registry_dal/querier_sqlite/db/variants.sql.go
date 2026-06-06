@@ -6,15 +6,15 @@ import "context"
 
 const deletevarianttagsforartefact = `DELETE FROM variant_tag WHERE artefact_id = ?;`
 
-func (queries *Queries) DeleteVariantTagsForArtefact(ctx context.Context, p1 string) error {
-	_, err := queries.writer.ExecContext(ctx, deletevarianttagsforartefact, p1)
+func (queries *Queries) DeleteVariantTagsForArtefact(ctx context.Context, artefactID string) error {
+	_, err := queries.writer.ExecContext(ctx, deletevarianttagsforartefact, artefactID)
 	return err
 }
 
 const deletevariantsforartefact = `DELETE FROM variant WHERE artefact_id = ?;`
 
-func (queries *Queries) DeleteVariantsForArtefact(ctx context.Context, p1 string) error {
-	_, err := queries.writer.ExecContext(ctx, deletevariantsforartefact, p1)
+func (queries *Queries) DeleteVariantsForArtefact(ctx context.Context, artefactID string) error {
+	_, err := queries.writer.ExecContext(ctx, deletevariantsforartefact, artefactID)
 	return err
 }
 
@@ -23,13 +23,13 @@ FROM variant_tag
 WHERE artefact_id = ?;`
 
 type GetAllTagsForArtefactRow struct {
-	VariantID string
-	TagKey    string
-	TagValue  string
+	VariantID string `json:"variant_id"`
+	TagKey    string `json:"tag_key"`
+	TagValue  string `json:"tag_value"`
 }
 
-func (queries *Queries) GetAllTagsForArtefact(ctx context.Context, p1 string) ([]GetAllTagsForArtefactRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getalltagsforartefact, p1)
+func (queries *Queries) GetAllTagsForArtefact(ctx context.Context, artefactID string) ([]GetAllTagsForArtefactRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getalltagsforartefact, artefactID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +56,17 @@ type GetTagsForArtefactIDsParams struct {
 	IDs []string
 }
 type GetTagsForArtefactIDsRow struct {
-	ArtefactID string
-	VariantID  string
-	TagKey     string
-	TagValue   string
+	ArtefactID string `json:"artefact_id"`
+	VariantID  string `json:"variant_id"`
+	TagKey     string `json:"tag_key"`
+	TagValue   string `json:"tag_value"`
 }
 
 func (queries *Queries) GetTagsForArtefactIDs(ctx context.Context, params GetTagsForArtefactIDsParams) ([]GetTagsForArtefactIDsRow, error) {
-	query := pikoExpandSlicePlaceholders(gettagsforartefactids, []pikoSliceExpansionSpec{{1, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(gettagsforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -92,16 +95,16 @@ FROM variant_tag
 WHERE artefact_id = ? AND variant_id = ?;`
 
 type GetTagsForVariantParams struct {
-	P1 string
-	P2 string
+	ArtefactID string
+	VariantID  string
 }
 type GetTagsForVariantRow struct {
-	TagKey   string
-	TagValue string
+	TagKey   string `json:"tag_key"`
+	TagValue string `json:"tag_value"`
 }
 
 func (queries *Queries) GetTagsForVariant(ctx context.Context, params GetTagsForVariantParams) ([]GetTagsForVariantRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, gettagsforvariant, params.P1, params.P2)
+	rows, err := queries.reader.QueryContext(ctx, gettagsforvariant, params.ArtefactID, params.VariantID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,17 +128,17 @@ FROM variant
 WHERE artefact_id = ?;`
 
 type GetVariantsForArtefactRow struct {
-	VariantID        string
-	StorageKey       string
-	StorageBackendID string
-	MimeType         string
-	SizeBytes        int32
-	Status           string
-	CreatedAt        int32
+	VariantID        string `json:"variant_id"`
+	StorageKey       string `json:"storage_key"`
+	StorageBackendID string `json:"storage_backend_id"`
+	MimeType         string `json:"mime_type"`
+	SizeBytes        int64  `json:"size_bytes"`
+	Status           string `json:"status"`
+	CreatedAt        int64  `json:"created_at"`
 }
 
-func (queries *Queries) GetVariantsForArtefact(ctx context.Context, p1 string) ([]GetVariantsForArtefactRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getvariantsforartefact, p1)
+func (queries *Queries) GetVariantsForArtefact(ctx context.Context, artefactID string) ([]GetVariantsForArtefactRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getvariantsforartefact, artefactID)
 	if err != nil {
 		return nil, err
 	}
@@ -162,18 +165,21 @@ type GetVariantsForArtefactIDsParams struct {
 	IDs []string
 }
 type GetVariantsForArtefactIDsRow struct {
-	ArtefactID       string
-	VariantID        string
-	StorageKey       string
-	StorageBackendID string
-	MimeType         string
-	SizeBytes        int32
-	Status           string
-	CreatedAt        int32
+	ArtefactID       string `json:"artefact_id"`
+	VariantID        string `json:"variant_id"`
+	StorageKey       string `json:"storage_key"`
+	StorageBackendID string `json:"storage_backend_id"`
+	MimeType         string `json:"mime_type"`
+	SizeBytes        int64  `json:"size_bytes"`
+	Status           string `json:"status"`
+	CreatedAt        int64  `json:"created_at"`
 }
 
 func (queries *Queries) GetVariantsForArtefactIDs(ctx context.Context, params GetVariantsForArtefactIDsParams) ([]GetVariantsForArtefactIDsRow, error) {
-	query := pikoExpandSlicePlaceholders(getvariantsforartefactids, []pikoSliceExpansionSpec{{1, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(getvariantsforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -201,18 +207,18 @@ const insertvariant = `INSERT INTO variant (artefact_id, variant_id, storage_key
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
 
 type InsertVariantParams struct {
-	P1 string
-	P2 string
-	P3 string
-	P4 string
-	P5 string
-	P6 int32
-	P7 string
-	P8 int32
+	ArtefactID       string
+	VariantID        string
+	StorageKey       string
+	StorageBackendID string
+	MimeType         string
+	SizeBytes        int64
+	Status           string
+	CreatedAt        int64
 }
 
 func (queries *Queries) InsertVariant(ctx context.Context, params InsertVariantParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvariant, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7, params.P8)
+	_, err := queries.writer.ExecContext(ctx, insertvariant, params.ArtefactID, params.VariantID, params.StorageKey, params.StorageBackendID, params.MimeType, params.SizeBytes, params.Status, params.CreatedAt)
 	return err
 }
 
@@ -220,13 +226,13 @@ const insertvarianttag = `INSERT INTO variant_tag (artefact_id, variant_id, tag_
 VALUES (?, ?, ?, ?);`
 
 type InsertVariantTagParams struct {
-	P1 string
-	P2 string
-	P3 string
-	P4 string
+	ArtefactID string
+	VariantID  string
+	TagKey     string
+	TagValue   string
 }
 
 func (queries *Queries) InsertVariantTag(ctx context.Context, params InsertVariantTagParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvarianttag, params.P1, params.P2, params.P3, params.P4)
+	_, err := queries.writer.ExecContext(ctx, insertvarianttag, params.ArtefactID, params.VariantID, params.TagKey, params.TagValue)
 	return err
 }

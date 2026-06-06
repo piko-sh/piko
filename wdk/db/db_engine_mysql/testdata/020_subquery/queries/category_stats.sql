@@ -1,5 +1,4 @@
--- piko.name: CategoryStats
--- piko.command: many
+-- piko.query(name: CategoryStats, command: many)
 SELECT s.category, s.product_count, s.avg_price
 FROM (
     SELECT category, COUNT(*) AS product_count, AVG(price) AS avg_price

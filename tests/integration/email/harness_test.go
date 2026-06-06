@@ -83,7 +83,7 @@ type testCase struct {
 
 var (
 	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
-	sendEmails = flag.Bool("send", false, "Send rendered emails via Gmail (requires .env)")
+	sendEmails        = flag.Bool("send", false, "Send rendered emails via Gmail (requires .env)")
 )
 
 type emailConfig struct {

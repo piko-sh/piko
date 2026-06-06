@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_typed.sql",
-    "SQL": "-- piko.name: GetTypedData\n-- piko.command: one\nSELECT id, data, tags, metadata, ip_addr, unique_id, price, raw_data FROM typed_data WHERE id = $1;",
+    "SQL": "-- piko.query(name: GetTypedData, command: one)\nSELECT id, data, tags, metadata, ip_addr, unique_id, price, raw_data FROM typed_data WHERE id = $1;",
     "Name": "GetTypedData",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "data",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "data",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,38 +79,59 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 7
+          "Category": 7,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tags",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "tags",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
           "Scale": null,
           "Length": null,
-          "ElementType": null,
-          "EngineName": "text",
+          "ElementType": {
+            "Precision": null,
+            "Scale": null,
+            "Length": null,
+            "ElementType": null,
+            "EngineName": "text",
+            "Schema": "",
+            "EnumValues": null,
+            "StructFields": null,
+            "KeyType": null,
+            "UnionMembers": null,
+            "Category": 4,
+            "Nullable": false
+          },
+          "EngineName": "text[]",
           "Schema": "",
           "EnumValues": null,
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 13,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "metadata",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "metadata",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -113,16 +144,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 7
+          "Category": 7,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "ip_addr",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "ip_addr",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -135,16 +170,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 9
+          "Category": 9,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "unique_id",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "unique_id",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -157,16 +196,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 8
+          "Category": 8,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "price",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "price",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -179,16 +222,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "raw_data",
         "SourceTable": "typed_data",
+        "SourceSchema": "",
         "SourceColumn": "raw_data",
+        "SourceQualifier": "typed_data",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -201,7 +248,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -222,9 +270,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

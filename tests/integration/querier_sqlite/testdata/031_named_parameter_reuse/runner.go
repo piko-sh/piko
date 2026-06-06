@@ -36,7 +36,7 @@ func main() {
 
 	queries := db.New(conn)
 
-	targetID := int32(1)
+	targetID := int64(1)
 	rows, err := queries.FindByIDOrManager(ctx, &targetID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

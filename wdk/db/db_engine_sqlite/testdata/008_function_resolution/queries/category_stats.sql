@@ -1,5 +1,4 @@
--- piko.name: GetCategoryStats
--- piko.command: many
+-- piko.query(name: GetCategoryStats, command: many)
 SELECT
   category,
   count(*) AS item_count,

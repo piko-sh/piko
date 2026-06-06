@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "values.sql",
-    "SQL": "-- piko.name: GetAmount\n-- piko.command: one\nSELECT id, amount FROM values_table WHERE id = ?;",
+    "SQL": "-- piko.query(name: GetAmount, command: one)\nSELECT id, amount FROM values_table WHERE id = ?;",
     "Name": "GetAmount",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "values_table",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "values_table",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "amount",
         "SourceTable": "values_table",
+        "SourceSchema": "",
         "SourceColumn": "amount",
+        "SourceQualifier": "values_table",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,7 +79,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -90,9 +101,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

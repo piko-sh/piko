@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/orchestrator"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 	orchestrator_querier_adapter "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
+	orchestrator_querier_adapter_postgres "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter_postgres"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
@@ -402,8 +403,20 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 		return nil, fmt.Errorf("failed to get orchestrator database connection: %w", err)
 	}
 
-	dal := orchestrator_querier_adapter.New(database)
+	driver, err := c.GetDatabaseDriver(DatabaseNameOrchestrator)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve orchestrator database driver: %w", err)
+	}
 
+	if isPostgresDriver(driver) {
+		dal := orchestrator_querier_adapter_postgres.New(database)
+		if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
+			c.orchestratorInspector = inspector
+		}
+		return dal, nil
+	}
+
+	dal := orchestrator_querier_adapter.New(database)
 	if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
 		c.orchestratorInspector = inspector
 	}

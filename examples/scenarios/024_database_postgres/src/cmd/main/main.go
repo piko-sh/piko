@@ -33,8 +33,8 @@ func main() {
 		_ = container.Terminate(ctx)
 	}()
 
-	// In production the replica would point to a separate read-only server.
-	// Here both the primary and replica use the same container for simplicity.
+	// In production the replica would point to a separate read-only server. Here both the
+	// primary and replica use the same container for simplicity.
 	replica_dsn := primary_dsn
 
 	// Open the primary connection and run migrations before starting the app.
@@ -87,8 +87,8 @@ func main() {
 	}
 }
 
-// startPostgres starts a PostgreSQL 16 container and returns the container
-// handle alongside a DSN suitable for sql.Open with the pgx driver.
+// startPostgres starts a PostgreSQL 16 container and returns the container handle
+// alongside a DSN suitable for sql.Open with the pgx driver.
 func startPostgres(ctx context.Context) (testcontainers.Container, string) {
 	request := testcontainers.ContainerRequest{
 		Image:        "postgres:16",

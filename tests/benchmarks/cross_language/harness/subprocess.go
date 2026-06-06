@@ -30,8 +30,8 @@ import (
 	"time"
 )
 
-// SubprocessRequest captures everything a runner needs to know to execute
-// a child process and capture its outputs.
+// SubprocessRequest captures everything a runner needs to know to execute a child process
+// and capture its outputs.
 type SubprocessRequest struct {
 	// Name is the executable path or name to run (e.g. "go", "python3").
 	Name string
@@ -42,18 +42,16 @@ type SubprocessRequest struct {
 	// Env is appended to os.Environ() before exec. Pairs are KEY=VALUE.
 	Env []string
 
-	// WorkingDir is the directory to chdir into before running. Empty means
-	// inherit the parent process's cwd.
+	// WorkingDir is the directory to chdir into before running. Empty means inherit the
+	// parent process's cwd.
 	WorkingDir string
 
-	// Timeout bounds the wall time of the call. The child is killed with
-	// SIGKILL via the platform-specific process-group kill if the timeout
-	// fires.
+	// Timeout bounds the wall time of the call. The child is killed with SIGKILL via the
+	// platform-specific process-group kill if the timeout fires.
 	Timeout time.Duration
 }
 
-// SubprocessResponse bundles the outputs and timing captured during a child
-// process run.
+// SubprocessResponse bundles the outputs and timing captured during a child process run.
 type SubprocessResponse struct {
 	Stdout []byte
 
@@ -68,10 +66,9 @@ type SubprocessResponse struct {
 	Err error
 }
 
-// RunSubprocess executes the request and returns the captured outputs.
-// The Err field on the response is set on non-zero exit or timeout; the
-// returned error is non-nil only on framework-level failure (cannot create
-// the process at all).
+// RunSubprocess executes the request and returns the captured outputs. The Err field on
+// the response is set on non-zero exit or timeout; the returned error is non-nil only on
+// framework-level failure (cannot create the process at all).
 func RunSubprocess(parent context.Context, request SubprocessRequest) (SubprocessResponse, error) {
 	if request.Name == "" {
 		return SubprocessResponse{}, errors.New("subprocess request: empty Name")
@@ -116,11 +113,11 @@ func RunSubprocess(parent context.Context, request SubprocessRequest) (Subproces
 // dividerForDarwinRSS converts Darwin's bytes-reported peak RSS to KiB.
 const dividerForDarwinRSS = 1024
 
-// waitDelayAfterCancel is how long Cmd.Wait blocks after Cancel before
-// giving up. Long enough for an orderly SIGKILL to flush; short enough that
-// a stuck child does not stall the suite.
+// waitDelayAfterCancel is how long Cmd.Wait blocks after Cancel before giving up. Long
+// enough for an orderly SIGKILL to flush; short enough that a stuck child does not stall
+// the suite.
 const waitDelayAfterCancel = 5 * time.Second
 
-// platformOSIsDarwin reports whether the running process is on macOS. Used
-// by the unix peak-RSS path to choose the byte-to-KiB conversion.
+// platformOSIsDarwin reports whether the running process is on macOS. Used by the unix
+// peak-RSS path to choose the byte-to-KiB conversion.
 func platformOSIsDarwin() bool { return runtime.GOOS == "darwin" }

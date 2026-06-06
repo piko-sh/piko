@@ -19,6 +19,7 @@
 package db_engine_postgres
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1044,4 +1045,95 @@ func TestFloatPromotionRank(t *testing.T) {
 			assert.Equal(t, tt.wantRank, got)
 		})
 	}
+}
+
+func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+	t.Parallel()
+
+	engine := NewPostgresEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindSelect,
+		},
+	}
+
+	analysis, err := engine.AnalyseQuery(nil, statement)
+
+	require.Error(t, err)
+	require.Nil(t, analysis)
+	assert.Contains(t, err.Error(), "postgres: analyse panic")
+	assert.NotContains(t, err.Error(), "stack:")
+}
+
+func TestTableValuedFunctionColumnsFromCatalogue_DeterministicAcrossSchemas(t *testing.T) {
+	t.Parallel()
+
+	makeSchema := func(name, compositeColumn string) *querier_dto.Schema {
+		compositeName := name + "_row"
+		return &querier_dto.Schema{
+			Name: name,
+			CompositeTypes: map[string]*querier_dto.CompositeType{
+				compositeName: {
+					Name: compositeName,
+					Fields: []querier_dto.Column{
+						{Name: compositeColumn, SQLType: querier_dto.SQLType{EngineName: "text"}},
+					},
+				},
+			},
+			Functions: map[string][]*querier_dto.FunctionSignature{
+				"shared_fn": {
+					{
+						Name:       "shared_fn",
+						Schema:     name,
+						ReturnsSet: true,
+						ReturnType: querier_dto.SQLType{
+							EngineName: compositeName,
+							Category:   querier_dto.TypeCategoryComposite,
+							Schema:     name,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	catalogue := &querier_dto.Catalogue{
+		Schemas: map[string]*querier_dto.Schema{
+			"omega": makeSchema("omega", "omega_col"),
+			"alpha": makeSchema("alpha", "alpha_col"),
+		},
+	}
+
+	engine := NewPostgresEngine()
+	first := engine.TableValuedFunctionColumnsFromCatalogue(catalogue, "shared_fn")
+	require.NotEmpty(t, first)
+
+	for i := range 100 {
+		again := engine.TableValuedFunctionColumnsFromCatalogue(catalogue, "shared_fn")
+		require.Equal(t, first, again, "iteration %d returned a different overload", i)
+	}
+
+	require.Equal(t, "alpha_col", first[0].Name,
+		"should resolve to the alphabetically-first schema")
+}
+
+func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
+	t.Parallel()
+
+	engine := NewPostgresEngine()
+	statement := querier_dto.ParsedStatement{
+		Raw: &parsedStatement{
+			tokens: []token{{kind: tokenEOF}},
+			kind:   statementKindCreateTable,
+		},
+	}
+
+	mutation, err := engine.ApplyDDL(context.Background(), statement)
+
+	require.Error(t, err)
+	require.Nil(t, mutation)
+
+	assert.Contains(t, err.Error(), "postgres: ddl panic")
+	assert.NotContains(t, err.Error(), "stack:")
 }

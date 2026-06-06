@@ -1,0 +1,5 @@
+{
+  "description": "CALL convert_to_columnstore(chunk) rewrites a hypertable chunk in columnstore format. The fixture seeds readings, picks a chunk, calls the conversion procedure, and verifies the read path still returns the seeded sum and row count after the conversion.",
+  "skip": true,
+  "skipReason": "The TimescaleDB extension's CALL classifier only matches refresh_continuous_aggregate; CALL convert_to_columnstore(...) falls through to the postgres engine which has no CALL handler, so the migration parser would reject the procedure invocation. The convert_to_columnstore function itself is registered in registerHypercoreFamily but is reachable only via SELECT-form calls today. Treat this fixture as a definition-of-done marker for extending the CALL classifier and the postgres CALL parser."
+}

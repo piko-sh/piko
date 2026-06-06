@@ -107,7 +107,7 @@ func (s *RegistryInspectorService) ListRecentArtefacts(ctx context.Context, requ
 		limit = defaultListLimit
 	}
 
-	artefacts, err := s.inspector.ListRecentArtefacts(ctx, limit)
+	artefacts, err := s.inspector.ListRecentArtefacts(ctx, int(limit))
 	if err != nil {
 		return nil, fmt.Errorf("listing recent artefacts: %w", err)
 	}

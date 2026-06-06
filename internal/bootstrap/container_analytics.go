@@ -56,8 +56,8 @@ func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) 
 // When no collectors are registered, the service is not created and the analytics
 // middleware is not installed.
 //
-// Returns *analytics_domain.Service which distributes events to collectors, or nil
-// when analytics is not enabled.
+// Returns *analytics_domain.Service which distributes events to collectors, or nil when
+// analytics is not enabled.
 func (c *Container) GetAnalyticsService() *analytics_domain.Service {
 	analyticsServiceOnce.Do(func() {
 		if len(c.analyticsCollectors) == 0 {

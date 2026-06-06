@@ -461,6 +461,28 @@ func TestAnalyseQuery_Select(t *testing.T) {
 	}
 }
 
+func TestAnalyseQuery_WherePredicateSubqueryCaptured(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t,
+		"SELECT a.id FROM accounts a WHERE a.id = (SELECT MAX(av2.id) FROM account_versions av2 WHERE av2.id < ?)")
+
+	require.Len(t, analysis.PredicateSubqueries, 1)
+	inner := analysis.PredicateSubqueries[0]
+	require.NotNil(t, inner)
+	require.Len(t, inner.FromTables, 1)
+	assert.Equal(t, "account_versions", inner.FromTables[0].Name)
+	assert.Equal(t, "av2", inner.FromTables[0].Alias)
+	require.NotEmpty(t, analysis.ParameterReferences)
+}
+
+func TestAnalyseQuery_WhereParenthesisedExpressionNotCaptured(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, "SELECT a.id FROM accounts a WHERE (a.id + 1) = ?")
+	assert.Empty(t, analysis.PredicateSubqueries)
+}
+
 func TestAnalyseQuery_Insert(t *testing.T) {
 	t.Parallel()
 
@@ -557,6 +579,27 @@ func TestAnalyseQuery_Insert(t *testing.T) {
 			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
 				assert.Equal(t, "archive", analysis.InsertTable)
 				assert.Equal(t, []string{"id", "name"}, analysis.InsertColumns)
+
+				require.NotNil(t, analysis.InsertSelect)
+				require.NotEmpty(t, analysis.InsertSelect.FromTables)
+				assert.Equal(t, "users", analysis.InsertSelect.FromTables[0].Name)
+			},
+		},
+		{
+
+			name: "insert select with join and where params",
+			sql: "INSERT INTO archive (id, name) " +
+				"SELECT u.id, o.name FROM users u INNER JOIN orgs o ON o.id = u.org_id " +
+				"WHERE u.id > ? AND o.active = ? " +
+				"ON DUPLICATE KEY UPDATE name = VALUES(name);",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				assert.Equal(t, "archive", analysis.InsertTable)
+				require.NotNil(t, analysis.InsertSelect)
+				require.NotEmpty(t, analysis.InsertSelect.FromTables)
+				assert.Equal(t, "users", analysis.InsertSelect.FromTables[0].Name)
+				require.NotEmpty(t, analysis.InsertSelect.JoinClauses)
+				assert.Equal(t, "orgs", analysis.InsertSelect.JoinClauses[0].Table.Name)
+				require.Len(t, analysis.InsertSelect.ParameterReferences, 2)
 			},
 		},
 	}
@@ -850,6 +893,41 @@ func TestAnalyseQuery_Values(t *testing.T) {
 	}
 }
 
+func TestAnalyseQuery_ExistsSubqueryExposesInnerQueryParameters(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t,
+		`SELECT EXISTS(SELECT 1 FROM orchestrator_tasks WHERE workflow_id = ? AND status = ?) AS has_incomplete`)
+
+	require.Len(t, analysis.OutputColumns, 1)
+	exists, ok := analysis.OutputColumns[0].Expression.(*querier_dto.ExistsExpression)
+	require.Truef(t, ok, "EXISTS output column should carry an ExistsExpression, got %T", analysis.OutputColumns[0].Expression)
+	require.NotNil(t, exists.InnerQuery)
+
+	require.Len(t, exists.InnerQuery.FromTables, 1)
+	assert.Equal(t, "orchestrator_tasks", exists.InnerQuery.FromTables[0].Name)
+
+	require.NotEmpty(t, exists.InnerQuery.ParameterReferences)
+	first := exists.InnerQuery.ParameterReferences[0]
+	require.NotNil(t, first.ColumnReference)
+	assert.Equal(t, "workflow_id", first.ColumnReference.ColumnName)
+}
+
+func TestAnalyseQuery_SetCaseComparisonParameterTypedFromOperand(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t,
+		"UPDATE users SET name = CASE WHEN id >= ? THEN 'flagged' ELSE name END WHERE email = ?")
+
+	require.NotEmpty(t, analysis.ParameterReferences)
+	caseParameter := analysis.ParameterReferences[0]
+	assert.Equal(t, querier_dto.ParameterContextComparison, caseParameter.Context,
+		"a parameter compared against a column must use comparison context, not assignment")
+	require.NotNil(t, caseParameter.ColumnReference)
+	assert.Equal(t, "id", caseParameter.ColumnReference.ColumnName,
+		"the parameter must be typed from the compared column (id), not the SET target (name)")
+}
+
 func TestAnalyseQuery_ParameterContexts(t *testing.T) {
 	t.Parallel()
 
@@ -892,6 +970,8 @@ func TestAnalyseQuery_ParameterContexts(t *testing.T) {
 			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
 				require.Len(t, analysis.ParameterReferences, 1)
 				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, analysis.ParameterReferences[0].Context)
+				assert.Equal(t, "concat", analysis.ParameterReferences[0].EnclosingFunctionName)
+				assert.Equal(t, 0, analysis.ParameterReferences[0].ArgumentOrdinal)
 			},
 		},
 		{
@@ -1020,6 +1100,194 @@ func TestAnalyseQuery_ParameterContexts(t *testing.T) {
 			testCase.assertions(t, analysis)
 		})
 	}
+}
+
+func parameterByNumber(
+	t *testing.T,
+	analysis *querier_dto.RawQueryAnalysis,
+	number int,
+) querier_dto.RawParameterReference {
+	t.Helper()
+	for _, reference := range analysis.ParameterReferences {
+		if reference.Number == number {
+			return reference
+		}
+	}
+	t.Fatalf("no parameter reference with number %d", number)
+	return querier_dto.RawParameterReference{}
+}
+
+func TestAnalyseQuery_FunctionArgumentMetadata(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		sql        string
+		assertions func(t *testing.T, analysis *querier_dto.RawQueryAnalysis)
+	}{
+		{
+			name: "scalar builtin argument records name and ordinal zero",
+			sql:  "SELECT SUBSTRING_INDEX(?, '/', 1) FROM items;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "substring_index", reference.EnclosingFunctionName)
+				assert.Equal(t, 0, reference.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "placeholder ordinal counts a preceding non-placeholder argument",
+			sql:  "SELECT SUBSTRING_INDEX(name, ?, 1) FROM items;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "substring_index", reference.EnclosingFunctionName)
+				assert.Equal(t, 1, reference.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "multiple placeholders take their own argument slots",
+			sql:  "SELECT CONCAT(?, name, ?) FROM items;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 2)
+				first := parameterByNumber(t, analysis, 1)
+				second := parameterByNumber(t, analysis, 2)
+				assert.Equal(t, "concat", first.EnclosingFunctionName)
+				assert.Equal(t, 0, first.ArgumentOrdinal)
+				assert.Equal(t, "concat", second.EnclosingFunctionName)
+				assert.Equal(t, 2, second.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "function argument in WHERE uses the flat-scan path",
+			sql:  "SELECT id FROM items WHERE quantity = LEAST(?, 5);",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "least", reference.EnclosingFunctionName)
+				assert.Equal(t, 0, reference.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "second argument in WHERE flat-scan path",
+			sql:  "SELECT id FROM items WHERE quantity = LEAST(5, ?);",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "least", reference.EnclosingFunctionName)
+				assert.Equal(t, 1, reference.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "nested call ordinals are isolated per call",
+			sql:  "SELECT outer_fn(?, inner_fn(?, ?)) FROM items;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 3)
+				outer := parameterByNumber(t, analysis, 1)
+				assert.Equal(t, "outer_fn", outer.EnclosingFunctionName)
+				assert.Equal(t, 0, outer.ArgumentOrdinal)
+				innerFirst := parameterByNumber(t, analysis, 2)
+				assert.Equal(t, "inner_fn", innerFirst.EnclosingFunctionName)
+				assert.Equal(t, 0, innerFirst.ArgumentOrdinal)
+				innerSecond := parameterByNumber(t, analysis, 3)
+				assert.Equal(t, "inner_fn", innerSecond.EnclosingFunctionName)
+				assert.Equal(t, 1, innerSecond.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "schema-qualified function name is lower-cased and qualified",
+			sql:  "SELECT MyApp.Compute(name, ?) FROM items;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "myapp.compute", reference.EnclosingFunctionName)
+				assert.Equal(t, 1, reference.ArgumentOrdinal)
+			},
+		},
+		{
+			name: "from-clause table function argument records name and ordinal",
+			sql:  "SELECT * FROM my_table_func(?, 7) AS t;",
+			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
+				require.Len(t, analysis.ParameterReferences, 1)
+				reference := analysis.ParameterReferences[0]
+				assert.Equal(t, querier_dto.ParameterContextFunctionArgument, reference.Context)
+				assert.Equal(t, "my_table_func", reference.EnclosingFunctionName)
+				assert.Equal(t, 0, reference.ArgumentOrdinal)
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := analyseQuery(t, testCase.sql)
+			testCase.assertions(t, analysis)
+		})
+	}
+}
+
+func TestAnalyseQuery_InsertSelectProjectionColumnReference(t *testing.T) {
+	t.Parallel()
+
+	t.Run("bare projection placeholder gets the target column", func(t *testing.T) {
+		t.Parallel()
+		analysis := analyseQuery(t,
+			"INSERT INTO posts (user_id, title) SELECT ?, name FROM users WHERE id > ?;")
+		require.NotNil(t, analysis.InsertSelect)
+		require.Len(t, analysis.ParameterReferences, 2)
+
+		projection := parameterByNumber(t, analysis, 1)
+		assert.Equal(t, querier_dto.ParameterContextAssignment, projection.Context)
+		require.NotNil(t, projection.ColumnReference)
+		assert.Equal(t, "posts", projection.ColumnReference.TableAlias)
+		assert.Equal(t, "user_id", projection.ColumnReference.ColumnName)
+
+		whereParameter := parameterByNumber(t, analysis, 2)
+		require.NotNil(t, whereParameter.ColumnReference)
+		assert.Equal(t, "id", whereParameter.ColumnReference.ColumnName)
+		assert.NotEqual(t, "user_id", whereParameter.ColumnReference.ColumnName)
+	})
+
+	t.Run("non-placeholder projection items still consume target ordinals", func(t *testing.T) {
+		t.Parallel()
+		analysis := analyseQuery(t,
+			"INSERT INTO sessions (id, account_id, status, reason) "+
+				"SELECT UUID(), s.account_id, 'deleted', ? FROM sessions s WHERE s.id = ?;")
+		require.NotNil(t, analysis.InsertSelect)
+
+		projection := parameterByNumber(t, analysis, 1)
+		assert.Equal(t, querier_dto.ParameterContextAssignment, projection.Context)
+		require.NotNil(t, projection.ColumnReference)
+		assert.Equal(t, "sessions", projection.ColumnReference.TableAlias)
+		assert.Equal(t, "reason", projection.ColumnReference.ColumnName)
+
+		whereParameter := parameterByNumber(t, analysis, 2)
+		require.NotNil(t, whereParameter.ColumnReference)
+		assert.Equal(t, "id", whereParameter.ColumnReference.ColumnName)
+	})
+
+	t.Run("nested subquery placeholder does not take the target column", func(t *testing.T) {
+		t.Parallel()
+		analysis := analyseQuery(t,
+			"INSERT INTO posts (a, b) SELECT ?, (SELECT MAX(x) FROM t2 WHERE y = ?) FROM t1;")
+		require.NotNil(t, analysis.InsertSelect)
+
+		projection := parameterByNumber(t, analysis, 1)
+		assert.Equal(t, querier_dto.ParameterContextAssignment, projection.Context)
+		require.NotNil(t, projection.ColumnReference)
+		assert.Equal(t, "a", projection.ColumnReference.ColumnName)
+
+		nested := parameterByNumber(t, analysis, 2)
+		if nested.ColumnReference != nil {
+			assert.NotEqual(t, "b", nested.ColumnReference.ColumnName)
+			assert.NotEqual(t, "a", nested.ColumnReference.ColumnName)
+		}
+	})
 }
 
 func TestAnalyseQuery_Expressions(t *testing.T) {
@@ -2140,4 +2408,32 @@ func TestAnalyseQuery_SubscriptExpression(t *testing.T) {
 		assert.True(t, analysis.ReadOnly)
 		require.Len(t, analysis.OutputColumns, 1)
 	})
+}
+
+func TestAnalyseQuery_HasWhereClause(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		sql  string
+		want bool
+	}{
+		{name: "SELECT with WHERE", sql: "SELECT id FROM users WHERE id = ?", want: true},
+		{name: "SELECT without WHERE", sql: "SELECT id FROM users", want: false},
+		{name: "UPDATE with WHERE", sql: "UPDATE users SET name = ? WHERE id = ?", want: true},
+		{name: "UPDATE without WHERE", sql: "UPDATE users SET name = ?", want: false},
+		{name: "DELETE simple with WHERE", sql: "DELETE FROM users WHERE id = ?", want: true},
+		{name: "DELETE simple without WHERE", sql: "DELETE FROM users", want: false},
+		{name: "DELETE multi-table with WHERE", sql: "DELETE u, p FROM users u JOIN posts p ON p.user_id = u.id WHERE u.id = ?", want: true},
+		{name: "DELETE multi-table without WHERE", sql: "DELETE u, p FROM users u JOIN posts p ON p.user_id = u.id", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := analyseQuery(t, tt.sql)
+			require.NotNil(t, analysis)
+			assert.Equal(t, tt.want, analysis.HasWhereClause)
+		})
+	}
 }

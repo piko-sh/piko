@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/wdk/json"
 )
 
-// TestSpec defines the settings for integration test cases.
-// It supports several test types through optional fields.
+// TestSpec defines the settings for integration test cases. It supports several test
+// types through optional fields.
 type TestSpec struct {
 	// EntryPoint is the file path where test execution begins.
 	EntryPoint string `json:"entryPoint,omitempty"`
@@ -43,9 +43,8 @@ type TestSpec struct {
 	// Description is a simple explanation of what the test checks.
 	Description string `json:"description"`
 
-	// Transformer specifies which image transformer to use ("imaging" or "vips").
-	// If empty, defaults to "imaging". Tests can specify "vips" to test libvips
-	// backend.
+	// Transformer specifies which image transformer to use ("imaging" or "vips"). If empty,
+	// defaults to "imaging". Tests can specify "vips" to test libvips backend.
 	Transformer string `json:"transformer,omitempty"`
 
 	// ErrorChecks contains the expected errors to check in the test.
@@ -63,8 +62,7 @@ type TestSpec struct {
 	// Transformations lists the transformation checks to apply.
 	Transformations []TransformationCheck `json:"transformations,omitempty"`
 
-	// DeletionChecks contains checks that verify proper cleanup of deleted
-	// resources.
+	// DeletionChecks contains checks that verify proper cleanup of deleted resources.
 	DeletionChecks []DeletionCheck `json:"deletionChecks,omitempty"`
 
 	// DeduplicationChecks lists checks that find repeated documentation.
@@ -115,8 +113,7 @@ type TestSpec struct {
 	// VerifyBuild indicates whether to check the build after it finishes.
 	VerifyBuild bool `json:"verifyBuild,omitempty"`
 
-	// UpdateGoldens indicates whether to update golden files instead of
-	// comparing them.
+	// UpdateGoldens indicates whether to update golden files instead of comparing them.
 	UpdateGoldens bool `json:"updateGoldens,omitempty"`
 }
 
@@ -131,8 +128,7 @@ type DiagnosticCheck struct {
 	// OnLine is the expected line number; nil means any line matches.
 	OnLine *int `json:"onLine,omitempty"`
 
-	// InFile is the file path where the diagnostic occurs; empty if not
-	// file-specific.
+	// InFile is the file path where the diagnostic occurs; empty if not file-specific.
 	InFile string `json:"inFile,omitempty"`
 }
 
@@ -186,15 +182,13 @@ type StageConfig struct {
 	// Description is a short explanation of what this stage does.
 	Description string `json:"description"`
 
-	// ExpectedGolden is the path to the golden file that holds the expected
-	// output.
+	// ExpectedGolden is the path to the golden file that holds the expected output.
 	ExpectedGolden string `json:"expectedGolden"`
 
 	// Stage is the processing stage number.
 	Stage int `json:"stage"`
 
-	// DelayBeforeRenderMs is the delay in milliseconds before rendering; 0 means
-	// no delay.
+	// DelayBeforeRenderMs is the delay in milliseconds before rendering; 0 means no delay.
 	DelayBeforeRenderMs int `json:"delayBeforeRenderMs,omitempty"`
 
 	// ExpectChange indicates whether this stage is expected to change files.
@@ -293,16 +287,15 @@ type DeletionCheck struct {
 	// ExpectGCHints is the number of GC hints expected after deletion.
 	ExpectGCHints int `json:"expectGCHints,omitempty"`
 
-	// ExpectBlobsRemaining is the number of blobs expected to remain after
-	// deduplication.
+	// ExpectBlobsRemaining is the number of blobs expected to remain after deduplication.
 	ExpectBlobsRemaining int `json:"expectBlobsRemaining,omitempty"`
 
 	// ExpectError indicates whether the deletion should fail.
 	ExpectError bool `json:"expectError,omitempty"`
 }
 
-// DeduplicationCheck defines a test case for checking that duplicate assets
-// share the same blob storage.
+// DeduplicationCheck defines a test case for checking that duplicate assets share the
+// same blob storage.
 type DeduplicationCheck struct {
 	// Description provides context about what this check tests.
 	Description string `json:"description,omitempty"`
@@ -317,8 +310,8 @@ type DeduplicationCheck struct {
 	ExpectSingleBlob bool `json:"expectSingleBlob,omitempty"`
 }
 
-// InvalidationCheck describes a test case for checking how variants respond
-// when an artefact is changed.
+// InvalidationCheck describes a test case for checking how variants respond when an
+// artefact is changed.
 type InvalidationCheck struct {
 	// ArtefactID is the identifier of the artefact to update.
 	ArtefactID string `json:"artefactID"`
@@ -381,14 +374,13 @@ type BatchCheck struct {
 	ExpectCount int `json:"expectCount,omitempty"`
 }
 
-// ResponsiveCheck defines a test case for responsive image variant creation. It
-// checks that multiple density and width variants can be made from one source.
+// ResponsiveCheck defines a test case for responsive image variant creation. It checks
+// that multiple density and width variants can be made from one source.
 type ResponsiveCheck struct {
 	// Format specifies the output format used for all variants.
 	Format string `json:"format,omitempty"`
 
-	// GoldenPrefix is the prefix for golden file names (e.g., "hero" ->
-	// "hero-x1.webp").
+	// GoldenPrefix is the prefix for golden file names (e.g., "hero" -> "hero-x1.webp").
 	GoldenPrefix string `json:"goldenPrefix,omitempty"`
 
 	// Description provides context about what this responsive check tests.
@@ -410,8 +402,7 @@ type ResponsiveCheck struct {
 	Quality int `json:"quality,omitempty"`
 }
 
-// ResponsiveVariantExpectation defines expectations for a single responsive
-// variant.
+// ResponsiveVariantExpectation defines expectations for a single responsive variant.
 type ResponsiveVariantExpectation struct {
 	// Density is the density multiplier (e.g., "x1", "x2").
 	Density string `json:"density"`
@@ -419,8 +410,8 @@ type ResponsiveVariantExpectation struct {
 	// ExpectedWidth is the expected output width (baseWidth * density).
 	ExpectedWidth int `json:"expectedWidth"`
 
-	// ExpectedHeight is the expected output height. Optional; if not set, it is
-	// calculated from the aspect ratio.
+	// ExpectedHeight is the expected output height. Optional; if not set, it is calculated
+	// from the aspect ratio.
 	ExpectedHeight int `json:"expectedHeight,omitempty"`
 
 	// MinSizeBytes is the smallest expected output size in bytes.
@@ -430,9 +421,9 @@ type ResponsiveVariantExpectation struct {
 	MaxSizeBytes int64 `json:"maxSizeBytes,omitempty"`
 }
 
-// VariantURLCheck defines a test for variant URL resolution. This verifies that
-// generated variant URLs (e.g., for srcset) correctly resolve to the actual
-// variant data in the registry.
+// VariantURLCheck defines a test for variant URL resolution. This verifies that generated
+// variant URLs (e.g., for srcset) correctly resolve to the actual variant data in the
+// registry.
 type VariantURLCheck struct {
 	// TransformParams maps parameter names to their values for URL changes.
 	TransformParams map[string]string `json:"transformParams"`
@@ -516,8 +507,7 @@ type MinificationCheck struct {
 	SourceAssetIndex int `json:"sourceAssetIndex,omitempty"`
 }
 
-// MinificationExpectation defines the conditions that minified output must
-// meet.
+// MinificationExpectation defines the conditions that minified output must meet.
 type MinificationExpectation struct {
 	// MimeType is the expected MIME type of the output.
 	MimeType string `json:"mimeType,omitempty"`
@@ -541,8 +531,8 @@ type MinificationExpectation struct {
 	OutputNotEmpty bool `json:"outputNotEmpty,omitempty"`
 }
 
-// HTTPCheck defines a test case for checking HTTP requests and responses.
-// It is used to test PKC serving and asset endpoints.
+// HTTPCheck defines a test case for checking HTTP requests and responses. It is used to
+// test PKC serving and asset endpoints.
 type HTTPCheck struct {
 	// RequestPath is the URL path to request (e.g.,
 	// "/_piko/assets/testmodule/components/MyComponent").
@@ -551,8 +541,8 @@ type HTTPCheck struct {
 	// ExpectedContentType is the expected Content-Type header; optional.
 	ExpectedContentType string `json:"expectedContentType,omitempty"`
 
-	// ExpectedBodyContains is a substring that the response body should contain.
-	// This field is optional.
+	// ExpectedBodyContains is a substring that the response body should contain. This field
+	// is optional.
 	ExpectedBodyContains string `json:"expectedBodyContains,omitempty"`
 
 	// Description provides details about what this HTTP check tests.

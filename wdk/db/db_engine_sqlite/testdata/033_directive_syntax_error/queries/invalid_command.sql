@@ -1,3 +1,2 @@
--- piko.name: GetUsers
--- piko.command: invalid
+-- piko.query(name: GetUsers, command: invalid)
 SELECT id, name FROM users

@@ -1,2 +1,2 @@
--- piko.command: many
+-- piko.query(command: many)
 SELECT id, name FROM users

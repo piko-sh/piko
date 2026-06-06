@@ -1,19 +1,19 @@
 {
   "get_user": {
-    "Email": "alice@example.com",
-    "ID": 1161221793994080300,
-    "Name": "Alice"
+    "email": "alice@example.com",
+    "id": 1180739088078504000,
+    "name": "Alice"
   },
   "list_users": [
     {
-      "Email": "alice@example.com",
-      "ID": 1161221793994080300,
-      "Name": "Alice"
+      "email": "alice@example.com",
+      "id": 1180739088078504000,
+      "name": "Alice"
     },
     {
-      "Email": "bob@example.com",
-      "ID": 1161221794002174000,
-      "Name": "Bob"
+      "email": "bob@example.com",
+      "id": 1180739088089645000,
+      "name": "Bob"
     }
   ]
 }

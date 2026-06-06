@@ -23,7 +23,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"path/filepath"
+	"path"
 	"slices"
 	"strings"
 
@@ -58,7 +58,6 @@ type queryBlock struct {
 // Down migration files (.down.sql) are skipped. Files are sorted lexicographically by
 // filename.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files directory.
 //
@@ -85,10 +84,10 @@ func readMigrationFiles(
 		if strings.HasSuffix(entry.Name(), ".down.sql") {
 			continue
 		}
-		path := filepath.Join(directory, entry.Name())
-		content, readError := fileReader.ReadFile(ctx, path)
+		filePath := path.Join(directory, entry.Name())
+		content, readError := fileReader.ReadFile(ctx, filePath)
 		if readError != nil {
-			return nil, fmt.Errorf("reading migration file %s: %w", path, readError)
+			return nil, fmt.Errorf("reading migration file %s: %w", filePath, readError)
 		}
 		files = append(files, migrationFile{
 			filename: entry.Name(),
@@ -175,21 +174,48 @@ func stripDownMigration(content []byte) []byte {
 }
 
 // queryNamePrefixForStyle returns the directive prefix that starts a new query block,
-// derived from the given comment style.
+// derived from the given comment style. The block opener in the unified grammar is `--
+// piko.query(` (or the engine-specific equivalent for the comment prefix).
 //
 // Takes style (querier_dto.CommentStyle) which specifies the SQL comment syntax to use.
 //
-// Returns string which holds the prefix string used to detect query name directives.
+// Returns string which holds the prefix string used to detect query block openers.
 func queryNamePrefixForStyle(style querier_dto.CommentStyle) string {
-	return style.LinePrefix + " piko.name:"
+	return style.LinePrefix + " piko.query("
+}
+
+// isQueryBlockOpener reports whether the trimmed line begins a new query block.
+//
+// The directive name (the prefix without its trailing `(`) must appear at the start of
+// the line and be followed by a word boundary: optional whitespace and then the opening
+// parenthesis, end of line, or further whitespace. This boundary check stops a longer
+// directive name such as `-- piko.queryMore` from being matched as `-- piko.query`, while
+// tolerating whitespace between the name and the `(`.
+//
+// Takes trimmed (string) which is the whitespace-trimmed source line.
+// Takes prefix (string) which is the query block opener prefix from
+// queryNamePrefixForStyle.
+//
+// Returns bool which is true when the line opens a query block.
+func isQueryBlockOpener(trimmed, prefix string) bool {
+	name := strings.TrimSuffix(prefix, "(")
+	rest, ok := strings.CutPrefix(trimmed, name)
+	if !ok {
+		return false
+	}
+	if rest == "" {
+		return true
+	}
+	next := rest[0]
+	return next == '(' || next == ' ' || next == '\t'
 }
 
 // splitQueryFile splits a SQL file containing multiple queries into individual query
 // blocks.
 //
-// Queries are separated by the piko.name: directive on each subsequent query. Each block
-// includes its starting line offset for source mapping. The comment style determines the
-// directive prefix.
+// Queries are separated by the `-- piko(...)` block opener on each subsequent query. Each
+// block includes its starting line offset for source mapping. The comment style
+// determines the directive prefix.
 //
 // Takes content ([]byte) which holds the raw SQL file bytes.
 // Takes style (querier_dto.CommentStyle) which specifies the SQL comment syntax to use
@@ -205,7 +231,7 @@ func splitQueryFile(content []byte, style querier_dto.CommentStyle) []queryBlock
 
 	for lineIndex, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, prefix) && len(currentLines) > 0 {
+		if isQueryBlockOpener(trimmed, prefix) && len(currentLines) > 0 {
 			sql := strings.TrimSpace(strings.Join(currentLines, "\n"))
 			if sql != "" {
 				blocks = append(blocks, queryBlock{

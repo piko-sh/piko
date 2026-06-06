@@ -8,12 +8,12 @@ CREATE FUNCTION volatile_func(val INTEGER) RETURNS INTEGER
 LANGUAGE sql VOLATILE
 AS $$ SELECT val * 2 $$;
 
--- piko.readonly
+-- piko.migration(readonly: true)
 CREATE FUNCTION overridden_readonly_func(val INTEGER) RETURNS INTEGER
 LANGUAGE sql VOLATILE
 AS $$ SELECT val * 2 $$;
 
--- piko.readonly(false)
+-- piko.migration(readonly: false)
 CREATE FUNCTION overridden_not_readonly_func(val INTEGER) RETURNS INTEGER
 LANGUAGE sql IMMUTABLE
 AS $$ SELECT val * 2 $$;

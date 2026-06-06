@@ -1,5 +1,4 @@
--- piko.name: GetProductTotals
--- piko.command: many
+-- piko.query(name: GetProductTotals, command: many)
 SELECT
   id,
   price * quantity as subtotal,

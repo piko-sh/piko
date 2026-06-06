@@ -1,19 +1,19 @@
 {
   "employees": [
     {
-      "DepartmentName": "Engineering",
-      "ID": 1,
-      "Name": "Alice"
+      "department_name": "Engineering",
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "DepartmentName": null,
-      "ID": 2,
-      "Name": "Bob"
+      "department_name": null,
+      "id": 2,
+      "name": "Bob"
     },
     {
-      "DepartmentName": "Marketing",
-      "ID": 3,
-      "Name": "Charlie"
+      "department_name": "Marketing",
+      "id": 3,
+      "name": "Charlie"
     }
   ]
 }

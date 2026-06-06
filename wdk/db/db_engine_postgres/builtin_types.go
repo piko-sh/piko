@@ -50,22 +50,18 @@ var (
 		"serial4":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
 		"bigserial":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
 		"serial8":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-
 		// Float types
 		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
 		"float4":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
 		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
 		"float8":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
 		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-
 		// Decimal types
 		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
 		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
-
 		// Boolean
 		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
 		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
-
 		// Text types
 		"text":              {Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		"character varying": {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
@@ -75,10 +71,12 @@ var (
 		"bpchar":            {Category: querier_dto.TypeCategoryText, EngineName: "char"},
 		"name":              {Category: querier_dto.TypeCategoryText, EngineName: "name"},
 		"citext":            {Category: querier_dto.TypeCategoryText, EngineName: "citext"},
-
 		// Bytea
 		"bytea": {Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"},
-
+		// Bit string types (represented as Go strings of '0'/'1')
+		"bit":         {Category: querier_dto.TypeCategoryText, EngineName: "bit"},
+		"bit varying": {Category: querier_dto.TypeCategoryText, EngineName: "varbit"},
+		"varbit":      {Category: querier_dto.TypeCategoryText, EngineName: "varbit"},
 		// Temporal types
 		"timestamp without time zone": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
 		"timestamp":                   {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
@@ -90,20 +88,17 @@ var (
 		"time with time zone":         {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
 		"timetz":                      {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
 		"interval":                    {Category: querier_dto.TypeCategoryTemporal, EngineName: "interval"},
-
 		// JSON types
-		"json":  {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
-		"jsonb": {Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"},
-
+		"json":     {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		"jsonb":    {Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"},
+		"jsonpath": {Category: querier_dto.TypeCategoryText, EngineName: "jsonpath"},
 		// UUID
 		"uuid": {Category: querier_dto.TypeCategoryUUID, EngineName: "uuid"},
-
 		// Network types
 		"inet":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "inet"},
 		"cidr":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "cidr"},
 		"macaddr":  {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr"},
 		"macaddr8": {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr8"},
-
 		// Geometric types
 		"point":   {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
 		"line":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "line"},
@@ -112,7 +107,6 @@ var (
 		"path":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "path"},
 		"polygon": {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
 		"circle":  {Category: querier_dto.TypeCategoryGeometric, EngineName: "circle"},
-
 		// Range types
 		"int4range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int4range"},
 		"int8range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int8range"},
@@ -126,7 +120,6 @@ var (
 		"tsmultirange":   {Category: querier_dto.TypeCategoryRange, EngineName: "tsmultirange"},
 		"tstzmultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "tstzmultirange"},
 		"datemultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "datemultirange"},
-
 		// Other system types
 		"oid":      {Category: querier_dto.TypeCategoryInteger, EngineName: "oid"},
 		"money":    {Category: querier_dto.TypeCategoryDecimal, EngineName: "money"},
@@ -148,6 +141,7 @@ var (
 		"timestamp with time zone":    "timestamp with time zone",
 		"time without time zone":      "time without time zone",
 		"time with time zone":         "time with time zone",
+		"bit varying":                 "bit varying",
 	}
 )
 

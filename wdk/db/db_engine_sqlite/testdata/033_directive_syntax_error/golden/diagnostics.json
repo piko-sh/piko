@@ -1,24 +1,13 @@
 [
   {
     "Filename": "invalid_command.sql",
-    "Message": "unknown query command \"invalid\"",
-    "Code": "Q007",
-    "Suggestion": "",
-    "Line": 2,
-    "Column": 18,
-    "EndLine": 0,
-    "EndColumn": 0,
-    "Severity": 0
-  },
-  {
-    "Filename": "invalid_command.sql",
-    "Message": "missing piko.command directive",
-    "Code": "Q008",
+    "Message": "invalid value \"invalid\" for keyword argument \"command\"; allowed: one, many, exec, execresult, execrows, batch, stream, copyfrom, asyncexec",
+    "Code": "Q028",
     "Suggestion": "",
     "Line": 1,
-    "Column": 1,
-    "EndLine": 0,
-    "EndColumn": 0,
+    "Column": 40,
+    "EndLine": 1,
+    "EndColumn": 47,
     "Severity": 0
   }
 ]

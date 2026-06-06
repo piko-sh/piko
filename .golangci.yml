@@ -168,10 +168,6 @@ linters:
       ignore-rules:
         - color
         - center
-        - initialize
-        - initialized
-        - materialize
-        - materialized
 
     gocritic:
       enable-all: true
@@ -271,6 +267,16 @@ linters:
         linters: [revive]
         text: "line-length-limit"
 
+      - path: internal/querier/querier_adapters/emitter_shared/(constants|slice_helpers_emit)\.go
+        linters: [dupl]
+
+      - path: (wdk/db/db_engine_|internal/querier/)
+        linters: [misspell]
+        text: "(?i)(materializ|randomiz)"
+
+      - path: (cmd/lsp/|tests/integration/lsp/)
+        linters: [misspell]
+        text: "(?i)initializ"
 
       - path: _test\.go$
         linters:

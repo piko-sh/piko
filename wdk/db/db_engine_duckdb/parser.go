@@ -127,13 +127,36 @@ const (
 	// indexAfterOrReplace is the token index immediately following the CREATE OR REPLACE
 	// prefix.
 	indexAfterOrReplace = 3
+
+	// schemaQualifiedCallLookahead is the offset from a schema identifier to the opening
+	// parenthesis of a schema-qualified call (schema . name (), so the '(' sits three tokens
+	// past the schema token.
+	schemaQualifiedCallLookahead = 3
+
+	// defaultMaxParseDepth caps every user-driven recursion in the parser.
+	//
+	// The capped recursions are analyseSelect (subquery and CTE nesting), the expression
+	// precedence chain (parenthesis nesting), and compound column-type nesting. The cap is
+	// essential because Go raises a fatal, non-recoverable stack overflow that the engine's
+	// recover guards cannot catch, so deeply nested input would otherwise crash the host
+	// process. 256 is far below the overflow threshold yet out of the way for realistic
+	// queries; callers may override it with WithMaxParseDepth.
+	defaultMaxParseDepth = 256
 )
 
 var (
-
 	// errUnmatchedParenthesis is returned when a parenthesis scan reaches the end of input
 	// without closing every opened group.
 	errUnmatchedParenthesis = errors.New("unmatched parenthesis")
+
+	// errAnalysisDepthExceeded is the sentinel returned when parser recursion exceeds the
+	// configured maximum parse depth.
+	errAnalysisDepthExceeded = errors.New("duckdb: analysis recursion depth exceeded")
+
+	// errMalformedFunctionArguments is the sentinel returned when a function or macro
+	// argument list contains a token the argument parser cannot consume, which would
+	// otherwise leave the argument-list loop unable to make progress.
+	errMalformedFunctionArguments = errors.New("duckdb: malformed function argument list")
 )
 
 // parsedStatement holds the tokens and classified kind for one SQL statement extracted
@@ -151,24 +174,47 @@ func (*parsedStatement) IsParsedStatement() {}
 
 // parser holds the state required to walk a flat token stream into the structured querier
 // DTOs used by downstream code.
+//
+// The must* helpers (mustKeyword, mustSkipParenthesised, mustSchemaQualifiedName) panic
+// on a malformed token stream to unwind deep parsing without threading errors through
+// every frame, so every external entry point that drives the parser MUST run beneath a
+// recover. ApplyDDL and AnalyseQuery already install that recover; any new caller has to
+// do the same or a parse panic will escape to the host.
 type parser struct {
+	// namedParameterMap maps a named parameter's identifier to the sequential number it was
+	// first assigned.
+	namedParameterMap map[string]int
+
+	// insertProjectionTable is the INSERT target table whose columns the current INSERT ...
+	// SELECT projection items are assigned to.
+	//
+	// It is empty when not parsing such a projection list.
+	insertProjectionTable string
+
 	// tokens is the flat token stream produced by the tokeniser.
 	tokens []token
 
 	// parameterRefs collects every bind parameter discovered while walking the statement.
 	parameterRefs []querier_dto.RawParameterReference
 
-	// namedParameterMap maps a named parameter's identifier to the sequential number it was
-	// first assigned.
-	namedParameterMap map[string]int
-
 	// rawDerivedTables holds derived table references observed in FROM clauses for later
 	// analysis.
 	rawDerivedTables []querier_dto.RawDerivedTableReference
 
+	// predicateSubqueries collects subqueries found in a token-scanned predicate position
+	// (WHERE / HAVING / JOIN ON), so the domain layer can resolve each one's parameters
+	// against the subquery's own scope rather than the parent.
+	predicateSubqueries []*querier_dto.RawQueryAnalysis
+
 	// rawTableValuedFunctions holds table-valued function references observed in FROM
 	// clauses for later analysis.
 	rawTableValuedFunctions []querier_dto.RawTableValuedFunctionReference
+
+	// insertProjectionColumns is the ordered INSERT target column list, active only while
+	// the INSERT ... SELECT body's projection list is parsed.
+	//
+	// It is nil otherwise.
+	insertProjectionColumns []string
 
 	// position is the index of the next token to consume.
 	position int
@@ -176,7 +222,29 @@ type parser struct {
 	// parameterCount tracks the highest parameter number assigned so far.
 	parameterCount int
 
-	// hasForUpdate is set when a FOR UPDATE locking clause is observed.
+	// analysisDepth bounds recursion through analyseSelect across compound branches, CTE
+	// bodies, derived tables, scalar subqueries, and view bodies. Child parsers inherit the
+	// parent depth so the global cap holds across instances.
+	analysisDepth int
+
+	// expressionDepth bounds recursion through the expression precedence chain so deeply
+	// nested parentheses cannot overflow the stack.
+	expressionDepth int
+
+	// typeDepth bounds recursion through compound column-type parsing (STRUCT/MAP/LIST/UNION
+	// nesting).
+	typeDepth int
+
+	// maxParseDepth is the effective cap for analysisDepth, expressionDepth and typeDepth.
+	// Zero means defaultMaxParseDepth; the engine sets it from the dialect and child parsers
+	// inherit it.
+	maxParseDepth int
+
+	// insertProjectionIndex is the zero-based ordinal of the projection item currently being
+	// parsed in an INSERT ... SELECT body.
+	insertProjectionIndex int
+
+	// hasForUpdate is set when the statement carries a FOR UPDATE locking clause.
 	hasForUpdate bool
 
 	// hasDataModifyingCTE is set when a CTE uses INSERT, UPDATE, or DELETE.
@@ -187,38 +255,61 @@ type parser struct {
 	lastArgumentWasVariadic bool
 }
 
-// newParser builds a parser positioned at the start of tokens.
+// newParser builds a parser over the given token stream with the default parse depth cap.
 //
-// Takes tokens ([]token) which is the lexical token stream to walk.
+// Takes tokens ([]token) which is the flat token stream to walk.
 //
-// Returns *parser which is the fresh parser ready to consume tokens.
+// Returns *parser which is the initialised parser.
 func newParser(tokens []token) *parser {
 	return &parser{
 		tokens:            tokens,
+		maxParseDepth:     defaultMaxParseDepth,
 		namedParameterMap: make(map[string]int),
 	}
 }
 
-// splitStatements partitions tokens at top-level semicolons.
+// splitStatements partitions the token stream by top-level semicolons.
 //
-// Takes tokens ([]token) which is the combined token stream.
+// BEGIN...END blocks (procedural macro bodies) contain inner semicolons that belong to
+// the enclosing statement; the splitter tracks block depth so those inner semicolons stay
+// attached to the right statement.
 //
-// Returns [][]token which is one token slice per statement, with trailing EOF tokens
-// excluded.
+// BEGIN only opens a block when it appears with preceding content in a procedural
+// definition (CREATE [OR REPLACE] MACRO or FUNCTION). A bare `begin` used as a column
+// alias or ordinary identifier (for example `SELECT 1 AS begin; SELECT 2;`) must not open
+// a block and swallow the trailing statement, so the isProceduralStatement gate guards
+// the open.
+//
+// END decrements blockDepth only when it closes the outer BEGIN..END block. END followed
+// by an inner-end keyword (IF, CASE, LOOP, WHILE, REPEAT) closes an inner control
+// structure rather than the outer block, so depth must stay. A scalar CASE...END
+// expression inside the body also uses a bare END; caseDepth tracks open CASE constructs
+// so such an inner END cannot prematurely close the BEGIN block.
+//
+// Takes tokens ([]token) which is the multi-statement token stream to partition.
+//
+// Returns [][]token which is one token slice per top-level statement.
 func splitStatements(tokens []token) [][]token {
 	var statements [][]token
 	var current []token
+	blockDepth := 0
+	caseDepth := 0
 
-	for _, tok := range tokens {
-		if tok.kind == tokenSemicolon {
-			if len(current) > 0 {
-				statements = append(statements, current)
-				current = nil
-			}
-			continue
-		}
+	for index, tok := range tokens {
 		if tok.kind == tokenEOF {
 			break
+		}
+		if tok.kind == tokenSemicolon {
+			statements, current = handleSplitStatementsSemicolon(statements, current, tok, blockDepth)
+			continue
+		}
+		if tok.kind == tokenIdentifier {
+			proceduralContext := false
+			if strings.EqualFold(tok.value, "BEGIN") {
+				proceduralContext = isProceduralStatement(current)
+			}
+			blockDepth, caseDepth = updateSplitStatementsBlockDepth(
+				blockDepth, caseDepth, tok, len(current), tokens, index, proceduralContext)
 		}
 		current = append(current, tok)
 	}
@@ -230,9 +321,150 @@ func splitStatements(tokens []token) [][]token {
 	return statements
 }
 
+// isProceduralStatement reports whether the in-progress statement is a procedural
+// definition whose body may contain a bare BEGIN...END block.
+//
+// A procedural definition is a CREATE [OR REPLACE] [TEMP] MACRO or FUNCTION. Any other
+// leading statement (for example SELECT, INSERT, UPDATE, or CREATE TABLE and VIEW)
+// returns false so a `begin` identifier is treated as a plain name, not a block opener.
+//
+// Takes current ([]token) which is the tokens accumulated for the statement so far.
+//
+// Returns bool which is true for a procedural-body-bearing statement.
+func isProceduralStatement(current []token) bool {
+	sawCreate := false
+	for index := range current {
+		if current[index].kind != tokenIdentifier {
+			continue
+		}
+		word := strings.ToUpper(current[index].value)
+		if !sawCreate {
+			if word == "CREATE" {
+				sawCreate = true
+				continue
+			}
+			return false
+		}
+		switch word {
+		case "OR", "REPLACE", "TEMP", "TEMPORARY":
+			continue
+		case "MACRO", "FUNCTION":
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// handleSplitStatementsSemicolon either appends the semicolon to the in-progress
+// statement when blockDepth > 0 (inside a BEGIN..END body) or flushes the current
+// statement to the output list. Returns the possibly-extended statement list and the next
+// in-progress slice.
+//
+// Takes statements ([][]token) which is the running statement list.
+// Takes current ([]token) which is the in-progress statement being built.
+// Takes tok (token) which is the semicolon under consideration.
+// Takes blockDepth (int) which is the nested BEGIN..END depth.
+//
+// Returns [][]token which is the updated statement list.
+// Returns []token which is the updated in-progress statement.
+func handleSplitStatementsSemicolon(statements [][]token, current []token, tok token, blockDepth int) ([][]token, []token) {
+	if blockDepth > 0 {
+		return statements, append(current, tok)
+	}
+	if len(current) > 0 {
+		return append(statements, current), nil
+	}
+	return statements, current
+}
+
+// updateSplitStatementsBlockDepth adjusts blockDepth and caseDepth for an identifier
+// token.
+//
+// BEGIN opens a block only when there is preceding content and the in-progress statement
+// is a procedural definition. A scalar CASE increments caseDepth while inside a block so
+// its bare END closes the CASE before it can close the BEGIN block. END decrements
+// caseDepth first (when a CASE is open) and otherwise decrements blockDepth, unless it
+// introduces an inner control structure (END IF, END LOOP, END WHILE, or END REPEAT)
+// which leaves both counters untouched.
+//
+// Takes blockDepth (int) which is the current block-nesting depth.
+// Takes caseDepth (int) which is the current open-CASE count.
+// Takes tok (token) which is the identifier under consideration.
+// Takes currentLength (int) which is the number of tokens already in the in-progress
+// statement.
+// Takes tokens ([]token) which is the full token stream, used for lookahead after END.
+// Takes index (int) which is the position of tok within tokens.
+// Takes proceduralContext (bool) which is true when the in-progress statement is a
+// procedural definition whose body may contain a bare BEGIN...END block.
+//
+// Returns the updated blockDepth and caseDepth.
+func updateSplitStatementsBlockDepth(
+	blockDepth, caseDepth int, tok token, currentLength int, tokens []token, index int, proceduralContext bool,
+) (depth, cases int) {
+	switch {
+	case strings.EqualFold(tok.value, "BEGIN") && currentLength > 0 && proceduralContext:
+		return blockDepth + 1, caseDepth
+	case strings.EqualFold(tok.value, "CASE") && blockDepth > 0:
+		return blockDepth, caseDepth + 1
+	case strings.EqualFold(tok.value, "END"):
+		return adjustEndDepth(nextTokenValue(tokens, index+1), blockDepth, caseDepth)
+	}
+	return blockDepth, caseDepth
+}
+
+// nextTokenValue returns the value of the token at lookahead, or the empty string when
+// lookahead is past the end of the stream. Token streams do not include whitespace so a
+// single position offset suffices to inspect the keyword after an END.
+//
+// Takes tokens ([]token) which is the full token stream.
+// Takes lookahead (int) which is the index of the token to inspect.
+//
+// Returns string which is the token value at lookahead, or empty.
+func nextTokenValue(tokens []token, lookahead int) string {
+	if lookahead >= len(tokens) {
+		return ""
+	}
+	return tokens[lookahead].value
+}
+
+// adjustEndDepth resolves an END keyword against the open CASE and block counters, using
+// the following token to distinguish the END forms.
+//
+// END IF, END LOOP, END WHILE, and END REPEAT close inner control structures and leave
+// both counters untouched. END CASE closes a statement-form CASE (decrementing caseDepth
+// when one is open). A bare END closes an open scalar CASE first, then the surrounding
+// BEGIN block.
+//
+// Takes nextValue (string) which is the token immediately after END.
+// Takes blockDepth (int) which is the current block-nesting depth.
+// Takes caseDepth (int) which is the current open-CASE count.
+//
+// Returns the updated blockDepth and caseDepth.
+func adjustEndDepth(nextValue string, blockDepth, caseDepth int) (depth, cases int) {
+	switch strings.ToUpper(nextValue) {
+	case "IF", "LOOP", "WHILE", "REPEAT":
+		return blockDepth, caseDepth
+	case "CASE":
+		if caseDepth > 0 {
+			return blockDepth, caseDepth - 1
+		}
+		return blockDepth, caseDepth
+	}
+
+	if caseDepth > 0 {
+		return blockDepth, caseDepth - 1
+	}
+	if blockDepth > 0 {
+		return blockDepth - 1, caseDepth
+	}
+	return blockDepth, caseDepth
+}
+
 var (
-	// firstWordClassifiers dispatches by leading keyword to a classifier that inspects
-	// further tokens to pick a statement kind.
+	// firstWordClassifiers maps a leading keyword to a function that classifies the
+	// statement based on further tokens.
 	firstWordClassifiers = map[string]func([]token) statementKind{
 		keywordCREATE: classifyCreateStatement,
 		keywordDROP:   classifyDropStatement,
@@ -761,7 +993,10 @@ func (p *parser) registerDollarParameter(
 	columnReference *querier_dto.ColumnReference,
 	castType *querier_dto.SQLType,
 ) int {
-	number, _ := strconv.Atoi(parameterToken.value[1:])
+	number, conversionError := strconv.Atoi(parameterToken.value[1:])
+	if conversionError != nil {
+		number = 0
+	}
 	if number > p.parameterCount {
 		p.parameterCount = number
 	}

@@ -6,8 +6,8 @@ import "context"
 
 const deleteartefact = `DELETE FROM artefact WHERE id = ?;`
 
-func (queries *Queries) DeleteArtefact(ctx context.Context, p1 string) error {
-	_, err := queries.writer.ExecContext(ctx, deleteartefact, p1)
+func (queries *Queries) DeleteArtefact(ctx context.Context, id string) error {
+	_, err := queries.writer.ExecContext(ctx, deleteartefact, id)
 	return err
 }
 
@@ -16,16 +16,16 @@ FROM artefact
 WHERE id = ?;`
 
 type GetArtefactRow struct {
-	ID         string
-	SourcePath string
-	CreatedAt  int32
-	UpdatedAt  int32
-	DataFbs    []byte
+	ID         string `json:"id"`
+	SourcePath string `json:"source_path"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DataFbs    []byte `json:"data_fbs"`
 }
 
-func (queries *Queries) GetArtefact(ctx context.Context, p1 string) (GetArtefactRow, error) {
+func (queries *Queries) GetArtefact(ctx context.Context, id string) (GetArtefactRow, error) {
 	var row GetArtefactRow
-	err := queries.reader.QueryRowContext(ctx, getartefact, p1).Scan(&row.ID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs)
+	err := queries.reader.QueryRowContext(ctx, getartefact, id).Scan(&row.ID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs)
 	if err != nil {
 		return GetArtefactRow{}, err
 	}
@@ -40,15 +40,18 @@ type GetMultipleArtefactsParams struct {
 	IDs []string
 }
 type GetMultipleArtefactsRow struct {
-	ID         string
-	SourcePath string
-	CreatedAt  int32
-	UpdatedAt  int32
-	DataFbs    []byte
+	ID         string `json:"id"`
+	SourcePath string `json:"source_path"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DataFbs    []byte `json:"data_fbs"`
 }
 
 func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMultipleArtefactsParams) ([]GetMultipleArtefactsRow, error) {
-	query := pikoExpandSlicePlaceholders(getmultipleartefacts, []pikoSliceExpansionSpec{{1, len(params.IDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(getmultipleartefacts, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -75,7 +78,7 @@ func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMult
 const listallartefactids = `SELECT id FROM artefact;`
 
 type ListAllArtefactIDsRow struct {
-	ID string
+	ID string `json:"id"`
 }
 
 func (queries *Queries) ListAllArtefactIDs(ctx context.Context) ([]ListAllArtefactIDsRow, error) {
@@ -106,14 +109,14 @@ ON CONFLICT(id) DO UPDATE SET
   data_fbs = excluded.data_fbs;`
 
 type UpsertArtefactParams struct {
-	P1 string
-	P2 string
-	P3 int32
-	P4 int32
-	P5 []byte
+	ID         string
+	SourcePath string
+	CreatedAt  int64
+	UpdatedAt  int64
+	DataFbs    []byte
 }
 
 func (queries *Queries) UpsertArtefact(ctx context.Context, params UpsertArtefactParams) error {
-	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.P1, params.P2, params.P3, params.P4, params.P5)
+	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs)
 	return err
 }

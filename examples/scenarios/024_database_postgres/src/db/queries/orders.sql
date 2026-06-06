@@ -1,11 +1,9 @@
--- piko.name: CreateOrder
--- piko.command: one
+-- piko.query(name: CreateOrder, command: one)
 INSERT INTO orders (product_id, quantity, total, ordered_at)
 VALUES ($1, $2, $3, $4)
 RETURNING id, product_id, quantity, total, ordered_at;
 
--- piko.name: ListRecentOrders
--- piko.command: many
+-- piko.query(name: ListRecentOrders, command: many)
 SELECT o.id, o.quantity, o.total, o.ordered_at,
        p.name as product_name, p.category as product_category
 FROM orders o

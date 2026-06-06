@@ -1,22 +1,22 @@
 {
   "by_category": [
     {
-      "Category": "auth",
-      "ID": 1,
-      "Name": "signup"
+      "category": "auth",
+      "id": 1,
+      "name": "signup"
     },
     {
-      "Category": "auth",
-      "ID": 3,
-      "Name": "login"
+      "category": "auth",
+      "id": 3,
+      "name": "login"
     }
   ],
   "event_name": {
-    "EventName": "Alice",
-    "ID": 1
+    "event_name": "Alice",
+    "id": 1
   },
   "nested_value": {
-    "Email": "bob@test.com",
-    "ID": 2
+    "email": "bob@test.com",
+    "id": 2
   }
 }

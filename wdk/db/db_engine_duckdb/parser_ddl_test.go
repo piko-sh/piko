@@ -19,6 +19,7 @@
 package db_engine_duckdb
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func applyDDL(t *testing.T, sql string) *querier_dto.CatalogueMutation {
 	statements, err := engine.ParseStatements(sql)
 	require.NoError(t, err)
 	require.NotEmpty(t, statements)
-	mutation, err := engine.ApplyDDL(statements[0])
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 	require.NoError(t, err)
 	return mutation
 }
@@ -969,6 +970,20 @@ func TestApplyDDL_CreateMacro(t *testing.T) {
 		assert.True(t, mutation.FunctionSignature.ReturnsSet, "table macro should have ReturnsSet")
 	})
 
+	t.Run("table macro captures projected columns", func(t *testing.T) {
+		t.Parallel()
+
+		mutation := applyDDL(t, `CREATE MACRO active_users() AS TABLE SELECT id, name FROM users WHERE active = true`)
+
+		require.NotNil(t, mutation)
+		require.NotNil(t, mutation.FunctionSignature)
+		assert.True(t, mutation.FunctionSignature.ReturnsSet, "table macro should have ReturnsSet")
+		require.Len(t, mutation.Columns, 2,
+			"table macro projection columns must be captured so the function resolves in FROM")
+		assert.Equal(t, "id", mutation.Columns[0].Name)
+		assert.Equal(t, "name", mutation.Columns[1].Name)
+	})
+
 	t.Run("OR REPLACE macro", func(t *testing.T) {
 		t.Parallel()
 
@@ -1318,7 +1333,7 @@ func TestApplyDDL_NonDDL(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, statements)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "SELECT should not produce a DDL mutation")
 	})
@@ -1331,7 +1346,7 @@ func TestApplyDDL_NonDDL(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, statements)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "INSERT should not produce a DDL mutation")
 	})
@@ -1344,7 +1359,7 @@ func TestApplyDDL_NonDDL(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, statements)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "UPDATE should not produce a DDL mutation")
 	})
@@ -1357,7 +1372,7 @@ func TestApplyDDL_NonDDL(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, statements)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "DELETE should not produce a DDL mutation")
 	})
@@ -1611,7 +1626,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		require.NotNil(t, mutation)
 		assert.Equal(t, querier_dto.MutationCreateTable, mutation.Kind)
@@ -1624,7 +1639,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		require.NotNil(t, mutation)
 		assert.Equal(t, querier_dto.MutationCreateTable, mutation.Kind)
@@ -1637,7 +1652,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		require.NotNil(t, mutation)
 		assert.Equal(t, querier_dto.MutationAlterEnumAddValue, mutation.Kind)
@@ -1650,7 +1665,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "INSTALL should return nil mutation")
 	})
@@ -1662,7 +1677,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		assert.Nil(t, mutation, "LOAD should return nil mutation")
 	})
@@ -1687,7 +1702,7 @@ func TestParseStatements_Classification(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, statements, 1)
 
-		mutation, err := engine.ApplyDDL(statements[0])
+		mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 		require.NoError(t, err)
 		require.NotNil(t, mutation)
 		assert.Equal(t, querier_dto.MutationDropTable, mutation.Kind)

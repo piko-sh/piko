@@ -109,6 +109,7 @@ func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 		},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -130,6 +131,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 			ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: "record"},
 			NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 			ReturnsSet:        true,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 
@@ -139,6 +141,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 			ReturnType:        *arrayType.ElementType,
 			NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 			ReturnsSet:        true,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 
@@ -146,6 +149,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		ReturnsSet:        true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -166,6 +170,7 @@ func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentI
 	return &querier_dto.FunctionResolution{
 		ReturnType:        argumentTypes[arrayArgumentIndex],
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -187,6 +192,7 @@ func resolvePopulateRecord(argumentTypes []querier_dto.SQLType, returnsSet bool)
 		ReturnType:        argumentTypes[0],
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
 		ReturnsSet:        returnsSet,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -202,6 +208,7 @@ func resolveToRecord(returnsSet bool) (*querier_dto.FunctionResolution, error) {
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: "record"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
 		ReturnsSet:        returnsSet,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -222,6 +229,7 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 		ReturnType:        argumentTypes[0],
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -258,6 +266,7 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -288,6 +297,7 @@ func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -304,6 +314,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 			return &querier_dto.FunctionResolution{
 				ReturnType:        argumentTypes[index],
 				NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+				DataAccess:        querier_dto.DataAccessReadOnly,
 			}, nil
 		}
 	}
@@ -311,6 +322,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -322,6 +334,7 @@ func resolvePgTypeof() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 

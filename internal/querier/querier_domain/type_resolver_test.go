@@ -218,9 +218,11 @@ func TestTypeResolver_ResolveOutputColumns(t *testing.T) {
 			scope: setupTypeResolverScope,
 			wantColumns: []querier_dto.OutputColumn{
 				{
-					Name:     "total_text",
-					SQLType:  querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryUnknown},
-					Nullable: false,
+					Name:         "total_text",
+					SQLType:      querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryUnknown},
+					Nullable:     false,
+					SourceTable:  "users",
+					SourceColumn: "id",
 				},
 			},
 			wantDiagnostics: 0,
@@ -290,6 +292,27 @@ func TestTypeResolver_ResolveOutputColumns(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTypeResolver_ResolveOutputColumns_StopsOnCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	resolver := newTestTypeResolver()
+	scope := setupTypeResolverScope()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	rawColumns := []querier_dto.RawOutputColumn{
+		{ColumnName: "id", TableAlias: "users"},
+		{ColumnName: "name", TableAlias: "users"},
+	}
+
+	columns, dataModifying, diagnostics := resolver.ResolveOutputColumns(ctx, rawColumns, scope)
+
+	assert.Empty(t, columns, "expected no columns resolved when context is already cancelled")
+	assert.False(t, dataModifying, "expected data modifying flag to remain false")
+	assert.Len(t, diagnostics, 1, "expected a diagnostic recording the cancelled, truncated resolution")
 }
 
 func TestTypeResolver_ResolveParameters(t *testing.T) {
@@ -490,6 +513,28 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 					Number: 1,
 					ColumnReference: &querier_dto.ColumnReference{
 						TableAlias: "nonexistent",
+						ColumnName: "nonexistent_column",
+					},
+					Context: querier_dto.ParameterContextComparison,
+				},
+			},
+			wantParams: []querier_dto.QueryParameter{
+				{
+					Number:  1,
+					Name:    "nonexistent_column",
+					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+				},
+			},
+			wantDiagnostics: 1,
+		},
+		{
+
+			name: "unknown alias with resolvable bare column types from the bare column",
+			rawParams: []querier_dto.RawParameterReference{
+				{
+					Number: 1,
+					ColumnReference: &querier_dto.ColumnReference{
+						TableAlias: "nonexistent",
 						ColumnName: "id",
 					},
 					Context: querier_dto.ParameterContextComparison,
@@ -499,10 +544,10 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 				{
 					Number:  1,
 					Name:    "id",
-					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+					SQLType: querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger},
 				},
 			},
-			wantDiagnostics: 1,
+			wantDiagnostics: 0,
 		},
 		{
 			name:      "directive-only parameter without raw reference creates parameter",
@@ -511,18 +556,13 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 				{
 					Number: 1,
 					Name:   "page_size",
-					Kind:   querier_dto.ParameterDirectiveLimit,
 				},
 			},
 			wantParams: []querier_dto.QueryParameter{
 				{
-					Number: 1,
-					Name:   "page_size",
-					SQLType: querier_dto.SQLType{
-						EngineName: querier_dto.CanonicalInt4,
-						Category:   querier_dto.TypeCategoryInteger,
-					},
-					Kind: querier_dto.ParameterDirectiveLimit,
+					Number:  1,
+					Name:    "page_size",
+					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
 				},
 			},
 		},
@@ -541,7 +581,8 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 				directives = []*querier_dto.ParameterDirective{}
 			}
 
-			params, diagnostics := resolver.ResolveParameters(ctx, tt.rawParams, scope, directives)
+			rawAnalysis := &querier_dto.RawQueryAnalysis{ParameterReferences: tt.rawParams}
+			params, diagnostics := resolver.ResolveParameters(ctx, rawAnalysis, scope, directives)
 
 			assert.Len(t, diagnostics, tt.wantDiagnostics, "unexpected number of diagnostics")
 			require.Len(t, params, len(tt.wantParams), "unexpected number of parameters")
@@ -556,6 +597,680 @@ func TestTypeResolver_ResolveParameters(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTypeResolver_ResolveParameters_LimitContextDoesNotMaskComparison(t *testing.T) {
+	t.Parallel()
+
+	resolver := newTestTypeResolver()
+	scope := setupMultiTableScope()
+	ctx := context.Background()
+
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		ParameterReferences: []querier_dto.RawParameterReference{
+			{
+				Number: 1,
+				ColumnReference: &querier_dto.ColumnReference{
+					TableAlias: "orders",
+					ColumnName: "total",
+				},
+				Context: querier_dto.ParameterContextComparison,
+			},
+			{
+				Number:  1,
+				Context: querier_dto.ParameterContextLimit,
+			},
+		},
+	}
+
+	params, _ := resolver.ResolveParameters(ctx, rawAnalysis, scope, []*querier_dto.ParameterDirective{})
+
+	require.Len(t, params, 1)
+	assert.False(t, params[0].IsPaginationBound(),
+		"comparison context must not be overwritten by a later LIMIT reference")
+	assert.Equal(t, querier_dto.TypeCategoryDecimal, params[0].SQLType.Category,
+		"the real comparison type must survive reuse in a LIMIT clause")
+}
+
+func TestTypeResolver_ResolveParameters_LimitContextKeptWhenComparisonUnresolved(t *testing.T) {
+	t.Parallel()
+
+	resolver := newTestTypeResolver()
+	scope := setupTypeResolverScope()
+	ctx := context.Background()
+
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		ParameterReferences: []querier_dto.RawParameterReference{
+			{Number: 1, Context: querier_dto.ParameterContextLimit},
+		},
+	}
+
+	params, _ := resolver.ResolveParameters(ctx, rawAnalysis, scope, []*querier_dto.ParameterDirective{})
+
+	require.Len(t, params, 1)
+	assert.True(t, params[0].IsPaginationBound(),
+		"a standalone LIMIT parameter must remain pagination-bound")
+	assert.Equal(t, querier_dto.TypeCategoryInteger, params[0].SQLType.Category)
+}
+
+func newTypeResolverWithCatalogue(catalogue *querier_dto.Catalogue) *typeResolver {
+	engine := &mockEngine{}
+	builtins := &querier_dto.FunctionCatalogue{
+		Functions: make(map[string][]*querier_dto.FunctionSignature),
+	}
+	funcResolver := newFunctionResolver(builtins, catalogue, engine)
+	return newTypeResolver(catalogue, funcResolver, engine)
+}
+
+func TestTypeResolver_ResolveParameters_SubqueryScope(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+
+	buildCatalogue := func() *querier_dto.Catalogue {
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["orchestrator_tasks"] = newTestTable("orchestrator_tasks",
+			querier_dto.Column{Name: "workflow_id", SQLType: textType},
+			querier_dto.Column{Name: "status", SQLType: textType},
+		)
+		catalogue.Schemas["public"].Tables["orchestrator_workflow_receipts"] = newTestTable("orchestrator_workflow_receipts",
+			querier_dto.Column{Name: "workflow_id", SQLType: textType},
+		)
+		catalogue.Schemas["public"].Tables["workflows"] = newTestTable("workflows",
+			querier_dto.Column{Name: "id", SQLType: intType},
+		)
+		return catalogue
+	}
+
+	workflowIDParam := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{ColumnName: "workflow_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	correlatedParam := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "workflows", ColumnName: "id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	tasksSubquery := func(parameter querier_dto.RawParameterReference) *querier_dto.RawQueryAnalysis {
+		return &querier_dto.RawQueryAnalysis{
+			FromTables:          []querier_dto.TableReference{{Name: "orchestrator_tasks", Schema: "public"}},
+			ParameterReferences: []querier_dto.RawParameterReference{parameter},
+		}
+	}
+
+	tests := []struct {
+		name         string
+		outerScope   func() *scopeChain
+		expression   querier_dto.Expression
+		flatParam    querier_dto.RawParameterReference
+		wantName     string
+		wantEngine   string
+		wantCategory querier_dto.SQLTypeCategory
+	}{
+		{
+			name:         "exists subquery types param from its own from scope",
+			outerScope:   func() *scopeChain { return newScopeChain(querier_dto.ScopeKindQuery, nil) },
+			expression:   &querier_dto.ExistsExpression{InnerQuery: tasksSubquery(workflowIDParam)},
+			flatParam:    workflowIDParam,
+			wantName:     "workflow_id",
+			wantEngine:   "text",
+			wantCategory: querier_dto.TypeCategoryText,
+		},
+		{
+			name:         "scalar subquery types param from its own from scope",
+			outerScope:   func() *scopeChain { return newScopeChain(querier_dto.ScopeKindQuery, nil) },
+			expression:   &querier_dto.ScalarSubqueryExpression{InnerQuery: tasksSubquery(workflowIDParam)},
+			flatParam:    workflowIDParam,
+			wantName:     "workflow_id",
+			wantEngine:   "text",
+			wantCategory: querier_dto.TypeCategoryText,
+		},
+		{
+			name: "correlated subquery types param against outer scope",
+			outerScope: func() *scopeChain {
+				scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+				_ = scope.AddTable(
+					querier_dto.TableReference{Name: "workflows", Schema: "public"},
+					querier_dto.JoinInner,
+					newTestTable("workflows", querier_dto.Column{Name: "id", SQLType: intType}),
+				)
+				return scope
+			},
+			expression:   &querier_dto.ExistsExpression{InnerQuery: tasksSubquery(correlatedParam)},
+			flatParam:    correlatedParam,
+			wantName:     "id",
+			wantEngine:   "int4",
+			wantCategory: querier_dto.TypeCategoryInteger,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resolver := newTypeResolverWithCatalogue(buildCatalogue())
+			rawAnalysis := &querier_dto.RawQueryAnalysis{
+				OutputColumns: []querier_dto.RawOutputColumn{
+					{Name: "has_incomplete", Expression: tt.expression},
+				},
+				ParameterReferences: []querier_dto.RawParameterReference{tt.flatParam},
+			}
+
+			params, diagnostics := resolver.ResolveParameters(
+				context.Background(), rawAnalysis, tt.outerScope(), []*querier_dto.ParameterDirective{},
+			)
+
+			assert.Empty(t, diagnostics, "no unknown-column diagnostic expected")
+			require.Len(t, params, 1)
+			assert.Equal(t, 1, params[0].Number)
+			assert.Equal(t, tt.wantName, params[0].Name)
+			assert.Equal(t, tt.wantEngine, params[0].SQLType.EngineName)
+			assert.Equal(t, tt.wantCategory, params[0].SQLType.Category)
+		})
+	}
+}
+
+func TestTypeResolver_ResolveParameters_DerivedTableScope(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["orchestrator_tasks"] = newTestTable("orchestrator_tasks",
+		querier_dto.Column{Name: "workflow_id", SQLType: textType},
+	)
+	catalogue.Schemas["public"].Tables["orchestrator_workflow_receipts"] = newTestTable("orchestrator_workflow_receipts",
+		querier_dto.Column{Name: "workflow_id", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "ot", ColumnName: "workflow_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	innerQuery := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "orchestrator_tasks", Schema: "public", Alias: "ot"}},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		RawDerivedTables:    []querier_dto.RawDerivedTableReference{{InnerQuery: innerQuery, Alias: "d"}},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics)
+	require.Len(t, params, 1)
+	assert.Equal(t, "workflow_id", params[0].Name)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category)
+}
+
+func TestTypeResolver_ResolveParameters_InsertSelectScope(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+
+	catalogue.Schemas["public"].Tables["sessions"] = newTestTable("sessions",
+		querier_dto.Column{Name: "id", SQLType: textType},
+	)
+	catalogue.Schemas["public"].Tables["accounts"] = newTestTable("accounts",
+		querier_dto.Column{Name: "account_id", SQLType: textType},
+	)
+	catalogue.Schemas["public"].Tables["account_audit"] = newTestTable("account_audit",
+		querier_dto.Column{Name: "account_id", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "a", ColumnName: "account_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	insertSelect := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "accounts", Schema: "public", Alias: "a"}},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		InsertTable:         "sessions",
+		FromTables:          []querier_dto.TableReference{{Name: "sessions", Schema: "public"}},
+		InsertSelect:        insertSelect,
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = outerScope.AddTable(
+		querier_dto.TableReference{Name: "sessions", Schema: "public"},
+		querier_dto.JoinInner,
+		newTestTable("sessions", querier_dto.Column{Name: "id", SQLType: textType}),
+	)
+
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "no unknown-alias/ambiguous diagnostic expected")
+	require.Len(t, params, 1)
+	assert.Equal(t, "account_id", params[0].Name)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category)
+}
+
+func TestTypeResolver_ResolveParameters_CTEBodyScope(t *testing.T) {
+	t.Parallel()
+
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["content_media_folders"] = newTestTable("content_media_folders",
+		querier_dto.Column{Name: "id", SQLType: intType},
+	)
+	catalogue.Schemas["public"].Tables["content_media_folder_versions"] = newTestTable("content_media_folder_versions",
+		querier_dto.Column{Name: "id", SQLType: intType},
+		querier_dto.Column{Name: "media_folder_id", SQLType: intType},
+		querier_dto.Column{Name: "status", SQLType: intType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	cteMediaFolderParam := querier_dto.RawParameterReference{
+		Number:          2,
+		ColumnReference: &querier_dto.ColumnReference{ColumnName: "media_folder_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	cteIDParam := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{ColumnName: "id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	mainParam := querier_dto.RawParameterReference{
+		Number:          2,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "m", ColumnName: "id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		CTEDefinitions: []querier_dto.RawCTEDefinition{
+			{
+				Name:                "latest",
+				FromTables:          []querier_dto.TableReference{{Name: "content_media_folder_versions", Schema: "public"}},
+				ParameterReferences: []querier_dto.RawParameterReference{cteMediaFolderParam, cteIDParam},
+			},
+		},
+		ParameterReferences: []querier_dto.RawParameterReference{cteMediaFolderParam, cteIDParam, mainParam},
+	}
+
+	mainScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = mainScope.AddTable(
+		querier_dto.TableReference{Name: "content_media_folders", Schema: "public", Alias: "m"},
+		querier_dto.JoinInner,
+		newTestTable("content_media_folders", querier_dto.Column{Name: "id", SQLType: intType}),
+	)
+	_ = mainScope.AddTable(
+		querier_dto.TableReference{Name: "content_media_folder_versions", Schema: "public", Alias: "v"},
+		querier_dto.JoinInner,
+		newTestTable("content_media_folder_versions",
+			querier_dto.Column{Name: "id", SQLType: intType},
+			querier_dto.Column{Name: "media_folder_id", SQLType: intType},
+		),
+	)
+	_ = mainScope.AddTable(
+		querier_dto.TableReference{Name: "latest", Schema: "public", Alias: "l"},
+		querier_dto.JoinInner,
+		newTestTable("latest", querier_dto.Column{Name: "id", SQLType: intType}),
+	)
+
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, mainScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "CTE-body id must resolve in the CTE scope, not raise Q002 in the outer scope")
+	require.Len(t, params, 2)
+	byNumber := make(map[int]querier_dto.QueryParameter, len(params))
+	for _, parameter := range params {
+		byNumber[parameter.Number] = parameter
+	}
+	require.Contains(t, byNumber, 1)
+	assert.Equal(t, querier_dto.TypeCategoryInteger, byNumber[1].SQLType.Category)
+	require.Contains(t, byNumber, 2)
+	assert.Equal(t, querier_dto.TypeCategoryInteger, byNumber[2].SQLType.Category)
+}
+
+func TestTypeResolver_ResolveParameters_CTEParamUnresolvedDefersToFlatPass(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["versions"] = newTestTable("versions",
+		querier_dto.Column{Name: "boundary", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	cteRef := querier_dto.RawParameterReference{
+		Number:  1,
+		Context: querier_dto.ParameterContextComparison,
+	}
+
+	mainRef := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "v", ColumnName: "boundary"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		CTEDefinitions: []querier_dto.RawCTEDefinition{
+			{
+				Name:                "c",
+				ParameterReferences: []querier_dto.RawParameterReference{cteRef},
+			},
+		},
+		ParameterReferences: []querier_dto.RawParameterReference{cteRef, mainRef},
+	}
+
+	mainScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = mainScope.AddTable(
+		querier_dto.TableReference{Name: "versions", Schema: "public", Alias: "v"},
+		querier_dto.JoinInner,
+		newTestTable("versions", querier_dto.Column{Name: "boundary", SQLType: textType}),
+	)
+
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, mainScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics)
+	require.Len(t, params, 1)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category,
+		"parameter must be typed from the main-query occurrence, not collapsed to unknown by the CTE capture")
+}
+
+func TestTypeResolver_ResolveParameters_PredicateSubqueryScope(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["accounts"] = newTestTable("accounts",
+		querier_dto.Column{Name: "id", SQLType: intType},
+	)
+	catalogue.Schemas["public"].Tables["account_versions"] = newTestTable("account_versions",
+		querier_dto.Column{Name: "id", SQLType: intType},
+		querier_dto.Column{Name: "account_id", SQLType: intType},
+		querier_dto.Column{Name: "email", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	emailParam := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "av", ColumnName: "email"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+
+	subqueryParam := querier_dto.RawParameterReference{
+		Number:          2,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "av2", ColumnName: "id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	predicateSubquery := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "account_versions", Schema: "public", Alias: "av2"}},
+		ParameterReferences: []querier_dto.RawParameterReference{subqueryParam},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{predicateSubquery},
+		ParameterReferences: []querier_dto.RawParameterReference{emailParam, subqueryParam},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = outerScope.AddTable(
+		querier_dto.TableReference{Name: "accounts", Schema: "public", Alias: "a"},
+		querier_dto.JoinInner,
+		newTestTable("accounts", querier_dto.Column{Name: "id", SQLType: intType}),
+	)
+	_ = outerScope.AddTable(
+		querier_dto.TableReference{Name: "account_versions", Schema: "public", Alias: "av"},
+		querier_dto.JoinInner,
+		newTestTable("account_versions",
+			querier_dto.Column{Name: "id", SQLType: intType},
+			querier_dto.Column{Name: "email", SQLType: textType},
+		),
+	)
+
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "subquery-local av2 must resolve in the subquery scope, no false Q001")
+	require.Len(t, params, 2)
+	byNumber := make(map[int]querier_dto.QueryParameter, len(params))
+	for _, parameter := range params {
+		byNumber[parameter.Number] = parameter
+	}
+	require.Contains(t, byNumber, 2)
+	assert.Equal(t, querier_dto.TypeCategoryInteger, byNumber[2].SQLType.Category, "?2 typed from av2.id")
+	require.Contains(t, byNumber, 1)
+	assert.Equal(t, querier_dto.TypeCategoryText, byNumber[1].SQLType.Category, "?1 typed from av.email")
+}
+
+func TestTypeResolver_ResolveParameters_PredicateSubqueryUnknownAliasStillErrors(t *testing.T) {
+	t.Parallel()
+
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["account_versions"] = newTestTable("account_versions",
+		querier_dto.Column{Name: "id", SQLType: intType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	badParam := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "bogus", ColumnName: "nonexistent"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	predicateSubquery := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "account_versions", Schema: "public", Alias: "av2"}},
+		ParameterReferences: []querier_dto.RawParameterReference{badParam},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{predicateSubquery},
+		ParameterReferences: []querier_dto.RawParameterReference{badParam},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = outerScope.AddTable(
+		querier_dto.TableReference{Name: "account_versions", Schema: "public", Alias: "av"},
+		querier_dto.JoinInner,
+		newTestTable("account_versions", querier_dto.Column{Name: "id", SQLType: intType}),
+	)
+
+	_, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	require.NotEmpty(t, diagnostics, "an unknown alias inside a predicate subquery must still raise a diagnostic")
+}
+
+func TestTypeResolver_ResolveParameters_FunctionArgument(t *testing.T) {
+	t.Parallel()
+
+	uuidV4 := querier_dto.SQLType{EngineName: "uuid_v4", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("content")
+	catalogue.Schemas["content"].Functions["get_pages_with_latest_version"] = []*querier_dto.FunctionSignature{
+		{
+			Name:       "get_pages_with_latest_version",
+			Schema:     "content",
+			ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger},
+			ReturnsSet: true,
+			Arguments: []querier_dto.FunctionArgument{
+				{Name: "_environment_id", Type: uuidV4},
+				{Name: "_published", Type: querier_dto.SQLType{EngineName: "boolean", Category: querier_dto.TypeCategoryBoolean}},
+			},
+		},
+	}
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	envParam := querier_dto.RawParameterReference{
+		Number:                1,
+		Context:               querier_dto.ParameterContextFunctionArgument,
+		EnclosingFunctionName: "content.get_pages_with_latest_version",
+		ArgumentOrdinal:       0,
+	}
+	publishedParam := querier_dto.RawParameterReference{
+		Number:                2,
+		Context:               querier_dto.ParameterContextFunctionArgument,
+		EnclosingFunctionName: "content.get_pages_with_latest_version",
+		ArgumentOrdinal:       1,
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		ParameterReferences: []querier_dto.RawParameterReference{envParam, publishedParam},
+	}
+	scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+
+	params, diagnostics := resolver.ResolveParameters(context.Background(), rawAnalysis, scope, []*querier_dto.ParameterDirective{})
+
+	assert.Empty(t, diagnostics)
+	require.Len(t, params, 2)
+	byNumber := make(map[int]querier_dto.QueryParameter, len(params))
+	for _, parameter := range params {
+		byNumber[parameter.Number] = parameter
+	}
+	require.Contains(t, byNumber, 1)
+	assert.Equal(t, "uuid_v4", byNumber[1].SQLType.EngineName, "arg 0 typed from _environment_id")
+	require.Contains(t, byNumber, 2)
+	assert.Equal(t, querier_dto.TypeCategoryBoolean, byNumber[2].SQLType.Category, "arg 1 typed from _published")
+}
+
+func TestTypeResolver_ResolveParameters_SubqueryOverDerivedTable(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["identity_account_versions"] = newTestTable("identity_account_versions",
+		querier_dto.Column{Name: "account_id", SQLType: textType},
+		querier_dto.Column{Name: "email", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	innerMost := &querier_dto.RawQueryAnalysis{
+		FromTables: []querier_dto.TableReference{{Name: "identity_account_versions", Schema: "public"}},
+		OutputColumns: []querier_dto.RawOutputColumn{
+			{Name: "account_id", ColumnName: "account_id"},
+			{Name: "email", ColumnName: "email"},
+		},
+	}
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{ColumnName: "email"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	predicateSubquery := &querier_dto.RawQueryAnalysis{
+		RawDerivedTables:    []querier_dto.RawDerivedTableReference{{InnerQuery: innerMost, Alias: ""}},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{predicateSubquery},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+
+	params, diagnostics := resolver.ResolveParameters(context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{})
+
+	assert.Empty(t, diagnostics, "email must resolve against the derived table's projected columns")
+	require.Len(t, params, 1)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category)
+}
+
+func TestTypeResolver_ResolveParameters_IndependentNestedNumberingNotSuppressed(t *testing.T) {
+	t.Parallel()
+
+	intType := querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Tables["orchestrator_tasks"] = newTestTable("orchestrator_tasks",
+		querier_dto.Column{Name: "workflow_id", SQLType: textType},
+	)
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	outerParam := querier_dto.RawParameterReference{
+		Number:          1,
+		Name:            "q",
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "workflows", ColumnName: "id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	innerParam := querier_dto.RawParameterReference{
+		Number:          1,
+		Name:            "p",
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "ot", ColumnName: "workflow_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	innerQuery := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "orchestrator_tasks", Schema: "public", Alias: "ot"}},
+		ParameterReferences: []querier_dto.RawParameterReference{innerParam},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		RawDerivedTables: []querier_dto.RawDerivedTableReference{{InnerQuery: innerQuery, Alias: "d"}},
+
+		ParameterReferences: []querier_dto.RawParameterReference{outerParam},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_ = outerScope.AddTable(
+		querier_dto.TableReference{Name: "workflows", Schema: "public"},
+		querier_dto.JoinInner,
+		newTestTable("workflows", querier_dto.Column{Name: "id", SQLType: intType}),
+	)
+
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "the outer parameter resolves; no false diagnostic")
+	require.Len(t, params, 1)
+	assert.Equal(t, 1, params[0].Number)
+	assert.Equal(t, querier_dto.TypeCategoryInteger, params[0].SQLType.Category,
+		"outer parameter must keep its own type, not be overwritten by the independent inner parameter")
+}
+
+func TestTypeResolver_ResolveParameters_SubqueryOverView(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+	catalogue.Schemas["public"].Views["active_sessions"] = &querier_dto.View{
+		Name:    "active_sessions",
+		Schema:  "public",
+		Columns: []querier_dto.Column{{Name: "session_account_id", SQLType: textType}},
+	}
+	resolver := newTypeResolverWithCatalogue(catalogue)
+
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "s", ColumnName: "session_account_id"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	innerQuery := &querier_dto.RawQueryAnalysis{
+		FromTables:          []querier_dto.TableReference{{Name: "active_sessions", Schema: "public", Alias: "s"}},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		OutputColumns: []querier_dto.RawOutputColumn{
+			{Name: "has_session", Expression: &querier_dto.ExistsExpression{InnerQuery: innerQuery}},
+		},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "a subquery over a view must resolve, not raise Q001")
+	require.Len(t, params, 1)
+	assert.Equal(t, "session_account_id", params[0].Name)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category)
 }
 
 func TestCollectParameters(t *testing.T) {
@@ -881,6 +1596,25 @@ func TestFindColumnInCatalogue(t *testing.T) {
 		assert.False(t, match.nullable)
 	})
 
+	t.Run("array column is wrapped to the Array category", func(t *testing.T) {
+		t.Parallel()
+		catalogue := newTestCatalogue("public")
+		catalogue.Schemas["public"].Tables["posts"] = newTestTable("posts", querier_dto.Column{
+			Name:            "tags",
+			SQLType:         querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText},
+			IsArray:         true,
+			ArrayDimensions: 1,
+		})
+		resolver := &typeResolver{catalogue: catalogue}
+		match, ok := resolver.findColumnInCatalogue(&querier_dto.ColumnReference{ColumnName: "tags"})
+		require.True(t, ok)
+
+		assert.Equal(t, querier_dto.TypeCategoryArray, match.sqlType.Category)
+		assert.Equal(t, "text[]", match.sqlType.EngineName)
+		require.NotNil(t, match.sqlType.ElementType)
+		assert.Equal(t, querier_dto.TypeCategoryText, match.sqlType.ElementType.Category)
+	})
+
 	t.Run("nullable column propagates the flag", func(t *testing.T) {
 		t.Parallel()
 		catalogue := newTestCatalogue("public")
@@ -1104,9 +1838,9 @@ func TestApplyDirectiveKind(t *testing.T) {
 		{
 			name: "optional sets nullable and isOptional",
 			directive: &querier_dto.ParameterDirective{
-				Number: 1,
-				Name:   "filter",
-				Kind:   querier_dto.ParameterDirectiveOptional,
+				Number:     1,
+				Name:       "filter",
+				IsOptional: true,
 			},
 			assertParameter: func(t *testing.T, parameter *querier_dto.QueryParameter) {
 				t.Helper()
@@ -1117,9 +1851,9 @@ func TestApplyDirectiveKind(t *testing.T) {
 		{
 			name: "slice sets isSlice",
 			directive: &querier_dto.ParameterDirective{
-				Number: 1,
-				Name:   "ids",
-				Kind:   querier_dto.ParameterDirectiveSlice,
+				Number:  1,
+				Name:    "ids",
+				IsSlice: true,
 			},
 			assertParameter: func(t *testing.T, parameter *querier_dto.QueryParameter) {
 				t.Helper()
@@ -1141,37 +1875,19 @@ func TestApplyDirectiveKind(t *testing.T) {
 			},
 		},
 		{
-			name: "limit sets integer type and defaults",
+			name: "default and max populate limit bounds",
 			directive: &querier_dto.ParameterDirective{
 				Number:     1,
 				Name:       "page_size",
-				Kind:       querier_dto.ParameterDirectiveLimit,
 				DefaultVal: new(20),
 				MaxVal:     new(100),
 			},
 			assertParameter: func(t *testing.T, parameter *querier_dto.QueryParameter) {
 				t.Helper()
-				assert.Equal(t, querier_dto.TypeCategoryInteger, parameter.SQLType.Category)
-				assert.Equal(t, querier_dto.CanonicalInt4, parameter.SQLType.EngineName)
-				assert.False(t, parameter.Nullable, "limit should force nullable to false")
 				require.NotNil(t, parameter.DefaultLimit, "expected DefaultLimit to be set")
 				assert.Equal(t, 20, *parameter.DefaultLimit)
 				require.NotNil(t, parameter.MaxLimit, "expected MaxLimit to be set")
 				assert.Equal(t, 100, *parameter.MaxLimit)
-			},
-		},
-		{
-			name: "offset sets integer type",
-			directive: &querier_dto.ParameterDirective{
-				Number: 1,
-				Name:   "skip",
-				Kind:   querier_dto.ParameterDirectiveOffset,
-			},
-			assertParameter: func(t *testing.T, parameter *querier_dto.QueryParameter) {
-				t.Helper()
-				assert.Equal(t, querier_dto.TypeCategoryInteger, parameter.SQLType.Category)
-				assert.Equal(t, querier_dto.CanonicalInt4, parameter.SQLType.EngineName)
-				assert.False(t, parameter.Nullable, "offset should force nullable to false")
 			},
 		},
 		{
@@ -1198,14 +1914,11 @@ func TestApplyDirectiveKind(t *testing.T) {
 			t.Parallel()
 
 			resolver := newTestTypeResolver()
-			parameter := &querier_dto.QueryParameter{
-				Number:  tt.directive.Number,
-				Name:    tt.directive.Name,
-				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			}
+			parameterTypes := map[int]*querier_dto.QueryParameter{}
+			resolver.applyParameterDirectives(parameterTypes, []*querier_dto.ParameterDirective{tt.directive})
 
-			resolver.applyDirectiveKind(parameter, tt.directive)
-
+			parameter, ok := parameterTypes[tt.directive.Number]
+			require.True(t, ok, "expected a parameter for number %d", tt.directive.Number)
 			tt.assertParameter(t, parameter)
 		})
 	}
@@ -1288,6 +2001,53 @@ func TestExpandStar(t *testing.T) {
 					"first expanded column should come from %s", tt.wantTable)
 			}
 		})
+	}
+}
+
+func TestExpandStarOrdersColumnsByTableAlias(t *testing.T) {
+	t.Parallel()
+
+	setup := func() *scopeChain {
+		scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+
+		_ = scope.AddTable(
+			querier_dto.TableReference{Name: "zebra", Schema: "public"},
+			querier_dto.JoinInner,
+			&querier_dto.Table{
+				Name: "zebra",
+				Columns: []querier_dto.Column{
+					{Name: "z_first", SQLType: querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}},
+					{Name: "z_second", SQLType: querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}},
+				},
+			},
+		)
+		_ = scope.AddTable(
+			querier_dto.TableReference{Name: "apple", Schema: "public"},
+			querier_dto.JoinInner,
+			&querier_dto.Table{
+				Name: "apple",
+				Columns: []querier_dto.Column{
+					{Name: "a_first", SQLType: querier_dto.SQLType{EngineName: "int4", Category: querier_dto.TypeCategoryInteger}},
+				},
+			},
+		)
+		return scope
+	}
+
+	resolver := newTestTypeResolver()
+
+	wantNames := []string{"a_first", "z_first", "z_second"}
+
+	for attempt := range 8 {
+		scope := setup()
+		columns, err := resolver.expandStar("", scope)
+		require.NoError(t, err)
+
+		gotNames := make([]string, len(columns))
+		for i := range columns {
+			gotNames[i] = columns[i].Name
+		}
+		assert.Equal(t, wantNames, gotNames, "expansion must be alias-sorted and stable on attempt %d", attempt)
 	}
 }
 
@@ -1422,14 +2182,13 @@ func TestApplyParameterDirectives(t *testing.T) {
 		resolver.applyParameterDirectives(parameterTypes, []*querier_dto.ParameterDirective{
 			{
 				Number: 2,
-				Name:   "offset",
-				Kind:   querier_dto.ParameterDirectiveOffset,
+				Name:   "skip",
 			},
 		})
 
 		require.Contains(t, parameterTypes, 2)
-		assert.Equal(t, "offset", parameterTypes[2].Name)
-		assert.Equal(t, querier_dto.TypeCategoryInteger, parameterTypes[2].SQLType.Category)
+		assert.Equal(t, "skip", parameterTypes[2].Name)
+		assert.Equal(t, querier_dto.TypeCategoryUnknown, parameterTypes[2].SQLType.Category)
 	})
 
 	t.Run("type hint overrides inferred type", func(t *testing.T) {
@@ -1543,7 +2302,7 @@ func TestResolveParameterType(t *testing.T) {
 			Number: 1,
 			ColumnReference: &querier_dto.ColumnReference{
 				TableAlias: "nonexistent",
-				ColumnName: "id",
+				ColumnName: "nonexistent_column",
 			},
 		}
 
@@ -1551,6 +2310,27 @@ func TestResolveParameterType(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, querier_dto.TypeCategoryUnknown, sqlType.Category)
+	})
+
+	t.Run("unknown alias falls back to the bare column when it resolves", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newTestTypeResolver()
+		scope := setupTypeResolverScope()
+
+		raw := querier_dto.RawParameterReference{
+			Number: 1,
+			ColumnReference: &querier_dto.ColumnReference{
+				TableAlias: "nonexistent",
+				ColumnName: "email",
+			},
+		}
+
+		sqlType, nullable, err := resolver.resolveParameterType(raw, scope)
+
+		require.NoError(t, err)
+		assert.Equal(t, querier_dto.TypeCategoryText, sqlType.Category)
+		assert.True(t, nullable, "email column is nullable")
 	})
 }
 
@@ -1572,5 +2352,134 @@ func TestNewTypeResolver(t *testing.T) {
 		assert.Equal(t, funcResolver, resolver.functionResolver)
 
 		assert.Equal(t, engine, resolver.engine.(*mockEngine))
+	})
+}
+
+func TestInferExpressionName_HandlesNil(t *testing.T) {
+	t.Parallel()
+
+	t.Run("untyped nil", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, "", inferExpressionName(nil))
+	})
+
+	t.Run("typed nil column ref", func(t *testing.T) {
+		t.Parallel()
+		var expression querier_dto.Expression = (*querier_dto.ColumnRefExpression)(nil)
+		assert.Equal(t, "", inferExpressionName(expression))
+	})
+
+	t.Run("typed nil cast", func(t *testing.T) {
+		t.Parallel()
+		var expression querier_dto.Expression = (*querier_dto.CastExpression)(nil)
+		assert.Equal(t, "", inferExpressionName(expression))
+	})
+
+	t.Run("typed nil coalesce", func(t *testing.T) {
+		t.Parallel()
+		var expression querier_dto.Expression = (*querier_dto.CoalesceExpression)(nil)
+		assert.Equal(t, "", inferExpressionName(expression))
+	})
+
+	t.Run("typed nil function call", func(t *testing.T) {
+		t.Parallel()
+		var expression querier_dto.Expression = (*querier_dto.FunctionCallExpression)(nil)
+		assert.Equal(t, "", inferExpressionName(expression))
+	})
+}
+
+func TestInferExpressionName_UnwrapsCastAndCoalesce(t *testing.T) {
+	t.Parallel()
+
+	columnRef := &querier_dto.ColumnRefExpression{ColumnName: "email"}
+
+	t.Run("cast wraps column ref", func(t *testing.T) {
+		t.Parallel()
+		cast := &querier_dto.CastExpression{Inner: columnRef}
+		assert.Equal(t, "email", inferExpressionName(cast))
+	})
+
+	t.Run("coalesce picks first non-empty argument", func(t *testing.T) {
+		t.Parallel()
+		coalesce := &querier_dto.CoalesceExpression{
+			Arguments: []querier_dto.Expression{
+				&querier_dto.FunctionCallExpression{FunctionName: ""},
+				columnRef,
+			},
+		}
+		assert.Equal(t, "email", inferExpressionName(coalesce))
+	})
+
+	t.Run("function call returns its name", func(t *testing.T) {
+		t.Parallel()
+		call := &querier_dto.FunctionCallExpression{FunctionName: "count"}
+		assert.Equal(t, "count", inferExpressionName(call))
+	})
+}
+
+func TestUnwrapCastToColumnRef(t *testing.T) {
+	t.Parallel()
+
+	column := &querier_dto.ColumnRefExpression{ColumnName: "page_id"}
+	tests := []struct {
+		name string
+		expr querier_dto.Expression
+		want *querier_dto.ColumnRefExpression
+	}{
+		{name: "bare column", expr: column, want: column},
+		{name: "single cast", expr: &querier_dto.CastExpression{Inner: column}, want: column},
+		{
+			name: "nested casts",
+			expr: &querier_dto.CastExpression{Inner: &querier_dto.CastExpression{Inner: column}},
+			want: column,
+		},
+		{
+			name: "cast over function call is not a column",
+			expr: &querier_dto.CastExpression{Inner: &querier_dto.FunctionCallExpression{FunctionName: "now"}},
+			want: nil,
+		},
+		{name: "literal is not a column", expr: &querier_dto.LiteralExpression{}, want: nil},
+		{name: "nil expression", expr: nil, want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, unwrapCastToColumnRef(tt.expr))
+		})
+	}
+}
+
+func TestApplyCastColumnSource(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cast over a resolvable column records the source", func(t *testing.T) {
+		t.Parallel()
+		output := &querier_dto.OutputColumn{}
+
+		applyCastColumnSource(output, &querier_dto.CastExpression{Inner: colRef("wm", "version_role_id")}, memberScope())
+
+		assert.Equal(t, "version_role_id", output.SourceColumn)
+		assert.Equal(t, "workspace_members_with_latest_version", output.SourceTable)
+		assert.Equal(t, "wm", output.SourceQualifier)
+	})
+
+	t.Run("cast over a function call leaves the source empty", func(t *testing.T) {
+		t.Parallel()
+		output := &querier_dto.OutputColumn{}
+
+		applyCastColumnSource(output, &querier_dto.CastExpression{Inner: &querier_dto.FunctionCallExpression{FunctionName: "now"}}, memberScope())
+
+		assert.Empty(t, output.SourceColumn)
+		assert.Empty(t, output.SourceTable)
+	})
+
+	t.Run("cast over an unresolvable column leaves the source empty", func(t *testing.T) {
+		t.Parallel()
+		output := &querier_dto.OutputColumn{}
+
+		applyCastColumnSource(output, &querier_dto.CastExpression{Inner: colRef("wm", "nonexistent")}, memberScope())
+
+		assert.Empty(t, output.SourceColumn)
 	})
 }

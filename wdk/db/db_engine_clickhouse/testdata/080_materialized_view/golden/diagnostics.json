@@ -1,0 +1,35 @@
+[
+  {
+    "Filename": "q.sql",
+    "Message": "Q001: unknown column \"id\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "q.sql",
+    "Message": "Q001: unknown column \"doubled\"",
+    "Code": "Q001",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  },
+  {
+    "Filename": "q.sql",
+    "Message": "query \"ReadMV\" uses command \"many\" but produces no output columns",
+    "Code": "Q009",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

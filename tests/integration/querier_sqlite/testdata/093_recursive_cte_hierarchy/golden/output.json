@@ -1,50 +1,50 @@
 {
   "ancestors_of_iphones": [
     {
-      "Depth": 0,
-      "ID": 7,
-      "Name": "iPhones"
+      "depth": 0,
+      "id": 7,
+      "name": "iPhones"
     },
     {
-      "Depth": 1,
-      "ID": 4,
-      "Name": "Phones"
+      "depth": 1,
+      "id": 4,
+      "name": "Phones"
     },
     {
-      "Depth": 2,
-      "ID": 2,
-      "Name": "Electronics"
+      "depth": 2,
+      "id": 2,
+      "name": "Electronics"
     },
     {
-      "Depth": 3,
-      "ID": 1,
-      "Name": "Root"
+      "depth": 3,
+      "id": 1,
+      "name": "Root"
     }
   ],
   "subtree_from_electronics": [
     {
-      "Depth": 0,
-      "ID": 2,
-      "Name": "Electronics",
-      "ParentID": 1
+      "depth": 0,
+      "id": 2,
+      "name": "Electronics",
+      "parent_id": 1
     },
     {
-      "Depth": 1,
-      "ID": 4,
-      "Name": "Phones",
-      "ParentID": 2
+      "depth": 1,
+      "id": 4,
+      "name": "Phones",
+      "parent_id": 2
     },
     {
-      "Depth": 1,
-      "ID": 5,
-      "Name": "Laptops",
-      "ParentID": 2
+      "depth": 1,
+      "id": 5,
+      "name": "Laptops",
+      "parent_id": 2
     },
     {
-      "Depth": 2,
-      "ID": 7,
-      "Name": "iPhones",
-      "ParentID": 4
+      "depth": 2,
+      "id": 7,
+      "name": "iPhones",
+      "parent_id": 4
     }
   ]
 }

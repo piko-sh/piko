@@ -70,6 +70,22 @@ type CatalogueMutation struct {
 	// Columns holds column definitions for CREATE TABLE or ADD COLUMN.
 	Columns []Column
 
+	// AdditionalMutations carries follow-up mutations produced by a single DDL statement
+	// that the engine could not collapse into the primary mutation.
+	//
+	// The catalogue builder applies these in order immediately after the primary, with the
+	// same Origin. Used for multi-action ALTER TABLE statements where a single statement
+	// adds a column and also adds a constraint, for example.
+	AdditionalMutations []*CatalogueMutation
+
+	// EngineSpecific carries free-form metadata an engine attaches to a mutation that the
+	// rest of the pipeline does not interpret.
+	//
+	// The ClickHouse engine uses it to preserve table-engine declarations (e.g. ENGINE =
+	// MergeTree(), PARTITION BY, ORDER BY, SETTINGS, TTL) that affect query planning but not
+	// codegen. Other engines leave it nil.
+	EngineSpecific map[string]string
+
 	// InheritsTables lists parent tables from an INHERITS clause on CREATE TABLE. The
 	// catalogue builder prepends each parent's columns to the child table.
 	InheritsTables []TableReference
@@ -185,6 +201,172 @@ const (
 	// MutationDropSequence removes a sequence.
 	MutationDropSequence
 
+	// MutationAsyncDataUpdate records a data-mutating ALTER TABLE ... UPDATE statement
+	// (ClickHouse).
+	//
+	// The mutation does not change the catalogue's schema view; it carries the WHERE/SET
+	// text in EngineSpecific so the migration runner can execute it and codegen can ignore
+	// it.
+	MutationAsyncDataUpdate
+
+	// MutationAsyncDataDelete records a data-mutating ALTER TABLE ... DELETE statement
+	// (ClickHouse).
+	//
+	// See MutationAsyncDataUpdate for the storage convention.
+	MutationAsyncDataDelete
+
+	// MutationCreateDictionary creates a ClickHouse dictionary (key-value lookup table). The
+	// dictionary is catalogue-visible as a view-like entity; its columns plus structured
+	// engine metadata (PRIMARY KEY, SOURCE, LAYOUT, LIFETIME) are captured on the mutation.
+	MutationCreateDictionary
+
+	// MutationDropDictionary removes a ClickHouse dictionary.
+	MutationDropDictionary
+
+	// MutationExchangeTables atomically swaps two ClickHouse tables. The primary mutation
+	// carries the left table; the right table name is stored under the EngineSpecific key
+	// EXCHANGE_TARGET so downstream consumers can read both sides.
+	MutationExchangeTables
+
+	// MutationAlterTableAddProjection adds a projection to a table (ClickHouse). The
+	// projection name is carried under EngineSpecific[PROJECTION_NAME] and the SELECT body
+	// under EngineSpecific[PROJECTION_SELECT].
+	MutationAlterTableAddProjection
+
+	// MutationAlterTableDropProjection removes a projection from a table. The projection
+	// name is carried under EngineSpecific[PROJECTION_NAME].
+	MutationAlterTableDropProjection
+
+	// MutationAlterTableMaterializeProjection rebuilds a projection's data on disk; pure
+	// runtime operation captured for migration-runner replay.
+	MutationAlterTableMaterializeProjection
+
+	// MutationAlterTableAddSkippingIndex adds a data-skipping index to a table.
+	// EngineSpecific carries INDEX_NAME, INDEX_EXPR, INDEX_TYPE, INDEX_GRANULARITY.
+	MutationAlterTableAddSkippingIndex
+
+	// MutationAlterTableDropSkippingIndex removes a data-skipping index. EngineSpecific
+	// carries INDEX_NAME.
+	MutationAlterTableDropSkippingIndex
+
+	// MutationAlterTableMaterializeIndex rebuilds a data-skipping index; pure runtime
+	// operation captured for migration-runner replay.
+	MutationAlterTableMaterializeIndex
+
+	// MutationAlterTableAddStatistics adds column statistics to a table. EngineSpecific
+	// carries STATS_COLUMNS, STATS_TYPES.
+	MutationAlterTableAddStatistics
+
+	// MutationAlterTableDropStatistics removes column statistics from a table.
+	// EngineSpecific carries STATS_COLUMNS.
+	MutationAlterTableDropStatistics
+
+	// MutationAlterTableMaterializeStatistics rebuilds column statistics; pure runtime
+	// operation captured for migration-runner replay.
+	MutationAlterTableMaterializeStatistics
+
+	// MutationAlterTableModifyStatistics modifies column statistics. EngineSpecific carries
+	// STATS_COLUMNS, STATS_TYPES.
+	MutationAlterTableModifyStatistics
+
+	// MutationAlterTableMaterializeColumn rebuilds a materialised column's stored data; pure
+	// runtime operation captured for migration-runner replay.
+	MutationAlterTableMaterializeColumn
+
+	// MutationAlterTableModifyColumn captures sub-target column modifications (REMOVE
+	// DEFAULT, MODIFY COMMENT, RESET SETTING) that do not change the column's type.
+	// EngineSpecific carries COLUMN_REMOVE, COLUMN_MODIFY_COMMENT, or COLUMN_RESET_SETTING.
+	MutationAlterTableModifyColumn
+
+	// MutationAlterTableModifyQuery captures a refreshable materialised view's body
+	// replacement (ALTER TABLE v MODIFY QUERY). EngineSpecific[NEW_QUERY] carries the new
+	// SELECT text.
+	MutationAlterTableModifyQuery
+
+	// MutationAlterTableModifyRefresh captures changes to a refreshable materialised view's
+	// refresh policy (ALTER TABLE v MODIFY REFRESH / SQL SECURITY / DEFINER).
+	MutationAlterTableModifyRefresh
+
+	// MutationAlterTablePartition captures partition operations on a MergeTree table
+	// (ATTACH/DETACH/DROP/MOVE/REPLACE/FETCH/FREEZE/ UNFREEZE PARTITION). EngineSpecific
+	// carries PARTITION_OP, PARTITION_TARGET, PARTITION_EXPR, and optional PARTITION_DEST,
+	// PARTITION_BACKUP_NAME, PARTITION_FROM_TABLE, PARTITION_DETACHED.
+	MutationAlterTablePartition
+
+	// MutationCreateUser captures a CREATE USER statement (RBAC). EngineSpecific[USER_NAME]
+	// carries the user name; the rest of the statement text is captured opaquely under
+	// EngineSpecific[STATEMENT_BODY].
+	MutationCreateUser
+
+	// MutationAlterUser captures an ALTER USER statement (RBAC).
+	MutationAlterUser
+
+	// MutationDropUser captures a DROP USER statement (RBAC).
+	MutationDropUser
+
+	// MutationCreateRole captures a CREATE ROLE statement (RBAC).
+	MutationCreateRole
+
+	// MutationAlterRole captures an ALTER ROLE statement (RBAC).
+	MutationAlterRole
+
+	// MutationDropRole captures a DROP ROLE statement (RBAC).
+	MutationDropRole
+
+	// MutationCreatePolicy captures a CREATE ROW POLICY statement (RBAC).
+	MutationCreatePolicy
+
+	// MutationAlterPolicy captures an ALTER POLICY statement (RBAC).
+	MutationAlterPolicy
+
+	// MutationDropPolicy captures a DROP POLICY statement (RBAC).
+	MutationDropPolicy
+
+	// MutationCreateQuota captures a CREATE QUOTA statement (RBAC).
+	MutationCreateQuota
+
+	// MutationAlterQuota captures an ALTER QUOTA statement (RBAC).
+	MutationAlterQuota
+
+	// MutationDropQuota captures a DROP QUOTA statement (RBAC).
+	MutationDropQuota
+
+	// MutationCreateSettingsProfile captures a CREATE SETTINGS PROFILE statement (RBAC).
+	MutationCreateSettingsProfile
+
+	// MutationAlterSettingsProfile captures an ALTER SETTINGS PROFILE statement (RBAC).
+	MutationAlterSettingsProfile
+
+	// MutationDropSettingsProfile captures a DROP SETTINGS PROFILE statement (RBAC).
+	MutationDropSettingsProfile
+
+	// MutationGrantManagement captures a GRANT or REVOKE statement (RBAC).
+	// EngineSpecific[RBAC_KIND] is GRANT or REVOKE; the body text is under
+	// EngineSpecific[STATEMENT_BODY].
+	MutationGrantManagement
+
+	// MutationAttachTable captures an ATTACH TABLE statement, which re-registers an existing
+	// on-disk table with the server.
+	MutationAttachTable
+
+	// MutationDetachTable captures a DETACH TABLE statement, which unregisters a table
+	// without removing its data.
+	MutationDetachTable
+
+	// MutationBackup captures a BACKUP statement. The body text is under
+	// EngineSpecific[STATEMENT_BODY].
+	MutationBackup
+
+	// MutationRestore captures a RESTORE statement. The body text is under
+	// EngineSpecific[STATEMENT_BODY].
+	MutationRestore
+
+	// MutationKillQuery captures a KILL QUERY statement.
+	MutationKillQuery
+
+	// MutationKillMutation captures a KILL MUTATION statement.
+	MutationKillMutation
+
 	// MutationKindCount is a sentinel value for array dispatch table sizing.
 	MutationKindCount
 )
@@ -213,8 +395,24 @@ type Column struct {
 	// Comment is the column comment, if any.
 	Comment string
 
+	// SQLTypeOverride, when non-empty, carries the engine-specific SQL type name declared
+	// via a migration-level piko.column(table.col, type: ...) directive. The query analyser
+	// uses this to replace the engine-inferred SQLType on any output column that traces back
+	// to this column via direct projection.
+	SQLTypeOverride string
+
 	// Origin records which migration introduced this column.
 	Origin MigrationOrigin
+
+	// GoTypeOverride, when non-nil, carries the import-path-qualified custom Go destination
+	// type declared via a migration-level piko.column(table.col, go_type: ...) directive.
+	// Propagates to output columns that project this column unchanged.
+	GoTypeOverride *GoType
+
+	// NullableOverride is non-nil when a migration-level piko.column directive declared an
+	// explicit nullability for this column, overriding what the engine inferred from the
+	// CREATE TABLE.
+	NullableOverride *bool
 
 	// SQLType is the structured type of the column.
 	SQLType SQLType
@@ -241,6 +439,16 @@ type Column struct {
 
 // FunctionSignature describes a SQL function's type signature.
 type FunctionSignature struct {
+	// BodyExpression is the parsed expression tree of a function whose body fits in a single
+	// expression (ClickHouse lambdas, postgres SQL functions with a single RETURN
+	// expression).
+	//
+	// Engines populate this during ApplyDDL when the body is structurally parsed;
+	// catalogue_builder_function runs the shared analyser to fill in ReturnType when it is
+	// left zero. Tagged json:"-" so persisted catalogue snapshots do not bloat with
+	// expression trees.
+	BodyExpression Expression `json:"-"`
+
 	// Name is the function name.
 	Name string
 
@@ -264,16 +472,27 @@ type FunctionSignature struct {
 	// during body analysis; used for call graph construction.
 	CalledFunctions []string
 
+	// BodyParameters lists the parameter names in lexical order so the analyser can bind
+	// them into a child scope before resolving BodyExpression.
+	//
+	// Mirrors LambdaExpression.Parameters but lives on the signature so the analyser does
+	// not need to special-case the expression kind. Tagged json:"-" because it is only used
+	// together with BodyExpression and shares its in-memory-only lifecycle.
+	BodyParameters []string `json:"-"`
+
 	// Origin records which migration introduced the function.
 	Origin MigrationOrigin
 
 	// ReturnType is the function's return type.
 	ReturnType SQLType
 
-	// MinArguments is the minimum number of arguments required, where arguments beyond this
-	// index have implicit defaults.
+	// MinArguments is the minimum number of arguments a caller must supply; arguments beyond
+	// this index are optional (they carry defaults).
 	//
-	// When zero, defaults to len(Arguments) (all required).
+	// When left zero, the overload resolver derives the true minimum from the arguments'
+	// IsOptional flags via MinimumArguments, so a genuinely-zero minimum (a leading optional
+	// argument) is not conflated with an unpopulated field. Set it explicitly only to
+	// override that derivation.
 	MinArguments int
 
 	// ReturnsSet indicates whether a set of rows is returned.
@@ -584,3 +803,20 @@ const (
 	// ConstraintNotNull is a NOT NULL constraint.
 	ConstraintNotNull
 )
+
+// MinimumArguments returns the minimum number of arguments a caller must supply for the
+// given argument list: the count of leading non-optional arguments. Optional arguments
+// (those carrying defaults) must trail the required ones, so the first optional argument
+// marks the minimum; a list with no optional arguments requires all of them.
+//
+// Takes arguments ([]FunctionArgument) which are the declared arguments.
+//
+// Returns int which is the count of leading required arguments.
+func MinimumArguments(arguments []FunctionArgument) int {
+	for index := range arguments {
+		if arguments[index].IsOptional {
+			return index
+		}
+	}
+	return len(arguments)
+}

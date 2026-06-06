@@ -29,10 +29,10 @@ import (
 	"strings"
 )
 
-// NormaliseStdout produces the canonical byte form used for hash comparison.
-// Line endings collapse to LF, trailing whitespace on each line is dropped,
-// and one trailing LF is removed if present so an editor adding (or not
-// adding) a final newline does not change the hash.
+// NormaliseStdout produces the canonical byte form used for hash comparison. Line endings
+// collapse to LF, trailing whitespace on each line is dropped, and one trailing LF is
+// removed if present so an editor adding (or not adding) a final newline does not change
+// the hash.
 func NormaliseStdout(raw []byte) []byte {
 	text := string(raw)
 	text = strings.ReplaceAll(text, "\r\n", "\n")
@@ -54,9 +54,9 @@ func SHA256Hex(data []byte) string {
 	return hex.EncodeToString(digest[:])
 }
 
-// VerifySourceSHAs walks every entry in spec.SourceSHAs and checks that the
-// file at that relative path inside benchmarkDir hashes to the recorded
-// digest. Returns nil on full match.
+// VerifySourceSHAs walks every entry in spec.SourceSHAs and checks that the file at that
+// relative path inside benchmarkDir hashes to the recorded digest. Returns nil on full
+// match.
 func VerifySourceSHAs(spec BenchSpec, benchmarkDir string) error {
 	for relativePath, expected := range spec.SourceSHAs {
 		absolutePath := filepath.Join(benchmarkDir, relativePath)
@@ -72,8 +72,8 @@ func VerifySourceSHAs(spec BenchSpec, benchmarkDir string) error {
 	return nil
 }
 
-// HashSourceFile computes the SHA-256 of a source file, used by the
-// regenerate-hashes flow to refresh spec.json after intentional edits.
+// HashSourceFile computes the SHA-256 of a source file, used by the regenerate-hashes
+// flow to refresh spec.json after intentional edits.
 func HashSourceFile(absolutePath string) (string, error) {
 	data, err := os.ReadFile(absolutePath)
 	if err != nil {
@@ -82,19 +82,19 @@ func HashSourceFile(absolutePath string) (string, error) {
 	return SHA256Hex(data), nil
 }
 
-// ParseInnerElapsedNanos scans stderr for a `INNER_ELAPSED_NS=<int>` line
-// and returns the parsed nanos. Returns (0, "") if no such line is found.
-// The remaining stderr (with the marker line removed) is returned for
-// diagnostic display. Multiple markers keep the last one wins.
+// ParseInnerElapsedNanos scans stderr for a `INNER_ELAPSED_NS=<int>` line and returns the
+// parsed nanos. Returns (0, "") if no such line is found. The remaining stderr (with the
+// marker line removed) is returned for diagnostic display. Multiple markers keep the last
+// one wins.
 func ParseInnerElapsedNanos(stderr []byte) (int64, string) {
 	innerNanos, _, remainder := ParseTimingMarkers(stderr)
 	return innerNanos, remainder
 }
 
-// ParseTimingMarkers scans stderr for `INNER_ELAPSED_NS=<int>` and
-// `COMPILE_NANOS=<int>` lines, returning each as a parsed nanosecond
-// value (0 when absent) plus the remaining stderr with marker lines
-// removed. Multiple markers of the same kind keep the last-one-wins.
+// ParseTimingMarkers scans stderr for `INNER_ELAPSED_NS=<int>` and `COMPILE_NANOS=<int>`
+// lines, returning each as a parsed nanosecond value (0 when absent) plus the remaining
+// stderr with marker lines removed. Multiple markers of the same kind keep the
+// last-one-wins.
 func ParseTimingMarkers(stderr []byte) (int64, int64, string) {
 	if len(stderr) == 0 {
 		return 0, 0, ""

@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS registry_variant_chunk (
   storage_backend_id TEXT NOT NULL,
   size_bytes BIGINT NOT NULL,
   content_hash TEXT NOT NULL DEFAULT '',
-  sequence_number INTEGER NOT NULL,
+  sequence_number BIGINT NOT NULL,
   mime_type TEXT NOT NULL,
   created_at BIGINT NOT NULL,
 

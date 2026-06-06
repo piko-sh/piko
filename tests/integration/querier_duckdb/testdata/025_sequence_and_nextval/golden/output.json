@@ -1,19 +1,19 @@
 {
   "list_orders": [
     {
-      "Customer": "Alice",
-      "ID": 1000,
-      "Total": 5000
+      "customer": "Alice",
+      "id": 1000,
+      "total": 5000
     },
     {
-      "Customer": "Bob",
-      "ID": 1001,
-      "Total": 3000
+      "customer": "Bob",
+      "id": 1001,
+      "total": 3000
     },
     {
-      "Customer": "Charlie",
-      "ID": 1002,
-      "Total": 7500
+      "customer": "Charlie",
+      "id": 1002,
+      "total": 7500
     }
   ]
 }

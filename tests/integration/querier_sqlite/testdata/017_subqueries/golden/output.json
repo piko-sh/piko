@@ -1,22 +1,22 @@
 {
   "customers": [
     {
-      "HasInvoices": true,
-      "ID": 1,
-      "MaxInvoice": 200.75,
-      "Name": "Alice"
+      "has_invoices": true,
+      "id": 1,
+      "max_invoice": 200.75,
+      "name": "Alice"
     },
     {
-      "HasInvoices": true,
-      "ID": 2,
-      "MaxInvoice": 50,
-      "Name": "Bob"
+      "has_invoices": true,
+      "id": 2,
+      "max_invoice": 50,
+      "name": "Bob"
     },
     {
-      "HasInvoices": false,
-      "ID": 3,
-      "MaxInvoice": null,
-      "Name": "Charlie"
+      "has_invoices": false,
+      "id": 3,
+      "max_invoice": null,
+      "name": "Charlie"
     }
   ]
 }

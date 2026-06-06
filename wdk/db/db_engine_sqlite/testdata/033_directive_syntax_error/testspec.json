@@ -1,8 +1,7 @@
 {
-  "description": "Query has an invalid piko.command value, producing a Q007 directive syntax error and a cascading Q008 for the missing valid command.",
-  "expectedDiagnosticCount": 2,
+  "description": "Query has an invalid command keyword-argument value, producing a single Q028 invalid-keyword-argument-value diagnostic with a 'did you mean' suggestion from the closed enum. The downstream applyTopCall command-parse failure is silenced because the validator already reported the problem.",
+  "expectedDiagnosticCount": 1,
   "diagnostics": [
-    { "severity": "error", "code": "Q007", "messageContains": "unknown query command" },
-    { "severity": "error", "code": "Q008", "messageContains": "piko.command" }
+    { "severity": "error", "code": "Q028", "messageContains": "invalid value" }
   ]
 }

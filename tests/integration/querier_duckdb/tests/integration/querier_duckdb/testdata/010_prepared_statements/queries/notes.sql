@@ -1,11 +1,8 @@
--- piko.name: InsertNote
--- piko.command: exec
+-- piko.query(name: InsertNote, command: exec)
 INSERT INTO notes (id, title, body) VALUES ($1, $2, $3);
 
--- piko.name: GetNote
--- piko.command: one
+-- piko.query(name: GetNote, command: one)
 SELECT id, title, body FROM notes WHERE id = $1;
 
--- piko.name: ListNotes
--- piko.command: many
+-- piko.query(name: ListNotes, command: many)
 SELECT id, title, body FROM notes ORDER BY id;

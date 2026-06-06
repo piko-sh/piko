@@ -27,10 +27,10 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// applyCanonicalBaseURL fills the website canonical base URL from the SEO sitemap hostname
-// when it is not already set, so page-head canonical and hreflang URLs share the sitemap
-// origin rather than depending on the live request host (which can be baked stale into
-// cached pages).
+// applyCanonicalBaseURL fills the website canonical base URL from the SEO sitemap
+// hostname when it is not already set, so page-head canonical and hreflang URLs share the
+// sitemap origin rather than depending on the live request host (which can be baked stale
+// into cached pages).
 //
 // Takes container (*Container) which provides the website and SEO configuration.
 func applyCanonicalBaseURL(container *Container) {

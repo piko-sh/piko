@@ -1,3 +1,2 @@
--- piko.name: ListRoutes
--- piko.command: many
+-- piko.query(name: ListRoutes, command: many)
 SELECT id, name, waypoints, metadata FROM routes;

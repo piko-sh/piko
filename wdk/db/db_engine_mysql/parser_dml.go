@@ -29,6 +29,12 @@ import (
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
@@ -49,6 +55,7 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereClause()
 	}
 
@@ -166,6 +173,7 @@ func (p *parser) parseLimitOffsetIfPresent() {
 func (p *parser) finaliseAnalysis(analysis *querier_dto.RawQueryAnalysis) {
 	analysis.ParameterReferences = p.parameterRefs
 	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.PredicateSubqueries = p.predicateSubqueries
 	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 }
 
@@ -174,6 +182,12 @@ func (p *parser) finaliseAnalysis(analysis *querier_dto.RawQueryAnalysis) {
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
@@ -193,7 +207,11 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.parseInsertValues(tableName, columnNames)
+	insertSelect, valuesError := p.parseInsertValues(tableName, columnNames)
+	if valuesError != nil {
+		return nil, valuesError
+	}
+	analysis.InsertSelect = insertSelect
 
 	if p.matchKeyword(keywordON) {
 		p.parseOnDuplicateKeyUpdate(tableName)
@@ -236,14 +254,29 @@ func (p *parser) parseInsertColumnList() ([]string, error) {
 //
 // Takes tableName (string) which is the target table name.
 // Takes columnNames ([]string) which are the target column names.
-func (p *parser) parseInsertValues(tableName string, columnNames []string) {
-	if p.matchKeyword(keywordVALUES) || p.matchKeyword("VALUE") {
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed SELECT body of an INSERT
+// ... SELECT (nil for VALUES/SET/parenthesised sources).
+// Returns error when the SELECT body fails to parse.
+func (p *parser) parseInsertValues(tableName string, columnNames []string) (*querier_dto.RawQueryAnalysis, error) {
+	switch {
+	case p.matchKeyword(keywordVALUES) || p.matchKeyword("VALUE"):
 		p.parseValuesClause(tableName, columnNames)
-	} else if p.matchKeyword(keywordSET) {
+	case p.matchKeyword(keywordSET):
 		p.parseSetClause(tableName)
-	} else if p.isKeyword(keywordSELECT) || p.isKeyword(keywordWITH) || p.current().kind == tokenLeftParen {
+	case p.isKeyword(keywordSELECT) || p.isKeyword(keywordWITH):
+
+		p.insertProjectionTable = tableName
+		p.insertProjectionColumns = columnNames
+		p.insertProjectionIndex = 0
+		analysis, selectError := p.analyseSelect()
+		p.insertProjectionTable = ""
+		p.insertProjectionColumns = nil
+		return analysis, selectError
+	case p.current().kind == tokenLeftParen:
 		p.parseInsertSource()
 	}
+	return nil, nil
 }
 
 // parseReturningIfPresent parses an optional RETURNING clause.
@@ -270,6 +303,12 @@ func (p *parser) parseReturningIfPresent(analysis *querier_dto.RawQueryAnalysis)
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
@@ -294,6 +333,7 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	p.parseSetClause(tableName)
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereClause()
 	}
 
@@ -348,6 +388,12 @@ func (p *parser) parseUpdateTableReferences() ([]querier_dto.TableReference, []q
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
@@ -377,6 +423,7 @@ func (p *parser) parseSimpleDelete(analysis *querier_dto.RawQueryAnalysis) (*que
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereClause()
 	}
 
@@ -422,6 +469,7 @@ func (p *parser) parseMultiTableDelete(analysis *querier_dto.RawQueryAnalysis) (
 	analysis.JoinClauses = joinClauses
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereClause()
 	}
 
@@ -450,6 +498,12 @@ func (p *parser) parseDeleteAlias() string {
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
 
 	p.mustKeyword(keywordVALUES)

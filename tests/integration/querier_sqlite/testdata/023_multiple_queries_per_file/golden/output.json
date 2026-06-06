@@ -1,31 +1,31 @@
 {
   "all_notes": [
     {
-      "Body": "Body of the first note",
-      "ID": 1,
-      "Title": "First Note"
+      "body": "Body of the first note",
+      "id": 1,
+      "title": "First Note"
     },
     {
-      "Body": "Body of the second note",
-      "ID": 2,
-      "Title": "Second Note"
+      "body": "Body of the second note",
+      "id": 2,
+      "title": "Second Note"
     }
   ],
   "created": {
-    "Body": "Body of the first note",
-    "ID": 1,
-    "Title": "First Note"
+    "body": "Body of the first note",
+    "id": 1,
+    "title": "First Note"
   },
   "fetched": {
-    "Body": "Body of the first note",
-    "ID": 1,
-    "Title": "First Note"
+    "body": "Body of the first note",
+    "id": 1,
+    "title": "First Note"
   },
   "remaining_notes": [
     {
-      "Body": "Body of the first note",
-      "ID": 1,
-      "Title": "Updated First Note"
+      "body": "Body of the first note",
+      "id": 1,
+      "title": "Updated First Note"
     }
   ],
   "updated_rows": 1

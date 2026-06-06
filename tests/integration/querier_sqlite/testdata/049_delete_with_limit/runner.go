@@ -36,13 +36,13 @@ func main() {
 
 	queries := db.New(conn)
 
-	existsResult, err := queries.CheckExists(ctx, int32(2))
+	existsResult, err := queries.CheckExists(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	missingResult, err := queries.CheckExists(ctx, int32(99))
+	missingResult, err := queries.CheckExists(ctx, int64(99))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

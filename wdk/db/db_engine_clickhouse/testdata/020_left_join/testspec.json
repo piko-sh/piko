@@ -1,0 +1,3 @@
+{
+  "description": "LEFT JOIN records the join kind in JoinClauses so downstream nullability propagation marks right-side columns as nullable in the output."
+}

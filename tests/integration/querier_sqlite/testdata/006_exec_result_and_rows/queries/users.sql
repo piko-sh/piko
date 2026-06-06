@@ -1,7 +1,5 @@
--- piko.name: UpdateUserEmail
--- piko.command: execrows
+-- piko.query(name: UpdateUserEmail, command: execrows)
 UPDATE users SET email = ? WHERE id = ?;
 
--- piko.name: DeleteUser
--- piko.command: execresult
+-- piko.query(name: DeleteUser, command: execresult)
 DELETE FROM users WHERE id = ?;

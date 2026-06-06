@@ -1,16 +1,13 @@
--- piko.name: CleanupOldResolvedReceipts
--- piko.command: execrows
+-- piko.query(name: CleanupOldResolvedReceipts, command: execrows)
 DELETE FROM workflow_receipts
 WHERE status = 'RESOLVED' AND resolved_at < ?;
 
--- piko.name: TimeoutStaleReceipts
--- piko.command: execrows
+-- piko.query(name: TimeoutStaleReceipts, command: execrows)
 UPDATE workflow_receipts
 SET status = 'TIMED_OUT', updated_at = ?
 WHERE status = 'PENDING' AND created_at < ?;
 
--- piko.name: ListFailedTasks
--- piko.command: many
+-- piko.query(name: ListFailedTasks, command: many)
 SELECT
     id, workflow_id, executor, priority,
     payload, config,

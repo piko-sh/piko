@@ -1,0 +1,3 @@
+{
+  "description": "Reserved-keyword parameter names: a query using LIMIT {limit:UInt32} OFFSET {offset:UInt32} binds parameters named after ClickHouse reserved keywords. Piko prefixes the wire name so the server parser never sees the bare keyword, while the Go API keeps the friendly Limit and Offset fields. Without the prefix ClickHouse rejects the query with a parse error."
+}

@@ -39,31 +39,31 @@ func main() {
 
 	queries := db.New(conn)
 	err = queries.UpdateJsonField(ctx, db.UpdateJsonFieldParams{
-		P1: "true",
-		P2: int32(1),
+		Data: "true",
+		ID:   int64(1),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpdateJsonField:", err)
 		os.Exit(1)
 	}
 
-	afterSet, err := queries.GetEventData(ctx, int32(1))
+	afterSet, err := queries.GetEventData(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetEventData after set:", err)
 		os.Exit(1)
 	}
-	err = queries.RemoveJsonField(ctx, int32(2))
+	err = queries.RemoveJsonField(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "RemoveJsonField:", err)
 		os.Exit(1)
 	}
 
-	afterRemove, err := queries.GetEventData(ctx, int32(2))
+	afterRemove, err := queries.GetEventData(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetEventData after remove:", err)
 		os.Exit(1)
 	}
-	jsonType, err := queries.GetJsonType(ctx, int32(2))
+	jsonType, err := queries.GetJsonType(ctx, int64(2))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "GetJsonType:", err)
 		os.Exit(1)

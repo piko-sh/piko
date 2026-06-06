@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetAllUsersUnion\n-- piko.command: many\nSELECT id, name FROM active_users UNION ALL SELECT id, name FROM archived_users;",
+    "SQL": "-- piko.query(name: GetAllUsersUnion, command: many)\nSELECT id, name FROM active_users UNION ALL SELECT id, name FROM archived_users;",
     "Name": "GetAllUsersUnion",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -65,22 +74,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetCommonUsers\n-- piko.command: many\nSELECT id, name FROM active_users INTERSECT SELECT id, name FROM archived_users;",
+    "SQL": "-- piko.query(name: GetCommonUsers, command: many)\nSELECT id, name FROM active_users INTERSECT SELECT id, name FROM archived_users;",
     "Name": "GetCommonUsers",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -135,23 +155,29 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 5,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "users.sql",
-    "SQL": "-- piko.name: GetActiveOnlyUsers\n-- piko.command: many\nSELECT id, name FROM active_users EXCEPT SELECT id, name FROM archived_users;",
+    "SQL": "-- piko.query(name: GetActiveOnlyUsers, command: many)\nSELECT id, name FROM active_users EXCEPT SELECT id, name FROM archived_users;",
     "Name": "GetActiveOnlyUsers",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -164,16 +190,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "active_users",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "active_users",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -186,7 +216,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -206,10 +237,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 9,
-    "IsDynamic": false,
+    "Line": 7,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

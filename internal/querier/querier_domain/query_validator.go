@@ -28,9 +28,24 @@ import (
 // analysed queries. Per-query diagnostics are handled by the diagnosticAnalyser and its
 // passes.
 //
-// Validation codes handled here:
-//   - Q006: Duplicate query name across files
+// It raises Q006 for a duplicate query name across files.
 type queryValidator struct{}
+
+var (
+	// commandNames maps each QueryCommand to its human-readable name, indexed by the
+	// command's sequential enum value.
+	commandNames = [...]string{
+		querier_dto.QueryCommandOne:        "one",
+		querier_dto.QueryCommandMany:       "many",
+		querier_dto.QueryCommandExec:       "exec",
+		querier_dto.QueryCommandExecResult: "execresult",
+		querier_dto.QueryCommandExecRows:   "execrows",
+		querier_dto.QueryCommandBatch:      "batch",
+		querier_dto.QueryCommandStream:     "stream",
+		querier_dto.QueryCommandCopyFrom:   "copyfrom",
+		querier_dto.QueryCommandAsyncExec:  "asyncexec",
+	}
+)
 
 // newQueryValidator creates a query validator.
 //
@@ -80,24 +95,8 @@ func (*queryValidator) ValidateDuplicateNames(
 //
 // Returns string which is the human-readable command name.
 func commandName(command querier_dto.QueryCommand) string {
-	switch command {
-	case querier_dto.QueryCommandOne:
-		return "one"
-	case querier_dto.QueryCommandMany:
-		return "many"
-	case querier_dto.QueryCommandExec:
-		return "exec"
-	case querier_dto.QueryCommandExecResult:
-		return "execresult"
-	case querier_dto.QueryCommandExecRows:
-		return "execrows"
-	case querier_dto.QueryCommandBatch:
-		return "batch"
-	case querier_dto.QueryCommandStream:
-		return "stream"
-	case querier_dto.QueryCommandCopyFrom:
-		return "copyfrom"
-	default:
+	if int(command) >= len(commandNames) {
 		return "unknown"
 	}
+	return commandNames[command]
 }

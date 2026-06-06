@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "get_all_types.sql",
-    "SQL": "-- piko.name: GetAllTypes\n-- piko.command: one\nSELECT\n    id, tiny_col, small_col, medium_col, int_col, big_col,\n    float_col, double_col, decimal_col,\n    char_col, varchar_col, tinytext_col, text_col, mediumtext_col, longtext_col,\n    binary_col, varbinary_col, tinyblob_col, blob_col, mediumblob_col, longblob_col,\n    date_col, time_col, datetime_col, timestamp_col, year_col,\n    json_col, bool_col\nFROM type_test\nWHERE id = ?;",
+    "SQL": "-- piko.query(name: GetAllTypes, command: one)\nSELECT\n    id, tiny_col, small_col, medium_col, int_col, big_col,\n    float_col, double_col, decimal_col,\n    char_col, varchar_col, tinytext_col, text_col, mediumtext_col, longtext_col,\n    binary_col, varbinary_col, tinyblob_col, blob_col, mediumblob_col, longblob_col,\n    date_col, time_col, datetime_col, timestamp_col, year_col,\n    json_col, bool_col\nFROM type_test\nWHERE id = ?;",
     "Name": "GetAllTypes",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,20 +22,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -47,16 +53,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tiny_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "tiny_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -69,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "small_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "small_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -91,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "medium_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "medium_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -113,16 +131,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "int_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "int_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -135,16 +157,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "big_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "big_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -157,16 +183,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "float_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "float_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -179,16 +209,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "double_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "double_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -201,16 +235,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 1
+          "Category": 1,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "decimal_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "decimal_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": 10,
@@ -223,16 +261,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 2
+          "Category": 2,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "char_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "char_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -245,16 +287,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "varchar_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "varchar_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -267,16 +313,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tinytext_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "tinytext_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -289,16 +339,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "text_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "text_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -311,16 +365,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "mediumtext_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "mediumtext_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -333,16 +391,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "longtext_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "longtext_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -355,16 +417,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "binary_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "binary_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -377,16 +443,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "varbinary_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "varbinary_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -399,16 +469,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tinyblob_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "tinyblob_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -421,16 +495,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "blob_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "blob_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -443,16 +521,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "mediumblob_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "mediumblob_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -465,16 +547,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "longblob_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "longblob_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -487,16 +573,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 5
+          "Category": 5,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "date_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "date_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -509,16 +599,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "time_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "time_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -531,16 +625,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "datetime_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "datetime_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -553,16 +651,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "timestamp_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "timestamp_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -575,16 +677,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "year_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "year_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -597,16 +703,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "json_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "json_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -619,16 +729,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 7
+          "Category": 7,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "bool_col",
         "SourceTable": "type_test",
+        "SourceSchema": "",
         "SourceColumn": "bool_col",
+        "SourceQualifier": "type_test",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -641,7 +755,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 3
+          "Category": 3,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -662,9 +777,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

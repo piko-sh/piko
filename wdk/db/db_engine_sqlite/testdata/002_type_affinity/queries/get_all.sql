@@ -1,5 +1,4 @@
--- piko.name: GetAllTypedValues
--- piko.command: many
+-- piko.query(name: GetAllTypedValues, command: many)
 SELECT
   id, int_val, bigint_val, text_val, varchar_val,
   real_val, double_val, blob_val, numeric_val,

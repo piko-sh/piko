@@ -554,3 +554,38 @@ func TestTokenise_CompleteStatements(t *testing.T) {
 		})
 	})
 }
+
+func TestTokenise_NonASCIIIdentifierKeepsCodepoints(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "accented latin identifier",
+			input: "café",
+		},
+		{
+			name:  "diaeresis identifier",
+			input: "naïve",
+		},
+		{
+			name:  "cjk identifier",
+			input: "名前",
+		},
+		{
+			name:  "mixed ascii and multi-byte with trailing digit",
+			input: "user_café2",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			requireTokens(t, testCase.input, []token{
+				{kind: tokenIdentifier, value: testCase.input},
+			})
+		})
+	}
+}

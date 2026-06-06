@@ -1,23 +1,23 @@
 {
   "get_event_data": {
-    "Data": "{\"amount\": 42, \"currency\": \"USD\"}",
-    "ID": 1
+    "data": "{\"amount\": 42, \"currency\": \"USD\"}",
+    "id": 1
   },
   "get_json_type": {
-    "ValueType": "JSON"
+    "value_type": "JSON"
   },
   "list_json_keys": [
     {
-      "ID": 1,
-      "Keys": "[amount, currency]"
+      "id": 1,
+      "keys": "[amount, currency]"
     },
     {
-      "ID": 2,
-      "Keys": "[amount, reason]"
+      "id": 2,
+      "keys": "[amount, reason]"
     },
     {
-      "ID": 3,
-      "Keys": "[plan, trial]"
+      "id": 3,
+      "keys": "[plan, trial]"
     }
   ]
 }

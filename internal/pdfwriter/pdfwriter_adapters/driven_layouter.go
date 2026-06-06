@@ -69,7 +69,6 @@ func NewLayouterAdapter(
 // Layout resolves CSS, builds the box tree, performs layout, and returns the result
 // containing the positioned box tree.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes tree (*ast_domain.TemplateAST) which is the template AST to lay out.
 // Takes styling (string) which is the CSS from the template's style block.
 // Takes config (layouter_dto.LayoutConfig) which specifies page dimensions and font
@@ -110,7 +109,10 @@ func (adapter *LayouterAdapter) Layout(
 		return nil, fmt.Errorf("box tree construction failed: %w", err)
 	}
 
-	fragment := layouter_domain.LayoutBoxTree(ctx, rootBox, adapter.fontMetrics)
+	fragment, err := layouter_domain.LayoutBoxTree(ctx, rootBox, adapter.fontMetrics)
+	if err != nil {
+		return nil, fmt.Errorf("box tree layout failed: %w", err)
+	}
 	pages := buildPages(ctx, rootBox, config)
 
 	return &layouter_dto.LayoutResult{

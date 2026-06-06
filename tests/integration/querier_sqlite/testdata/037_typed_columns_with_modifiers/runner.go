@@ -36,7 +36,7 @@ func main() {
 
 	queries := db.New(conn)
 
-	product, err := queries.GetProduct(ctx, int32(1))
+	product, err := queries.GetProduct(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

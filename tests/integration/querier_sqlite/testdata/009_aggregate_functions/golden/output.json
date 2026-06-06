@@ -1,21 +1,21 @@
 {
   "by_product": [
     {
-      "Product": "Gadget",
-      "SaleCount": 2,
-      "TotalAmount": 40.75
+      "product": "Gadget",
+      "sale_count": 2,
+      "total_amount": 40.75
     },
     {
-      "Product": "Widget",
-      "SaleCount": 2,
-      "TotalAmount": 30.5
+      "product": "Widget",
+      "sale_count": 2,
+      "total_amount": 30.5
     }
   ],
   "summary": {
-    "AverageAmount": 17.8125,
-    "MaxAmount": 25,
-    "MinAmount": 10.5,
-    "TotalAmount": 71.25,
-    "TotalCount": 4
+    "average_amount": 17.8125,
+    "max_amount": 25,
+    "min_amount": 10.5,
+    "total_amount": 71.25,
+    "total_count": 4
   }
 }

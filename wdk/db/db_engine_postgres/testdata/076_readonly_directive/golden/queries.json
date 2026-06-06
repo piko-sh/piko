@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: BareReadOnly\n-- piko.command: many\n-- piko.readonly\nSELECT id, name FROM items;",
+    "SQL": "-- piko.query(name: BareReadOnly, command: many, readonly: true)\nSELECT id, name FROM items;",
     "Name": "BareReadOnly",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -65,22 +74,28 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: ExplicitReadOnlyTrue\n-- piko.command: many\n-- piko.readonly(true)\nSELECT id, name FROM items;",
+    "SQL": "-- piko.query(name: ExplicitReadOnlyTrue, command: many, readonly: true)\nSELECT id, name FROM items;",
     "Name": "ExplicitReadOnlyTrue",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +108,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +134,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -135,23 +155,29 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 6,
-    "IsDynamic": false,
+    "Line": 4,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: ExplicitReadOnlyFalse\n-- piko.command: many\n-- piko.readonly(false)\nSELECT id, name FROM items;",
+    "SQL": "-- piko.query(name: ExplicitReadOnlyFalse, command: many, readonly: false)\nSELECT id, name FROM items;",
     "Name": "ExplicitReadOnlyFalse",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -164,16 +190,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "items",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "items",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -186,7 +216,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -206,17 +237,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 11,
-    "IsDynamic": false,
+    "Line": 7,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: OverrideVolatileToReadOnly\n-- piko.command: one\n-- piko.readonly\nSELECT volatile_func($1::integer) AS result;",
+    "SQL": "-- piko.query(name: OverrideVolatileToReadOnly, command: one, readonly: true)\nSELECT volatile_func($1::integer) AS result;",
     "Name": "OverrideVolatileToReadOnly",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -234,20 +268,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "result",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -260,7 +299,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -280,17 +320,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 16,
-    "IsDynamic": false,
+    "Line": 10,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "items",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: InsertOverriddenToReadOnly\n-- piko.command: exec\n-- piko.readonly\nINSERT INTO items (name, quantity) VALUES ($1, $2);",
+    "SQL": "-- piko.query(name: InsertOverriddenToReadOnly, command: exec, readonly: true)\nINSERT INTO items (name, quantity) VALUES ($1, $2);",
     "Name": "InsertOverriddenToReadOnly",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -308,13 +351,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -332,13 +377,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -358,17 +405,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 21,
-    "IsDynamic": false,
+    "Line": 13,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: MigrationOverriddenReadOnly\n-- piko.command: one\nSELECT overridden_readonly_func($1::integer) AS result;",
+    "SQL": "-- piko.query(name: MigrationOverriddenReadOnly, command: one)\nSELECT overridden_readonly_func($1::integer) AS result;",
     "Name": "MigrationOverriddenReadOnly",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -386,20 +436,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "result",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -412,7 +467,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -432,17 +488,20 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 26,
-    "IsDynamic": false,
+    "Line": 16,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "items.sql",
-    "SQL": "-- piko.name: MigrationOverriddenNotReadOnly\n-- piko.command: one\nSELECT overridden_not_readonly_func($1::integer) AS result;",
+    "SQL": "-- piko.query(name: MigrationOverriddenNotReadOnly, command: one)\nSELECT overridden_not_readonly_func($1::integer) AS result;",
     "Name": "MigrationOverriddenNotReadOnly",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -460,20 +519,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 3
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "result",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -486,7 +550,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -506,10 +571,12 @@
       "ParamOverrides": null,
       "DynamicRuntime": false
     },
-    "Line": 30,
-    "IsDynamic": false,
+    "Line": 19,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -2,8 +2,9 @@
   {
     "InsertTable": "",
     "Filename": "events_in_range.sql",
-    "SQL": "-- piko.name: EventsInRange\n-- piko.command: many\nSELECT id, name, event_date FROM events\nWHERE event_date \u003e= $1::date AND event_date \u003c= $2::date\nORDER BY event_date;",
+    "SQL": "-- piko.query(name: EventsInRange, command: many)\nSELECT id, name, event_date FROM events\nWHERE event_date \u003e= $1::date AND event_date \u003c= $2::date\nORDER BY event_date;",
     "Name": "EventsInRange",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       },
       {
         "DefaultLimit": null,
@@ -45,20 +48,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "name",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "name",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "event_date",
         "SourceTable": "events",
+        "SourceSchema": "",
         "SourceColumn": "event_date",
+        "SourceQualifier": "events",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +131,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -136,9 +153,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

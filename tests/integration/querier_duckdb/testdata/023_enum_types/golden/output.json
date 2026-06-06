@@ -1,17 +1,17 @@
 {
   "get_person": {
-    "CurrentMood": "happy",
-    "ID": 1,
-    "Name": "Alice"
+    "current_mood": "happy",
+    "id": 1,
+    "name": "Alice"
   },
   "list_by_mood": [
     {
-      "ID": 1,
-      "Name": "Alice"
+      "id": 1,
+      "name": "Alice"
     },
     {
-      "ID": 3,
-      "Name": "Charlie"
+      "id": 3,
+      "name": "Charlie"
     }
   ]
 }

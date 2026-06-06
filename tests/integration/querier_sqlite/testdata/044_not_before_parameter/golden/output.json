@@ -1,22 +1,22 @@
 {
   "active": [
     {
-      "ID": 1,
-      "Name": "Alpha"
+      "id": 1,
+      "name": "Alpha"
     },
     {
-      "ID": 3,
-      "Name": "Charlie"
+      "id": 3,
+      "name": "Charlie"
     }
   ],
   "inactive": [
     {
-      "ID": 2,
-      "Name": "Bravo"
+      "id": 2,
+      "name": "Bravo"
     },
     {
-      "ID": 4,
-      "Name": "Delta"
+      "id": 4,
+      "name": "Delta"
     }
   ]
 }

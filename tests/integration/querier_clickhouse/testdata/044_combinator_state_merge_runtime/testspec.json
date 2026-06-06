@@ -1,0 +1,3 @@
+{
+  "description": "Combinator -State / -Merge pair. uniqState builds an AggregateFunction(uniq, String) intermediate held in an AggregatingMergeTree row, and a follow-up SELECT uses uniqMerge to materialise the final distinct count. Verifies that the resolver recognises the State suffix as an opaque AggregateFunction return type and that Merge unwraps it back to UInt64."
+}

@@ -1,0 +1,15 @@
+{
+  "latest_per_category": [
+    {
+      "category": "a",
+      "tags": [
+        "y",
+        "z"
+      ]
+    },
+    {
+      "category": "b",
+      "tags": null
+    }
+  ]
+}

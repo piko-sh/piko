@@ -53,9 +53,9 @@ var (
 	// NewDecoder creates a streaming JSON decoder reading from r.
 	NewDecoder func(r io.Reader) Decoder
 
-	// FreezeImpl creates a concrete API from a Config. Providers replace FreezeImpl
-	// to supply their own frozen configuration; callers should use Freeze instead,
-	// which returns a lazy proxy.
+	// FreezeImpl creates a concrete API from a Config. Providers replace FreezeImpl to
+	// supply their own frozen configuration; callers should use Freeze instead, which
+	// returns a lazy proxy.
 	FreezeImpl func(config Config) API
 )
 

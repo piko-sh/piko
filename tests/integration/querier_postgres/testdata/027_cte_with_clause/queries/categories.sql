@@ -1,5 +1,4 @@
--- piko.name: GetCategoryTree
--- piko.command: many
+-- piko.query(name: GetCategoryTree, command: many)
 WITH RECURSIVE category_tree AS (
     SELECT id, name, parent_id, 0 AS depth
     FROM categories
@@ -13,8 +12,7 @@ SELECT id, name, parent_id, depth
 FROM category_tree
 ORDER BY depth, id;
 
--- piko.name: GetSubtree
--- piko.command: many
+-- piko.query(name: GetSubtree, command: many)
 WITH RECURSIVE subtree AS (
     SELECT id, name, parent_id, 0 AS depth
     FROM categories
@@ -28,8 +26,7 @@ SELECT id, name, parent_id, depth
 FROM subtree
 ORDER BY depth, id;
 
--- piko.name: GetLeafCategories
--- piko.command: many
+-- piko.query(name: GetLeafCategories, command: many)
 WITH children AS (
     SELECT DISTINCT parent_id FROM categories WHERE parent_id IS NOT NULL
 )

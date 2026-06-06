@@ -34,6 +34,36 @@ const (
 
 	// goTypeTimePointer holds the Go type name for a pointer to time.Time.
 	goTypeTimePointer = "*Time"
+
+	// goPackageDBJSON holds the Go import path for the shared dbjson package. Used by the
+	// JSON / Union mappings whose Go destination is the nil-capable dbjson.JSON scanner.
+	goPackageDBJSON = "piko.sh/piko/wdk/db/dbjson"
+
+	// goTypeDBJSON holds the Go type name for dbjson.JSON.
+	goTypeDBJSON = "JSON"
+
+	// goTypeByteSlice holds the Go type name for a slice of bytes. Used by the Bytea and
+	// AggregateState mappings whose destination is a raw byte buffer.
+	goTypeByteSlice = "[]byte"
+
+	// goPackageMaths holds the Go import path for Piko's maths package, the destination for
+	// precise numeric types (Decimal, Money, BigInt) that have no native fixed-width Go
+	// type.
+	goPackageMaths = "piko.sh/piko/wdk/maths"
+
+	// goTypeInt32 is the Go type name for a signed 32-bit integer, shared across the engine
+	// integer mappings so the width string is not repeated.
+	goTypeInt32 = "int32"
+
+	// goTypeUint32 is the Go type name for an unsigned 32-bit integer, shared across the
+	// engine integer mappings so the width string is not repeated.
+	goTypeUint32 = "uint32"
+
+	// maxArrayDimensions caps the number of `[]` suffixes resolveOverrideType will unwrap on
+	// a user-supplied type override. Matches the Postgres parser's own limit so a malicious
+	// override like `text[][][]...[]` cannot cause unbounded recursion or allocation, and so
+	// the array recursion in scope_chain.arrayWrappedSQLType has a shared bound.
+	maxArrayDimensions = 6
 )
 
 // TypeMapper maps SQL types to Go types using a structured category-based approach with a
@@ -92,59 +122,6 @@ func (m *TypeMapper) BuildMappingTable(
 	}
 }
 
-// MapType maps a SQL type to its corresponding Go type based on the mapping table.
-//
-// Matches by exact engine name first, then falls back to category-only matching. Later
-// entries in the table override earlier ones.
-//
-// Takes sqlType (querier_dto.SQLType) which is the SQL type to map.
-// Takes nullable (bool) which indicates whether the column allows NULL values.
-// Takes mappings (*querier_dto.TypeMappingTable) which holds the mapping table to search.
-//
-// Returns querier_dto.GoType which is the resolved Go type for the given SQL type and
-// nullability.
-func (*TypeMapper) MapType(
-	sqlType querier_dto.SQLType,
-	nullable bool,
-	mappings *querier_dto.TypeMappingTable,
-) querier_dto.GoType {
-	var categoryMatch *querier_dto.TypeMapping
-	var exactMatch *querier_dto.TypeMapping
-
-	for i := range slices.Backward(mappings.Mappings) {
-		mapping := &mappings.Mappings[i]
-		if mapping.SQLCategory != sqlType.Category {
-			continue
-		}
-
-		if mapping.SQLName != "" && strings.EqualFold(mapping.SQLName, sqlType.EngineName) {
-			exactMatch = mapping
-			break
-		}
-
-		if mapping.SQLName == "" && categoryMatch == nil {
-			categoryMatch = mapping
-		}
-	}
-
-	chosen := exactMatch
-	if chosen == nil {
-		chosen = categoryMatch
-	}
-
-	if chosen == nil {
-		if nullable {
-			return querier_dto.GoType{Name: "any"}
-		}
-		return querier_dto.GoType{Name: "any"}
-	}
-
-	if nullable {
-		return chosen.Nullable
-	}
-	return chosen.NotNull
-}
-
 // resolveOverrideType resolves a user-provided type override to its SQL type by looking
 // up the type name in the catalogue, falling back to an unknown category if not found.
 //
@@ -153,9 +130,36 @@ func (*TypeMapper) MapType(
 // Returns querier_dto.SQLType which is the resolved SQL type with its category and engine
 // name.
 func (m *TypeMapper) resolveOverrideType(override querier_dto.TypeOverride) querier_dto.SQLType {
+	return m.resolveOverrideTypeDepth(override, 0)
+}
+
+// resolveOverrideTypeDepth performs the array-suffix recursion with a depth counter so a
+// pathological override cannot allocate unboundedly.
+//
+// Once depth reaches maxArrayDimensions the function stops unwrapping further `[]`
+// suffixes and returns an unknown type instead.
+//
+// Takes override (querier_dto.TypeOverride) which carries the SQL type name to resolve.
+// Takes depth (int) which is the current array-unwrap recursion depth.
+//
+// Returns querier_dto.SQLType which is the resolved type, or the unknown category once
+// the depth limit is reached.
+func (m *TypeMapper) resolveOverrideTypeDepth(override querier_dto.TypeOverride, depth int) querier_dto.SQLType {
+	lower := strings.ToLower(override.SQLTypeName)
+
 	if m.typeCatalogue != nil {
-		if sqlType, exists := m.typeCatalogue.Types[strings.ToLower(override.SQLTypeName)]; exists {
+		if sqlType, exists := m.typeCatalogue.Types[lower]; exists {
 			return sqlType
+		}
+	}
+
+	if depth < maxArrayDimensions {
+		if stripped, found := strings.CutSuffix(lower, "[]"); found {
+			return querier_dto.SQLType{
+				Category:    querier_dto.TypeCategoryArray,
+				EngineName:  lower,
+				ElementType: new(m.resolveOverrideTypeDepth(querier_dto.TypeOverride{SQLTypeName: stripped}, depth+1)),
+			}
 		}
 	}
 
@@ -174,10 +178,122 @@ func (m *TypeMapper) resolveOverrideType(override querier_dto.TypeOverride) quer
 func defaultMappings() []querier_dto.TypeMapping {
 	return slices.Concat(
 		numericMappings(),
+		clickhouseIntegerMappings(),
+		mysqlIntegerMappings(),
+		duckdbIntegerMappings(),
 		scalarMappings(),
 		temporalMappings(),
 		complexMappings(),
 	)
+}
+
+// integerMapping returns a fixed-width integer mapping from an engine SQL name to a Go
+// type, with the nullable form as the pointer to that type.
+//
+// Takes sqlName (string) which is the engine-specific EngineName the column resolves to.
+// Takes goName (string) which is the Go type name (for example int64 or uint32).
+//
+// Returns querier_dto.TypeMapping which is the integer mapping entry.
+func integerMapping(sqlName string, goName string) querier_dto.TypeMapping {
+	return querier_dto.TypeMapping{
+		SQLCategory: querier_dto.TypeCategoryInteger,
+		SQLName:     sqlName,
+		NotNull:     querier_dto.GoType{Name: goName},
+		Nullable:    querier_dto.GoType{Name: "*" + goName},
+	}
+}
+
+// bigIntMapping returns an integer mapping to Piko's maths.BigInt, used for engine
+// integer types wider than 64 bits that have no native fixed-width Go type. maths.BigInt
+// is used in preference to stdlib math/big.Int for consistency with the decimal mapping
+// (maths.Decimal) and because it implements driver.Valuer/sql.Scanner, where stdlib
+// big.Int does not.
+//
+// Takes sqlName (string) which is the engine-specific EngineName the column resolves to.
+//
+// Returns querier_dto.TypeMapping which is the big-integer mapping entry.
+func bigIntMapping(sqlName string) querier_dto.TypeMapping {
+	return querier_dto.TypeMapping{
+		SQLCategory: querier_dto.TypeCategoryInteger,
+		SQLName:     sqlName,
+		NotNull:     querier_dto.GoType{Package: goPackageMaths, Name: "BigInt"},
+		Nullable:    querier_dto.GoType{Package: goPackageMaths, Name: "*BigInt"},
+	}
+}
+
+// clickhouseIntegerMappings returns the width- and signedness-correct Go mappings for the
+// ClickHouse fixed-width integer types. ClickHouse spells them in mixed case (Int64),
+// which the case-sensitive name match in findTypeMappingCandidates keeps distinct from
+// the lower-case Postgres canonical names (int2/int4/int8) even though they share a
+// category.
+//
+// The unsigned types map to Go unsigned types so a UInt64 value above math.MaxInt64 does
+// not overflow. The 128- and 256-bit types have no native fixed-width Go type, so they
+// map to maths.BigInt, whose Scan accepts the *big.Int the clickhouse-go driver yields
+// for them.
+//
+// Returns []querier_dto.TypeMapping which holds the ClickHouse integer mapping entries.
+func clickhouseIntegerMappings() []querier_dto.TypeMapping {
+	return []querier_dto.TypeMapping{
+		integerMapping("Int8", "int8"),
+		integerMapping("Int16", "int16"),
+		integerMapping("Int32", goTypeInt32),
+		integerMapping("Int64", "int64"),
+		bigIntMapping("Int128"),
+		bigIntMapping("Int256"),
+		integerMapping("UInt8", "uint8"),
+		integerMapping("UInt16", "uint16"),
+		integerMapping("UInt32", goTypeUint32),
+		integerMapping("UInt64", "uint64"),
+		bigIntMapping("UInt128"),
+		bigIntMapping("UInt256"),
+	}
+}
+
+// mysqlIntegerMappings returns the MySQL family integer mappings.
+//
+// It covers MySQL and MariaDB integer types. The engine spells these with its own names
+// (bigint, tinyint, "int unsigned", ...) rather than the postgres int2/int4/int8 canon.
+// Without these every MySQL integer would fall to the int32 category default, silently
+// truncating a bigint and dropping the unsigned contract. mediumint is 3 bytes and fits
+// int32 / uint32. The BIT type is intentionally omitted: the driver yields it as raw
+// bytes, not a fixed-width integer.
+//
+// Returns []querier_dto.TypeMapping which holds the MySQL family integer mapping entries.
+func mysqlIntegerMappings() []querier_dto.TypeMapping {
+	return []querier_dto.TypeMapping{
+		integerMapping("tinyint", "int8"),
+		integerMapping("smallint", "int16"),
+		integerMapping("mediumint", goTypeInt32),
+		integerMapping("int", goTypeInt32),
+		integerMapping("bigint", "int64"),
+		integerMapping("tinyint unsigned", "uint8"),
+		integerMapping("smallint unsigned", "uint16"),
+		integerMapping("mediumint unsigned", goTypeUint32),
+		integerMapping("int unsigned", goTypeUint32),
+		integerMapping("bigint unsigned", "uint64"),
+	}
+}
+
+// duckdbIntegerMappings returns the DuckDB integer mappings.
+//
+// It covers types whose EngineName is not already in the postgres int2/int4/int8 canon
+// (which DuckDB reuses for smallint/integer/bigint). int1 is its 1-byte signed type; the
+// unsigned types map to Go unsigned types; the 128-bit hugeint and uhugeint have no
+// native fixed-width Go type and map to maths.BigInt (whose Scan accepts the *big.Int
+// duckdb yields).
+//
+// Returns []querier_dto.TypeMapping which holds the DuckDB integer mapping entries.
+func duckdbIntegerMappings() []querier_dto.TypeMapping {
+	return []querier_dto.TypeMapping{
+		integerMapping("int1", "int8"),
+		bigIntMapping("hugeint"),
+		integerMapping("utinyint", "uint8"),
+		integerMapping("usmallint", "uint16"),
+		integerMapping("uinteger", goTypeUint32),
+		integerMapping("ubigint", "uint64"),
+		bigIntMapping("uhugeint"),
+	}
 }
 
 // numericMappings returns the default mappings for integer, float, and decimal SQL types.
@@ -194,8 +310,8 @@ func numericMappings() []querier_dto.TypeMapping {
 		{SQLCategory: querier_dto.TypeCategoryFloat, NotNull: querier_dto.GoType{Name: "float64"}, Nullable: querier_dto.GoType{Name: "*float64"}},
 		{
 			SQLCategory: querier_dto.TypeCategoryDecimal,
-			NotNull:     querier_dto.GoType{Package: "piko.sh/piko/wdk/maths", Name: "Decimal"},
-			Nullable:    querier_dto.GoType{Package: "piko.sh/piko/wdk/maths", Name: "*Decimal"},
+			NotNull:     querier_dto.GoType{Package: goPackageMaths, Name: "Decimal"},
+			Nullable:    querier_dto.GoType{Package: goPackageMaths, Name: "*Decimal"},
 		},
 	}
 }
@@ -207,7 +323,7 @@ func scalarMappings() []querier_dto.TypeMapping {
 	return []querier_dto.TypeMapping{
 		{SQLCategory: querier_dto.TypeCategoryBoolean, NotNull: querier_dto.GoType{Name: "bool"}, Nullable: querier_dto.GoType{Name: "*bool"}},
 		{SQLCategory: querier_dto.TypeCategoryText, NotNull: querier_dto.GoType{Name: "string"}, Nullable: querier_dto.GoType{Name: "*string"}},
-		{SQLCategory: querier_dto.TypeCategoryBytea, NotNull: querier_dto.GoType{Name: "[]byte"}, Nullable: querier_dto.GoType{Name: "[]byte"}},
+		{SQLCategory: querier_dto.TypeCategoryBytea, NotNull: querier_dto.GoType{Name: goTypeByteSlice}, Nullable: querier_dto.GoType{Name: goTypeByteSlice}},
 	}
 }
 
@@ -234,18 +350,26 @@ func temporalMappings() []querier_dto.TypeMapping {
 }
 
 // complexMappings returns the default mappings for JSON, UUID, enum, array, struct, map,
-// and union SQL types.
+// union, and aggregate-state SQL types.
+//
+// Union types map to encoding/json.RawMessage so callers can decode the tagged variant
+// payload at runtime. Aggregate-state types map to []byte because the stored value is a
+// driver-opaque binary blob produced by AggregateFunction and SimpleAggregateFunction
+// columns.
 //
 // Returns []querier_dto.TypeMapping which holds the complex type mapping entries.
 func complexMappings() []querier_dto.TypeMapping {
 	goTypeAny := querier_dto.GoType{Name: "any"}
 	goTypeAnySlice := querier_dto.GoType{Name: "[]any"}
 
+	jsonType := querier_dto.GoType{Package: goPackageDBJSON, Name: goTypeDBJSON}
+	byteSlice := querier_dto.GoType{Name: goTypeByteSlice}
+
 	return []querier_dto.TypeMapping{
 		{
 			SQLCategory: querier_dto.TypeCategoryJSON,
-			NotNull:     querier_dto.GoType{Package: "encoding/json", Name: "RawMessage"},
-			Nullable:    querier_dto.GoType{Package: "encoding/json", Name: "RawMessage"},
+			NotNull:     jsonType,
+			Nullable:    jsonType,
 		},
 		{
 			SQLCategory: querier_dto.TypeCategoryUUID,
@@ -256,6 +380,15 @@ func complexMappings() []querier_dto.TypeMapping {
 		{SQLCategory: querier_dto.TypeCategoryArray, NotNull: goTypeAnySlice, Nullable: goTypeAnySlice},
 		{SQLCategory: querier_dto.TypeCategoryStruct, NotNull: goTypeAny, Nullable: goTypeAny},
 		{SQLCategory: querier_dto.TypeCategoryMap, NotNull: goTypeAny, Nullable: goTypeAny},
-		{SQLCategory: querier_dto.TypeCategoryUnion, NotNull: goTypeAny, Nullable: goTypeAny},
+		{
+			SQLCategory: querier_dto.TypeCategoryUnion,
+			NotNull:     jsonType,
+			Nullable:    jsonType,
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryAggregateState,
+			NotNull:     byteSlice,
+			Nullable:    byteSlice,
+		},
 	}
 }

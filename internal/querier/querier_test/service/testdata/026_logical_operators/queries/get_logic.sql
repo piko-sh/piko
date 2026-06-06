@@ -1,5 +1,4 @@
--- piko.name: GetLogicResults
--- piko.command: many
+-- piko.query(name: GetLogicResults, command: many)
 SELECT
   id,
   NOT active as is_inactive,

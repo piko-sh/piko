@@ -18,11 +18,10 @@
 
 // Package testutil provides shared utilities for integration tests.
 //
-// It includes test case discovery ([DiscoverTestCases]), golden file
-// assertions ([AssertGoldenFile], [AssertGoldenJSON],
-// [AssertGoldenHTML]), a [BaseHarness] for managing temporary
-// directories and source files, staged environment support
-// ([StagedEnvironment]) for multi-stage patch-based tests, spy
-// implementations for registry and cache ports, and JSON-driven
-// test specifications loaded via [LoadTestSpec].
+// It includes test case discovery ([DiscoverTestCases]), golden file assertions
+// ([AssertGoldenFile], [AssertGoldenJSON], [AssertGoldenHTML]), a [BaseHarness] for
+// managing temporary directories and source files, staged environment support
+// ([StagedEnvironment]) for multi-stage patch-based tests, spy implementations for
+// registry and cache ports, and JSON-driven test specifications loaded via
+// [LoadTestSpec].
 package testutil

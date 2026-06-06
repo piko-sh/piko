@@ -117,6 +117,7 @@ func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 			ElementType: &elementType,
 		},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
@@ -138,6 +139,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 		return &querier_dto.FunctionResolution{
 			ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: "record"},
 			NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 			ReturnsSet:        true,
 		}, nil
 	}
@@ -147,6 +149,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 		return &querier_dto.FunctionResolution{
 			ReturnType:        *arrayType.ElementType,
 			NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 			ReturnsSet:        true,
 		}, nil
 	}
@@ -154,6 +157,7 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		ReturnsSet:        true,
 	}, nil
 }
@@ -177,6 +181,7 @@ func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentI
 	return &querier_dto.FunctionResolution{
 		ReturnType:        argumentTypes[arrayArgumentIndex],
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -197,12 +202,14 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 	return &querier_dto.FunctionResolution{
 		ReturnType:        argumentTypes[0],
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
 
-// resolveSum resolves the sum aggregate return type by promoting small integers to
-// hugeint and falling back to numeric or float8 otherwise.
+// resolveSum resolves the sum aggregate return type. DuckDB promotes every integer input
+// (regardless of width, including BIGINT/HUGEINT) to HUGEINT; floating-point input stays
+// double precision (float8); and DECIMAL input keeps the decimal category.
 //
 // Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
 // declared order.
@@ -220,11 +227,7 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 
 	switch argumentType.Category {
 	case querier_dto.TypeCategoryInteger:
-		if isSmallInteger(argumentType.EngineName) {
-			returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "hugeint"}
-		} else {
-			returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"}
-		}
+		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "hugeint"}
 	case querier_dto.TypeCategoryFloat:
 		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float8"}
 	default:
@@ -234,12 +237,14 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	return &querier_dto.FunctionResolution{
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
 
-// resolveAvg resolves the avg aggregate return type, using float8 for floating-point
-// inputs and numeric otherwise.
+// resolveAvg resolves the avg aggregate return type. DuckDB returns double precision
+// (float8) for every numeric input, including integer, floating-point, and decimal, so
+// avg over any numeric column resolves to float8.
 //
 // Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
 // declared order.
@@ -256,7 +261,7 @@ func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	var returnType querier_dto.SQLType
 
 	switch argumentType.Category {
-	case querier_dto.TypeCategoryFloat:
+	case querier_dto.TypeCategoryInteger, querier_dto.TypeCategoryFloat, querier_dto.TypeCategoryDecimal:
 		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float8"}
 	default:
 		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"}
@@ -265,6 +270,7 @@ func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	return &querier_dto.FunctionResolution{
 		ReturnType:        returnType,
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 		IsAggregate:       true,
 	}, nil
 }
@@ -283,6 +289,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 			return &querier_dto.FunctionResolution{
 				ReturnType:        argumentTypes[index],
 				NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+				DataAccess:        querier_dto.DataAccessReadOnly,
 			}, nil
 		}
 	}
@@ -290,6 +297,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -301,6 +309,7 @@ func resolveTypeof() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -312,6 +321,7 @@ func resolveStructPack() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryStruct, EngineName: "struct"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -327,11 +337,13 @@ func resolveStructExtract(argumentTypes []querier_dto.SQLType) (*querier_dto.Fun
 		return &querier_dto.FunctionResolution{
 			ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
 			NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -348,11 +360,13 @@ func resolveStructInsert(argumentTypes []querier_dto.SQLType) (*querier_dto.Func
 		return &querier_dto.FunctionResolution{
 			ReturnType:        argumentTypes[0],
 			NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryStruct, EngineName: "struct"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -364,6 +378,7 @@ func resolveMapConstruct() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryMap, EngineName: "map"},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -413,11 +428,13 @@ func resolveMapComponent(extractedType *querier_dto.SQLType) (*querier_dto.Funct
 				ElementType: &componentType,
 			},
 			NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryArray, EngineName: fallbackListEngineName},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -429,6 +446,7 @@ func resolveMapEntries() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryArray, EngineName: fallbackListEngineName},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -447,18 +465,21 @@ func resolveElementAt(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 			return &querier_dto.FunctionResolution{
 				ReturnType:        *containerType.ElementType,
 				NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+				DataAccess:        querier_dto.DataAccessReadOnly,
 			}, nil
 		}
 		if containerType.Category == querier_dto.TypeCategoryArray && containerType.ElementType != nil {
 			return &querier_dto.FunctionResolution{
 				ReturnType:        *containerType.ElementType,
 				NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+				DataAccess:        querier_dto.DataAccessReadOnly,
 			}, nil
 		}
 	}
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
 }
 
@@ -476,25 +497,12 @@ func resolveListHigherOrder(argumentTypes []querier_dto.SQLType) (*querier_dto.F
 		return &querier_dto.FunctionResolution{
 			ReturnType:        argumentTypes[0],
 			NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+			DataAccess:        querier_dto.DataAccessReadOnly,
 		}, nil
 	}
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryArray, EngineName: fallbackListEngineName},
 		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
 	}, nil
-}
-
-// isSmallInteger reports whether the engine name names a sub-bigint integer type that
-// promotes to hugeint under sum.
-//
-// Takes engineName (string) which is the type's engine-specific name.
-//
-// Returns bool which is true for small-integer engine names.
-func isSmallInteger(engineName string) bool {
-	switch engineName {
-	case "int1", "int2", "int4", "utinyint", "usmallint":
-		return true
-	default:
-		return false
-	}
 }

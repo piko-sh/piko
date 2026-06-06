@@ -1,0 +1,3 @@
+{
+  "description": "Basic CRUD: INSERT followed by SELECT one and SELECT many on a MergeTree table. Establishes the integration-test baseline: codegen produces a working db package, the runner round-trips data through the native clickhouse-go/v2 driver."
+}

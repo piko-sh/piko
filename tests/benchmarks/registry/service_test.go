@@ -52,7 +52,7 @@ func createBenchmarkCache(b *testing.B, maxWeight uint64) registry_domain.Metada
 }
 
 var (
-	blackholeServiceArtefact *registry_dto.ArtefactMeta
+	blackholeServiceArtefact  *registry_dto.ArtefactMeta
 	blackholeServiceArtefacts []*registry_dto.ArtefactMeta
 )
 
@@ -237,44 +237,44 @@ func seedServiceBenchmarkDataWithID(t testing.TB, dbConn *sql.DB, q *registry_db
 	defer func() { _ = tx.Rollback() }()
 	qtx := q.WithTx(tx)
 	err = qtx.UpsertArtefact(context.Background(), registry_db.UpsertArtefactParams{
-		P1: artefactID,
-		P2: "source/" + artefactID,
-		P3: int32(now.Unix()),
-		P4: int32(now.Unix()),
+		ID:         artefactID,
+		SourcePath: "source/" + artefactID,
+		CreatedAt:  now.Unix(),
+		UpdatedAt:  now.Unix(),
 	})
 	require.NoError(t, err)
 	for i := range numVariants {
 		variantID := fmt.Sprintf("variant_%d", i)
 		err := qtx.InsertVariant(context.Background(), registry_db.InsertVariantParams{
-			P1: artefactID,
-			P2: variantID,
-			P3: uuid.NewString(),
-			P4: "local_disk_cache",
-			P5: "text/css",
-			P6: 1024,
-			P7: string(registry_dto.VariantStatusReady),
-			P8: int32(now.Unix()),
+			ArtefactID:       artefactID,
+			VariantID:        variantID,
+			StorageKey:       uuid.NewString(),
+			StorageBackendID: "local_disk_cache",
+			MimeType:         "text/css",
+			SizeBytes:        1024,
+			Status:           string(registry_dto.VariantStatusReady),
+			CreatedAt:        now.Unix(),
 		})
 		require.NoError(t, err)
 		for j := range numTagsPerVariant {
 			err := qtx.InsertVariantTag(context.Background(), registry_db.InsertVariantTagParams{
-				P1: artefactID,
-				P2: variantID,
-				P3: fmt.Sprintf("tag_key_%d", j),
-				P4: fmt.Sprintf("tag_value_%d", j),
+				ArtefactID: artefactID,
+				VariantID:  variantID,
+				TagKey:     fmt.Sprintf("tag_key_%d", j),
+				TagValue:   fmt.Sprintf("tag_value_%d", j),
 			})
 			require.NoError(t, err)
 		}
 	}
 	for i := range numProfiles {
 		err := qtx.InsertDesiredProfile(context.Background(), registry_db.InsertDesiredProfileParams{
-			P1: artefactID,
-			P2: fmt.Sprintf("profile_%d", i),
-			P3: "capability.minify",
-			P4: string(registry_dto.PriorityWant),
-			P5: "{}",
-			P6: "{}",
-			P7: "[\"source\"]",
+			ArtefactID:     artefactID,
+			Name:           fmt.Sprintf("profile_%d", i),
+			CapabilityName: "capability.minify",
+			Priority:       string(registry_dto.PriorityWant),
+			ParamsJSON:     "{}",
+			TagsJSON:       "{}",
+			DependsOnJSON:  "[\"source\"]",
 		})
 		require.NoError(t, err)
 	}

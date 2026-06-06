@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"piko.sh/piko/wdk/db/dbjson"
+
 	"querier_test_runner/db"
 )
 
@@ -41,8 +43,8 @@ func main() {
 	queries := db.New(conn)
 
 	setResult, err := queries.SetNestedField(ctx, db.SetNestedFieldParams{
-		P1: int32(1),
-		P2: `"published"`,
+		ID:       int32(1),
+		Metadata: dbjson.JSON(`"published"`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -50,8 +52,8 @@ func main() {
 	}
 
 	mergeResult, err := queries.MergeMetadata(ctx, db.MergeMetadataParams{
-		P1: int32(1),
-		P2: `{"reviewer": "Bob", "priority": "high"}`,
+		ID:       int32(1),
+		Metadata: dbjson.JSON(`{"reviewer": "Bob", "priority": "high"}`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -59,8 +61,8 @@ func main() {
 	}
 
 	removeResult, err := queries.RemoveKey(ctx, db.RemoveKeyParams{
-		P1: int32(1),
-		P2: "draft",
+		ID:       int32(1),
+		Metadata: dbjson.JSON(`draft`),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

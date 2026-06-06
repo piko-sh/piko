@@ -54,7 +54,7 @@ func TestPropagateOutputNullability(t *testing.T) {
 			expectedNullable: []bool{true, true},
 		},
 		{
-			name: "GROUP BY with full PK coverage preserves base nullability",
+			name: "GROUP BY with full PK coverage restores base nullability raised by a LEFT JOIN",
 			catalogue: func() *querier_dto.Catalogue {
 				cat := newTestCatalogue("main")
 				cat.Schemas["main"].Tables["users"] = &querier_dto.Table{
@@ -68,9 +68,10 @@ func TestPropagateOutputNullability(t *testing.T) {
 				}
 				return cat
 			}(),
+
 			columns: []querier_dto.OutputColumn{
-				{Name: "id", Nullable: false, SourceTable: "users", SourceColumn: "id"},
-				{Name: "email", Nullable: false, SourceTable: "users", SourceColumn: "email"},
+				{Name: "id", Nullable: true, SourceTable: "users", SourceColumn: "id"},
+				{Name: "email", Nullable: true, SourceTable: "users", SourceColumn: "email"},
 				{Name: "bio", Nullable: true, SourceTable: "users", SourceColumn: "bio"},
 			},
 			queryDirectives: nil,
@@ -88,6 +89,44 @@ func TestPropagateOutputNullability(t *testing.T) {
 			},
 
 			expectedNullable: []bool{false, false, true},
+		},
+		{
+			name: "unqualified GROUP BY with full PK coverage restores base nullability",
+			catalogue: func() *querier_dto.Catalogue {
+				cat := newTestCatalogue("main")
+				cat.Schemas["main"].Tables["users"] = &querier_dto.Table{
+					Name:       "users",
+					PrimaryKey: []string{"id"},
+					Columns: []querier_dto.Column{
+						{Name: "id", Nullable: false},
+						{Name: "email", Nullable: false},
+					},
+				}
+				return cat
+			}(),
+			columns: []querier_dto.OutputColumn{
+				{Name: "id", Nullable: true, SourceTable: "users", SourceColumn: "id"},
+				{Name: "email", Nullable: true, SourceTable: "users", SourceColumn: "email"},
+			},
+			queryDirectives: nil,
+			scope: func() *scopeChain {
+				sc := newScopeChain(querier_dto.ScopeKindQuery, nil)
+				sc.tables["u"] = &querier_dto.ScopedTable{
+					Schema: "main",
+					Name:   "users",
+					Alias:  "u",
+					Columns: []querier_dto.ScopedColumn{
+						{Name: "id"},
+						{Name: "email"},
+					},
+				}
+				return sc
+			}(),
+
+			groupByColumns: []querier_dto.ColumnReference{
+				{TableAlias: "", ColumnName: "id"},
+			},
+			expectedNullable: []bool{false, false},
 		},
 		{
 			name: "GROUP BY without PK coverage does not change nullability",
@@ -223,13 +262,12 @@ func TestPropagateParameterNullability(t *testing.T) {
 				{Number: 1, Name: "email", Nullable: false},
 			},
 			parameterDirectives: []*querier_dto.ParameterDirective{
-				{Number: 1, Kind: querier_dto.ParameterDirectiveOptional},
+				{Number: 1, IsOptional: true},
 			},
 			expectedNullable: []bool{true},
 			checkFn: func(t *testing.T, result []querier_dto.QueryParameter) {
 				assert.True(t, result[0].IsOptional,
 					"optional parameter should have IsOptional set")
-				assert.Equal(t, querier_dto.ParameterDirectiveOptional, result[0].Kind)
 			},
 		},
 		{
@@ -238,7 +276,7 @@ func TestPropagateParameterNullability(t *testing.T) {
 				{Number: 1, Name: "ids", Nullable: true},
 			},
 			parameterDirectives: []*querier_dto.ParameterDirective{
-				{Number: 1, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, IsSlice: true},
 			},
 			expectedNullable: []bool{false},
 			checkFn: func(t *testing.T, result []querier_dto.QueryParameter) {
@@ -266,27 +304,27 @@ func TestPropagateParameterNullability(t *testing.T) {
 		{
 			name: "limit parameter forces not nullable",
 			parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "page_size", Nullable: true},
+				{Number: 1, Name: "page_size", Nullable: true, Context: querier_dto.ParameterContextLimit},
 			},
 			parameterDirectives: []*querier_dto.ParameterDirective{
-				{Number: 1, Kind: querier_dto.ParameterDirectiveLimit},
+				{Number: 1, Name: "page_size"},
 			},
 			expectedNullable: []bool{false},
 			checkFn: func(t *testing.T, result []querier_dto.QueryParameter) {
-				assert.Equal(t, querier_dto.ParameterDirectiveLimit, result[0].Kind)
+				assert.True(t, result[0].IsPaginationBound())
 			},
 		},
 		{
 			name: "offset parameter forces not nullable",
 			parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "page_offset", Nullable: true},
+				{Number: 1, Name: "page_offset", Nullable: true, Context: querier_dto.ParameterContextOffset},
 			},
 			parameterDirectives: []*querier_dto.ParameterDirective{
-				{Number: 1, Kind: querier_dto.ParameterDirectiveOffset},
+				{Number: 1, Name: "page_offset"},
 			},
 			expectedNullable: []bool{false},
 			checkFn: func(t *testing.T, result []querier_dto.QueryParameter) {
-				assert.Equal(t, querier_dto.ParameterDirectiveOffset, result[0].Kind)
+				assert.True(t, result[0].IsPaginationBound())
 			},
 		},
 		{
@@ -329,7 +367,7 @@ func TestPropagateParameterNullability(t *testing.T) {
 				{Number: 2, Name: "name", Nullable: false},
 			},
 			parameterDirectives: []*querier_dto.ParameterDirective{
-				{Number: 1, Kind: querier_dto.ParameterDirectiveOptional},
+				{Number: 1, IsOptional: true},
 			},
 			expectedNullable: []bool{true, false},
 			checkFn: func(t *testing.T, result []querier_dto.QueryParameter) {
@@ -375,7 +413,7 @@ func TestPropagateParameterNullability_DoesNotMutateInput(t *testing.T) {
 	result := propagator.PropagateParameterNullability(
 		original,
 		[]*querier_dto.ParameterDirective{
-			{Number: 1, Kind: querier_dto.ParameterDirectiveOptional},
+			{Number: 1, IsOptional: true},
 		},
 	)
 

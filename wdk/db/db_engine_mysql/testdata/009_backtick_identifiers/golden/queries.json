@@ -2,8 +2,9 @@
   {
     "InsertTable": "order",
     "Filename": "create_order.sql",
-    "SQL": "-- piko.name: CreateOrder\n-- piko.command: exec\nINSERT INTO `order` (`select`, `from`) VALUES (?, ?);",
+    "SQL": "-- piko.query(name: CreateOrder, command: exec)\nINSERT INTO `order` (`select`, `from`) VALUES (?, ?);",
     "Name": "CreateOrder",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,13 +48,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [],
@@ -72,16 +77,19 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 2,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   },
   {
     "InsertTable": "",
     "Filename": "get_order.sql",
-    "SQL": "-- piko.name: GetOrder\n-- piko.command: one\nSELECT `id`, `select`, `from`, `date` FROM `order` WHERE `id` = ?;",
+    "SQL": "-- piko.query(name: GetOrder, command: one)\nSELECT `id`, `select`, `from`, `date` FROM `order` WHERE `id` = ?;",
     "Name": "GetOrder",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -99,20 +107,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 0
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "id",
         "SourceTable": "order",
+        "SourceSchema": "",
         "SourceColumn": "id",
+        "SourceQualifier": "order",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -125,16 +138,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "select",
         "SourceTable": "order",
+        "SourceSchema": "",
         "SourceColumn": "select",
+        "SourceQualifier": "order",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -147,16 +164,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "from",
         "SourceTable": "order",
+        "SourceSchema": "",
         "SourceColumn": "from",
+        "SourceQualifier": "order",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -169,16 +190,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "date",
         "SourceTable": "order",
+        "SourceSchema": "",
         "SourceColumn": "date",
+        "SourceQualifier": "order",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -191,7 +216,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 6
+          "Category": 6,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -212,9 +238,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": true,
+    "CountSQLWrapped": false
   }
 ]

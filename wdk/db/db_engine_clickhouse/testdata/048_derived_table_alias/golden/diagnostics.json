@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "q.sql",
+    "Message": "failed to analyse query \"Aliased\": expected identifier, got \"\" at position 0",
+    "Code": "Q010",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 0
+  }
+]

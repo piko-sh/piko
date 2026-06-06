@@ -44,15 +44,15 @@ func main() {
 	queries := db.New(conn)
 	err = queries.RunInTx(ctx, conn, func(txQueries *db.Queries) error {
 		err := txQueries.UpdateBalance(ctx, db.UpdateBalanceParams{
-			P1: int32(50),
-			P2: int32(1),
+			Balance: int32(50),
+			ID:      int32(1),
 		})
 		if err != nil {
 			return err
 		}
 		return txQueries.UpdateBalance(ctx, db.UpdateBalanceParams{
-			P1: int32(250),
-			P2: int32(2),
+			Balance: int32(250),
+			ID:      int32(2),
 		})
 	})
 	if err != nil {
@@ -67,8 +67,8 @@ func main() {
 	}
 	err = queries.RunInTx(ctx, conn, func(txQueries *db.Queries) error {
 		err := txQueries.UpdateBalance(ctx, db.UpdateBalanceParams{
-			P1: int32(0),
-			P2: int32(1),
+			Balance: int32(0),
+			ID:      int32(1),
 		})
 		if err != nil {
 			return err

@@ -1,0 +1,3 @@
+{
+  "description": "ClickHouse primitive types: signed and unsigned integers, floats, String, Bool, Date, DateTime, UUID. Verifies the type catalogue resolves each form."
+}

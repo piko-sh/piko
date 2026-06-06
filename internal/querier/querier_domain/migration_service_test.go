@@ -39,6 +39,20 @@ func testChecksum(content []byte) string {
 	return hex.EncodeToString(hash[:])
 }
 
+func TestComputeRollbackStepsClampsNegative(t *testing.T) {
+	t.Parallel()
+
+	applied := []querier_dto.AppliedMigration{{Version: 1}, {Version: 2}}
+
+	assert.Equal(t, 0, computeRollbackSteps(applied, new(-3), nil))
+
+	assert.Equal(t, 0, computeRollbackSteps(applied, new(0), nil))
+
+	assert.Equal(t, 1, computeRollbackSteps(applied, new(1), nil))
+
+	assert.Equal(t, len(applied), computeRollbackSteps(applied, new(10), nil))
+}
+
 func setupMigrationService(
 	t *testing.T,
 	executor *mockMigrationExecutor,
@@ -1109,7 +1123,7 @@ func TestMigrationService_NoTransactionDirective(t *testing.T) {
 	t.Run("migration with no-transaction directive runs without transaction", func(t *testing.T) {
 		t.Parallel()
 
-		noTxContent := []byte("-- piko:no-transaction\nCREATE INDEX CONCURRENTLY idx ON users (email);")
+		noTxContent := []byte("-- piko.migration(no_transaction: true)\nCREATE INDEX CONCURRENTLY idx ON users (email);")
 		reader := &mockFileReader{
 			dirs: map[string][]os.DirEntry{
 				"/migrations": {
@@ -1321,4 +1335,105 @@ func TestMigrationService_ReadDirError(t *testing.T) {
 
 	validateErr := svc.Validate(context.Background())
 	require.Error(t, validateErr, "Validate should propagate directory read errors")
+}
+
+func TestHasNoTransactionDirective(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		content  string
+		expected bool
+	}{
+		{
+			name:     "plain statement runs transactionally",
+			content:  "CREATE TABLE foo (id int);",
+			expected: false,
+		},
+		{
+			name:     "explicit no_transaction directive forces non-transactional",
+			content:  "-- piko.migration(no_transaction: true)\nCREATE TABLE foo (id int);",
+			expected: true,
+		},
+		{
+			name:     "hash comment directive forces non-transactional",
+			content:  "# piko.migration(no_transaction: true)\nCREATE TABLE foo (id int);",
+			expected: true,
+		},
+		{
+			name:     "CREATE INDEX CONCURRENTLY is auto-detected",
+			content:  "CREATE INDEX CONCURRENTLY idx ON users (email);",
+			expected: true,
+		},
+		{
+			name:     "lower-case create index concurrently is auto-detected",
+			content:  "create index concurrently idx on users (email);",
+			expected: true,
+		},
+		{
+			name:     "leading VACUUM is auto-detected",
+			content:  "VACUUM ANALYZE users;",
+			expected: true,
+		},
+		{
+			name:     "CONCURRENTLY inside a string literal does not strip transaction safety",
+			content:  "INSERT INTO audit (note) VALUES ('processed CONCURRENTLY');",
+			expected: false,
+		},
+		{
+			name:     "CONCURRENTLY inside a double-quoted identifier does not strip transaction safety",
+			content:  `INSERT INTO "run CONCURRENTLY" (id) VALUES (1);`,
+			expected: false,
+		},
+		{
+			name: "VACUUM beginning a dollar-quoted body line does not strip transaction safety",
+			content: "CREATE FUNCTION housekeeping() RETURNS void AS $$\n" +
+				"BEGIN\n" +
+				"VACUUM things;\n" +
+				"END;\n" +
+				"$$ LANGUAGE plpgsql;",
+			expected: false,
+		},
+		{
+			name: "CONCURRENTLY inside a dollar-quoted body does not strip transaction safety",
+			content: "CREATE FUNCTION note() RETURNS text AS $tag$\n" +
+				"SELECT 'rebuild CONCURRENTLY please';\n" +
+				"$tag$ LANGUAGE sql;",
+			expected: false,
+		},
+		{
+			name:     "column name containing concurrently substring is not matched",
+			content:  "CREATE TABLE jobs (run_concurrently boolean);",
+			expected: false,
+		},
+		{
+			name:     "VACUUMING leading word is not matched as VACUUM",
+			content:  "UPDATE machines SET state = 'vacuuming' WHERE id = 1;",
+			expected: false,
+		},
+		{
+			name:     "CONCURRENTLY in a line comment does not strip transaction safety",
+			content:  "-- rebuild the index CONCURRENTLY later\nCREATE TABLE foo (id int);",
+			expected: false,
+		},
+		{
+			name:     "CONCURRENTLY in a block comment does not strip transaction safety",
+			content:  "/* run CONCURRENTLY when convenient */\nCREATE TABLE foo (id int);",
+			expected: false,
+		},
+		{
+			name:     "real CONCURRENTLY after a string literal statement is still detected",
+			content:  "INSERT INTO t (note) VALUES ('concurrently');\nCREATE INDEX CONCURRENTLY idx ON t (note);",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := hasNoTransactionDirective([]byte(tt.content))
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

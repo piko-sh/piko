@@ -6,11 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
 	"querier_test_runner/db"
 )
+
+func mustParseDate(value string) time.Time {
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	return parsed
+}
 
 func main() {
 	connectionString := os.Getenv("DATABASE_URL")
@@ -27,10 +37,10 @@ func main() {
 	queries := db.New(conn)
 
 	err = queries.InsertArticle(ctx, db.InsertArticleParams{
-		P1: "Introduction to MariaDB",
-		P2: "MariaDB is a powerful open-source relational database management system.",
-		P3: "Alice",
-		P4: "2025-01-15",
+		Title:       "Introduction to MariaDB",
+		Body:        "MariaDB is a powerful open-source relational database management system.",
+		Author:      "Alice",
+		PublishedAt: mustParseDate("2025-01-15"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertArticle 1:", err)
@@ -38,10 +48,10 @@ func main() {
 	}
 
 	err = queries.InsertArticle(ctx, db.InsertArticleParams{
-		P1: "Advanced SQL Queries",
-		P2: "Learn about window functions, CTEs, and fulltext search in SQL databases.",
-		P3: "Bob",
-		P4: "2025-02-20",
+		Title:       "Advanced SQL Queries",
+		Body:        "Learn about window functions, CTEs, and fulltext search in SQL databases.",
+		Author:      "Bob",
+		PublishedAt: mustParseDate("2025-02-20"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertArticle 2:", err)
@@ -49,10 +59,10 @@ func main() {
 	}
 
 	err = queries.InsertArticle(ctx, db.InsertArticleParams{
-		P1: "MariaDB Performance Tuning",
-		P2: "Tips and tricks for optimising MariaDB performance with proper indexing.",
-		P3: "Alice",
-		P4: "2025-03-10",
+		Title:       "MariaDB Performance Tuning",
+		Body:        "Tips and tricks for optimising MariaDB performance with proper indexing.",
+		Author:      "Alice",
+		PublishedAt: mustParseDate("2025-03-10"),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertArticle 3:", err)

@@ -1,10 +1,8 @@
--- piko.name: GetUserByID
--- piko.command: one
+-- piko.query(name: GetUserByID, command: one)
 -- @user_id as piko.param
 SELECT id, name, email FROM users WHERE id = @user_id;
 
--- piko.name: InsertUser
--- piko.command: exec
+-- piko.query(name: InsertUser, command: exec)
 -- @name as piko.param
 -- @email as piko.param
 INSERT INTO users (name, email) VALUES (@name, @email);

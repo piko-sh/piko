@@ -1,16 +1,16 @@
 {
   "accounts": [
     {
-      "Email": "alice@example.com",
-      "ID": 1,
-      "Name": "Alice",
-      "PendingAction": null
+      "email": "alice@example.com",
+      "id": 1,
+      "name": "Alice",
+      "pending_action": null
     },
     {
-      "Email": null,
-      "ID": 2,
-      "Name": "Bob",
-      "PendingAction": null
+      "email": null,
+      "id": 2,
+      "name": "Bob",
+      "pending_action": null
     }
   ]
 }

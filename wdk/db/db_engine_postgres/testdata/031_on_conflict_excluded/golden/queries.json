@@ -2,8 +2,9 @@
   {
     "InsertTable": "kv_store",
     "Filename": "upsert_kv.sql",
-    "SQL": "-- piko.name: UpsertKV\n-- piko.command: one\nINSERT INTO kv_store (key, value) VALUES ($1, $2)\nON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, version = kv_store.version + 1\nRETURNING key, value, version;",
+    "SQL": "-- piko.query(name: UpsertKV, command: one)\nINSERT INTO kv_store (key, value) VALUES ($1, $2)\nON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, version = kv_store.version + 1\nRETURNING key, value, version;",
     "Name": "UpsertKV",
+    "CountSQL": "",
     "Parameters": [
       {
         "DefaultLimit": null,
@@ -21,13 +22,15 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 1,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       },
       {
         "DefaultLimit": null,
@@ -45,20 +48,25 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Number": 2,
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0
+        "Kind": 0,
+        "Context": 1
       }
     ],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "key",
         "SourceTable": "kv_store",
+        "SourceSchema": "",
         "SourceColumn": "key",
+        "SourceQualifier": "kv_store",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -71,16 +79,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "value",
         "SourceTable": "kv_store",
+        "SourceSchema": "",
         "SourceColumn": "value",
+        "SourceQualifier": "kv_store",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -93,16 +105,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "version",
         "SourceTable": "kv_store",
+        "SourceSchema": "",
         "SourceColumn": "version",
+        "SourceQualifier": "kv_store",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -115,7 +131,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
@@ -139,9 +156,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 0,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": false
+    "ReadOnly": false,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

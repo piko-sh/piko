@@ -1,0 +1,3 @@
+{
+  "description": "Exercise the TimescaleDB first(value, time) and last(value, time) ordered aggregates over a hypertable. Verifies that the function catalogue's first/last overloads resolve to the expected return type and that the values come back time-ordered."
+}

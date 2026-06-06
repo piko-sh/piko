@@ -34,9 +34,9 @@ func main() {
 	queries := db.New(conn)
 
 	inserted, err := queries.InsertItem(ctx, db.InsertItemParams{
-		P1: "Widget",
-		P2: int32(5),
-		P3: int32(300),
+		Name:      "Widget",
+		Quantity:  int32(5),
+		UnitPrice: int32(300),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -44,8 +44,8 @@ func main() {
 	}
 
 	updated, err := queries.UpdateQuantity(ctx, db.UpdateQuantityParams{
-		P1: int32(1),
-		P2: int32(3),
+		ID:       int32(1),
+		Quantity: int32(3),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -53,9 +53,9 @@ func main() {
 	}
 
 	inserted2, err := queries.InsertItem(ctx, db.InsertItemParams{
-		P1: "Gadget",
-		P2: int32(2),
-		P3: int32(750),
+		Name:      "Gadget",
+		Quantity:  int32(2),
+		UnitPrice: int32(750),
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -2,14 +2,18 @@
   {
     "InsertTable": "",
     "Filename": "agg_tags.sql",
-    "SQL": "-- piko.name: AggTags\n-- piko.command: many\nSELECT group_id, string_agg(name, ', ' ORDER BY name) AS tag_list\nFROM tags\nGROUP BY group_id;",
+    "SQL": "-- piko.query(name: AggTags, command: many)\nSELECT group_id, string_agg(name, ', ' ORDER BY name) AS tag_list\nFROM tags\nGROUP BY group_id;",
     "Name": "AggTags",
+    "CountSQL": "",
     "Parameters": [],
     "OutputColumns": [
       {
+        "GoTypeOverride": null,
         "Name": "group_id",
         "SourceTable": "tags",
+        "SourceSchema": "",
         "SourceColumn": "group_id",
+        "SourceQualifier": "tags",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -22,16 +26,20 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 0
+          "Category": 0,
+          "Nullable": false
         },
         "Nullable": false,
         "IsEmbedded": false,
         "EmbedIsOuter": false
       },
       {
+        "GoTypeOverride": null,
         "Name": "tag_list",
         "SourceTable": "",
+        "SourceSchema": "",
         "SourceColumn": "",
+        "SourceQualifier": "",
         "EmbedTable": "",
         "SQLType": {
           "Precision": null,
@@ -44,7 +52,8 @@
           "StructFields": null,
           "KeyType": null,
           "UnionMembers": null,
-          "Category": 4
+          "Category": 4,
+          "Nullable": false
         },
         "Nullable": true,
         "IsEmbedded": false,
@@ -65,9 +74,11 @@
       "DynamicRuntime": false
     },
     "Line": 1,
-    "IsDynamic": false,
     "Command": 1,
+    "IsDynamic": false,
     "DynamicRuntime": false,
-    "ReadOnly": true
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false
   }
 ]

@@ -54,7 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	deleted, err := queries.DeleteTask(ctx, int32(3))
+	deleted, err := queries.DeleteTask(ctx, int64(3))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -8,16 +8,16 @@ const countchunksforvariant = `SELECT COUNT(*) FROM variant_chunk
 WHERE artefact_id = ? AND variant_id = ?;`
 
 type CountChunksForVariantParams struct {
-	P1 string
-	P2 string
+	ArtefactID string
+	VariantID  string
 }
 type CountChunksForVariantRow struct {
-	Count int32
+	Count int64 `json:"count"`
 }
 
 func (queries *Queries) CountChunksForVariant(ctx context.Context, params CountChunksForVariantParams) (CountChunksForVariantRow, error) {
 	var row CountChunksForVariantRow
-	err := queries.reader.QueryRowContext(ctx, countchunksforvariant, params.P1, params.P2).Scan(&row.Count)
+	err := queries.reader.QueryRowContext(ctx, countchunksforvariant, params.ArtefactID, params.VariantID).Scan(&row.Count)
 	if err != nil {
 		return CountChunksForVariantRow{}, err
 	}
@@ -28,12 +28,12 @@ const deletechunksforvariant = `DELETE FROM variant_chunk
 WHERE artefact_id = ? AND variant_id = ?;`
 
 type DeleteChunksForVariantParams struct {
-	P1 string
-	P2 string
+	ArtefactID string
+	VariantID  string
 }
 
 func (queries *Queries) DeleteChunksForVariant(ctx context.Context, params DeleteChunksForVariantParams) error {
-	_, err := queries.writer.ExecContext(ctx, deletechunksforvariant, params.P1, params.P2)
+	_, err := queries.writer.ExecContext(ctx, deletechunksforvariant, params.ArtefactID, params.VariantID)
 	return err
 }
 
@@ -41,12 +41,12 @@ const findartefactbychunkstoragekey = `SELECT DISTINCT artefact_id FROM variant_
 WHERE storage_key = ? LIMIT 1;`
 
 type FindArtefactByChunkStorageKeyRow struct {
-	ArtefactID string
+	ArtefactID string `json:"artefact_id"`
 }
 
-func (queries *Queries) FindArtefactByChunkStorageKey(ctx context.Context, p1 string) (FindArtefactByChunkStorageKeyRow, error) {
+func (queries *Queries) FindArtefactByChunkStorageKey(ctx context.Context, storageKey string) (FindArtefactByChunkStorageKeyRow, error) {
 	var row FindArtefactByChunkStorageKeyRow
-	err := queries.reader.QueryRowContext(ctx, findartefactbychunkstoragekey, p1).Scan(&row.ArtefactID)
+	err := queries.reader.QueryRowContext(ctx, findartefactbychunkstoragekey, storageKey).Scan(&row.ArtefactID)
 	if err != nil {
 		return FindArtefactByChunkStorageKeyRow{}, err
 	}
@@ -68,23 +68,23 @@ WHERE artefact_id = ? AND variant_id = ?
 ORDER BY sequence_number ASC;`
 
 type GetChunksForVariantParams struct {
-	P1 string
-	P2 string
+	ArtefactID string
+	VariantID  string
 }
 type GetChunksForVariantRow struct {
-	ChunkID          string
-	StorageKey       string
-	StorageBackendID string
-	SizeBytes        int32
-	ContentHash      string
-	SequenceNumber   int32
-	MimeType         string
-	CreatedAt        int32
-	DurationSeconds  *float64
+	ChunkID          string   `json:"chunk_id"`
+	StorageKey       string   `json:"storage_key"`
+	StorageBackendID string   `json:"storage_backend_id"`
+	SizeBytes        int64    `json:"size_bytes"`
+	ContentHash      string   `json:"content_hash"`
+	SequenceNumber   int64    `json:"sequence_number"`
+	MimeType         string   `json:"mime_type"`
+	CreatedAt        int64    `json:"created_at"`
+	DurationSeconds  *float64 `json:"duration_seconds"`
 }
 
 func (queries *Queries) GetChunksForVariant(ctx context.Context, params GetChunksForVariantParams) ([]GetChunksForVariantRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getchunksforvariant, params.P1, params.P2)
+	rows, err := queries.reader.QueryContext(ctx, getchunksforvariant, params.ArtefactID, params.VariantID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,27 +120,30 @@ WHERE artefact_id = ?1 AND variant_id IN (?2)
 ORDER BY artefact_id, variant_id, sequence_number ASC;`
 
 type GetChunksForVariantsParams struct {
-	P1         string
+	ArtefactID string
 	VariantIDs []string
 }
 type GetChunksForVariantsRow struct {
-	ArtefactID       string
-	VariantID        string
-	ChunkID          string
-	StorageKey       string
-	StorageBackendID string
-	SizeBytes        int32
-	ContentHash      string
-	SequenceNumber   int32
-	MimeType         string
-	CreatedAt        int32
-	DurationSeconds  *float64
+	ArtefactID       string   `json:"artefact_id"`
+	VariantID        string   `json:"variant_id"`
+	ChunkID          string   `json:"chunk_id"`
+	StorageKey       string   `json:"storage_key"`
+	StorageBackendID string   `json:"storage_backend_id"`
+	SizeBytes        int64    `json:"size_bytes"`
+	ContentHash      string   `json:"content_hash"`
+	SequenceNumber   int64    `json:"sequence_number"`
+	MimeType         string   `json:"mime_type"`
+	CreatedAt        int64    `json:"created_at"`
+	DurationSeconds  *float64 `json:"duration_seconds"`
 }
 
 func (queries *Queries) GetChunksForVariants(ctx context.Context, params GetChunksForVariantsParams) ([]GetChunksForVariantsRow, error) {
-	query := pikoExpandSlicePlaceholders(getchunksforvariants, []pikoSliceExpansionSpec{{1, 1}, {2, len(params.VariantIDs)}})
+	query, expansionError := pikoExpandSlicePlaceholders(getchunksforvariants, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.VariantIDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
 	args := make([]any, 0, len(params.VariantIDs)+1)
-	args = append(args, params.P1)
+	args = append(args, params.ArtefactID)
 	for _, v := range params.VariantIDs {
 		args = append(args, v)
 	}
@@ -178,20 +181,20 @@ const insertvariantchunk = `INSERT INTO variant_chunk (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 type InsertVariantChunkParams struct {
-	P1  string
-	P2  string
-	P3  string
-	P4  string
-	P5  string
-	P6  int32
-	P7  string
-	P8  int32
-	P9  string
-	P10 int32
-	P11 *float64
+	ArtefactID       string
+	VariantID        string
+	ChunkID          string
+	StorageKey       string
+	StorageBackendID string
+	SizeBytes        int64
+	ContentHash      string
+	SequenceNumber   int64
+	MimeType         string
+	CreatedAt        int64
+	DurationSeconds  *float64
 }
 
 func (queries *Queries) InsertVariantChunk(ctx context.Context, params InsertVariantChunkParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvariantchunk, params.P1, params.P2, params.P3, params.P4, params.P5, params.P6, params.P7, params.P8, params.P9, params.P10, params.P11)
+	_, err := queries.writer.ExecContext(ctx, insertvariantchunk, params.ArtefactID, params.VariantID, params.ChunkID, params.StorageKey, params.StorageBackendID, params.SizeBytes, params.ContentHash, params.SequenceNumber, params.MimeType, params.CreatedAt, params.DurationSeconds)
 	return err
 }

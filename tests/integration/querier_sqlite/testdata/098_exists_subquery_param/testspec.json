@@ -1,0 +1,4 @@
+{
+  "description": "B3: a parameter inside an EXISTS subquery is typed against the subquery's own scope (workflow_id lives on two tables, so a catalogue-wide fallback would be ambiguous). No Q001/Q002, and the parameter types as the column's type (string).",
+  "expectedDiagnostics": []
+}

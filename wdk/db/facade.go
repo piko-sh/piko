@@ -23,6 +23,7 @@ import (
 	"io/fs"
 
 	"piko.sh/piko/internal/bootstrap"
+	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
 	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -45,6 +46,136 @@ type CatalogueProviderPort = querier_domain.CatalogueProviderPort
 
 // FileReaderPort abstracts filesystem access for reading migration and query SQL files.
 type FileReaderPort = querier_domain.FileReaderPort
+
+// QuerierServicePort is the SQL code-generation service returned by NewQuerierService.
+type QuerierServicePort = querier_domain.QuerierServicePort
+
+// QuerierService is the driving port for the querier code generator. It turns SQL
+// migration + query files into Go source code.
+type QuerierService = querier_domain.QuerierServicePort
+
+// QuerierPorts groups the adapter ports a QuerierService needs at construction time. Pass
+// it to NewQuerierService.
+type QuerierPorts = querier_domain.QuerierPorts
+
+// CodeEmitterPort is the outbound adapter that turns analysed queries into emitted source
+// files.
+type CodeEmitterPort = querier_domain.CodeEmitterPort
+
+// GenerationResult holds the output of one QuerierService.GenerateDatabase call: the
+// emitted files, plus any diagnostics produced along the way.
+type GenerationResult = querier_dto.GenerationResult
+
+// GeneratedFile is one file in GenerationResult.Files. Callers typically write Content to
+// disk under their chosen output directory.
+type GeneratedFile = querier_dto.GeneratedFile
+
+// SourceError is one diagnostic emitted during catalogue building or query analysis.
+// Diagnostics range from Info ("here's something to know") through Warning to Error
+// ("generation cannot continue").
+type SourceError = querier_dto.SourceError
+
+// Severity classifies a SourceError. Callers gate on SeverityError to decide whether to
+// fail a code-generation run.
+type Severity = querier_dto.ErrorSeverity
+
+// CustomFunctionConfig describes a user-declared function signature that the analyser
+// should recognise during query type resolution. Use this for SQLite extensions or for
+// functions defined outside the migration files Piko parses.
+type CustomFunctionConfig = querier_dto.CustomFunctionConfig
+
+const (
+	// SeverityHint flags a non-fatal suggestion that does not block generation.
+	SeverityHint = querier_dto.SeverityHint
+
+	// SeverityWarning flags a diagnostic that highlights a likely problem but does not block
+	// generation.
+	SeverityWarning = querier_dto.SeverityWarning
+
+	// SeverityError flags a diagnostic that prevents successful generation; callers should
+	// fail when one is reported.
+	SeverityError = querier_dto.SeverityError
+
+	// DatabaseNameRegistry is the reserved database name for piko's internal registry
+	// subsystem. Register a database with this name to back the registry with a SQL database
+	// instead of the default otter in-memory backend.
+	DatabaseNameRegistry = bootstrap.DatabaseNameRegistry
+
+	// DatabaseNameOrchestrator is the reserved database name for piko's internal
+	// orchestrator subsystem. Register a database with this name to back the orchestrator
+	// with a SQL database instead of the default otter in-memory backend.
+	DatabaseNameOrchestrator = bootstrap.DatabaseNameOrchestrator
+
+	// DirectionUp is a forward migration that applies schema changes.
+	DirectionUp = querier_dto.MigrationDirectionUp
+
+	// DirectionDown is a rollback migration that reverts schema changes.
+	DirectionDown = querier_dto.MigrationDirectionDown
+)
+
+// NewSQLEmitter returns the database/sql code emitter. This is the default emitter for
+// projects that use the standard library database abstraction; pgx-based projects can
+// import a dedicated emitter from wdk/db/db_emitter_pgx instead.
+//
+// Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
+func NewSQLEmitter() CodeEmitterPort {
+	return emitter_go_sql.NewSQLEmitter()
+}
+
+// NewSQLEmitterForDialect returns the database/sql code emitter for an engine dialect.
+//
+// The emitter is configured so the generated placeholders and array decoding match the
+// engine's driver. A project generating for more than one engine should pass each engine's
+// Dialect() here rather than using NewSQLEmitter, otherwise the postgres family loses its
+// `$N` placeholder form and its to_json array-column auto-decoding.
+//
+// Takes dialect (string) which is the engine's Dialect() name.
+//
+// Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
+func NewSQLEmitterForDialect(dialect string) CodeEmitterPort {
+	return emitter_go_sql.NewSQLEmitterForDialect(dialect)
+}
+
+// NewQuerierService constructs a QuerierService from the supplied adapter ports.
+//
+// Takes ports (QuerierPorts) which provides the engine, emitter, file reader, and
+// optional catalogue provider.
+//
+// Returns QuerierService which is ready to run GenerateDatabase.
+// Returns error when any required port is missing.
+func NewQuerierService(ports QuerierPorts) (QuerierService, error) {
+	return querier_domain.NewQuerierService(ports)
+}
+
+// NewMigrationCatalogueProvider returns the default catalogue provider, which builds a
+// schema catalogue by replaying migration DDL files.
+//
+// Takes engine (EnginePort) which parses and interprets DDL.
+// Takes fileReader (FileReaderPort) which reads files from disk or an embed.FS.
+// Takes directory (string) which is the migrations directory path.
+//
+// Returns CatalogueProviderPort which is ready to plug into a
+// QuerierPorts.CatalogueProvider.
+func NewMigrationCatalogueProvider(
+	engine EnginePort,
+	fileReader FileReaderPort,
+	directory string,
+) CatalogueProviderPort {
+	return querier_domain.NewMigrationCatalogueProvider(engine, fileReader, directory)
+}
+
+// NewCompositeCatalogueProvider wires a CatalogueProviderPort that union-merges the
+// catalogues produced by each upstream provider in order. Use it when query files cross
+// schemas or hexagons and need every upstream schema visible at analysis time.
+//
+// Takes providers ([]CatalogueProviderPort) which is the apply-order chain. Nil and empty
+// slices return an empty catalogue.
+//
+// Returns CatalogueProviderPort which is ready to plug into a
+// QuerierPorts.CatalogueProvider.
+func NewCompositeCatalogueProvider(providers []CatalogueProviderPort) CatalogueProviderPort {
+	return querier_domain.NewCompositeCatalogueProvider(providers)
+}
 
 // SeedService defines the driving port for database seed operations.
 type SeedService = querier_domain.SeedServicePort
@@ -127,24 +258,6 @@ type MissingMigrationFileError = querier_domain.MissingMigrationFileError
 // NoDownMigrationError is returned when a rollback is requested for a version that has no
 // .down.sql file.
 type NoDownMigrationError = querier_domain.NoDownMigrationError
-
-const (
-	// DatabaseNameRegistry is the reserved database name for piko's internal registry
-	// subsystem. Register a database with this name to back the registry with a SQL database
-	// instead of the default otter in-memory backend.
-	DatabaseNameRegistry = bootstrap.DatabaseNameRegistry
-
-	// DatabaseNameOrchestrator is the reserved database name for piko's internal
-	// orchestrator subsystem. Register a database with this name to back the orchestrator
-	// with a SQL database instead of the default otter in-memory backend.
-	DatabaseNameOrchestrator = bootstrap.DatabaseNameOrchestrator
-
-	// DirectionUp is a forward migration that applies schema changes.
-	DirectionUp = querier_dto.MigrationDirectionUp
-
-	// DirectionDown is a rollback migration that reverts schema changes.
-	DirectionDown = querier_dto.MigrationDirectionDown
-)
 
 var (
 	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails because another

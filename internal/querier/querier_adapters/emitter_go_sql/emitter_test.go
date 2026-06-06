@@ -30,6 +30,40 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+func TestNewSQLEmitterForDialectSelectsPlaceholderProfile(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		dialect string
+		dollar  bool
+		plain   bool
+		named   bool
+	}{
+		{dialect: "postgres", dollar: true},
+		{dialect: "cockroachdb", dollar: true},
+		{dialect: "timescaledb", dollar: true},
+		{dialect: "mysql", plain: true},
+		{dialect: "mariadb", plain: true},
+		{dialect: "clickhouse", named: true},
+		{dialect: "duckdb", dollar: true},
+		{dialect: "sqlite"},
+		{dialect: ""},
+		{dialect: "unknown-engine"},
+	}
+
+	for _, tc := range cases {
+		emitter := NewSQLEmitterForDialect(tc.dialect)
+		assert.Equalf(t, tc.dollar, emitter.dollarPlaceholders, "dialect %q dollarPlaceholders", tc.dialect)
+		assert.Equalf(t, tc.plain, emitter.plainPlaceholders, "dialect %q plainPlaceholders", tc.dialect)
+		assert.Equalf(t, tc.named, emitter.wrapAsClickHouseNamed, "dialect %q wrapAsClickHouseNamed", tc.dialect)
+	}
+
+	assert.Equal(t, '$', (&sqlStrategy{dollarPlaceholders: true}).PlaceholderMarker(),
+		"the postgres profile must scan and emit the $ marker")
+	assert.Equal(t, '?', (&sqlStrategy{}).PlaceholderMarker(),
+		"the default profile must scan and emit the ? marker")
+}
+
 func defaultMappings() *querier_dto.TypeMappingTable {
 	return &querier_dto.TypeMappingTable{
 		Mappings: []querier_dto.TypeMapping{
@@ -455,8 +489,8 @@ func TestEmitQueriesDynamicOptional(t *testing.T) {
 				{Name: "email", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
 			},
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "name", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
-				{Number: 2, Name: "email", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
+				{Number: 1, Name: "name", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
+				{Number: 2, Name: "email", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
 			},
 		},
 	}
@@ -501,7 +535,7 @@ func TestEmitQueriesMixedRequiredAndOptional(t *testing.T) {
 			},
 			Parameters: []querier_dto.QueryParameter{
 				{Number: 1, Name: "user_id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, Kind: querier_dto.ParameterDirectiveParam},
-				{Number: 2, Name: "status", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
+				{Number: 2, Name: "status", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
 			},
 		},
 	}
@@ -542,9 +576,9 @@ func TestEmitQueriesDynamicLimitOffset(t *testing.T) {
 				{Name: "name", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
 			},
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "category", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
-				{Number: 2, Name: "page_limit", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Kind: querier_dto.ParameterDirectiveLimit, DefaultLimit: new(50), MaxLimit: new(200)},
-				{Number: 3, Name: "page_offset", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Kind: querier_dto.ParameterDirectiveOffset},
+				{Number: 1, Name: "category", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
+				{Number: 2, Name: "page_limit", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Context: querier_dto.ParameterContextLimit, DefaultLimit: new(50), MaxLimit: new(200)},
+				{Number: 3, Name: "page_offset", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Context: querier_dto.ParameterContextOffset},
 			},
 		},
 	}
@@ -590,7 +624,7 @@ func TestEmitQueriesDynamicOneCommand(t *testing.T) {
 			},
 			Parameters: []querier_dto.QueryParameter{
 				{Number: 1, Name: "user_id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, Kind: querier_dto.ParameterDirectiveParam},
-				{Number: 2, Name: "email", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
+				{Number: 2, Name: "email", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
 			},
 		},
 	}
@@ -633,10 +667,10 @@ func TestEmitQueriesDynamicSortable(t *testing.T) {
 				{Name: "price", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat}},
 			},
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "category", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveOptional, IsOptional: true, Nullable: true},
+				{Number: 1, Name: "category", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsOptional: true, Nullable: true},
 				{Number: 2, Name: "order_by", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"name", "price", "created_at"}},
-				{Number: 3, Name: "page_limit", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Kind: querier_dto.ParameterDirectiveLimit, DefaultLimit: new(50), MaxLimit: new(200)},
-				{Number: 4, Name: "page_offset", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Kind: querier_dto.ParameterDirectiveOffset},
+				{Number: 3, Name: "page_limit", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Context: querier_dto.ParameterContextLimit, DefaultLimit: new(50), MaxLimit: new(200)},
+				{Number: 4, Name: "page_offset", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}, Context: querier_dto.ParameterContextOffset},
 			},
 		},
 	}
@@ -698,7 +732,7 @@ func TestEmitQueriesDynamicOrderDirectionDedup(t *testing.T) {
 			},
 			Parameters: []querier_dto.QueryParameter{
 				{Number: 1, Name: "sort", Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"name"}},
-				{Number: 2, Name: "page_limit", Kind: querier_dto.ParameterDirectiveLimit, DefaultLimit: &defaultLimit, MaxLimit: &maxLimit},
+				{Number: 2, Name: "page_limit", Context: querier_dto.ParameterContextLimit, DefaultLimit: &defaultLimit, MaxLimit: &maxLimit},
 			},
 		},
 		{
@@ -713,7 +747,7 @@ func TestEmitQueriesDynamicOrderDirectionDedup(t *testing.T) {
 			},
 			Parameters: []querier_dto.QueryParameter{
 				{Number: 1, Name: "order_by", Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"title", "price"}},
-				{Number: 2, Name: "page_limit", Kind: querier_dto.ParameterDirectiveLimit, DefaultLimit: &defaultLimit, MaxLimit: &maxLimit},
+				{Number: 2, Name: "page_limit", Context: querier_dto.ParameterContextLimit, DefaultLimit: &defaultLimit, MaxLimit: &maxLimit},
 			},
 		},
 	}
@@ -756,7 +790,6 @@ func TestEmitQueriesDynamicStreamCommand(t *testing.T) {
 						Category:   querier_dto.TypeCategoryText,
 						EngineName: "text",
 					},
-					Kind:       querier_dto.ParameterDirectiveOptional,
 					IsOptional: true,
 				},
 			},
@@ -958,46 +991,79 @@ func TestEmitQueriesRuntimeBuilder(t *testing.T) {
 				{Number: 1, Name: "tenant_id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}},
 			},
 			AllowedColumns: []querier_dto.AllowedColumn{
-				{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUUID}},
-				{Name: "title", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
-				{Name: "body", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
-				{Name: "created_at", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal}},
+				{Name: "id", SourceExpression: "posts.id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUUID}},
+				{Name: "title", SourceExpression: "posts.title", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
+				{Name: "body", SourceExpression: "posts.body", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
+				{Name: "created_at", SourceExpression: "posts.created_at", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal}},
 			},
 		},
 	}
 
 	files, err := emitter.EmitQueries("mydb", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 1)
+	require.Len(t, files, 3, "expected query file + bind_limits.go + runtime_helpers.go")
 
-	source := string(files[0].Content)
+	var (
+		querySource  string
+		helperSource string
+	)
+	for _, file := range files {
+		switch file.Name {
+		case "runtime_helpers.go":
+			helperSource = string(file.Content)
+		case "bind_limits.go":
+
+		default:
+			querySource = string(file.Content)
+		}
+	}
+	require.NotEmpty(t, querySource, "expected a generated query file")
+	require.NotEmpty(t, helperSource, "expected runtime_helpers.go to be emitted")
 
 	fileSet := token.NewFileSet()
-	_, parseError := parser.ParseFile(fileSet, "query.sql.go", source, parser.AllErrors)
-	require.NoError(t, parseError, "generated code must be valid Go:\n%s", source)
+	_, parseError := parser.ParseFile(fileSet, "query.sql.go", querySource, parser.AllErrors)
+	require.NoError(t, parseError, "generated code must be valid Go:\n%s", querySource)
+	_, helperParseError := parser.ParseFile(fileSet, "runtime_helpers.go", helperSource, parser.AllErrors)
+	require.NoError(t, helperParseError, "generated helper must be valid Go:\n%s", helperSource)
 
-	assert.Contains(t, source, "type SearchContentBuilder struct")
-	assert.Contains(t, source, "func (queries *Queries) SearchContent(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) Where(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) OrderBy(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) Limit(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) Offset(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) All(")
-	assert.Contains(t, source, "func (builder *SearchContentBuilder) One(")
-	assert.Contains(t, source, "searchcontentAllowedColumns")
-	assert.Contains(t, source, `"title": true`)
-	assert.Contains(t, source, "panic(")
-	assert.Contains(t, source, "buildQuery()")
-	assert.Contains(t, source, "strings.Join")
+	assert.Contains(t, helperSource, "errPikoUnknownColumn")
+	assert.Contains(t, helperSource, `errors.New("piko: unknown column in runtime query filter")`)
+	assert.Contains(t, helperSource, `errors.New("piko: unknown operator in runtime query filter")`)
+	assert.Contains(t, helperSource, `errors.New("piko: unknown sort direction in runtime query order")`)
 
-	assert.Contains(t, source, "pikoAllowedOperators")
-	assert.Contains(t, source, `"=": true`)
-	assert.Contains(t, source, `"LIKE": true`)
-	assert.Contains(t, source, `"IS NULL": true`)
-	assert.Contains(t, source, `"unknown operator: "`)
+	assert.Contains(t, querySource, "type SearchContentBuilder struct")
+	assert.Contains(t, querySource, "func (queries *Queries) SearchContent(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) Where(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) OrderBy(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) Limit(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) Offset(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) All(")
+	assert.Contains(t, querySource, "func (builder *SearchContentBuilder) One(")
+	assert.Contains(t, querySource, "searchcontentAllowedColumns")
+	assert.Contains(t, querySource, `"title": "\"posts\".\"title\""`)
 
-	assert.NotContains(t, source, "pgx")
-	assert.NotContains(t, source, "PgxDBTX")
+	assert.NotContains(t, querySource, "panic(")
+	assert.Contains(t, querySource, "builder.pendingError = errPikoUnknownColumn")
+	assert.Contains(t, querySource, "builder.pendingError = errPikoUnknownOperator")
+	assert.Contains(t, querySource, "builder.pendingError = errPikoUnknownDirection")
+	assert.Contains(t, querySource, "buildQuery()")
+	assert.Contains(t, querySource, "strings.Join")
+	assert.Contains(t, querySource, "pikoValidColumnExpression(column)")
+	assert.Contains(t, querySource, "pikoExtractColumnRoot(column)")
+	assert.Contains(t, querySource, "pikoAllowedOperators[operator]")
+	assert.Contains(t, querySource, "pikoAllowedDirections[pikoNormaliseDirection(direction)]")
+
+	assert.Contains(t, helperSource, "var pikoAllowedOperators")
+	assert.Contains(t, helperSource, "var pikoAllowedDirections")
+	assert.Contains(t, helperSource, "var pikoColumnExpressionRegex")
+	assert.Contains(t, helperSource, "func pikoValidColumnExpression(")
+	assert.Contains(t, helperSource, "func pikoExtractColumnRoot(")
+	assert.Contains(t, helperSource, `"=":`)
+	assert.Contains(t, helperSource, `"LIKE":`)
+	assert.Contains(t, helperSource, `"IS NULL":`)
+
+	assert.NotContains(t, querySource, "pgx")
+	assert.NotContains(t, querySource, "PgxDBTX")
 }
 
 func TestEmitPrepared(t *testing.T) {
@@ -1048,7 +1114,7 @@ func TestEmitPrepared(t *testing.T) {
 	assert.NotContains(t, source, "searchproducts")
 	assert.NotContains(t, source, "dynamicsearch")
 
-	assert.Contains(t, source, "func (prepared *PreparedDBTX) getOrPrepare(")
+	assert.Contains(t, source, "func (prepared *PreparedDBTX) cachedStatement(")
 	assert.Contains(t, source, "prepared.mu.RLock()")
 	assert.Contains(t, source, "prepared.mu.Lock()")
 	assert.Contains(t, source, "PrepareContext")
@@ -1063,6 +1129,53 @@ func TestEmitPrepared(t *testing.T) {
 
 	assert.NotContains(t, source, "pgx")
 	assert.NotContains(t, source, "PgxDBTX")
+}
+
+func TestEmitPreparedCachesOnlyStaticQueries(t *testing.T) {
+	emitter := NewSQLEmitter()
+
+	queries := []*querier_dto.AnalysedQuery{
+		{
+			Name:    "GetUserByID",
+			SQL:     "SELECT id, name FROM users WHERE id = $1",
+			Command: querier_dto.QueryCommandOne,
+		},
+		{
+			Name:           "DynamicSearch",
+			SQL:            "SELECT id FROM items",
+			Command:        querier_dto.QueryCommandMany,
+			DynamicRuntime: true,
+		},
+	}
+
+	file, err := emitter.EmitPrepared("mydb", queries)
+	require.NoError(t, err)
+
+	source := string(file.Content)
+
+	fileSet := token.NewFileSet()
+	_, parseError := parser.ParseFile(fileSet, "prepared.go", source, parser.AllErrors)
+	require.NoError(t, parseError, "generated code must be valid Go:\n%s", source)
+
+	assert.Contains(t, source, "func (prepared *PreparedDBTX) cachedStatement(query string) *sql.Stmt")
+	assert.Contains(t, source, "return prepared.stmts[query]")
+
+	cachedStart := strings.Index(source, "func (prepared *PreparedDBTX) cachedStatement(")
+	require.GreaterOrEqual(t, cachedStart, 0, "expected cachedStatement in generated source:\n%s", source)
+	nextFunc := strings.Index(source[cachedStart+1:], "\nfunc ")
+	require.GreaterOrEqual(t, nextFunc, 0)
+	cachedBody := source[cachedStart : cachedStart+1+nextFunc]
+	assert.Contains(t, cachedBody, "prepared.mu.RLock()")
+	assert.Contains(t, cachedBody, "defer prepared.mu.RUnlock()")
+	assert.NotContains(t, cachedBody, "PrepareContext", "cachedStatement must not prepare; only Prepare prepares")
+	assert.NotContains(t, cachedBody, "prepared.mu.Lock()", "cachedStatement must not take the write lock")
+
+	assert.NotContains(t, source, "getOrPrepare")
+	assert.NotContains(t, source, "existingStatement")
+
+	assert.Contains(t, source, "statement := prepared.cachedStatement(query)")
+	assert.Contains(t, source, "if statement == nil {")
+	assert.Contains(t, source, "return prepared.db.ExecContext(ctx, query, arguments...)")
 }
 
 func TestEmitPreparedNoStaticQueries(t *testing.T) {
@@ -1100,7 +1213,7 @@ func TestEmitQueriesSliceManyCommand(t *testing.T) {
 			SQL:      "-- piko.name: FetchDueTasks\n-- piko.command: many\n-- ?1 as piko.slice(statuses)\nSELECT id, status FROM tasks WHERE status IN (?1) AND priority = ? LIMIT ?",
 			Filename: "tasks.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 				{Number: 2, Name: "p2", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}},
 				{Number: 3, Name: "p3", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}},
 			},
@@ -1113,7 +1226,7 @@ func TestEmitQueriesSliceManyCommand(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1131,8 +1244,13 @@ func TestEmitQueriesSliceManyCommand(t *testing.T) {
 	assert.Contains(t, source, "args = append(args, params.P2)")
 	assert.Contains(t, source, "args...")
 
-	assert.Equal(t, "slice_helpers.go", files[1].Name)
-	helperSource := string(files[1].Content)
+	var helperSource string
+	for _, file := range files {
+		if file.Name == "slice_helpers.go" {
+			helperSource = string(file.Content)
+		}
+	}
+	require.NotEmpty(t, helperSource, "expected slice_helpers.go to be emitted")
 	assert.Contains(t, helperSource, "func pikoExpandSlicePlaceholders(")
 	assert.Contains(t, helperSource, "pikoSliceExpansionSpec")
 }
@@ -1146,7 +1264,7 @@ func TestEmitQueriesSliceExecCommand(t *testing.T) {
 			SQL:      "-- piko.name: MarkTasksAsProcessing\n-- piko.command: exec\n-- ?1 as piko.slice(ids)\nUPDATE tasks SET status = 'PROCESSING', updated_at = ? WHERE id IN (?1)",
 			Filename: "tasks.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 				{Number: 2, Name: "p2", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}},
 			},
 		},
@@ -1154,7 +1272,7 @@ func TestEmitQueriesSliceExecCommand(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1177,7 +1295,7 @@ func TestEmitQueriesSliceOneCommand(t *testing.T) {
 			SQL:      "-- piko.name: GetFirstMatch\n-- piko.command: one\n-- ?1 as piko.slice(ids)\nSELECT id FROM items WHERE id IN (?1) LIMIT 1",
 			Filename: "items.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 			},
 			OutputColumns: []querier_dto.OutputColumn{
 				{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
@@ -1187,7 +1305,7 @@ func TestEmitQueriesSliceOneCommand(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1210,14 +1328,14 @@ func TestEmitQueriesSliceExecRowsCommand(t *testing.T) {
 			SQL:      "-- piko.name: DeleteGCHints\n-- piko.command: execrows\n-- ?1 as piko.slice(ids)\nDELETE FROM gc_hint WHERE id IN (?1)",
 			Filename: "gc.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, IsSlice: true},
 			},
 		},
 	}
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1240,7 +1358,7 @@ func TestEmitQueriesSliceHelperEmittedOnce(t *testing.T) {
 			SQL:      "-- piko.name: FetchByStatuses\n-- piko.command: many\n-- ?1 as piko.slice(statuses)\nSELECT id FROM tasks WHERE status IN (?1)",
 			Filename: "tasks.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 			},
 			OutputColumns: []querier_dto.OutputColumn{
 				{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
@@ -1252,20 +1370,29 @@ func TestEmitQueriesSliceHelperEmittedOnce(t *testing.T) {
 			SQL:      "-- piko.name: DeleteByIDs\n-- piko.command: exec\n-- ?1 as piko.slice(ids)\nDELETE FROM tasks WHERE id IN (?1)",
 			Filename: "tasks.sql",
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "ids", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 			},
 		},
 	}
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
-	querySource := string(files[0].Content)
+	var querySource, helperSource string
+	for _, file := range files {
+		switch file.Name {
+		case "slice_helpers.go":
+			helperSource = string(file.Content)
+		case "bind_limits.go":
+
+		default:
+			querySource = string(file.Content)
+		}
+	}
+	require.NotEmpty(t, querySource, "expected a generated query file")
+	require.NotEmpty(t, helperSource, "expected slice_helpers.go to be emitted")
 	assert.NotContains(t, querySource, "func pikoExpandSlicePlaceholders(")
-
-	helperSource := string(files[1].Content)
-	assert.Equal(t, "slice_helpers.go", files[1].Name)
 
 	fileSet := token.NewFileSet()
 	_, parseError := parser.ParseFile(fileSet, "slice_helpers.go", helperSource, parser.AllErrors)
@@ -1318,8 +1445,8 @@ func TestEmitQueriesSliceDynamicWithOptional(t *testing.T) {
 			Filename:  "tasks.sql",
 			IsDynamic: true,
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
-				{Number: 2, Name: "priority", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, IsOptional: true, Kind: querier_dto.ParameterDirectiveOptional},
+				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
+				{Number: 2, Name: "priority", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, IsOptional: true},
 			},
 			OutputColumns: []querier_dto.OutputColumn{
 				{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
@@ -1330,7 +1457,7 @@ func TestEmitQueriesSliceDynamicWithOptional(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1357,8 +1484,8 @@ func TestEmitQueriesSliceDynamicWithLimit(t *testing.T) {
 			Filename:  "tasks.sql",
 			IsDynamic: true,
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
-				{Number: 2, Name: "page_size", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, Kind: querier_dto.ParameterDirectiveLimit},
+				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
+				{Number: 2, Name: "page_size", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}, Context: querier_dto.ParameterContextLimit},
 			},
 			OutputColumns: []querier_dto.OutputColumn{
 				{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}},
@@ -1368,7 +1495,7 @@ func TestEmitQueriesSliceDynamicWithLimit(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1392,7 +1519,7 @@ func TestEmitQueriesSliceDynamicWithSortable(t *testing.T) {
 			Filename:  "tasks.sql",
 			IsDynamic: true,
 			Parameters: []querier_dto.QueryParameter{
-				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true, Kind: querier_dto.ParameterDirectiveSlice},
+				{Number: 1, Name: "statuses", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, IsSlice: true},
 				{Number: 2, Name: "order_by", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText}, Kind: querier_dto.ParameterDirectiveSortable, SortableColumns: []string{"id", "priority"}},
 			},
 			OutputColumns: []querier_dto.OutputColumn{
@@ -1405,7 +1532,7 @@ func TestEmitQueriesSliceDynamicWithSortable(t *testing.T) {
 
 	files, err := emitter.EmitQueries("db", queries, defaultMappings())
 	require.NoError(t, err)
-	require.Len(t, files, 2, "expected query file + slice_helpers.go")
+	require.Len(t, files, 3, "expected query file + bind_limits.go + slice_helpers.go")
 
 	source := string(files[0].Content)
 
@@ -1423,4 +1550,44 @@ func TestEmitQueriesSliceDynamicWithSortable(t *testing.T) {
 	assert.Contains(t, source, "params.OrderByDirection")
 
 	assert.Contains(t, source, "SearchTasksOrderBy")
+}
+
+func taggedArrayQuery(name string, sql string) *querier_dto.AnalysedQuery {
+	return &querier_dto.AnalysedQuery{
+		Name:     name,
+		Command:  querier_dto.QueryCommandMany,
+		SQL:      sql,
+		Filename: "tagged.sql",
+		OutputColumns: []querier_dto.OutputColumn{
+			{Name: "id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger}},
+			{Name: "tags", SQLType: querier_dto.SQLType{
+				Category:    querier_dto.TypeCategoryArray,
+				ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText},
+			}},
+		},
+	}
+}
+
+func TestPostgresEmitterWrapsExplicitArrayColumn(t *testing.T) {
+	t.Parallel()
+	emitter := NewSQLEmitterForPostgres()
+	queries := []*querier_dto.AnalysedQuery{taggedArrayQuery("GetTagged", "SELECT id, tags FROM tagged")}
+
+	files, err := emitter.EmitQueries("db", queries, defaultMappings())
+	require.NoError(t, err)
+	source := string(files[0].Content)
+
+	assert.Contains(t, source, `to_json(tags) AS "tags"`, "the array column must be wrapped in to_json with a quoted alias")
+	assert.Contains(t, source, "dbjson.ScanInto(&row.Tags)", "the array column must decode via dbjson.ScanInto")
+}
+
+func TestPostgresEmitterLoudErrorsOnUnwrappableArrayColumn(t *testing.T) {
+	t.Parallel()
+	emitter := NewSQLEmitterForPostgres()
+	queries := []*querier_dto.AnalysedQuery{taggedArrayQuery("ListTagged", "SELECT * FROM tagged")}
+
+	_, err := emitter.EmitQueries("db", queries, defaultMappings())
+	require.Error(t, err, "an array column under SELECT * must fail generation loudly, not silently emit a broken scan")
+	assert.Contains(t, err.Error(), "tags", "the error must name the offending column")
+	assert.Contains(t, err.Error(), "to_json", "the error must point at the wrapping fix")
 }

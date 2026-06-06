@@ -1,11 +1,8 @@
--- piko.name: GetUser
--- piko.command: one
+-- piko.query(name: GetUser, command: one)
 SELECT id, name, email FROM users WHERE id = ?;
 
--- piko.name: ListUsers
--- piko.command: many
+-- piko.query(name: ListUsers, command: many)
 SELECT id, name, email FROM users ORDER BY id;
 
--- piko.name: CreateUser
--- piko.command: one
+-- piko.query(name: CreateUser, command: one)
 INSERT INTO users (name, email) VALUES (?, ?) RETURNING id, name, email;

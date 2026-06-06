@@ -41,8 +41,8 @@ func main() {
 	queries := db.New(prepared)
 
 	err = queries.InsertNote(ctx, db.InsertNoteParams{
-		P1: "First Note",
-		P2: "This is the body of the first note.",
+		Title: "First Note",
+		Body:  "This is the body of the first note.",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertNote 1:", err)
@@ -50,8 +50,8 @@ func main() {
 	}
 
 	err = queries.InsertNote(ctx, db.InsertNoteParams{
-		P1: "Second Note",
-		P2: "This is the body of the second note.",
+		Title: "Second Note",
+		Body:  "This is the body of the second note.",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "InsertNote 2:", err)

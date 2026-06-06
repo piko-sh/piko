@@ -4,7 +4,7 @@
     "Message": "query \"ArchiveAccount\" uses command \"exec\" but produces 1 output columns",
     "Code": "Q009",
     "Suggestion": "",
-    "Line": 13,
+    "Line": 10,
     "Column": 1,
     "EndLine": 0,
     "EndColumn": 0,

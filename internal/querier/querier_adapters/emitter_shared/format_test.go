@@ -34,6 +34,14 @@ func TestStripDirectiveComments(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestStripDirectiveCommentsStripsCallHeader(t *testing.T) {
+	input := "-- piko.query(name: ListFailedTasks, command: many)\nSELECT id, name\nFROM tasks\nWHERE status = 'FAILED'"
+	expected := "SELECT id, name\nFROM tasks\nWHERE status = 'FAILED'"
+
+	result := StripDirectiveComments(input)
+	assert.Equal(t, expected, result)
+}
+
 func TestStripDirectiveCommentsPreservesRegularComments(t *testing.T) {
 	input := "SELECT id\n-- This is a regular comment\nFROM users\n-- Another comment about the query\nWHERE active = 1"
 	expected := "SELECT id\n-- This is a regular comment\nFROM users\n-- Another comment about the query\nWHERE active = 1"
@@ -55,7 +63,7 @@ func TestStripDirectiveCommentsParameterDirectives(t *testing.T) {
 		},
 		{
 			name:     "dollar parameter directive",
-			input:    "SELECT id FROM users\n-- $1 as piko.limit(page_size)\nLIMIT $1",
+			input:    "SELECT id FROM users\n-- $1 as piko.param(page_size)\nLIMIT $1",
 			expected: "SELECT id FROM users\nLIMIT $1",
 		},
 		{
@@ -128,6 +136,62 @@ func TestRewriteNamedParameters(t *testing.T) {
 	}
 }
 
+func TestRewriteBracedNamedToPositional(t *testing.T) {
+	tests := []struct {
+		name       string
+		sql        string
+		parameters []querier_dto.QueryParameter
+		expected   string
+	}{
+		{
+			name: "single braced placeholder",
+			sql:  "SELECT id FROM products WHERE in_stock = {only_stocked:Bool}",
+			parameters: []querier_dto.QueryParameter{
+				{Name: "only_stocked", Number: 1},
+			},
+			expected: "SELECT id FROM products WHERE in_stock = $1",
+		},
+		{
+			name: "multiple braced placeholders keep their numbers",
+			sql:  "SELECT id FROM products WHERE price >= {min_price:UInt32} AND name = {term:String}",
+			parameters: []querier_dto.QueryParameter{
+				{Name: "min_price", Number: 1},
+				{Name: "term", Number: 2},
+			},
+			expected: "SELECT id FROM products WHERE price >= $1 AND name = $2",
+		},
+		{
+			name: "unknown name preserved verbatim",
+			sql:  "SELECT id FROM products WHERE flag = {unknown:Bool}",
+			parameters: []querier_dto.QueryParameter{
+				{Name: "only_stocked", Number: 1},
+			},
+			expected: "SELECT id FROM products WHERE flag = {unknown:Bool}",
+		},
+		{
+			name: "braces inside string literal untouched",
+			sql:  "SELECT '{not:a placeholder}' AS label FROM products WHERE in_stock = {only_stocked:Bool}",
+			parameters: []querier_dto.QueryParameter{
+				{Name: "only_stocked", Number: 1},
+			},
+			expected: "SELECT '{not:a placeholder}' AS label FROM products WHERE in_stock = $1",
+		},
+		{
+			name:       "no parameters leaves sql unchanged",
+			sql:        "SELECT id FROM products",
+			parameters: nil,
+			expected:   "SELECT id FROM products",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := RewriteBracedNamedToPositional(test.sql, test.parameters)
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
 func TestRewriteNamedParametersUnknownPreserved(t *testing.T) {
 
 	sql := "SELECT id FROM users WHERE email = :email AND name = :unknown_param"
@@ -175,6 +239,54 @@ func TestStripOrderByClauseNoOrderBy(t *testing.T) {
 	assert.Equal(t, input, result)
 }
 
+func TestStripOrderByClauseSkipsStringLiterals(t *testing.T) {
+	input := "SELECT id, name FROM users ORDER BY 'before LIMIT 10' DESC LIMIT 5"
+	expected := "SELECT id, name FROM users LIMIT 5"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
+func TestStripOrderByClauseRespectsIdentifierBoundaries(t *testing.T) {
+	input := "SELECT id FROM users ORDER BY for_each_user_id DESC"
+	expected := "SELECT id FROM users"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
+func TestStripOrderByClauseSkipsBlockComments(t *testing.T) {
+	input := "SELECT id FROM users ORDER BY /* LIMIT inside comment */ created_at DESC"
+	expected := "SELECT id FROM users"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
+func TestStripOrderByClausePreservesSubqueryOrderByWhenOuterHasNone(t *testing.T) {
+	input := "SELECT id FROM (SELECT id FROM users ORDER BY name ASC) AS recent"
+	expected := "SELECT id FROM (SELECT id FROM users ORDER BY name ASC) AS recent"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
+func TestStripOrderByClauseStripsOuterButKeepsSubquery(t *testing.T) {
+	input := "SELECT id FROM (SELECT id FROM users ORDER BY name ASC) AS recent ORDER BY id DESC"
+	expected := "SELECT id FROM (SELECT id FROM users ORDER BY name ASC) AS recent"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
+func TestStripOrderByClauseIgnoresTerminatorInsideSubquery(t *testing.T) {
+	input := "SELECT id FROM users WHERE id IN (SELECT id FROM posts LIMIT 5) ORDER BY name ASC"
+	expected := "SELECT id FROM users WHERE id IN (SELECT id FROM posts LIMIT 5)"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
+}
+
 func TestRenumberParametersExcluding(t *testing.T) {
 
 	input := "SELECT id FROM users WHERE id = $1 AND name = $3"
@@ -190,4 +302,56 @@ func TestRenumberParametersExcludingNoExclusions(t *testing.T) {
 
 	result := RenumberParametersExcluding(input, excluded)
 	assert.Equal(t, input, result)
+}
+
+func TestRewriteNamedParametersSkipsLineComments(t *testing.T) {
+	input := "SELECT id\n-- WHERE email = :email\nFROM users WHERE email = :email"
+	parameters := []querier_dto.QueryParameter{
+		{Name: "email", Number: 1},
+	}
+
+	result := RewriteNamedParameters(input, parameters)
+
+	assert.Contains(t, result, "-- WHERE email = :email")
+	assert.Contains(t, result, "WHERE email = ?1")
+}
+
+func TestRewriteNamedParametersSkipsBlockComments(t *testing.T) {
+	input := "SELECT id /* lookup :email */ FROM users WHERE email = :email"
+	parameters := []querier_dto.QueryParameter{
+		{Name: "email", Number: 1},
+	}
+
+	result := RewriteNamedParameters(input, parameters)
+
+	assert.Contains(t, result, "/* lookup :email */")
+	assert.Contains(t, result, "WHERE email = ?1")
+}
+
+func TestRenumberParametersExcludingSkipsLineComments(t *testing.T) {
+	input := "SELECT id FROM users\n-- old: $1 and $3\nWHERE id = $1 AND name = $3"
+	excluded := map[int]bool{2: true}
+
+	result := RenumberParametersExcluding(input, excluded)
+
+	assert.Contains(t, result, "-- old: $1 and $3")
+	assert.Contains(t, result, "WHERE id = $1 AND name = $2")
+}
+
+func TestRenumberParametersExcludingSkipsBlockComments(t *testing.T) {
+	input := "SELECT id FROM users /* old: $1 and $3 */ WHERE id = $1 AND name = $3"
+	excluded := map[int]bool{2: true}
+
+	result := RenumberParametersExcluding(input, excluded)
+
+	assert.Contains(t, result, "/* old: $1 and $3 */")
+	assert.Contains(t, result, "WHERE id = $1 AND name = $2")
+}
+
+func TestStripOrderByClauseSkipsLineComments(t *testing.T) {
+	input := "SELECT id FROM users ORDER BY name -- LIMIT 10 inside comment\nDESC"
+	expected := "SELECT id FROM users"
+
+	result := StripOrderByClause(input)
+	assert.Equal(t, expected, result)
 }

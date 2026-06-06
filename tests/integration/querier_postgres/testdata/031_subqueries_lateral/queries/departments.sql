@@ -1,5 +1,4 @@
--- piko.name: TopEarnerPerDepartment
--- piko.command: many
+-- piko.query(name: TopEarnerPerDepartment, command: many)
 SELECT d.name AS department_name, e.name AS employee_name, e.salary
 FROM departments d,
 LATERAL (
@@ -11,8 +10,7 @@ LATERAL (
 ) e
 ORDER BY d.name;
 
--- piko.name: TopTwoPerDepartment
--- piko.command: many
+-- piko.query(name: TopTwoPerDepartment, command: many)
 SELECT d.name AS department_name, e.name AS employee_name, e.salary
 FROM departments d,
 LATERAL (

@@ -25,6 +25,13 @@ import (
 	"math"
 )
 
+const (
+	// maxInt64AsFloat is 2^63, the exclusive upper bound for float64 values that fit in
+	// int64. A whole-valued float64 strictly below this and at or above math.MinInt64 can be
+	// narrowed to int64 without an out-of-range result.
+	maxInt64AsFloat = 9223372036854775808.0
+)
+
 var (
 	_ driver.Rows = (*d1Rows)(nil)
 )
@@ -60,12 +67,9 @@ func (*d1Rows) Close() error {
 // Next advances to the next row and populates dest with the row's values. The values are
 // ordered to match Columns.
 //
-// D1 returns JSON, so the type mapping is:
-//   - nil -> nil
-//   - float64 -> int64 if the value is a whole number, otherwise float64
-//   - bool -> bool
-//   - string -> string
-//   - other -> fmt.Sprintf("%v", value)
+// D1 returns JSON, so a nil value stays nil, a float64 becomes int64 when it is a whole
+// number and float64 otherwise, a bool stays bool, a string stays string, and any other
+// value is rendered through fmt.Sprintf("%v", value).
 //
 // Takes dest ([]driver.Value) which receives the column values for the current row.
 //
@@ -103,7 +107,8 @@ func convertD1Value(value any) driver.Value {
 	switch v := value.(type) {
 	case float64:
 
-		if v == math.Trunc(v) && !math.IsInf(v, 0) && !math.IsNaN(v) {
+		if v == math.Trunc(v) && !math.IsInf(v, 0) && !math.IsNaN(v) &&
+			v >= math.MinInt64 && v < maxInt64AsFloat {
 			return int64(v)
 		}
 		return v

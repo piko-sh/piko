@@ -34,8 +34,8 @@ func main() {
 	queries := db.New(conn)
 
 	firstInsert, err := queries.ConditionalUpsert(ctx, db.ConditionalUpsertParams{
-		P1: "config",
-		P2: "initial",
+		Key:   "config",
+		Value: "initial",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -43,8 +43,8 @@ func main() {
 	}
 
 	secondInsert, err := queries.ConditionalUpsert(ctx, db.ConditionalUpsertParams{
-		P1: "config",
-		P2: "updated",
+		Key:   "config",
+		Value: "updated",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -52,8 +52,8 @@ func main() {
 	}
 
 	thirdInsert, err := queries.ConditionalUpsert(ctx, db.ConditionalUpsertParams{
-		P1: "config",
-		P2: "updated_again",
+		Key:   "config",
+		Value: "updated_again",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

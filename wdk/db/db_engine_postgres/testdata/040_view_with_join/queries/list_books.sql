@@ -1,3 +1,2 @@
--- piko.name: ListBooks
--- piko.command: many
+-- piko.query(name: ListBooks, command: many)
 SELECT id, title, author_name FROM book_details;

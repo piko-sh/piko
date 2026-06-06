@@ -1,5 +1,4 @@
--- piko.name: SalesSummary
--- piko.command: one
+-- piko.query(name: SalesSummary, command: one)
 SELECT
     COUNT(*) AS total_sales,
     SUM(quantity) AS total_quantity,

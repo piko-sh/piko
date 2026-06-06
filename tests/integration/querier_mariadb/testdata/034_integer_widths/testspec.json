@@ -1,0 +1,3 @@
+{
+  "description": "Integer width and signedness: MySQL/MariaDB tinyint/smallint/mediumint/int/bigint and their unsigned variants each generate a width- and sign-correct Go type. Large values (bigint above int32, bigint unsigned above int64) round-trip without truncation, proving the generated types are int8/int16/int32/int64 and uint8/uint16/uint32/uint64 rather than the int32 fallback."
+}

@@ -115,6 +115,15 @@ const (
 	// keywordNOT holds the SQL keyword "NOT".
 	keywordNOT = "NOT"
 
+	// keywordIN holds the SQL keyword "IN".
+	keywordIN = "IN"
+
+	// keywordCAST holds the SQL keyword "CAST".
+	keywordCAST = "CAST"
+
+	// keywordIS holds the SQL keyword "IS".
+	keywordIS = "IS"
+
 	// keywordNULL holds the SQL keyword "NULL".
 	keywordNULL = "NULL"
 
@@ -203,6 +212,9 @@ const (
 	// resolved.
 	fallbackListEngineName = "list"
 
-	// decimalBase is the radix used when parsing decimal integer literals.
-	decimalBase = 10
+	// maxTypeModifierValue caps an accepted numeric type modifier. DuckDB stores type
+	// modifiers as a signed 32-bit value, so any larger figure is already out of range;
+	// modifiers above this ceiling (or below their minimum) are treated as absent rather
+	// than written into the catalogue.
+	maxTypeModifierValue = 1<<31 - 1
 )

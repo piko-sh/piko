@@ -1,19 +1,14 @@
--- piko.name: CreateNote
--- piko.command: one
+-- piko.query(name: CreateNote, command: one)
 INSERT INTO notes (title, body) VALUES (?, ?) RETURNING id, title, body;
 
--- piko.name: GetNote
--- piko.command: one
+-- piko.query(name: GetNote, command: one)
 SELECT id, title, body FROM notes WHERE id = ?;
 
--- piko.name: ListNotes
--- piko.command: many
+-- piko.query(name: ListNotes, command: many)
 SELECT id, title, body FROM notes ORDER BY id;
 
--- piko.name: UpdateNoteTitle
--- piko.command: execrows
+-- piko.query(name: UpdateNoteTitle, command: execrows)
 UPDATE notes SET title = ? WHERE id = ?;
 
--- piko.name: DeleteNote
--- piko.command: exec
+-- piko.query(name: DeleteNote, command: exec)
 DELETE FROM notes WHERE id = ?;

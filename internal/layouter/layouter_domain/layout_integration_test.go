@@ -42,7 +42,7 @@ func makeRoot(width float64) *LayoutBox {
 
 func runLayout(root *LayoutBox) {
 	fm := &mockFontMetrics{}
-	LayoutBoxTree(context.Background(), root, fm)
+	_, _ = LayoutBoxTree(context.Background(), root, fm)
 }
 
 func TestLayoutBoxTree_SimpleBlock(t *testing.T) {

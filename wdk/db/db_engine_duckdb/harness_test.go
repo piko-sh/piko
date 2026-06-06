@@ -40,19 +40,19 @@ var (
 )
 
 type testSpec struct {
-	Description             string                             `json:"description"`
-	ShouldError             bool                               `json:"shouldError"`
 	ExpectedDiagnosticCount *int                               `json:"expectedDiagnosticCount"`
+	Description             string                             `json:"description"`
 	Diagnostics             []expectedDiagnostic               `json:"diagnostics"`
 	CustomFunctions         []querier_dto.CustomFunctionConfig `json:"customFunctions"`
+	ShouldError             bool                               `json:"shouldError"`
 }
 
 type expectedDiagnostic struct {
+	OnLine          *int   `json:"onLine"`
 	Severity        string `json:"severity"`
 	Code            string `json:"code"`
 	MessageContains string `json:"messageContains"`
 	Filename        string `json:"filename"`
-	OnLine          *int   `json:"onLine"`
 }
 
 type realFileReader struct{}
@@ -92,7 +92,7 @@ func runTestCase(t *testing.T, testCaseDirectory string) {
 		CustomFunctions:    spec.CustomFunctions,
 	}
 
-	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig, "")
+	result, generateError := service.GenerateDatabase(ctx, "test", databaseConfig)
 
 	if spec.ShouldError {
 		assert.Error(t, generateError, "expected GenerateDatabase to return an error")
@@ -114,9 +114,22 @@ func runTestCase(t *testing.T, testCaseDirectory string) {
 		assertGoldenJSON(t, filepath.Join(goldenDirectory, "queries.json"), queriesJSON)
 	}
 
-	if len(result.Diagnostics) > 0 {
+	diagnosticsGoldenPath := filepath.Join(goldenDirectory, "diagnostics.json")
+	switch {
+	case len(result.Diagnostics) > 0:
 		diagnosticsJSON := serialiseDeterministic(t, result.Diagnostics)
-		assertGoldenJSON(t, filepath.Join(goldenDirectory, "diagnostics.json"), diagnosticsJSON)
+		assertGoldenJSON(t, diagnosticsGoldenPath, diagnosticsJSON)
+	default:
+
+		if _, statError := os.Stat(diagnosticsGoldenPath); statError == nil {
+			if *updateGoldenFiles {
+				require.NoError(t, os.Remove(diagnosticsGoldenPath))
+				t.Logf("removed stale diagnostics golden: %s", diagnosticsGoldenPath)
+			} else {
+				assert.Failf(t, "stale diagnostics golden",
+					"%s exists but the current run produced zero diagnostics; delete the golden or re-introduce the expected diagnostic", diagnosticsGoldenPath)
+			}
+		}
 	}
 
 	if spec.ExpectedDiagnosticCount != nil {

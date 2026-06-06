@@ -34,8 +34,8 @@ func main() {
 	queries := db.New(conn)
 
 	acc1, err := queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: "alice",
-		P2: "active",
+		Username: "alice",
+		Status:   "active",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -43,8 +43,8 @@ func main() {
 	}
 
 	acc2, err := queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: "bob",
-		P2: "inactive",
+		Username: "bob",
+		Status:   "inactive",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -52,8 +52,8 @@ func main() {
 	}
 
 	acc3, err := queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: "charlie",
-		P2: "active",
+		Username: "charlie",
+		Status:   "active",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -61,8 +61,8 @@ func main() {
 	}
 
 	acc4, err := queries.InsertAccount(ctx, db.InsertAccountParams{
-		P1: "diana",
-		P2: "suspended",
+		Username: "diana",
+		Status:   "suspended",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

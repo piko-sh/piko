@@ -48,15 +48,15 @@ func main() {
 
 	queries := db.New(conn)
 	updatedRows, err := queries.UpdateStatusByIDs(ctx, db.UpdateStatusByIDsParams{
-		P1:  "UPDATED",
-		IDs: []string{"t1", "t3"},
+		Status: "UPDATED",
+		IDs:    []string{"t1", "t3"},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpdateStatusByIDs:", err)
 		os.Exit(1)
 	}
 	fetched, err := queries.FetchByPriorityAndStatuses(ctx, db.FetchByPriorityAndStatusesParams{
-		P1:       int32(2),
+		Priority: int32(2),
 		Statuses: []string{"PROCESSING", "RETRYING", "UPDATED"},
 	})
 	if err != nil {

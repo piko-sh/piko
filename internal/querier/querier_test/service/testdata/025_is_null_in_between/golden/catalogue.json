@@ -11,10 +11,13 @@
             {
               "Name": "id",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_create_tables.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -26,7 +29,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 0
+                "Category": 0,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -38,10 +42,13 @@
             {
               "Name": "name",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_create_tables.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -53,7 +60,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,
@@ -65,10 +73,13 @@
             {
               "Name": "category",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_create_tables.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": null,
                 "Scale": null,
@@ -80,7 +91,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 4
+                "Category": 4,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": true,
@@ -92,10 +104,13 @@
             {
               "Name": "price",
               "Comment": "",
+              "SQLTypeOverride": "",
               "Origin": {
                 "Filename": "001_create_tables.up.sql",
                 "Index": 0
               },
+              "GoTypeOverride": null,
+              "NullableOverride": null,
               "SQLType": {
                 "Precision": 10,
                 "Scale": 2,
@@ -107,7 +122,8 @@
                 "StructFields": null,
                 "KeyType": null,
                 "UnionMembers": null,
-                "Category": 2
+                "Category": 2,
+                "Nullable": false
               },
               "ArrayDimensions": 0,
               "Nullable": false,

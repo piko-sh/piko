@@ -1,64 +1,64 @@
 {
   "by_name": [
     {
-      "Email": "alice@test.com",
-      "ID": 1,
-      "Name": "Alice",
-      "Role": "admin"
+      "email": "alice@test.com",
+      "id": 1,
+      "name": "Alice",
+      "role": "admin"
     },
     {
-      "Email": "alice2@test.com",
-      "ID": 3,
-      "Name": "Alice",
-      "Role": "user"
+      "email": "alice2@test.com",
+      "id": 3,
+      "name": "Alice",
+      "role": "user"
     }
   ],
   "by_name_and_role": [
     {
-      "Email": "alice2@test.com",
-      "ID": 3,
-      "Name": "Alice",
-      "Role": "user"
+      "email": "alice2@test.com",
+      "id": 3,
+      "name": "Alice",
+      "role": "user"
     }
   ],
   "by_role": [
     {
-      "Email": "alice@test.com",
-      "ID": 1,
-      "Name": "Alice",
-      "Role": "admin"
+      "email": "alice@test.com",
+      "id": 1,
+      "name": "Alice",
+      "role": "admin"
     },
     {
-      "Email": "charlie@test.com",
-      "ID": 4,
-      "Name": "Charlie",
-      "Role": "admin"
+      "email": "charlie@test.com",
+      "id": 4,
+      "name": "Charlie",
+      "role": "admin"
     }
   ],
   "no_filter": [
     {
-      "Email": "alice@test.com",
-      "ID": 1,
-      "Name": "Alice",
-      "Role": "admin"
+      "email": "alice@test.com",
+      "id": 1,
+      "name": "Alice",
+      "role": "admin"
     },
     {
-      "Email": "bob@test.com",
-      "ID": 2,
-      "Name": "Bob",
-      "Role": "user"
+      "email": "bob@test.com",
+      "id": 2,
+      "name": "Bob",
+      "role": "user"
     },
     {
-      "Email": "alice2@test.com",
-      "ID": 3,
-      "Name": "Alice",
-      "Role": "user"
+      "email": "alice2@test.com",
+      "id": 3,
+      "name": "Alice",
+      "role": "user"
     },
     {
-      "Email": "charlie@test.com",
-      "ID": 4,
-      "Name": "Charlie",
-      "Role": "admin"
+      "email": "charlie@test.com",
+      "id": 4,
+      "name": "Charlie",
+      "role": "admin"
     }
   ]
 }

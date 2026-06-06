@@ -1,0 +1,6 @@
+{
+  "description": "piko.column references an output column name that does not exist in the query's projection; the analyser emits Q036 with a Levenshtein 'did you mean' suggestion drawn from the actual output columns.",
+  "diagnostics": [
+    { "severity": "error", "code": "Q036", "messageContains": "unknown output column" }
+  ]
+}

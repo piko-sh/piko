@@ -28,6 +28,12 @@ import (
 // including output columns, joins and parameters.
 // Returns error when parsing the CTE list, FROM clause or compound branches fails.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
+	if p.analysisDepth >= p.maxParseDepth {
+		return nil, errAnalysisDepthExceeded
+	}
+	p.analysisDepth++
+	defer func() { p.analysisDepth-- }()
+
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
@@ -52,6 +58,7 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	if p.matchKeyword(keywordWHERE) {
+		analysis.HasWhereClause = true
 		p.parseWhereClause()
 	}
 
@@ -164,6 +171,7 @@ func (p *parser) parseLimitOffsetIfPresent() {
 func (p *parser) finaliseAnalysis(analysis *querier_dto.RawQueryAnalysis) {
 	analysis.ParameterReferences = p.parameterRefs
 	analysis.RawDerivedTables = p.rawDerivedTables
+	analysis.PredicateSubqueries = p.predicateSubqueries
 	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
 }
 
@@ -192,7 +200,11 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	p.skipOverridingClause()
-	p.parseInsertValues(tableName, columnNames)
+	insertSelect, valuesError := p.parseInsertValues(tableName, columnNames)
+	if valuesError != nil {
+		return nil, valuesError
+	}
+	analysis.InsertSelect = insertSelect
 
 	if p.matchKeyword(keywordON) {
 		p.parseOnConflict(tableName)
@@ -244,14 +256,29 @@ func (p *parser) skipOverridingClause() {
 //
 // Takes tableName (string) which is the insert target table name.
 // Takes columnNames ([]string) which lists the target columns when given.
-func (p *parser) parseInsertValues(tableName string, columnNames []string) {
-	if p.matchKeyword(keywordVALUES) {
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed SELECT body of an INSERT
+// ... SELECT (nil for VALUES/DEFAULT VALUES/parenthesised sources).
+// Returns error when the SELECT body fails to parse.
+func (p *parser) parseInsertValues(tableName string, columnNames []string) (*querier_dto.RawQueryAnalysis, error) {
+	switch {
+	case p.matchKeyword(keywordVALUES):
 		p.parseValuesClause(tableName, columnNames)
-	} else if p.matchKeyword(keywordDEFAULT) {
+	case p.matchKeyword(keywordDEFAULT):
 		p.matchKeyword(keywordVALUES)
-	} else if p.isKeyword(keywordSELECT) || p.isKeyword(keywordWITH) || p.current().kind == tokenLeftParen {
+	case p.isKeyword(keywordSELECT) || p.isKeyword(keywordWITH):
+
+		p.insertProjectionTable = tableName
+		p.insertProjectionColumns = columnNames
+		p.insertProjectionIndex = 0
+		analysis, analyseErr := p.analyseSelect()
+		p.insertProjectionTable = ""
+		p.insertProjectionColumns = nil
+		return analysis, analyseErr
+	case p.current().kind == tokenLeftParen:
 		p.parseInsertSource()
 	}
+	return nil, nil
 }
 
 // parseReturningIfPresent parses a RETURNING clause when present.
@@ -299,7 +326,7 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.parseWhereOrCurrentOf()
+	p.parseWhereOrCurrentOf(analysis)
 
 	if err := p.parseReturningIfPresent(analysis); err != nil {
 		return nil, err
@@ -344,11 +371,18 @@ func (p *parser) parseAdditionalFromClause(analysis *querier_dto.RawQueryAnalysi
 	return nil
 }
 
-// parseWhereOrCurrentOf parses a WHERE clause or WHERE CURRENT OF cursor form.
-func (p *parser) parseWhereOrCurrentOf() {
+// parseWhereOrCurrentOf consumes an optional WHERE clause, including the DuckDB-supported
+// WHERE CURRENT OF <cursor> form.
+//
+// It sets analysis.HasWhereClause when a WHERE keyword is matched, so the runtime query
+// builder appends additional predicates with " AND " rather than " WHERE ".
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the HasWhereClause flag.
+func (p *parser) parseWhereOrCurrentOf(analysis *querier_dto.RawQueryAnalysis) {
 	if !p.matchKeyword(keywordWHERE) {
 		return
 	}
+	analysis.HasWhereClause = true
 	if p.matchKeyword(keywordCURRENT) {
 		p.matchKeyword("OF")
 		if p.current().kind == tokenIdentifier {
@@ -383,7 +417,7 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.parseWhereOrCurrentOf()
+	p.parseWhereOrCurrentOf(analysis)
 
 	if err := p.parseReturningIfPresent(analysis); err != nil {
 		return nil, err

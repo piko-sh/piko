@@ -19,9 +19,29 @@
 package db_engine_duckdb
 
 import (
+	"context"
 	"fmt"
+	"maps"
+	"runtime/debug"
+	"slices"
+	"strings"
 
+	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+const (
+	// quotedLiteralDelimiterWidth is the two surrounding single quotes of a 'string'
+	// literal, restored to the decoded body width because the scanner stores the body
+	// without them.
+	quotedLiteralDelimiterWidth = 2
+
+	// bitStringDelimiterWidth is the B prefix plus the two surrounding quotes of a B'string'
+	// literal.
+	bitStringDelimiterWidth = 3
+
+	// dollarStringDelimiterWidth is the opening and closing $$ of a $$string$$ literal.
+	dollarStringDelimiterWidth = 4
 )
 
 // DuckDBDialect holds configuration for a DuckDB variant. Hooks allow customising types,
@@ -46,10 +66,45 @@ type DuckDBDialect struct {
 
 	// Name identifies the dialect variant.
 	Name string
+
+	// MaxParseDepth caps recursion through analysis, expression and compound-type parsing.
+	// Zero selects defaultMaxParseDepth.
+	MaxParseDepth int
 }
 
 // Option configures a DuckDBDialect.
 type Option func(*DuckDBDialect)
+
+// WithMaxParseDepth sets the maximum parser recursion depth across analysis, expression
+// and compound-type nesting.
+//
+// Deeply nested user input is otherwise able to overflow the goroutine stack with a
+// fatal, non-recoverable error. The default is high (defaultMaxParseDepth) so realistic
+// queries are unaffected; lower it to harden against hostile input or raise it for
+// unusually nested generated queries.
+//
+// Takes depth (int) which is the maximum nesting depth; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the depth cap to a DuckDBDialect.
+func WithMaxParseDepth(depth int) Option {
+	return func(dialect *DuckDBDialect) {
+		if depth > 0 {
+			dialect.MaxParseDepth = depth
+		}
+	}
+}
+
+// resolvedMaxParseDepth returns the effective parser depth cap, falling back to
+// defaultMaxParseDepth when unset.
+//
+// Returns int which is the resolved maximum parser recursion depth.
+func (d DuckDBDialect) resolvedMaxParseDepth() int {
+	if d.MaxParseDepth > 0 {
+		return d.MaxParseDepth
+	}
+	return defaultMaxParseDepth
+}
 
 // WithDialectName sets the dialect name.
 //
@@ -175,11 +230,52 @@ func (*DuckDBEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement,
 		results = append(results, querier_dto.ParsedStatement{
 			Raw:      &parsedStatement{tokens: statementTokenSlice, kind: kind},
 			Location: statementTokenSlice[0].position,
-			Length:   len(sql),
+			Length:   statementByteLength(statementTokenSlice),
 		})
 	}
 
 	return results, nil
+}
+
+// statementByteLength computes the byte span a statement occupies in the source SQL, from
+// the first token's start to the end of the last token's lexeme.
+//
+// Takes statementTokens ([]token) which are the ordered tokens of a single statement and
+// must hold at least one token.
+//
+// Returns int which is the statement's byte length in the source SQL.
+func statementByteLength(statementTokens []token) int {
+	first := statementTokens[0]
+	last := statementTokens[len(statementTokens)-1]
+	return last.position + lastTokenSourceWidth(last) - first.position
+}
+
+// lastTokenSourceWidth returns a token's width in source bytes.
+//
+// For most tokens this equals len(value), but quoted and dollar-quoted literals store
+// their decoded body without the surrounding delimiters, so the raw value undercounts the
+// source span. This restores the delimiter bytes (and, for single-quoted forms, the
+// doubled quotes that were collapsed during scanning) so that callers such as
+// statementByteLength do not clip the trailing delimiter when the final token is a
+// literal.
+//
+// Takes lastToken (token) which is the token whose source width is required.
+//
+// Returns int which is the token's width in source bytes.
+func lastTokenSourceWidth(lastToken token) int {
+	switch lastToken.kind {
+	case tokenString:
+
+		return len(lastToken.value) + quotedLiteralDelimiterWidth + strings.Count(lastToken.value, "'")
+	case tokenBitString:
+
+		return len(lastToken.value) + bitStringDelimiterWidth + strings.Count(lastToken.value, "'")
+	case tokenDollarString:
+
+		return len(lastToken.value) + dollarStringDelimiterWidth
+	default:
+		return len(lastToken.value)
+	}
 }
 
 // ddlHandler parses a DDL statement into a catalogue mutation.
@@ -226,20 +322,37 @@ var (
 
 // ApplyDDL applies a DDL statement to the catalogue for the DuckDB dialect.
 //
+// Wraps the per-statement handler with a panic recovery so a malformed statement becomes
+// a wrapped error rather than crashing the calling apply loop. Honours ctx.Err() before
+// dispatch so the catalogue build loop can be cancelled by the caller.
+//
 // Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
 //
-// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil for
-// no-op statements.
-// Returns error when the statement payload has an unexpected type.
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when the
+// statement produces none.
+// Returns error when the statement type is unexpected or the handler panics.
 func (engine *DuckDBEngine) ApplyDDL(
+	ctx context.Context,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.CatalogueMutation, error) {
+) (mutation *querier_dto.CatalogueMutation, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			mutation = nil
+			err = fmt.Errorf("duckdb: panic while applying DDL: %v\nstack:\n%s", recovered, debug.Stack())
+		}
+	}()
+
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	if int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil {
 		return ddlHandlers[parsed.kind](p, engine)
@@ -248,23 +361,34 @@ func (engine *DuckDBEngine) ApplyDDL(
 	return nil, nil
 }
 
-// AnalyseQuery performs structural analysis of a DML statement for DuckDB.
+// AnalyseQuery performs structural analysis of a DML statement for the DuckDB dialect.
+//
+// Wraps the per-statement analyser with a panic recovery so a malformed statement that
+// trips a parser invariant becomes a wrapped error rather than crashing the calling
+// analyser.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
 //
-// Returns *querier_dto.RawQueryAnalysis which is the structural analysis of the
-// statement.
-// Returns error when the statement payload has an unexpected type.
-func (*DuckDBEngine) AnalyseQuery(
+// Returns *querier_dto.RawQueryAnalysis which describes the statement structure.
+// Returns error when the statement type is unexpected or the analyser panics.
+func (engine *DuckDBEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
-) (*querier_dto.RawQueryAnalysis, error) {
+) (analysis *querier_dto.RawQueryAnalysis, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
 		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
 	}
 
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			analysis = nil
+			err = fmt.Errorf("duckdb: panic while analysing query: %v\nstack:\n%s", recovered, debug.Stack())
+		}
+	}()
+
 	p := newParser(parsed.tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	switch parsed.kind {
 	case statementKindSelect:
@@ -280,6 +404,22 @@ func (*DuckDBEngine) AnalyseQuery(
 	default:
 		return &querier_dto.RawQueryAnalysis{}, nil
 	}
+}
+
+// RewriteSelectAsCount delegates to the shared SELECT to COUNT(*) rewriter, using the
+// DuckDB dialect's defaults.
+//
+// Takes originalSQL (string) which is the source SELECT text to rewrite.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which describes the SELECT structure.
+//
+// Returns string which is the rewritten COUNT query.
+// Returns bool which is true when a rewrite was produced.
+// Returns error when the rewrite fails.
+func (*DuckDBEngine) RewriteSelectAsCount(
+	originalSQL string,
+	analysis *querier_dto.RawQueryAnalysis,
+) (string, bool, error) {
+	return querier_domain.RewriteSelectAsCount(originalSQL, analysis)
 }
 
 // BuiltinFunctions returns the DuckDB built-in function catalogue.
@@ -328,6 +468,14 @@ func (*DuckDBEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParamet
 // Returns bool which is always true for DuckDB.
 func (*DuckDBEngine) SupportsReturning() bool {
 	return true
+}
+
+// SupportsAsyncMutations reports that DuckDB does not surface asynchronous mutation
+// semantics; every DML completes synchronously from the client's perspective.
+//
+// Returns bool which is always false for DuckDB.
+func (*DuckDBEngine) SupportsAsyncMutations() bool {
+	return false
 }
 
 // Dialect returns "duckdb".
@@ -388,7 +536,8 @@ func (*DuckDBEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
 ) []querier_dto.ScopedColumn {
-	for _, schema := range catalogue.Schemas {
+	for _, schemaName := range slices.Sorted(maps.Keys(catalogue.Schemas)) {
+		schema := catalogue.Schemas[schemaName]
 		signatures, exists := schema.Functions[functionName]
 		if !exists {
 			continue

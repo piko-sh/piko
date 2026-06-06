@@ -1,28 +1,28 @@
 {
   "items": [
     {
-      "AvailableAndCategorised": true,
-      "HasCategory": true,
-      "ID": 1,
-      "InPriceRange": true,
-      "IsExpensive": true,
-      "Name": "Widget"
+      "available_and_categorised": true,
+      "has_category": true,
+      "id": 1,
+      "in_price_range": true,
+      "is_expensive": true,
+      "name": "Widget"
     },
     {
-      "AvailableAndCategorised": false,
-      "HasCategory": false,
-      "ID": 2,
-      "InPriceRange": true,
-      "IsExpensive": false,
-      "Name": "Gadget"
+      "available_and_categorised": false,
+      "has_category": false,
+      "id": 2,
+      "in_price_range": true,
+      "is_expensive": false,
+      "name": "Gadget"
     },
     {
-      "AvailableAndCategorised": true,
-      "HasCategory": true,
-      "ID": 3,
-      "InPriceRange": false,
-      "IsExpensive": true,
-      "Name": "Doohickey"
+      "available_and_categorised": true,
+      "has_category": true,
+      "id": 3,
+      "in_price_range": false,
+      "is_expensive": true,
+      "name": "Doohickey"
     }
   ]
 }

@@ -36,7 +36,7 @@ func main() {
 
 	queries := db.New(conn)
 
-	user, err := queries.GetUser(ctx, int32(1))
+	user, err := queries.GetUser(ctx, int64(1))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
