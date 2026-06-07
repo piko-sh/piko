@@ -37,8 +37,9 @@ const (
 	// defaultProviderName is the key used for the default provider in the providers map.
 	defaultProviderName = email_dto.EmailNameDefault
 
-	// errProviderNotFoundFmt is the format string for the provider not found error.
-	errProviderNotFoundFmt = "provider '%s' not found"
+	// errProviderNotFoundFmt is the format string for the provider not found error. It wraps
+	// the underlying registry error via %w so callers can inspect the cause.
+	errProviderNotFoundFmt = "email provider %q not found: %w"
 
 	// serviceName is the name used to identify the email service in the registry.
 	serviceName = "email"

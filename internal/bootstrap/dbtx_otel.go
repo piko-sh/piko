@@ -28,6 +28,9 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+
+	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
 var (
@@ -43,6 +46,10 @@ type otelDBTX struct {
 
 	// tracer is the OTel tracer used to create spans for database operations.
 	tracer trace.Tracer
+
+	// observer receives a QueryObservation after each call (nil when WithQueryObserver was
+	// not used). It is the per-query telemetry forwarding seam.
+	observer monitoring_domain.QueryObserver
 
 	// resolver maps a SQL query string to a human-readable operation name.
 	resolver func(string) string
@@ -69,12 +76,14 @@ func newOTelDBTX(
 	databaseSystem string,
 	databaseNamespace string,
 	resolver func(string) string,
+	observer monitoring_domain.QueryObserver,
 ) *otelDBTX {
 	return &otelDBTX{
 		inner:             inner,
 		databaseSystem:    databaseSystem,
 		databaseNamespace: databaseNamespace,
 		resolver:          resolver,
+		observer:          observer,
 		tracer:            otel.Tracer("piko/db/" + databaseNamespace),
 	}
 }
@@ -102,6 +111,14 @@ func (o *otelDBTX) ExecContext(ctx context.Context, query string, arguments ...a
 		span.SetStatus(codes.Error, err.Error())
 	}
 
+	rows := int64(0)
+	if result != nil {
+		if n, rerr := result.RowsAffected(); rerr == nil {
+			rows = n
+		}
+	}
+	o.observe(ctx, operation, query, start, rows, err)
+
 	return result, err
 }
 
@@ -128,6 +145,8 @@ func (o *otelDBTX) QueryContext(ctx context.Context, query string, arguments ...
 		span.SetStatus(codes.Error, err.Error())
 	}
 
+	o.observe(ctx, operation, query, start, 0, err)
+
 	return rows, err
 }
 
@@ -149,7 +168,39 @@ func (o *otelDBTX) QueryRowContext(ctx context.Context, query string, arguments 
 	row := o.inner.QueryRowContext(ctx, query, arguments...)
 	o.recordMetrics(ctx, operation, start, nil)
 
+	o.observe(ctx, operation, query, start, 0, nil)
+
 	return row
+}
+
+// observe forwards one completed statement to the registered QueryObserver (a no-op when
+// none is set). It runs on the hottest path, so a panicking observer is recovered here
+// rather than allowed to crash the DB call it instruments.
+//
+// Takes ctx (context.Context) for cancellation and panic-recovery context.
+// Takes operation (string) which is the resolved operation name.
+// Takes statement (string) which is the SQL text.
+// Takes start (time.Time) which is when the call began, for the duration.
+// Takes rows (int64) which is the affected or returned row count when known.
+// Takes err (error) which is the call's error, or nil on success.
+func (o *otelDBTX) observe(ctx context.Context, operation, statement string, start time.Time, rows int64, err error) {
+	if o.observer == nil {
+		return
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = goroutine.HandlePanicRecovery(ctx, "bootstrap.dbtx_otel.observe", r)
+		}
+	}()
+	o.observer.ObserveQuery(ctx, &monitoring_domain.QueryObservation{
+		Connection: o.databaseNamespace,
+		Operation:  operation,
+		Statement:  statement,
+		System:     o.databaseSystem,
+		DurationMs: time.Since(start).Milliseconds(),
+		Rows:       rows,
+		Err:        err,
+	})
 }
 
 // resolveOperation maps a SQL query string to a human-readable operation name using the

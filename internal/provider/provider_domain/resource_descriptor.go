@@ -112,6 +112,18 @@ type InfoEntry struct {
 	Value string
 }
 
+// ReadinessProbeNamed bridges the two identifier spaces a single service struct lives in.
+// A ResourceDescriptor whose owning service also takes part in readiness probing may
+// implement it.
+type ReadinessProbeNamed interface {
+	// ProbeName returns the readiness health-probe name of the owning service: the same
+	// string the service's healthprobe_domain.Probe Name method returns (e.g.
+	// "DatabaseService").
+	//
+	// Returns string which is the PascalCase service probe name.
+	ProbeName() string
+}
+
 // SubResourceDescriptor is optionally implemented by services whose providers have
 // discoverable sub-resources such as cache namespaces or storage repositories.
 //

@@ -226,6 +226,8 @@ SSRServer: |- # Kind: Struct
       // Method
       GetHandler() http.Handler
       // Method
+      HealthProbe() readiness.Probe
+      // Method
       RegisterLifecycle(piko.LifecycleComponent)
       // Method
       Run(string) error
@@ -236,7 +238,7 @@ SSRServer: |- # Kind: Struct
       // Method
       WithInterpreterProvider(templater_domain.InterpreterProviderPort)
       // Method
-      WithSymbols(map[string]map[string]reflect.Value)
+      WithSymbols(...map[string]map[string]reflect.Value)
   }
 Setup: func() error # Kind: Func
 Stop: func() error # Kind: Func
@@ -260,4 +262,4 @@ WithJSONTypeInspectorCache: func() func(*bootstrap.Container) # Kind: Func
 WithMemoryRegistryCache: func() func(*bootstrap.Container) # Kind: Func
 WithOrchestratorService: func(orchestrator_domain.OrchestratorService) func(*bootstrap.Container) # Kind: Func
 WithRegistryService: func(registry_domain.RegistryService) func(*bootstrap.Container) # Kind: Func
-WithSymbols: func(map[string]map[string]reflect.Value) # Kind: Func
+WithSymbols: func(...map[string]map[string]reflect.Value) # Kind: Func

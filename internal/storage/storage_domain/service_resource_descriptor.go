@@ -19,11 +19,8 @@
 package storage_domain
 
 import (
-	"cmp"
 	"context"
 	"fmt"
-	"slices"
-	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
@@ -34,9 +31,6 @@ const (
 
 	// formatBool is the fmt verb for boolean values.
 	formatBool = "%t"
-
-	// hoursPerDay is the number of hours in a day, used for duration formatting.
-	hoursPerDay = 24
 )
 
 var (
@@ -45,6 +39,8 @@ var (
 	_ provider_domain.SubResourceDescriptor = (*service)(nil)
 
 	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*service)(nil)
 )
 
 // ResourceType returns the CLI resource name for the storage hexagon.
@@ -52,6 +48,16 @@ var (
 // Returns string which is "storage".
 func (*service) ResourceType() string {
 	return "storage"
+}
+
+// ProbeName returns the readiness health-probe name of the storage service, bridging the
+// "storage" resource type to the "StorageService" readiness dependency so a readiness
+// collector can attach this descriptor's provider info to the matching dependency. It
+// returns the same constant the service's health-probe Name method returns.
+//
+// Returns string which is serviceName ("StorageService").
+func (*service) ProbeName() string {
+	return serviceName
 }
 
 // ResourceListColumns returns column definitions for the storage provider list table.
@@ -80,7 +86,7 @@ func (s *service) ResourceListProviders(ctx context.Context) []provider_domain.P
 		values := map[string]string{
 			fieldName:    info.Name,
 			"type":       info.ProviderType,
-			"registered": storageFormatRegisteredAge(info.RegisteredAt),
+			"registered": provider_domain.FormatRegisteredAge(info.RegisteredAt),
 		}
 
 		provider, err := s.registry.GetProvider(ctx, info.Name)
@@ -122,7 +128,9 @@ func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*p
 		storageCapabilitiesSection(raw),
 	}
 
-	sections = appendMetadataSection(sections, raw)
+	if section, ok := provider_domain.BuildMetadataSection(raw); ok {
+		sections = append(sections, section)
+	}
 	sections = s.appendRepositoriesSection(sections)
 
 	return &provider_domain.ProviderDetail{
@@ -145,7 +153,7 @@ func (s *service) findProviderInfo(ctx context.Context, name string) provider_do
 			return p
 		}
 	}
-	return provider_domain.ProviderInfo{}
+	return provider_domain.ProviderInfo{Name: name}
 }
 
 // appendRepositoriesSection appends a Repositories section to the given sections when the
@@ -304,7 +312,7 @@ func storageOverviewSection(info provider_domain.ProviderInfo) provider_domain.I
 			{Key: "Name", Value: info.Name},
 			{Key: "Type", Value: info.ProviderType},
 			{Key: "Default", Value: isDefault},
-			{Key: "Registered", Value: storageFormatRegisteredAge(info.RegisteredAt)},
+			{Key: "Registered", Value: provider_domain.FormatRegisteredAge(info.RegisteredAt)},
 		},
 	}
 }
@@ -323,63 +331,5 @@ func storageCapabilitiesSection(raw StorageProviderPort) provider_domain.InfoSec
 			{Key: "Batch Operations", Value: fmt.Sprintf(formatBool, raw.SupportsBatchOperations())},
 			{Key: "Presigned URLs", Value: fmt.Sprintf(formatBool, raw.SupportsPresignedURLs())},
 		},
-	}
-}
-
-// appendMetadataSection appends a Configuration section to the given sections when the
-// provider exposes metadata.
-//
-// Takes sections ([]provider_domain.InfoSection) which is the current list.
-// Takes raw (StorageProviderPort) which may implement ProviderMetadata.
-//
-// Returns []provider_domain.InfoSection which is the updated section list.
-func appendMetadataSection(sections []provider_domain.InfoSection, raw StorageProviderPort) []provider_domain.InfoSection {
-	meta, ok := raw.(provider_domain.ProviderMetadata)
-	if !ok {
-		return sections
-	}
-	metadata := meta.GetProviderMetadata()
-	if len(metadata) == 0 {
-		return sections
-	}
-
-	entries := make([]provider_domain.InfoEntry, 0, len(metadata))
-	for k, v := range metadata {
-		entries = append(entries, provider_domain.InfoEntry{
-			Key:   k,
-			Value: fmt.Sprintf("%v", v),
-		})
-	}
-	slices.SortFunc(entries, func(a, b provider_domain.InfoEntry) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-	return append(sections, provider_domain.InfoSection{
-		Title:   "Configuration",
-		Entries: entries,
-	})
-}
-
-// storageFormatRegisteredAge returns a human-readable duration since registration.
-//
-// Takes registeredAt (time.Time) which specifies when the registration occurred.
-//
-// Returns string which describes the elapsed time in a short format such as "5m ago" or
-// "3d ago", or "unknown" if the time is zero.
-func storageFormatRegisteredAge(registeredAt time.Time) string {
-	if registeredAt.IsZero() {
-		return "unknown"
-	}
-
-	d := time.Since(registeredAt)
-
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/hoursPerDay))
 	}
 }

@@ -24,6 +24,7 @@ import (
 	"slices"
 	"sync"
 
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
@@ -38,7 +39,12 @@ type ProviderInfoAggregator struct {
 	// descriptors maps resource type names to their descriptors.
 	descriptors map[string]provider_domain.ResourceDescriptor
 
-	// mu guards concurrent access to descriptors.
+	// probeToResourceType maps a readiness probe name to its resource type for descriptors
+	// implementing provider_domain.ReadinessProbeNamed, lazily allocated on first such
+	// registration.
+	probeToResourceType map[string]string
+
+	// mu guards concurrent access to descriptors and probeToResourceType.
 	mu sync.RWMutex
 }
 
@@ -55,8 +61,12 @@ func NewProviderInfoAggregator() *ProviderInfoAggregator {
 	}
 }
 
-// Register adds a ResourceDescriptor to the aggregator. If a descriptor with the same
-// ResourceType is already registered, it is replaced.
+// Register adds a ResourceDescriptor to the aggregator, replacing any existing descriptor
+// with the same ResourceType.
+//
+// When the descriptor also implements provider_domain.ReadinessProbeNamed, the aggregator
+// records the readiness probe name to resource type link so a readiness collector can
+// join a readiness dependency to the descriptor that describes the same service.
 //
 // Takes descriptor (provider_domain.ResourceDescriptor) which provides provider
 // information for its resource type.
@@ -66,7 +76,34 @@ func (a *ProviderInfoAggregator) Register(descriptor provider_domain.ResourceDes
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	a.descriptors[descriptor.ResourceType()] = descriptor
+	resourceType := descriptor.ResourceType()
+	a.descriptors[resourceType] = descriptor
+	if named, ok := descriptor.(provider_domain.ReadinessProbeNamed); ok {
+		if a.probeToResourceType == nil {
+			a.probeToResourceType = make(map[string]string)
+		}
+		a.probeToResourceType[named.ProbeName()] = resourceType
+	}
+}
+
+// ResourceTypeForProbe returns the resource type whose descriptor declared the given
+// readiness probe name via provider_domain.ReadinessProbeNamed. It is the authoritative
+// bridge a readiness collector uses to join a readiness Dependency (named by PascalCase
+// service probe name) to the lowercase resource type that describes the same service.
+//
+// Takes probeName (string) which is the readiness dependency name (e.g.
+// "DatabaseService").
+//
+// Returns string which is the matching resource type (e.g. "database").
+// Returns bool which is true when a descriptor declared that probe name.
+//
+// Safe for concurrent use.
+func (a *ProviderInfoAggregator) ResourceTypeForProbe(_ context.Context, probeName string) (string, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	resourceType, ok := a.probeToResourceType[probeName]
+	return resourceType, ok
 }
 
 // HasDescriptors reports whether any ResourceDescriptors have been registered.
@@ -118,10 +155,12 @@ func (a *ProviderInfoAggregator) ListProviders(ctx context.Context, resourceType
 		return nil, fmt.Errorf(errFmtUnknownResourceType, resourceType)
 	}
 
-	return &ProviderListResult{
-		Columns: descriptor.ResourceListColumns(),
-		Rows:    descriptor.ResourceListProviders(ctx),
-	}, nil
+	return goroutine.SafeCall1(ctx, "monitoring.provider_info.ListProviders:"+resourceType, func() (*ProviderListResult, error) {
+		return &ProviderListResult{
+			Columns: descriptor.ResourceListColumns(),
+			Rows:    descriptor.ResourceListProviders(ctx),
+		}, nil
+	})
 }
 
 // DescribeProvider returns detailed information for a single provider within the given
@@ -143,7 +182,9 @@ func (a *ProviderInfoAggregator) DescribeProvider(ctx context.Context, resourceT
 		return nil, fmt.Errorf(errFmtUnknownResourceType, resourceType)
 	}
 
-	return descriptor.ResourceDescribeProvider(ctx, name)
+	return goroutine.SafeCall1(ctx, "monitoring.provider_info.DescribeProvider:"+resourceType, func() (*provider_domain.ProviderDetail, error) {
+		return descriptor.ResourceDescribeProvider(ctx, name)
+	})
 }
 
 // ListSubResources returns sub-resources for a named provider. The service must implement
@@ -171,16 +212,17 @@ func (a *ProviderInfoAggregator) ListSubResources(ctx context.Context, resourceT
 		return nil, provider_domain.ErrNoSubResources
 	}
 
-	rows, err := sub.ResourceListSubResources(ctx, providerName)
-	if err != nil {
-		return nil, fmt.Errorf("listing sub-resources for provider %q of type %q: %w", providerName, resourceType, err)
-	}
-
-	return &ProviderListResult{
-		Columns:         sub.ResourceSubResourceColumns(),
-		Rows:            rows,
-		SubResourceName: sub.ResourceSubResourceName(),
-	}, nil
+	return goroutine.SafeCall1(ctx, "monitoring.provider_info.ListSubResources:"+resourceType, func() (*ProviderListResult, error) {
+		rows, err := sub.ResourceListSubResources(ctx, providerName)
+		if err != nil {
+			return nil, fmt.Errorf("listing sub-resources for provider %q of type %q: %w", providerName, resourceType, err)
+		}
+		return &ProviderListResult{
+			Columns:         sub.ResourceSubResourceColumns(),
+			Rows:            rows,
+			SubResourceName: sub.ResourceSubResourceName(),
+		}, nil
+	})
 }
 
 // DescribeResourceType returns a service-level overview for the given resource type. The
@@ -207,5 +249,7 @@ func (a *ProviderInfoAggregator) DescribeResourceType(ctx context.Context, resou
 		return nil, fmt.Errorf("resource type %q does not support type-level describe", resourceType)
 	}
 
-	return typed.ResourceDescribeType(ctx), nil
+	return goroutine.SafeCall1(ctx, "monitoring.provider_info.DescribeResourceType:"+resourceType, func() (*provider_domain.ProviderDetail, error) {
+		return typed.ResourceDescribeType(ctx), nil
+	})
 }
