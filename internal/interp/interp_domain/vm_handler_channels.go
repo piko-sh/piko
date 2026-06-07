@@ -129,7 +129,8 @@ func handleChannelSend(vm *VM, frame *callFrame, registers *Registers, instructi
 	done := vm.ctx.Done()
 	panicWake := vm.globals.goroutinePanicWakeChan()
 	wake := blockWakeValue
-	if recovered, panicked := guardChannelOp(func() {
+	released := vm.releaseAroundBlock()
+	recovered, panicked := guardChannelOp(func() {
 		if done == nil && panicWake == nil && trySendTypedChannel(vm, channel, registers, instruction.b, registerKind(instruction.c)) {
 			return
 		}
@@ -140,7 +141,9 @@ func handleChannelSend(vm *VM, frame *callFrame, registers *Registers, instructi
 			return
 		}
 		wake = selectChannelSend(channel, value, done, panicWake)
-	}); panicked {
+	})
+	vm.reacquireAfterBlock(released)
+	if panicked {
 		return raiseNativePanicAsInterpreted(vm, recovered)
 	}
 	if wake != blockWakeValue {
@@ -282,7 +285,9 @@ func handleChannelReceive(vm *VM, frame *callFrame, registers *Registers, instru
 		return opContinue
 	}
 
+	released := vm.releaseAroundBlock()
 	result, ok, wake := selectChannelReceive(channel, done, panicWake)
+	vm.reacquireAfterBlock(released)
 	if wake != blockWakeValue {
 		return vm.surfaceBlockingWake(wake)
 	}

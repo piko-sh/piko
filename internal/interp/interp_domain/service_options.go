@@ -23,6 +23,13 @@ import (
 	"time"
 )
 
+const (
+	// importAllowlistSentinel is a never-matched key that marks an import allowlist as
+	// configured even when it holds no real paths, so "deny all external imports" is
+	// distinguishable from "no allowlist".
+	importAllowlistSentinel = "\x00allowlist-configured"
+)
+
 // WithBuildTags sets custom build tags for //go:build constraint evaluation in
 // CompileFileSet and CompileProgram. The current GOOS, GOARCH, and Go version are always
 // included as default tags.
@@ -120,6 +127,20 @@ func WithForceGoDispatch() Option {
 	}
 }
 
+// WithSafeMode enables the runtime guard mode for executing untrusted code. It adds
+// per-instruction safety checks so a script cannot crash or corrupt the host process.
+//
+// Safe mode forces the pure Go dispatch loop; the ASM fast path is left untouched, so the
+// default (option unset) keeps zero added overhead. This is the runtime safe-mode flag
+// and is distinct from the "safe" build tag.
+//
+// Returns Option which enables the runtime guard mode.
+func WithSafeMode() Option {
+	return func(c *serviceConfig) {
+		c.safeMode = true
+	}
+}
+
 // WithDebugInfo enables debug information generation during compilation. When enabled,
 // the compiler records source positions for each bytecode instruction and variable
 // liveness ranges.
@@ -141,6 +162,40 @@ func WithDebugInfo() Option {
 func WithBytecodeVerification(enabled bool) Option {
 	return func(c *serviceConfig) {
 		c.bytecodeVerificationDisabled = !enabled
+	}
+}
+
+// WithDeniedImports rejects the named import paths at compile time. A script that imports
+// any of them fails to compile with a clear error.
+//
+// Takes paths (...string) which are the import paths to deny.
+//
+// Returns Option which records the denied import set.
+func WithDeniedImports(paths ...string) Option {
+	return func(c *serviceConfig) {
+		if c.deniedImports == nil {
+			c.deniedImports = make(map[string]struct{}, len(paths))
+		}
+		for _, path := range paths {
+			c.deniedImports[path] = struct{}{}
+		}
+	}
+}
+
+// WithImportAllowlist restricts which external packages a script may import.
+//
+// Takes paths (...string) which are the permitted external import paths.
+//
+// Returns Option which records the allowlist.
+func WithImportAllowlist(paths ...string) Option {
+	return func(c *serviceConfig) {
+		if c.allowedImports == nil {
+			c.allowedImports = make(map[string]struct{}, len(paths)+1)
+		}
+		c.allowedImports[importAllowlistSentinel] = struct{}{}
+		for _, path := range paths {
+			c.allowedImports[path] = struct{}{}
+		}
 	}
 }
 

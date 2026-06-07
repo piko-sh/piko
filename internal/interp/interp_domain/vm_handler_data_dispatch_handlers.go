@@ -241,7 +241,9 @@ func assignRangeSliceFastPath(iterator *rangeIterator, collection reflect.Value)
 // Takes iterator (*rangeIterator) which is the channel iterator to advance.
 // Takes context (rangeNextContext) which describes the key/value destinations.
 func rangeNextChannel(vm *VM, registers *Registers, iterator *rangeIterator, context rangeNextContext) {
+	released := vm.releaseAroundBlock()
 	value, ok := iterator.collection.Recv()
+	vm.reacquireAfterBlock(released)
 	if !ok {
 		registers.ints[context.doneDestination] = 0
 		return
@@ -858,7 +860,9 @@ func handleSelect(vm *VM, frame *callFrame, registers *Registers, instruction in
 		}
 	}
 	selectCases, cancelIndex, panicIndex := vm.appendSelectWakeArms(numCases, hasDefault)
+	released := vm.releaseAroundBlock()
 	chosen, receiver, receiveOK := reflect.Select(selectCases)
+	vm.reacquireAfterBlock(released)
 	if chosen == cancelIndex {
 		clear(selectCases)
 		return vm.surfaceContextCancellation()
@@ -890,10 +894,13 @@ func handleSelectNoCases(vm *VM) opResult {
 	if done == nil && panicWake == nil {
 		select {}
 	}
+	released := vm.releaseAroundBlock()
 	select {
 	case <-done:
+		vm.reacquireAfterBlock(released)
 		return vm.surfaceContextCancellation()
 	case <-panicWake:
+		vm.reacquireAfterBlock(released)
 		return vm.surfaceGoroutinePanicAbort()
 	}
 }

@@ -78,6 +78,11 @@ var (
 	// unsafe.String, unsafe.Slice) exceeds the configured maximum size.
 	errAllocationLimit = errors.New("allocation size limit exceeded")
 
+	// errUnsafeBounds is returned in the runtime safe mode when unsafe pointer arithmetic
+	// (unsafe.Add/Slice/String or a conversion) would read or write outside the origin
+	// allocation the pointer was derived from.
+	errUnsafeBounds = errors.New("unsafe pointer arithmetic out of bounds")
+
 	// errGoroutineLimit is returned when the number of goroutines spawned by interpreted
 	// code exceeds the configured limit.
 	errGoroutineLimit = errors.New("goroutine limit exceeded")

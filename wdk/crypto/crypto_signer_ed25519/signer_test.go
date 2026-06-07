@@ -29,7 +29,7 @@ func TestGenerateSignVerifyRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateKeyPair error: %v", err)
 	}
-	message := []byte("hello pinkas module")
+	message := []byte("hello world")
 	signature := signer.Sign(message)
 	if err := verifier.Verify(message, signature); err != nil {
 		t.Fatalf("Verify after Sign should succeed, got %v", err)

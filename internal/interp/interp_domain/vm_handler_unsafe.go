@@ -54,7 +54,12 @@ func handleUnsafeString(vm *VM, _ *callFrame, registers *Registers, instruction 
 		return opPanicError
 	}
 
-	base := unsafe.Pointer(pointer.Pointer())     //nolint:gosec // reflect.Value pointer
+	if err := vm.checkUnsafeSpan("unsafe.String", pointer.Pointer(), uintptr(length)); err != nil {
+		vm.evalError = err
+		return opPanicError
+	}
+
+	base := pointer.UnsafePointer()
 	source := unsafe.Slice((*byte)(base), length) //nolint:gosec // host-level unsafe copy
 	buffer := make([]byte, length)
 	copy(buffer, source)
@@ -74,7 +79,7 @@ func handleUnsafeString(vm *VM, _ *callFrame, registers *Registers, instruction 
 // source string register.
 //
 // Returns opResult which signals the VM dispatch loop to continue.
-func handleUnsafeStringData(_ *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
+func handleUnsafeStringData(vm *VM, _ *callFrame, registers *Registers, instruction instruction) opResult {
 	s := registers.strings[instruction.b]
 
 	if len(s) == 0 {
@@ -83,7 +88,13 @@ func handleUnsafeStringData(_ *VM, _ *callFrame, registers *Registers, instructi
 	}
 
 	buffer := []byte(s)
-	registers.general[instruction.a] = reflect.ValueOf(&buffer[0])
+	result := reflect.ValueOf(&buffer[0])
+	registers.general[instruction.a] = result
+
+	if vm.limits.safeMode {
+		base := result.Pointer()
+		vm.recordPointerProvenance(result, pointerBound{base: base, limit: base + uintptr(len(buffer)), elemSize: 1})
+	}
 
 	return opContinue
 }
@@ -123,8 +134,14 @@ func handleUnsafeSlice(vm *VM, frame *callFrame, registers *Registers, instructi
 	}
 
 	elementSize := elementType.Size()
+
+	if err := vm.checkUnsafeSpan("unsafe.Slice", pointer.Pointer(), uintptr(length)*elementSize); err != nil {
+		vm.evalError = err
+		return opPanicError
+	}
+
 	slice := reflect.MakeSlice(reflect.SliceOf(elementType), int(length), int(length))
-	base := unsafe.Pointer(pointer.Pointer()) //nolint:gosec // reflect.Value pointer
+	base := pointer.UnsafePointer()
 
 	for i := range length {
 		source := reflect.NewAt(elementType, unsafe.Add(base, uintptr(i)*elementSize)) //nolint:gosec // host-level unsafe copy
@@ -145,7 +162,7 @@ func handleUnsafeSlice(vm *VM, frame *callFrame, registers *Registers, instructi
 // source slice register.
 //
 // Returns opResult which signals the VM dispatch loop to continue.
-func handleUnsafeSliceData(_ *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
+func handleUnsafeSliceData(vm *VM, frame *callFrame, registers *Registers, instruction instruction) opResult {
 	s := registers.general[instruction.b]
 
 	if !s.IsValid() {
@@ -157,7 +174,14 @@ func handleUnsafeSliceData(_ *VM, frame *callFrame, registers *Registers, instru
 		return opContinue
 	}
 
-	registers.general[instruction.a] = s.Index(0).Addr()
+	result := s.Index(0).Addr()
+	registers.general[instruction.a] = result
+
+	if vm.limits.safeMode {
+		elementSize := s.Type().Elem().Size()
+		base := result.Pointer()
+		vm.recordPointerProvenance(result, pointerBound{base: base, limit: base + uintptr(s.Cap())*elementSize, elemSize: elementSize})
+	}
 
 	return opContinue
 }
@@ -183,8 +207,29 @@ func handleUnsafeAdd(vm *VM, _ *callFrame, registers *Registers, instruction ins
 		return opContinue
 	}
 
-	result := unsafe.Add(unsafe.Pointer(pointer.Pointer()), int(offset)) //nolint:gosec // interpreter pointer arithmetic
-	registers.general[instruction.a] = reflect.ValueOf(result)
+	base := pointer.Pointer()
+	var origin pointerBound
+	if vm.limits.safeMode {
+		recorded, found := vm.lookupPointerProvenance(base)
+		if !found {
+			vm.evalError = newRuntimePanicError("interp: unsafe.Add: %v (pointer has no tracked origin)", errUnsafeBounds)
+			return opPanicError
+		}
+		newAddr := base + uintptr(offset) //nolint:gosec // pointer-offset arithmetic; the result is bounds-checked below
+		if newAddr < recorded.base || newAddr > recorded.limit {
+			vm.evalError = newRuntimePanicError("interp: unsafe.Add: %v", errUnsafeBounds)
+			return opPanicError
+		}
+		origin = recorded
+	}
+
+	result := unsafe.Add(pointer.UnsafePointer(), int(offset)) //nolint:gosec // bounds-checked above in safe mode
+	resultValue := reflect.ValueOf(result)
+	registers.general[instruction.a] = resultValue
+
+	if vm.limits.safeMode {
+		vm.recordPointerProvenance(resultValue, origin)
+	}
 
 	return opContinue
 }

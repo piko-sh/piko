@@ -34,6 +34,9 @@ import (
 //
 // Returns the execution result and any error encountered during dispatch.
 func (vm *VM) runDispatchedGuarded(baseFramePointer int) (result any, err error) {
+	if vm.lockInterpreter() {
+		defer vm.unlockInterpreter()
+	}
 	defer func() { vm.handleRecoveredHandlerPanic(recover(), &result, &err) }()
 	return vm.runDispatched(baseFramePointer)
 }
@@ -47,6 +50,9 @@ func (vm *VM) runDispatchedGuarded(baseFramePointer int) (result any, err error)
 //
 // Returns the execution result and any error encountered during dispatch.
 func (vm *VM) runGuarded(baseFramePointer int) (result any, err error) {
+	if vm.lockInterpreter() {
+		defer vm.unlockInterpreter()
+	}
 	defer func() { vm.handleRecoveredHandlerPanic(recover(), &result, &err) }()
 	return vm.run(baseFramePointer)
 }
@@ -113,6 +119,7 @@ func (vm *VM) run(baseFramePointer int) (any, error) {
 				frame = &vm.callStack[vm.framePointer]
 				registers = &frame.registers
 			}
+			vm.yieldInterpreterLock()
 		}
 		if vm.shouldStopDebug(frame) {
 			return nil, ErrDebuggerStop

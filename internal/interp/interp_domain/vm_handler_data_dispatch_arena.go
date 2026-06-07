@@ -651,7 +651,11 @@ func handleConvert(vm *VM, frame *callFrame, registers *Registers, instruction i
 			vmPanicInvalidRegister("handleConvert", "source", instruction.b, instruction, frame, registers)
 		}
 		if unsafePointerConvertNeeded(source.Type(), reflectType) {
-			registers.general[instruction.a] = convertUnsafePointer(source, reflectType)
+			converted, ok := vm.convertUnsafePointerChecked(source, reflectType)
+			if !ok {
+				return opPanicError
+			}
+			registers.general[instruction.a] = converted
 		} else if converted, ok := saturatingFloatToIntConvert(vm.arena, source, reflectType); ok {
 			registers.general[instruction.a] = converted
 		} else {

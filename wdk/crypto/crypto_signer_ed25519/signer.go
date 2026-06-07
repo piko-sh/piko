@@ -173,8 +173,7 @@ func (v *Verifier) PublicKey() ed25519.PublicKey {
 }
 
 // Fingerprint returns the SHA-256 of the public key, formatted as "sha256:<64-hex>". Used
-// by hosts to refer to a signing identity without including the full key bytes (e.g., the
-// signing_key_ref field in pinkas.toml).
+// by hosts to refer to a signing identity without including the full key bytes.
 //
 // Returns the fingerprint string.
 func (v *Verifier) Fingerprint() string {

@@ -27,18 +27,11 @@ var (
 	// PackCompiledFileSetToBytes serialises a compiled file set into piko's schema-versioned
 	// wire format. Hosts pass this as the `bytecodePacker` argument to
 	// Interpreter.PackageModule when producing a [modules_domain.ModuleBundle].
-	//
-	// Function reference is re-exported so hosts (pipit, pinkas) can pass it without
-	// importing piko's internal packages.
 	PackCompiledFileSetToBytes = interp_adapters.PackCompiledFileSetToBytes
 
 	// LoadCompiledFromBytes deserialises a piko-packed bytecode payload back into a
 	// CompiledFileSet. Hosts pass this as the `bytecodeUnpacker` argument to
 	// Interpreter.LoadModule when loading a [modules_domain.ModuleBundle].
-	//
-	// Signature: func(data []byte, registry *interp_domain.SymbolRegistry)
-	// (*interp_domain.CompiledFileSet, error) - matches Interpreter.LoadModule's parameter
-	// type exactly.
 	LoadCompiledFromBytes = interp_adapters.LoadCompiledFromBytes
 )
 

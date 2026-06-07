@@ -179,6 +179,7 @@ type boundMethodVM struct {
 // frame is still active, so the panic reaches an interpreted defer/recover.
 func (b *boundMethodVM) invoke(receiver reflect.Value, arguments []reflect.Value, extract func(reflect.Value) reflect.Value) []reflect.Value {
 	childVM := newVM(b.vm.ctx, b.vm.globals, b.vm.symbols)
+	childVM.reentrantInterpreterVM = true
 	childVM.limits = b.limits
 	if b.rootFunctionOverride != nil {
 		childVM.functions = b.rootFunctionOverride.functions

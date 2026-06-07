@@ -30,6 +30,7 @@ import (
 	"path"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"piko.sh/piko/wdk/safeconv"
@@ -442,6 +443,141 @@ func publishExternalMethods(globals *globalStore, rootFunction *CompiledFunction
 	}
 }
 
+// parseAndValidateImports parses every package and enforces the import policy.
+//
+// The denylist/allowlist is applied over the full set, so a policy's own cross-package
+// imports are recognised as local and never rejected.
+//
+// Takes modulePath (string) which is the module's root import path.
+// Takes packages (map[string]map[string]string) which maps each package's relative path
+// to its filename-to-source map.
+//
+// Returns map[string]*parsedPackage which maps import paths to their parsed packages.
+// Returns error when parsing fails or an import violates the policy.
+func (s *Service) parseAndValidateImports(modulePath string, packages map[string]map[string]string) (map[string]*parsedPackage, error) {
+	parsed, err := s.parseAllPackages(modulePath, packages)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.checkImports(parsed); err != nil {
+		return nil, err
+	}
+	return parsed, nil
+}
+
+// parseAndValidateFileSet parses, build-tag-filters, and import-checks the sources.
+//
+// The import check is a no-op when no policy is set. A single-package file set has no
+// local packages, so every import is treated as external.
+//
+// Takes sources (map[string]string) which maps each filename to its source code.
+//
+// Returns []*ast.File which are the parsed, build-tag-filtered files.
+// Returns error when parsing fails or an import violates the policy.
+func (s *Service) parseAndValidateFileSet(sources map[string]string) ([]*ast.File, error) {
+	files, err := s.parseAndFilterFiles(sources)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		if err := s.checkFileImports(nil, file); err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
+}
+
+// checkImports enforces the import policy across every parsed package.
+//
+// It runs after the full set of local (source-compiled) packages is known, so a policy's
+// own cross-package imports are never rejected. A denylisted package is always refused;
+// when an allowlist is configured, an external import (one not compiled from source in
+// this batch) must be on it. This denies a script importable reach into the host stdlib,
+// including packages the go/types checker special-cases past the Importer (such as
+// "unsafe"), while leaving every symbol registered for method resolution. It is a no-op
+// when neither list is set.
+//
+// Takes parsed (map[string]*parsedPackage) which maps import paths to their parsed
+// packages.
+//
+// Returns error when an import violates the denylist or allowlist.
+func (s *Service) checkImports(parsed map[string]*parsedPackage) error {
+	if len(s.config.deniedImports) == 0 && len(s.config.allowedImports) == 0 {
+		return nil
+	}
+	for _, pkg := range parsed {
+		for _, file := range pkg.files {
+			if err := s.checkFileImports(parsed, file); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// checkFileImports applies the import policy to one file's imports.
+//
+// The denylist is consulted first so a denied path cannot be reached by declaring a local
+// package that shadows it. It is a no-op when neither list is set.
+//
+// Takes parsed (map[string]*parsedPackage) which holds the local packages compiled in
+// this batch, or nil when the file has no local siblings.
+// Takes file (*ast.File) which is the parsed source file to check.
+//
+// Returns error when an import violates the denylist or allowlist.
+func (s *Service) checkFileImports(parsed map[string]*parsedPackage, file *ast.File) error {
+	if len(s.config.deniedImports) == 0 && len(s.config.allowedImports) == 0 {
+		return nil
+	}
+	for _, imp := range file.Imports {
+		importPath, err := importPathOf(imp)
+		if err != nil {
+			return err
+		}
+		if _, denied := s.config.deniedImports[importPath]; denied {
+			return errImportNotPermitted(importPath)
+		}
+		if len(s.config.allowedImports) == 0 {
+			continue
+		}
+		if _, isLocal := parsed[importPath]; isLocal {
+			continue
+		}
+		if _, allowed := s.config.allowedImports[importPath]; !allowed {
+			return errImportNotPermitted(importPath)
+		}
+	}
+	return nil
+}
+
+// importPathOf returns the canonical import path of an import spec.
+//
+// It decodes the literal with strconv.Unquote, the same routine go/types uses, so the
+// value matches exactly what the type checker resolves. A raw-string (written with
+// backticks) or escaped literal therefore cannot smuggle a denied path past a string
+// match, and a malformed literal is rejected rather than silently skipped.
+//
+// Takes spec (*ast.ImportSpec) which is the import declaration to decode.
+//
+// Returns string which is the unquoted import path.
+// Returns error when the path literal is malformed.
+func importPathOf(spec *ast.ImportSpec) (string, error) {
+	importPath, err := strconv.Unquote(spec.Path.Value)
+	if err != nil {
+		return "", fmt.Errorf("%w: malformed import path %s", errParse, spec.Path.Value)
+	}
+	return importPath, nil
+}
+
+// errImportNotPermitted reports an import rejected by the denylist or allowlist.
+//
+// Takes importPath (string) which is the rejected import path.
+//
+// Returns error which wraps errParse with the rejected path.
+func errImportNotPermitted(importPath string) error {
+	return fmt.Errorf("%w: import %q is not permitted", errParse, importPath)
+}
+
 // buildDependencyGraph returns an import graph mapping each package to its local
 // (source-defined) dependencies.
 //
@@ -456,7 +592,10 @@ func buildDependencyGraph(parsed map[string]*parsedPackage) map[string][]string 
 		var localDeps []string
 		for _, file := range pkg.files {
 			for _, imp := range file.Imports {
-				impPath := strings.Trim(imp.Path.Value, `"`)
+				impPath, err := importPathOf(imp)
+				if err != nil {
+					continue
+				}
 				if _, isLocal := parsed[impPath]; isLocal {
 					localDeps = append(localDeps, impPath)
 				}
@@ -601,7 +740,10 @@ func buildImportAliasMap(files []*ast.File) map[string]string {
 	aliases := make(map[string]string)
 	for _, file := range files {
 		for _, imp := range file.Imports {
-			importPath := strings.Trim(imp.Path.Value, `"`)
+			importPath, err := importPathOf(imp)
+			if err != nil {
+				continue
+			}
 
 			if imp.Name != nil {
 				name := imp.Name.Name
