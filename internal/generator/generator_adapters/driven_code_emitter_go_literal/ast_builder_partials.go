@@ -32,6 +32,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// maxPartialScopeDepth bounds the recursion used to classify and collect partial
+	// invocations across a template tree. It mirrors the limit applied when the tree is
+	// built and walked elsewhere, so a pathologically deep template cannot overflow the
+	// stack here.
+	maxPartialScopeDepth = 10000
+)
+
 // buildPartialRenderCalls creates the top-level render calls for partial invocations. It
 // skips any invocation that depends on loop variables, as those must be rendered inside
 // the loop body by the for-emitter.
@@ -55,6 +63,8 @@ func (b *astBuilder) buildPartialRenderCalls(
 		invocationsByKey[inv.InvocationKey] = inv
 	}
 
+	guardedKeys := b.emitter.conditionallyGuardedKeys()
+
 	_, l := logger_domain.From(context.Background(), log)
 	for _, invocation := range sortedInvocations {
 		visited := make(map[string]bool)
@@ -65,20 +75,18 @@ func (b *astBuilder) buildPartialRenderCalls(
 			continue
 		}
 
+		if guardedKeys[invocation.InvocationKey] {
+			l.Trace("[Generator] Skipping hoisted render call for conditionally-guarded partial",
+				logger_domain.String("invocationKey", invocation.InvocationKey),
+			)
+			continue
+		}
+
 		l.Trace("[Generator] Generating hoisted render call for static partial",
 			logger_domain.String("invocationKey", invocation.InvocationKey),
 		)
 
-		pInfo := &ast_domain.PartialInvocationInfo{
-			InvocationKey:        invocation.InvocationKey,
-			PartialAlias:         invocation.PartialAlias,
-			PartialPackageName:   invocation.PartialHashedName,
-			RequestOverrides:     invocation.RequestOverrides,
-			PassedProps:          invocation.PassedProps,
-			InvokerPackageAlias:  invocation.InvokerHashedName,
-			InvokerInvocationKey: invocation.InvokerInvocationKey,
-			Location:             invocation.Location,
-		}
+		pInfo := partialInfoFromInvocation(invocation)
 
 		renderStmts, renderDiags := b.emitPartialRenderCall(pInfo, result)
 		statements = append(statements, renderStmts...)
@@ -374,4 +382,201 @@ func propToField(propName string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+
+// isConditionalNode reports whether the node is the head of, or a branch of, a
+// conditional chain (p-if, p-else-if, p-else). Such a node governs the conditional
+// rendering of itself and its descendants.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to test.
+//
+// Returns bool which is true when the node carries a conditional directive.
+func isConditionalNode(node *ast_domain.TemplateNode) bool {
+	return node.DirIf != nil || node.DirElseIf != nil || node.DirElse != nil
+}
+
+// conditionalGuardInfo records, per invocation key, whether any occurrence sits under a
+// conditional and whether any occurrence sits unguarded (outside every conditional).
+type conditionalGuardInfo struct {
+	// underCond is true when at least one occurrence of the invocation sits under a
+	// conditional.
+	underCond bool
+
+	// hasUnguardedOccurrence is true when at least one occurrence sits outside every
+	// conditional.
+	hasUnguardedOccurrence bool
+}
+
+// collectConditionallyGuardedKeys returns the invocation keys that must be rendered
+// inside their governing conditional rather than hoisted to the function entry. A key
+// qualifies when every occurrence sits under a conditional, so hoisting it would evaluate
+// its props unconditionally and defeat the guard.
+//
+// A key with any unguarded occurrence (at the function root, or directly in a loop that
+// is not itself under a conditional) is excluded: it stays hoisted so its single
+// deduplicated output variable remains in scope at that unguarded reference. Keys whose
+// occurrences span several distinct conditionals, but none unguarded, still qualify and
+// are rendered inside each governing branch.
+//
+// Takes ast (*ast_domain.TemplateAST) which is the component's annotated template.
+//
+// Returns map[string]bool which is the set of conditionally-guarded invocation keys.
+func collectConditionallyGuardedKeys(ast *ast_domain.TemplateAST) map[string]bool {
+	infos := make(map[string]*conditionalGuardInfo)
+	if ast != nil {
+		for _, node := range ast.RootNodes {
+			collectGuardInfoRecursive(node, false, 0, infos)
+		}
+	}
+
+	guarded := make(map[string]bool, len(infos))
+	for key, info := range infos {
+		if info.underCond && !info.hasUnguardedOccurrence {
+			guarded[key] = true
+		}
+	}
+	return guarded
+}
+
+// collectGuardInfoRecursive walks the tree tracking whether the current position is under
+// a conditional, recording for every partial invocation whether that occurrence is
+// guarded. Recursion is bounded by maxPartialScopeDepth so a pathologically deep template
+// cannot overflow the stack.
+//
+// Takes node (*ast_domain.TemplateNode) which is the current node.
+// Takes underConditional (bool) which is true when an ancestor is conditional.
+// Takes depth (int) which is the current recursion depth.
+// Takes infos (map[string]*conditionalGuardInfo) which accumulates per-key data.
+func collectGuardInfoRecursive(node *ast_domain.TemplateNode, underConditional bool, depth int, infos map[string]*conditionalGuardInfo) {
+	if node == nil || depth > maxPartialScopeDepth {
+		return
+	}
+
+	nodeUnderConditional := underConditional || isConditionalNode(node)
+
+	if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
+		recordGuardInfo(infos, node.GoAnnotations.PartialInfo.InvocationKey, nodeUnderConditional)
+	}
+
+	for _, child := range node.Children {
+		collectGuardInfoRecursive(child, nodeUnderConditional, depth+1, infos)
+	}
+}
+
+// recordGuardInfo registers an occurrence of an invocation key, tracking whether the key
+// is ever seen under a conditional and whether it is ever seen unguarded.
+//
+// Takes infos (map[string]*conditionalGuardInfo) which accumulates per-key data.
+// Takes key (string) which is the invocation key.
+// Takes underConditional (bool) which is true when this occurrence is under a
+// conditional.
+func recordGuardInfo(infos map[string]*conditionalGuardInfo, key string, underConditional bool) {
+	info := infos[key]
+	if info == nil {
+		infos[key] = &conditionalGuardInfo{underCond: underConditional, hasUnguardedOccurrence: !underConditional}
+		return
+	}
+	if underConditional {
+		info.underCond = true
+	} else {
+		info.hasUnguardedOccurrence = true
+	}
+}
+
+// collectGovernedPartialInvocations returns the partial invocations directly governed by
+// a scope node (a loop or conditional branch): those in its subtree not separated from it
+// by a deeper loop or conditional, which render their own partials. The scope node itself
+// is included when it is a partial invocation.
+//
+// Takes scopeNode (*ast_domain.TemplateNode) which is the loop or conditional node.
+// Takes uniqueInvocations ([]*annotator_dto.PartialInvocation) which is the canonical
+// list.
+//
+// Returns []*annotator_dto.PartialInvocation which are the governed invocations, each
+// appearing once even when several nodes in the scope share an invocation key (those
+// nodes reuse a single deduplicated render).
+func collectGovernedPartialInvocations(scopeNode *ast_domain.TemplateNode, uniqueInvocations []*annotator_dto.PartialInvocation) []*annotator_dto.PartialInvocation {
+	var invocations []*annotator_dto.PartialInvocation
+	seen := make(map[string]bool)
+	collectGovernedPartialsRecursive(scopeNode, scopeNode, 0, uniqueInvocations, &invocations, seen)
+	return invocations
+}
+
+// collectGovernedPartialsRecursive walks the scope subtree, stopping at a deeper loop or
+// conditional, collecting each distinct partial invocation it reaches. Recursion is
+// bounded by maxPartialScopeDepth so a pathologically deep template cannot overflow the
+// stack.
+//
+// Takes node (*ast_domain.TemplateNode) which is the current node.
+// Takes scopeNode (*ast_domain.TemplateNode) which is the governing scope root.
+// Takes depth (int) which is the current recursion depth.
+// Takes uniqueInvocations ([]*annotator_dto.PartialInvocation) which is the canonical
+// list.
+// Takes out (*[]*annotator_dto.PartialInvocation) which accumulates the results.
+// Takes seen (map[string]bool) which deduplicates by invocation key within the scope.
+func collectGovernedPartialsRecursive(
+	node, scopeNode *ast_domain.TemplateNode,
+	depth int,
+	uniqueInvocations []*annotator_dto.PartialInvocation,
+	out *[]*annotator_dto.PartialInvocation,
+	seen map[string]bool,
+) {
+	if node == nil || depth > maxPartialScopeDepth {
+		return
+	}
+
+	if node != scopeNode && (node.DirFor != nil || isConditionalNode(node)) {
+		return
+	}
+
+	if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
+		key := node.GoAnnotations.PartialInfo.InvocationKey
+		if !seen[key] {
+			if invocation := findCanonicalInvocation(uniqueInvocations, key); invocation != nil {
+				seen[key] = true
+				*out = append(*out, invocation)
+			}
+		}
+	}
+
+	for _, child := range node.Children {
+		collectGovernedPartialsRecursive(child, scopeNode, depth+1, uniqueInvocations, out, seen)
+	}
+}
+
+// findCanonicalInvocation returns the canonical invocation data for the given key, or nil
+// when it is not present.
+//
+// Takes uniqueInvocations ([]*annotator_dto.PartialInvocation) which is the canonical
+// list.
+// Takes invocationKey (string) which identifies the invocation.
+//
+// Returns *annotator_dto.PartialInvocation which is the matching invocation, or nil.
+func findCanonicalInvocation(uniqueInvocations []*annotator_dto.PartialInvocation, invocationKey string) *annotator_dto.PartialInvocation {
+	for _, invocation := range uniqueInvocations {
+		if invocation.InvocationKey == invocationKey {
+			return invocation
+		}
+	}
+	return nil
+}
+
+// partialInfoFromInvocation maps a canonical partial invocation onto the per-call info
+// the render emitters consume, so the hoisted, conditional, and loop render paths share
+// one field mapping.
+//
+// Takes invocation (*annotator_dto.PartialInvocation) which is the canonical invocation.
+//
+// Returns *ast_domain.PartialInvocationInfo which describes the partial to call.
+func partialInfoFromInvocation(invocation *annotator_dto.PartialInvocation) *ast_domain.PartialInvocationInfo {
+	return &ast_domain.PartialInvocationInfo{
+		InvocationKey:        invocation.InvocationKey,
+		PartialAlias:         invocation.PartialAlias,
+		PartialPackageName:   invocation.PartialHashedName,
+		RequestOverrides:     invocation.RequestOverrides,
+		PassedProps:          invocation.PassedProps,
+		InvokerPackageAlias:  invocation.InvokerHashedName,
+		InvokerInvocationKey: invocation.InvokerInvocationKey,
+		Location:             invocation.Location,
+	}
 }

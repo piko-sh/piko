@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -31,14 +32,12 @@ import (
 	"time"
 
 	"golang.org/x/mod/modfile"
-	"golang.org/x/tools/go/packages"
+	"golang.org/x/sync/singleflight"
 
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/pathutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-)
-
-var (
-	_ resolver_domain.ResolverPort = (*GoModuleCacheResolver)(nil)
 )
 
 const (
@@ -50,23 +49,88 @@ const (
 
 	// pathSeparator is the separator used to split module import paths.
 	pathSeparator = "/"
+
+	// defaultGoCommandTimeout bounds each go toolchain subprocess. It is deliberately high
+	// so it never interferes with a healthy build and only guards against a hung child.
+	defaultGoCommandTimeout = 2 * time.Minute
+
+	// goCommandWaitDelay forces a stuck go subprocess to be killed shortly after its context
+	// is cancelled, even if a grandchild still holds the output pipe.
+	goCommandWaitDelay = 10 * time.Second
 )
 
-// GoModuleCacheResolver implements ResolverPort to resolve Piko component import paths
-// from external Go modules in the module cache ($GOMODCACHE). It reads the project's
-// go.mod to find required modules and matches import paths against them.
+var (
+	_ resolver_domain.ResolverPort = (*GoModuleCacheResolver)(nil)
+)
+
+var (
+	// errModuleNoDir is returned when a known dependency has no resolved on-disk directory
+	// even after a download attempt (a fresh checkout or pruned module cache).
+	errModuleNoDir = errors.New("module has no resolved directory")
+
+	// errExternalAssetNotFound is returned when a resolved external asset path does not
+	// exist on disk.
+	errExternalAssetNotFound = errors.New("external asset not found")
+
+	// errPathEscapesModule is returned when an import or asset path resolves outside the
+	// directory of the module that owns it.
+	errPathEscapesModule = errors.New("resolved path escapes module directory")
+
+	// errGoCommandTimedOut is the cancellation cause attached when a go toolchain subprocess
+	// exceeds its deadline.
+	errGoCommandTimedOut = errors.New("go command timed out")
+
+	// errModuleBoundaryNotFound is returned when a module boundary cannot be resolved from
+	// an import path or an absolute file path, so callers can match it with errors.Is.
+	errModuleBoundaryNotFound = errors.New("module boundary not found")
+)
+
+// GoModuleCacheResolver implements ResolverPort to resolve import paths from external Go
+// modules.
+//
+// It reads the project's go.mod to find required modules and their local replace
+// directories, matches import paths against them, and resolves each module to its on-disk
+// directory (a local replace directory, or the module cache via the go toolchain).
 type GoModuleCacheResolver struct {
+	// resolveGroup collapses concurrent cold resolutions of the same module into a single
+	// subprocess invocation.
+	resolveGroup singleflight.Group
+
 	// dirCache maps module paths to their directory locations in the cache.
 	dirCache map[string]string
 
-	// workingDir is the directory containing go.mod for packages.Load calls.
+	// replaceDirs maps a module path to the absolute directory it is redirected to by a
+	// local `replace => ./dir` directive in go.mod. These resolve without any subprocess.
+	replaceDirs map[string]string
+
+	// workingDir is the directory containing go.mod that go toolchain subprocesses run in.
 	workingDir string
 
 	// knownModules holds the sorted list of module paths from go.mod; protected by mu.
 	knownModules []string
 
-	// mu guards access to knownModules and dirCache.
+	// goCommandTimeout bounds each go toolchain subprocess.
+	goCommandTimeout time.Duration
+
+	// mu guards access to knownModules, dirCache, and replaceDirs.
 	mu sync.RWMutex
+}
+
+// Option configures a GoModuleCacheResolver at construction.
+type Option func(*GoModuleCacheResolver)
+
+// WithGoCommandTimeout overrides the per-subprocess timeout for go toolchain invocations.
+// A non-positive duration leaves the default in place.
+//
+// Takes timeout (time.Duration) which bounds each go subprocess.
+//
+// Returns Option which applies the timeout.
+func WithGoCommandTimeout(timeout time.Duration) Option {
+	return func(r *GoModuleCacheResolver) {
+		if timeout > 0 {
+			r.goCommandTimeout = timeout
+		}
+	}
 }
 
 // NewGoModuleCacheResolver creates a new Go module cache resolver.
@@ -77,19 +141,28 @@ type GoModuleCacheResolver struct {
 // Before use, you must call DetectLocalModule or create the resolver with
 // NewGoModuleCacheResolverWithWorkingDir to set up the module list.
 //
+// Takes opts (...Option) which apply optional resolver configuration.
+//
 // Returns *GoModuleCacheResolver which is ready for use after calling DetectLocalModule.
-func NewGoModuleCacheResolver() *GoModuleCacheResolver {
-	return &GoModuleCacheResolver{
-		dirCache:     make(map[string]string),
-		knownModules: nil,
-		workingDir:   "",
-		mu:           sync.RWMutex{},
+func NewGoModuleCacheResolver(opts ...Option) *GoModuleCacheResolver {
+	resolver := &GoModuleCacheResolver{
+		dirCache:         make(map[string]string),
+		replaceDirs:      make(map[string]string),
+		knownModules:     nil,
+		workingDir:       "",
+		goCommandTimeout: defaultGoCommandTimeout,
+		resolveGroup:     singleflight.Group{},
+		mu:               sync.RWMutex{},
 	}
+	for _, opt := range opts {
+		opt(resolver)
+	}
+	return resolver
 }
 
 // NewGoModuleCacheResolverWithWorkingDir creates a new Go module cache resolver with a
-// specific working directory for packages.Load operations. This is useful in test
-// scenarios where the go.mod is in a non-standard location.
+// specific working directory containing go.mod. This is useful in test scenarios where
+// the go.mod is in a non-standard location.
 //
 // This constructor automatically loads the known modules from the go.mod file in the
 // specified working directory.
@@ -98,13 +171,9 @@ func NewGoModuleCacheResolver() *GoModuleCacheResolver {
 //
 // Returns *GoModuleCacheResolver which is the configured resolver ready for use.
 // Returns error when go.mod cannot be found or parsed.
-func NewGoModuleCacheResolverWithWorkingDir(workingDir string) (*GoModuleCacheResolver, error) {
-	resolver := &GoModuleCacheResolver{
-		dirCache:     make(map[string]string),
-		knownModules: nil,
-		workingDir:   workingDir,
-		mu:           sync.RWMutex{},
-	}
+func NewGoModuleCacheResolverWithWorkingDir(workingDir string, opts ...Option) (*GoModuleCacheResolver, error) {
+	resolver := NewGoModuleCacheResolver(opts...)
+	resolver.workingDir = workingDir
 
 	if err := resolver.loadKnownModulesFromGoMod(context.Background()); err != nil {
 		return nil, fmt.Errorf("failed to load modules from go.mod: %w", err)
@@ -149,9 +218,9 @@ func (*GoModuleCacheResolver) ConvertEntryPointPathToManifestKey(entryPointPath 
 	return entryPointPath
 }
 
-// ResolvePKPath resolves a Piko component import path from an external Go module. It uses
-// the go/packages API to locate the module in the Go module cache, then constructs the
-// absolute path to the .pk file within that module.
+// ResolvePKPath resolves a Piko component import path from an external Go module. It
+// locates the module directory via the module graph, then constructs the absolute path to
+// the .pk file within that module, confirming the result stays inside the module.
 //
 // The @ alias is supported and will be expanded using the containing file's module.
 //
@@ -164,7 +233,7 @@ func (*GoModuleCacheResolver) ConvertEntryPointPathToManifestKey(entryPointPath 
 // the .pk file does not exist.
 func (gmcr *GoModuleCacheResolver) ResolvePKPath(ctx context.Context, importPath string, containingFilePath string) (string, error) {
 	ctx, span, _ := log.Span(ctx, "GoModuleCacheResolver.ResolvePKPath",
-		logger_domain.String("importPath", importPath),
+		logger_domain.String(logKeyImportPath, importPath),
 		logger_domain.String("containingFilePath", containingFilePath),
 	)
 	defer span.End()
@@ -206,13 +275,60 @@ func (*GoModuleCacheResolver) ResolveCSSPath(_ context.Context, _ string, _ stri
 	return "", errors.New("CSS resolution from Go module cache is unsupported")
 }
 
-// ResolveAssetPath reports that asset resolution from external Go modules is unsupported
-// by this resolver.
+// ResolveAssetPath resolves a static asset referenced from an external-module component.
 //
-// Returns string which is always empty.
-// Returns error when called, since this resolver does not support assets.
-func (*GoModuleCacheResolver) ResolveAssetPath(_ context.Context, _ string, _ string) (string, error) {
-	return "", errors.New("asset resolution from Go module cache is unsupported")
+// An example is a design-system module whose partials reference their own assets (svg,
+// png, and similar) via the @ alias. It mirrors ResolvePKPath: expand the @ alias against
+// the containing file's module, split off the module path, locate the module directory
+// via the module graph, then join, confirm the result stays inside the module, and
+// confirm the asset exists. No .pk suffix is required.
+//
+// Takes importPath (string) which is the asset import path to resolve.
+// Takes containingFilePath (string) which is the absolute path of the file that
+// references the asset, used to expand the @ alias.
+//
+// Returns string which is the absolute path to the resolved asset.
+// Returns error when the path cannot be parsed, the module cannot be located, the
+// resolved path escapes the module, or the asset does not exist.
+func (gmcr *GoModuleCacheResolver) ResolveAssetPath(ctx context.Context, importPath string, containingFilePath string) (string, error) {
+	ctx, span, _ := log.Span(ctx, "GoModuleCacheResolver.ResolveAssetPath",
+		logger_domain.String(logKeyImportPath, importPath),
+		logger_domain.String("containingFilePath", containingFilePath),
+	)
+	defer span.End()
+
+	goModuleCacheResolutionCount.Add(ctx, 1)
+	defer gmcr.recordResolutionDuration(ctx, time.Now())
+
+	expandedPath, err := ExpandModuleAlias(importPath, containingFilePath)
+	if err != nil {
+		goModuleCacheResolutionErrorCount.Add(ctx, 1)
+		return "", fmt.Errorf("expanding module alias for asset %q: %w", importPath, err)
+	}
+
+	modulePath, filePathInModule, err := gmcr.parseImportPath(ctx, expandedPath)
+	if err != nil {
+		return "", fmt.Errorf("parsing asset path %q: %w", expandedPath, err)
+	}
+
+	moduleDir, err := gmcr.resolveModuleDir(ctx, modulePath)
+	if err != nil {
+		goModuleCacheResolutionErrorCount.Add(ctx, 1)
+		return "", fmt.Errorf("resolving module directory for %q: %w", modulePath, err)
+	}
+
+	absolutePath, err := resolveWithinModule(moduleDir, filePathInModule)
+	if err != nil {
+		goModuleCacheResolutionErrorCount.Add(ctx, 1)
+		return "", fmt.Errorf("resolving asset %q: %w", importPath, err)
+	}
+
+	if _, err := os.Stat(absolutePath); err != nil {
+		goModuleCacheResolutionErrorCount.Add(ctx, 1)
+		return "", fmt.Errorf("%w at %q: %w", errExternalAssetNotFound, absolutePath, err)
+	}
+
+	return absolutePath, nil
 }
 
 // GetModuleDir implements ResolverPort.GetModuleDir. It finds the directory for a Go
@@ -226,16 +342,91 @@ func (gmcr *GoModuleCacheResolver) GetModuleDir(ctx context.Context, modulePath 
 	return gmcr.resolveModuleDir(ctx, modulePath)
 }
 
-// FindModuleBoundary implements ResolverPort.FindModuleBoundary. It splits an import path
-// into the module path and subpath using the known modules from go.mod.
+// FindModuleBoundary implements ResolverPort.FindModuleBoundary.
 //
-// Takes importPath (string) which is a full import path to split.
+// It splits an import path into the module path and subpath using the known modules from
+// go.mod. As a convenience it also accepts an absolute on-disk path: a file living inside
+// a `replace => ./dir` directory or the module cache is mapped back to its owning module,
+// which is how a cross-module partial (whose import path was rewritten to a local file
+// path) is resolved.
+//
+// Takes importPath (string) which is a full import path to split, or an absolute file
+// path.
 //
 // Returns modulePath (string) which is the Go module portion.
 // Returns subpath (string) which is the path within the module.
 // Returns error when the import path does not match any known module.
 func (gmcr *GoModuleCacheResolver) FindModuleBoundary(_ context.Context, importPath string) (modulePath string, subpath string, err error) {
+	if filepath.IsAbs(importPath) {
+		return gmcr.findModuleBoundaryForAbsPath(importPath)
+	}
 	return gmcr.findModulePath(importPath)
+}
+
+// findModuleBoundaryForAbsPath resolves an absolute on-disk path to its owning module.
+//
+// It first checks local `replace => ./dir` directories (which never appear in import-path
+// form), then falls back to the module cache layout
+// (".../pkg/mod/<module>@<version>/<subpath>").
+//
+// Takes absPath (string) which is the absolute file path to locate.
+//
+// Returns modulePath (string) which is the owning Go module path.
+// Returns subpath (string) which is the slash-separated path within that module.
+// Returns error when the path is not inside any known module.
+//
+// Concurrency: Safe for concurrent use; reads replaceDirs under mu.
+func (gmcr *GoModuleCacheResolver) findModuleBoundaryForAbsPath(absPath string) (modulePath string, subpath string, err error) {
+	gmcr.mu.RLock()
+	replaceDirs := gmcr.replaceDirs
+	gmcr.mu.RUnlock()
+
+	cleaned := filepath.Clean(absPath)
+
+	bestModule, bestSubpath, bestDirLen := "", "", -1
+	for module, dir := range replaceDirs {
+		if rel, ok := pathutil.RelWithin(dir, cleaned); ok && len(dir) > bestDirLen {
+			bestModule, bestSubpath, bestDirLen = module, rel, len(dir)
+		}
+	}
+	if bestDirLen >= 0 {
+		return bestModule, bestSubpath, nil
+	}
+
+	if importPath := moduleImportPathFromCachePath(cleaned); importPath != "" {
+		return gmcr.findModulePath(importPath)
+	}
+
+	return "", "", fmt.Errorf("absolute path %q does not lie within any known module: %w", absPath, errModuleBoundaryNotFound)
+}
+
+// moduleImportPathFromCachePath converts a Go module cache file path
+// (".../pkg/mod/<module>@<version>/<subpath>") into its import path
+// ("<module>/<subpath>"), returning "" when the path is not a module cache path. It
+// mirrors the cache-layout parsing in annotator_domain.extractModuleImportPath; the two
+// must stay in sync if the module cache layout changes.
+//
+// Takes path (string) which is an absolute on-disk path.
+//
+// Returns string which is the reconstructed import path, or "" when not a cache path.
+func moduleImportPathFromCachePath(path string) string {
+	slashed := filepath.ToSlash(path)
+	_, afterMod, found := strings.Cut(slashed, "pkg/mod/")
+	if !found {
+		return ""
+	}
+
+	atIndex := strings.Index(afterMod, "@")
+	if atIndex == -1 {
+		return ""
+	}
+
+	rest := afterMod[atIndex:]
+	slashAfterAt := strings.Index(rest, "/")
+	if slashAfterAt == -1 {
+		return afterMod[:atIndex]
+	}
+	return afterMod[:atIndex] + rest[slashAfterAt:]
 }
 
 // loadKnownModulesFromGoMod reads the project's go.mod file and extracts all required
@@ -281,16 +472,45 @@ func (gmcr *GoModuleCacheResolver) loadKnownModulesFromGoMod(ctx context.Context
 		return cmp.Compare(len(b), len(a))
 	})
 
+	replaceDirs := collectReplaceDirs(modFile, filepath.Dir(goModPath))
+
 	gmcr.mu.Lock()
 	gmcr.knownModules = modules
+	gmcr.replaceDirs = replaceDirs
 	gmcr.mu.Unlock()
 
 	l.Internal("Loaded known modules from go.mod",
 		logger_domain.Int("moduleCount", len(modules)),
+		logger_domain.Int("replaceDirCount", len(replaceDirs)),
 		logger_domain.String("goModPath", goModPath),
 	)
 
 	return nil
+}
+
+// collectReplaceDirs maps each module path that go.mod redirects to a local directory via
+// a `replace => ./dir` directive to its absolute directory. Module-to-module replacements
+// (those with a replacement version) are skipped, as they resolve through the module
+// graph rather than a fixed directory.
+//
+// Takes modFile (*modfile.File) which is the parsed go.mod.
+// Takes goModDir (string) which is the absolute directory containing go.mod, used to make
+// relative replacement paths absolute.
+//
+// Returns map[string]string which maps module path to absolute replacement directory.
+func collectReplaceDirs(modFile *modfile.File, goModDir string) map[string]string {
+	replaceDirs := make(map[string]string, len(modFile.Replace))
+	for _, replace := range modFile.Replace {
+		if replace.New.Version != "" || replace.New.Path == "" {
+			continue
+		}
+		directory := replace.New.Path
+		if !filepath.IsAbs(directory) {
+			directory = filepath.Join(goModDir, directory)
+		}
+		replaceDirs[replace.Old.Path] = filepath.Clean(directory)
+	}
+	return replaceDirs
 }
 
 // recordResolutionDuration records how long a resolution took.
@@ -314,7 +534,7 @@ func (gmcr *GoModuleCacheResolver) parseImportPath(ctx context.Context, importPa
 	if err != nil {
 		goModuleCacheResolutionErrorCount.Add(ctx, 1)
 		l.Trace("Failed to parse module path from import",
-			logger_domain.String("importPath", importPath),
+			logger_domain.String(logKeyImportPath, importPath),
 			logger_domain.Error(err),
 		)
 		return "", "", fmt.Errorf("could not parse module path from import '%s': %w", importPath, err)
@@ -328,17 +548,23 @@ func (gmcr *GoModuleCacheResolver) parseImportPath(ctx context.Context, importPa
 	return modulePath, filePathInModule, nil
 }
 
-// constructAndValidatePKPath builds the full path and checks it has a .pk extension.
+// constructAndValidatePKPath builds the full path, confirms it stays inside the module,
+// and checks it has a .pk extension.
 //
 // Takes moduleDir (string) which is the module folder.
 // Takes filePathInModule (string) which is the file path within the module.
 // Takes importPath (string) which is used for logging.
 //
 // Returns string which is the validated full path to the .pk file.
-// Returns error when the path does not end with a .pk extension.
+// Returns error when the path escapes the module or does not end with a .pk extension.
 func (*GoModuleCacheResolver) constructAndValidatePKPath(ctx context.Context, moduleDir, filePathInModule, importPath string) (string, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	absolutePath := filepath.Join(moduleDir, filepath.FromSlash(filePathInModule))
+
+	absolutePath, err := resolveWithinModule(moduleDir, filePathInModule)
+	if err != nil {
+		goModuleCacheResolutionErrorCount.Add(ctx, 1)
+		return "", err
+	}
 
 	if !strings.HasSuffix(strings.ToLower(absolutePath), ".pk") {
 		goModuleCacheResolutionErrorCount.Add(ctx, 1)
@@ -346,18 +572,40 @@ func (*GoModuleCacheResolver) constructAndValidatePKPath(ctx context.Context, mo
 	}
 
 	l.Trace("Resolved PK path from Go module cache",
-		logger_domain.String("importPath", importPath),
+		logger_domain.String(logKeyImportPath, importPath),
 		logger_domain.String("absolutePath", absolutePath),
 	)
 
 	return absolutePath, nil
 }
 
-// resolveModuleDir finds the absolute directory path of a Go module in the module cache.
-// Results are cached to avoid repeated calls to packages.Load.
+// resolveWithinModule joins filePathInModule onto moduleDir and confirms the cleaned
+// result remains inside moduleDir, rejecting any path that escapes via "..". This keeps a
+// crafted import or asset path (for example "@/../../secret") from resolving to a file
+// outside the owning module.
 //
-// The go/packages API respects the project's go.mod and go.sum files, so the correct
-// version of each module is used.
+// Takes moduleDir (string) which is the absolute module directory.
+// Takes filePathInModule (string) which is the slash-separated path within the module.
+//
+// Returns string which is the absolute path inside the module.
+// Returns error which wraps errPathEscapesModule when the path resolves outside
+// moduleDir.
+func resolveWithinModule(moduleDir, filePathInModule string) (string, error) {
+	absolutePath := filepath.Join(moduleDir, filepath.FromSlash(filePathInModule))
+
+	relativePath, err := filepath.Rel(moduleDir, absolutePath)
+	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("%w: %q resolves outside %q", errPathEscapesModule, filePathInModule, moduleDir)
+	}
+
+	return absolutePath, nil
+}
+
+// resolveModuleDir finds the absolute directory path of a Go module.
+//
+// A local `replace` directive in go.mod resolves directly with no subprocess; otherwise
+// the module graph is consulted via the go toolchain. Results are cached, and concurrent
+// cold resolutions of the same module collapse into a single invocation.
 //
 // Takes modulePath (string) which specifies the import path of the module.
 //
@@ -368,18 +616,47 @@ func (gmcr *GoModuleCacheResolver) resolveModuleDir(ctx context.Context, moduleP
 		return directory, nil
 	}
 
+	if directory, ok := gmcr.replaceDir(modulePath); ok {
+		gmcr.cacheModuleDir(ctx, modulePath, directory)
+		return directory, nil
+	}
+
 	ctx, l := logger_domain.From(ctx, log)
 	goModuleCacheMissCount.Add(ctx, 1)
 	l.Trace("Go module cache miss, loading module", logger_domain.String(logKeyModulePath, modulePath))
 
-	moduleDir, err := gmcr.loadModuleDirFromCache(ctx, modulePath)
+	directory, err, _ := gmcr.resolveGroup.Do(modulePath, func() (any, error) {
+		return gmcr.loadModuleDirFromCache(ctx, modulePath)
+	})
 	if err != nil {
 		return "", fmt.Errorf("loading module %q from Go cache: %w", modulePath, err)
+	}
+
+	moduleDir, ok := directory.(string)
+	if !ok {
+		return "", fmt.Errorf("loading module %q from Go cache: unexpected result type %T", modulePath, directory)
 	}
 
 	gmcr.cacheModuleDir(ctx, modulePath, moduleDir)
 
 	return moduleDir, nil
+}
+
+// replaceDir returns the absolute directory a module is redirected to by a local replace
+// directive in go.mod, if any.
+//
+// Takes modulePath (string) which specifies the module to look up.
+//
+// Returns string which is the replacement directory, or empty when there is none.
+// Returns bool which is true when a local replacement directory exists.
+//
+// Safe for concurrent use; protected by a read lock.
+func (gmcr *GoModuleCacheResolver) replaceDir(modulePath string) (string, bool) {
+	gmcr.mu.RLock()
+	defer gmcr.mu.RUnlock()
+
+	directory, ok := gmcr.replaceDirs[modulePath]
+	return directory, ok
 }
 
 // getCachedModuleDir checks if a module directory is in the cache and returns it if
@@ -404,55 +681,141 @@ func (gmcr *GoModuleCacheResolver) getCachedModuleDir(ctx context.Context, modul
 	return "", false
 }
 
-// loadModuleDirFromCache loads a module using go/packages and finds its directory path.
-//
-// Takes modulePath (string) which specifies the module to load.
-//
-// Returns string which is the directory path of the loaded module.
-// Returns error when the package cannot be loaded or extraction fails.
-func (gmcr *GoModuleCacheResolver) loadModuleDirFromCache(ctx context.Context, modulePath string) (string, error) {
-	config := &packages.Config{
-		Context:    ctx,
-		Mode:       packages.NeedModule,
-		Tests:      false,
-		Dir:        gmcr.workingDir,
-		Logf:       nil,
-		Env:        append(os.Environ(), "GOWORK=off"),
-		BuildFlags: nil,
-		Fset:       nil,
-		ParseFile:  nil,
-		Overlay:    nil,
-	}
+// goListModule is the subset of `go list -m -json` output the resolver needs. Replace is
+// a pointer because it is absent for modules without a replace directive.
+type goListModule struct {
+	// Replace holds the replacement target's fields when a replace directive applies.
+	Replace *goListModule
 
-	pkgs, err := packages.Load(config, modulePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to load package '%s': %w", modulePath, err)
-	}
-
-	return gmcr.extractModuleDirFromPackages(pkgs, modulePath)
+	// Dir is the resolved on-disk directory of the module, empty when not extracted.
+	Dir string
 }
 
-// extractModuleDirFromPackages finds the module directory from loaded packages.
+// goModDownload is the subset of `go mod download -json` output the resolver needs.
+type goModDownload struct {
+	// Dir is the extracted directory of the downloaded module.
+	Dir string
+
+	// Error is a non-empty message when the download failed.
+	Error string
+}
+
+// loadModuleDirFromCache resolves a module's on-disk directory via the Go module graph.
 //
-// Takes pkgs ([]*packages.Package) which contains the loaded package data.
-// Takes modulePath (string) which identifies the module to find.
+// It runs `go list -m -json`. Unlike a package-oriented loader, this resolves the
+// directory for any required module, including one that contains no Go package at its
+// root (a .pk-only partials, components, or design-system library), and it honours local
+// replace directives. GOWORK is disabled so the project's go.mod (require plus replace)
+// is the single source of truth, matching the resolver elsewhere. When the module is
+// known but not yet extracted into the cache, it is downloaded once before giving up.
 //
-// Returns string which is the module directory path.
-// Returns error when the packages contain errors or the module data is missing.
-func (*GoModuleCacheResolver) extractModuleDirFromPackages(pkgs []*packages.Package, modulePath string) (string, error) {
-	if packages.PrintErrors(pkgs) > 0 {
-		return "", fmt.Errorf("errors while loading package '%s'", modulePath)
+// Takes modulePath (string) which specifies the module to resolve.
+//
+// Returns string which is the absolute directory path of the module.
+// Returns error when the module is not a known dependency or cannot be resolved.
+func (gmcr *GoModuleCacheResolver) loadModuleDirFromCache(ctx context.Context, modulePath string) (string, error) {
+	directory, err := gmcr.listModuleDir(ctx, modulePath)
+	if err != nil {
+		return "", err
+	}
+	if directory != "" {
+		return directory, nil
 	}
 
-	if len(pkgs) == 0 || pkgs[0].Module == nil {
+	directory, err = gmcr.downloadModuleDir(ctx, modulePath)
+	if err != nil {
+		return "", err
+	}
+	if directory == "" {
 		return "", fmt.Errorf(
-			"module '%s' not found in module cache. "+
-				"Ensure the module is listed in go.mod and run: go mod download %s",
-			modulePath, modulePath,
+			"%w: %q. Ensure it is listed in go.mod and run: go mod download %s",
+			errModuleNoDir, modulePath, modulePath,
 		)
 	}
 
-	return pkgs[0].Module.Dir, nil
+	return directory, nil
+}
+
+// listModuleDir runs `go list -m -json` for a single module and returns its resolved
+// directory, preferring a replace target's directory when present.
+//
+// Takes modulePath (string) which specifies the module to resolve.
+//
+// Returns string which is the resolved directory, empty when the module is not extracted.
+// Returns error when the subprocess fails or its output cannot be parsed.
+func (gmcr *GoModuleCacheResolver) listModuleDir(ctx context.Context, modulePath string) (string, error) {
+	out, err := gmcr.runGo(ctx, "list", "-m", "-json", modulePath)
+	if err != nil {
+		return "", err
+	}
+
+	var module goListModule
+	if err := json.Unmarshal(out, &module); err != nil {
+		return "", fmt.Errorf("parsing `go list -m -json %s` output: %w", modulePath, err)
+	}
+
+	if module.Replace != nil && module.Replace.Dir != "" {
+		return module.Replace.Dir, nil
+	}
+	return module.Dir, nil
+}
+
+// downloadModuleDir runs `go mod download -json` for a single module, extracting it into
+// the cache, and returns the directory the toolchain reports.
+//
+// Takes modulePath (string) which specifies the module to download.
+//
+// Returns string which is the extracted directory of the module.
+// Returns error when the subprocess fails, its output cannot be parsed, or the download
+// reports an error.
+func (gmcr *GoModuleCacheResolver) downloadModuleDir(ctx context.Context, modulePath string) (string, error) {
+	out, err := gmcr.runGo(ctx, "mod", "download", "-json", modulePath)
+	if err != nil {
+		return "", err
+	}
+
+	var download goModDownload
+	if err := json.Unmarshal(out, &download); err != nil {
+		return "", fmt.Errorf("parsing `go mod download -json %s` output: %w", modulePath, err)
+	}
+	if download.Error != "" {
+		return "", fmt.Errorf("%w: %q: %s", errModuleNoDir, modulePath, download.Error)
+	}
+
+	return download.Dir, nil
+}
+
+// runGo invokes the go toolchain in the resolver's working directory with GOWORK
+// disabled, bounded by a timeout with an explicit cause and a wait delay so a stuck child
+// is killed. It returns the command's standard output.
+//
+// Takes args ([]string) which are the go subcommand and its arguments.
+//
+// Returns []byte which is the captured standard output.
+// Returns error when the command times out, fails to run, or exits non-zero.
+func (gmcr *GoModuleCacheResolver) runGo(ctx context.Context, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeoutCause(ctx, gmcr.goCommandTimeout, errGoCommandTimedOut)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "go", args...) //nolint:gosec // trusted go toolchain, internal subcommands
+	cmd.Dir = gmcr.workingDir
+	cmd.Env = append(os.Environ(), "GOWORK=off")
+	cmd.WaitDelay = goCommandWaitDelay
+
+	out, err := cmd.Output()
+	if err != nil {
+		commandLine := "go " + strings.Join(args, " ")
+
+		if errors.Is(context.Cause(ctx), errGoCommandTimedOut) {
+			return nil, fmt.Errorf("`%s` timed out: %w", commandLine, errGoCommandTimedOut)
+		}
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
+			return nil, fmt.Errorf("`%s` failed: %w: %s", commandLine, err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return nil, fmt.Errorf("`%s` failed: %w", commandLine, err)
+	}
+
+	return out, nil
 }
 
 // cacheModuleDir stores a module directory in the cache for future lookups.
@@ -513,8 +876,8 @@ func (gmcr *GoModuleCacheResolver) findModulePath(importPath string) (modulePath
 	}
 
 	return "", "", fmt.Errorf(
-		"import path '%s' does not match any module in go.mod. "+
-			"Ensure the module is listed in go.mod and run: go mod download",
-		importPath,
+		"import path %q does not match any module in go.mod "+
+			"(ensure the module is listed in go.mod and run go mod download): %w",
+		importPath, errModuleBoundaryNotFound,
 	)
 }

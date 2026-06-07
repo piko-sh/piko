@@ -20,10 +20,16 @@ package resolver_adapters
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/modfile"
+
+	"piko.sh/piko/internal/json"
 )
 
 func TestGoModuleCacheResolver_findModulePath(t *testing.T) {
@@ -305,5 +311,154 @@ func BenchmarkGoModuleCacheResolver_CacheHit(b *testing.B) {
 		resolver.mu.RLock()
 		_ = resolver.dirCache["github.com/test/module"]
 		resolver.mu.RUnlock()
+	}
+}
+
+func TestResolveWithinModule(t *testing.T) {
+	t.Parallel()
+
+	moduleDir := filepath.Join(string(filepath.Separator)+"cache", "mod@v1.0.0")
+	tests := []struct {
+		name             string
+		filePathInModule string
+		wantSuffix       string
+		wantErr          bool
+	}{
+		{name: "nested asset", filePathInModule: "lib/icons/logo.svg", wantSuffix: filepath.Join("lib", "icons", "logo.svg")},
+		{name: "module root file", filePathInModule: "go.mod", wantSuffix: "go.mod"},
+		{name: "parent traversal", filePathInModule: "../../etc/passwd", wantErr: true},
+		{name: "deep traversal", filePathInModule: "lib/../../../secret", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := resolveWithinModule(moduleDir, tt.filePathInModule)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errPathEscapesModule)
+				return
+			}
+			require.NoError(t, err)
+			assert.True(t, strings.HasPrefix(got, moduleDir))
+			assert.True(t, strings.HasSuffix(got, tt.wantSuffix))
+		})
+	}
+}
+
+func TestCollectReplaceDirs(t *testing.T) {
+	t.Parallel()
+
+	goModDir := t.TempDir()
+	goMod := []byte(`module example.com/app
+
+go 1.26
+
+require (
+	example.com/ui v0.0.0
+	example.com/proxied v1.2.3
+)
+
+replace example.com/ui => ./vendored/ui
+replace example.com/proxied v1.2.3 => example.com/fork v1.4.0
+`)
+	modFile, err := modfile.Parse("go.mod", goMod, nil)
+	require.NoError(t, err)
+
+	got := collectReplaceDirs(modFile, goModDir)
+
+	assert.Equal(t, filepath.Join(goModDir, "vendored", "ui"), got["example.com/ui"])
+
+	assert.NotContains(t, got, "example.com/proxied")
+}
+
+func TestGoModuleCacheResolver_ResolveModuleDir_ReplaceFastPath(t *testing.T) {
+	t.Parallel()
+
+	moduleDir := t.TempDir()
+	resolver := NewGoModuleCacheResolver()
+	resolver.mu.Lock()
+	resolver.replaceDirs["example.com/ui"] = moduleDir
+	resolver.mu.Unlock()
+
+	got, err := resolver.resolveModuleDir(context.Background(), "example.com/ui")
+	require.NoError(t, err)
+	assert.Equal(t, moduleDir, got)
+
+	cached, ok := resolver.getCachedModuleDir(context.Background(), "example.com/ui")
+	assert.True(t, ok)
+	assert.Equal(t, moduleDir, cached)
+}
+
+func TestGoModuleCacheResolver_ResolveAssetPath_ViaReplaceDir(t *testing.T) {
+	t.Parallel()
+
+	moduleDir := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(moduleDir, "lib", "icons"), 0o750))
+	assetPath := filepath.Join(moduleDir, "lib", "icons", "logo.svg")
+	require.NoError(t, os.WriteFile(assetPath, []byte("<svg/>"), 0o600))
+
+	resolver := NewGoModuleCacheResolver()
+	resolver.mu.Lock()
+	resolver.knownModules = []string{"example.com/ui"}
+	resolver.replaceDirs["example.com/ui"] = moduleDir
+	resolver.mu.Unlock()
+
+	t.Run("resolves existing asset", func(t *testing.T) {
+		t.Parallel()
+		got, err := resolver.ResolveAssetPath(context.Background(), "example.com/ui/lib/icons/logo.svg", "")
+		require.NoError(t, err)
+		assert.Equal(t, assetPath, got)
+	})
+
+	t.Run("rejects traversal outside module", func(t *testing.T) {
+		t.Parallel()
+		_, err := resolver.ResolveAssetPath(context.Background(), "example.com/ui/../../../secret", "")
+		require.ErrorIs(t, err, errPathEscapesModule)
+	})
+
+	t.Run("missing asset", func(t *testing.T) {
+		t.Parallel()
+		_, err := resolver.ResolveAssetPath(context.Background(), "example.com/ui/lib/icons/missing.svg", "")
+		require.ErrorIs(t, err, errExternalAssetNotFound)
+	})
+}
+
+func TestGoListModule_JSONParsing(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		payload string
+		want    string
+	}{
+		{
+			name:    "plain dir",
+			payload: `{"Path":"example.com/ui","Dir":"/cache/ui@v1"}`,
+			want:    "/cache/ui@v1",
+		},
+		{
+			name:    "replace dir preferred",
+			payload: `{"Path":"example.com/ui","Dir":"/cache/ui@v1","Replace":{"Dir":"/local/ui"}}`,
+			want:    "/local/ui",
+		},
+		{
+			name:    "not extracted",
+			payload: `{"Path":"example.com/ui"}`,
+			want:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var module goListModule
+			require.NoError(t, json.Unmarshal([]byte(tt.payload), &module))
+
+			directory := module.Dir
+			if module.Replace != nil && module.Replace.Dir != "" {
+				directory = module.Replace.Dir
+			}
+			assert.Equal(t, tt.want, directory)
+		})
 	}
 }

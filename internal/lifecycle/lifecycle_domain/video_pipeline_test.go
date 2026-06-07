@@ -34,7 +34,7 @@ func Test_AssetPipelineOrchestrator_generateVideoProfiles(t *testing.T) {
 	t.Run("generates profiles for default qualities", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		asset := &annotator_dto.FinalAssetDependency{
 			SourcePath:           "videos/hero.mp4",
@@ -57,7 +57,7 @@ func Test_AssetPipelineOrchestrator_generateVideoProfiles(t *testing.T) {
 	t.Run("generates profiles with explicit qualities", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		asset := &annotator_dto.FinalAssetDependency{
 			SourcePath: "videos/clip.mp4",
@@ -81,7 +81,7 @@ func Test_AssetPipelineOrchestrator_generateVideoProfiles(t *testing.T) {
 	t.Run("generates profiles with custom segment duration", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		asset := &annotator_dto.FinalAssetDependency{
 			SourcePath: "videos/clip.mp4",
@@ -104,7 +104,7 @@ func Test_AssetPipelineOrchestrator_generateVideoProfiles(t *testing.T) {
 		t.Parallel()
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -132,7 +132,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("returns fallback qualities when no params", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		result := orchestrator.parseVideoQualities(map[string][]string{})
 
@@ -149,7 +149,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 				DefaultSegmentDuration: 0,
 			},
 		}
-		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig)
+		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig, nil, nil)
 
 		result := orchestrator.parseVideoQualities(map[string][]string{})
 
@@ -159,7 +159,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("parses explicit qualities from params", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"qualities": {"1080p,720p,480p"},
@@ -173,7 +173,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("filters out unknown quality levels", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"qualities": {"1080p,unknown,480p"},
@@ -187,7 +187,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("falls back to defaults when all qualities unknown", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"qualities": {"8k,16k"},
@@ -201,7 +201,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("trims whitespace around quality names", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"qualities": {" 720p , 480p "},
@@ -215,7 +215,7 @@ func Test_AssetPipelineOrchestrator_parseVideoQualities(t *testing.T) {
 	t.Run("handles single quality value", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"qualities": {"360p"},
@@ -233,7 +233,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 	t.Run("returns fallback when no params and no config", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		result := orchestrator.parseSegmentDuration(map[string][]string{})
 
@@ -250,7 +250,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 				DefaultSegmentDuration: 8,
 			},
 		}
-		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig)
+		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig, nil, nil)
 
 		result := orchestrator.parseSegmentDuration(map[string][]string{})
 
@@ -260,7 +260,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 	t.Run("parses explicit segment duration from params", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"segment-duration": {"6"},
@@ -274,7 +274,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 	t.Run("falls back on invalid segment duration", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"segment-duration": {"abc"},
@@ -288,7 +288,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 	t.Run("falls back on zero segment duration", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"segment-duration": {"0"},
@@ -302,7 +302,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 	t.Run("falls back on negative segment duration", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		params := map[string][]string{
 			"segment-duration": {"-5"},
@@ -323,7 +323,7 @@ func Test_AssetPipelineOrchestrator_parseSegmentDuration(t *testing.T) {
 				DefaultSegmentDuration: 15,
 			},
 		}
-		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig)
+		orchestrator := NewAssetPipelineOrchestrator(nil, assetsConfig, nil, nil)
 
 		params := map[string][]string{
 			"segment-duration": {"4"},

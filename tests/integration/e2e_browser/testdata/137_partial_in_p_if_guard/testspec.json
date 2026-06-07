@@ -1,0 +1,34 @@
+{
+  "description": "A partial nested in a p-if renders only when its guard is true; a false guard skips the partial without dereferencing its nil-guarded prop",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Guarded Partials"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": ".app-header",
+      "expected": 1
+    },
+    {
+      "action": "checkText",
+      "selector": ".app-header .icon",
+      "expected": "home"
+    },
+    {
+      "action": "checkNoConsoleErrors"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "body",
+      "goldenFile": "initial.html"
+    }
+  ]
+}

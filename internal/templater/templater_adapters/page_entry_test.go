@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,6 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
@@ -1108,4 +1110,67 @@ type failWriter struct{}
 
 func (w *failWriter) Write(_ []byte) (int, error) {
 	return 0, errors.New("write error")
+}
+
+func TestMaxDiagnosticSeverity(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		diagnostics []*generator_dto.RuntimeDiagnostic
+		want        generator_dto.Severity
+	}{
+		{name: "empty", diagnostics: nil, want: generator_dto.Debug},
+		{name: "single warning", diagnostics: []*generator_dto.RuntimeDiagnostic{{Severity: generator_dto.Warning}}, want: generator_dto.Warning},
+		{name: "warning then error returns error", diagnostics: []*generator_dto.RuntimeDiagnostic{{Severity: generator_dto.Warning}, {Severity: generator_dto.Error}}, want: generator_dto.Error},
+		{name: "error then warning returns error", diagnostics: []*generator_dto.RuntimeDiagnostic{{Severity: generator_dto.Error}, {Severity: generator_dto.Warning}}, want: generator_dto.Error},
+		{name: "info and debug", diagnostics: []*generator_dto.RuntimeDiagnostic{{Severity: generator_dto.Debug}, {Severity: generator_dto.Info}}, want: generator_dto.Info},
+		{name: "nil entry ignored", diagnostics: []*generator_dto.RuntimeDiagnostic{nil, {Severity: generator_dto.Warning}}, want: generator_dto.Warning},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, maxDiagnosticSeverity(tt.diagnostics))
+		})
+	}
+}
+
+func TestPageEntry_logRenderDiagnostics(t *testing.T) {
+	tests := []struct {
+		name            string
+		severity        generator_dto.Severity
+		wantMessage     string
+		wantLevel       string
+		unwantedMessage string
+	}{
+		{name: "warning logs at warn, not error", severity: generator_dto.Warning, wantMessage: "AST function reported diagnostics", wantLevel: "WARN", unwantedMessage: "Error running AST function"},
+		{name: "error logs at error", severity: generator_dto.Error, wantMessage: "Error running AST function", wantLevel: "ERROR", unwantedMessage: "AST function reported diagnostics"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+			captured := logger_domain.New(slog.New(slog.NewJSONHandler(&buffer, &slog.HandlerOptions{Level: slog.LevelDebug})), "test")
+
+			previous := log
+			log = captured
+			defer func() { log = previous }()
+
+			pe := &PageEntry{}
+			pe.logRenderDiagnostics(context.Background(), []*generator_dto.RuntimeDiagnostic{{
+				Severity:   tt.severity,
+				Message:    "Cannot access property",
+				SourcePath: "page.pk",
+				Code:       "R003",
+				Line:       1,
+				Column:     1,
+			}})
+
+			output := buffer.String()
+			assert.Contains(t, output, tt.wantMessage)
+			assert.NotContains(t, output, tt.unwantedMessage)
+			assert.Contains(t, output, tt.wantLevel)
+		})
+	}
 }

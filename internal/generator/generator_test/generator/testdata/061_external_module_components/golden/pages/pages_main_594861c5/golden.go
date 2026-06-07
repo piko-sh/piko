@@ -135,7 +135,7 @@ func init() {
 	staticNode_2_child_0.NodeType = pikoruntime.NodeText
 	staticNode_2_child_0.TextContent = "This page uses components from external Go modules to verify the ChainedResolver works correctly."
 	staticNode_2.Children = append(staticNode_2.Children, staticNode_2_child_0)
-	staticAttrs_2 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_layout_primitives_layouts_container_5c8b63f6"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/layout-primitives/layouts/Container"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2"}, pikoruntime.HTMLAttribute{Name: "class", Value: "container"}}
+	staticAttrs_2 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_layout_primitives_layouts_container_5c8b63f6"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "layouts/Container"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2"}, pikoruntime.HTMLAttribute{Name: "class", Value: "container"}}
 	staticNode_3 = &pikoruntime.TemplateNode{}
 	staticNode_3.NodeType = pikoruntime.NodeElement
 	staticNode_3.TagName = "slot"

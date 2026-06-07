@@ -320,7 +320,17 @@ func (op *buildOperation) processAnnotationForAssets(
 		return fmt.Errorf("getting registry service: %w", err)
 	}
 
-	pipeline := lifecycle_domain.NewAssetPipelineOrchestrator(registryService, op.container.GetAssetsConfig())
+	resolver, err := op.container.GetResolver()
+	if err != nil {
+		return fmt.Errorf("getting resolver: %w", err)
+	}
+
+	reader, err := op.container.createCoordinatorFSReader()
+	if err != nil {
+		return fmt.Errorf("getting asset byte reader: %w", err)
+	}
+
+	pipeline := lifecycle_domain.NewAssetPipelineOrchestrator(registryService, op.container.GetAssetsConfig(), resolver, reader)
 	return pipeline.ProcessBuildResult(ctx, annotationResult)
 }
 

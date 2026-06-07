@@ -115,13 +115,19 @@ type ResolverPort interface {
 	// Returns error when the module cannot be found or has not been downloaded.
 	GetModuleDir(ctx context.Context, modulePath string) (string, error)
 
-	// FindModuleBoundary splits an import path into the module path and the subpath within
-	// that module. This uses the known modules from go.mod for accurate boundary detection.
+	// FindModuleBoundary splits a path into its owning module path and the subpath within
+	// that module, using the known modules from go.mod for accurate boundary detection.
 	//
-	// Takes importPath (string) which is a full import path to split.
+	// The argument may be either a full import path (the common case) or an absolute file
+	// path. An absolute path is resolved against the module's local replace directory or the
+	// module cache layout, which lets a cross-module component whose import path was
+	// rewritten to a local file path resolve to its owning module. Implementations that
+	// cannot resolve a given form must return an error rather than a bogus result.
+	//
+	// Takes path (string) which is a full import path or an absolute file path to split.
 	//
 	// Returns modulePath (string) which is the Go module portion.
 	// Returns subpath (string) which is the path within the module.
-	// Returns error when the import path does not match any known module.
-	FindModuleBoundary(ctx context.Context, importPath string) (modulePath, subpath string, err error)
+	// Returns error when the path does not lie within any known module.
+	FindModuleBoundary(ctx context.Context, path string) (modulePath, subpath string, err error)
 }

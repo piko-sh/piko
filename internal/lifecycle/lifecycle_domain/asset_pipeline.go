@@ -19,8 +19,10 @@
 package lifecycle_domain
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -32,6 +34,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
 const (
@@ -127,6 +130,18 @@ var (
 	}
 )
 
+// assetByteReader reads the bytes of an asset at an absolute path. The project FSReader
+// satisfies it and confines external-module reads to the owning module's directory.
+type assetByteReader interface {
+	// ReadFile reads the bytes of the asset at the given absolute path.
+	//
+	// Takes path (string) which is the absolute path of the asset to read.
+	//
+	// Returns []byte which is the asset content.
+	// Returns error when the asset cannot be read.
+	ReadFile(ctx context.Context, path string) ([]byte, error)
+}
+
 // AssetPipelineOrchestrator translates high-level asset requirements from a build
 // manifest into detailed processing instructions for the registry. It implements
 // AssetPipelinePort, acting as the bridge between the annotator's output and the
@@ -138,6 +153,14 @@ type AssetPipelineOrchestrator struct {
 	// assetsConfig holds asset profiles and video defaults. Separate from ServerConfig
 	// because assets are configured programmatically.
 	assetsConfig *config.AssetsConfig
+
+	// resolver maps a module-absolute asset path to its on-disk location. When nil, the
+	// pipeline cannot identify or read external-module assets and skips byte seeding.
+	resolver resolver_domain.ResolverPort
+
+	// reader reads external-module asset bytes for seeding into the registry. When nil, byte
+	// seeding is skipped.
+	reader assetByteReader
 }
 
 // NewAssetPipelineOrchestrator creates a new asset pipeline orchestrator.
@@ -145,12 +168,23 @@ type AssetPipelineOrchestrator struct {
 // Takes registry (RegistryService) which provides access to registry services.
 // Takes assetsConfig (*AssetsConfig) which holds asset profiles and video defaults; may
 // be nil for default behaviour.
+// Takes resolver (ResolverPort) which locates external-module assets; may be nil to skip
+// external-asset byte seeding.
+// Takes reader (assetByteReader) which reads external-module asset bytes; may be nil to
+// skip external-asset byte seeding.
 //
 // Returns *AssetPipelineOrchestrator which is ready for use.
-func NewAssetPipelineOrchestrator(registry registry_domain.RegistryService, assetsConfig *config.AssetsConfig) *AssetPipelineOrchestrator {
+func NewAssetPipelineOrchestrator(
+	registry registry_domain.RegistryService,
+	assetsConfig *config.AssetsConfig,
+	resolver resolver_domain.ResolverPort,
+	reader assetByteReader,
+) *AssetPipelineOrchestrator {
 	return &AssetPipelineOrchestrator{
 		registryService: registry,
 		assetsConfig:    assetsConfig,
+		resolver:        resolver,
+		reader:          reader,
 	}
 }
 
@@ -175,41 +209,119 @@ func (p *AssetPipelineOrchestrator) ProcessBuildResult(ctx context.Context, resu
 	l.Trace("Processing build asset manifest to generate registry profiles...", logger_domain.Int("asset_count", len(result.FinalAssetManifest)))
 
 	for _, asset := range result.FinalAssetManifest {
-		l.Trace("Processing asset", logger_domain.String(fieldAssetPath, asset.SourcePath), logger_domain.String("asset_type", asset.AssetType))
-
-		var desiredProfiles []registry_dto.NamedProfile
-
-		switch asset.AssetType {
-		case "img":
-			desiredProfiles = p.generateImageProfiles(asset)
-		case "video":
-			desiredProfiles = p.generateVideoProfiles(asset)
-		default:
-			desiredProfiles = GetProfilesForFile(asset.SourcePath, nil)
-		}
-
-		if len(desiredProfiles) == 0 {
-			l.Trace("No desired profiles generated for asset, skipping.", logger_domain.String(fieldAssetPath, asset.SourcePath))
-			continue
-		}
-
-		l.Trace("Generated desired profiles for asset", logger_domain.Int("profile_count", len(desiredProfiles)), logger_domain.String(fieldAssetPath, asset.SourcePath))
-
-		_, err := p.registryService.UpsertArtefact(
-			ctx,
-			asset.SourcePath,
-			asset.SourcePath,
-			nil,
-			defaultStorageBackendID,
-			desiredProfiles,
-		)
-		if err != nil {
-			l.Error("Failed to upsert asset with generated profiles", logger_domain.Error(err), logger_domain.String(fieldAssetPath, asset.SourcePath))
-		}
+		p.processManifestAsset(ctx, asset)
 	}
 
 	l.Trace("Finished processing asset manifest.")
 	return nil
+}
+
+// processManifestAsset registers one manifest asset in the registry: it generates the
+// transformation profiles, seeds source bytes for external raster assets, and upserts the
+// result. Per-asset failures are logged and do not halt the pipeline.
+//
+// Takes asset (*annotator_dto.FinalAssetDependency) which is the manifest entry to
+// process.
+func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, asset *annotator_dto.FinalAssetDependency) {
+	ctx, l := logger_domain.From(ctx, log)
+	l.Trace("Processing asset", logger_domain.String(fieldAssetPath, asset.SourcePath), logger_domain.String("asset_type", asset.AssetType))
+
+	var desiredProfiles []registry_dto.NamedProfile
+
+	switch asset.AssetType {
+	case "img":
+		desiredProfiles = p.generateImageProfiles(asset)
+	case "video":
+		desiredProfiles = p.generateVideoProfiles(asset)
+	default:
+		desiredProfiles = GetProfilesForFile(asset.SourcePath, nil)
+	}
+
+	var sourceData io.Reader
+	if p.isExternalSeedableAsset(asset) {
+		if data, ok := p.readExternalAssetBytes(ctx, asset.SourcePath); ok {
+			sourceData = bytes.NewReader(data)
+		}
+	}
+
+	if len(desiredProfiles) == 0 && sourceData == nil {
+		l.Trace("No desired profiles or source bytes for asset, skipping.", logger_domain.String(fieldAssetPath, asset.SourcePath))
+		return
+	}
+
+	l.Trace("Upserting asset",
+		logger_domain.Int("profile_count", len(desiredProfiles)),
+		logger_domain.Bool("seeded_bytes", sourceData != nil),
+		logger_domain.String(fieldAssetPath, asset.SourcePath),
+	)
+
+	if _, err := p.registryService.UpsertArtefact(
+		ctx,
+		asset.SourcePath,
+		asset.SourcePath,
+		sourceData,
+		defaultStorageBackendID,
+		desiredProfiles,
+	); err != nil {
+		l.Error("Failed to upsert asset with generated profiles", logger_domain.Error(err), logger_domain.String(fieldAssetPath, asset.SourcePath))
+	}
+}
+
+// isExternalSeedableAsset reports whether an external-module asset needs its bytes
+// seeded.
+//
+// This is true only for an asset owned by an external Go module that is served or inlined
+// from the registry at runtime: raster images (served and transformed via the asset
+// pipeline) and svg (loaded raw via render-time GetAssetRawSVG). Video is excluded (a
+// separate transcoding pipeline), and local assets are excluded because the build's
+// filesystem walk already seeds them.
+//
+// Takes asset (*annotator_dto.FinalAssetDependency) which is the manifest entry to
+// classify.
+//
+// Returns bool which is true only for an external-module asset that needs seeding.
+func (p *AssetPipelineOrchestrator) isExternalSeedableAsset(asset *annotator_dto.FinalAssetDependency) bool {
+	switch asset.AssetType {
+	case "img", "picture", "pml-img", "svg":
+	default:
+		return false
+	}
+
+	if p.resolver == nil || p.reader == nil {
+		return false
+	}
+
+	moduleName := p.resolver.GetModuleName()
+	return moduleName != "" && !strings.HasPrefix(asset.SourcePath, moduleName+"/")
+}
+
+// readExternalAssetBytes resolves a module-absolute asset path to disk and reads it.
+// Failures are logged and reported as a miss rather than returned as errors: a missing or
+// unreadable external asset degrades to the prior profile-only behaviour, not a build
+// error.
+//
+// Takes sourcePath (string) which is the module-absolute asset path.
+//
+// Returns []byte which is the asset content, or nil when the read failed.
+// Returns bool which is true when the read succeeded.
+func (p *AssetPipelineOrchestrator) readExternalAssetBytes(ctx context.Context, sourcePath string) ([]byte, bool) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	absolutePath, err := p.resolver.ResolveAssetPath(ctx, sourcePath, "")
+	if err != nil {
+		l.Warn("Could not resolve external asset path; skipping byte seed",
+			logger_domain.String(fieldAssetPath, sourcePath), logger_domain.Error(err))
+		return nil, false
+	}
+
+	data, err := p.reader.ReadFile(ctx, absolutePath)
+	if err != nil {
+		l.Warn("Could not read external asset bytes; skipping byte seed",
+			logger_domain.String(fieldAssetPath, sourcePath), logger_domain.Error(err))
+		return nil, false
+	}
+
+	return data, true
 }
 
 // imageProfileConfig holds parsed configuration for generating image profiles.

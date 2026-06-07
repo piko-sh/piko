@@ -21,6 +21,7 @@ package lifecycle_domain
 import (
 	"context"
 	"io"
+	"io/fs"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,12 +29,14 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
 type upsertCall struct {
-	artefactID string
-	sourcePath string
-	profiles   []registry_dto.NamedProfile
+	artefactID    string
+	sourcePath    string
+	profiles      []registry_dto.NamedProfile
+	hasSourceData bool
 }
 
 func newPipelineRegistryMock(upsertError error) (*registry_domain.MockRegistryService, *[]upsertCall) {
@@ -42,14 +45,15 @@ func newPipelineRegistryMock(upsertError error) (*registry_domain.MockRegistrySe
 		UpsertArtefactFunc: func(
 			_ context.Context,
 			artefactID, sourcePath string,
-			_ io.Reader,
+			sourceData io.Reader,
 			_ string,
 			profiles []registry_dto.NamedProfile,
 		) (*registry_dto.ArtefactMeta, error) {
 			calls = append(calls, upsertCall{
-				artefactID: artefactID,
-				sourcePath: sourcePath,
-				profiles:   profiles,
+				artefactID:    artefactID,
+				sourcePath:    sourcePath,
+				profiles:      profiles,
+				hasSourceData: sourceData != nil,
 			})
 			if upsertError != nil {
 				return nil, upsertError
@@ -59,13 +63,45 @@ func newPipelineRegistryMock(upsertError error) (*registry_domain.MockRegistrySe
 	}
 	return mock, &calls
 }
+
+type stubAssetReader struct {
+	files map[string][]byte
+	err   error
+}
+
+func (s *stubAssetReader) ReadFile(_ context.Context, path string) ([]byte, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	data, ok := s.files[path]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
+	return data, nil
+}
+
+func externalRasterFixture(t *testing.T, moduleName, sourcePath, absPath string, data []byte, readerErr error) (*AssetPipelineOrchestrator, *[]upsertCall) {
+	t.Helper()
+	mockRegistry, calls := newPipelineRegistryMock(nil)
+	resolver := &resolver_domain.MockResolver{
+		GetModuleNameFunc: func() string { return moduleName },
+		ResolveAssetPathFunc: func(_ context.Context, importPath, _ string) (string, error) {
+			if importPath != sourcePath {
+				return "", fs.ErrNotExist
+			}
+			return absPath, nil
+		},
+	}
+	reader := &stubAssetReader{files: map[string][]byte{absPath: data}, err: readerErr}
+	return NewAssetPipelineOrchestrator(mockRegistry, nil, resolver, reader), calls
+}
 func Test_NewAssetPipelineOrchestrator(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates orchestrator with dependencies", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 		require.NotNil(t, orchestrator)
 	})
 }
@@ -75,7 +111,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 	t.Run("returns nil for nil result", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		err := orchestrator.ProcessBuildResult(context.Background(), nil)
 		assert.NoError(t, err)
@@ -84,7 +120,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 	t.Run("returns nil for empty asset manifest", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := NewAssetPipelineOrchestrator(nil, nil)
+		orchestrator := NewAssetPipelineOrchestrator(nil, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{},
@@ -99,7 +135,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -126,7 +162,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -149,7 +185,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -172,7 +208,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -195,7 +231,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -228,7 +264,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(nil)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -249,7 +285,7 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 
 		mockRegistry, calls := newPipelineRegistryMock(assert.AnError)
 
-		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
 
 		result := &annotator_dto.ProjectAnnotationResult{
 			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
@@ -268,6 +304,149 @@ func Test_AssetPipelineOrchestrator_ProcessBuildResult(t *testing.T) {
 		assert.Len(t, *calls, 2)
 	})
 }
+
+func Test_AssetPipelineOrchestrator_ExternalRasterSeeding(t *testing.T) {
+	t.Parallel()
+
+	const moduleName = "example.com/app"
+
+	processOne := func(orchestrator *AssetPipelineOrchestrator, asset *annotator_dto.FinalAssetDependency) error {
+		return orchestrator.ProcessBuildResult(context.Background(), &annotator_dto.ProjectAnnotationResult{
+			FinalAssetManifest: []*annotator_dto.FinalAssetDependency{asset},
+		})
+	}
+
+	t.Run("external img seeds source bytes and keeps profiles", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/icons/hero.png"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/icons/hero.png", []byte("PNGDATA"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{
+			SourcePath:           src,
+			AssetType:            "img",
+			TransformationParams: map[string][]string{"sizes": {"400px"}},
+		})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.Equal(t, src, (*calls)[0].artefactID)
+		assert.True(t, (*calls)[0].hasSourceData, "external img must seed source bytes")
+		assert.NotEmpty(t, (*calls)[0].profiles, "img with sizes gets transformation profiles alongside the seeded source")
+	})
+
+	t.Run("external picture with no profiles still seeds bytes", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/images/banner.jpg"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/images/banner.jpg", []byte("JPGDATA"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{SourcePath: src, AssetType: "picture"})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1, "must upsert even when no desired profiles exist")
+		assert.True(t, (*calls)[0].hasSourceData)
+	})
+
+	t.Run("external pml-img seeds bytes", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/images/photo.webp"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/images/photo.webp", []byte("WEBP"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{SourcePath: src, AssetType: "pml-img"})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.True(t, (*calls)[0].hasSourceData)
+	})
+
+	t.Run("external svg is byte-seeded for render-time inlining", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/icons/logo.svg"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/icons/logo.svg", []byte("<svg/>"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{SourcePath: src, AssetType: "svg"})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.Equal(t, src, (*calls)[0].artefactID)
+		assert.True(t, (*calls)[0].hasSourceData, "external svg is loaded raw from the registry at render time, so it must be seeded")
+	})
+
+	t.Run("external video is not byte-seeded", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/media/clip.mp4"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/media/clip.mp4", []byte("MP4"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{SourcePath: src, AssetType: "video"})
+		require.NoError(t, err)
+		for _, call := range *calls {
+			assert.False(t, call.hasSourceData)
+		}
+	})
+
+	t.Run("local img is not byte-seeded here", func(t *testing.T) {
+		t.Parallel()
+
+		const src = moduleName + "/assets/hero.png"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/unused", []byte("PNG"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{
+			SourcePath:           src,
+			AssetType:            "img",
+			TransformationParams: map[string][]string{"sizes": {"400px"}},
+		})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.False(t, (*calls)[0].hasSourceData, "local assets are seeded by the filesystem walk")
+	})
+
+	t.Run("nil resolver and reader skip seeding", func(t *testing.T) {
+		t.Parallel()
+
+		mockRegistry, calls := newPipelineRegistryMock(nil)
+		orchestrator := NewAssetPipelineOrchestrator(mockRegistry, nil, nil, nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{
+			SourcePath:           "github.com/org/ui/lib/icons/hero.png",
+			AssetType:            "img",
+			TransformationParams: map[string][]string{"sizes": {"400px"}},
+		})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.False(t, (*calls)[0].hasSourceData)
+	})
+
+	t.Run("read failure degrades to profile-only upsert without error", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/icons/hero.png"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/icons/hero.png", nil, fs.ErrPermission)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{
+			SourcePath:           src,
+			AssetType:            "img",
+			TransformationParams: map[string][]string{"sizes": {"400px"}},
+		})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.False(t, (*calls)[0].hasSourceData, "unreadable external asset must not fail the build")
+		assert.Equal(t, src, (*calls)[0].artefactID)
+	})
+
+	t.Run("artefactID is the verbatim source path", func(t *testing.T) {
+		t.Parallel()
+
+		const src = "github.com/org/ui/lib/icons/hero.png"
+		orchestrator, calls := externalRasterFixture(t, moduleName, src, "/cache/ui/lib/icons/hero.png", []byte("PNG"), nil)
+
+		err := processOne(orchestrator, &annotator_dto.FinalAssetDependency{SourcePath: src, AssetType: "img"})
+		require.NoError(t, err)
+		require.Len(t, *calls, 1)
+		assert.Equal(t, src, (*calls)[0].artefactID)
+		assert.Equal(t, src, (*calls)[0].sourcePath)
+	})
+}
+
 func TestParseDensity(t *testing.T) {
 	t.Parallel()
 

@@ -278,6 +278,23 @@ func (*assetCollectionContext) hasDynamicSrc(node *ast_domain.TemplateNode) bool
 	return false
 }
 
+// originPathForNode returns the path of the .pk file that authored the given node.
+//
+// Nodes inlined from a partial carry their own source via
+// GoAnnotations.OriginalSourcePath, so an @ alias in a shared partial resolves against
+// that partial's module rather than the top-level page that imported it. It falls back to
+// the entry point path when a node has no recorded origin.
+//
+// Takes node (*ast_domain.TemplateNode) which owns the asset reference.
+//
+// Returns string which is the authoring component's file path.
+func (ac *assetCollectionContext) originPathForNode(node *ast_domain.TemplateNode) string {
+	if node.GoAnnotations != nil && node.GoAnnotations.OriginalSourcePath != nil {
+		return *node.GoAnnotations.OriginalSourcePath
+	}
+	return ac.originComponentPath
+}
+
 // validateAssetExists checks if the asset file exists on the filesystem. It uses the
 // resolver to convert the module-absolute path (or @ alias) to a filesystem path.
 //
@@ -290,7 +307,9 @@ func (*assetCollectionContext) hasDynamicSrc(node *ast_domain.TemplateNode) bool
 // use as the dependency's SourcePath in registry lookups.
 // Returns bool which indicates whether validation succeeded.
 func (ac *assetCollectionContext) validateAssetExists(ctx context.Context, node *ast_domain.TemplateNode, staticSrc string) (string, bool) {
-	expandedPath, err := resolver_adapters.ExpandModuleAlias(staticSrc, ac.originComponentPath)
+	originComponentPath := ac.originPathForNode(node)
+
+	expandedPath, err := resolver_adapters.ExpandModuleAlias(staticSrc, originComponentPath)
 	if err != nil {
 		ac.addDiagnostic(node, fmt.Sprintf(
 			"Cannot expand module alias in asset path: %s (%v)",
@@ -299,7 +318,7 @@ func (ac *assetCollectionContext) validateAssetExists(ctx context.Context, node 
 		return "", false
 	}
 
-	assetFullPath, err := ac.resolver.ResolveAssetPath(ctx, expandedPath, ac.originComponentPath)
+	assetFullPath, err := ac.resolver.ResolveAssetPath(ctx, expandedPath, originComponentPath)
 	if err != nil {
 		ac.addDiagnostic(node, fmt.Sprintf(
 			"Invalid asset path: %s (%v)",
@@ -395,7 +414,7 @@ func (ac *assetCollectionContext) buildPosterDependency(
 		SourcePath:           posterSrc,
 		AssetType:            "img",
 		TransformationParams: make(map[string]string),
-		OriginComponentPath:  ac.originComponentPath,
+		OriginComponentPath:  ac.originPathForNode(node),
 		Location:             node.Location,
 	}
 
@@ -434,7 +453,7 @@ func (ac *assetCollectionContext) buildDependency(
 		SourcePath:           staticSrc,
 		AssetType:            strings.TrimPrefix(node.TagName, "piko:"),
 		TransformationParams: make(map[string]string),
-		OriginComponentPath:  ac.originComponentPath,
+		OriginComponentPath:  ac.originPathForNode(node),
 		Location:             node.Location,
 	}
 
@@ -552,10 +571,7 @@ func (ac *assetCollectionContext) applyDefaultDensitiesIfNeeded(
 // Takes message (string) which provides the warning text to display.
 // Takes code (string) which identifies the diagnostic type for tooling.
 func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, message, code string) {
-	sourcePath := ac.originComponentPath
-	if node.GoAnnotations != nil && node.GoAnnotations.OriginalSourcePath != nil {
-		sourcePath = *node.GoAnnotations.OriginalSourcePath
-	}
+	sourcePath := ac.originPathForNode(node)
 	ac.diagnostics = append(ac.diagnostics, ast_domain.NewDiagnosticWithCode(
 		ast_domain.Warning,
 		message,

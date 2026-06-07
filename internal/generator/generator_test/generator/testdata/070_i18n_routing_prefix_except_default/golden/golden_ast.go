@@ -306,7 +306,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																Column: 19,
 															},
 															DeclarationLocation: ast_domain.Location{
-																Line:   269,
+																Line:   263,
 																Column: 1,
 															},
 														},
@@ -334,7 +334,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 19,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   269,
+															Line:   263,
 															Column: 1,
 														},
 													},

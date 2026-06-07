@@ -28,8 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"golang.org/x/tools/go/packages"
-
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
@@ -236,6 +234,108 @@ func TestGoModuleCacheResolver_FindModuleBoundary_NotInitialised(t *testing.T) {
 	assert.Contains(t, err.Error(), "module list not initialised")
 }
 
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsPathReplaceDir(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/ui"}
+	r.replaceDirs = map[string]string{"github.com/org/ui": "/work/ui"}
+	r.mu.Unlock()
+
+	mod, sub, err := r.FindModuleBoundary(context.Background(), "/work/ui/components/button.pk")
+	require.NoError(t, err)
+	assert.Equal(t, "github.com/org/ui", mod)
+	assert.Equal(t, "components/button.pk", sub)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsPathPrefersLongestReplaceDir(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/ui", "piko.sh/piko"}
+	r.replaceDirs = map[string]string{
+		"piko.sh/piko":      "/work",
+		"github.com/org/ui": "/work/modules/ui",
+	}
+	r.mu.Unlock()
+
+	mod, sub, err := r.FindModuleBoundary(context.Background(), "/work/modules/ui/components/card.pk")
+	require.NoError(t, err)
+	assert.Equal(t, "github.com/org/ui", mod)
+	assert.Equal(t, "components/card.pk", sub)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsPathInModuleCache(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/lib"}
+	r.mu.Unlock()
+
+	mod, sub, err := r.FindModuleBoundary(context.Background(),
+		"/home/u/go/pkg/mod/github.com/org/lib@v1.2.0/components/button.pk")
+	require.NoError(t, err)
+	assert.Equal(t, "github.com/org/lib", mod)
+	assert.Equal(t, "components/button.pk", sub)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsPathOutsideAllModules(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/ui"}
+	r.replaceDirs = map[string]string{"github.com/org/ui": "/work/ui"}
+	r.mu.Unlock()
+
+	_, _, err := r.FindModuleBoundary(context.Background(), "/somewhere/else/file.pk")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not lie within any known module")
+	require.ErrorIs(t, err, errModuleBoundaryNotFound)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsCachePathWithoutVersion(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/lib"}
+	r.mu.Unlock()
+
+	_, _, err := r.FindModuleBoundary(context.Background(), "/home/u/go/pkg/mod/github.com/org/lib/components/button.pk")
+	require.Error(t, err)
+	require.ErrorIs(t, err, errModuleBoundaryNotFound)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_AbsCachePathBareModuleVersion(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/lib"}
+	r.mu.Unlock()
+
+	mod, sub, err := r.FindModuleBoundary(context.Background(), "/home/u/go/pkg/mod/github.com/org/lib@v1.2.0")
+	require.NoError(t, err)
+	assert.Equal(t, "github.com/org/lib", mod)
+	assert.Empty(t, sub)
+}
+
+func TestGoModuleCacheResolver_FindModuleBoundary_NotFoundIsSentinel(t *testing.T) {
+	t.Parallel()
+
+	r := NewGoModuleCacheResolver()
+	r.mu.Lock()
+	r.knownModules = []string{"github.com/org/lib"}
+	r.mu.Unlock()
+
+	_, _, err := r.FindModuleBoundary(context.Background(), "github.com/unknown/module/file.pk")
+	require.ErrorIs(t, err, errModuleBoundaryNotFound)
+}
+
 func TestGoModuleCacheResolver_GetModuleDir_CacheHit(t *testing.T) {
 	t.Parallel()
 
@@ -281,41 +381,6 @@ func TestGoModuleCacheResolver_constructAndValidatePKPath_CaseInsensitive(t *tes
 	path, err := r.constructAndValidatePKPath(ctx, "/cache/mod@v1.0.0", "components/BUTTON.PK", "mod/components/BUTTON.PK")
 	require.NoError(t, err)
 	assert.Contains(t, path, "BUTTON.PK")
-}
-
-func TestGoModuleCacheResolver_extractModuleDirFromPackages_EmptySlice(t *testing.T) {
-	t.Parallel()
-
-	r := NewGoModuleCacheResolver()
-	_, err := r.extractModuleDirFromPackages([]*packages.Package{}, "github.com/test/mod")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found in module cache")
-}
-
-func TestGoModuleCacheResolver_extractModuleDirFromPackages_NilModule(t *testing.T) {
-	t.Parallel()
-
-	r := NewGoModuleCacheResolver()
-	pkgs := []*packages.Package{{}}
-	_, err := r.extractModuleDirFromPackages(pkgs, "github.com/test/mod")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not found in module cache")
-}
-
-func TestGoModuleCacheResolver_extractModuleDirFromPackages_WithModule(t *testing.T) {
-	t.Parallel()
-
-	r := NewGoModuleCacheResolver()
-	pkgs := []*packages.Package{
-		{
-			Module: &packages.Module{
-				Dir: "/gomodcache/github.com/test/mod@v1.0.0",
-			},
-		},
-	}
-	directory, err := r.extractModuleDirFromPackages(pkgs, "github.com/test/mod")
-	require.NoError(t, err)
-	assert.Equal(t, "/gomodcache/github.com/test/mod@v1.0.0", directory)
 }
 
 func TestGoModuleCacheResolver_findModulePath_GreedyLongestMatch(t *testing.T) {
@@ -1065,23 +1130,6 @@ func TestGoModuleCacheResolver_loadKnownModulesFromGoMod_UsesCwd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, r.knownModules)
 	assert.Greater(t, len(r.knownModules), 0)
-}
-
-func TestGoModuleCacheResolver_extractModuleDirFromPackages_WithErrors(t *testing.T) {
-	t.Parallel()
-
-	r := NewGoModuleCacheResolver()
-
-	pkgs := []*packages.Package{
-		{
-			Errors: []packages.Error{
-				{Msg: "some error"},
-			},
-		},
-	}
-	_, err := r.extractModuleDirFromPackages(pkgs, "github.com/test/mod")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "errors while loading package")
 }
 
 func TestInMemoryModuleResolver_ResolvePKPath_AliasExpandError(t *testing.T) {

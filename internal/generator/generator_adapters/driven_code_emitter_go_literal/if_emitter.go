@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -272,8 +273,9 @@ func (ie *ifEmitter) buildConditionalBody(
 	parentSliceExpr goast.Expr,
 	clearDirective func(*ast_domain.TemplateNode),
 ) ([]goast.Stmt, []*ast_domain.Diagnostic) {
+	partialStmts, bodyDiags := ie.generateConditionalPartialCalls(originalNode)
+
 	var bodyStmts []goast.Stmt
-	var bodyDiags []*ast_domain.Diagnostic
 
 	canBeStatic := originalNode.GoAnnotations != nil &&
 		originalNode.GoAnnotations.IsStructurallyStatic &&
@@ -284,7 +286,7 @@ func (ie *ifEmitter) buildConditionalBody(
 		tempNode := originalNode.DeepClone()
 		clearDirective(tempNode)
 		staticVarIdent, staticDiags := ie.emitter.staticEmitter.registerStaticNode(ctx, tempNode, ie.currentPartialScopeID)
-		bodyDiags = staticDiags
+		bodyDiags = append(bodyDiags, staticDiags...)
 		bodyStmts = []goast.Stmt{
 			appendToSlice(parentSliceExpr, staticVarIdent),
 		}
@@ -303,10 +305,60 @@ func (ie *ifEmitter) buildConditionalBody(
 			PartialScopeID:        ie.currentPartialScopeID,
 			MainComponentScope:    ie.currentMainComponentScope,
 		})
-		bodyStmts, _, bodyDiags = ie.astBuilder.emitNode(emitCtx)
+		emittedStmts, _, emitDiags := ie.astBuilder.emitNode(emitCtx)
+		bodyStmts = emittedStmts
+		bodyDiags = append(bodyDiags, emitDiags...)
 	}
 
-	return bodyStmts, bodyDiags
+	return append(partialStmts, bodyStmts...), bodyDiags
+}
+
+// generateConditionalPartialCalls renders the partials governed by a conditional branch.
+//
+// Each returned render-call statement declares a partial's output variable so the branch
+// body can reference it. Partials nested under a deeper loop or conditional are excluded,
+// as those inner scopes render their own partials. Nothing is returned when the branch
+// governs no partials, leaving non-partial conditionals unchanged.
+//
+// Takes node (*ast_domain.TemplateNode) which is the conditional branch node.
+//
+// Returns []goast.Stmt which contains the partial render-call statements.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics produced.
+func (ie *ifEmitter) generateConditionalPartialCalls(node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
+	if ie.emitter.AnnotationResult == nil {
+		return nil, nil
+	}
+
+	governed := collectGovernedPartialInvocations(node, ie.emitter.AnnotationResult.UniqueInvocations)
+	if len(governed) == 0 {
+		return nil, nil
+	}
+
+	guardedKeys := ie.emitter.conditionallyGuardedKeys()
+	invocations := make([]*annotator_dto.PartialInvocation, 0, len(governed))
+	for _, invocation := range governed {
+		if guardedKeys[invocation.InvocationKey] {
+			invocations = append(invocations, invocation)
+		}
+	}
+	if len(invocations) == 0 {
+		return nil, nil
+	}
+
+	sortedInvocations, diagnostics := ie.astBuilder.topologicallySortInvocations(
+		invocations,
+		ie.emitter.AnnotationResult.VirtualModule,
+	)
+
+	var statements []goast.Stmt
+	for _, invocation := range sortedInvocations {
+		pInfo := partialInfoFromInvocation(invocation)
+		renderStmts, renderDiags := ie.astBuilder.emitPartialRenderCall(pInfo, ie.emitter.AnnotationResult)
+		statements = append(statements, renderStmts...)
+		diagnostics = append(diagnostics, renderDiags...)
+	}
+
+	return statements, diagnostics
 }
 
 // nodeContainsForLoops checks if a node or any of its descendants contain a p-for

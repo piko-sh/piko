@@ -125,9 +125,9 @@ func NewSQLEmitter() CodeEmitterPort {
 // NewSQLEmitterForDialect returns the database/sql code emitter for an engine dialect.
 //
 // The emitter is configured so the generated placeholders and array decoding match the
-// engine's driver. A project generating for more than one engine should pass each engine's
-// Dialect() here rather than using NewSQLEmitter, otherwise the postgres family loses its
-// `$N` placeholder form and its to_json array-column auto-decoding.
+// engine's driver. A project generating for more than one engine should pass each
+// engine's Dialect() here rather than using NewSQLEmitter, otherwise the postgres family
+// loses its `$N` placeholder form and its to_json array-column auto-decoding.
 //
 // Takes dialect (string) which is the engine's Dialect() name.
 //

@@ -573,6 +573,352 @@ func TestIsPartialInvocationLoopDependent_IndirectDependencyViaNestedPartial(t *
 	}
 }
 
+func partialNode(invocationKey string) *ast_domain.TemplateNode {
+	return &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+			PartialInfo: &ast_domain.PartialInvocationInfo{
+				InvocationKey: invocationKey,
+			},
+		},
+	}
+}
+
+func TestIsConditionalNode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		node *ast_domain.TemplateNode
+		want bool
+	}{
+		{name: "p-if", node: &ast_domain.TemplateNode{DirIf: &ast_domain.Directive{}}, want: true},
+		{name: "p-else-if", node: &ast_domain.TemplateNode{DirElseIf: &ast_domain.Directive{}}, want: true},
+		{name: "p-else", node: &ast_domain.TemplateNode{DirElse: &ast_domain.Directive{}}, want: true},
+		{name: "p-for is not conditional", node: &ast_domain.TemplateNode{DirFor: &ast_domain.Directive{}}, want: false},
+		{name: "plain element", node: &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isConditionalNode(tt.node); got != tt.want {
+				t.Errorf("isConditionalNode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_NilAST(t *testing.T) {
+	t.Parallel()
+
+	if got := collectConditionallyGuardedKeys(nil); len(got) != 0 {
+		t.Errorf("Expected empty map for nil AST, got %d entries", len(got))
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_PartialUnderConditional(t *testing.T) {
+	t.Parallel()
+
+	guarded := partialNode("guarded_key")
+	ifNode := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{guarded},
+	}
+
+	hoisted := partialNode("hoisted_key")
+
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{ifNode, hoisted}}
+
+	keys := collectConditionallyGuardedKeys(ast)
+
+	if !keys["guarded_key"] {
+		t.Error("Expected partial inside p-if to be guarded")
+	}
+	if keys["hoisted_key"] {
+		t.Error("Expected partial outside any conditional to not be guarded")
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_ConditionalPartialItself(t *testing.T) {
+	t.Parallel()
+
+	node := partialNode("self_guarded")
+	node.DirIf = &ast_domain.Directive{}
+
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}}
+
+	if !collectConditionallyGuardedKeys(ast)["self_guarded"] {
+		t.Error("Expected a partial node carrying p-if to be guarded")
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_MultiScopeNotGuarded(t *testing.T) {
+	t.Parallel()
+
+	insideIf := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{partialNode("shared_icon")},
+	}
+	atRoot := partialNode("shared_icon")
+
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{insideIf, atRoot}}
+
+	if collectConditionallyGuardedKeys(ast)["shared_icon"] {
+		t.Error("Expected a key used both inside a conditional and at the root to stay hoisted (not guarded)")
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_AllOccurrencesSameScopeGuarded(t *testing.T) {
+	t.Parallel()
+
+	ifNode := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{
+			partialNode("twice"),
+			partialNode("twice"),
+		},
+	}
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{ifNode}}
+
+	if !collectConditionallyGuardedKeys(ast)["twice"] {
+		t.Error("Expected a key whose occurrences all share one conditional scope to be guarded")
+	}
+
+	invs := []*annotator_dto.PartialInvocation{{InvocationKey: "twice"}}
+	governed := collectGovernedPartialInvocations(ifNode, invs)
+	if len(governed) != 1 {
+		t.Fatalf("Expected the duplicated key to be collected once, got %d", len(governed))
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_TwoIndependentConditionalsGuarded(t *testing.T) {
+	t.Parallel()
+
+	firstIf := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{partialNode("badge")},
+	}
+	secondIf := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{partialNode("badge")},
+	}
+
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{firstIf, secondIf}}
+
+	if !collectConditionallyGuardedKeys(ast)["badge"] {
+		t.Error("Expected a key guarded under two independent conditionals (none unguarded) to be guarded")
+	}
+}
+
+func TestCollectConditionallyGuardedKeys_TwoInnerConditionalsInLoopsGuarded(t *testing.T) {
+	t.Parallel()
+
+	makeLoopWithInnerIf := func() *ast_domain.TemplateNode {
+		return &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			DirFor:   &ast_domain.Directive{},
+			Children: []*ast_domain.TemplateNode{
+				{
+					NodeType: ast_domain.NodeElement,
+					DirIf:    &ast_domain.Directive{},
+					Children: []*ast_domain.TemplateNode{partialNode("row")},
+				},
+			},
+		}
+	}
+
+	ast := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{makeLoopWithInnerIf(), makeLoopWithInnerIf()}}
+
+	if !collectConditionallyGuardedKeys(ast)["row"] {
+		t.Error("Expected a key under inner conditionals across two loops (none unguarded) to be guarded")
+	}
+}
+
+func TestCollectGovernedPartialInvocations_StopsAtNestedScopes(t *testing.T) {
+	t.Parallel()
+
+	invocations := []*annotator_dto.PartialInvocation{
+		{InvocationKey: "direct"},
+		{InvocationKey: "in_nested_for"},
+		{InvocationKey: "in_nested_if"},
+	}
+
+	nestedFor := &ast_domain.TemplateNode{
+		DirFor:   &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{partialNode("in_nested_for")},
+	}
+	nestedIf := &ast_domain.TemplateNode{
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{partialNode("in_nested_if")},
+	}
+	scope := &ast_domain.TemplateNode{
+		DirIf: &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{
+			partialNode("direct"),
+			nestedFor,
+			nestedIf,
+		},
+	}
+
+	governed := collectGovernedPartialInvocations(scope, invocations)
+
+	if len(governed) != 1 {
+		t.Fatalf("Expected exactly 1 governed invocation, got %d", len(governed))
+	}
+	if governed[0].InvocationKey != "direct" {
+		t.Errorf("Expected governed invocation 'direct', got %q", governed[0].InvocationKey)
+	}
+}
+
+func TestCollectGovernedPartialInvocations_ScopeNodeIsPartial(t *testing.T) {
+	t.Parallel()
+
+	invocations := []*annotator_dto.PartialInvocation{{InvocationKey: "self"}}
+
+	scope := partialNode("self")
+	scope.DirIf = &ast_domain.Directive{}
+
+	governed := collectGovernedPartialInvocations(scope, invocations)
+
+	if len(governed) != 1 || governed[0].InvocationKey != "self" {
+		t.Fatalf("Expected the scope's own partial to be governed, got %+v", governed)
+	}
+}
+
+func TestCollectGovernedPartialInvocations_CollectsAll(t *testing.T) {
+	t.Parallel()
+
+	invocations := []*annotator_dto.PartialInvocation{
+		{InvocationKey: "inv_key_1", PartialAlias: "Button"},
+		{InvocationKey: "inv_key_2", PartialAlias: "Card"},
+	}
+
+	scope := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "div",
+		Children: []*ast_domain.TemplateNode{
+			partialNode("inv_key_1"),
+			partialNode("inv_key_2"),
+		},
+	}
+
+	governed := collectGovernedPartialInvocations(scope, invocations)
+
+	if len(governed) != 2 {
+		t.Fatalf("Expected both partial invocations to be collected, got %d", len(governed))
+	}
+	if governed[0].InvocationKey != "inv_key_1" || governed[1].InvocationKey != "inv_key_2" {
+		t.Errorf("Unexpected collected order: %q, %q", governed[0].InvocationKey, governed[1].InvocationKey)
+	}
+}
+
+func TestCollectGovernedPartialInvocations_SkipsNestedLoops(t *testing.T) {
+	t.Parallel()
+
+	invocations := []*annotator_dto.PartialInvocation{
+		{InvocationKey: "outer_inv"},
+		{InvocationKey: "nested_inv"},
+	}
+
+	scope := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "div",
+		Children: []*ast_domain.TemplateNode{
+			partialNode("outer_inv"),
+			{
+				NodeType: ast_domain.NodeElement,
+				TagName:  "ul",
+				DirFor:   &ast_domain.Directive{},
+				Children: []*ast_domain.TemplateNode{partialNode("nested_inv")},
+			},
+		},
+	}
+
+	governed := collectGovernedPartialInvocations(scope, invocations)
+
+	if len(governed) != 1 || governed[0].InvocationKey != "outer_inv" {
+		t.Fatalf("Expected only the partial outside the nested loop, got %+v", governed)
+	}
+}
+
+func TestCollectGovernedPartialInvocations_SiblingAfterNestedLoop(t *testing.T) {
+	t.Parallel()
+
+	invocations := []*annotator_dto.PartialInvocation{
+		{InvocationKey: "nested_inv"},
+		{InvocationKey: "after_loop_inv"},
+	}
+
+	scope := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		TagName:  "tr",
+		Children: []*ast_domain.TemplateNode{
+			{
+				NodeType: ast_domain.NodeElement,
+				TagName:  "td",
+				DirFor:   &ast_domain.Directive{},
+				Children: []*ast_domain.TemplateNode{partialNode("nested_inv")},
+			},
+			{
+				NodeType: ast_domain.NodeElement,
+				TagName:  "td",
+				Children: []*ast_domain.TemplateNode{partialNode("after_loop_inv")},
+			},
+		},
+	}
+
+	governed := collectGovernedPartialInvocations(scope, invocations)
+
+	if len(governed) != 1 || governed[0].InvocationKey != "after_loop_inv" {
+		t.Fatalf("Expected the sibling partial after the nested loop, got %+v", governed)
+	}
+}
+
+func TestBuildPartialRenderCalls_GuardedPartialSkipped(t *testing.T) {
+	t.Parallel()
+
+	builder := createTestAstBuilder()
+
+	invocations := []*annotator_dto.PartialInvocation{
+		{
+			InvocationKey:     "guarded_key",
+			PartialAlias:      "MyPartial",
+			PartialHashedName: "partial123",
+			InvokerHashedName: "main123",
+			PassedProps:       map[string]ast_domain.PropValue{},
+			RequestOverrides:  map[string]ast_domain.PropValue{},
+			Location:          ast_domain.Location{Line: 1, Column: 1},
+		},
+	}
+
+	result := createTestAnnotationResultWithInvocations(invocations)
+
+	guardedNode := partialNode("guarded_key")
+	result.AnnotatedAST.RootNodes = []*ast_domain.TemplateNode{
+		{
+			NodeType: ast_domain.NodeElement,
+			DirIf:    &ast_domain.Directive{},
+			Children: []*ast_domain.TemplateNode{guardedNode},
+		},
+	}
+	builder.emitter.AnnotationResult = result
+
+	statements, diagnostics := builder.buildPartialRenderCalls(result, invocations)
+
+	if len(statements) != 0 {
+		t.Errorf("Expected no hoisted statements for conditionally-guarded partial, got %d", len(statements))
+	}
+	if len(diagnostics) != 0 {
+		t.Errorf("Expected no diagnostics, got %d", len(diagnostics))
+	}
+}
+
 func TestEmitNode_TextNode(t *testing.T) {
 	t.Parallel()
 

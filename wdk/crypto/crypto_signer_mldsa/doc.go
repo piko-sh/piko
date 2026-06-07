@@ -19,8 +19,7 @@
 // Package crypto_signer_mldsa provides a post-quantum detached signer over ML-DSA-65.
 //
 // The scheme is ML-DSA-65 (FIPS 204, NIST security category 3) backed by
-// cloudflare/circl. It mirrors crypto_signer_ed25519's shape (GenerateKeyPair,
-// NewSigner / NewVerifier from raw bytes, Sign, Verify) so a host can compose the two
-// into a hybrid classical+post-quantum signature that stays secure while either
-// algorithm is unbroken.
+// cloudflare/circl. It mirrors crypto_signer_ed25519's shape (GenerateKeyPair, NewSigner
+// / NewVerifier from raw bytes, Sign, Verify) so a host can compose the two into a hybrid
+// classical+post-quantum signature that stays secure while either algorithm is unbroken.
 package crypto_signer_mldsa

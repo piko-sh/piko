@@ -811,15 +811,21 @@ func (*inMemoryResolver) GetModuleDir(_ context.Context, modulePath string) (str
 	return "", fmt.Errorf("external module %q not available in in-memory resolver", modulePath)
 }
 
-// FindModuleBoundary splits an import path into module and subpath. For in-memory
-// resolver, this assumes everything is in the local module.
+// FindModuleBoundary splits an import path into module and subpath. The in-memory
+// resolver assumes everything is in the local module and does not support absolute file
+// paths, which it rejects so a caller never receives a bogus boundary from path text it
+// cannot resolve.
 //
-// Takes importPath (string) which is the full import path to split.
+// Takes importPath (string) which is the import path to split.
 //
 // Returns modulePath (string) which is the module portion of the path.
 // Returns subpath (string) which is the path within the module.
-// Returns err (error) which is always nil for this resolver.
+// Returns err (error) when given an absolute path; otherwise nil for this resolver.
 func (r *inMemoryResolver) FindModuleBoundary(_ context.Context, importPath string) (modulePath, subpath string, err error) {
+	if filepath.IsAbs(importPath) {
+		return "", "", fmt.Errorf("in-memory resolver does not support absolute path %q", importPath)
+	}
+
 	if sub, ok := strings.CutPrefix(importPath, r.moduleName+"/"); ok {
 		return r.moduleName, sub, nil
 	}

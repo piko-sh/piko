@@ -25,30 +25,30 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// columnExistencePass surfaces unknown or ambiguous column references that are
-// nested inside an output column's expression tree.
+// columnExistencePass surfaces unknown or ambiguous column references that are nested
+// inside an output column's expression tree.
 //
-// The type resolver computes expression types leniently: a CASE, predicate,
-// binary op, function argument or COALESCE still yields a type even when one of
-// its operands references a column that does not exist, because each combinator
-// discards the operand's resolution error so a usable type is always produced for
-// codegen. A genuine typo such as a reference to a column the view does not expose
-// therefore reaches runtime with no compile-time warning.
+// The type resolver computes expression types leniently: a CASE, predicate, binary op,
+// function argument or COALESCE still yields a type even when one of its operands
+// references a column that does not exist, because each combinator discards the operand's
+// resolution error so a usable type is always produced for codegen. A genuine typo such
+// as a reference to a column the view does not expose therefore reaches runtime with no
+// compile-time warning.
 //
 // This read-only pass closes that gap. It runs after type resolution (so the scope
 // already carries every table and view column) and walks each output column's raw
-// expression tree, validating every column reference against the same lenient gate
-// the parameter resolver uses. It never modifies the typing path, so it can only
-// add SeverityWarning diagnostics: codegen still succeeds.
+// expression tree, validating every column reference against the same lenient gate the
+// parameter resolver uses. It never modifies the typing path, so it can only add
+// SeverityWarning diagnostics: codegen still succeeds.
 type columnExistencePass struct {
-	// catalogue backs the catalogue-wide fallback lookup that keeps the pass silent
-	// on columns the engine adapter flat-scanned out of a subquery, matching the
-	// parameter resolver's leniency.
+	// catalogue backs the catalogue-wide fallback lookup that keeps the pass silent on
+	// columns the engine adapter flat-scanned out of a subquery, matching the parameter
+	// resolver's leniency.
 	catalogue *querier_dto.Catalogue
 }
 
-// Analyse walks every output column's expression tree and reports each genuine
-// unknown (Q001) or ambiguous (Q002) column reference as a warning.
+// Analyse walks every output column's expression tree and reports each genuine unknown
+// (Q001) or ambiguous (Q002) column reference as a warning.
 //
 // Takes context (*diagnosticContext) which carries the query, scope, raw analysis and the
 // diagnostics already produced so duplicates are suppressed.
@@ -86,8 +86,8 @@ func (p *columnExistencePass) Analyse(context *diagnosticContext) []querier_dto.
 //   - lambda bodies, whose parameter occurrences the engine parser re-emits as bare
 //     column references indistinguishable from real columns;
 //   - function-call arguments, the position where the engine parsers collapse a
-//     named-argument label (the := and => forms) into a bare or comparison-wrapped
-//     column reference that is likewise indistinguishable from a genuine column.
+//     named-argument label (the := and => forms) into a bare or comparison-wrapped column
+//     reference that is likewise indistinguishable from a genuine column.
 //
 // A FILTER predicate, a CASE, a predicate, a boolean operand, a COALESCE or an arithmetic
 // operand is a genuine column position and is still gated, so a real typo there is still
@@ -171,23 +171,23 @@ func (p *columnExistencePass) walkExpressionColumns(
 	}
 }
 
-// gateUnknownColumn resolves a single column reference with the same three-step
-// leniency the parameter resolver applies in resolveColumnReferencedParameterType.
+// gateUnknownColumn resolves a single column reference with the same three-step leniency
+// the parameter resolver applies in resolveColumnReferencedParameterType.
 //
-// A reference that resolves in scope, recovers via the catalogue-wide lookup, or
-// recovers via the bare-column fallback is silent. A surviving scope-depth or
-// internal-nil-guard error is also silent: those are not user-facing unknown
-// columns, and because the depth sentinel carries no Q-code prefix extractErrorCode
-// would otherwise mislabel it Q001. Anything else is surfaced once per
-// (alias, column) as a warning, preserving the Q001/Q002 code already encoded in
-// the scope error's message prefix.
+// A reference that resolves in scope, recovers via the catalogue-wide lookup, or recovers
+// via the bare-column fallback is silent. A surviving scope-depth or internal-nil-guard
+// error is also silent: those are not user-facing unknown columns, and because the depth
+// sentinel carries no Q-code prefix extractErrorCode would otherwise mislabel it Q001.
+// Anything else is surfaced once per (alias, column) as a warning, preserving the
+// Q001/Q002 code already encoded in the scope error's message prefix.
 //
 // Takes context (*diagnosticContext) which provides the scope, catalogue and filename.
-// Takes expression (*querier_dto.ColumnRefExpression) which is the column reference to gate.
+// Takes expression (*querier_dto.ColumnRefExpression) which is the column reference to
+// gate.
 // Takes seen (map[string]struct{}) which deduplicates already-reported diagnostics.
 //
-// Returns *querier_dto.SourceError which is the warning for a genuine unknown or ambiguous
-// column, or nil when the reference resolves or is suppressed.
+// Returns *querier_dto.SourceError which is the warning for a genuine unknown or
+// ambiguous column, or nil when the reference resolves or is suppressed.
 // Returns bool which is true when a warning was produced.
 func (p *columnExistencePass) gateUnknownColumn(
 	context *diagnosticContext,
@@ -244,16 +244,16 @@ func (p *columnExistencePass) gateUnknownColumn(
 	}, true
 }
 
-// columnNameExistsInCatalogue reports whether columnName is the name of a column on
-// any table or view in the catalogue, ignoring the qualifying alias.
+// columnNameExistsInCatalogue reports whether columnName is the name of a column on any
+// table or view in the catalogue, ignoring the qualifying alias.
 //
-// The pass uses it as a final suppression. A query may legitimately reference a
-// column the active scope does not model: the output of a table-valued function, or
-// a view whose body the catalogue could only partially resolve. If the bare name is
-// known on some relation, the reference is almost certainly one of those cases
-// rather than a typo, so the pass stays silent. A genuinely misspelled column - a
-// name that appears on no relation at all, such as version_role where only
-// version_role_id exists - is still surfaced.
+// The pass uses it as a final suppression. A query may legitimately reference a column
+// the active scope does not model: the output of a table-valued function, or a view whose
+// body the catalogue could only partially resolve. If the bare name is known on some
+// relation, the reference is almost certainly one of those cases rather than a typo, so
+// the pass stays silent. A genuinely misspelled column - a name that appears on no
+// relation at all, such as version_role where only version_role_id exists - is still
+// surfaced.
 //
 // Takes catalogue (*querier_dto.Catalogue) which holds the schema state to search.
 // Takes columnName (string) which is the bare column name to look for.

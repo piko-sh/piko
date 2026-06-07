@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -1170,4 +1171,52 @@ func TestEmitTruthinessCheck(t *testing.T) {
 			tc.assertFunc(t, result)
 		})
 	}
+}
+
+func TestGenerateConditionalPartialCalls_NilAnnotationResult(t *testing.T) {
+	t.Parallel()
+
+	mockEmitter := &emitter{config: EmitterConfig{}, ctx: NewEmitterContext()}
+	stringConv := newStringConverter()
+	binaryEmitter := newBinaryOpEmitter(mockEmitter, nil)
+	expressionEmitter := newExpressionEmitter(mockEmitter, binaryEmitter, stringConv)
+	ifEmitter := newIfEmitter(mockEmitter, expressionEmitter, &mockAstBuilder{})
+
+	node := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, DirIf: &ast_domain.Directive{}}
+
+	stmts, diagnostics := ifEmitter.generateConditionalPartialCalls(node)
+
+	assert.Nil(t, stmts, "Expected no statements when there is no annotation result")
+	assert.Nil(t, diagnostics, "Expected no diagnostics when there is no annotation result")
+}
+
+func TestGenerateConditionalPartialCalls_HoistedKeyNotReRendered(t *testing.T) {
+	t.Parallel()
+
+	guardedNode := partialNode("shared")
+	condNode := &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeElement,
+		DirIf:    &ast_domain.Directive{},
+		Children: []*ast_domain.TemplateNode{guardedNode},
+	}
+	rootOccurrence := partialNode("shared")
+
+	mockEmitter := &emitter{
+		config: EmitterConfig{},
+		ctx:    NewEmitterContext(),
+		AnnotationResult: &annotator_dto.AnnotationResult{
+			AnnotatedAST:      &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{condNode, rootOccurrence}},
+			UniqueInvocations: []*annotator_dto.PartialInvocation{{InvocationKey: "shared"}},
+			VirtualModule:     &annotator_dto.VirtualModule{ComponentsByHash: make(map[string]*annotator_dto.VirtualComponent)},
+		},
+	}
+	stringConv := newStringConverter()
+	binaryEmitter := newBinaryOpEmitter(mockEmitter, nil)
+	expressionEmitter := newExpressionEmitter(mockEmitter, binaryEmitter, stringConv)
+	ifEmitter := newIfEmitter(mockEmitter, expressionEmitter, &mockAstBuilder{})
+
+	stmts, diagnostics := ifEmitter.generateConditionalPartialCalls(condNode)
+
+	assert.Nil(t, stmts, "Expected a governed-but-hoisted key not to be re-rendered in its conditional")
+	assert.Nil(t, diagnostics, "Expected no diagnostics for a hoisted key")
 }
